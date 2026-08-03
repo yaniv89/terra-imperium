@@ -6,8 +6,8 @@ import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTr
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
-import { NATIONS_DATA } from '../../data/nations';
 import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion } from '../../utils/helpers';
+import { ACTION_COSTS } from '../../data/actionCosts';
 import { ActionButton } from '../ui';
 
 const MilitaryPanel = ({ selectedRegion }) => {
@@ -31,54 +31,38 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
   // Train Underground (Pre-state)
   const handleTrainUnderground = () => {
-    const costs = { money: 3000, manpower: 500, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.trainUnderground)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.UPDATE_MILITARY, payload: { ug: 500 } });
-    addLog('Trained underground forces. +500 strength', 'action');
+    dispatch({ type: ActionTypes.TRAIN_UNDERGROUND });
   };
 
   // Train Infantry (Post-state)
   const handleTrainInfantry = () => {
-    const costs = { money: 8000, manpower: 1000, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.trainInfantry)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.UPDATE_MILITARY, payload: { mil: 1000 } });
-    addLog('Trained IDF infantry. +1000 military power', 'action');
+    dispatch({ type: ActionTypes.TRAIN_INFANTRY });
   };
 
   // Build Tanks
   const handleBuildTanks = () => {
-    const costs = { money: 20000, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.buildTanks)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.UPDATE_MILITARY, payload: { mil: 2000 } });
-    addLog('Built armored units. +2000 military power', 'action');
+    dispatch({ type: ActionTypes.BUILD_TANKS });
   };
 
   // Build Jets
   const handleBuildJets = () => {
-    const costs = { money: 30000, techPoints: 10, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.buildJets)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.UPDATE_MILITARY, payload: { mil: 3000 } });
-    addLog('Built air force jets. +3000 military power', 'action');
+    dispatch({ type: ActionTypes.BUILD_JETS });
   };
 
   // Launch Invasion
@@ -87,22 +71,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('Must be at war to invade', 'action');
       return;
     }
-    const costs = { money: 50000, manpower: 5000, actionPoints: 3 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) {
       addLog('Not enough resources for invasion', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({
-      type: ActionTypes.LAUNCH_INVASION,
-      payload: {
-        targetRegion: selectedRegion,
-        strength: militaryPower,
-        isPlayer: true
-      }
-    });
-    addLog(`Launched invasion of ${regionData.name}!`, 'combat');
+    dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion } });
   };
 
   // Counterattack
@@ -111,31 +84,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('No enemy invasion to counter', 'action');
       return;
     }
-    const costs = { money: 10000, actionPoints: 2 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.counterattack)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({
-      type: ActionTypes.UPDATE_INVASION,
-      payload: {
-        invId: activeInvasion.id,
-        updates: {
-          strength: Math.floor(activeInvasion.strength * 0.7),
-          morale: activeInvasion.morale - 20
-        }
-      }
-    });
-    dispatch({
-      type: ActionTypes.UPDATE_REGION,
-      payload: {
-        regionId: selectedRegion,
-        updates: { control: Math.min(100, regionState.control + 15) }
-      }
-    });
-    addLog(`Counterattack in ${regionData.name}! Control +15%`, 'combat');
+    dispatch({ type: ActionTypes.COUNTERATTACK, payload: { regionId: selectedRegion } });
   };
 
   // Air Strike
@@ -145,25 +98,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('No enemy forces to strike', 'action');
       return;
     }
-    const costs = { money: 20000, actionPoints: 2 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.airStrike)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    const target = enemyInvasions[0];
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({
-      type: ActionTypes.UPDATE_INVASION,
-      payload: {
-        invId: target.id,
-        updates: {
-          strength: Math.floor(target.strength * 0.6),
-          morale: target.morale - 25
-        }
-      }
-    });
-    addLog(`Air strike hit enemy forces at ${REGIONS_DATA[target.targetRegion]?.name}!`, 'combat');
+    dispatch({ type: ActionTypes.AIR_STRIKE });
   };
 
   // Fortify
@@ -172,21 +111,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('Select an owned region', 'action');
       return;
     }
-    const costs = { money: 8000, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.fortify)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({
-      type: ActionTypes.UPDATE_REGION,
-      payload: {
-        regionId: selectedRegion,
-        updates: { control: Math.min(100, regionState.control + 10) }
-      }
-    });
-    addLog(`Fortified ${regionData.name}. Control +10%`, 'action');
+    dispatch({ type: ActionTypes.FORTIFY, payload: { regionId: selectedRegion } });
   };
 
   return (
@@ -210,7 +139,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
             icon={Shield}
             label="Train Underground"
             description="Strengthen the Haganah defense forces"
-            costs={{ money: 3000, manpower: 500, actionPoints: 1 }}
+            costs={ACTION_COSTS.trainUnderground}
             effects={{ underground: 500 }}
             onClick={handleTrainUnderground}
             disabled={state.resources.actionPoints < 1}
@@ -235,7 +164,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
             icon={Users}
             label="Train Infantry"
             description="Expand IDF ground forces"
-            costs={{ money: 8000, manpower: 1000, actionPoints: 1 }}
+            costs={ACTION_COSTS.trainInfantry}
             effects={{ militaryPower: 1000 }}
             onClick={handleTrainInfantry}
             disabled={state.resources.actionPoints < 1}
@@ -246,7 +175,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
             icon={Shield}
             label="Build Tanks"
             description="Armored corps expansion"
-            costs={{ money: 20000, actionPoints: 1 }}
+            costs={ACTION_COSTS.buildTanks}
             effects={{ militaryPower: 2000 }}
             onClick={handleBuildTanks}
             disabled={state.resources.actionPoints < 1}
@@ -257,7 +186,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
             icon={Plane}
             label="Build Jets"
             description="Air force expansion for superiority"
-            costs={{ money: 30000, techPoints: 10, actionPoints: 1 }}
+            costs={ACTION_COSTS.buildJets}
             effects={{ militaryPower: 3000 }}
             onClick={handleBuildJets}
             disabled={state.resources.actionPoints < 1 || state.resources.techPoints < 10}
@@ -270,7 +199,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
               icon={Anchor}
               label="Fortify Position"
               description="Strengthen defenses in selected region"
-              costs={{ money: 8000, actionPoints: 1 }}
+              costs={ACTION_COSTS.fortify}
               effects={{ control: 10 }}
               onClick={handleFortify}
               disabled={state.resources.actionPoints < 1}
@@ -284,7 +213,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
               icon={Crosshair}
               label="Counterattack"
               description={`Push back enemy invasion in ${regionData?.name}`}
-              costs={{ money: 10000, actionPoints: 2 }}
+              costs={ACTION_COSTS.counterattack}
               effects={{ control: 15, custom: 'Weaken enemy' }}
               onClick={handleCounterattack}
               disabled={state.resources.actionPoints < 2}
@@ -298,7 +227,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
               icon={Plane}
               label="Air Strike"
               description="Bomb enemy invasion forces"
-              costs={{ money: 20000, actionPoints: 2 }}
+              costs={ACTION_COSTS.airStrike}
               effects={{ custom: '-40% enemy strength, -25 morale' }}
               onClick={handleAirStrike}
               disabled={state.resources.actionPoints < 2}
@@ -312,7 +241,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
               icon={Swords}
               label={`Invade ${regionData?.name}`}
               description={`Launch offensive against ${enemyNation?.name}`}
-              costs={{ money: 50000, manpower: 5000, actionPoints: 3 }}
+              costs={ACTION_COSTS.launchInvasion}
               effects={{ custom: 'Capture territory' }}
               onClick={handleInvade}
               disabled={state.resources.actionPoints < 3}

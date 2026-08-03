@@ -5,9 +5,10 @@ import React, { useMemo } from 'react';
 // FIX: Replaced 'Handshake' with 'Flag' to resolve the export error
 import { Flag, Skull, ShoppingCart, Shield, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { GamePhases, ActionTypes, RelationStatus } from '../../data/types';
+import { GamePhases, ActionTypes } from '../../data/types';
 import { NATIONS_DATA } from '../../data/nations';
 import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
+import { ACTION_COSTS } from '../../data/actionCosts';
 
 const DiplomacyPanel = () => {
   const { state, dispatch, addLog } = useGame();
@@ -35,14 +36,11 @@ const DiplomacyPanel = () => {
       addLog('Already at war', 'action');
       return;
     }
-    const costs = { diplomacyPoints: 20 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.declareWar)) {
       addLog('Need 20 Diplomacy Points to declare war', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId } });
+    dispatch({ type: ActionTypes.DECLARE_WAR_COSTED, payload: { nationId } });
   };
 
   // Seek Peace
@@ -56,14 +54,11 @@ const DiplomacyPanel = () => {
       addLog('Nation too hostile for peace negotiations (need <60 hostility)', 'action');
       return;
     }
-    const costs = { money: 20000, diplomacyPoints: 30, actionPoints: 2 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.seekPeace)) {
       addLog('Not enough resources for peace treaty', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.SIGN_PEACE, payload: { nationId } });
+    dispatch({ type: ActionTypes.SEEK_PEACE, payload: { nationId } });
   };
 
   // Sign Trade Agreement
@@ -77,14 +72,11 @@ const DiplomacyPanel = () => {
       addLog('Trade agreement already active', 'action');
       return;
     }
-    const costs = { diplomacyPoints: 15, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.signTrade)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.SIGN_TRADE, payload: { nationId } });
+    dispatch({ type: ActionTypes.SIGN_TRADE_COSTED, payload: { nationId } });
   };
 
   // Sign Military Pact
@@ -98,14 +90,11 @@ const DiplomacyPanel = () => {
       addLog('Military pact already active', 'action');
       return;
     }
-    const costs = { diplomacyPoints: 40, money: 50000, actionPoints: 2 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.militaryPact)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ type: ActionTypes.SIGN_MILITARY_PACT, payload: { nationId } });
+    dispatch({ type: ActionTypes.SIGN_MILITARY_PACT_COSTED, payload: { nationId } });
   };
 
   return (

@@ -1,19 +1,46 @@
 // src/components/ui/GameHeader.jsx
 // Main game header with title, year, resources, and end turn button
 
-import React from 'react';
-import { Star, Calendar, RotateCcw, FastForward, Flag } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Star, Calendar, RotateCcw, FastForward, Flag, Download, Upload } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { GamePhases } from '../../data/types';
+import { GamePhases, GameStatus } from '../../data/types';
 import { getAvgCoreControl } from '../../utils/helpers';
 import ResourceBar from './ResourceBar';
 
 const GameHeader = ({ onReset }) => {
-  const { state, advanceTurn } = useGame();
+  const { state, advanceTurn, exportSave, importSave } = useGame();
+  const fileInputRef = useRef(null);
 
   const isPreState = state.phase === GamePhases.PRE_STATE;
   const avgControl = getAvgCoreControl(state);
   const canDeclareIndependence = isPreState && avgControl >= 60;
+  const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
+
+  const handleExport = () => {
+    const json = exportSave();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rise-of-zion-${state.year}-${state.period === 0 ? 'H1' : 'H2'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const ok = importSave(String(reader.result));
+      if (!ok) window.alert('Could not load that save file — it may be corrupted or from an incompatible version.');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // Phase styling
   const phaseConfig = {
@@ -74,6 +101,29 @@ const GameHeader = ({ onReset }) => {
             </div>
           </div>
 
+          {/* Save / Load */}
+          <button
+            onClick={handleExport}
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+            title="Export Save"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleImportClick}
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+            title="Import Save"
+          >
+            <Upload className="w-4 h-4" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+
           {/* Reset Button */}
           <button
             onClick={onReset}
@@ -95,7 +145,7 @@ const GameHeader = ({ onReset }) => {
         {/* End Turn Button */}
         <button
           onClick={advanceTurn}
-          disabled={state.activeEvent !== null}
+          disabled={state.activeEventId !== null || isGameOver}
           className={`
             px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-xs sm:text-sm
             bg-gradient-to-r from-blue-600 to-blue-500 

@@ -59,7 +59,7 @@ const LOG_STYLES = {
 };
 
 // Individual log entry component
-const LogEntry = ({ log, index, showYear = true }) => {
+const LogEntry = ({ log, showYear = true }) => {
   const style = LOG_STYLES[log.type] || LOG_STYLES[LogTypes.ACTION];
 
   return (

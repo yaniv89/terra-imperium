@@ -6,21 +6,24 @@ import { GameProvider, useGame } from './context/GameContext';
 import { GameHeader } from './components/ui';
 import { GameMap } from './components/map';
 import { ActionPanel, LogConsole } from './components/panels';
-import { EventModal } from './components/modals';
-import { ActionTypes } from './data/types';
+import { EventModal, GameOverModal } from './components/modals';
+import { ActionTypes, GameStatus } from './data/types';
+import { HISTORICAL_EVENTS } from './data/events';
 
 // Main game layout component
 const GameLayout = () => {
   const { state, dispatch, resolveEvent } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
 
-  // Handle game reset
+  // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
+  // there's nothing left to lose.
   const handleReset = useCallback(() => {
-    if (window.confirm('Reset game? All progress will be lost.')) {
+    const alreadyOver = state.gameStatus !== GameStatus.ACTIVE;
+    if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
       dispatch({ type: ActionTypes.RESET_GAME });
       setSelectedRegion(null);
     }
-  }, [dispatch]);
+  }, [dispatch, state.gameStatus]);
 
   // Handle region selection
   const handleSelectRegion = useCallback((regionId) => {
@@ -57,9 +60,16 @@ const GameLayout = () => {
       </div>
 
       {/* Event Modal - overlays everything when active */}
-      <EventModal 
-        event={state.activeEvent} 
-        onResolve={resolveEvent} 
+      <EventModal
+        event={state.activeEventId ? HISTORICAL_EVENTS[state.activeEventId] : null}
+        onResolve={resolveEvent}
+      />
+
+      {/* Game Over screen - overlays everything once the run ends */}
+      <GameOverModal
+        status={state.gameStatus}
+        state={state}
+        onReset={handleReset}
       />
     </div>
   );

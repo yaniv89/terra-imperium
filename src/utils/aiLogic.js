@@ -5,8 +5,11 @@ import { NATIONS_DATA } from '../data/nations';
 import { REGIONS_DATA } from '../data/regions';
 import { RelationStatus } from '../data/types';
 
-// Process AI turn for a single nation
-export const processAINationTurn = (nation, state, year) => {
+const DEFAULT_RNG = { next: () => Math.random() };
+
+// Process AI turn for a single nation. `rng` must be a { next(): number } generator
+// (see src/utils/rng.js) so turn resolution stays deterministic and replayable.
+export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG, invasionCounter = 0) => {
   const updates = {
     militaryStrengthChange: 0,
     hostilityChange: 0,
@@ -14,14 +17,14 @@ export const processAINationTurn = (nation, state, year) => {
     regionConflicts: [],
     logs: []
   };
-  
+
   if (nation.isPlayer) return updates;
-  
+
   // 1. Economic growth - nations build military over time
   const baseGrowth = Math.floor(nation.militaryStrength * 0.03);
-  const economyBonus = Math.floor(Math.random() * 500);
+  const economyBonus = Math.floor(rng.next() * 500);
   updates.militaryStrengthChange = baseGrowth + economyBonus;
-  
+
   // Rich nations grow faster
   const nationData = NATIONS_DATA[nation.id];
   if (nationData) {
@@ -32,35 +35,41 @@ export const processAINationTurn = (nation, state, year) => {
     }, 0);
     updates.militaryStrengthChange += Math.floor(totalResources * 0.05);
   }
-  
-  // 2. Hostility changes
-  if (!nation.isAtWar) {
-    // Hostility can decay over time (toward player)
-    if (nation.hostility > 20 && Math.random() < 0.2) {
-      updates.hostilityChange = -2;
-      updates.logs.push({
-        message: `${nation.name} tensions ease slightly`,
-        type: 'ai'
-      });
-    }
-    
-    // Or increase randomly based on aggression
-    if (Math.random() < nationData?.aggression * 0.1) {
-      updates.hostilityChange = 3;
-    }
+
+  const aggression = nationData?.aggression ?? 0.3;
+
+  // 2. Hostility changes.
+  // Decay must apply whether or not the nation is at war — otherwise DECLARE_WAR's
+  // hostility:100 is a permanent floor (the only code that lowered hostility used to be
+  // gated to `!isAtWar`), and "seek peace" requires hostility <= 60, which then can never
+  // be reached: every war becomes permanent and unwinnable. War exhaustion should if
+  // anything decay hostility *faster* than peacetime drift.
+  if (nation.hostility > 20 && rng.next() < (nation.isAtWar ? 0.35 : 0.2)) {
+    updates.hostilityChange += -2;
+    updates.logs.push({
+      message: nation.isAtWar
+        ? `${nation.name} war-weariness grows`
+        : `${nation.name} tensions ease slightly`,
+      type: 'ai'
+    });
   }
-  
+
+  // Hostility can also ratchet up based on aggression — only while not already at war
+  // (an already-warring nation is already maximally hostile; this represents peacetime
+  // provocation escalating toward war, not war escalating further).
+  if (!nation.isAtWar && rng.next() < aggression * 0.1) {
+    updates.hostilityChange += 3;
+  }
+
   // 3. War actions - launch invasions
   if (nation.isAtWar && state.phase !== 'PRE_STATE') {
-    const aggression = nationData?.aggression || 0.5;
-    
     // Check if should launch new invasion
-    if (Math.random() < aggression * 0.3) {
+    if (rng.next() < aggression * 0.3) {
       const playerRegions = Object.values(state.regions).filter(r => r.owner === 'player');
       const existingInvasions = state.invasions.filter(
         inv => !inv.isPlayerAttacker && inv.active
       );
-      
+
       // Don't have too many simultaneous invasions
       if (playerRegions.length > 0 && existingInvasions.length < 3) {
         // Pick a target - prefer border regions or regions with low control
@@ -68,7 +77,7 @@ export const processAINationTurn = (nation, state, year) => {
           // Don't attack same region twice
           return !existingInvasions.some(inv => inv.targetRegion === r.id);
         });
-        
+
         if (validTargets.length > 0) {
           // Sort by strategic value and control (lower control = easier target)
           validTargets.sort((a, b) => {
@@ -78,97 +87,105 @@ export const processAINationTurn = (nation, state, year) => {
             const bScore = (bData?.strategicValue || 5) - (b.control / 20);
             return bScore - aScore;
           });
-          
+
           const target = validTargets[0];
-          const invasionStrength = Math.floor(nation.militaryStrength * (0.2 + Math.random() * 0.15));
-          
+          const invasionStrength = Math.floor(nation.militaryStrength * (0.2 + rng.next() * 0.15));
+
           updates.newInvasions.push({
-            id: `inv_${nation.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: `inv_${nation.id}_${year}_${invasionCounter}`,
             targetRegion: target.id,
             strength: invasionStrength,
-            morale: 80 + Math.floor(Math.random() * 20),
+            morale: 80 + Math.floor(rng.next() * 20),
             supply: 100,
             active: true,
             isPlayerAttacker: false,
             attackerNation: nation.id
           });
-          
+
           updates.logs.push({
             message: `${nation.name} attacks ${REGIONS_DATA[target.id]?.name || target.id}!`,
             type: 'crisis'
           });
-          
+
           // Launching attack costs military strength
           updates.militaryStrengthChange -= Math.floor(invasionStrength * 0.1);
         }
       }
     }
   }
-  
+
   // 4. AI vs AI conflicts (simplified)
-  if (!nation.isAtWar && Math.random() < 0.02) {
+  if (!nation.isAtWar && rng.next() < 0.02) {
     const otherNations = Object.values(state.nations).filter(
       n => n.id !== nation.id && !n.isPlayer && !n.isAtWar && n.hostility > 50
     );
-    
+
     if (otherNations.length > 0) {
-      const enemy = otherNations[Math.floor(Math.random() * otherNations.length)];
-      
+      const enemy = otherNations[Math.floor(rng.next() * otherNations.length)];
+      const casualtiesAggressor = Math.floor(nation.militaryStrength * 0.02);
+      const casualtiesDefender = Math.floor(enemy.militaryStrength * 0.02);
+
       updates.regionConflicts.push({
         aggressor: nation.id,
         defender: enemy.id,
-        casualtiesAggressor: Math.floor(nation.militaryStrength * 0.02),
-        casualtiesDefender: Math.floor(enemy.militaryStrength * 0.02)
+        casualtiesAggressor,
+        casualtiesDefender
       });
-      
+
       updates.logs.push({
         message: `Regional skirmish: ${nation.name} clashes with ${enemy.name}`,
         type: 'ai'
       });
     }
   }
-  
-  // 5. Peace seeking (if losing badly)
-  if (nation.isAtWar && nation.militaryStrength < NATIONS_DATA[nation.id]?.startMilitary * 0.3) {
-    updates.logs.push({
-      message: `${nation.name} military severely weakened`,
-      type: 'ai'
-    });
-    // This could trigger peace negotiations in the future
-  }
-  
+
   return updates;
 };
 
-// Process all AI nations for a turn
-export const processAllAINations = (state, year) => {
+// Process all AI nations for a turn. Returns per-nation strength/hostility deltas
+// (including AI-vs-AI conflict casualties, which are now actually applied — previously
+// regionConflicts was computed and logged but silently discarded by the caller).
+export const processAllAINations = (state, year, rng = DEFAULT_RNG) => {
   const allUpdates = {
     nationUpdates: {},
     newInvasions: [],
     regionConflicts: [],
     logs: []
   };
-  
+
+  let invasionCounter = 0;
   Object.values(state.nations).forEach(nation => {
     if (nation.isPlayer) return;
-    
-    const updates = processAINationTurn(nation, state, year);
-    
+
+    const updates = processAINationTurn(nation, state, year, rng, invasionCounter);
+    invasionCounter += updates.newInvasions.length;
+
     allUpdates.nationUpdates[nation.id] = {
-      militaryStrengthChange: updates.militaryStrengthChange,
-      hostilityChange: updates.hostilityChange
+      militaryStrengthChange: (allUpdates.nationUpdates[nation.id]?.militaryStrengthChange || 0) + updates.militaryStrengthChange,
+      hostilityChange: (allUpdates.nationUpdates[nation.id]?.hostilityChange || 0) + updates.hostilityChange
     };
-    
+
     allUpdates.newInvasions.push(...updates.newInvasions);
     allUpdates.regionConflicts.push(...updates.regionConflicts);
     allUpdates.logs.push(...updates.logs);
   });
-  
+
+  // Apply AI-vs-AI conflict casualties to both sides now, rather than discarding them.
+  allUpdates.regionConflicts.forEach(conflict => {
+    const aggUpdate = allUpdates.nationUpdates[conflict.aggressor] || { militaryStrengthChange: 0, hostilityChange: 0 };
+    aggUpdate.militaryStrengthChange -= conflict.casualtiesAggressor;
+    allUpdates.nationUpdates[conflict.aggressor] = aggUpdate;
+
+    const defUpdate = allUpdates.nationUpdates[conflict.defender] || { militaryStrengthChange: 0, hostilityChange: 0 };
+    defUpdate.militaryStrengthChange -= conflict.casualtiesDefender;
+    allUpdates.nationUpdates[conflict.defender] = defUpdate;
+  });
+
   return allUpdates;
 };
 
 // Calculate if nation should declare war
-export const shouldDeclareWar = (nation, state) => {
+export const shouldDeclareWar = (nation, _state) => {
   if (nation.isPlayer || nation.isAtWar || nation.hasPeaceTreaty) return false;
   
   const nationData = NATIONS_DATA[nation.id];

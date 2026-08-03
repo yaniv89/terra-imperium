@@ -163,6 +163,17 @@ export const NATIONS_DATA = {
     startRelation: RelationStatus.NEUTRAL,
     regions: ['kuwait'],
     aiPriority: ['economy', 'defense']
+  },
+  hamas: {
+    id: 'hamas',
+    name: 'Hamas',
+    color: '#166534',
+    startHostility: 90,
+    startMilitary: 6000,
+    aggression: 0.9,
+    startRelation: RelationStatus.HOSTILE,
+    regions: [],
+    aiPriority: ['military', 'military']
   }
 };
 

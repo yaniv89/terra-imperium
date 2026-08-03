@@ -26,14 +26,16 @@ const ActionPanel = ({ selectedRegion }) => {
   // Calculate badges for tabs
   const getTabBadge = (tabId) => {
     switch (tabId) {
-      case 'military':
+      case 'military': {
         // Show number of active invasions
         const invasions = state.invasions.filter(i => i.active && !i.isPlayerAttacker).length;
         return invasions > 0 ? invasions : null;
-      case 'diplomacy':
+      }
+      case 'diplomacy': {
         // Show number of nations at war
         const wars = Object.values(state.nations).filter(n => n.isAtWar).length;
         return wars > 0 ? wars : null;
+      }
       default:
         return null;
     }

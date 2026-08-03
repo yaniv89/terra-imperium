@@ -7,9 +7,6 @@ import { formatNumber, formatMoney } from '../../utils/helpers';
 
 // Format effect for display
 const formatEffectItem = (key, value) => {
-  const positiveKeys = ['money', 'manpower', 'diplomacyPoints', 'techPoints', 'undergroundBonus', 'militaryBonus', 'controlBonus'];
-  const isPositive = positiveKeys.includes(key) ? value > 0 : value < 0;
-  
   const labels = {
     money: 'Funds',
     manpower: 'Manpower',

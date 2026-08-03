@@ -1040,20 +1040,36 @@ export const getEventsByYear = () => {
   return Object.values(HISTORICAL_EVENTS).sort((a, b) => a.year - b.year);
 };
 
-// Check if event should fire
-export const shouldEventFire = (event, year, previousYear, phase, nations, firedEvents) => {
+// Check if event should fire.
+// Deliberately NOT gated on "previousYear < event.year" — that older check gave every event a
+// single one-turn firing window, so any two events sharing a year permanently lost the second
+// one (this killed six events, including the Oct 7 event). Instead an event is simply "due" once
+// its year has arrived; pickNextEvent() below fires at most one due event per turn, in year order,
+// so simultaneous-year events queue up and fire on consecutive turns instead of colliding.
+export const shouldEventFire = (event, year, phase, nations, firedEvents) => {
   if (firedEvents[event.id]) return false;
-  if (event.year > year || event.year <= previousYear) return false;
-  
+  if (event.year > year) return false;
+
   // Phase check
   const currentPhase = phase === GamePhases.PRE_STATE ? GamePhases.PRE_STATE : GamePhases.POST_STATE;
   if (event.phase !== currentPhase) return false;
-  
+
   // War requirements
   if (event.requiresNoWar) {
     const anyAtWar = event.requiresNoWar.some(nId => nations[nId]?.isAtWar);
     if (anyAtWar) return false;
   }
-  
+
   return true;
+};
+
+// Pick the single most-overdue eligible event for this turn (earliest scripted year first,
+// then stable declaration order for same-year ties).
+export const pickNextEvent = (year, phase, nations, firedEvents) => {
+  const eligible = Object.values(HISTORICAL_EVENTS).filter(e =>
+    shouldEventFire(e, year, phase, nations, firedEvents)
+  );
+  if (eligible.length === 0) return null;
+  eligible.sort((a, b) => a.year - b.year);
+  return eligible[0];
 };

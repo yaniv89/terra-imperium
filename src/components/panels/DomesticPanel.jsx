@@ -7,6 +7,7 @@ import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
 import { getAvgCoreControl, canAfford } from '../../utils/helpers';
+import { ACTION_COSTS } from '../../data/actionCosts';
 import { ActionButton } from '../ui';
 
 const DomesticPanel = ({ selectedRegion }) => {
@@ -19,60 +20,32 @@ const DomesticPanel = ({ selectedRegion }) => {
   const avgCoreControl = getAvgCoreControl(state);
   const canDeclareIndependence = isPreState && avgCoreControl >= 60;
 
-  // Buy Land (Pre-state only)
+  // Buy Land (Pre-state only). Cost/effect are applied atomically by the reducer — this
+  // handler only gives the player an immediate, specific reason when a click won't do anything.
   const handleBuyLand = () => {
     if (!isPlayerOwned) {
       addLog('Select an owned region first', 'action');
-      return;
-    }
-    const costs = { money: 3000, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
-      addLog('Not enough resources', 'action');
       return;
     }
     if (regionState.control >= 100) {
       addLog('Region already at 100% control', 'action');
       return;
     }
-    
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ 
-      type: ActionTypes.UPDATE_REGION, 
-      payload: { 
-        regionId: selectedRegion, 
-        updates: { control: Math.min(100, regionState.control + 5) } 
-      } 
-    });
-    addLog(`Purchased land in ${regionData.name}. Control +5%`, 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.buyLand)) {
+      addLog('Not enough resources', 'action');
+      return;
+    }
+    dispatch({ type: ActionTypes.BUY_LAND, payload: { regionId: selectedRegion } });
   };
 
   // Immigration/Aliyah
   const handleImmigration = () => {
-    const costs = isPreState 
-      ? { money: 5000, diplomacyPoints: 5, actionPoints: 1 }
-      : { money: 10000, diplomacyPoints: 10, actionPoints: 1 };
-    
+    const costs = isPreState ? ACTION_COSTS.immigrationPreState : ACTION_COSTS.immigrationPostState;
     if (!canAfford(state.resources, costs)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    
-    const manpowerGain = isPreState ? 1000 : 2000;
-    dispatch({ 
-      type: ActionTypes.UPDATE_RESOURCES, 
-      payload: { manpower: state.resources.manpower + manpowerGain } 
-    });
-    
-    if (!isPreState) {
-      dispatch({ 
-        type: ActionTypes.UPDATE_RESOURCES, 
-        payload: { techPoints: state.resources.techPoints + 5 } 
-      });
-    }
-    
-    addLog(`Immigration wave! +${manpowerGain} Manpower${!isPreState ? ', +5 TP' : ''}`, 'action');
+    dispatch({ type: ActionTypes.ORGANIZE_IMMIGRATION });
   };
 
   // Build structure
@@ -81,41 +54,24 @@ const DomesticPanel = ({ selectedRegion }) => {
       addLog('Select an owned region first', 'action');
       return;
     }
-    const costs = { money: 5000, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
-      addLog('Not enough resources', 'action');
-      return;
-    }
     if (regionState.currentInfrastructure >= 10) {
       addLog('Infrastructure already at maximum', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ 
-      type: ActionTypes.UPDATE_REGION, 
-      payload: { 
-        regionId: selectedRegion, 
-        updates: { currentInfrastructure: regionState.currentInfrastructure + 1 } 
-      } 
-    });
-    addLog(`Built infrastructure in ${regionData.name}. Level ${regionState.currentInfrastructure + 1}`, 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.buildInfrastructure)) {
+      addLog('Not enough resources', 'action');
+      return;
+    }
+    dispatch({ type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: selectedRegion } });
   };
 
   // Lobby Powers
   const handleLobby = () => {
-    const costs = { money: 3000, actionPoints: 1 };
-    if (!canAfford(state.resources, costs)) {
+    if (!canAfford(state.resources, ACTION_COSTS.lobbyPowers)) {
       addLog('Not enough resources', 'action');
       return;
     }
-
-    dispatch({ type: ActionTypes.SPEND_RESOURCES, payload: { costs } });
-    dispatch({ 
-      type: ActionTypes.UPDATE_RESOURCES, 
-      payload: { diplomacyPoints: state.resources.diplomacyPoints + 10 } 
-    });
-    addLog('Lobbied international powers. +10 Diplomacy Points', 'action');
+    dispatch({ type: ActionTypes.LOBBY_POWERS });
   };
 
   // Declare Independence
@@ -146,7 +102,7 @@ const DomesticPanel = ({ selectedRegion }) => {
           icon={Sprout}
           label="Buy Land"
           description="Purchase land to increase control in selected region"
-          costs={{ money: 3000, actionPoints: 1 }}
+          costs={ACTION_COSTS.buyLand}
           effects={{ control: 5 }}
           onClick={handleBuyLand}
           disabled={!isPlayerOwned || state.resources.actionPoints < 1 || regionState?.control >= 100}
@@ -162,10 +118,7 @@ const DomesticPanel = ({ selectedRegion }) => {
           ? "Bring immigrants to strengthen the Yishuv" 
           : "Mass immigration brings workers and scientists"
         }
-        costs={isPreState 
-          ? { money: 5000, diplomacyPoints: 5, actionPoints: 1 }
-          : { money: 10000, diplomacyPoints: 10, actionPoints: 1 }
-        }
+        costs={isPreState ? ACTION_COSTS.immigrationPreState : ACTION_COSTS.immigrationPostState}
         effects={isPreState 
           ? { manpower: 1000 }
           : { manpower: 2000, techPoints: 5 }
@@ -180,7 +133,7 @@ const DomesticPanel = ({ selectedRegion }) => {
         icon={Hammer}
         label="Build Infrastructure"
         description="Improve roads, utilities, and facilities in selected region"
-        costs={{ money: 5000, actionPoints: 1 }}
+        costs={ACTION_COSTS.buildInfrastructure}
         effects={{ infrastructure: 1, custom: '+Income/turn' }}
         onClick={handleBuildInfra}
         disabled={!isPlayerOwned || state.resources.actionPoints < 1 || regionState?.currentInfrastructure >= 10}
@@ -192,7 +145,7 @@ const DomesticPanel = ({ selectedRegion }) => {
         icon={Globe}
         label="Lobby Powers"
         description="Build international support and diplomatic capital"
-        costs={{ money: 3000, actionPoints: 1 }}
+        costs={ACTION_COSTS.lobbyPowers}
         effects={{ diplomacyPoints: 10 }}
         onClick={handleLobby}
         disabled={state.resources.actionPoints < 1}

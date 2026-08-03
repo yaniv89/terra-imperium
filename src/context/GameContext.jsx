@@ -1,23 +1,33 @@
 // src/context/GameContext.jsx
-// Game state management using React Context and useReducer
+// Game state management using React Context and useReducer.
+//
+// Turn resolution and event resolution are delegated to pure functions in src/engine/ —
+// the reducer's job is validation + a single atomic state transition per dispatch. Player
+// actions (buy land, train troops, diplomacy, research, invasions) are likewise atomic:
+// each is validated against the reducer's own (authoritative, non-stale) state and applied
+// in one dispatch, so double-click / stale-snapshot double-spend is not reachable.
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
-import { GamePhases, ActionTypes, RelationStatus, LogTypes } from '../data/types';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
+import { GamePhases, GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA, CORE_REGION_IDS } from '../data/regions';
 import { NATIONS_DATA, INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
 import { TECH_TREE } from '../data/techTree';
-import { HISTORICAL_EVENTS, shouldEventFire } from '../data/events';
-import { 
-  calcIncome, 
-  calcMilitaryPower, 
-  getTechBonuses,
-  calcCombatResult,
-  formatNumber
-} from '../utils/helpers';
-import { processAllAINations } from '../utils/aiLogic';
+import { HISTORICAL_EVENTS } from '../data/events';
+import { ACTION_COSTS } from '../data/actionCosts';
+import { canAfford, applyCosts, calcMilitaryPower } from '../utils/helpers';
+import { resolveTurn } from '../engine/resolveTurn';
+import { applyEventEffects } from '../engine/applyEventEffects';
+import { randomSeed } from '../utils/rng';
+
+// ============ PERSISTENCE ============
+const STORAGE_KEY = 'rise-of-zion-save-v1';
+const SAVE_VERSION = 1;
 
 // ============ INITIAL STATE FACTORY ============
-const createInitialState = () => {
+// Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
+// and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
+// mocks that could silently drift from the real shape.
+export const createInitialState = () => {
   // Initialize regions
   const regions = {};
   Object.entries(REGIONS_DATA).forEach(([id, data]) => {
@@ -70,6 +80,7 @@ const createInitialState = () => {
     period: 0, // 0 = H1 (First Half), 1 = H2 (Second Half)
     turnNumber: 1,
     phase: GamePhases.PRE_STATE,
+    gameStatus: GameStatus.ACTIVE,
 
     // Resources
     resources: {
@@ -96,10 +107,17 @@ const createInitialState = () => {
     // Wars and invasions
     wars: [],
     invasions: [],
+    nextInvasionSeq: 0,
 
     // Events
-    activeEvent: null,
+    activeEventId: null,
     firedEvents: {},
+
+    // Persistent effect from event choices (e.g. Bar-Lev Line) applied to combat
+    eventDefenseBonus: 0,
+
+    // Deterministic turn resolution — see src/utils/rng.js
+    rngSeed: randomSeed(),
 
     // Logs
     logs: [
@@ -108,52 +126,38 @@ const createInitialState = () => {
   };
 };
 
+// Lazily load a saved game, falling back to a fresh one. Old/corrupt/foreign-shaped saves are
+// merged over a fresh default state so a missing field never crashes the app.
+const loadOrCreateState = () => {
+  const fresh = createInitialState();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return fresh;
+    const saved = JSON.parse(raw);
+    if (!saved || saved.version !== SAVE_VERSION || !saved.state) return fresh;
+    return { ...fresh, ...saved.state };
+  } catch (e) {
+    return fresh;
+  }
+};
+
 // ============ REDUCER ============
-const gameReducer = (state, action) => {
+// Exported for direct unit testing (see GameContext.test.js) — the reducer is the authoritative
+// validation point for every player action, so it should be testable without mounting React.
+export const gameReducer = (state, action) => {
   switch (action.type) {
-    case ActionTypes.ADVANCE_TURN: {
-      const { newYear, newPeriod, newLogs, resChanges, invUpdates, nationUpdates } = action.payload;
-      
-      // Update tech availability
-      const updTech = { ...state.techTree };
-      Object.keys(updTech).forEach(id => {
-        if (TECH_TREE[id].yearAvailable <= newYear) {
-          updTech[id] = { ...updTech[id], available: true };
-        }
-      });
+    case ActionTypes.ADVANCE_TURN:
+      return resolveTurn(state);
 
-      // Apply nation updates
-      const updNations = { ...state.nations };
-      if (nationUpdates) {
-        Object.entries(nationUpdates).forEach(([nId, updates]) => {
-          if (updNations[nId] && !updNations[nId].isPlayer) {
-            updNations[nId] = {
-              ...updNations[nId],
-              militaryStrength: Math.max(100, updNations[nId].militaryStrength + (updates.militaryStrengthChange || 0)),
-              hostility: Math.max(0, Math.min(100, updNations[nId].hostility + (updates.hostilityChange || 0)))
-            };
-          }
-        });
-      }
-
-      return {
-        ...state,
-        year: newYear,
-        period: newPeriod,
-        turnNumber: state.turnNumber + 1,
-        resources: {
-          ...state.resources,
-          ...resChanges,
-          actionPoints: state.resources.maxActionPoints
-        },
-        techTree: updTech,
-        invasions: invUpdates || state.invasions,
-        nations: updNations,
-        logs: [...state.logs, ...newLogs]
-      };
+    case ActionTypes.RESOLVE_EVENT: {
+      const event = HISTORICAL_EVENTS[state.activeEventId];
+      if (!event) return state;
+      return applyEventEffects(state, event, action.payload.optionIndex);
     }
 
     case ActionTypes.DECLARE_INDEPENDENCE: {
+      if (state.phase !== GamePhases.PRE_STATE) return state;
+
       // Set all core regions to 100% control
       const updRegions = { ...state.regions };
       CORE_REGION_IDS.forEach(id => {
@@ -191,7 +195,6 @@ const gameReducer = (state, action) => {
         { id: 'inv_iraq_1948', targetRegion: 'haifa', strength: 2000, morale: 90, supply: 100, active: true, isPlayerAttacker: false, attackerNation: 'iraq' }
       ];
 
-      // Update regions to show under invasion
       newInvasions.forEach(inv => {
         if (updRegions[inv.targetRegion]) {
           updRegions[inv.targetRegion] = { ...updRegions[inv.targetRegion], underInvasion: true };
@@ -209,7 +212,7 @@ const gameReducer = (state, action) => {
         invasions: [...state.invasions, ...newInvasions],
         resources: {
           ...state.resources,
-          techPoints: 10,
+          techPoints: state.resources.techPoints + 10,
           actionPoints: state.resources.maxActionPoints
         },
         logs: [
@@ -220,168 +223,266 @@ const gameReducer = (state, action) => {
       };
     }
 
-    case ActionTypes.UPDATE_RESOURCES:
+    // ---- Atomic, cost-validated player actions ----
+
+    case ActionTypes.BUY_LAND: {
+      const region = state.regions[action.payload.regionId];
+      const costs = ACTION_COSTS.buyLand;
+      if (!region || region.owner !== 'player' || region.control >= 100) return state;
+      if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
-        resources: { ...state.resources, ...action.payload }
-      };
-
-    case ActionTypes.SPEND_RESOURCES: {
-      const newRes = { ...state.resources };
-      Object.entries(action.payload.costs).forEach(([key, value]) => {
-        newRes[key] = (newRes[key] || 0) - value;
-      });
-      return { ...state, resources: newRes };
-    }
-
-    case ActionTypes.UPDATE_REGION:
-      return {
-        ...state,
+        resources: applyCosts(state.resources, costs),
         regions: {
           ...state.regions,
-          [action.payload.regionId]: {
-            ...state.regions[action.payload.regionId],
-            ...action.payload.updates
-          }
-        }
-      };
-
-    case ActionTypes.CAPTURE_REGION: {
-      const { regionId, initControl } = action.payload;
-      return {
-        ...state,
-        regions: {
-          ...state.regions,
-          [regionId]: {
-            ...state.regions[regionId],
-            owner: 'player',
-            control: initControl || 60,
-            isOccupied: true,
-            underInvasion: false
-          }
-        }
-      };
-    }
-
-    case ActionTypes.UPDATE_RELATION:
-      return {
-        ...state,
-        nations: {
-          ...state.nations,
-          [action.payload.nationId]: {
-            ...state.nations[action.payload.nationId],
-            ...action.payload.updates
-          }
-        }
-      };
-
-    case ActionTypes.DECLARE_WAR: {
-      const { nationId } = action.payload;
-      return {
-        ...state,
-        nations: {
-          ...state.nations,
-          [nationId]: {
-            ...state.nations[nationId],
-            isAtWar: true,
-            hostility: 100,
-            relationStatus: RelationStatus.WAR
-          }
+          [region.id]: { ...region, control: Math.min(100, region.control + 5) }
         },
-        wars: [
-          ...state.wars,
-          { id: `war_${nationId}_${state.year}`, enemy: nationId, startYear: state.year, active: true }
+        logs: [...state.logs, { year: state.year, message: `Purchased land in ${REGIONS_DATA[region.id]?.name}. Control +5%`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.ORGANIZE_IMMIGRATION: {
+      const isPreState = state.phase === GamePhases.PRE_STATE;
+      const costs = isPreState ? ACTION_COSTS.immigrationPreState : ACTION_COSTS.immigrationPostState;
+      if (!canAfford(state.resources, costs)) return state;
+      const manpowerGain = isPreState ? 1000 : 2000;
+      const techGain = isPreState ? 0 : 5;
+      const resources = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...resources, manpower: resources.manpower + manpowerGain, techPoints: resources.techPoints + techGain },
+        logs: [...state.logs, { year: state.year, message: `Immigration wave! +${manpowerGain} Manpower${techGain ? `, +${techGain} TP` : ''}`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.BUILD_INFRASTRUCTURE: {
+      const region = state.regions[action.payload.regionId];
+      const costs = ACTION_COSTS.buildInfrastructure;
+      if (!region || region.owner !== 'player' || region.currentInfrastructure >= 10) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: {
+          ...state.regions,
+          [region.id]: { ...region, currentInfrastructure: region.currentInfrastructure + 1 }
+        },
+        logs: [...state.logs, { year: state.year, message: `Built infrastructure in ${REGIONS_DATA[region.id]?.name}. Level ${region.currentInfrastructure + 1}`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.LOBBY_POWERS: {
+      const costs = ACTION_COSTS.lobbyPowers;
+      if (!canAfford(state.resources, costs)) return state;
+      const resources = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...resources, diplomacyPoints: resources.diplomacyPoints + 10 },
+        logs: [...state.logs, { year: state.year, message: 'Lobbied international powers. +10 Diplomacy Points', type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.TRAIN_UNDERGROUND: {
+      const costs = ACTION_COSTS.trainUnderground;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        undergroundStrength: state.undergroundStrength + 500,
+        logs: [...state.logs, { year: state.year, message: 'Trained underground forces. +500 strength', type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.TRAIN_INFANTRY: {
+      const costs = ACTION_COSTS.trainInfantry;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        militaryPower: state.militaryPower + 1000,
+        logs: [...state.logs, { year: state.year, message: 'Trained IDF infantry. +1000 military power', type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.BUILD_TANKS: {
+      const costs = ACTION_COSTS.buildTanks;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        militaryPower: state.militaryPower + 2000,
+        logs: [...state.logs, { year: state.year, message: 'Built armored units. +2000 military power', type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.BUILD_JETS: {
+      const costs = ACTION_COSTS.buildJets;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        militaryPower: state.militaryPower + 3000,
+        logs: [...state.logs, { year: state.year, message: 'Built air force jets. +3000 military power', type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.LAUNCH_PLAYER_INVASION: {
+      const { targetRegion } = action.payload;
+      const region = state.regions[targetRegion];
+      const enemyNation = region ? state.nations[region.owner] : null;
+      const costs = ACTION_COSTS.launchInvasion;
+      if (!region || region.owner === 'player' || !enemyNation || !enemyNation.isAtWar) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const strength = calcMilitaryPower(state);
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nextInvasionSeq: state.nextInvasionSeq + 1,
+        invasions: [
+          ...state.invasions,
+          {
+            id: `inv_player_${state.turnNumber}_${state.nextInvasionSeq}`,
+            targetRegion,
+            strength,
+            morale: 100,
+            supply: 100,
+            active: true,
+            isPlayerAttacker: true
+          }
         ],
-        logs: [
-          ...state.logs,
-          { year: state.year, message: `WAR declared on ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.CRISIS }
-        ]
+        regions: { ...state.regions, [targetRegion]: { ...region, underInvasion: true } },
+        logs: [...state.logs, { year: state.year, message: `Launched invasion of ${REGIONS_DATA[targetRegion]?.name}!`, type: LogTypes.COMBAT }]
       };
     }
 
-    case ActionTypes.SIGN_PEACE: {
-      const { nationId } = action.payload;
-      // Remove active invasions from this nation
-      const filteredInvasions = state.invasions.filter(inv => {
-        if (inv.attackerNation === nationId && !inv.isPlayerAttacker) return false;
-        return true;
-      });
-
+    case ActionTypes.COUNTERATTACK: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const inv = state.invasions.find(i => i.targetRegion === regionId && i.active && !i.isPlayerAttacker);
+      const costs = ACTION_COSTS.counterattack;
+      if (!region || !inv) return state;
+      if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
+        resources: applyCosts(state.resources, costs),
+        invasions: state.invasions.map(i =>
+          i.id === inv.id ? { ...i, strength: Math.floor(i.strength * 0.7), morale: i.morale - 20 } : i
+        ),
+        regions: { ...state.regions, [regionId]: { ...region, control: Math.min(100, region.control + 15) } },
+        logs: [...state.logs, { year: state.year, message: `Counterattack in ${REGIONS_DATA[regionId]?.name}! Control +15%`, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.AIR_STRIKE: {
+      const target = state.invasions.find(i => !i.isPlayerAttacker && i.active);
+      const costs = ACTION_COSTS.airStrike;
+      if (!target) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        invasions: state.invasions.map(i =>
+          i.id === target.id ? { ...i, strength: Math.floor(i.strength * 0.6), morale: i.morale - 25 } : i
+        ),
+        logs: [...state.logs, { year: state.year, message: `Air strike hit enemy forces at ${REGIONS_DATA[target.targetRegion]?.name}!`, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.FORTIFY: {
+      const region = state.regions[action.payload.regionId];
+      const costs = ACTION_COSTS.fortify;
+      if (!region || region.owner !== 'player') return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [region.id]: { ...region, control: Math.min(100, region.control + 10) } },
+        logs: [...state.logs, { year: state.year, message: `Fortified ${REGIONS_DATA[region.id]?.name}. Control +10%`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.DECLARE_WAR_COSTED: {
+      const { nationId } = action.payload;
+      const nation = state.nations[nationId];
+      const costs = ACTION_COSTS.declareWar;
+      if (!nation || nation.isAtWar) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [nationId]: { ...nation, isAtWar: true, hostility: 100, relationStatus: RelationStatus.WAR } },
+        wars: [...state.wars, { id: `war_${nationId}_${state.year}`, enemy: nationId, startYear: state.year, active: true }],
+        logs: [...state.logs, { year: state.year, message: `WAR declared on ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.CRISIS }]
+      };
+    }
+
+    case ActionTypes.SEEK_PEACE: {
+      const { nationId } = action.payload;
+      const nation = state.nations[nationId];
+      const costs = ACTION_COSTS.seekPeace;
+      if (!nation || !nation.isAtWar || nation.hostility > 60) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const filteredInvasions = state.invasions.filter(inv => !(inv.attackerNation === nationId && !inv.isPlayerAttacker));
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
         nations: {
           ...state.nations,
-          [nationId]: {
-            ...state.nations[nationId],
-            isAtWar: false,
-            hostility: 20,
-            relationStatus: RelationStatus.COLD_PEACE,
-            hasPeaceTreaty: true
-          }
+          [nationId]: { ...nation, isAtWar: false, hostility: 20, relationStatus: RelationStatus.COLD_PEACE, hasPeaceTreaty: true }
         },
-        wars: state.wars.map(w => w.enemy === nationId ? { ...w, active: false } : w),
+        wars: state.wars.map(w => (w.enemy === nationId ? { ...w, active: false } : w)),
         invasions: filteredInvasions,
-        logs: [
-          ...state.logs,
-          { year: state.year, message: `PEACE signed with ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.MILESTONE }
-        ]
+        logs: [...state.logs, { year: state.year, message: `PEACE signed with ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.MILESTONE }]
       };
     }
 
-    case ActionTypes.SIGN_TRADE: {
+    case ActionTypes.SIGN_TRADE_COSTED: {
       const { nationId } = action.payload;
+      const nation = state.nations[nationId];
+      const costs = ACTION_COSTS.signTrade;
+      if (!nation || !nation.hasPeaceTreaty || nation.hasTradeAgreement) return state;
+      if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
+        resources: applyCosts(state.resources, costs),
         nations: {
           ...state.nations,
-          [nationId]: {
-            ...state.nations[nationId],
-            hasTradeAgreement: true,
-            hostility: Math.max(0, state.nations[nationId].hostility - 10),
-            relationStatus: RelationStatus.FRIENDLY
-          }
+          [nationId]: { ...nation, hasTradeAgreement: true, hostility: Math.max(0, nation.hostility - 10), relationStatus: RelationStatus.FRIENDLY }
         },
-        logs: [
-          ...state.logs,
-          { year: state.year, message: `Trade agreement with ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.DIPLOMACY }
-        ]
+        logs: [...state.logs, { year: state.year, message: `Trade agreement with ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.DIPLOMACY }]
       };
     }
 
-    case ActionTypes.SIGN_MILITARY_PACT: {
+    case ActionTypes.SIGN_MILITARY_PACT_COSTED: {
       const { nationId } = action.payload;
+      const nation = state.nations[nationId];
+      const costs = ACTION_COSTS.militaryPact;
+      if (!nation || !nation.hasTradeAgreement || nation.hasMilitaryPact) return state;
+      if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
-        nations: {
-          ...state.nations,
-          [nationId]: {
-            ...state.nations[nationId],
-            hasMilitaryPact: true,
-            relationStatus: RelationStatus.ALLIED
-          }
-        },
-        logs: [
-          ...state.logs,
-          { year: state.year, message: `Military pact with ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.MILESTONE }
-        ]
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [nationId]: { ...nation, hasMilitaryPact: true, relationStatus: RelationStatus.ALLIED } },
+        logs: [...state.logs, { year: state.year, message: `Military pact with ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.MILESTONE }]
       };
     }
 
-    case ActionTypes.RESEARCH_TECH:
+    case ActionTypes.RESEARCH_TECH_COSTED: {
+      const { techId } = action.payload;
+      const tech = TECH_TREE[techId];
+      const techState = state.techTree[techId];
+      if (!tech || !techState || techState.researched || tech.yearAvailable > state.year) return state;
+      const hasPrereqs = tech.prerequisites.every(p => state.techTree[p]?.researched);
+      if (!hasPrereqs) return state;
+      const costs = { money: tech.cost.money, techPoints: tech.cost.techPoints, actionPoints: ACTION_COSTS.researchTechActionPoints };
+      if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
-        techTree: {
-          ...state.techTree,
-          [action.payload.techId]: {
-            ...state.techTree[action.payload.techId],
-            researched: true
-          }
-        },
-        logs: [
-          ...state.logs,
-          { year: state.year, message: `Researched: ${TECH_TREE[action.payload.techId]?.name}`, type: LogTypes.TECH }
-        ]
+        resources: applyCosts(state.resources, costs),
+        techTree: { ...state.techTree, [techId]: { ...techState, researched: true } },
+        logs: [...state.logs, { year: state.year, message: `Researched: ${tech.name}`, type: LogTypes.TECH }]
       };
+    }
 
     case ActionTypes.UPDATE_SLIDER:
       return {
@@ -389,93 +490,17 @@ const gameReducer = (state, action) => {
         societalSlider: Math.max(0, Math.min(100, action.payload))
       };
 
-    case ActionTypes.UPDATE_MILITARY:
-      return {
-        ...state,
-        militaryPower: state.militaryPower + (action.payload.mil || 0),
-        undergroundStrength: state.undergroundStrength + (action.payload.ug || 0)
-      };
-
-    case ActionTypes.LAUNCH_INVASION: {
-      const { targetRegion, strength, isPlayer } = action.payload;
-      return {
-        ...state,
-        invasions: [
-          ...state.invasions,
-          {
-            id: `inv_${Date.now()}`,
-            targetRegion,
-            strength,
-            morale: 100,
-            supply: 100,
-            active: true,
-            isPlayerAttacker: isPlayer
-          }
-        ],
-        regions: {
-          ...state.regions,
-          [targetRegion]: {
-            ...state.regions[targetRegion],
-            underInvasion: true
-          }
-        }
-      };
-    }
-
-    case ActionTypes.UPDATE_INVASION:
-      return {
-        ...state,
-        invasions: state.invasions.map(inv =>
-          inv.id === action.payload.invId ? { ...inv, ...action.payload.updates } : inv
-        )
-      };
-
-    case ActionTypes.REMOVE_INVASION: {
-      const invId = action.payload.invId;
-      const inv = state.invasions.find(i => i.id === invId);
-      const updRegions = { ...state.regions };
-      
-      if (inv && updRegions[inv.targetRegion]) {
-        // Check if there are other active invasions for this region
-        const otherInvasions = state.invasions.filter(
-          i => i.id !== invId && i.targetRegion === inv.targetRegion && i.active
-        );
-        if (otherInvasions.length === 0) {
-          updRegions[inv.targetRegion] = {
-            ...updRegions[inv.targetRegion],
-            underInvasion: false
-          };
-        }
-      }
-
-      return {
-        ...state,
-        invasions: state.invasions.filter(i => i.id !== invId),
-        regions: updRegions
-      };
-    }
-
     case ActionTypes.ADD_LOG:
       return {
         ...state,
-        logs: [
-          ...state.logs,
-          { year: state.year, message: action.payload.message, type: action.payload.type || LogTypes.ACTION }
-        ]
+        logs: [...state.logs, { year: state.year, message: action.payload.message, type: action.payload.type || LogTypes.ACTION }]
       };
 
-    case ActionTypes.SET_EVENT:
-      return { ...state, activeEvent: action.payload };
-
-    case ActionTypes.RESOLVE_EVENT:
-      return {
-        ...state,
-        activeEvent: null,
-        firedEvents: {
-          ...state.firedEvents,
-          [action.payload?.eventId]: true
-        }
-      };
+    case ActionTypes.LOAD_GAME: {
+      const fresh = createInitialState();
+      const incoming = action.payload || {};
+      return { ...fresh, ...incoming, gameStatus: incoming.gameStatus || GameStatus.ACTIVE };
+    }
 
     case ActionTypes.RESET_GAME:
       return createInitialState();
@@ -498,301 +523,58 @@ export const useGame = () => {
 
 // ============ PROVIDER ============
 export const GameProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(gameReducer, null, createInitialState);
+  const [state, dispatch] = useReducer(gameReducer, null, loadOrCreateState);
 
-  // Add log helper
+  // Autosave. The whole state is plain JSON (no Dates/Maps/class instances), so this is a
+  // straight serialize — the only thing intentionally NOT embedded is event *content*
+  // (we store activeEventId, not the event object, so a future content patch can't leave a
+  // save holding stale copy).
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }));
+    } catch (e) {
+      // Storage unavailable or full — autosave is best-effort, never fatal.
+    }
+  }, [state]);
+
   const addLog = useCallback((message, type = LogTypes.ACTION) => {
     dispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
   }, []);
 
-  // Advance turn logic
+  // Turn/event resolution now needs no payload from the component — the reducer always
+  // operates on the true latest state, so there is no stale-closure window to race.
   const advanceTurn = useCallback(() => {
-    // --- TIME CALCULATION LOGIC ---
-    // If current period is 0 (H1), we move to 1 (H2) and keep year same.
-    // If current period is 1 (H2), we move to 0 (H1) and increment year.
-    const isH2 = state.period === 1;
-    const newPeriod = isH2 ? 0 : 1;
-    const newYear = isH2 ? state.year + 1 : state.year;
-    
-    // Formatting the string for logs
-    const dateString = `${newYear} ${newPeriod === 0 ? 'H1' : 'H2'}`;
-    
-    const newLogs = [];
+    dispatch({ type: ActionTypes.ADVANCE_TURN });
+  }, []);
 
-    // Calculate income
-    const income = calcIncome(state);
-    newLogs.push({
-      year: newYear,
-      message: `${dateString}: +$${formatNumber(income.money)}, +${formatNumber(income.manpower)} Men${state.phase === GamePhases.POST_STATE ? `, +${income.techPoints} TP` : ''}`,
-      type: LogTypes.ACTION
-    });
-
-    // Process invasions
-    let updatedInvasions = [...state.invasions];
-    const techBonuses = getTechBonuses(state.techTree);
-
-    updatedInvasions = updatedInvasions.map(inv => {
-      if (!inv.active) return inv;
-
-      let newInv = { ...inv, supply: inv.supply - 10 };
-      const targetRegion = state.regions[inv.targetRegion];
-      const targetData = REGIONS_DATA[inv.targetRegion];
-
-      if (inv.isPlayerAttacker) {
-        // Player offensive
-        const defender = state.nations[targetRegion?.owner];
-        if (defender && !defender.isPlayer) {
-          const defenseStrength = defender.militaryStrength * 0.3 * (targetData?.fortification || 1);
-          const result = calcCombatResult(inv.strength, defenseStrength, techBonuses, targetData?.terrain);
-
-          if (result.attackerWins) {
-            newInv.active = false;
-            newLogs.push({
-              year: newYear,
-              message: `VICTORY! Captured ${targetData?.name}!`,
-              type: LogTypes.MILESTONE
-            });
-            dispatch({ type: ActionTypes.CAPTURE_REGION, payload: { regionId: inv.targetRegion, initControl: 60 } });
-          } else if (result.stalemate) {
-            newInv.morale -= 10;
-            newLogs.push({
-              year: newYear,
-              message: `Offensive in ${targetData?.name}: progress slow`,
-              type: LogTypes.COMBAT
-            });
-          } else {
-            newInv.morale -= 25;
-            newInv.strength = Math.floor(newInv.strength * 0.85);
-            newLogs.push({
-              year: newYear,
-              message: `Offensive in ${targetData?.name} stalled!`,
-              type: LogTypes.COMBAT
-            });
-          }
-        }
-      } else {
-        // Enemy offensive against player
-        if (targetRegion && targetRegion.owner === 'player') {
-          const playerDefense = calcMilitaryPower(state) * 0.3;
-          const result = calcCombatResult(inv.strength, playerDefense, techBonuses, targetData?.terrain);
-
-          if (result.attackerWins) {
-            const damage = 25;
-            dispatch({
-              type: ActionTypes.UPDATE_REGION,
-              payload: {
-                regionId: inv.targetRegion,
-                updates: { control: Math.max(0, targetRegion.control - damage) }
-              }
-            });
-            newLogs.push({
-              year: newYear,
-              message: `${targetData?.name} OVERRUN! Control -${damage}%`,
-              type: LogTypes.CRISIS
-            });
-          } else if (result.stalemate) {
-            const damage = 10;
-            dispatch({
-              type: ActionTypes.UPDATE_REGION,
-              payload: {
-                regionId: inv.targetRegion,
-                updates: { control: Math.max(0, targetRegion.control - damage) }
-              }
-            });
-            newInv.morale -= 10;
-            newLogs.push({
-              year: newYear,
-              message: `${targetData?.name} under pressure. Control -${damage}%`,
-              type: LogTypes.COMBAT
-            });
-          } else {
-            newInv.morale -= 25;
-            newInv.strength = Math.floor(newInv.strength * 0.8);
-            newLogs.push({
-              year: newYear,
-              message: `Defended ${targetData?.name}! Enemy repelled.`,
-              type: LogTypes.COMBAT
-            });
-          }
-        }
-      }
-
-      // Check if invasion collapses
-      if (newInv.supply <= 0 || newInv.morale <= 0) {
-        newInv.active = false;
-        dispatch({
-          type: ActionTypes.UPDATE_REGION,
-          payload: { regionId: inv.targetRegion, updates: { underInvasion: false } }
-        });
-        newLogs.push({
-          year: newYear,
-          message: `${inv.isPlayerAttacker ? 'Our' : 'Enemy'} invasion of ${targetData?.name} collapsed`,
-          type: LogTypes.COMBAT
-        });
-      }
-
-      return newInv;
-    });
-
-    // Process AI nations
-    const aiUpdates = processAllAINations(state, newYear);
-    
-    // Add AI invasions
-    if (aiUpdates.newInvasions.length > 0) {
-      updatedInvasions = [...updatedInvasions, ...aiUpdates.newInvasions];
-      // Mark regions as under invasion
-      aiUpdates.newInvasions.forEach(inv => {
-        dispatch({
-          type: ActionTypes.UPDATE_REGION,
-          payload: { regionId: inv.targetRegion, updates: { underInvasion: true } }
-        });
-      });
-    }
-
-    // Add AI logs
-    newLogs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
-
-    // Check for historical events
-    // Triggers based on year (integer), will fire in H1 of that year usually
-    const checkEvent = Object.values(HISTORICAL_EVENTS).find(e => 
-      shouldEventFire(e, newYear, state.year, state.phase, state.nations, state.firedEvents)
-    );
-
-    if (checkEvent) {
-      dispatch({ type: ActionTypes.SET_EVENT, payload: checkEvent });
-    }
-
-    // Apply turn changes
-    dispatch({
-      type: ActionTypes.ADVANCE_TURN,
-      payload: {
-        newYear, // Pass explicitly calculated year
-        newPeriod, // Pass new period (H1/H2)
-        newLogs,
-        resChanges: {
-          money: state.resources.money + income.money,
-          manpower: state.resources.manpower + income.manpower,
-          techPoints: state.resources.techPoints + income.techPoints,
-          diplomacyPoints: state.resources.diplomacyPoints + income.diplomacyPoints
-        },
-        invUpdates: updatedInvasions,
-        nationUpdates: aiUpdates.nationUpdates
-      }
-    });
-
-    // Victory/Defeat checks
-    if (state.phase === GamePhases.POST_STATE) {
-      const hasTelAviv = state.regions.tel_aviv?.owner === 'player' && state.regions.tel_aviv?.control > 0;
-      const hasJerusalem = state.regions.jerusalem?.owner === 'player' && state.regions.jerusalem?.control > 0;
-
-      if (!hasTelAviv || !hasJerusalem) {
-        addLog('DEFEAT: Lost core territories!', LogTypes.CRISIS);
-      }
-    }
-
-    if (newYear >= 2150) {
-      addLog('VICTORY: Israel survives to 2150!', LogTypes.MILESTONE);
-    }
-  }, [state, addLog]);
-
-  // Resolve event
   const resolveEvent = useCallback((optionIndex) => {
-    if (!state.activeEvent) return;
+    dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex } });
+  }, []);
 
-    const event = state.activeEvent;
-    const option = event.options[optionIndex];
+  const exportSave = useCallback(() => {
+    return JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }, null, 2);
+  }, [state]);
 
-    if (option.effects) {
-      const effects = option.effects;
-
-      // Resource changes
-      if (effects.money) dispatch({ type: ActionTypes.UPDATE_RESOURCES, payload: { money: state.resources.money + effects.money } });
-      if (effects.manpower) dispatch({ type: ActionTypes.UPDATE_RESOURCES, payload: { manpower: state.resources.manpower + effects.manpower } });
-      if (effects.diplomacyPoints) dispatch({ type: ActionTypes.UPDATE_RESOURCES, payload: { diplomacyPoints: state.resources.diplomacyPoints + effects.diplomacyPoints } });
-      if (effects.techPoints) dispatch({ type: ActionTypes.UPDATE_RESOURCES, payload: { techPoints: state.resources.techPoints + effects.techPoints } });
-
-      // Military changes
-      if (effects.undergroundBonus) dispatch({ type: ActionTypes.UPDATE_MILITARY, payload: { ug: effects.undergroundBonus } });
-      if (effects.militaryBonus) dispatch({ type: ActionTypes.UPDATE_MILITARY, payload: { mil: effects.militaryBonus } });
-
-      // Control changes
-      if (effects.controlBonus) {
-        Object.values(state.regions).filter(r => r.owner === 'player').forEach(r => {
-          dispatch({
-            type: ActionTypes.UPDATE_REGION,
-            payload: { regionId: r.id, updates: { control: Math.min(100, r.control + effects.controlBonus) } }
-          });
-        });
-      }
-      if (effects.controlPenalty) {
-        Object.values(state.regions).filter(r => r.owner === 'player' && r.isOccupied).forEach(r => {
-          dispatch({
-            type: ActionTypes.UPDATE_REGION,
-            payload: { regionId: r.id, updates: { control: Math.max(0, r.control - effects.controlPenalty) } }
-          });
-        });
-      }
-
-      // Capture regions
-      if (effects.captureRegions) {
-        effects.captureRegions.forEach(rId => {
-          if (state.regions[rId]) {
-            dispatch({ type: ActionTypes.CAPTURE_REGION, payload: { regionId: rId, initControl: 80 } });
-          }
-        });
-      }
-
-      // Return regions
-      if (effects.returnRegion && state.regions[effects.returnRegion]?.owner === 'player') {
-        const origOwner = REGIONS_DATA[effects.returnRegion]?.startOwner;
-        if (origOwner) {
-          dispatch({
-            type: ActionTypes.UPDATE_REGION,
-            payload: { regionId: effects.returnRegion, updates: { owner: origOwner, control: 100, isOccupied: false } }
-          });
-        }
-      }
-
-      // Diplomatic changes
-      if (effects.peaceWith) {
-        const nations = Array.isArray(effects.peaceWith) ? effects.peaceWith : [effects.peaceWith];
-        nations.forEach(nId => {
-          if (state.nations[nId]) dispatch({ type: ActionTypes.SIGN_PEACE, payload: { nationId: nId } });
-        });
-      }
-      if (effects.tradeWith) {
-        const nations = Array.isArray(effects.tradeWith) ? effects.tradeWith : [effects.tradeWith];
-        nations.forEach(nId => {
-          if (state.nations[nId]) dispatch({ type: ActionTypes.SIGN_TRADE, payload: { nationId: nId } });
-        });
-      }
-      if (effects.warWith) {
-        const nations = Array.isArray(effects.warWith) ? effects.warWith : [effects.warWith];
-        nations.forEach(nId => {
-          if (state.nations[nId] && !state.nations[nId].isAtWar) {
-            dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: nId } });
-          }
-        });
-      }
-
-      // Special flags
-      if (effects.canDeclareIndependence) {
-        addLog('Independence is now possible! Declare when ready.', LogTypes.MILESTONE);
-      }
+  const importSave = useCallback((jsonText) => {
+    try {
+      const parsed = JSON.parse(jsonText);
+      const payload = parsed && parsed.version === SAVE_VERSION && parsed.state ? parsed.state : parsed;
+      dispatch({ type: ActionTypes.LOAD_GAME, payload });
+      return true;
+    } catch (e) {
+      return false;
     }
+  }, []);
 
-    addLog(`Event: ${event.title} → ${option.label}`, LogTypes.EVENT);
-    dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { eventId: event.id } });
-  }, [state, addLog]);
-
-  // Context value
   const contextValue = useMemo(() => ({
     state,
     dispatch,
     addLog,
     advanceTurn,
-    resolveEvent
-  }), [state, addLog, advanceTurn, resolveEvent]);
+    resolveEvent,
+    exportSave,
+    importSave
+  }), [state, addLog, advanceTurn, resolveEvent, exportSave, importSave]);
 
   return (
     <GameContext.Provider value={contextValue}>

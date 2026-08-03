@@ -6,7 +6,7 @@ import { Beaker, Lock, Check, Sprout, Shield, Eye, ChevronRight } from 'lucide-r
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { TECH_TREE, getTechsByCategory, canResearchTech } from '../../data/techTree';
-import { calcSocietalBonuses, formatNumber, formatMoney } from '../../utils/helpers';
+import { calcSocietalBonuses, formatMoney } from '../../utils/helpers';
 
 const CATEGORY_ICONS = {
   agri_econ: Sprout,
@@ -32,26 +32,16 @@ const TechPanel = () => {
     dispatch({ type: ActionTypes.UPDATE_SLIDER, payload: parseInt(e.target.value) });
   };
 
-  // Handle tech research
+  // Handle tech research. The reducer re-validates prerequisites/cost/year against its own
+  // authoritative state before applying anything — this pre-check just gives a specific reason
+  // when a click won't do anything.
   const handleResearch = (techId) => {
     const check = canResearchTech(techId, state.techTree, state.resources, state.year);
     if (!check.can) {
       addLog(check.reason, 'action');
       return;
     }
-
-    const tech = TECH_TREE[techId];
-    dispatch({ 
-      type: ActionTypes.SPEND_RESOURCES, 
-      payload: { 
-        costs: { 
-          money: tech.cost.money, 
-          techPoints: tech.cost.techPoints, 
-          actionPoints: 2 
-        } 
-      } 
-    });
-    dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
+    dispatch({ type: ActionTypes.RESEARCH_TECH_COSTED, payload: { techId } });
   };
 
   return (
@@ -147,7 +137,6 @@ const TechPanel = () => {
                   {category.techs.map(tech => {
                     const techState = state.techTree[tech.id];
                     const check = canResearchTech(tech.id, state.techTree, state.resources, state.year);
-                    const hasPrereqs = tech.prerequisites.every(p => state.techTree[p]?.researched);
 
                     return (
                       <button

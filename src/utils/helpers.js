@@ -221,21 +221,27 @@ export const getTechBonuses = (techTree) => {
 
 // ============ COMBAT CALCULATIONS ============
 
-export const calcCombatResult = (attacker, defender, techBonuses = {}, terrain = 'plains') => {
-  const terrainMods = {
-    plains: 1,
-    hills: 0.85,
-    highlands: 0.8,
-    mountains: 0.7,
-    desert: 0.95,
-    urban: 0.75,
-    coastal: 1,
-    port: 0.9,
-    island: 0.8
-  };
-  
-  const terrainMod = terrainMods[terrain] || 1;
-  const randomFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+// Terrain modifiers apply to the DEFENDER's score — rugged/urban terrain should favor
+// whoever is dug in, not the attacker. (Previously these multiplied the defender down,
+// which made the Golan Heights and every enemy capital the easiest ground in the game
+// to take — the opposite of the intent.)
+const TERRAIN_MODS = {
+  plains: 1,
+  coastal: 1,
+  desert: 1.05,
+  port: 1.05,
+  island: 1.2,
+  hills: 1.15,
+  highlands: 1.25,
+  urban: 1.3,
+  mountains: 1.4
+};
+
+const DEFAULT_RNG = { next: () => Math.random() };
+
+export const calcCombatResult = (attacker, defender, techBonuses = {}, terrain = 'plains', rng = DEFAULT_RNG) => {
+  const terrainMod = TERRAIN_MODS[terrain] || 1;
+  const randomFactor = 0.8 + rng.next() * 0.4; // 0.8 to 1.2
   
   const attackerScore = attacker * randomFactor;
   const defenderScore = defender * terrainMod * (1 + (techBonuses.defenseBonus || 0));
@@ -304,6 +310,16 @@ export const canAfford = (resources, costs) => {
   return Object.entries(costs).every(([key, value]) => {
     return (resources[key] || 0) >= value;
   });
+};
+
+// Deducts costs from resources, returning a new resources object. Never used without a prior
+// canAfford() check by callers in this codebase, but floors at 0 defensively either way.
+export const applyCosts = (resources, costs) => {
+  const next = { ...resources };
+  Object.entries(costs).forEach(([key, value]) => {
+    next[key] = Math.max(0, (next[key] || 0) - value);
+  });
+  return next;
 };
 
 export const getCostString = (costs) => {
