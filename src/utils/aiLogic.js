@@ -2,7 +2,7 @@
 // AI logic for non-player nations
 
 import { NATIONS_DATA } from '../data/nations';
-import { REGIONS_DATA } from '../data/regions';
+import { REGIONS_DATA, isAdjacentToOwner } from '../data/regions';
 import { RelationStatus } from '../data/types';
 
 const DEFAULT_RNG = { next: () => Math.random() };
@@ -72,10 +72,14 @@ export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG, inva
 
       // Don't have too many simultaneous invasions
       if (playerRegions.length > 0 && existingInvasions.length < 3) {
-        // Pick a target - prefer border regions or regions with low control
+        // Pick a target - prefer border regions or regions with low control. Must border
+        // territory this nation actually holds, same rule the player is held to — except for
+        // stateless actors with no territory on the map at all (e.g. Hamas), who have no front
+        // line to be constrained by and can still strike anywhere.
+        const isStateless = !Object.values(state.regions).some(r => r.owner === nation.id);
         const validTargets = playerRegions.filter(r => {
-          // Don't attack same region twice
-          return !existingInvasions.some(inv => inv.targetRegion === r.id);
+          if (existingInvasions.some(inv => inv.targetRegion === r.id)) return false;
+          return isStateless || isAdjacentToOwner(r.id, state.regions, nation.id);
         });
 
         if (validTargets.length > 0) {

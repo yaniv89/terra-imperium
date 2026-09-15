@@ -17,6 +17,7 @@ export const REGIONS_DATA = {
     terrain: 'coastal',
     resources: { money: 500, manpower: 100 },
     fortification: 1,
+    neighbors: ['haifa', 'jerusalem', 'west_bank', 'gaza'],
     description: 'Economic hub and largest city'
   },
   jerusalem: {
@@ -31,6 +32,7 @@ export const REGIONS_DATA = {
     terrain: 'hills',
     resources: { money: 300, manpower: 150 },
     fortification: 2,
+    neighbors: ['tel_aviv', 'west_bank', 'negev'],
     description: 'Holy city and capital'
   },
   haifa: {
@@ -45,6 +47,7 @@ export const REGIONS_DATA = {
     terrain: 'port',
     resources: { money: 400, manpower: 80 },
     fortification: 1,
+    neighbors: ['tel_aviv', 'galilee'],
     description: 'Major port city'
   },
   galilee: {
@@ -59,6 +62,7 @@ export const REGIONS_DATA = {
     terrain: 'hills',
     resources: { money: 200, manpower: 120 },
     fortification: 1,
+    neighbors: ['haifa', 'golan', 'lebanon_south'],
     description: 'Northern agricultural region'
   },
   negev: {
@@ -73,6 +77,7 @@ export const REGIONS_DATA = {
     terrain: 'desert',
     resources: { money: 100, manpower: 30 },
     fortification: 0,
+    neighbors: ['jerusalem', 'gaza', 'egypt_sinai', 'jordan_amman'],
     description: 'Southern desert region'
   },
 
@@ -89,6 +94,7 @@ export const REGIONS_DATA = {
     terrain: 'coastal',
     resources: { money: 150, manpower: 200 },
     fortification: 2,
+    neighbors: ['tel_aviv', 'negev', 'egypt_sinai'],
     description: 'Densely populated coastal strip'
   },
   west_bank: {
@@ -103,6 +109,7 @@ export const REGIONS_DATA = {
     terrain: 'hills',
     resources: { money: 200, manpower: 250 },
     fortification: 1,
+    neighbors: ['tel_aviv', 'jerusalem', 'jordan_amman'],
     description: 'Strategic highland territory'
   },
   golan: {
@@ -117,6 +124,7 @@ export const REGIONS_DATA = {
     terrain: 'highlands',
     resources: { money: 100, manpower: 50 },
     fortification: 3,
+    neighbors: ['galilee', 'syria_damascus', 'lebanon_south'],
     description: 'Strategic high ground'
   },
 
@@ -133,6 +141,7 @@ export const REGIONS_DATA = {
     terrain: 'desert',
     resources: { money: 200, manpower: 100 },
     fortification: 2,
+    neighbors: ['negev', 'gaza', 'egypt_cairo'],
     description: 'Buffer peninsula'
   },
   egypt_cairo: {
@@ -148,6 +157,7 @@ export const REGIONS_DATA = {
     resources: { money: 1000, manpower: 500 },
     fortification: 4,
     isCapital: true,
+    neighbors: ['egypt_sinai'],
     description: 'Egyptian capital'
   },
 
@@ -165,6 +175,7 @@ export const REGIONS_DATA = {
     resources: { money: 400, manpower: 200 },
     fortification: 3,
     isCapital: true,
+    neighbors: ['west_bank', 'negev', 'saudi_north', 'iraq_baghdad'],
     description: 'Jordanian capital'
   },
 
@@ -182,6 +193,7 @@ export const REGIONS_DATA = {
     resources: { money: 600, manpower: 400 },
     fortification: 4,
     isCapital: true,
+    neighbors: ['golan', 'lebanon_north', 'lebanon_south', 'iraq_baghdad', 'turkey_east'],
     description: 'Syrian capital'
   },
 
@@ -198,6 +210,7 @@ export const REGIONS_DATA = {
     terrain: 'hills',
     resources: { money: 150, manpower: 100 },
     fortification: 1,
+    neighbors: ['galilee', 'golan', 'lebanon_north', 'syria_damascus'],
     description: 'Southern buffer zone'
   },
   lebanon_north: {
@@ -213,6 +226,7 @@ export const REGIONS_DATA = {
     resources: { money: 500, manpower: 150 },
     fortification: 2,
     isCapital: true,
+    neighbors: ['lebanon_south', 'syria_damascus'],
     description: 'Lebanese capital'
   },
 
@@ -230,6 +244,7 @@ export const REGIONS_DATA = {
     resources: { money: 900, manpower: 500 },
     fortification: 4,
     isCapital: true,
+    neighbors: ['jordan_amman', 'syria_damascus', 'iraq_basra', 'saudi_north', 'iran_west', 'turkey_east', 'kuwait'],
     description: 'Iraqi capital'
   },
   iraq_basra: {
@@ -244,6 +259,7 @@ export const REGIONS_DATA = {
     terrain: 'port',
     resources: { money: 600, manpower: 200 },
     fortification: 2,
+    neighbors: ['iraq_baghdad', 'kuwait', 'iran_west'],
     description: 'Southern port city'
   },
 
@@ -260,6 +276,7 @@ export const REGIONS_DATA = {
     terrain: 'desert',
     resources: { money: 800, manpower: 150 },
     fortification: 2,
+    neighbors: ['jordan_amman', 'iraq_baghdad', 'kuwait', 'saudi_south'],
     description: 'Northern desert'
   },
   saudi_south: {
@@ -275,6 +292,7 @@ export const REGIONS_DATA = {
     resources: { money: 2000, manpower: 300 },
     fortification: 4,
     isCapital: true,
+    neighbors: ['saudi_north', 'uae', 'qatar', 'bahrain', 'yemen', 'oman'],
     description: 'Saudi capital'
   },
 
@@ -291,6 +309,7 @@ export const REGIONS_DATA = {
     terrain: 'mountains',
     resources: { money: 700, manpower: 400 },
     fortification: 4,
+    neighbors: ['iraq_baghdad', 'iraq_basra', 'iran_east', 'turkey_east'],
     description: 'Western provinces'
   },
   iran_east: {
@@ -306,6 +325,7 @@ export const REGIONS_DATA = {
     resources: { money: 1200, manpower: 600 },
     fortification: 5,
     isCapital: true,
+    neighbors: ['iran_west'],
     description: 'Iranian capital'
   },
 
@@ -322,6 +342,7 @@ export const REGIONS_DATA = {
     terrain: 'mixed',
     resources: { money: 1500, manpower: 800 },
     fortification: 5,
+    neighbors: ['turkey_east'],
     description: 'Western Anatolia'
   },
   turkey_east: {
@@ -337,6 +358,7 @@ export const REGIONS_DATA = {
     resources: { money: 1000, manpower: 500 },
     fortification: 5,
     isCapital: true,
+    neighbors: ['turkey_west', 'syria_damascus', 'iraq_baghdad', 'iran_west'],
     description: 'Turkish capital'
   },
 
@@ -354,6 +376,7 @@ export const REGIONS_DATA = {
     resources: { money: 200, manpower: 300 },
     fortification: 2,
     isCapital: true,
+    neighbors: ['saudi_south', 'oman'],
     description: 'Southern Arabian state'
   },
   oman: {
@@ -369,6 +392,7 @@ export const REGIONS_DATA = {
     resources: { money: 400, manpower: 100 },
     fortification: 2,
     isCapital: true,
+    neighbors: ['saudi_south', 'uae', 'yemen'],
     description: 'Sultanate of Oman'
   },
   uae: {
@@ -384,6 +408,7 @@ export const REGIONS_DATA = {
     resources: { money: 1000, manpower: 50 },
     fortification: 2,
     isCapital: true,
+    neighbors: ['saudi_south', 'oman', 'qatar'],
     description: 'United Arab Emirates'
   },
   qatar: {
@@ -399,6 +424,7 @@ export const REGIONS_DATA = {
     resources: { money: 800, manpower: 30 },
     fortification: 1,
     isCapital: true,
+    neighbors: ['saudi_south', 'uae'],
     description: 'Qatari peninsula'
   },
   bahrain: {
@@ -414,6 +440,7 @@ export const REGIONS_DATA = {
     resources: { money: 500, manpower: 40 },
     fortification: 1,
     isCapital: true,
+    neighbors: ['saudi_south'],
     description: 'Island kingdom'
   },
   kuwait: {
@@ -429,9 +456,21 @@ export const REGIONS_DATA = {
     resources: { money: 1200, manpower: 60 },
     fortification: 2,
     isCapital: true,
+    neighbors: ['saudi_north', 'iraq_baghdad', 'iraq_basra'],
     description: 'Oil-rich emirate'
   }
 };
+
+// Adjacency is authored one-directional above for readability; symmetrize it here so a region
+// always lists every neighbor that lists it back, regardless of which side was written.
+Object.entries(REGIONS_DATA).forEach(([id, data]) => {
+  (data.neighbors || []).forEach(neighborId => {
+    const neighbor = REGIONS_DATA[neighborId];
+    if (neighbor && !neighbor.neighbors.includes(id)) {
+      neighbor.neighbors.push(id);
+    }
+  });
+});
 
 // Israeli core region IDs for easy reference
 export const CORE_REGION_IDS = ['tel_aviv', 'jerusalem', 'haifa', 'galilee', 'negev'];
@@ -442,4 +481,13 @@ export const getCoreControlAverage = (regions) => {
   if (coreRegions.length === 0) return 0;
   const total = coreRegions.reduce((sum, r) => sum + (r.control || 0), 0);
   return Math.round(total / coreRegions.length);
+};
+
+// ============ ADJACENCY ============
+
+export const getNeighborIds = (regionId) => REGIONS_DATA[regionId]?.neighbors || [];
+
+// True if `regionId` shares a border with any region the given owner (usually 'player') holds.
+export const isAdjacentToOwner = (regionId, regions, ownerId) => {
+  return getNeighborIds(regionId).some(nId => regions[nId]?.owner === ownerId);
 };

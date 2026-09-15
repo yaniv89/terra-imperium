@@ -102,19 +102,19 @@ export const calcMilitaryPower = (state) => {
   if (state.phase === GamePhases.PRE_STATE) {
     return state.undergroundStrength || 0;
   }
-  
-  let power = state.militaryPower || 0;
-  
+
+  let power = sumUnits(state.militaryUnits);
+
   // Tech bonuses
   const techBonuses = getTechBonuses(state.techTree);
   if (techBonuses.combatBonus) {
     power *= (1 + techBonuses.combatBonus);
   }
-  
+
   // Societal bonuses
   const societalBonuses = calcSocietalBonuses(state.societalSlider);
   power *= (1 + societalBonuses.defBonus);
-  
+
   return Math.round(power);
 };
 
@@ -217,6 +217,81 @@ export const getTechBonuses = (techTree) => {
   });
   
   return bonuses;
+};
+
+// ============ UNIT COMPOSITION ============
+// The player's arsenal (POST_STATE) is split into three types instead of one scalar, so terrain
+// and force mix are real tradeoffs. AI nations still fight as a single scalar `militaryStrength`
+// — giving every AI nation its own composition is a much larger undertaking and out of scope
+// here; only the player's committed forces use these type-vs-terrain multipliers.
+
+export const UNIT_TYPES = ['infantry', 'armor', 'air'];
+
+export const emptyUnits = () => ({ infantry: 0, armor: 0, air: 0 });
+
+export const sumUnits = (units) => {
+  if (!units) return 0;
+  return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0), 0);
+};
+
+export const addUnits = (units, delta) => {
+  const next = { ...emptyUnits(), ...units };
+  UNIT_TYPES.forEach(type => { next[type] = Math.max(0, next[type] + (delta[type] || 0)); });
+  return next;
+};
+
+export const hasEnoughUnits = (units, composition) => {
+  return UNIT_TYPES.every(type => (units?.[type] || 0) >= (composition?.[type] || 0));
+};
+
+// How well each unit type performs on a given terrain, applied to the ATTACKER's committed
+// composition (mirrors, but is independent from, TERRAIN_MODS which favors the defender based
+// on the same terrain — attacking with armor into mountains is doubly bad: your armor performs
+// worse there AND the defender gets their own terrain bonus).
+const COMPOSITION_TERRAIN_MODS = {
+  plains: { infantry: 1.0, armor: 1.2, air: 1.0 },
+  coastal: { infantry: 1.0, armor: 1.0, air: 1.05 },
+  desert: { infantry: 0.9, armor: 1.3, air: 1.1 },
+  port: { infantry: 1.0, armor: 0.95, air: 1.0 },
+  island: { infantry: 0.9, armor: 0.7, air: 1.2 },
+  hills: { infantry: 1.15, armor: 0.85, air: 1.0 },
+  highlands: { infantry: 1.15, armor: 0.8, air: 1.0 },
+  urban: { infantry: 1.3, armor: 0.7, air: 1.0 },
+  mountains: { infantry: 1.3, armor: 0.6, air: 0.9 }
+};
+
+// Effective attacking strength for a committed composition on a given terrain — this is what
+// gets passed into calcCombatResult as the attacker's raw strength.
+export const calcCompositionStrength = (units, terrain = 'plains') => {
+  const mods = COMPOSITION_TERRAIN_MODS[terrain] || { infantry: 1, armor: 1, air: 1 };
+  return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0) * mods[type], 0);
+};
+
+// Splits a flat casualty count back across unit types proportional to each type's share of the
+// raw (pre-terrain-multiplier) composition, so e.g. an all-armor force takes all-armor losses.
+export const distributeCasualties = (units, totalCasualties) => {
+  const total = sumUnits(units);
+  const losses = emptyUnits();
+  if (total <= 0 || totalCasualties <= 0) return losses;
+  UNIT_TYPES.forEach(type => {
+    const share = (units[type] || 0) / total;
+    losses[type] = Math.min(units[type] || 0, Math.round(totalCasualties * share));
+  });
+  return losses;
+};
+
+export const subtractUnits = (units, losses) => {
+  const next = { ...emptyUnits(), ...units };
+  UNIT_TYPES.forEach(type => { next[type] = Math.max(0, next[type] - (losses[type] || 0)); });
+  return next;
+};
+
+// Uniformly shrinks a composition by a factor (e.g. 0.85 for a 15% attrition hit), used when an
+// invasion's whole committed force degrades rather than taking type-specific casualties.
+export const scaleUnits = (units, factor) => {
+  const next = emptyUnits();
+  UNIT_TYPES.forEach(type => { next[type] = Math.floor((units[type] || 0) * factor); });
+  return next;
 };
 
 // ============ COMBAT CALCULATIONS ============

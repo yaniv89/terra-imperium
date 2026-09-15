@@ -1,14 +1,16 @@
 // src/components/panels/MilitaryPanel.jsx
 // Military actions panel - training, combat, invasions
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
-import { REGIONS_DATA } from '../../data/regions';
-import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion } from '../../utils/helpers';
+import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
+import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion, sumUnits, hasEnoughUnits } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { ActionButton } from '../ui';
+
+const UNIT_LABELS = { infantry: 'Infantry', armor: 'Armor', air: 'Air' };
 
 const MilitaryPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
@@ -20,7 +22,19 @@ const MilitaryPanel = ({ selectedRegion }) => {
   const isEnemyRegion = regionState && regionState.owner !== 'player';
   const enemyNation = isEnemyRegion ? state.nations[regionState.owner] : null;
   const isAtWarWithOwner = enemyNation?.isAtWar;
+  const isAdjacent = selectedRegion ? isAdjacentToOwner(selectedRegion, state.regions, 'player') : false;
   const militaryPower = calcMilitaryPower(state);
+  const militaryUnits = state.militaryUnits;
+
+  // Composition committed to the next invasion the player launches — defaults to "send
+  // everything available" and clamps down whenever the selected target or arsenal changes.
+  const [composition, setComposition] = useState({ infantry: 0, armor: 0, air: 0 });
+  useEffect(() => {
+    if (!isPreState && isEnemyRegion && isAtWarWithOwner && isAdjacent) {
+      setComposition({ ...militaryUnits });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRegion]);
 
   // Get active invasion for selected region
   const activeInvasion = selectedRegion ? getInvasionForRegion(selectedRegion, state.invasions) : null;
@@ -71,11 +85,23 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('Must be at war to invade', 'action');
       return;
     }
+    if (!isAdjacent) {
+      addLog('Invasion must originate from adjacent controlled territory', 'action');
+      return;
+    }
+    if (sumUnits(composition) <= 0) {
+      addLog('Commit at least some forces to invade', 'action');
+      return;
+    }
+    if (!hasEnoughUnits(militaryUnits, composition)) {
+      addLog('Not enough forces available for that composition', 'action');
+      return;
+    }
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) {
       addLog('Not enough resources for invasion', 'action');
       return;
     }
-    dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion } });
+    dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion, composition } });
   };
 
   // Counterattack
@@ -130,6 +156,16 @@ const MilitaryPanel = ({ selectedRegion }) => {
             {formatNumber(militaryPower)}
           </span>
         </div>
+        {!isPreState && (
+          <div className="grid grid-cols-3 gap-1.5 mt-2 text-[10px]">
+            {Object.entries(UNIT_LABELS).map(([type, label]) => (
+              <div key={type} className="bg-slate-900/50 rounded px-1.5 py-1 text-center">
+                <div className="text-slate-500">{label}</div>
+                <div className="font-mono text-slate-200">{formatNumber(militaryUnits[type])}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Pre-State Actions */}
@@ -237,16 +273,58 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
           {/* Invasion - when selected enemy region and at war */}
           {isEnemyRegion && isAtWarWithOwner && (
-            <ActionButton
-              icon={Swords}
-              label={`Invade ${regionData?.name}`}
-              description={`Launch offensive against ${enemyNation?.name}`}
-              costs={ACTION_COSTS.launchInvasion}
-              effects={{ custom: 'Capture territory' }}
-              onClick={handleInvade}
-              disabled={state.resources.actionPoints < 3}
-              variant="danger"
-            />
+            <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-red-300">
+                <Swords className="w-4 h-4" />
+                Invade {regionData?.name}
+              </div>
+              {!isAdjacent ? (
+                <p className="text-xs text-slate-400">
+                  Not adjacent to any territory you control — invasions must launch from a bordering region.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-400">
+                    Commit forces from your arsenal. Composition matters — armor struggles in {regionData?.terrain}
+                    {' '}terrain, infantry and defenders both benefit from it.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(UNIT_LABELS).map(([type, label]) => (
+                      <label key={type} className="text-[10px] text-slate-400">
+                        {label}
+                        <input
+                          type="number"
+                          min={0}
+                          max={militaryUnits[type]}
+                          value={composition[type]}
+                          onChange={(e) => {
+                            const val = Math.max(0, Math.min(militaryUnits[type], Number(e.target.value) || 0));
+                            setComposition(prev => ({ ...prev, [type]: val }));
+                          }}
+                          className="w-full mt-0.5 px-1.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-100 font-mono text-xs"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setComposition({ ...militaryUnits })}
+                    className="text-[10px] text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Commit everything available
+                  </button>
+                  <ActionButton
+                    icon={Swords}
+                    label={`Launch Invasion (${formatNumber(sumUnits(composition))} committed)`}
+                    description={`Offensive against ${enemyNation?.name}`}
+                    costs={ACTION_COSTS.launchInvasion}
+                    effects={{ custom: 'Capture territory' }}
+                    onClick={handleInvade}
+                    disabled={state.resources.actionPoints < 3 || sumUnits(composition) <= 0 || !hasEnoughUnits(militaryUnits, composition)}
+                    variant="danger"
+                  />
+                </>
+              )}
+            </div>
           )}
         </>
       )}
@@ -291,7 +369,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
                   {inv.isPlayerAttacker ? '→' : '←'} {REGIONS_DATA[inv.targetRegion]?.name}
                 </span>
                 <div className="flex gap-2 font-mono">
-                  <span className="text-slate-400">{formatNumber(inv.strength)} str</span>
+                  <span className="text-slate-400">{formatNumber(inv.isPlayerAttacker ? sumUnits(inv.composition) : inv.strength)} str</span>
                   <span className="text-yellow-400">{inv.morale}% mor</span>
                   <span className="text-blue-400">{inv.supply}% sup</span>
                 </div>

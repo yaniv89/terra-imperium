@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
 import { GamePhases, GameStatus } from '../data/types';
+import { sumUnits } from '../utils/helpers';
 
 // A minimal, deterministic "overwhelming attacker" invasion: strength so far above the
 // defender's that the 0.8-1.2 random factor can never flip the outcome, so tests don't need
@@ -17,10 +18,20 @@ const overwhelmingInvasion = (id, targetRegion, attackerNation) => ({
   attackerNation
 });
 
+const overwhelmingPlayerInvasion = (id, targetRegion) => ({
+  id,
+  targetRegion,
+  composition: { infantry: 999999, armor: 0, air: 0 },
+  morale: 100,
+  supply: 100,
+  active: true,
+  isPlayerAttacker: true
+});
+
 const postStateBase = () => {
   const state = createInitialState();
   state.phase = GamePhases.POST_STATE;
-  state.militaryPower = 100; // deliberately weak defense
+  state.militaryUnits = { infantry: 100, armor: 0, air: 0 }; // deliberately weak defense
   return state;
 };
 
@@ -103,18 +114,16 @@ describe('resolveTurn casualties (regression: player military was a free, undama
 
     const next = resolveTurn(state);
 
-    expect(next.militaryPower).toBeLessThan(state.militaryPower);
+    expect(sumUnits(next.militaryUnits)).toBeLessThan(sumUnits(state.militaryUnits));
   });
 
   it('reduces the attacking nation strength when a player offensive wins', () => {
     const state = postStateBase();
-    state.militaryPower = 999999; // overwhelming attacker this time
     state.regions.golan = { ...state.regions.golan, owner: 'syria', control: 100 };
-    state.invasions = [{
-      id: 'inv1', targetRegion: 'golan', strength: 999999, morale: 100, supply: 100,
-      active: true, isPlayerAttacker: true
-    }];
+    state.invasions = [overwhelmingPlayerInvasion('inv1', 'golan')];
+
     const next = resolveTurn(state);
+
     expect(next.nations.syria.militaryStrength).toBeLessThan(state.nations.syria.militaryStrength);
     expect(next.regions.golan.owner).toBe('player');
   });
@@ -133,5 +142,58 @@ describe('resolveTurn AI vs AI conflicts (regression: computed and discarded)', 
       if (n.isPlayer) return;
       expect(n.militaryStrength).toBeGreaterThanOrEqual(100);
     });
+  });
+});
+
+describe('resolveTurn unit composition (Phase 3: terrain-vs-composition tradeoffs)', () => {
+  it('casualties from a player offensive land on the invasion force, not the home defense pool', () => {
+    const state = postStateBase();
+    state.militaryUnits = { infantry: 200000, armor: 0, air: 0 };
+    state.regions.golan = { ...state.regions.golan, owner: 'syria', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'golan', composition: { infantry: 999999, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true
+    }];
+
+    const next = resolveTurn(state);
+
+    // The committed 999999 was already deducted at launch time (reducer concern, not tested
+    // here) — resolveTurn itself must not ALSO touch the home militaryUnits pool for an
+    // attacking invasion's own casualties.
+    expect(next.militaryUnits).toEqual(state.militaryUnits);
+  });
+
+  it('composition vs. terrain can be the difference between a stalemate and a rout', () => {
+    // iran_west: mountains, defense = 20000 (startMilitary) * 0.3 * fortification(4) = 24000,
+    // further *1.4 terrain mod = 33600 defenderScore. At headcount 25000: infantry's terrain
+    // bonus (x1.3 = 32500 effective) reaches the 0.7 stalemate threshold across the whole
+    // 0.8-1.2 random band; armor's terrain penalty (x0.6 = 15000 effective) never does — it's
+    // repelled outright regardless of the roll. This is the real, seed-independent effect of
+    // composition-vs-terrain: which combat bucket you land in, not fine-grained casualty math
+    // within the same bucket (that stays a flat percentage either way).
+    const buildState = (composition) => {
+      const state = postStateBase();
+      state.regions.iran_west = { ...state.regions.iran_west, owner: 'iran', control: 100 };
+      state.invasions = [{
+        id: 'inv1', targetRegion: 'iran_west', composition, morale: 100, supply: 100,
+        active: true, isPlayerAttacker: true
+      }];
+      return state;
+    };
+
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const armorState = buildState({ infantry: 0, armor: 25000, air: 0 });
+      armorState.rngSeed = seed;
+      const infantryState = buildState({ infantry: 25000, armor: 0, air: 0 });
+      infantryState.rngSeed = seed;
+
+      const armorNext = resolveTurn(armorState).invasions.find(i => i.id === 'inv1');
+      const infantryNext = resolveTurn(infantryState).invasions.find(i => i.id === 'inv1');
+
+      // Armor: repelled every time -> morale -25 AND a further 0.85 attrition scale-down.
+      expect(armorNext.morale).toBe(75);
+      // Infantry: stalemate every time -> morale -10 only, no extra scale-down.
+      expect(infantryNext.morale).toBe(90);
+    }
   });
 });

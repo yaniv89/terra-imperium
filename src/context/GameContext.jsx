@@ -9,12 +9,12 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
 import { GamePhases, GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
-import { REGIONS_DATA, CORE_REGION_IDS } from '../data/regions';
+import { REGIONS_DATA, CORE_REGION_IDS, isAdjacentToOwner } from '../data/regions';
 import { NATIONS_DATA, INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
 import { TECH_TREE } from '../data/techTree';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { ACTION_COSTS } from '../data/actionCosts';
-import { canAfford, applyCosts, calcMilitaryPower } from '../utils/helpers';
+import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits } from '../utils/helpers';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { randomSeed } from '../utils/rng';
@@ -94,7 +94,10 @@ export const createInitialState = () => {
 
     // Military
     undergroundStrength: 500,
-    militaryPower: 0,
+    // POST_STATE arsenal, split by type so terrain/composition are real tradeoffs (see
+    // src/utils/helpers.js UNIT_TYPES). calcMilitaryPower() derives the total from this —
+    // there is no separate flat `militaryPower` field to drift out of sync with it.
+    militaryUnits: emptyUnits(),
 
     // Societal alignment (0 = Secular, 100 = Religious)
     societalSlider: 50,
@@ -126,6 +129,17 @@ export const createInitialState = () => {
   };
 };
 
+// Migrates a raw loaded/imported state object onto the current shape. Kept intentionally tiny —
+// this project doesn't promise long-term save compatibility across schema changes, but a
+// one-line conversion here avoids silently deleting the player's army the first time the
+// militaryPower-scalar -> militaryUnits-composition change (Phase 3) loads an old save.
+const migrateLoadedState = (savedState) => {
+  if (savedState && savedState.militaryUnits === undefined && typeof savedState.militaryPower === 'number') {
+    return { ...savedState, militaryUnits: { infantry: savedState.militaryPower, armor: 0, air: 0 } };
+  }
+  return savedState;
+};
+
 // Lazily load a saved game, falling back to a fresh one. Old/corrupt/foreign-shaped saves are
 // merged over a fresh default state so a missing field never crashes the app.
 const loadOrCreateState = () => {
@@ -135,7 +149,7 @@ const loadOrCreateState = () => {
     if (!raw) return fresh;
     const saved = JSON.parse(raw);
     if (!saved || saved.version !== SAVE_VERSION || !saved.state) return fresh;
-    return { ...fresh, ...saved.state };
+    return { ...fresh, ...migrateLoadedState(saved.state) };
   } catch (e) {
     return fresh;
   }
@@ -204,7 +218,7 @@ export const gameReducer = (state, action) => {
       return {
         ...state,
         phase: GamePhases.POST_STATE,
-        militaryPower: state.undergroundStrength * 2,
+        militaryUnits: { ...emptyUnits(), infantry: state.undergroundStrength * 2 },
         undergroundStrength: 0,
         regions: updRegions,
         nations: updNations,
@@ -299,8 +313,8 @@ export const gameReducer = (state, action) => {
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        militaryPower: state.militaryPower + 1000,
-        logs: [...state.logs, { year: state.year, message: 'Trained IDF infantry. +1000 military power', type: LogTypes.ACTION }]
+        militaryUnits: addUnits(state.militaryUnits, { infantry: 1000 }),
+        logs: [...state.logs, { year: state.year, message: 'Trained IDF infantry. +1000 infantry', type: LogTypes.ACTION }]
       };
     }
 
@@ -310,8 +324,8 @@ export const gameReducer = (state, action) => {
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        militaryPower: state.militaryPower + 2000,
-        logs: [...state.logs, { year: state.year, message: 'Built armored units. +2000 military power', type: LogTypes.ACTION }]
+        militaryUnits: addUnits(state.militaryUnits, { armor: 2000 }),
+        logs: [...state.logs, { year: state.year, message: 'Built armored units. +2000 armor', type: LogTypes.ACTION }]
       };
     }
 
@@ -321,29 +335,38 @@ export const gameReducer = (state, action) => {
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        militaryPower: state.militaryPower + 3000,
-        logs: [...state.logs, { year: state.year, message: 'Built air force jets. +3000 military power', type: LogTypes.ACTION }]
+        militaryUnits: addUnits(state.militaryUnits, { air: 3000 }),
+        logs: [...state.logs, { year: state.year, message: 'Built air force jets. +3000 air power', type: LogTypes.ACTION }]
       };
     }
 
     case ActionTypes.LAUNCH_PLAYER_INVASION: {
-      const { targetRegion } = action.payload;
+      const { targetRegion, composition } = action.payload;
       const region = state.regions[targetRegion];
       const enemyNation = region ? state.nations[region.owner] : null;
       const costs = ACTION_COSTS.launchInvasion;
       if (!region || region.owner === 'player' || !enemyNation || !enemyNation.isAtWar) return state;
+      // Must be launched from territory that actually borders the target — previously invasions
+      // could originate from anywhere on the map with no notion of a front line.
+      if (!isAdjacentToOwner(targetRegion, state.regions, 'player')) return state;
+      const requestedComposition = { ...emptyUnits(), ...composition };
+      if (Object.values(requestedComposition).every(v => v <= 0)) return state;
+      if (!hasEnoughUnits(state.militaryUnits, requestedComposition)) return state;
       if (!canAfford(state.resources, costs)) return state;
-      const strength = calcMilitaryPower(state);
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
+        // Committed units leave the home defense pool for the duration of the invasion — this
+        // is what makes multi-front war a real tradeoff instead of reusing the same full-strength
+        // pool for every simultaneous invasion (the original balance exploit).
+        militaryUnits: subtractUnits(state.militaryUnits, requestedComposition),
         nextInvasionSeq: state.nextInvasionSeq + 1,
         invasions: [
           ...state.invasions,
           {
             id: `inv_player_${state.turnNumber}_${state.nextInvasionSeq}`,
             targetRegion,
-            strength,
+            composition: requestedComposition,
             morale: 100,
             supply: 100,
             active: true,
@@ -498,7 +521,7 @@ export const gameReducer = (state, action) => {
 
     case ActionTypes.LOAD_GAME: {
       const fresh = createInitialState();
-      const incoming = action.payload || {};
+      const incoming = migrateLoadedState(action.payload) || {};
       return { ...fresh, ...incoming, gameStatus: incoming.gameStatus || GameStatus.ACTIVE };
     }
 
