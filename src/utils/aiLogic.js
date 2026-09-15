@@ -1,11 +1,21 @@
 // src/utils/aiLogic.js
 // AI logic for non-player nations
 
-import { NATIONS_DATA } from '../data/nations';
+import { NATIONS_DATA, DOCTRINES, HOSTILE_BLOCS } from '../data/nations';
 import { REGIONS_DATA, isAdjacentToOwner } from '../data/regions';
 import { RelationStatus } from '../data/types';
 
 const DEFAULT_RNG = { next: () => Math.random() };
+const DEFAULT_DOCTRINE = DOCTRINES.attrition;
+
+// True if any bloc-mate of `nationId` is currently at war with the player — used to make
+// nations pile on once one member of their bloc is already fighting (bandwagon behavior),
+// rather than every nation deciding independently as if the others didn't exist.
+const hasBlocMateAtWar = (nationId, nations) => {
+  const bloc = Object.values(HOSTILE_BLOCS).find(members => members.includes(nationId));
+  if (!bloc) return false;
+  return bloc.some(memberId => memberId !== nationId && nations[memberId]?.isAtWar);
+};
 
 // Process AI turn for a single nation. `rng` must be a { next(): number } generator
 // (see src/utils/rng.js) so turn resolution stays deterministic and replayable.
@@ -20,31 +30,36 @@ export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG, inva
 
   if (nation.isPlayer) return updates;
 
-  // 1. Economic growth - nations build military over time
-  const baseGrowth = Math.floor(nation.militaryStrength * 0.03);
-  const economyBonus = Math.floor(rng.next() * 500);
+  const nationData = NATIONS_DATA[nation.id];
+  const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
+
+  // 1. Economic growth - nations build military over time (cautious doctrines grow faster)
+  const baseGrowth = Math.floor(nation.militaryStrength * 0.03 * doctrine.economyGrowthMult);
+  const economyBonus = Math.floor(rng.next() * 500 * doctrine.economyGrowthMult);
   updates.militaryStrengthChange = baseGrowth + economyBonus;
 
   // Rich nations grow faster
-  const nationData = NATIONS_DATA[nation.id];
   if (nationData) {
     const regions = Object.values(state.regions).filter(r => r.owner === nation.id);
     const totalResources = regions.reduce((sum, r) => {
       const regData = REGIONS_DATA[r.id];
       return sum + (regData?.resources?.money || 0);
     }, 0);
-    updates.militaryStrengthChange += Math.floor(totalResources * 0.05);
+    updates.militaryStrengthChange += Math.floor(totalResources * 0.05 * doctrine.economyGrowthMult);
   }
 
   const aggression = nationData?.aggression ?? 0.3;
+  const bandwagon = hasBlocMateAtWar(nation.id, state.nations) ? doctrine.bandwagonMult : 1;
 
   // 2. Hostility changes.
   // Decay must apply whether or not the nation is at war — otherwise DECLARE_WAR's
   // hostility:100 is a permanent floor (the only code that lowered hostility used to be
   // gated to `!isAtWar`), and "seek peace" requires hostility <= 60, which then can never
   // be reached: every war becomes permanent and unwinnable. War exhaustion should if
-  // anything decay hostility *faster* than peacetime drift.
-  if (nation.hostility > 20 && rng.next() < (nation.isAtWar ? 0.35 : 0.2)) {
+  // anything decay hostility *faster* than peacetime drift. Decay never crosses below the
+  // nation's hostilityFloor — set once this nation broke a peace treaty (src/engine/diplomacy.js).
+  const hostilityFloor = nation.hostilityFloor || 0;
+  if (nation.hostility > Math.max(20, hostilityFloor) && rng.next() < (nation.isAtWar ? 0.35 : 0.2)) {
     updates.hostilityChange += -2;
     updates.logs.push({
       message: nation.isAtWar
@@ -56,15 +71,16 @@ export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG, inva
 
   // Hostility can also ratchet up based on aggression — only while not already at war
   // (an already-warring nation is already maximally hostile; this represents peacetime
-  // provocation escalating toward war, not war escalating further).
-  if (!nation.isAtWar && rng.next() < aggression * 0.1) {
+  // provocation escalating toward war, not war escalating further). A bloc-mate already at
+  // war with the player accelerates this (bandwagon).
+  if (!nation.isAtWar && rng.next() < aggression * 0.1 * bandwagon) {
     updates.hostilityChange += 3;
   }
 
-  // 3. War actions - launch invasions
+  // 3. War actions - launch invasions (blitz doctrines attack more readily)
   if (nation.isAtWar && state.phase !== 'PRE_STATE') {
     // Check if should launch new invasion
-    if (rng.next() < aggression * 0.3) {
+    if (rng.next() < aggression * 0.3 * doctrine.warRollMult) {
       const playerRegions = Object.values(state.regions).filter(r => r.owner === 'player');
       const existingInvasions = state.invasions.filter(
         inv => !inv.isPlayerAttacker && inv.active
@@ -188,21 +204,27 @@ export const processAllAINations = (state, year, rng = DEFAULT_RNG) => {
   return allUpdates;
 };
 
-// Calculate if nation should declare war
-export const shouldDeclareWar = (nation, _state) => {
+// Calculate if a nation should independently declare war on the player this turn.
+// `rng` must be a { next(): number } generator so this stays deterministic like the rest of
+// turn resolution — previously this used Math.random() directly and, separately, was never
+// called from anywhere, so AI nations could never start a war on their own initiative.
+export const shouldDeclareWar = (nation, state, rng = DEFAULT_RNG) => {
   if (nation.isPlayer || nation.isAtWar || nation.hasPeaceTreaty) return false;
-  
+
   const nationData = NATIONS_DATA[nation.id];
   if (!nationData) return false;
-  
+
+  const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
+  const bandwagon = hasBlocMateAtWar(nation.id, state.nations) ? doctrine.bandwagonMult : 1;
+
   // High hostility + high aggression = war likely
   const warChance = (nation.hostility / 100) * nationData.aggression;
-  
+
   // Historical enemies more likely to attack
   const isHistoricalEnemy = ['egypt', 'syria', 'jordan', 'iraq'].includes(nation.id);
   const historicalBonus = isHistoricalEnemy ? 0.1 : 0;
-  
-  return Math.random() < (warChance + historicalBonus) * 0.05;
+
+  return rng.next() < (warChance + historicalBonus) * 0.05 * doctrine.warRollMult * bandwagon;
 };
 
 // Get relation status from hostility

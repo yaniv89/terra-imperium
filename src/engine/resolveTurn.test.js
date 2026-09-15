@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTurn } from './resolveTurn';
+import { resolveTurn, findConflictTerritoryTransfer } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
 import { GamePhases, GameStatus } from '../data/types';
 import { sumUnits } from '../utils/helpers';
+import { HISTORICAL_EVENTS } from '../data/events';
 
 // A minimal, deterministic "overwhelming attacker" invasion: strength so far above the
 // defender's that the 0.8-1.2 random factor can never flip the outcome, so tests don't need
@@ -195,5 +196,96 @@ describe('resolveTurn unit composition (Phase 3: terrain-vs-composition tradeoff
       // Infantry: stalemate every time -> morale -10 only, no extra scale-down.
       expect(infantryNext.morale).toBe(90);
     }
+  });
+});
+
+describe('resolveTurn hostilityFloor (Phase 4: broken-peace memory)', () => {
+  it('hostility decay never crosses below a nation\'s hostilityFloor', () => {
+    let state = postStateBase();
+    // Strong defense so an unrelated nation's own (nonzero-by-default) hostility can't cause an
+    // early DEFEAT that freezes turn resolution before 500 decay-roll chances play out — see the
+    // identical note on the AI-initiated-wars tests below, which hit this exact interaction.
+    state.militaryUnits = { infantry: 1000000, armor: 0, air: 0 };
+    // No scripted events allowed to interrupt this run — mark everything fired so resolveTurn
+    // never blocks on activeEventId partway through.
+    state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+    state.nations.egypt = { ...state.nations.egypt, isAtWar: true, hostility: 50, hostilityFloor: 40 };
+
+    // 35%/turn decay chance while at war; 60 turns gives an expected ~21 successful decay rolls
+    // (far more than the 5 needed to walk from 50 down to the floor of 40), so "it never fired"
+    // is astronomically unlikely regardless of the random seed. Deliberately NOT hundreds of
+    // turns: AI military strength compounds ~3%/turn, and a long enough run would eventually
+    // out-scale any fixed defense number regardless of this mechanic — that's a separate, correct
+    // effect of Phase 4, not something this test needs to survive.
+    for (let i = 0; i < 60; i++) {
+      state = resolveTurn(state);
+    }
+
+    expect(state.nations.egypt.hostility).toBeGreaterThanOrEqual(40);
+    expect(state.nations.egypt.hostility).toBeLessThan(50); // decay did actually happen
+  });
+});
+
+describe('resolveTurn AI-initiated wars (Phase 4: shouldDeclareWar was written but never called)', () => {
+  it('a hostile, aggressive nation can eventually declare war on the player without any player action', () => {
+    let state = postStateBase();
+    // Strong defense so that OTHER nations' own (nonzero-by-default) hostility can't cause an
+    // early DEFEAT that freezes turn resolution before Syria gets its own chance to roll — this
+    // test is specifically isolating "can an AI nation declare war unprompted," not "does the
+    // whole world staying hostile eventually overwhelm a weak player" (a real, separate, and
+    // correct emergent effect of this same Phase 4 change, just not what this test checks).
+    state.militaryUnits = { infantry: 1000000, armor: 0, air: 0 };
+    state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+    state.nations.syria = { ...state.nations.syria, hostility: 100, isAtWar: false, hasPeaceTreaty: false };
+
+    let syriaWentToWar = false;
+    for (let i = 0; i < 300 && !syriaWentToWar; i++) {
+      state = resolveTurn(state);
+      if (state.nations.syria.isAtWar) syriaWentToWar = true;
+    }
+
+    expect(syriaWentToWar).toBe(true);
+    expect(state.wars.some(w => w.enemy === 'syria' && w.active)).toBe(true);
+  });
+
+  it('never declares more than one AI-initiated war in a single turn', () => {
+    let state = postStateBase();
+    state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+    // Make every nation maximally war-hungry at once.
+    Object.keys(state.nations).forEach(id => {
+      if (state.nations[id].isPlayer) return;
+      state.nations[id] = { ...state.nations[id], hostility: 100, isAtWar: false, hasPeaceTreaty: false };
+    });
+
+    for (let i = 0; i < 50; i++) {
+      const before = Object.values(state.nations).filter(n => !n.isPlayer && n.isAtWar).length;
+      state = resolveTurn(state);
+      const after = Object.values(state.nations).filter(n => !n.isPlayer && n.isAtWar).length;
+      expect(after - before).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe('findConflictTerritoryTransfer (Phase 4: AI-vs-AI conflicts can now redraw the map)', () => {
+  const nations = {
+    syria: { name: 'Syria', militaryStrength: 100000 },
+    lebanon: { name: 'Lebanon', militaryStrength: 10000 }
+  };
+
+  it('returns null when the aggressor lacks a decisive strength edge', () => {
+    const evenNations = { syria: { ...nations.syria, militaryStrength: 10000 }, lebanon: nations.lebanon };
+    const regions = { syria_damascus: { owner: 'syria' }, lebanon_north: { owner: 'lebanon' } };
+    expect(findConflictTerritoryTransfer(regions, evenNations, { aggressor: 'syria', defender: 'lebanon' })).toBeNull();
+  });
+
+  it('returns null when the aggressor and defender share no border', () => {
+    const regions = { syria_damascus: { owner: 'syria' }, egypt_cairo: { owner: 'lebanon' } };
+    expect(findConflictTerritoryTransfer(regions, nations, { aggressor: 'syria', defender: 'lebanon' })).toBeNull();
+  });
+
+  it('returns the bordering region when the aggressor is decisively stronger and adjacent', () => {
+    const regions = { syria_damascus: { owner: 'syria' }, lebanon_north: { owner: 'lebanon' } };
+    // syria_damascus borders lebanon_north (see src/data/regions.js).
+    expect(findConflictTerritoryTransfer(regions, nations, { aggressor: 'syria', defender: 'lebanon' })).toBe('lebanon_north');
   });
 });

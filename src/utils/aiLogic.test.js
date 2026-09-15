@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processAINationTurn } from './aiLogic';
+import { processAINationTurn, shouldDeclareWar } from './aiLogic';
 import { createRng } from './rng';
 
 const atWarNation = () => ({
@@ -21,7 +21,7 @@ describe('processAINationTurn hostility (regression: peace was mathematically un
     const rng = createRng(1);
     for (let turn = 0; turn < 200; turn++) {
       const nation = { ...atWarNation(), hostility };
-      const updates = processAINationTurn(nation, { regions: {}, phase: 'POST_STATE', invasions: [] }, 1950 + turn, rng, 0);
+      const updates = processAINationTurn(nation, { regions: {}, nations: {}, phase: 'POST_STATE', invasions: [] }, 1950 + turn, rng, 0);
       hostility = Math.max(0, Math.min(100, hostility + updates.hostilityChange));
     }
     expect(hostility).toBeLessThan(100);
@@ -32,7 +32,7 @@ describe('processAINationTurn hostility (regression: peace was mathematically un
     const rng = createRng(7);
     for (let turn = 0; turn < 400 && hostility > 60; turn++) {
       const nation = { ...atWarNation(), hostility };
-      const updates = processAINationTurn(nation, { regions: {}, phase: 'POST_STATE', invasions: [] }, 1950 + turn, rng, 0);
+      const updates = processAINationTurn(nation, { regions: {}, nations: {}, phase: 'POST_STATE', invasions: [] }, 1950 + turn, rng, 0);
       hostility = Math.max(0, Math.min(100, hostility + updates.hostilityChange));
     }
     expect(hostility).toBeLessThanOrEqual(60);
@@ -41,8 +41,42 @@ describe('processAINationTurn hostility (regression: peace was mathematically un
 
 describe('processAINationTurn determinism', () => {
   it('produces identical results for the same rng sequence', () => {
-    const a = processAINationTurn(atWarNation(), { regions: {}, phase: 'POST_STATE', invasions: [] }, 1950, createRng(99), 0);
-    const b = processAINationTurn(atWarNation(), { regions: {}, phase: 'POST_STATE', invasions: [] }, 1950, createRng(99), 0);
+    const a = processAINationTurn(atWarNation(), { regions: {}, nations: {}, phase: 'POST_STATE', invasions: [] }, 1950, createRng(99), 0);
+    const b = processAINationTurn(atWarNation(), { regions: {}, nations: {}, phase: 'POST_STATE', invasions: [] }, 1950, createRng(99), 0);
     expect(a).toEqual(b);
+  });
+});
+
+describe('shouldDeclareWar (Phase 4: AI nations can now initiate war on their own — was written but never called)', () => {
+  const eligibleNation = () => ({
+    id: 'egypt', isPlayer: false, isAtWar: false, hasPeaceTreaty: false, hostility: 80, doctrine: 'attrition'
+  });
+  const alwaysRolls = (value) => ({ next: () => value });
+
+  it('can return true for an eligible nation on a low roll', () => {
+    expect(shouldDeclareWar(eligibleNation(), { nations: {} }, alwaysRolls(0))).toBe(true);
+  });
+
+  it('never fires on a maximal roll (probabilities stay well under 1)', () => {
+    expect(shouldDeclareWar(eligibleNation(), { nations: {} }, alwaysRolls(1))).toBe(false);
+  });
+
+  it('never fires if already at war', () => {
+    const nation = { ...eligibleNation(), isAtWar: true };
+    expect(shouldDeclareWar(nation, { nations: {} }, alwaysRolls(0))).toBe(false);
+  });
+
+  it('never fires if a peace treaty is in place', () => {
+    const nation = { ...eligibleNation(), hasPeaceTreaty: true };
+    expect(shouldDeclareWar(nation, { nations: {} }, alwaysRolls(0))).toBe(false);
+  });
+
+  it('bandwagon: a bloc-mate already at war with the player raises the chance', () => {
+    // jordan (opportunist, bandwagonMult 1.8): warChance = (0.8*0.5+0.1)*0.05*0.8 = 0.02 alone,
+    // 0.036 with a bloc-mate at war. A fixed roll of 0.03 falls strictly between the two.
+    const jordan = { id: 'jordan', isPlayer: false, isAtWar: false, hasPeaceTreaty: false, hostility: 80, doctrine: 'opportunist' };
+    const rng = alwaysRolls(0.03);
+    expect(shouldDeclareWar(jordan, { nations: {} }, rng)).toBe(false);
+    expect(shouldDeclareWar(jordan, { nations: { egypt: { isAtWar: true } } }, rng)).toBe(true);
   });
 });

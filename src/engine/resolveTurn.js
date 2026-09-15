@@ -11,7 +11,7 @@
 // mutated locally in order, and only one dispatch to the reducer.
 
 import { GamePhases, GameStatus, LogTypes } from '../data/types';
-import { REGIONS_DATA } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { NATIONS_DATA } from '../data/nations';
 import { TECH_TREE } from '../data/techTree';
 import { pickNextEvent } from '../data/events';
@@ -27,10 +27,29 @@ import {
   sumUnits,
   formatNumber
 } from '../utils/helpers';
-import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
+import { processAllAINations, getRelationFromHostility, shouldDeclareWar } from '../utils/aiLogic';
+import { declareWar } from './diplomacy';
 import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// Decides whether an AI-vs-AI conflict should transfer territory, and which region. Only when
+// the aggressor holds a decisive strength edge (same 1.5x threshold philosophy as player combat)
+// AND actually borders something the defender owns — a skirmish between two nations with no
+// shared frontier doesn't redraw the map. Exported standalone (rather than inlined in the
+// resolveTurn loop) so it's testable without needing the 2% per-turn RNG roll that normally
+// produces a regionConflict to fire first.
+export const findConflictTerritoryTransfer = (regions, nations, conflict) => {
+  const aggressor = nations[conflict.aggressor];
+  const defender = nations[conflict.defender];
+  if (!aggressor || !defender || aggressor.militaryStrength < defender.militaryStrength * 1.5) return null;
+
+  const aggressorRegionIds = Object.keys(regions).filter(id => regions[id].owner === conflict.aggressor);
+  return Object.keys(regions).find(id =>
+    regions[id].owner === conflict.defender &&
+    aggressorRegionIds.some(aid => getNeighborIds(aid).includes(id))
+  ) || null;
+};
 
 export const resolveTurn = (state) => {
   // Guard: nothing to resolve if the game already ended or an event is blocking play.
@@ -214,7 +233,7 @@ export const resolveTurn = (state) => {
   });
 
   // --- nations: apply AI growth + war hostility decay + combat casualties in one pass ---
-  const nations = { ...state.nations };
+  let nations = { ...state.nations };
   Object.entries(nations).forEach(([nId, nation]) => {
     if (nation.isPlayer) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
@@ -223,12 +242,44 @@ export const resolveTurn = (state) => {
     // invasion resolution above. Each is added exactly once.
     const combatDelta = nationCombatDeltas[nId] || 0;
     const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0) + combatDelta);
-    const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), 0, 100);
+    // Hostility decay never crosses below hostilityFloor (set when this nation's peace treaty
+    // with the player was broken by a later war — see src/engine/diplomacy.js).
+    const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
     const relationStatus = nation.isAtWar || nation.hasPeaceTreaty || nation.hasTradeAgreement
       ? nation.relationStatus
       : getRelationFromHostility(hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
+
+  // --- AI-vs-AI conflicts can shift territory, not just casualties (Phase 4) ---
+  aiUpdates.regionConflicts.forEach(conflict => {
+    const targetRegionId = findConflictTerritoryTransfer(regions, nations, conflict);
+    if (!targetRegionId) return;
+
+    regions[targetRegionId] = { ...regions[targetRegionId], owner: conflict.aggressor, control: 50, isOccupied: true };
+    logs.push({
+      year: newYear,
+      message: `${nations[conflict.aggressor].name} seizes ${REGIONS_DATA[targetRegionId]?.name} from ${nations[conflict.defender].name}!`,
+      type: LogTypes.AI
+    });
+  });
+
+  // --- AI-initiated wars (Phase 4) ---
+  // Previously the only wars in the game were scripted (Independence, event warWith) or
+  // player-declared — shouldDeclareWar was fully written and never called from anywhere, so AI
+  // nations could never start a war on their own initiative. Capped at one per turn so turn 1
+  // doesn't dogpile into a dozen simultaneous declarations.
+  let wars = state.wars;
+  for (const nation of Object.values(nations)) {
+    if (nation.isPlayer) continue;
+    if (shouldDeclareWar(nation, { nations }, rng)) {
+      const result = declareWar({ nations, wars, year: newYear }, nation.id);
+      nations = result.nations;
+      wars = result.wars;
+      logs.push({ year: newYear, message: `${nation.name} declares war on Israel!`, type: LogTypes.CRISIS });
+      break;
+    }
+  }
 
   // --- events ---
   const dueEvent = pickNextEvent(newYear, state.phase, nations, state.firedEvents);
@@ -243,6 +294,7 @@ export const resolveTurn = (state) => {
     techTree,
     regions,
     nations,
+    wars,
     invasions: allInvasions,
     militaryUnits,
     undergroundStrength,
