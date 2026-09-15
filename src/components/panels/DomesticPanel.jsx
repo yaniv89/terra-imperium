@@ -2,23 +2,25 @@
 // Domestic actions panel - land purchase, immigration, infrastructure, lobbying
 
 import React from 'react';
-import { Sprout, Ship, Hammer, Globe, Flag, Building } from 'lucide-react';
+import { Sprout, Ship, Hammer, Globe, Flag, Building, LifeBuoy, Flame } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
-import { getAvgCoreControl, canAfford } from '../../utils/helpers';
+import { getAvgCoreControl, canAfford, COMEBACK_THRESHOLD } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
-import { ActionButton } from '../ui';
+import { ActionButton, MilestoneWidget } from '../ui';
 
 const DomesticPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
-  
+
   const isPreState = state.phase === GamePhases.PRE_STATE;
   const regionState = selectedRegion ? state.regions[selectedRegion] : null;
   const regionData = selectedRegion ? REGIONS_DATA[selectedRegion] : null;
   const isPlayerOwned = regionState?.owner === 'player';
   const avgCoreControl = getAvgCoreControl(state);
   const canDeclareIndependence = isPreState && avgCoreControl >= 60;
+  // Comeback mechanics (Phase 10) — emergency actions unlock once core control is critical.
+  const inCrisis = !isPreState && avgCoreControl < COMEBACK_THRESHOLD;
 
   // Buy Land (Pre-state only). Cost/effect are applied atomically by the reducer — this
   // handler only gives the player an immediate, specific reason when a click won't do anything.
@@ -83,8 +85,65 @@ const DomesticPanel = ({ selectedRegion }) => {
     dispatch({ type: ActionTypes.DECLARE_INDEPENDENCE });
   };
 
+  // Emergency Intervention (Phase 10 comeback mechanic)
+  const handleEmergencyIntervention = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.emergencyIntervention)) {
+      addLog('Not enough diplomacy points', 'action');
+      return;
+    }
+    dispatch({ type: ActionTypes.EMERGENCY_INTERVENTION });
+  };
+
+  // Scorched Earth Defense (Phase 10 comeback mechanic)
+  const handleScorchedEarth = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.scorchedEarthDefense)) {
+      addLog('Not enough resources', 'action');
+      return;
+    }
+    dispatch({ type: ActionTypes.SCORCHED_EARTH_DEFENSE });
+  };
+
   return (
     <div className="space-y-2">
+      {/* Next Milestone (Phase 10) — always shows the closest win condition/tech, "just one more
+          turn" style. */}
+      {!isPreState && (
+        <div className="mb-3">
+          <MilestoneWidget />
+        </div>
+      )}
+
+      {/* Crisis Actions (Phase 10 comeback mechanics) — a close game should feel tense, not
+          just over once it's clearly lost. */}
+      {inCrisis && (
+        <div className="p-3 bg-red-500/10 rounded-lg border border-red-500/40 mb-3 space-y-2">
+          <div className="text-red-400 font-bold text-sm flex items-center gap-2 animate-pulse">
+            <LifeBuoy className="w-4 h-4" />
+            Nation in Crisis — Emergency Measures Available
+          </div>
+          <ActionButton
+            icon={LifeBuoy}
+            label="Plea for Foreign Intervention"
+            description="International aid + war-weariness pressure on every enemy"
+            costs={ACTION_COSTS.emergencyIntervention}
+            effects={{ custom: '+$50K, +2K Men, -15 hostility (at-war nations)' }}
+            onClick={handleEmergencyIntervention}
+            disabled={!canAfford(state.resources, ACTION_COSTS.emergencyIntervention)}
+            variant="warning"
+          />
+          <ActionButton
+            icon={Flame}
+            label="Scorched Earth Defense"
+            description="Desperate, permanent fortification of every front"
+            costs={ACTION_COSTS.scorchedEarthDefense}
+            effects={{ custom: '+10% permanent defense bonus' }}
+            onClick={handleScorchedEarth}
+            disabled={!canAfford(state.resources, ACTION_COSTS.scorchedEarthDefense)}
+            variant="danger"
+          />
+        </div>
+      )}
+
       {/* Selected region indicator */}
       {selectedRegion && isPlayerOwned && (
         <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/30 mb-3">

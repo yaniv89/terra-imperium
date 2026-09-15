@@ -79,4 +79,24 @@ describe('shouldDeclareWar (Phase 4: AI nations can now initiate war on their ow
     expect(shouldDeclareWar(jordan, { nations: {} }, rng)).toBe(false);
     expect(shouldDeclareWar(jordan, { nations: { egypt: { isAtWar: true } } }, rng)).toBe(true);
   });
+
+  it('difficulty (Phase 10): raises or lowers the war chance uniformly via state.difficultyMultiplier', () => {
+    // egypt (historical enemy, aggression 0.7, attrition doctrine): at normal (mult 1) the final
+    // chance is (0.8*0.7*1 + 0.1)*0.05 = 0.033; at easy (0.7) it's 0.0246; at hard (1.4) it's
+    // 0.0442. A fixed roll of 0.028 falls between easy and normal; 0.04 falls between normal and hard.
+    const egypt = eligibleNation();
+    const lowRoll = alwaysRolls(0.028);
+    expect(shouldDeclareWar(egypt, { nations: {}, difficultyMultiplier: 0.7 }, lowRoll)).toBe(false);
+    expect(shouldDeclareWar(egypt, { nations: {}, difficultyMultiplier: 1 }, lowRoll)).toBe(true);
+
+    const highRoll = alwaysRolls(0.04);
+    expect(shouldDeclareWar(egypt, { nations: {}, difficultyMultiplier: 1 }, highRoll)).toBe(false);
+    expect(shouldDeclareWar(egypt, { nations: {}, difficultyMultiplier: 1.4 }, highRoll)).toBe(true);
+  });
+
+  it('defaults to a 1x (no-op) difficulty multiplier when the field is absent (old saves)', () => {
+    const egypt = eligibleNation();
+    const rng = alwaysRolls(0.028);
+    expect(shouldDeclareWar(egypt, { nations: {} }, rng)).toBe(shouldDeclareWar(egypt, { nations: {}, difficultyMultiplier: 1 }, rng));
+  });
 });

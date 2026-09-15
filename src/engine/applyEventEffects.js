@@ -152,12 +152,28 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.nations = nations;
   }
 
+  // Event chains with memory (Phase 10) — schedules a registry entry from eventChains.js to
+  // fire delayTurns turns from now (see resolveTurn.js, which checks state.pendingEventChains
+  // every turn). turnNumber, not year, is the clock here so the delay is exact regardless of
+  // which half of the year this event resolved in.
+  if (effects.spawnFollowUp) {
+    const { id, delayTurns } = effects.spawnFollowUp;
+    next.pendingEventChains = [
+      ...(next.pendingEventChains || []),
+      { id, dueTurn: next.turnNumber + delayTurns }
+    ];
+  }
+
   if (effects.canDeclareIndependence) {
     logs.push({ year: next.year, message: 'Independence is now possible! Declare when ready.', type: LogTypes.MILESTONE });
   }
 
   if (effects.victory) {
     next.gameStatus = GameStatus.VICTORY;
+    // Recorded so GameOverModal can show which victory was achieved (Phase 10: multiple win
+    // conditions) — this is always the 'survival' condition since it's the only one delivered
+    // via a scripted event rather than resolveTurn's per-turn victory-condition check.
+    next.victoryConditionId = 'survival';
     logs.push({ year: next.year, message: 'VICTORY: Israel has led humanity to the stars!', type: LogTypes.MILESTONE });
   }
 

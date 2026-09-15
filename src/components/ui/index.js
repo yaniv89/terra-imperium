@@ -8,3 +8,4 @@ export { default as GameHeader } from './GameHeader';
 export { default as TabButton } from './TabButton';
 export { default as ProgressBar } from './ProgressBar';
 export { default as Tooltip } from './Tooltip';
+export { default as MilestoneWidget } from './MilestoneWidget';

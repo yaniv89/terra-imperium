@@ -16,6 +16,7 @@ import { NATIONS_DATA } from '../data/nations';
 import { TECH_TREE } from '../data/techTree';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
+import { EVENT_CHAINS } from '../data/eventChains';
 import {
   calcIncome,
   calcMilitaryPower,
@@ -30,6 +31,7 @@ import {
 } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility, shouldDeclareWar } from '../utils/aiLogic';
 import { declareWar, checkWarGoal } from './diplomacy';
+import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
 import { getPersonaBonus } from '../data/personas';
 import { narratePlayerStorm, narrateEnemyStorm } from '../utils/combatNarrative';
 import { createRng } from '../utils/rng';
@@ -432,16 +434,34 @@ export const resolveTurn = (state) => {
   // --- events ---
   const dueEvent = pickNextEvent(newYear, state.phase, nations, state.firedEvents);
 
+  // --- event chains (Phase 10) ---
+  // A scripted follow-up scheduled earlier by applyEventEffects.js (effects.spawnFollowUp) fires
+  // as soon as its dueTurn is reached, but only when no scripted historical event is already due
+  // this turn — a chain event is a consequence of the player's own choices, not part of the
+  // hand-written timeline, so it waits a turn rather than displacing one. It DOES take priority
+  // over procedural filler below, since it carries real narrative weight the filler doesn't.
+  const newTurnNumber = state.turnNumber + 1;
+  const pendingEventChains = state.pendingEventChains || [];
+  let chainEventId = null;
+  let nextPendingEventChains = pendingEventChains;
+  if (!dueEvent) {
+    const dueIndex = pendingEventChains.findIndex(c => c.dueTurn <= newTurnNumber && EVENT_CHAINS[c.id]);
+    if (dueIndex !== -1) {
+      chainEventId = pendingEventChains[dueIndex].id;
+      nextPendingEventChains = pendingEventChains.filter((_, i) => i !== dueIndex);
+    }
+  }
+
   // --- procedural events (Phase 6) ---
-  // Only rolled when no scripted event is already due this turn, and only in the POST_STATE
-  // era from 2000 onward — this is purely a "keep the late game from going quiet" filler, not a
-  // replacement for the hand-written timeline, so it never competes with or delays a scripted
-  // event. Gated behind a cooldown (a random 3-8 years after each firing) so these don't cluster.
+  // Only rolled when no scripted event or chain event is already due this turn, and only in the
+  // POST_STATE era from 2000 onward — this is purely a "keep the late game from going quiet"
+  // filler, not a replacement for the hand-written timeline, so it never competes with or delays
+  // one. Gated behind a cooldown (a random 3-8 years after each firing) so these don't cluster.
   let proceduralEventCooldown = Math.max(0, (state.proceduralEventCooldown || 0) - 1);
   let activeProceduralEvent = null;
-  if (!dueEvent && state.phase === GamePhases.POST_STATE && newYear >= 2000 &&
+  if (!dueEvent && !chainEventId && state.phase === GamePhases.POST_STATE && newYear >= 2000 &&
       proceduralEventCooldown <= 0 && rng.next() < 0.3) {
-    const candidate = pickProceduralEvent({ ...state, nations, turnNumber: state.turnNumber + 1, year: newYear }, rng);
+    const candidate = pickProceduralEvent({ ...state, nations, turnNumber: newTurnNumber, year: newYear }, rng);
     if (candidate) {
       activeProceduralEvent = candidate;
       proceduralEventCooldown = 6 + Math.floor(rng.next() * 10); // 3-8 years (half-year turns)
@@ -483,9 +503,10 @@ export const resolveTurn = (state) => {
     invasions: allInvasions,
     militaryUnits,
     undergroundStrength,
-    activeEventId: dueEvent ? dueEvent.id : null,
+    activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,
+    pendingEventChains: nextPendingEventChains,
     counterAttackWindows,
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
@@ -501,12 +522,20 @@ export const resolveTurn = (state) => {
     }
   }
 
-  // Backstop victory: the scripted `galactic_age_2150` event is what normally delivers the win
-  // (its `effects.victory` is applied in applyEventEffects.js), but if for any reason no event
-  // is pending once the timeline runs out, don't leave the game unwinnable.
-  if (next.gameStatus === GameStatus.ACTIVE && newYear >= 2150 && !next.activeEventId && !next.activeProceduralEvent) {
-    next.gameStatus = GameStatus.VICTORY;
-    next.logs = [...next.logs, { year: newYear, message: 'VICTORY: Israel survives to 2150!', type: LogTypes.MILESTONE }];
+  // Multiple win conditions (Phase 10) — survival (the scripted galactic_age_2150 event normally
+  // delivers this one directly via effects.victory in applyEventEffects.js; checking it again
+  // here is just the backstop for if that event is ever skipped), military conquest, economic
+  // ascendancy, and diplomatic hegemony all end the game the moment their condition is met,
+  // instead of only "keep surviving until 2150" being reachable at all. Not checked while an
+  // event is actively pending, so a victory never lands mid-event-resolution.
+  if (next.gameStatus === GameStatus.ACTIVE && state.phase === GamePhases.POST_STATE &&
+      !next.activeEventId && !next.activeProceduralEvent) {
+    const conditionId = checkVictoryConditions(next);
+    if (conditionId) {
+      const condition = VICTORY_CONDITIONS[conditionId];
+      next = applyVictory(next, conditionId);
+      next.logs = [...next.logs, { year: newYear, message: `VICTORY: ${condition.name} achieved!`, type: LogTypes.MILESTONE }];
+    }
   }
 
   return next;

@@ -133,8 +133,12 @@ const EventModal = ({ event, onResolve }) => {
             <span className="line-clamp-2">{event.title}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
-            <Calendar className="w-3 h-3" />
-            <span>{event.year}</span>
+            {event.year != null && (
+              <>
+                <Calendar className="w-3 h-3" />
+                <span>{event.year}</span>
+              </>
+            )}
             {event.mandatory && (
               <span className="ml-2 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
                 Mandatory

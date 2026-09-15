@@ -4,6 +4,8 @@ import { createInitialState } from '../context/GameContext';
 import { GamePhases, GameStatus } from '../data/types';
 import { sumUnits } from '../utils/helpers';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { INDEPENDENCE_WAR_ATTACKERS, HOSTILE_BLOCS } from '../data/nations';
+import { getNationCapital } from '../data/regions';
 
 // A minimal, deterministic "overwhelming attacker" invasion: strength so far above the
 // defender's that the 0.8-1.2 random factor can never flip the outcome, so tests don't need
@@ -392,6 +394,49 @@ describe('resolveTurn procedural events (Phase 6: keep the late-game timeline fr
   });
 });
 
+describe('resolveTurn event chains (Phase 10: event chains with memory)', () => {
+  it('does not fire a chain event before its dueTurn', () => {
+    const state = postStateBase();
+    state.turnNumber = 5;
+    state.pendingEventChains = [{ id: 'refugee_startup_ipo', dueTurn: 10 }];
+    const next = resolveTurn(state);
+    expect(next.activeEventId).toBeNull();
+    expect(next.pendingEventChains).toEqual([{ id: 'refugee_startup_ipo', dueTurn: 10 }]);
+  });
+
+  it('fires the chain event the turn its dueTurn is reached, and clears it from the pending list', () => {
+    const state = postStateBase();
+    state.turnNumber = 5;
+    state.pendingEventChains = [{ id: 'refugee_startup_ipo', dueTurn: 6 }];
+    const next = resolveTurn(state);
+    expect(next.turnNumber).toBe(6);
+    expect(next.activeEventId).toBe('refugee_startup_ipo');
+    expect(next.pendingEventChains).toEqual([]);
+  });
+
+  it('ignores a pending entry whose id has no matching registry entry, rather than throwing', () => {
+    const state = postStateBase();
+    state.turnNumber = 5;
+    state.pendingEventChains = [{ id: 'not_a_real_chain', dueTurn: 6 }];
+    expect(() => resolveTurn(state)).not.toThrow();
+    const next = resolveTurn(state);
+    expect(next.activeEventId).toBeNull();
+    expect(next.pendingEventChains).toEqual([{ id: 'not_a_real_chain', dueTurn: 6 }]);
+  });
+
+  it('only fires one pending chain event per turn, leaving the rest scheduled', () => {
+    const state = postStateBase();
+    state.turnNumber = 5;
+    state.pendingEventChains = [
+      { id: 'refugee_startup_ipo', dueTurn: 6 },
+      { id: 'refugee_startup_ipo', dueTurn: 6 }
+    ];
+    const next = resolveTurn(state);
+    expect(next.activeEventId).toBe('refugee_startup_ipo');
+    expect(next.pendingEventChains).toEqual([{ id: 'refugee_startup_ipo', dueTurn: 6 }]);
+  });
+});
+
 describe('supplyDecayForInvasion (Phase 7: overextension)', () => {
   it('is the flat base rate one hop from the attacker\'s home anchor', () => {
     // gaza borders tel_aviv/negev — both CORE_REGION_IDS — so it's 1 hop from the player's anchor.
@@ -738,5 +783,61 @@ describe('resolveTurn commander bonuses (Phase 8: personas modify combat via cal
     const without = resolveTurn(buildState(null));
     const withOfficer = resolveTurn(buildState('moshe_avrahami'));
     expect(withOfficer.invasions[0].morale).toBeGreaterThan(without.invasions[0].morale);
+  });
+});
+
+describe('resolveTurn multiple win conditions (Phase 10)', () => {
+  it('triggers military_conquest victory the turn every 1948-war-attacker\'s capital is held', () => {
+    const state = postStateBase();
+    state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+    const regions = { ...state.regions };
+    INDEPENDENCE_WAR_ATTACKERS.forEach(nationId => {
+      const capital = getNationCapital(nationId);
+      regions[capital] = { ...regions[capital], owner: 'player' };
+    });
+    state.regions = regions;
+    const next = resolveTurn(state);
+    expect(next.gameStatus).toBe(GameStatus.VICTORY);
+    expect(next.victoryConditionId).toBe('military_conquest');
+  });
+
+  it('triggers diplomatic_hegemony victory once every hostile bloc member is at peace or trading', () => {
+    const state = postStateBase();
+    state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+    const nations = { ...state.nations };
+    Object.values(HOSTILE_BLOCS).flat().forEach(id => {
+      nations[id] = { ...nations[id], hasPeaceTreaty: true, isAtWar: false };
+    });
+    state.nations = nations;
+    const next = resolveTurn(state);
+    expect(next.gameStatus).toBe(GameStatus.VICTORY);
+    expect(next.victoryConditionId).toBe('diplomatic_hegemony');
+  });
+
+  it('does not check victory conditions while an event is pending', () => {
+    const state = postStateBase();
+    state.activeEventId = 'balfour_1917';
+    const regions = { ...state.regions };
+    INDEPENDENCE_WAR_ATTACKERS.forEach(nationId => {
+      const capital = getNationCapital(nationId);
+      regions[capital] = { ...regions[capital], owner: 'player' };
+    });
+    state.regions = regions;
+    // resolveTurn is a no-op while an event is pending (existing guard) — this just confirms
+    // that guard still holds even when a victory condition would otherwise already be met.
+    expect(resolveTurn(state)).toBe(state);
+  });
+
+  it('DEFEAT still takes priority — losing core territory is checked before any victory condition', () => {
+    const state = postStateBase();
+    state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+    const nations = { ...state.nations };
+    Object.values(HOSTILE_BLOCS).flat().forEach(id => {
+      nations[id] = { ...nations[id], hasPeaceTreaty: true, isAtWar: false };
+    });
+    state.nations = nations;
+    state.regions = { ...state.regions, tel_aviv: { ...state.regions.tel_aviv, owner: 'egypt' } };
+    const next = resolveTurn(state);
+    expect(next.gameStatus).toBe(GameStatus.DEFEAT);
   });
 });

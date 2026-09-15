@@ -9,6 +9,7 @@ import { ActionPanel, LogConsole } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
+import { EVENT_CHAINS } from './data/eventChains';
 
 // Main game layout component
 const GameLayout = () => {
@@ -74,9 +75,12 @@ const GameLayout = () => {
       </div>
 
       {/* Event Modal - overlays everything when active. A procedural event (Phase 6) is carried
-          in full on the state itself rather than looked up by id from HISTORICAL_EVENTS. */}
+          in full on the state itself rather than looked up by id from HISTORICAL_EVENTS. A chain
+          event (Phase 10) is looked up by id too, but from EVENT_CHAINS. */}
       <EventModal
-        event={state.activeEventId ? HISTORICAL_EVENTS[state.activeEventId] : state.activeProceduralEvent}
+        event={state.activeEventId
+          ? (HISTORICAL_EVENTS[state.activeEventId] || EVENT_CHAINS[state.activeEventId])
+          : state.activeProceduralEvent}
         onResolve={resolveEvent}
       />
 

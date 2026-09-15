@@ -82,4 +82,29 @@ describe('applyEventEffects', () => {
     expect(next.activeProceduralEvent).toBeNull();
     expect(next.resources.money).toBe(state.resources.money + 100);
   });
+
+  describe('spawnFollowUp (Phase 10: event chains with memory)', () => {
+    it('schedules a pendingEventChains entry at turnNumber + delayTurns', () => {
+      const state = { ...createInitialState(), turnNumber: 40 };
+      const event = { id: 'test_chain_source', title: 'Test', options: [{ label: 'a', effects: { spawnFollowUp: { id: 'refugee_startup_ipo', delayTurns: 6 } } }] };
+      const next = applyEventEffects(state, event, 0);
+      expect(next.pendingEventChains).toEqual([{ id: 'refugee_startup_ipo', dueTurn: 46 }]);
+    });
+
+    it('appends to any existing pendingEventChains rather than overwriting them', () => {
+      const state = { ...createInitialState(), turnNumber: 10, pendingEventChains: [{ id: 'some_other_chain', dueTurn: 12 }] };
+      const event = { id: 'test_chain_source', title: 'Test', options: [{ label: 'a', effects: { spawnFollowUp: { id: 'refugee_startup_ipo', delayTurns: 6 } } }] };
+      const next = applyEventEffects(state, event, 0);
+      expect(next.pendingEventChains).toEqual([
+        { id: 'some_other_chain', dueTurn: 12 },
+        { id: 'refugee_startup_ipo', dueTurn: 16 }
+      ]);
+    });
+
+    it('leaves pendingEventChains untouched when the option has no spawnFollowUp', () => {
+      const state = { ...createInitialState(), pendingEventChains: [{ id: 'x', dueTurn: 5 }] };
+      const next = applyEventEffects(state, HISTORICAL_EVENTS.dreyfus_affair_1894, 0);
+      expect(next.pendingEventChains).toEqual([{ id: 'x', dueTurn: 5 }]);
+    });
+  });
 });

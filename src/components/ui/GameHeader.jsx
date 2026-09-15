@@ -9,7 +9,7 @@ import { getAvgCoreControl } from '../../utils/helpers';
 import ResourceBar from './ResourceBar';
 
 const GameHeader = ({ onReset }) => {
-  const { state, advanceTurn, exportSave, importSave } = useGame();
+  const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
   const fileInputRef = useRef(null);
 
   const isPreState = state.phase === GamePhases.PRE_STATE;
@@ -148,14 +148,30 @@ const GameHeader = ({ onReset }) => {
           disabled={state.activeEventId !== null || isGameOver}
           className={`
             px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-xs sm:text-sm
-            bg-gradient-to-r from-blue-600 to-blue-500 
+            bg-gradient-to-r from-blue-600 to-blue-500
             hover:from-blue-500 hover:to-blue-400
-            text-white shadow-lg transition-all 
+            text-white shadow-lg transition-all
             active:scale-95 flex items-center gap-1.5 sm:gap-2 shrink-0
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >
           <span className="hidden sm:inline">End Turn</span>
+        </button>
+
+        {/* Fast Forward (Phase 10) — resolves turns until an event, a war starting/ending, or
+            the game ending, so the quiet stretches of a 560-turn game don't need one click each. */}
+        <button
+          onClick={fastForward}
+          disabled={state.activeEventId !== null || isGameOver}
+          title="Fast-forward until something happens"
+          className={`
+            px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg font-bold text-xs sm:text-sm
+            bg-slate-700 hover:bg-slate-600
+            text-slate-200 shadow-lg transition-all
+            active:scale-95 flex items-center gap-1 shrink-0
+            disabled:opacity-50 disabled:cursor-not-allowed
+          `}
+        >
           <FastForward className="w-4 h-4" />
         </button>
       </div>

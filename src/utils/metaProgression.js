@@ -5,7 +5,7 @@
 
 const META_KEY = 'rise-of-zion-meta-v1';
 
-const DEFAULT_META = { unlockedAchievements: [], selectedDoctrine: 'none' };
+const DEFAULT_META = { unlockedAchievements: [], selectedDoctrine: 'none', difficulty: 'normal' };
 
 export const loadMeta = () => {
   try {
@@ -14,7 +14,9 @@ export const loadMeta = () => {
     const parsed = JSON.parse(raw);
     return {
       unlockedAchievements: Array.isArray(parsed?.unlockedAchievements) ? parsed.unlockedAchievements : [],
-      selectedDoctrine: typeof parsed?.selectedDoctrine === 'string' ? parsed.selectedDoctrine : 'none'
+      selectedDoctrine: typeof parsed?.selectedDoctrine === 'string' ? parsed.selectedDoctrine : 'none',
+      // Difficulty select (Phase 10) — a fresh key on an old save falls back to 'normal'.
+      difficulty: typeof parsed?.difficulty === 'string' ? parsed.difficulty : 'normal'
     };
   } catch (e) {
     return { ...DEFAULT_META };

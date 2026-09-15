@@ -32,5 +32,9 @@ export const ACTION_COSTS = {
   commissionCommander: { money: 30000, diplomacyPoints: 15, actionPoints: 1 },
   hireMercenaries: { money: 25000, actionPoints: 1 },
 
+  // Comeback mechanics (Phase 10) — only usable while core control is critically low.
+  emergencyIntervention: { diplomacyPoints: 50, actionPoints: 1 },
+  scorchedEarthDefense: { money: 40000, actionPoints: 1 },
+
   researchTechActionPoints: 2
 };

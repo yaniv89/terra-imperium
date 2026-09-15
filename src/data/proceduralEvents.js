@@ -67,7 +67,10 @@ const PROCEDURAL_TEMPLATES = [
       title: 'Refugee Crisis',
       description: 'Regional instability sends a wave of refugees toward the border, straining services but offering new manpower.',
       options: [
-        { label: 'Open the borders', effects: { manpower: 600, controlBonus: -2 } },
+        // spawnFollowUp (Phase 10: event chains) schedules refugee_startup_ipo (see
+        // src/data/eventChains.js) to fire 6 turns (3 years) later — a delayed payoff for the
+        // open-borders choice instead of the effect being fully resolved in the same instant.
+        { label: 'Open the borders', effects: { manpower: 600, controlBonus: -2, spawnFollowUp: { id: 'refugee_startup_ipo', delayTurns: 6 } } },
         { label: 'Restrict entry', effects: { diplomacyPoints: -10, controlBonus: 2 } }
       ]
     })

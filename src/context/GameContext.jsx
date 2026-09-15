@@ -13,8 +13,9 @@ import { REGIONS_DATA, CORE_REGION_IDS, isAdjacentToOwner } from '../data/region
 import { NATIONS_DATA, INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
 import { TECH_TREE, canResearchTech } from '../data/techTree';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { EVENT_CHAINS } from '../data/eventChains';
 import { ACTION_COSTS } from '../data/actionCosts';
-import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits, getTechBonuses } from '../utils/helpers';
+import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits, getTechBonuses, getAvgCoreControl, COMEBACK_THRESHOLD } from '../utils/helpers';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { declareWar, buildWarGoal } from '../engine/diplomacy';
@@ -22,6 +23,7 @@ import { randomSeed } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { PERSONAS } from '../data/personas';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
+import { applyDifficulty } from '../data/difficulty';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
 // ============ PERSISTENCE ============
@@ -90,6 +92,10 @@ export const createInitialState = () => {
     turnNumber: 1,
     phase: GamePhases.PRE_STATE,
     gameStatus: GameStatus.ACTIVE,
+    // Which VICTORY_CONDITIONS entry ended the game, if any (Phase 10: multiple win conditions).
+    victoryConditionId: null,
+    // Difficulty select (Phase 10) — 1 is a no-op multiplier, matching DIFFICULTIES.normal.
+    difficultyMultiplier: 1,
 
     // Resources
     resources: {
@@ -135,6 +141,9 @@ export const createInitialState = () => {
     // see src/data/proceduralEvents.js and resolveTurn.js.
     activeProceduralEvent: null,
     proceduralEventCooldown: 0,
+    // Scheduled event-chain follow-ups (Phase 10) — [{ id, dueTurn }], checked each turn in
+    // resolveTurn.js and looked up in EVENT_CHAINS (src/data/eventChains.js) once due.
+    pendingEventChains: [],
     firedEvents: {},
 
     // Persistent effect from event choices (e.g. Bar-Lev Line) applied to combat
@@ -184,10 +193,34 @@ export const gameReducer = (state, action) => {
     case ActionTypes.ADVANCE_TURN:
       return resolveTurn(state);
 
+    case ActionTypes.FAST_FORWARD: {
+      // Fast-forward (Phase 10): repeatedly resolves turns within a single atomic dispatch, so
+      // the component doesn't need to loop across async re-renders. Stops the moment there's a
+      // decision worth the player's attention — an event becomes active, a war starts or ends,
+      // the game ends — or a turn cap is hit, so a single click can't silently skip to 2150.
+      const MAX_TURNS = 20;
+      const countWars = (s) => Object.values(s.nations).filter(n => n.isAtWar).length;
+      let current = state;
+      const startingWarCount = countWars(current);
+      for (let i = 0; i < MAX_TURNS; i++) {
+        const next = resolveTurn(current);
+        if (next === current) break; // resolveTurn's own no-op guard (event pending / game over)
+        current = next;
+        if (current.gameStatus !== GameStatus.ACTIVE) break;
+        if (current.activeEventId || current.activeProceduralEvent) break;
+        if (countWars(current) !== startingWarCount) break;
+      }
+      return current;
+    }
+
     case ActionTypes.RESOLVE_EVENT: {
       // A procedural event (Phase 6) is never in HISTORICAL_EVENTS — it's carried in full on
       // the state itself since it was generated fresh, not looked up from a static registry.
-      const event = state.activeEventId ? HISTORICAL_EVENTS[state.activeEventId] : state.activeProceduralEvent;
+      // A chain event (Phase 10) IS looked up by id, but from EVENT_CHAINS rather than
+      // HISTORICAL_EVENTS — see src/data/eventChains.js.
+      const event = state.activeEventId
+        ? (HISTORICAL_EVENTS[state.activeEventId] || EVENT_CHAINS[state.activeEventId])
+        : state.activeProceduralEvent;
       if (!event) return state;
       return applyEventEffects(state, event, action.payload.optionIndex);
     }
@@ -661,6 +694,41 @@ export const gameReducer = (state, action) => {
       };
     }
 
+    case ActionTypes.EMERGENCY_INTERVENTION: {
+      // Comeback mechanic (Phase 10) — only while core control is critically low, so a close
+      // game stays tense instead of just being over once it's clearly lost. International aid:
+      // an immediate resource injection plus diplomatic pressure that cools every war down a bit.
+      const costs = ACTION_COSTS.emergencyIntervention;
+      if (state.phase !== GamePhases.POST_STATE || getAvgCoreControl(state) >= COMEBACK_THRESHOLD) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nations = { ...state.nations };
+      Object.keys(nations).forEach(id => {
+        if (!nations[id].isAtWar) return;
+        nations[id] = { ...nations[id], hostility: Math.max(nations[id].hostilityFloor || 0, nations[id].hostility - 15) };
+      });
+      const spentResources = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...spentResources, money: spentResources.money + 50000, manpower: spentResources.manpower + 2000 },
+        nations,
+        logs: [...state.logs, { year: state.year, message: 'International allies answer the call — emergency aid arrives and war-weariness spreads among your enemies.', type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.SCORCHED_EARTH_DEFENSE: {
+      // Comeback mechanic (Phase 10) — a costly, permanent defense bonus for a state fighting
+      // for its life. Stacks with repeated use in later crises, same as any other eventDefenseBonus.
+      const costs = ACTION_COSTS.scorchedEarthDefense;
+      if (state.phase !== GamePhases.POST_STATE || getAvgCoreControl(state) >= COMEBACK_THRESHOLD) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        eventDefenseBonus: (state.eventDefenseBonus || 0) + 0.1,
+        logs: [...state.logs, { year: state.year, message: 'Scorched-earth defenses rushed into place. Defense permanently reinforced.', type: LogTypes.CRISIS }]
+      };
+    }
+
     case ActionTypes.UPDATE_SLIDER:
       return {
         ...state,
@@ -680,12 +748,14 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.RESET_GAME: {
+      // doctrineId/difficultyId come from the component layer (GameProvider reads them from
+      // meta-progression localStorage) rather than this reducer reading storage directly, so
+      // gameReducer stays a pure function of (state, action) — see startingDoctrines.js/difficulty.js.
       const fresh = createInitialState();
-      // doctrineId comes from the component layer (GameProvider reads it from meta-progression
-      // localStorage) rather than this reducer reading storage directly, so gameReducer stays a
-      // pure function of (state, action) — see src/data/startingDoctrines.js.
       const doctrineId = action.payload?.doctrineId;
-      return doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
+      const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
+      const difficultyId = action.payload?.difficultyId;
+      return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
     }
 
     default:
@@ -759,6 +829,14 @@ export const GameProvider = ({ children }) => {
     });
   }, []);
 
+  const selectDifficulty = useCallback((difficultyId) => {
+    setMeta(prev => {
+      const updated = { ...prev, difficulty: difficultyId };
+      saveMeta(updated);
+      return updated;
+    });
+  }, []);
+
   const addLog = useCallback((message, type = LogTypes.ACTION) => {
     dispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
   }, []);
@@ -769,6 +847,10 @@ export const GameProvider = ({ children }) => {
     dispatch({ type: ActionTypes.ADVANCE_TURN });
   }, []);
 
+  const fastForward = useCallback(() => {
+    dispatch({ type: ActionTypes.FAST_FORWARD });
+  }, []);
+
   const resolveEvent = useCallback((optionIndex) => {
     dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex } });
   }, []);
@@ -776,8 +858,8 @@ export const GameProvider = ({ children }) => {
   // Wraps RESET_GAME with the player's currently-selected starting doctrine, so callers (App.jsx)
   // don't need to know meta-progression's shape just to start a new game.
   const resetGame = useCallback(() => {
-    dispatch({ type: ActionTypes.RESET_GAME, payload: { doctrineId: meta.selectedDoctrine } });
-  }, [meta.selectedDoctrine]);
+    dispatch({ type: ActionTypes.RESET_GAME, payload: { doctrineId: meta.selectedDoctrine, difficultyId: meta.difficulty } });
+  }, [meta.selectedDoctrine, meta.difficulty]);
 
   const exportSave = useCallback(() => {
     return JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }, null, 2);
@@ -799,13 +881,15 @@ export const GameProvider = ({ children }) => {
     dispatch,
     addLog,
     advanceTurn,
+    fastForward,
     resolveEvent,
     resetGame,
     exportSave,
     importSave,
     meta,
-    selectDoctrine
-  }), [state, addLog, advanceTurn, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine]);
+    selectDoctrine,
+    selectDifficulty
+  }), [state, addLog, advanceTurn, fastForward, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty]);
 
   return (
     <GameContext.Provider value={contextValue}>
