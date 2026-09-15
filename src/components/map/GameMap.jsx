@@ -9,9 +9,12 @@ import { RegionInfoModal } from '../modals';
 import RegionPath from './RegionPath';
 import MapLegend from './MapLegend';
 import MapControls from './MapControls';
+import CombatEffectsLayer from './CombatEffectsLayer';
+import { useCombatEffects } from '../../context/CombatEffectsContext';
 
 const GameMap = ({ selectedRegion, onSelectRegion }) => {
   const { state } = useGame();
+  const { effects } = useCombatEffects();
   const [hoveredRegion, setHoveredRegion] = useState(null);
   
   // Viewport State
@@ -214,6 +217,9 @@ const GameMap = ({ selectedRegion, onSelectRegion }) => {
                 />
               );
             })}
+
+            {/* Missile/airstrike effects (Phase 14) — always on top of region fills */}
+            <CombatEffectsLayer effects={effects} />
           </svg>
         </div>
       </div>

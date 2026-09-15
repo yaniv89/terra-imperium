@@ -134,6 +134,17 @@ body {
   }
 }
 
+/* Combat effects (Phase 14) — the expanding ring drawn at a missile/air-strike's target. See
+   src/components/map/CombatEffectsLayer.jsx. */
+@keyframes combat-burst-ring {
+  from { r: 2; opacity: 1; }
+  to { r: 36; opacity: 0; }
+}
+
+.combat-burst-ring {
+  animation: combat-burst-ring 0.6s ease-out forwards;
+}
+
 .animate-in {
   animation-duration: 300ms;
   animation-timing-function: ease-out;

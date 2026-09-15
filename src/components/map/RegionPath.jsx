@@ -53,6 +53,7 @@ const RegionPath = memo(({
 
   return (
     <g
+      data-region-id={regionId}
       onClick={() => onClick(regionId)}
       onMouseEnter={() => onMouseEnter(regionId)}
       onMouseLeave={() => onMouseLeave()}

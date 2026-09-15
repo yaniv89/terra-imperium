@@ -4,6 +4,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Map as MapIcon, Globe as GlobeIcon } from 'lucide-react';
 import { GameProvider, useGame } from './context/GameContext';
+import { CombatEffectsProvider } from './context/CombatEffectsContext';
 import { GameHeader } from './components/ui';
 import { GameMap } from './components/map';
 import { GlobeContainer, GlobeCountryInfo } from './components/globe';
@@ -146,7 +147,9 @@ const GameLayout = () => {
 const App = () => {
   return (
     <GameProvider>
-      <GameLayout />
+      <CombatEffectsProvider>
+        <GameLayout />
+      </CombatEffectsProvider>
     </GameProvider>
   );
 };
