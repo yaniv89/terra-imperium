@@ -4,13 +4,14 @@
 // cross-game state (via useGame()'s `meta`/`selectDoctrine`) rather than the current save.
 
 import React from 'react';
-import { Trophy, Lock, Check } from 'lucide-react';
+import { Trophy, Lock, Check, Gauge } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ACHIEVEMENTS, checkAchievements } from '../../data/achievements';
 import { STARTING_DOCTRINES } from '../../data/startingDoctrines';
+import { DIFFICULTIES } from '../../data/difficulty';
 
 const LegacyPanel = () => {
-  const { state, meta, selectDoctrine } = useGame();
+  const { state, meta, selectDoctrine, selectDifficulty } = useGame();
   const satisfiedNow = checkAchievements(state);
 
   return (
@@ -46,6 +47,32 @@ const LegacyPanel = () => {
               </div>
               <div className="text-slate-400 text-[10px] mt-0.5">{a.description}</div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* Difficulty select (Phase 10) — a scenario-level choice, separate from starting doctrines */}
+      <div className="space-y-2">
+        <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <Gauge className="w-3.5 h-3.5" />
+          Difficulty (takes effect on your next game)
+        </div>
+        {Object.values(DIFFICULTIES).map(d => {
+          const selected = (meta.difficulty || 'normal') === d.id;
+          return (
+            <button
+              key={d.id}
+              onClick={() => selectDifficulty(d.id)}
+              className={`w-full p-2 rounded text-left text-xs border transition-all ${
+                selected ? 'bg-blue-500/20 border-blue-500/50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600 cursor-pointer'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 font-semibold text-white">
+                {d.name}
+                {selected && <span className="text-[9px] text-blue-400 font-normal">(active)</span>}
+              </div>
+              <div className="text-slate-400 text-[10px] mt-0.5">{d.description}</div>
+            </button>
           );
         })}
       </div>

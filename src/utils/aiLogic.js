@@ -48,7 +48,9 @@ export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG, inva
     updates.militaryStrengthChange += Math.floor(totalResources * 0.05 * doctrine.economyGrowthMult);
   }
 
-  const aggression = nationData?.aggression ?? 0.3;
+  // Difficulty select (Phase 10) scales every nation's aggression uniformly — defaults to 1
+  // (no-op) for saves/tests that predate this field.
+  const aggression = (nationData?.aggression ?? 0.3) * (state.difficultyMultiplier || 1);
   const bandwagon = hasBlocMateAtWar(nation.id, state.nations) ? doctrine.bandwagonMult : 1;
 
   // 2. Hostility changes.
@@ -221,8 +223,9 @@ export const shouldDeclareWar = (nation, state, rng = DEFAULT_RNG) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
   const bandwagon = hasBlocMateAtWar(nation.id, state.nations) ? doctrine.bandwagonMult : 1;
 
-  // High hostility + high aggression = war likely
-  const warChance = (nation.hostility / 100) * nationData.aggression;
+  // High hostility + high aggression = war likely. Scaled by difficulty (Phase 10), same as
+  // processAINationTurn's own aggression above.
+  const warChance = (nation.hostility / 100) * nationData.aggression * (state.difficultyMultiplier || 1);
 
   // Historical enemies more likely to attack
   const isHistoricalEnemy = ['egypt', 'syria', 'jordan', 'iraq'].includes(nation.id);

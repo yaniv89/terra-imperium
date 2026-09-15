@@ -50,6 +50,10 @@ export const getHostilityColor = (hostility) => {
 
 // ============ GAME CALCULATIONS ============
 
+// Below this average core control, emergency "comeback" actions unlock (Phase 10) — a close
+// game should feel tense, not just over once it's clearly lost.
+export const COMEBACK_THRESHOLD = 30;
+
 // Calculate average control of core Israeli regions
 export const getAvgCoreControl = (state) => {
   const coreRegions = CORE_REGION_IDS
