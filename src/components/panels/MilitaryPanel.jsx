@@ -1,17 +1,26 @@
 // src/components/panels/MilitaryPanel.jsx
 // Military actions panel - training, combat, invasions
 
-import React, { useState, useEffect } from 'react';
-import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTriangle, Castle, Award, Coins } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTriangle, Castle, Award, Coins, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
 import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion, sumUnits, hasEnoughUnits } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { PERSONAS } from '../../data/personas';
-import { ActionButton } from '../ui';
+import { ActionButton, ProgressBar } from '../ui';
 
 const UNIT_LABELS = { infantry: 'Infantry', armor: 'Armor', air: 'Air' };
+
+// Trend arrow for a stat that just changed turn-over-turn (Phase 9) — rising/falling/steady,
+// so a player can see an invasion is about to collapse before it actually does.
+const TrendArrow = ({ current, previous }) => {
+  if (previous === undefined || current === previous) return <Minus className="w-2.5 h-2.5 text-slate-500" />;
+  return current > previous
+    ? <TrendingUp className="w-2.5 h-2.5 text-green-400" />
+    : <TrendingDown className="w-2.5 h-2.5 text-red-400" />;
+};
 
 const MilitaryPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
@@ -43,6 +52,17 @@ const MilitaryPanel = ({ selectedRegion }) => {
   // Get active invasion for selected region
   const activeInvasion = selectedRegion ? getInvasionForRegion(selectedRegion, state.invasions) : null;
   const enemyInvasionHere = activeInvasion && !activeInvasion.isPlayerAttacker;
+
+  // Morale/supply trend tracking (Phase 9) — the ref still holds the PREVIOUS render's values
+  // while this render runs (it's only overwritten in the effect below, which fires after
+  // commit), so reading it here gives "since last turn" without needing new game state for it.
+  const prevInvasionStatsRef = useRef({});
+  const prevInvasionStats = prevInvasionStatsRef.current;
+  useEffect(() => {
+    const snapshot = {};
+    state.invasions.forEach(inv => { snapshot[inv.id] = { morale: inv.morale, supply: inv.supply }; });
+    prevInvasionStatsRef.current = snapshot;
+  }, [state.invasions]);
 
   // Active wars
   const activeWars = state.wars.filter(w => w.active);
@@ -431,10 +451,21 @@ const MilitaryPanel = ({ selectedRegion }) => {
                       {inv.isPlayerAttacker ? '→' : '←'} {REGIONS_DATA[inv.targetRegion]?.name}
                       {inv.approach === 'siege' && <span className="ml-1 text-amber-400">(siege)</span>}
                     </span>
-                    <div className="flex gap-2 font-mono">
-                      <span className="text-slate-400">{formatNumber(inv.isPlayerAttacker ? sumUnits(inv.composition) : inv.strength)} str</span>
-                      <span className="text-yellow-400">{inv.morale}% mor</span>
-                      <span className="text-blue-400">{inv.supply}% sup</span>
+                    <span className="text-slate-400 font-mono">{formatNumber(inv.isPlayerAttacker ? sumUnits(inv.composition) : inv.strength)} str</span>
+                  </div>
+
+                  {/* Morale/supply trend bars (Phase 9) — a declining trend is visible before the
+                      invasion actually collapses, instead of only after the fact. */}
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1">
+                      <span className="text-yellow-400 font-mono w-8 shrink-0">{inv.morale}%</span>
+                      <ProgressBar value={inv.morale} color="yellow" size="small" className="flex-1" />
+                      <TrendArrow current={inv.morale} previous={prevInvasionStats[inv.id]?.morale} />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-blue-400 font-mono w-8 shrink-0">{inv.supply}%</span>
+                      <ProgressBar value={inv.supply} color="blue" size="small" className="flex-1" />
+                      <TrendArrow current={inv.supply} previous={prevInvasionStats[inv.id]?.supply} />
                     </div>
                   </div>
 
