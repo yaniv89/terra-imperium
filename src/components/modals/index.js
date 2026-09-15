@@ -4,3 +4,4 @@
 export { default as EventModal } from './EventModal';
 export { default as RegionInfoModal } from './RegionInfoModal';
 export { default as GameOverModal } from './GameOverModal';
+export { default as BattleSummaryToast } from './BattleSummaryToast';

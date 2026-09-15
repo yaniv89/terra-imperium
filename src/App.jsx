@@ -1,19 +1,31 @@
 // src/App.jsx
 // Main application component - Rise of Zion game
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
 import { GameHeader } from './components/ui';
 import { GameMap } from './components/map';
 import { ActionPanel, LogConsole } from './components/panels';
-import { EventModal, GameOverModal } from './components/modals';
-import { GameStatus } from './data/types';
+import { EventModal, GameOverModal, BattleSummaryToast } from './components/modals';
+import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 
 // Main game layout component
 const GameLayout = () => {
   const { state, resolveEvent, resetGame } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
+
+  // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
+  // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
+  // existing history never spuriously toasts on mount; only logs added after that count.
+  const prevLogCountRef = useRef(state.logs.length);
+  const [battleSummary, setBattleSummary] = useState(null);
+  useEffect(() => {
+    const newLogs = state.logs.slice(prevLogCountRef.current);
+    prevLogCountRef.current = state.logs.length;
+    const combatLogs = newLogs.filter(l => l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS);
+    if (combatLogs.length > 0) setBattleSummary(combatLogs);
+  }, [state.logs]);
 
   // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
   // there's nothing left to lose. Goes through resetGame() (not a raw dispatch) so the player's
@@ -23,6 +35,7 @@ const GameLayout = () => {
     if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
       resetGame();
       setSelectedRegion(null);
+      setBattleSummary(null);
     }
   }, [resetGame, state.gameStatus]);
 
@@ -73,6 +86,9 @@ const GameLayout = () => {
         state={state}
         onReset={handleReset}
       />
+
+      {/* Post-turn battle summary (Phase 9) - non-blocking, dismissible toast */}
+      <BattleSummaryToast entries={battleSummary} onDismiss={() => setBattleSummary(null)} />
     </div>
   );
 };

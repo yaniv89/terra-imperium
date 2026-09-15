@@ -31,6 +31,7 @@ import {
 import { processAllAINations, getRelationFromHostility, shouldDeclareWar } from '../utils/aiLogic';
 import { declareWar, checkWarGoal } from './diplomacy';
 import { getPersonaBonus } from '../data/personas';
+import { narratePlayerStorm, narrateEnemyStorm } from '../utils/combatNarrative';
 import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -255,15 +256,15 @@ export const resolveTurn = (state) => {
             if (result.attackerWins) {
               newInv.active = false;
               regions[inv.targetRegion] = { ...targetRegion, owner: 'player', control: 60, isOccupied: true, underInvasion: false };
-              logs.push({ year: newYear, message: `VICTORY! Captured ${targetData.name}!`, type: LogTypes.MILESTONE });
+              logs.push({ year: newYear, message: narratePlayerStorm('win', { regionName: targetData.name, ratio: result.ratio }), type: LogTypes.MILESTONE });
             } else if (result.stalemate) {
               newInv.morale -= Math.round(10 * moraleLossMult);
-              logs.push({ year: newYear, message: `Offensive in ${targetData.name}: progress slow`, type: LogTypes.COMBAT });
+              logs.push({ year: newYear, message: narratePlayerStorm('stalemate', { regionName: targetData.name, ratio: result.ratio }), type: LogTypes.COMBAT });
             } else {
               const moraleLoss = order === 'probe' ? 30 : 25;
               newInv.morale -= Math.round(moraleLoss * moraleLossMult);
               newInv.composition = scaleUnits(newInv.composition, 0.85);
-              logs.push({ year: newYear, message: `Offensive in ${targetData.name} stalled!`, type: LogTypes.COMBAT });
+              logs.push({ year: newYear, message: narratePlayerStorm('loss', { regionName: targetData.name, ratio: result.ratio }), type: LogTypes.COMBAT });
               // Our offensive was decisively repelled — our own territory is briefly vulnerable.
               counterAttackWindows.player = COUNTER_ATTACK_TURNS;
             }
@@ -309,6 +310,7 @@ export const resolveTurn = (state) => {
           militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, result.casualties.defender));
         }
 
+        const attackerNationName = NATIONS_DATA[inv.attackerNation]?.name;
         if (result.attackerWins) {
           const damage = Math.round(25 * missileDefenseMult);
           const newControl = Math.max(0, targetRegion.control - damage);
@@ -319,20 +321,20 @@ export const resolveTurn = (state) => {
             // a region actually transfers it.
             regions[inv.targetRegion] = { ...targetRegion, owner: inv.attackerNation, control: 20, isOccupied: true, underInvasion: false };
             newInv.active = false;
-            logs.push({ year: newYear, message: `${targetData.name} CAPTURED by ${NATIONS_DATA[inv.attackerNation]?.name}!`, type: LogTypes.CRISIS });
+            logs.push({ year: newYear, message: narrateEnemyStorm('capture', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio }), type: LogTypes.CRISIS });
           } else {
             regions[inv.targetRegion] = { ...targetRegion, control: newControl };
-            logs.push({ year: newYear, message: `${targetData.name} OVERRUN! Control -${damage}%`, type: LogTypes.CRISIS });
+            logs.push({ year: newYear, message: narrateEnemyStorm('overrun', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio, damage }), type: LogTypes.CRISIS });
           }
         } else if (result.stalemate) {
           const damage = Math.round(10 * missileDefenseMult);
           regions[inv.targetRegion] = { ...targetRegion, control: Math.max(0, targetRegion.control - damage) };
           newInv.morale -= 10;
-          logs.push({ year: newYear, message: `${targetData.name} under pressure. Control -${damage}%`, type: LogTypes.COMBAT });
+          logs.push({ year: newYear, message: narrateEnemyStorm('stalemate', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio, damage }), type: LogTypes.COMBAT });
         } else {
           newInv.morale -= 25;
           newInv.strength = Math.floor(newInv.strength * 0.8);
-          logs.push({ year: newYear, message: `Defended ${targetData.name}! Enemy repelled.`, type: LogTypes.COMBAT });
+          logs.push({ year: newYear, message: narrateEnemyStorm('defeat', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio }), type: LogTypes.COMBAT });
           // Their offensive was decisively repelled — their home territory is briefly vulnerable.
           if (inv.attackerNation) counterAttackWindows[inv.attackerNation] = COUNTER_ATTACK_TURNS;
         }
