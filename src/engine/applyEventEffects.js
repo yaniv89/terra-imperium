@@ -8,6 +8,7 @@ import { RelationStatus, LogTypes, GameStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { NATIONS_DATA } from '../data/nations';
 import { addUnits } from '../utils/helpers';
+import { declareWar } from './diplomacy';
 
 export const applyEventEffects = (state, event, optionIndex) => {
   const option = event.options[optionIndex];
@@ -133,16 +134,11 @@ export const applyEventEffects = (state, event, optionIndex) => {
 
   if (effects.warWith) {
     const ids = Array.isArray(effects.warWith) ? effects.warWith : [effects.warWith];
-    const nations = { ...next.nations };
-    const wars = [...next.wars];
     ids.forEach(nId => {
-      if (!nations[nId] || nations[nId].isAtWar) return;
-      nations[nId] = { ...nations[nId], isAtWar: true, hostility: 100, relationStatus: RelationStatus.WAR };
-      wars.push({ id: `war_${nId}_${next.year}`, enemy: nId, startYear: next.year, active: true });
+      if (!next.nations[nId] || next.nations[nId].isAtWar) return;
+      next = declareWar(next, nId);
       logs.push({ year: next.year, message: `WAR declared on ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.CRISIS });
     });
-    next.nations = nations;
-    next.wars = wars;
   }
 
   if (effects.canDeclareIndependence) {

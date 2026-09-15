@@ -17,6 +17,7 @@ import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits } from '../utils/helpers';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
+import { declareWar } from '../engine/diplomacy';
 import { randomSeed } from '../utils/rng';
 
 // ============ PERSISTENCE ============
@@ -55,11 +56,15 @@ export const createInitialState = () => {
         hostility: data.startHostility,
         militaryStrength: data.startMilitary,
         aggression: data.aggression,
+        doctrine: data.doctrine || 'attrition',
         relationStatus: data.startRelation || RelationStatus.NEUTRAL,
         isAtWar: false,
         hasPeaceTreaty: false,
         hasTradeAgreement: false,
-        hasMilitaryPact: false
+        hasMilitaryPact: false,
+        // Permanent floor hostility decay can't cross below, set once a peace treaty with this
+        // nation is broken by a new war — see src/engine/diplomacy.js declareWar().
+        hostilityFloor: 0
       };
     }
   });
@@ -430,11 +435,9 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.declareWar;
       if (!nation || nation.isAtWar) return state;
       if (!canAfford(state.resources, costs)) return state;
+      const withCostSpent = { ...state, resources: applyCosts(state.resources, costs) };
       return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [nationId]: { ...nation, isAtWar: true, hostility: 100, relationStatus: RelationStatus.WAR } },
-        wars: [...state.wars, { id: `war_${nationId}_${state.year}`, enemy: nationId, startYear: state.year, active: true }],
+        ...declareWar(withCostSpent, nationId),
         logs: [...state.logs, { year: state.year, message: `WAR declared on ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.CRISIS }]
       };
     }
