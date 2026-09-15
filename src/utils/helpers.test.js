@@ -116,6 +116,20 @@ describe('unit composition (Phase 3)', () => {
     expect(withBonus).toBeCloseTo(withoutBonus * 1.15, 5);
   });
 
+  it('calcCompositionStrength applies a seasonal H2 penalty to armor/air but not infantry (Phase 7)', () => {
+    const armor = { infantry: 0, armor: 1000, air: 0 };
+    const air = { infantry: 0, armor: 0, air: 1000 };
+    const infantry = { infantry: 1000, armor: 0, air: 0 };
+    expect(calcCompositionStrength(armor, 'plains', {}, 1)).toBeLessThan(calcCompositionStrength(armor, 'plains', {}, 0));
+    expect(calcCompositionStrength(air, 'plains', {}, 1)).toBeLessThan(calcCompositionStrength(air, 'plains', {}, 0));
+    expect(calcCompositionStrength(infantry, 'plains', {}, 1)).toBe(calcCompositionStrength(infantry, 'plains', {}, 0));
+  });
+
+  it('calcCompositionStrength defaults to the H1 (no-penalty) season when period is omitted', () => {
+    const armor = { infantry: 0, armor: 1000, air: 0 };
+    expect(calcCompositionStrength(armor, 'plains', {})).toBe(calcCompositionStrength(armor, 'plains', {}, 0));
+  });
+
   it('distributeCasualties splits proportionally and never exceeds what a type has', () => {
     const units = { infantry: 800, armor: 200, air: 0 };
     const losses = distributeCasualties(units, 100);

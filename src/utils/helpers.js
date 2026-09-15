@@ -276,19 +276,30 @@ const COMPOSITION_TERRAIN_MODS = {
   mountains: { infantry: 1.3, armor: 0.6, air: 0.9 }
 };
 
+// H2 (the second half of the year) is modeled as the harsher season — armor and air suffer a
+// small penalty, infantry unaffected. Cheap to add given the game already tracks an H1/H2 period
+// per turn (Phase 7): it's a real timing lever ("wait for H1 to press the attack") without any
+// new state. Only applied to composition-based (player) strength — enemy invasions are a flat
+// strength number with no unit-type breakdown to apply a per-type seasonal penalty to.
+const SEASONAL_MODS = {
+  0: { infantry: 1, armor: 1, air: 1 },      // H1
+  1: { infantry: 1, armor: 0.9, air: 0.95 }  // H2
+};
+
 // Effective attacking strength for a committed composition on a given terrain — this is what
 // gets passed into calcCombatResult as the attacker's raw strength. `techBonuses` layers the
 // unit-specific research bonuses (Uzi Production, Merkava/Air Superiority doctrine) on top of
 // the terrain multiplier — a well-equipped force on bad terrain can still underperform, but it's
 // never as weak as an unresearched one on the same ground.
-export const calcCompositionStrength = (units, terrain = 'plains', techBonuses = {}) => {
+export const calcCompositionStrength = (units, terrain = 'plains', techBonuses = {}, period = 0) => {
   const mods = COMPOSITION_TERRAIN_MODS[terrain] || { infantry: 1, armor: 1, air: 1 };
+  const seasonal = SEASONAL_MODS[period] || SEASONAL_MODS[0];
   const typeBonus = {
     infantry: 1 + (techBonuses.infantryBonus || 0),
     armor: 1 + (techBonuses.tankBonus || 0),
     air: 1 + (techBonuses.airBonus || 0)
   };
-  return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0) * mods[type] * typeBonus[type], 0);
+  return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0) * mods[type] * typeBonus[type] * seasonal[type], 0);
 };
 
 // Splits a flat casualty count back across unit types proportional to each type's share of the
