@@ -7,23 +7,24 @@ import { GameHeader } from './components/ui';
 import { GameMap } from './components/map';
 import { ActionPanel, LogConsole } from './components/panels';
 import { EventModal, GameOverModal } from './components/modals';
-import { ActionTypes, GameStatus } from './data/types';
+import { GameStatus } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 
 // Main game layout component
 const GameLayout = () => {
-  const { state, dispatch, resolveEvent } = useGame();
+  const { state, resolveEvent, resetGame } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
 
   // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
-  // there's nothing left to lose.
+  // there's nothing left to lose. Goes through resetGame() (not a raw dispatch) so the player's
+  // selected starting doctrine — meta-progression, Phase 6 — is carried into the new game.
   const handleReset = useCallback(() => {
     const alreadyOver = state.gameStatus !== GameStatus.ACTIVE;
     if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
-      dispatch({ type: ActionTypes.RESET_GAME });
+      resetGame();
       setSelectedRegion(null);
     }
-  }, [dispatch, state.gameStatus]);
+  }, [resetGame, state.gameStatus]);
 
   // Handle region selection
   const handleSelectRegion = useCallback((regionId) => {
@@ -59,9 +60,10 @@ const GameLayout = () => {
         </div>
       </div>
 
-      {/* Event Modal - overlays everything when active */}
+      {/* Event Modal - overlays everything when active. A procedural event (Phase 6) is carried
+          in full on the state itself rather than looked up by id from HISTORICAL_EVENTS. */}
       <EventModal
-        event={state.activeEventId ? HISTORICAL_EVENTS[state.activeEventId] : null}
+        event={state.activeEventId ? HISTORICAL_EVENTS[state.activeEventId] : state.activeProceduralEvent}
         onResolve={resolveEvent}
       />
 

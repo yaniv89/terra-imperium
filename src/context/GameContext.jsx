@@ -7,7 +7,7 @@
 // each is validated against the reducer's own (authoritative, non-stale) state and applied
 // in one dispatch, so double-click / stale-snapshot double-spend is not reachable.
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { GamePhases, GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA, CORE_REGION_IDS, isAdjacentToOwner } from '../data/regions';
 import { NATIONS_DATA, INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
@@ -19,6 +19,9 @@ import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { declareWar } from '../engine/diplomacy';
 import { randomSeed } from '../utils/rng';
+import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
+import { applyStartingDoctrine } from '../data/startingDoctrines';
+import { loadMeta, saveMeta } from '../utils/metaProgression';
 
 // ============ PERSISTENCE ============
 const STORAGE_KEY = 'rise-of-zion-save-v1';
@@ -119,6 +122,11 @@ export const createInitialState = () => {
 
     // Events
     activeEventId: null,
+    // Procedural late-game events (Phase 6) are carried in full here rather than by id, since
+    // unlike scripted events they aren't in a static registry to look them up from afterward —
+    // see src/data/proceduralEvents.js and resolveTurn.js.
+    activeProceduralEvent: null,
+    proceduralEventCooldown: 0,
     firedEvents: {},
 
     // Persistent effect from event choices (e.g. Bar-Lev Line) applied to combat
@@ -169,7 +177,9 @@ export const gameReducer = (state, action) => {
       return resolveTurn(state);
 
     case ActionTypes.RESOLVE_EVENT: {
-      const event = HISTORICAL_EVENTS[state.activeEventId];
+      // A procedural event (Phase 6) is never in HISTORICAL_EVENTS — it's carried in full on
+      // the state itself since it was generated fresh, not looked up from a static registry.
+      const event = state.activeEventId ? HISTORICAL_EVENTS[state.activeEventId] : state.activeProceduralEvent;
       if (!event) return state;
       return applyEventEffects(state, event, action.payload.optionIndex);
     }
@@ -583,8 +593,14 @@ export const gameReducer = (state, action) => {
       return { ...fresh, ...incoming, gameStatus: incoming.gameStatus || GameStatus.ACTIVE };
     }
 
-    case ActionTypes.RESET_GAME:
-      return createInitialState();
+    case ActionTypes.RESET_GAME: {
+      const fresh = createInitialState();
+      // doctrineId comes from the component layer (GameProvider reads it from meta-progression
+      // localStorage) rather than this reducer reading storage directly, so gameReducer stays a
+      // pure function of (state, action) — see src/data/startingDoctrines.js.
+      const doctrineId = action.payload?.doctrineId;
+      return doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
+    }
 
     default:
       return state;
@@ -605,6 +621,10 @@ export const useGame = () => {
 // ============ PROVIDER ============
 export const GameProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, null, loadOrCreateState);
+  // Meta-progression (achievements + selected starting doctrine) lives in its OWN localStorage
+  // key, deliberately separate from the per-save game state — see src/utils/metaProgression.js.
+  // Lazy-init reads storage once on mount, matching loadOrCreateState's pattern for the save.
+  const [meta, setMeta] = useState(() => loadMeta());
 
   // Autosave. The whole state is plain JSON (no Dates/Maps/class instances), so this is a
   // straight serialize — the only thing intentionally NOT embedded is event *content*
@@ -617,6 +637,41 @@ export const GameProvider = ({ children }) => {
       // Storage unavailable or full — autosave is best-effort, never fatal.
     }
   }, [state]);
+
+  // Achievement unlocks. checkAchievements is a pure predicate over the CURRENT snapshot (no
+  // history needed), so this just diffs it against what's already persisted; the diff is what
+  // makes "newly earned" meaningful despite the predicate itself only knowing "currently true".
+  // Dispatching ADD_LOG here re-triggers this effect once, but newlyUnlocked is then empty
+  // (already persisted), so it settles after that one extra render — no unlock loop.
+  // notifiedRef guards against React StrictMode's dev-only double-invoke of this exact effect:
+  // both invocations close over the same pre-update `meta`, so without this they'd both see the
+  // achievement as "not yet unlocked" and double-log it. The ref persists across that double
+  // invoke (no remount happens), so the second call sees it's already been handled.
+  const notifiedRef = useRef(new Set());
+  useEffect(() => {
+    const satisfied = checkAchievements(state);
+    const newlyUnlocked = satisfied.filter(id => !meta.unlockedAchievements.includes(id) && !notifiedRef.current.has(id));
+    if (newlyUnlocked.length === 0) return;
+    newlyUnlocked.forEach(id => notifiedRef.current.add(id));
+
+    const updatedMeta = { ...meta, unlockedAchievements: [...meta.unlockedAchievements, ...newlyUnlocked] };
+    setMeta(updatedMeta);
+    saveMeta(updatedMeta);
+    newlyUnlocked.forEach(id => {
+      dispatch({
+        type: ActionTypes.ADD_LOG,
+        payload: { message: `Achievement unlocked: ${ACHIEVEMENTS[id].name}`, type: LogTypes.MILESTONE }
+      });
+    });
+  }, [state, meta]);
+
+  const selectDoctrine = useCallback((doctrineId) => {
+    setMeta(prev => {
+      const updated = { ...prev, selectedDoctrine: doctrineId };
+      saveMeta(updated);
+      return updated;
+    });
+  }, []);
 
   const addLog = useCallback((message, type = LogTypes.ACTION) => {
     dispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
@@ -631,6 +686,12 @@ export const GameProvider = ({ children }) => {
   const resolveEvent = useCallback((optionIndex) => {
     dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex } });
   }, []);
+
+  // Wraps RESET_GAME with the player's currently-selected starting doctrine, so callers (App.jsx)
+  // don't need to know meta-progression's shape just to start a new game.
+  const resetGame = useCallback(() => {
+    dispatch({ type: ActionTypes.RESET_GAME, payload: { doctrineId: meta.selectedDoctrine } });
+  }, [meta.selectedDoctrine]);
 
   const exportSave = useCallback(() => {
     return JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }, null, 2);
@@ -653,9 +714,12 @@ export const GameProvider = ({ children }) => {
     addLog,
     advanceTurn,
     resolveEvent,
+    resetGame,
     exportSave,
-    importSave
-  }), [state, addLog, advanceTurn, resolveEvent, exportSave, importSave]);
+    importSave,
+    meta,
+    selectDoctrine
+  }), [state, addLog, advanceTurn, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine]);
 
   return (
     <GameContext.Provider value={contextValue}>

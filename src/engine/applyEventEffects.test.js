@@ -55,4 +55,31 @@ describe('applyEventEffects', () => {
     expect(next.militaryUnits).toEqual({ infantry: 5500, armor: 100, air: 0 });
     expect(Number.isNaN(next.militaryUnits.infantry)).toBe(false);
   });
+
+  describe('nationHostility (Phase 6: procedural events target a single nation)', () => {
+    it('adjusts only the named nation\'s hostility, clamped to [0, 100]', () => {
+      const state = createInitialState();
+      state.nations.egypt = { ...state.nations.egypt, hostility: 50 };
+      const event = { id: 'test_event', title: 'Test', options: [{ label: 'a', effects: { nationHostility: { egypt: 20 } } }] };
+      const next = applyEventEffects(state, event, 0);
+      expect(next.nations.egypt.hostility).toBe(70);
+      expect(next.nations.syria.hostility).toBe(state.nations.syria.hostility); // untouched
+
+      const capped = applyEventEffects({ ...state, nations: { ...state.nations, egypt: { ...state.nations.egypt, hostility: 95 } } }, event, 0);
+      expect(capped.nations.egypt.hostility).toBe(100);
+    });
+
+    it('ignores an unknown nation id rather than throwing', () => {
+      const state = createInitialState();
+      const event = { id: 'test_event', title: 'Test', options: [{ label: 'a', effects: { nationHostility: { not_a_real_nation: 10 } } }] };
+      expect(() => applyEventEffects(state, event, 0)).not.toThrow();
+    });
+  });
+
+  it('clears activeProceduralEvent when resolving a procedural event (Phase 6)', () => {
+    const state = { ...createInitialState(), activeEventId: null, activeProceduralEvent: { id: 'procedural_test_1', title: 'Test', options: [{ label: 'ok', effects: { money: 100 } }] } };
+    const next = applyEventEffects(state, state.activeProceduralEvent, 0);
+    expect(next.activeProceduralEvent).toBeNull();
+    expect(next.resources.money).toBe(state.resources.money + 100);
+  });
 });

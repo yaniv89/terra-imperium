@@ -4,6 +4,7 @@
 import React from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { formatNumber, formatMoney } from '../../utils/helpers';
+import { NATIONS_DATA } from '../../data/nations';
 
 // Format effect for display
 const formatEffectItem = (key, value) => {
@@ -48,6 +49,12 @@ const formatEffectItem = (key, value) => {
   }
   if (key === 'canDeclareIndependence') {
     return { label: 'Unlock', value: 'Independence', type: 'positive' };
+  }
+  if (key === 'nationHostility') {
+    // { nationId: delta } — procedural events (Phase 6) only ever target one nation per option.
+    const [nId, delta] = Object.entries(value)[0] || [];
+    const name = NATIONS_DATA[nId]?.name || nId;
+    return { label: `Relations: ${name}`, value: `${delta >= 0 ? '+' : ''}${delta}`, type: delta >= 0 ? 'negative' : 'positive' };
   }
   if (key === 'controlPenalty') {
     return { label, value: `-${value}%`, type: 'negative' };

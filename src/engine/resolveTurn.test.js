@@ -345,3 +345,49 @@ describe('resolveTurn combatPrediction integration (Phase 5: AI Warfare threaded
     expect(() => resolveTurn(state)).not.toThrow();
   });
 });
+
+describe('resolveTurn procedural events (Phase 6: keep the late-game timeline from going quiet)', () => {
+  // Every HISTORICAL_EVENTS entry marked fired so pickNextEvent always returns null here —
+  // otherwise any of the many still-unfired earlier-year scripted events would be "due" the
+  // moment phase is forced to POST_STATE, and the procedural gate (which only rolls when no
+  // scripted event is pending) would never get a chance to run.
+  const allScriptedFired = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+
+  const proceduralReadyState = (overrides = {}) => ({
+    ...postStateBase(),
+    year: 2050,
+    invasions: [],
+    firedEvents: allScriptedFired,
+    proceduralEventCooldown: 0,
+    ...overrides
+  });
+
+  it('never fires before the year-2000 gate, whatever the roll', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const next = resolveTurn(proceduralReadyState({ year: 1990, rngSeed: seed }));
+      expect(next.activeProceduralEvent).toBeNull();
+    }
+  });
+
+  it('never fires while its cooldown has not elapsed, whatever the roll', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const next = resolveTurn(proceduralReadyState({ proceduralEventCooldown: 5, rngSeed: seed }));
+      expect(next.activeProceduralEvent).toBeNull();
+    }
+  });
+
+  it('can fire once eligible (year >= 2000, cooldown elapsed, no scripted event due), setting a fresh cooldown and blocking further turns until resolved', () => {
+    let fired = null;
+    for (let seed = 0; seed < 300 && !fired; seed++) {
+      const next = resolveTurn(proceduralReadyState({ rngSeed: seed }));
+      if (next.activeProceduralEvent) fired = next;
+    }
+    expect(fired).not.toBeNull();
+    expect(fired.activeEventId).toBeNull();
+    expect(fired.proceduralEventCooldown).toBeGreaterThan(0);
+    expect(fired.activeProceduralEvent.options.length).toBeGreaterThanOrEqual(2);
+
+    // Same guard as a scripted event: resolveTurn is a no-op while one is pending.
+    expect(resolveTurn(fired)).toBe(fired);
+  });
+});

@@ -15,6 +15,7 @@ import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { NATIONS_DATA } from '../data/nations';
 import { TECH_TREE } from '../data/techTree';
 import { pickNextEvent } from '../data/events';
+import { pickProceduralEvent } from '../data/proceduralEvents';
 import {
   calcIncome,
   calcMilitaryPower,
@@ -54,7 +55,11 @@ export const findConflictTerritoryTransfer = (regions, nations, conflict) => {
 export const resolveTurn = (state) => {
   // Guard: nothing to resolve if the game already ended or an event is blocking play.
   // (The UI also disables End Turn in these cases; this is the authoritative backstop.)
-  if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId) {
+  // activeProceduralEvent (Phase 6) blocks play exactly like activeEventId — it's a second,
+  // separate slot rather than overloading activeEventId, because scripted events are looked up
+  // by id from the static HISTORICAL_EVENTS registry while a procedural one is generated fresh
+  // and has to be carried in full (see pickProceduralEvent in src/data/proceduralEvents.js).
+  if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent) {
     return state;
   }
 
@@ -290,6 +295,22 @@ export const resolveTurn = (state) => {
   // --- events ---
   const dueEvent = pickNextEvent(newYear, state.phase, nations, state.firedEvents);
 
+  // --- procedural events (Phase 6) ---
+  // Only rolled when no scripted event is already due this turn, and only in the POST_STATE
+  // era from 2000 onward — this is purely a "keep the late game from going quiet" filler, not a
+  // replacement for the hand-written timeline, so it never competes with or delays a scripted
+  // event. Gated behind a cooldown (a random 3-8 years after each firing) so these don't cluster.
+  let proceduralEventCooldown = Math.max(0, (state.proceduralEventCooldown || 0) - 1);
+  let activeProceduralEvent = null;
+  if (!dueEvent && state.phase === GamePhases.POST_STATE && newYear >= 2000 &&
+      proceduralEventCooldown <= 0 && rng.next() < 0.3) {
+    const candidate = pickProceduralEvent({ ...state, nations, turnNumber: state.turnNumber + 1, year: newYear }, rng);
+    if (candidate) {
+      activeProceduralEvent = candidate;
+      proceduralEventCooldown = 6 + Math.floor(rng.next() * 10); // 3-8 years (half-year turns)
+    }
+  }
+
   // --- assemble next state ---
   let next = {
     ...state,
@@ -305,6 +326,8 @@ export const resolveTurn = (state) => {
     militaryUnits,
     undergroundStrength,
     activeEventId: dueEvent ? dueEvent.id : null,
+    activeProceduralEvent,
+    proceduralEventCooldown,
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
@@ -322,7 +345,7 @@ export const resolveTurn = (state) => {
   // Backstop victory: the scripted `galactic_age_2150` event is what normally delivers the win
   // (its `effects.victory` is applied in applyEventEffects.js), but if for any reason no event
   // is pending once the timeline runs out, don't leave the game unwinnable.
-  if (next.gameStatus === GameStatus.ACTIVE && newYear >= 2150 && !next.activeEventId) {
+  if (next.gameStatus === GameStatus.ACTIVE && newYear >= 2150 && !next.activeEventId && !next.activeProceduralEvent) {
     next.gameStatus = GameStatus.VICTORY;
     next.logs = [...next.logs, { year: newYear, message: 'VICTORY: Israel survives to 2150!', type: LogTypes.MILESTONE }];
   }

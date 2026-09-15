@@ -141,6 +141,17 @@ export const applyEventEffects = (state, event, optionIndex) => {
     });
   }
 
+  // Generic per-nation hostility nudge (Phase 6: procedural events target a specific nation
+  // without needing a one-off effect key per template — see src/data/proceduralEvents.js).
+  if (effects.nationHostility) {
+    const nations = { ...next.nations };
+    Object.entries(effects.nationHostility).forEach(([nId, delta]) => {
+      if (!nations[nId]) return;
+      nations[nId] = { ...nations[nId], hostility: Math.max(0, Math.min(100, nations[nId].hostility + delta)) };
+    });
+    next.nations = nations;
+  }
+
   if (effects.canDeclareIndependence) {
     logs.push({ year: next.year, message: 'Independence is now possible! Declare when ready.', type: LogTypes.MILESTONE });
   }
@@ -154,6 +165,10 @@ export const applyEventEffects = (state, event, optionIndex) => {
 
   next.logs = [...next.logs, ...logs];
   next.activeEventId = null;
+  // Procedural events (Phase 6) never populate activeEventId — they're carried in
+  // activeProceduralEvent instead (see resolveTurn.js) — so this clear is a no-op for a
+  // scripted event and the one that actually dismisses a procedural one.
+  next.activeProceduralEvent = null;
   next.firedEvents = { ...next.firedEvents, [event.id]: true };
 
   return next;
