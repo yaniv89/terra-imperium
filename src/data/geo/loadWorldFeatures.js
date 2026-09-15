@@ -1,0 +1,25 @@
+// src/data/geo/loadWorldFeatures.js
+// Turns the committed country-tier TopoJSON (see scripts/geo/build.mjs) into plain GeoJSON
+// features on demand. Dynamic imports keep the ~280KB topology and its metadata out of the main
+// bundle — only the globe view (Phase 12), which nobody has to open, pays for them.
+import { feature } from 'topojson-client';
+
+let cachedFeatures = null;
+
+export const loadCountryFeatures = async () => {
+  if (cachedFeatures) return cachedFeatures;
+
+  const [{ default: topology }, { default: meta }] = await Promise.all([
+    import('./countries.topo.json'),
+    import('./countries-meta.json')
+  ]);
+
+  const objectKey = Object.keys(topology.objects)[0];
+  const collection = feature(topology, topology.objects[objectKey]);
+  collection.features.forEach((f) => {
+    f.properties = { ...f.properties, ...meta[f.id] };
+  });
+
+  cachedFeatures = collection.features;
+  return cachedFeatures;
+};
