@@ -119,7 +119,11 @@ export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG, inva
             supply: 100,
             active: true,
             isPlayerAttacker: false,
-            attackerNation: nation.id
+            attackerNation: nation.id,
+            // Siege vs. storm (Phase 8): blitz/opportunist doctrines gamble on a fast decisive
+            // roll; attrition/cautious doctrines grind safely instead, matching how those same
+            // doctrines already behave in their war-declaration and growth rolls above.
+            approach: (nation.doctrine === 'cautious' || nation.doctrine === 'attrition') ? 'siege' : 'storm'
           });
 
           updates.logs.push({

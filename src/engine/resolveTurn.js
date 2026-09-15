@@ -30,6 +30,7 @@ import {
 } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility, shouldDeclareWar } from '../utils/aiLogic';
 import { declareWar, checkWarGoal } from './diplomacy';
+import { getPersonaBonus } from '../data/personas';
 import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -154,7 +155,27 @@ export const resolveTurn = (state) => {
   const resolvedInvasions = state.invasions.map(inv => {
     if (!inv.active) return inv;
 
-    let newInv = { ...inv, supply: inv.supply - supplyDecayForInvasion(inv) };
+    // 'hold' (Phase 8 tactical order) trades campaign progress for slower attrition — halves this
+    // turn's supply decay on top of any commander logistics bonus. Never let decay round to 0
+    // (an invasion would then never run out of supply on its own).
+    const holdReduction = inv.tacticalOrder === 'hold' ? 0.5 : 1;
+    const commanderSupplyMult = getPersonaBonus(inv.commanderId, 'supplyDecayMult');
+    const supplyDecay = Math.max(1, Math.round(supplyDecayForInvasion(inv) * holdReduction * commanderSupplyMult));
+    let newInv = { ...inv, supply: inv.supply - supplyDecay };
+
+    // Mercenary reinforcements (Phase 8) are temporary — tick the contract down and, once it
+    // expires, remove exactly what it added rather than leaving a permanent free army behind.
+    if (newInv.mercenaryBoost) {
+      const turnsRemaining = newInv.mercenaryBoost.turnsRemaining - 1;
+      if (turnsRemaining <= 0) {
+        newInv.composition = subtractUnits(newInv.composition, { infantry: newInv.mercenaryBoost.amount, armor: 0, air: 0 });
+        newInv.mercenaryBoost = null;
+        logs.push({ year: newYear, message: `Mercenary contract at ${REGIONS_DATA[inv.targetRegion]?.name} has expired.`, type: LogTypes.ACTION });
+      } else {
+        newInv.mercenaryBoost = { ...newInv.mercenaryBoost, turnsRemaining };
+      }
+    }
+
     const targetRegion = regions[inv.targetRegion];
     const targetData = REGIONS_DATA[inv.targetRegion];
     if (!targetRegion || !targetData) return newInv;
@@ -164,78 +185,157 @@ export const resolveTurn = (state) => {
     if (inv.isPlayerAttacker) {
       const defenderNation = state.nations[targetRegion.owner];
       if (defenderNation && !defenderNation.isPlayer) {
-        // Composition vs. terrain determines the deployed force's effective strength (e.g.
-        // armor committed into mountains fights far below its raw headcount) — this is on top
-        // of, and independent from, the terrain bonus the defender separately gets below.
-        const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses, newPeriod) * disorganizedBonus(targetRegion.owner);
-        const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
-        const result = calcCombatResult(effectiveStrength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
+        const commanderMult = {
+          infantryMult: getPersonaBonus(newInv.commanderId, 'infantryMult'),
+          armorMult: getPersonaBonus(newInv.commanderId, 'armorMult'),
+          airMult: getPersonaBonus(newInv.commanderId, 'airMult')
+        };
+        const moraleLossMult = getPersonaBonus(newInv.commanderId, 'moraleLossMult');
 
-        // Casualties are based on the RAW committed headcount, not the terrain-weighted
-        // effective strength above — otherwise a unit type terrain favors would paradoxically
-        // take *larger* absolute losses than a poorly-suited one of equal size in a losing fight,
-        // since calcCombatResult's casualty formula scales with whatever "attacker" value it's
-        // given. Terrain should change who wins, not inflate the loser's body count.
-        const rawAttackerStrength = sumUnits(newInv.composition);
-        const attackerCasualties = Math.round(rawAttackerStrength * (result.ratio < 1 ? 0.15 : 0.05));
-        // Casualties land on the invasion's OWN deployed composition, not the home militaryUnits
-        // pool — that pool was already debited in full when the invasion was launched (see
-        // LAUNCH_PLAYER_INVASION), so a defeated invading force is simply lost, not double-spent.
-        newInv.composition = subtractUnits(newInv.composition, distributeCasualties(newInv.composition, attackerCasualties));
-        addNationDelta(targetRegion.owner, -result.casualties.defender);
+        if ((newInv.approach || 'storm') === 'siege') {
+          // Siege (Phase 8): no decisive dice roll — the tradeoff for storm's chance at a quick
+          // win is a slow, safe erosion of the defender's control instead. Damage still scales
+          // with the strength ratio (capped at 2x parity) rather than being a flat guaranteed
+          // grind — otherwise a trivially weak siege would eventually capture ANY region given
+          // enough turns regardless of how outmatched it is, breaking the same "overwhelming
+          // defense repels everything" invariant storm already respects via calcCombatResult.
+          const siegeDamageMult = getPersonaBonus(newInv.commanderId, 'siegeDamageMult');
+          const rawAttackerStrength = sumUnits(newInv.composition);
+          const effectiveAttackStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses, newPeriod, commanderMult);
+          const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
+          const strengthRatio = Math.min(2, effectiveAttackStrength / Math.max(1, defenseStrength));
+          const siegeDamage = Math.round(8 * strengthRatio * siegeDamageMult);
+          const casualtyRate = 0.02;
+          const attackerCasualties = Math.round(rawAttackerStrength * casualtyRate);
+          const defenderCasualties = Math.round(defenderNation.militaryStrength * casualtyRate * 0.3);
+          newInv.composition = subtractUnits(newInv.composition, distributeCasualties(newInv.composition, attackerCasualties));
+          addNationDelta(targetRegion.owner, -defenderCasualties);
 
-        if (result.attackerWins) {
-          newInv.active = false;
-          regions[inv.targetRegion] = { ...targetRegion, owner: 'player', control: 60, isOccupied: true, underInvasion: false };
-          logs.push({ year: newYear, message: `VICTORY! Captured ${targetData.name}!`, type: LogTypes.MILESTONE });
-        } else if (result.stalemate) {
-          newInv.morale -= 10;
-          logs.push({ year: newYear, message: `Offensive in ${targetData.name}: progress slow`, type: LogTypes.COMBAT });
+          const newControl = Math.max(0, targetRegion.control - siegeDamage);
+          if (newControl <= 0) {
+            newInv.active = false;
+            regions[inv.targetRegion] = { ...targetRegion, owner: 'player', control: 60, isOccupied: true, underInvasion: false };
+            logs.push({ year: newYear, message: `SIEGE SUCCESSFUL! ${targetData.name} falls after a prolonged siege!`, type: LogTypes.MILESTONE });
+          } else {
+            regions[inv.targetRegion] = { ...targetRegion, control: newControl };
+            logs.push({ year: newYear, message: `Siege of ${targetData.name} continues. Control -${siegeDamage}%`, type: LogTypes.COMBAT });
+          }
         } else {
-          newInv.morale -= 25;
-          newInv.composition = scaleUnits(newInv.composition, 0.85);
-          logs.push({ year: newYear, message: `Offensive in ${targetData.name} stalled!`, type: LogTypes.COMBAT });
-          // Our offensive was decisively repelled — our own territory is briefly vulnerable.
-          counterAttackWindows.player = COUNTER_ATTACK_TURNS;
+          // Storm: today's single-roll model. tacticalOrder (Phase 8) further modifies it —
+          // 'hold' skips the roll entirely to regroup, 'probe' trades morale risk for a strength
+          // edge, 'press' (the default, and the only option before Phase 8) is unchanged.
+          const order = newInv.tacticalOrder || 'press';
+          if (order === 'hold') {
+            newInv.morale = Math.min(100, newInv.morale + 15);
+            logs.push({ year: newYear, message: `Holding position at ${targetData.name}, regrouping.`, type: LogTypes.COMBAT });
+          } else {
+            const probeBonus = order === 'probe' ? 1.1 : 1;
+            // Composition vs. terrain determines the deployed force's effective strength (e.g.
+            // armor committed into mountains fights far below its raw headcount) — this is on top
+            // of, and independent from, the terrain bonus the defender separately gets below.
+            const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses, newPeriod, commanderMult)
+              * disorganizedBonus(targetRegion.owner) * probeBonus;
+            const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
+            const result = calcCombatResult(effectiveStrength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
+
+            // Casualties are based on the RAW committed headcount, not the terrain-weighted
+            // effective strength above — otherwise a unit type terrain favors would paradoxically
+            // take *larger* absolute losses than a poorly-suited one of equal size in a losing
+            // fight, since calcCombatResult's casualty formula scales with whatever "attacker"
+            // value it's given. Terrain should change who wins, not inflate the loser's body count.
+            const rawAttackerStrength = sumUnits(newInv.composition);
+            const attackerCasualties = Math.round(rawAttackerStrength * (result.ratio < 1 ? 0.15 : 0.05));
+            // Casualties land on the invasion's OWN deployed composition, not the home
+            // militaryUnits pool — that pool was already debited in full when the invasion was
+            // launched (see LAUNCH_PLAYER_INVASION), so a defeated invading force is simply lost,
+            // not double-spent.
+            newInv.composition = subtractUnits(newInv.composition, distributeCasualties(newInv.composition, attackerCasualties));
+            addNationDelta(targetRegion.owner, -result.casualties.defender);
+
+            if (result.attackerWins) {
+              newInv.active = false;
+              regions[inv.targetRegion] = { ...targetRegion, owner: 'player', control: 60, isOccupied: true, underInvasion: false };
+              logs.push({ year: newYear, message: `VICTORY! Captured ${targetData.name}!`, type: LogTypes.MILESTONE });
+            } else if (result.stalemate) {
+              newInv.morale -= Math.round(10 * moraleLossMult);
+              logs.push({ year: newYear, message: `Offensive in ${targetData.name}: progress slow`, type: LogTypes.COMBAT });
+            } else {
+              const moraleLoss = order === 'probe' ? 30 : 25;
+              newInv.morale -= Math.round(moraleLoss * moraleLossMult);
+              newInv.composition = scaleUnits(newInv.composition, 0.85);
+              logs.push({ year: newYear, message: `Offensive in ${targetData.name} stalled!`, type: LogTypes.COMBAT });
+              // Our offensive was decisively repelled — our own territory is briefly vulnerable.
+              counterAttackWindows.player = COUNTER_ATTACK_TURNS;
+            }
+          }
         }
       }
     } else if (targetRegion.owner === 'player') {
-      const attackerStrength = inv.strength * disorganizedBonus('player');
-      const result = calcCombatResult(attackerStrength, playerDefenseBase, defenderSideDefenseTechBonuses, targetData.terrain, rng);
+      if ((inv.approach || 'storm') === 'siege') {
+        // Siege (Phase 8): the AI equivalent of the player's siege choice — attrition/cautious
+        // doctrines grind safely (see aiLogic.js) instead of gambling on storm's decisive roll.
+        // Damage scales with the strength ratio (capped at 2x parity), same reasoning as the
+        // player-side siege above — a flat guaranteed grind would let even a negligible siege
+        // eventually capture any region, ignoring defensive strength entirely.
+        const strengthRatio = Math.min(2, inv.strength / Math.max(1, playerDefenseBase));
+        const siegeDamage = Math.round(4 * strengthRatio * missileDefenseMult);
+        const casualtyRate = 0.02;
+        const attackerCasualties = Math.round(inv.strength * casualtyRate * 0.3);
+        const defenderCasualties = Math.round(playerDefenseBase * casualtyRate);
+        addNationDelta(inv.attackerNation, -attackerCasualties);
+        if (state.phase === GamePhases.PRE_STATE) {
+          undergroundStrength = Math.max(0, undergroundStrength - defenderCasualties);
+        } else {
+          militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, defenderCasualties));
+        }
 
-      addNationDelta(inv.attackerNation, -result.casualties.attacker);
-      if (state.phase === GamePhases.PRE_STATE) {
-        undergroundStrength = Math.max(0, undergroundStrength - result.casualties.defender);
-      } else {
-        militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, result.casualties.defender));
-      }
-
-      if (result.attackerWins) {
-        const damage = Math.round(25 * missileDefenseMult);
-        const newControl = Math.max(0, targetRegion.control - damage);
+        const newControl = Math.max(0, targetRegion.control - siegeDamage);
         if (newControl <= 0 && inv.attackerNation) {
-          // Previously enemy invasions could only grind control to a floor of 0 and the region
-          // stayed "player-owned" forever, producing $0 with no path back — this made defeat
-          // impossible to trigger even when the player had visibly lost the war. Now overrunning
-          // a region actually transfers it.
           regions[inv.targetRegion] = { ...targetRegion, owner: inv.attackerNation, control: 20, isOccupied: true, underInvasion: false };
           newInv.active = false;
-          logs.push({ year: newYear, message: `${targetData.name} CAPTURED by ${NATIONS_DATA[inv.attackerNation]?.name}!`, type: LogTypes.CRISIS });
+          logs.push({ year: newYear, message: `${targetData.name} FALLS after a prolonged siege by ${NATIONS_DATA[inv.attackerNation]?.name}!`, type: LogTypes.CRISIS });
         } else {
           regions[inv.targetRegion] = { ...targetRegion, control: newControl };
-          logs.push({ year: newYear, message: `${targetData.name} OVERRUN! Control -${damage}%`, type: LogTypes.CRISIS });
+          logs.push({ year: newYear, message: `${targetData.name} under siege. Control -${siegeDamage}%`, type: LogTypes.COMBAT });
         }
-      } else if (result.stalemate) {
-        const damage = Math.round(10 * missileDefenseMult);
-        regions[inv.targetRegion] = { ...targetRegion, control: Math.max(0, targetRegion.control - damage) };
-        newInv.morale -= 10;
-        logs.push({ year: newYear, message: `${targetData.name} under pressure. Control -${damage}%`, type: LogTypes.COMBAT });
       } else {
-        newInv.morale -= 25;
-        newInv.strength = Math.floor(newInv.strength * 0.8);
-        logs.push({ year: newYear, message: `Defended ${targetData.name}! Enemy repelled.`, type: LogTypes.COMBAT });
-        // Their offensive was decisively repelled — their home territory is briefly vulnerable.
-        if (inv.attackerNation) counterAttackWindows[inv.attackerNation] = COUNTER_ATTACK_TURNS;
+        const attackerStrength = inv.strength * disorganizedBonus('player');
+        const result = calcCombatResult(attackerStrength, playerDefenseBase, defenderSideDefenseTechBonuses, targetData.terrain, rng);
+
+        addNationDelta(inv.attackerNation, -result.casualties.attacker);
+        if (state.phase === GamePhases.PRE_STATE) {
+          undergroundStrength = Math.max(0, undergroundStrength - result.casualties.defender);
+        } else {
+          militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, result.casualties.defender));
+        }
+
+        if (result.attackerWins) {
+          const damage = Math.round(25 * missileDefenseMult);
+          const newControl = Math.max(0, targetRegion.control - damage);
+          if (newControl <= 0 && inv.attackerNation) {
+            // Previously enemy invasions could only grind control to a floor of 0 and the region
+            // stayed "player-owned" forever, producing $0 with no path back — this made defeat
+            // impossible to trigger even when the player had visibly lost the war. Now overrunning
+            // a region actually transfers it.
+            regions[inv.targetRegion] = { ...targetRegion, owner: inv.attackerNation, control: 20, isOccupied: true, underInvasion: false };
+            newInv.active = false;
+            logs.push({ year: newYear, message: `${targetData.name} CAPTURED by ${NATIONS_DATA[inv.attackerNation]?.name}!`, type: LogTypes.CRISIS });
+          } else {
+            regions[inv.targetRegion] = { ...targetRegion, control: newControl };
+            logs.push({ year: newYear, message: `${targetData.name} OVERRUN! Control -${damage}%`, type: LogTypes.CRISIS });
+          }
+        } else if (result.stalemate) {
+          const damage = Math.round(10 * missileDefenseMult);
+          regions[inv.targetRegion] = { ...targetRegion, control: Math.max(0, targetRegion.control - damage) };
+          newInv.morale -= 10;
+          logs.push({ year: newYear, message: `${targetData.name} under pressure. Control -${damage}%`, type: LogTypes.COMBAT });
+        } else {
+          newInv.morale -= 25;
+          newInv.strength = Math.floor(newInv.strength * 0.8);
+          logs.push({ year: newYear, message: `Defended ${targetData.name}! Enemy repelled.`, type: LogTypes.COMBAT });
+          // Their offensive was decisively repelled — their home territory is briefly vulnerable.
+          if (inv.attackerNation) counterAttackWindows[inv.attackerNation] = COUNTER_ATTACK_TURNS;
+        }
       }
     }
 

@@ -290,14 +290,16 @@ const SEASONAL_MODS = {
 // gets passed into calcCombatResult as the attacker's raw strength. `techBonuses` layers the
 // unit-specific research bonuses (Uzi Production, Merkava/Air Superiority doctrine) on top of
 // the terrain multiplier — a well-equipped force on bad terrain can still underperform, but it's
-// never as weak as an unresearched one on the same ground.
-export const calcCompositionStrength = (units, terrain = 'plains', techBonuses = {}, period = 0) => {
+// never as weak as an unresearched one on the same ground. `personaMult` (Phase 8) layers a
+// commander's own per-type specialty (e.g. an armor tactician's armorMult) on top of everything
+// else — see src/data/personas.js.
+export const calcCompositionStrength = (units, terrain = 'plains', techBonuses = {}, period = 0, personaMult = {}) => {
   const mods = COMPOSITION_TERRAIN_MODS[terrain] || { infantry: 1, armor: 1, air: 1 };
   const seasonal = SEASONAL_MODS[period] || SEASONAL_MODS[0];
   const typeBonus = {
-    infantry: 1 + (techBonuses.infantryBonus || 0),
-    armor: 1 + (techBonuses.tankBonus || 0),
-    air: 1 + (techBonuses.airBonus || 0)
+    infantry: (1 + (techBonuses.infantryBonus || 0)) * (personaMult.infantryMult || 1),
+    armor: (1 + (techBonuses.tankBonus || 0)) * (personaMult.armorMult || 1),
+    air: (1 + (techBonuses.airBonus || 0)) * (personaMult.airMult || 1)
   };
   return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0) * mods[type] * typeBonus[type] * seasonal[type], 0);
 };
