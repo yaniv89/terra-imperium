@@ -7,6 +7,7 @@
 import { RelationStatus, LogTypes, GameStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { NATIONS_DATA } from '../data/nations';
+import { addUnits } from '../utils/helpers';
 
 export const applyEventEffects = (state, event, optionIndex) => {
   const option = event.options[optionIndex];
@@ -27,7 +28,9 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.undergroundStrength = Math.max(0, next.undergroundStrength + effects.undergroundBonus);
   }
   if (effects.militaryBonus) {
-    next.militaryPower = Math.max(0, next.militaryPower + effects.militaryBonus);
+    // Event-granted military bonuses land as infantry — there's no finer-grained composition
+    // signal in the event data, and infantry is the safest generic "more army" bucket.
+    next.militaryUnits = addUnits(next.militaryUnits, { infantry: effects.militaryBonus });
   }
 
   // Applied to combat as a persistent defense multiplier (see resolveTurn.js) — previously

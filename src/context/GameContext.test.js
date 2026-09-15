@@ -66,3 +66,56 @@ describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
     expect(next).toBe(state);
   });
 });
+
+describe('LAUNCH_PLAYER_INVASION (Phase 3: adjacency + unit composition)', () => {
+  const atWarState = () => {
+    const state = createInitialState();
+    state.nations.egypt = { ...state.nations.egypt, isAtWar: true };
+    state.militaryUnits = { infantry: 10000, armor: 5000, air: 2000 };
+    state.resources.money = ACTION_COSTS.launchInvasion.money;
+    state.resources.manpower = ACTION_COSTS.launchInvasion.manpower;
+    state.resources.actionPoints = ACTION_COSTS.launchInvasion.actionPoints;
+    return state;
+  };
+
+  it('rejects a target that does not border any player-controlled territory', () => {
+    const state = atWarState();
+    // egypt_cairo only borders egypt_sinai, which the player doesn't own at game start.
+    const next = gameReducer(state, {
+      type: ActionTypes.LAUNCH_PLAYER_INVASION,
+      payload: { targetRegion: 'egypt_cairo', composition: { infantry: 1000, armor: 0, air: 0 } }
+    });
+    expect(next).toBe(state);
+  });
+
+  it('allows a target adjacent to player territory and deducts the committed composition', () => {
+    const state = atWarState();
+    // gaza borders tel_aviv, negev — both player-owned at game start.
+    const next = gameReducer(state, {
+      type: ActionTypes.LAUNCH_PLAYER_INVASION,
+      payload: { targetRegion: 'gaza', composition: { infantry: 1000, armor: 500, air: 0 } }
+    });
+    expect(next).not.toBe(state);
+    expect(next.militaryUnits).toEqual({ infantry: 9000, armor: 4500, air: 2000 });
+    const invasion = next.invasions.find(i => i.targetRegion === 'gaza');
+    expect(invasion.composition).toEqual({ infantry: 1000, armor: 500, air: 0 });
+  });
+
+  it('rejects a composition that exceeds available units', () => {
+    const state = atWarState();
+    const next = gameReducer(state, {
+      type: ActionTypes.LAUNCH_PLAYER_INVASION,
+      payload: { targetRegion: 'gaza', composition: { infantry: 999999, armor: 0, air: 0 } }
+    });
+    expect(next).toBe(state);
+  });
+
+  it('rejects an empty composition', () => {
+    const state = atWarState();
+    const next = gameReducer(state, {
+      type: ActionTypes.LAUNCH_PLAYER_INVASION,
+      payload: { targetRegion: 'gaza', composition: { infantry: 0, armor: 0, air: 0 } }
+    });
+    expect(next).toBe(state);
+  });
+});

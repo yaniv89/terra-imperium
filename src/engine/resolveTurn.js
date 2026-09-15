@@ -20,6 +20,11 @@ import {
   calcMilitaryPower,
   getTechBonuses,
   calcCombatResult,
+  calcCompositionStrength,
+  distributeCasualties,
+  subtractUnits,
+  scaleUnits,
+  sumUnits,
   formatNumber
 } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
@@ -71,7 +76,7 @@ export const resolveTurn = (state) => {
   // `regions` is mutated in place through the loop (not re-read from `state`), so a second
   // invasion hitting the same region this turn compounds correctly instead of clobbering.
   const regions = { ...state.regions };
-  let militaryPower = state.militaryPower;
+  let militaryUnits = { ...state.militaryUnits };
   let undergroundStrength = state.undergroundStrength;
   const nationCombatDeltas = {}; // nationId -> militaryStrength delta from combat this turn
 
@@ -104,10 +109,24 @@ export const resolveTurn = (state) => {
     if (inv.isPlayerAttacker) {
       const defenderNation = state.nations[targetRegion.owner];
       if (defenderNation && !defenderNation.isPlayer) {
+        // Composition vs. terrain determines the deployed force's effective strength (e.g.
+        // armor committed into mountains fights far below its raw headcount) — this is on top
+        // of, and independent from, the terrain bonus the defender separately gets below.
+        const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain);
         const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
-        const result = calcCombatResult(inv.strength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
+        const result = calcCombatResult(effectiveStrength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
 
-        militaryPower = Math.max(0, militaryPower - result.casualties.attacker);
+        // Casualties are based on the RAW committed headcount, not the terrain-weighted
+        // effective strength above — otherwise a unit type terrain favors would paradoxically
+        // take *larger* absolute losses than a poorly-suited one of equal size in a losing fight,
+        // since calcCombatResult's casualty formula scales with whatever "attacker" value it's
+        // given. Terrain should change who wins, not inflate the loser's body count.
+        const rawAttackerStrength = sumUnits(newInv.composition);
+        const attackerCasualties = Math.round(rawAttackerStrength * (result.ratio < 1 ? 0.15 : 0.05));
+        // Casualties land on the invasion's OWN deployed composition, not the home militaryUnits
+        // pool — that pool was already debited in full when the invasion was launched (see
+        // LAUNCH_PLAYER_INVASION), so a defeated invading force is simply lost, not double-spent.
+        newInv.composition = subtractUnits(newInv.composition, distributeCasualties(newInv.composition, attackerCasualties));
         addNationDelta(targetRegion.owner, -result.casualties.defender);
 
         if (result.attackerWins) {
@@ -119,7 +138,7 @@ export const resolveTurn = (state) => {
           logs.push({ year: newYear, message: `Offensive in ${targetData.name}: progress slow`, type: LogTypes.COMBAT });
         } else {
           newInv.morale -= 25;
-          newInv.strength = Math.floor(newInv.strength * 0.85);
+          newInv.composition = scaleUnits(newInv.composition, 0.85);
           logs.push({ year: newYear, message: `Offensive in ${targetData.name} stalled!`, type: LogTypes.COMBAT });
         }
       }
@@ -130,7 +149,7 @@ export const resolveTurn = (state) => {
       if (state.phase === GamePhases.PRE_STATE) {
         undergroundStrength = Math.max(0, undergroundStrength - result.casualties.defender);
       } else {
-        militaryPower = Math.max(0, militaryPower - result.casualties.defender);
+        militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, result.casualties.defender));
       }
 
       if (result.attackerWins) {
@@ -225,7 +244,7 @@ export const resolveTurn = (state) => {
     regions,
     nations,
     invasions: allInvasions,
-    militaryPower,
+    militaryUnits,
     undergroundStrength,
     activeEventId: dueEvent ? dueEvent.id : null,
     rngSeed: rng.getSeed(),

@@ -46,4 +46,13 @@ describe('applyEventEffects', () => {
     const next = applyEventEffects(state, event, optionIndex);
     expect(next.eventDefenseBonus).toBeGreaterThan(0);
   });
+
+  it('applies militaryBonus to militaryUnits.infantry (regression: still referenced the removed flat militaryPower field)', () => {
+    const state = createInitialState();
+    state.militaryUnits = { infantry: 500, armor: 100, air: 0 };
+    const event = HISTORICAL_EVENTS.independence_1948; // "Rally the nation" -> militaryBonus: 5000
+    const next = applyEventEffects(state, event, 0);
+    expect(next.militaryUnits).toEqual({ infantry: 5500, armor: 100, air: 0 });
+    expect(Number.isNaN(next.militaryUnits.infantry)).toBe(false);
+  });
 });
