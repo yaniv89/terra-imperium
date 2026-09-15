@@ -2,12 +2,13 @@
 // Military actions panel - training, combat, invasions
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTriangle } from 'lucide-react';
+import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTriangle, Castle, Award, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
 import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion, sumUnits, hasEnoughUnits } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
+import { PERSONAS } from '../../data/personas';
 import { ActionButton } from '../ui';
 
 const UNIT_LABELS = { infantry: 'Infantry', armor: 'Armor', air: 'Air' };
@@ -29,6 +30,9 @@ const MilitaryPanel = ({ selectedRegion }) => {
   // Composition committed to the next invasion the player launches — defaults to "send
   // everything available" and clamps down whenever the selected target or arsenal changes.
   const [composition, setComposition] = useState({ infantry: 0, armor: 0, air: 0 });
+  // Approach chosen before launch (Phase 8) — storm (fast, decisive, risky) or siege (slow,
+  // safe, guaranteed erosion). Changeable after launch too, via each active invasion's controls.
+  const [launchApproach, setLaunchApproach] = useState('storm');
   useEffect(() => {
     if (!isPreState && isEnemyRegion && isAtWarWithOwner && isAdjacent) {
       setComposition({ ...militaryUnits });
@@ -101,7 +105,35 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('Not enough resources for invasion', 'action');
       return;
     }
-    dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion, composition } });
+    dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion, composition, approach: launchApproach } });
+  };
+
+  const handleSetApproach = (invasionId, approach) => {
+    dispatch({ type: ActionTypes.SET_INVASION_APPROACH, payload: { invasionId, approach } });
+  };
+
+  const handleSetOrder = (invasionId, tacticalOrder) => {
+    dispatch({ type: ActionTypes.SET_INVASION_ORDER, payload: { invasionId, tacticalOrder } });
+  };
+
+  const handleCommissionCommander = (personaId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.commissionCommander)) {
+      addLog('Not enough resources to commission a commander', 'action');
+      return;
+    }
+    dispatch({ type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId } });
+  };
+
+  const handleAssignCommander = (invasionId, personaId) => {
+    dispatch({ type: ActionTypes.ASSIGN_COMMANDER, payload: { invasionId, personaId } });
+  };
+
+  const handleHireMercenaries = (invasionId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.hireMercenaries)) {
+      addLog('Not enough resources to hire mercenaries', 'action');
+      return;
+    }
+    dispatch({ type: ActionTypes.HIRE_MERCENARIES, payload: { invasionId } });
   };
 
   // Counterattack
@@ -312,6 +344,33 @@ const MilitaryPanel = ({ selectedRegion }) => {
                   >
                     Commit everything available
                   </button>
+
+                  {/* Approach (Phase 8): storm risks it all on one roll, siege trades speed for
+                      safety. Changeable later too, once the invasion is underway. */}
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setLaunchApproach('storm')}
+                      className={`flex-1 px-2 py-1 text-[10px] rounded border transition-colors ${
+                        launchApproach === 'storm' ? 'bg-red-500/30 border-red-500/50 text-red-300' : 'bg-slate-800 border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      <Swords className="w-3 h-3 inline mr-1" />Storm
+                    </button>
+                    <button
+                      onClick={() => setLaunchApproach('siege')}
+                      className={`flex-1 px-2 py-1 text-[10px] rounded border transition-colors ${
+                        launchApproach === 'siege' ? 'bg-amber-500/30 border-amber-500/50 text-amber-300' : 'bg-slate-800 border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      <Castle className="w-3 h-3 inline mr-1" />Siege
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-slate-500">
+                    {launchApproach === 'storm'
+                      ? 'Storm: one decisive roll — can win outright or stall, higher casualties.'
+                      : 'Siege: no roll — slow, safe, guaranteed control erosion over several turns.'}
+                  </p>
+
                   <ActionButton
                     icon={Swords}
                     label={`Launch Invasion (${formatNumber(sumUnits(composition))} committed)`}
@@ -362,19 +421,133 @@ const MilitaryPanel = ({ selectedRegion }) => {
             <AlertTriangle className="w-3 h-3" />
             Active Invasions
           </div>
-          <div className="space-y-1.5">
-            {state.invasions.filter(i => i.active).map(inv => (
-              <div key={inv.id} className="flex justify-between items-center text-[11px]">
-                <span className={inv.isPlayerAttacker ? 'text-green-400' : 'text-red-400'}>
-                  {inv.isPlayerAttacker ? '→' : '←'} {REGIONS_DATA[inv.targetRegion]?.name}
-                </span>
-                <div className="flex gap-2 font-mono">
-                  <span className="text-slate-400">{formatNumber(inv.isPlayerAttacker ? sumUnits(inv.composition) : inv.strength)} str</span>
-                  <span className="text-yellow-400">{inv.morale}% mor</span>
-                  <span className="text-blue-400">{inv.supply}% sup</span>
+          <div className="space-y-2">
+            {state.invasions.filter(i => i.active).map(inv => {
+              const commander = inv.commanderId ? PERSONAS[inv.commanderId] : null;
+              return (
+                <div key={inv.id} className="text-[11px] border-b border-orange-500/10 last:border-0 pb-2 last:pb-0">
+                  <div className="flex justify-between items-center">
+                    <span className={inv.isPlayerAttacker ? 'text-green-400' : 'text-red-400'}>
+                      {inv.isPlayerAttacker ? '→' : '←'} {REGIONS_DATA[inv.targetRegion]?.name}
+                      {inv.approach === 'siege' && <span className="ml-1 text-amber-400">(siege)</span>}
+                    </span>
+                    <div className="flex gap-2 font-mono">
+                      <span className="text-slate-400">{formatNumber(inv.isPlayerAttacker ? sumUnits(inv.composition) : inv.strength)} str</span>
+                      <span className="text-yellow-400">{inv.morale}% mor</span>
+                      <span className="text-blue-400">{inv.supply}% sup</span>
+                    </div>
+                  </div>
+
+                  {/* Tactical controls (Phase 8) — player-attacking invasions only. */}
+                  {inv.isPlayerAttacker && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="flex gap-1">
+                        {['storm', 'siege'].map(approach => (
+                          <button
+                            key={approach}
+                            onClick={() => handleSetApproach(inv.id, approach)}
+                            className={`px-1.5 py-0.5 text-[9px] rounded border capitalize ${
+                              (inv.approach || 'storm') === approach
+                                ? 'bg-amber-500/30 border-amber-500/50 text-amber-300'
+                                : 'bg-slate-800 border-slate-700 text-slate-500'
+                            }`}
+                          >
+                            {approach}
+                          </button>
+                        ))}
+                        {(inv.approach || 'storm') === 'storm' && ['press', 'hold', 'probe'].map(order => (
+                          <button
+                            key={order}
+                            onClick={() => handleSetOrder(inv.id, order)}
+                            className={`px-1.5 py-0.5 text-[9px] rounded border capitalize ${
+                              (inv.tacticalOrder || 'press') === order
+                                ? 'bg-blue-500/30 border-blue-500/50 text-blue-300'
+                                : 'bg-slate-800 border-slate-700 text-slate-500'
+                            }`}
+                          >
+                            {order}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleHireMercenaries(inv.id)}
+                          disabled={!canAfford(state.resources, ACTION_COSTS.hireMercenaries)}
+                          className="px-1.5 py-0.5 text-[9px] rounded border bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700 disabled:opacity-40 flex items-center gap-0.5"
+                          title={`Cost: ${formatNumber(ACTION_COSTS.hireMercenaries.money)}`}
+                        >
+                          <Coins className="w-2.5 h-2.5" />Mercs
+                        </button>
+                      </div>
+
+                      {/* Commander assignment */}
+                      {state.hiredCommanders.length > 0 && (
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <span className="text-[9px] text-slate-500">Commander:</span>
+                          <button
+                            onClick={() => handleAssignCommander(inv.id, null)}
+                            className={`px-1.5 py-0.5 text-[9px] rounded border ${!inv.commanderId ? 'bg-slate-700 border-slate-500 text-slate-300' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
+                          >
+                            None
+                          </button>
+                          {state.hiredCommanders.map(personaId => (
+                            <button
+                              key={personaId}
+                              onClick={() => handleAssignCommander(inv.id, personaId)}
+                              className={`px-1.5 py-0.5 text-[9px] rounded border ${
+                                inv.commanderId === personaId ? 'bg-purple-500/30 border-purple-500/50 text-purple-300' : 'bg-slate-800 border-slate-700 text-slate-500'
+                              }`}
+                            >
+                              {PERSONAS[personaId].name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {commander && (
+                        <p className="text-[9px] text-purple-300">{commander.name}: {commander.description}</p>
+                      )}
+                      {inv.mercenaryBoost && (
+                        <p className="text-[9px] text-emerald-400">
+                          +{formatNumber(inv.mercenaryBoost.amount)} mercenary infantry ({inv.mercenaryBoost.turnsRemaining} turns left)
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Officer Corps (Phase 8): commission commanders here, assign them to a front above. */}
+      {!isPreState && (
+        <div className="mt-3 p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+          <div className="text-purple-300 font-bold text-xs mb-2 flex items-center gap-2">
+            <Award className="w-3 h-3" />
+            Officer Corps
+          </div>
+          <div className="space-y-1">
+            {Object.values(PERSONAS).map(persona => {
+              const hired = state.hiredCommanders.includes(persona.id);
+              return (
+                <div key={persona.id} className="flex justify-between items-center gap-2 text-[10px] p-1.5 rounded bg-slate-800/50">
+                  <div>
+                    <div className="text-white font-semibold">{persona.name}</div>
+                    <div className="text-slate-500">{persona.description}</div>
+                  </div>
+                  {hired ? (
+                    <span className="px-1.5 py-0.5 text-[9px] bg-green-500/20 text-green-400 rounded shrink-0">Commissioned</span>
+                  ) : (
+                    <button
+                      onClick={() => handleCommissionCommander(persona.id)}
+                      disabled={!canAfford(state.resources, ACTION_COSTS.commissionCommander)}
+                      className="px-2 py-1 text-[9px] rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 disabled:opacity-40 shrink-0"
+                    >
+                      Commission ({formatNumber(ACTION_COSTS.commissionCommander.money)})
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

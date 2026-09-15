@@ -118,4 +118,135 @@ describe('LAUNCH_PLAYER_INVASION (Phase 3: adjacency + unit composition)', () =>
     });
     expect(next).toBe(state);
   });
+
+  it('defaults a new invasion to storm, or records siege when requested (Phase 8)', () => {
+    const state = atWarState();
+    const stormInv = gameReducer(state, {
+      type: ActionTypes.LAUNCH_PLAYER_INVASION,
+      payload: { targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 } }
+    }).invasions.find(i => i.targetRegion === 'gaza');
+    expect(stormInv.approach).toBe('storm');
+
+    const siegeInv = gameReducer(state, {
+      type: ActionTypes.LAUNCH_PLAYER_INVASION,
+      payload: { targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 }, approach: 'siege' }
+    }).invasions.find(i => i.targetRegion === 'gaza');
+    expect(siegeInv.approach).toBe('siege');
+  });
+});
+
+describe('SET_INVASION_APPROACH / SET_INVASION_ORDER (Phase 8: tactical battle systems)', () => {
+  const withPlayerInvasion = () => {
+    const state = createInitialState();
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true, approach: 'storm'
+    }];
+    return state;
+  };
+
+  it('switches an active player invasion\'s approach', () => {
+    const state = withPlayerInvasion();
+    const next = gameReducer(state, { type: ActionTypes.SET_INVASION_APPROACH, payload: { invasionId: 'inv1', approach: 'siege' } });
+    expect(next.invasions[0].approach).toBe('siege');
+  });
+
+  it('rejects an unknown approach value', () => {
+    const state = withPlayerInvasion();
+    const next = gameReducer(state, { type: ActionTypes.SET_INVASION_APPROACH, payload: { invasionId: 'inv1', approach: 'nonsense' } });
+    expect(next).toBe(state);
+  });
+
+  it('is a no-op for an invasion that does not exist or is not the player\'s', () => {
+    const state = withPlayerInvasion();
+    expect(gameReducer(state, { type: ActionTypes.SET_INVASION_APPROACH, payload: { invasionId: 'not-real', approach: 'siege' } })).toBe(state);
+  });
+
+  it('sets a tactical order on an active player invasion, rejecting unknown values', () => {
+    const state = withPlayerInvasion();
+    const next = gameReducer(state, { type: ActionTypes.SET_INVASION_ORDER, payload: { invasionId: 'inv1', tacticalOrder: 'hold' } });
+    expect(next.invasions[0].tacticalOrder).toBe('hold');
+    expect(gameReducer(state, { type: ActionTypes.SET_INVASION_ORDER, payload: { invasionId: 'inv1', tacticalOrder: 'charge!' } })).toBe(state);
+  });
+});
+
+describe('COMMISSION_COMMANDER / ASSIGN_COMMANDER (Phase 8)', () => {
+  const richState = () => ({ ...createInitialState(), resources: { ...createInitialState().resources, money: 999999, diplomacyPoints: 999 } });
+
+  it('commissions a known persona and deducts its cost, rejecting an unknown one', () => {
+    const state = richState();
+    const next = gameReducer(state, { type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId: 'rafael_katz' } });
+    expect(next.hiredCommanders).toContain('rafael_katz');
+    expect(next.resources.money).toBe(state.resources.money - ACTION_COSTS.commissionCommander.money);
+    expect(gameReducer(state, { type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId: 'not_a_real_persona' } })).toBe(state);
+  });
+
+  it('rejects commissioning the same persona twice', () => {
+    const state = richState();
+    const once = gameReducer(state, { type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId: 'rafael_katz' } });
+    expect(gameReducer(once, { type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId: 'rafael_katz' } })).toBe(once);
+  });
+
+  it('assigns a hired commander to an active invasion, and can unassign with null', () => {
+    let state = richState();
+    state = gameReducer(state, { type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId: 'rafael_katz' } });
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true
+    }];
+    const assigned = gameReducer(state, { type: ActionTypes.ASSIGN_COMMANDER, payload: { invasionId: 'inv1', personaId: 'rafael_katz' } });
+    expect(assigned.invasions[0].commanderId).toBe('rafael_katz');
+    const unassigned = gameReducer(assigned, { type: ActionTypes.ASSIGN_COMMANDER, payload: { invasionId: 'inv1', personaId: null } });
+    expect(unassigned.invasions[0].commanderId).toBeNull();
+  });
+
+  it('rejects assigning a commander that was never commissioned', () => {
+    const state = richState();
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true
+    }];
+    expect(gameReducer(state, { type: ActionTypes.ASSIGN_COMMANDER, payload: { invasionId: 'inv1', personaId: 'rafael_katz' } })).toBe(state);
+  });
+
+  it('rejects double-booking a commander already leading a different active front', () => {
+    let state = richState();
+    state = gameReducer(state, { type: ActionTypes.COMMISSION_COMMANDER, payload: { personaId: 'rafael_katz' } });
+    state.invasions = [
+      { id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 }, morale: 100, supply: 100, active: true, isPlayerAttacker: true, commanderId: 'rafael_katz' },
+      { id: 'inv2', targetRegion: 'west_bank', composition: { infantry: 1000, armor: 0, air: 0 }, morale: 100, supply: 100, active: true, isPlayerAttacker: true }
+    ];
+    const next = gameReducer(state, { type: ActionTypes.ASSIGN_COMMANDER, payload: { invasionId: 'inv2', personaId: 'rafael_katz' } });
+    expect(next).toBe(state);
+  });
+});
+
+describe('HIRE_MERCENARIES (Phase 8)', () => {
+  it('adds a temporary infantry boost to the invasion and deducts the cost', () => {
+    const state = { ...createInitialState(), resources: { ...createInitialState().resources, money: 999999 } };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true
+    }];
+    const next = gameReducer(state, { type: ActionTypes.HIRE_MERCENARIES, payload: { invasionId: 'inv1' } });
+    expect(next.invasions[0].composition.infantry).toBe(1500);
+    expect(next.invasions[0].mercenaryBoost).toEqual({ amount: 500, turnsRemaining: 4 });
+    expect(next.resources.money).toBe(state.resources.money - ACTION_COSTS.hireMercenaries.money);
+  });
+
+  it('stacks amount and refreshes duration on a second hire for the same front', () => {
+    const state = { ...createInitialState(), resources: { ...createInitialState().resources, money: 999999 } };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true
+    }];
+    let next = gameReducer(state, { type: ActionTypes.HIRE_MERCENARIES, payload: { invasionId: 'inv1' } });
+    next = gameReducer(next, { type: ActionTypes.HIRE_MERCENARIES, payload: { invasionId: 'inv1' } });
+    expect(next.invasions[0].mercenaryBoost).toEqual({ amount: 1000, turnsRemaining: 4 });
+  });
+
+  it('is a no-op when the invasion does not exist or is not the player\'s', () => {
+    const state = { ...createInitialState(), resources: { ...createInitialState().resources, money: 999999 } };
+    expect(gameReducer(state, { type: ActionTypes.HIRE_MERCENARIES, payload: { invasionId: 'not-real' } })).toBe(state);
+  });
 });

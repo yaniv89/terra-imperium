@@ -20,6 +20,7 @@ import { applyEventEffects } from '../engine/applyEventEffects';
 import { declareWar, buildWarGoal } from '../engine/diplomacy';
 import { randomSeed } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
+import { PERSONAS } from '../data/personas';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
@@ -123,6 +124,9 @@ export const createInitialState = () => {
     // decisively repelled is briefly disorganized, so a new invasion into its territory gets a
     // strength bonus (Phase 7 counter-attack windows). See resolveTurn.js.
     counterAttackWindows: {},
+    // Persona ids the player has commissioned (Phase 8) — see src/data/personas.js. A hired
+    // commander can be assigned to one active invasion at a time via invasion.commanderId.
+    hiredCommanders: [],
 
     // Events
     activeEventId: null,
@@ -365,7 +369,7 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.LAUNCH_PLAYER_INVASION: {
-      const { targetRegion, composition } = action.payload;
+      const { targetRegion, composition, approach } = action.payload;
       const region = state.regions[targetRegion];
       const enemyNation = region ? state.nations[region.owner] : null;
       const costs = ACTION_COSTS.launchInvasion;
@@ -394,7 +398,10 @@ export const gameReducer = (state, action) => {
             morale: 100,
             supply: 100,
             active: true,
-            isPlayerAttacker: true
+            isPlayerAttacker: true,
+            // Siege vs. storm (Phase 8) — defaults to 'storm' (the only option before Phase 8)
+            // when the caller doesn't specify one.
+            approach: approach === 'siege' ? 'siege' : 'storm'
           }
         ],
         regions: { ...state.regions, [targetRegion]: { ...region, underInvasion: true } },
@@ -580,6 +587,77 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: { ...applyCosts(state.resources, costs), techPoints: state.resources.techPoints + stolenTechPoints },
         logs: [...state.logs, { year: state.year, message: `Quantum intelligence operation yields +${stolenTechPoints} TP`, type: LogTypes.TECH }]
+      };
+    }
+
+    case ActionTypes.SET_INVASION_APPROACH: {
+      // Siege vs. storm (Phase 8) — free to switch, since it's a tactical stance not a spend.
+      const { invasionId, approach } = action.payload;
+      if (approach !== 'storm' && approach !== 'siege') return state;
+      const inv = state.invasions.find(i => i.id === invasionId && i.active && i.isPlayerAttacker);
+      if (!inv) return state;
+      return { ...state, invasions: state.invasions.map(i => (i.id === invasionId ? { ...i, approach } : i)) };
+    }
+
+    case ActionTypes.SET_INVASION_ORDER: {
+      // Per-turn tactical order (Phase 8) — press/hold/probe, storm-only (see resolveTurn.js).
+      const { invasionId, tacticalOrder } = action.payload;
+      if (!['press', 'hold', 'probe'].includes(tacticalOrder)) return state;
+      const inv = state.invasions.find(i => i.id === invasionId && i.active && i.isPlayerAttacker);
+      if (!inv) return state;
+      return { ...state, invasions: state.invasions.map(i => (i.id === invasionId ? { ...i, tacticalOrder } : i)) };
+    }
+
+    case ActionTypes.COMMISSION_COMMANDER: {
+      const { personaId } = action.payload;
+      if (!PERSONAS[personaId]) return state;
+      if ((state.hiredCommanders || []).includes(personaId)) return state;
+      const costs = ACTION_COSTS.commissionCommander;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        hiredCommanders: [...(state.hiredCommanders || []), personaId],
+        logs: [...state.logs, { year: state.year, message: `${PERSONAS[personaId].name} has joined the officer corps.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.ASSIGN_COMMANDER: {
+      // personaId may be null/undefined to unassign. A commander already leading a different
+      // active front can't be double-booked.
+      const { invasionId, personaId } = action.payload;
+      const inv = state.invasions.find(i => i.id === invasionId && i.active && i.isPlayerAttacker);
+      if (!inv) return state;
+      if (personaId) {
+        if (!(state.hiredCommanders || []).includes(personaId)) return state;
+        const alreadyElsewhere = state.invasions.some(i => i.active && i.id !== invasionId && i.commanderId === personaId);
+        if (alreadyElsewhere) return state;
+      }
+      return { ...state, invasions: state.invasions.map(i => (i.id === invasionId ? { ...i, commanderId: personaId || null } : i)) };
+    }
+
+    case ActionTypes.HIRE_MERCENARIES: {
+      // Temporary composition boost (Phase 8) — resolveTurn.js ticks mercenaryBoost.turnsRemaining
+      // down each turn and removes exactly what it added once the contract expires.
+      const { invasionId } = action.payload;
+      const inv = state.invasions.find(i => i.id === invasionId && i.active && i.isPlayerAttacker);
+      const costs = ACTION_COSTS.hireMercenaries;
+      if (!inv) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const MERCENARY_INFANTRY = 500;
+      const MERCENARY_TURNS = 4;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        invasions: state.invasions.map(i => {
+          if (i.id !== invasionId) return i;
+          return {
+            ...i,
+            composition: addUnits(i.composition, { infantry: MERCENARY_INFANTRY }),
+            mercenaryBoost: { amount: (i.mercenaryBoost?.amount || 0) + MERCENARY_INFANTRY, turnsRemaining: MERCENARY_TURNS }
+          };
+        }),
+        logs: [...state.logs, { year: state.year, message: `Volunteer brigade of ${MERCENARY_INFANTRY} reinforces the front at ${REGIONS_DATA[inv.targetRegion]?.name}!`, type: LogTypes.ACTION }]
       };
     }
 

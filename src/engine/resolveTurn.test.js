@@ -515,3 +515,228 @@ describe('resolveTurn war goals (Phase 7: wars end on purpose, not just when hos
     expect(next.nations.egypt.hostility).toBeGreaterThan(55);
   });
 });
+
+describe('resolveTurn siege vs storm (Phase 8: siege scales with strength ratio, not a flat guaranteed grind)', () => {
+  it('makes negligible progress when the besieging force is heavily outmatched', () => {
+    const state = postStateBase();
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 100, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true, approach: 'siege'
+    }];
+    const next = resolveTurn(state);
+    expect(next.regions.gaza.control).toBe(100);
+    expect(next.regions.gaza.owner).toBe('egypt');
+  });
+
+  it('erodes control at a real, bounded rate when forces are roughly matched', () => {
+    const state = postStateBase();
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 9000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true, approach: 'siege'
+    }];
+    const next = resolveTurn(state);
+    expect(next.regions.gaza.control).toBeLessThan(100);
+    expect(next.regions.gaza.control).toBeGreaterThan(80); // slow, not a single-turn rout
+  });
+
+  it('never produces a decisive combat-roll log — siege always reports gradual progress', () => {
+    const state = postStateBase();
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 9000, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true, approach: 'siege'
+    }];
+    const next = resolveTurn(state);
+    expect(next.logs.some(l => l.message.includes('Siege of'))).toBe(true);
+    expect(next.logs.some(l => l.message.includes('VICTORY!'))).toBe(false);
+  });
+
+  it('eventually captures the region after enough turns of a favorable siege', () => {
+    let state = postStateBase();
+    // Overwhelming home defense — this test isolates siege progress over many turns, not
+    // whether an unrelated AI nation's own invasion can overwhelm postStateBase's deliberately
+    // weak default defense and trigger DEFEAT partway through the loop (same precaution as the
+    // Phase 4/7 long-running tests).
+    state.militaryUnits = { infantry: 999999, armor: 0, air: 0 };
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 999999, armor: 0, air: 0 },
+      morale: 100, supply: 1000, active: true, isPlayerAttacker: true, approach: 'siege'
+    }];
+    let captured = false;
+    for (let i = 0; i < 20 && !captured; i++) {
+      state = resolveTurn(state);
+      if (state.regions.gaza.owner === 'player') captured = true;
+    }
+    expect(captured).toBe(true);
+  });
+});
+
+describe('resolveTurn AI siege (Phase 8: attrition/cautious doctrines grind safely — see aiLogic.js)', () => {
+  it('makes negligible progress against an overwhelming player defense', () => {
+    const state = postStateBase();
+    state.militaryUnits = { infantry: 999999, armor: 0, air: 0 };
+    state.regions.negev = { ...state.regions.negev, owner: 'player', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'negev', strength: 100,
+      morale: 100, supply: 100, active: true, isPlayerAttacker: false, attackerNation: 'egypt', approach: 'siege'
+    }];
+    const next = resolveTurn(state);
+    expect(next.regions.negev.control).toBe(100);
+  });
+
+  it('erodes control at a real rate against a weak player defense', () => {
+    const state = postStateBase(); // weak default defense (infantry: 100)
+    state.regions.negev = { ...state.regions.negev, owner: 'player', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'negev', strength: 999999,
+      morale: 100, supply: 100, active: true, isPlayerAttacker: false, attackerNation: 'egypt', approach: 'siege'
+    }];
+    const next = resolveTurn(state);
+    expect(next.regions.negev.control).toBeLessThan(100);
+  });
+});
+
+describe('resolveTurn tactical orders (Phase 8: storm-only press/hold/probe)', () => {
+  it('hold skips the combat roll entirely, recovers morale, and leaves composition untouched', () => {
+    const state = postStateBase();
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 50, supply: 100, active: true, isPlayerAttacker: true, tacticalOrder: 'hold'
+    }];
+    const next = resolveTurn(state);
+    const inv = next.invasions.find(i => i.id === 'inv1');
+    expect(inv.morale).toBe(65); // +15, no combat loss
+    expect(inv.composition).toEqual({ infantry: 1000, armor: 0, air: 0 });
+    expect(next.regions.gaza.control).toBe(100); // no progress either — that's the tradeoff
+  });
+
+  it('caps morale recovery from hold at 100', () => {
+    const state = postStateBase();
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1000, armor: 0, air: 0 },
+      morale: 95, supply: 100, active: true, isPlayerAttacker: true, tacticalOrder: 'hold'
+    }];
+    const next = resolveTurn(state);
+    expect(next.invasions.find(i => i.id === 'inv1').morale).toBe(100);
+  });
+
+  it('probe gives a measurable strength edge over press with identical composition/seed', () => {
+    const buildState = (order, rngSeed) => {
+      const state = postStateBase();
+      state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+      state.invasions = [{
+        id: 'inv1', targetRegion: 'gaza', composition: { infantry: 9000, armor: 0, air: 0 },
+        morale: 100, supply: 100, active: true, isPlayerAttacker: true, tacticalOrder: order
+      }];
+      state.rngSeed = rngSeed;
+      return state;
+    };
+
+    let sawImprovement = false;
+    for (let seed = 0; seed < 100 && !sawImprovement; seed++) {
+      const press = resolveTurn(buildState('press', seed));
+      const probe = resolveTurn(buildState('probe', seed));
+      const pressSurvivors = sumUnits(press.invasions[0].composition);
+      const probeSurvivors = sumUnits(probe.invasions[0].composition);
+      const capturedOnlyWithProbe = probe.regions.gaza.owner === 'player' && press.regions.gaza.owner !== 'player';
+      if (probeSurvivors > pressSurvivors || probe.regions.gaza.control > press.regions.gaza.control || capturedOnlyWithProbe) {
+        sawImprovement = true;
+      }
+    }
+    expect(sawImprovement).toBe(true);
+  });
+});
+
+describe('resolveTurn mercenary boost decay (Phase 8)', () => {
+  it('removes exactly the boosted amount once the contract expires', () => {
+    const state = postStateBase();
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1500, armor: 0, air: 0 },
+      morale: 50, supply: 999, active: true, isPlayerAttacker: true, tacticalOrder: 'hold',
+      mercenaryBoost: { amount: 500, turnsRemaining: 1 }
+    }];
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    const next = resolveTurn(state);
+    const inv = next.invasions.find(i => i.id === 'inv1');
+    expect(inv.mercenaryBoost).toBeNull();
+    expect(inv.composition.infantry).toBe(1000); // 1500 - 500 mercenaries removed on expiry
+  });
+
+  it('ticks turnsRemaining down without removing anything before expiry', () => {
+    const state = postStateBase();
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1500, armor: 0, air: 0 },
+      morale: 50, supply: 999, active: true, isPlayerAttacker: true, tacticalOrder: 'hold',
+      mercenaryBoost: { amount: 500, turnsRemaining: 3 }
+    }];
+    state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+    const next = resolveTurn(state);
+    const inv = next.invasions.find(i => i.id === 'inv1');
+    expect(inv.mercenaryBoost).toEqual({ amount: 500, turnsRemaining: 2 });
+    expect(inv.composition.infantry).toBe(1500);
+  });
+});
+
+describe('resolveTurn commander bonuses (Phase 8: personas modify combat via calcCompositionStrength/supply/morale)', () => {
+  it('an armor tactician measurably improves an armor-heavy attacker\'s outcome', () => {
+    const buildState = (commanderId, rngSeed) => {
+      const state = postStateBase();
+      state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+      state.invasions = [{
+        id: 'inv1', targetRegion: 'gaza', composition: { infantry: 0, armor: 7500, air: 0 },
+        morale: 100, supply: 100, active: true, isPlayerAttacker: true, commanderId
+      }];
+      state.rngSeed = rngSeed;
+      return state;
+    };
+
+    let sawImprovement = false;
+    for (let seed = 0; seed < 100 && !sawImprovement; seed++) {
+      const without = resolveTurn(buildState(null, seed));
+      const withCommander = resolveTurn(buildState('rafael_katz', seed));
+      const survivorsWithout = sumUnits(without.invasions[0].composition);
+      const survivorsWith = sumUnits(withCommander.invasions[0].composition);
+      const capturedOnlyWithCommander = withCommander.regions.gaza.owner === 'player' && without.regions.gaza.owner !== 'player';
+      if (survivorsWith > survivorsWithout || withCommander.regions.gaza.control > without.regions.gaza.control || capturedOnlyWithCommander) {
+        sawImprovement = true;
+      }
+    }
+    expect(sawImprovement).toBe(true);
+  });
+
+  it('a logistics expert reduces supply decay', () => {
+    const state = postStateBase();
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'egypt_cairo', composition: { infantry: 1, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true, commanderId: 'yael_ronen'
+    }];
+    const next = resolveTurn(state);
+    // egypt_cairo is 2 hops from the player's core -> base decay 13; yael_ronen's
+    // supplyDecayMult 0.6 -> round(13 * 0.6) = 8.
+    expect(next.invasions.find(i => i.id === 'inv1').supply).toBe(92);
+  });
+
+  it('a morale officer halves morale loss from a decisively-lost offensive', () => {
+    const buildState = (commanderId) => {
+      const state = postStateBase();
+      state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+      state.invasions = [{
+        // 1 infantry can never beat gaza's defense (egypt's 15000 * 0.3 * fortification 2 =
+        // 9000) regardless of the random factor, so this loss is deterministic — no seed search
+        // needed to isolate the morale-loss-mult effect.
+        id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1, armor: 0, air: 0 },
+        morale: 100, supply: 100, active: true, isPlayerAttacker: true, commanderId
+      }];
+      state.rngSeed = 42;
+      return state;
+    };
+    const without = resolveTurn(buildState(null));
+    const withOfficer = resolveTurn(buildState('moshe_avrahami'));
+    expect(withOfficer.invasions[0].morale).toBeGreaterThan(without.invasions[0].morale);
+  });
+});

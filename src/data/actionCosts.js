@@ -28,5 +28,9 @@ export const ACTION_COSTS = {
   destabilizeNation: { diplomacyPoints: 30, money: 20000, actionPoints: 2 },
   covertTechTheft: { diplomacyPoints: 40, actionPoints: 2 },
 
+  // Tactical battle systems (Phase 8)
+  commissionCommander: { money: 30000, diplomacyPoints: 15, actionPoints: 1 },
+  hireMercenaries: { money: 25000, actionPoints: 1 },
+
   researchTechActionPoints: 2
 };
