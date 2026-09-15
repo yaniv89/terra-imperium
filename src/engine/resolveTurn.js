@@ -104,7 +104,10 @@ export const resolveTurn = (state) => {
   // Player's own defensive tech should not also shield the nation the player is attacking —
   // that bug let researching Haganah Doctrine make the player's own offensives *harder*.
   const attackerSideDefenseTechBonuses = {};
-  const defenderSideDefenseTechBonuses = { defenseBonus: playerDefenseBonus };
+  const defenderSideDefenseTechBonuses = { defenseBonus: playerDefenseBonus, combatPrediction: techBonuses.combatPrediction };
+  // Layered missile defense (Iron Dome/Arrow 3/Iron Beam) reduces the flat control-damage amounts
+  // enemy invasions deal, applied below wherever `damage` is computed.
+  const missileDefenseMult = 1 - (techBonuses.missileDefenseBonus || 0);
 
   // Snapshot the player's defensive capacity once for the whole turn (matches original design:
   // defense capacity doesn't instantly drop mid-turn as casualties land from earlier invasions).
@@ -131,7 +134,7 @@ export const resolveTurn = (state) => {
         // Composition vs. terrain determines the deployed force's effective strength (e.g.
         // armor committed into mountains fights far below its raw headcount) — this is on top
         // of, and independent from, the terrain bonus the defender separately gets below.
-        const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain);
+        const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses);
         const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
         const result = calcCombatResult(effectiveStrength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
 
@@ -172,7 +175,7 @@ export const resolveTurn = (state) => {
       }
 
       if (result.attackerWins) {
-        const damage = 25;
+        const damage = Math.round(25 * missileDefenseMult);
         const newControl = Math.max(0, targetRegion.control - damage);
         if (newControl <= 0 && inv.attackerNation) {
           // Previously enemy invasions could only grind control to a floor of 0 and the region
@@ -187,7 +190,7 @@ export const resolveTurn = (state) => {
           logs.push({ year: newYear, message: `${targetData.name} OVERRUN! Control -${damage}%`, type: LogTypes.CRISIS });
         }
       } else if (result.stalemate) {
-        const damage = 10;
+        const damage = Math.round(10 * missileDefenseMult);
         regions[inv.targetRegion] = { ...targetRegion, control: Math.max(0, targetRegion.control - damage) };
         newInv.morale -= 10;
         logs.push({ year: newYear, message: `${targetData.name} under pressure. Control -${damage}%`, type: LogTypes.COMBAT });
@@ -243,8 +246,11 @@ export const resolveTurn = (state) => {
     const combatDelta = nationCombatDeltas[nId] || 0;
     const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0) + combatDelta);
     // Hostility decay never crosses below hostilityFloor (set when this nation's peace treaty
-    // with the player was broken by a later war — see src/engine/diplomacy.js).
-    const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
+    // with the player was broken by a later war — see src/engine/diplomacy.js). Mossad's
+    // hostilityReduction adds a small steady extra pull toward peace for nations not currently
+    // at war — previously this tech effect was accumulated into techBonuses and never consumed.
+    const passiveDecay = !nation.isAtWar ? (techBonuses.hostilityReduction || 0) * 0.1 : 0;
+    const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0) - passiveDecay, nation.hostilityFloor || 0, 100);
     const relationStatus = nation.isAtWar || nation.hasPeaceTreaty || nation.hasTradeAgreement
       ? nation.relationStatus
       : getRelationFromHostility(hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);

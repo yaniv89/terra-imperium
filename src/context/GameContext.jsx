@@ -11,10 +11,10 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect, u
 import { GamePhases, GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA, CORE_REGION_IDS, isAdjacentToOwner } from '../data/regions';
 import { NATIONS_DATA, INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
-import { TECH_TREE } from '../data/techTree';
+import { TECH_TREE, canResearchTech } from '../data/techTree';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { ACTION_COSTS } from '../data/actionCosts';
-import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits } from '../utils/helpers';
+import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits, getTechBonuses } from '../utils/helpers';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { declareWar } from '../engine/diplomacy';
@@ -324,7 +324,10 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.BUILD_TANKS: {
-      const costs = ACTION_COSTS.buildTanks;
+      // Merkava doctrine's tankDiscount reduces the build cost — previously accumulated into
+      // techBonuses and never actually applied anywhere.
+      const discount = getTechBonuses(state.techTree).tankDiscount || 0;
+      const costs = { ...ACTION_COSTS.buildTanks, money: Math.round(ACTION_COSTS.buildTanks.money * (1 - discount)) };
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -335,7 +338,9 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.BUILD_JETS: {
-      const costs = ACTION_COSTS.buildJets;
+      // Air Superiority doctrine's jetDiscount reduces the build cost, same pattern as tanks.
+      const discount = getTechBonuses(state.techTree).jetDiscount || 0;
+      const costs = { ...ACTION_COSTS.buildJets, money: Math.round(ACTION_COSTS.buildJets.money * (1 - discount)) };
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -497,16 +502,66 @@ export const gameReducer = (state, action) => {
       const { techId } = action.payload;
       const tech = TECH_TREE[techId];
       const techState = state.techTree[techId];
-      if (!tech || !techState || techState.researched || tech.yearAvailable > state.year) return state;
-      const hasPrereqs = tech.prerequisites.every(p => state.techTree[p]?.researched);
-      if (!hasPrereqs) return state;
+      // Delegate to the single source of truth for eligibility (prerequisites, requiresAny,
+      // exclusiveWith, year, cost) instead of re-deriving a subset of it here — this reducer
+      // case used to duplicate only the plain-AND prerequisite check, so it silently didn't know
+      // about requiresAny (would have wrongly rejected Iron Dome after researching only one of
+      // the two exclusive doctrines) or exclusiveWith (would have let a direct dispatch research
+      // both mutually-exclusive doctrines, bypassing the UI-only guard).
+      if (!canResearchTech(techId, state.techTree, state.resources, state.year).can) return state;
       const costs = { money: tech.cost.money, techPoints: tech.cost.techPoints, actionPoints: ACTION_COSTS.researchTechActionPoints };
-      if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         techTree: { ...state.techTree, [techId]: { ...techState, researched: true } },
         logs: [...state.logs, { year: state.year, message: `Researched: ${tech.name}`, type: LogTypes.TECH }]
+      };
+    }
+
+    case ActionTypes.SABOTAGE_INVASION: {
+      const { invasionId } = action.payload;
+      const invasion = state.invasions.find(i => i.id === invasionId && i.active && !i.isPlayerAttacker);
+      const costs = ACTION_COSTS.sabotageInvasion;
+      if (!invasion) return state;
+      if (!getTechBonuses(state.techTree).covertOps) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        invasions: state.invasions.map(i =>
+          i.id === invasionId ? { ...i, morale: Math.max(0, i.morale - 30), supply: Math.max(0, i.supply - 30) } : i
+        ),
+        logs: [...state.logs, { year: state.year, message: `Mossad sabotages the invasion of ${REGIONS_DATA[invasion.targetRegion]?.name}!`, type: LogTypes.CRISIS }]
+      };
+    }
+
+    case ActionTypes.DESTABILIZE_NATION: {
+      const { nationId } = action.payload;
+      const nation = state.nations[nationId];
+      const costs = ACTION_COSTS.destabilizeNation;
+      if (!nation) return state;
+      if (!getTechBonuses(state.techTree).cyber) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      // Base 5% from Unit 8200 alone; Cyber Command's enemyDebuff adds up to another 15% (20% total).
+      const debuffPct = 0.05 + (getTechBonuses(state.techTree).enemyDebuff || 0);
+      const reduction = Math.round(nation.militaryStrength * debuffPct);
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [nationId]: { ...nation, militaryStrength: Math.max(100, nation.militaryStrength - reduction) } },
+        logs: [...state.logs, { year: state.year, message: `Cyber operation cripples ${nation.name}'s military infrastructure!`, type: LogTypes.CRISIS }]
+      };
+    }
+
+    case ActionTypes.COVERT_TECH_THEFT: {
+      const costs = ACTION_COSTS.covertTechTheft;
+      if (!getTechBonuses(state.techTree).globalIntel) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const stolenTechPoints = 50;
+      return {
+        ...state,
+        resources: { ...applyCosts(state.resources, costs), techPoints: state.resources.techPoints + stolenTechPoints },
+        logs: [...state.logs, { year: state.year, message: `Quantum intelligence operation yields +${stolenTechPoints} TP`, type: LogTypes.TECH }]
       };
     }
 

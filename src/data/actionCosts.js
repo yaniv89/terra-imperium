@@ -23,5 +23,10 @@ export const ACTION_COSTS = {
   signTrade: { diplomacyPoints: 15, actionPoints: 1 },
   militaryPact: { diplomacyPoints: 40, money: 50000, actionPoints: 2 },
 
+  // Covert operations (require the corresponding intel tech researched — see TechPanel).
+  sabotageInvasion: { diplomacyPoints: 15, actionPoints: 1 },
+  destabilizeNation: { diplomacyPoints: 30, money: 20000, actionPoints: 2 },
+  covertTechTheft: { diplomacyPoints: 40, actionPoints: 2 },
+
   researchTechActionPoints: 2
 };
