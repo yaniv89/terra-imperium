@@ -1,2 +1,7 @@
 node_modules
-node_modules
+
+# Raw Natural Earth downloads + intermediate mapshaper output — large, fully regenerable via
+# `npm run fetch:geo && npm run build:geo`. Only the processed output under src/data/geo/ is
+# committed.
+scripts/geo/.raw
+scripts/geo/.tmp
