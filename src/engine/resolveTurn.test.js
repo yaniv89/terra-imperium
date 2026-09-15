@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTurn, findConflictTerritoryTransfer } from './resolveTurn';
+import { resolveTurn, findConflictTerritoryTransfer, supplyDecayForInvasion } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
 import { GamePhases, GameStatus } from '../data/types';
 import { sumUnits } from '../utils/helpers';
@@ -389,5 +389,129 @@ describe('resolveTurn procedural events (Phase 6: keep the late-game timeline fr
 
     // Same guard as a scripted event: resolveTurn is a no-op while one is pending.
     expect(resolveTurn(fired)).toBe(fired);
+  });
+});
+
+describe('supplyDecayForInvasion (Phase 7: overextension)', () => {
+  it('is the flat base rate one hop from the attacker\'s home anchor', () => {
+    // gaza borders tel_aviv/negev — both CORE_REGION_IDS — so it's 1 hop from the player's anchor.
+    expect(supplyDecayForInvasion(overwhelmingPlayerInvasion('inv-near', 'gaza'))).toBe(10);
+  });
+
+  it('decays faster the further the target is from the attacker\'s home anchor', () => {
+    // egypt_cairo is 2 hops from the player's core (via egypt_sinai).
+    expect(supplyDecayForInvasion(overwhelmingPlayerInvasion('inv-far', 'egypt_cairo'))).toBe(13);
+  });
+
+  it('scales an AI attacker\'s decay from ITS OWN capital, not the player\'s', () => {
+    // egypt_cairo (egypt's capital) -> egypt_sinai -> negev is 2 hops.
+    const inv = overwhelmingInvasion('inv1', 'negev', 'egypt');
+    expect(supplyDecayForInvasion(inv)).toBe(13);
+  });
+
+  it('applies the flat base rate for a stateless attacker with no capital (Hamas)', () => {
+    const inv = overwhelmingInvasion('inv1', 'tel_aviv', 'hamas');
+    expect(supplyDecayForInvasion(inv)).toBe(10);
+  });
+
+  it('is actually consumed by resolveTurn: a farther invasion loses more supply in one turn', () => {
+    const buildState = (targetRegion) => {
+      const state = postStateBase();
+      state.invasions = [{ ...overwhelmingPlayerInvasion('inv1', targetRegion), supply: 100 }];
+      return state;
+    };
+    const near = resolveTurn(buildState('gaza'));
+    const far = resolveTurn(buildState('egypt_cairo'));
+    expect(far.invasions[0].supply).toBeLessThan(near.invasions[0].supply);
+  });
+});
+
+describe('resolveTurn counter-attack windows (Phase 7: wars should have momentum swings)', () => {
+  it('sets a window on the player after their own invasion is decisively repelled', () => {
+    const state = postStateBase();
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'gaza', composition: { infantry: 1, armor: 0, air: 0 },
+      morale: 100, supply: 100, active: true, isPlayerAttacker: true
+    }];
+    const next = resolveTurn(state);
+    expect(next.counterAttackWindows.player).toBe(2);
+  });
+
+  it('sets a window on the attacking nation after its invasion is decisively repelled', () => {
+    const state = postStateBase();
+    state.militaryUnits = { infantry: 999999, armor: 0, air: 0 }; // overwhelming defense
+    state.regions.negev = { ...state.regions.negev, owner: 'player', control: 100 };
+    state.invasions = [{
+      id: 'inv1', targetRegion: 'negev', strength: 1,
+      morale: 100, supply: 100, active: true, isPlayerAttacker: false, attackerNation: 'egypt'
+    }];
+    const next = resolveTurn(state);
+    expect(next.counterAttackWindows.egypt).toBe(2);
+  });
+
+  it('decrements an existing window each turn and drops it once it expires', () => {
+    const state = { ...postStateBase(), counterAttackWindows: { egypt: 2 } };
+    const afterOne = resolveTurn(state);
+    expect(afterOne.counterAttackWindows.egypt).toBe(1);
+    const afterTwo = resolveTurn(afterOne);
+    expect(afterTwo.counterAttackWindows.egypt).toBeUndefined();
+  });
+
+  it('a pre-existing window measurably improves a marginal attacker\'s outcome', () => {
+    // A deliberately marginal matchup (effective strength roughly matches the defender's) so the
+    // window's 1.2x bonus has real room to change the outcome, checked across several seeds since
+    // any single seed's random factor could already favor either side on its own.
+    const buildState = (withWindow, rngSeed) => {
+      const state = postStateBase();
+      state.regions.gaza = { ...state.regions.gaza, owner: 'egypt', control: 100 };
+      state.invasions = [{
+        id: 'inv1', targetRegion: 'gaza', composition: { infantry: 9000, armor: 0, air: 0 },
+        morale: 100, supply: 100, active: true, isPlayerAttacker: true
+      }];
+      if (withWindow) state.counterAttackWindows = { egypt: 2 };
+      state.rngSeed = rngSeed;
+      return state;
+    };
+
+    let sawImprovement = false;
+    for (let seed = 0; seed < 100 && !sawImprovement; seed++) {
+      const without = resolveTurn(buildState(false, seed));
+      const withBonus = resolveTurn(buildState(true, seed));
+      const survivorsWithout = sumUnits(without.invasions[0].composition);
+      const survivorsWith = sumUnits(withBonus.invasions[0].composition);
+      const capturedOnlyWithBonus = withBonus.regions.gaza.owner === 'player' && without.regions.gaza.owner !== 'player';
+      if (survivorsWith > survivorsWithout || withBonus.regions.gaza.control > without.regions.gaza.control || capturedOnlyWithBonus) {
+        sawImprovement = true;
+      }
+    }
+    expect(sawImprovement).toBe(true);
+  });
+});
+
+describe('resolveTurn war goals (Phase 7: wars end on purpose, not just when hostility happens to decay)', () => {
+  it('nudges the loser\'s hostility to peace-seekable once their war goal is met', () => {
+    const state = postStateBase();
+    state.nations.egypt = { ...state.nations.egypt, isAtWar: true, hostility: 90, militaryStrength: 5000 };
+    state.wars = [{
+      id: 'war_egypt', enemy: 'egypt', startYear: state.year, active: true,
+      aggressor: 'player', goal: { type: 'destroy_military', threshold: 8000 }, goalAchieved: false
+    }];
+    const next = resolveTurn(state);
+    const war = next.wars.find(w => w.enemy === 'egypt');
+    expect(war.goalAchieved).toBe(true);
+    expect(next.nations.egypt.hostility).toBeLessThanOrEqual(55);
+  });
+
+  it('leaves an unmet goal untouched', () => {
+    const state = postStateBase();
+    state.nations.egypt = { ...state.nations.egypt, isAtWar: true, hostility: 90, militaryStrength: 15000 };
+    state.wars = [{
+      id: 'war_egypt', enemy: 'egypt', startYear: state.year, active: true,
+      aggressor: 'player', goal: { type: 'destroy_military', threshold: 1000 }, goalAchieved: false
+    }];
+    const next = resolveTurn(state);
+    const war = next.wars.find(w => w.enemy === 'egypt');
+    expect(war.goalAchieved).toBe(false);
+    expect(next.nations.egypt.hostility).toBeGreaterThan(55);
   });
 });

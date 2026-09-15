@@ -17,7 +17,7 @@ import { ACTION_COSTS } from '../data/actionCosts';
 import { canAfford, applyCosts, emptyUnits, addUnits, hasEnoughUnits, subtractUnits, getTechBonuses } from '../utils/helpers';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
-import { declareWar } from '../engine/diplomacy';
+import { declareWar, buildWarGoal } from '../engine/diplomacy';
 import { randomSeed } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
@@ -119,6 +119,10 @@ export const createInitialState = () => {
     wars: [],
     invasions: [],
     nextInvasionSeq: 0,
+    // { [sideId]: turnsRemaining } — a side ('player' or a nation id) whose invasion was just
+    // decisively repelled is briefly disorganized, so a new invasion into its territory gets a
+    // strength bonus (Phase 7 counter-attack windows). See resolveTurn.js.
+    counterAttackWindows: {},
 
     // Events
     activeEventId: null,
@@ -445,14 +449,18 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.DECLARE_WAR_COSTED: {
-      const { nationId } = action.payload;
+      // goalType (Phase 7) lets the player pick 'capture_region' or 'destroy_military' explicitly
+      // (see DiplomacyPanel's two Declare War buttons) instead of only getting the doctrine-style
+      // auto-assigned default; omitting it keeps the old auto-assign behavior.
+      const { nationId, goalType } = action.payload;
       const nation = state.nations[nationId];
       const costs = ACTION_COSTS.declareWar;
       if (!nation || nation.isAtWar) return state;
       if (!canAfford(state.resources, costs)) return state;
       const withCostSpent = { ...state, resources: applyCosts(state.resources, costs) };
+      const goal = goalType ? buildWarGoal(withCostSpent, nationId, 'player', goalType) : null;
       return {
-        ...declareWar(withCostSpent, nationId),
+        ...declareWar(withCostSpent, nationId, { aggressor: 'player', goal }),
         logs: [...state.logs, { year: state.year, message: `WAR declared on ${NATIONS_DATA[nationId]?.name}!`, type: LogTypes.CRISIS }]
       };
     }

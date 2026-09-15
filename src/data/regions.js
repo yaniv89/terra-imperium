@@ -491,3 +491,40 @@ export const getNeighborIds = (regionId) => REGIONS_DATA[regionId]?.neighbors ||
 export const isAdjacentToOwner = (regionId, regions, ownerId) => {
   return getNeighborIds(regionId).some(nId => regions[nId]?.owner === ownerId);
 };
+
+// Shortest hop count (BFS over the static adjacency graph — not current ownership, so this is a
+// fixed geographic distance) from any of `anchorRegionIds` to `targetRegionId`. Used for
+// overextension (Phase 7): supply decay scales with how far an invasion has pushed from its
+// attacker's home territory, not from whatever it currently borders (every invasion is adjacent-1
+// from the current front line by construction, so distance from the FRONT would never vary —
+// distance from a fixed home anchor is what actually captures overextension).
+export const distanceFromAnchor = (anchorRegionIds, targetRegionId) => {
+  if (anchorRegionIds.includes(targetRegionId)) return 0;
+  const visited = new Set(anchorRegionIds);
+  let frontier = anchorRegionIds;
+  let dist = 0;
+  while (frontier.length > 0) {
+    dist += 1;
+    const next = [];
+    for (const rid of frontier) {
+      for (const nId of getNeighborIds(rid)) {
+        if (nId === targetRegionId) return dist;
+        if (!visited.has(nId)) {
+          visited.add(nId);
+          next.push(nId);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return null; // unreachable — shouldn't happen on this map's connected graph, but defensive
+};
+
+// A nation's home anchor for overextension purposes: its region flagged isCapital (every
+// currently-defined nation has exactly one). Returns null for a stateless actor with no starting
+// territory at all (Hamas) — those get no overextension penalty, consistent with their existing
+// adjacency exemption elsewhere (aiLogic.js).
+export const getNationCapital = (nationId) => {
+  const capital = Object.values(REGIONS_DATA).find(r => r.startOwner === nationId && r.isCapital);
+  return capital ? capital.id : null;
+};

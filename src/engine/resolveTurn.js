@@ -11,7 +11,7 @@
 // mutated locally in order, and only one dispatch to the reducer.
 
 import { GamePhases, GameStatus, LogTypes } from '../data/types';
-import { REGIONS_DATA, getNeighborIds } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, CORE_REGION_IDS, distanceFromAnchor, getNationCapital } from '../data/regions';
 import { NATIONS_DATA } from '../data/nations';
 import { TECH_TREE } from '../data/techTree';
 import { pickNextEvent } from '../data/events';
@@ -29,7 +29,7 @@ import {
   formatNumber
 } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility, shouldDeclareWar } from '../utils/aiLogic';
-import { declareWar } from './diplomacy';
+import { declareWar, checkWarGoal } from './diplomacy';
 import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -50,6 +50,20 @@ export const findConflictTerritoryTransfer = (regions, nations, conflict) => {
     regions[id].owner === conflict.defender &&
     aggressorRegionIds.some(aid => getNeighborIds(aid).includes(id))
   ) || null;
+};
+
+// Per-turn supply decay for one invasion, scaled by how far it's pushed from the attacker's home
+// anchor (Phase 7 overextension) — a base -10/turn plus -3 for every hop beyond the first. A
+// stateless attacker (no capital — Hamas) gets the flat base rate, matching its existing
+// adjacency exemption elsewhere. Exported standalone for direct unit testing.
+export const supplyDecayForInvasion = (inv) => {
+  const BASE_DECAY = 10;
+  const PER_HOP_DECAY = 3;
+  const anchors = inv.isPlayerAttacker ? CORE_REGION_IDS : [getNationCapital(inv.attackerNation)].filter(Boolean);
+  if (anchors.length === 0) return BASE_DECAY;
+  const dist = distanceFromAnchor(anchors, inv.targetRegion);
+  if (dist === null) return BASE_DECAY;
+  return BASE_DECAY + Math.max(0, dist - 1) * PER_HOP_DECAY;
 };
 
 export const resolveTurn = (state) => {
@@ -123,10 +137,24 @@ export const resolveTurn = (state) => {
     nationCombatDeltas[nationId] = (nationCombatDeltas[nationId] || 0) + militaryStrengthChange;
   };
 
+  // --- counter-attack windows (Phase 7) ---
+  // A side whose invasion is decisively repelled this turn is briefly disorganized: for a couple
+  // of turns, a NEW invasion into ITS territory gets a strength bonus — wars should have momentum
+  // swings, not just grind one direction. Bonus lookups below read `state.counterAttackWindows`
+  // (last turn's snapshot, so two invasions resolving the same turn can't chain off each other's
+  // outcome); `counterAttackWindows` here is the decremented-and-refreshed copy going into `next`.
+  const COUNTER_ATTACK_BONUS = 1.2;
+  const COUNTER_ATTACK_TURNS = 2;
+  const counterAttackWindows = {};
+  Object.entries(state.counterAttackWindows || {}).forEach(([sideId, turnsLeft]) => {
+    if (turnsLeft > 1) counterAttackWindows[sideId] = turnsLeft - 1;
+  });
+  const disorganizedBonus = (sideId) => (((state.counterAttackWindows || {})[sideId] || 0) > 0 ? COUNTER_ATTACK_BONUS : 1);
+
   const resolvedInvasions = state.invasions.map(inv => {
     if (!inv.active) return inv;
 
-    let newInv = { ...inv, supply: inv.supply - 10 };
+    let newInv = { ...inv, supply: inv.supply - supplyDecayForInvasion(inv) };
     const targetRegion = regions[inv.targetRegion];
     const targetData = REGIONS_DATA[inv.targetRegion];
     if (!targetRegion || !targetData) return newInv;
@@ -139,7 +167,7 @@ export const resolveTurn = (state) => {
         // Composition vs. terrain determines the deployed force's effective strength (e.g.
         // armor committed into mountains fights far below its raw headcount) — this is on top
         // of, and independent from, the terrain bonus the defender separately gets below.
-        const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses);
+        const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses, newPeriod) * disorganizedBonus(targetRegion.owner);
         const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
         const result = calcCombatResult(effectiveStrength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
 
@@ -167,10 +195,13 @@ export const resolveTurn = (state) => {
           newInv.morale -= 25;
           newInv.composition = scaleUnits(newInv.composition, 0.85);
           logs.push({ year: newYear, message: `Offensive in ${targetData.name} stalled!`, type: LogTypes.COMBAT });
+          // Our offensive was decisively repelled — our own territory is briefly vulnerable.
+          counterAttackWindows.player = COUNTER_ATTACK_TURNS;
         }
       }
     } else if (targetRegion.owner === 'player') {
-      const result = calcCombatResult(inv.strength, playerDefenseBase, defenderSideDefenseTechBonuses, targetData.terrain, rng);
+      const attackerStrength = inv.strength * disorganizedBonus('player');
+      const result = calcCombatResult(attackerStrength, playerDefenseBase, defenderSideDefenseTechBonuses, targetData.terrain, rng);
 
       addNationDelta(inv.attackerNation, -result.casualties.attacker);
       if (state.phase === GamePhases.PRE_STATE) {
@@ -203,6 +234,8 @@ export const resolveTurn = (state) => {
         newInv.morale -= 25;
         newInv.strength = Math.floor(newInv.strength * 0.8);
         logs.push({ year: newYear, message: `Defended ${targetData.name}! Enemy repelled.`, type: LogTypes.COMBAT });
+        // Their offensive was decisively repelled — their home territory is briefly vulnerable.
+        if (inv.attackerNation) counterAttackWindows[inv.attackerNation] = COUNTER_ATTACK_TURNS;
       }
     }
 
@@ -284,7 +317,9 @@ export const resolveTurn = (state) => {
   for (const nation of Object.values(nations)) {
     if (nation.isPlayer) continue;
     if (shouldDeclareWar(nation, { nations }, rng)) {
-      const result = declareWar({ nations, wars, year: newYear }, nation.id);
+      // regions/militaryUnits included so assignDefaultWarGoal (Phase 7) can pick a real target —
+      // it needs the adjacency graph and the player's current strength to choose sensibly.
+      const result = declareWar({ nations, wars, regions, militaryUnits, phase: state.phase, year: newYear }, nation.id, { aggressor: nation.id });
       nations = result.nations;
       wars = result.wars;
       logs.push({ year: newYear, message: `${nation.name} declares war on Israel!`, type: LogTypes.CRISIS });
@@ -311,6 +346,27 @@ export const resolveTurn = (state) => {
     }
   }
 
+  // --- war goal checks (Phase 7) ---
+  // A war used to just run until hostility happened to decay under the seek-peace threshold.
+  // Now every war has a concrete goal (see declareWar/assignDefaultWarGoal in diplomacy.js); once
+  // it's met, the loser's hostility is nudged low enough that peace CAN be sought — not an
+  // automatic ceasefire, so seeking peace stays a deliberate choice on either side, but the war
+  // no longer has to wait on unrelated random hostility decay once its outcome is already decided.
+  const goalCheckState = { nations, regions, militaryUnits, phase: state.phase };
+  wars = wars.map(war => {
+    if (!checkWarGoal(war, goalCheckState)) return war;
+    const winnerName = war.aggressor === 'player' ? 'Israel' : NATIONS_DATA[war.aggressor]?.name;
+    logs.push({
+      year: newYear,
+      message: `${winnerName}'s war goal against ${NATIONS_DATA[war.enemy]?.name} has been achieved — a ceasefire may now be within reach.`,
+      type: LogTypes.MILESTONE
+    });
+    if (nations[war.enemy] && nations[war.enemy].hostility > 55) {
+      nations = { ...nations, [war.enemy]: { ...nations[war.enemy], hostility: 55 } };
+    }
+    return { ...war, goalAchieved: true };
+  });
+
   // --- assemble next state ---
   let next = {
     ...state,
@@ -328,6 +384,7 @@ export const resolveTurn = (state) => {
     activeEventId: dueEvent ? dueEvent.id : null,
     activeProceduralEvent,
     proceduralEventCooldown,
+    counterAttackWindows,
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };

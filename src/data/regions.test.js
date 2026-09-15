@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner } from './regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, CORE_REGION_IDS } from './regions';
 
 describe('region adjacency graph', () => {
   it('is symmetric — every neighbor relationship is listed on both sides', () => {
@@ -45,5 +45,42 @@ describe('isAdjacentToOwner', () => {
   it('is false when no neighbor is owned by the given owner', () => {
     const regions = { egypt_cairo: { owner: 'egypt' }, egypt_sinai: { owner: 'egypt' } };
     expect(isAdjacentToOwner('egypt_cairo', regions, 'player')).toBe(false);
+  });
+});
+
+describe('distanceFromAnchor (Phase 7: overextension)', () => {
+  it('is 0 for the anchor region itself', () => {
+    expect(distanceFromAnchor(['tel_aviv'], 'tel_aviv')).toBe(0);
+  });
+
+  it('is 1 for a direct neighbor of the anchor', () => {
+    expect(distanceFromAnchor(['tel_aviv'], 'gaza')).toBe(1); // gaza borders tel_aviv
+  });
+
+  it('grows correctly for a multi-hop path (negev -> egypt_sinai -> egypt_cairo)', () => {
+    expect(distanceFromAnchor(['negev'], 'egypt_sinai')).toBe(1);
+    expect(distanceFromAnchor(['negev'], 'egypt_cairo')).toBe(2);
+  });
+
+  it('finds the shortest distance across multiple anchors, not just the first', () => {
+    // egypt_cairo is 2 hops from negev but (via the same path) still 2 from the full core set —
+    // this just confirms passing several anchors doesn't break or inflate the result.
+    expect(distanceFromAnchor(CORE_REGION_IDS, 'egypt_cairo')).toBe(2);
+  });
+});
+
+describe('getNationCapital (Phase 7: overextension anchor)', () => {
+  it('returns the isCapital-flagged region for every nation that starts with territory', () => {
+    const nationIds = new Set(Object.values(REGIONS_DATA).map(r => r.startOwner).filter(id => id && id !== 'player'));
+    nationIds.forEach(nationId => {
+      const capitalId = getNationCapital(nationId);
+      expect(capitalId, `${nationId} has no capital`).toBeTruthy();
+      expect(REGIONS_DATA[capitalId].isCapital).toBe(true);
+      expect(REGIONS_DATA[capitalId].startOwner).toBe(nationId);
+    });
+  });
+
+  it('returns null for a stateless actor with no starting territory (Hamas)', () => {
+    expect(getNationCapital('hamas')).toBeNull();
   });
 });

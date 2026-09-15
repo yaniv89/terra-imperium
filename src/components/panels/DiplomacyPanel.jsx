@@ -3,16 +3,25 @@
 
 import React, { useMemo } from 'react';
 // FIX: Replaced 'Handshake' with 'Flag' to resolve the export error
-import { Flag, Skull, ShoppingCart, Shield, AlertTriangle } from 'lucide-react';
+import { Flag, ShoppingCart, Shield, AlertTriangle, Crosshair, Swords as SwordsGoal } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { NATIONS_DATA } from '../../data/nations';
+import { REGIONS_DATA } from '../../data/regions';
 import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
 
+// Short, human-readable description of a war goal (Phase 7) for the diplomacy card.
+const describeWarGoal = (goal) => {
+  if (!goal) return null;
+  if (goal.type === 'capture_region') return `Capture ${REGIONS_DATA[goal.regionId]?.name || goal.regionId}`;
+  if (goal.type === 'destroy_military') return `Reduce enemy military to ${formatNumber(goal.threshold)}`;
+  return null;
+};
+
 const DiplomacyPanel = () => {
   const { state, dispatch, addLog } = useGame();
-  
+
   const isPreState = state.phase === GamePhases.PRE_STATE;
 
   // Sort nations: at war first, then by hostility
@@ -25,8 +34,12 @@ const DiplomacyPanel = () => {
       });
   }, [state.nations]);
 
-  // Declare War
-  const handleDeclareWar = (nationId) => {
+  // The single active war against a given nation, if any — used to show its goal (Phase 7).
+  const activeWarWith = (nationId) => state.wars.find(w => w.enemy === nationId && w.active);
+
+  // Declare War. goalType lets the player choose what this war is fought for; omitting it keeps
+  // the doctrine-style auto-assigned default (see assignDefaultWarGoal in diplomacy.js).
+  const handleDeclareWar = (nationId, goalType) => {
     if (isPreState) {
       addLog('Cannot declare war before independence', 'action');
       return;
@@ -40,7 +53,7 @@ const DiplomacyPanel = () => {
       addLog('Need 20 Diplomacy Points to declare war', 'action');
       return;
     }
-    dispatch({ type: ActionTypes.DECLARE_WAR_COSTED, payload: { nationId } });
+    dispatch({ type: ActionTypes.DECLARE_WAR_COSTED, payload: { nationId, goalType } });
   };
 
   // Seek Peace
@@ -116,6 +129,7 @@ const DiplomacyPanel = () => {
           const canSeekPeace = nation.isAtWar && nation.hostility <= 60;
           const canTrade = nation.hasPeaceTreaty && !nation.hasTradeAgreement;
           const canPact = nation.hasTradeAgreement && !nation.hasMilitaryPact;
+          const war = nation.isAtWar ? activeWarWith(nation.id) : null;
 
           return (
             <div
@@ -186,22 +200,46 @@ const DiplomacyPanel = () => {
                     ⚔ AT WAR
                   </span>
                 )}
+                {war?.goalAchieved && (
+                  <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
+                    ★ War goal achieved
+                  </span>
+                )}
               </div>
+
+              {/* War goal (Phase 7) — every war now has a concrete objective instead of running
+                  until hostility happens to decay enough to seek peace. */}
+              {war?.goal && (
+                <div className="mb-2 text-[10px] text-slate-400">
+                  <span className="text-slate-500">Goal:</span> {describeWarGoal(war.goal)}
+                </div>
+              )}
 
               {/* Actions */}
               {!isPreState && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {/* Declare War */}
+                  {/* Declare War — two goal choices instead of one undifferentiated action */}
                   {!nation.isAtWar && !nation.hasPeaceTreaty && (
-                    <button
-                      onClick={() => handleDeclareWar(nation.id)}
-                      className="px-2 py-1 text-[10px] bg-red-500/20 hover:bg-red-500/30 
-                                 text-red-400 rounded transition-colors flex items-center gap-1"
-                      title="Cost: 20 DP"
-                    >
-                      <Skull className="w-3 h-3" />
-                      Declare War
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleDeclareWar(nation.id, 'capture_region')}
+                        className="px-2 py-1 text-[10px] bg-red-500/20 hover:bg-red-500/30
+                                   text-red-400 rounded transition-colors flex items-center gap-1"
+                        title="Cost: 20 DP — war goal: capture a bordering region"
+                      >
+                        <Crosshair className="w-3 h-3" />
+                        War for Territory
+                      </button>
+                      <button
+                        onClick={() => handleDeclareWar(nation.id, 'destroy_military')}
+                        className="px-2 py-1 text-[10px] bg-red-500/20 hover:bg-red-500/30
+                                   text-red-400 rounded transition-colors flex items-center gap-1"
+                        title="Cost: 20 DP — war goal: cripple their military"
+                      >
+                        <SwordsGoal className="w-3 h-3" />
+                        War of Attrition
+                      </button>
+                    </>
                   )}
 
                   {/* Seek Peace */}
