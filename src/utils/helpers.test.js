@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   calcCombatResult, canAfford, applyCosts,
   sumUnits, addUnits, subtractUnits, scaleUnits, hasEnoughUnits,
-  calcCompositionStrength, distributeCasualties, emptyUnits
+  calcCompositionStrength, distributeCasualties, emptyUnits,
+  getTechBonuses, calcIncome
 } from './helpers';
 import { createRng } from './rng';
+import { GamePhases } from '../data/types';
 
 describe('calcCombatResult', () => {
   it('is deterministic given the same seeded rng sequence', () => {
@@ -32,6 +34,22 @@ describe('calcCombatResult', () => {
     const result = calcCombatResult(10000, 9500, {}, 'plains', createRng(3));
     expect(result.casualties.attacker).toBeGreaterThan(0);
     expect(result.casualties.defender).toBeGreaterThanOrEqual(0);
+  });
+
+  it('combatPrediction (Phase 5: AI Warfare) narrows the random band to 0.9-1.1', () => {
+    // A ratio that's borderline-stalemate under the normal 0.8-1.2 band can become a guaranteed
+    // stalemate under the narrowed 0.9-1.1 band, or vice versa — the concrete, seed-independent
+    // check is that raw randomFactor variance shrinks, which we verify via the resulting ratio
+    // spread across many draws at a fixed attacker/defender pair.
+    const rng = createRng(11);
+    const ratios = [];
+    const narrowRatios = [];
+    for (let i = 0; i < 1000; i++) {
+      ratios.push(calcCombatResult(10000, 10000, {}, 'plains', rng).ratio);
+      narrowRatios.push(calcCombatResult(10000, 10000, { combatPrediction: true }, 'plains', rng).ratio);
+    }
+    const spread = (arr) => Math.max(...arr) - Math.min(...arr);
+    expect(spread(narrowRatios)).toBeLessThan(spread(ratios));
   });
 });
 
@@ -91,6 +109,13 @@ describe('unit composition (Phase 3)', () => {
     expect(calcCompositionStrength(allInfantry, 'mountains')).toBeGreaterThan(calcCompositionStrength(allArmor, 'mountains'));
   });
 
+  it('calcCompositionStrength applies tech bonuses (Phase 5: Uzi/Merkava/Air Superiority) on top of terrain', () => {
+    const infantry = { infantry: 1000, armor: 0, air: 0 };
+    const withBonus = calcCompositionStrength(infantry, 'plains', { infantryBonus: 0.15 });
+    const withoutBonus = calcCompositionStrength(infantry, 'plains', {});
+    expect(withBonus).toBeCloseTo(withoutBonus * 1.15, 5);
+  });
+
   it('distributeCasualties splits proportionally and never exceeds what a type has', () => {
     const units = { infantry: 800, armor: 200, air: 0 };
     const losses = distributeCasualties(units, 100);
@@ -101,5 +126,61 @@ describe('unit composition (Phase 3)', () => {
 
   it('distributeCasualties on an empty pool returns no losses (no divide-by-zero)', () => {
     expect(distributeCasualties(emptyUnits(), 100)).toEqual(emptyUnits());
+  });
+});
+
+describe('getTechBonuses (Phase 5: no known-dead effect keys)', () => {
+  it('caps layered missileDefenseBonus at 0.9 so it can never fully negate damage', () => {
+    const techTree = {
+      iron_dome: { researched: true },
+      arrow_3: { researched: true },
+      laser_defense: { researched: true }
+    };
+    // iron_dome(0.4) + arrow_3(0.3) + laser_defense(0.2) = 0.9 exactly, at the cap.
+    expect(getTechBonuses(techTree).missileDefenseBonus).toBeCloseTo(0.9, 5);
+  });
+
+  it('accumulates hostilityReduction from Mossad', () => {
+    const techTree = { mossad_formation: { researched: true } };
+    expect(getTechBonuses(techTree).hostilityReduction).toBe(5);
+  });
+
+  it('sets covertOps/cyber/globalIntel flags from their respective techs', () => {
+    expect(getTechBonuses({ mossad_formation: { researched: true } }).covertOps).toBe(true);
+    expect(getTechBonuses({ unit_8200: { researched: true } }).cyber).toBe(true);
+    expect(getTechBonuses({ quantum_intel: { researched: true } }).globalIntel).toBe(true);
+    expect(getTechBonuses({}).covertOps).toBe(false);
+  });
+
+  it('returns a safe default object for an empty/missing tech tree', () => {
+    expect(getTechBonuses(null).moneyMult).toBe(1);
+    expect(getTechBonuses({}).missileDefenseBonus).toBe(0);
+  });
+});
+
+describe('calcIncome tech bonuses (Phase 5)', () => {
+  const baseState = () => ({
+    phase: GamePhases.POST_STATE,
+    societalSlider: 50,
+    nations: {},
+    techTree: {},
+    regions: {
+      negev: { id: 'negev', owner: 'player', control: 100, currentInfrastructure: 0 },
+      tel_aviv: { id: 'tel_aviv', owner: 'player', control: 100, currentInfrastructure: 0 }
+    }
+  });
+
+  it('negevBonus (Desert Blooming) boosts only the Negev region\'s output', () => {
+    const withoutTech = calcIncome(baseState());
+    const withTech = calcIncome({ ...baseState(), techTree: { desert_blooming: { researched: true } } });
+    // desert_blooming also carries moneyMult:1.2 economy-wide, so isolate the Negev-specific
+    // effect by checking money increased by MORE than the flat moneyMult alone would explain.
+    expect(withTech.money).toBeGreaterThan(Math.round(withoutTech.money * 1.2));
+  });
+
+  it('diplomacyIncomeBonus (Green Energy / Open Diplomacy) adds flat DP income', () => {
+    const withoutTech = calcIncome(baseState());
+    const withTech = calcIncome({ ...baseState(), techTree: { open_diplomacy: { researched: true } } });
+    expect(withTech.diplomacyPoints).toBe(withoutTech.diplomacyPoints + 5);
   });
 });

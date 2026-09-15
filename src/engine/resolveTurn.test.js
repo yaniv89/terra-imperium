@@ -289,3 +289,59 @@ describe('findConflictTerritoryTransfer (Phase 4: AI-vs-AI conflicts can now red
     expect(findConflictTerritoryTransfer(regions, nations, { aggressor: 'syria', defender: 'lebanon' })).toBe('lebanon_north');
   });
 });
+
+describe('resolveTurn missileDefenseBonus (Phase 5: Iron Dome/Arrow 3/Iron Beam actually reduce damage)', () => {
+  it('a researched missile defense stack reduces control loss from an overwhelming enemy invasion', () => {
+    const buildState = (researched) => {
+      const state = postStateBase();
+      state.regions.negev = { ...state.regions.negev, owner: 'player', control: 100, underInvasion: true };
+      state.invasions = [overwhelmingInvasion('inv1', 'negev', 'egypt')];
+      if (researched) {
+        state.techTree.iron_dome = { ...state.techTree.iron_dome, researched: true };
+        state.techTree.arrow_3 = { ...state.techTree.arrow_3, researched: true };
+      }
+      state.rngSeed = 555; // identical seed on both runs isolates the tech's effect
+      return state;
+    };
+
+    const without = resolveTurn(buildState(false));
+    const withDefense = resolveTurn(buildState(true));
+
+    expect(withDefense.regions.negev.control).toBeGreaterThan(without.regions.negev.control);
+  });
+});
+
+describe('resolveTurn hostilityReduction passive decay (Phase 5: Mossad effect was accumulated and never applied)', () => {
+  it('a nation not at war decays hostility faster when Mossad is researched, all else identical', () => {
+    // Only a single turn is compared: both runs start with identical hostility (90), so
+    // aiLogic's own random decay roll (gated on `nation.hostility > threshold`) short-circuits
+    // identically and consumes the exact same RNG draws on both runs. Running further turns
+    // would let the passive-decay-driven hostility divergence change that short-circuit's
+    // outcome, desyncing the RNG stream between the two runs and turning this into a coin flip
+    // (that's what made the previous 20-turn version of this test flaky).
+    const buildState = (researched) => {
+      const state = postStateBase();
+      state.firedEvents = Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true]));
+      state.nations.egypt = { ...state.nations.egypt, isAtWar: false, hostility: 90 };
+      if (researched) state.techTree.mossad_formation = { ...state.techTree.mossad_formation, researched: true };
+      state.rngSeed = 777; // identical seed -> identical random rolls on both runs
+      return state;
+    };
+
+    const withoutMossad = resolveTurn(buildState(false));
+    const withMossad = resolveTurn(buildState(true));
+
+    expect(withMossad.nations.egypt.hostility).toBeLessThan(withoutMossad.nations.egypt.hostility);
+  });
+});
+
+describe('resolveTurn combatPrediction integration (Phase 5: AI Warfare threaded into the defender path)', () => {
+  it('does not crash and still resolves combat when the player has combatPrediction researched', () => {
+    const state = postStateBase();
+    state.techTree.ai_warfare = { ...state.techTree.ai_warfare, researched: true };
+    state.regions.negev = { ...state.regions.negev, owner: 'player', control: 100, underInvasion: true };
+    state.invasions = [overwhelmingInvasion('inv1', 'negev', 'egypt')];
+
+    expect(() => resolveTurn(state)).not.toThrow();
+  });
+});

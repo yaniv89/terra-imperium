@@ -130,27 +130,29 @@ export const calcIncome = (state) => {
   playerRegions.forEach(region => {
     const regData = REGIONS_DATA[region.id];
     if (!regData) return;
-    
+
     // Base resources from region
     const controlMult = region.control / 100;
     const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
-    
-    baseMoney += (regData.resources.money || 0) * controlMult * infraMult;
-    baseManpower += (regData.resources.manpower || 0) * controlMult * infraMult;
+    // Desert Blooming makes the Negev itself specifically more productive, not the whole economy.
+    const negevMult = region.id === 'negev' ? 1 + (techBonuses.negevBonus || 0) : 1;
+
+    baseMoney += (regData.resources.money || 0) * controlMult * infraMult * negevMult;
+    baseManpower += (regData.resources.manpower || 0) * controlMult * infraMult * negevMult;
   });
-  
+
   // Trade agreement bonuses
   const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
   baseMoney += tradePartners.length * 2000;
-  
+
   // Tech bonuses
   if (techBonuses.moneyMult) {
     baseMoney *= techBonuses.moneyMult;
   }
-  
+
   // Societal bonuses
   baseManpower *= societalBonuses.manMult;
-  
+
   // Tech points (post-state only)
   let techPoints = 0;
   if (state.phase === GamePhases.POST_STATE) {
@@ -160,15 +162,15 @@ export const calcIncome = (state) => {
     }
     techPoints *= societalBonuses.techMult;
   }
-  
+
   // Diplomacy points
-  const dpGain = 3 + Math.floor(baseMoney / 10000);
-  
+  const dpGain = 3 + Math.floor(baseMoney / 10000) + (techBonuses.diplomacyIncomeBonus || 0);
+
   return {
     money: Math.round(baseMoney),
     manpower: Math.round(baseManpower),
     techPoints: Math.round(techPoints),
-    diplomacyPoints: dpGain
+    diplomacyPoints: Math.round(dpGain)
   };
 };
 
@@ -182,40 +184,54 @@ export const getTechBonuses = (techTree) => {
     infantryBonus: 0,
     tankBonus: 0,
     tankDiscount: 0,
-    missileDefense: 0,
+    airBonus: 0,
+    jetDiscount: 0,
+    // Layered point-defense (Iron Dome + Arrow 3 + Iron Beam): additive, capped so it can never
+    // fully negate incoming damage.
+    missileDefenseBonus: 0,
     hostilityReduction: 0,
+    negevBonus: 0,
+    diplomacyIncomeBonus: 0,
+    enemyDebuff: 0,
+    combatPrediction: false,
     covertOps: false,
     cyber: false,
-    laserDefense: false,
-    aiDefense: false
+    globalIntel: false
   };
-  
+
   if (!techTree) return bonuses;
-  
+
   Object.entries(techTree).forEach(([techId, techState]) => {
     if (!techState.researched) return;
-    
+
     const tech = TECH_TREE[techId];
     if (!tech || !tech.effects) return;
-    
+
     const effects = tech.effects;
-    
+
     if (effects.moneyMult) bonuses.moneyMult *= effects.moneyMult;
     if (effects.techPointMult) bonuses.techPointMult *= effects.techPointMult;
     if (effects.defenseBonus) bonuses.defenseBonus += effects.defenseBonus;
     if (effects.infantryBonus) bonuses.infantryBonus += effects.infantryBonus;
     if (effects.tankBonus) bonuses.tankBonus += effects.tankBonus;
     if (effects.tankDiscount) bonuses.tankDiscount += effects.tankDiscount;
-    if (effects.missileDefense) bonuses.missileDefense = Math.max(bonuses.missileDefense, effects.missileDefense);
+    if (effects.airBonus) bonuses.airBonus += effects.airBonus;
+    if (effects.jetDiscount) bonuses.jetDiscount += effects.jetDiscount;
+    if (effects.missileDefenseBonus) bonuses.missileDefenseBonus += effects.missileDefenseBonus;
     if (effects.hostilityReduction) bonuses.hostilityReduction += effects.hostilityReduction;
+    if (effects.negevBonus) bonuses.negevBonus += effects.negevBonus;
+    if (effects.diplomacyIncomeBonus) bonuses.diplomacyIncomeBonus += effects.diplomacyIncomeBonus;
+    if (effects.enemyDebuff) bonuses.enemyDebuff += effects.enemyDebuff;
     if (effects.combatBonus) bonuses.combatBonus += effects.combatBonus;
     if (effects.aiBonus) bonuses.combatBonus += effects.aiBonus;
+    if (effects.combatPrediction) bonuses.combatPrediction = true;
     if (effects.covertOps) bonuses.covertOps = true;
     if (effects.cyber) bonuses.cyber = true;
-    if (effects.laserDefense) bonuses.laserDefense = true;
-    if (effects.aiDefense) bonuses.aiDefense = true;
+    if (effects.globalIntel) bonuses.globalIntel = true;
   });
-  
+
+  bonuses.missileDefenseBonus = Math.min(0.9, bonuses.missileDefenseBonus);
+
   return bonuses;
 };
 
@@ -261,10 +277,18 @@ const COMPOSITION_TERRAIN_MODS = {
 };
 
 // Effective attacking strength for a committed composition on a given terrain — this is what
-// gets passed into calcCombatResult as the attacker's raw strength.
-export const calcCompositionStrength = (units, terrain = 'plains') => {
+// gets passed into calcCombatResult as the attacker's raw strength. `techBonuses` layers the
+// unit-specific research bonuses (Uzi Production, Merkava/Air Superiority doctrine) on top of
+// the terrain multiplier — a well-equipped force on bad terrain can still underperform, but it's
+// never as weak as an unresearched one on the same ground.
+export const calcCompositionStrength = (units, terrain = 'plains', techBonuses = {}) => {
   const mods = COMPOSITION_TERRAIN_MODS[terrain] || { infantry: 1, armor: 1, air: 1 };
-  return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0) * mods[type], 0);
+  const typeBonus = {
+    infantry: 1 + (techBonuses.infantryBonus || 0),
+    armor: 1 + (techBonuses.tankBonus || 0),
+    air: 1 + (techBonuses.airBonus || 0)
+  };
+  return UNIT_TYPES.reduce((total, type) => total + (units[type] || 0) * mods[type] * typeBonus[type], 0);
 };
 
 // Splits a flat casualty count back across unit types proportional to each type's share of the
@@ -316,8 +340,12 @@ const DEFAULT_RNG = { next: () => Math.random() };
 
 export const calcCombatResult = (attacker, defender, techBonuses = {}, terrain = 'plains', rng = DEFAULT_RNG) => {
   const terrainMod = TERRAIN_MODS[terrain] || 1;
-  const randomFactor = 0.8 + rng.next() * 0.4; // 0.8 to 1.2
-  
+  // AI Warfare's combatPrediction narrows the random band (0.9-1.1 instead of 0.8-1.2) — the
+  // side with prediction is less likely to get an unlucky (or lucky) upset outcome.
+  const randomFactor = techBonuses.combatPrediction
+    ? 0.9 + rng.next() * 0.2
+    : 0.8 + rng.next() * 0.4;
+
   const attackerScore = attacker * randomFactor;
   const defenderScore = defender * terrainMod * (1 + (techBonuses.defenseBonus || 0));
   
