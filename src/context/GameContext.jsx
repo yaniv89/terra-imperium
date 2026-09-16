@@ -28,7 +28,7 @@ import { applyDifficulty } from '../data/difficulty';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
 // ============ PERSISTENCE ============
-const STORAGE_KEY = 'rise-of-zion-save-v1';
+const STORAGE_KEY = 'terra-imperium-save-v1';
 const SAVE_VERSION = 1;
 
 // ============ INITIAL STATE FACTORY ============

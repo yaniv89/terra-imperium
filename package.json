@@ -1,7 +1,7 @@
 {
-  "name": "rise-of-zion",
-  "version": "1.0.0",
-  "description": "Rise of Zion - A grand strategy browser game covering Middle Eastern history from 1870-2150",
+  "name": "terra-imperium",
+  "version": "0.1.0",
+  "description": "Terra Imperium - A grand strategy country/army sim spanning 2000 BCE - 2300 CE on a real Earth globe. Play any of 240 nations.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
+    "deploy": "gh-pages -d docs",
     "fetch:geo": "node scripts/geo/fetch-raw.mjs",
     "build:geo": "node scripts/geo/build.mjs"
   },
