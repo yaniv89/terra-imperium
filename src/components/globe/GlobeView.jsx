@@ -15,7 +15,7 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { useCombatEffects } from '../../context/CombatEffectsContext';
+import { useEffects } from '../../context/EffectsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { RegionInfoModal } from '../modals';
 import MapLegend from './MapLegend';
@@ -43,7 +43,7 @@ const fillColorFor = (regionState, nation, isPlayerOwned) => {
 
 const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   const { state } = useGame();
-  const { effects } = useCombatEffects();
+  const { effects } = useEffects();
   const globeRef = useRef(null);
   const [geo, setGeo] = useState(null);
   // No globeImageUrl (no texture fetch, no external dependency, matches the stylized/game look
@@ -88,7 +88,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
         void node.offsetWidth;
         node.classList.add('globe-impact-shake');
       }
-    }, getImpactDelay(latest.type));
+    }, getImpactDelay(latest.actionType));
     return () => clearTimeout(punch);
   }, [effects]);
 
