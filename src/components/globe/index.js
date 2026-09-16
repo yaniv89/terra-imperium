@@ -1,5 +1,4 @@
 // src/components/globe/index.js
-// Barrel export for the globe (Phase 12) components
+// Barrel export for the globe map components
 
 export { default as GlobeContainer } from './GlobeContainer';
-export { default as GlobeCountryInfo } from './GlobeCountryInfo';

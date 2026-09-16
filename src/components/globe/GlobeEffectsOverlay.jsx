@@ -22,7 +22,14 @@
 // for the compositor to paint, confirmed visually before trusting this.
 import React, { useEffect, useRef } from 'react';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { TRAVEL_MS, BURST_MS } from '../map/CombatEffectsLayer';
+
+export const TRAVEL_MS = 700;
+export const BURST_MS = 600;
+const FADE_MS = 300;
+
+// Total time an effect needs to stay live — CombatEffectsContext's EFFECT_LIFETIME_MS must be at
+// least this long, or the DOM elements would be torn down mid-fade.
+export const COMBAT_EFFECT_DURATION_MS = TRAVEL_MS + BURST_MS + FADE_MS;
 
 const EFFECT_COLORS = {
   missile: '#f87171',

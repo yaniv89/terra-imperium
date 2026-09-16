@@ -2,12 +2,10 @@
 // Main application component - Rise of Zion game
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Map as MapIcon, Globe as GlobeIcon } from 'lucide-react';
 import { GameProvider, useGame } from './context/GameContext';
 import { CombatEffectsProvider } from './context/CombatEffectsContext';
 import { GameHeader } from './components/ui';
-import { GameMap } from './components/map';
-import { GlobeContainer, GlobeCountryInfo } from './components/globe';
+import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
@@ -18,12 +16,6 @@ import { EVENT_CHAINS } from './data/eventChains';
 const GameLayout = () => {
   const { state, resolveEvent, resetGame } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
-  // Globe View (Phase 12) — a separate, read-only preview of the whole-earth renderer alongside
-  // the flat map that's still the actual gameplay surface. selectedCountryId is intentionally
-  // its own piece of state, not reused from selectedRegion: the two ids come from unrelated
-  // datasets (real-world ISO codes vs. the hand-authored 28 regions) until Phase 13 unifies them.
-  const [mapView, setMapView] = useState('flat');
-  const [selectedCountryId, setSelectedCountryId] = useState(null);
 
   // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
   // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
@@ -61,49 +53,13 @@ const GameLayout = () => {
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 overflow-y-scroll min-h-0">
-        {/* Left/Top: Map */}
+        {/* Left/Top: Map — the 3D globe is the game's only map (the old flat SVG map has been
+            removed entirely). */}
         <div className="relative flex-1 lg:flex-[2] min-h-[250px] lg:min-h-0 order-1">
-          {mapView === 'flat' ? (
-            <GameMap
-              selectedRegion={selectedRegion}
-              onSelectRegion={handleSelectRegion}
-            />
-          ) : (
-            <>
-              <GlobeContainer
-                selectedCountryId={selectedCountryId}
-                onSelectCountry={setSelectedCountryId}
-              />
-              <GlobeCountryInfo
-                countryId={selectedCountryId}
-                onClose={() => setSelectedCountryId(null)}
-              />
-            </>
-          )}
-
-          {/* Flat map / globe toggle (Phase 12) — Globe View is a preview of the eventual
-              whole-earth renderer; the flat map remains the actual gameplay surface until
-              Phase 13 rebuilds regions on top of the real world data. */}
-          <div className="absolute bottom-2 left-2 z-10 flex rounded-lg overflow-hidden border border-slate-700 shadow-lg">
-            <button
-              onClick={() => setMapView('flat')}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                mapView === 'flat' ? 'bg-blue-600 text-white' : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <MapIcon className="w-3.5 h-3.5" />
-              Map
-            </button>
-            <button
-              onClick={() => setMapView('globe')}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                mapView === 'globe' ? 'bg-blue-600 text-white' : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              <GlobeIcon className="w-3.5 h-3.5" />
-              Globe (Preview)
-            </button>
-          </div>
+          <GlobeContainer
+            selectedRegion={selectedRegion}
+            onSelectRegion={handleSelectRegion}
+          />
         </div>
 
         {/* Right/Bottom: Action Panel and Log Console */}

@@ -4,8 +4,8 @@
 // UI Components
 export * from './ui';
 
-// Map Components
-export * from './map';
+// Globe (map) Components
+export * from './globe';
 
 // Panel Components
 export * from './panels';

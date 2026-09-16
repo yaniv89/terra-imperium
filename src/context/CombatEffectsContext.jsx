@@ -4,12 +4,11 @@
 // (auto-expiring, never persisted, never read by the reducer), not game state, so they don't
 // belong in a save file or in resolveTurn's deterministic, pure state transitions.
 //
-// Effects are stored by REGION ID, not by view-specific coordinates: the flat map (SVG, via
-// mapPaths.js labelX/labelY) and the globe (arcs/rings, via regionCoordinates.js lat/lng) project
-// the same {fromRegionId, toRegionId} into two completely different coordinate systems, so
-// whichever view is open — or both — can render the same triggered effect correctly.
+// Effects are stored by REGION ID, not by screen coordinates: GlobeEffectsOverlay resolves
+// {fromRegionId, toRegionId} into real lat/lng (regionCoordinates.js) and projects that onto the
+// globe's current camera every frame.
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { COMBAT_EFFECT_DURATION_MS } from '../components/map/CombatEffectsLayer';
+import { COMBAT_EFFECT_DURATION_MS } from '../components/globe/GlobeEffectsOverlay';
 
 const CombatEffectsContext = createContext(null);
 

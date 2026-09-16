@@ -1,8 +1,7 @@
 // src/data/regionCoordinates.js
 // Real-world lat/lng for each of the game's 28 hand-authored regions (src/data/regions.js) —
-// approximate coordinates of each region's principal city/area. Exists purely so the globe (Phase
-// 12) can place combat effects (Phase 14) at a real position on the sphere; the flat map's own
-// SVG coordinate system (mapPaths.js labelX/labelY) is unrelated and unaffected by this file.
+// approximate coordinates of each region's principal city/area. Used to place combat effects
+// (GlobeEffectsOverlay) and to fly the camera to a region on selection.
 export const REGION_COORDINATES = {
   tel_aviv: { lat: 32.0853, lng: 34.7818 },
   jerusalem: { lat: 31.7683, lng: 35.2137 },
