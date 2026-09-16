@@ -1,10 +1,10 @@
 // src/App.jsx
-// Main application component - Rise of Zion game
+// Main application component - Terra Imperium
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { GameProvider, useGame } from './context/GameContext';
+import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { CombatEffectsProvider } from './context/CombatEffectsContext';
-import { GameHeader } from './components/ui';
+import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast } from './components/modals';
@@ -16,6 +16,9 @@ import { EVENT_CHAINS } from './data/eventChains';
 const GameLayout = () => {
   const { state, resolveEvent, resetGame } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
+  // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
+  // before anything else; an existing save skips straight to the loaded game.
+  const [showStartScreen, setShowStartScreen] = useState(() => !hasExistingSave());
 
   // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
   // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
@@ -30,21 +33,30 @@ const GameLayout = () => {
   }, [state.logs]);
 
   // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
-  // there's nothing left to lose. Goes through resetGame() (not a raw dispatch) so the player's
-  // selected starting doctrine — meta-progression, Phase 6 — is carried into the new game.
+  // there's nothing left to lose. Routes back through the start screen so the player can pick a
+  // new nation/speed/difficulty rather than silently restarting as whatever they last played.
   const handleReset = useCallback(() => {
     const alreadyOver = state.gameStatus !== GameStatus.ACTIVE;
     if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
-      resetGame();
+      setShowStartScreen(true);
       setSelectedRegion(null);
       setBattleSummary(null);
     }
-  }, [resetGame, state.gameStatus]);
+  }, [state.gameStatus]);
+
+  const handleStart = useCallback((options) => {
+    resetGame(options);
+    setShowStartScreen(false);
+  }, [resetGame]);
 
   // Handle region selection
   const handleSelectRegion = useCallback((regionId) => {
     setSelectedRegion(regionId);
   }, []);
+
+  if (showStartScreen) {
+    return <StartScreen onStart={handleStart} />;
+  }
 
   return (
     <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 flex flex-col overflow-y-scroll">
