@@ -15,5 +15,12 @@ export const ACTION_COSTS = {
   developResourceSite: { gold: 120, actionPoints: 1 },
   quellUnrest: { gold: 50, actionPoints: 1 },
 
+  recruitUnit: { gold: 60, hr: 100, actionPoints: 1 },
+  moveArmy: { actionPoints: 1 },
+
   researchTechActionPoints: 2
 };
+
+// Fraction of a disbanded unit's HR cost recovered — never the full amount, or disband/recruit
+// would be a free way to reshuffle composition every turn.
+export const DISBAND_HR_REFUND_RATIO = 0.5;
