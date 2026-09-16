@@ -35,7 +35,8 @@ export const ActionTypes = {
   // Military tab (plan §7) — per-region armies.
   RECRUIT_UNIT: 'RECRUIT_UNIT',
   DISBAND_UNIT: 'DISBAND_UNIT',
-  MOVE_ARMY: 'MOVE_ARMY'
+  MOVE_ARMY: 'MOVE_ARMY',
+  LAUNCH_INVASION: 'LAUNCH_INVASION'
 };
 
 export const LogTypes = {

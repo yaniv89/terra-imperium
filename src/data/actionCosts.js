@@ -17,6 +17,7 @@ export const ACTION_COSTS = {
 
   recruitUnit: { gold: 60, hr: 100, actionPoints: 1 },
   moveArmy: { actionPoints: 1 },
+  launchInvasion: { actionPoints: 2 },
 
   researchTechActionPoints: 2
 };
