@@ -3,8 +3,9 @@
 // Each of the 28 hand-authored game regions (src/data/regions.js) is rendered using real
 // country/province geometry (see loadGameRegions.js), colored by live ownership/control exactly
 // like the old flat map did, and clickable to drive the same selectedRegion/onSelectRegion contract
-// the rest of the game (ActionPanel, RegionInfoModal) already expects. The rest of the world
-// renders as a muted, non-interactive backdrop so the globe still reads as a whole planet.
+// the rest of the game (ActionPanel, RegionInfoModal) already expects. Every other country on
+// Earth renders too, each in its own distinct color (WORLD_NATIONS' golden-angle palette, Phase
+// 13) — a real political map, not a flat backdrop — but isn't clickable/game-interactive.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
@@ -16,8 +17,9 @@ import { useCombatEffects } from '../../context/CombatEffectsContext';
 import GlobeEffectsOverlay from './GlobeEffectsOverlay';
 import { RegionInfoModal } from '../modals';
 import MapLegend from './MapLegend';
+import { WORLD_NATIONS } from '../../data/worldNations';
 
-const NEUTRAL_LAND_COLOR = '#334155'; // slate-700, matches the app's dark theme
+const NEUTRAL_LAND_COLOR = '#334155'; // slate-700, fallback for anything WORLD_NATIONS has no entry for
 const OCEAN_COLOR = '#0f172a'; // slate-900
 
 const prefersReducedMotion = () =>
@@ -94,7 +96,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   const capColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) return NEUTRAL_LAND_COLOR;
+    if (!gameRegionId) return WORLD_NATIONS[feature.id]?.color || NEUTRAL_LAND_COLOR;
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
     const nation = regionState.owner !== 'player' ? state.nations[regionState.owner] : null;
@@ -120,7 +122,13 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   const label = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (!gameRegionId) {
-      return `<div style="background:#0f172a;color:#94a3b8;padding:5px 8px;border-radius:6px;font:11px sans-serif;border:1px solid #334155">${feature.properties?.name || ''}</div>`;
+      const nation = WORLD_NATIONS[feature.id];
+      const pop = nation?.population ? `${(nation.population / 1e6).toFixed(1)}M people` : '';
+      return `
+        <div style="background:#0f172a;color:#e2e8f0;padding:5px 8px;border-radius:6px;font:11px sans-serif;border:1px solid #334155">
+          <strong>${feature.properties?.name || ''}</strong>${pop ? `<br/><span style="color:#94a3b8">${pop}</span>` : ''}
+        </div>
+      `;
     }
     const regionData = REGIONS_DATA[gameRegionId];
     const regionState = state.regions[gameRegionId];

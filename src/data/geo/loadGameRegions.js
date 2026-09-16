@@ -45,14 +45,9 @@ export const loadGameRegionFeatures = async () => {
     if (gameRegionId) gameRegionFeatures.push({ ...f, properties: { ...f.properties, gameRegionId } });
   });
 
-  // Every rest-of-world country shares the exact same fill/stroke/altitude (it's decorative
-  // backdrop, not interactive) — merged into ONE feature instead of ~224 separate ones, so the
-  // globe only needs a single extra material for the whole non-game world rather than one per
-  // country. This also sidesteps a real rendering breakdown observed in this project's sandbox
-  // once total polygon feature/material count got large (confirmed via bisection: identical data
-  // split into smaller batches rendered correctly, the full set did not) — merging is a legitimate
-  // simplification on its own (fewer draw calls, better mobile performance) regardless of that.
-  const restOfWorldRings = [];
+  // Every rest-of-world country stays its own feature (not merged) so each can carry its own
+  // WORLD_NATIONS color for a real political-map look, not a single flat backdrop hue.
+  const restOfWorldFeatures = [];
   countries.forEach((f) => {
     const gameRegionId = featureToRegion[f.id];
     if (gameRegionId) {
@@ -74,20 +69,10 @@ export const loadGameRegionFeatures = async () => {
       });
       return;
     }
-    if (restOfWorldCountryIds.includes(f.id)) {
-      const polys = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
-      restOfWorldRings.push(...polys);
-    }
+    if (restOfWorldCountryIds.includes(f.id)) restOfWorldFeatures.push(f);
   });
 
   gameRegionFeatures.push(GOLAN_FEATURE);
-
-  const restOfWorldFeatures = restOfWorldRings.length
-    ? [{
-        type: 'Feature', id: 'rest-of-world', properties: { name: 'Rest of world' },
-        geometry: { type: 'MultiPolygon', coordinates: restOfWorldRings }
-      }]
-    : [];
 
   cached = { gameRegionFeatures, restOfWorldFeatures };
   return cached;
