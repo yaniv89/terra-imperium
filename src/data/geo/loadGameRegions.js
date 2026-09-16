@@ -2,14 +2,15 @@
 // The globe is now the ONLY game map (Phase 14 correction — the old hand-drawn flat SVG map has
 // been removed entirely). This turns the real-world country/province geometry from
 // loadWorldFeatures.js into the 28 hand-authored game regions (src/data/regions.js), using the
-// static featureId -> gameRegionId map built by scripts/geo/build-game-regions.mjs, plus two
-// pieces of real geometry that map can't express:
-//   - Gaza and the West Bank are one merged "Palestine" country feature in the source data, but
-//     they're two disjoint polygon parts (a small coastal one and a larger inland one) — this
-//     splits that MultiPolygon by part instead of needing a separate geometry source.
-//   - The Golan Heights has no province of its own in the source data (its territory is fused
-//     into the surrounding country outlines), so it's a small hand-authored polygon here rather
-//     than real admin-1 geometry — reasonable for a small, mostly-uninhabited plateau.
+// static featureId -> gameRegionId map built by scripts/geo/build-game-regions.mjs.
+//
+// Every OTHER country on Earth is rendered too, subdivided into its own real admin-1
+// provinces/states/governorates (not a single flat per-country blob) — every country in this
+// dataset has at least one admin-1 subregion, confirmed when this pipeline was built, so there's
+// no whole-country fallback needed in practice (restOfWorldCountryIds below stays empty; it's a
+// safety net only). The Golan Heights is the one exception: it has no province of its own in the
+// source data (its territory is fused into the surrounding countries' outlines), so it's a small
+// hand-authored polygon here instead of real admin-1 geometry.
 import { loadCountryFeatures, loadSubregionFeatures } from './loadWorldFeatures';
 import gameRegionsData from './gameRegions.json';
 
@@ -36,43 +37,32 @@ let cached = null;
 export const loadGameRegionFeatures = async () => {
   if (cached) return cached;
 
-  const [countries, subregions] = await Promise.all([loadCountryFeatures(), loadSubregionFeatures()]);
+  const subregions = await loadSubregionFeatures();
 
-  const gameRegionFeatures = [];
-
-  subregions.forEach((f) => {
-    const gameRegionId = featureToRegion[f.id];
-    if (gameRegionId) gameRegionFeatures.push({ ...f, properties: { ...f.properties, gameRegionId } });
-  });
-
-  // Every rest-of-world country stays its own feature (not merged) so each can carry its own
-  // WORLD_NATIONS color for a real political-map look, not a single flat backdrop hue.
+  const gameRegionFeatures = [GOLAN_FEATURE];
   const restOfWorldFeatures = [];
-  countries.forEach((f) => {
+
+  // Every subregion either belongs to one of the 28 game regions (looked up directly by its own
+  // id — see build-game-regions.mjs) or is a real province of some other country, rendered as its
+  // own feature so the whole planet reads as an actual subdivided map, not flat per-country blobs.
+  subregions.forEach((f) => {
     const gameRegionId = featureToRegion[f.id];
     if (gameRegionId) {
       gameRegionFeatures.push({ ...f, properties: { ...f.properties, gameRegionId } });
-      return;
+    } else {
+      restOfWorldFeatures.push(f);
     }
-    if (f.id === 'ps') {
-      // Two disjoint MultiPolygon parts: the smaller/coastal one is Gaza, the larger inland one
-      // is the West Bank (verified against real coordinates when this mapping was built).
-      const parts = f.geometry.coordinates;
-      const [gazaPart, westBankPart] = parts[0][0].length <= parts[1][0].length ? parts : [parts[1], parts[0]];
-      gameRegionFeatures.push({
-        type: 'Feature', id: 'ps-gaza', properties: { ...f.properties, gameRegionId: 'gaza' },
-        geometry: { type: 'Polygon', coordinates: gazaPart }
-      });
-      gameRegionFeatures.push({
-        type: 'Feature', id: 'ps-westbank', properties: { ...f.properties, gameRegionId: 'west_bank' },
-        geometry: { type: 'Polygon', coordinates: westBankPart }
-      });
-      return;
-    }
-    if (restOfWorldCountryIds.includes(f.id)) restOfWorldFeatures.push(f);
   });
 
-  gameRegionFeatures.push(GOLAN_FEATURE);
+  // Fallback only (see file header) — a whole-country polygon for any country that somehow has no
+  // admin-1 subregions in the dataset, so nothing is ever silently missing from the globe. The
+  // ~275KB country topology is only fetched at all if this list is actually non-empty.
+  if (restOfWorldCountryIds.length > 0) {
+    const countries = await loadCountryFeatures();
+    countries.forEach((f) => {
+      if (restOfWorldCountryIds.includes(f.id)) restOfWorldFeatures.push(f);
+    });
+  }
 
   cached = { gameRegionFeatures, restOfWorldFeatures };
   return cached;

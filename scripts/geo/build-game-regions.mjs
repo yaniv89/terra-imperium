@@ -96,20 +96,31 @@ const [turkeyWest, turkeyEast] = splitByAxis(byCountry('tr'), 'lon');
 assign(turkeyWest, 'turkey_west');
 assign(turkeyEast, 'turkey_east');
 
-// --- Whole-country game regions (single admin-0 feature each). Palestine ("ps") is handled in
-// loadGameRegions.js instead: its geometry is two disjoint polygon parts (Gaza Strip and the West
-// Bank) that get split there into the two separate game regions.
-assignIds(['jo'], 'jordan_amman');
-assignIds(['sy'], 'syria_damascus');
-assignIds(['ye'], 'yemen');
-assignIds(['om'], 'oman');
-assignIds(['ae'], 'uae');
-assignIds(['qa'], 'qatar');
-assignIds(['bh'], 'bahrain');
-assignIds(['kw'], 'kuwait');
+// --- Palestine: the source data already has real Gaza Strip / West Bank admin-1 entries (no
+// disjoint-polygon-splitting heuristic needed, unlike an earlier version of this pipeline).
+assignIds(['ps-gzz'], 'gaza');
+assignIds(['ps-wbk'], 'west_bank');
 
+// --- The remaining 8 game regions are each a whole country, but — like every other country on
+// Earth (see loadGameRegions.js) — still rendered as its real provinces/governorates, not one
+// flat blob; they just all share the same single game region id and color.
+assign(byCountry('jo'), 'jordan_amman');
+assign(byCountry('sy'), 'syria_damascus');
+assign(byCountry('ye'), 'yemen');
+assign(byCountry('om'), 'oman');
+assign(byCountry('ae'), 'uae');
+assign(byCountry('qa'), 'qatar');
+assign(byCountry('bh'), 'bahrain');
+assign(byCountry('kw'), 'kuwait');
+
+// Fallback only: every country in this dataset has at least one admin-1 subregion (verified when
+// this pipeline was built), so this should always be empty — kept as a safety net rather than an
+// assumption, in case future data updates ever introduce a country with none.
 const consumedCountryIds = new Set(['il', 'eg', 'iq', 'sa', 'ir', 'tr', 'lb', 'jo', 'sy', 'ye', 'om', 'ae', 'qa', 'bh', 'kw', 'ps']);
-const restOfWorldCountryIds = countryFeatures.map((f) => f.id).filter((id) => !consumedCountryIds.has(id));
+const countriesWithSubregions = new Set(subregionFeatures.map((f) => subregionsMeta[f.id]?.countryId));
+const restOfWorldCountryIds = countryFeatures
+  .map((f) => f.id)
+  .filter((id) => !consumedCountryIds.has(id) && !countriesWithSubregions.has(id));
 
 const output = { featureToRegion: map, restOfWorldCountryIds };
 writeFileSync(path.join(geoDir, 'gameRegions.json'), JSON.stringify(output));

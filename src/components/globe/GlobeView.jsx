@@ -4,8 +4,10 @@
 // country/province geometry (see loadGameRegions.js), colored by live ownership/control exactly
 // like the old flat map did, and clickable to drive the same selectedRegion/onSelectRegion contract
 // the rest of the game (ActionPanel, RegionInfoModal) already expects. Every other country on
-// Earth renders too, each in its own distinct color (WORLD_NATIONS' golden-angle palette, Phase
-// 13) — a real political map, not a flat backdrop — but isn't clickable/game-interactive.
+// Earth renders too, subdivided into its own real admin-1 provinces/states (see
+// loadGameRegions.js) and colored in its own WORLD_NATIONS hue (Phase 13's golden-angle palette),
+// with each province a small shade of that hue — a real, fully subdivided political map, not a
+// flat per-country backdrop — but not clickable/game-interactive.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
@@ -24,6 +26,50 @@ const OCEAN_COLOR = '#0f172a'; // slate-900
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// A country's WORLD_NATIONS color as a base hue/saturation, with each of its own provinces given
+// a small, deterministic lightness offset — so a whole country still reads as one color family
+// (matching its neighbors' expectations of "which country is this"), while its internal
+// admin-1 borders are still visually meaningful rather than invisible seams in a flat blob.
+const toHsl = (color) => {
+  if (color.startsWith('hsl')) {
+    const [h, s, l] = color.match(/[\d.]+/g).map(Number);
+    return { h, s, l };
+  }
+  const hex = color.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return { h, s: s * 100, l: l * 100 };
+};
+
+// Cheap deterministic string hash (no crypto needed) so the same province always lands on the
+// same shade across reloads, without needing a stable array index.
+const hashString = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  return Math.abs(hash);
+};
+
+const provinceShade = (baseColor, provinceId) => {
+  const { h, s, l } = toHsl(baseColor);
+  const offset = (hashString(provinceId) % 5 - 2) * 6; // -12, -6, 0, 6, 12
+  const shadedL = Math.min(72, Math.max(22, l + offset));
+  return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(shadedL)}%)`;
+};
 
 // Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic exactly, so
 // switching to the globe changed nothing about what the colors mean.
@@ -96,7 +142,12 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   const capColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) return WORLD_NATIONS[feature.id]?.color || NEUTRAL_LAND_COLOR;
+    if (!gameRegionId) {
+      const countryId = feature.properties?.countryId || feature.id;
+      const baseColor = WORLD_NATIONS[countryId]?.color;
+      if (!baseColor) return NEUTRAL_LAND_COLOR;
+      return provinceShade(baseColor, feature.id);
+    }
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
     const nation = regionState.owner !== 'player' ? state.nations[regionState.owner] : null;
@@ -122,11 +173,14 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   const label = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (!gameRegionId) {
-      const nation = WORLD_NATIONS[feature.id];
-      const pop = nation?.population ? `${(nation.population / 1e6).toFixed(1)}M people` : '';
+      const countryId = feature.properties?.countryId || feature.id;
+      const nation = WORLD_NATIONS[countryId];
+      const countryName = feature.properties?.countryName || nation?.name;
+      const provinceName = feature.properties?.name;
+      const subtitle = countryName && countryName !== provinceName ? countryName : '';
       return `
         <div style="background:#0f172a;color:#e2e8f0;padding:5px 8px;border-radius:6px;font:11px sans-serif;border:1px solid #334155">
-          <strong>${feature.properties?.name || ''}</strong>${pop ? `<br/><span style="color:#94a3b8">${pop}</span>` : ''}
+          <strong>${provinceName || countryName || ''}</strong>${subtitle ? `<br/><span style="color:#94a3b8">${subtitle}</span>` : ''}
         </div>
       `;
     }
