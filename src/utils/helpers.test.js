@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney } from './helpers';
+import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest } from './helpers';
 import { createInitialState } from '../context/GameContext';
 
 describe('canAfford / applyCosts', () => {
@@ -68,6 +68,70 @@ describe('calcIncome', () => {
     });
     const without = calcIncome(state);
     expect(withTrade.gold).toBeGreaterThan(without.gold);
+  });
+
+  it('yields a deposit resource once its extraction building is developed', () => {
+    // Chile has a copper deposit (src/data/deposits.js).
+    const state = createInitialState({ playerNationId: 'cl' });
+    const withoutMine = calcIncome(state);
+    expect(withoutMine.copper).toBe(0);
+
+    const withMine = calcIncome({
+      ...state,
+      regions: {
+        ...state.regions,
+        cl: { ...state.regions.cl, buildings: { ...state.regions.cl.buildings, extraction: { ...state.regions.cl.buildings.extraction, copper: true } } }
+      }
+    });
+    expect(withMine.copper).toBeGreaterThan(0);
+  });
+
+  it('yields nothing from an extraction building in a region with no matching deposit', () => {
+    // France has no copper deposit listed.
+    const state = createInitialState({ playerNationId: 'fr' });
+    const withMine = calcIncome({
+      ...state,
+      regions: {
+        ...state.regions,
+        fr: { ...state.regions.fr, buildings: { ...state.regions.fr.buildings, extraction: { ...state.regions.fr.buildings.extraction, copper: true } } }
+      }
+    });
+    expect(withMine.copper).toBe(0);
+  });
+});
+
+describe('getSupplyCapacity', () => {
+  it('grows with infrastructure level', () => {
+    expect(getSupplyCapacity(0)).toBe(1);
+    expect(getSupplyCapacity(4)).toBeGreaterThan(getSupplyCapacity(0));
+  });
+
+  it('handles a missing/undefined level without throwing', () => {
+    expect(() => getSupplyCapacity(undefined)).not.toThrow();
+    expect(getSupplyCapacity(undefined)).toBe(1);
+  });
+});
+
+describe('getStability / nextUnrest', () => {
+  it('getStability is 100 minus unrest', () => {
+    expect(getStability({ unrest: 30 })).toBe(70);
+    expect(getStability({ unrest: 0 })).toBe(100);
+    expect(getStability({})).toBe(100);
+  });
+
+  it('unrest rises when control is below the threshold', () => {
+    const region = { control: 20, unrest: 10 };
+    expect(nextUnrest(region)).toBeGreaterThan(region.unrest);
+  });
+
+  it('unrest falls when control is at or above the threshold', () => {
+    const region = { control: 100, unrest: 10 };
+    expect(nextUnrest(region)).toBeLessThan(region.unrest);
+  });
+
+  it('is clamped to [0, 100]', () => {
+    expect(nextUnrest({ control: 100, unrest: 0 })).toBe(0);
+    expect(nextUnrest({ control: 0, unrest: 100 })).toBe(100);
   });
 });
 

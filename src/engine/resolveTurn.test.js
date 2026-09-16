@@ -73,6 +73,21 @@ describe('resolveTurn resource income', () => {
   });
 });
 
+describe('resolveTurn unrest drift', () => {
+  it('settles unrest toward 0 when every region is at full control', () => {
+    const state = { ...createInitialState({ playerNationId: 'fr' }), regions: { ...createInitialState({ playerNationId: 'fr' }).regions, fr: { ...createInitialState({ playerNationId: 'fr' }).regions.fr, unrest: 10 } } };
+    const next = resolveTurn(state);
+    expect(next.regions.fr.unrest).toBeLessThan(10);
+  });
+
+  it('raises unrest for a region under the control threshold', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const lowControl = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, control: 10, unrest: 0 } } };
+    const next = resolveTurn(lowControl);
+    expect(next.regions.fr.unrest).toBeGreaterThan(0);
+  });
+});
+
 describe('resolveTurn AI nations', () => {
   it('grows non-player nations\' military strength over many turns without crashing', () => {
     let state = createInitialState({ playerNationId: 'fr' });

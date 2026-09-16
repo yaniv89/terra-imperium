@@ -43,6 +43,14 @@ const developmentIndex = (population, gdpMillions) => {
   return Math.min(10, Math.max(1, Math.round(Math.log10(Math.max(gdpPerCapita, 100)) * 2.2)));
 };
 
+// Real GDP/population span many orders of magnitude (a $21T economy vs. a $1B one) — used
+// linearly, per-turn gold income would range from single digits to hundreds of thousands, making
+// the starting treasury (a few hundred gold) meaningless within one turn for a superpower. Log-
+// scaling compresses that into a playable band, the same trick militaryFromPopulation already
+// uses below for the same reason.
+const goldFromGdp = (gdpMillions) => Math.round(40 * Math.log10(Math.max(gdpMillions, 1)));
+const hrFromPopulation = (population) => Math.round(25 * Math.log10(Math.max(population, 1)));
+
 const worldRegions = {};
 Object.entries(countriesMeta).forEach(([countryId, meta]) => {
   const dev = developmentIndex(meta.population, meta.gdpMillions);
@@ -59,8 +67,8 @@ Object.entries(countriesMeta).forEach(([countryId, meta]) => {
     strategicValue: dev,
     terrain: 'mixed',
     resources: {
-      gold: Math.round(meta.gdpMillions / 100),
-      hr: Math.round(meta.population / 1000)
+      gold: goldFromGdp(meta.gdpMillions),
+      hr: hrFromPopulation(meta.population)
     },
     fortification: 1,
     isCapital: true, // this single region IS this nation's whole territory — its own anchor

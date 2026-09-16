@@ -15,7 +15,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
 import { createRng } from '../utils/rng';
@@ -41,6 +41,14 @@ export const resolveTurn = (state) => {
   const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
+
+  // --- unrest drift (every region, not just the player's — this is a generic mechanic every
+  // nation's own territory is subject to) ---
+  const regions = { ...state.regions };
+  Object.entries(regions).forEach(([id, region]) => {
+    const unrest = nextUnrest(region);
+    if (unrest !== region.unrest) regions[id] = { ...region, unrest };
+  });
 
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
@@ -95,6 +103,7 @@ export const resolveTurn = (state) => {
     age: newAge,
     turnNumber: newTurnNumber,
     resources,
+    regions,
     nations,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,

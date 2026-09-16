@@ -13,12 +13,16 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
+import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
+import { hasDeposit } from '../data/deposits';
+import { ACTION_COSTS } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { randomSeed } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
+import { canAfford, applyCosts } from '../utils/helpers';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
 // ============ PERSISTENCE ============
@@ -50,7 +54,15 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       currentPopulation: data.population,
       currentInfrastructure: data.infrastructure,
       underInvasion: false,
-      isOccupied: false
+      isOccupied: false,
+      buildings: createEmptyRegionBuildings(),
+      // Unrest (plan §9): 0 = fully calm. Drifts each turn based on control% (resolveTurn.js) and
+      // can be pushed down directly via the Quell Unrest action. Every nation starts at full
+      // control of its own territory, so unrest starts at 0 rather than needing a curve.
+      unrest: 0,
+      // Built-up defense from the Build Defenses action — separate from REGIONS_DATA's static
+      // `fortification` seed value; Phase C's combat system will read both once it exists.
+      defenseLevel: 0
     };
   });
 
@@ -208,6 +220,110 @@ export const gameReducer = (state, action) => {
         : state.activeProceduralEvent;
       if (!event) return state;
       return applyEventEffects(state, event, action.payload.optionIndex);
+    }
+
+    // ---- Domestic tab (plan §5) — atomic, cost-validated player actions ----
+
+    case ActionTypes.GAIN_CONTROL: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.gainControl;
+      if (!region || region.owner !== state.playerNationId || region.control >= 100) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [regionId]: { ...region, control: Math.min(100, region.control + 5) } },
+        logs: [...state.logs, { year: state.year, message: `Gained control in ${REGIONS_DATA[regionId]?.name}. Control +5%`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.BUILD_INFRASTRUCTURE: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.buildInfrastructure;
+      if (!region || region.owner !== state.playerNationId || region.currentInfrastructure >= 10) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [regionId]: { ...region, currentInfrastructure: region.currentInfrastructure + 1 } },
+        logs: [...state.logs, { year: state.year, message: `Built infrastructure in ${REGIONS_DATA[regionId]?.name}. Level ${region.currentInfrastructure + 1}`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.BUILD_DEFENSES: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.buildDefenses;
+      if (!region || region.owner !== state.playerNationId || region.defenseLevel >= 10) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [regionId]: { ...region, defenseLevel: region.defenseLevel + 1 } },
+        logs: [...state.logs, { year: state.year, message: `Built defenses in ${REGIONS_DATA[regionId]?.name}. Level ${region.defenseLevel + 1}`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.CONSTRUCT_BUILDING: {
+      const { regionId, categoryId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.constructBuilding;
+      if (!region || region.owner !== state.playerNationId) return state;
+      const currentTier = region.buildings.categories[categoryId];
+      if (currentTier === undefined) return state; // unknown category
+      const nextTier = currentTier + 1;
+      if (!canBuildTier(categoryId, state.age, nextTier)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: {
+          ...state.regions,
+          [regionId]: {
+            ...region,
+            buildings: { ...region.buildings, categories: { ...region.buildings.categories, [categoryId]: nextTier } }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Constructed a new building in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.DEVELOP_RESOURCE_SITE: {
+      const { regionId, resourceId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.developResourceSite;
+      if (!region || region.owner !== state.playerNationId) return state;
+      if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
+      if (!hasDeposit(regionId, resourceId) || !canBuildExtraction(resourceId, state.age)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: {
+          ...state.regions,
+          [regionId]: {
+            ...region,
+            buildings: { ...region.buildings, extraction: { ...region.buildings.extraction, [resourceId]: true } }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Developed a ${resourceId} extraction site in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.QUELL_UNREST: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.quellUnrest;
+      if (!region || region.owner !== state.playerNationId || region.unrest <= 0) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [regionId]: { ...region, unrest: Math.max(0, region.unrest - 30) } },
+        logs: [...state.logs, { year: state.year, message: `Quelled unrest in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
     }
 
     case ActionTypes.ADD_LOG:
