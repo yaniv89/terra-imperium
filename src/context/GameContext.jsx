@@ -10,7 +10,8 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { GamePhases, GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA, CORE_REGION_IDS, isAdjacentToOwner } from '../data/regions';
-import { NATIONS_DATA, INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
+import { INDEPENDENCE_WAR_ATTACKERS } from '../data/nations';
+import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { TECH_TREE, canResearchTech } from '../data/techTree';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';

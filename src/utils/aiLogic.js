@@ -1,7 +1,8 @@
 // src/utils/aiLogic.js
 // AI logic for non-player nations
 
-import { NATIONS_DATA, DOCTRINES, HOSTILE_BLOCS } from '../data/nations';
+import { DOCTRINES, HOSTILE_BLOCS } from '../data/nations';
+import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { REGIONS_DATA, isAdjacentToOwner } from '../data/regions';
 import { RelationStatus } from '../data/types';
 

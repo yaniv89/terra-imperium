@@ -12,7 +12,7 @@
 
 import { GamePhases, GameStatus, LogTypes } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, CORE_REGION_IDS, distanceFromAnchor, getNationCapital } from '../data/regions';
-import { NATIONS_DATA } from '../data/nations';
+import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { TECH_TREE } from '../data/techTree';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';

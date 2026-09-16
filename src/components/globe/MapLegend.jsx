@@ -1,5 +1,5 @@
-// src/components/map/MapLegend.jsx
-// Map legend showing color meanings
+// src/components/globe/MapLegend.jsx
+// Legend for the globe's region fill colors
 
 import React from 'react';
 

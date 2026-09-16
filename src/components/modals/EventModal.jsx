@@ -4,7 +4,7 @@
 import React from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { formatNumber, formatMoney } from '../../utils/helpers';
-import { NATIONS_DATA } from '../../data/nations';
+import { WORLD_NATIONS as NATIONS_DATA } from '../../data/worldNations';
 
 // Format effect for display
 const formatEffectItem = (key, value) => {

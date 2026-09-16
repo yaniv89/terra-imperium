@@ -1,13 +1,13 @@
 // src/components/globe/GlobeContainer.jsx
-// Sizing + lazy-load wrapper around GlobeView. react-globe.gl needs explicit pixel width/height
-// (unlike the flat map's SVG viewBox, which scales itself) — a ResizeObserver keeps it in sync
-// with its flex-layout container. The three.js-based renderer (~1MB+) is only fetched once this
-// mounts, so switching to Globe View is the only thing that pays for it.
+// Sizing + lazy-load wrapper around GlobeView, the game's map. react-globe.gl needs explicit
+// pixel width/height (unlike a flat SVG's viewBox, which scales itself) — a ResizeObserver keeps
+// it in sync with its flex-layout container. The three.js-based renderer (~1MB+) is fetched once
+// this mounts.
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 
 const GlobeView = lazy(() => import('./GlobeView'));
 
-const GlobeContainer = ({ selectedCountryId, onSelectCountry }) => {
+const GlobeContainer = ({ selectedRegion, onSelectRegion }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -33,8 +33,8 @@ const GlobeContainer = ({ selectedCountryId, onSelectCountry }) => {
           <GlobeView
             width={size.width}
             height={size.height}
-            selectedCountryId={selectedCountryId}
-            onSelectCountry={onSelectCountry}
+            selectedRegion={selectedRegion}
+            onSelectRegion={onSelectRegion}
           />
         )}
       </Suspense>

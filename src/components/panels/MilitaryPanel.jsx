@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Users, Swords, Plane, Target, Crosshair, Skull, Anchor, AlertTriangle, Castle, Award, Coins, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useCombatEffects } from '../../context/CombatEffectsContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
 import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion, sumUnits, hasEnoughUnits } from '../../utils/helpers';
@@ -24,6 +25,7 @@ const TrendArrow = ({ current, previous }) => {
 
 const MilitaryPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useCombatEffects();
 
   const isPreState = state.phase === GamePhases.PRE_STATE;
   const regionState = selectedRegion ? state.regions[selectedRegion] : null;
@@ -125,6 +127,9 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('Not enough resources for invasion', 'action');
       return;
     }
+    // isAdjacent (checked above) guarantees at least one player-owned neighbor exists to launch from.
+    const originId = REGIONS_DATA[selectedRegion].neighbors.find(id => state.regions[id]?.owner === 'player');
+    triggerEffect('invasion', originId, selectedRegion);
     dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion, composition, approach: launchApproach } });
   };
 
@@ -180,6 +185,10 @@ const MilitaryPanel = ({ selectedRegion }) => {
       addLog('Not enough resources', 'action');
       return;
     }
+    // Matches the reducer's own target selection (GameContext.jsx AIR_STRIKE: the first active
+    // enemy invasion) so the animation always lands on the region actually hit.
+    const target = enemyInvasions[0];
+    triggerEffect('airstrike', 'tel_aviv', target.targetRegion);
     dispatch({ type: ActionTypes.AIR_STRIKE });
   };
 

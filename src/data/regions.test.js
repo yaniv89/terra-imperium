@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, CORE_REGION_IDS } from './regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, CORE_REGION_IDS, HAND_AUTHORED_REGION_IDS } from './regions';
 
 describe('region adjacency graph', () => {
   it('is symmetric — every neighbor relationship is listed on both sides', () => {
@@ -16,23 +16,33 @@ describe('region adjacency graph', () => {
     expect(asymmetric).toEqual([]);
   });
 
-  it('is fully connected (no isolated region/subgraph)', () => {
-    const ids = Object.keys(REGIONS_DATA);
-    const seen = new Set([ids[0]]);
-    const queue = [ids[0]];
+  // Full-world connectivity isn't a meaningful assertion once real-world geography is involved —
+  // Afro-Eurasia, the Americas, Australia, and every island nation (UK, Japan, Cyprus, Cuba, ...)
+  // are genuinely separate landmasses with zero real land border between them. What still must
+  // hold is the guarantee the original campaign was built and tested against: the 28 hand-authored
+  // regions themselves stay one connected graph.
+  it('the 28 hand-authored regions remain fully connected to each other', () => {
+    const seen = new Set([HAND_AUTHORED_REGION_IDS[0]]);
+    const queue = [HAND_AUTHORED_REGION_IDS[0]];
     while (queue.length) {
       const current = queue.shift();
       getNeighborIds(current).forEach(n => {
-        if (!seen.has(n)) { seen.add(n); queue.push(n); }
+        if (HAND_AUTHORED_REGION_IDS.includes(n) && !seen.has(n)) { seen.add(n); queue.push(n); }
       });
     }
-    const unreachable = ids.filter(id => !seen.has(id));
+    const unreachable = HAND_AUTHORED_REGION_IDS.filter(id => !seen.has(id));
     expect(unreachable).toEqual([]);
   });
 
-  it('every region has at least one neighbor', () => {
-    const isolated = Object.entries(REGIONS_DATA).filter(([, data]) => data.neighbors.length === 0);
+  it('every hand-authored region has at least one neighbor', () => {
+    const isolated = HAND_AUTHORED_REGION_IDS.filter(id => REGIONS_DATA[id].neighbors.length === 0);
     expect(isolated).toEqual([]);
+  });
+
+  it('most generated world regions have at least one real land neighbor (islands are the expected exception)', () => {
+    const worldIds = Object.keys(REGIONS_DATA).filter(id => !HAND_AUTHORED_REGION_IDS.includes(id));
+    const withNeighbors = worldIds.filter(id => REGIONS_DATA[id].neighbors.length > 0);
+    expect(withNeighbors.length / worldIds.length).toBeGreaterThan(0.6);
   });
 });
 
