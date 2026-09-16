@@ -20,6 +20,8 @@ import { ACTION_COSTS, DISBAND_HR_REFUND_RATIO } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { resolveBattle } from '../engine/battle';
+import { awardXp, canPromote, getPerk } from '../data/promotions';
+import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { randomSeed, createRng } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
@@ -143,7 +145,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     invasions: [],
     nextInvasionSeq: 0,
     counterAttackWindows: {},
-    hiredCommanders: [],
+
+    // Generals (plan §7) — a flat dict keyed by id, mirroring state.units. A general is assigned
+    // to a single unit via that unit's own commanderId (see src/data/generals.js).
+    hiredCommanders: {},
+    nextCommanderSeq: 0,
 
     // Set by LAUNCH_INVASION to the itemized phase-by-phase result of the most recent battle (see
     // src/engine/battle.js) — read by the UI for an after-action report, never by the reducer.
@@ -423,19 +429,35 @@ export const gameReducer = (state, action) => {
         defenderUnits,
         terrain: REGIONS_DATA[targetRegionId]?.terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
-        rng
+        rng,
+        generals: state.hiredCommanders
       });
+
+      // Only units actually deployed to the front line fought and earn XP; the winning side earns
+      // more than the losing side, a draw splits the difference. A Logistician-commanded unit
+      // earns extra on top (see src/data/generals.js).
+      const XP_WIN = 30;
+      const XP_LOSE = 15;
+      const attackerXpAmount = outcome === 'attacker' ? XP_WIN : outcome === 'defender' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
+      const defenderXpAmount = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
+      const awardBattleXp = (units, deployedIds, xpAmount) => units.map(u => {
+        if (!deployedIds.includes(u.id)) return u;
+        const gained = Math.round(xpAmount * getGeneralXpMultiplier(state.hiredCommanders[u.commanderId]));
+        return awardXp(u, gained);
+      });
+      const xpAttackers = awardBattleXp(resolvedAttackers, report.deployedAttackerIds, attackerXpAmount);
+      const xpDefenders = awardBattleXp(resolvedDefenders, report.deployedDefenderIds, defenderXpAmount);
 
       const nextUnits = { ...state.units };
       // Attacker survivors move into the target region on a win, otherwise fall back to where
       // they started; either way, units reduced to zero strength are destroyed and removed.
-      resolvedAttackers.forEach(u => {
+      xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
         nextUnits[u.id] = { ...u, regionId: outcome === 'attacker' ? targetRegionId : fromRegionId };
       });
       // A captured region's garrison doesn't remain a coherent defending force — on an attacker
       // win the whole defending side is cleared, survivors and routed alike.
-      resolvedDefenders.forEach(u => {
+      xpDefenders.forEach(u => {
         if (outcome === 'attacker' || u.strength <= 0) { delete nextUnits[u.id]; return; }
         nextUnits[u.id] = u;
       });
@@ -464,6 +486,72 @@ export const gameReducer = (state, action) => {
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.PROMOTE_UNIT: {
+      const { unitId, perkId } = action.payload;
+      const unit = state.units[unitId];
+      const costs = ACTION_COSTS.promoteUnit;
+      if (!unit || unit.ownerId !== state.playerNationId) return state;
+      if (!canPromote(unit)) return state;
+      const perk = getPerk(perkId);
+      if (!perk || (unit.promotions || []).includes(perkId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: { ...state.units, [unitId]: { ...unit, promotions: [...(unit.promotions || []), perkId] } },
+        logs: [...state.logs, { year: state.year, message: `Your ${unit.classId} unit earned the ${perk.name} promotion.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.HIRE_GENERAL: {
+      const costs = ACTION_COSTS.hireGeneral;
+      if (!canAfford(state.resources, costs)) return state;
+      const rng = createRng(state.rngSeed);
+      const generalId = `general_${state.nextCommanderSeq}`;
+      const general = generateGeneral(rng, generalId, state.playerNationId);
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        hiredCommanders: { ...state.hiredCommanders, [generalId]: general },
+        nextCommanderSeq: state.nextCommanderSeq + 1,
+        rngSeed: rng.getSeed(),
+        logs: [...state.logs, { year: state.year, message: `${general.name} has joined your officer corps.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.APPOINT_GENERAL: {
+      const { generalId, unitId } = action.payload;
+      const general = state.hiredCommanders[generalId];
+      const costs = ACTION_COSTS.appointGeneral;
+      if (!general || general.nationId !== state.playerNationId) return state;
+      if (unitId) {
+        const unit = state.units[unitId];
+        if (!unit || unit.ownerId !== state.playerNationId) return state;
+      }
+      if (!canAfford(state.resources, costs)) return state;
+
+      const nextUnits = { ...state.units };
+      // Vacate wherever this general was previously assigned before taking the new post.
+      if (general.assignedUnitId && nextUnits[general.assignedUnitId]) {
+        nextUnits[general.assignedUnitId] = { ...nextUnits[general.assignedUnitId], commanderId: null };
+      }
+      if (unitId) {
+        nextUnits[unitId] = { ...nextUnits[unitId], commanderId: generalId };
+      }
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: nextUnits,
+        hiredCommanders: { ...state.hiredCommanders, [generalId]: { ...general, assignedUnitId: unitId || null } },
+        logs: [...state.logs, {
+          year: state.year,
+          message: unitId ? `${general.name} took command of a unit.` : `${general.name} was recalled from the field.`,
+          type: LogTypes.ACTION
+        }]
       };
     }
 
