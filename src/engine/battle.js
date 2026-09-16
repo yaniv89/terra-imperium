@@ -97,7 +97,7 @@ const flankingPhase = (rng, sourceReserve, targetFront, ctx, log) => {
   const flankers = sourceReserve.filter((u) => u.classId === 'cavalry' && u.strength > 0);
   flankers.forEach((unit, i) => {
     if (targetFront.length === 0) return;
-    dealDamage(rng, 'flanking', unit, targetFront[i % targetFront.length], { ...ctx, baseMultiplier: FLANK_BONUS_MULT }, log);
+    dealDamage(rng, 'flanking', unit, targetFront[i % targetFront.length], { ...ctx, baseMultiplier: (ctx.baseMultiplier ?? 1) * FLANK_BONUS_MULT }, log);
   });
 };
 
@@ -133,14 +133,17 @@ const pursuitPhase = (winnerUnits, loserFront, generals, log) => {
 // commanderId, promotions, ...). `generals` is an optional {id: general} lookup (src/data/
 // generals.js) resolved by each unit's commanderId. `rng` is a src/utils/rng.js createRng()
 // instance, threaded and advanced by the caller (mirrors resolveTurn.js's rngSeed handling).
-export const resolveBattle = ({ attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {} }) => {
+// `attackerPenaltyMultiplier` (default 1, no penalty) is the amphibious-assault malus (plan
+// §7.5) — a flat multiplier on every hit the attacker lands, applied by the caller (src/context/
+// GameContext.jsx's AMPHIBIOUS_ASSAULT) rather than known to this generic engine.
+export const resolveBattle = ({ attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {}, attackerPenaltyMultiplier = 1 }) => {
   const combatWidth = getCombatWidth(terrain);
   const log = [];
 
   const { front: attFront, reserve: attReserve } = deploy(attackerUnits, combatWidth);
   const { front: defFront, reserve: defReserve } = deploy(defenderUnits, combatWidth);
 
-  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true };
+  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier };
   const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false };
 
   // Ranged phase: archers/artillery on both sides fire before contact, no return fire this phase.

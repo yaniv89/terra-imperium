@@ -22,6 +22,11 @@ export const ACTION_COSTS = {
   hireGeneral: { gold: 150, actionPoints: 1 },
   appointGeneral: { actionPoints: 1 },
 
+  embarkUnit: { actionPoints: 1 },
+  disembarkUnit: { actionPoints: 1 },
+  amphibiousAssault: { actionPoints: 3 },
+  navalEngagement: { actionPoints: 2 },
+
   researchTechActionPoints: 2
 };
 

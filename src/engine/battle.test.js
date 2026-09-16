@@ -202,3 +202,38 @@ describe('resolveBattle: generals wired into combat', () => {
     expect(dmgTaken('cautious')).toBeLessThan(dmgTaken('reckless'));
   });
 });
+
+describe('resolveBattle: amphibious assault penalty', () => {
+  it('reduces the attacker\'s damage output when set below 1', () => {
+    const dmgAt = (attackerPenaltyMultiplier) => {
+      const attackerUnits = [makeUnit('a0', 'infantry', 1000)];
+      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const { report } = run({ attackerUnits, defenderUnits, attackerPenaltyMultiplier }, 8);
+      return report.log.filter((e) => e.attackerId === 'a0').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(dmgAt(0.75)).toBeLessThan(dmgAt(1));
+  });
+
+  it('also reduces flanking damage from reserve cavalry, not just the front line', () => {
+    const flankDmgAt = (attackerPenaltyMultiplier) => {
+      const attackerUnits = [
+        ...Array.from({ length: 5 }, (_, i) => makeUnit(`filler${i}`, 'infantry', 50)),
+        makeUnit('flanker', 'cavalry', 10)
+      ];
+      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const { report } = run({ attackerUnits, defenderUnits, attackerPenaltyMultiplier }, 1);
+      return report.log.filter((e) => e.phase === 'flanking').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(flankDmgAt(0.5)).toBeLessThan(flankDmgAt(1));
+  });
+
+  it('does not affect the defender\'s damage output', () => {
+    const attackerUnits = [makeUnit('a0', 'infantry', 100000, 100)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 1000)];
+    const { report } = run({ attackerUnits, defenderUnits, attackerPenaltyMultiplier: 0.75 }, 8);
+    const defenderDamage = report.log.filter((e) => e.attackerId === 'd0').reduce((sum, e) => sum + e.damage, 0);
+    const { report: reportNoPenalty } = run({ attackerUnits, defenderUnits, attackerPenaltyMultiplier: 1 }, 8);
+    const defenderDamageNoPenalty = reportNoPenalty.log.filter((e) => e.attackerId === 'd0').reduce((sum, e) => sum + e.damage, 0);
+    expect(defenderDamage).toBe(defenderDamageNoPenalty);
+  });
+});
