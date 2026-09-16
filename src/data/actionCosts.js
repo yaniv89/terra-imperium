@@ -1,40 +1,19 @@
 // src/data/actionCosts.js
-// Single source of truth for player-action costs, shared by the reducer (enforcement)
-// and the panels (display). Keeping one copy prevents the UI and the rules from drifting.
+// Single source of truth for player-action costs, shared by the reducer (enforcement) and the
+// panels (display). Keeping one copy prevents the UI and the rules from drifting.
+//
+// Calibrated against the new economy: a fresh nation starts with 500 gold and 100 HR, and a
+// mid-size nation earns roughly 100-600 gold/turn (see build-world-regions.mjs's log-scaled
+// gdp/population -> gold/hr formulas) — costs in the tens-to-low-hundreds keep every action
+// affordable within a few turns without being free.
 
 export const ACTION_COSTS = {
-  buyLand: { money: 3000, actionPoints: 1 },
-  immigrationPreState: { money: 5000, diplomacyPoints: 5, actionPoints: 1 },
-  immigrationPostState: { money: 10000, diplomacyPoints: 10, actionPoints: 1 },
-  buildInfrastructure: { money: 5000, actionPoints: 1 },
-  lobbyPowers: { money: 3000, actionPoints: 1 },
-
-  trainUnderground: { money: 3000, manpower: 500, actionPoints: 1 },
-  trainInfantry: { money: 8000, manpower: 1000, actionPoints: 1 },
-  buildTanks: { money: 20000, actionPoints: 1 },
-  buildJets: { money: 30000, techPoints: 10, actionPoints: 1 },
-  launchInvasion: { money: 50000, manpower: 5000, actionPoints: 3 },
-  counterattack: { money: 10000, actionPoints: 2 },
-  airStrike: { money: 20000, actionPoints: 2 },
-  fortify: { money: 8000, actionPoints: 1 },
-
-  declareWar: { diplomacyPoints: 20 },
-  seekPeace: { money: 20000, diplomacyPoints: 30, actionPoints: 2 },
-  signTrade: { diplomacyPoints: 15, actionPoints: 1 },
-  militaryPact: { diplomacyPoints: 40, money: 50000, actionPoints: 2 },
-
-  // Covert operations (require the corresponding intel tech researched — see TechPanel).
-  sabotageInvasion: { diplomacyPoints: 15, actionPoints: 1 },
-  destabilizeNation: { diplomacyPoints: 30, money: 20000, actionPoints: 2 },
-  covertTechTheft: { diplomacyPoints: 40, actionPoints: 2 },
-
-  // Tactical battle systems (Phase 8)
-  commissionCommander: { money: 30000, diplomacyPoints: 15, actionPoints: 1 },
-  hireMercenaries: { money: 25000, actionPoints: 1 },
-
-  // Comeback mechanics (Phase 10) — only usable while core control is critically low.
-  emergencyIntervention: { diplomacyPoints: 50, actionPoints: 1 },
-  scorchedEarthDefense: { money: 40000, actionPoints: 1 },
+  gainControl: { gold: 40, actionPoints: 1 },
+  buildInfrastructure: { gold: 80, actionPoints: 1 },
+  buildDefenses: { gold: 60, actionPoints: 1 },
+  constructBuilding: { gold: 100, actionPoints: 1 },
+  developResourceSite: { gold: 120, actionPoints: 1 },
+  quellUnrest: { gold: 50, actionPoints: 1 },
 
   researchTechActionPoints: 2
 };

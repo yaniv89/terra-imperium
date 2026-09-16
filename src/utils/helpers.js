@@ -7,6 +7,7 @@
 import { RelationStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
+import { hasDeposit } from '../data/deposits';
 
 // ============ NUMBER FORMATTING ============
 
@@ -58,10 +59,14 @@ export const COMEBACK_THRESHOLD = 30;
 
 export const getPlayerControl = (state) => state.regions[state.playerNationId]?.control ?? 0;
 
-// Per-turn resource income for the player's nation: each unlocked resource's regional yield,
-// scaled by that region's control% and infrastructure level. Deposits (which regions produce
-// which resource) are geography, not implemented yet (Phase B) — every region currently yields
-// gold and hr only, from REGIONS_DATA's gdp/population-derived proxy values.
+// Base per-turn yield of a developed extraction building (Copper Mine / Iron Foundry / Oil Well),
+// before the same control%/infrastructure scaling every other resource gets.
+const EXTRACTION_BASE_YIELD = 20;
+
+// Per-turn resource income for the player's nation: gold/hr from every owned region's gdp/
+// population-derived base value, plus copper/iron/oil from any region that has both the deposit
+// (src/data/deposits.js) and the matching extraction building actually built
+// (src/data/buildings.js) — geography and construction gate strategic resources, not just age.
 export const calcIncome = (state) => {
   const playerRegions = Object.values(state.regions).filter(r => r.owner === state.playerNationId);
 
@@ -77,6 +82,12 @@ export const calcIncome = (state) => {
       if (income[resId] === undefined) return; // not unlocked at the current age
       income[resId] += amount * controlMult * infraMult;
     });
+
+    Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
+      if (!built || income[resId] === undefined) return;
+      if (!hasDeposit(region.id, resId)) return; // building without a deposit produces nothing
+      income[resId] += EXTRACTION_BASE_YIELD * controlMult * infraMult;
+    });
   });
 
   // Trade agreement bonuses.
@@ -85,6 +96,31 @@ export const calcIncome = (state) => {
 
   Object.keys(income).forEach(id => { income[id] = Math.round(income[id]); });
   return income;
+};
+
+// Infrastructure -> supply capacity (plan §5/§9): how far an army can operate from this region
+// before it starts bleeding strength, in adjacency hops. Consumed by Phase C's combat/attrition
+// system once armies exist; exposed now so Build Infrastructure is already strategically
+// load-bearing rather than a pure economy button.
+export const getSupplyCapacity = (infrastructureLevel) => 1 + Math.floor((infrastructureLevel || 0) / 2);
+
+// Stability is just unrest inverted for display — one stored field (region.unrest), not two
+// numbers that could drift out of sync with each other.
+export const getStability = (region) => 100 - (region?.unrest || 0);
+
+const UNREST_RISE_PER_TURN = 3;
+const UNREST_FALL_PER_TURN = 1;
+// Below this control%, a region's own populace resists it — matches the plan's "low stability
+// spawns rebel armies" framing conceptually, though the rebel-army consequence itself is Phase C
+// work (it needs the unit/combat system this drift doesn't depend on).
+const UNREST_CONTROL_THRESHOLD = 50;
+
+// One turn's unrest drift for a single region — rises under low control, settles otherwise.
+// Exported standalone (not just inlined in resolveTurn) so the threshold/rate constants above are
+// unit-testable without needing a full turn resolution.
+export const nextUnrest = (region) => {
+  const delta = (region.control || 0) < UNREST_CONTROL_THRESHOLD ? UNREST_RISE_PER_TURN : -UNREST_FALL_PER_TURN;
+  return Math.max(0, Math.min(100, (region.unrest || 0) + delta));
 };
 
 // ============ REGION HELPERS ============

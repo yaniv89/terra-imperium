@@ -74,6 +74,142 @@ describe('LOAD_GAME', () => {
   });
 });
 
+describe('Domestic tab actions', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, gold: 100000 } };
+  };
+
+  describe('GAIN_CONTROL', () => {
+    it('raises control by 5% and deducts the cost', () => {
+      const before = richState();
+      const withLowControl = { ...before, regions: { ...before.regions, fr: { ...before.regions.fr, control: 50 } } };
+      const next = gameReducer(withLowControl, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: 'fr' } });
+      expect(next.regions.fr.control).toBe(55);
+      expect(next.resources.gold).toBeLessThan(withLowControl.resources.gold);
+    });
+
+    it('is a no-op on a region not owned by the player', () => {
+      const state = richState();
+      const otherId = Object.keys(state.regions).find(id => id !== 'fr');
+      expect(gameReducer(state, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: otherId } })).toBe(state);
+    });
+
+    it('is a no-op already at 100% control', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: 'fr' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = createInitialState({ playerNationId: 'fr' });
+      const withLowControl = { ...state, resources: { ...state.resources, gold: 0 }, regions: { ...state.regions, fr: { ...state.regions.fr, control: 50 } } };
+      expect(gameReducer(withLowControl, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: 'fr' } })).toBe(withLowControl);
+    });
+  });
+
+  describe('BUILD_INFRASTRUCTURE', () => {
+    it('raises infrastructure level and deducts the cost', () => {
+      const base = richState();
+      const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, currentInfrastructure: 3 } } };
+      const next = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } });
+      expect(next.regions.fr.currentInfrastructure).toBe(4);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op at the level cap', () => {
+      const state = richState();
+      const maxed = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, currentInfrastructure: 10 } } };
+      expect(gameReducer(maxed, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } })).toBe(maxed);
+    });
+  });
+
+  describe('BUILD_DEFENSES', () => {
+    it('raises defenseLevel and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: 'fr' } });
+      expect(next.regions.fr.defenseLevel).toBe(1);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op at the level cap', () => {
+      const state = richState();
+      const maxed = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, defenseLevel: 10 } } };
+      expect(gameReducer(maxed, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: 'fr' } })).toBe(maxed);
+    });
+  });
+
+  describe('CONSTRUCT_BUILDING', () => {
+    it('advances a category to its first tier in the Bronze Age', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
+      expect(next.regions.fr.buildings.categories.food).toBe(0);
+    });
+
+    it('rejects rushing more than one tier ahead of the calendar', () => {
+      const state = richState();
+      const tier0 = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
+      const tier1 = gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
+      expect(tier1.regions.fr.buildings.categories.food).toBe(1); // Irrigation (classical) — one age ahead of bronze, allowed
+      const tier2Attempt = gameReducer(tier1, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
+      expect(tier2Attempt).toBe(tier1); // Farm Estate (kingdoms) — two ages ahead, rejected
+    });
+
+    it('rejects an unknown category', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'not_real' } })).toBe(state);
+    });
+  });
+
+  describe('DEVELOP_RESOURCE_SITE', () => {
+    it('develops a deposit the region actually has', () => {
+      const state = richState('cl'); // Chile has copper
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'cl', resourceId: 'copper' } });
+      expect(next.regions.cl.buildings.extraction.copper).toBe(true);
+    });
+
+    it('rejects a resource the region has no deposit for', () => {
+      const state = richState('fr'); // France has no copper deposit listed
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'fr', resourceId: 'copper' } })).toBe(state);
+    });
+
+    it('rejects developing the same site twice', () => {
+      const state = richState('cl');
+      const once = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'cl', resourceId: 'copper' } });
+      expect(gameReducer(once, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'cl', resourceId: 'copper' } })).toBe(once);
+    });
+
+    it('rejects a resource not yet unlocked by age', () => {
+      const state = richState('sa'); // Saudi Arabia has oil, but oil needs Modern age
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'sa', resourceId: 'oil' } })).toBe(state);
+    });
+  });
+
+  describe('QUELL_UNREST', () => {
+    const withUnrest = (unrest) => {
+      const base = richState();
+      return { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest } } };
+    };
+
+    it('reduces unrest and deducts the cost', () => {
+      const state = withUnrest(50);
+      const next = gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: 'fr' } });
+      expect(next.regions.fr.unrest).toBe(20);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op when there is no unrest to quell', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: 'fr' } })).toBe(state);
+    });
+
+    it('floors at 0 rather than going negative', () => {
+      const state = withUnrest(10);
+      const next = gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: 'fr' } });
+      expect(next.regions.fr.unrest).toBe(0);
+    });
+  });
+});
+
 describe('default case', () => {
   it('returns state unchanged for an unrecognized action type', () => {
     const state = createInitialState({ playerNationId: 'fr' });

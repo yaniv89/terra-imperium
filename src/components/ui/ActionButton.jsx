@@ -2,7 +2,7 @@
 // Reusable action button component with cost and effect display
 
 import React from 'react';
-import { formatNumber, formatMoney } from '../../utils/helpers';
+import { getCostString } from '../../utils/helpers';
 
 const VARIANT_STYLES = {
   default: 'bg-slate-700/80 hover:bg-slate-600 border-slate-600 text-slate-100',
@@ -15,32 +15,21 @@ const VARIANT_STYLES = {
 
 const formatCost = (costs) => {
   if (!costs) return null;
-  const parts = [];
-  
-  if (costs.money) parts.push(formatMoney(costs.money));
-  if (costs.manpower) parts.push(`${formatNumber(costs.manpower)} Men`);
-  if (costs.diplomacyPoints) parts.push(`${costs.diplomacyPoints} DP`);
-  if (costs.techPoints) parts.push(`${costs.techPoints} TP`);
-  if (costs.actionPoints) parts.push(`${costs.actionPoints} AP`);
-  
-  return parts.length > 0 ? parts.join(' · ') : null;
+  const str = getCostString(costs);
+  return str || null;
 };
 
 const formatEffect = (effects) => {
   if (!effects) return null;
   const parts = [];
-  
+
   if (effects.control) parts.push(`+${effects.control}% Control`);
-  if (effects.manpower) parts.push(`+${formatNumber(effects.manpower)} Men`);
-  if (effects.money) parts.push(`+${formatMoney(effects.money)}`);
-  if (effects.diplomacyPoints) parts.push(`+${effects.diplomacyPoints} DP`);
-  if (effects.techPoints) parts.push(`+${effects.techPoints} TP`);
-  if (effects.militaryPower) parts.push(`+${formatNumber(effects.militaryPower)} Power`);
-  if (effects.underground) parts.push(`+${formatNumber(effects.underground)} Underground`);
   if (effects.infrastructure) parts.push(`+${effects.infrastructure} Infra`);
+  if (effects.defense) parts.push(`+${effects.defense} Defense`);
+  if (effects.unrest) parts.push(`-${effects.unrest} Unrest`);
   if (effects.hostilityReduction) parts.push(`-${effects.hostilityReduction} Hostility`);
   if (effects.custom) parts.push(effects.custom);
-  
+
   return parts.length > 0 ? parts.join(', ') : null;
 };
 
