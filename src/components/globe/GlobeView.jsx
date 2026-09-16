@@ -1,75 +1,30 @@
 // src/components/globe/GlobeView.jsx
 // The 3D globe (react-globe.gl / three.js) IS the game's map — there is no flat SVG map anymore.
-// Each of the 28 hand-authored game regions (src/data/regions.js) is rendered using real
-// country/province geometry (see loadGameRegions.js), colored by live ownership/control exactly
-// like the old flat map did, and clickable to drive the same selectedRegion/onSelectRegion contract
-// the rest of the game (ActionPanel, RegionInfoModal) already expects. Every other country on
-// Earth renders too, subdivided into its own real admin-1 provinces/states (see
-// loadGameRegions.js) and colored in its own WORLD_NATIONS hue (Phase 13's golden-angle palette),
-// with each province a small shade of that hue — a real, fully subdivided political map, not a
-// flat per-country backdrop — but not clickable/game-interactive.
+// Every country on Earth is a real, playable game region (src/data/regions.js): the 28
+// hand-authored ones from the original campaign, plus one whole-country region for every other
+// nation (Phase 13's world-region expansion — see scripts/geo/build-world-regions.mjs), each
+// rendered using real admin-1 province geometry (see loadGameRegions.js) so the globe reads as an
+// actual subdivided map, not flat per-country blobs. Every region is colored by live
+// ownership/control and clickable to drive the same selectedRegion/onSelectRegion contract the
+// rest of the game (ActionPanel, RegionInfoModal) already expects — there's no separate
+// "decorative backdrop" tier anymore, the whole world is the same one system.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
 import { useGame } from '../../context/GameContext';
-import { REGIONS_DATA } from '../../data/regions';
+import { REGIONS_DATA, HAND_AUTHORED_REGION_IDS } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { useCombatEffects } from '../../context/CombatEffectsContext';
-import GlobeEffectsOverlay from './GlobeEffectsOverlay';
+import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { RegionInfoModal } from '../modals';
 import MapLegend from './MapLegend';
-import { WORLD_NATIONS } from '../../data/worldNations';
 
-const NEUTRAL_LAND_COLOR = '#334155'; // slate-700, fallback for anything WORLD_NATIONS has no entry for
+const NEUTRAL_LAND_COLOR = '#334155'; // slate-700, defensive fallback — every real region has a nation color
 const OCEAN_COLOR = '#0f172a'; // slate-900
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-// A country's WORLD_NATIONS color as a base hue/saturation, with each of its own provinces given
-// a small, deterministic lightness offset — so a whole country still reads as one color family
-// (matching its neighbors' expectations of "which country is this"), while its internal
-// admin-1 borders are still visually meaningful rather than invisible seams in a flat blob.
-const toHsl = (color) => {
-  if (color.startsWith('hsl')) {
-    const [h, s, l] = color.match(/[\d.]+/g).map(Number);
-    return { h, s, l };
-  }
-  const hex = color.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16) / 255;
-  const g = parseInt(hex.substring(2, 4), 16) / 255;
-  const b = parseInt(hex.substring(4, 6), 16) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    h *= 60;
-  }
-  return { h, s: s * 100, l: l * 100 };
-};
-
-// Cheap deterministic string hash (no crypto needed) so the same province always lands on the
-// same shade across reloads, without needing a stable array index.
-const hashString = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) | 0;
-  return Math.abs(hash);
-};
-
-const provinceShade = (baseColor, provinceId) => {
-  const { h, s, l } = toHsl(baseColor);
-  const offset = (hashString(provinceId) % 5 - 2) * 6; // -12, -6, 0, 6, 12
-  const shadedL = Math.min(72, Math.max(22, l + offset));
-  return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(shadedL)}%)`;
-};
 
 // Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic exactly, so
 // switching to the globe changed nothing about what the colors mean.
@@ -98,19 +53,43 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   // The globe auto-rotates (below) — without this, a newly-triggered effect could land anywhere
   // on the sphere, including the far side facing away from the camera, making it invisible.
-  // Flying the camera to the effect's target and pausing rotation is what actually makes the
-  // animation something the player sees rather than something that technically fired offscreen.
+  // Moving the camera and pausing rotation is what actually makes the animation something the
+  // player sees rather than something that technically fired offscreen. It runs as a two-beat
+  // camera move: first frame the WHOLE trajectory (getFramingPov centres on the midpoint and
+  // pulls back far enough for the launch site and the target to share the screen, so the arc is
+  // watchable end to end), then punch in on the target at the exact moment of impact.
   const lastEffectId = useRef(null);
+  const shakeRef = useRef(null);
   useEffect(() => {
-    if (!effects || effects.length === 0) return;
+    if (!effects || effects.length === 0) return undefined;
     const latest = effects[effects.length - 1];
-    if (latest.id === lastEffectId.current) return;
+    if (latest.id === lastEffectId.current) return undefined;
     lastEffectId.current = latest.id;
     const to = REGION_COORDINATES[latest.toRegionId];
-    if (!to || !globeRef.current) return;
+    if (!to || !globeRef.current) return undefined;
     const controls = globeRef.current.controls();
     if (controls) controls.autoRotate = false;
-    globeRef.current.pointOfView({ lat: to.lat, lng: to.lng, altitude: 0.4 }, 500);
+
+    const framing = getFramingPov(latest.fromRegionId, latest.toRegionId)
+      || { lat: to.lat, lng: to.lng, altitude: 0.4 };
+    globeRef.current.pointOfView(framing, 520);
+
+    if (prefersReducedMotion()) return undefined;
+    const punch = setTimeout(() => {
+      globeRef.current?.pointOfView({ lat: to.lat, lng: to.lng, altitude: 0.22 }, 620);
+      // Restarting a CSS animation needs the name cleared and a reflow forced in between,
+      // otherwise a second strike in quick succession wouldn't shake at all.
+      const node = shakeRef.current;
+      if (node) {
+        node.style.animation = 'none';
+        void node.offsetWidth;
+        node.style.animation = '';
+        node.classList.remove('globe-impact-shake');
+        void node.offsetWidth;
+        node.classList.add('globe-impact-shake');
+      }
+    }, getImpactDelay(latest.type));
+    return () => clearTimeout(punch);
   }, [effects]);
 
   useEffect(() => {
@@ -142,12 +121,6 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   const capColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) {
-      const countryId = feature.properties?.countryId || feature.id;
-      const baseColor = WORLD_NATIONS[countryId]?.color;
-      if (!baseColor) return NEUTRAL_LAND_COLOR;
-      return provinceShade(baseColor, feature.id);
-    }
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
     const nation = regionState.owner !== 'player' ? state.nations[regionState.owner] : null;
@@ -156,7 +129,6 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   const strokeColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) return '#0f172a';
     if (gameRegionId === selectedRegion) return '#2563eb';
     if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
     return '#0f172a';
@@ -164,7 +136,6 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   const altitude = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) return 0.006;
     if (gameRegionId === selectedRegion) return 0.03;
     if (state.regions[gameRegionId]?.underInvasion) return 0.02;
     return 0.012;
@@ -172,25 +143,16 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   const label = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) {
-      const countryId = feature.properties?.countryId || feature.id;
-      const nation = WORLD_NATIONS[countryId];
-      const countryName = feature.properties?.countryName || nation?.name;
-      const provinceName = feature.properties?.name;
-      const subtitle = countryName && countryName !== provinceName ? countryName : '';
-      return `
-        <div style="background:#0f172a;color:#e2e8f0;padding:5px 8px;border-radius:6px;font:11px sans-serif;border:1px solid #334155">
-          <strong>${provinceName || countryName || ''}</strong>${subtitle ? `<br/><span style="color:#94a3b8">${subtitle}</span>` : ''}
-        </div>
-      `;
-    }
     const regionData = REGIONS_DATA[gameRegionId];
     const regionState = state.regions[gameRegionId];
+    if (!regionData || !regionState) return '';
     const ownerName = regionState.owner === 'player' ? 'You' : (state.nations[regionState.owner]?.name || regionState.owner);
+    const provinceName = feature.properties?.name;
+    const subtitle = provinceName && provinceName !== regionData.name ? `${provinceName} &middot; ` : '';
     return `
       <div style="background:#0f172a;color:#e2e8f0;padding:6px 10px;border-radius:6px;font:12px sans-serif;border:1px solid #334155">
         <strong>${regionData.name}</strong><br/>
-        <span style="color:#94a3b8">${ownerName}${regionState.owner === 'player' ? ` &middot; ${regionState.control || 0}%` : ''}</span>
+        <span style="color:#94a3b8">${subtitle}${ownerName}${regionState.owner === 'player' ? ` &middot; ${regionState.control || 0}%` : ''}</span>
       </div>
     `;
   };
@@ -204,11 +166,8 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // Memoized so polygonsData keeps a STABLE reference across re-renders that don't actually
   // change the underlying geometry (e.g. a GameContext update from an unrelated action) — a new
   // array identity every render would make react-globe.gl treat it as entirely new data and
-  // rebuild all ~950 polygon meshes on every render instead of just once.
-  const polygons = useMemo(
-    () => (geo ? [...geo.gameRegionFeatures, ...geo.restOfWorldFeatures] : null),
-    [geo]
-  );
+  // rebuild every polygon mesh on every render instead of just once.
+  const polygons = useMemo(() => geo?.gameRegionFeatures || null, [geo]);
 
   if (!geo) {
     return (
@@ -219,13 +178,17 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full overflow-hidden">
       <RegionInfoModal
         regionId={selectedRegion}
         onClose={() => onSelectRegion(null)}
         position="panel"
       />
       <MapLegend />
+      {/* The globe and its effects overlay share one wrapper so the impact shake moves them
+          together — shaking the canvas alone would slide the map out from under the animation.
+          The panel chrome (legend, region card) deliberately sits outside it and stays still. */}
+      <div ref={shakeRef} className="absolute inset-0">
       <Globe
         ref={globeRef}
         width={width}
@@ -241,7 +204,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
         polygonSideColor={() => 'rgba(15, 23, 42, 0.6)'}
         polygonStrokeColor={strokeColor}
         polygonAltitude={altitude}
-        polygonCapCurvatureResolution={(feature) => (feature.properties?.gameRegionId ? 5 : 30)}
+        polygonCapCurvatureResolution={(feature) => (HAND_AUTHORED_REGION_IDS.includes(feature.properties?.gameRegionId) ? 5 : 30)}
         polygonsTransitionDuration={200}
         polygonLabel={label}
         onPolygonClick={handleClick}
@@ -249,6 +212,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
       {!prefersReducedMotion() && (
         <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} />
       )}
+      </div>
     </div>
   );
 };

@@ -6,7 +6,7 @@
 
 import { RelationStatus, LogTypes, GameStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
-import { NATIONS_DATA } from '../data/nations';
+import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { addUnits } from '../utils/helpers';
 import { declareWar } from './diplomacy';
 

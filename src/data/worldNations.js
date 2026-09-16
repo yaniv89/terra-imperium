@@ -73,13 +73,19 @@ const buildGeneratedNation = (countryId, meta) => ({
   gdpMillions: meta.gdpMillions
 });
 
-export const WORLD_NATIONS = Object.fromEntries(
-  Object.entries(countriesMeta).map(([countryId, meta]) => {
-    const handTunedId = HAND_TUNED_COUNTRY_IDS[countryId];
-    if (handTunedId) return [handTunedId, NATIONS_DATA[handTunedId]];
-    return [countryId, buildGeneratedNation(countryId, meta)];
-  })
-);
+export const WORLD_NATIONS = {
+  // Stateless actors (Hamas) hold no sovereign territory in the country tier at all, so they can
+  // never be reached by iterating countriesMeta below — carried over directly instead, same as
+  // every other hand-tuned nation, so nothing in NATIONS_DATA is silently dropped by this merge.
+  hamas: NATIONS_DATA.hamas,
+  ...Object.fromEntries(
+    Object.entries(countriesMeta).map(([countryId, meta]) => {
+      const handTunedId = HAND_TUNED_COUNTRY_IDS[countryId];
+      if (handTunedId) return [handTunedId, NATIONS_DATA[handTunedId]];
+      return [countryId, buildGeneratedNation(countryId, meta)];
+    })
+  )
+};
 
 // Re-exported so anything consuming WORLD_NATIONS can still reach the original conflict's bloc
 // groupings without importing two nation tables.

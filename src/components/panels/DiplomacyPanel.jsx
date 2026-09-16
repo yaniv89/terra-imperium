@@ -1,12 +1,12 @@
 // src/components/panels/DiplomacyPanel.jsx
 // Diplomacy panel - relations with other nations
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 // FIX: Replaced 'Handshake' with 'Flag' to resolve the export error
-import { Flag, ShoppingCart, Shield, AlertTriangle, Crosshair, Swords as SwordsGoal } from 'lucide-react';
+import { Flag, ShoppingCart, Shield, AlertTriangle, Crosshair, Swords as SwordsGoal, Search } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GamePhases, ActionTypes } from '../../data/types';
-import { NATIONS_DATA } from '../../data/nations';
+import { WORLD_NATIONS as NATIONS_DATA } from '../../data/worldNations';
 import { REGIONS_DATA } from '../../data/regions';
 import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
@@ -21,18 +21,23 @@ const describeWarGoal = (goal) => {
 
 const DiplomacyPanel = () => {
   const { state, dispatch, addLog } = useGame();
+  const [search, setSearch] = useState('');
 
   const isPreState = state.phase === GamePhases.PRE_STATE;
 
-  // Sort nations: at war first, then by hostility
+  // Sort nations: at war first, then by hostility. With the whole world in state.nations (Phase
+  // 13), this naturally pushes the ~225 passive/neutral generated nations (flat hostility: 5) to
+  // the bottom, so the original conflict's nations still surface first by default — the search
+  // box below is for the rest.
   const sortedNations = useMemo(() => {
     return Object.values(state.nations)
       .filter(n => !n.isPlayer)
+      .filter(n => !search.trim() || n.name.toLowerCase().includes(search.trim().toLowerCase()))
       .sort((a, b) => {
         if (a.isAtWar !== b.isAtWar) return a.isAtWar ? -1 : 1;
         return b.hostility - a.hostility;
       });
-  }, [state.nations]);
+  }, [state.nations, search]);
 
   // The single active war against a given nation, if any — used to show its goal (Phase 7).
   const activeWarWith = (nationId) => state.wars.find(w => w.enemy === nationId && w.active);
@@ -121,6 +126,19 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       )}
+
+      {/* Search — with the whole world in this list (Phase 13), finding one specific nation by
+          scrolling alone isn't practical. */}
+      <div className="relative mb-2">
+        <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search nations..."
+          className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+        />
+      </div>
 
       {/* Nations List */}
       <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600">

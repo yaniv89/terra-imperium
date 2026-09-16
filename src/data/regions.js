@@ -1,9 +1,13 @@
 // src/data/regions.js
-// All region definitions for the Middle East map
+// All region definitions for the Middle East map, plus (merged in below) a generated region for
+// every other country on Earth — see worldRegions.json / scripts/geo/build-world-regions.mjs.
+// Everything below still refers only to the original 28 hand-authored regions; nothing here was
+// changed to accommodate the merge, so this campaign's tuning is exactly as it always was.
 
 import { RegionTypes } from './types';
+import WORLD_REGIONS_DATA from './geo/worldRegions.json';
 
-export const REGIONS_DATA = {
+const HAND_AUTHORED_REGIONS = {
   // ============ ISRAEL CORE REGIONS ============
   tel_aviv: {
     id: 'tel_aviv',
@@ -461,8 +465,24 @@ export const REGIONS_DATA = {
   }
 };
 
-// Adjacency is authored one-directional above for readability; symmetrize it here so a region
-// always lists every neighbor that lists it back, regardless of which side was written.
+// Every other country on Earth, one whole-country region each, generated from real population/GDP
+// and real geographic adjacency (see scripts/geo/build-world-regions.mjs) — this is what makes
+// the rest of the world actually playable (invadable, targetable by diplomacy), not just a
+// colored backdrop on the globe. Hand-authored regions are spread LAST so an id collision (there
+// shouldn't be any — the generator explicitly excludes every hand-tuned country) can never
+// silently shadow tuned work with a generated one.
+export const REGIONS_DATA = { ...WORLD_REGIONS_DATA, ...HAND_AUTHORED_REGIONS };
+
+// The original 28 — everything the hand-tuned Israel/Middle East campaign was built and balanced
+// around, as opposed to a generated world region. Exported for anything (tests, future UI) that
+// needs to tell the two apart, e.g. "the core conflict is still fully connected" independent of
+// whether some real-world island nation happens to have zero land neighbors.
+export const HAND_AUTHORED_REGION_IDS = Object.keys(HAND_AUTHORED_REGIONS);
+
+// Adjacency is authored one-directional above for readability (and the generated world regions
+// above only list their OWN newly-discovered neighbors, not the reverse link into a hand-authored
+// region they border) — symmetrize it here so a region always lists every neighbor that lists it
+// back, regardless of which side was written.
 Object.entries(REGIONS_DATA).forEach(([id, data]) => {
   (data.neighbors || []).forEach(neighborId => {
     const neighbor = REGIONS_DATA[neighborId];
