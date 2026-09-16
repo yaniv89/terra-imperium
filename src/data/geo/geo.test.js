@@ -38,6 +38,13 @@ describe('countries tier', () => {
     });
   });
 
+  it('every entry has a positive population and gdp (feeds Phase 13 worldNations.js)', () => {
+    Object.values(countriesMeta).forEach((m) => {
+      expect(m.population).toBeGreaterThan(0);
+      expect(m.gdpMillions).toBeGreaterThan(0);
+    });
+  });
+
   it('adjacency is symmetric (A borders B iff B borders A)', () => {
     expect(checkSymmetric(countriesAdjacency)).toEqual([]);
   });

@@ -214,7 +214,15 @@ async function main() {
     features: admin0Raw.features,
     countryOf: countryId,
     idFn: countryId,
-    metaFn: (p) => ({ name: p.NAME, continent: p.CONTINENT }),
+    // population/gdp feed Phase 13's world nation generation (src/data/worldNations.js) —
+    // fallback floors keep a handful of near-zero/uninhabited entries (Vatican's population is
+    // recorded as 0 in this Natural Earth cut) from producing zero/negative derived stats.
+    metaFn: (p) => ({
+      name: p.NAME,
+      continent: p.CONTINENT,
+      population: p.POP_EST > 0 ? Math.round(p.POP_EST) : 1000,
+      gdpMillions: p.GDP_MD > 0 ? Math.round(p.GDP_MD) : 10
+    }),
     simplifyPct: 5
   });
 
