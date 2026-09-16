@@ -160,6 +160,17 @@ const loadOrCreateState = () => {
   }
 };
 
+// Pure, side-effect-visible-only-via-read check: true if a save already exists. Used by the app
+// shell to decide whether to show the country-select/difficulty/speed start screen (a brand new
+// player, or one whose save is gone) or go straight to GameLayout.
+export const hasExistingSave = () => {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch (e) {
+    return false;
+  }
+};
+
 // ============ REDUCER ============
 // Exported for direct unit testing (see GameContext.test.js) — the reducer is the authoritative
 // validation point for every player action, so it should be testable without mounting React.
