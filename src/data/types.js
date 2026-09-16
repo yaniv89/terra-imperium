@@ -48,7 +48,12 @@ export const ActionTypes = {
   NAVAL_ENGAGEMENT: 'NAVAL_ENGAGEMENT',
 
   // Rebellion (plan §9) — fighting off a spawned rebel army in one of the player's own regions.
-  SUPPRESS_REBELLION: 'SUPPRESS_REBELLION'
+  SUPPRESS_REBELLION: 'SUPPRESS_REBELLION',
+
+  // Research tab (plan) — Set Focus/Fund Scholars feed techPoints, Research Tech spends them.
+  RESEARCH_TECH: 'RESEARCH_TECH',
+  SET_RESEARCH_FOCUS: 'SET_RESEARCH_FOCUS',
+  FUND_SCHOLARS: 'FUND_SCHOLARS'
 };
 
 export const LogTypes = {

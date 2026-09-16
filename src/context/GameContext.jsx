@@ -5,18 +5,18 @@
 // the reducer's job is validation + a single atomic state transition per dispatch.
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
+import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
-import { TECH_TREE } from '../data/techTree';
+import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, getCalendarAgeId } from '../data/ages';
+import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
-import { ACTION_COSTS, DISBAND_HR_REFUND_RATIO } from '../data/actionCosts';
+import { ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { resolveBattle } from '../engine/battle';
@@ -115,6 +115,12 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // Time
     year,
     age,
+    // The nation's tech-earned age (plan §2) — starts equal to the calendar age; RESEARCH_TECH
+    // advances it once enough of its current age's tech line is researched. Never used directly
+    // for gating; src/data/ages.js's getEffectiveAgeId(age, techAgeId) is what buildings/units/
+    // extraction actually read, capped at one age ahead of the calendar. See techTree.js's file
+    // header for what this currently does and doesn't unlock beyond Phase B's existing rush rule.
+    techAgeId: age,
     gameSpeed,
     turnNumber: 1,
     gameStatus: GameStatus.ACTIVE,
@@ -142,6 +148,9 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     regions,
     nations,
     techTree,
+    // Set Research Focus (Research tab) — which TechCategory the nation is committing research
+    // effort toward; null until first set. See helpers.js's calcIncome for its effect.
+    researchFocus: null,
 
     // Per-region armies (plan §7) — a flat dict keyed by unit id, not nested under regions, since
     // units move between regions over their lifetime. See src/data/unitClasses.js for the class/
@@ -301,7 +310,7 @@ export const gameReducer = (state, action) => {
       const currentTier = region.buildings.categories[categoryId];
       if (currentTier === undefined) return state; // unknown category
       const nextTier = currentTier + 1;
-      if (!canBuildTier(categoryId, state.age, nextTier)) return state;
+      if (!canBuildTier(categoryId, getEffectiveAgeId(state.age, state.techAgeId), nextTier)) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -323,7 +332,7 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.developResourceSite;
       if (!region || region.owner !== state.playerNationId) return state;
       if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
-      if (!hasDeposit(regionId, resourceId) || !canBuildExtraction(resourceId, state.age)) return state;
+      if (!hasDeposit(regionId, resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -360,7 +369,7 @@ export const gameReducer = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.recruitUnit;
       if (!region || region.owner !== state.playerNationId) return state;
-      if (!getAvailableClasses(state.age).includes(classId)) return state;
+      if (!getAvailableClasses(getEffectiveAgeId(state.age, state.techAgeId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
@@ -760,6 +769,64 @@ export const gameReducer = (state, action) => {
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, kind: 'rebellion', fromRegionId: regionId, targetRegionId: regionId, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.RESEARCH_TECH: {
+      const { techId } = action.payload;
+      const tech = TECH_TREE[techId];
+      const costs = ACTION_COSTS.researchTech;
+      if (!tech) return state;
+      if (!canResearchTech(techId, state.techTree, state.resources, state.year).can) return state;
+      if (!canAfford(state.resources, costs)) return state;
+
+      const nextTechTree = { ...state.techTree, [techId]: { ...state.techTree[techId], researched: true } };
+
+      // Tech-earned age (plan §2): once a majority of the current tech age's line is researched,
+      // it advances — see src/data/ages.js's getEffectiveAgeId, which is what actually gates
+      // buildings/units/extraction one age ahead of the calendar as a result.
+      const currentAgeTechs = getTechsForAge(state.techAgeId);
+      const researchedCount = currentAgeTechs.filter(t => nextTechTree[t.id]?.researched).length;
+      const nextTechAgeIndex = AGE_ORDER.indexOf(state.techAgeId) + 1;
+      const advancesTechAge = researchedCount >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextTechAgeIndex < AGE_ORDER.length;
+      const nextTechAgeId = advancesTechAge ? AGE_ORDER[nextTechAgeIndex] : state.techAgeId;
+
+      const resourcesAfterTechCost = applyCosts(applyCosts(state.resources, costs), tech.cost);
+
+      return {
+        ...state,
+        resources: resourcesAfterTechCost,
+        techTree: nextTechTree,
+        techAgeId: nextTechAgeId,
+        logs: [
+          ...state.logs,
+          { year: state.year, message: `Researched ${tech.name}.`, type: LogTypes.TECH },
+          ...(advancesTechAge ? [{ year: state.year, message: `Your empire's expertise has reached the ${AGES[nextTechAgeId]?.name}.`, type: LogTypes.MILESTONE }] : [])
+        ]
+      };
+    }
+
+    case ActionTypes.SET_RESEARCH_FOCUS: {
+      const { categoryId } = action.payload;
+      const costs = ACTION_COSTS.setResearchFocus;
+      if (!Object.values(TechCategories).includes(categoryId)) return state;
+      if (state.researchFocus === categoryId) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        researchFocus: categoryId,
+        logs: [...state.logs, { year: state.year, message: `Research focus set to ${categoryId}.`, type: LogTypes.TECH }]
+      };
+    }
+
+    case ActionTypes.FUND_SCHOLARS: {
+      const costs = ACTION_COSTS.fundScholars;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: { ...applyCosts(state.resources, costs), techPoints: (state.resources.techPoints || 0) + FUND_SCHOLARS_TECHPOINTS },
+        logs: [...state.logs, { year: state.year, message: `Funded scholars for +${FUND_SCHOLARS_TECHPOINTS} tech points.`, type: LogTypes.TECH }]
       };
     }
 

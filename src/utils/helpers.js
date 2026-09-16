@@ -63,6 +63,10 @@ export const getPlayerControl = (state) => state.regions[state.playerNationId]?.
 // before the same control%/infrastructure scaling every other resource gets.
 const EXTRACTION_BASE_YIELD = 20;
 
+// Base per-turn tech points from one tier level of a region's Science building (Library ->
+// Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
+const SCIENCE_TECHPOINT_YIELD = 2;
+
 // Per-turn resource income for the player's nation: gold/hr from every owned region's gdp/
 // population-derived base value, plus copper/iron/oil from any region that has both the deposit
 // (src/data/deposits.js) and the matching extraction building actually built
@@ -88,11 +92,26 @@ export const calcIncome = (state) => {
       if (!hasDeposit(region.id, resId)) return; // building without a deposit produces nothing
       income[resId] += EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
+
+    // Tech points (Research tab): a Science building's tier level, same controlMult/infraMult
+    // scaling as every other region yield. techPoints isn't in RESOURCE_IDS (it's a meta-currency,
+    // like actionPoints), but resolveTurn.js applies every key calcIncome returns generically, so
+    // adding it here is enough to make it flow into resources each turn.
+    const scienceTier = region.buildings?.categories?.science;
+    if (scienceTier !== undefined && scienceTier >= 0) {
+      income.techPoints = (income.techPoints || 0) + (scienceTier + 1) * SCIENCE_TECHPOINT_YIELD * controlMult * infraMult;
+    }
   });
 
   // Trade agreement bonuses.
   const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
   income.gold = (income.gold || 0) + tradePartners.length * 20;
+
+  // Set Research Focus (Research tab): a flat research-speed bonus for committing to a line.
+  // Which category is stored for later systems (e.g. AI reading a rival's focus) to react to —
+  // the immediate mechanical payoff is deliberately general rather than per-category, so it
+  // doesn't need to reach into RESEARCH_TECH's own cost/afford checks to have a real effect.
+  if (state.researchFocus && income.techPoints) income.techPoints *= 1.2;
 
   Object.keys(income).forEach(id => { income[id] = Math.round(income[id]); });
   return income;
