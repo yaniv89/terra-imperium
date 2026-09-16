@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { gameReducer, createInitialState } from './GameContext';
 import { ActionTypes, GameStatus, LogTypes } from '../data/types';
+import { XP_THRESHOLDS } from '../data/promotions';
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
@@ -366,6 +367,129 @@ describe('Military tab actions', () => {
     it('is a no-op when unaffordable', () => {
       const state = { ...withAttacker(), resources: { ...withAttacker().resources, actionPoints: 0 } };
       expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } })).toBe(state);
+    });
+  });
+});
+
+describe('Promotions and generals actions', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+  };
+
+  describe('PROMOTE_UNIT', () => {
+    const withUnit = (xp = 0) => {
+      const state = richState();
+      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const unitId = Object.keys(recruited.units)[0];
+      return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], xp } } };
+    };
+
+    it('grants the chosen perk once the unit has reached the next rank', () => {
+      const state = withUnit(XP_THRESHOLDS.regular);
+      const unitId = Object.keys(state.units)[0];
+      const next = gameReducer(state, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } });
+      expect(next.units[unitId].promotions).toContain('shock');
+      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+    });
+
+    it('is a no-op if the unit has not reached the next rank yet', () => {
+      const state = withUnit(0);
+      const unitId = Object.keys(state.units)[0];
+      expect(gameReducer(state, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } })).toBe(state);
+    });
+
+    it('is a no-op for an unknown perk id', () => {
+      const state = withUnit(XP_THRESHOLDS.regular);
+      const unitId = Object.keys(state.units)[0];
+      expect(gameReducer(state, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'not_a_perk' } })).toBe(state);
+    });
+
+    it('is a no-op for a perk the unit already holds', () => {
+      const state = withUnit(XP_THRESHOLDS.veteran);
+      const unitId = Object.keys(state.units)[0];
+      const withPerk = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], promotions: ['shock'] } } };
+      expect(gameReducer(withPerk, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } })).toBe(withPerk);
+    });
+
+    it('is a no-op for a unit not owned by the player', () => {
+      const state = withUnit(XP_THRESHOLDS.regular);
+      const unitId = Object.keys(state.units)[0];
+      const stolen = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
+      expect(gameReducer(stolen, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } })).toBe(stolen);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...withUnit(XP_THRESHOLDS.regular), resources: { ...withUnit(XP_THRESHOLDS.regular).resources, actionPoints: 0 } };
+      const unitId = Object.keys(state.units)[0];
+      expect(gameReducer(state, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } })).toBe(state);
+    });
+  });
+
+  describe('HIRE_GENERAL', () => {
+    it('creates a general with valid traits and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.HIRE_GENERAL, payload: {} });
+      const generalIds = Object.keys(next.hiredCommanders);
+      expect(generalIds.length).toBe(1);
+      const general = next.hiredCommanders[generalIds[0]];
+      expect(general.nationId).toBe('fr');
+      expect(general.assignedUnitId).toBeNull();
+      expect(next.nextCommanderSeq).toBe(state.nextCommanderSeq + 1);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.HIRE_GENERAL, payload: {} })).toBe(state);
+    });
+  });
+
+  describe('APPOINT_GENERAL', () => {
+    const withGeneralAndUnit = () => {
+      const state = richState();
+      const hired = gameReducer(state, { type: ActionTypes.HIRE_GENERAL, payload: {} });
+      const recruited = gameReducer(hired, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const generalId = Object.keys(recruited.hiredCommanders)[0];
+      const unitId = Object.keys(recruited.units)[0];
+      return { state: recruited, generalId, unitId };
+    };
+
+    it('assigns a general to an owned unit', () => {
+      const { state, generalId, unitId } = withGeneralAndUnit();
+      const next = gameReducer(state, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId } });
+      expect(next.units[unitId].commanderId).toBe(generalId);
+      expect(next.hiredCommanders[generalId].assignedUnitId).toBe(unitId);
+    });
+
+    it('reassigning a general to a new unit vacates the old one', () => {
+      const { state, generalId, unitId } = withGeneralAndUnit();
+      const appointed = gameReducer(state, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId } });
+      const second = gameReducer(appointed, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'cavalry' } });
+      const secondUnitId = Object.keys(second.units).find((id) => id !== unitId);
+      const reassigned = gameReducer(second, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: secondUnitId } });
+      expect(reassigned.units[unitId].commanderId).toBeNull();
+      expect(reassigned.units[secondUnitId].commanderId).toBe(generalId);
+    });
+
+    it('unassigning with a null unitId clears the commander from their unit', () => {
+      const { state, generalId, unitId } = withGeneralAndUnit();
+      const appointed = gameReducer(state, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId } });
+      const unassigned = gameReducer(appointed, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: null } });
+      expect(unassigned.units[unitId].commanderId).toBeNull();
+      expect(unassigned.hiredCommanders[generalId].assignedUnitId).toBeNull();
+    });
+
+    it('is a no-op for a general not owned by the player', () => {
+      const { state, generalId, unitId } = withGeneralAndUnit();
+      const stolen = { ...state, hiredCommanders: { ...state.hiredCommanders, [generalId]: { ...state.hiredCommanders[generalId], nationId: 'de' } } };
+      expect(gameReducer(stolen, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId } })).toBe(stolen);
+    });
+
+    it('is a no-op for a unit not owned by the player', () => {
+      const { state, generalId, unitId } = withGeneralAndUnit();
+      const stolenUnit = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
+      expect(gameReducer(stolenUnit, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId } })).toBe(stolenUnit);
     });
   });
 });

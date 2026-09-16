@@ -1,18 +1,21 @@
 // src/components/panels/MilitaryPanel.jsx
-// Military tab (plan §7): nation overview plus four of the fifteen planned actions — Recruit
-// Unit, Disband Unit, Move Army, Launch Invasion — against the new per-region army model
-// (src/context/GameContext.jsx's flat `state.units` dict), unit classes (src/data/unitClasses.js)
-// and the phased battle engine (src/engine/battle.js). The rest (promotions, generals, navies/
-// amphibious invasion) land in their own tasks as the army sim deepens.
+// Military tab (plan §7): nation overview plus seven of the fifteen planned actions — Recruit
+// Unit, Disband Unit, Move Army, Launch Invasion, Promote Unit, Hire General (a support action for
+// Appoint General), Appoint General — against the per-region army model (src/context/
+// GameContext.jsx's flat `state.units` dict), unit classes (src/data/unitClasses.js), the phased
+// battle engine (src/engine/battle.js), and promotions/generals (src/data/promotions.js,
+// src/data/generals.js). The rest (navies/amphibious invasion, supply attrition) land in their own
+// tasks as the army sim deepens.
 
 import React from 'react';
-import { Swords, UserPlus, Trash2, Flag } from 'lucide-react';
+import { Swords, UserPlus, Trash2, Flag, Award, UserCog } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../../data/regions';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
+import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -53,6 +56,20 @@ const MilitaryPanel = ({ selectedRegion }) => {
     triggerEffect('ground_invasion', { from: fromRegionId, to: selectedRegion });
     dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: selectedRegion } });
   };
+  const handlePromote = (unitId, perkId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.promoteUnit)) return addLog('Not enough resources', 'action');
+    dispatch({ type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId } });
+  };
+  const handleHireGeneral = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.hireGeneral)) return addLog('Not enough resources', 'action');
+    dispatch({ type: ActionTypes.HIRE_GENERAL, payload: {} });
+  };
+  const handleAppointGeneral = (generalId, unitId) => {
+    dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: unitId || null } });
+  };
+
+  const generals = Object.entries(state.hiredCommanders);
+  const unassignedGenerals = generals.filter(([, g]) => !g.assignedUnitId);
 
   return (
     <div className="space-y-4">
@@ -76,6 +93,13 @@ const MilitaryPanel = ({ selectedRegion }) => {
           </ul>
         )}
       </div>
+
+      <OfficerCorps
+        generals={generals}
+        units={state.units}
+        canAffordHire={canAfford(state.resources, ACTION_COSTS.hireGeneral)}
+        onHire={handleHireGeneral}
+      />
 
       {state.lastBattleReport && <BattleReport report={state.lastBattleReport} />}
 
@@ -136,8 +160,13 @@ const MilitaryPanel = ({ selectedRegion }) => {
               <UnitRow
                 key={unit.id}
                 unit={unit}
+                generals={state.hiredCommanders}
+                unassignedGenerals={unassignedGenerals}
                 onDisband={() => handleDisband(unit.id)}
                 onMove={(toRegionId) => handleMove(unit.id, toRegionId)}
+                onPromote={(perkId) => handlePromote(unit.id, perkId)}
+                onAssignGeneral={(generalId) => handleAppointGeneral(generalId, unit.id)}
+                onUnassignGeneral={() => handleAppointGeneral(unit.commanderId, null)}
               />
             ))}
           </div>
@@ -189,19 +218,53 @@ const BattleReport = ({ report }) => {
   );
 };
 
-const UnitRow = ({ unit, onDisband, onMove }) => {
+const OfficerCorps = ({ generals, units, canAffordHire, onHire }) => (
+  <div className="bg-slate-800/60 rounded-lg p-3 text-xs space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="font-semibold text-slate-300">Officer Corps</span>
+      <button
+        onClick={onHire}
+        disabled={!canAffordHire}
+        className="px-2 py-1 rounded bg-blue-600/80 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] flex items-center gap-1"
+      >
+        <UserCog size={12} /> Hire ({ACTION_COSTS.hireGeneral.gold}g)
+      </button>
+    </div>
+    {generals.length === 0 && <div className="text-slate-500">No generals hired yet.</div>}
+    {generals.map(([id, general]) => (
+      <div key={id} className="flex items-center justify-between text-slate-400">
+        <span>{general.name} <span className="text-slate-500 capitalize">({general.personality})</span></span>
+        <span className="font-mono text-slate-500">
+          {general.assignedUnitId ? `commanding ${UNIT_CLASSES[units[general.assignedUnitId]?.classId]?.name || 'a unit'}` : 'unassigned'}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+const UnitRow = ({ unit, generals, unassignedGenerals, onDisband, onMove, onPromote, onAssignGeneral, onUnassignGeneral }) => {
   const neighborIds = getNeighborIds(unit.regionId);
+  const rank = getRankForXp(unit.xp || 0);
+  const nextRank = RANK_ORDER[RANK_ORDER.indexOf(rank) + 1];
+  const promotable = canPromote(unit);
+  const unheldPerks = ALL_PERKS.filter((p) => !hasPerk(unit, p.id));
+  const commander = unit.commanderId ? generals[unit.commanderId] : null;
+
   return (
     <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-white font-semibold capitalize">{UNIT_CLASSES[unit.classId]?.name || unit.classId}</span>
-        <span className="text-slate-400 capitalize">{unit.rank}</span>
+        <span className="text-slate-400 capitalize">{rank}</span>
       </div>
       <div className="flex gap-3 text-slate-400 font-mono">
         <span>STR {unit.strength}/{unit.maxStrength}</span>
         <span>MOR {unit.morale}</span>
         <span>ORG {unit.organization}</span>
       </div>
+      <div className="text-slate-500 font-mono">
+        XP {unit.xp || 0}{nextRank ? ` / ${XP_THRESHOLDS[nextRank]} to ${nextRank}` : ' (max rank)'}
+      </div>
+
       <div className="flex items-center gap-1.5">
         <select
           className="flex-1 bg-slate-700 text-slate-200 rounded px-1.5 py-1 text-[11px] disabled:opacity-40"
@@ -222,6 +285,45 @@ const UnitRow = ({ unit, onDisband, onMove }) => {
           <Trash2 size={12} />
         </button>
       </div>
+
+      <div className="flex items-center gap-1.5">
+        {commander ? (
+          <>
+            <span className="flex-1 text-slate-400">Commander: {commander.name}</span>
+            <button onClick={onUnassignGeneral} className="text-[10px] text-slate-500 hover:text-slate-300 underline">recall</button>
+          </>
+        ) : (
+          <select
+            className="flex-1 bg-slate-700 text-slate-200 rounded px-1.5 py-1 text-[11px] disabled:opacity-40"
+            disabled={unassignedGenerals.length === 0}
+            defaultValue=""
+            onChange={(e) => { if (e.target.value) { onAssignGeneral(e.target.value); e.target.value = ''; } }}
+          >
+            <option value="" disabled>Assign general…</option>
+            {unassignedGenerals.map(([id, g]) => (
+              <option key={id} value={id}>{g.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {promotable && (
+        <div className="space-y-1 pt-1 border-t border-slate-700">
+          <div className="text-slate-400 flex items-center gap-1"><Award size={11} /> Choose a promotion:</div>
+          <div className="flex flex-wrap gap-1">
+            {unheldPerks.map((perk) => (
+              <button
+                key={perk.id}
+                onClick={() => onPromote(perk.id)}
+                title={perk.description}
+                className="px-1.5 py-1 rounded bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 text-purple-300 text-[10px]"
+              >
+                {perk.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

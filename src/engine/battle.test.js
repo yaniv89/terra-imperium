@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { resolveBattle } from './battle';
 import { createRng } from '../utils/rng';
 
-const makeUnit = (id, classId, strength, morale = 100) => ({
-  id, classId, strength, maxStrength: strength, morale, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+const makeUnit = (id, classId, strength, morale = 100, extra = {}) => ({
+  id, classId, strength, maxStrength: strength, morale, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...extra
 });
 
 const run = (overrides = {}, seed = 42) => resolveBattle({
@@ -133,5 +133,72 @@ describe('resolveBattle: determinism', () => {
     run({ attackerUnits, defenderUnits });
     expect(attackerUnits).toEqual(attackerSnapshot);
     expect(defenderUnits).toEqual(defenderSnapshot);
+  });
+});
+
+describe('resolveBattle: promotion perks wired into combat', () => {
+  it('Volley Fire gives a ranged unit two ranged-phase hits instead of one', () => {
+    const attackerUnits = [makeUnit('a0', 'ranged', 1000, 100, { promotions: ['volleyFire'] })];
+    const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100), makeUnit('d1', 'infantry', 100000, 100)];
+    const { report } = run({ attackerUnits, defenderUnits });
+    const shots = report.log.filter((e) => e.phase === 'ranged' && e.attackerId === 'a0');
+    expect(shots.length).toBe(2);
+  });
+
+  it('Unbreakable shrugs off the first rout of the battle', () => {
+    const attackerUnits = [makeUnit('a0', 'infantry', 1000, 21, { promotions: ['unbreakable'] })];
+    const defenderUnits = [makeUnit('d0', 'infantry', 1000, 100)];
+    const { attackerUnits: result } = run({ attackerUnits, defenderUnits }, 3);
+    const a0 = result.find((u) => u.id === 'a0');
+    expect(a0.routed).toBe(false);
+  });
+
+  it('Sapper deals more damage than a plain siege unit in the open field', () => {
+    const dmgFor = (promotions) => {
+      const attackerUnits = [makeUnit('a0', 'siege', 1000, 100, { promotions })];
+      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const { report } = run({ attackerUnits, defenderUnits, isAttackingFortification: false }, 55);
+      return report.log.filter((e) => e.attackerId === 'a0').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(dmgFor(['sapper'])).toBeGreaterThan(dmgFor([]));
+  });
+
+  it('Relentless deals more pursuit damage than a plain cavalry pursuer', () => {
+    const pursuitDamage = (cavPromotions) => {
+      const attackerUnits = [
+        ...Array.from({ length: 4 }, (_, i) => makeUnit(`inf${i}`, 'infantry', 5000)),
+        makeUnit('cav', 'cavalry', 5000, 100, { promotions: cavPromotions })
+      ];
+      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const { report } = run({ attackerUnits, defenderUnits }, 5);
+      return report.log.filter((e) => e.phase === 'pursuit').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(pursuitDamage(['relentless'])).toBeGreaterThan(pursuitDamage([]));
+  });
+});
+
+describe('resolveBattle: generals wired into combat', () => {
+  it('a high-martial commander increases the damage their unit deals', () => {
+    const dmgWithMartial = (martial) => {
+      const commanderId = 'g1';
+      const attackerUnits = [makeUnit('a0', 'infantry', 1000, 100, { commanderId })];
+      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const generals = { g1: { martial, shock: 3, fire: 3, maneuver: 3, personality: 'logistician' } };
+      const { report } = run({ attackerUnits, defenderUnits, generals }, 21);
+      return report.log.filter((e) => e.attackerId === 'a0').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(dmgWithMartial(5)).toBeGreaterThan(dmgWithMartial(1));
+  });
+
+  it('a cautious commander reduces damage their unit takes', () => {
+    const dmgTaken = (personality) => {
+      const commanderId = 'g1';
+      const attackerUnits = [makeUnit('a0', 'infantry', 100000, 100)];
+      const defenderUnits = [makeUnit('d0', 'infantry', 1000, 100, { commanderId })];
+      const generals = { g1: { martial: 3, shock: 3, fire: 3, maneuver: 3, personality } };
+      const { report } = run({ attackerUnits, defenderUnits, generals }, 21);
+      return report.log.filter((e) => e.defenderId === 'd0').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(dmgTaken('cautious')).toBeLessThan(dmgTaken('reckless'));
   });
 });
