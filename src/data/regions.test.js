@@ -6,6 +6,12 @@ describe('region adjacency graph', () => {
     expect(Object.keys(REGIONS_DATA).length).toBe(240);
   });
 
+  it('every region carries an isCoastal boolean (build-sea-lanes.mjs)', () => {
+    Object.entries(REGIONS_DATA).forEach(([id, data]) => {
+      expect(typeof data.isCoastal, id).toBe('boolean');
+    });
+  });
+
   it('is symmetric — every neighbor relationship is listed on both sides', () => {
     const asymmetric = [];
     Object.entries(REGIONS_DATA).forEach(([id, data]) => {
