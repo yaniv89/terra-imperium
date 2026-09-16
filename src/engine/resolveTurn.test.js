@@ -3,6 +3,7 @@ import { resolveTurn } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 
 describe('resolveTurn determinism', () => {
   it('produces identical output for identical input (same rngSeed)', () => {
@@ -85,6 +86,104 @@ describe('resolveTurn unrest drift', () => {
     const lowControl = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, control: 10, unrest: 0 } } };
     const next = resolveTurn(lowControl);
     expect(next.regions.fr.unrest).toBeGreaterThan(0);
+  });
+});
+
+describe('resolveTurn rebellion', () => {
+  const rebelUnitIn = (state) => Object.values(state.units).find(u => u.ownerId === REBEL_OWNER_ID);
+
+  it('spawns a rebel army once unrest crosses the threshold', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    // A few points above the threshold: unrest drift (-1/turn at full control) shouldn't be
+    // enough to pull it back under REBELLION_UNREST_THRESHOLD before the rebellion check reads it.
+    const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
+    const next = resolveTurn(state);
+    const rebel = rebelUnitIn(next);
+    expect(rebel).toBeDefined();
+    expect(rebel.regionId).toBe('fr');
+    expect(rebel.domain).toBe('land');
+    expect(next.regions.fr.control).toBeLessThan(state.regions.fr.control);
+  });
+
+  it('does not spawn a second rebel army in a region that already has one', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
+    const withRebel = resolveTurn(state);
+    const again = resolveTurn(withRebel);
+    const rebelCount = Object.values(again.units).filter(u => u.ownerId === REBEL_OWNER_ID && u.regionId === 'fr').length;
+    expect(rebelCount).toBe(1);
+  });
+
+  it('grows an existing rebel army while unrest stays at or above the threshold', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
+    const withRebel = resolveTurn(state);
+    const before = rebelUnitIn(withRebel).strength;
+    const again = resolveTurn(withRebel);
+    const after = rebelUnitIn(again)?.strength;
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it('dissolves the rebellion once unrest drops back below the threshold', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const rebelUnit = {
+      id: 'rebel_fr_1', regionId: 'fr', ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 500, maxStrength: 500, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = {
+      ...base,
+      units: { rebel_fr_1: rebelUnit },
+      regions: { ...base.regions, fr: { ...base.regions.fr, unrest: 0 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.units.rebel_fr_1).toBeUndefined();
+  });
+});
+
+describe('resolveTurn supply attrition', () => {
+  it('bleeds strength from a unit stationed beyond its nation\'s supply reach', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    // 'us' is 9 land hops from France — beyond even a maxed-out region's supply range (up to 6).
+    const farUnit = {
+      id: 'u_far', regionId: 'us', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = { ...base, units: { u_far: farUnit } };
+    const next = resolveTurn(state);
+    expect(next.units.u_far.strength).toBeLessThan(1000);
+  });
+
+  it('does not bleed a unit stationed on its own nation\'s territory', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const homeUnit = {
+      id: 'u_home', regionId: 'fr', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = { ...base, units: { u_home: homeUnit } };
+    const next = resolveTurn(state);
+    expect(next.units.u_home.strength).toBe(1000);
+  });
+
+  it('does not bleed embarked cargo directly — it shares its transport\'s supply state', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const cargoUnit = {
+      id: 'u_cargo', regionId: 'us', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: 'u_ship'
+    };
+    const state = { ...base, units: { u_cargo: cargoUnit } };
+    const next = resolveTurn(state);
+    expect(next.units.u_cargo.strength).toBe(1000);
+  });
+
+  it('removes a unit whose strength is fully consumed by attrition', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const weakUnit = {
+      id: 'u_weak', regionId: 'us', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = { ...base, units: { u_weak: weakUnit } };
+    const next = resolveTurn(state);
+    expect(next.units.u_weak).toBeUndefined();
   });
 });
 

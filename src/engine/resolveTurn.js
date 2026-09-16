@@ -15,9 +15,11 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
+import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength } from '../data/rebellion';
 import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -48,6 +50,65 @@ export const resolveTurn = (state) => {
   Object.entries(regions).forEach(([id, region]) => {
     const unrest = nextUnrest(region);
     if (unrest !== region.unrest) regions[id] = { ...region, unrest };
+  });
+
+  // --- rebellion (plan §9): unrest crossing the threshold spawns an actual rebel army in the
+  // region rather than just a number. Falling back below the threshold (e.g. after Quell Unrest,
+  // or SUPPRESS_REBELLION restoring control) lets the uprising dissolve; staying above it lets
+  // the existing rebel force grow instead of spawning a second one.
+  const units = { ...state.units };
+  const rebelUnitIdByRegion = {};
+  Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID) rebelUnitIdByRegion[u.regionId] = u.id; });
+  Object.entries(regions).forEach(([regionId, region]) => {
+    const existingRebelId = rebelUnitIdByRegion[regionId];
+    if (region.unrest >= REBELLION_UNREST_THRESHOLD) {
+      if (existingRebelId) {
+        const rebel = units[existingRebelId];
+        const strength = Math.round(rebel.strength * (1 + REBEL_GROWTH_RATE));
+        units[existingRebelId] = { ...rebel, strength, maxStrength: Math.max(rebel.maxStrength, strength) };
+      } else {
+        const rebelId = `rebel_${regionId}_${newTurnNumber}`;
+        const strength = getRebelSpawnStrength(region);
+        units[rebelId] = {
+          id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: newAge,
+          strength, maxStrength: strength, morale: 100, organization: 100,
+          xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+        };
+        regions[regionId] = { ...region, control: Math.max(0, (region.control || 0) - 30) };
+        logs.push({ year: newYear, message: `Rebellion breaks out in ${REGIONS_DATA[regionId]?.name || regionId}!`, type: LogTypes.CRISIS });
+      }
+    } else if (existingRebelId) {
+      delete units[existingRebelId];
+      logs.push({ year: newYear, message: `The unrest behind the rebellion in ${REGIONS_DATA[regionId]?.name || regionId} has eased, and it dissolves.`, type: LogTypes.CRISIS });
+    }
+  });
+
+  // --- supply attrition (plan §9): armies beyond their nation's supply reach bleed strength each
+  // turn — this is what makes Build Infrastructure strategically load-bearing, not just an
+  // economy button. Every nation's units are subject to it, not just the player's. A unit
+  // stationed on one of its own regions is always distance 0 from itself and never bled; only
+  // units that have marched beyond every region their nation actually holds pay the cost.
+  const SUPPLY_ATTRITION_RATE = 0.1;
+  const unitsByOwner = {};
+  Object.values(units).forEach(u => { (unitsByOwner[u.ownerId] = unitsByOwner[u.ownerId] || []).push(u); });
+  Object.entries(unitsByOwner).forEach(([ownerId, ownerUnits]) => {
+    const ownedRegionIds = Object.entries(regions).filter(([, r]) => r.owner === ownerId).map(([id]) => id);
+    if (ownedRegionIds.length === 0) return; // no territory of its own (e.g. rebels) — nothing to be supplied from
+    const maxSupplyRange = Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure)));
+    const distanceCache = {};
+    ownerUnits.forEach(u => {
+      if (u.embarkedOn) return; // cargo shares its transport's supply state, not its own
+      if (distanceCache[u.regionId] === undefined) {
+        distanceCache[u.regionId] = distanceFromAnchor(ownedRegionIds, u.regionId);
+      }
+      const distance = distanceCache[u.regionId];
+      if (distance !== undefined && distance <= maxSupplyRange) return; // in supply
+      // Math.floor, not round: a unit's strength must actually reach 0 under sustained attrition
+      // rather than rounding back up to 1 forever once it gets small.
+      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE)));
+      if (strength <= 0) { delete units[u.id]; return; }
+      units[u.id] = { ...u, strength };
+    });
   });
 
   // --- AI nations: passive growth + hostility drift ---
@@ -105,6 +166,7 @@ export const resolveTurn = (state) => {
     resources,
     regions,
     nations,
+    units,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,

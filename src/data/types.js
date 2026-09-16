@@ -45,7 +45,10 @@ export const ActionTypes = {
   EMBARK_UNIT: 'EMBARK_UNIT',
   DISEMBARK_UNIT: 'DISEMBARK_UNIT',
   AMPHIBIOUS_ASSAULT: 'AMPHIBIOUS_ASSAULT',
-  NAVAL_ENGAGEMENT: 'NAVAL_ENGAGEMENT'
+  NAVAL_ENGAGEMENT: 'NAVAL_ENGAGEMENT',
+
+  // Rebellion (plan §9) — fighting off a spawned rebel army in one of the player's own regions.
+  SUPPRESS_REBELLION: 'SUPPRESS_REBELLION'
 };
 
 export const LogTypes = {

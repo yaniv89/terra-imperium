@@ -26,6 +26,7 @@ export const ACTION_COSTS = {
   disembarkUnit: { actionPoints: 1 },
   amphibiousAssault: { actionPoints: 3 },
   navalEngagement: { actionPoints: 2 },
+  suppressRebellion: { actionPoints: 2 },
 
   researchTechActionPoints: 2
 };

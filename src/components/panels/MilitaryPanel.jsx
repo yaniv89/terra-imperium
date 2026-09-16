@@ -1,14 +1,15 @@
 // src/components/panels/MilitaryPanel.jsx
-// Military tab (plan §7 / §7.5): nation overview plus eleven of the fifteen planned actions —
+// Military tab (plan §7 / §7.5 / §9): nation overview plus twelve of the fifteen planned actions —
 // Recruit Unit, Disband Unit, Move Army, Launch Invasion, Promote Unit, Hire General (a support
 // action for Appoint General), Appoint General, Embark/Disembark Army, Amphibious Assault, Naval
-// Engagement — against the per-region army model (src/context/GameContext.jsx's flat
-// `state.units` dict), unit classes (src/data/unitClasses.js), the phased battle engine
-// (src/engine/battle.js), promotions/generals (src/data/promotions.js, src/data/generals.js) and
-// age-gated naval reach (src/data/navalReach.js). Supply attrition lands in its own task.
+// Engagement, Suppress Rebellion — against the per-region army model (src/context/
+// GameContext.jsx's flat `state.units` dict), unit classes (src/data/unitClasses.js), the phased
+// battle engine (src/engine/battle.js), promotions/generals (src/data/promotions.js,
+// src/data/generals.js), age-gated naval reach (src/data/navalReach.js), and rebellion
+// (src/data/rebellion.js — spawned and grown every turn by src/engine/resolveTurn.js).
 
 import React from 'react';
-import { Swords, UserPlus, Trash2, Flag, Award, UserCog, Anchor, Ship } from 'lucide-react';
+import { Swords, UserPlus, Trash2, Flag, Award, UserCog, Anchor, Ship, Flame } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -17,6 +18,7 @@ import { ACTION_COSTS } from '../../data/actionCosts';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
 import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
+import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -71,6 +73,10 @@ const MilitaryPanel = ({ selectedRegion }) => {
     ? [...new Set(Object.values(state.units).filter(u => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, selectedRegion, state.age)).map(u => u.regionId))]
     : [];
 
+  // A rebel army spawned in the player's own selected region (src/engine/resolveTurn.js) — the
+  // trigger for Suppress Rebellion.
+  const rebelUnits = (regionData && isPlayerOwned) ? unitsHere.filter(u => u.ownerId === REBEL_OWNER_ID) : [];
+
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, ACTION_COSTS.recruitUnit)) return addLog('Not enough resources', 'action');
     dispatch({ type: ActionTypes.RECRUIT_UNIT, payload: { regionId: selectedRegion, classId } });
@@ -114,6 +120,10 @@ const MilitaryPanel = ({ selectedRegion }) => {
   const handleNavalEngagement = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
     dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: selectedRegion } });
+  };
+  const handleSuppressRebellion = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.suppressRebellion)) return addLog('Not enough resources', 'action');
+    dispatch({ type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: selectedRegion } });
   };
 
   const generals = Object.entries(state.hiredCommanders);
@@ -209,6 +219,18 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
       {regionData && isPlayerOwned && (
         <>
+          {rebelUnits.length > 0 && (
+            <ActionButton
+              icon={Flame}
+              label={`Suppress the rebellion in ${regionData.name}`}
+              description={`${rebelUnits.length} rebel unit${rebelUnits.length === 1 ? '' : 's'} holding out`}
+              costs={ACTION_COSTS.suppressRebellion}
+              onClick={handleSuppressRebellion}
+              disabled={!canAfford(state.resources, ACTION_COSTS.suppressRebellion) || unitsHere.every(u => u.ownerId !== state.playerNationId || u.domain !== 'land')}
+              variant="danger"
+            />
+          )}
+
           <div className="space-y-2">
             <div className="text-xs font-semibold text-slate-300">Recruit in {regionData.name}</div>
             {availableClasses.map(classId => (

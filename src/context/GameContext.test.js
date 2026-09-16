@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { gameReducer, createInitialState } from './GameContext';
 import { ActionTypes, GameStatus, LogTypes } from '../data/types';
 import { XP_THRESHOLDS } from '../data/promotions';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
@@ -676,6 +677,64 @@ describe('Navies and amphibious invasion actions', () => {
       const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
       expect(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr', targetRegionId: 'gb' } })).toBe(poor);
     });
+  });
+});
+
+describe('SUPPRESS_REBELLION', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+  };
+
+  const rebelUnit = (strength = 300) => ({
+    id: 'rebel_fr_1', regionId: 'fr', ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
+    strength, maxStrength: strength, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+  });
+
+  const withGarrisonAndRebel = (rebelStrength = 300) => {
+    const state = richState();
+    const withGarrison = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+    const rebel = rebelUnit(rebelStrength);
+    return { ...withGarrison, units: { ...withGarrison.units, [rebel.id]: rebel } };
+  };
+
+  it('crushes a weak rebellion, restoring some control and capping unrest', () => {
+    const state = { ...withGarrisonAndRebel(50), regions: { ...withGarrisonAndRebel(50).regions, fr: { ...withGarrisonAndRebel(50).regions.fr, unrest: 95, control: 40 } } };
+    const next = gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } });
+    expect(next.units.rebel_fr_1).toBeUndefined();
+    expect(next.regions.fr.unrest).toBeLessThan(REBELLION_UNREST_THRESHOLD);
+    expect(next.regions.fr.control).toBeGreaterThan(40);
+    expect(next.lastBattleReport.outcome).toBe('attacker');
+  });
+
+  it('a garrison repelled by an overwhelming rebellion leaves the rebels standing', () => {
+    const state = withGarrisonAndRebel(500000);
+    const next = gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } });
+    expect(next.units.rebel_fr_1).toBeDefined();
+    expect(next.lastBattleReport.outcome).toBe('defender');
+  });
+
+  it('is a no-op for a region not owned by the player', () => {
+    const state = withGarrisonAndRebel();
+    const otherId = Object.keys(state.regions).find(id => id !== 'fr');
+    expect(gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: otherId } })).toBe(state);
+  });
+
+  it('is a no-op when there is no rebellion in the region', () => {
+    const state = richState();
+    const withGarrison = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+    expect(gameReducer(withGarrison, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } })).toBe(withGarrison);
+  });
+
+  it('is a no-op with no garrison to fight with', () => {
+    const state = richState();
+    const withRebel = { ...state, units: { rebel_fr_1: rebelUnit() } };
+    expect(gameReducer(withRebel, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } })).toBe(withRebel);
+  });
+
+  it('is a no-op when unaffordable', () => {
+    const state = { ...withGarrisonAndRebel(), resources: { ...withGarrisonAndRebel().resources, actionPoints: 0 } };
+    expect(gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } })).toBe(state);
   });
 });
 
