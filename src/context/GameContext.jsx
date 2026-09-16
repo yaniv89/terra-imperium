@@ -23,6 +23,7 @@ import { resolveBattle } from '../engine/battle';
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
@@ -705,6 +706,59 @@ export const gameReducer = (state, action) => {
         units: nextUnits,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, kind: 'naval', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: state.regions[targetRegionId]?.owner },
+        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.SUPPRESS_REBELLION: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.suppressRebellion;
+      if (!region || region.owner !== state.playerNationId) return state;
+      const rebelUnits = Object.values(state.units).filter(u => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID);
+      if (rebelUnits.length === 0) return state;
+      const garrisonUnits = Object.values(state.units).filter(u => u.regionId === regionId && u.ownerId === state.playerNationId && u.domain === 'land');
+      if (garrisonUnits.length === 0) return state;
+      if (!canAfford(state.resources, costs)) return state;
+
+      const rng = createRng(state.rngSeed);
+      const { outcome, attackerUnits: resolvedGarrison, defenderUnits: resolvedRebels, report } = resolveBattle({
+        attackerUnits: garrisonUnits,
+        defenderUnits: rebelUnits,
+        terrain: REGIONS_DATA[regionId]?.terrain,
+        isAttackingFortification: false,
+        rng,
+        generals: state.hiredCommanders
+      });
+
+      const nextUnits = { ...state.units };
+      resolvedGarrison.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+      // The rebellion is crushed outright on a win — a defeated uprising doesn't leave survivors
+      // to regroup the way a foreign army might retreat and return.
+      resolvedRebels.forEach(u => { if (outcome === 'attacker' || u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+
+      const nextRegions = { ...state.regions };
+      if (outcome === 'attacker') {
+        nextRegions[regionId] = {
+          ...region,
+          unrest: Math.min(region.unrest, REBELLION_UNREST_THRESHOLD - 10),
+          control: Math.min(100, (region.control || 0) + 20)
+        };
+      }
+
+      const outcomeMessage = outcome === 'attacker'
+        ? `The rebellion in ${REGIONS_DATA[regionId]?.name} has been crushed.`
+        : outcome === 'defender'
+          ? `Your garrison failed to suppress the rebellion in ${REGIONS_DATA[regionId]?.name}.`
+          : `The fighting in ${REGIONS_DATA[regionId]?.name} ended without a clear result.`;
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: nextRegions,
+        units: nextUnits,
+        rngSeed: rng.getSeed(),
+        lastBattleReport: { ...report, kind: 'rebellion', fromRegionId: regionId, targetRegionId: regionId, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }
