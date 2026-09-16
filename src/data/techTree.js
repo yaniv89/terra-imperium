@@ -1,11 +1,101 @@
 // src/data/techTree.js
-// Technology tree — the gating mechanism (canResearchTech) is generic and reused as-is from the
-// original campaign; the tech CONTENT is intentionally empty here. Authoring the ~50-tech, 5-line,
-// age-gated tree described in the plan ("Research tab") is later work (Phase D), built on top of
-// this same yearAvailable/prerequisites/exclusiveWith shape once buildings and units exist for
-// techs to unlock.
+// The ~50-tech, 5-line, age-gated Research tree (plan's "Research tab"). Each of the 5
+// TechCategories (src/data/types.js) gets a simple 10-tech linear chain, two techs per age,
+// covering all five ages — researching later techs requires the one before it in the same line.
+//
+// A tech's payoff is the plan's own framing: research enough of your current age's line and your
+// empire's tech-earned age (state.techAgeId, advanced by GameContext.jsx's RESEARCH_TECH) catches
+// up to the next one — which is what src/data/ages.js's already-existing getEffectiveAgeId was
+// built for. GameContext.jsx now passes that effective age to canBuildTier, getAvailableClasses
+// and canBuildExtraction instead of the raw calendar age.
+//
+// For unit recruitment this is a genuine new capability: getAvailableClasses has no rush allowance
+// of its own, so reaching a tech-earned age ahead of the calendar is the only way to recruit that
+// age's unit classes early. For buildings/extraction it currently coincides with, rather than adds
+// to, Phase B's own unconditional "rush one tier ahead of the calendar" allowance already built
+// into canBuildTier/canBuildExtraction — both cap at the same calendarAge+1 ceiling either way, so
+// tech doesn't yet buy a builder anything a flat gold spend didn't already. Making rushing actually
+// require earned tech (removing that free allowance) is a real, separate design change to Phase
+// B's tested behavior, not something this task's tech-content scope should do unilaterally.
 
-export const TECH_TREE = {};
+import { AGE_ORDER, AGES } from './ages';
+import { TechCategories } from './types';
+
+const CATEGORY_LINES = {
+  [TechCategories.MILITARY]: [
+    'Bronze Casting', 'Composite Bow',
+    'Iron Weapons', 'Siege Engineering',
+    'Feudal Levies', 'Plate Armor',
+    'Gunpowder Weapons', 'Standing Armies',
+    'Mechanized Warfare', 'Precision Guidance'
+  ],
+  [TechCategories.ECONOMY]: [
+    'Bronze Trade Routes', 'Granary Storage',
+    'Minted Coinage', 'Silk Road Trade',
+    'Guild Charters', 'Banking Houses',
+    'Joint-Stock Companies', 'Colonial Trade',
+    'Industrial Capital', 'Global Markets'
+  ],
+  [TechCategories.INFRASTRUCTURE]: [
+    'Irrigation Canals', 'Mudbrick Roads',
+    'Paved Roads', 'Aqueducts',
+    'Stone Bridges', 'Postal Relay',
+    'Canal Locks', 'Turnpike Roads',
+    'Rail Networks', 'Highway Systems'
+  ],
+  [TechCategories.GOVERNANCE]: [
+    'Code of Laws', 'Scribal Bureaucracy',
+    'Civic Assemblies', 'Provincial Administration',
+    'Feudal Charters', 'Royal Chancery',
+    'Bureaucratic Reform', 'Constitutional Law',
+    'Civil Service', 'Digital Administration'
+  ],
+  [TechCategories.SCIENCE]: [
+    'Cuneiform Records', 'Early Astronomy',
+    'Geometry', 'Natural Philosophy',
+    'Scholastic Method', 'Optics',
+    'Scientific Method', 'Calculus',
+    'Computing', 'Genomics'
+  ]
+};
+
+const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+const buildLine = (category, names) => {
+  const techs = {};
+  names.forEach((name, i) => {
+    const ageIndex = Math.floor(i / 2);
+    const ageId = AGE_ORDER[ageIndex];
+    const age = AGES[ageId];
+    const isSecondOfAge = i % 2 === 1;
+    const id = `${category}_${slug(name)}`;
+    const previousId = i === 0 ? null : `${category}_${slug(names[i - 1])}`;
+    techs[id] = {
+      id,
+      name,
+      category,
+      ageId,
+      // Staggered within the age so the second tech isn't available the instant the age begins.
+      yearAvailable: isSecondOfAge ? Math.round(age.startYear + (age.endYear - age.startYear) * 0.5) : age.startYear,
+      prerequisites: previousId ? [previousId] : [],
+      requiresAny: false,
+      exclusiveWith: [],
+      cost: { gold: 40 + ageIndex * 40, techPoints: 10 + ageIndex * 15 }
+    };
+  });
+  return techs;
+};
+
+export const TECH_TREE = Object.entries(CATEGORY_LINES).reduce((acc, [category, names]) => {
+  return { ...acc, ...buildLine(category, names) };
+}, {});
+
+// How many of a given age's techs (across all 5 lines) must be researched before a nation's
+// tech-earned age (state.techAgeId) advances to the next one — a majority, not all ten, so
+// falling behind in one line doesn't lock out the reward from the other four.
+export const TECH_AGE_ADVANCEMENT_THRESHOLD = 6;
+
+export const getTechsForAge = (ageId) => Object.values(TECH_TREE).filter((t) => t.ageId === ageId);
 
 // Get tech by category
 export const getTechsByCategory = () => {
@@ -20,9 +110,11 @@ export const getTechsByCategory = () => {
   return categories;
 };
 
-// Check if tech can be researched
-export const canResearchTech = (techId, techTree, resources, year) => {
-  const tech = TECH_TREE[techId];
+// Check if tech can be researched. `techDefs` defaults to the real TECH_TREE — tests pass their
+// own fixture table instead, so exercising the generic gating logic never has to mutate the real
+// production tree.
+export const canResearchTech = (techId, techTree, resources, year, techDefs = TECH_TREE) => {
+  const tech = techDefs[techId];
   const state = techTree[techId];
 
   if (!tech || !state) return { can: false, reason: 'Invalid tech' };
@@ -37,10 +129,10 @@ export const canResearchTech = (techId, techTree, resources, year) => {
   // Mutually exclusive techs: researching one locks out the other permanently for this game.
   const exclusiveResearched = (tech.exclusiveWith || []).find(id => techTree[id]?.researched);
   if (exclusiveResearched) {
-    return { can: false, reason: `Exclusive with ${TECH_TREE[exclusiveResearched]?.name}` };
+    return { can: false, reason: `Exclusive with ${techDefs[exclusiveResearched]?.name}` };
   }
 
-  if (resources.money < tech.cost.money) return { can: false, reason: 'Insufficient funds' };
+  if (resources.gold < tech.cost.gold) return { can: false, reason: 'Insufficient funds' };
   if (resources.techPoints < tech.cost.techPoints) return { can: false, reason: 'Insufficient tech points' };
   if (resources.actionPoints < 2) return { can: false, reason: 'Need 2 AP' };
 

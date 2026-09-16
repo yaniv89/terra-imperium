@@ -28,8 +28,15 @@ export const ACTION_COSTS = {
   navalEngagement: { actionPoints: 2 },
   suppressRebellion: { actionPoints: 2 },
 
-  researchTechActionPoints: 2
+  // A tech's own gold/techPoints cost (src/data/techTree.js) varies per tech; this is just the
+  // flat action-point cost every research action shares, matching canResearchTech's own check.
+  researchTech: { actionPoints: 2 },
+  setResearchFocus: { actionPoints: 1 },
+  fundScholars: { gold: 100, actionPoints: 1 }
 };
+
+// Fund Scholars' fixed gold -> techPoints exchange rate.
+export const FUND_SCHOLARS_TECHPOINTS = 20;
 
 // Fraction of a disbanded unit's HR cost recovered — never the full amount, or disband/recruit
 // would be a free way to reshuffle composition every turn.
