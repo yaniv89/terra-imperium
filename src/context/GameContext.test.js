@@ -210,6 +210,108 @@ describe('Domestic tab actions', () => {
   });
 });
 
+describe('Military tab actions', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000 } };
+  };
+
+  describe('RECRUIT_UNIT', () => {
+    it('creates a unit in the region with the requested class and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const unitIds = Object.keys(next.units);
+      expect(unitIds.length).toBe(1);
+      const unit = next.units[unitIds[0]];
+      expect(unit.regionId).toBe('fr');
+      expect(unit.classId).toBe('infantry');
+      expect(unit.ownerId).toBe('fr');
+      expect(unit.domain).toBe('land');
+      expect(next.nextUnitSeq).toBe(state.nextUnitSeq + 1);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.resources.hr).toBeLessThan(state.resources.hr);
+    });
+
+    it('sets domain to naval for the naval class', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'naval' } });
+      const unit = Object.values(next.units)[0];
+      expect(unit.domain).toBe('naval');
+    });
+
+    it('is a no-op on a region not owned by the player', () => {
+      const state = richState();
+      const otherId = Object.keys(state.regions).find(id => id !== 'fr');
+      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: otherId, classId: 'infantry' } })).toBe(state);
+    });
+
+    it('is a no-op for a class not yet available at the current age', () => {
+      const state = richState(); // Bronze Age: no Air units yet
+      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'air' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = createInitialState({ playerNationId: 'fr' });
+      const poor = { ...state, resources: { ...state.resources, gold: 0, hr: 0 } };
+      expect(gameReducer(poor, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } })).toBe(poor);
+    });
+  });
+
+  describe('DISBAND_UNIT', () => {
+    const withUnit = () => {
+      const state = richState();
+      return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+    };
+
+    it('removes the unit and refunds a fraction of its HR cost', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const next = gameReducer(state, { type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
+      expect(next.units[unitId]).toBeUndefined();
+      expect(next.resources.hr).toBeGreaterThan(state.resources.hr);
+    });
+
+    it('is a no-op for a unit that does not exist', () => {
+      const state = withUnit();
+      expect(gameReducer(state, { type: ActionTypes.DISBAND_UNIT, payload: { unitId: 'not_real' } })).toBe(state);
+    });
+
+    it('is a no-op for a unit not owned by the player', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const stolen = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
+      expect(gameReducer(stolen, { type: ActionTypes.DISBAND_UNIT, payload: { unitId } })).toBe(stolen);
+    });
+  });
+
+  describe('MOVE_ARMY', () => {
+    const withUnit = () => {
+      const state = richState();
+      return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+    };
+
+    it('moves the unit to an adjacent region and deducts the action point cost', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'be' } });
+      expect(next.units[unitId].regionId).toBe('be');
+    });
+
+    it('is a no-op moving to a non-adjacent region', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      expect(gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'jp' } })).toBe(state);
+    });
+
+    it('is a no-op for a unit not owned by the player', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const stolen = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
+      expect(gameReducer(stolen, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'be' } })).toBe(stolen);
+    });
+  });
+});
+
 describe('default case', () => {
   it('returns state unchanged for an unrecognized action type', () => {
     const state = createInitialState({ playerNationId: 'fr' });

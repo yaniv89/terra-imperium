@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { GameStatus, ActionTypes, RelationStatus, LogTypes } from '../data/types';
-import { REGIONS_DATA } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE } from '../data/techTree';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -15,7 +15,8 @@ import { START_YEAR, getCalendarAgeId } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
-import { ACTION_COSTS } from '../data/actionCosts';
+import { getAvailableClasses } from '../data/unitClasses';
+import { ACTION_COSTS, DISBAND_HR_REFUND_RATIO } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { randomSeed } from '../utils/rng';
@@ -129,6 +130,12 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     regions,
     nations,
     techTree,
+
+    // Per-region armies (plan §7) — a flat dict keyed by unit id, not nested under regions, since
+    // units move between regions over their lifetime. See src/data/unitClasses.js for the class/
+    // roster data a unit's classId/ageId reference.
+    units: {},
+    nextUnitSeq: 0,
 
     // Wars and invasions — the combat/invasion resolution engine that reads these is Phase C work.
     wars: [],
@@ -323,6 +330,71 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, unrest: Math.max(0, region.unrest - 30) } },
         logs: [...state.logs, { year: state.year, message: `Quelled unrest in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    // ---- Military tab (plan §7) — per-region armies ----
+
+    case ActionTypes.RECRUIT_UNIT: {
+      const { regionId, classId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.recruitUnit;
+      if (!region || region.owner !== state.playerNationId) return state;
+      if (!getAvailableClasses(state.age).includes(classId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const unitId = `unit_${state.nextUnitSeq}`;
+      const newUnit = {
+        id: unitId,
+        regionId,
+        ownerId: state.playerNationId,
+        domain: classId === 'naval' ? 'naval' : 'land',
+        classId,
+        ageId: state.age,
+        strength: 1000,
+        maxStrength: 1000,
+        morale: 100,
+        organization: 100,
+        xp: 0,
+        rank: 'recruit',
+        promotions: [],
+        commanderId: null
+      };
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: { ...state.units, [unitId]: newUnit },
+        nextUnitSeq: state.nextUnitSeq + 1,
+        logs: [...state.logs, { year: state.year, message: `Recruited a new ${classId} unit in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.DISBAND_UNIT: {
+      const { unitId } = action.payload;
+      const unit = state.units[unitId];
+      if (!unit || unit.ownerId !== state.playerNationId) return state;
+      const refundHr = Math.round(ACTION_COSTS.recruitUnit.hr * DISBAND_HR_REFUND_RATIO);
+      const remainingUnits = { ...state.units };
+      delete remainingUnits[unitId];
+      return {
+        ...state,
+        resources: { ...state.resources, hr: (state.resources.hr || 0) + refundHr },
+        units: remainingUnits,
+        logs: [...state.logs, { year: state.year, message: `Disbanded a ${unit.classId} unit. +${refundHr} HR`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.MOVE_ARMY: {
+      const { unitId, toRegionId } = action.payload;
+      const unit = state.units[unitId];
+      const costs = ACTION_COSTS.moveArmy;
+      if (!unit || unit.ownerId !== state.playerNationId) return state;
+      if (!getNeighborIds(unit.regionId).includes(toRegionId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: { ...state.units, [unitId]: { ...unit, regionId: toRegionId } },
+        logs: [...state.logs, { year: state.year, message: `Moved a ${unit.classId} unit to ${REGIONS_DATA[toRegionId]?.name}.`, type: LogTypes.ACTION }]
       };
     }
 
