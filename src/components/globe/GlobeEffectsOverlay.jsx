@@ -1,5 +1,8 @@
 // src/components/globe/GlobeEffectsOverlay.jsx
-// Phase 14 combat effects (missile/airstrike/invasion) for the globe view.
+// Renderer for the `arc` motion primitive (plan §10.5): a 3D ballistic/ground trajectory ending
+// in a ring-burst impact. Reference implementation for missile/air-strike/invasion-style effects,
+// driven by EFFECT_REGISTRY (src/data/effectRegistry.js) rather than a fixed switch — a new
+// action type gets a visually distinct arc effect just by adding a palette/glyph registry entry.
 //
 // WHY SVG AND NOT THREE.JS: this does NOT use react-globe.gl's built-in arcsData/ringsData, nor a
 // custom Three.js object injected into its scene graph — both were built, and both were verified
@@ -25,84 +28,25 @@
 // present for the compositor to paint, confirmed visually before trusting this.
 import React, { useEffect, useRef } from 'react';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
+import { getEffectSpec } from '../../data/effectRegistry';
 
 export const TRAVEL_MS = 1050; // launch -> impact, for a projectile with zero launch delay
 export const BURST_MS = 850;   // impact -> shockwave fully expanded
 const FADE_MS = 300;           // slack so nothing is torn down mid-fade
-// Air strikes send several munitions in a ripple; the last one leaves this long after the first,
-// so the whole effect has to stay alive that much longer than a single projectile's flight.
+// A multi-projectile strike sends several munitions in a ripple; the last one leaves this long
+// after the first, so the whole effect has to stay alive that much longer than a single
+// projectile's flight. Must be >= the largest `delay` any EFFECT_REGISTRY entry's projectiles use.
 const MAX_LAUNCH_DELAY_MS = 250;
 
-// Total time an effect needs to stay live — CombatEffectsContext's EFFECT_LIFETIME_MS must be at
-// least this long, or the DOM elements would be torn down mid-fade.
-export const COMBAT_EFFECT_DURATION_MS = TRAVEL_MS + MAX_LAUNCH_DELAY_MS + BURST_MS + FADE_MS;
-
-const EFFECT_COLORS = {
-  missile: '#f87171',
-  airstrike: '#fb923c',
-  invasion: '#60a5fa'
-};
-
-// The near-white end of each effect's gradient — a hot core reads as energy in a way a single
-// flat stroke color never does.
-const EFFECT_HOT_COLORS = {
-  missile: '#fee2e2',
-  airstrike: '#fef3c7',
-  invasion: '#dbeafe'
-};
+// Total time an `arc`-primitive effect needs to stay live — EffectsContext's EFFECT_LIFETIME_MS
+// must be at least this long, or the DOM elements would be torn down mid-fade.
+export const ARC_EFFECT_DURATION_MS = TRAVEL_MS + MAX_LAUNCH_DELAY_MS + BURST_MS + FADE_MS;
 
 // Head silhouettes, drawn pointing along +x and rotated into the direction of travel each frame.
 const HEAD_SHAPES = {
   warhead: 'M 13 0 L 1 -4.5 L -10 -3 L -10 3 L 1 4.5 Z',
   dart: 'M 12 0 L -6 -4 L -3 0 L -6 4 Z',
   chevron: 'M 10 0 L -6 -8 L -1 0 L -6 8 Z'
-};
-
-// Per-type choreography. Each entry in `projectiles` is one flying object: `lateral` bows its arc
-// sideways (so a flight of three fans out instead of overlapping), `loft` scales the apex height,
-// `delay` staggers the launch, and `spread` nudges its impact point off the exact target so a
-// multi-munition strike lands as a cluster rather than a single stack.
-const EFFECT_SPECS = {
-  missile: {
-    head: 'warhead',
-    archPow: 1,
-    ease: 'accelerate',
-    trailWidth: 3.2,
-    fireball: 1,
-    rings: 3,
-    debris: 12,
-    projectiles: [{ lateral: 0, loft: 1, delay: 0, scale: 1, spread: 0 }]
-  },
-  airstrike: {
-    head: 'dart',
-    // <1 puts the apex early: the flight climbs out fast and spends most of its time in a long
-    // shallow dive onto the target, which is what an air strike should look like.
-    archPow: 0.7,
-    ease: 'accelerate',
-    trailWidth: 2.4,
-    fireball: 0.85,
-    rings: 2,
-    debris: 10,
-    projectiles: [
-      { lateral: -0.62, loft: 0.6, delay: 0, scale: 0.85, spread: -1 },
-      { lateral: 0.04, loft: 0.82, delay: 125, scale: 1, spread: 0.3 },
-      { lateral: 0.66, loft: 0.58, delay: MAX_LAUNCH_DELAY_MS, scale: 0.85, spread: 1 }
-    ]
-  },
-  invasion: {
-    head: 'chevron',
-    archPow: 1,
-    // Ground forces don't accelerate like a warhead — they roll forward at a steady pace.
-    ease: 'smooth',
-    trailWidth: 3.8,
-    fireball: 0.4,
-    rings: 2,
-    debris: 8,
-    projectiles: [
-      { lateral: -0.8, loft: 0.24, delay: 0, scale: 1, spread: -0.9 },
-      { lateral: 0.8, loft: 0.24, delay: 90, scale: 1, spread: 0.9 }
-    ]
-  }
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -211,8 +155,8 @@ const EASINGS = {
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
 // When in the effect's life the main shockwave goes off (the last munition's impact).
-export const getImpactDelay = (type) => {
-  const spec = EFFECT_SPECS[type] || EFFECT_SPECS.missile;
+export const getImpactDelay = (actionType) => {
+  const spec = getEffectSpec(actionType);
   return TRAVEL_MS + spec.projectiles.reduce((m, p) => Math.max(m, p.delay), 0);
 };
 
@@ -301,9 +245,9 @@ const buildImpact = (root, color, hot, spec) => {
 };
 
 const buildEntry = (svg, defs, effect) => {
-  const spec = EFFECT_SPECS[effect.type] || EFFECT_SPECS.missile;
-  const color = EFFECT_COLORS[effect.type] || EFFECT_COLORS.missile;
-  const hot = EFFECT_HOT_COLORS[effect.type] || EFFECT_HOT_COLORS.missile;
+  const spec = getEffectSpec(effect.actionType);
+  const color = spec.palette.base;
+  const hot = spec.palette.hot;
   const root = make('g');
   const projectiles = spec.projectiles.map((p, i) =>
     buildProjectile(root, defs, color, hot, spec, `${effect.id}-${i}`)
@@ -484,7 +428,7 @@ const GlobeEffectsOverlay = ({ globeRef, width, height, effects }) => {
 
           // ---- main detonation, centred on the real target (not on any one munition's
           // scattered impact point) ----
-          const burst = (elapsed - getImpactDelay(e.type)) / BURST_MS;
+          const burst = (elapsed - getImpactDelay(e.actionType)) / BURST_MS;
           const target = globe.getScreenCoords(to.lat, to.lng, BASE_ALTITUDE);
           const targetDir = latLngToVec(to.lat, to.lng);
           const targetVisible = isVisible(targetDir, BASE_ALTITUDE);

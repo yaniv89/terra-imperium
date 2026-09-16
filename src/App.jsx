@@ -3,7 +3,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
-import { CombatEffectsProvider } from './context/CombatEffectsContext';
+import { EffectsProvider } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
@@ -115,9 +115,9 @@ const GameLayout = () => {
 const App = () => {
   return (
     <GameProvider>
-      <CombatEffectsProvider>
+      <EffectsProvider>
         <GameLayout />
-      </CombatEffectsProvider>
+      </EffectsProvider>
     </GameProvider>
   );
 };
