@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
 import { useGame } from '../../context/GameContext';
-import { REGIONS_DATA, HAND_AUTHORED_REGION_IDS } from '../../data/regions';
+import { REGIONS_DATA } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { useCombatEffects } from '../../context/CombatEffectsContext';
@@ -28,8 +28,8 @@ const prefersReducedMotion = () =>
 
 // Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic exactly, so
 // switching to the globe changed nothing about what the colors mean.
-const fillColorFor = (regionState, nation) => {
-  if (regionState.owner === 'player') {
+const fillColorFor = (regionState, nation, isPlayerOwned) => {
+  if (isPlayerOwned) {
     const control = regionState.control || 0;
     if (control >= 80) return '#4ade80';
     if (control >= 60) return '#84cc16';
@@ -102,9 +102,10 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // of wherever react-globe.gl's own default camera position happens to be.
   useEffect(() => {
     if (!geo || !globeRef.current) return;
-    const home = REGION_COORDINATES.tel_aviv;
+    const home = REGION_COORDINATES[state.playerNationId];
+    if (!home) return;
     globeRef.current.pointOfView({ lat: home.lat, lng: home.lng, altitude: 1.4 }, 0);
-  }, [geo]);
+  }, [geo, state.playerNationId]);
 
   // Auto-rotate is a nice "alive" default for a menu-screen-style globe, but it's motion a
   // reduced-motion user explicitly asked not to see, and it should stop as soon as they've
@@ -123,8 +124,9 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     const gameRegionId = feature.properties?.gameRegionId;
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
-    const nation = regionState.owner !== 'player' ? state.nations[regionState.owner] : null;
-    return fillColorFor(regionState, nation);
+    const isPlayerOwned = regionState.owner === state.playerNationId;
+    const nation = !isPlayerOwned ? state.nations[regionState.owner] : null;
+    return fillColorFor(regionState, nation, isPlayerOwned);
   };
 
   const strokeColor = (feature) => {
@@ -146,13 +148,14 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     const regionData = REGIONS_DATA[gameRegionId];
     const regionState = state.regions[gameRegionId];
     if (!regionData || !regionState) return '';
-    const ownerName = regionState.owner === 'player' ? 'You' : (state.nations[regionState.owner]?.name || regionState.owner);
+    const isPlayerOwned = regionState.owner === state.playerNationId;
+    const ownerName = isPlayerOwned ? 'You' : (state.nations[regionState.owner]?.name || regionState.owner);
     const provinceName = feature.properties?.name;
     const subtitle = provinceName && provinceName !== regionData.name ? `${provinceName} &middot; ` : '';
     return `
       <div style="background:#0f172a;color:#e2e8f0;padding:6px 10px;border-radius:6px;font:12px sans-serif;border:1px solid #334155">
         <strong>${regionData.name}</strong><br/>
-        <span style="color:#94a3b8">${subtitle}${ownerName}${regionState.owner === 'player' ? ` &middot; ${regionState.control || 0}%` : ''}</span>
+        <span style="color:#94a3b8">${subtitle}${ownerName}${isPlayerOwned ? ` &middot; ${regionState.control || 0}%` : ''}</span>
       </div>
     `;
   };
@@ -204,7 +207,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
         polygonSideColor={() => 'rgba(15, 23, 42, 0.6)'}
         polygonStrokeColor={strokeColor}
         polygonAltitude={altitude}
-        polygonCapCurvatureResolution={(feature) => (HAND_AUTHORED_REGION_IDS.includes(feature.properties?.gameRegionId) ? 5 : 30)}
+        polygonCapCurvatureResolution={12}
         polygonsTransitionDuration={200}
         polygonLabel={label}
         onPolygonClick={handleClick}

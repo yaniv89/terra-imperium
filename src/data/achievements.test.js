@@ -1,28 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { ACHIEVEMENTS, checkAchievements } from './achievements';
 import { createInitialState } from '../context/GameContext';
-import { GamePhases, GameStatus } from './types';
+import { GameStatus } from './types';
 
 describe('checkAchievements', () => {
-  it('reports nothing for a brand-new PRE_STATE game', () => {
+  it('reports nothing for a brand-new game', () => {
     const state = createInitialState();
     expect(checkAchievements(state)).toEqual([]);
   });
 
-  it('detects declare_independence once the phase flips to POST_STATE', () => {
-    const state = { ...createInitialState(), phase: GamePhases.POST_STATE };
-    expect(checkAchievements(state)).toContain('declare_independence');
+  it('detects enter_classical_age once the age advances', () => {
+    const bronze = createInitialState();
+    expect(checkAchievements(bronze)).not.toContain('enter_classical_age');
+
+    const classical = { ...bronze, age: 'classical' };
+    expect(checkAchievements(classical)).toContain('enter_classical_age');
   });
 
-  it('detects survive_to_2000 only once BOTH post-state AND year >= 2000 hold', () => {
-    const preState2000 = { ...createInitialState(), year: 2000 }; // still PRE_STATE
-    expect(checkAchievements(preState2000)).not.toContain('survive_to_2000');
+  it('detects enter_modern_age only once modern is reached', () => {
+    const kingdoms = { ...createInitialState(), age: 'kingdoms' };
+    expect(checkAchievements(kingdoms)).not.toContain('enter_modern_age');
 
-    const postState1990 = { ...createInitialState(), phase: GamePhases.POST_STATE, year: 1990 };
-    expect(checkAchievements(postState1990)).not.toContain('survive_to_2000');
-
-    const postState2000 = { ...createInitialState(), phase: GamePhases.POST_STATE, year: 2000 };
-    expect(checkAchievements(postState2000)).toContain('survive_to_2000');
+    const modern = { ...createInitialState(), age: 'modern' };
+    expect(checkAchievements(modern)).toContain('enter_modern_age');
   });
 
   it('detects survive_to_victory only on GameStatus.VICTORY', () => {
@@ -52,9 +52,9 @@ describe('checkAchievements', () => {
 
   it('detects tech_titan once 12+ techs are researched', () => {
     const state = createInitialState();
-    const techIds = Object.keys(state.techTree).slice(0, 12);
-    const researched = { ...state, techTree: { ...state.techTree } };
-    techIds.forEach(id => { researched.techTree[id] = { ...researched.techTree[id], researched: true }; });
+    const fakeTechTree = {};
+    for (let i = 0; i < 12; i++) fakeTechTree[`tech_${i}`] = { researched: true };
+    const researched = { ...state, techTree: fakeTechTree };
     expect(checkAchievements(researched)).toContain('tech_titan');
     expect(checkAchievements(state)).not.toContain('tech_titan');
   });

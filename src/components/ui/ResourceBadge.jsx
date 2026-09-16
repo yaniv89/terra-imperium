@@ -2,21 +2,51 @@
 // Individual resource badge component with expand/collapse functionality
 
 import React from 'react';
-import { Coins, Users, Globe, Beaker, Zap, Swords, Shield } from 'lucide-react';
+import { Coins, Users, Globe, Beaker, Zap, Swords, Hammer, Flame, Fuel, Gem, Atom } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
 
 const RESOURCE_CONFIG = {
-  money: {
+  gold: {
     icon: Coins,
     color: 'text-amber-400',
     bgColor: 'bg-amber-500/20',
-    label: 'Funds'
+    label: 'Gold'
   },
-  manpower: {
+  hr: {
     icon: Users,
     color: 'text-green-400',
     bgColor: 'bg-green-500/20',
-    label: 'Manpower'
+    label: 'HR'
+  },
+  copper: {
+    icon: Hammer,
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/20',
+    label: 'Copper'
+  },
+  iron: {
+    icon: Flame,
+    color: 'text-slate-300',
+    bgColor: 'bg-slate-500/20',
+    label: 'Iron'
+  },
+  oil: {
+    icon: Fuel,
+    color: 'text-neutral-400',
+    bgColor: 'bg-neutral-500/20',
+    label: 'Oil'
+  },
+  rareMetals: {
+    icon: Gem,
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/20',
+    label: 'Rare Metals'
+  },
+  helium3: {
+    icon: Atom,
+    color: 'text-indigo-400',
+    bgColor: 'bg-indigo-500/20',
+    label: 'Helium-3'
   },
   diplomacyPoints: {
     icon: Globe,
@@ -36,17 +66,11 @@ const RESOURCE_CONFIG = {
     bgColor: 'bg-yellow-500/20',
     label: 'Action Points'
   },
-  militaryPower: {
+  militaryStrength: {
     icon: Swords,
     color: 'text-red-400',
     bgColor: 'bg-red-500/20',
-    label: 'Military Power'
-  },
-  undergroundStrength: {
-    icon: Shield,
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/20',
-    label: 'Underground'
+    label: 'Military Strength'
   }
 };
 

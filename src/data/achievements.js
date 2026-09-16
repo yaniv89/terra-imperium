@@ -3,25 +3,26 @@
 // single state snapshot (no history tracking needed) so it can be re-evaluated cheaply after
 // every state change and diffed against what's already unlocked (see src/utils/metaProgression.js).
 
-import { GamePhases, GameStatus } from './types';
+import { GameStatus } from './types';
+import { getAgeIndex } from './ages';
 
 export const ACHIEVEMENTS = {
-  declare_independence: {
-    id: 'declare_independence',
-    name: 'A State is Born',
-    description: 'Declare independence and enter the post-state era.',
-    check: (state) => state.phase === GamePhases.POST_STATE
+  enter_classical_age: {
+    id: 'enter_classical_age',
+    name: 'Beyond the Bronze',
+    description: 'Advance your nation into the Classical Age.',
+    check: (state) => getAgeIndex(state.age) >= getAgeIndex('classical')
   },
-  survive_to_2000: {
-    id: 'survive_to_2000',
-    name: 'New Millennium',
-    description: 'Lead an active state into the year 2000.',
-    check: (state) => state.phase === GamePhases.POST_STATE && state.year >= 2000
+  enter_modern_age: {
+    id: 'enter_modern_age',
+    name: 'Into the Modern World',
+    description: 'Advance your nation into the Modern Age.',
+    check: (state) => getAgeIndex(state.age) >= getAgeIndex('modern')
   },
   survive_to_victory: {
     id: 'survive_to_victory',
-    name: 'Galactic Age',
-    description: 'Lead Israel all the way to the Galactic Age.',
+    name: 'Terra Imperium',
+    description: 'Win the game.',
     check: (state) => state.gameStatus === GameStatus.VICTORY
   },
   master_diplomat: {

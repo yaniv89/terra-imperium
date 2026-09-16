@@ -1,23 +1,23 @@
 // src/components/modals/GameOverModal.jsx
-// Terminal screen for VICTORY / DEFEAT. Previously the game had no way to end at all — both
-// outcomes were single log lines the player could keep playing straight through.
+// Terminal screen for VICTORY / DEFEAT.
 
 import React, { useState } from 'react';
 import { Trophy, Skull, RotateCcw, Copy, Check } from 'lucide-react';
 import { GameStatus } from '../../data/types';
 import { VICTORY_CONDITIONS } from '../../data/victoryConditions';
-import { formatNumber, formatMoney, getAvgCoreControl, getPlayerRegions } from '../../utils/helpers';
+import { START_YEAR } from '../../data/ages';
+import { formatNumber, formatMoney, getPlayerControl, getPlayerRegions } from '../../utils/helpers';
 
 // A simple, transparent score — not meant to be perfectly balanced, just a single number that
 // rewards the same things the stat grid already shows, so a run-end summary has something to
-// compare across playthroughs (Phase 10: shareable summary).
+// compare across playthroughs.
 const computeScore = (state, isVictory) => {
   const techResearched = Object.values(state.techTree).filter(t => t.researched).length;
   const peaceTreaties = Object.values(state.nations).filter(n => n.hasPeaceTreaty).length;
-  const regionsHeld = getPlayerRegions(state.regions).length;
+  const regionsHeld = getPlayerRegions(state.regions, state.playerNationId).length;
   return (
     (isVictory ? 5000 : 0) +
-    Math.max(0, state.year - 1870) * 2 +
+    Math.max(0, state.year - START_YEAR) +
     techResearched * 50 +
     peaceTreaties * 30 +
     regionsHeld * 20
@@ -29,7 +29,8 @@ const GameOverModal = ({ status, state, onReset }) => {
   if (status !== GameStatus.VICTORY && status !== GameStatus.DEFEAT) return null;
 
   const isVictory = status === GameStatus.VICTORY;
-  const regionsHeld = getPlayerRegions(state.regions).length;
+  const playerNation = state.nations[state.playerNationId];
+  const regionsHeld = getPlayerRegions(state.regions, state.playerNationId).length;
   const techResearched = Object.values(state.techTree).filter(t => t.researched).length;
   const warsFought = state.wars.length;
   const peaceTreaties = Object.values(state.nations).filter(n => n.hasPeaceTreaty).length;
@@ -38,13 +39,13 @@ const GameOverModal = ({ status, state, onReset }) => {
 
   const handleCopySummary = () => {
     const lines = [
-      `Rise of Zion — ${isVictory ? `Victory (${victoryCondition?.name || 'Galactic Age'})` : 'Defeat'}`,
+      `Terra Imperium (${playerNation?.name}) — ${isVictory ? `Victory (${victoryCondition?.name || 'Score Victory'})` : 'Defeat'}`,
       `Score: ${formatNumber(score)}`,
       `Final Year: ${state.year} · Turns Played: ${formatNumber(state.turnNumber)}`,
-      `Regions Held: ${regionsHeld} · Core Control: ${getAvgCoreControl(state)}%`,
+      `Regions Held: ${regionsHeld} · Home Control: ${getPlayerControl(state)}%`,
       `Tech Researched: ${techResearched}/${Object.keys(state.techTree).length}`,
       `Wars Fought: ${warsFought} · Peace Treaties: ${peaceTreaties}`,
-      `Treasury: ${formatMoney(state.resources.money)}`
+      `Treasury: ${formatMoney(state.resources.gold)}`
     ];
     navigator.clipboard?.writeText(lines.join('\n')).then(() => {
       setCopied(true);
@@ -70,8 +71,8 @@ const GameOverModal = ({ status, state, onReset }) => {
         </h2>
         <p className="text-slate-400 text-sm mb-1">
           {isVictory
-            ? (victoryCondition?.description || 'Israel has endured and thrived across nearly three centuries.')
-            : 'Israel\'s core territories have fallen. The State could not be saved.'}
+            ? (victoryCondition?.description || `${playerNation?.name} has endured across the ages.`)
+            : `${playerNation?.name}'s home territory has fallen. The nation could not be saved.`}
         </p>
         <p className="text-amber-400 font-mono text-sm mb-6">Score: {formatNumber(score)}</p>
 
@@ -79,11 +80,11 @@ const GameOverModal = ({ status, state, onReset }) => {
           <Stat label="Final Year" value={state.year} />
           <Stat label="Turns Played" value={formatNumber(state.turnNumber)} />
           <Stat label="Regions Held" value={regionsHeld} />
-          <Stat label="Core Control" value={`${getAvgCoreControl(state)}%`} />
+          <Stat label="Home Control" value={`${getPlayerControl(state)}%`} />
           <Stat label="Tech Researched" value={`${techResearched}/${Object.keys(state.techTree).length}`} />
           <Stat label="Wars Fought" value={warsFought} />
           <Stat label="Peace Treaties" value={peaceTreaties} />
-          <Stat label="Treasury" value={formatMoney(state.resources.money)} />
+          <Stat label="Treasury" value={formatMoney(state.resources.gold)} />
         </div>
 
         <div className="flex gap-2">

@@ -5,6 +5,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { ScrollText, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { LogTypes } from '../../data/types';
+import { AGES } from '../../data/ages';
 
 // Log type styling configuration
 const LOG_STYLES = {
@@ -271,7 +272,7 @@ const LogConsole = ({ maxHeight = 'h-48', expanded = false }) => {
                       flex justify-between items-center shrink-0 bg-slate-900/50">
         <span>Turn {state.turnNumber} • Year {state.year}</span>
         <span className="flex items-center gap-2">
-          {state.phase === 'PRE_STATE' ? 'Pre-State Era' : 'State of Israel'}
+          {AGES[state.age]?.name || state.age}
         </span>
       </div>
     </div>
