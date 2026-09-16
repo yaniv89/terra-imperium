@@ -1,13 +1,14 @@
 // src/components/panels/MilitaryPanel.jsx
-// Military tab (plan §7): nation overview plus the first three of the fifteen planned actions —
-// Recruit Unit, Disband Unit, Move Army — against the new per-region army model (src/context/
-// GameContext.jsx's flat `state.units` dict) and unit classes (src/data/unitClasses.js). The rest
-// (promotions, generals, navies/amphibious invasion, phased battle resolution) land in their own
-// tasks as the army sim deepens.
+// Military tab (plan §7): nation overview plus four of the fifteen planned actions — Recruit
+// Unit, Disband Unit, Move Army, Launch Invasion — against the new per-region army model
+// (src/context/GameContext.jsx's flat `state.units` dict), unit classes (src/data/unitClasses.js)
+// and the phased battle engine (src/engine/battle.js). The rest (promotions, generals, navies/
+// amphibious invasion) land in their own tasks as the army sim deepens.
 
 import React from 'react';
-import { Swords, UserPlus, Trash2 } from 'lucide-react';
+import { Swords, UserPlus, Trash2, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../../data/regions';
 import { ACTION_COSTS } from '../../data/actionCosts';
@@ -17,6 +18,7 @@ import { ActionButton } from '../ui';
 
 const MilitaryPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const playerNation = state.nations[state.playerNationId];
   const atWarWith = Object.values(state.nations).filter(n => n.isAtWar && !n.isPlayer);
 
@@ -25,6 +27,15 @@ const MilitaryPanel = ({ selectedRegion }) => {
   const isPlayerOwned = regionState?.owner === state.playerNationId;
   const unitsHere = Object.values(state.units).filter(u => u.regionId === selectedRegion);
   const availableClasses = getAvailableClasses(state.age);
+
+  // Adjacent player-owned regions with at least one land unit — the possible launch points for
+  // invading the selected foreign region.
+  const invasionSources = (regionData && !isPlayerOwned)
+    ? getNeighborIds(selectedRegion)
+      .filter(nId => state.regions[nId]?.owner === state.playerNationId)
+      .map(nId => ({ regionId: nId, unitCount: Object.values(state.units).filter(u => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length }))
+      .filter(source => source.unitCount > 0)
+    : [];
 
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, ACTION_COSTS.recruitUnit)) return addLog('Not enough resources', 'action');
@@ -36,6 +47,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
   const handleMove = (unitId, toRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.moveArmy)) return addLog('Not enough resources', 'action');
     dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId } });
+  };
+  const handleInvade = (fromRegionId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
+    triggerEffect('ground_invasion', { from: fromRegionId, to: selectedRegion });
+    dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: selectedRegion } });
   };
 
   return (
@@ -61,6 +77,8 @@ const MilitaryPanel = ({ selectedRegion }) => {
         )}
       </div>
 
+      {state.lastBattleReport && <BattleReport report={state.lastBattleReport} />}
+
       {!regionData && (
         <div className="text-slate-500 text-xs text-center pt-4 border-t border-slate-800">
           Select a region on the globe to recruit and command armies there.
@@ -68,8 +86,26 @@ const MilitaryPanel = ({ selectedRegion }) => {
       )}
 
       {regionData && !isPlayerOwned && (
-        <div className="text-slate-500 text-xs text-center pt-4 border-t border-slate-800">
-          You don&apos;t control {regionData.name} — military actions are unavailable here.
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-slate-300">Invade {regionData.name}</div>
+          {invasionSources.length === 0 && (
+            <div className="text-[10px] text-slate-500">
+              You don&apos;t control an adjacent region with land units stationed there.
+            </div>
+          )}
+          {invasionSources.map(({ regionId, unitCount }) => (
+            <ActionButton
+              key={regionId}
+              icon={Flag}
+              label={`Launch from ${REGIONS_DATA[regionId]?.name}`}
+              description={`${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
+              costs={ACTION_COSTS.launchInvasion}
+              onClick={() => handleInvade(regionId)}
+              disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
+              variant="danger"
+              size="small"
+            />
+          ))}
         </div>
       )}
 
@@ -107,6 +143,48 @@ const MilitaryPanel = ({ selectedRegion }) => {
           </div>
         </>
       )}
+    </div>
+  );
+};
+
+const OUTCOME_LABELS = {
+  attacker: { text: 'Victory', className: 'text-green-400' },
+  defender: { text: 'Repelled', className: 'text-red-400' },
+  stalemate: { text: 'Stalemate', className: 'text-amber-400' }
+};
+
+const PHASE_LABELS = { ranged: 'Ranged', shock: 'Shock', flanking: 'Flanking', pursuit: 'Pursuit' };
+
+// After-action report (plan §9's "detailed after-action reports"): an itemized, phase-by-phase
+// breakdown of the most recent LAUNCH_INVASION battle (src/engine/battle.js's report shape).
+const BattleReport = ({ report }) => {
+  const outcome = OUTCOME_LABELS[report.outcome] || OUTCOME_LABELS.stalemate;
+  const phaseTotals = report.log.reduce((acc, entry) => {
+    const key = entry.phase;
+    acc[key] = acc[key] || { count: 0, damage: 0 };
+    acc[key].count += 1;
+    acc[key].damage += entry.damage;
+    return acc;
+  }, {});
+
+  return (
+    <div className="bg-slate-800/60 rounded-lg p-3 text-xs space-y-2 border border-slate-700">
+      <div className="flex items-center justify-between">
+        <span className="font-semibold text-slate-300">Last Battle: {REGIONS_DATA[report.fromRegionId]?.name} → {REGIONS_DATA[report.targetRegionId]?.name}</span>
+        <span className={`font-bold ${outcome.className}`}>{outcome.text}</span>
+      </div>
+      <div className="text-slate-400 font-mono">
+        Combat width {report.combatWidth} on {report.terrain} terrain — {report.deployedAttackers} vs {report.deployedDefenders} deployed
+        {report.isAttackingFortification ? ', attacking a fortification' : ''}
+      </div>
+      <div className="space-y-0.5">
+        {Object.entries(PHASE_LABELS).map(([key, label]) => phaseTotals[key] && (
+          <div key={key} className="flex justify-between text-slate-400">
+            <span>{label} ({phaseTotals[key].count})</span>
+            <span className="font-mono">{formatNumber(phaseTotals[key].damage)} dmg</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

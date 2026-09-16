@@ -19,7 +19,8 @@ import { getAvailableClasses } from '../data/unitClasses';
 import { ACTION_COSTS, DISBAND_HR_REFUND_RATIO } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
-import { randomSeed } from '../utils/rng';
+import { resolveBattle } from '../engine/battle';
+import { randomSeed, createRng } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
@@ -143,6 +144,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     nextInvasionSeq: 0,
     counterAttackWindows: {},
     hiredCommanders: [],
+
+    // Set by LAUNCH_INVASION to the itemized phase-by-phase result of the most recent battle (see
+    // src/engine/battle.js) — read by the UI for an after-action report, never by the reducer.
+    lastBattleReport: null,
 
     // Events
     activeEventId: null,
@@ -395,6 +400,70 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: { ...unit, regionId: toRegionId } },
         logs: [...state.logs, { year: state.year, message: `Moved a ${unit.classId} unit to ${REGIONS_DATA[toRegionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.LAUNCH_INVASION: {
+      const { fromRegionId, targetRegionId } = action.payload;
+      const fromRegion = state.regions[fromRegionId];
+      const targetRegion = state.regions[targetRegionId];
+      const costs = ACTION_COSTS.launchInvasion;
+      if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
+      if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
+      if (!getNeighborIds(fromRegionId).includes(targetRegionId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+
+      const attackerUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land');
+      if (attackerUnits.length === 0) return state;
+      const defenderUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'land');
+
+      const rng = createRng(state.rngSeed);
+      const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
+        attackerUnits,
+        defenderUnits,
+        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
+        rng
+      });
+
+      const nextUnits = { ...state.units };
+      // Attacker survivors move into the target region on a win, otherwise fall back to where
+      // they started; either way, units reduced to zero strength are destroyed and removed.
+      resolvedAttackers.forEach(u => {
+        if (u.strength <= 0) { delete nextUnits[u.id]; return; }
+        nextUnits[u.id] = { ...u, regionId: outcome === 'attacker' ? targetRegionId : fromRegionId };
+      });
+      // A captured region's garrison doesn't remain a coherent defending force — on an attacker
+      // win the whole defending side is cleared, survivors and routed alike.
+      resolvedDefenders.forEach(u => {
+        if (outcome === 'attacker' || u.strength <= 0) { delete nextUnits[u.id]; return; }
+        nextUnits[u.id] = u;
+      });
+
+      const nextRegions = { ...state.regions };
+      if (outcome === 'attacker') {
+        nextRegions[targetRegionId] = {
+          ...targetRegion,
+          owner: state.playerNationId,
+          control: 25,
+          unrest: Math.max(targetRegion.unrest || 0, 50)
+        };
+      }
+
+      const outcomeMessage = outcome === 'attacker'
+        ? `Your forces captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+        : outcome === 'defender'
+          ? `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
+          : `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: nextRegions,
+        units: nextUnits,
+        rngSeed: rng.getSeed(),
+        lastBattleReport: { ...report, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }
 

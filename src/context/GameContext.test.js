@@ -310,6 +310,64 @@ describe('Military tab actions', () => {
       expect(gameReducer(stolen, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'be' } })).toBe(stolen);
     });
   });
+
+  describe('LAUNCH_INVASION', () => {
+    const withAttacker = (strength) => {
+      const state = richState();
+      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      if (strength === undefined) return recruited;
+      const unitId = Object.keys(recruited.units)[0];
+      return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };
+    };
+
+    it('captures an undefended adjacent region and moves surviving units into it', () => {
+      const state = withAttacker();
+      const unitId = Object.keys(state.units)[0];
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } });
+      expect(next.regions.be.owner).toBe('fr');
+      expect(next.units[unitId].regionId).toBe('be');
+      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.lastBattleReport.outcome).toBe('attacker');
+    });
+
+    it('is repelled by a strong defender, leaving the region unconquered', () => {
+      const state = withAttacker(100); // a token attacking force
+      const defenderUnit = {
+        id: 'def_x', regionId: 'be', ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+        strength: 50000, maxStrength: 50000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+      };
+      const withDefender = { ...state, units: { ...state.units, def_x: defenderUnit } };
+      const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } });
+      expect(next.regions.be.owner).toBe('be');
+      expect(next.lastBattleReport.outcome).toBe('defender');
+    });
+
+    it('is a no-op from a region not owned by the player', () => {
+      const state = withAttacker();
+      const otherId = Object.keys(state.regions).find(id => id !== 'fr' && id !== 'be');
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: otherId, targetRegionId: 'be' } })).toBe(state);
+    });
+
+    it('is a no-op against a region the player already owns', () => {
+      const state = withAttacker();
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'fr' } })).toBe(state);
+    });
+
+    it('is a no-op against a non-adjacent region', () => {
+      const state = withAttacker();
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'jp' } })).toBe(state);
+    });
+
+    it('is a no-op when there are no attacker units in the source region', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...withAttacker(), resources: { ...withAttacker().resources, actionPoints: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } })).toBe(state);
+    });
+  });
 });
 
 describe('default case', () => {
