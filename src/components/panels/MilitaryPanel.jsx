@@ -7,16 +7,10 @@ import { useGame } from '../../context/GameContext';
 import { useCombatEffects } from '../../context/CombatEffectsContext';
 import { GamePhases, ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
-import { MAP_PATHS } from '../../data/mapPaths';
 import { canAfford, calcMilitaryPower, formatNumber, getInvasionForRegion, sumUnits, hasEnoughUnits } from '../../utils/helpers';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { PERSONAS } from '../../data/personas';
 import { ActionButton, ProgressBar } from '../ui';
-
-const anchorFor = (regionId) => {
-  const path = MAP_PATHS[regionId];
-  return path ? { x: path.labelX, y: path.labelY } : null;
-};
 
 const UNIT_LABELS = { infantry: 'Infantry', armor: 'Armor', air: 'Air' };
 
@@ -135,7 +129,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
     }
     // isAdjacent (checked above) guarantees at least one player-owned neighbor exists to launch from.
     const originId = REGIONS_DATA[selectedRegion].neighbors.find(id => state.regions[id]?.owner === 'player');
-    triggerEffect('invasion', anchorFor(originId), anchorFor(selectedRegion));
+    triggerEffect('invasion', originId, selectedRegion);
     dispatch({ type: ActionTypes.LAUNCH_PLAYER_INVASION, payload: { targetRegion: selectedRegion, composition, approach: launchApproach } });
   };
 
@@ -194,7 +188,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
     // Matches the reducer's own target selection (GameContext.jsx AIR_STRIKE: the first active
     // enemy invasion) so the animation always lands on the region actually hit.
     const target = enemyInvasions[0];
-    triggerEffect('airstrike', anchorFor('tel_aviv'), anchorFor(target.targetRegion));
+    triggerEffect('airstrike', 'tel_aviv', target.targetRegion);
     dispatch({ type: ActionTypes.AIR_STRIKE });
   };
 

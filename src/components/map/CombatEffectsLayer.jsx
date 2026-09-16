@@ -1,7 +1,9 @@
 // src/components/map/CombatEffectsLayer.jsx
 // Phase 14: renders transient missile/air-strike effects (see CombatEffectsContext) as an SVG
-// overlay in the same 1000x800 viewBox as the region paths in mapPaths.js — an effect's from/to
-// coordinates are just a region's existing labelX/labelY, no separate coordinate system needed.
+// overlay in the same 1000x800 viewBox as the region paths in mapPaths.js. Effects are stored by
+// region id in the context; this layer is what resolves fromRegionId/toRegionId into flat-map
+// x/y (a region's existing labelX/labelY) — the globe's equivalent (GlobeView.jsx) resolves the
+// same ids into lat/lng instead, via regionCoordinates.js.
 //
 // Driven by CSS transitions/keyframes rather than SVG SMIL (<animate>): SMIL's timeline proved
 // unreliable in headless/automated rendering during testing (a declared 0.7s duration completed
@@ -9,6 +11,7 @@
 // per SVG2 in evergreen browsers) behave consistently and are the same mechanism already used
 // everywhere else in this app's UI.
 import React, { useEffect, useState } from 'react';
+import { MAP_PATHS } from '../../data/mapPaths';
 
 const COLORS = {
   missile: '#f87171', // red-400
@@ -16,13 +19,18 @@ const COLORS = {
   invasion: '#60a5fa' // blue-400
 };
 
-const TRAVEL_MS = 700;
-const BURST_MS = 600;
+export const TRAVEL_MS = 700;
+export const BURST_MS = 600;
 const FADE_MS = 300;
 
 // Total time an effect needs to stay mounted — CombatEffectsContext's EFFECT_LIFETIME_MS must be
 // at least this long, or the group would be unmounted mid-fade.
 export const COMBAT_EFFECT_DURATION_MS = TRAVEL_MS + BURST_MS + FADE_MS;
+
+const anchorFor = (regionId) => {
+  const path = MAP_PATHS[regionId];
+  return path ? { x: path.labelX, y: path.labelY } : null;
+};
 
 const CombatEffect = ({ type, from, to }) => {
   const color = COLORS[type] || COLORS.missile;
@@ -89,9 +97,12 @@ const CombatEffectsLayer = ({ effects }) => {
   if (!effects || effects.length === 0 || prefersReducedMotion()) return null;
   return (
     <g>
-      {effects.map((e) => (
-        <CombatEffect key={e.id} type={e.type} from={e.from} to={e.to} />
-      ))}
+      {effects.map((e) => {
+        const from = anchorFor(e.fromRegionId);
+        const to = anchorFor(e.toRegionId);
+        if (!from || !to) return null; // a region with no flat-map path (shouldn't happen for the 28 game regions)
+        return <CombatEffect key={e.id} type={e.type} from={from} to={to} />;
+      })}
     </g>
   );
 };
