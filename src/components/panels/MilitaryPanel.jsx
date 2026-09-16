@@ -1,14 +1,14 @@
 // src/components/panels/MilitaryPanel.jsx
-// Military tab (plan §7): nation overview plus seven of the fifteen planned actions — Recruit
-// Unit, Disband Unit, Move Army, Launch Invasion, Promote Unit, Hire General (a support action for
-// Appoint General), Appoint General — against the per-region army model (src/context/
-// GameContext.jsx's flat `state.units` dict), unit classes (src/data/unitClasses.js), the phased
-// battle engine (src/engine/battle.js), and promotions/generals (src/data/promotions.js,
-// src/data/generals.js). The rest (navies/amphibious invasion, supply attrition) land in their own
-// tasks as the army sim deepens.
+// Military tab (plan §7 / §7.5): nation overview plus eleven of the fifteen planned actions —
+// Recruit Unit, Disband Unit, Move Army, Launch Invasion, Promote Unit, Hire General (a support
+// action for Appoint General), Appoint General, Embark/Disembark Army, Amphibious Assault, Naval
+// Engagement — against the per-region army model (src/context/GameContext.jsx's flat
+// `state.units` dict), unit classes (src/data/unitClasses.js), the phased battle engine
+// (src/engine/battle.js), promotions/generals (src/data/promotions.js, src/data/generals.js) and
+// age-gated naval reach (src/data/navalReach.js). Supply attrition lands in its own task.
 
 import React from 'react';
-import { Swords, UserPlus, Trash2, Flag, Award, UserCog } from 'lucide-react';
+import { Swords, UserPlus, Trash2, Flag, Award, UserCog, Anchor, Ship } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -16,8 +16,23 @@ import { REGIONS_DATA, getNeighborIds } from '../../data/regions';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
+import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
+
+// Every region a unit could move to right now: land-adjacent always, plus (for naval units) every
+// coastal region within the current age's naval reach (src/data/navalReach.js).
+const getMoveOptions = (unit, age) => {
+  const landNeighbors = getNeighborIds(unit.regionId);
+  if (unit.domain !== 'naval') return landNeighbors;
+  const seaLanes = getSeaLanesWithinReach(unit.regionId, age).map((lane) => lane.to);
+  return [...new Set([...landNeighbors, ...seaLanes])];
+};
+
+// Whether `fromRegionId` can reach `toRegionId` at all right now — land-adjacent or, for a naval
+// force, within the current age's sea-lane reach.
+const isReachable = (fromRegionId, toRegionId, age) =>
+  getNeighborIds(fromRegionId).includes(toRegionId) || isReachableBySea(fromRegionId, toRegionId, age);
 
 const MilitaryPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
@@ -38,6 +53,22 @@ const MilitaryPanel = ({ selectedRegion }) => {
       .filter(nId => state.regions[nId]?.owner === state.playerNationId)
       .map(nId => ({ regionId: nId, unitCount: Object.values(state.units).filter(u => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length }))
       .filter(source => source.unitCount > 0)
+    : [];
+
+  // Player naval units, anywhere, carrying at least one embarked land unit and within reach of
+  // the selected foreign coastal region — the possible launch points for an amphibious assault.
+  const amphibiousSources = (regionData && !isPlayerOwned && isCoastal(selectedRegion))
+    ? Object.values(state.units)
+      .filter(u => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, selectedRegion, state.age))
+      .map(u => ({ unit: u, cargoCount: Object.values(state.units).filter(c => c.embarkedOn === u.id).length }))
+      .filter(({ cargoCount }) => cargoCount > 0)
+    : [];
+
+  // Player naval units within reach of the selected region, when it holds an enemy fleet worth
+  // contesting — the possible launch points for a Naval Engagement.
+  const defendingNavalUnits = regionData ? Object.values(state.units).filter(u => u.regionId === selectedRegion && u.domain === 'naval' && u.ownerId !== state.playerNationId) : [];
+  const navalEngagementSources = (regionData && defendingNavalUnits.length > 0)
+    ? [...new Set(Object.values(state.units).filter(u => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, selectedRegion, state.age)).map(u => u.regionId))]
     : [];
 
   const handleRecruit = (classId) => {
@@ -66,6 +97,23 @@ const MilitaryPanel = ({ selectedRegion }) => {
   };
   const handleAppointGeneral = (generalId, unitId) => {
     dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: unitId || null } });
+  };
+  const handleEmbark = (landUnitId, navalUnitId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.embarkUnit)) return addLog('Not enough resources', 'action');
+    dispatch({ type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
+  };
+  const handleDisembark = (landUnitId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.disembarkUnit)) return addLog('Not enough resources', 'action');
+    dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId } });
+  };
+  const handleAmphibiousAssault = (navalUnitId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
+    triggerEffect('ground_invasion', { from: state.units[navalUnitId]?.regionId, to: selectedRegion });
+    dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: selectedRegion } });
+  };
+  const handleNavalEngagement = (fromRegionId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
+    dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: selectedRegion } });
   };
 
   const generals = Object.entries(state.hiredCommanders);
@@ -112,9 +160,9 @@ const MilitaryPanel = ({ selectedRegion }) => {
       {regionData && !isPlayerOwned && (
         <div className="space-y-2">
           <div className="text-xs font-semibold text-slate-300">Invade {regionData.name}</div>
-          {invasionSources.length === 0 && (
+          {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && (
             <div className="text-[10px] text-slate-500">
-              You don&apos;t control an adjacent region with land units stationed there.
+              You don&apos;t control an adjacent region with land units, or a fleet within reach.
             </div>
           )}
           {invasionSources.map(({ regionId, unitCount }) => (
@@ -126,6 +174,32 @@ const MilitaryPanel = ({ selectedRegion }) => {
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(regionId)}
               disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
+              variant="danger"
+              size="small"
+            />
+          ))}
+          {amphibiousSources.map(({ unit, cargoCount }) => (
+            <ActionButton
+              key={unit.id}
+              icon={Anchor}
+              label={`Amphibious assault from ${REGIONS_DATA[unit.regionId]?.name}`}
+              description={`${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}${getNeighborIds(selectedRegion).some(nId => state.regions[nId]?.owner === state.playerNationId) ? '' : ' — no beachhead, takes a landing penalty'}`}
+              costs={ACTION_COSTS.amphibiousAssault}
+              onClick={() => handleAmphibiousAssault(unit.id)}
+              disabled={!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)}
+              variant="danger"
+              size="small"
+            />
+          ))}
+          {navalEngagementSources.map((regionId) => (
+            <ActionButton
+              key={regionId}
+              icon={Ship}
+              label={`Naval engagement from ${REGIONS_DATA[regionId]?.name}`}
+              description={`Contest ${defendingNavalUnits.length} enemy fleet unit${defendingNavalUnits.length === 1 ? '' : 's'}`}
+              costs={ACTION_COSTS.navalEngagement}
+              onClick={() => handleNavalEngagement(regionId)}
+              disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
               variant="danger"
               size="small"
             />
@@ -160,13 +234,21 @@ const MilitaryPanel = ({ selectedRegion }) => {
               <UnitRow
                 key={unit.id}
                 unit={unit}
+                age={state.age}
                 generals={state.hiredCommanders}
                 unassignedGenerals={unassignedGenerals}
+                navalUnitsHere={unitsHere.filter(u => u.domain === 'naval' && u.id !== unit.id)}
+                cargoByNavalId={unitsHere.reduce((acc, u) => {
+                  if (u.embarkedOn) acc[u.embarkedOn] = (acc[u.embarkedOn] || 0) + 1;
+                  return acc;
+                }, {})}
                 onDisband={() => handleDisband(unit.id)}
                 onMove={(toRegionId) => handleMove(unit.id, toRegionId)}
                 onPromote={(perkId) => handlePromote(unit.id, perkId)}
                 onAssignGeneral={(generalId) => handleAppointGeneral(generalId, unit.id)}
                 onUnassignGeneral={() => handleAppointGeneral(unit.commanderId, null)}
+                onEmbark={(navalUnitId) => handleEmbark(unit.id, navalUnitId)}
+                onDisembark={() => handleDisembark(unit.id)}
               />
             ))}
           </div>
@@ -242,13 +324,17 @@ const OfficerCorps = ({ generals, units, canAffordHire, onHire }) => (
   </div>
 );
 
-const UnitRow = ({ unit, generals, unassignedGenerals, onDisband, onMove, onPromote, onAssignGeneral, onUnassignGeneral }) => {
-  const neighborIds = getNeighborIds(unit.regionId);
+const UnitRow = ({
+  unit, age, generals, unassignedGenerals, navalUnitsHere, cargoByNavalId,
+  onDisband, onMove, onPromote, onAssignGeneral, onUnassignGeneral, onEmbark, onDisembark
+}) => {
+  const moveOptions = getMoveOptions(unit, age);
   const rank = getRankForXp(unit.xp || 0);
   const nextRank = RANK_ORDER[RANK_ORDER.indexOf(rank) + 1];
   const promotable = canPromote(unit);
   const unheldPerks = ALL_PERKS.filter((p) => !hasPerk(unit, p.id));
   const commander = unit.commanderId ? generals[unit.commanderId] : null;
+  const embarkableTransports = unit.domain === 'land' ? navalUnitsHere.filter((n) => (cargoByNavalId[n.id] || 0) < n.transportCapacity) : [];
 
   return (
     <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1.5">
@@ -264,27 +350,55 @@ const UnitRow = ({ unit, generals, unassignedGenerals, onDisband, onMove, onProm
       <div className="text-slate-500 font-mono">
         XP {unit.xp || 0}{nextRank ? ` / ${XP_THRESHOLDS[nextRank]} to ${nextRank}` : ' (max rank)'}
       </div>
+      {unit.domain === 'naval' && (
+        <div className="text-slate-500 font-mono">Cargo {cargoByNavalId[unit.id] || 0}/{unit.transportCapacity}</div>
+      )}
 
-      <div className="flex items-center gap-1.5">
+      {unit.embarkedOn ? (
+        <div className="flex items-center gap-1.5">
+          <span className="flex-1 text-slate-400 flex items-center gap-1"><Anchor size={11} /> Embarked for transport</span>
+          <button
+            onClick={onDisembark}
+            className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[10px]"
+          >
+            Disembark
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <select
+            className="flex-1 bg-slate-700 text-slate-200 rounded px-1.5 py-1 text-[11px] disabled:opacity-40"
+            disabled={moveOptions.length === 0}
+            defaultValue=""
+            onChange={(e) => { if (e.target.value) { onMove(e.target.value); e.target.value = ''; } }}
+          >
+            <option value="" disabled>Move to…</option>
+            {moveOptions.map(nId => (
+              <option key={nId} value={nId}>{REGIONS_DATA[nId]?.name || nId}</option>
+            ))}
+          </select>
+          <button
+            onClick={onDisband}
+            className="shrink-0 p-1.5 rounded bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400"
+            title="Disband unit"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      )}
+
+      {embarkableTransports.length > 0 && (
         <select
-          className="flex-1 bg-slate-700 text-slate-200 rounded px-1.5 py-1 text-[11px] disabled:opacity-40"
-          disabled={neighborIds.length === 0}
+          className="w-full bg-slate-700 text-slate-200 rounded px-1.5 py-1 text-[11px]"
           defaultValue=""
-          onChange={(e) => { if (e.target.value) { onMove(e.target.value); e.target.value = ''; } }}
+          onChange={(e) => { if (e.target.value) { onEmbark(e.target.value); e.target.value = ''; } }}
         >
-          <option value="" disabled>Move to…</option>
-          {neighborIds.map(nId => (
-            <option key={nId} value={nId}>{REGIONS_DATA[nId]?.name || nId}</option>
+          <option value="" disabled>Embark on…</option>
+          {embarkableTransports.map((n) => (
+            <option key={n.id} value={n.id}>Transport ({cargoByNavalId[n.id] || 0}/{n.transportCapacity})</option>
           ))}
         </select>
-        <button
-          onClick={onDisband}
-          className="shrink-0 p-1.5 rounded bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400"
-          title="Disband unit"
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
+      )}
 
       <div className="flex items-center gap-1.5">
         {commander ? (

@@ -22,12 +22,20 @@ import { applyEventEffects } from '../engine/applyEventEffects';
 import { resolveBattle } from '../engine/battle';
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
+import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { randomSeed, createRng } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { canAfford, applyCosts } from '../utils/helpers';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
+
+// How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
+const NAVAL_TRANSPORT_CAPACITY = 2;
+// Amphibious assault penalty (plan §7.5): attacking from the sea with no existing foothold takes
+// a combat malus. Once the attacker holds a region adjacent to the target, further attacks staged
+// from that beachhead are normal.
+const AMPHIBIOUS_PENALTY_MULT = 0.75;
 
 // ============ PERSISTENCE ============
 const STORAGE_KEY = 'terra-imperium-save-v1';
@@ -354,11 +362,12 @@ export const gameReducer = (state, action) => {
       if (!getAvailableClasses(state.age).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
+      const isNaval = classId === 'naval';
       const newUnit = {
         id: unitId,
         regionId,
         ownerId: state.playerNationId,
-        domain: classId === 'naval' ? 'naval' : 'land',
+        domain: isNaval ? 'naval' : 'land',
         classId,
         ageId: state.age,
         strength: 1000,
@@ -368,7 +377,11 @@ export const gameReducer = (state, action) => {
         xp: 0,
         rank: 'recruit',
         promotions: [],
-        commanderId: null
+        commanderId: null,
+        // Naval-only: how many land units it can carry (plan §7.5's Embark/Disembark). Land-only:
+        // which naval unit currently carries it, if any — set by EMBARK_UNIT/AMPHIBIOUS_ASSAULT.
+        transportCapacity: isNaval ? NAVAL_TRANSPORT_CAPACITY : null,
+        embarkedOn: null
       };
       return {
         ...state,
@@ -386,6 +399,12 @@ export const gameReducer = (state, action) => {
       const refundHr = Math.round(ACTION_COSTS.recruitUnit.hr * DISBAND_HR_REFUND_RATIO);
       const remainingUnits = { ...state.units };
       delete remainingUnits[unitId];
+      // Disbanding a transport strands its cargo in place rather than sinking it with the ship.
+      if (unit.domain === 'naval') {
+        Object.values(remainingUnits).forEach(u => {
+          if (u.embarkedOn === unitId) remainingUnits[u.id] = { ...u, embarkedOn: null };
+        });
+      }
       return {
         ...state,
         resources: { ...state.resources, hr: (state.resources.hr || 0) + refundHr },
@@ -399,13 +418,54 @@ export const gameReducer = (state, action) => {
       const unit = state.units[unitId];
       const costs = ACTION_COSTS.moveArmy;
       if (!unit || unit.ownerId !== state.playerNationId) return state;
-      if (!getNeighborIds(unit.regionId).includes(toRegionId)) return state;
+      if (unit.embarkedOn) return state; // embarked units move with their transport, not on their own
+      const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
+      const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
+      if (!isLandAdjacent && !isSeaLaneReachable) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId } };
+      // A transport takes its embarked cargo along with it.
+      Object.values(state.units).forEach(u => {
+        if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId };
+      });
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: nextUnits,
+        logs: [...state.logs, { year: state.year, message: `Moved a ${unit.classId} unit to ${REGIONS_DATA[toRegionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.EMBARK_UNIT: {
+      const { landUnitId, navalUnitId } = action.payload;
+      const landUnit = state.units[landUnitId];
+      const navalUnit = state.units[navalUnitId];
+      const costs = ACTION_COSTS.embarkUnit;
+      if (!landUnit || landUnit.ownerId !== state.playerNationId || landUnit.domain !== 'land' || landUnit.embarkedOn) return state;
+      if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return state;
+      if (landUnit.regionId !== navalUnit.regionId) return state;
+      const cargoCount = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId).length;
+      if (cargoCount >= navalUnit.transportCapacity) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        units: { ...state.units, [unitId]: { ...unit, regionId: toRegionId } },
-        logs: [...state.logs, { year: state.year, message: `Moved a ${unit.classId} unit to ${REGIONS_DATA[toRegionId]?.name}.`, type: LogTypes.ACTION }]
+        units: { ...state.units, [landUnitId]: { ...landUnit, embarkedOn: navalUnitId } },
+        logs: [...state.logs, { year: state.year, message: `A ${landUnit.classId} unit embarked for transport.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.DISEMBARK_UNIT: {
+      const { landUnitId } = action.payload;
+      const landUnit = state.units[landUnitId];
+      const costs = ACTION_COSTS.disembarkUnit;
+      if (!landUnit || landUnit.ownerId !== state.playerNationId || !landUnit.embarkedOn) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: { ...state.units, [landUnitId]: { ...landUnit, embarkedOn: null } },
+        logs: [...state.logs, { year: state.year, message: `A ${landUnit.classId} unit disembarked at ${REGIONS_DATA[landUnit.regionId]?.name}.`, type: LogTypes.ACTION }]
       };
     }
 
@@ -485,6 +545,166 @@ export const gameReducer = (state, action) => {
         units: nextUnits,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.AMPHIBIOUS_ASSAULT: {
+      const { navalUnitId, targetRegionId } = action.payload;
+      const navalUnit = state.units[navalUnitId];
+      const targetRegion = state.regions[targetRegionId];
+      const costs = ACTION_COSTS.amphibiousAssault;
+      if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return state;
+      if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
+      if (!isCoastal(targetRegionId)) return state;
+      const isLandAdjacent = getNeighborIds(navalUnit.regionId).includes(targetRegionId);
+      const isSeaLaneReachable = isReachableBySea(navalUnit.regionId, targetRegionId, state.age);
+      if (!isLandAdjacent && !isSeaLaneReachable) return state;
+      const embarkedLandUnits = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
+      if (embarkedLandUnits.length === 0) return state;
+      if (!canAfford(state.resources, costs)) return state;
+
+      const rng = createRng(state.rngSeed);
+      const nextUnits = { ...state.units };
+
+      // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing.
+      // Losing it sinks the transport and everything still aboard, and the assault never lands.
+      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+      if (defenderNavalUnits.length > 0) {
+        const navalBattle = resolveBattle({
+          attackerUnits: [navalUnit],
+          defenderUnits: defenderNavalUnits,
+          terrain: REGIONS_DATA[targetRegionId]?.terrain,
+          isAttackingFortification: false,
+          rng,
+          generals: state.hiredCommanders
+        });
+        navalBattle.defenderUnits.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+        if (navalBattle.outcome !== 'attacker') {
+          delete nextUnits[navalUnitId];
+          embarkedLandUnits.forEach(u => delete nextUnits[u.id]);
+          return {
+            ...state,
+            resources: applyCosts(state.resources, costs),
+            units: nextUnits,
+            rngSeed: rng.getSeed(),
+            lastBattleReport: { ...navalBattle.report, kind: 'naval', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+            logs: [...state.logs, { year: state.year, message: `Your invasion fleet was intercepted and sunk approaching ${REGIONS_DATA[targetRegionId]?.name}.`, type: LogTypes.COMBAT }]
+          };
+        }
+        nextUnits[navalUnitId] = navalBattle.attackerUnits[0];
+      }
+
+      // No existing foothold near the target means the landing itself takes the amphibious malus;
+      // once the attacker already holds a neighboring region, further attacks staged from it are normal.
+      const hasBeachhead = getNeighborIds(targetRegionId).some(nId => state.regions[nId]?.owner === state.playerNationId);
+      const attackerLandUnits = embarkedLandUnits.map(u => nextUnits[u.id] || u);
+      const defenderLandUnits = Object.values(nextUnits).filter(u => u.regionId === targetRegionId && u.domain === 'land');
+
+      const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
+        attackerUnits: attackerLandUnits,
+        defenderUnits: defenderLandUnits,
+        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
+        rng,
+        generals: state.hiredCommanders,
+        attackerPenaltyMultiplier: hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT
+      });
+
+      const XP_WIN = 30;
+      const XP_LOSE = 15;
+      const attackerXpAmount = outcome === 'attacker' ? XP_WIN : outcome === 'defender' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
+      const defenderXpAmount = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
+      const awardBattleXp = (units, deployedIds, xpAmount) => units.map(u => {
+        if (!deployedIds.includes(u.id)) return u;
+        const gained = Math.round(xpAmount * getGeneralXpMultiplier(state.hiredCommanders[u.commanderId]));
+        return awardXp(u, gained);
+      });
+      const xpAttackers = awardBattleXp(resolvedAttackers, report.deployedAttackerIds, attackerXpAmount);
+      const xpDefenders = awardBattleXp(resolvedDefenders, report.deployedDefenderIds, defenderXpAmount);
+
+      // Winning survivors disembark onto the captured beach; a repelled landing force falls back
+      // aboard its transport, still embarked, for another attempt.
+      xpAttackers.forEach(u => {
+        if (u.strength <= 0) { delete nextUnits[u.id]; return; }
+        nextUnits[u.id] = outcome === 'attacker'
+          ? { ...u, regionId: targetRegionId, embarkedOn: null }
+          : { ...u, regionId: navalUnit.regionId, embarkedOn: navalUnitId };
+      });
+      xpDefenders.forEach(u => {
+        if (outcome === 'attacker' || u.strength <= 0) { delete nextUnits[u.id]; return; }
+        nextUnits[u.id] = u;
+      });
+
+      const nextRegions = { ...state.regions };
+      if (outcome === 'attacker') {
+        nextRegions[targetRegionId] = {
+          ...targetRegion,
+          owner: state.playerNationId,
+          control: 25,
+          unrest: Math.max(targetRegion.unrest || 0, 50)
+        };
+      }
+
+      const outcomeMessage = outcome === 'attacker'
+        ? `Your amphibious assault captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+        : outcome === 'defender'
+          ? `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
+          : `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: nextRegions,
+        units: nextUnits,
+        rngSeed: rng.getSeed(),
+        lastBattleReport: { ...report, kind: 'amphibious', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.NAVAL_ENGAGEMENT: {
+      const { fromRegionId, targetRegionId } = action.payload;
+      const fromRegion = state.regions[fromRegionId];
+      const costs = ACTION_COSTS.navalEngagement;
+      if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
+      const isLandAdjacent = getNeighborIds(fromRegionId).includes(targetRegionId);
+      const isSeaLaneReachable = isReachableBySea(fromRegionId, targetRegionId, state.age);
+      if (!isLandAdjacent && !isSeaLaneReachable) return state;
+      const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
+      if (attackerNavalUnits.length === 0) return state;
+      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+      if (defenderNavalUnits.length === 0) return state;
+      if (!canAfford(state.resources, costs)) return state;
+
+      const rng = createRng(state.rngSeed);
+      const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
+        attackerUnits: attackerNavalUnits,
+        defenderUnits: defenderNavalUnits,
+        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        isAttackingFortification: false,
+        rng,
+        generals: state.hiredCommanders
+      });
+
+      // A naval engagement only contests the lane — survivors hold their own positions, win or
+      // lose; there's no ground to capture from a fleet-on-fleet action.
+      const nextUnits = { ...state.units };
+      resolvedAttackers.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+      resolvedDefenders.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+
+      const outcomeMessage = outcome === 'attacker'
+        ? `Your fleet cleared the enemy from the waters near ${REGIONS_DATA[targetRegionId]?.name}.`
+        : outcome === 'defender'
+          ? `Your fleet was driven off near ${REGIONS_DATA[targetRegionId]?.name}.`
+          : `Your fleet's engagement near ${REGIONS_DATA[targetRegionId]?.name} ended inconclusively.`;
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        units: nextUnits,
+        rngSeed: rng.getSeed(),
+        lastBattleReport: { ...report, kind: 'naval', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: state.regions[targetRegionId]?.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }
