@@ -9,12 +9,14 @@ import { WORLD_NATIONS as NATIONS_DATA } from '../../data/worldNations';
 // Format effect for display
 const formatEffectItem = (key, value) => {
   const labels = {
-    money: 'Funds',
-    manpower: 'Manpower',
+    gold: 'Gold',
+    hr: 'HR',
+    copper: 'Copper',
+    iron: 'Iron',
+    oil: 'Oil',
     diplomacyPoints: 'Diplomacy',
     techPoints: 'Tech Points',
-    undergroundBonus: 'Underground',
-    militaryBonus: 'Military',
+    militaryStrengthBonus: 'Military',
     controlBonus: 'Control',
     controlPenalty: 'Control',
     defenseBonus: 'Defense',
@@ -22,8 +24,7 @@ const formatEffectItem = (key, value) => {
     returnRegion: 'Return',
     peaceWith: 'Peace with',
     tradeWith: 'Trade with',
-    warWith: 'War with',
-    canDeclareIndependence: 'Independence'
+    warWith: 'War with'
   };
 
   const label = labels[key] || key;
@@ -47,9 +48,6 @@ const formatEffectItem = (key, value) => {
     const nations = Array.isArray(value) ? value.join(', ') : value;
     return { label: 'War', value: nations, type: 'negative' };
   }
-  if (key === 'canDeclareIndependence') {
-    return { label: 'Unlock', value: 'Independence', type: 'positive' };
-  }
   if (key === 'nationHostility') {
     // { nationId: delta } — procedural events (Phase 6) only ever target one nation per option.
     const [nId, delta] = Object.entries(value)[0] || [];
@@ -66,7 +64,7 @@ const formatEffectItem = (key, value) => {
   // Numeric values
   if (typeof value === 'number') {
     let displayValue;
-    if (key === 'money') {
+    if (key === 'gold') {
       displayValue = formatMoney(Math.abs(value));
     } else if (key === 'controlBonus') {
       displayValue = `${Math.abs(value)}%`;

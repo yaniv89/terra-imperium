@@ -5,7 +5,7 @@
 
 const META_KEY = 'terra-imperium-meta-v1';
 
-const DEFAULT_META = { unlockedAchievements: [], selectedDoctrine: 'none', difficulty: 'normal' };
+const DEFAULT_META = { unlockedAchievements: [], selectedDoctrine: 'none', difficulty: 'prince' };
 
 export const loadMeta = () => {
   try {
@@ -15,8 +15,9 @@ export const loadMeta = () => {
     return {
       unlockedAchievements: Array.isArray(parsed?.unlockedAchievements) ? parsed.unlockedAchievements : [],
       selectedDoctrine: typeof parsed?.selectedDoctrine === 'string' ? parsed.selectedDoctrine : 'none',
-      // Difficulty select (Phase 10) — a fresh key on an old save falls back to 'normal'.
-      difficulty: typeof parsed?.difficulty === 'string' ? parsed.difficulty : 'normal'
+      // 'prince' is the fully-symmetrical, no-op difficulty — a fresh key on an old save falls
+      // back to it.
+      difficulty: typeof parsed?.difficulty === 'string' ? parsed.difficulty : 'prince'
     };
   } catch (e) {
     return { ...DEFAULT_META };

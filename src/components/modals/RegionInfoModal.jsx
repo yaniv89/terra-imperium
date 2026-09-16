@@ -35,7 +35,7 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
 
   if (!regionData || !regionState) return null;
 
-  const isPlayerOwned = regionState.owner === 'player';
+  const isPlayerOwned = regionState.owner === state.playerNationId;
   const ownerNation = !isPlayerOwned ? state.nations[regionState.owner] : null;
 
   return (
@@ -68,7 +68,7 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
       <div className="flex items-center justify-between mb-2">
         <span className="text-slate-400">Owner:</span>
         <span className={`font-semibold ${isPlayerOwned ? 'text-blue-400' : ''}`} style={{ color: !isPlayerOwned ? ownerNation?.color : undefined }}>
-          {isPlayerOwned ? 'Israel' : ownerNation?.name || 'Unknown'}
+          {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation?.name || 'Unknown'}
         </span>
       </div>
 

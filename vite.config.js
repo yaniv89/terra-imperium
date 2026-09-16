@@ -6,8 +6,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/terra-imperium/',
   server: {
-    port: 3000,
-    open: true
+    port: 3000
   },
   build: {
     outDir: 'docs',  

@@ -1,13 +1,12 @@
 // src/engine/applyEventEffects.js
-// Pure resolution of a historical-event choice. Previously this lived in GameContext's
-// resolveEvent() as ~12 separate dispatches, each computed from the same frozen `state`
-// closure — non-atomic, and any two effects touching the same key would silently drop one.
-// This function takes one state snapshot and returns one fully-resolved next state.
+// Pure resolution of a historical-event choice: takes one state snapshot and returns one
+// fully-resolved next state, so two effects touching the same key can never silently clobber
+// each other the way ~12 separate dispatches from the same frozen closure once could.
 
 import { RelationStatus, LogTypes, GameStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
-import { addUnits } from '../utils/helpers';
+import { RESOURCE_IDS } from '../data/resources';
 import { declareWar } from './diplomacy';
 
 export const applyEventEffects = (state, event, optionIndex) => {
@@ -17,26 +16,32 @@ export const applyEventEffects = (state, event, optionIndex) => {
   let next = { ...state };
   const logs = [];
   const effects = option.effects || {};
+  const playerNationId = next.playerNationId;
 
+  // Generic resource deltas — any of gold/hr/copper/iron/oil/rareMetals/helium3, whichever ones
+  // are currently unlocked and present on state.resources.
   const resources = { ...next.resources };
-  if (effects.money) resources.money += effects.money;
-  if (effects.manpower) resources.manpower += effects.manpower;
-  if (effects.diplomacyPoints) resources.diplomacyPoints += effects.diplomacyPoints;
-  if (effects.techPoints) resources.techPoints += effects.techPoints;
+  RESOURCE_IDS.forEach(id => {
+    if (effects[id] && resources[id] !== undefined) resources[id] += effects[id];
+  });
+  if (effects.diplomacyPoints) resources.diplomacyPoints = (resources.diplomacyPoints || 0) + effects.diplomacyPoints;
+  if (effects.techPoints) resources.techPoints = (resources.techPoints || 0) + effects.techPoints;
   next.resources = resources;
 
-  if (effects.undergroundBonus) {
-    next.undergroundStrength = Math.max(0, next.undergroundStrength + effects.undergroundBonus);
-  }
-  if (effects.militaryBonus) {
-    // Event-granted military bonuses land as infantry — there's no finer-grained composition
-    // signal in the event data, and infantry is the safest generic "more army" bucket.
-    next.militaryUnits = addUnits(next.militaryUnits, { infantry: effects.militaryBonus });
+  // A flat bump to the player nation's military stat — the finer-grained unit-composition system
+  // (plan §7) is Phase C work; this is the generic placeholder until then.
+  if (effects.militaryStrengthBonus && next.nations[playerNationId]) {
+    next.nations = {
+      ...next.nations,
+      [playerNationId]: {
+        ...next.nations[playerNationId],
+        militaryStrength: next.nations[playerNationId].militaryStrength + effects.militaryStrengthBonus
+      }
+    };
   }
 
-  // Applied to combat as a persistent defense multiplier (see resolveTurn.js) — previously
-  // events like the Bar-Lev Line / security barrier advertised "+20% Defense" in the UI and
-  // it was never actually consumed anywhere.
+  // Applied to combat as a persistent defense multiplier (Phase C) — carried on state so it
+  // survives until the combat system that consumes it exists.
   if (effects.defenseBonus) {
     next.eventDefenseBonus = (next.eventDefenseBonus || 0) + effects.defenseBonus;
   }
@@ -44,7 +49,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (effects.controlBonus) {
     const regions = { ...next.regions };
     Object.values(regions).forEach(r => {
-      if (r.owner === 'player') {
+      if (r.owner === playerNationId) {
         regions[r.id] = { ...r, control: Math.min(100, r.control + effects.controlBonus) };
       }
     });
@@ -53,7 +58,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (effects.controlPenalty) {
     const regions = { ...next.regions };
     Object.values(regions).forEach(r => {
-      if (r.owner === 'player' && r.isOccupied) {
+      if (r.owner === playerNationId && r.isOccupied) {
         regions[r.id] = { ...r, control: Math.max(0, r.control - effects.controlPenalty) };
       }
     });
@@ -66,7 +71,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
       if (regions[rId]) {
         regions[rId] = {
           ...regions[rId],
-          owner: 'player',
+          owner: playerNationId,
           control: 80,
           isOccupied: true,
           underInvasion: false
@@ -76,7 +81,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.regions = regions;
   }
 
-  if (effects.returnRegion && next.regions[effects.returnRegion]?.owner === 'player') {
+  if (effects.returnRegion && next.regions[effects.returnRegion]?.owner === playerNationId) {
     const origOwner = REGIONS_DATA[effects.returnRegion]?.startOwner;
     if (origOwner) {
       next.regions = {
@@ -108,7 +113,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
       for (let i = 0; i < wars.length; i++) {
         if (wars[i].enemy === nId) wars[i] = { ...wars[i], active: false };
       }
-      invasions = invasions.filter(inv => !(inv.attackerNation === nId && !inv.isPlayerAttacker));
+      invasions = invasions.filter(inv => !(inv.attackerNation === nId && inv.attackerNation !== playerNationId));
       logs.push({ year: next.year, message: `PEACE signed with ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.MILESTONE });
     });
     next.nations = nations;
@@ -136,13 +141,13 @@ export const applyEventEffects = (state, event, optionIndex) => {
     const ids = Array.isArray(effects.warWith) ? effects.warWith : [effects.warWith];
     ids.forEach(nId => {
       if (!next.nations[nId] || next.nations[nId].isAtWar) return;
-      next = declareWar(next, nId);
+      next = declareWar(next, nId, { aggressor: playerNationId });
       logs.push({ year: next.year, message: `WAR declared on ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.CRISIS });
     });
   }
 
-  // Generic per-nation hostility nudge (Phase 6: procedural events target a specific nation
-  // without needing a one-off effect key per template — see src/data/proceduralEvents.js).
+  // Generic per-nation hostility nudge — procedural events target a specific nation without
+  // needing a one-off effect key per template (see src/data/proceduralEvents.js).
   if (effects.nationHostility) {
     const nations = { ...next.nations };
     Object.entries(effects.nationHostility).forEach(([nId, delta]) => {
@@ -152,10 +157,9 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.nations = nations;
   }
 
-  // Event chains with memory (Phase 10) — schedules a registry entry from eventChains.js to
-  // fire delayTurns turns from now (see resolveTurn.js, which checks state.pendingEventChains
-  // every turn). turnNumber, not year, is the clock here so the delay is exact regardless of
-  // which half of the year this event resolved in.
+  // Event chains with memory — schedules a registry entry from eventChains.js to fire delayTurns
+  // turns from now (see resolveTurn.js, which checks state.pendingEventChains every turn).
+  // turnNumber, not year, is the clock here so the delay is exact regardless of game speed.
   if (effects.spawnFollowUp) {
     const { id, delayTurns } = effects.spawnFollowUp;
     next.pendingEventChains = [
@@ -164,26 +168,19 @@ export const applyEventEffects = (state, event, optionIndex) => {
     ];
   }
 
-  if (effects.canDeclareIndependence) {
-    logs.push({ year: next.year, message: 'Independence is now possible! Declare when ready.', type: LogTypes.MILESTONE });
-  }
-
   if (effects.victory) {
     next.gameStatus = GameStatus.VICTORY;
-    // Recorded so GameOverModal can show which victory was achieved (Phase 10: multiple win
-    // conditions) — this is always the 'survival' condition since it's the only one delivered
-    // via a scripted event rather than resolveTurn's per-turn victory-condition check.
     next.victoryConditionId = 'survival';
-    logs.push({ year: next.year, message: 'VICTORY: Israel has led humanity to the stars!', type: LogTypes.MILESTONE });
+    logs.push({ year: next.year, message: 'VICTORY!', type: LogTypes.MILESTONE });
   }
 
   logs.push({ year: next.year, message: `Event: ${event.title} → ${option.label}`, type: LogTypes.EVENT });
 
   next.logs = [...next.logs, ...logs];
   next.activeEventId = null;
-  // Procedural events (Phase 6) never populate activeEventId — they're carried in
-  // activeProceduralEvent instead (see resolveTurn.js) — so this clear is a no-op for a
-  // scripted event and the one that actually dismisses a procedural one.
+  // Procedural events never populate activeEventId — they're carried in activeProceduralEvent
+  // instead (see resolveTurn.js) — so this clear is a no-op for a scripted event and the one that
+  // actually dismisses a procedural one.
   next.activeProceduralEvent = null;
   next.firedEvents = { ...next.firedEvents, [event.id]: true };
 

@@ -1,82 +1,29 @@
 // src/engine/resolveTurn.js
-// Pure turn-resolution engine. Takes one state snapshot and a seeded RNG, returns the fully
-// resolved next state. Replaces the old GameContext.advanceTurn, which dispatched ~7 separate
-// actions per turn from a single stale `state` closure — that caused two concrete bugs:
-//   1. Two invasions landing on the same region in one turn each computed damage from the same
-//      pre-turn control value, so the second dispatch silently overwrote the first (net damage
-//      was ~half of what it should have been).
-//   2. Victory/defeat were checked against the OLD state before the turn's own dispatches had
-//      applied, so defeat was detected a full turn late.
-// Collapsing everything into one pure function eliminates both: there is only one snapshot,
-// mutated locally in order, and only one dispatch to the reducer.
+// Pure turn-resolution engine. Takes one state snapshot and returns the fully resolved next
+// state, using the RNG seed carried on state (never Math.random() directly) so replays and
+// multiplayer resolution are deterministic.
+//
+// Deliberately minimal for Phase A: calendar/age advance, resource income, AI nations' passive
+// growth, and the (currently empty) scripted/procedural event pipeline. Combat, invasions,
+// AI-declared wars and tech effects are NOT resolved here yet — they're rebuilt from scratch in
+// Phase C/D against the new unit-class and diplomacy systems, rather than adapted from the old
+// infantry/armor/air model this replaced.
 
-import { GamePhases, GameStatus, LogTypes } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, CORE_REGION_IDS, distanceFromAnchor, getNationCapital } from '../data/regions';
-import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
-import { TECH_TREE } from '../data/techTree';
+import { GameStatus, LogTypes } from '../data/types';
+import { getCalendarAgeId, getYearsPerTurn } from '../data/ages';
+import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import {
-  calcIncome,
-  calcMilitaryPower,
-  getTechBonuses,
-  calcCombatResult,
-  calcCompositionStrength,
-  distributeCasualties,
-  subtractUnits,
-  scaleUnits,
-  sumUnits,
-  formatNumber
-} from '../utils/helpers';
-import { processAllAINations, getRelationFromHostility, shouldDeclareWar } from '../utils/aiLogic';
-import { declareWar, checkWarGoal } from './diplomacy';
+import { calcIncome, formatMoney } from '../utils/helpers';
+import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
-import { getPersonaBonus } from '../data/personas';
-import { narratePlayerStorm, narrateEnemyStorm } from '../utils/combatNarrative';
 import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-// Decides whether an AI-vs-AI conflict should transfer territory, and which region. Only when
-// the aggressor holds a decisive strength edge (same 1.5x threshold philosophy as player combat)
-// AND actually borders something the defender owns — a skirmish between two nations with no
-// shared frontier doesn't redraw the map. Exported standalone (rather than inlined in the
-// resolveTurn loop) so it's testable without needing the 2% per-turn RNG roll that normally
-// produces a regionConflict to fire first.
-export const findConflictTerritoryTransfer = (regions, nations, conflict) => {
-  const aggressor = nations[conflict.aggressor];
-  const defender = nations[conflict.defender];
-  if (!aggressor || !defender || aggressor.militaryStrength < defender.militaryStrength * 1.5) return null;
-
-  const aggressorRegionIds = Object.keys(regions).filter(id => regions[id].owner === conflict.aggressor);
-  return Object.keys(regions).find(id =>
-    regions[id].owner === conflict.defender &&
-    aggressorRegionIds.some(aid => getNeighborIds(aid).includes(id))
-  ) || null;
-};
-
-// Per-turn supply decay for one invasion, scaled by how far it's pushed from the attacker's home
-// anchor (Phase 7 overextension) — a base -10/turn plus -3 for every hop beyond the first. A
-// stateless attacker (no capital — Hamas) gets the flat base rate, matching its existing
-// adjacency exemption elsewhere. Exported standalone for direct unit testing.
-export const supplyDecayForInvasion = (inv) => {
-  const BASE_DECAY = 10;
-  const PER_HOP_DECAY = 3;
-  const anchors = inv.isPlayerAttacker ? CORE_REGION_IDS : [getNationCapital(inv.attackerNation)].filter(Boolean);
-  if (anchors.length === 0) return BASE_DECAY;
-  const dist = distanceFromAnchor(anchors, inv.targetRegion);
-  if (dist === null) return BASE_DECAY;
-  return BASE_DECAY + Math.max(0, dist - 1) * PER_HOP_DECAY;
-};
-
 export const resolveTurn = (state) => {
   // Guard: nothing to resolve if the game already ended or an event is blocking play.
-  // (The UI also disables End Turn in these cases; this is the authoritative backstop.)
-  // activeProceduralEvent (Phase 6) blocks play exactly like activeEventId — it's a second,
-  // separate slot rather than overloading activeEventId, because scripted events are looked up
-  // by id from the static HISTORICAL_EVENTS registry while a procedural one is generated fresh
-  // and has to be carried in full (see pickProceduralEvent in src/data/proceduralEvents.js).
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent) {
     return state;
   }
@@ -85,362 +32,38 @@ export const resolveTurn = (state) => {
   const logs = [];
 
   // --- time ---
-  const isH2 = state.period === 1;
-  const newPeriod = isH2 ? 0 : 1;
-  const newYear = isH2 ? state.year + 1 : state.year;
-  const dateString = `${newYear} ${newPeriod === 0 ? 'H1' : 'H2'}`;
-
-  // --- tech availability ---
-  const techTree = { ...state.techTree };
-  Object.keys(techTree).forEach(id => {
-    if (TECH_TREE[id].yearAvailable <= newYear) {
-      techTree[id] = { ...techTree[id], available: true };
-    }
-  });
+  const newYear = state.year + getYearsPerTurn(state.age, state.gameSpeed);
+  const newAge = getCalendarAgeId(newYear);
+  const newTurnNumber = state.turnNumber + 1;
 
   // --- income ---
   const income = calcIncome(state);
-  logs.push({
-    year: newYear,
-    message: `${dateString}: +$${formatNumber(income.money)}, +${formatNumber(income.manpower)} Men${state.phase === GamePhases.POST_STATE ? `, +${income.techPoints} TP` : ''}`,
-    type: LogTypes.ACTION
-  });
-  const resources = {
-    ...state.resources,
-    money: state.resources.money + income.money,
-    manpower: state.resources.manpower + income.manpower,
-    techPoints: state.resources.techPoints + income.techPoints,
-    diplomacyPoints: state.resources.diplomacyPoints + income.diplomacyPoints,
-    actionPoints: state.resources.maxActionPoints
-  };
+  const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
+  Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
+  logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
 
-  // --- combat ---
-  // `regions` is mutated in place through the loop (not re-read from `state`), so a second
-  // invasion hitting the same region this turn compounds correctly instead of clobbering.
-  const regions = { ...state.regions };
-  let militaryUnits = { ...state.militaryUnits };
-  let undergroundStrength = state.undergroundStrength;
-  const nationCombatDeltas = {}; // nationId -> militaryStrength delta from combat this turn
-
-  const techBonuses = getTechBonuses(state.techTree);
-  const playerDefenseBonus = (techBonuses.defenseBonus || 0) + (state.eventDefenseBonus || 0);
-  // Player's own defensive tech should not also shield the nation the player is attacking —
-  // that bug let researching Haganah Doctrine make the player's own offensives *harder*.
-  const attackerSideDefenseTechBonuses = {};
-  const defenderSideDefenseTechBonuses = { defenseBonus: playerDefenseBonus, combatPrediction: techBonuses.combatPrediction };
-  // Layered missile defense (Iron Dome/Arrow 3/Iron Beam) reduces the flat control-damage amounts
-  // enemy invasions deal, applied below wherever `damage` is computed.
-  const missileDefenseMult = 1 - (techBonuses.missileDefenseBonus || 0);
-
-  // Snapshot the player's defensive capacity once for the whole turn (matches original design:
-  // defense capacity doesn't instantly drop mid-turn as casualties land from earlier invasions).
-  const playerDefenseBase = calcMilitaryPower(state) * 0.3;
-
-  const addNationDelta = (nationId, militaryStrengthChange) => {
-    if (!nationId) return;
-    nationCombatDeltas[nationId] = (nationCombatDeltas[nationId] || 0) + militaryStrengthChange;
-  };
-
-  // --- counter-attack windows (Phase 7) ---
-  // A side whose invasion is decisively repelled this turn is briefly disorganized: for a couple
-  // of turns, a NEW invasion into ITS territory gets a strength bonus — wars should have momentum
-  // swings, not just grind one direction. Bonus lookups below read `state.counterAttackWindows`
-  // (last turn's snapshot, so two invasions resolving the same turn can't chain off each other's
-  // outcome); `counterAttackWindows` here is the decremented-and-refreshed copy going into `next`.
-  const COUNTER_ATTACK_BONUS = 1.2;
-  const COUNTER_ATTACK_TURNS = 2;
-  const counterAttackWindows = {};
-  Object.entries(state.counterAttackWindows || {}).forEach(([sideId, turnsLeft]) => {
-    if (turnsLeft > 1) counterAttackWindows[sideId] = turnsLeft - 1;
-  });
-  const disorganizedBonus = (sideId) => (((state.counterAttackWindows || {})[sideId] || 0) > 0 ? COUNTER_ATTACK_BONUS : 1);
-
-  const resolvedInvasions = state.invasions.map(inv => {
-    if (!inv.active) return inv;
-
-    // 'hold' (Phase 8 tactical order) trades campaign progress for slower attrition — halves this
-    // turn's supply decay on top of any commander logistics bonus. Never let decay round to 0
-    // (an invasion would then never run out of supply on its own).
-    const holdReduction = inv.tacticalOrder === 'hold' ? 0.5 : 1;
-    const commanderSupplyMult = getPersonaBonus(inv.commanderId, 'supplyDecayMult');
-    const supplyDecay = Math.max(1, Math.round(supplyDecayForInvasion(inv) * holdReduction * commanderSupplyMult));
-    let newInv = { ...inv, supply: inv.supply - supplyDecay };
-
-    // Mercenary reinforcements (Phase 8) are temporary — tick the contract down and, once it
-    // expires, remove exactly what it added rather than leaving a permanent free army behind.
-    if (newInv.mercenaryBoost) {
-      const turnsRemaining = newInv.mercenaryBoost.turnsRemaining - 1;
-      if (turnsRemaining <= 0) {
-        newInv.composition = subtractUnits(newInv.composition, { infantry: newInv.mercenaryBoost.amount, armor: 0, air: 0 });
-        newInv.mercenaryBoost = null;
-        logs.push({ year: newYear, message: `Mercenary contract at ${REGIONS_DATA[inv.targetRegion]?.name} has expired.`, type: LogTypes.ACTION });
-      } else {
-        newInv.mercenaryBoost = { ...newInv.mercenaryBoost, turnsRemaining };
-      }
-    }
-
-    const targetRegion = regions[inv.targetRegion];
-    const targetData = REGIONS_DATA[inv.targetRegion];
-    if (!targetRegion || !targetData) return newInv;
-
-    const fortification = targetData.fortification ?? 1;
-
-    if (inv.isPlayerAttacker) {
-      const defenderNation = state.nations[targetRegion.owner];
-      if (defenderNation && !defenderNation.isPlayer) {
-        const commanderMult = {
-          infantryMult: getPersonaBonus(newInv.commanderId, 'infantryMult'),
-          armorMult: getPersonaBonus(newInv.commanderId, 'armorMult'),
-          airMult: getPersonaBonus(newInv.commanderId, 'airMult')
-        };
-        const moraleLossMult = getPersonaBonus(newInv.commanderId, 'moraleLossMult');
-
-        if ((newInv.approach || 'storm') === 'siege') {
-          // Siege (Phase 8): no decisive dice roll — the tradeoff for storm's chance at a quick
-          // win is a slow, safe erosion of the defender's control instead. Damage still scales
-          // with the strength ratio (capped at 2x parity) rather than being a flat guaranteed
-          // grind — otherwise a trivially weak siege would eventually capture ANY region given
-          // enough turns regardless of how outmatched it is, breaking the same "overwhelming
-          // defense repels everything" invariant storm already respects via calcCombatResult.
-          const siegeDamageMult = getPersonaBonus(newInv.commanderId, 'siegeDamageMult');
-          const rawAttackerStrength = sumUnits(newInv.composition);
-          const effectiveAttackStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses, newPeriod, commanderMult);
-          const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
-          const strengthRatio = Math.min(2, effectiveAttackStrength / Math.max(1, defenseStrength));
-          const siegeDamage = Math.round(8 * strengthRatio * siegeDamageMult);
-          const casualtyRate = 0.02;
-          const attackerCasualties = Math.round(rawAttackerStrength * casualtyRate);
-          const defenderCasualties = Math.round(defenderNation.militaryStrength * casualtyRate * 0.3);
-          newInv.composition = subtractUnits(newInv.composition, distributeCasualties(newInv.composition, attackerCasualties));
-          addNationDelta(targetRegion.owner, -defenderCasualties);
-
-          const newControl = Math.max(0, targetRegion.control - siegeDamage);
-          if (newControl <= 0) {
-            newInv.active = false;
-            regions[inv.targetRegion] = { ...targetRegion, owner: 'player', control: 60, isOccupied: true, underInvasion: false };
-            logs.push({ year: newYear, message: `SIEGE SUCCESSFUL! ${targetData.name} falls after a prolonged siege!`, type: LogTypes.MILESTONE });
-          } else {
-            regions[inv.targetRegion] = { ...targetRegion, control: newControl };
-            logs.push({ year: newYear, message: `Siege of ${targetData.name} continues. Control -${siegeDamage}%`, type: LogTypes.COMBAT });
-          }
-        } else {
-          // Storm: today's single-roll model. tacticalOrder (Phase 8) further modifies it —
-          // 'hold' skips the roll entirely to regroup, 'probe' trades morale risk for a strength
-          // edge, 'press' (the default, and the only option before Phase 8) is unchanged.
-          const order = newInv.tacticalOrder || 'press';
-          if (order === 'hold') {
-            newInv.morale = Math.min(100, newInv.morale + 15);
-            logs.push({ year: newYear, message: `Holding position at ${targetData.name}, regrouping.`, type: LogTypes.COMBAT });
-          } else {
-            const probeBonus = order === 'probe' ? 1.1 : 1;
-            // Composition vs. terrain determines the deployed force's effective strength (e.g.
-            // armor committed into mountains fights far below its raw headcount) — this is on top
-            // of, and independent from, the terrain bonus the defender separately gets below.
-            const effectiveStrength = calcCompositionStrength(newInv.composition, targetData.terrain, techBonuses, newPeriod, commanderMult)
-              * disorganizedBonus(targetRegion.owner) * probeBonus;
-            const defenseStrength = defenderNation.militaryStrength * 0.3 * fortification;
-            const result = calcCombatResult(effectiveStrength, defenseStrength, attackerSideDefenseTechBonuses, targetData.terrain, rng);
-
-            // Casualties are based on the RAW committed headcount, not the terrain-weighted
-            // effective strength above — otherwise a unit type terrain favors would paradoxically
-            // take *larger* absolute losses than a poorly-suited one of equal size in a losing
-            // fight, since calcCombatResult's casualty formula scales with whatever "attacker"
-            // value it's given. Terrain should change who wins, not inflate the loser's body count.
-            const rawAttackerStrength = sumUnits(newInv.composition);
-            const attackerCasualties = Math.round(rawAttackerStrength * (result.ratio < 1 ? 0.15 : 0.05));
-            // Casualties land on the invasion's OWN deployed composition, not the home
-            // militaryUnits pool — that pool was already debited in full when the invasion was
-            // launched (see LAUNCH_PLAYER_INVASION), so a defeated invading force is simply lost,
-            // not double-spent.
-            newInv.composition = subtractUnits(newInv.composition, distributeCasualties(newInv.composition, attackerCasualties));
-            addNationDelta(targetRegion.owner, -result.casualties.defender);
-
-            if (result.attackerWins) {
-              newInv.active = false;
-              regions[inv.targetRegion] = { ...targetRegion, owner: 'player', control: 60, isOccupied: true, underInvasion: false };
-              logs.push({ year: newYear, message: narratePlayerStorm('win', { regionName: targetData.name, ratio: result.ratio }), type: LogTypes.MILESTONE });
-            } else if (result.stalemate) {
-              newInv.morale -= Math.round(10 * moraleLossMult);
-              logs.push({ year: newYear, message: narratePlayerStorm('stalemate', { regionName: targetData.name, ratio: result.ratio }), type: LogTypes.COMBAT });
-            } else {
-              const moraleLoss = order === 'probe' ? 30 : 25;
-              newInv.morale -= Math.round(moraleLoss * moraleLossMult);
-              newInv.composition = scaleUnits(newInv.composition, 0.85);
-              logs.push({ year: newYear, message: narratePlayerStorm('loss', { regionName: targetData.name, ratio: result.ratio }), type: LogTypes.COMBAT });
-              // Our offensive was decisively repelled — our own territory is briefly vulnerable.
-              counterAttackWindows.player = COUNTER_ATTACK_TURNS;
-            }
-          }
-        }
-      }
-    } else if (targetRegion.owner === 'player') {
-      if ((inv.approach || 'storm') === 'siege') {
-        // Siege (Phase 8): the AI equivalent of the player's siege choice — attrition/cautious
-        // doctrines grind safely (see aiLogic.js) instead of gambling on storm's decisive roll.
-        // Damage scales with the strength ratio (capped at 2x parity), same reasoning as the
-        // player-side siege above — a flat guaranteed grind would let even a negligible siege
-        // eventually capture any region, ignoring defensive strength entirely.
-        const strengthRatio = Math.min(2, inv.strength / Math.max(1, playerDefenseBase));
-        const siegeDamage = Math.round(4 * strengthRatio * missileDefenseMult);
-        const casualtyRate = 0.02;
-        const attackerCasualties = Math.round(inv.strength * casualtyRate * 0.3);
-        const defenderCasualties = Math.round(playerDefenseBase * casualtyRate);
-        addNationDelta(inv.attackerNation, -attackerCasualties);
-        if (state.phase === GamePhases.PRE_STATE) {
-          undergroundStrength = Math.max(0, undergroundStrength - defenderCasualties);
-        } else {
-          militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, defenderCasualties));
-        }
-
-        const newControl = Math.max(0, targetRegion.control - siegeDamage);
-        if (newControl <= 0 && inv.attackerNation) {
-          regions[inv.targetRegion] = { ...targetRegion, owner: inv.attackerNation, control: 20, isOccupied: true, underInvasion: false };
-          newInv.active = false;
-          logs.push({ year: newYear, message: `${targetData.name} FALLS after a prolonged siege by ${NATIONS_DATA[inv.attackerNation]?.name}!`, type: LogTypes.CRISIS });
-        } else {
-          regions[inv.targetRegion] = { ...targetRegion, control: newControl };
-          logs.push({ year: newYear, message: `${targetData.name} under siege. Control -${siegeDamage}%`, type: LogTypes.COMBAT });
-        }
-      } else {
-        const attackerStrength = inv.strength * disorganizedBonus('player');
-        const result = calcCombatResult(attackerStrength, playerDefenseBase, defenderSideDefenseTechBonuses, targetData.terrain, rng);
-
-        addNationDelta(inv.attackerNation, -result.casualties.attacker);
-        if (state.phase === GamePhases.PRE_STATE) {
-          undergroundStrength = Math.max(0, undergroundStrength - result.casualties.defender);
-        } else {
-          militaryUnits = subtractUnits(militaryUnits, distributeCasualties(militaryUnits, result.casualties.defender));
-        }
-
-        const attackerNationName = NATIONS_DATA[inv.attackerNation]?.name;
-        if (result.attackerWins) {
-          const damage = Math.round(25 * missileDefenseMult);
-          const newControl = Math.max(0, targetRegion.control - damage);
-          if (newControl <= 0 && inv.attackerNation) {
-            // Previously enemy invasions could only grind control to a floor of 0 and the region
-            // stayed "player-owned" forever, producing $0 with no path back — this made defeat
-            // impossible to trigger even when the player had visibly lost the war. Now overrunning
-            // a region actually transfers it.
-            regions[inv.targetRegion] = { ...targetRegion, owner: inv.attackerNation, control: 20, isOccupied: true, underInvasion: false };
-            newInv.active = false;
-            logs.push({ year: newYear, message: narrateEnemyStorm('capture', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio }), type: LogTypes.CRISIS });
-          } else {
-            regions[inv.targetRegion] = { ...targetRegion, control: newControl };
-            logs.push({ year: newYear, message: narrateEnemyStorm('overrun', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio, damage }), type: LogTypes.CRISIS });
-          }
-        } else if (result.stalemate) {
-          const damage = Math.round(10 * missileDefenseMult);
-          regions[inv.targetRegion] = { ...targetRegion, control: Math.max(0, targetRegion.control - damage) };
-          newInv.morale -= 10;
-          logs.push({ year: newYear, message: narrateEnemyStorm('stalemate', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio, damage }), type: LogTypes.COMBAT });
-        } else {
-          newInv.morale -= 25;
-          newInv.strength = Math.floor(newInv.strength * 0.8);
-          logs.push({ year: newYear, message: narrateEnemyStorm('defeat', { regionName: targetData.name, nationName: attackerNationName, ratio: result.ratio }), type: LogTypes.COMBAT });
-          // Their offensive was decisively repelled — their home territory is briefly vulnerable.
-          if (inv.attackerNation) counterAttackWindows[inv.attackerNation] = COUNTER_ATTACK_TURNS;
-        }
-      }
-    }
-
-    if (newInv.supply <= 0 || newInv.morale <= 0) {
-      newInv.active = false;
-      logs.push({
-        year: newYear,
-        message: `${inv.isPlayerAttacker ? 'Our' : 'Enemy'} invasion of ${targetData.name} collapsed`,
-        type: LogTypes.COMBAT
-      });
-    }
-
-    return newInv;
-  });
-
-  // --- AI nations ---
-  // aiUpdates.nationUpdates (growth + AI-vs-AI conflict casualties) is read directly in the
-  // nations merge pass below via growthUpdate — it must NOT also be folded into
-  // nationCombatDeltas here, or growth would be double-counted (once as growthUpdate, once as
-  // combatDelta) exactly canceling out the casualties this turn's player-combat inflicted.
+  // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
-  logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
-
-  const allInvasions = [...resolvedInvasions, ...aiUpdates.newInvasions];
-
-  // Recompute underInvasion from the final truth of active invasions, rather than toggling it
-  // incrementally per-invasion — previously a collapsing invasion could clear the flag on a
-  // region another invasion was still actively besieging.
-  const regionHasActiveInvasion = {};
-  allInvasions.forEach(inv => { if (inv.active) regionHasActiveInvasion[inv.targetRegion] = true; });
-  Object.keys(regions).forEach(rid => {
-    const shouldBeUnderInvasion = !!regionHasActiveInvasion[rid];
-    if (regions[rid].underInvasion !== shouldBeUnderInvasion) {
-      regions[rid] = { ...regions[rid], underInvasion: shouldBeUnderInvasion };
-    }
-  });
-
-  // --- nations: apply AI growth + war hostility decay + combat casualties in one pass ---
-  let nations = { ...state.nations };
+  const nations = { ...state.nations };
   Object.entries(nations).forEach(([nId, nation]) => {
     if (nation.isPlayer) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
-    // growthUpdate.militaryStrengthChange already includes AI-vs-AI conflict casualties (applied
-    // inside processAllAINations); combatDelta here is player-related combat from this turn's
-    // invasion resolution above. Each is added exactly once.
-    const combatDelta = nationCombatDeltas[nId] || 0;
-    const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0) + combatDelta);
-    // Hostility decay never crosses below hostilityFloor (set when this nation's peace treaty
-    // with the player was broken by a later war — see src/engine/diplomacy.js). Mossad's
-    // hostilityReduction adds a small steady extra pull toward peace for nations not currently
-    // at war — previously this tech effect was accumulated into techBonuses and never consumed.
-    const passiveDecay = !nation.isAtWar ? (techBonuses.hostilityReduction || 0) * 0.1 : 0;
-    const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0) - passiveDecay, nation.hostilityFloor || 0, 100);
+    const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0));
+    const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
     const relationStatus = nation.isAtWar || nation.hasPeaceTreaty || nation.hasTradeAgreement
       ? nation.relationStatus
       : getRelationFromHostility(hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
-
-  // --- AI-vs-AI conflicts can shift territory, not just casualties (Phase 4) ---
-  aiUpdates.regionConflicts.forEach(conflict => {
-    const targetRegionId = findConflictTerritoryTransfer(regions, nations, conflict);
-    if (!targetRegionId) return;
-
-    regions[targetRegionId] = { ...regions[targetRegionId], owner: conflict.aggressor, control: 50, isOccupied: true };
-    logs.push({
-      year: newYear,
-      message: `${nations[conflict.aggressor].name} seizes ${REGIONS_DATA[targetRegionId]?.name} from ${nations[conflict.defender].name}!`,
-      type: LogTypes.AI
-    });
-  });
-
-  // --- AI-initiated wars (Phase 4) ---
-  // Previously the only wars in the game were scripted (Independence, event warWith) or
-  // player-declared — shouldDeclareWar was fully written and never called from anywhere, so AI
-  // nations could never start a war on their own initiative. Capped at one per turn so turn 1
-  // doesn't dogpile into a dozen simultaneous declarations.
-  let wars = state.wars;
-  for (const nation of Object.values(nations)) {
-    if (nation.isPlayer) continue;
-    if (shouldDeclareWar(nation, { nations }, rng)) {
-      // regions/militaryUnits included so assignDefaultWarGoal (Phase 7) can pick a real target —
-      // it needs the adjacency graph and the player's current strength to choose sensibly.
-      const result = declareWar({ nations, wars, regions, militaryUnits, phase: state.phase, year: newYear }, nation.id, { aggressor: nation.id });
-      nations = result.nations;
-      wars = result.wars;
-      logs.push({ year: newYear, message: `${nation.name} declares war on Israel!`, type: LogTypes.CRISIS });
-      break;
-    }
-  }
+  logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
 
   // --- events ---
-  const dueEvent = pickNextEvent(newYear, state.phase, nations, state.firedEvents);
+  const dueEvent = pickNextEvent(newYear, nations, state.firedEvents);
 
-  // --- event chains (Phase 10) ---
+  // --- event chains ---
   // A scripted follow-up scheduled earlier by applyEventEffects.js (effects.spawnFollowUp) fires
   // as soon as its dueTurn is reached, but only when no scripted historical event is already due
-  // this turn — a chain event is a consequence of the player's own choices, not part of the
-  // hand-written timeline, so it waits a turn rather than displacing one. It DOES take priority
-  // over procedural filler below, since it carries real narrative weight the filler doesn't.
-  const newTurnNumber = state.turnNumber + 1;
+  // this turn.
   const pendingEventChains = state.pendingEventChains || [];
   let chainEventId = null;
   let nextPendingEventChains = pendingEventChains;
@@ -452,84 +75,38 @@ export const resolveTurn = (state) => {
     }
   }
 
-  // --- procedural events (Phase 6) ---
-  // Only rolled when no scripted event or chain event is already due this turn, and only in the
-  // POST_STATE era from 2000 onward — this is purely a "keep the late game from going quiet"
-  // filler, not a replacement for the hand-written timeline, so it never competes with or delays
-  // one. Gated behind a cooldown (a random 3-8 years after each firing) so these don't cluster.
+  // --- procedural events ---
+  // Only rolled when no scripted event or chain event is already due this turn. Gated behind a
+  // cooldown (a random few turns after each firing) so these don't cluster.
   let proceduralEventCooldown = Math.max(0, (state.proceduralEventCooldown || 0) - 1);
   let activeProceduralEvent = null;
-  if (!dueEvent && !chainEventId && state.phase === GamePhases.POST_STATE && newYear >= 2000 &&
-      proceduralEventCooldown <= 0 && rng.next() < 0.3) {
+  if (!dueEvent && !chainEventId && proceduralEventCooldown <= 0 && rng.next() < 0.3) {
     const candidate = pickProceduralEvent({ ...state, nations, turnNumber: newTurnNumber, year: newYear }, rng);
     if (candidate) {
       activeProceduralEvent = candidate;
-      proceduralEventCooldown = 6 + Math.floor(rng.next() * 10); // 3-8 years (half-year turns)
+      proceduralEventCooldown = 3 + Math.floor(rng.next() * 5);
     }
   }
-
-  // --- war goal checks (Phase 7) ---
-  // A war used to just run until hostility happened to decay under the seek-peace threshold.
-  // Now every war has a concrete goal (see declareWar/assignDefaultWarGoal in diplomacy.js); once
-  // it's met, the loser's hostility is nudged low enough that peace CAN be sought — not an
-  // automatic ceasefire, so seeking peace stays a deliberate choice on either side, but the war
-  // no longer has to wait on unrelated random hostility decay once its outcome is already decided.
-  const goalCheckState = { nations, regions, militaryUnits, phase: state.phase };
-  wars = wars.map(war => {
-    if (!checkWarGoal(war, goalCheckState)) return war;
-    const winnerName = war.aggressor === 'player' ? 'Israel' : NATIONS_DATA[war.aggressor]?.name;
-    logs.push({
-      year: newYear,
-      message: `${winnerName}'s war goal against ${NATIONS_DATA[war.enemy]?.name} has been achieved — a ceasefire may now be within reach.`,
-      type: LogTypes.MILESTONE
-    });
-    if (nations[war.enemy] && nations[war.enemy].hostility > 55) {
-      nations = { ...nations, [war.enemy]: { ...nations[war.enemy], hostility: 55 } };
-    }
-    return { ...war, goalAchieved: true };
-  });
 
   // --- assemble next state ---
   let next = {
     ...state,
     year: newYear,
-    period: newPeriod,
-    turnNumber: state.turnNumber + 1,
+    age: newAge,
+    turnNumber: newTurnNumber,
     resources,
-    techTree,
-    regions,
     nations,
-    wars,
-    invasions: allInvasions,
-    militaryUnits,
-    undergroundStrength,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,
     pendingEventChains: nextPendingEventChains,
-    counterAttackWindows,
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
 
-  // --- victory / defeat (checked against THIS turn's resolved state, not last turn's) ---
-  if (state.phase === GamePhases.POST_STATE) {
-    const hasTelAviv = next.regions.tel_aviv?.owner === 'player' && next.regions.tel_aviv?.control > 0;
-    const hasJerusalem = next.regions.jerusalem?.owner === 'player' && next.regions.jerusalem?.control > 0;
-    if (!hasTelAviv || !hasJerusalem) {
-      next.gameStatus = GameStatus.DEFEAT;
-      next.logs = [...next.logs, { year: newYear, message: 'DEFEAT: Israel has fallen. Core territories lost.', type: LogTypes.CRISIS }];
-    }
-  }
-
-  // Multiple win conditions (Phase 10) — survival (the scripted galactic_age_2150 event normally
-  // delivers this one directly via effects.victory in applyEventEffects.js; checking it again
-  // here is just the backstop for if that event is ever skipped), military conquest, economic
-  // ascendancy, and diplomatic hegemony all end the game the moment their condition is met,
-  // instead of only "keep surviving until 2150" being reachable at all. Not checked while an
-  // event is actively pending, so a victory never lands mid-event-resolution.
-  if (next.gameStatus === GameStatus.ACTIVE && state.phase === GamePhases.POST_STATE &&
-      !next.activeEventId && !next.activeProceduralEvent) {
+  // --- victory (checked against THIS turn's resolved state, not last turn's) ---
+  // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
+  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent) {
     const conditionId = checkVictoryConditions(next);
     if (conditionId) {
       const condition = VICTORY_CONDITIONS[conditionId];

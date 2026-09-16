@@ -58,7 +58,7 @@ const LegacyPanel = () => {
           Difficulty (takes effect on your next game)
         </div>
         {Object.values(DIFFICULTIES).map(d => {
-          const selected = (meta.difficulty || 'normal') === d.id;
+          const selected = (meta.difficulty || 'prince') === d.id;
           return (
             <button
               key={d.id}

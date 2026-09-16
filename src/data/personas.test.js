@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { PERSONAS, getPersonaBonus } from './personas';
 
-describe('getPersonaBonus (Phase 8: commander bonuses)', () => {
+describe('getPersonaBonus (commander bonuses)', () => {
   it('returns the bonus value for a known persona and key', () => {
-    expect(getPersonaBonus('rafael_katz', 'armorMult')).toBe(1.15);
-    expect(getPersonaBonus('yael_ronen', 'supplyDecayMult')).toBe(0.6);
+    expect(getPersonaBonus('commander_vega', 'armorMult')).toBe(1.15);
+    expect(getPersonaBonus('quartermaster_osei', 'supplyDecayMult')).toBe(0.6);
   });
 
   it('defaults to 1 (neutral) for a key the persona does not have', () => {
-    expect(getPersonaBonus('rafael_katz', 'supplyDecayMult')).toBe(1);
+    expect(getPersonaBonus('commander_vega', 'supplyDecayMult')).toBe(1);
   });
 
   it('defaults to 1 for no commander assigned (null/undefined persona id)', () => {
