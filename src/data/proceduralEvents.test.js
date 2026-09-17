@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { pickProceduralEvent } from './proceduralEvents';
 import { createInitialState } from '../context/GameContext';
 import { createRng } from '../utils/rng';
+import { EVENT_CHAINS } from './eventChains';
 
 describe('pickProceduralEvent', () => {
   it('returns a real, well-formed event for at least one seed against the initial state', () => {
@@ -47,6 +48,18 @@ describe('pickProceduralEvent', () => {
     const generalHit = Array.from({ length: 30 }, (_, seed) => pickProceduralEvent(withGenerals, createRng(seed)))
       .some(e => e?.id.includes('ambitious_general'));
     expect(generalHit).toBe(true);
+  });
+
+  it('never spawns a follow-up that points at a nonexistent chain entry, across every template it can build', () => {
+    const state = { ...createInitialState({ playerNationId: 'us' }), hiredCommanders: { gen_1: { id: 'gen_1', name: 'Commander 1' } } };
+    for (let seed = 0; seed < 40; seed++) {
+      const event = pickProceduralEvent(state, createRng(seed));
+      if (!event) continue;
+      event.options.forEach(option => {
+        const followUp = option.effects.spawnFollowUp;
+        if (followUp) expect(EVENT_CHAINS[followUp.id]).toBeDefined();
+      });
+    }
   });
 
   it('always has something eligible, even with every conditional template gated off — the plan\'s "always something happening in the quiet turns"', () => {

@@ -86,14 +86,17 @@ const formatEffectItem = (key, value) => {
 // Parse all effects from an option
 const parseEffects = (effects) => {
   if (!effects) return [];
-  
+
   const parsed = [];
   Object.entries(effects).forEach(([key, value]) => {
+    // spawnFollowUp (event chains, src/data/eventChains.js) is an internal scheduling detail, not
+    // a player-facing consequence — the story it sets in motion speaks for itself when it fires.
+    if (key === 'spawnFollowUp') return;
     if (value !== undefined && value !== null && value !== false) {
       parsed.push(formatEffectItem(key, value));
     }
   });
-  
+
   return parsed;
 };
 
