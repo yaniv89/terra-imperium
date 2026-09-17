@@ -323,3 +323,27 @@ describe('resolveTurn event chains', () => {
     expect(resolved.activeEventId).toBeNull();
   });
 });
+
+describe('resolveTurn curated national events', () => {
+  it('fires a curated national event for the nation it names, once its year arrives', () => {
+    // national_egypt_nile_flood (-1900) is chronologically the earliest of ALL real events, so
+    // clearing firedEvents entirely can't let some other event preempt it.
+    const state = { ...withAllEventsFired(createInitialState({ playerNationId: 'eg' })), year: HISTORICAL_EVENTS.national_egypt_nile_flood.year - 1, firedEvents: {} };
+    const next = resolveTurn(state);
+    expect(next.activeEventId).toBe('national_egypt_nile_flood');
+  });
+
+  it('never fires a curated national event for a different nation', () => {
+    const state = { ...withAllEventsFired(createInitialState({ playerNationId: 'fr' })), year: HISTORICAL_EVENTS.national_egypt_nile_flood.year - 1, firedEvents: {} };
+    const next = resolveTurn(state);
+    expect(next.activeEventId).not.toBe('national_egypt_nile_flood');
+  });
+
+  it('declaring war through a curated event\'s warWith effect marks both sides isAtWar (Task 23\'s aggressor fix)', () => {
+    const event = HISTORICAL_EVENTS.national_punic_ambitions;
+    const base = createInitialState({ playerNationId: 'it' });
+    const resolved = applyEventEffects(base, event, 0); // "Declare war and settle it by force" -> warWith: ['tn']
+    expect(resolved.nations.tn.isAtWar).toBe(true);
+    expect(resolved.nations.it.isAtWar).toBe(true);
+  });
+});

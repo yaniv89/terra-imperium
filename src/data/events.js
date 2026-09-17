@@ -140,27 +140,152 @@ export const HISTORICAL_EVENTS = {
       { label: 'Invest heavily in the new technology', effects: { gold: -300, techPoints: 100, spawnFollowUp: { id: 'tech_gamble_1', delayTurns: 4 } } },
       { label: 'Let private industry lead the way', effects: { gold: 100, techPoints: 20 } }
     ]
+  },
+
+  // ---- Curated national flavor (plan §9.5 Layer 3) — a representative batch of historically
+  // significant nations, not the plan's full ~40: the mechanism (nationId + requiresHomeland gate
+  // below) works identically for any of the 240 nation ids, so extending this list later is pure
+  // data, not new code. Gated on `nationId` (only fires for that specific nation's own player) and
+  // `requiresHomeland` (only fires while that nation still controls its own starting region) —
+  // unlike world events, these already know exactly who's playing, so they're free to use the
+  // identity-specific effect keys world events avoid (see punic_ambitions below for an example).
+  // Every other nation still gets Task 26's generic world/situational/procedural content — this
+  // is bespoke flavor layered on top, not a replacement for it.
+  national_egypt_nile_flood: {
+    id: 'national_egypt_nile_flood',
+    year: -1900,
+    nationId: 'eg',
+    requiresHomeland: true,
+    title: "The Nile's Verdict",
+    description: 'The annual flood of the Nile arrives lower than expected, threatening the harvest the whole kingdom depends on.',
+    options: [
+      { label: 'Draw on the royal granaries', effects: { hr: 30, gold: -80 } },
+      { label: 'Ration strictly and wait for a better year', effects: { hr: -20, controlBonus: 5 } }
+    ]
+  },
+  national_punic_ambitions: {
+    id: 'national_punic_ambitions',
+    year: -264,
+    nationId: 'it',
+    requiresHomeland: true,
+    title: 'The Case for War',
+    description: 'Advisors argue that the rival maritime power across the sea threatens your trade routes and must be dealt with before it grows any stronger.',
+    options: [
+      { label: 'Declare war and settle it by force', effects: { warWith: ['tn'] } },
+      { label: 'Seek a trade agreement instead', effects: { tradeWith: ['tn'] } }
+    ]
+  },
+  national_mongol_succession: {
+    id: 'national_mongol_succession',
+    year: 1227,
+    nationId: 'mn',
+    requiresHomeland: true,
+    title: "The Great Khan's Succession",
+    description: "With the great khan's death, the empire's constituent hordes must choose between uniting under a new ruler or fracturing into rival domains.",
+    options: [
+      { label: 'Convene a kurultai to elect a strong successor', effects: { controlBonus: 10, diplomacyPoints: 10 } },
+      { label: 'Let the strongest horde claim the title by force', effects: { militaryStrengthBonus: 100, controlPenalty: 10 } }
+    ]
+  },
+  national_japan_sakoku: {
+    id: 'national_japan_sakoku',
+    year: 1639,
+    nationId: 'jp',
+    requiresHomeland: true,
+    title: 'The Sakoku Decision',
+    description: 'Foreign traders and missionaries have grown numerous enough to worry the court. Some counsel closing the realm to outside influence entirely.',
+    options: [
+      { label: 'Seal the borders and expel foreign traders', effects: { controlBonus: 10, gold: -50 } },
+      { label: 'Keep trade open despite the risk', effects: { gold: 80, diplomacyPoints: 10 } }
+    ]
+  },
+  national_britain_naval_turn: {
+    id: 'national_britain_naval_turn',
+    year: 1588,
+    nationId: 'gb',
+    requiresHomeland: true,
+    title: 'Mastery of the Sea',
+    description: 'A hostile fleet approaches to end your independence for good — the outcome will decide whether your future lies on the continent or across the oceans.',
+    options: [
+      { label: 'Commit everything to the fleet', effects: { gold: -150, militaryStrengthBonus: 250 } },
+      { label: 'Rely on fortified ports and coastal defense', effects: { gold: -80, defenseBonus: 0.1 } }
+    ]
+  },
+  national_china_mandate: {
+    id: 'national_china_mandate',
+    year: 1644,
+    nationId: 'cn',
+    requiresHomeland: true,
+    title: 'A Question of the Mandate',
+    description: 'Natural disasters, peasant uprisings and a weakening court have many whispering that the Mandate of Heaven has passed to someone else.',
+    options: [
+      { label: 'Reassert authority through decisive reform', effects: { controlBonus: 15, gold: -100 } },
+      { label: "Let the old dynasty's rot run its course", effects: { controlPenalty: 15, militaryStrengthBonus: 50 } }
+    ]
+  },
+  national_india_maritime_trade: {
+    id: 'national_india_maritime_trade',
+    year: 1498,
+    nationId: 'in',
+    requiresHomeland: true,
+    title: 'Ships From a Distant Sea',
+    description: 'Foreign ships arrive by a sea route none of your merchants have used before, eager to trade directly for the spices and cloth that made your ports famous.',
+    options: [
+      { label: 'Grant them trading rights at your ports', effects: { gold: 100, diplomacyPoints: 10 } },
+      { label: 'Restrict them to existing merchant guilds', effects: { gold: 40, controlBonus: 5 } }
+    ]
+  },
+  national_ottoman_city_between_seas: {
+    id: 'national_ottoman_city_between_seas',
+    year: 1453,
+    nationId: 'tr',
+    requiresHomeland: true,
+    title: 'The City Between Two Seas',
+    description: 'An ancient, storied city at the crossing between two continents stands within reach — its walls have held for a thousand years, but not forever.',
+    options: [
+      { label: 'Commit to a prolonged siege', effects: { gold: -200, militaryStrengthBonus: 200, controlBonus: 10 } },
+      { label: 'Focus on consolidating existing territory instead', effects: { gold: 60 } }
+    ]
+  },
+  national_greek_golden_age: {
+    id: 'national_greek_golden_age',
+    year: -450,
+    nationId: 'gr',
+    requiresHomeland: true,
+    title: 'A Golden Age',
+    description: 'Philosophy, theater and architecture flourish in your city-states, drawing students and thinkers from across the known world.',
+    options: [
+      { label: 'Fund public works and monuments', effects: { gold: -100, techPoints: 40, diplomacyPoints: 10 } },
+      { label: 'Let private patrons carry the cost', effects: { techPoints: 15 } }
+    ]
   }
 };
 
-// True once a scripted event's year has arrived (and it hasn't already fired, and any
-// requiresNoWar nations are actually at peace). pickNextEvent() below fires at most one due event
-// per turn, in year order, so simultaneous-year events queue up and fire on consecutive turns
-// instead of colliding.
-export const shouldEventFire = (event, year, nations, firedEvents) => {
+// True once a scripted event's year has arrived (and it hasn't already fired, any requiresNoWar
+// nations are actually at peace, and — for curated national flavor — the current player is
+// actually that specific nation and, if requiresHomeland is set, still controls their own
+// starting region). playerNationId/regions are only needed for nationId-gated events; every
+// existing (world/generic) call site can omit them safely since event.nationId is undefined for
+// those. pickNextEvent() below fires at most one due event per turn, in year order, so
+// simultaneous-year events queue up and fire on consecutive turns instead of colliding.
+export const shouldEventFire = (event, year, nations, firedEvents, playerNationId, regions) => {
   if (firedEvents[event.id]) return false;
   if (event.year > year) return false;
   if (event.requiresNoWar) {
     const anyAtWar = event.requiresNoWar.some(nId => nations[nId]?.isAtWar);
     if (anyAtWar) return false;
   }
+  if (event.nationId) {
+    if (event.nationId !== playerNationId) return false;
+    if (event.requiresHomeland && regions?.[event.nationId]?.owner !== event.nationId) return false;
+  }
   return true;
 };
 
 // Pick the single most-overdue eligible event for this turn (earliest scripted year first, then
 // stable declaration order for same-year ties).
-export const pickNextEvent = (year, nations, firedEvents) => {
-  const eligible = Object.values(HISTORICAL_EVENTS).filter(e => shouldEventFire(e, year, nations, firedEvents));
+export const pickNextEvent = (year, nations, firedEvents, playerNationId, regions) => {
+  const eligible = Object.values(HISTORICAL_EVENTS).filter(e => shouldEventFire(e, year, nations, firedEvents, playerNationId, regions));
   if (eligible.length === 0) return null;
   eligible.sort((a, b) => a.year - b.year);
   return eligible[0];

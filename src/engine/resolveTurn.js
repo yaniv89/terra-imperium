@@ -152,7 +152,7 @@ export const resolveTurn = (state) => {
   });
 
   // --- events ---
-  const dueEvent = pickNextEvent(newYear, nations, state.firedEvents);
+  const dueEvent = pickNextEvent(newYear, nations, state.firedEvents, state.playerNationId, regions);
 
   // --- event chains ---
   // A scripted follow-up scheduled earlier by applyEventEffects.js (effects.spawnFollowUp) fires
