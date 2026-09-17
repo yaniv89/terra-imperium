@@ -37,8 +37,33 @@ export const ACTION_COSTS = {
   // A government reform is deliberately pricier than a policy swap — it's the bigger decision.
   adoptGovernment: { gold: 200, actionPoints: 2 },
   adoptPolicy: { gold: 80, actionPoints: 1 },
-  removePolicy: { actionPoints: 1 }
+  removePolicy: { actionPoints: 1 },
+
+  // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs only
+  // action points; without one it costs a real gold premium on top — see GameContext.jsx's
+  // DECLARE_WAR for the rest of an unjustified war's cost (global relations, home unrest).
+  declareWarJustified: { actionPoints: 2 },
+  declareWarUnjustified: { gold: 300, actionPoints: 2 },
+  fabricateClaim: { gold: 150, diplomacyPoints: 10, actionPoints: 1 },
+  tradeAgreement: { gold: 100, actionPoints: 1 },
+  militaryAlliance: { gold: 150, diplomacyPoints: 15, actionPoints: 1 },
+  giftBribe: { gold: 100, actionPoints: 1 }
 };
+
+// Sue for Peace's gold cost floors here regardless of how war-weary the target is — ending a war
+// is never entirely free.
+export const SUE_FOR_PEACE_MIN_GOLD = 20;
+export const SUE_FOR_PEACE_BASE_GOLD = 200;
+// A gift/bribe's flat hostility reduction.
+export const GIFT_HOSTILITY_REDUCTION = 15;
+// An unjustified war's flat hostility bump applied to every OTHER nation's view of the player —
+// the plan's "unjustified wars cost... global relations".
+export const UNJUSTIFIED_WAR_GLOBAL_HOSTILITY = 5;
+// An unjustified war's flat unrest bump to the aggressor's home region — the plan's "unjustified
+// wars cost stability".
+export const UNJUSTIFIED_WAR_HOME_UNREST = 20;
+// Above this hostility (or an existing trade agreement), a nation is calm enough to ally with.
+export const ALLIANCE_HOSTILITY_CEILING = 30;
 
 // Fund Scholars' fixed gold -> techPoints exchange rate.
 export const FUND_SCHOLARS_TECHPOINTS = 20;

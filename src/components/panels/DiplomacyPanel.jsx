@@ -1,17 +1,41 @@
 // src/components/panels/DiplomacyPanel.jsx
-// Diplomacy tab — a browsable, read-only view of relations with all 240 nations. The full action
-// set described in the plan (Declare War with a chosen casus belli, Trade Agreements, Alliances,
-// Vassalize, Espionage, ...) is Phase D work, built against the new diplomacy/casus-belli system.
+// Diplomacy tab: a browsable relations view of all 240 nations, plus six of the twelve planned
+// actions — Declare War (with casus belli), Fabricate Claim, Sue for Peace, Trade Agreement,
+// Military Alliance, Gift/Bribe — against src/engine/diplomacy.js's war-goal engine. Resource
+// Deal, Demand Tribute, Vassalize/Release, Espionage, Join/Form Coalition and Embassy remain
+// deferred as real, separate follow-up work: several of them (Vassalize, Coalitions) fit more
+// naturally alongside the AI systems Tasks 23/24 build, and Espionage needs its own progression
+// layer per the plan's statecraft section.
 
 import React, { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
-import { formatNumber, getRelationColor } from '../../utils/helpers';
+import { ActionTypes } from '../../data/types';
+import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD } from '../../data/actionCosts';
+import { hasCasusBelli } from '../../engine/diplomacy';
+import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
+
+const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    title={title}
+    className="flex items-center gap-1 px-1.5 py-1 rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-[10px]"
+  >
+    <Icon size={11} />
+    {label}
+  </button>
+);
 
 const DiplomacyPanel = () => {
-  const { state } = useGame();
+  const { state, dispatch, addLog } = useGame();
   const [search, setSearch] = useState('');
+
+  const dispatchIfAffordable = (type, nationId, costs) => {
+    if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    dispatch({ type, payload: { nationId } });
+  };
 
   // Sort nations: at war first, then by hostility, so the ones that matter surface first; the
   // search box is for finding one specific nation among all 240.
@@ -41,6 +65,9 @@ const DiplomacyPanel = () => {
       <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600">
         {sortedNations.map(nation => {
           const nationData = WORLD_NATIONS[nation.id];
+          const justified = hasCasusBelli(state, state.playerNationId, nation.id);
+          const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+          const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), actionPoints: 1 };
 
           return (
             <div
@@ -85,10 +112,15 @@ const DiplomacyPanel = () => {
                   <div className="text-slate-400">
                     Military: <span className="text-red-400 font-mono">{formatNumber(nation.militaryStrength)}</span>
                   </div>
+                  {nation.isAtWar && (
+                    <div className="text-slate-400">
+                      War Exhaustion: <span className="text-amber-400 font-mono">{nation.warExhaustion || 0}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mb-2">
                 {nation.hasPeaceTreaty && (
                   <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">
                     ✓ Peace Treaty
@@ -104,10 +136,70 @@ const DiplomacyPanel = () => {
                     ✓ Military Pact
                   </span>
                 )}
+                {state.nations[state.playerNationId]?.claims?.includes(nation.id) && (
+                  <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">
+                    ✓ Claim Fabricated
+                  </span>
+                )}
                 {nation.isAtWar && (
                   <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">
                     ⚔ AT WAR
                   </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-1">
+                {nation.isAtWar ? (
+                  <IconButton
+                    icon={Flag}
+                    label={`Sue for Peace (${sueForPeaceCosts.gold}g)`}
+                    title="End the war — cheaper the more war-exhausted they are"
+                    disabled={!canAfford(state.resources, sueForPeaceCosts)}
+                    onClick={() => dispatchIfAffordable(ActionTypes.SUE_FOR_PEACE, nation.id, sueForPeaceCosts)}
+                  />
+                ) : (
+                  <>
+                    <IconButton
+                      icon={Swords}
+                      label={justified ? 'Declare War' : 'Declare War (unjustified)'}
+                      title={justified ? 'A casus belli justifies this war' : 'No casus belli — costs more and hurts relations'}
+                      disabled={!canAfford(state.resources, declareWarCosts)}
+                      onClick={() => dispatchIfAffordable(ActionTypes.DECLARE_WAR, nation.id, declareWarCosts)}
+                    />
+                    {!state.nations[state.playerNationId]?.claims?.includes(nation.id) && (
+                      <IconButton
+                        icon={Target}
+                        label="Fabricate Claim"
+                        title="Manufacture a casus belli for a future war"
+                        disabled={!canAfford(state.resources, ACTION_COSTS.fabricateClaim)}
+                        onClick={() => dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, nation.id, ACTION_COSTS.fabricateClaim)}
+                      />
+                    )}
+                    {!nation.hasTradeAgreement && (
+                      <IconButton
+                        icon={HeartHandshake}
+                        label="Trade Agreement"
+                        disabled={!canAfford(state.resources, ACTION_COSTS.tradeAgreement)}
+                        onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, nation.id, ACTION_COSTS.tradeAgreement)}
+                      />
+                    )}
+                    {!nation.hasMilitaryPact && (
+                      <IconButton
+                        icon={ShieldCheck}
+                        label="Alliance"
+                        title="Requires calm relations or an existing trade agreement"
+                        disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance)}
+                        onClick={() => dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, nation.id, ACTION_COSTS.militaryAlliance)}
+                      />
+                    )}
+                    <IconButton
+                      icon={Gift}
+                      label="Gift"
+                      title="Reduces hostility"
+                      disabled={!canAfford(state.resources, ACTION_COSTS.giftBribe)}
+                      onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, nation.id, ACTION_COSTS.giftBribe)}
+                    />
+                  </>
                 )}
               </div>
             </div>
@@ -130,10 +222,6 @@ const DiplomacyPanel = () => {
             <div className="text-slate-500">Trade</div>
           </div>
         </div>
-      </div>
-
-      <div className="text-slate-500 text-xs text-center pt-2">
-        War, trade and alliance actions are coming in a future update.
       </div>
     </div>
   );

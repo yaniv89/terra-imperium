@@ -24,6 +24,9 @@ import { createRng } from '../utils/rng';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+const WAR_EXHAUSTION_RISE_PER_TURN = 5;
+const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
+
 export const resolveTurn = (state) => {
   // Guard: nothing to resolve if the game already ended or an event is blocking play.
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent) {
@@ -126,6 +129,15 @@ export const resolveTurn = (state) => {
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
+
+  // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
+  // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
+  // is what "forces you to actually end them" rather than letting a war run forever for free.
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const delta = nation.isAtWar ? WAR_EXHAUSTION_RISE_PER_TURN : -WAR_EXHAUSTION_DECAY_PER_TURN;
+    const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
+    if (warExhaustion !== nation.warExhaustion) nations[nId] = { ...nation, warExhaustion };
+  });
 
   // --- events ---
   const dueEvent = pickNextEvent(newYear, nations, state.firedEvents);
