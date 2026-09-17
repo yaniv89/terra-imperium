@@ -49,6 +49,12 @@ export const ACTION_COSTS = {
   adoptPolicy: { gold: 80, actionPoints: 1 },
   removePolicy: { actionPoints: 1 },
 
+  // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
+  // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
+  // is easier than building) but still a real commitment, on top of the shared debris-level cost.
+  launchSatellite: { gold: 400, techPoints: 30, actionPoints: 2 },
+  asatStrike: { gold: 250, actionPoints: 2 },
+
   // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs only
   // action points; without one it costs a real gold premium on top — see GameContext.jsx's
   // DECLARE_WAR for the rest of an unjustified war's cost (global relations, home unrest).
@@ -95,3 +101,9 @@ export const SETTLE_COLONIZE_START_UNREST = 50;
 // Population Policy's flat per-use growth rate — compounds each time it's used, so early
 // investment pays off more over a long game (guns vs. butter, per the plan).
 export const POPULATION_POLICY_GROWTH_RATE = 0.1;
+
+// Every ASAT strike raises the shared world orbital debris level by this much; it decays this
+// much per turn at rest (resolveTurn.js) — roughly 8 peaceful turns to fully clear one strike's
+// worth of debris, so repeated ASAT use compounds if not given time to settle.
+export const ASAT_DEBRIS_RISE = 15;
+export const ORBITAL_DEBRIS_DECAY_PER_TURN = 2;

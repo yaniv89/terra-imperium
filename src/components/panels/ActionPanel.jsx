@@ -3,13 +3,14 @@
 
 import React, { useState } from 'react';
 // FIX: Replaced 'Handshake' with 'Flag' to resolve the export error
-import { Home, Swords, Flag, Beaker, Trophy } from 'lucide-react';
+import { Home, Swords, Flag, Beaker, Trophy, Satellite } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { TabButton } from '../ui';
 import DomesticPanel from './DomesticPanel';
 import MilitaryPanel from './MilitaryPanel';
 import DiplomacyPanel from './DiplomacyPanel';
 import TechPanel from './TechPanel';
+import SpacePanel from './SpacePanel';
 import LegacyPanel from './LegacyPanel';
 
 const TABS = [
@@ -18,6 +19,7 @@ const TABS = [
   // FIX: Using Flag icon for Diplomacy tab
   { id: 'diplomacy', label: 'Diplomacy', icon: Flag },
   { id: 'tech', label: 'Tech', icon: Beaker },
+  { id: 'space', label: 'Space', icon: Satellite },
   { id: 'legacy', label: 'Legacy', icon: Trophy }
 ];
 
@@ -74,6 +76,9 @@ const ActionPanel = ({ selectedRegion }) => {
         )}
         {activeTab === 'tech' && (
           <TechPanel />
+        )}
+        {activeTab === 'space' && (
+          <SpacePanel />
         )}
         {activeTab === 'legacy' && (
           <LegacyPanel />

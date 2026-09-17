@@ -22,6 +22,8 @@ import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength } from '../data/rebellion';
 import { createRng } from '../utils/rng';
 import { TAX_RATES } from '../data/taxRates';
+import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
+import { ORBITAL_DEBRIS_DECAY_PER_TURN } from '../data/actionCosts';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -51,10 +53,12 @@ export const resolveTurn = (state) => {
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
   // nation's own territory is subject to) ---
   const regions = { ...state.regions };
+  const satellites = state.satellites || {};
   Object.entries(regions).forEach(([id, region]) => {
     const owner = state.nations[region.owner];
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
-    const unrest = nextUnrest(region, getNationBonusTotal(owner, 'stabilityBonus'), taxUnrestDelta);
+    const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus') + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel);
+    const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta);
     if (unrest !== region.unrest) regions[id] = { ...region, unrest };
   });
 
@@ -182,6 +186,10 @@ export const resolveTurn = (state) => {
     }
   }
 
+  // --- orbital debris (plan §10.4): decays slowly every turn, whether or not anyone's fighting
+  // over orbit this turn (ASAT_STRIKE, GameContext.jsx, is what raises it) ---
+  const orbitalDebrisLevel = clamp((state.orbitalDebrisLevel || 0) - ORBITAL_DEBRIS_DECAY_PER_TURN, 0, MAX_ORBITAL_DEBRIS);
+
   // --- assemble next state ---
   let next = {
     ...state,
@@ -193,6 +201,7 @@ export const resolveTurn = (state) => {
     nations: nationsAfterWars,
     units,
     wars,
+    orbitalDebrisLevel,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,
