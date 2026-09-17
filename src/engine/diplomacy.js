@@ -7,6 +7,7 @@
 
 import { RelationStatus } from '../data/types';
 import { isAdjacentToOwner } from '../data/regions';
+import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
 
 // A casus belli (plan §8/§9's "unjustified wars cost stability and global relations"): either a
 // claim the aggressor already fabricated against this target (FABRICATE_CLAIM), or a naturally
@@ -49,7 +50,7 @@ export const assignDefaultWarGoal = (state, nationId, aggressor) => {
   const aggressorNation = state.nations[aggressor];
   // Blitz/opportunist doctrines fight for territory; attrition/cautious nations (when they do go
   // to war) grind down the defender's army instead.
-  const prefersCapture = aggressorNation?.doctrine === 'blitz' || aggressorNation?.doctrine === 'opportunist';
+  const prefersCapture = CAPTURE_PREFERRING_DOCTRINES.includes(aggressorNation?.doctrine);
   return buildWarGoal(state, nationId, aggressor, prefersCapture ? 'capture_region' : 'destroy_military');
 };
 
@@ -74,6 +75,9 @@ export const checkWarGoal = (war, state) => {
 // Declares war on `nationId`. No-op (returns state unchanged) if the nation doesn't exist or is
 // already at war. If the target had a peace treaty, this sets a permanent hostilityFloor — the
 // nation remembers the betrayal and can never fully cool back down, even after a later peace.
+// Marks BOTH sides isAtWar — every isAtWar reader in the codebase (UI war counts, the globe's
+// war-red coloring, resolveTurn.js's war exhaustion accrual, aiLogic.js's "one war per turn" gate)
+// means "this nation is currently a belligerent," not "this nation is currently a war's target."
 export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => {
   const nation = state.nations[nationId];
   if (!nation || nation.isAtWar) return state;
@@ -92,8 +96,15 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
       hostilityFloor: brokePeace ? Math.max(nation.hostilityFloor || 0, 40) : (nation.hostilityFloor || 0)
     }
   };
-  if (aggressorNation?.claims?.includes(nationId)) {
-    nextNations[aggressor] = { ...aggressorNation, claims: aggressorNation.claims.filter((id) => id !== nationId) };
+  if (aggressorNation) {
+    nextNations[aggressor] = {
+      ...aggressorNation,
+      isAtWar: true,
+      relationStatus: RelationStatus.WAR,
+      claims: aggressorNation.claims?.includes(nationId)
+        ? aggressorNation.claims.filter((id) => id !== nationId)
+        : aggressorNation.claims
+    };
   }
   return {
     ...state,

@@ -238,6 +238,35 @@ describe('resolveTurn AI nations', () => {
   });
 });
 
+describe('resolveTurn AI war declarations', () => {
+  it('carries an existing war forward across a turn (wars is part of the resolved state)', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const existingWar = { id: 'war_de_-2000', enemy: 'de', startYear: base.year, active: true, aggressor: 'fr', goal: { type: 'destroy_military', threshold: 1 }, goalAchieved: false };
+    const state = { ...base, wars: [existingWar] };
+    const next = resolveTurn(state);
+    expect(next.wars).toEqual([existingWar]);
+  });
+
+  it('an aggressive, hostile Tier 1 neighbor eventually declares war on its own, wired end-to-end through resolveTurn', () => {
+    // 'de' borders the player ('fr'), which makes it Tier 1 every turn regardless of ranking.
+    // zealot + hostility 100 gives it the highest available per-turn roll chance; run enough
+    // turns that failing to ever roll it is astronomically unlikely (this is an integration test
+    // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
+    const base = createInitialState({ playerNationId: 'fr' });
+    let state = {
+      ...base,
+      nations: { ...base.nations, de: { ...base.nations.de, doctrine: 'zealot', hostility: 100 } }
+    };
+    let warDeclared = false;
+    for (let i = 0; i < 300 && !warDeclared; i++) {
+      state = resolveTurn(state);
+      if (state.nations.de.isAtWar) warDeclared = true;
+    }
+    expect(warDeclared).toBe(true);
+    expect(state.wars.some(w => w.aggressor === 'de')).toBe(true);
+  });
+});
+
 describe('resolveTurn victory', () => {
   it('triggers survival victory once the year reaches END_YEAR', () => {
     const state = { ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 };

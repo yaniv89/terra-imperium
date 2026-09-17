@@ -16,7 +16,7 @@ import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal } from '../utils/helpers';
-import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
+import { processAllAINations, processAIWarDecisions, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
 import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength } from '../data/rebellion';
@@ -130,13 +130,23 @@ export const resolveTurn = (state) => {
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
 
+  // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
+  // player, or a top-20 military power) may each declare one war this turn against a weaker
+  // neighbor, biased by doctrine and hostility. sortedByMilitary is computed once here, not per
+  // nation, to keep this affordable across 240 nations.
+  const sortedByMilitary = getSortedByMilitary({ ...state, nations });
+  const warDecisions = processAIWarDecisions({ ...state, nations }, nations, state.wars, sortedByMilitary, rng);
+  const nationsAfterWars = warDecisions.nations;
+  const wars = warDecisions.wars;
+  logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
+
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
   // is what "forces you to actually end them" rather than letting a war run forever for free.
-  Object.entries(nations).forEach(([nId, nation]) => {
+  Object.entries(nationsAfterWars).forEach(([nId, nation]) => {
     const delta = nation.isAtWar ? WAR_EXHAUSTION_RISE_PER_TURN : -WAR_EXHAUSTION_DECAY_PER_TURN;
     const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
-    if (warExhaustion !== nation.warExhaustion) nations[nId] = { ...nation, warExhaustion };
+    if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });
 
   // --- events ---
@@ -178,8 +188,9 @@ export const resolveTurn = (state) => {
     turnNumber: newTurnNumber,
     resources,
     regions,
-    nations,
+    nations: nationsAfterWars,
     units,
+    wars,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,
