@@ -118,6 +118,13 @@ describe('declareWar', () => {
     const next = declareWar(withClaims, 'ca', { aggressor: 'us' });
     expect(next.nations.us.claims).toEqual(['mx']);
   });
+
+  it('marks the aggressor isAtWar too, not just the target — every isAtWar reader in the codebase means "a belligerent", not "the defender"', () => {
+    const state = usState();
+    const next = declareWar(state, 'ca', { aggressor: 'us' });
+    expect(next.nations.us.isAtWar).toBe(true);
+    expect(next.nations.ca.isAtWar).toBe(true);
+  });
 });
 
 describe('hasCasusBelli', () => {
