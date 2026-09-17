@@ -7,7 +7,7 @@ import { RelationStatus, LogTypes, GameStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { RESOURCE_IDS } from '../data/resources';
-import { declareWar } from './diplomacy';
+import { declareWar, isWarBetween } from './diplomacy';
 
 export const applyEventEffects = (state, event, optionIndex) => {
   const option = event.options[optionIndex];
@@ -110,8 +110,13 @@ export const applyEventEffects = (state, event, optionIndex) => {
         relationStatus: RelationStatus.COLD_PEACE,
         hasPeaceTreaty: true
       };
+      // The war record names an aggressor and an enemy, not "the player's side" — the AI could
+      // have declared this war on the player just as easily as the reverse. Either way the
+      // player's own isAtWar must clear too, or aiLogic.js's pickWarTarget (which filters out any
+      // nation still flagged isAtWar) would make the player permanently immune to future wars.
+      if (nations[playerNationId]) nations[playerNationId] = { ...nations[playerNationId], isAtWar: false };
       for (let i = 0; i < wars.length; i++) {
-        if (wars[i].enemy === nId) wars[i] = { ...wars[i], active: false };
+        if (isWarBetween(wars[i], playerNationId, nId)) wars[i] = { ...wars[i], active: false };
       }
       invasions = invasions.filter(inv => !(inv.attackerNation === nId && inv.attackerNation !== playerNationId));
       logs.push({ year: next.year, message: `PEACE signed with ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.MILESTONE });

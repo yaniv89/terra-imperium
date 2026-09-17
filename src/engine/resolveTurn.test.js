@@ -368,6 +368,48 @@ describe('resolveTurn AI war declarations', () => {
   });
 });
 
+describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end)', () => {
+  // A very large difficultyMultiplier pushes resolveWarProgress's capture-chance roll (see
+  // diplomacy.js) effectively to certainty on the very first turn, regardless of the turn's own
+  // rngSeed — this is an integration test of the real resolveTurn wiring (Object.assign onto the
+  // in-progress regions object, reassigning nationsAfterWars/wars for the rest of the turn to see),
+  // not a probability estimate; diplomacy.test.js already covers the exact odds with a mocked rng.
+  const withCertainCapture = (aggressor, enemy, regionId) => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const war = { id: 'war_1', aggressor, enemy, active: true, goalAchieved: false, startYear: base.year, goal: { type: 'capture_region', regionId } };
+    return {
+      ...base,
+      difficultyMultiplier: 1000,
+      wars: [war],
+      nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], isAtWar: true }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
+    };
+  };
+
+  it('lets one AI nation actually conquer territory from another', () => {
+    const state = withCertainCapture('mx', 'ca', 'ca');
+    const next = resolveTurn(state);
+    expect(next.regions.ca.owner).toBe('mx');
+    expect(next.regions.ca.formerOwner).toBe('ca');
+    expect(next.wars.find(w => w.id === 'war_1').active).toBe(false);
+    expect(next.nations.mx.isAtWar).toBe(false);
+    expect(next.nations.ca.isAtWar).toBe(false);
+  });
+
+  it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
+    const state = withCertainCapture('de', 'fr', 'fr');
+    const next = resolveTurn(state);
+    expect(next.regions.fr.owner).toBe('de');
+    expect(next.regions.fr.formerOwner).toBe('fr');
+  });
+
+  it('leaves a war the player started to be resolved by the player\'s own invasion actions, not synthetically', () => {
+    const state = withCertainCapture('fr', 'de', 'de');
+    const next = resolveTurn(state);
+    expect(next.regions.de.owner).toBe('de'); // untouched by resolveWarProgress
+    expect(next.wars.find(w => w.id === 'war_1').active).toBe(true);
+  });
+});
+
 describe('resolveTurn victory', () => {
   it('triggers survival victory once the year reaches END_YEAR', () => {
     const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });

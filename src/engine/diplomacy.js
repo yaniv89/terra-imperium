@@ -6,8 +6,9 @@
 // stat, so none of this needs to special-case which nation is the player.
 
 import { RelationStatus } from '../data/types';
-import { isAdjacentToOwner } from '../data/regions';
+import { isAdjacentToOwner, REGIONS_DATA } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
+import { getFormerOwnerOnConquest } from '../data/rebellion';
 
 // A casus belli (plan §8/§9's "unjustified wars cost stability and global relations"): either a
 // claim the aggressor already fabricated against this target (FABRICATE_CLAIM), or a naturally
@@ -53,6 +54,13 @@ export const assignDefaultWarGoal = (state, nationId, aggressor) => {
   const prefersCapture = CAPTURE_PREFERRING_DOCTRINES.includes(aggressorNation?.doctrine);
   return buildWarGoal(state, nationId, aggressor, prefersCapture ? 'capture_region' : 'destroy_military');
 };
+
+// A war record names an `aggressor` and an `enemy`, not "the player's side" and "the other side"
+// — either nation could be either one, depending on who declared on whom. Callers that make peace
+// or check status FROM one nation's perspective (e.g. "the player is suing nationId for peace")
+// need to match a war regardless of which of the two fields holds which id.
+export const isWarBetween = (war, idA, idB) =>
+  (war.aggressor === idA && war.enemy === idB) || (war.aggressor === idB && war.enemy === idA);
 
 // True once a war's goal condition is actually met. Pure and side-effect-free — the caller
 // (resolveTurn.js) decides what to do with a newly-achieved goal.
@@ -119,4 +127,96 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
       goalAchieved: false
     }]
   };
+};
+
+// Mutual military attrition every turn a war actively runs — this is what makes a
+// `destroy_military` goal (checkWarGoal above) something that can genuinely happen, and it costs
+// both sides, not just whoever eventually loses.
+const WAR_ATTRITION_RATE = 0.02;
+
+// Per-turn probability an AI aggressor's `capture_region` goal actually succeeds this turn, scaled
+// by its share of the two belligerents' combined military strength and the game's difficulty.
+// Deliberately NOT a full battle.js simulation — running that for every active AI war, every turn,
+// across up to 240 nations, would be far too expensive. This is the "simpler, probabilistic
+// resolver" tier the AI's territorial wars need, mirroring the tiered-cost model the AI's war
+// DECISIONS already use (plan §8.5).
+const AI_CAPTURE_BASE_CHANCE = 0.15;
+
+// Advances every ACTIVE war whose aggressor is an AI nation by one turn: mutual military
+// attrition, a capture_region roll against the goal's target region, and — once checkWarGoal
+// reports the goal met — the war actually ends and peace is restored to both sides. A war the
+// PLAYER started is left untouched here; it's resolved by the player's own LAUNCH_INVASION/
+// AMPHIBIOUS_ASSAULT actions, not synthetically. This is what makes AI wars — AI-vs-AI and
+// AI-vs-player alike — actually go somewhere instead of running forever as a pair of flags with a
+// number ticking up: every one of the 240 nations must be conquerable by ANY nation, not just the
+// player, for the game's own reachability guarantee to mean anything.
+//
+// Each nation can be party to at most one active war at a time — declareWar refuses to target an
+// already-isAtWar nation, and the AI's own decision loop (aiLogic.js) never picks an
+// already-isAtWar aggressor either — so ending a war here by clearing both belligerents' isAtWar
+// can never stomp on some OTHER war either of them is still fighting.
+export const resolveWarProgress = (state, regions, nations, wars, rng) => {
+  let nextRegions = regions;
+  let nextNations = nations;
+  const logs = [];
+
+  const nextWars = wars.map(war => {
+    if (!war.active || war.aggressor === state.playerNationId) return war;
+    const aggressor = nextNations[war.aggressor];
+    const defender = nextNations[war.enemy];
+    if (!aggressor || !defender) return war;
+
+    const aggressorLoss = Math.round(defender.militaryStrength * WAR_ATTRITION_RATE);
+    const defenderLoss = Math.round(aggressor.militaryStrength * WAR_ATTRITION_RATE);
+    nextNations = {
+      ...nextNations,
+      [war.aggressor]: { ...aggressor, militaryStrength: Math.max(100, aggressor.militaryStrength - aggressorLoss) },
+      [war.enemy]: { ...defender, militaryStrength: Math.max(100, defender.militaryStrength - defenderLoss) }
+    };
+
+    // A capture_region goal only advances while the target region is still held by the defender —
+    // if it changed hands some other way mid-war, this war keeps running on destroy_military
+    // terms instead (checkWarGoal below watches militaryStrength regardless of goal.type).
+    if (war.goal?.type === 'capture_region' && !war.goalAchieved) {
+      const targetRegion = nextRegions[war.goal.regionId];
+      if (targetRegion && targetRegion.owner === war.enemy) {
+        const updatedAggressor = nextNations[war.aggressor];
+        const updatedDefender = nextNations[war.enemy];
+        const totalStrength = updatedAggressor.militaryStrength + updatedDefender.militaryStrength;
+        const chance = AI_CAPTURE_BASE_CHANCE * (updatedAggressor.militaryStrength / totalStrength) * (state.difficultyMultiplier || 1);
+        if (rng.next() < chance) {
+          nextRegions = {
+            ...nextRegions,
+            [war.goal.regionId]: {
+              ...targetRegion,
+              owner: war.aggressor,
+              formerOwner: getFormerOwnerOnConquest(war.goal.regionId, targetRegion.owner, war.aggressor),
+              control: 25,
+              unrest: Math.max(targetRegion.unrest || 0, 50)
+            }
+          };
+          logs.push({
+            message: `${updatedAggressor.name} captures ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} from ${updatedDefender.name}!`,
+            type: 'combat'
+          });
+        }
+      }
+    }
+
+    if (checkWarGoal(war, { ...state, regions: nextRegions, nations: nextNations })) {
+      const winner = nextNations[war.aggressor];
+      const loser = nextNations[war.enemy];
+      nextNations = {
+        ...nextNations,
+        [war.aggressor]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
+        [war.enemy]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
+      };
+      logs.push({ message: `${winner.name}'s war against ${loser.name} ends in victory.`, type: 'diplomacy' });
+      return { ...war, active: false, goalAchieved: true };
+    }
+
+    return war;
+  });
+
+  return { regions: nextRegions, nations: nextNations, wars: nextWars, logs };
 };
