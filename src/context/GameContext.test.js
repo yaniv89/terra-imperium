@@ -5,6 +5,7 @@ import { XP_THRESHOLDS } from '../data/promotions';
 import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
+import { MAX_ABM_LEVEL } from '../data/missiles';
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
@@ -324,7 +325,7 @@ describe('Space Race tab actions', () => {
       age: 'modern',
       techAgeId: 'modern',
       year: 1960,
-      resources: { ...fresh.resources, gold: 100000, techPoints: 10000 }
+      resources: { ...fresh.resources, gold: 100000, techPoints: 10000, iron: 100000, oil: 100000 }
     };
   };
 
@@ -395,6 +396,141 @@ describe('Space Race tab actions', () => {
       state = { ...state, orbitalDebrisLevel: MAX_ORBITAL_DEBRIS - 5 };
       const next = gameReducer(state, { type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: 'rival_sat' } });
       expect(next.orbitalDebrisLevel).toBe(MAX_ORBITAL_DEBRIS);
+    });
+  });
+
+  describe('BUILD_MISSILE', () => {
+    it('adds a missile to the stockpile and deducts the cost', () => {
+      const state = spaceState();
+      const next = gameReducer(state, { type: ActionTypes.BUILD_MISSILE, payload: { tierId: 'tactical' } });
+      expect(next.nations.fr.missiles.tactical).toBe(1);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op for an unknown tier', () => {
+      const state = spaceState();
+      expect(gameReducer(state, { type: ActionTypes.BUILD_MISSILE, payload: { tierId: 'not_real' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const base = spaceState();
+      const state = { ...base, resources: { ...base.resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.BUILD_MISSILE, payload: { tierId: 'tactical' } })).toBe(state);
+    });
+  });
+
+  describe('MISSILE_STRIKE', () => {
+    // 'de' is a real, land-adjacent (1 hop) neighbor of 'fr'; 'us' has no land path from 'fr' at
+    // all in the real adjacency data, making it a genuine out-of-range target for finite tiers.
+    const withMissile = (tierId, count = 1) => {
+      const base = spaceState();
+      return { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, missiles: { ...base.nations.fr.missiles, [tierId]: count } } } };
+    };
+
+    it('damages the target region and the target nation, and consumes the missile', () => {
+      const state = withMissile('tactical');
+      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } });
+      expect(next.regions.de.control).toBeLessThan(state.regions.de.control);
+      expect(next.regions.de.unrest).toBeGreaterThan(state.regions.de.unrest);
+      expect(next.nations.de.militaryStrength).toBeLessThan(state.nations.de.militaryStrength);
+      expect(next.nations.fr.missiles.tactical).toBe(0);
+    });
+
+    it('is a no-op with an empty stockpile for that tier', () => {
+      const state = spaceState();
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op against the player\'s own region', () => {
+      const state = withMissile('tactical');
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'fr' } })).toBe(state);
+    });
+
+    it('is a no-op when the target is out of the tier\'s range', () => {
+      const state = withMissile('tactical');
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'us' } })).toBe(state);
+    });
+
+    it('an icbm reaches a target a tactical missile could never reach', () => {
+      const state = withMissile('icbm');
+      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'icbm', targetRegionId: 'us' } });
+      expect(next.regions.us.control).toBeLessThan(state.regions.us.control);
+    });
+
+    it('an ABM defense level reduces incoming damage', () => {
+      const base = withMissile('tactical', 2);
+      const noAbm = gameReducer(base, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } });
+      const withAbmState = { ...base, nations: { ...base.nations, de: { ...base.nations.de, abmDefenseLevel: 3 } } };
+      const withAbm = gameReducer(withAbmState, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } });
+      const noAbmDamage = base.regions.de.control - noAbm.regions.de.control;
+      const withAbmDamage = base.regions.de.control - withAbm.regions.de.control;
+      expect(withAbmDamage).toBeLessThan(noAbmDamage);
+    });
+
+    it('a nuclear strike scars the region and raises every other nation\'s hostility (global condemnation)', () => {
+      const state = withMissile('nuclear');
+      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: 'de' } });
+      expect(next.regions.de.nuclearScarred).toBe(true);
+      const thirdParty = Object.keys(state.nations).find(id => id !== 'fr' && id !== 'de');
+      expect(next.nations[thirdParty].hostility).toBeGreaterThan(state.nations[thirdParty].hostility);
+    });
+
+    it('is a no-op when unaffordable (the flat action-point cost)', () => {
+      const base = withMissile('tactical');
+      const state = { ...base, resources: { ...base.resources, actionPoints: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('BUILD_ABM_DEFENSE', () => {
+    it('raises the player\'s abmDefenseLevel and deducts the cost', () => {
+      const state = spaceState();
+      const next = gameReducer(state, { type: ActionTypes.BUILD_ABM_DEFENSE, payload: {} });
+      expect(next.nations.fr.abmDefenseLevel).toBe(1);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op once already at the maximum level', () => {
+      const base = spaceState();
+      const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, abmDefenseLevel: MAX_ABM_LEVEL } } };
+      expect(gameReducer(state, { type: ActionTypes.BUILD_ABM_DEFENSE, payload: {} })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const base = spaceState();
+      const state = { ...base, resources: { ...base.resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.BUILD_ABM_DEFENSE, payload: {} })).toBe(state);
+    });
+  });
+
+  describe('LAUNCH_MISSION', () => {
+    it('starts the first mission in the ladder and deducts its cost', () => {
+      const state = spaceState();
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: 'sounding_rocket' } });
+      expect(next.spaceMissionProgress.sounding_rocket).toBe(3);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op before the Modern Age even if the mission itself would otherwise be launchable', () => {
+      const state = { ...spaceState(), age: 'gunpowder', techAgeId: 'gunpowder' };
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: 'sounding_rocket' } })).toBe(state);
+    });
+
+    it('is a no-op for a mission whose predecessor is not yet complete', () => {
+      const state = spaceState();
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: 'first_satellite' } })).toBe(state);
+    });
+
+    it('allows the next rung once its predecessor is completed', () => {
+      const state = { ...spaceState(), completedMissions: ['sounding_rocket'] };
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: 'first_satellite' } });
+      expect(next.spaceMissionProgress.first_satellite).toBe(4);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const base = spaceState();
+      const state = { ...base, resources: { ...base.resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: 'sounding_rocket' } })).toBe(state);
     });
   });
 });

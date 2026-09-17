@@ -55,6 +55,22 @@ export const ACTION_COSTS = {
   launchSatellite: { gold: 400, techPoints: 30, actionPoints: 2 },
   asatStrike: { gold: 250, actionPoints: 2 },
 
+  // Missiles (plan §10.4 Layer 2) — cost scales steeply with range/power; a nuclear warhead is
+  // priced well above even an ICBM, matching how consequential building one actually is. The gold
+  // is paid up front at build time; MISSILE_STRIKE itself only spends the stockpiled missile and
+  // an action point, since the ordnance was already bought.
+  buildMissile: {
+    tactical: { gold: 150, iron: 20, actionPoints: 1 },
+    theatre: { gold: 350, iron: 40, actionPoints: 1 },
+    icbm: { gold: 700, iron: 60, oil: 30, actionPoints: 2 },
+    nuclear: { gold: 2000, iron: 100, oil: 60, actionPoints: 2 }
+  },
+  missileStrike: { actionPoints: 2 },
+  buildAbmDefense: { gold: 500, actionPoints: 2 },
+  // A mission's own gold/techPoints cost (src/data/spaceMissions.js) varies per mission; this is
+  // just the flat action-point cost every launch shares, matching researchTech's own pattern.
+  launchMission: { actionPoints: 2 },
+
   // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs only
   // action points; without one it costs a real gold premium on top — see GameContext.jsx's
   // DECLARE_WAR for the rest of an unjustified war's cost (global relations, home unrest).

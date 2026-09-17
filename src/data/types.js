@@ -74,7 +74,13 @@ export const ActionTypes = {
 
   // Space Race, orbital layer (plan §10.4 Layer 1).
   LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',
-  ASAT_STRIKE: 'ASAT_STRIKE'
+  ASAT_STRIKE: 'ASAT_STRIKE',
+
+  // Space Race, missiles and mission ladder (plan §10.4 Layers 2-3).
+  BUILD_MISSILE: 'BUILD_MISSILE',
+  MISSILE_STRIKE: 'MISSILE_STRIKE',
+  BUILD_ABM_DEFENSE: 'BUILD_ABM_DEFENSE',
+  LAUNCH_MISSION: 'LAUNCH_MISSION'
 };
 
 export const LogTypes = {

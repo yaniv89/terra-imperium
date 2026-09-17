@@ -17,7 +17,8 @@ import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal } from '../utils/helpers';
 import { processAllAINations, processAIWarDecisions, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
-import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
+import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
+import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength } from '../data/rebellion';
 import { createRng } from '../utils/rng';
@@ -155,6 +156,29 @@ export const resolveTurn = (state) => {
     if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });
 
+  // --- space mission ladder (plan §10.4 Layer 3): each in-progress mission ticks down one turn;
+  // reaching 0 moves it into completedMissions and applies its one-time reward. Recurring rewards
+  // are read generically from completedMissions every turn by calcIncome instead of being applied
+  // once here, so there's exactly one place that sums them. ---
+  const completedMissions = [...(state.completedMissions || [])];
+  const spaceMissionProgress = {};
+  Object.entries(state.spaceMissionProgress || {}).forEach(([missionId, turnsRemaining]) => {
+    const remaining = turnsRemaining - 1;
+    if (remaining > 0) {
+      spaceMissionProgress[missionId] = remaining;
+      return;
+    }
+    completedMissions.push(missionId);
+    const mission = SPACE_MISSIONS_BY_ID[missionId];
+    if (mission?.oneTimeReward?.gold) resources.gold = (resources.gold || 0) + mission.oneTimeReward.gold;
+    if (mission?.oneTimeReward?.diplomacyPoints) resources.diplomacyPoints = (resources.diplomacyPoints || 0) + mission.oneTimeReward.diplomacyPoints;
+    logs.push({ year: newYear, message: `${mission?.name || missionId} complete!`, type: LogTypes.MILESTONE });
+  });
+
+  // --- diplomatic leadership streak (plan §10.4's Diplomatic victory) ---
+  const alignmentShare = getDiplomaticAlignmentShare({ ...state, nations: nationsAfterWars });
+  const diplomaticLeadershipStreak = alignmentShare >= DIPLOMATIC_LEADERSHIP_SHARE ? (state.diplomaticLeadershipStreak || 0) + 1 : 0;
+
   // --- events ---
   const dueEvent = pickNextEvent(newYear, nations, state.firedEvents, state.playerNationId, regions);
 
@@ -202,6 +226,9 @@ export const resolveTurn = (state) => {
     units,
     wars,
     orbitalDebrisLevel,
+    spaceMissionProgress,
+    completedMissions,
+    diplomaticLeadershipStreak,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,

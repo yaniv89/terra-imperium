@@ -1,14 +1,117 @@
 import { describe, it, expect } from 'vitest';
-import { VICTORY_CONDITIONS, checkVictoryConditions, applyVictory } from './victoryConditions';
+import {
+  VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned,
+  getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
+} from './victoryConditions';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
+import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
+import { WORLD_NATIONS } from './worldNations';
 
 describe('survival', () => {
   it('is satisfied once the year reaches END_YEAR', () => {
     const state = createInitialState();
     expect(VICTORY_CONDITIONS.survival.check({ ...state, year: END_YEAR - 1 })).toBe(false);
     expect(VICTORY_CONDITIONS.survival.check({ ...state, year: END_YEAR })).toBe(true);
+  });
+});
+
+describe('domination', () => {
+  it('is false at the start of a fresh game (owns only its own one region of 240)', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.domination.check(state)).toBe(false);
+  });
+
+  it('is true once the player owns enough of the world\'s regions', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const regions = { ...state.regions };
+    const ids = Object.keys(regions);
+    const ownedCount = Math.ceil(ids.length * 0.41);
+    ids.slice(0, ownedCount).forEach(id => { regions[id] = { ...regions[id], owner: 'fr' }; });
+    expect(VICTORY_CONDITIONS.domination.check({ ...state, regions })).toBe(true);
+  });
+});
+
+describe('economicHegemony', () => {
+  it('is false at the start of a fresh game', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.economicHegemony.check(state)).toBe(false);
+  });
+
+  it('is true once the player\'s owned regions carry enough of the world\'s GDP', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const regions = { ...state.regions };
+    // Hand France every region belonging to the world's biggest economies until the share clears
+    // the threshold — real gdpMillions data means this is a real computation, not a fixture stub.
+    let totalGdp = 0;
+    Object.values(WORLD_NATIONS).forEach(n => { totalGdp += n.gdpMillions || 0; });
+    const sortedIds = Object.keys(WORLD_NATIONS).sort((a, b) => (WORLD_NATIONS[b].gdpMillions || 0) - (WORLD_NATIONS[a].gdpMillions || 0));
+    let ownedGdp = 0;
+    for (const id of sortedIds) {
+      regions[id] = { ...regions[id], owner: 'fr' };
+      ownedGdp += WORLD_NATIONS[id].gdpMillions || 0;
+      if (ownedGdp / totalGdp >= 0.35) break;
+    }
+    expect(VICTORY_CONDITIONS.economicHegemony.check({ ...state, regions })).toBe(true);
+  });
+});
+
+describe('spaceAscendancy', () => {
+  it('is false without completing the mission ladder', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.spaceAscendancy.check(state)).toBe(false);
+    expect(VICTORY_CONDITIONS.spaceAscendancy.check({ ...state, completedMissions: ['sounding_rocket'] })).toBe(false);
+  });
+
+  it('is true once the final mission is completed', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.spaceAscendancy.check({ ...state, completedMissions: [FINAL_SPACE_MISSION_ID] })).toBe(true);
+  });
+});
+
+describe('diplomatic', () => {
+  it('is false without a sustained streak', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.diplomatic.check(state)).toBe(false);
+    expect(VICTORY_CONDITIONS.diplomatic.check({ ...state, diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS - 1 })).toBe(false);
+  });
+
+  it('is true once the streak reaches the required length', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.diplomatic.check({ ...state, diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS })).toBe(true);
+  });
+});
+
+describe('isDiplomaticallyAligned', () => {
+  it('requires genuine engagement (trade or alliance), not just low hostility', () => {
+    // Every real nation starts at hostility 5 (worldNations.js) — this must NOT count as aligned
+    // on its own, or every game would win a Diplomatic Victory by turn ~20 for free.
+    expect(isDiplomaticallyAligned({ hostility: 5 })).toBe(false);
+    expect(isDiplomaticallyAligned({ hostility: 0 })).toBe(false);
+  });
+
+  it('is true with a trade agreement or a military pact', () => {
+    expect(isDiplomaticallyAligned({ hasTradeAgreement: true, hostility: 90 })).toBe(true);
+    expect(isDiplomaticallyAligned({ hasMilitaryPact: true, hostility: 90 })).toBe(true);
+  });
+});
+
+describe('getDiplomaticAlignmentShare', () => {
+  it('is 0 in a fresh game (no trade agreements or alliances exist yet)', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(getDiplomaticAlignmentShare(state)).toBe(0);
+  });
+
+  it('excludes the player itself from the denominator', () => {
+    const state = {
+      nations: {
+        us: { isPlayer: true, hasTradeAgreement: true },
+        fr: { isPlayer: false, hasTradeAgreement: true },
+        de: { isPlayer: false, hasTradeAgreement: false }
+      }
+    };
+    expect(getDiplomaticAlignmentShare(state)).toBeCloseTo(0.5);
   });
 });
 
