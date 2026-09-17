@@ -21,6 +21,7 @@ import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../dat
 import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { TAX_RATES } from '../data/taxRates';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -52,7 +53,8 @@ export const resolveTurn = (state) => {
   const regions = { ...state.regions };
   Object.entries(regions).forEach(([id, region]) => {
     const owner = state.nations[region.owner];
-    const unrest = nextUnrest(region, getNationBonusTotal(owner, 'stabilityBonus'));
+    const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
+    const unrest = nextUnrest(region, getNationBonusTotal(owner, 'stabilityBonus'), taxUnrestDelta);
     if (unrest !== region.unrest) regions[id] = { ...region, unrest };
   });
 

@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
@@ -22,7 +22,9 @@ import { getAvailableClasses } from '../data/unitClasses';
 import {
   ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
-  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING
+  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING,
+  SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
+  POPULATION_POLICY_GROWTH_RATE
 } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
@@ -36,6 +38,8 @@ import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { canAfford, applyCosts } from '../utils/helpers';
+import { WONDERS, canConstructWonder } from '../data/wonders';
+import { TAX_RATE_IDS, DEFAULT_TAX_RATE } from '../data/taxRates';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -112,6 +116,13 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // them via ADOPT_GOVERNMENT/ADOPT_POLICY today; AI adoption is Task 23's job.
       government: null,
       policies: [],
+      // World Wonders this nation has completed (Construct Wonder) — same getNationBonusTotal
+      // hooks as government/policies (src/utils/helpers.js). Every nation carries the field so
+      // that helper can read it generically, though only the player can build one today.
+      wonders: [],
+      // Set Tax Rate (plan §5) — every nation gets a rate so calcIncome/nextUnrest can read any
+      // nation's generically; only the player can change theirs today.
+      taxRate: DEFAULT_TAX_RATE,
 
       // Diplomacy (plan §11's nation data model: "+ warExhaustion, legitimacy, claims[], vassals[]")
       // — claims make a later DECLARE_WAR against that nation justified (FABRICATE_CLAIM);
@@ -204,6 +215,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
     // Persistent effect from event choices, applied to combat once combat exists again (Phase C).
     eventDefenseBonus: 0,
+
+    // Construct Wonder (plan §5/§6) — { wonderId: builderNationId }, checked by
+    // src/data/wonders.js's canConstructWonder so a wonder can only ever be finished once,
+    // globally, no matter which nation gets there first.
+    wondersBuilt: {},
 
     // Deterministic turn resolution — see src/utils/rng.js
     rngSeed: randomSeed(),
@@ -381,6 +397,76 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, unrest: Math.max(0, region.unrest - 30) } },
         logs: [...state.logs, { year: state.year, message: `Quelled unrest in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.SETTLE_COLONIZE: {
+      // Peacefully absorbs a bordering nation's own homeland once its control there has
+      // collapsed below SETTLE_COLONIZE_CONTROL_THRESHOLD — the "minimally-held adjacent land"
+      // the plan describes, adapted to a one-region-per-nation world with no literal unowned
+      // territory. No military required, unlike LAUNCH_INVASION.
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.settleColonize;
+      if (!region || region.owner === state.playerNationId) return state;
+      if (region.control >= SETTLE_COLONIZE_CONTROL_THRESHOLD) return state;
+      if (!isAdjacentToOwner(regionId, state.regions, state.playerNationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: {
+          ...state.regions,
+          [regionId]: { ...region, owner: state.playerNationId, control: SETTLE_COLONIZE_START_CONTROL, unrest: Math.max(region.unrest || 0, SETTLE_COLONIZE_START_UNREST) }
+        },
+        logs: [...state.logs, { year: state.year, message: `Settlers peacefully absorbed ${REGIONS_DATA[regionId]?.name}, whose own control there had collapsed.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.POPULATION_POLICY: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.populationPolicy;
+      if (!region || region.owner !== state.playerNationId) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextPopulation = Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE));
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [regionId]: { ...region, currentPopulation: nextPopulation } },
+        logs: [...state.logs, { year: state.year, message: `Population growth invested in ${REGIONS_DATA[regionId]?.name} — now ${nextPopulation.toLocaleString()}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.SET_TAX_RATE: {
+      const { rate } = action.payload;
+      const costs = ACTION_COSTS.setTaxRate;
+      const nation = state.nations[state.playerNationId];
+      if (!TAX_RATE_IDS.includes(rate) || nation.taxRate === rate) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, taxRate: rate } },
+        logs: [...state.logs, { year: state.year, message: `Tax rate set to ${rate}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.CONSTRUCT_WONDER: {
+      // Empire-wide, not region-scoped — a Wonder is one permanent bonus for the whole nation
+      // (plan §5's "permanent empire bonus"), not tied to the region it was raised in.
+      const { wonderId } = action.payload;
+      const costs = ACTION_COSTS.constructWonder;
+      const effectiveAge = getEffectiveAgeId(state.age, state.techAgeId);
+      if (!canConstructWonder(wonderId, effectiveAge, state.wondersBuilt)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nation = state.nations[state.playerNationId];
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        wondersBuilt: { ...state.wondersBuilt, [wonderId]: state.playerNationId },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, wonders: [...(nation.wonders || []), wonderId] } },
+        logs: [...state.logs, { year: state.year, message: `${WONDERS[wonderId]?.name} completed!`, type: LogTypes.MILESTONE }]
       };
     }
 

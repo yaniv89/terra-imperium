@@ -14,6 +14,16 @@ export const ACTION_COSTS = {
   constructBuilding: { gold: 100, actionPoints: 1 },
   developResourceSite: { gold: 120, actionPoints: 1 },
   quellUnrest: { gold: 50, actionPoints: 1 },
+  // Peacefully absorbing a bordering nation whose own grip on its territory has collapsed — no
+  // military required, unlike Launch Invasion, so it costs more gold and action points than any
+  // other single-region domestic action to compensate.
+  settleColonize: { gold: 150, actionPoints: 2 },
+  populationPolicy: { gold: 100, actionPoints: 1 },
+  // A slider flip, not a purchase — costs only the action point every other domestic decision does.
+  setTaxRate: { actionPoints: 1 },
+  // The biggest single-purchase cost in the game — a world-unique megaproject, not a
+  // one-region improvement.
+  constructWonder: { gold: 500, actionPoints: 3 },
 
   recruitUnit: { gold: 60, hr: 100, actionPoints: 1 },
   moveArmy: { actionPoints: 1 },
@@ -71,3 +81,17 @@ export const FUND_SCHOLARS_TECHPOINTS = 20;
 // Fraction of a disbanded unit's HR cost recovered — never the full amount, or disband/recruit
 // would be a free way to reshuffle composition every turn.
 export const DISBAND_HR_REFUND_RATIO = 0.5;
+
+// Settle/Colonize only targets a bordering region whose own control has collapsed below this —
+// the "minimally-held adjacent land" the plan describes, in a one-region-per-nation world with no
+// literal unowned territory. Above this threshold the nation still has a real grip on its own
+// homeland and can only be taken by Launch Invasion.
+export const SETTLE_COLONIZE_CONTROL_THRESHOLD = 20;
+// Control/unrest a settled region starts at under its new owner — deliberately identical to a won
+// Launch Invasion's own numbers (GameContext.jsx), since both are "you now hold contested land".
+export const SETTLE_COLONIZE_START_CONTROL = 25;
+export const SETTLE_COLONIZE_START_UNREST = 50;
+
+// Population Policy's flat per-use growth rate — compounds each time it's used, so early
+// investment pays off more over a long game (guns vs. butter, per the plan).
+export const POPULATION_POLICY_GROWTH_RATE = 0.1;

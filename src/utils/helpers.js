@@ -10,6 +10,8 @@ import { RESOURCE_IDS } from '../data/resources';
 import { hasDeposit } from '../data/deposits';
 import { GOVERNMENT_TYPES } from '../data/government';
 import { POLICIES } from '../data/policies';
+import { WONDERS } from '../data/wonders';
+import { TAX_RATES } from '../data/taxRates';
 
 // ============ NUMBER FORMATTING ============
 
@@ -69,13 +71,15 @@ const EXTRACTION_BASE_YIELD = 20;
 // Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
 const SCIENCE_TECHPOINT_YIELD = 2;
 
-// Sums a nation's government effect plus every adopted policy's effect for one bonus hook
-// (goldMult/hrMult, read by calcIncome; stabilityBonus, read by nextUnrest) — the one place that
-// summation happens, so government and policies never drift into their own separate math.
+// Sums a nation's government effect, every adopted policy's effect, and every completed World
+// Wonder's effect for one bonus hook (goldMult/hrMult, read by calcIncome; stabilityBonus, read by
+// nextUnrest) — the one place that summation happens, so government, policies and wonders never
+// drift into their own separate math.
 export const getNationBonusTotal = (nation, hookKey) => {
   const govBonus = GOVERNMENT_TYPES[nation?.government]?.effect?.[hookKey] || 0;
   const policyBonus = (nation?.policies || []).reduce((sum, id) => sum + (POLICIES[id]?.effect?.[hookKey] || 0), 0);
-  return govBonus + policyBonus;
+  const wonderBonus = (nation?.wonders || []).reduce((sum, id) => sum + (WONDERS[id]?.effect?.[hookKey] || 0), 0);
+  return govBonus + policyBonus + wonderBonus;
 };
 
 // Per-turn resource income for the player's nation: gold/hr from every owned region's gdp/
@@ -93,9 +97,14 @@ export const calcIncome = (state) => {
     if (!regData) return;
     const controlMult = region.control / 100;
     const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
+    // Population Policy (plan §5, "more HR and tax later"): gold/hr scale with how much this
+    // region has grown past its starting population. Deposit/extraction/tech yields below don't
+    // scale with it — they're geography- and building-driven, not population-driven.
+    const popGrowthMult = regData.population > 0 ? (region.currentPopulation || regData.population) / regData.population : 1;
     Object.entries(regData.resources || {}).forEach(([resId, amount]) => {
       if (income[resId] === undefined) return; // not unlocked at the current age
-      income[resId] += amount * controlMult * infraMult;
+      const growthMult = (resId === 'gold' || resId === 'hr') ? popGrowthMult : 1;
+      income[resId] += amount * controlMult * infraMult * growthMult;
     });
 
     Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
@@ -118,10 +127,11 @@ export const calcIncome = (state) => {
   const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
   income.gold = (income.gold || 0) + tradePartners.length * 20;
 
-  // Government & policy bonuses (plan §9) — a government's own effect plus every adopted policy's,
-  // summed on the same hook (getNationBonusTotal), applied as one multiplier.
+  // Government/policy/wonder bonuses (plan §9) — summed on the same hook (getNationBonusTotal),
+  // applied as one multiplier, plus Set Tax Rate's own goldMult on top.
   const playerNation = state.nations[state.playerNationId];
-  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult');
+  const taxGoldMult = TAX_RATES[playerNation?.taxRate]?.goldMult || 0;
+  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult') + taxGoldMult;
   const hrMult = 1 + getNationBonusTotal(playerNation, 'hrMult');
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
@@ -156,11 +166,14 @@ const UNREST_CONTROL_THRESHOLD = 50;
 // One turn's unrest drift for a single region — rises under low control, settles otherwise.
 // `stabilityBonus` (a region's owner's government + policy total, getNationBonusTotal) shaves
 // straight off the delta, so a government reform is felt immediately rather than only on the next
-// threshold crossing. Exported standalone (not just inlined in resolveTurn) so the threshold/rate
-// constants above are unit-testable without needing a full turn resolution.
-export const nextUnrest = (region, stabilityBonus = 0) => {
+// threshold crossing. `taxUnrestDelta` (Set Tax Rate's own per-turn unrest change, TAX_RATES) adds
+// on top — High Taxes' unrest cost applies even to a region that's otherwise perfectly stable,
+// same as stabilityBonus can pull a region below the threshold's own drift. Exported standalone
+// (not just inlined in resolveTurn) so the threshold/rate constants above are unit-testable
+// without needing a full turn resolution.
+export const nextUnrest = (region, stabilityBonus = 0, taxUnrestDelta = 0) => {
   const delta = (region.control || 0) < UNREST_CONTROL_THRESHOLD ? UNREST_RISE_PER_TURN : -UNREST_FALL_PER_TURN;
-  return Math.max(0, Math.min(100, (region.unrest || 0) + delta - stabilityBonus));
+  return Math.max(0, Math.min(100, (region.unrest || 0) + delta - stabilityBonus + taxUnrestDelta));
 };
 
 // ============ REGION HELPERS ============
