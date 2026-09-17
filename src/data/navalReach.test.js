@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NAVAL_REACH_KM, isCoastal, getAllSeaLanes, getSeaLanesWithinReach, isReachableBySea } from './navalReach';
 import { AGE_ORDER } from './ages';
+import { REGIONS_DATA, getNeighborIds } from './regions';
 
 describe('isCoastal', () => {
   it('is true for real coastal nations', () => {
@@ -75,6 +76,31 @@ describe('island reachability guarantee', () => {
     ISLAND_NATIONS.forEach(id => {
       const reachable = getSeaLanesWithinReach(id, 'gunpowder');
       expect(reachable.length, `${id} has no Gunpowder-age sea lane`).toBeGreaterThan(0);
+    });
+  });
+});
+
+// The same guarantee, generalized to ALL 240 real nations rather than 6 named spot-checks — this
+// is the plan §13 bullet in full: "an automated test asserting that every one of the 240 nations
+// is conquerable... This is the regression guard that stops islands from silently falling out of
+// the game again." A region graph splits into: one large land-connected mainland, a handful of
+// tiny land-connected components (e.g. Great Britain/Ireland), and several dozen fully-isolated
+// (no land neighbor at all) regions — every single isolated region turns out to be coastal, so
+// none of them is EVER permanently unreachable: LAUNCH_INVASION covers the land-connected graph,
+// and AMPHIBIOUS_ASSAULT (global sea reach at the Modern Age) covers every coastal region,
+// including every isolated one.
+describe('exhaustive reachability guarantee — all 240 nations', () => {
+  it('every region either has a real land neighbor or is coastal (no region is land-isolated AND landlocked)', () => {
+    Object.keys(REGIONS_DATA).forEach(id => {
+      const hasLandNeighbor = getNeighborIds(id).length > 0;
+      expect(hasLandNeighbor || isCoastal(id), `${id} (${REGIONS_DATA[id]?.name}) has no land neighbor and is not coastal — would be permanently unreachable`).toBe(true);
+    });
+  });
+
+  it('every coastal region has a real Modern-age sea lane to at least one other region', () => {
+    Object.keys(REGIONS_DATA).filter(id => isCoastal(id)).forEach(id => {
+      const lanes = getSeaLanesWithinReach(id, 'modern');
+      expect(lanes.length, `${id} (${REGIONS_DATA[id]?.name}) has no Modern-age sea lane`).toBeGreaterThan(0);
     });
   });
 });

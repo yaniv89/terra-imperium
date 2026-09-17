@@ -171,7 +171,7 @@ describe('HISTORICAL_EVENTS data integrity', () => {
   it('curated national events target a real nation id and are a representative, non-trivial batch', () => {
     // Real ids from src/data/geo/worldRegions.json, sanity-checked directly rather than importing
     // the whole geo dataset just for an id-existence check.
-    const knownRealNationIds = ['eg', 'it', 'mn', 'jp', 'gb', 'cn', 'in', 'tr', 'gr', 'fr', 'de', 'us'];
+    const knownRealNationIds = ['eg', 'it', 'mn', 'jp', 'gb', 'cn', 'in', 'tr', 'gr', 'fr', 'de', 'us', 'ir', 'mx', 'pe', 'es', 'nl', 'ru'];
     CURATED_EVENTS.forEach(event => expect(knownRealNationIds).toContain(event.nationId));
     expect(CURATED_EVENTS.length).toBeGreaterThanOrEqual(5);
     expect(new Set(CURATED_EVENTS.map(e => e.nationId)).size).toBe(CURATED_EVENTS.length); // one per nation
