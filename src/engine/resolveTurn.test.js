@@ -5,6 +5,8 @@ import { GameStatus } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { EVENT_CHAINS } from '../data/eventChains';
+import { applyEventEffects } from './applyEventEffects';
 
 // Every real scripted/procedural event already "used up" — isolates tests that aren't themselves
 // about the event system from HISTORICAL_EVENTS/proceduralEvents.js's real, non-empty content
@@ -305,5 +307,19 @@ describe('resolveTurn event chains', () => {
   it('ignores a pending entry whose id has no matching registry entry, rather than throwing', () => {
     const state = { ...createInitialState({ playerNationId: 'fr' }), turnNumber: 5, pendingEventChains: [{ id: 'not_a_real_chain', dueTurn: 6 }] };
     expect(() => resolveTurn(state)).not.toThrow();
+  });
+
+  it('fires a real, multi-step chain end-to-end: schedules, fires at dueTurn, and resolving it schedules the next step', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: 5, pendingEventChains: [{ id: 'succession_crisis_1', dueTurn: 6 }] });
+    const next = resolveTurn(base);
+    expect(next.activeEventId).toBe('succession_crisis_1');
+    expect(next.pendingEventChains).toEqual([]);
+
+    const event = HISTORICAL_EVENTS[next.activeEventId] || EVENT_CHAINS[next.activeEventId];
+    expect(event.title).toBe('A Succession Crisis Brews');
+
+    const resolved = applyEventEffects(next, event, 0); // "Name the eldest heir now" -> schedules succession_crisis_2
+    expect(resolved.pendingEventChains).toEqual([{ id: 'succession_crisis_2', dueTurn: resolved.turnNumber + 5 }]);
+    expect(resolved.activeEventId).toBeNull();
   });
 });

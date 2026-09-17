@@ -70,7 +70,9 @@ const PROCEDURAL_TEMPLATES = [
         title: 'Raiders on the Frontier',
         description: `Raiders strike the undefended frontier of ${data.name}, making off with livestock and grain before your garrisons can respond.`,
         options: [
-          { label: 'Muster a punitive expedition', effects: { gold: -60, militaryStrengthBonus: 40 } },
+          // A punitive expedition can cross into disputed ground and escalate — the seed of the
+          // border dispute chain (src/data/eventChains.js's border_dispute_1).
+          { label: 'Muster a punitive expedition', effects: { gold: -60, militaryStrengthBonus: 40, spawnFollowUp: { id: 'border_dispute_1', delayTurns: 4 } } },
           { label: 'Reinforce the border after the fact', effects: { gold: -100, defenseBonus: 0.05 } }
         ]
       };

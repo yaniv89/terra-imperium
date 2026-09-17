@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { shouldEventFire, pickNextEvent, HISTORICAL_EVENTS } from './events';
 import { START_YEAR, END_YEAR, AGE_ORDER, getCalendarAgeId } from './ages';
+import { EVENT_CHAINS } from './eventChains';
 
 // Fixture events (independent of the real HISTORICAL_EVENTS content) exercise the generic
 // scheduling mechanism in isolation.
@@ -105,6 +106,15 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     AGE_ORDER.forEach(id => { ageCounts[id] = 0; });
     Object.values(HISTORICAL_EVENTS).forEach(event => { ageCounts[getCalendarAgeId(event.year)] += 1; });
     AGE_ORDER.forEach(ageId => expect(ageCounts[ageId]).toBeGreaterThanOrEqual(2));
+  });
+
+  it('never spawns a follow-up that points at a nonexistent chain entry', () => {
+    Object.values(HISTORICAL_EVENTS).forEach(event => {
+      event.options.forEach(option => {
+        const followUp = option.effects.spawnFollowUp;
+        if (followUp) expect(EVENT_CHAINS[followUp.id]).toBeDefined();
+      });
+    });
   });
 
   it('never references a specific nation or region — world events must stay alt-history tolerant', () => {

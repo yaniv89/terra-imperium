@@ -88,7 +88,10 @@ export const HISTORICAL_EVENTS = {
     title: 'The Columbian Exchange',
     description: 'New crops, animals and diseases begin crossing the oceans in both directions, reshaping diets, economies and populations across every continent they touch.',
     options: [
-      { label: 'Adopt the new crops aggressively', effects: { hr: 60, gold: -50 } },
+      // Adopting the new crops aggressively means backing the merchants and adventurers eager to
+      // chase the new trade routes the exchange opens up — the seed of a colonial venture
+      // (event chain, src/data/eventChains.js's colonial_venture_1).
+      { label: 'Adopt the new crops aggressively', effects: { hr: 60, gold: -50, spawnFollowUp: { id: 'colonial_venture_1', delayTurns: 5 } } },
       { label: 'Proceed cautiously', effects: { gold: 40 } }
     ]
   },
@@ -99,7 +102,9 @@ export const HISTORICAL_EVENTS = {
     description: 'A wave of revolutionary wars and shifting alliances upends the old order across entire continents, redrawing borders and toppling dynasties that seemed permanent.',
     options: [
       { label: 'Modernize your army to keep pace', effects: { gold: -200, militaryStrengthBonus: 300 } },
-      { label: 'Stay neutral and consolidate at home', effects: { controlBonus: 10 } }
+      // Watching neighboring dynasties fall raises the same question at home — the seed of a
+      // succession crisis (event chain, src/data/eventChains.js's succession_crisis_1).
+      { label: 'Stay neutral and consolidate at home', effects: { controlBonus: 10, spawnFollowUp: { id: 'succession_crisis_1', delayTurns: 3 } } }
     ]
   },
 
@@ -130,7 +135,9 @@ export const HISTORICAL_EVENTS = {
     title: 'The Digital Revolution',
     description: 'Computing and telecommunications reshape economies overnight, rewarding nations that invest early and leaving the rest to scramble and catch up.',
     options: [
-      { label: 'Invest heavily in the new technology', effects: { gold: -300, techPoints: 100 } },
+      // Full commitment to unproven new technology is exactly the risk-tolerant posture the
+      // technological gamble chain (src/data/eventChains.js's tech_gamble_1) assumes.
+      { label: 'Invest heavily in the new technology', effects: { gold: -300, techPoints: 100, spawnFollowUp: { id: 'tech_gamble_1', delayTurns: 4 } } },
       { label: 'Let private industry lead the way', effects: { gold: 100, techPoints: 20 } }
     ]
   }
