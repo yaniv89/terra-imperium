@@ -20,7 +20,10 @@ import { processAllAINations, processAIWarDecisions, getSortedByMilitary, getRel
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
-import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength } from '../data/rebellion';
+import {
+  REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength,
+  REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
+} from '../data/rebellion';
 import { createRng } from '../utils/rng';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
@@ -67,6 +70,11 @@ export const resolveTurn = (state) => {
   // region rather than just a number. Falling back below the threshold (e.g. after Quell Unrest,
   // or SUPPRESS_REBELLION restoring control) lets the uprising dissolve; staying above it lets
   // the existing rebel force grow instead of spawning a second one.
+  //
+  // Conquered territory (region.formerOwner set — see src/data/rebellion.js) has a real endgame
+  // beyond "keep fighting the same army forever": left unresolved for REVOLT_SUCCESS_TURNS, the
+  // revolt succeeds outright and the region reverts to whoever held it before its current owner.
+  // Home territory (no formerOwner) has nothing to revert to, so it never takes this branch.
   const units = { ...state.units };
   const rebelUnitIdByRegion = {};
   Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID) rebelUnitIdByRegion[u.regionId] = u.id; });
@@ -75,15 +83,38 @@ export const resolveTurn = (state) => {
     if (region.unrest >= REBELLION_UNREST_THRESHOLD) {
       if (existingRebelId) {
         const rebel = units[existingRebelId];
-        const strength = Math.round(rebel.strength * (1 + REBEL_GROWTH_RATE));
-        units[existingRebelId] = { ...rebel, strength, maxStrength: Math.max(rebel.maxStrength, strength) };
+        const turnsActive = newTurnNumber - (rebel.spawnedTurn ?? newTurnNumber);
+        if (region.formerOwner && turnsActive >= REVOLT_SUCCESS_TURNS) {
+          const reclaimedBy = region.formerOwner;
+          const occupierId = region.owner;
+          delete units[existingRebelId];
+          Object.values(units)
+            .filter(u => u.regionId === regionId && u.ownerId === occupierId)
+            .forEach(u => { delete units[u.id]; });
+          regions[regionId] = {
+            ...region,
+            owner: reclaimedBy,
+            formerOwner: undefined,
+            control: REVOLT_RECLAIMED_CONTROL,
+            unrest: REVOLT_RECLAIMED_UNREST
+          };
+          logs.push({
+            year: newYear,
+            message: `The uprising in ${REGIONS_DATA[regionId]?.name || regionId} succeeds — ${state.nations[reclaimedBy]?.name || reclaimedBy} reclaims it from ${state.nations[occupierId]?.name || occupierId}.`,
+            type: LogTypes.CRISIS
+          });
+        } else {
+          const strength = Math.round(rebel.strength * (1 + REBEL_GROWTH_RATE));
+          units[existingRebelId] = { ...rebel, strength, maxStrength: Math.max(rebel.maxStrength, strength) };
+        }
       } else {
         const rebelId = `rebel_${regionId}_${newTurnNumber}`;
         const strength = getRebelSpawnStrength(region);
         units[rebelId] = {
           id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: newAge,
           strength, maxStrength: strength, morale: 100, organization: 100,
-          xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+          xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
+          spawnedTurn: newTurnNumber
         };
         regions[regionId] = { ...region, control: Math.max(0, (region.control || 0) - 30) };
         logs.push({ year: newYear, message: `Rebellion breaks out in ${REGIONS_DATA[regionId]?.name || regionId}!`, type: LogTypes.CRISIS });
@@ -91,6 +122,14 @@ export const resolveTurn = (state) => {
     } else if (existingRebelId) {
       delete units[existingRebelId];
       logs.push({ year: newYear, message: `The unrest behind the rebellion in ${REGIONS_DATA[regionId]?.name || regionId} has eased, and it dissolves.`, type: LogTypes.CRISIS });
+    }
+
+    // Integration (the other end condition — the good ending): conquered land that has climbed to
+    // a secure level of control without presently rebelling counts as fully absorbed. formerOwner
+    // clears permanently, even if the region rebels again later for some unrelated reason.
+    const current = regions[regionId] || region;
+    if (current.formerOwner && current.unrest < REBELLION_UNREST_THRESHOLD && (current.control || 0) >= INTEGRATION_CONTROL_THRESHOLD) {
+      regions[regionId] = { ...current, formerOwner: undefined };
     }
   });
 

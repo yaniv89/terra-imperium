@@ -228,6 +228,7 @@ describe('Domestic tab actions', () => {
       expect(next.regions.be.control).toBeGreaterThan(0);
       expect(next.regions.be.control).toBeLessThan(100);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.regions.be.formerOwner).toBe('be');
     });
 
     it('is a no-op when the target still has real control of its own territory', () => {
@@ -653,6 +654,29 @@ describe('Military tab actions', () => {
       expect(next.units[unitId].regionId).toBe('be');
       expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
       expect(next.lastBattleReport.outcome).toBe('attacker');
+      // Conquered territory (plan §9 revolt system): records who it was taken from, so an
+      // unresolved rebellion there can later revert it rather than fighting the same army forever.
+      expect(next.regions.be.formerOwner).toBe('be');
+    });
+
+    it('does not mark a nation reclaiming its own native region as conquered territory', () => {
+      // 'be' has already lost its own homeland to 'fr', but still holds the Netherlands, land-
+      // adjacent to Belgium — a base to invade its own homeland back from.
+      const base = richState('be');
+      const recruited = gameReducer(base, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'be', classId: 'infantry' } });
+      const unitId = Object.keys(recruited.units)[0];
+      const state = {
+        ...recruited,
+        units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], regionId: 'nl' } },
+        regions: {
+          ...recruited.regions,
+          be: { ...recruited.regions.be, owner: 'fr' },
+          nl: { ...recruited.regions.nl, owner: 'be' }
+        }
+      };
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'nl', targetRegionId: 'be' } });
+      expect(next.regions.be.owner).toBe('be');
+      expect(next.regions.be.formerOwner).toBeUndefined();
     });
 
     it('is repelled by a strong defender, leaving the region unconquered', () => {
@@ -913,6 +937,7 @@ describe('Navies and amphibious invasion actions', () => {
       expect(next.units[landUnitId].regionId).toBe('gb');
       expect(next.units[landUnitId].embarkedOn).toBeNull();
       expect(next.lastBattleReport.outcome).toBe('attacker');
+      expect(next.regions.gb.formerOwner).toBe('gb');
     });
 
     it('sinks the transport and its cargo when intercepted by a defending fleet', () => {
