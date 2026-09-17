@@ -4,6 +4,17 @@ import { createInitialState } from '../context/GameContext';
 import { GameStatus } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
+import { HISTORICAL_EVENTS } from '../data/events';
+
+// Every real scripted/procedural event already "used up" — isolates tests that aren't themselves
+// about the event system from HISTORICAL_EVENTS/proceduralEvents.js's real, non-empty content
+// (Phase D3): resolveTurn is a no-op while an event is pending, so an unrelated test that runs
+// enough turns to cross a real event's year would otherwise silently stall.
+const withAllEventsFired = (state) => ({
+  ...state,
+  firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
+  proceduralEventCooldown: 999999
+});
 
 describe('resolveTurn determinism', () => {
   it('produces identical output for identical input (same rngSeed)', () => {
@@ -106,7 +117,7 @@ describe('resolveTurn rebellion', () => {
   });
 
   it('does not spawn a second rebel army in a region that already has one', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const again = resolveTurn(withRebel);
@@ -115,7 +126,7 @@ describe('resolveTurn rebellion', () => {
   });
 
   it('grows an existing rebel army while unrest stays at or above the threshold', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const before = rebelUnitIn(withRebel).strength;
@@ -253,10 +264,10 @@ describe('resolveTurn AI war declarations', () => {
     // turns that failing to ever roll it is astronomically unlikely (this is an integration test
     // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
     const base = createInitialState({ playerNationId: 'fr' });
-    let state = {
+    let state = withAllEventsFired({
       ...base,
       nations: { ...base.nations, de: { ...base.nations.de, doctrine: 'zealot', hostility: 100 } }
-    };
+    });
     let warDeclared = false;
     for (let i = 0; i < 300 && !warDeclared; i++) {
       state = resolveTurn(state);
@@ -269,7 +280,7 @@ describe('resolveTurn AI war declarations', () => {
 
 describe('resolveTurn victory', () => {
   it('triggers survival victory once the year reaches END_YEAR', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 };
+    const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
     const next = resolveTurn(state);
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
     expect(next.victoryConditionId).toBe('survival');
