@@ -32,7 +32,12 @@ export const ACTION_COSTS = {
   // flat action-point cost every research action shares, matching canResearchTech's own check.
   researchTech: { actionPoints: 2 },
   setResearchFocus: { actionPoints: 1 },
-  fundScholars: { gold: 100, actionPoints: 1 }
+  fundScholars: { gold: 100, actionPoints: 1 },
+
+  // A government reform is deliberately pricier than a policy swap — it's the bigger decision.
+  adoptGovernment: { gold: 200, actionPoints: 2 },
+  adoptPolicy: { gold: 80, actionPoints: 1 },
+  removePolicy: { actionPoints: 1 }
 };
 
 // Fund Scholars' fixed gold -> techPoints exchange rate.

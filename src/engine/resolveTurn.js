@@ -15,7 +15,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal } from '../utils/helpers';
 import { processAllAINations, getRelationFromHostility } from '../utils/aiLogic';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS } from '../data/victoryConditions';
 import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
@@ -48,7 +48,8 @@ export const resolveTurn = (state) => {
   // nation's own territory is subject to) ---
   const regions = { ...state.regions };
   Object.entries(regions).forEach(([id, region]) => {
-    const unrest = nextUnrest(region);
+    const owner = state.nations[region.owner];
+    const unrest = nextUnrest(region, getNationBonusTotal(owner, 'stabilityBonus'));
     if (unrest !== region.unrest) regions[id] = { ...region, unrest };
   });
 

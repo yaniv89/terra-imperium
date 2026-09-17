@@ -8,6 +8,8 @@ import { RelationStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { hasDeposit } from '../data/deposits';
+import { GOVERNMENT_TYPES } from '../data/government';
+import { POLICIES } from '../data/policies';
 
 // ============ NUMBER FORMATTING ============
 
@@ -67,6 +69,15 @@ const EXTRACTION_BASE_YIELD = 20;
 // Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
 const SCIENCE_TECHPOINT_YIELD = 2;
 
+// Sums a nation's government effect plus every adopted policy's effect for one bonus hook
+// (goldMult/hrMult, read by calcIncome; stabilityBonus, read by nextUnrest) — the one place that
+// summation happens, so government and policies never drift into their own separate math.
+export const getNationBonusTotal = (nation, hookKey) => {
+  const govBonus = GOVERNMENT_TYPES[nation?.government]?.effect?.[hookKey] || 0;
+  const policyBonus = (nation?.policies || []).reduce((sum, id) => sum + (POLICIES[id]?.effect?.[hookKey] || 0), 0);
+  return govBonus + policyBonus;
+};
+
 // Per-turn resource income for the player's nation: gold/hr from every owned region's gdp/
 // population-derived base value, plus copper/iron/oil from any region that has both the deposit
 // (src/data/deposits.js) and the matching extraction building actually built
@@ -107,6 +118,14 @@ export const calcIncome = (state) => {
   const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
   income.gold = (income.gold || 0) + tradePartners.length * 20;
 
+  // Government & policy bonuses (plan §9) — a government's own effect plus every adopted policy's,
+  // summed on the same hook (getNationBonusTotal), applied as one multiplier.
+  const playerNation = state.nations[state.playerNationId];
+  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult');
+  const hrMult = 1 + getNationBonusTotal(playerNation, 'hrMult');
+  income.gold = (income.gold || 0) * goldMult;
+  income.hr = (income.hr || 0) * hrMult;
+
   // Set Research Focus (Research tab): a flat research-speed bonus for committing to a line.
   // Which category is stored for later systems (e.g. AI reading a rival's focus) to react to —
   // the immediate mechanical payoff is deliberately general rather than per-category, so it
@@ -135,11 +154,13 @@ const UNREST_FALL_PER_TURN = 1;
 const UNREST_CONTROL_THRESHOLD = 50;
 
 // One turn's unrest drift for a single region — rises under low control, settles otherwise.
-// Exported standalone (not just inlined in resolveTurn) so the threshold/rate constants above are
-// unit-testable without needing a full turn resolution.
-export const nextUnrest = (region) => {
+// `stabilityBonus` (a region's owner's government + policy total, getNationBonusTotal) shaves
+// straight off the delta, so a government reform is felt immediately rather than only on the next
+// threshold crossing. Exported standalone (not just inlined in resolveTurn) so the threshold/rate
+// constants above are unit-testable without needing a full turn resolution.
+export const nextUnrest = (region, stabilityBonus = 0) => {
   const delta = (region.control || 0) < UNREST_CONTROL_THRESHOLD ? UNREST_RISE_PER_TURN : -UNREST_FALL_PER_TURN;
-  return Math.max(0, Math.min(100, (region.unrest || 0) + delta));
+  return Math.max(0, Math.min(100, (region.unrest || 0) + delta - stabilityBonus));
 };
 
 // ============ REGION HELPERS ============

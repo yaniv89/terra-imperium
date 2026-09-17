@@ -9,6 +9,8 @@ import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } fro
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
+import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
+import { POLICIES } from '../data/policies';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES } from '../data/ages';
@@ -98,7 +100,13 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       hasMilitaryPact: false,
       // Permanent floor hostility decay can't cross below, set once a peace treaty with this
       // nation is broken by a new war — see src/engine/diplomacy.js declareWar().
-      hostilityFloor: 0
+      hostilityFloor: 0,
+
+      // Government & policies (plan §9) — every nation gets these fields so resolveTurn.js's
+      // stability pass can read any nation's bonus generically, but only the player can change
+      // them via ADOPT_GOVERNMENT/ADOPT_POLICY today; AI adoption is Task 23's job.
+      government: null,
+      policies: []
     };
   });
 
@@ -827,6 +835,62 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: { ...applyCosts(state.resources, costs), techPoints: (state.resources.techPoints || 0) + FUND_SCHOLARS_TECHPOINTS },
         logs: [...state.logs, { year: state.year, message: `Funded scholars for +${FUND_SCHOLARS_TECHPOINTS} tech points.`, type: LogTypes.TECH }]
+      };
+    }
+
+    case ActionTypes.ADOPT_GOVERNMENT: {
+      const { governmentId } = action.payload;
+      const gov = GOVERNMENT_TYPES[governmentId];
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.adoptGovernment;
+      if (!gov || nation.government === governmentId) return state;
+      if (!canAdoptGovernment(governmentId, state.age)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            government: governmentId,
+            // A reform to fewer slots than currently filled bumps the excess policies — a real
+            // cost of switching, not just a formality.
+            policies: nation.policies.slice(0, gov.slots)
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Your empire has adopted ${gov.name}.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.ADOPT_POLICY: {
+      const { policyId } = action.payload;
+      const policy = POLICIES[policyId];
+      const nation = state.nations[state.playerNationId];
+      const gov = GOVERNMENT_TYPES[nation.government];
+      const costs = ACTION_COSTS.adoptPolicy;
+      if (!policy || !gov) return state;
+      if (nation.policies.includes(policyId) || nation.policies.length >= gov.slots) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: [...nation.policies, policyId] } },
+        logs: [...state.logs, { year: state.year, message: `Adopted the ${policy.name} policy.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.REMOVE_POLICY: {
+      const { policyId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.removePolicy;
+      if (!nation.policies.includes(policyId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: nation.policies.filter(id => id !== policyId) } },
+        logs: [...state.logs, { year: state.year, message: `Repealed the ${POLICIES[policyId]?.name || policyId} policy.`, type: LogTypes.MILESTONE }]
       };
     }
 
