@@ -19,6 +19,7 @@ import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
 import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
+import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -46,7 +47,9 @@ const MilitaryPanel = ({ selectedRegion }) => {
   const regionData = selectedRegion ? REGIONS_DATA[selectedRegion] : null;
   const isPlayerOwned = regionState?.owner === state.playerNationId;
   const unitsHere = Object.values(state.units).filter(u => u.regionId === selectedRegion);
-  const availableClasses = getAvailableClasses(state.age);
+  // Matches RECRUIT_UNIT's own gate (GameContext.jsx) — otherwise a tech-earned age ahead of the
+  // calendar would let the reducer accept a class this list doesn't even show as recruitable.
+  const availableClasses = getAvailableClasses(getEffectiveAgeId(state.age, state.techAgeId));
 
   // Adjacent player-owned regions with at least one land unit — the possible launch points for
   // invading the selected foreign region.

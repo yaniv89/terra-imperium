@@ -872,6 +872,109 @@ describe('Research tab actions', () => {
   });
 });
 
+describe('Government and policy actions', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, gold: 100000, actionPoints: 100 } };
+  };
+
+  describe('ADOPT_GOVERNMENT', () => {
+    it('adopts a government available at the current age and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+      expect(next.nations.fr.government).toBe('tribal');
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('trims policies that no longer fit after reforming to a government with fewer slots', () => {
+      const monarchy = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'monarchy' } });
+      const withTwoPolicies = ['levy_system', 'merchant_charter'].reduce(
+        (s, policyId) => gameReducer(s, { type: ActionTypes.ADOPT_POLICY, payload: { policyId } }),
+        monarchy
+      );
+      expect(withTwoPolicies.nations.fr.policies.length).toBe(2);
+      // Reforming back to Tribal Council (1 slot) should drop one of the two adopted policies.
+      const next = gameReducer(withTwoPolicies, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+      expect(next.nations.fr.policies.length).toBe(1);
+    });
+
+    it('is a no-op for a government more than one age ahead of the calendar', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'feudal' } })).toBe(state);
+    });
+
+    it('is a no-op when already that government', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } })).toBe(state);
+    });
+  });
+
+  describe('ADOPT_POLICY', () => {
+    const withGovernment = () => gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+
+    it('adopts a policy into an open slot and deducts the cost', () => {
+      const state = withGovernment();
+      const next = gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
+      expect(next.nations.fr.policies).toContain('levy_system');
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op without a government adopted yet', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+    });
+
+    it('is a no-op once every slot is filled', () => {
+      // Tribal Council has exactly 1 slot.
+      const state = gameReducer(withGovernment(), { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
+    });
+
+    it('is a no-op for a policy already adopted', () => {
+      const state = gameReducer(withGovernment(), { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+    });
+
+    it('is a no-op for an unknown policy id', () => {
+      const state = withGovernment();
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'not_real' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...withGovernment(), resources: { ...withGovernment().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+    });
+  });
+
+  describe('REMOVE_POLICY', () => {
+    const withPolicy = () => {
+      const state = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+      return gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
+    };
+
+    it('removes an adopted policy', () => {
+      const state = withPolicy();
+      const next = gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'levy_system' } });
+      expect(next.nations.fr.policies).not.toContain('levy_system');
+    });
+
+    it('is a no-op for a policy not currently adopted', () => {
+      const state = withPolicy();
+      expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...withPolicy(), resources: { ...withPolicy().resources, actionPoints: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+    });
+  });
+});
+
 describe('default case', () => {
   it('returns state unchanged for an unrecognized action type', () => {
     const state = createInitialState({ playerNationId: 'fr' });

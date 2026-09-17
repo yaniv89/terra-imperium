@@ -53,7 +53,12 @@ export const ActionTypes = {
   // Research tab (plan) — Set Focus/Fund Scholars feed techPoints, Research Tech spends them.
   RESEARCH_TECH: 'RESEARCH_TECH',
   SET_RESEARCH_FOCUS: 'SET_RESEARCH_FOCUS',
-  FUND_SCHOLARS: 'FUND_SCHOLARS'
+  FUND_SCHOLARS: 'FUND_SCHOLARS',
+
+  // Government & policies (plan §9).
+  ADOPT_GOVERNMENT: 'ADOPT_GOVERNMENT',
+  ADOPT_POLICY: 'ADOPT_POLICY',
+  REMOVE_POLICY: 'REMOVE_POLICY'
 };
 
 export const LogTypes = {
