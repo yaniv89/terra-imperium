@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   processAINationTurn, processAllAINations, getRelationFromHostility,
-  getNationTier, getSortedByMilitary, processAIWarDecisions
+  getNationTier, getSortedByMilitary, processAIWarDecisions, findRunawayLeader
 } from './aiLogic';
 import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
@@ -124,6 +124,15 @@ describe('processAIWarDecisions', () => {
   const dovishRng = { next: () => 0.999 }; // never below any war-roll chance
   const hawkishRng = { next: () => 0 }; // always below any positive war-roll chance
 
+  // Padding nations so no nation in the small fixture below accidentally clears
+  // COALITION_MILITARY_SHARE_THRESHOLD and pulls coalition behavior into tests that aren't about
+  // it. None individually exceeds the threshold either. They aren't real-world neighbors of
+  // anything below, so they never enter tier/target calculations — only the world military total
+  // findRunawayLeader sums over.
+  const padding = Object.fromEntries(
+    Array.from({ length: 10 }, (_, i) => [`zz${i}`, { id: `zz${i}`, name: `Padding ${i}`, isPlayer: false, isAtWar: false, hostility: 0, militaryStrength: 4000 }])
+  );
+
   const warState = (nationOverrides = {}) => ({
     playerNationId: 'us',
     year: 1950,
@@ -135,7 +144,8 @@ describe('processAIWarDecisions', () => {
       },
       fr: { id: 'fr', name: 'France', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 2000, ...nationOverrides.fr },
       be: { id: 'be', name: 'Belgium', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 500, ...nationOverrides.be },
-      at: { id: 'at', name: 'Austria', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 3000, ...nationOverrides.at }
+      at: { id: 'at', name: 'Austria', isPlayer: false, isAtWar: false, hostility: 10, militaryStrength: 3000, ...nationOverrides.at },
+      ...padding
     },
     // assignDefaultWarGoal (src/engine/diplomacy.js) needs a regions map to look for a
     // capture_region target — one region per nation, self-owned, matching the real Phase A model.
@@ -195,6 +205,65 @@ describe('processAIWarDecisions', () => {
     const result = processAIWarDecisions(state, state.nations, state.wars, ['de', 'at'], hawkishRng);
     expect(result.nations.de.isAtWar).toBe(true);
     expect(result.wars.some(w => w.aggressor === 'de')).toBe(true);
+  });
+
+  it('scales the war-roll chance by state.difficultyMultiplier (Task 24)', () => {
+    // attrition, hostility 10 -> chance = 0.02 * 1 * aggressionMult * 0.3. At mult 1 that's 0.006,
+    // at mult 1.5 (Emperor) it's 0.009 — a fixed roll of 0.007 sits exactly between the two.
+    const state = warState({ de: { doctrine: 'attrition', hostility: 10 } });
+    const rngAtThreshold = { next: () => 0.007 };
+    const normal = processAIWarDecisions({ ...state, difficultyMultiplier: 1 }, state.nations, state.wars, ['de'], rngAtThreshold);
+    expect(normal.wars).toHaveLength(0);
+    const emperor = processAIWarDecisions({ ...state, difficultyMultiplier: 1.5 }, state.nations, state.wars, ['de'], rngAtThreshold);
+    expect(emperor.wars).toHaveLength(1);
+  });
+
+  it('a coalition member bordering the runaway leader attacks the leader instead of its normally-weakest neighbor', () => {
+    // Belgium (be, 500 strength) normally prefers France (fr, 2000) over the much stronger
+    // Germany (de) as its weakest neighbor — but once de is a runaway leader (100000 strength,
+    // dominating the fixture's world total), the coalition rule overrides that and sends be after
+    // de instead. sortedByMilitary only ranks 'be' Tier 1 here, so de (Tier 2 in this call) never
+    // gets to act as an aggressor itself and pre-empt the scenario by declaring on be first.
+    const state = warState({ de: { militaryStrength: 100000 } });
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['be'], hawkishRng);
+    expect(result.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+    expect(result.logs[0].message).toContain('coalition');
+  });
+
+  it('raises a coalition member\'s hostility toward the leader each turn, even when it does not declare war that turn', () => {
+    const state = warState({ de: { militaryStrength: 100000 }, be: { hostility: 10 } });
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['be'], dovishRng);
+    expect(result.wars).toHaveLength(0);
+    expect(result.nations.be.hostility).toBe(13);
+  });
+
+  it('never raises the runaway leader\'s own hostility as if it were a coalition member', () => {
+    const state = warState({ de: { militaryStrength: 100000, hostility: 90 } });
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], dovishRng);
+    expect(result.nations.de.hostility).toBe(90);
+  });
+});
+
+describe('findRunawayLeader', () => {
+  it('returns null when no nation clears the coalition share threshold', () => {
+    // 7 equal nations: the largest share is 1/7 ≈ 14.3%, just under the 15% threshold.
+    const nations = Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(id => [id, { id, militaryStrength: 100 }]));
+    expect(findRunawayLeader(nations)).toBeNull();
+  });
+
+  it('returns the id of a nation holding a runaway share of world military strength', () => {
+    const nations = { a: { id: 'a', militaryStrength: 5000 }, b: { id: 'b', militaryStrength: 500 }, c: { id: 'c', militaryStrength: 500 } };
+    expect(findRunawayLeader(nations)).toBe('a');
+  });
+
+  it('can name the player as the runaway leader — coalitions form against a snowballing player too', () => {
+    const nations = { us: { id: 'us', isPlayer: true, militaryStrength: 9000 }, fr: { id: 'fr', militaryStrength: 500 } };
+    expect(findRunawayLeader(nations)).toBe('us');
+  });
+
+  it('returns null for an empty world or a world with zero total military', () => {
+    expect(findRunawayLeader({})).toBeNull();
+    expect(findRunawayLeader({ a: { id: 'a', militaryStrength: 0 } })).toBeNull();
   });
 });
 
