@@ -12,6 +12,7 @@ import { GOVERNMENT_TYPES } from '../data/government';
 import { POLICIES } from '../data/policies';
 import { WONDERS } from '../data/wonders';
 import { TAX_RATES } from '../data/taxRates';
+import { getSatelliteEffectTotal } from '../data/satellites';
 
 // ============ NUMBER FORMATTING ============
 
@@ -127,14 +128,27 @@ export const calcIncome = (state) => {
   const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
   income.gold = (income.gold || 0) + tradePartners.length * 20;
 
-  // Government/policy/wonder bonuses (plan §9) — summed on the same hook (getNationBonusTotal),
-  // applied as one multiplier, plus Set Tax Rate's own goldMult on top.
+  // Government/policy/wonder/satellite bonuses (plan §9/§10.4) — summed on the same hook
+  // (getNationBonusTotal), applied as one multiplier, plus Set Tax Rate's own goldMult and every
+  // owned satellite's goldMult/hrMult (getSatelliteEffectTotal, scaled by the shared orbital
+  // debris penalty) on top.
   const playerNation = state.nations[state.playerNationId];
+  const satellites = state.satellites || {};
   const taxGoldMult = TAX_RATES[playerNation?.taxRate]?.goldMult || 0;
-  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult') + taxGoldMult;
-  const hrMult = 1 + getNationBonusTotal(playerNation, 'hrMult');
+  const satelliteGoldMult = getSatelliteEffectTotal(satellites, state.playerNationId, 'goldMult', state.orbitalDebrisLevel);
+  const satelliteHrMult = getSatelliteEffectTotal(satellites, state.playerNationId, 'hrMult', state.orbitalDebrisLevel);
+  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult') + taxGoldMult + satelliteGoldMult;
+  const hrMult = 1 + getNationBonusTotal(playerNation, 'hrMult') + satelliteHrMult;
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
+
+  // A Communications Satellite's flat diplomacyPoints/turn and a Spy Satellite's flat
+  // techPoints/turn — additive income, not multipliers, so they're summed separately from the
+  // goldMult/hrMult hooks above rather than forced into that multiplicative shape.
+  const satelliteDiplomacyPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'diplomacyPointsPerTurn', state.orbitalDebrisLevel);
+  const satelliteTechPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'techPointsPerTurn', state.orbitalDebrisLevel);
+  if (satelliteDiplomacyPoints) income.diplomacyPoints = (income.diplomacyPoints || 0) + satelliteDiplomacyPoints;
+  if (satelliteTechPoints) income.techPoints = (income.techPoints || 0) + satelliteTechPoints;
 
   // Set Research Focus (Research tab): a flat research-speed bonus for committing to a line.
   // Which category is stored for later systems (e.g. AI reading a rival's focus) to react to —

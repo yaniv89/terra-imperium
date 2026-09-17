@@ -4,6 +4,7 @@ import { ActionTypes, GameStatus, LogTypes } from '../data/types';
 import { XP_THRESHOLDS } from '../data/promotions';
 import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
+import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
@@ -309,6 +310,91 @@ describe('Domestic tab actions', () => {
       const fresh = createInitialState({ playerNationId: 'fr' });
       const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
       expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(base);
+    });
+  });
+});
+
+describe('Space Race tab actions', () => {
+  // Satellites require the Modern Age and the real Sputnik year — richState() above starts in
+  // the Bronze Age, so this describe block needs its own fixture.
+  const spaceState = (playerNationId = 'fr') => {
+    const fresh = createInitialState({ playerNationId });
+    return {
+      ...fresh,
+      age: 'modern',
+      techAgeId: 'modern',
+      year: 1960,
+      resources: { ...fresh.resources, gold: 100000, techPoints: 10000 }
+    };
+  };
+
+  describe('LAUNCH_SATELLITE', () => {
+    it('launches a satellite, deducts the cost, and it belongs to the player', () => {
+      const state = spaceState();
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId: 'navigation' } });
+      const launched = Object.values(next.satellites);
+      expect(launched).toHaveLength(1);
+      expect(launched[0]).toMatchObject({ ownerId: 'fr', typeId: 'navigation' });
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.nextSatelliteSeq).toBe(state.nextSatelliteSeq + 1);
+    });
+
+    it('is a no-op for an unknown satellite type', () => {
+      const state = spaceState();
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId: 'not_real' } })).toBe(state);
+    });
+
+    it('is a no-op before the Modern Age', () => {
+      const state = { ...spaceState(), age: 'gunpowder', techAgeId: 'gunpowder' };
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId: 'navigation' } })).toBe(state);
+    });
+
+    it('is a no-op before the real unlock year, even in the Modern Age', () => {
+      const state = { ...spaceState(), year: 1901 };
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId: 'navigation' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...spaceState(), resources: { ...spaceState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId: 'navigation' } })).toBe(state);
+    });
+  });
+
+  describe('ASAT_STRIKE', () => {
+    const withRivalSatellite = () => {
+      const state = spaceState();
+      return { ...state, satellites: { rival_sat: { id: 'rival_sat', ownerId: 'de', typeId: 'navigation' } } };
+    };
+
+    it('destroys the target satellite, deducts the cost, and raises orbital debris', () => {
+      const state = withRivalSatellite();
+      const next = gameReducer(state, { type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: 'rival_sat' } });
+      expect(next.satellites.rival_sat).toBeUndefined();
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.orbitalDebrisLevel).toBeGreaterThan(state.orbitalDebrisLevel || 0);
+    });
+
+    it('is a no-op against a nonexistent satellite id', () => {
+      const state = withRivalSatellite();
+      expect(gameReducer(state, { type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: 'not_real' } })).toBe(state);
+    });
+
+    it('is a no-op against the player\'s own satellite', () => {
+      const state = { ...spaceState(), satellites: { own_sat: { id: 'own_sat', ownerId: 'fr', typeId: 'navigation' } } };
+      expect(gameReducer(state, { type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: 'own_sat' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const base = withRivalSatellite();
+      const state = { ...base, resources: { ...base.resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: 'rival_sat' } })).toBe(state);
+    });
+
+    it('never lets debris exceed MAX_ORBITAL_DEBRIS even after repeated strikes', () => {
+      let state = withRivalSatellite();
+      state = { ...state, orbitalDebrisLevel: MAX_ORBITAL_DEBRIS - 5 };
+      const next = gameReducer(state, { type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: 'rival_sat' } });
+      expect(next.orbitalDebrisLevel).toBe(MAX_ORBITAL_DEBRIS);
     });
   });
 });

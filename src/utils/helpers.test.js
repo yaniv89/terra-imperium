@@ -130,6 +130,48 @@ describe('calcIncome', () => {
     expect(highTax.gold).toBeGreaterThan(normal.gold);
     expect(lowTax.gold).toBeLessThan(normal.gold);
   });
+
+  it('applies an owned Navigation Satellite\'s goldMult and a Weather Satellite\'s hrMult', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const withoutSatellites = calcIncome(state);
+    const withSatellites = calcIncome({
+      ...state,
+      satellites: {
+        s1: { id: 's1', ownerId: 'fr', typeId: 'navigation' },
+        s2: { id: 's2', ownerId: 'fr', typeId: 'weather' }
+      }
+    });
+    expect(withSatellites.gold).toBeGreaterThan(withoutSatellites.gold);
+    expect(withSatellites.hr).toBeGreaterThan(withoutSatellites.hr);
+  });
+
+  it('adds a Communications Satellite\'s flat diplomacyPoints/turn and a Spy Satellite\'s techPoints/turn', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const withSatellites = calcIncome({
+      ...state,
+      satellites: {
+        s1: { id: 's1', ownerId: 'fr', typeId: 'communications' },
+        s2: { id: 's2', ownerId: 'fr', typeId: 'spy' }
+      }
+    });
+    expect(withSatellites.diplomacyPoints).toBeGreaterThan(0);
+    expect(withSatellites.techPoints).toBeGreaterThan(0);
+  });
+
+  it('never counts a rival nation\'s satellites toward the player\'s own income', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const withoutSatellites = calcIncome(state);
+    const withRivalSatellite = calcIncome({ ...state, satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'navigation' } } });
+    expect(withRivalSatellite.gold).toBe(withoutSatellites.gold);
+  });
+
+  it('degrades a satellite\'s bonus under high orbital debris', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const satellites = { s1: { id: 's1', ownerId: 'fr', typeId: 'navigation' } };
+    const noDebris = calcIncome({ ...state, satellites, orbitalDebrisLevel: 0 });
+    const highDebris = calcIncome({ ...state, satellites, orbitalDebrisLevel: 100 });
+    expect(highDebris.gold).toBeLessThan(noDebris.gold);
+  });
 });
 
 describe('getSupplyCapacity', () => {

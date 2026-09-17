@@ -347,3 +347,28 @@ describe('resolveTurn curated national events', () => {
     expect(resolved.nations.it.isAtWar).toBe(true);
   });
 });
+
+describe('resolveTurn orbital debris (Space Race)', () => {
+  it('decays every turn, whether or not anyone struck a satellite this turn', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), orbitalDebrisLevel: 50 });
+    const next = resolveTurn(base);
+    expect(next.orbitalDebrisLevel).toBeLessThan(50);
+  });
+
+  it('never drops below 0', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), orbitalDebrisLevel: 0 });
+    const next = resolveTurn(base);
+    expect(next.orbitalDebrisLevel).toBe(0);
+  });
+
+  it('feeds a satellite\'s stabilityBonus into every owning nation\'s own regions\' unrest drift, not just the player\'s', () => {
+    // 'de' (not the player) owns a Recon Satellite (stabilityBonus 6) and starts with unrest high
+    // enough that the drift would otherwise rise this turn.
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const stateWithoutSat = { ...base, regions: { ...base.regions, de: { ...base.regions.de, control: 0, unrest: 10 } } };
+    const stateWithSat = { ...stateWithoutSat, satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'recon' } } };
+    const withoutSat = resolveTurn(stateWithoutSat);
+    const withSat = resolveTurn(stateWithSat);
+    expect(withSat.regions.de.unrest).toBeLessThan(withoutSat.regions.de.unrest);
+  });
+});

@@ -70,7 +70,11 @@ export const ActionTypes = {
   SUE_FOR_PEACE: 'SUE_FOR_PEACE',
   TRADE_AGREEMENT: 'TRADE_AGREEMENT',
   MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
-  GIFT_BRIBE: 'GIFT_BRIBE'
+  GIFT_BRIBE: 'GIFT_BRIBE',
+
+  // Space Race, orbital layer (plan §10.4 Layer 1).
+  LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',
+  ASAT_STRIKE: 'ASAT_STRIKE'
 };
 
 export const LogTypes = {

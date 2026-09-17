@@ -24,7 +24,7 @@ import {
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
   UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
-  POPULATION_POLICY_GROWTH_RATE
+  POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE
 } from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
@@ -39,6 +39,7 @@ import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { canAfford, applyCosts } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
+import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE } from '../data/taxRates';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
@@ -220,6 +221,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // src/data/wonders.js's canConstructWonder so a wonder can only ever be finished once,
     // globally, no matter which nation gets there first.
     wondersBuilt: {},
+
+    // Space Race, orbital layer (plan §10.4) — a flat dict keyed by satellite id, mirroring
+    // state.units/state.hiredCommanders, since satellites are per-nation persistent assets, not
+    // per-region. orbitalDebrisLevel is the shared, global cost of ASAT strikes (src/data/
+    // satellites.js) — it degrades every nation's satellite effectiveness, not just the target's.
+    satellites: {},
+    nextSatelliteSeq: 0,
+    orbitalDebrisLevel: 0,
 
     // Deterministic turn resolution — see src/utils/rng.js
     rngSeed: randomSeed(),
@@ -467,6 +476,42 @@ export const gameReducer = (state, action) => {
         wondersBuilt: { ...state.wondersBuilt, [wonderId]: state.playerNationId },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, wonders: [...(nation.wonders || []), wonderId] } },
         logs: [...state.logs, { year: state.year, message: `${WONDERS[wonderId]?.name} completed!`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    // ---- Space Race, orbital layer (plan §10.4) ----
+
+    case ActionTypes.LAUNCH_SATELLITE: {
+      const { typeId } = action.payload;
+      const costs = ACTION_COSTS.launchSatellite;
+      if (!SATELLITE_TYPES[typeId]) return state;
+      if (!canLaunchSatellite(state.age, state.techAgeId, state.year)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const satelliteId = `satellite_${state.nextSatelliteSeq}`;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        satellites: { ...state.satellites, [satelliteId]: { id: satelliteId, ownerId: state.playerNationId, typeId, launchedYear: state.year } },
+        nextSatelliteSeq: state.nextSatelliteSeq + 1,
+        logs: [...state.logs, { year: state.year, message: `${SATELLITE_TYPES[typeId].name} launched into orbit.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.ASAT_STRIKE: {
+      const { targetSatelliteId } = action.payload;
+      const costs = ACTION_COSTS.asatStrike;
+      const target = state.satellites[targetSatelliteId];
+      if (!target || target.ownerId === state.playerNationId) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextSatellites = { ...state.satellites };
+      delete nextSatellites[targetSatelliteId];
+      const targetNationName = state.nations[target.ownerId]?.name || target.ownerId;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        satellites: nextSatellites,
+        orbitalDebrisLevel: Math.min(MAX_ORBITAL_DEBRIS, (state.orbitalDebrisLevel || 0) + ASAT_DEBRIS_RISE),
+        logs: [...state.logs, { year: state.year, message: `An ASAT strike destroyed ${targetNationName}'s ${SATELLITE_TYPES[target.typeId]?.name}. Orbital debris rises.`, type: LogTypes.COMBAT }]
       };
     }
 
