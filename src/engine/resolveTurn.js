@@ -17,6 +17,7 @@ import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal } from '../utils/helpers';
 import { processAllAINations, processAIWarDecisions, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
+import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
@@ -182,9 +183,19 @@ export const resolveTurn = (state) => {
   // nation, to keep this affordable across 240 nations.
   const sortedByMilitary = getSortedByMilitary({ ...state, nations });
   const warDecisions = processAIWarDecisions({ ...state, nations }, nations, state.wars, sortedByMilitary, rng);
-  const nationsAfterWars = warDecisions.nations;
-  const wars = warDecisions.wars;
+  let nationsAfterWars = warDecisions.nations;
+  let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
+
+  // --- AI war progress (plan §8.5's war-goal resolution): territorial conquest rolls, mutual
+  // attrition, and ending a war outright once its goal is met — this is what makes every one of
+  // the 240 nations conquerable by ANY nation, not just the player. A war the player started is
+  // untouched here; that's resolved by the player's own invasion actions instead.
+  const warProgress = resolveWarProgress({ ...state, regions, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
+  Object.assign(regions, warProgress.regions);
+  nationsAfterWars = warProgress.nations;
+  wars = warProgress.wars;
+  logs.push(...warProgress.logs.map(l => ({ year: newYear, ...l })));
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this

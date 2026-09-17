@@ -30,6 +30,24 @@ describe('applyEventEffects', () => {
     expect(next.wars.some(w => w.enemy === 'de' && w.active)).toBe(true);
   });
 
+  it('ends the war and clears the player\'s own isAtWar too, even when the AI was the aggressor', () => {
+    // Regression: previously only cleared the NAMED nation's isAtWar and only deactivated a war
+    // record where that nation was the `enemy` field — a war the AI itself declared on the player
+    // (aggressor: 'de', enemy: player) matched neither, leaving both the player's own isAtWar flag
+    // and the war record stuck forever, which made aiLogic.js's pickWarTarget (filters out any
+    // isAtWar nation) treat the player as permanently immune to any future war declaration.
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = {
+      ...base,
+      nations: { ...base.nations, fr: { ...base.nations.fr, isAtWar: true }, de: { ...base.nations.de, isAtWar: true } },
+      wars: [{ id: 'war_1', aggressor: 'de', enemy: 'fr', active: true, goalAchieved: false, startYear: base.year, goal: { type: 'destroy_military', threshold: 1 } }]
+    };
+    const next = applyEventEffects(state, fixtureEvent('peace_event', { peaceWith: 'de' }), 0);
+    expect(next.nations.de.isAtWar).toBe(false);
+    expect(next.nations.fr.isAtWar).toBe(false);
+    expect(next.wars[0].active).toBe(false);
+  });
+
   it('does not mutate the input state', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const snapshotGold = state.resources.gold;

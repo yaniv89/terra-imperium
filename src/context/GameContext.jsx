@@ -11,7 +11,7 @@ import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
 import { POLICIES } from '../data/policies';
-import { declareWar, hasCasusBelli } from '../engine/diplomacy';
+import { declareWar, hasCasusBelli, isWarBetween } from '../engine/diplomacy';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES } from '../data/ages';
@@ -1221,14 +1221,20 @@ export const gameReducer = (state, action) => {
       if (!target || !target.isAtWar) return state;
       const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), actionPoints: 1 };
       if (!canAfford(state.resources, costs)) return state;
+      const player = state.nations[state.playerNationId];
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         nations: {
           ...state.nations,
-          [nationId]: { ...target, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(target.hostility, 50), relationStatus: RelationStatus.COLD_PEACE }
+          [nationId]: { ...target, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(target.hostility, 50), relationStatus: RelationStatus.COLD_PEACE },
+          // The war record names an aggressor and an enemy, not "the player's side" — an AI could
+          // have declared this war on the player just as easily as the reverse, and either way the
+          // player's own isAtWar must clear too, or they'd be permanently immune to any FUTURE war
+          // declaration (aiLogic.js's pickWarTarget filters out any nation still flagged isAtWar).
+          [state.playerNationId]: { ...player, isAtWar: false }
         },
-        wars: state.wars.map(w => (w.enemy === nationId && w.active ? { ...w, active: false } : w)),
+        wars: state.wars.map(w => (isWarBetween(w, state.playerNationId, nationId) && w.active ? { ...w, active: false } : w)),
         logs: [...state.logs, { year: state.year, message: `Signed a peace treaty with ${target.name}.`, type: LogTypes.DIPLOMACY }]
       };
     }

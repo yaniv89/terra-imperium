@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli } from './diplomacy';
+import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, resolveWarProgress } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
+
+const alwaysRolls = { next: () => 0 };       // guarantees any probability check < 1 succeeds
+const neverRolls = { next: () => 0.999999 }; // guarantees any realistic probability check fails
 
 // Player is the US; Canada ('ca') and Mexico ('mx') are its real bordering nations.
 const usState = () => createInitialState({ playerNationId: 'us' });
@@ -144,5 +147,98 @@ describe('hasCasusBelli', () => {
     const state = usState();
     const calm = { ...state, nations: { ...state.nations, ca: { ...state.nations.ca, hostility: 10 } } };
     expect(hasCasusBelli(calm, 'us', 'ca')).toBe(false);
+  });
+});
+
+describe('isWarBetween', () => {
+  it('matches regardless of which id is the aggressor and which is the enemy', () => {
+    const war = { aggressor: 'ca', enemy: 'us' };
+    expect(isWarBetween(war, 'us', 'ca')).toBe(true);
+    expect(isWarBetween(war, 'ca', 'us')).toBe(true);
+  });
+
+  it('does not match a war between two unrelated nations', () => {
+    const war = { aggressor: 'ca', enemy: 'us' };
+    expect(isWarBetween(war, 'mx', 'us')).toBe(false);
+  });
+});
+
+describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conquest)', () => {
+  // Mexico ('mx') is AI-declaring war on Canada ('ca') here — neither is the player ('us') — so
+  // this exercises the pure AI-vs-AI path. A separate test below exercises AI-vs-player.
+  const aiWarState = (overrides = {}) => {
+    const state = usState();
+    const war = { id: 'war_1', aggressor: 'mx', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, ...overrides };
+    return { state: { ...state, wars: [war] }, war };
+  };
+
+  it('leaves a war the player started completely untouched', () => {
+    const state = usState();
+    const war = { id: 'war_1', aggressor: 'us', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: 'ca' } };
+    const withWar = { ...state, wars: [war] };
+    const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
+    expect(result.wars[0]).toEqual(war);
+    expect(result.regions).toBe(withWar.regions);
+    expect(result.nations).toBe(withWar.nations);
+  });
+
+  it('leaves an inactive war untouched', () => {
+    const { state, war } = aiWarState({ active: false, goal: { type: 'capture_region', regionId: 'ca' } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+    expect(result.wars[0]).toEqual(war);
+  });
+
+  it('applies mutual military attrition to both belligerents every turn the war runs', () => {
+    const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 1 } });
+    const before = { mx: state.nations.mx.militaryStrength, ca: state.nations.ca.militaryStrength };
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
+    expect(result.nations.mx.militaryStrength).toBeLessThan(before.mx);
+    expect(result.nations.ca.militaryStrength).toBeLessThan(before.ca);
+  });
+
+  it('captures the goal region and ends the war (AI vs AI) when the roll succeeds', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: 'ca' } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+    expect(result.regions.ca.owner).toBe('mx');
+    expect(result.regions.ca.formerOwner).toBe('ca');
+    expect(result.wars[0].active).toBe(false);
+    expect(result.wars[0].goalAchieved).toBe(true);
+    expect(result.nations.mx.isAtWar).toBe(false);
+    expect(result.nations.ca.isAtWar).toBe(false);
+    expect(result.nations.mx.hasPeaceTreaty).toBe(true);
+    expect(result.nations.ca.hasPeaceTreaty).toBe(true);
+  });
+
+  it('an AI can capture the PLAYER\'S region and end the war, exactly like any other nation', () => {
+    const state = usState();
+    const war = { id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: 'us' } };
+    const withWar = { ...state, wars: [war] };
+    const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
+    expect(result.regions.us.owner).toBe('ca');
+    expect(result.regions.us.formerOwner).toBe('us');
+    expect(result.nations.us.isAtWar).toBe(false);
+  });
+
+  it('does not capture the region when the roll fails, and the war stays active', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: 'ca' } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
+    expect(result.regions.ca.owner).toBe('ca');
+    expect(result.wars[0].active).toBe(true);
+  });
+
+  it('does not roll a capture once the target region already changed hands some other way', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: 'ca' } });
+    const alreadyLost = { ...state, regions: { ...state.regions, ca: { ...state.regions.ca, owner: 'us' } } };
+    const result = resolveWarProgress(alreadyLost, alreadyLost.regions, alreadyLost.nations, alreadyLost.wars, alwaysRolls);
+    expect(result.regions.ca.owner).toBe('us'); // unchanged by this war
+  });
+
+  it('ends the war once a destroy_military goal is met, regardless of the capture roll', () => {
+    const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 999999999 } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
+    expect(result.wars[0].active).toBe(false);
+    expect(result.wars[0].goalAchieved).toBe(true);
+    expect(result.nations.mx.isAtWar).toBe(false);
+    expect(result.nations.ca.isAtWar).toBe(false);
   });
 });

@@ -1419,6 +1419,23 @@ describe('Diplomacy tab actions', () => {
       const state = { ...atWarWithDe(), resources: { ...atWarWithDe().resources, gold: 0 } };
       expect(gameReducer(state, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } })).toBe(state);
     });
+
+    it('clears the player\'s own isAtWar too, and deactivates the war record even when the AI was the aggressor', () => {
+      // Regression: an AI-declared war (aggressor: 'de', enemy: player) previously left the
+      // player's own isAtWar flag stuck true forever after peace, which made aiLogic.js's
+      // pickWarTarget (which filters out any nation still flagged isAtWar) treat the player as
+      // permanently immune to any FUTURE war declaration by anyone.
+      const base = richState();
+      const withAiWar = {
+        ...base,
+        nations: { ...base.nations, fr: { ...base.nations.fr, isAtWar: true }, de: { ...base.nations.de, isAtWar: true } },
+        wars: [{ id: 'war_1', aggressor: 'de', enemy: 'fr', active: true, goalAchieved: false, startYear: base.year, goal: { type: 'destroy_military', threshold: 1 } }]
+      };
+      const next = gameReducer(withAiWar, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } });
+      expect(next.nations.fr.isAtWar).toBe(false);
+      expect(next.nations.de.isAtWar).toBe(false);
+      expect(next.wars[0].active).toBe(false);
+    });
   });
 
   describe('TRADE_AGREEMENT', () => {
