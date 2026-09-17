@@ -32,7 +32,7 @@ import { resolveBattle } from '../engine/battle';
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
-import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { ACHIEVEMENTS, checkAchievements } from '../data/achievements';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
@@ -441,7 +441,13 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: {
           ...state.regions,
-          [regionId]: { ...region, owner: state.playerNationId, control: SETTLE_COLONIZE_START_CONTROL, unrest: Math.max(region.unrest || 0, SETTLE_COLONIZE_START_UNREST) }
+          [regionId]: {
+            ...region,
+            owner: state.playerNationId,
+            formerOwner: getFormerOwnerOnConquest(regionId, region.owner, state.playerNationId),
+            control: SETTLE_COLONIZE_START_CONTROL,
+            unrest: Math.max(region.unrest || 0, SETTLE_COLONIZE_START_UNREST)
+          }
         },
         logs: [...state.logs, { year: state.year, message: `Settlers peacefully absorbed ${REGIONS_DATA[regionId]?.name}, whose own control there had collapsed.`, type: LogTypes.ACTION }]
       };
@@ -808,6 +814,7 @@ export const gameReducer = (state, action) => {
         nextRegions[targetRegionId] = {
           ...targetRegion,
           owner: state.playerNationId,
+          formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
           control: 25,
           unrest: Math.max(targetRegion.unrest || 0, 50)
         };
@@ -922,6 +929,7 @@ export const gameReducer = (state, action) => {
         nextRegions[targetRegionId] = {
           ...targetRegion,
           owner: state.playerNationId,
+          formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
           control: 25,
           unrest: Math.max(targetRegion.unrest || 0, 50)
         };

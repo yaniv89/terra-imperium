@@ -18,7 +18,7 @@ import { ACTION_COSTS } from '../../data/actionCosts';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
 import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
-import { REBEL_OWNER_ID } from '../../data/rebellion';
+import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
@@ -231,7 +231,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
             <ActionButton
               icon={Flame}
               label={`Suppress the rebellion in ${regionData.name}`}
-              description={`${rebelUnits.length} rebel unit${rebelUnits.length === 1 ? '' : 's'} holding out`}
+              description={
+                regionState.formerOwner
+                  ? `${rebelUnits.length} rebel unit${rebelUnits.length === 1 ? '' : 's'} holding out — ${Math.max(0, REVOLT_SUCCESS_TURNS - (state.turnNumber - (rebelUnits[0].spawnedTurn ?? state.turnNumber)))} turn(s) left before ${state.nations[regionState.formerOwner]?.name || regionState.formerOwner} reclaims it`
+                  : `${rebelUnits.length} rebel unit${rebelUnits.length === 1 ? '' : 's'} holding out`
+              }
               costs={ACTION_COSTS.suppressRebellion}
               onClick={handleSuppressRebellion}
               disabled={!canAfford(state.resources, ACTION_COSTS.suppressRebellion) || unitsHere.every(u => u.ownerId !== state.playerNationId || u.domain !== 'land')}

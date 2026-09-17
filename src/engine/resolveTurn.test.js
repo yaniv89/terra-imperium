@@ -3,7 +3,7 @@ import { resolveTurn } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
-import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
@@ -150,6 +150,85 @@ describe('resolveTurn rebellion', () => {
     };
     const next = resolveTurn(state);
     expect(next.units.rebel_fr_1).toBeUndefined();
+  });
+});
+
+describe('resolveTurn revolt end conditions (conquered territory)', () => {
+  const rebelUnitAt = (regionId, spawnedTurn) => ({
+    id: `rebel_${regionId}_1`, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
+    strength: 500, maxStrength: 500, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
+    spawnedTurn
+  });
+
+  it('reverts a conquered region to its former owner once the revolt runs unresolved for REVOLT_SUCCESS_TURNS', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const rebel = rebelUnitAt('de', 1);
+    const garrison = {
+      id: 'garrison_1', regionId: 'de', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 200, maxStrength: 200, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = {
+      ...base,
+      turnNumber: 1 + REVOLT_SUCCESS_TURNS,
+      units: { [rebel.id]: rebel, [garrison.id]: garrison },
+      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: REBELLION_UNREST_THRESHOLD + 5, control: 20 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.regions.de.owner).toBe('de');
+    expect(next.regions.de.formerOwner).toBeUndefined();
+    expect(next.units[rebel.id]).toBeUndefined();
+    // The occupier's garrison is overrun along with the rebellion's victory, same as a lost battle.
+    expect(next.units[garrison.id]).toBeUndefined();
+  });
+
+  it('keeps growing the rebel army in conquered land that has not yet run REVOLT_SUCCESS_TURNS', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const rebel = rebelUnitAt('de', 1);
+    const state = {
+      ...base,
+      turnNumber: 1, // only one turn old — far short of REVOLT_SUCCESS_TURNS
+      units: { [rebel.id]: rebel },
+      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: REBELLION_UNREST_THRESHOLD + 5, control: 20 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.regions.de.owner).toBe('fr'); // still held
+    expect(next.regions.de.formerOwner).toBe('de'); // still at risk
+    expect(next.units[rebel.id].strength).toBeGreaterThan(rebel.strength); // grew instead of succeeding
+  });
+
+  it('never reverts ownership for a home-territory rebellion, which has no formerOwner to revert to', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const rebel = rebelUnitAt('fr', 1);
+    const state = {
+      ...base,
+      turnNumber: 1 + REVOLT_SUCCESS_TURNS + 5, // well past the revolt-success window
+      units: { [rebel.id]: rebel },
+      regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.regions.fr.owner).toBe('fr');
+    expect(Object.values(next.units).some(u => u.ownerId === REBEL_OWNER_ID && u.regionId === 'fr')).toBe(true);
+  });
+
+  it('integrates a conquered region once control reaches INTEGRATION_CONTROL_THRESHOLD without a live rebellion', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = {
+      ...base,
+      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: 10, control: INTEGRATION_CONTROL_THRESHOLD } }
+    };
+    const next = resolveTurn(state);
+    expect(next.regions.de.formerOwner).toBeUndefined();
+    expect(next.regions.de.owner).toBe('fr'); // integration only clears the revolt-risk flag, ownership is unchanged
+  });
+
+  it('keeps formerOwner set on conquered land that is neither revolting nor yet fully integrated', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = {
+      ...base,
+      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: 10, control: 30 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.regions.de.formerOwner).toBe('de');
   });
 });
 

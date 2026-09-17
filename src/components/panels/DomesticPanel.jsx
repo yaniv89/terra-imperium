@@ -17,6 +17,7 @@ import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
 import { getDepositsFor } from '../../data/deposits';
+import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../../data/government';
 import { POLICIES, POLICY_IDS } from '../../data/policies';
@@ -246,6 +247,13 @@ const DomesticPanel = ({ selectedRegion }) => {
         <Building2 size={20} className="text-blue-400" />
         {regionData.name}
       </div>
+      {isPlayerOwned && regionState.formerOwner && (
+        <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+          Conquered from {state.nations[regionState.formerOwner]?.name || regionState.formerOwner} — still at risk of
+          reverting if it revolts. Raise control to {INTEGRATION_CONTROL_THRESHOLD}% ({regionState.control}% now) to
+          fully integrate it.
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="bg-slate-800/60 rounded-lg p-3">
           <div className="text-slate-400">Owner</div>
