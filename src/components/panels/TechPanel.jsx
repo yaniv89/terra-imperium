@@ -6,6 +6,7 @@
 import React from 'react';
 import { Beaker, BookOpen, GraduationCap, Check, Lock } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
 import { TECH_TREE, canResearchTech, getTechsByCategory } from '../../data/techTree';
 import { ACTION_COSTS } from '../../data/actionCosts';
@@ -22,6 +23,7 @@ const CATEGORY_LABELS = {
 
 const TechPanel = () => {
   const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const categories = getTechsByCategory();
 
   const handleFocus = (categoryId) => {
@@ -35,6 +37,7 @@ const TechPanel = () => {
   const handleResearch = (techId, techCost) => {
     const costs = { ...techCost, actionPoints: ACTION_COSTS.researchTech.actionPoints };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    triggerEffect('research_tech', { region: state.playerNationId });
     dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
   };
 

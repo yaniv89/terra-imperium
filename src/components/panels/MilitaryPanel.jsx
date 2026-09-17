@@ -82,6 +82,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, ACTION_COSTS.recruitUnit)) return addLog('Not enough resources', 'action');
+    triggerEffect('recruit_unit', { region: selectedRegion });
     dispatch({ type: ActionTypes.RECRUIT_UNIT, payload: { regionId: selectedRegion, classId } });
   };
   const handleDisband = (unitId) => {
@@ -89,6 +90,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
   };
   const handleMove = (unitId, toRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.moveArmy)) return addLog('Not enough resources', 'action');
+    triggerEffect('move_army', { from: state.units[unitId]?.regionId, to: toRegionId });
     dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId } });
   };
   const handleInvade = (fromRegionId) => {
@@ -98,6 +100,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
   };
   const handlePromote = (unitId, perkId) => {
     if (!canAfford(state.resources, ACTION_COSTS.promoteUnit)) return addLog('Not enough resources', 'action');
+    triggerEffect('promote_unit', { region: state.units[unitId]?.regionId });
     dispatch({ type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId } });
   };
   const handleHireGeneral = () => {
@@ -117,15 +120,17 @@ const MilitaryPanel = ({ selectedRegion }) => {
   };
   const handleAmphibiousAssault = (navalUnitId) => {
     if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
-    triggerEffect('ground_invasion', { from: state.units[navalUnitId]?.regionId, to: selectedRegion });
+    triggerEffect('amphibious_assault', { from: state.units[navalUnitId]?.regionId, to: selectedRegion });
     dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: selectedRegion } });
   };
   const handleNavalEngagement = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
+    triggerEffect('naval_engagement', { from: fromRegionId, to: selectedRegion });
     dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: selectedRegion } });
   };
   const handleSuppressRebellion = () => {
     if (!canAfford(state.resources, ACTION_COSTS.suppressRebellion)) return addLog('Not enough resources', 'action');
+    triggerEffect('suppress_rebellion', { region: selectedRegion });
     dispatch({ type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: selectedRegion } });
   };
 

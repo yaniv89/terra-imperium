@@ -10,15 +10,15 @@
 // {fromRegionId, toRegionId} into real lat/lng (regionCoordinates.js) and projects that onto the
 // globe's current camera every frame.
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { ARC_EFFECT_DURATION_MS } from '../components/globe/GlobeEffectsOverlay';
+import { ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS } from '../components/globe/GlobeEffectsOverlay';
 
 const EffectsContext = createContext(null);
 
 // How long an effect stays mounted before removing itself — must be >= the total animation
 // duration any implemented primitive uses, or a shape would visibly snap away mid-motion. A
-// little slack on top absorbs rAF/timer scheduling jitter. Only the `arc` primitive exists today;
-// this becomes a max() over every implemented primitive's own duration as more are added.
-const EFFECT_LIFETIME_MS = ARC_EFFECT_DURATION_MS + 100;
+// little slack on top absorbs rAF/timer scheduling jitter. This is a max() over every implemented
+// primitive's own duration — update it whenever a new, longer-running primitive ships.
+const EFFECT_LIFETIME_MS = Math.max(ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS) + 100;
 
 export const EffectsProvider = ({ children }) => {
   const [effects, setEffects] = useState([]);

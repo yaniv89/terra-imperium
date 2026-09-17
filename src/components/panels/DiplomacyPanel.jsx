@@ -10,11 +10,23 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD } from '../../data/actionCosts';
 import { hasCasusBelli } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
+
+// Diplomacy actions that travel visibly between the player's capital and the target nation's —
+// only the ones with a registered EFFECT_REGISTRY entry are listed; Fabricate Claim and Military
+// Alliance fall back to the default missile_strike visual rather than getting their own primitive
+// for now, since they're rarer clicks than the four below.
+const DIPLOMACY_EFFECT_BY_ACTION = {
+  [ActionTypes.DECLARE_WAR]: 'declare_war',
+  [ActionTypes.SUE_FOR_PEACE]: 'sue_for_peace',
+  [ActionTypes.TRADE_AGREEMENT]: 'trade_agreement',
+  [ActionTypes.GIFT_BRIBE]: 'gift_bribe'
+};
 
 const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (
   <button
@@ -30,10 +42,13 @@ const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (
 
 const DiplomacyPanel = () => {
   const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const [search, setSearch] = useState('');
 
   const dispatchIfAffordable = (type, nationId, costs) => {
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
+    if (effectType) triggerEffect(effectType, { from: state.playerNationId, to: nationId });
     dispatch({ type, payload: { nationId } });
   };
 

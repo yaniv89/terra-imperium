@@ -42,11 +42,26 @@ const MAX_LAUNCH_DELAY_MS = 250;
 // must be at least this long, or the DOM elements would be torn down mid-fade.
 export const ARC_EFFECT_DURATION_MS = TRAVEL_MS + MAX_LAUNCH_DELAY_MS + BURST_MS + FADE_MS;
 
+// A `pulse` effect has no travel phase — it's centred on one region for its whole life: a glyph
+// pops in, rings expand outward, motes drift up and fade, all within PULSE_MS.
+export const PULSE_MS = 1100;
+export const PULSE_EFFECT_DURATION_MS = PULSE_MS + FADE_MS;
+
 // Head silhouettes, drawn pointing along +x and rotated into the direction of travel each frame.
 const HEAD_SHAPES = {
   warhead: 'M 13 0 L 1 -4.5 L -10 -3 L -10 3 L 1 4.5 Z',
   dart: 'M 12 0 L -6 -4 L -3 0 L -6 4 Z',
   chevron: 'M 10 0 L -6 -8 L -1 0 L -6 8 Z'
+};
+
+// Pulse glyph silhouettes, drawn centred on the origin (no rotation — a pulse doesn't travel).
+// `circle` has no path here; it's built as a plain <circle> since a regular polygon path would be
+// indistinguishable from one anyway.
+const PULSE_GLYPH_SHAPES = {
+  square: 'M -8 -8 L 8 -8 L 8 8 L -8 8 Z',
+  diamond: 'M 0 -11 L 11 0 L 0 11 L -11 0 Z',
+  triangle: 'M 0 -11 L 10 8 L -10 8 Z',
+  star: 'M 0 -12 L 3.5 -3.7 L 12 -3.7 L 5 1.4 L 7.6 10 L 0 4.8 L -7.6 10 L -5 1.4 L -12 -3.7 L -3.5 -3.7 Z'
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -154,9 +169,11 @@ const EASINGS = {
 };
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
-// When in the effect's life the main shockwave goes off (the last munition's impact).
+// When in the effect's life the main shockwave (or, for a pulse, its glyph pop-in) goes off — used
+// by GlobeView to time the camera's punch-in and impact shake for ANY effect, arc or pulse alike.
 export const getImpactDelay = (actionType) => {
   const spec = getEffectSpec(actionType);
+  if (spec.primitive === 'pulse') return PULSE_MS * 0.2;
   return TRAVEL_MS + spec.projectiles.reduce((m, p) => Math.max(m, p.delay), 0);
 };
 
@@ -244,22 +261,125 @@ const buildImpact = (root, color, hot, spec) => {
   return { fireball, flash, rings, debris };
 };
 
+// A pulse's centerpiece: a small glyph silhouette (or plain circle) that pops in at the region and
+// fades out at the end of the pulse's life, plus a soft halo behind it.
+const buildPulseGlyph = (root, color, hot, spec) => {
+  const halo = make('circle', { r: 0, fill: color, opacity: 0 });
+  const shape = PULSE_GLYPH_SHAPES[spec.glyph];
+  const body = shape
+    ? make('path', { d: shape, fill: hot, stroke: '#ffffff', 'stroke-width': 0.8, opacity: 0 })
+    : make('circle', { r: 8, fill: hot, stroke: '#ffffff', 'stroke-width': 0.8, opacity: 0 });
+  root.appendChild(halo);
+  root.appendChild(body);
+  return { halo, body };
+};
+
+// Motes drift outward and upward off the pulse's centre, staggered so they don't all move as one
+// clump — used for "something is growing/converging here" actions (recruit, build, research).
+const buildMotes = (root, color, hot, count) => {
+  const motes = [];
+  for (let i = 0; i < count; i += 1) {
+    motes.push(make('circle', { r: 0, fill: i % 2 ? hot : color, opacity: 0 }));
+  }
+  motes.forEach((m) => root.appendChild(m));
+  return motes;
+};
+
 const buildEntry = (svg, defs, effect) => {
   const spec = getEffectSpec(effect.actionType);
   const color = spec.palette.base;
   const hot = spec.palette.hot;
   const root = make('g');
+  svg.appendChild(root);
+
+  if (spec.primitive === 'pulse') {
+    const rings = [];
+    for (let i = 0; i < (spec.rings || 0); i += 1) {
+      rings.push(make('circle', { fill: 'none', stroke: i === 0 ? '#ffffff' : color, 'stroke-width': 3, r: 0, opacity: 0 }));
+    }
+    rings.forEach((r) => root.appendChild(r));
+    const motes = buildMotes(root, color, hot, spec.motes || 0);
+    const glyph = buildPulseGlyph(root, color, hot, spec);
+    return { root, spec, rings, motes, glyph };
+  }
+
   const projectiles = spec.projectiles.map((p, i) =>
     buildProjectile(root, defs, color, hot, spec, `${effect.id}-${i}`)
   );
   const impact = buildImpact(root, color, hot, spec);
-  svg.appendChild(root);
   return { root, spec, projectiles, impact };
 };
 
 const destroyEntry = (entry) => {
   entry.root.remove();
-  entry.projectiles.forEach((p) => p.gradient.remove());
+  if (entry.projectiles) entry.projectiles.forEach((p) => p.gradient.remove());
+};
+
+// Per-frame draw for a `pulse` effect: a stationary glyph + expanding rings + rising motes, all
+// centred on the target region's projected screen position.
+const drawPulse = (entry, effect, to, globe, isVisible, zoom, now) => {
+  const { rings, motes, glyph } = entry;
+  const elapsed = now - effect.createdAt;
+  const progress = elapsed / PULSE_MS;
+  const dir = latLngToVec(to.lat, to.lng);
+  const target = (progress >= 0 && progress < 1 && isVisible(dir, BASE_ALTITUDE))
+    ? globe.getScreenCoords(to.lat, to.lng, BASE_ALTITUDE)
+    : null;
+
+  if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+    setAttrs(glyph.halo, HIDDEN);
+    setAttrs(glyph.body, HIDDEN);
+    rings.forEach((r) => setAttrs(r, HIDDEN));
+    motes.forEach((m) => setAttrs(m, HIDDEN));
+    return;
+  }
+
+  const cx = target.x;
+  const cy = target.y;
+
+  // Glyph: scales in fast, holds, then shrinks slightly and fades over the pulse's last third.
+  const glyphIn = clamp(progress / 0.22, 0, 1);
+  const glyphOut = progress > 0.7 ? clamp((progress - 0.7) / 0.3, 0, 1) : 0;
+  const glyphScale = (0.3 + 0.7 * easeOutCubic(glyphIn)) * (1 - 0.15 * glyphOut) * zoom;
+  setAttrs(glyph.halo, {
+    cx, cy,
+    r: (16 * glyphScale).toFixed(1),
+    opacity: (0.24 * (1 - glyphOut) * glyphIn).toFixed(2)
+  });
+  setAttrs(glyph.body, {
+    transform: `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) scale(${glyphScale.toFixed(2)})`,
+    opacity: ((1 - glyphOut) * glyphIn).toFixed(2)
+  });
+
+  // Rings: staggered outward expansion, thinning and fading as each one grows.
+  rings.forEach((ring, i) => {
+    const start = i * 0.15;
+    const u = (progress - start) / (1 - start);
+    if (u <= 0 || u >= 1) { setAttrs(ring, HIDDEN); return; }
+    setAttrs(ring, {
+      cx, cy,
+      r: (10 + easeOutCubic(u) * (48 + i * 20) * zoom).toFixed(1),
+      'stroke-width': (3.2 * (1 - u) + 0.6).toFixed(2),
+      opacity: (0.85 * (1 - u) ** 1.3).toFixed(2)
+    });
+  });
+
+  // Motes: rise and drift sideways off the glyph in a ring of staggered start times, fading out.
+  const moteCount = motes.length;
+  motes.forEach((mote, i) => {
+    const delay = (i / moteCount) * 0.35;
+    const u = clamp((progress - delay) / (1 - delay), 0, 1);
+    if (progress < delay || u >= 1) { setAttrs(mote, HIDDEN); return; }
+    const angle = (i / moteCount) * Math.PI * 2 + 0.6;
+    const reach = (14 + ((i * 23) % 11)) * zoom;
+    const rise = easeOutCubic(u) * reach;
+    setAttrs(mote, {
+      cx: (cx + Math.cos(angle) * rise * 0.6).toFixed(1),
+      cy: (cy - rise).toFixed(1),
+      r: (3 * (1 - u) + 0.6).toFixed(2),
+      opacity: (0.8 * (1 - u)).toFixed(2)
+    });
+  });
 };
 
 const HIDDEN = { opacity: 0 };
@@ -322,6 +442,11 @@ const GlobeEffectsOverlay = ({ globeRef, width, height, effects }) => {
           if (!entry) {
             entry = buildEntry(svg, defs, e);
             entriesRef.current.set(e.id, entry);
+          }
+
+          if (entry.spec.primitive === 'pulse') {
+            drawPulse(entry, e, to, globe, isVisible, zoom, now);
+            return;
           }
 
           const { spec, projectiles, impact } = entry;
