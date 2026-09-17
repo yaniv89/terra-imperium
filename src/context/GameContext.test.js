@@ -211,6 +211,106 @@ describe('Domestic tab actions', () => {
       expect(next.regions.fr.unrest).toBe(0);
     });
   });
+
+  describe('SETTLE_COLONIZE', () => {
+    // 'be' (Belgium) is a real bordering nation of 'fr' (see worldRegions.json's adjacency).
+    const withCollapsedNeighbor = (control) => {
+      const base = richState();
+      return { ...base, regions: { ...base.regions, be: { ...base.regions.be, control } } };
+    };
+
+    it('absorbs a bordering nation whose control has collapsed, and deducts the cost', () => {
+      const state = withCollapsedNeighbor(10);
+      const next = gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'be' } });
+      expect(next.regions.be.owner).toBe('fr');
+      expect(next.regions.be.control).toBeGreaterThan(0);
+      expect(next.regions.be.control).toBeLessThan(100);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op when the target still has real control of its own territory', () => {
+      const state = withCollapsedNeighbor(50);
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'be' } })).toBe(state);
+    });
+
+    it('is a no-op on a region that does not border the player', () => {
+      // 'us' does not border 'fr'.
+      const base = richState();
+      const state = { ...base, regions: { ...base.regions, us: { ...base.regions.us, control: 5 } } };
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'us' } })).toBe(state);
+    });
+
+    it('is a no-op on a region the player already owns', () => {
+      const state = withCollapsedNeighbor(10);
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'fr' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const base = withCollapsedNeighbor(10);
+      const state = { ...base, resources: { ...base.resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'be' } })).toBe(state);
+    });
+  });
+
+  describe('POPULATION_POLICY', () => {
+    it('grows population and deducts the cost', () => {
+      const state = richState();
+      const before = state.regions.fr.currentPopulation;
+      const next = gameReducer(state, { type: ActionTypes.POPULATION_POLICY, payload: { regionId: 'fr' } });
+      expect(next.regions.fr.currentPopulation).toBeGreaterThan(before);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op on a region not owned by the player', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.POPULATION_POLICY, payload: { regionId: 'be' } })).toBe(state);
+    });
+  });
+
+  describe('SET_TAX_RATE', () => {
+    it('changes the tax rate and deducts the (action-point-only) cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'high' } });
+      expect(next.nations.fr.taxRate).toBe('high');
+      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+    });
+
+    it('is a no-op for an unknown rate id', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'not_real' } })).toBe(state);
+    });
+
+    it('is a no-op when already at the requested rate', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'normal' } })).toBe(state);
+    });
+  });
+
+  describe('CONSTRUCT_WONDER', () => {
+    it('completes a wonder available at the current age, deducts the cost, and claims it globally', () => {
+      const state = richState(); // starts in the Bronze Age -> pyramids is buildable
+      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } });
+      expect(next.wondersBuilt.pyramids).toBe('fr');
+      expect(next.nations.fr.wonders).toContain('pyramids');
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op for a wonder two or more ages ahead of the current age', () => {
+      const state = richState(); // Bronze Age -> grandBazaar (Kingdoms) is two ages ahead
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'grandBazaar' } })).toBe(state);
+    });
+
+    it('is a no-op once the wonder is already claimed by any nation', () => {
+      const state = { ...richState(), wondersBuilt: { pyramids: 'de' } };
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const fresh = createInitialState({ playerNationId: 'fr' });
+      const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(base);
+    });
+  });
 });
 
 describe('Military tab actions', () => {

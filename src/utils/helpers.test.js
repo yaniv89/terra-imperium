@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest } from './helpers';
+import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal } from './helpers';
 import { createInitialState } from '../context/GameContext';
 
 describe('canAfford / applyCosts', () => {
@@ -98,6 +98,38 @@ describe('calcIncome', () => {
     });
     expect(withMine.copper).toBe(0);
   });
+
+  it('scales gold and hr with population growth from Population Policy, but not deposit/extraction resources', () => {
+    const state = createInitialState({ playerNationId: 'cl' }); // Chile has a copper deposit
+    const base = calcIncome(state);
+    const grown = calcIncome({
+      ...state,
+      regions: {
+        ...state.regions,
+        cl: {
+          ...state.regions.cl,
+          currentPopulation: Math.round(state.regions.cl.currentPopulation * 1.5),
+          buildings: { ...state.regions.cl.buildings, extraction: { ...state.regions.cl.buildings.extraction, copper: true } }
+        }
+      }
+    });
+    expect(grown.gold).toBeGreaterThan(base.gold);
+    expect(grown.hr).toBeGreaterThan(base.hr);
+    const baseWithMine = calcIncome({
+      ...state,
+      regions: { ...state.regions, cl: { ...state.regions.cl, buildings: { ...state.regions.cl.buildings, extraction: { ...state.regions.cl.buildings.extraction, copper: true } } } }
+    });
+    expect(grown.copper).toBe(baseWithMine.copper); // extraction yield is deposit/building-driven, not population-driven
+  });
+
+  it('applies Set Tax Rate\'s goldMult on top of government/policy bonuses', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const normal = calcIncome(state);
+    const highTax = calcIncome({ ...state, nations: { ...state.nations, fr: { ...state.nations.fr, taxRate: 'high' } } });
+    const lowTax = calcIncome({ ...state, nations: { ...state.nations, fr: { ...state.nations.fr, taxRate: 'low' } } });
+    expect(highTax.gold).toBeGreaterThan(normal.gold);
+    expect(lowTax.gold).toBeLessThan(normal.gold);
+  });
 });
 
 describe('getSupplyCapacity', () => {
@@ -132,6 +164,32 @@ describe('getStability / nextUnrest', () => {
   it('is clamped to [0, 100]', () => {
     expect(nextUnrest({ control: 100, unrest: 0 })).toBe(0);
     expect(nextUnrest({ control: 0, unrest: 100 })).toBe(100);
+  });
+
+  it('taxUnrestDelta (Set Tax Rate) adds on top of the control-based drift', () => {
+    const stableRegion = { control: 100, unrest: 20 };
+    const withoutTax = nextUnrest(stableRegion, 0, 0);
+    const highTax = nextUnrest(stableRegion, 0, 2);
+    const lowTax = nextUnrest(stableRegion, 0, -1);
+    expect(highTax).toBeGreaterThan(withoutTax);
+    expect(lowTax).toBeLessThan(withoutTax);
+  });
+});
+
+describe('getNationBonusTotal', () => {
+  it('sums a completed World Wonder\'s effect alongside government and policy bonuses', () => {
+    const nation = { government: null, policies: [], wonders: ['grandBazaar'] }; // grandBazaar: goldMult 0.15
+    expect(getNationBonusTotal(nation, 'goldMult')).toBeCloseTo(0.15);
+  });
+
+  it('sums multiple wonders on the same hook', () => {
+    const nation = { wonders: ['royalObservatory', 'spaceProgram'] }; // stabilityBonus 5 + 8
+    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(13);
+  });
+
+  it('ignores an unbuilt/unknown wonder id gracefully', () => {
+    const nation = { wonders: ['not_a_real_wonder'] };
+    expect(getNationBonusTotal(nation, 'goldMult')).toBe(0);
   });
 });
 
