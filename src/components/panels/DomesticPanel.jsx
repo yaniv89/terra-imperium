@@ -11,6 +11,7 @@
 import React from 'react';
 import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, X, Sprout, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
@@ -26,6 +27,7 @@ import { ActionButton } from '../ui';
 
 const DomesticPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const playerNation = state.nations[state.playerNationId];
 
   const regionState = selectedRegion ? state.regions[selectedRegion] : null;
@@ -40,6 +42,7 @@ const DomesticPanel = ({ selectedRegion }) => {
   };
   const handleConstructWonder = (wonderId) => {
     if (!canAfford(state.resources, ACTION_COSTS.constructWonder)) return addLog('Not enough resources', 'action');
+    triggerEffect('construct_wonder', { region: state.playerNationId });
     dispatch({ type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId } });
   };
 
@@ -191,14 +194,17 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const handleGainControl = () => {
     if (!canAfford(state.resources, ACTION_COSTS.gainControl)) return addLog('Not enough resources', 'action');
+    triggerEffect('gain_control', { region: selectedRegion });
     dispatchAction(ActionTypes.GAIN_CONTROL);
   };
   const handleBuildInfrastructure = () => {
     if (!canAfford(state.resources, ACTION_COSTS.buildInfrastructure)) return addLog('Not enough resources', 'action');
+    triggerEffect('build_infrastructure', { region: selectedRegion });
     dispatchAction(ActionTypes.BUILD_INFRASTRUCTURE);
   };
   const handleBuildDefenses = () => {
     if (!canAfford(state.resources, ACTION_COSTS.buildDefenses)) return addLog('Not enough resources', 'action');
+    triggerEffect('build_defenses', { region: selectedRegion });
     dispatchAction(ActionTypes.BUILD_DEFENSES);
   };
   const handleQuellUnrest = () => {
@@ -211,14 +217,17 @@ const DomesticPanel = ({ selectedRegion }) => {
   };
   const handleSettleColonize = () => {
     if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog('Not enough resources', 'action');
+    triggerEffect('settle_colonize', { region: selectedRegion });
     dispatchAction(ActionTypes.SETTLE_COLONIZE);
   };
   const handleConstructBuilding = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.constructBuilding)) return addLog('Not enough resources', 'action');
+    triggerEffect('construct_building', { region: selectedRegion });
     dispatch({ type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: selectedRegion, categoryId } });
   };
   const handleDevelopResourceSite = (resourceId) => {
     if (!canAfford(state.resources, ACTION_COSTS.developResourceSite)) return addLog('Not enough resources', 'action');
+    triggerEffect('develop_resource_site', { region: selectedRegion });
     dispatch({ type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: selectedRegion, resourceId } });
   };
 

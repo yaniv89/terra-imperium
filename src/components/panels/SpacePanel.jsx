@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { Satellite, Radio, Zap, Rocket, ShieldCheck, Milestone } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { SATELLITE_TYPES, SATELLITE_TYPE_IDS, canLaunchSatellite, getOrbitalEffectivenessMult } from '../../data/satellites';
@@ -16,6 +17,7 @@ import { ActionButton } from '../ui';
 
 const SpacePanel = () => {
   const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const [selectedTargetId, setSelectedTargetId] = useState('');
   const [missileTierId, setMissileTierId] = useState('tactical');
   const [missileTargetRegionId, setMissileTargetRegionId] = useState('');
@@ -29,12 +31,14 @@ const SpacePanel = () => {
 
   const handleLaunch = (typeId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchSatellite)) return addLog('Not enough resources', 'action');
+    triggerEffect('launch_satellite', { region: state.playerNationId });
     dispatch({ type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId } });
   };
 
   const handleAsatStrike = () => {
     if (!selectedTargetId) return addLog('Select a target satellite first', 'action');
     if (!canAfford(state.resources, ACTION_COSTS.asatStrike)) return addLog('Not enough resources', 'action');
+    triggerEffect('asat_strike', { from: state.playerNationId, to: state.satellites[selectedTargetId]?.ownerId });
     dispatch({ type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: selectedTargetId } });
     setSelectedTargetId('');
   };
@@ -47,6 +51,7 @@ const SpacePanel = () => {
   const handleMissileStrike = () => {
     if (!missileTargetRegionId) return addLog('Select a target region first', 'action');
     if (!canAfford(state.resources, ACTION_COSTS.missileStrike)) return addLog('Not enough resources', 'action');
+    triggerEffect('missile_strike', { from: state.playerNationId, to: missileTargetRegionId });
     dispatch({ type: ActionTypes.MISSILE_STRIKE, payload: { tierId: missileTierId, targetRegionId: missileTargetRegionId } });
     setMissileTargetRegionId('');
   };
