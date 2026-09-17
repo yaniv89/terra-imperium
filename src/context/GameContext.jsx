@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
@@ -40,6 +40,8 @@ import { applyDifficulty } from '../data/difficulty';
 import { canAfford, applyCosts } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
+import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
+import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE } from '../data/taxRates';
 import { loadMeta, saveMeta } from '../utils/metaProgression';
 
@@ -124,6 +126,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // Set Tax Rate (plan §5) — every nation gets a rate so calcIncome/nextUnrest can read any
       // nation's generically; only the player can change theirs today.
       taxRate: DEFAULT_TAX_RATE,
+
+      // Missiles and ABM defense (plan §10.4 Layer 2) — a flat stockpile per tier, not individual
+      // unit objects, since a missile has no position/movement of its own before it's fired.
+      missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 0 },
+      abmDefenseLevel: 0,
 
       // Diplomacy (plan §11's nation data model: "+ warExhaustion, legitimacy, claims[], vassals[]")
       // — claims make a later DECLARE_WAR against that nation justified (FABRICATE_CLAIM);
@@ -229,6 +236,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     satellites: {},
     nextSatelliteSeq: 0,
     orbitalDebrisLevel: 0,
+
+    // Space Race mission ladder (plan §10.4 Layer 3, src/data/spaceMissions.js) — a mission in
+    // progress lives in spaceMissionProgress keyed by id with turns remaining; completing it moves
+    // the id into completedMissions and applies its reward. diplomaticLeadershipStreak is the
+    // Diplomatic victory condition's sustained-majority counter (victoryConditions.js).
+    spaceMissionProgress: {},
+    completedMissions: [],
+    diplomaticLeadershipStreak: 0,
 
     // Deterministic turn resolution — see src/utils/rng.js
     rngSeed: randomSeed(),
@@ -512,6 +527,109 @@ export const gameReducer = (state, action) => {
         satellites: nextSatellites,
         orbitalDebrisLevel: Math.min(MAX_ORBITAL_DEBRIS, (state.orbitalDebrisLevel || 0) + ASAT_DEBRIS_RISE),
         logs: [...state.logs, { year: state.year, message: `An ASAT strike destroyed ${targetNationName}'s ${SATELLITE_TYPES[target.typeId]?.name}. Orbital debris rises.`, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.BUILD_MISSILE: {
+      const { tierId } = action.payload;
+      if (!MISSILE_TIERS[tierId]) return state;
+      const costs = ACTION_COSTS.buildMissile[tierId];
+      if (!canAfford(state.resources, costs)) return state;
+      const nation = state.nations[state.playerNationId];
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, missiles: { ...nation.missiles, [tierId]: (nation.missiles[tierId] || 0) + 1 } } },
+        logs: [...state.logs, { year: state.year, message: `${MISSILE_TIERS[tierId].name} added to your stockpile.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.MISSILE_STRIKE: {
+      // A missile strikes a region directly — no army, no supply line, no battle.js combat
+      // resolution (see src/data/missiles.js's header). Range is real land-adjacency hops for the
+      // finite tiers; icbm/nuclear have unlimited range.
+      const { tierId, targetRegionId } = action.payload;
+      const tier = MISSILE_TIERS[tierId];
+      const nation = state.nations[state.playerNationId];
+      const targetRegion = state.regions[targetRegionId];
+      if (!tier || !nation.missiles[tierId]) return state;
+      if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
+      const costs = ACTION_COSTS.missileStrike;
+      if (!canAfford(state.resources, costs)) return state;
+      const ownRegionIds = Object.keys(state.regions).filter(id => state.regions[id].owner === state.playerNationId);
+      if (!isMissileInRange(tierId, ownRegionIds, targetRegionId, distanceFromAnchor)) return state;
+
+      const targetNation = state.nations[targetRegion.owner];
+      const reductionMult = getAbmReductionMult(targetNation?.abmDefenseLevel);
+      const nextRegions = {
+        ...state.regions,
+        [targetRegionId]: {
+          ...targetRegion,
+          control: Math.max(0, targetRegion.control - tier.controlDamage * reductionMult),
+          unrest: Math.min(100, targetRegion.unrest + tier.unrestDamage * reductionMult),
+          nuclearScarred: targetRegion.nuclearScarred || tierId === 'nuclear'
+        }
+      };
+      let nextNations = {
+        ...state.nations,
+        [state.playerNationId]: { ...nation, missiles: { ...nation.missiles, [tierId]: nation.missiles[tierId] - 1 } }
+      };
+      if (targetNation) {
+        nextNations[targetRegion.owner] = {
+          ...targetNation,
+          militaryStrength: Math.max(0, targetNation.militaryStrength - tier.militaryDamage * reductionMult),
+          hostility: tierId === 'nuclear' ? 100 : targetNation.hostility
+        };
+      }
+      // Nuclear "instant global condemnation" (plan §10.4): every other nation's hostility toward
+      // the striker jumps, not just the target's — reusing DECLARE_WAR's own unjustified-war
+      // global-hostility pattern.
+      if (tierId === 'nuclear') {
+        Object.keys(nextNations).forEach(id => {
+          if (id === state.playerNationId || id === targetRegion.owner) return;
+          nextNations[id] = { ...nextNations[id], hostility: Math.min(100, (nextNations[id].hostility || 0) + NUCLEAR_GLOBAL_HOSTILITY) };
+        });
+      }
+
+      const targetNationName = targetNation?.name || targetRegion.owner;
+      const message = tierId === 'nuclear'
+        ? `A nuclear strike devastates ${REGIONS_DATA[targetRegionId]?.name} (${targetNationName}). The world condemns the attack.`
+        : `${tier.name} strikes ${REGIONS_DATA[targetRegionId]?.name} (${targetNationName}).`;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: nextRegions,
+        nations: nextNations,
+        logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.BUILD_ABM_DEFENSE: {
+      const costs = ACTION_COSTS.buildAbmDefense;
+      const nation = state.nations[state.playerNationId];
+      if ((nation.abmDefenseLevel || 0) >= MAX_ABM_LEVEL) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, abmDefenseLevel: (nation.abmDefenseLevel || 0) + 1 } },
+        logs: [...state.logs, { year: state.year, message: `ABM defense upgraded to level ${(nation.abmDefenseLevel || 0) + 1}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.LAUNCH_MISSION: {
+      const { missionId } = action.payload;
+      const mission = SPACE_MISSIONS_BY_ID[missionId];
+      if (!mission) return state;
+      if (!canLaunchSatellite(state.age, state.techAgeId, state.year)) return state;
+      if (!canLaunchMission(missionId, state.completedMissions, state.spaceMissionProgress)) return state;
+      const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        spaceMissionProgress: { ...state.spaceMissionProgress, [missionId]: mission.turns },
+        logs: [...state.logs, { year: state.year, message: `${mission.name} launched — ${mission.turns} turns to completion.`, type: LogTypes.ACTION }]
       };
     }
 

@@ -253,7 +253,16 @@ describe('resolveTurn AI nations', () => {
 
 describe('resolveTurn AI war declarations', () => {
   it('carries an existing war forward across a turn (wars is part of the resolved state)', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
+    // Every non-player nation already isAtWar: true — aiLogic.js's processAIWarDecisions skips any
+    // nation that's already at war (`if (nation.isPlayer || nation.isAtWar) return;`), so this
+    // deterministically guarantees no OTHER nation can spontaneously start a new war of its own
+    // this turn. (difficultyMultiplier: 0 does NOT work for this: `state.difficultyMultiplier || 1`
+    // treats 0 as falsy and silently falls back to 1, the normal aggression level.) This test is
+    // about wars[] surviving the turn, not about AI war-declaration odds.
+    const fresh = createInitialState({ playerNationId: 'fr' });
+    const nations = { ...fresh.nations };
+    Object.keys(nations).forEach(id => { if (id !== 'fr') nations[id] = { ...nations[id], isAtWar: true }; });
+    const base = { ...fresh, nations };
     const existingWar = { id: 'war_de_-2000', enemy: 'de', startYear: base.year, active: true, aggressor: 'fr', goal: { type: 'destroy_military', threshold: 1 }, goalAchieved: false };
     const state = { ...base, wars: [existingWar] };
     const next = resolveTurn(state);
@@ -370,5 +379,81 @@ describe('resolveTurn orbital debris (Space Race)', () => {
     const withoutSat = resolveTurn(stateWithoutSat);
     const withSat = resolveTurn(stateWithSat);
     expect(withSat.regions.de.unrest).toBeLessThan(withoutSat.regions.de.unrest);
+  });
+});
+
+describe('resolveTurn space mission ladder', () => {
+  it('ticks a mission\'s progress down by one turn', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), spaceMissionProgress: { sounding_rocket: 3 } });
+    const next = resolveTurn(base);
+    expect(next.spaceMissionProgress.sounding_rocket).toBe(2);
+  });
+
+  it('completes a mission once its progress reaches 0, applying its one-time reward and clearing it from progress', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), spaceMissionProgress: { sounding_rocket: 1 } });
+    const next = resolveTurn(base);
+    expect(next.spaceMissionProgress.sounding_rocket).toBeUndefined();
+    expect(next.completedMissions).toContain('sounding_rocket');
+    // sounding_rocket's oneTimeReward is diplomacyPoints: 10, on top of that turn's own income.
+    expect(next.resources.diplomacyPoints).toBeGreaterThanOrEqual(base.resources.diplomacyPoints + 10);
+  });
+
+  it('leaves unrelated in-progress missions untouched', () => {
+    const base = withAllEventsFired({
+      ...createInitialState({ playerNationId: 'fr' }),
+      spaceMissionProgress: { sounding_rocket: 1, first_satellite: 4 }
+    });
+    const next = resolveTurn(base);
+    expect(next.completedMissions).toContain('sounding_rocket');
+    expect(next.spaceMissionProgress.first_satellite).toBe(3);
+  });
+
+  it('a completed mission\'s recurring reward flows into income starting the turn after completion', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), completedMissions: ['moon_landing'] });
+    const withoutMission = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const withMission = resolveTurn(base);
+    const without = resolveTurn(withoutMission);
+    // moon_landing's recurringReward is diplomacyPointsPerTurn: 10.
+    expect(withMission.resources.diplomacyPoints).toBeGreaterThan(without.resources.diplomacyPoints);
+  });
+});
+
+describe('resolveTurn diplomatic leadership streak', () => {
+  it('increments the streak while aligned with a majority of the world', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const nations = { ...base.nations };
+    Object.keys(nations).forEach(id => {
+      if (id === 'fr') return;
+      nations[id] = { ...nations[id], hasTradeAgreement: true };
+    });
+    const state = withAllEventsFired({ ...base, nations, diplomaticLeadershipStreak: 5 });
+    const next = resolveTurn(state);
+    expect(next.diplomaticLeadershipStreak).toBe(6);
+  });
+
+  it('resets the streak once alignment drops below a majority', () => {
+    const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), diplomaticLeadershipStreak: 10 });
+    const next = resolveTurn(state);
+    expect(next.diplomaticLeadershipStreak).toBe(0);
+  });
+});
+
+describe('resolveTurn new victory conditions wired end-to-end', () => {
+  it('triggers Space Ascendancy once the final mission completes mid-turn', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), spaceMissionProgress: { interstellar_probe: 1 } });
+    const next = resolveTurn(base);
+    expect(next.gameStatus).toBe(GameStatus.VICTORY);
+    expect(next.victoryConditionId).toBe('spaceAscendancy');
+  });
+
+  it('triggers Domination once the player holds enough of the world\'s regions', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const regions = { ...base.regions };
+    const ids = Object.keys(regions);
+    ids.slice(0, Math.ceil(ids.length * 0.41)).forEach(id => { regions[id] = { ...regions[id], owner: 'fr' }; });
+    const state = withAllEventsFired({ ...base, regions });
+    const next = resolveTurn(state);
+    expect(next.gameStatus).toBe(GameStatus.VICTORY);
+    expect(next.victoryConditionId).toBe('domination');
   });
 });

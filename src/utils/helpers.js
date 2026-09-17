@@ -13,6 +13,7 @@ import { POLICIES } from '../data/policies';
 import { WONDERS } from '../data/wonders';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal } from '../data/satellites';
+import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 
 // ============ NUMBER FORMATTING ============
 
@@ -149,6 +150,20 @@ export const calcIncome = (state) => {
   const satelliteTechPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'techPointsPerTurn', state.orbitalDebrisLevel);
   if (satelliteDiplomacyPoints) income.diplomacyPoints = (income.diplomacyPoints || 0) + satelliteDiplomacyPoints;
   if (satelliteTechPoints) income.techPoints = (income.techPoints || 0) + satelliteTechPoints;
+
+  // Space mission ladder (plan §10.4 Layer 3) — every completed mission's recurringReward is a
+  // flat per-turn addition (gold/diplomacyPoints/techPoints already exist as income keys;
+  // rareMetals/helium3 have no deposit or extraction building of their own — completing
+  // asteroid_mining/outer_planets IS their only real source, per resources.js's own header).
+  (state.completedMissions || []).forEach(missionId => {
+    const reward = SPACE_MISSIONS_BY_ID[missionId]?.recurringReward;
+    if (!reward) return;
+    if (reward.goldPerTurn) income.gold = (income.gold || 0) + reward.goldPerTurn;
+    if (reward.diplomacyPointsPerTurn) income.diplomacyPoints = (income.diplomacyPoints || 0) + reward.diplomacyPointsPerTurn;
+    if (reward.techPointsPerTurn) income.techPoints = (income.techPoints || 0) + reward.techPointsPerTurn;
+    if (reward.rareMetalsPerTurn && income.rareMetals !== undefined) income.rareMetals += reward.rareMetalsPerTurn;
+    if (reward.helium3PerTurn && income.helium3 !== undefined) income.helium3 += reward.helium3PerTurn;
+  });
 
   // Set Research Focus (Research tab): a flat research-speed bonus for committing to a line.
   // Which category is stored for later systems (e.g. AI reading a rival's focus) to react to —
