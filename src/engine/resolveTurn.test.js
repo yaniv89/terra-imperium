@@ -187,6 +187,37 @@ describe('resolveTurn supply attrition', () => {
   });
 });
 
+describe('resolveTurn war exhaustion', () => {
+  it('rises for a nation at war', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, isAtWar: true } } };
+    const next = resolveTurn(state);
+    expect(next.nations.de.warExhaustion).toBeGreaterThan(0);
+  });
+
+  it('decays for a nation at peace', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, warExhaustion: 50 } } };
+    const next = resolveTurn(state);
+    expect(next.nations.de.warExhaustion).toBeLessThan(50);
+  });
+
+  it('applies to the player too, not just AI nations', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, isAtWar: true } } };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.warExhaustion).toBeGreaterThan(0);
+  });
+
+  it('never drops below 0 or exceeds 100', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const atZero = { ...base, nations: { ...base.nations, de: { ...base.nations.de, warExhaustion: 0 } } };
+    expect(resolveTurn(atZero).nations.de.warExhaustion).toBe(0);
+    const atMax = { ...base, nations: { ...base.nations, de: { ...base.nations.de, warExhaustion: 100, isAtWar: true } } };
+    expect(resolveTurn(atMax).nations.de.warExhaustion).toBe(100);
+  });
+});
+
 describe('resolveTurn AI nations', () => {
   it('grows non-player nations\' military strength over many turns without crashing', () => {
     let state = createInitialState({ playerNationId: 'fr' });

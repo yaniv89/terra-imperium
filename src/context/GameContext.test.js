@@ -975,6 +975,184 @@ describe('Government and policy actions', () => {
   });
 });
 
+describe('Diplomacy tab actions', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, gold: 100000, diplomacyPoints: 1000, actionPoints: 100 } };
+  };
+
+  describe('DECLARE_WAR', () => {
+    it('declares an unjustified war, charging the premium and costing global relations and home stability', () => {
+      const state = richState();
+      const other = Object.keys(state.nations).find(id => id !== 'fr' && id !== 'de');
+      const before = state.nations[other].hostility;
+      const next = gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.nations.de.isAtWar).toBe(true);
+      expect(next.wars.some(w => w.enemy === 'de' && w.aggressor === 'fr')).toBe(true);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold - 1); // more than a token AP-only cost
+      expect(next.regions.fr.unrest).toBeGreaterThan(state.regions.fr.unrest);
+      expect(next.nations[other].hostility).toBeGreaterThan(before);
+    });
+
+    it('declares a justified war for free of the gold premium when a claim already exists', () => {
+      const state = richState();
+      const withClaim = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, claims: ['de'] } } };
+      const other = Object.keys(state.nations).find(id => id !== 'fr' && id !== 'de');
+      const before = state.nations[other].hostility;
+      const next = gameReducer(withClaim, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.nations.de.isAtWar).toBe(true);
+      expect(next.resources.gold).toBe(withClaim.resources.gold); // declareWarJustified has no gold cost
+      expect(next.nations[other].hostility).toBe(before); // no global relations penalty
+      expect(next.nations.fr.claims).not.toContain('de'); // the claim is spent
+    });
+
+    it('is a no-op declaring war on yourself', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'fr' } })).toBe(state);
+    });
+
+    it('is a no-op if already at war', () => {
+      const state = richState();
+      const atWar = gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(gameReducer(atWar, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } })).toBe(atWar);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0, actionPoints: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('FABRICATE_CLAIM', () => {
+    it('adds a claim against the target and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: 'de' } });
+      expect(next.nations.fr.claims).toContain('de');
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op for a claim already held', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: 'de' } });
+      expect(gameReducer(state, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('SUE_FOR_PEACE', () => {
+    const atWarWithDe = () => gameReducer(richState(), { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+
+    it('ends the war and signs a peace treaty', () => {
+      const state = atWarWithDe();
+      const next = gameReducer(state, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } });
+      expect(next.nations.de.isAtWar).toBe(false);
+      expect(next.nations.de.hasPeaceTreaty).toBe(true);
+      expect(next.wars.find(w => w.enemy === 'de').active).toBe(false);
+    });
+
+    it('costs less gold against a more war-exhausted target', () => {
+      const fresh = atWarWithDe();
+      const exhausted = { ...fresh, nations: { ...fresh.nations, de: { ...fresh.nations.de, warExhaustion: 80 } } };
+      const freshPeace = gameReducer(fresh, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } });
+      const exhaustedPeace = gameReducer(exhausted, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } });
+      const freshCost = fresh.resources.gold - freshPeace.resources.gold;
+      const exhaustedCost = exhausted.resources.gold - exhaustedPeace.resources.gold;
+      expect(exhaustedCost).toBeLessThan(freshCost);
+    });
+
+    it('is a no-op when not at war with the target', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...atWarWithDe(), resources: { ...atWarWithDe().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('TRADE_AGREEMENT', () => {
+    it('signs a trade agreement and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
+      expect(next.nations.de.hasTradeAgreement).toBe(true);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op while at war with the target', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op if a trade agreement already exists', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
+      expect(gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('MILITARY_ALLIANCE', () => {
+    it('forms an alliance when hostility is low enough', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hasMilitaryPact).toBe(true);
+    });
+
+    it('is a no-op when hostility is too high and there is no trade agreement', () => {
+      const state = richState();
+      const hostile = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 90 } } };
+      expect(gameReducer(hostile, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: 'de' } })).toBe(hostile);
+    });
+
+    it('succeeds despite high hostility once a trade agreement exists', () => {
+      const state = richState();
+      const traded = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
+      const hostileButTraded = { ...traded, nations: { ...traded.nations, de: { ...traded.nations.de, hostility: 90 } } };
+      const next = gameReducer(hostileButTraded, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hasMilitaryPact).toBe(true);
+    });
+
+    it('is a no-op while at war with the target', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(gameReducer(state, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.MILITARY_ALLIANCE, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('GIFT_BRIBE', () => {
+    it('reduces hostility and deducts gold', () => {
+      const state = richState();
+      const hostile = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 50 } } };
+      const next = gameReducer(hostile, { type: ActionTypes.GIFT_BRIBE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBeLessThan(50);
+      expect(next.resources.gold).toBeLessThan(hostile.resources.gold);
+    });
+
+    it('never drops hostility below the nation\'s hostility floor', () => {
+      const state = richState();
+      const floored = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 5, hostilityFloor: 3 } } };
+      const next = gameReducer(floored, { type: ActionTypes.GIFT_BRIBE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBeGreaterThanOrEqual(3);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.GIFT_BRIBE, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+});
+
 describe('default case', () => {
   it('returns state unchanged for an unrecognized action type', () => {
     const state = createInitialState({ playerNationId: 'fr' });

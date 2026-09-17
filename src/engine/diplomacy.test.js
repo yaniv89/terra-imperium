@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal } from './diplomacy';
+import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 
 // Player is the US; Canada ('ca') and Mexico ('mx') are its real bordering nations.
@@ -103,5 +103,39 @@ describe('declareWar', () => {
     const state = usState();
     const atWar = declareWar(state, 'ca', { aggressor: 'us' });
     expect(declareWar(atWar, 'ca', { aggressor: 'us' })).toBe(atWar);
+  });
+
+  it('consumes a fabricated claim the aggressor holds against the target', () => {
+    const state = usState();
+    const withClaim = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: ['ca'] } } };
+    const next = declareWar(withClaim, 'ca', { aggressor: 'us' });
+    expect(next.nations.us.claims).not.toContain('ca');
+  });
+
+  it('leaves claims against other nations untouched', () => {
+    const state = usState();
+    const withClaims = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: ['ca', 'mx'] } } };
+    const next = declareWar(withClaims, 'ca', { aggressor: 'us' });
+    expect(next.nations.us.claims).toEqual(['mx']);
+  });
+});
+
+describe('hasCasusBelli', () => {
+  it('is true when the aggressor has a fabricated claim against the target', () => {
+    const state = usState();
+    const withClaim = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: ['ca'] } } };
+    expect(hasCasusBelli(withClaim, 'us', 'ca')).toBe(true);
+  });
+
+  it('is true when the target is already sufficiently hostile, with no claim needed', () => {
+    const state = usState();
+    const hostile = { ...state, nations: { ...state.nations, ca: { ...state.nations.ca, hostility: 90 } } };
+    expect(hasCasusBelli(hostile, 'us', 'ca')).toBe(true);
+  });
+
+  it('is false with neither a claim nor sufficient hostility', () => {
+    const state = usState();
+    const calm = { ...state, nations: { ...state.nations, ca: { ...state.nations.ca, hostility: 10 } } };
+    expect(hasCasusBelli(calm, 'us', 'ca')).toBe(false);
   });
 });

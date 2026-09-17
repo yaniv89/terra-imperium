@@ -11,6 +11,7 @@ import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
 import { POLICIES } from '../data/policies';
+import { declareWar, hasCasusBelli } from '../engine/diplomacy';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES } from '../data/ages';
@@ -18,7 +19,11 @@ import { createEmptyResourcePool } from '../data/resources';
 import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
-import { ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS } from '../data/actionCosts';
+import {
+  ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
+  SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
+  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING
+} from '../data/actionCosts';
 import { resolveTurn } from '../engine/resolveTurn';
 import { applyEventEffects } from '../engine/applyEventEffects';
 import { resolveBattle } from '../engine/battle';
@@ -106,7 +111,16 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // stability pass can read any nation's bonus generically, but only the player can change
       // them via ADOPT_GOVERNMENT/ADOPT_POLICY today; AI adoption is Task 23's job.
       government: null,
-      policies: []
+      policies: [],
+
+      // Diplomacy (plan §11's nation data model: "+ warExhaustion, legitimacy, claims[], vassals[]")
+      // — claims make a later DECLARE_WAR against that nation justified (FABRICATE_CLAIM);
+      // warExhaustion rises every turn a nation is at war and decays at peace (resolveTurn.js),
+      // making a long war's eventual SUE_FOR_PEACE cheaper. vassals[] is scaffolded now (an empty
+      // array every nation carries) for the Vassalize/Release action a later task adds.
+      claims: [],
+      warExhaustion: 0,
+      vassals: []
     };
   });
 
@@ -891,6 +905,117 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: nation.policies.filter(id => id !== policyId) } },
         logs: [...state.logs, { year: state.year, message: `Repealed the ${POLICIES[policyId]?.name || policyId} policy.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.DECLARE_WAR: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      if (!target || nationId === state.playerNationId || target.isAtWar) return state;
+      const justified = hasCasusBelli(state, state.playerNationId, nationId);
+      const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+      if (!canAfford(state.resources, costs)) return state;
+
+      const afterWar = declareWar(state, nationId, { aggressor: state.playerNationId });
+      const homeRegion = afterWar.regions[state.playerNationId];
+      const nextNations = { ...afterWar.nations };
+      let nextRegions = afterWar.regions;
+      if (!justified) {
+        // Unjustified aggression costs stability at home and relations with everyone else — the
+        // plan's own framing, not just a bigger gold bill.
+        nextRegions = { ...afterWar.regions, [state.playerNationId]: { ...homeRegion, unrest: Math.min(100, (homeRegion.unrest || 0) + UNJUSTIFIED_WAR_HOME_UNREST) } };
+        Object.keys(nextNations).forEach(id => {
+          if (id === state.playerNationId || id === nationId) return;
+          nextNations[id] = { ...nextNations[id], hostility: Math.min(100, (nextNations[id].hostility || 0) + UNJUSTIFIED_WAR_GLOBAL_HOSTILITY) };
+        });
+      }
+
+      return {
+        ...afterWar,
+        resources: applyCosts(state.resources, costs),
+        nations: nextNations,
+        regions: nextRegions,
+        logs: [...afterWar.logs, {
+          year: state.year,
+          message: justified ? `You declared a justified war on ${target.name}.` : `You declared an unjustified war on ${target.name} — the world takes note.`,
+          type: LogTypes.DIPLOMACY
+        }]
+      };
+    }
+
+    case ActionTypes.FABRICATE_CLAIM: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.fabricateClaim;
+      if (!target || nationId === state.playerNationId || player.claims.includes(nationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: { ...player, claims: [...player.claims, nationId] } },
+        logs: [...state.logs, { year: state.year, message: `Fabricated a claim against ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.SUE_FOR_PEACE: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      if (!target || !target.isAtWar) return state;
+      const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), actionPoints: 1 };
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [nationId]: { ...target, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(target.hostility, 50), relationStatus: RelationStatus.COLD_PEACE }
+        },
+        wars: state.wars.map(w => (w.enemy === nationId && w.active ? { ...w, active: false } : w)),
+        logs: [...state.logs, { year: state.year, message: `Signed a peace treaty with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.TRADE_AGREEMENT: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.tradeAgreement;
+      if (!target || target.isAtWar || target.hasTradeAgreement) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [nationId]: { ...target, hasTradeAgreement: true, relationStatus: RelationStatus.FRIENDLY } },
+        logs: [...state.logs, { year: state.year, message: `Signed a trade agreement with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.MILITARY_ALLIANCE: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.militaryAlliance;
+      if (!target || target.isAtWar || target.hasMilitaryPact) return state;
+      if (!target.hasTradeAgreement && target.hostility > ALLIANCE_HOSTILITY_CEILING) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [nationId]: { ...target, hasMilitaryPact: true, relationStatus: RelationStatus.ALLIED } },
+        logs: [...state.logs, { year: state.year, message: `Formed a military alliance with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.GIFT_BRIBE: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.giftBribe;
+      if (!target) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [nationId]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - GIFT_HOSTILITY_REDUCTION) } },
+        logs: [...state.logs, { year: state.year, message: `Sent a gift to ${target.name}.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

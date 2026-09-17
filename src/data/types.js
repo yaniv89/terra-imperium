@@ -58,7 +58,15 @@ export const ActionTypes = {
   // Government & policies (plan §9).
   ADOPT_GOVERNMENT: 'ADOPT_GOVERNMENT',
   ADOPT_POLICY: 'ADOPT_POLICY',
-  REMOVE_POLICY: 'REMOVE_POLICY'
+  REMOVE_POLICY: 'REMOVE_POLICY',
+
+  // Diplomacy tab (plan §8) — casus belli, war/peace lifecycle, and the first tier of agreements.
+  DECLARE_WAR: 'DECLARE_WAR',
+  FABRICATE_CLAIM: 'FABRICATE_CLAIM',
+  SUE_FOR_PEACE: 'SUE_FOR_PEACE',
+  TRADE_AGREEMENT: 'TRADE_AGREEMENT',
+  MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
+  GIFT_BRIBE: 'GIFT_BRIBE'
 };
 
 export const LogTypes = {

@@ -8,6 +8,19 @@
 import { RelationStatus } from '../data/types';
 import { isAdjacentToOwner } from '../data/regions';
 
+// A casus belli (plan §8/§9's "unjustified wars cost stability and global relations"): either a
+// claim the aggressor already fabricated against this target (FABRICATE_CLAIM), or a naturally
+// hostile relationship that needs no manufacturing. War without either is still possible — it's
+// just costlier and carries a real diplomatic penalty (see GameContext.jsx's DECLARE_WAR).
+export const CASUS_BELLI_HOSTILITY_THRESHOLD = 70;
+
+export const hasCasusBelli = (state, aggressorId, targetId) => {
+  const aggressor = state.nations[aggressorId];
+  const target = state.nations[targetId];
+  if (aggressor?.claims?.includes(targetId)) return true;
+  return (target?.hostility || 0) >= CASUS_BELLI_HOSTILITY_THRESHOLD;
+};
+
 // Finds a region owned by `ownerId` that borders territory `attackerId` already holds — the
 // natural "next target" for a war goal.
 const findCaptureTarget = (regions, ownerId, attackerId) =>
@@ -67,18 +80,24 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
 
   const brokePeace = !!nation.hasPeaceTreaty;
   const resolvedGoal = goal || assignDefaultWarGoal(state, nationId, aggressor);
+  const aggressorNation = state.nations[aggressor];
+  // A fabricated claim is spent the moment it justifies a war — it doesn't carry over to the next one.
+  const nextNations = {
+    ...state.nations,
+    [nationId]: {
+      ...nation,
+      isAtWar: true,
+      hostility: 100,
+      relationStatus: RelationStatus.WAR,
+      hostilityFloor: brokePeace ? Math.max(nation.hostilityFloor || 0, 40) : (nation.hostilityFloor || 0)
+    }
+  };
+  if (aggressorNation?.claims?.includes(nationId)) {
+    nextNations[aggressor] = { ...aggressorNation, claims: aggressorNation.claims.filter((id) => id !== nationId) };
+  }
   return {
     ...state,
-    nations: {
-      ...state.nations,
-      [nationId]: {
-        ...nation,
-        isAtWar: true,
-        hostility: 100,
-        relationStatus: RelationStatus.WAR,
-        hostilityFloor: brokePeace ? Math.max(nation.hostilityFloor || 0, 40) : (nation.hostilityFloor || 0)
-      }
-    },
+    nations: nextNations,
     wars: [...state.wars, {
       id: `war_${nationId}_${state.year}`,
       enemy: nationId,
