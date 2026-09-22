@@ -3,7 +3,7 @@ import { EFFECT_REGISTRY, getEffectSpec } from './effectRegistry';
 import { ACTION_COSTS } from './actionCosts';
 
 const IMPLEMENTED_PRIMITIVES = ['arc', 'pulse'];
-const PULSE_GLYPHS = ['circle', 'square', 'diamond', 'triangle', 'star'];
+const PULSE_GLYPHS = ['circle', 'square', 'diamond', 'triangle', 'star', 'unit'];
 
 describe('EFFECT_REGISTRY', () => {
   it('every entry declares a primitive and a two-tone palette', () => {

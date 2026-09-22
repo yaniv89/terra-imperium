@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { getUnlockedResourceIds } from '../../data/resources';
+import { getFieldedStrength } from '../../utils/helpers';
 import ResourceBadge from './ResourceBadge';
 
 const ResourceBar = () => {
@@ -16,7 +17,6 @@ const ResourceBar = () => {
   };
 
   const unlockedResourceIds = getUnlockedResourceIds(state.age);
-  const playerNation = state.nations[state.playerNationId];
 
   return (
     <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -54,7 +54,7 @@ const ResourceBar = () => {
 
       <ResourceBadge
         type="militaryStrength"
-        value={playerNation?.militaryStrength || 0}
+        value={getFieldedStrength(state, state.playerNationId)}
         expanded={expandedResource === 'military'}
         onClick={() => handleToggle('military')}
       />

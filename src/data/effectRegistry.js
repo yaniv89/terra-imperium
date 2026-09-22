@@ -178,6 +178,20 @@ export const EFFECT_REGISTRY = {
     debris: 3,
     projectiles: [{ lateral: 0.1, loft: 0.3, delay: 0, scale: 0.8, spread: 0 }]
   },
+  // A covert op, not a strike — thin, muted trail and a small flash rather than an explosion,
+  // matching the plan's own "translucent shadow drifts unseen" framing for Espionage.
+  espionage: {
+    primitive: 'arc',
+    palette: { base: '#64748b', hot: '#e2e8f0' },
+    head: 'dart',
+    archPow: 0.3,
+    ease: 'smooth',
+    trailWidth: 1,
+    fireball: 0.15,
+    rings: 1,
+    debris: 2,
+    projectiles: [{ lateral: 0, loft: 0.2, delay: 0, scale: 0.6, spread: 0 }]
+  },
   military_alliance: {
     primitive: 'arc',
     palette: { base: '#6366f1', hot: '#e0e7ff' },
@@ -196,21 +210,33 @@ export const EFFECT_REGISTRY = {
   },
 
   // ---- pulse primitive: single-region actions with no natural "from"/"to" geography ----
-  recruit_unit: { primitive: 'pulse', palette: { base: '#22c55e', hot: '#dcfce7' }, glyph: 'square', rings: 2, motes: 8 },
+  // glyph: 'unit' is special-cased in GlobeEffectsOverlay.jsx — instead of one fixed shape, it
+  // renders the actual recruited/disbanded unit's class silhouette (src/data/unitClasses.js's
+  // classId, threaded through as the effect's `variant`) doing a small class-appropriate motion
+  // (marching, galloping, drawing a bow, recoiling, bobbing at sea, banking) rather than an
+  // abstract glyph pulsing — this is what "train a unit" and "disband a unit" should actually show.
+  recruit_unit: { primitive: 'pulse', palette: { base: '#22c55e', hot: '#dcfce7' }, glyph: 'unit', rings: 2, motes: 8 },
+  disband_unit: { primitive: 'pulse', palette: { base: '#f87171', hot: '#fef2f2' }, glyph: 'unit', rings: 1, motes: 0 },
   promote_unit: { primitive: 'pulse', palette: { base: '#fbbf24', hot: '#fffbeb' }, glyph: 'star', rings: 1, motes: 5 },
   suppress_rebellion: { primitive: 'pulse', palette: { base: '#f87171', hot: '#fef2f2' }, glyph: 'square', rings: 2, motes: 0 },
   construct_building: { primitive: 'pulse', palette: { base: '#f59e0b', hot: '#fef3c7' }, glyph: 'triangle', rings: 3, motes: 5 },
   develop_resource_site: { primitive: 'pulse', palette: { base: '#fb923c', hot: '#ffedd5' }, glyph: 'diamond', rings: 2, motes: 10 },
   build_infrastructure: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'circle', rings: 3, motes: 4 },
   build_defenses: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 2, motes: 0 },
+  build_climate_resilience: { primitive: 'pulse', palette: { base: '#34d399', hot: '#ecfdf5' }, glyph: 'circle', rings: 2, motes: 6 },
   construct_wonder: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 12 },
   gain_control: { primitive: 'pulse', palette: { base: '#60a5fa', hot: '#dbeafe' }, glyph: 'circle', rings: 2, motes: 0 },
+  // Auto-targets whoever's most hostile rather than a chosen nation, so it's centred on the
+  // player's own capital (pulse) rather than an arc to a picked target.
+  counter_intelligence: { primitive: 'pulse', palette: { base: '#0ea5e9', hot: '#e0f2fe' }, glyph: 'diamond', rings: 2, motes: 0 },
   settle_colonize: { primitive: 'pulse', palette: { base: '#fbbf24', hot: '#fef9c3' }, glyph: 'triangle', rings: 2, motes: 6 },
   research_tech: { primitive: 'pulse', palette: { base: '#a78bfa', hot: '#ede9fe' }, glyph: 'circle', rings: 2, motes: 6 },
   launch_satellite: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 3, motes: 8 },
   quell_unrest: { primitive: 'pulse', palette: { base: '#fb7185', hot: '#fff1f2' }, glyph: 'circle', rings: 2, motes: 0 },
   population_policy: { primitive: 'pulse', palette: { base: '#4ade80', hot: '#f0fdf4' }, glyph: 'circle', rings: 1, motes: 10 },
   set_tax_rate: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fef9c3' }, glyph: 'circle', rings: 1, motes: 6 },
+  shift_identity: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'diamond', rings: 1, motes: 4 },
+  cultural_export: { primitive: 'pulse', palette: { base: '#f472b6', hot: '#fce7f3' }, glyph: 'star', rings: 3, motes: 8 },
   adopt_government: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
   adopt_policy: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
   remove_policy: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 0 },

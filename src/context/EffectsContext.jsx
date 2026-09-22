@@ -28,13 +28,15 @@ export const EffectsProvider = ({ children }) => {
   // geography (an effect with no natural "from", e.g. an empire-wide policy pulse, can pass the
   // same id as `region` for both). `magnitude` is carried through for primitives that scale their
   // intensity by it — unused by the currently-implemented `arc` primitive, but part of the stable
-  // trigger signature every future primitive reads from.
-  const triggerEffect = useCallback((actionType, { from, to, region, magnitude } = {}) => {
+  // trigger signature every future primitive reads from. `variant` picks a sub-rendering within an
+  // actionType — e.g. recruit_unit's glyph is a real per-class unit silhouette (src/data/
+  // unitClasses.js's classId) rather than one generic shape for every recruit.
+  const triggerEffect = useCallback((actionType, { from, to, region, magnitude, variant } = {}) => {
     const fromRegionId = from || region;
     const toRegionId = to || region;
     if (!fromRegionId || !toRegionId) return; // no real geography to animate — a no-op, not a crash
     const id = nextId.current++;
-    setEffects((prev) => [...prev, { id, actionType, fromRegionId, toRegionId, magnitude, createdAt: Date.now() }]);
+    setEffects((prev) => [...prev, { id, actionType, fromRegionId, toRegionId, magnitude, variant, createdAt: Date.now() }]);
     setTimeout(() => {
       setEffects((prev) => prev.filter((e) => e.id !== id));
     }, EFFECT_LIFETIME_MS);

@@ -42,8 +42,23 @@ const AI_RECRUIT_CHANCE = 0.35;
 const AI_RECRUIT_MILITARY_STRENGTH_COST = 300;
 // A standing cap per nation keeps state.units bounded across a 240-nation, centuries-long game —
 // once at the cap a nation stops recruiting until losses (combat, attrition) free up room, the
-// same way a real standing army is sized to what the state can support.
-const AI_MAX_STANDING_UNITS = 8;
+// same way a real standing army is sized to what the state can support. Scaled by age rather than
+// held flat: a Bronze-age nation's 8-unit cap is fine for the game's opening, but a Modern-age
+// great power capping at the exact same 8 total units makes wars feel small next to a 240-nation,
+// 4,300-year game's actual scale — an empire's real military capacity should grow across the ages
+// the same way its buildings, units and tech tiers already do. (Tier itself doesn't get a separate
+// multiplier here: only Tier 1 nations ever recruit real units at all — see the tier check below —
+// so there's nothing for a tier-based cap to scale until Tier 2/3 nations recruit too, which is a
+// separate expansion of who fields armies, not of how big the cap on an existing recruiter is.)
+const AI_MAX_STANDING_UNITS_BY_AGE = {
+  bronze: 8,
+  classical: 10,
+  kingdoms: 14,
+  gunpowder: 20,
+  modern: 30
+};
+const AI_MAX_STANDING_UNITS_DEFAULT = 8;
+const getAIMaxStandingUnits = (ageId) => AI_MAX_STANDING_UNITS_BY_AGE[ageId] || AI_MAX_STANDING_UNITS_DEFAULT;
 
 // Nations ranked by military strength enter Tier 1 regardless of geography — a great power's
 // moves matter globally, not just to its neighbors.
@@ -61,6 +76,14 @@ export const COALITION_MILITARY_SHARE_THRESHOLD = 0.15;
 // A coalition member's roll chance against the runaway leader specifically, on top of every other
 // multiplier — large enough that "the world gangs up" is a real, visible pressure once it starts.
 const COALITION_WAR_ROLL_MULT = 4;
+// Cultural Export (gameReducer.js's CULTURAL_EXPORT action) accumulates a nation's culturalInfluence
+// as real soft power: when that nation is the runaway leader, this discounts the coalition's
+// eagerness to strike it — diminishing returns, and floored well short of 1 so cultural investment
+// tempers the anti-snowball check rather than defeating it outright.
+const CULTURAL_COALITION_DISCOUNT_FLOOR = 0.5;
+const CULTURAL_COALITION_DISCOUNT_SCALE = 2000;
+const getCulturalCoalitionDiscount = (culturalInfluence) =>
+  Math.max(CULTURAL_COALITION_DISCOUNT_FLOOR, 1 - (culturalInfluence || 0) / CULTURAL_COALITION_DISCOUNT_SCALE);
 // Every Tier 1 coalition member's hostility ratchets toward the leader each turn a coalition is
 // active, reusing the existing single hostility scalar (already the aggregate "how justified/
 // likely a war" stat every other diplomacy action reads and writes) rather than adding a new
@@ -153,8 +176,8 @@ export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
 // whichever of their own regions has the largest population — a reasonable stand-in for "capital"
 // since nations don't have one tracked explicitly. Spends AI_RECRUIT_MILITARY_STRENGTH_COST off
 // the nation's militaryStrength (already grown this turn by processAllAINations) and stops once a
-// nation holds AI_MAX_STANDING_UNITS. Pure: returns new `units`/`nations` maps rather than mutating
-// the ones passed in, exactly like processAIWarDecisions.
+// nation holds its age's standing-unit cap (getAIMaxStandingUnits). Pure: returns new
+// `units`/`nations` maps rather than mutating the ones passed in, exactly like processAIWarDecisions.
 export const processAIRecruitment = (state, units, nations, regions, sortedByMilitary, ageId, rng) => {
   const nextUnits = { ...units };
   const nextNations = { ...nations };
@@ -166,7 +189,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     if (getNationTier({ ...state, nations: nextNations }, nationId, sortedByMilitary) !== 1) return;
     if (nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
     const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
-    if (standingCount >= AI_MAX_STANDING_UNITS) return;
+    if (standingCount >= getAIMaxStandingUnits(ageId)) return;
     if (rng.next() >= AI_RECRUIT_CHANCE) return;
 
     const classId = chooseAIRecruitClass({ ...state, nations: nextNations }, nextUnits, nationId, ageId);
@@ -239,8 +262,11 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     const activeNation = currentNations[nationId];
     const leader = isCoalitionMember ? currentNations[runawayLeaderId] : null;
     const canStrikeLeader = !!leader && !leader.isAtWar && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId);
+    const coalitionMult = canStrikeLeader
+      ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence)
+      : 1;
 
-    if (!shouldDeclareWar(activeNation, rng, aggressionMult, canStrikeLeader ? COALITION_WAR_ROLL_MULT : 1)) return;
+    if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult)) return;
     const targetId = pickWarTarget({ ...state, nations: currentNations }, nationId, canStrikeLeader ? runawayLeaderId : null);
     if (!targetId) return;
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
@@ -267,7 +293,17 @@ export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
 
   // Passive economic growth — nations build military over time (cautious doctrines grow faster).
-  const baseGrowth = Math.floor(nation.militaryStrength * 0.01 * doctrine.economyGrowthMult);
+  // Below 5x the player's current strength this is the original, unthrottled formula. Past that
+  // ratio, growth is damped in inverse proportion to it (turning compounding into roughly linear
+  // growth beyond the threshold): left uncapped, strength * 1%/turn forever is mathematically
+  // guaranteed to put some AI nation at 20x+ the player's strength well within the game's ~500-turn
+  // span (confirmed by direct simulation) — long before the existing world-military-share coalition
+  // mechanic (findRunawayLeader, 15% of the WORLD total) would ever engage, since one nation
+  // dwarfing the player is a much lower bar than one nation dwarfing all 239 others combined.
+  const playerStrength = state.nations?.[state.playerNationId]?.militaryStrength;
+  const ratioToPlayer = playerStrength > 0 ? nation.militaryStrength / playerStrength : 1;
+  const runawayDamping = ratioToPlayer <= 5 ? 1 : Math.max(0.05, 5 / ratioToPlayer);
+  const baseGrowth = Math.floor(nation.militaryStrength * 0.01 * doctrine.economyGrowthMult * runawayDamping);
   const economyBonus = Math.floor(rng.next() * 50 * doctrine.economyGrowthMult);
   updates.militaryStrengthChange = baseGrowth + economyBonus;
 

@@ -79,8 +79,41 @@ export const ACTION_COSTS = {
   fabricateClaim: { gold: 150, diplomacyPoints: 10, actionPoints: 1 },
   tradeAgreement: { gold: 100, actionPoints: 1 },
   militaryAlliance: { gold: 150, diplomacyPoints: 15, actionPoints: 1 },
-  giftBribe: { gold: 100, actionPoints: 1 }
+  giftBribe: { gold: 100, actionPoints: 1 },
+  // Espionage risks the gold on a coin-flip-ish roll (see ESPIONAGE_SUCCESS_CHANCE, gameReducer.js)
+  // — priced like a real covert operation, not a guaranteed purchase of techPoints.
+  espionage: { gold: 200, actionPoints: 2 },
+  // Counter-Intelligence auto-targets whoever is currently most hostile toward you rather than
+  // needing a chosen target, so it's priced like Gift/Bribe (a direct relations action) rather than
+  // Espionage's riskier, pricier covert-ops tier.
+  counterIntelligence: { gold: 120, actionPoints: 1 },
+  // A slider nudge, not a purchase — costs only gold and the action point every other domestic
+  // decision does, matching Set Tax Rate's own pricing philosophy.
+  shiftIdentity: { gold: 50, actionPoints: 1 },
+  // Priced like Build Defenses — a persistent, steadily-improving region investment of the same shape.
+  buildClimateResilience: { gold: 90, actionPoints: 1 },
+  // Priced like Gift/Bribe — a direct relations action, but empire-wide rather than one target.
+  culturalExport: { gold: 130, actionPoints: 1 }
 };
+
+// Above this climateResilience level, a region is considered adequately prepared — the same
+// mechanical role defenseLevel 3 already plays gating frontier_raiders (src/data/proceduralEvents.js).
+export const CLIMATE_RESILIENCE_THRESHOLD = 3;
+export const CLIMATE_RESILIENCE_MAX = 10;
+
+// Cultural Export (nation.culturalInfluence): a modest flat accumulation per use, and a small
+// hostility reduction applied to EVERY other nation at once (broad soft power, unlike Gift/Bribe's
+// single chosen target) — smaller per-nation than Gift/Bribe since it touches everyone.
+export const CULTURAL_EXPORT_INFLUENCE_GAIN = 50;
+export const CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION = 3;
+
+// Army maintenance (added per user request, "keep things balanced and sane") — recruiting a unit
+// (recruitUnit above) was a one-time cost with no ongoing one, so a large standing army cost nothing
+// to simply hold once paid for. A flat per-turn gold upkeep per player-owned unit (resolveTurn.js)
+// makes army size a real, continuous tradeoff against everything else gold buys, the way a real
+// standing army has to be paid to stay fielded, not just raised. ~12 turns of upkeep equals one
+// unit's own recruit cost, so a long-lived army is a real ongoing expense, not a rounding error.
+export const UNIT_UPKEEP_GOLD_PER_TURN = 5;
 
 // Sue for Peace's gold cost floors here regardless of how war-weary the target is — ending a war
 // is never entirely free.
@@ -99,6 +132,17 @@ export const ALLIANCE_HOSTILITY_CEILING = 30;
 
 // Fund Scholars' fixed gold -> techPoints exchange rate.
 export const FUND_SCHOLARS_TECHPOINTS = 20;
+
+// Espionage/Counter-Intelligence (see types.js's header comment on the pair). A coin-flip-ish
+// success rate keeps espionage a real gamble rather than a guaranteed techPoints purchase; failure
+// costs real relations, matching how a botched covert op should sting.
+export const ESPIONAGE_SUCCESS_CHANCE = 0.6;
+export const ESPIONAGE_TECH_POINTS_STOLEN = 15;
+export const ESPIONAGE_FAILURE_HOSTILITY_INCREASE = 15;
+// Counter-Intelligence auto-targets whoever is currently most hostile toward the player (no chosen
+// target) and both calms them down and rewards the player for catching the plot.
+export const COUNTER_INTEL_HOSTILITY_REDUCTION = 20;
+export const COUNTER_INTEL_DIPLOMACY_POINTS_REWARD = 10;
 
 // Fraction of a disbanded unit's HR cost recovered — never the full amount, or disband/recruit
 // would be a free way to reshuffle composition every turn.

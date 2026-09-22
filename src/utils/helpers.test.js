@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal } from './helpers';
+import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getMaxActionPoints, getFieldedStrength } from './helpers';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -244,6 +244,78 @@ describe('getNationBonusTotal', () => {
   it('ignores an unbuilt/unknown wonder id gracefully', () => {
     const nation = { wonders: ['not_a_real_wonder'] };
     expect(getNationBonusTotal(nation, 'goldMult')).toBe(0);
+  });
+
+  it('adds National Identity\'s contribution alongside government/policy/wonder bonuses', () => {
+    const nation = { government: 'monarchy', policies: [], wonders: [], identity: { collectivism: 100 } };
+    // monarchy's own stabilityBonus (5) plus fully-Collectivist identity's stabilityBonus (10).
+    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(15);
+  });
+});
+
+// Regression: AP was a flat 3/turn regardless of empire size or maturity — a 50-region late-game
+// empire acted exactly as often per turn as a 1-region start. Administrative Capacity fixes that via
+// two real levers: government maturity (apBonus) and the Governance tech line.
+describe('getMaxActionPoints', () => {
+  const baseState = () => createInitialState({ playerNationId: 'fr' });
+
+  it('is the flat base of 3 with no government and no researched Governance tech', () => {
+    expect(getMaxActionPoints(baseState())).toBe(3);
+  });
+
+  it('adds the adopted government\'s apBonus on top of the base', () => {
+    const state = baseState();
+    state.nations.fr.government = 'monarchy'; // apBonus: 1
+    expect(getMaxActionPoints(state)).toBe(4);
+  });
+
+  it('adds +1 AP per 3 researched Governance-line techs, ignoring other categories', () => {
+    const state = baseState();
+    // Governance techs (see techTree.js's buildLine ids: governance_<slug>).
+    ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies'].forEach((id) => {
+      state.techTree[id] = { ...state.techTree[id], researched: true };
+    });
+    // A non-Governance tech researched too, to prove it's excluded from the count.
+    state.techTree.military_bronze_casting = { ...state.techTree.military_bronze_casting, researched: true };
+    expect(getMaxActionPoints(state)).toBe(4); // 3 base + floor(3/3) = 1
+  });
+
+  it('stacks the government and tech bonuses together', () => {
+    const state = baseState();
+    state.nations.fr.government = 'empire'; // apBonus: 2
+    ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies',
+      'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
+      state.techTree[id] = { ...state.techTree[id], researched: true };
+    });
+    expect(getMaxActionPoints(state)).toBe(7); // 3 base + 2 gov + floor(6/3)=2 tech
+  });
+});
+
+// Regression: player-facing "power" comparisons used to read nation.militaryStrength directly —
+// an abstract, unbounded AI economy score (aiLogic.js's processAINationTurn) that has no cap tied to
+// what's actually on the map. getFieldedStrength is what ResourceBar/MilitaryPanel/DiplomacyPanel/
+// RegionInfoModal show instead: the real sum of a nation's own recruited units, which can't drift
+// arbitrarily far from what a player can actually see and fight.
+describe('getFieldedStrength', () => {
+  it('sums only the given nation\'s own units\' strength', () => {
+    const state = {
+      units: {
+        a: { ownerId: 'fr', strength: 1000 },
+        b: { ownerId: 'fr', strength: 500 },
+        c: { ownerId: 'de', strength: 2000 }
+      }
+    };
+    expect(getFieldedStrength(state, 'fr')).toBe(1500);
+    expect(getFieldedStrength(state, 'de')).toBe(2000);
+  });
+
+  it('is zero for a nation with no units', () => {
+    const state = { units: { a: { ownerId: 'fr', strength: 1000 } } };
+    expect(getFieldedStrength(state, 'de')).toBe(0);
+  });
+
+  it('handles a missing/empty units dict gracefully', () => {
+    expect(getFieldedStrength({}, 'fr')).toBe(0);
   });
 });
 

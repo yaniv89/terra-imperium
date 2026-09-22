@@ -45,6 +45,52 @@ describe('processAINationTurn', () => {
     const b = processAINationTurn(aiNation(), {}, 1950, createRng(99));
     expect(a).toEqual(b);
   });
+
+  // Regression: passive growth was strength * 1%/turn forever, uncapped — compounding that
+  // mathematically guarantees some AI nation reaches 20x+ the player's strength well within a
+  // normal playthrough, long before the existing world-share coalition mechanic would ever engage.
+  describe('runaway damping vs. the player', () => {
+    const stateWithPlayer = (playerMilitaryStrength) => ({
+      playerNationId: 'player',
+      nations: { player: { militaryStrength: playerMilitaryStrength } }
+    });
+
+    it('grows at the full undamped rate below 5x the player\'s strength', () => {
+      const nation = aiNation({ militaryStrength: 4000 });
+      const damped = processAINationTurn(nation, stateWithPlayer(1000), 1950, createRng(1));
+      const undamped = processAINationTurn(nation, {}, 1950, createRng(1));
+      expect(damped).toEqual(undamped);
+    });
+
+    it('grows slower than the undamped rate once past 5x the player\'s strength', () => {
+      const nation = aiNation({ militaryStrength: 50000 }); // 50x a 1000-strength player
+      const damped = processAINationTurn(nation, stateWithPlayer(1000), 1950, createRng(1));
+      const undamped = processAINationTurn(nation, {}, 1950, createRng(1));
+      expect(damped.militaryStrengthChange).toBeLessThan(undamped.militaryStrengthChange);
+    });
+
+    it('bottoms out at a 5% growth floor rather than freezing entirely at extreme ratios', () => {
+      const nation = aiNation({ militaryStrength: 1_000_000 }); // 1000x a 1000-strength player
+      const doctrineMult = 1.25; // cautious doctrine's economyGrowthMult, per aiNation()'s default
+      // Same seed/call position as the economyBonus term inside processAINationTurn, so the
+      // expected value below tracks the real rng sequence rather than assuming a particular output.
+      const rngValue = createRng(1).next();
+      const { militaryStrengthChange } = processAINationTurn(nation, stateWithPlayer(1000), 1950, createRng(1));
+      const expectedFlooredBase = Math.floor(1_000_000 * 0.01 * doctrineMult * 0.05); // the damping floor
+      const expectedEconomyBonus = Math.floor(rngValue * 50 * doctrineMult); // undamped, as before
+      expect(militaryStrengthChange).toBe(expectedFlooredBase + expectedEconomyBonus);
+      // Dramatically smaller than the undamped base alone would be (1_000_000 * 0.01 * 1.25 = 12500),
+      // confirming the floor is actually biting rather than merely being unreached at this ratio.
+      expect(militaryStrengthChange).toBeLessThan(1000);
+    });
+
+    it('falls back to undamped growth when there is no resolvable player nation (defensive)', () => {
+      const nation = aiNation({ militaryStrength: 50000 });
+      const damped = processAINationTurn(nation, { playerNationId: 'player', nations: {} }, 1950, createRng(1));
+      const undamped = processAINationTurn(nation, {}, 1950, createRng(1));
+      expect(damped).toEqual(undamped);
+    });
+  });
 });
 
 describe('processAllAINations', () => {
@@ -235,6 +281,32 @@ describe('processAIWarDecisions', () => {
     expect(emperor.wars).toHaveLength(1);
   });
 
+  it('discounts the coalition roll chance against a runaway leader with real Cultural Export influence', () => {
+    // be (attrition, hostility 10) vs. runaway leader de: chance = 0.02 * 1 * 1 * coalitionMult *
+    // 0.3. Undiscounted coalitionMult (4) -> chance 0.024; at culturalInfluence 1000, the discount
+    // floors coalitionMult at 4*0.5=2 -> chance 0.012. A fixed roll of 0.015 sits exactly between.
+    const rngAtThreshold = { next: () => 0.015 };
+    const noInfluence = warState({ de: { militaryStrength: 100000, culturalInfluence: 0 } });
+    const withoutDiscount = processAIWarDecisions(noInfluence, noInfluence.nations, noInfluence.wars, ['be'], rngAtThreshold);
+    expect(withoutDiscount.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+
+    const withInfluence = warState({ de: { militaryStrength: 100000, culturalInfluence: 1000 } });
+    const withDiscount = processAIWarDecisions(withInfluence, withInfluence.nations, withInfluence.wars, ['be'], rngAtThreshold);
+    expect(withDiscount.wars).toHaveLength(0);
+  });
+
+  it('never discounts the coalition roll below its floor, however much cultural influence has accumulated', () => {
+    // At the floor (0.5x), coalitionMult bottoms out at 4*0.5=2 -> chance 0.012, whether
+    // culturalInfluence is 1000 (exactly at the floor) or 1000000 (way past it) — same outcome either way.
+    const rngJustUnderFloorChance = { next: () => 0.011 };
+    const atFloor = warState({ de: { militaryStrength: 100000, culturalInfluence: 1000 } });
+    const farPastFloor = warState({ de: { militaryStrength: 100000, culturalInfluence: 1000000 } });
+    const atFloorResult = processAIWarDecisions(atFloor, atFloor.nations, atFloor.wars, ['be'], rngJustUnderFloorChance);
+    const farPastFloorResult = processAIWarDecisions(farPastFloor, farPastFloor.nations, farPastFloor.wars, ['be'], rngJustUnderFloorChance);
+    expect(atFloorResult.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+    expect(farPastFloorResult.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+  });
+
   it('a coalition member bordering the runaway leader attacks the leader instead of its normally-weakest neighbor', () => {
     // Belgium (be, 500 strength) normally prefers France (fr, 2000) over the much stronger
     // Germany (de) as its weakest neighbor — but once de is a runaway leader (100000 strength,
@@ -413,13 +485,26 @@ describe('processAIRecruitment', () => {
     expect(Object.keys(result.units)).toHaveLength(0);
   });
 
+  // The cap scales by age (8 at bronze, higher in later ages — see aiLogic.js's
+  // AI_MAX_STANDING_UNITS_BY_AGE) so this pins the age to bronze to keep the literal 8-unit setup
+  // meaningful; a later age would need more existing units to actually be at its own, larger cap.
   it('stops recruiting once a nation is at its standing-unit cap', () => {
     const state = baseState();
     const existing = {};
     for (let i = 0; i < 8; i++) existing[`existing_${i}`] = { ownerId: 'de', classId: 'infantry' };
-    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], 'bronze', alwaysRecruit);
     const newOnes = Object.keys(result.units).filter(id => !existing[id]);
     expect(newOnes).toHaveLength(0);
+  });
+
+  it('the standing-unit cap scales up in later ages rather than staying flat at 8', () => {
+    const state = baseState();
+    const existing = {};
+    for (let i = 0; i < 8; i++) existing[`existing_${i}`] = { ownerId: 'de', classId: 'infantry' };
+    // At classical (cap 10 vs. bronze's 8), being at the OLD flat cap should no longer block recruiting.
+    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const newOnes = Object.keys(result.units).filter(id => !existing[id]);
+    expect(newOnes.length).toBeGreaterThan(0);
   });
 
   it('is deterministic given the same rng sequence', () => {
