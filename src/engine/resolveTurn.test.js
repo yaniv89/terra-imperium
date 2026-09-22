@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
-import { createInitialState } from '../context/GameContext';
-import { GameStatus } from '../data/types';
+import { createInitialState, gameReducer } from '../context/GameContext';
+import { GameStatus, ActionTypes } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -23,6 +23,33 @@ describe('resolveTurn determinism', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const a = resolveTurn(state);
     const b = resolveTurn(state);
+    expect(a).toEqual(b);
+  });
+
+  // Plan §13's real contract: "same seed + same action list => byte-identical resulting state" —
+  // this is what a server-authoritative multiplayer session (plan §10) actually relies on, so it
+  // has to hold across a genuine MIX of turn advances and player actions dispatched through the
+  // real gameReducer entry point, not just two bare calls to resolveTurn on the same snapshot.
+  // The sequence deliberately includes RNG-driven paths (LAUNCH_INVASION's battle resolution,
+  // several ADVANCE_TURNs worth of AI decisions/rebellion rolls) rather than only side-effect-free
+  // economic actions, which wouldn't actually exercise the seeded randomness this guarantees.
+  it('replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results', () => {
+    const initial = createInitialState({ playerNationId: 'fr' });
+    const withResources = { ...initial, resources: { ...initial.resources, gold: 100000, hr: 100000, actionPoints: 100 } };
+    const actions = [
+      { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } },
+      { type: ActionTypes.ADVANCE_TURN },
+      { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'high' } },
+      { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } },
+      { type: ActionTypes.ADVANCE_TURN },
+      { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } },
+      { type: ActionTypes.ADVANCE_TURN },
+      { type: ActionTypes.ADVANCE_TURN },
+      { type: ActionTypes.ADVANCE_TURN }
+    ];
+    const replay = (state) => actions.reduce((acc, action) => gameReducer(acc, action), state);
+    const a = replay(withResources);
+    const b = replay(withResources);
     expect(a).toEqual(b);
   });
 
