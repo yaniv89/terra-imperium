@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   processAINationTurn, processAllAINations, getRelationFromHostility,
-  getNationTier, getSortedByMilitary, processAIWarDecisions, findRunawayLeader
+  getNationTier, getSortedByMilitary, processAIWarDecisions, findRunawayLeader,
+  chooseAIRecruitClass, processAIRecruitment
 } from './aiLogic';
 import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
@@ -286,5 +287,128 @@ describe('getRelationFromHostility', () => {
 
   it('low hostility with no treaty reads as neutral', () => {
     expect(getRelationFromHostility(10, false, false, false)).toBe(RelationStatus.NEUTRAL);
+  });
+});
+
+// Task 36: counter-building. de/fr/be/at reuse the same real-adjacency fixture as the war-decision
+// tests above — de borders fr, at, be for real (worldRegions.json).
+describe('chooseAIRecruitClass', () => {
+  const state = (overrides = {}) => ({
+    playerNationId: 'us',
+    wars: [],
+    nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } },
+    ...overrides
+  });
+
+  const unit = (ownerId, classId) => ({ ownerId, classId });
+
+  it('recruits the counter to its rival\'s dominant class — cavalry-heavy fr makes de build infantry', () => {
+    const units = {
+      u1: unit('fr', 'cavalry'), u2: unit('fr', 'cavalry'), u3: unit('fr', 'cavalry'), u4: unit('fr', 'ranged')
+    };
+    // de borders fr for real, and fr isn't the player, so fr is de's rival by neighbor fallback.
+    expect(chooseAIRecruitClass(state(), units, 'de', 'classical')).toBe('infantry');
+  });
+
+  it('recruits the counter to a ranged-heavy rival: cavalry', () => {
+    const units = { u1: unit('fr', 'ranged'), u2: unit('fr', 'ranged'), u3: unit('fr', 'infantry') };
+    expect(chooseAIRecruitClass(state(), units, 'de', 'classical')).toBe('cavalry');
+  });
+
+  it('prefers a live war opponent over a bordering nation as the rival to react to', () => {
+    // 'at' isn't even in this fixture's nations map, so the neighbor-fallback path could never
+    // reach it — only the war lookup can, proving war takes priority over bordering-nation fallback.
+    const units = { u1: unit('at', 'cavalry'), u2: unit('at', 'cavalry'), u3: unit('fr', 'ranged') };
+    const withWar = state({ wars: [{ enemy: 'at', aggressor: 'de', active: true }] });
+    expect(chooseAIRecruitClass(withWar, units, 'de', 'classical')).toBe('infantry');
+  });
+
+  it('falls back to infantry when the rival has no units yet', () => {
+    expect(chooseAIRecruitClass(state(), {}, 'de', 'classical')).toBe('infantry');
+  });
+
+  it('falls back to infantry when the rival\'s dominant class has no recruitable counter (e.g. all-support)', () => {
+    const units = { u1: unit('fr', 'support') };
+    expect(chooseAIRecruitClass(state(), units, 'de', 'classical')).toBe('infantry');
+  });
+
+  it('never recruits a class that is not yet available this age', () => {
+    // bronze has no siege counter for cavalry other than itself being beaten by cavalry — infantry
+    // is still the real counter and is available every age, so this just confirms no crash/undefined.
+    const units = { u1: unit('fr', 'cavalry') };
+    expect(chooseAIRecruitClass(state(), units, 'de', 'bronze')).toBe('infantry');
+  });
+});
+
+describe('processAIRecruitment', () => {
+  const alwaysRecruit = { next: () => 0 }; // always clears AI_RECRUIT_CHANCE
+  const neverRecruit = { next: () => 0.999 };
+
+  const baseState = () => ({
+    playerNationId: 'us',
+    wars: [],
+    turnNumber: 42,
+    nations: {
+      us: { id: 'us', isPlayer: true },
+      de: { id: 'de', isPlayer: false, isAtWar: false, militaryStrength: 5000 },
+      fr: { id: 'fr', isPlayer: false, isAtWar: false, militaryStrength: 2000 }
+    },
+    regions: {
+      de: { owner: 'de', currentPopulation: 1000 },
+      de2: { owner: 'de', currentPopulation: 5000 },
+      fr: { owner: 'fr', currentPopulation: 1000 }
+    }
+  });
+
+  it('recruits a real unit for a Tier 1 nation, spends militaryStrength, and places it in its most populous region', () => {
+    const state = baseState();
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const recruited = Object.values(result.units).find(u => u.ownerId === 'de');
+    expect(recruited).toBeDefined();
+    expect(recruited.regionId).toBe('de2'); // more populous than 'de'
+    expect(recruited.domain).toBe('land');
+    expect(result.nations.de.militaryStrength).toBe(5000 - 300);
+  });
+
+  it('does nothing for a Tier 2/3 nation (not in sortedByMilitary, no war, no player border)', () => {
+    const state = baseState();
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, [], 'classical', alwaysRecruit);
+    expect(Object.keys(result.units)).toHaveLength(0);
+  });
+
+  it('never recruits for the player', () => {
+    const state = baseState();
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['us'], 'classical', alwaysRecruit);
+    expect(Object.values(result.units).some(u => u.ownerId === 'us')).toBe(false);
+  });
+
+  it('does nothing when the roll fails', () => {
+    const state = baseState();
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', neverRecruit);
+    expect(Object.keys(result.units)).toHaveLength(0);
+    expect(result.nations.de.militaryStrength).toBe(5000);
+  });
+
+  it('refuses to recruit below the militaryStrength cost', () => {
+    const state = baseState();
+    state.nations.de.militaryStrength = 100;
+    const result = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    expect(Object.keys(result.units)).toHaveLength(0);
+  });
+
+  it('stops recruiting once a nation is at its standing-unit cap', () => {
+    const state = baseState();
+    const existing = {};
+    for (let i = 0; i < 8; i++) existing[`existing_${i}`] = { ownerId: 'de', classId: 'infantry' };
+    const result = processAIRecruitment(state, existing, state.nations, state.regions, ['de'], 'classical', alwaysRecruit);
+    const newOnes = Object.keys(result.units).filter(id => !existing[id]);
+    expect(newOnes).toHaveLength(0);
+  });
+
+  it('is deterministic given the same rng sequence', () => {
+    const state = baseState();
+    const a = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', createRng(7));
+    const b = processAIRecruitment(state, {}, state.nations, state.regions, ['de'], 'classical', createRng(7));
+    expect(a).toEqual(b);
   });
 });

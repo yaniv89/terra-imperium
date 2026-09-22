@@ -3,9 +3,7 @@
 // tiered decision loop (plan §8.5). 240 nations can't all think hard every turn, so only Tier 1
 // (at war, bordering the player, or top-20 by military) actually evaluates a war declaration each
 // turn; Tier 2/3 nations still get the passive growth/drift every nation gets, just nothing more
-// expensive. Counter-building (reading a rival's visible unit composition and recruiting the
-// counter) needs AI nations to have real recruited units in state.units first, which they don't
-// yet — that's real, separate follow-up work, not something this task fakes with a number bump.
+// expensive.
 //
 // Task 24 adds two things on top of that loop: difficulty scales every Tier 1 nation's war-roll
 // chance by state.difficultyMultiplier (src/data/difficulty.js's aiAggressionMult — set at game
@@ -16,14 +14,36 @@
 // prefer the leader as a target over any other neighbor. AI nations forming alliances with each
 // other is future work; this is the scripted "the world gangs up on the leader" behavior the plan
 // asks for using only the war-declaration machinery that already exists.
+//
+// Task 36 fills in what Task 23's header used to call out as missing: counter-building. Tier 1
+// nations now recruit real units into state.units (processAIRecruitment), and the class they pick
+// is read straight off the same beats/losesTo table combat actually resolves against
+// (src/data/unitClasses.js) — spam cavalry at a Tier 1 neighbor and its own recruiting starts
+// favoring infantry, the real counter, not a scripted response to "cavalry" by name.
 
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getNeighborIds } from '../data/regions';
 import { declareWar } from '../engine/diplomacy';
+import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
+
+// Naval/air are left out of AI recruitment for now — there's no AI amphibious or air-defense
+// logic yet to make use of them, so Tier 1 nations only ever build from the land triangle plus
+// siege until that exists.
+const AI_RECRUITABLE_CLASSES = ['infantry', 'cavalry', 'ranged', 'siege'];
+// Per-turn chance a single Tier 1 nation recruits one unit, and the militaryStrength cost of doing
+// so — spent from the same abstract stat processAllAINations already grows every turn, so
+// recruiting a real unit converts existing growth into a visible, counterable force rather than
+// creating power from nothing.
+const AI_RECRUIT_CHANCE = 0.35;
+const AI_RECRUIT_MILITARY_STRENGTH_COST = 300;
+// A standing cap per nation keeps state.units bounded across a 240-nation, centuries-long game —
+// once at the cap a nation stops recruiting until losses (combat, attrition) free up room, the
+// same way a real standing army is sized to what the state can support.
+const AI_MAX_STANDING_UNITS = 8;
 
 // Nations ranked by military strength enter Tier 1 regardless of geography — a great power's
 // moves matter globally, not just to its neighbors.
@@ -81,6 +101,93 @@ export const getSortedByMilitary = (state) =>
     .filter(n => !n.isPlayer)
     .sort((a, b) => b.militaryStrength - a.militaryStrength)
     .map(n => n.id);
+
+// The rival whose composition a Tier 1 nation actually reacts to: its live war opponent if it has
+// one, else the player if they're neighbors (the plan's "spam cavalry, neighbors field pikes"
+// example is specifically about the player), else its first real bordering nation. Returns null
+// for a nation with no war, no player border, and no neighbors at all (an island Tier-1 power).
+const getRivalId = (state, nationId) => {
+  const war = (state.wars || []).find(w => w.active && (w.enemy === nationId || w.aggressor === nationId));
+  if (war) return war.enemy === nationId ? war.aggressor : war.enemy;
+  const neighbors = getNeighborIds(nationId).filter(id => state.nations[id]);
+  if (neighbors.includes(state.playerNationId)) return state.playerNationId;
+  return neighbors[0] || null;
+};
+
+const countUnitsByClass = (units, ownerId) => {
+  const counts = {};
+  Object.values(units).forEach(u => {
+    if (u.ownerId !== ownerId) return;
+    counts[u.classId] = (counts[u.classId] || 0) + 1;
+  });
+  return counts;
+};
+
+const getDominantClass = (counts) => {
+  const entries = Object.entries(counts);
+  if (entries.length === 0) return null;
+  return entries.reduce((best, entry) => (entry[1] > best[1] ? entry : best), entries[0])[0];
+};
+
+// The class that beats `classId`, per the real counter table (src/data/unitClasses.js) — null if
+// nothing explicitly does (e.g. classId itself has no natural predator in the closed triangle).
+const getCounterClassFor = (classId) => UNIT_CLASS_IDS.find(id => UNIT_CLASSES[id].beats.includes(classId)) || null;
+
+// Which class a Tier 1 nation recruits next (plan §8.5's counter-building): the counter to its
+// rival's dominant class, if one exists, is recruitable by AI nations at all, and is available
+// this age — otherwise infantry, the cheap default backbone, or whatever's first available if even
+// that isn't unlocked yet.
+export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
+  const available = getAvailableClasses(ageId).filter(id => AI_RECRUITABLE_CLASSES.includes(id));
+  if (available.length === 0) return null;
+  const rivalId = getRivalId(state, nationId);
+  if (rivalId) {
+    const dominant = getDominantClass(countUnitsByClass(units, rivalId));
+    const counter = dominant ? getCounterClassFor(dominant) : null;
+    if (counter && available.includes(counter)) return counter;
+  }
+  return available.includes('infantry') ? 'infantry' : available[0];
+};
+
+// Tier 1 nations may each recruit one real land unit this turn (AI_RECRUIT_CHANCE), placed in
+// whichever of their own regions has the largest population — a reasonable stand-in for "capital"
+// since nations don't have one tracked explicitly. Spends AI_RECRUIT_MILITARY_STRENGTH_COST off
+// the nation's militaryStrength (already grown this turn by processAllAINations) and stops once a
+// nation holds AI_MAX_STANDING_UNITS. Pure: returns new `units`/`nations` maps rather than mutating
+// the ones passed in, exactly like processAIWarDecisions.
+export const processAIRecruitment = (state, units, nations, regions, sortedByMilitary, ageId, rng) => {
+  const nextUnits = { ...units };
+  const nextNations = { ...nations };
+  const logs = [];
+
+  Object.keys(nations).forEach(nationId => {
+    const nation = nextNations[nationId];
+    if (!nation || nation.isPlayer) return;
+    if (getNationTier({ ...state, nations: nextNations }, nationId, sortedByMilitary) !== 1) return;
+    if (nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
+    const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
+    if (standingCount >= AI_MAX_STANDING_UNITS) return;
+    if (rng.next() >= AI_RECRUIT_CHANCE) return;
+
+    const classId = chooseAIRecruitClass({ ...state, nations: nextNations }, nextUnits, nationId, ageId);
+    if (!classId) return;
+    const ownedRegionIds = Object.entries(regions).filter(([, r]) => r.owner === nationId).map(([id]) => id);
+    if (ownedRegionIds.length === 0) return;
+    const regionId = ownedRegionIds.reduce((best, id) =>
+      ((regions[id].currentPopulation || 0) > (regions[best].currentPopulation || 0) ? id : best), ownedRegionIds[0]);
+
+    const unitId = `unit_ai_${nationId}_${state.turnNumber}`;
+    nextUnits[unitId] = {
+      id: unitId, regionId, ownerId: nationId, domain: 'land', classId, ageId,
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100,
+      xp: 0, rank: 'recruit', promotions: [], commanderId: null,
+      transportCapacity: null, embarkedOn: null
+    };
+    nextNations[nationId] = { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
+  });
+
+  return { units: nextUnits, nations: nextNations, logs };
+};
 
 // Among a nation's bordering nations (including the player) not already at war, the weakest one
 // — "attacks the weakest valuable region reachable", not the nearest pixel, per the plan. A
