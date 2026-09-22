@@ -45,11 +45,14 @@ jobs:
         run: npx cap sync ios
 
       # Capacitor 8's iOS platform resolves plugins via Swift Package Manager (ios/App/CapApp-SPM),
-      # which Xcode fetches automatically during the build — no `pod install`/CocoaPods step needed.
+      # which Xcode fetches automatically during the build — no `pod install`/CocoaPods step, and
+      # (unlike a CocoaPods-based Capacitor project) no ios/App/App.xcworkspace either: SPM
+      # dependencies attach directly to the plain .xcodeproj, so this builds with -project, not
+      # -workspace (confirmed locally: only App.xcodeproj exists, no top-level .xcworkspace).
       - name: Build for the iOS Simulator (no code signing required)
         run: |
           xcodebuild build \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -sdk iphonesimulator \
             -configuration Debug \
