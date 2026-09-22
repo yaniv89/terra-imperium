@@ -16,7 +16,7 @@ import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal } from '../utils/helpers';
-import { processAllAINations, processAIWarDecisions, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
+import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
@@ -177,11 +177,22 @@ export const resolveTurn = (state) => {
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
 
+  // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
+  // affordable across 240 nations.
+  const sortedByMilitary = getSortedByMilitary({ ...state, nations });
+
+  // --- AI recruitment (plan §8.5's counter-building, Task 36): Tier 1 nations turn some of their
+  // abstract militaryStrength growth into real, counterable units in state.units — recruiting
+  // whatever class beats their most relevant rival's dominant class. Uses the calendar age, not a
+  // per-nation tech age (AI nations don't track one independently). ---
+  const recruitment = processAIRecruitment({ ...state, nations }, units, nations, regions, sortedByMilitary, newAge, rng);
+  Object.assign(units, recruitment.units);
+  Object.assign(nations, recruitment.nations);
+  logs.push(...recruitment.logs.map(l => ({ year: newYear, ...l })));
+
   // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
   // player, or a top-20 military power) may each declare one war this turn against a weaker
-  // neighbor, biased by doctrine and hostility. sortedByMilitary is computed once here, not per
-  // nation, to keep this affordable across 240 nations.
-  const sortedByMilitary = getSortedByMilitary({ ...state, nations });
+  // neighbor, biased by doctrine and hostility. ---
   const warDecisions = processAIWarDecisions({ ...state, nations }, nations, state.wars, sortedByMilitary, rng);
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;

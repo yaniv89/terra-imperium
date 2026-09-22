@@ -1,15 +1,8 @@
 // src/engine/aiQualityBenchmark.test.js
 // Plan §13's "AI quality benchmark": automated AI-vs-AI matches asserting (a) turn resolution for
-// 240 nations stays under a time budget, and (c) no runaway — at Prince difficulty, no single
-// nation should hold most of the map after a long run in most seeds.
-//
-// Item (b) — "the AI actually counter-builds: feed it a cavalry-heavy opponent, assert its pike
-// ratio rises" — is NOT implemented here. It has a real prerequisite that doesn't exist yet: AI
-// nations don't recruit actual classed units into state.units at all (aiLogic.js's own header
-// comment has said so since Task 23) — militaryStrength is a single scalar, not a composition of
-// unit classes, so there is no "pike ratio" to assert on. Building that (giving 240 AI nations
-// real recruited unit compositions that react to what they perceive) is a genuine new AI
-// capability, not a test to write against what already exists — tracked as a separate follow-up.
+// 240 nations stays under a time budget, (b) the AI actually counter-builds, and (c) no runaway —
+// at Prince difficulty, no single nation should hold most of the map after a long run in most
+// seeds.
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
@@ -60,6 +53,61 @@ describe('AI quality benchmark: turn resolution time budget', () => {
     runTurns(state, TURNS);
     const elapsed = performance.now() - start;
     expect(elapsed, `resolving ${TURNS} turns took ${elapsed.toFixed(0)}ms, over the ${BUDGET_MS}ms budget`).toBeLessThan(BUDGET_MS);
+  }, 20000);
+});
+
+describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
+  // fr borders de for real (worldRegions.json) and, in Phase A's one-region-per-nation model,
+  // playing as fr means de is bordering the player and therefore Tier 1 (aiLogic.js's
+  // getNationTier) on every single turn — no reliance on military ranking or an existing war.
+  // getRivalId (aiLogic.js) resolves a Tier-1 nation's rival to a war opponent first, else the
+  // player if bordering — so de's rival here is deterministically the player, exactly the plan's
+  // own example ("spam cavalry at your neighbor, they start fielding pikes").
+  const PLAYER_ID = 'fr';
+  const RIVAL_AI_ID = 'de';
+  const CAVALRY_UNIT_COUNT = 6;
+
+  // de declaring or receiving its own unrelated war would swap its rival away from the player
+  // (getRivalId prefers a live war opponent) and confound the assertion below — isolationist has
+  // the lowest warRollMult in the game (0.02) and low hostility keeps the roll chance negligible
+  // over the run, without touching the recruitment mechanism under test at all.
+  const seedCavalryOpponent = (state) => {
+    const seededUnits = {};
+    for (let i = 0; i < CAVALRY_UNIT_COUNT; i++) {
+      seededUnits[`seed_cav_${i}`] = {
+        id: `seed_cav_${i}`, regionId: PLAYER_ID, ownerId: PLAYER_ID, domain: 'land',
+        classId: 'cavalry', ageId: state.age, strength: 1000, maxStrength: 1000, morale: 100,
+        organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null,
+        transportCapacity: null, embarkedOn: null
+      };
+    }
+    return {
+      ...state,
+      units: { ...state.units, ...seededUnits },
+      nations: {
+        ...state.nations,
+        [RIVAL_AI_ID]: { ...state.nations[RIVAL_AI_ID], doctrine: 'isolationist', hostility: 0 }
+      }
+    };
+  };
+
+  it('an AI nation shifts its own recruiting toward infantry when its player neighbor fields cavalry', () => {
+    const TRIALS = 5;
+    const TURNS = 80;
+    let recruitedNothing = 0;
+    let failedToCounter = 0;
+
+    for (let t = 0; t < TRIALS; t++) {
+      const state = seedCavalryOpponent(freshWorld(PLAYER_ID));
+      const final = runTurns(state, TURNS);
+      const rivalUnits = Object.values(final.units).filter(u => u.ownerId === RIVAL_AI_ID);
+      if (rivalUnits.length === 0) { recruitedNothing++; continue; }
+      const infantryRatio = rivalUnits.filter(u => u.classId === 'infantry').length / rivalUnits.length;
+      if (infantryRatio < 0.5) failedToCounter++;
+    }
+
+    expect(recruitedNothing, `${RIVAL_AI_ID} recruited nothing in ${recruitedNothing}/${TRIALS} trials`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
+    expect(failedToCounter, `${RIVAL_AI_ID}'s infantry ratio was below 50% in ${failedToCounter}/${TRIALS} trials that did recruit`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
   }, 20000);
 });
 
