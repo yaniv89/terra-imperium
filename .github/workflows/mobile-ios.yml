@@ -60,10 +60,16 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
   # Store-readiness groundwork, mirroring the Android signing scaffold's own gated pattern
-  # (android/app/build.gradle's hasKeystoreProperties): this job only runs once APPLE_TEAM_ID
+  # (android/app/build.gradle's hasKeystoreProperties): release-ios only runs once APPLE_TEAM_ID
   # exists as a repo secret, so it's a complete no-op — doesn't even start — until someone actually
   # sets up a real Apple Developer distribution certificate and provisioning profile. The
-  # simulator build above stays exactly as it was either way, unaffected by whether this job runs.
+  # simulator build above stays exactly as it was either way, unaffected by whether it runs.
+  #
+  # A job-level `if:` can't reference `secrets` directly (GitHub Actions rejects the whole
+  # workflow file at parse time with "Unrecognized named-value: 'secrets'" if you try) — only a
+  # STEP inside an already-running job can read secrets. So this tiny job checks it in a step (on
+  # the cheap ubuntu runner, not macOS) and exposes the result as an output; release-ios then
+  # gates on that output instead.
   #
   # Activating this for real needs 4 repo secrets, none of which exist yet:
   # - APPLE_TEAM_ID: the 10-character Apple Developer Team ID.
@@ -72,9 +78,18 @@ jobs:
   #   it was exported with.
   # - APPLE_PROVISIONING_PROFILE_BASE64: an App Store provisioning profile for
   #   com.terraimperium.app (capacitor.config.json's appId), base64-encoded the same way.
+  check-signing-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      has_signing: ${{ steps.check.outputs.has_signing }}
+    steps:
+      - id: check
+        run: echo "has_signing=${{ secrets.APPLE_TEAM_ID != '' }}" >> "$GITHUB_OUTPUT"
+
   release-ios:
+    needs: check-signing-secrets
+    if: ${{ needs.check-signing-secrets.outputs.has_signing == 'true' }}
     runs-on: macos-latest
-    if: ${{ secrets.APPLE_TEAM_ID != '' }}
     steps:
       - uses: actions/checkout@v4
 
