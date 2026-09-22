@@ -2,13 +2,13 @@
 // Main game header with title, nation, age/year, resources, and end turn button
 
 import React, { useRef } from 'react';
-import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload } from 'lucide-react';
+import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { AGES } from '../../data/ages';
 import ResourceBar from './ResourceBar';
 
-const GameHeader = ({ onReset }) => {
+const GameHeader = ({ onReset, onOpenSettings }) => {
   const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
   const fileInputRef = useRef(null);
 
@@ -91,6 +91,14 @@ const GameHeader = ({ onReset }) => {
             onChange={handleImportFile}
             className="hidden"
           />
+
+          <button
+            onClick={onOpenSettings}
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+            title="Cloud Saves"
+          >
+            <Cloud className="w-4 h-4" />
+          </button>
 
           <button
             onClick={onReset}
