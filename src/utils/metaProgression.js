@@ -5,7 +5,7 @@
 
 const META_KEY = 'terra-imperium-meta-v1';
 
-const DEFAULT_META = { unlockedAchievements: [], selectedDoctrine: 'none', difficulty: 'prince' };
+const DEFAULT_META = { unlockedAchievements: [], selectedDoctrine: 'none', difficulty: 'prince', hasSeenOnboarding: false };
 
 export const loadMeta = () => {
   try {
@@ -17,7 +17,11 @@ export const loadMeta = () => {
       selectedDoctrine: typeof parsed?.selectedDoctrine === 'string' ? parsed.selectedDoctrine : 'none',
       // 'prince' is the fully-symmetrical, no-op difficulty — a fresh key on an old save falls
       // back to it.
-      difficulty: typeof parsed?.difficulty === 'string' ? parsed.difficulty : 'prince'
+      difficulty: typeof parsed?.difficulty === 'string' ? parsed.difficulty : 'prince',
+      // Missing on any meta saved before the onboarding overlay existed — those are all genuinely
+      // returning players, so defaulting to false (never seen it) would wrongly show newcomer
+      // onboarding to them. true is the safe default for "we don't know" here specifically.
+      hasSeenOnboarding: typeof parsed?.hasSeenOnboarding === 'boolean' ? parsed.hasSeenOnboarding : true
     };
   } catch (e) {
     return { ...DEFAULT_META };

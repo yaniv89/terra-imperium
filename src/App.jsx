@@ -7,14 +7,14 @@ import { EffectsProvider } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal } from './components/modals';
+import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 
 // Main game layout component
 const GameLayout = () => {
-  const { state, resolveEvent, resetGame, exportSave, importSave } = useGame();
+  const { state, resolveEvent, resetGame, exportSave, importSave, meta, completeOnboarding } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
@@ -116,6 +116,11 @@ const GameLayout = () => {
         exportSave={exportSave}
         importSave={importSave}
       />
+
+      {/* Onboarding (Phase H) - once ever, per browser, for a genuinely new player. Sits above
+          the event modal (z-[70] vs z-50) as a defensive measure, though a fresh game's turn 0
+          can't have a scripted/procedural event pending yet in practice. */}
+      {!meta.hasSeenOnboarding && <OnboardingOverlay onComplete={completeOnboarding} />}
     </div>
   );
 };
