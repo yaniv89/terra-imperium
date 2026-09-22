@@ -17,7 +17,8 @@
     "fetch:geo": "node scripts/geo/fetch-raw.mjs",
     "build:geo": "node scripts/geo/build.mjs",
     "build:mobile": "vite build --config vite.config.mobile.js",
-    "cap:sync": "npm run build:mobile && npx cap sync"
+    "cap:sync": "npm run build:mobile && npx cap sync",
+    "build:edge": "node scripts/build-edge-engine.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -37,6 +38,7 @@
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
     "autoprefixer": "^10.4.14",
+    "esbuild": "^0.18.20",
     "eslint": "^8.45.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",

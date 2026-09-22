@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.js']
+    // scripts/**/*.test.mjs: build-tooling tests (e.g. the Supabase Edge Function's bundling
+    // step) that test a script under scripts/, not app source — kept alongside their target
+    // rather than moved into src/.
+    include: ['src/**/*.test.js', 'scripts/**/*.test.mjs']
   }
 });

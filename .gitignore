@@ -15,3 +15,7 @@ www
 test-results
 playwright-report
 blob-report
+
+# Phase F server-authoritative resolution (plan §10): the Supabase Edge Function's bundled engine,
+# regenerable via `npm run build:edge` (scripts/build-edge-engine.mjs) — never hand-edited.
+supabase/functions/resolve-turn/_engine.bundle.js

@@ -17,7 +17,9 @@ module.exports = {
   // bundle (minified, not source) into android/app/src/main/assets/public and
   // ios/App/App/public, which ESLint would otherwise choke on. www: the mobile build's own
   // output directory (npm run build:mobile), same reasoning as dist/docs for the web build.
-  ignorePatterns: ['dist', 'docs', 'node_modules', 'android', 'ios', 'www'],
+  // supabase/functions/**/_engine.bundle.js: the Supabase Edge Function's bundled engine (npm run
+  // build:edge) — a build artifact, not source, same reasoning again.
+  ignorePatterns: ['dist', 'docs', 'node_modules', 'android', 'ios', 'www', 'supabase/functions/**/_engine.bundle.js'],
   rules: {
     'react/prop-types': 'off',
     'react/react-in-jsx-scope': 'off',
