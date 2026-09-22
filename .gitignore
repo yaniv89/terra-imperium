@@ -5,3 +5,8 @@ node_modules
 # committed.
 scripts/geo/.raw
 scripts/geo/.tmp
+
+# Mobile (Phase E): the Capacitor web bundle (`npm run build:mobile`) is a regenerable build
+# artifact copied into android/ and ios/ by `npx cap sync` — unlike docs/ (committed, for GitHub
+# Pages hosting), this one is never meant to be served or committed directly.
+www
