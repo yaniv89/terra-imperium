@@ -115,6 +115,14 @@ export const GameProvider = ({ children }) => {
     });
   }, []);
 
+  const completeOnboarding = useCallback(() => {
+    setMeta(prev => {
+      const updated = { ...prev, hasSeenOnboarding: true };
+      saveMeta(updated);
+      return updated;
+    });
+  }, []);
+
   const addLog = useCallback((message, type = LogTypes.ACTION) => {
     dispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
   }, []);
@@ -175,8 +183,9 @@ export const GameProvider = ({ children }) => {
     importSave,
     meta,
     selectDoctrine,
-    selectDifficulty
-  }), [state, addLog, advanceTurn, fastForward, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty]);
+    selectDifficulty,
+    completeOnboarding
+  }), [state, addLog, advanceTurn, fastForward, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
 
   return (
     <GameContext.Provider value={contextValue}>

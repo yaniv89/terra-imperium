@@ -6,3 +6,4 @@ export { default as RegionInfoModal } from './RegionInfoModal';
 export { default as GameOverModal } from './GameOverModal';
 export { default as BattleSummaryToast } from './BattleSummaryToast';
 export { default as SettingsModal } from './SettingsModal';
+export { default as OnboardingOverlay } from './OnboardingOverlay';
