@@ -15,7 +15,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getMaxActionPoints } from '../utils/helpers';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
@@ -28,7 +28,7 @@ import {
 import { createRng } from '../utils/rng';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
-import { ORBITAL_DEBRIS_DECAY_PER_TURN } from '../data/actionCosts';
+import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -54,14 +54,30 @@ export const resolveTurn = (state) => {
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
 
+  // --- army maintenance ---
+  // A flat per-turn gold upkeep per player-owned unit (UNIT_UPKEEP_GOLD_PER_TURN, actionCosts.js):
+  // RECRUIT_UNIT/DISBAND_UNIT only ever charged a one-time cost, so a standing army was free to hold
+  // once raised — this makes army size a real, continuous tradeoff against everything else gold
+  // buys, not just a one-time purchase. AI nations aren't charged this: they have no simulated gold
+  // economy of their own (calcIncome only computes the player's), and their fielded-army size is
+  // already bounded by aiLogic.js's own age-scaled standing-unit cap.
+  const playerUnitCount = Object.values(state.units).filter(u => u.ownerId === state.playerNationId).length;
+  const upkeepCost = playerUnitCount * UNIT_UPKEEP_GOLD_PER_TURN;
+  if (upkeepCost > 0) {
+    resources.gold = Math.max(0, resources.gold - upkeepCost);
+    logs.push({ year: newYear, message: `Army upkeep: -${formatMoney(upkeepCost)} (${playerUnitCount} unit${playerUnitCount === 1 ? '' : 's'})`, type: LogTypes.ACTION });
+  }
+
   // Action points refresh to the nation's per-turn budget every turn. actionPoints isn't in
   // RESOURCE_IDS (createEmptyResourcePool never touches it) and calcIncome never returns it either
   // — without this explicit reset, whatever's left of the 3 a fresh game starts with would be the
   // player's entire budget for all ~500 turns, since the spread above only ever carries the
-  // PREVIOUS turn's leftover forward. maxActionPoints itself is a flat 3 today (createInitialState)
-  // but reading it here rather than hardcoding 3 means a later difficulty/tech bonus to it would
-  // take effect immediately, with no other change needed.
-  resources.actionPoints = resources.maxActionPoints || 3;
+  // PREVIOUS turn's leftover forward. getMaxActionPoints (Administrative Capacity) is recomputed
+  // fresh from current government/tech every turn rather than read from a stored field, so adopting
+  // a government or finishing a Governance tech takes effect on the very next turn automatically.
+  const maxActionPoints = getMaxActionPoints(state);
+  resources.maxActionPoints = maxActionPoints;
+  resources.actionPoints = maxActionPoints;
 
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
   // nation's own territory is subject to) ---

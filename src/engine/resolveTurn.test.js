@@ -8,6 +8,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
 import { getNationCapital } from '../data/regions';
+import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -143,6 +144,52 @@ describe('resolveTurn resource income', () => {
       state = resolveTurn(state);
     }
     expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints);
+  });
+});
+
+// Regression/feature: RECRUIT_UNIT/DISBAND_UNIT only ever charged a one-time cost — a standing
+// army was free to hold once raised. UNIT_UPKEEP_GOLD_PER_TURN (actionCosts.js) makes fielding an
+// army a real, continuous tradeoff instead.
+describe('resolveTurn army maintenance', () => {
+  const fakeUnit = (id) => ({
+    id, ownerId: 'fr', regionId: cap('fr'), domain: 'land', classId: 'infantry', ageId: 'bronze',
+    strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit',
+    promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+  });
+  const withUnits = (count) => {
+    const units = {};
+    for (let i = 0; i < count; i++) units[`unit_${i}`] = fakeUnit(`unit_${i}`);
+    return { ...withAllEventsFired(createInitialState({ playerNationId: 'fr' })), units };
+  };
+
+  it('charges no upkeep, and logs none, with no units fielded', () => {
+    const state = withUnits(0);
+    const next = resolveTurn(state);
+    expect(next.logs.some(l => l.message.includes('Army upkeep'))).toBe(false);
+  });
+
+  it('deducts UNIT_UPKEEP_GOLD_PER_TURN per player-owned unit, on top of ordinary income', () => {
+    // Equalize starting gold so the two scenarios' outcomes differ by exactly the upkeep, not by
+    // any unrelated income difference — recruiting units doesn't itself change region income.
+    const base = { ...withUnits(0), resources: { ...withUnits(0).resources, gold: 5000 } };
+    const withArmy = { ...withUnits(3), resources: { ...withUnits(3).resources, gold: 5000 } };
+    const nextBase = resolveTurn(base);
+    const nextArmy = resolveTurn(withArmy);
+    expect(nextBase.resources.gold - nextArmy.resources.gold).toBe(3 * UNIT_UPKEEP_GOLD_PER_TURN);
+    expect(nextArmy.logs.some(l => l.message.includes('Army upkeep: -15g (3 units)'))).toBe(true);
+  });
+
+  it('never charges upkeep for another nation\'s units', () => {
+    const state = withUnits(0);
+    state.units.enemy_unit = { ...fakeUnit('enemy_unit'), ownerId: 'de' };
+    const next = resolveTurn(state);
+    expect(next.logs.some(l => l.message.includes('Army upkeep'))).toBe(false);
+  });
+
+  it('floors gold at zero rather than going negative from upkeep', () => {
+    const state = { ...withUnits(1000), resources: { ...withUnits(1000).resources, gold: 0 } };
+    const next = resolveTurn(state);
+    expect(next.resources.gold).toBeGreaterThanOrEqual(0);
   });
 });
 

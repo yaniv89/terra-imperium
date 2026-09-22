@@ -20,7 +20,7 @@ import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk
 import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
-import { canAfford, formatNumber } from '../../utils/helpers';
+import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
 // Every region a unit could move to right now: land-adjacent always, plus (for naval units) every
@@ -82,10 +82,12 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, ACTION_COSTS.recruitUnit)) return addLog('Not enough resources', 'action');
-    triggerEffect('recruit_unit', { region: selectedRegion });
+    triggerEffect('recruit_unit', { region: selectedRegion, variant: classId });
     dispatch({ type: ActionTypes.RECRUIT_UNIT, payload: { regionId: selectedRegion, classId } });
   };
   const handleDisband = (unitId) => {
+    const unit = state.units[unitId];
+    if (unit) triggerEffect('disband_unit', { region: unit.regionId, variant: unit.classId });
     dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
   };
   const handleMove = (unitId, toRegionId) => {
@@ -149,7 +151,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
       </div>
       <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
         <div className="text-slate-400">Military Strength</div>
-        <div className="text-white font-semibold text-xl">{formatNumber(playerNation?.militaryStrength || 0)}</div>
+        <div className="text-white font-semibold text-xl">{formatNumber(getFieldedStrength(state, state.playerNationId))}</div>
       </div>
       <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
         <div className="text-slate-400 mb-1">Active Wars</div>

@@ -5,7 +5,7 @@ import React from 'react';
 import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
-import { formatNumber, getControlColor, getRelationColor } from '../../utils/helpers';
+import { formatNumber, getControlColor, getRelationColor, getFieldedStrength } from '../../utils/helpers';
 import ProgressBar from '../ui/ProgressBar';
 
 const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
@@ -125,7 +125,7 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
               <Swords className="w-3 h-3" /> Military:
             </span>
             <span className="font-mono text-red-400">
-              {formatNumber(ownerNation.militaryStrength)}
+              {formatNumber(getFieldedStrength(state, regionState.owner))}
             </span>
           </div>
 

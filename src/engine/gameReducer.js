@@ -16,6 +16,7 @@ import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, ge
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
+import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, clampIdentity } from '../data/identity';
 import { POLICIES } from '../data/policies';
 import { declareWar, hasCasusBelli, isWarBetween } from './diplomacy';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -30,7 +31,10 @@ import {
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
   UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
-  POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE
+  POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE,
+  ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE,
+  COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
+  CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
@@ -89,7 +93,13 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       unrest: 0,
       // Built-up defense from the Build Defenses action — separate from REGIONS_DATA's static
       // `fortification` seed value; Phase C's combat system will read both once it exists.
-      defenseLevel: 0
+      defenseLevel: 0,
+      // Built-up resilience from the Build Climate Resilience action (Modern age) — raises the
+      // threshold proceduralEvents.js's harsh_winter/failed_harvest templates gate on, the same way
+      // defenseLevel already gates frontier_raiders. Closes the loop the plan's climate_stress world
+      // event otherwise left one-way: investing here measurably reduces future weather/disaster
+      // exposure instead of only ever reacting to it after the fact.
+      climateResilience: 0
     };
   });
 
@@ -126,6 +136,20 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // Set Tax Rate (plan §5) — every nation gets a rate so calcIncome/nextUnrest can read any
       // nation's generically; only the player can change theirs today.
       taxRate: DEFAULT_TAX_RATE,
+
+      // National Identity (added alongside Government/Policies, but a separate axis — see
+      // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY
+      // rather than adopted outright, feeding the same getNationBonusTotal hooks government/policy/
+      // wonders already use. Every nation carries the field for the same generic-read reason as
+      // government/policies/taxRate above; only the player can shift theirs today.
+      identity: { collectivism: 0, secularism: 0, globalism: 0 },
+      // Cultural Export (Modern age, CULTURAL_EXPORT action) — a "Great Innovator"-style prestige
+      // score for culture rather than tech: a persistent, ever-growing soft-power total on top of
+      // the one-shot hostility reduction the action also grants. Real mechanical teeth: aiLogic.js's
+      // coalition-vs-runaway-leader check discounts its own eagerness to strike a leader by their
+      // culturalInfluence (getCulturalCoalitionDiscount) — soft power genuinely buys down the world
+      // ganging up on you, without defeating that anti-snowball check outright.
+      culturalInfluence: 0,
 
       // Missiles and ABM defense (plan §10.4 Layer 2) — a flat stockpile per tier, not individual
       // unit objects, since a missile has no position/movement of its own before it's fired.
@@ -335,6 +359,48 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: { ...state.regions, [regionId]: { ...region, defenseLevel: region.defenseLevel + 1 } },
         logs: [...state.logs, { year: state.year, message: `Built defenses in ${REGIONS_DATA[regionId]?.name}. Level ${region.defenseLevel + 1}`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.BUILD_CLIMATE_RESILIENCE: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const costs = ACTION_COSTS.buildClimateResilience;
+      if (!region || region.owner !== state.playerNationId || (region.climateResilience || 0) >= CLIMATE_RESILIENCE_MAX) return state;
+      if (getEffectiveAgeId(state.age, state.techAgeId) !== 'modern') return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextLevel = (region.climateResilience || 0) + 1;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [regionId]: { ...region, climateResilience: nextLevel } },
+        logs: [...state.logs, { year: state.year, message: `Built climate resilience infrastructure in ${REGIONS_DATA[regionId]?.name}. Level ${nextLevel}`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.CULTURAL_EXPORT: {
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.culturalExport;
+      if (getEffectiveAgeId(state.age, state.techAgeId) !== 'modern') return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextInfluence = (nation.culturalInfluence || 0) + CULTURAL_EXPORT_INFLUENCE_GAIN;
+      const nextNations = {
+        ...state.nations,
+        [state.playerNationId]: { ...nation, culturalInfluence: nextInfluence }
+      };
+      // Broad soft power: every other nation's hostility eases slightly, not just one chosen target.
+      Object.values(state.nations).forEach((n) => {
+        if (n.isPlayer) return;
+        nextNations[n.id] = {
+          ...nextNations[n.id],
+          hostility: Math.max(n.hostilityFloor || 0, n.hostility - CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION)
+        };
+      });
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: nextNations,
+        logs: [...state.logs, { year: state.year, message: `Your culture spreads abroad, easing tensions worldwide. Cultural Influence: ${nextInfluence}.`, type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -644,10 +710,18 @@ export const gameReducer = (state, action) => {
         transportCapacity: isNaval ? NAVAL_TRANSPORT_CAPACITY : null,
         embarkedOn: null
       };
+      const recruitingNation = state.nations[state.playerNationId];
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: newUnit },
+        nations: {
+          ...state.nations,
+          // Every other reader of militaryStrength (AI tiering, coalition thresholds, a
+          // destroy_military war goal against the player) needs it to actually reflect the
+          // player's real recruited army, not sit frozen at its game-start value forever.
+          [state.playerNationId]: { ...recruitingNation, militaryStrength: (recruitingNation.militaryStrength || 0) + newUnit.strength }
+        },
         nextUnitSeq: state.nextUnitSeq + 1,
         logs: [...state.logs, { year: state.year, message: `Recruited a new ${classId} unit in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
       };
@@ -666,9 +740,14 @@ export const gameReducer = (state, action) => {
           if (u.embarkedOn === unitId) remainingUnits[u.id] = { ...u, embarkedOn: null };
         });
       }
+      const disbandingNation = state.nations[state.playerNationId];
       return {
         ...state,
         resources: { ...state.resources, hr: (state.resources.hr || 0) + refundHr },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...disbandingNation, militaryStrength: Math.max(0, (disbandingNation.militaryStrength || 0) - unit.strength) }
+        },
         units: remainingUnits,
         logs: [...state.logs, { year: state.year, message: `Disbanded a ${unit.classId} unit. +${refundHr} HR`, type: LogTypes.ACTION }]
       };
@@ -1125,6 +1204,28 @@ export const gameReducer = (state, action) => {
       };
     }
 
+    case ActionTypes.SHIFT_IDENTITY: {
+      const { axis, direction } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const axisSpec = IDENTITY_AXES[axis];
+      const costs = ACTION_COSTS.shiftIdentity;
+      if (!axisSpec || (direction !== 1 && direction !== -1)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const currentValue = nation.identity?.[axis] || 0;
+      const nextValue = clampIdentity(currentValue + direction * IDENTITY_SHIFT_STEP);
+      if (nextValue === currentValue) return state;
+      const poleName = direction > 0 ? axisSpec.positivePole : axisSpec.negativePole;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, identity: { ...nation.identity, [axis]: nextValue } }
+        },
+        logs: [...state.logs, { year: state.year, message: `Your nation leans further ${poleName}.`, type: LogTypes.ACTION }]
+      };
+    }
+
     case ActionTypes.REMOVE_POLICY: {
       const { policyId } = action.payload;
       const nation = state.nations[state.playerNationId];
@@ -1254,6 +1355,50 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         nations: { ...state.nations, [nationId]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - GIFT_HOSTILITY_REDUCTION) } },
         logs: [...state.logs, { year: state.year, message: `Sent a gift to ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Espionage/Counter-Intelligence (types.js's header on this pair): a real coin-flip covert
+    // operation against a chosen nation, and a real defensive action that catches whoever's
+    // currently most hostile toward you — see ESPIONAGE_SUCCESS_CHANCE etc., actionCosts.js.
+    case ActionTypes.ESPIONAGE: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.espionage;
+      if (!target) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const rng = createRng(state.rngSeed);
+      const success = rng.next() < ESPIONAGE_SUCCESS_CHANCE;
+      const resourcesAfterCost = applyCosts(state.resources, costs);
+      if (success) {
+        return {
+          ...state,
+          resources: { ...resourcesAfterCost, techPoints: (resourcesAfterCost.techPoints || 0) + ESPIONAGE_TECH_POINTS_STOLEN },
+          rngSeed: rng.getSeed(),
+          logs: [...state.logs, { year: state.year, message: `Your agents stole technological secrets from ${target.name}. +${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points.`, type: LogTypes.DIPLOMACY }]
+        };
+      }
+      return {
+        ...state,
+        resources: resourcesAfterCost,
+        nations: { ...state.nations, [nationId]: { ...target, hostility: Math.min(100, target.hostility + ESPIONAGE_FAILURE_HOSTILITY_INCREASE) } },
+        rngSeed: rng.getSeed(),
+        logs: [...state.logs, { year: state.year, message: `Your spies were caught in ${target.name}! Relations have soured.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.COUNTER_INTELLIGENCE: {
+      const costs = ACTION_COSTS.counterIntelligence;
+      if (!canAfford(state.resources, costs)) return state;
+      const candidates = Object.values(state.nations).filter(n => !n.isPlayer);
+      if (candidates.length === 0) return state;
+      const target = candidates.reduce((max, n) => (n.hostility > max.hostility ? n : max), candidates[0]);
+      const resourcesAfterCost = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...resourcesAfterCost, diplomacyPoints: (resourcesAfterCost.diplomacyPoints || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
+        nations: { ...state.nations, [target.id]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - COUNTER_INTEL_HOSTILITY_REDUCTION) } },
+        logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} Diplomacy Points.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

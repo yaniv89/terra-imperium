@@ -7,6 +7,9 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
 import { getNationCapital } from '../data/regions';
+import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD } from '../data/actionCosts';
+import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
+import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -146,6 +149,34 @@ describe('Domestic tab actions', () => {
       const state = richState();
       const maxed = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], defenseLevel: 10 } } };
       expect(gameReducer(maxed, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: cap('fr') } })).toBe(maxed);
+    });
+  });
+
+  describe('BUILD_CLIMATE_RESILIENCE', () => {
+    // Modern-age-only, unlike Build Defenses — richState() above starts in the Bronze Age.
+    const modernState = () => ({ ...richState(), age: 'modern', techAgeId: 'modern' });
+
+    it('raises climateResilience and deducts the cost', () => {
+      const state = modernState();
+      const next = gameReducer(state, { type: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].climateResilience).toBe(1);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op before the Modern Age', () => {
+      const state = richState(); // Bronze Age
+      expect(gameReducer(state, { type: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cap('fr') } })).toBe(state);
+    });
+
+    it('is a no-op at the level cap', () => {
+      const state = modernState();
+      const maxed = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], climateResilience: CLIMATE_RESILIENCE_MAX } } };
+      expect(gameReducer(maxed, { type: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cap('fr') } })).toBe(maxed);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...modernState(), resources: { ...modernState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cap('fr') } })).toBe(state);
     });
   });
 
@@ -570,6 +601,17 @@ describe('Military tab actions', () => {
       expect(next.resources.hr).toBeLessThan(state.resources.hr);
     });
 
+    // Regression: militaryStrength (the "power" stat shown in the header) never moved for the
+    // player on recruit/disband — only the AI's passive-growth path touched it — so a player could
+    // train an entire army and see their own displayed power sit frozen forever.
+    it('raises the player\'s militaryStrength by the new unit\'s strength', () => {
+      const state = richState();
+      const before = state.nations.fr.militaryStrength;
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
+      const unit = Object.values(next.units)[0];
+      expect(next.nations.fr.militaryStrength).toBe(before + unit.strength);
+    });
+
     it('sets domain to naval for the naval class', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
@@ -607,6 +649,14 @@ describe('Military tab actions', () => {
       const next = gameReducer(state, { type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
       expect(next.units[unitId]).toBeUndefined();
       expect(next.resources.hr).toBeGreaterThan(state.resources.hr);
+    });
+
+    it('lowers the player\'s militaryStrength by the disbanded unit\'s strength', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const before = state.nations.fr.militaryStrength;
+      const next = gameReducer(state, { type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
+      expect(next.nations.fr.militaryStrength).toBe(before - state.units[unitId].strength);
     });
 
     it('is a no-op for a unit that does not exist', () => {
@@ -1343,6 +1393,44 @@ describe('Government and policy actions', () => {
       expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
     });
   });
+
+  describe('SHIFT_IDENTITY', () => {
+    it('shifts the named axis by IDENTITY_SHIFT_STEP in the given direction and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } });
+      expect(next.nations.fr.identity.collectivism).toBe(IDENTITY_SHIFT_STEP);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('shifts in the negative direction too, and other axes stay untouched', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'globalism', direction: -1 } });
+      expect(next.nations.fr.identity.globalism).toBe(-IDENTITY_SHIFT_STEP);
+      expect(next.nations.fr.identity.collectivism).toBe(0);
+      expect(next.nations.fr.identity.secularism).toBe(0);
+    });
+
+    it('is a no-op once already at the max/min bound', () => {
+      const maxed = { ...richState() };
+      maxed.nations = { ...maxed.nations, fr: { ...maxed.nations.fr, identity: { ...maxed.nations.fr.identity, collectivism: IDENTITY_MAX } } };
+      expect(gameReducer(maxed, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } })).toBe(maxed);
+    });
+
+    it('is a no-op for an unknown axis', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'not_a_real_axis', direction: 1 } })).toBe(state);
+    });
+
+    it('is a no-op for an invalid direction', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 0 } })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } })).toBe(state);
+    });
+  });
 });
 
 describe('Diplomacy tab actions', () => {
@@ -1536,6 +1624,125 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op when unaffordable', () => {
       const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
       expect(gameReducer(state, { type: ActionTypes.GIFT_BRIBE, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  // Espionage/Counter-Intelligence (types.js's header comment): a real pair added together since
+  // Counter-Intelligence would have nothing to counter without a real Espionage action to go with
+  // it. rngSeed 7/1 are pinned seeds whose first createRng().next() call falls below/above
+  // ESPIONAGE_SUCCESS_CHANCE (0.6), found by direct computation against src/utils/rng.js — not
+  // arbitrary, so these tests exercise both branches deterministically rather than flaking.
+  describe('ESPIONAGE', () => {
+    it('on success, steals tech points and deducts the cost without raising hostility', () => {
+      const state = { ...richState(), rngSeed: 7 };
+      const before = state.nations.de.hostility;
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de' } });
+      expect(next.resources.techPoints).toBe((state.resources.techPoints || 0) + ESPIONAGE_TECH_POINTS_STOLEN);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.nations.de.hostility).toBe(before);
+    });
+
+    it('on failure, raises the target\'s hostility instead of stealing tech points', () => {
+      const state = { ...richState(), rngSeed: 1 };
+      const before = state.nations.de.hostility;
+      const beforeTech = state.resources.techPoints || 0;
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBe(before + ESPIONAGE_FAILURE_HOSTILITY_INCREASE);
+      expect(next.resources.techPoints || 0).toBe(beforeTech);
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de' } })).toBe(state);
+    });
+
+    it('is a no-op against an unknown nation', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'not_a_real_nation' } })).toBe(state);
+    });
+  });
+
+  describe('COUNTER_INTELLIGENCE', () => {
+    // Real per-nation hostility baselines (WORLD_NATIONS' startHostility) vary and aren't something
+    // this test should depend on, so every non-player nation is normalized to 0 first — that makes
+    // whichever single nation is bumped up afterward unambiguously "the most hostile" regardless of
+    // real game data.
+    const withAllHostilityZeroed = (state) => ({
+      ...state,
+      nations: Object.fromEntries(Object.entries(state.nations).map(([id, n]) => [id, n.isPlayer ? n : { ...n, hostility: 0 }]))
+    });
+
+    it('reduces the most-hostile foreign nation\'s hostility and rewards diplomacy points', () => {
+      const state = withAllHostilityZeroed(richState());
+      const other = Object.keys(state.nations).find(id => id !== 'fr' && id !== 'de');
+      const withHostility = {
+        ...state,
+        nations: {
+          ...state.nations,
+          de: { ...state.nations.de, hostility: 40 },
+          [other]: { ...state.nations[other], hostility: 90 } // the most hostile — should be the one targeted
+        }
+      };
+      const beforeDiplo = withHostility.resources.diplomacyPoints;
+      const next = gameReducer(withHostility, { type: ActionTypes.COUNTER_INTELLIGENCE });
+      expect(next.nations[other].hostility).toBe(90 - COUNTER_INTEL_HOSTILITY_REDUCTION);
+      expect(next.nations.de.hostility).toBe(40); // untouched — it wasn't the most hostile
+      expect(next.resources.diplomacyPoints).toBe(beforeDiplo + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD);
+      expect(next.resources.gold).toBeLessThan(withHostility.resources.gold);
+    });
+
+    it('never drops hostility below the target\'s hostility floor', () => {
+      const state = withAllHostilityZeroed(richState());
+      const withFloor = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 5, hostilityFloor: 3 } } };
+      const next = gameReducer(withFloor, { type: ActionTypes.COUNTER_INTELLIGENCE });
+      expect(next.nations.de.hostility).toBeGreaterThanOrEqual(3);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.COUNTER_INTELLIGENCE })).toBe(state);
+    });
+  });
+
+  describe('CULTURAL_EXPORT', () => {
+    // Modern-age-only — richState() above starts in the Bronze Age.
+    const modernState = () => ({ ...richState(), age: 'modern', techAgeId: 'modern' });
+
+    it('raises culturalInfluence, eases every other nation\'s hostility, and deducts the cost', () => {
+      const state = modernState();
+      const withHostility = {
+        ...state,
+        nations: Object.fromEntries(Object.entries(state.nations).map(([id, n]) => [id, n.isPlayer ? n : { ...n, hostility: 50 }]))
+      };
+      const next = gameReducer(withHostility, { type: ActionTypes.CULTURAL_EXPORT });
+      expect(next.nations.fr.culturalInfluence).toBe(CULTURAL_EXPORT_INFLUENCE_GAIN);
+      expect(next.nations.de.hostility).toBe(50 - CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION);
+      expect(next.resources.gold).toBeLessThan(withHostility.resources.gold);
+    });
+
+    it('never drops any nation\'s hostility below its own floor', () => {
+      const state = modernState();
+      const floored = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 1, hostilityFloor: 0 } } };
+      const next = gameReducer(floored, { type: ActionTypes.CULTURAL_EXPORT });
+      expect(next.nations.de.hostility).toBeGreaterThanOrEqual(0);
+    });
+
+    it('accumulates across repeated uses', () => {
+      const state = modernState();
+      const once = gameReducer(state, { type: ActionTypes.CULTURAL_EXPORT });
+      const twice = gameReducer(once, { type: ActionTypes.CULTURAL_EXPORT });
+      expect(twice.nations.fr.culturalInfluence).toBe(CULTURAL_EXPORT_INFLUENCE_GAIN * 2);
+    });
+
+    it('is a no-op before the Modern Age', () => {
+      const state = richState(); // Bronze Age
+      expect(gameReducer(state, { type: ActionTypes.CULTURAL_EXPORT })).toBe(state);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...modernState(), resources: { ...modernState().resources, gold: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.CULTURAL_EXPORT })).toBe(state);
     });
   });
 });

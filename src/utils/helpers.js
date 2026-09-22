@@ -4,7 +4,7 @@
 // that with the unit-class/counter/morale system described in the plan, built fresh rather than
 // adapted from this one.
 
-import { RelationStatus } from '../data/types';
+import { RelationStatus, TechCategories } from '../data/types';
 import { REGIONS_DATA, getNationCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { hasDeposit } from '../data/deposits';
@@ -14,6 +14,8 @@ import { WONDERS } from '../data/wonders';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
+import { TECH_TREE } from '../data/techTree';
+import { getIdentityBonus } from '../data/identity';
 
 // ============ NUMBER FORMATTING ============
 
@@ -72,15 +74,51 @@ const EXTRACTION_BASE_YIELD = 20;
 // Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
 const SCIENCE_TECHPOINT_YIELD = 2;
 
-// Sums a nation's government effect, every adopted policy's effect, and every completed World
-// Wonder's effect for one bonus hook (goldMult/hrMult, read by calcIncome; stabilityBonus, read by
-// nextUnrest) — the one place that summation happens, so government, policies and wonders never
-// drift into their own separate math.
+// Sums a nation's government effect, every adopted policy's effect, every completed World Wonder's
+// effect, and its National Identity's contribution (src/data/identity.js) for one bonus hook
+// (goldMult/hrMult, read by calcIncome; stabilityBonus, read by nextUnrest) — the one place that
+// summation happens, so government, policies, wonders and identity never drift into their own
+// separate math.
 export const getNationBonusTotal = (nation, hookKey) => {
   const govBonus = GOVERNMENT_TYPES[nation?.government]?.effect?.[hookKey] || 0;
   const policyBonus = (nation?.policies || []).reduce((sum, id) => sum + (POLICIES[id]?.effect?.[hookKey] || 0), 0);
   const wonderBonus = (nation?.wonders || []).reduce((sum, id) => sum + (WONDERS[id]?.effect?.[hookKey] || 0), 0);
-  return govBonus + policyBonus + wonderBonus;
+  const identityBonus = getIdentityBonus(nation?.identity, hookKey);
+  return govBonus + policyBonus + wonderBonus + identityBonus;
+};
+
+// Administrative Capacity: a flat 3 AP/turn regardless of empire size meant a 50-region late-game
+// empire acted exactly as often per turn as its 1-region start — nothing about maturing your state
+// ever expanded what you could actually DO in a turn. This adds two real, already-existing levers:
+// government maturity (apBonus on GOVERNMENT_TYPES' effect object, via the same hook
+// getNationBonusTotal already sums for gold/stability) and the Governance tech line (Code of Laws
+// through Digital Administration — literally about administrative capacity), so investing in either
+// is a real choice with a payoff, rather than AP being a fixed constant for the whole ~500-turn game.
+const BASE_ACTION_POINTS = 3;
+const GOVERNANCE_TECHS_PER_AP_BONUS = 3; // the 10-tech Governance line caps this contribution at +3
+
+// Real fielded army strength for a nation — the sum of every unit it actually owns' `strength`
+// (src/context/GameContext.jsx's flat state.units dict). This is what's shown to the player for any
+// "my power vs. their power" comparison (ResourceBar, MilitaryPanel, DiplomacyPanel,
+// RegionInfoModal) instead of nation.militaryStrength, which stays exactly what it always was
+// internally — the AI's abstract, unbounded economy/readiness score that drives passive growth,
+// threat-tiering (getSortedByMilitary) and the runaway-leader coalition check (findRunawayLeader,
+// both aiLogic.js). That number was never meant to be player-facing: it grows every turn for every
+// AI nation regardless of what's actually on the map, so showing it directly is exactly what let "my
+// power" and "their power" read as wildly, nonsensically far apart even though neither side's real
+// army was. A real fielded-strength comparison can't do that — it's bounded by what was actually
+// recruited (and, for the player, by RECRUIT_UNIT/DISBAND_UNIT's own strength math).
+export const getFieldedStrength = (state, nationId) =>
+  Object.values(state.units || {}).reduce((sum, u) => sum + (u.ownerId === nationId ? (u.strength || 0) : 0), 0);
+
+export const getMaxActionPoints = (state) => {
+  const nation = state.nations?.[state.playerNationId];
+  const govBonus = getNationBonusTotal(nation, 'apBonus');
+  const governanceTechsResearched = Object.values(state.techTree || {})
+    .filter((t) => t.researched && TECH_TREE[t.id]?.category === TechCategories.GOVERNANCE)
+    .length;
+  const techBonus = Math.floor(governanceTechsResearched / GOVERNANCE_TECHS_PER_AP_BONUS);
+  return BASE_ACTION_POINTS + govBonus + techBonus;
 };
 
 // Per-turn resource income for the player's nation: gold/hr from every owned region's gdp/

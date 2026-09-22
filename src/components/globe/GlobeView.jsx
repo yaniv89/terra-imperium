@@ -129,17 +129,20 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     return fillColorFor(regionState, nation, isPlayerOwned);
   };
 
-  // Polygon geometry is real admin-1 provinces (loadGameRegions.js), but every province of a
-  // country shares one gameRegionId — the country IS the region. A visible stroke on every
-  // province edge drew internal province borders that don't correspond to anything clickable,
-  // making the map look divided into sub-regions it isn't. Defaulting the stroke to the same
-  // color as the fill erases those internal seams; actual country borders stay visible because
-  // neighboring countries almost always differ in fill color already.
+  // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
+  // province-level split (Task 51) every one of those provinces is its own clickable, independently
+  // owned/controlled gameRegionId — unlike the old one-gameRegionId-per-country model this stroke
+  // logic was originally written for. Defaulting the stroke to match the fill (as it used to) hid
+  // every province seam within a single nation's territory (same nation → same/near-identical fill
+  // → invisible border), which made a huge multi-province owner like Russia or the US render as one
+  // undifferentiated blob with no visible internal structure — defeating the point of the province
+  // split. A fixed, subdued border color instead keeps every clickable province edge visible against
+  // any fill color, the way an ordinary choropleth map's borders would.
   const strokeColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return '#2563eb';
     if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
-    return capColor(feature);
+    return '#1e293b';
   };
 
   const altitude = (feature) => {

@@ -16,6 +16,7 @@
 // threading one rng pick through both isEligible and build so they agree on which region fired;
 // deferred rather than folded into the provinces migration.
 import { REGIONS_DATA, getNationCapital } from './regions';
+import { CLIMATE_RESILIENCE_THRESHOLD } from './actionCosts';
 
 const home = (state) => {
   const capitalId = getNationCapital(state.playerNationId);
@@ -102,7 +103,10 @@ const PROCEDURAL_TEMPLATES = [
   {
     id: 'failed_harvest',
     weight: 10,
-    isEligible: () => true,
+    // Gated off once Build Climate Resilience (Modern age) has raised the home region past the
+    // threshold — the same "invest and the exposure stops" pattern defenseLevel already gives
+    // frontier_raiders, so climate mitigation is a real decision with a payoff, not one-way.
+    isEligible: (state) => (home(state).region?.climateResilience || 0) < CLIMATE_RESILIENCE_THRESHOLD,
     build: (state) => {
       const { data } = home(state);
       return {
@@ -151,9 +155,35 @@ const PROCEDURAL_TEMPLATES = [
     }
   },
   {
+    id: 'refugee_crisis',
+    weight: 9,
+    // Post-war OR post-disaster, per the plan's statecraft framing — "any war active in the world"
+    // stands in for the former (fighting anywhere displaces people, not only wars you're in) and a
+    // badly unsettled home region stands in for the latter, without needing a new "a war just ended"
+    // flag this codebase doesn't currently track.
+    isEligible: (state) => {
+      const { region } = home(state);
+      return (state.wars || []).some(w => w.active) || (region?.unrest || 0) >= 40;
+    },
+    build: (state) => {
+      const { data } = home(state);
+      return {
+        title: 'Refugees at the Border',
+        description: `Waves of refugees, fleeing war and hardship beyond your borders, arrive at ${data.name} seeking shelter.`,
+        options: [
+          // Real tradeoffs both ways, not a dominant option: taking them in grows your manpower but
+          // strains order everywhere (assimilation friction); turning them away costs real gold
+          // (border enforcement) in exchange for keeping that order intact.
+          { label: 'Take them in and put them to work', effects: { hr: 40, controlPenalty: 5 } },
+          { label: 'Turn them away and seal the border', effects: { gold: -80, controlBonus: 3 } }
+        ]
+      };
+    }
+  },
+  {
     id: 'harsh_winter',
     weight: 8,
-    isEligible: () => true,
+    isEligible: (state) => (home(state).region?.climateResilience || 0) < CLIMATE_RESILIENCE_THRESHOLD,
     build: (state) => {
       const { data } = home(state);
       return {

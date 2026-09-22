@@ -66,6 +66,51 @@ describe('pickProceduralEvent', () => {
     }
   });
 
+  it('offers the refugee-crisis template when a war is active anywhere, even one the player isn\'t in', () => {
+    const state = createInitialState({ playerNationId: 'us' });
+    const withDistantWar = { ...state, wars: [{ active: true, aggressor: 'de', enemy: 'fr' }] };
+    const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(withDistantWar, createRng(seed)))
+      .some(e => e?.id.includes('refugee_crisis'));
+    expect(hit).toBe(true);
+  });
+
+  it('offers the refugee-crisis template when the home region is badly unsettled, even with no war', () => {
+    const state = createInitialState({ playerNationId: 'us' });
+    const capitalId = getNationCapital('us');
+    const withUnrest = { ...state, wars: [], regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], unrest: 50 } } };
+    const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(withUnrest, createRng(seed)))
+      .some(e => e?.id.includes('refugee_crisis'));
+    expect(hit).toBe(true);
+  });
+
+  it('never offers the refugee-crisis template with no war and a settled home region', () => {
+    const state = createInitialState({ playerNationId: 'us' });
+    const capitalId = getNationCapital('us');
+    const calm = { ...state, wars: [], regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], unrest: 0 } } };
+    const hit = Array.from({ length: 40 }, (_, seed) => pickProceduralEvent(calm, createRng(seed)))
+      .some(e => e?.id.includes('refugee_crisis'));
+    expect(hit).toBe(false);
+  });
+
+  // Build Climate Resilience (gameReducer.js's BUILD_CLIMATE_RESILIENCE) is what raises this stat —
+  // this only tests the resulting eligibility gate, not the action itself.
+  it('stops offering failed_harvest/harsh_winter once the home region is climate-resilient', () => {
+    const state = createInitialState({ playerNationId: 'us' });
+    const capitalId = getNationCapital('us');
+    const resilient = { ...state, regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], climateResilience: 3 } } };
+    const results = Array.from({ length: 60 }, (_, seed) => pickProceduralEvent(resilient, createRng(seed)));
+    expect(results.some(e => e?.id.includes('failed_harvest'))).toBe(false);
+    expect(results.some(e => e?.id.includes('harsh_winter'))).toBe(false);
+  });
+
+  it('still offers failed_harvest/harsh_winter below the resilience threshold', () => {
+    const state = createInitialState({ playerNationId: 'us' });
+    const capitalId = getNationCapital('us');
+    const unprepared = { ...state, regions: { ...state.regions, [capitalId]: { ...state.regions[capitalId], climateResilience: 0 } } };
+    const results = Array.from({ length: 60 }, (_, seed) => pickProceduralEvent(unprepared, createRng(seed)));
+    expect(results.some(e => e?.id.includes('failed_harvest') || e?.id.includes('harsh_winter'))).toBe(true);
+  });
+
   it('always has something eligible, even with every conditional template gated off — the plan\'s "always something happening in the quiet turns"', () => {
     const state = createInitialState({ playerNationId: 'us' });
     // Fail every conditional isEligible gate: no coast/control, low infra, high defense, no

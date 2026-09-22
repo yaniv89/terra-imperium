@@ -71,6 +71,18 @@ export const ActionTypes = {
   TRADE_AGREEMENT: 'TRADE_AGREEMENT',
   MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
   GIFT_BRIBE: 'GIFT_BRIBE',
+  // Espionage/Counter-Intelligence: the plan's statecraft section always named these as a pair
+  // ("Espionage as something you do to others; Counter-Intelligence as catching it done to you"),
+  // but neither had ever actually been implemented — this ships both together rather than adding a
+  // counter-espionage button with no espionage for it to counter.
+  ESPIONAGE: 'ESPIONAGE',
+  COUNTER_INTELLIGENCE: 'COUNTER_INTELLIGENCE',
+  // National Identity (src/data/identity.js) — a separate axis from Government/Policies.
+  SHIFT_IDENTITY: 'SHIFT_IDENTITY',
+  // Climate/disaster mitigation (Modern age) — see region.climateResilience's comment.
+  BUILD_CLIMATE_RESILIENCE: 'BUILD_CLIMATE_RESILIENCE',
+  // Cultural Export / soft power (Modern age) — see nation.culturalInfluence's comment.
+  CULTURAL_EXPORT: 'CULTURAL_EXPORT',
 
   // Space Race, orbital layer (plan §10.4 Layer 1).
   LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',

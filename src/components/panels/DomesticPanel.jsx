@@ -8,17 +8,18 @@
 // control has collapsed (SETTLE_COLONIZE_CONTROL_THRESHOLD) — a real "expand without war" path.
 
 import React from 'react';
-import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, X, Sprout, Coins } from 'lucide-react';
+import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, X, Sprout, Coins, ShieldAlert } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner, getNationCapital } from '../../data/regions';
-import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
+import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
 import { getDepositsFor } from '../../data/deposits';
 import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../../data/government';
+import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
 import { POLICIES, POLICY_IDS } from '../../data/policies';
 import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
@@ -46,10 +47,26 @@ const DomesticPanel = ({ selectedRegion }) => {
     triggerEffect('construct_wonder', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId } });
   };
+  const handleCounterIntelligence = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog('Not enough resources', 'action');
+    triggerEffect('counter_intelligence', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.COUNTER_INTELLIGENCE });
+  };
 
   const empireSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">Taxes</div>
+      <div className="text-xs font-semibold text-slate-300">Security</div>
+      <ActionButton
+        icon={ShieldAlert}
+        label="Counter-Intelligence"
+        description={`Uncover a plot by whoever's most hostile toward you: -${COUNTER_INTEL_HOSTILITY_REDUCTION} their hostility, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} Diplomacy Points`}
+        costs={ACTION_COSTS.counterIntelligence}
+        onClick={handleCounterIntelligence}
+        disabled={!canAfford(state.resources, ACTION_COSTS.counterIntelligence)}
+        size="small"
+      />
+
+      <div className="text-xs font-semibold text-slate-300 pt-1">Taxes</div>
       <div className="grid grid-cols-3 gap-1.5">
         {TAX_RATE_IDS.map((rateId) => (
           <button
@@ -176,10 +193,51 @@ const DomesticPanel = ({ selectedRegion }) => {
     </div>
   );
 
+  const handleShiftIdentity = (axis, direction) => {
+    if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog('Not enough resources', 'action');
+    triggerEffect('shift_identity', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.SHIFT_IDENTITY, payload: { axis, direction } });
+  };
+
+  const identitySection = (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold text-slate-300">National Identity</div>
+      {IDENTITY_AXIS_IDS.map((axisId) => {
+        const axis = IDENTITY_AXES[axisId];
+        const value = playerNation?.identity?.[axisId] || 0;
+        return (
+          <div key={axisId} className="bg-slate-800/60 rounded-lg p-2 text-xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-slate-400" title={axis.description}>{axis.negativePole} &harr; {axis.positivePole}</span>
+              <span className="text-white font-mono">{value > 0 ? `+${value}` : value}</span>
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => handleShiftIdentity(axisId, -1)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || value <= IDENTITY_MIN}
+                className="flex-1 text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 py-1"
+              >
+                &larr; {axis.negativePole}
+              </button>
+              <button
+                onClick={() => handleShiftIdentity(axisId, 1)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || value >= IDENTITY_MAX}
+                className="flex-1 text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 py-1"
+              >
+                {axis.positivePole} &rarr;
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   if (!regionData || !regionState) {
     return (
       <div className="space-y-4">
         {governmentSection}
+        <div className="border-t border-slate-800 pt-2">{identitySection}</div>
         <div className="border-t border-slate-800 pt-2">{empireSection}</div>
         <div className="text-slate-400 text-sm text-center mt-8">
           Select a region on the globe to see its details.
@@ -210,6 +268,11 @@ const DomesticPanel = ({ selectedRegion }) => {
     if (!canAfford(state.resources, ACTION_COSTS.buildDefenses)) return addLog('Not enough resources', 'action');
     triggerEffect('build_defenses', { region: selectedRegion });
     dispatchAction(ActionTypes.BUILD_DEFENSES);
+  };
+  const handleBuildClimateResilience = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.buildClimateResilience)) return addLog('Not enough resources', 'action');
+    triggerEffect('build_climate_resilience', { region: selectedRegion });
+    dispatchAction(ActionTypes.BUILD_CLIMATE_RESILIENCE);
   };
   const handleQuellUnrest = () => {
     if (!canAfford(state.resources, ACTION_COSTS.quellUnrest)) return addLog('Not enough resources', 'action');
@@ -247,6 +310,7 @@ const DomesticPanel = ({ selectedRegion }) => {
   return (
     <div className="space-y-4">
       {governmentSection}
+      <div className="pt-2 border-t border-slate-800">{identitySection}</div>
 
       <div className="flex items-center gap-2 text-white font-bold text-lg pt-2 border-t border-slate-800">
         <Building2 size={20} className="text-blue-400" />
@@ -316,6 +380,17 @@ const DomesticPanel = ({ selectedRegion }) => {
               onClick={handleBuildDefenses}
               disabled={regionState.defenseLevel >= 10}
             />
+            {effectiveAge === 'modern' && (
+              <ActionButton
+                icon={Sprout}
+                label="Build Climate Resilience"
+                description="Reduces this region's exposure to weather/harvest disasters"
+                costs={ACTION_COSTS.buildClimateResilience}
+                effects={{ custom: '+1 Resilience' }}
+                onClick={handleBuildClimateResilience}
+                disabled={(regionState.climateResilience || 0) >= CLIMATE_RESILIENCE_MAX}
+              />
+            )}
             <ActionButton
               icon={HeartCrack}
               label="Quell Unrest"

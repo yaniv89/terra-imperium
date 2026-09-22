@@ -1,22 +1,24 @@
 // src/components/panels/DiplomacyPanel.jsx
-// Diplomacy tab: a browsable relations view of all 240 nations, plus six of the twelve planned
-// actions — Declare War (with casus belli), Fabricate Claim, Sue for Peace, Trade Agreement,
-// Military Alliance, Gift/Bribe — against src/engine/diplomacy.js's war-goal engine. Resource
-// Deal, Demand Tribute, Vassalize/Release, Espionage, Join/Form Coalition and Embassy remain
-// deferred as real, separate follow-up work: several of them (Vassalize, Coalitions) fit more
-// naturally alongside the AI systems Tasks 23/24 build, and Espionage needs its own progression
-// layer per the plan's statecraft section.
+// Diplomacy tab: a browsable relations view of all 240 nations, plus per-nation actions — Declare
+// War (with casus belli), Fabricate Claim, Sue for Peace, Trade Agreement, Military Alliance,
+// Gift/Bribe, Espionage — against src/engine/diplomacy.js's war-goal engine, plus one empire-wide
+// action with no chosen target, Cultural Export (Modern age soft power). Resource Deal, Demand
+// Tribute, Vassalize/Release, Join/Form Coalition and Embassy remain deferred as real, separate
+// follow-up work: several of them (Vassalize, Coalitions) fit more naturally alongside the AI
+// systems Tasks 23/24 build.
 
 import React, { useMemo, useState } from 'react';
-import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag } from 'lucide-react';
+import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
-import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD } from '../../data/actionCosts';
+import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../../data/actionCosts';
 import { hasCasusBelli } from '../../engine/diplomacy';
 import { getNationCapital } from '../../data/regions';
-import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
+import { getEffectiveAgeId } from '../../data/ages';
+import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
+import { ActionButton } from '../ui';
 
 // Diplomacy actions that travel visibly between the player's capital and the target nation's.
 const DIPLOMACY_EFFECT_BY_ACTION = {
@@ -25,7 +27,8 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
   [ActionTypes.TRADE_AGREEMENT]: 'trade_agreement',
   [ActionTypes.GIFT_BRIBE]: 'gift_bribe',
   [ActionTypes.FABRICATE_CLAIM]: 'fabricate_claim',
-  [ActionTypes.MILITARY_ALLIANCE]: 'military_alliance'
+  [ActionTypes.MILITARY_ALLIANCE]: 'military_alliance',
+  [ActionTypes.ESPIONAGE]: 'espionage'
 };
 
 const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (
@@ -52,6 +55,14 @@ const DiplomacyPanel = () => {
     dispatch({ type, payload: { nationId } });
   };
 
+  const handleCulturalExport = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.culturalExport)) return addLog('Not enough resources', 'action');
+    triggerEffect('cultural_export', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.CULTURAL_EXPORT });
+  };
+  const isModernAge = getEffectiveAgeId(state.age, state.techAgeId) === 'modern';
+  const playerNation = state.nations[state.playerNationId];
+
   // Sort nations: at war first, then by hostility, so the ones that matter surface first; the
   // search box is for finding one specific nation among all 240.
   const sortedNations = useMemo(() => {
@@ -66,6 +77,17 @@ const DiplomacyPanel = () => {
 
   return (
     <div className="space-y-2">
+      {isModernAge && (
+        <ActionButton
+          icon={Sparkles}
+          label="Cultural Export"
+          description={`Soft power abroad: -${CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION} hostility with every nation, +${CULTURAL_EXPORT_INFLUENCE_GAIN} Cultural Influence (${formatNumber(playerNation?.culturalInfluence || 0)} so far)`}
+          costs={ACTION_COSTS.culturalExport}
+          onClick={handleCulturalExport}
+          disabled={!canAfford(state.resources, ACTION_COSTS.culturalExport)}
+          size="small"
+        />
+      )}
       <div className="relative mb-2">
         <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
         <input
@@ -125,7 +147,7 @@ const DiplomacyPanel = () => {
                     Hostility: <span className="text-orange-400 font-mono">{nation.hostility}</span>
                   </div>
                   <div className="text-slate-400">
-                    Military: <span className="text-red-400 font-mono">{formatNumber(nation.militaryStrength)}</span>
+                    Military: <span className="text-red-400 font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
                   </div>
                   {nation.isAtWar && (
                     <div className="text-slate-400">
@@ -213,6 +235,13 @@ const DiplomacyPanel = () => {
                       title="Reduces hostility"
                       disabled={!canAfford(state.resources, ACTION_COSTS.giftBribe)}
                       onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, nation.id, ACTION_COSTS.giftBribe)}
+                    />
+                    <IconButton
+                      icon={Eye}
+                      label="Espionage"
+                      title={`Steal ${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points (${Math.round(ESPIONAGE_SUCCESS_CHANCE * 100)}% chance) — if caught, hostility rises`}
+                      disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
+                      onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, nation.id, ACTION_COSTS.espionage)}
                     />
                   </>
                 )}
