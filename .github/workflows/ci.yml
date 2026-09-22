@@ -1,0 +1,51 @@
+name: CI
+
+# Plan §13's "Verification" section: "Per phase: npx vitest run, npm run lint, npm run build all
+# green before any commit." That's been done manually, by hand, every commit this whole project —
+# but never actually enforced by CI itself. This workflow is that missing gate, plus the
+# "Playability" Playwright check (also in §13), which likewise existed only as ad hoc, uncommitted
+# manual runs until now. GitHub's runners have real dedicated resources, unlike a constrained dev
+# sandbox — this is where the e2e test actually gets to prove itself against a real headless
+# Chromium, not a software-GL-constrained one.
+on:
+  push:
+    branches: [phase-a-foundation, main]
+  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit + integration tests (vitest)
+        run: npx vitest run
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (GitHub Pages target)
+        run: npm run build
+
+      - name: Install Playwright's own Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playability e2e test
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore

@@ -10,3 +10,8 @@ scripts/geo/.tmp
 # artifact copied into android/ and ios/ by `npx cap sync` — unlike docs/ (committed, for GitHub
 # Pages hosting), this one is never meant to be served or committed directly.
 www
+
+# Playwright (plan §13's "Playability" e2e check) — run output, never source.
+test-results
+playwright-report
+blob-report
