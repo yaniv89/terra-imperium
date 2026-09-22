@@ -7,15 +7,16 @@ import { EffectsProvider } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast } from './components/modals';
+import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 
 // Main game layout component
 const GameLayout = () => {
-  const { state, resolveEvent, resetGame } = useGame();
+  const { state, resolveEvent, resetGame, exportSave, importSave } = useGame();
   const [selectedRegion, setSelectedRegion] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
   // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
   // before anything else; an existing save skips straight to the loaded game.
   const [showStartScreen, setShowStartScreen] = useState(() => !hasExistingSave());
@@ -61,7 +62,7 @@ const GameLayout = () => {
   return (
     <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 flex flex-col overflow-y-scroll">
       {/* Header with resources and controls */}
-      <GameHeader onReset={handleReset} />
+      <GameHeader onReset={handleReset} onOpenSettings={() => setShowSettings(true)} />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 overflow-y-scroll min-h-0">
@@ -107,6 +108,14 @@ const GameLayout = () => {
 
       {/* Post-turn battle summary (Phase 9) - non-blocking, dismissible toast */}
       <BattleSummaryToast entries={battleSummary} onDismiss={() => setBattleSummary(null)} />
+
+      {/* Cloud saves + account (Phase F) - opened from GameHeader's Cloud button */}
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        exportSave={exportSave}
+        importSave={importSave}
+      />
     </div>
   );
 };
