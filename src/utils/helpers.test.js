@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal } from './helpers';
 import { createInitialState } from '../context/GameContext';
+import { getNationCapital } from '../data/regions';
+
+// A nation now spans many real provinces, not one region matching its own id — these tests use
+// each nation's capital as "its" region wherever the old one-region-per-nation model used the
+// nation id directly as a region id.
+const cap = getNationCapital;
 
 describe('canAfford / applyCosts', () => {
   it('rejects when any single resource is short', () => {
@@ -37,7 +43,7 @@ describe('formatNumber / formatMoney', () => {
 describe('getPlayerControl', () => {
   it('reads the player nation\'s own region control', () => {
     const state = createInitialState({ playerNationId: 'fr' });
-    expect(getPlayerControl(state)).toBe(state.regions.fr.control);
+    expect(getPlayerControl(state)).toBe(state.regions[cap('fr')].control);
   });
 });
 
@@ -52,10 +58,16 @@ describe('calcIncome', () => {
     expect(income.oil).toBe(0);
   });
 
-  it('scales with control% — a half-controlled region yields roughly half', () => {
+  it('scales with control% — a lower-control empire yields less income than a fully-controlled one', () => {
+    // France now spans many provinces, not one — halving every owned province's control (not just
+    // one of them) is what actually halves the empire-wide picture the way a single region used to.
     const state = createInitialState({ playerNationId: 'fr' });
     const fullControl = calcIncome(state);
-    const halfControl = calcIncome({ ...state, regions: { ...state.regions, fr: { ...state.regions.fr, control: 50 } } });
+    const halfControlRegions = { ...state.regions };
+    Object.keys(halfControlRegions).forEach(id => {
+      if (halfControlRegions[id].owner === 'fr') halfControlRegions[id] = { ...halfControlRegions[id], control: 50 };
+    });
+    const halfControl = calcIncome({ ...state, regions: halfControlRegions });
     expect(halfControl.gold).toBeLessThan(fullControl.gold);
   });
 
@@ -80,7 +92,7 @@ describe('calcIncome', () => {
       ...state,
       regions: {
         ...state.regions,
-        cl: { ...state.regions.cl, buildings: { ...state.regions.cl.buildings, extraction: { ...state.regions.cl.buildings.extraction, copper: true } } }
+        [cap('cl')]: { ...state.regions[cap('cl')], buildings: { ...state.regions[cap('cl')].buildings, extraction: { ...state.regions[cap('cl')].buildings.extraction, copper: true } } }
       }
     });
     expect(withMine.copper).toBeGreaterThan(0);
@@ -93,7 +105,7 @@ describe('calcIncome', () => {
       ...state,
       regions: {
         ...state.regions,
-        fr: { ...state.regions.fr, buildings: { ...state.regions.fr.buildings, extraction: { ...state.regions.fr.buildings.extraction, copper: true } } }
+        [cap('fr')]: { ...state.regions[cap('fr')], buildings: { ...state.regions[cap('fr')].buildings, extraction: { ...state.regions[cap('fr')].buildings.extraction, copper: true } } }
       }
     });
     expect(withMine.copper).toBe(0);
@@ -106,10 +118,10 @@ describe('calcIncome', () => {
       ...state,
       regions: {
         ...state.regions,
-        cl: {
-          ...state.regions.cl,
-          currentPopulation: Math.round(state.regions.cl.currentPopulation * 1.5),
-          buildings: { ...state.regions.cl.buildings, extraction: { ...state.regions.cl.buildings.extraction, copper: true } }
+        [cap('cl')]: {
+          ...state.regions[cap('cl')],
+          currentPopulation: Math.round(state.regions[cap('cl')].currentPopulation * 1.5),
+          buildings: { ...state.regions[cap('cl')].buildings, extraction: { ...state.regions[cap('cl')].buildings.extraction, copper: true } }
         }
       }
     });
@@ -117,7 +129,7 @@ describe('calcIncome', () => {
     expect(grown.hr).toBeGreaterThan(base.hr);
     const baseWithMine = calcIncome({
       ...state,
-      regions: { ...state.regions, cl: { ...state.regions.cl, buildings: { ...state.regions.cl.buildings, extraction: { ...state.regions.cl.buildings.extraction, copper: true } } } }
+      regions: { ...state.regions, [cap('cl')]: { ...state.regions[cap('cl')], buildings: { ...state.regions[cap('cl')].buildings, extraction: { ...state.regions[cap('cl')].buildings.extraction, copper: true } } } }
     });
     expect(grown.copper).toBe(baseWithMine.copper); // extraction yield is deposit/building-driven, not population-driven
   });

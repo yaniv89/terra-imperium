@@ -1,9 +1,9 @@
 // src/data/geo/loadGameRegions.js
-// The globe is the only game map, and every country on Earth is a real, playable game region
-// (src/data/regions.js, scripts/geo/build-world-regions.mjs). This turns the real-world province
-// geometry from loadWorldFeatures.js into game regions: every province's own country code IS its
-// game region id — a province of Argentina gets gameRegionId 'ar', matching the whole-country
-// region build-world-regions.mjs generated for it.
+// The globe is the only game map, and every real admin-1 province on Earth is its own playable
+// game region (src/data/regions.js, scripts/geo/build-world-regions.mjs) — a province's own id
+// (e.g. 'jo-am' for Amman) IS its game region id, matching the province-level record
+// build-world-regions.mjs generated for it. A whole country is just the set of regions sharing a
+// startOwner, not a region in its own right.
 import { loadCountryFeatures, loadSubregionFeatures } from './loadWorldFeatures';
 import gameRegionsData from './gameRegions.json';
 
@@ -18,7 +18,7 @@ export const loadGameRegionFeatures = async () => {
 
   const gameRegionFeatures = subregions.map((f) => ({
     ...f,
-    properties: { ...f.properties, gameRegionId: f.properties.countryId }
+    properties: { ...f.properties, gameRegionId: f.id }
   }));
 
   // Fallback only — a whole-country polygon, tagged with its own country id as the game region

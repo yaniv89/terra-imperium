@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { REGIONS_DATA, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from './regions';
 
 describe('region adjacency graph', () => {
-  it('covers all 240 nations', () => {
-    expect(Object.keys(REGIONS_DATA).length).toBe(240);
+  it('covers all 240 nations via their real admin-1 provinces', () => {
+    expect(Object.keys(REGIONS_DATA).length).toBe(4482);
+    const countries = new Set(Object.values(REGIONS_DATA).map(r => r.startOwner));
+    expect(countries.size).toBe(240);
   });
 
   it('every region carries an isCoastal boolean (build-sea-lanes.mjs)', () => {
@@ -37,39 +39,51 @@ describe('region adjacency graph', () => {
 });
 
 describe('isAdjacentToOwner', () => {
+  // jo-ir (Irbid, Jordan) really borders il-z, a real Israeli province — see subregions-adjacency.json.
   it('is true when a neighboring region is owned by the given owner', () => {
-    const regions = { il: { owner: 'us' }, jo: { owner: 'us' }, eg: { owner: 'egypt' } };
-    expect(isAdjacentToOwner('jo', regions, 'us')).toBe(true);
+    const regions = { 'il-z': { owner: 'us' }, 'jo-ir': { owner: 'us' }, 'eg-c': { owner: 'egypt' } };
+    expect(isAdjacentToOwner('jo-ir', regions, 'us')).toBe(true);
   });
 
   it('is false when no neighbor is owned by the given owner', () => {
-    const regions = { eg: { owner: 'egypt' }, ly: { owner: 'egypt' } };
-    expect(isAdjacentToOwner('eg', regions, 'us')).toBe(false);
+    const regions = { 'jo-ir': { owner: 'egypt' } };
+    expect(isAdjacentToOwner('jo-ir', regions, 'us')).toBe(false);
   });
 });
 
 describe('distanceFromAnchor (overextension)', () => {
+  // A real 3-hop chain of provinces: id-nt (Indonesia) borders tl-bo (Timor-Leste) borders
+  // tl-an (Timor-Leste), with id-nt NOT directly adjacent to tl-an — and tl-co (also
+  // Timor-Leste) is a second real neighbor of id-nt that itself borders tl-an directly, for the
+  // multi-anchor case.
+  const A = 'id-nt';
+  const B = 'tl-bo';
+  const C = 'tl-an';
+  const D = 'tl-co';
+
   it('is 0 for the anchor region itself', () => {
-    expect(distanceFromAnchor(['us'], 'us')).toBe(0);
+    expect(distanceFromAnchor([A], A)).toBe(0);
   });
 
   it('is 1 for a direct neighbor of the anchor', () => {
-    expect(distanceFromAnchor(['us'], 'mx')).toBe(1); // Mexico borders the US
+    expect(distanceFromAnchor([A], B)).toBe(1);
   });
 
-  it('grows correctly for a multi-hop path (us -> mx -> gt)', () => {
-    expect(distanceFromAnchor(['us'], 'mx')).toBe(1);
-    expect(distanceFromAnchor(['us'], 'gt')).toBe(2); // Guatemala only reachable via Mexico
+  it('grows correctly for a multi-hop path (A -> B -> C)', () => {
+    expect(distanceFromAnchor([A], B)).toBe(1);
+    expect(distanceFromAnchor([A], C)).toBe(2); // C only reachable via B from A
   });
 
   it('finds the shortest distance across multiple anchors, not just the first', () => {
-    expect(distanceFromAnchor(['us', 'mx'], 'gt')).toBe(1);
+    expect(distanceFromAnchor([A, D], C)).toBe(1); // D borders C directly
   });
 });
 
 describe('getNationCapital (overextension anchor)', () => {
   it('returns the isCapital-flagged region for every one of the 240 nations', () => {
-    Object.keys(REGIONS_DATA).forEach(nationId => {
+    const nationIds = [...new Set(Object.values(REGIONS_DATA).map(r => r.startOwner))];
+    expect(nationIds.length).toBe(240);
+    nationIds.forEach(nationId => {
       const capitalId = getNationCapital(nationId);
       expect(capitalId, `${nationId} has no capital`).toBeTruthy();
       expect(REGIONS_DATA[capitalId].isCapital).toBe(true);

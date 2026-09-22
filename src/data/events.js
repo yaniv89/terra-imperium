@@ -13,6 +13,7 @@
 // procedural events, src/data/proceduralEvents.js; curated national flavor, a later task).
 // "Alt-history tolerant": every event here only ever touches the player's own generic stats, so
 // it still makes sense no matter how unrecognizable the map has become by the year it fires.
+import { getNationCapital } from './regions';
 export const HISTORICAL_EVENTS = {
   // ---- Bronze Age (-2000 to -800) ----
   great_flood_myth: {
@@ -489,7 +490,9 @@ export const shouldEventFire = (event, year, nations, firedEvents, playerNationI
   }
   if (event.nationId) {
     if (event.nationId !== playerNationId) return false;
-    if (event.requiresHomeland && regions?.[event.nationId]?.owner !== event.nationId) return false;
+    // "Still holds its homeland" — a nation now spans many provinces, so this checks its capital
+    // specifically, the same anchor distanceFromAnchor/overextension already treats as "home".
+    if (event.requiresHomeland && regions?.[getNationCapital(event.nationId)]?.owner !== event.nationId) return false;
   }
   return true;
 };

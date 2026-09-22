@@ -42,15 +42,20 @@ describe('economicHegemony', () => {
   it('is true once the player\'s owned regions carry enough of the world\'s GDP', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const regions = { ...state.regions };
-    // Hand France every region belonging to the world's biggest economies until the share clears
-    // the threshold — real gdpMillions data means this is a real computation, not a fixture stub.
+    // Hand France every REGION belonging to the world's biggest economies (a nation is many real
+    // provinces now, not one region matching its own id) until the share clears the threshold —
+    // real per-region gdpMillions data means this is a real computation, not a fixture stub.
     let totalGdp = 0;
-    Object.values(WORLD_NATIONS).forEach(n => { totalGdp += n.gdpMillions || 0; });
-    const sortedIds = Object.keys(WORLD_NATIONS).sort((a, b) => (WORLD_NATIONS[b].gdpMillions || 0) - (WORLD_NATIONS[a].gdpMillions || 0));
+    Object.values(regions).forEach(r => { totalGdp += r.gdpMillions || 0; });
+    const regionIdsByNation = {};
+    Object.entries(state.regions).forEach(([id, r]) => { (regionIdsByNation[r.owner] ||= []).push(id); });
+    const sortedNationIds = Object.keys(WORLD_NATIONS).sort((a, b) => (WORLD_NATIONS[b].gdpMillions || 0) - (WORLD_NATIONS[a].gdpMillions || 0));
     let ownedGdp = 0;
-    for (const id of sortedIds) {
-      regions[id] = { ...regions[id], owner: 'fr' };
-      ownedGdp += WORLD_NATIONS[id].gdpMillions || 0;
+    for (const nationId of sortedNationIds) {
+      (regionIdsByNation[nationId] || []).forEach((id) => {
+        regions[id] = { ...regions[id], owner: 'fr' };
+        ownedGdp += regions[id].gdpMillions || 0;
+      });
       if (ownedGdp / totalGdp >= 0.35) break;
     }
     expect(VICTORY_CONDITIONS.economicHegemony.check({ ...state, regions })).toBe(true);

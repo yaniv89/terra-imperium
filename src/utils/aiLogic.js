@@ -23,7 +23,7 @@
 
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
-import { getNeighborIds } from '../data/regions';
+import { getBorderingNationIds } from '../data/regions';
 import { declareWar } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 
@@ -89,10 +89,10 @@ export const getNationTier = (state, nationId, sortedByMilitary) => {
   const nation = state.nations[nationId];
   if (!nation || nation.isPlayer) return null;
   if (nation.isAtWar) return 1;
-  if (getNeighborIds(nationId).includes(state.playerNationId)) return 1;
+  if (getBorderingNationIds(state.regions, nationId).includes(state.playerNationId)) return 1;
   const rank = sortedByMilitary.indexOf(nationId);
   if (rank !== -1 && rank < TOP_MILITARY_TIER_1_COUNT) return 1;
-  if (getNeighborIds(nationId).length > 0) return 2;
+  if (getBorderingNationIds(state.regions, nationId).length > 0) return 2;
   return 3;
 };
 
@@ -109,7 +109,7 @@ export const getSortedByMilitary = (state) =>
 const getRivalId = (state, nationId) => {
   const war = (state.wars || []).find(w => w.active && (w.enemy === nationId || w.aggressor === nationId));
   if (war) return war.enemy === nationId ? war.aggressor : war.enemy;
-  const neighbors = getNeighborIds(nationId).filter(id => state.nations[id]);
+  const neighbors = getBorderingNationIds(state.regions, nationId).filter(id => state.nations[id]);
   if (neighbors.includes(state.playerNationId)) return state.playerNationId;
   return neighbors[0] || null;
 };
@@ -195,7 +195,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 // leader instead, regardless of how it compares to other neighbors — that's the whole point of
 // ganging up on it.
 const pickWarTarget = (state, nationId, preferredTargetId = null) => {
-  const candidates = getNeighborIds(nationId).filter(id => state.nations[id] && !state.nations[id].isAtWar);
+  const candidates = getBorderingNationIds(state.regions, nationId).filter(id => state.nations[id] && !state.nations[id].isAtWar);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
   return candidates.reduce((weakest, id) =>
@@ -238,7 +238,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     }
     const activeNation = currentNations[nationId];
     const leader = isCoalitionMember ? currentNations[runawayLeaderId] : null;
-    const canStrikeLeader = !!leader && !leader.isAtWar && getNeighborIds(nationId).includes(runawayLeaderId);
+    const canStrikeLeader = !!leader && !leader.isAtWar && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId);
 
     if (!shouldDeclareWar(activeNation, rng, aggressionMult, canStrikeLeader ? COALITION_WAR_ROLL_MULT : 1)) return;
     const targetId = pickWarTarget({ ...state, nations: currentNations }, nationId, canStrikeLeader ? runawayLeaderId : null);

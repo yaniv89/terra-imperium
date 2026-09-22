@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
 import { useGame } from '../../context/GameContext';
-import { REGIONS_DATA } from '../../data/regions';
+import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { useEffects } from '../../context/EffectsContext';
@@ -102,7 +102,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // of wherever react-globe.gl's own default camera position happens to be.
   useEffect(() => {
     if (!geo || !globeRef.current) return;
-    const home = REGION_COORDINATES[state.playerNationId];
+    const home = REGION_COORDINATES[getNationCapital(state.playerNationId)];
     if (!home) return;
     globeRef.current.pointOfView({ lat: home.lat, lng: home.lng, altitude: 1.4 }, 0);
   }, [geo, state.playerNationId]);

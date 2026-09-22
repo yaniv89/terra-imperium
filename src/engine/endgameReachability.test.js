@@ -58,7 +58,7 @@ describe('endgame reachability: the game always resolves to a victory by 2300', 
     const state = advanceUntil(freshWorld(), (s) => s.gameStatus !== GameStatus.ACTIVE, MAX_TURNS);
     expect(state.gameStatus, 'the game never reached a victory within the turn budget').toBe(GameStatus.VICTORY);
     expect(state.year).toBeLessThanOrEqual(2300);
-  });
+  }, 120000); // 4,482 real provinces makes a turn cost tens of ms, not fractions — 1200 of them needs real wall-clock room
 });
 
 describe('endgame reachability: each victory condition fires when its real threshold is met', () => {
@@ -77,18 +77,23 @@ describe('endgame reachability: each victory condition fires when its real thres
     const state = freshWorld();
     // GDP is far more concentrated than region count (a handful of nations hold most of it), so
     // reaching the GDP threshold this way stays well under the domination region-share threshold —
-    // confirmed below — proving this is genuinely the GDP condition firing, not domination.
+    // confirmed below — proving this is genuinely the GDP condition firing, not domination. A
+    // nation is now many real provinces, not one region matching its own id, so "holding" a
+    // nation's GDP means owning ALL of its provinces, not one region keyed by its nation id.
     const byGdpDesc = Object.entries(WORLD_NATIONS).sort((a, b) => (b[1].gdpMillions || 0) - (a[1].gdpMillions || 0));
     const totalGdp = byGdpDesc.reduce((sum, [, n]) => sum + (n.gdpMillions || 0), 0);
+    const regionIdsByNation = {};
+    Object.entries(state.regions).forEach(([id, r]) => { (regionIdsByNation[r.owner] ||= []).push(id); });
     const regions = { ...state.regions };
     let ownedGdp = 0;
     let ownedCount = 0;
-    for (const [id, nation] of byGdpDesc) {
+    for (const [nationId, nation] of byGdpDesc) {
       if (ownedGdp / totalGdp >= ECONOMIC_HEGEMONY_GDP_SHARE) break;
-      if (!regions[id]) continue;
-      regions[id] = { ...regions[id], owner: state.playerNationId };
+      (regionIdsByNation[nationId] || []).forEach((id) => {
+        regions[id] = { ...regions[id], owner: state.playerNationId };
+        ownedCount += 1;
+      });
       ownedGdp += nation.gdpMillions || 0;
-      ownedCount += 1;
     }
     expect(ownedCount / Object.keys(state.regions).length).toBeLessThan(DOMINATION_REGION_SHARE);
     const next = resolveTurn({ ...state, regions });
@@ -158,5 +163,5 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     expect(state.year, 'the ladder finished after the game already ended (2300)').toBeLessThanOrEqual(2300);
     expect(state.gameStatus).toBe(GameStatus.VICTORY);
     expect(state.victoryConditionId).toBe('spaceAscendancy');
-  });
+  }, 120000); // several hundred simulated turns at 4,482 real provinces' per-turn cost
 });

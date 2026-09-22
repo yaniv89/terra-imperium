@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { shouldEventFire, pickNextEvent, HISTORICAL_EVENTS } from './events';
 import { START_YEAR, END_YEAR, AGE_ORDER, getCalendarAgeId } from './ages';
 import { EVENT_CHAINS } from './eventChains';
-import { REGIONS_DATA } from './regions';
+import { REGIONS_DATA, getNationCapital } from './regions';
+import { WORLD_NATIONS } from './worldNations';
 
 // World events (plan §9.5 Layer 1) fire for anyone; curated national flavor (Layer 3) only fires
 // for its own specific nationId. Several invariants below only make sense for one or the other.
@@ -92,13 +93,14 @@ describe('pickNextEvent / shouldEventFire for curated national flavor (nationId 
   it('never fires for a nation other than the one it names', () => {
     CURATED_EVENTS.forEach(event => {
       const otherNationId = event.nationId === 'fr' ? 'de' : 'fr';
-      expect(shouldEventFire(event, END_YEAR, {}, {}, otherNationId, { [event.nationId]: { owner: event.nationId } })).toBe(false);
+      const regions = { [getNationCapital(event.nationId)]: { owner: event.nationId } };
+      expect(shouldEventFire(event, END_YEAR, {}, {}, otherNationId, regions)).toBe(false);
     });
   });
 
   it('fires for the named nation once its year arrives and it still holds its homeland', () => {
     CURATED_EVENTS.forEach(event => {
-      const regions = { [event.nationId]: { owner: event.nationId } };
+      const regions = { [getNationCapital(event.nationId)]: { owner: event.nationId } };
       expect(shouldEventFire(event, event.year, {}, {}, event.nationId, regions)).toBe(true);
     });
   });
@@ -106,14 +108,14 @@ describe('pickNextEvent / shouldEventFire for curated national flavor (nationId 
   it('does not fire once the nation has lost its own homeland (requiresHomeland)', () => {
     CURATED_EVENTS.forEach(event => {
       expect(event.requiresHomeland).toBe(true); // every curated event in this batch requires it
-      const regions = { [event.nationId]: { owner: 'someone_else' } };
+      const regions = { [getNationCapital(event.nationId)]: { owner: 'someone_else' } };
       expect(shouldEventFire(event, event.year, {}, {}, event.nationId, regions)).toBe(false);
     });
   });
 
   it('pickNextEvent surfaces a curated event ahead of a later-year world event for the matching nation', () => {
     const egypt = HISTORICAL_EVENTS.national_egypt_nile_flood;
-    const regions = { eg: { owner: 'eg' } };
+    const regions = { [getNationCapital('eg')]: { owner: 'eg' } };
     const event = pickNextEvent(egypt.year, {}, {}, 'eg', regions);
     expect(event.id).toBe(egypt.id);
   });
@@ -184,24 +186,33 @@ describe('HISTORICAL_EVENTS data integrity', () => {
   // ambitions' warWith/tradeWith: ['tn']). A typo or an id that gets removed from REGIONS_DATA
   // later would otherwise silently no-op (every id lookup in applyEventEffects.js already guards
   // with `if (!nations[nId]) return;`) rather than failing loudly here.
-  it('every nation/region id referenced inside an event\'s effects is a real region', () => {
-    const arrayFields = ['warWith', 'tradeWith', 'peaceWith', 'captureRegions'];
-    const singleIdFields = ['returnRegion'];
+  it('every nation/region id referenced inside an event\'s effects is real', () => {
+    // warWith/tradeWith/peaceWith/nationHostility name NATIONS (applyEventEffects.js looks them up
+    // via `nations[nId]`); captureRegions/returnRegion name actual REGIONS — two different id
+    // spaces since a nation is no longer just one region matching its own id.
+    const nationArrayFields = ['warWith', 'tradeWith', 'peaceWith'];
+    const regionArrayFields = ['captureRegions'];
+    const regionSingleIdFields = ['returnRegion'];
     Object.values(HISTORICAL_EVENTS).forEach(event => {
       event.options.forEach(option => {
         const effects = option.effects || {};
-        arrayFields.forEach(field => {
+        nationArrayFields.forEach(field => {
           if (!effects[field]) return;
           const ids = Array.isArray(effects[field]) ? effects[field] : [effects[field]];
-          ids.forEach(id => expect(REGIONS_DATA[id], `${event.id}'s ${field} references unknown id "${id}"`).toBeDefined());
+          ids.forEach(id => expect(WORLD_NATIONS[id], `${event.id}'s ${field} references unknown nation "${id}"`).toBeDefined());
         });
-        singleIdFields.forEach(field => {
+        regionArrayFields.forEach(field => {
           if (!effects[field]) return;
-          expect(REGIONS_DATA[effects[field]], `${event.id}'s ${field} references unknown id "${effects[field]}"`).toBeDefined();
+          const ids = Array.isArray(effects[field]) ? effects[field] : [effects[field]];
+          ids.forEach(id => expect(REGIONS_DATA[id], `${event.id}'s ${field} references unknown region "${id}"`).toBeDefined());
+        });
+        regionSingleIdFields.forEach(field => {
+          if (!effects[field]) return;
+          expect(REGIONS_DATA[effects[field]], `${event.id}'s ${field} references unknown region "${effects[field]}"`).toBeDefined();
         });
         if (effects.nationHostility) {
           Object.keys(effects.nationHostility).forEach(id =>
-            expect(REGIONS_DATA[id], `${event.id}'s nationHostility references unknown id "${id}"`).toBeDefined());
+            expect(WORLD_NATIONS[id], `${event.id}'s nationHostility references unknown nation "${id}"`).toBeDefined());
         }
       });
     });

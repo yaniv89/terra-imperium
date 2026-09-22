@@ -3,16 +3,24 @@ import { NAVAL_REACH_KM, isCoastal, getAllSeaLanes, getSeaLanesWithinReach, isRe
 import { AGE_ORDER } from './ages';
 import { REGIONS_DATA, getNeighborIds } from './regions';
 
+// isCoastal/getSeaLanesWithinReach/isReachableBySea now take real PROVINCE ids, not country ids —
+// a country is coastal if ANY of its provinces is. These helpers resolve a country id to one real
+// province for the spot-checks below, the same way a UI action (Amphibious Assault, Naval
+// Engagement) always operates on one specific province.
+const coastalProvinceOf = (countryId) => Object.values(REGIONS_DATA).find(r => r.startOwner === countryId && r.isCoastal)?.id;
+const anyProvinceOf = (countryId) => Object.values(REGIONS_DATA).find(r => r.startOwner === countryId)?.id;
+
 describe('isCoastal', () => {
-  it('is true for real coastal nations', () => {
+  it('is true for a real coastal province of real coastal nations', () => {
     ['gb', 'jp', 'us', 'eg', 'au', 'cy', 'mg', 'id'].forEach(id => {
-      expect(isCoastal(id), id).toBe(true);
+      expect(isCoastal(coastalProvinceOf(id)), id).toBe(true);
     });
   });
 
-  it('is false for real landlocked nations', () => {
+  it('is false for every province of real landlocked nations', () => {
     ['ch', 'at', 'mn', 'af', 'bo'].forEach(id => {
-      expect(isCoastal(id), id).toBe(false);
+      expect(coastalProvinceOf(id), `${id} should have no coastal province at all`).toBeUndefined();
+      expect(isCoastal(anyProvinceOf(id)), id).toBe(false);
     });
   });
 
@@ -34,31 +42,31 @@ describe('NAVAL_REACH_KM', () => {
 
 describe('getSeaLanesWithinReach / isReachableBySea', () => {
   it('a very short lane (Dover Strait) is reachable even in the Bronze Age', () => {
-    expect(isReachableBySea('gb', 'fr', 'bronze')).toBe(true);
+    expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('fr'), 'bronze')).toBe(true);
   });
 
   it('a transoceanic lane is unreachable before Gunpowder and reachable by Modern', () => {
     // UK <-> US crosses the Atlantic — real transoceanic colonial-era range.
-    expect(isReachableBySea('gb', 'us', 'bronze')).toBe(false);
-    expect(isReachableBySea('gb', 'us', 'classical')).toBe(false);
-    expect(isReachableBySea('gb', 'us', 'modern')).toBe(true);
+    expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('us'), 'bronze')).toBe(false);
+    expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('us'), 'classical')).toBe(false);
+    expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('us'), 'modern')).toBe(true);
   });
 
   it('only returns lanes within the given age\'s reach, all still under the reach cap', () => {
-    const lanes = getSeaLanesWithinReach('gb', 'classical');
+    const lanes = getSeaLanesWithinReach(coastalProvinceOf('gb'), 'classical');
     lanes.forEach(lane => expect(lane.km).toBeLessThanOrEqual(NAVAL_REACH_KM.classical));
   });
 
   it('getAllSeaLanes returns every lane regardless of age, a superset of any age-filtered result', () => {
-    const all = getAllSeaLanes('jp');
-    const bronzeReach = getSeaLanesWithinReach('jp', 'bronze');
+    const all = getAllSeaLanes(coastalProvinceOf('jp'));
+    const bronzeReach = getSeaLanesWithinReach(coastalProvinceOf('jp'), 'bronze');
     expect(all.length).toBeGreaterThanOrEqual(bronzeReach.length);
     bronzeReach.forEach(lane => expect(all.some(l => l.to === lane.to)).toBe(true));
   });
 
   it('returns nothing for a landlocked nation', () => {
-    expect(getAllSeaLanes('ch')).toEqual([]);
-    expect(isReachableBySea('ch', 'fr', 'modern')).toBe(false);
+    expect(getAllSeaLanes(anyProvinceOf('ch'))).toEqual([]);
+    expect(isReachableBySea(anyProvinceOf('ch'), coastalProvinceOf('fr'), 'modern')).toBe(false);
   });
 });
 
@@ -68,19 +76,19 @@ describe('getSeaLanesWithinReach / isReachableBySea', () => {
 describe('island reachability guarantee', () => {
   const ISLAND_NATIONS = ['gb', 'jp', 'au', 'id', 'mg', 'cy'];
 
-  it('every named island nation is coastal', () => {
-    ISLAND_NATIONS.forEach(id => expect(isCoastal(id), id).toBe(true));
+  it('every named island nation has a coastal province', () => {
+    ISLAND_NATIONS.forEach(id => expect(coastalProvinceOf(id), id).toBeTruthy());
   });
 
   it('every named island nation has at least one sea lane reachable by the Age of Gunpowder', () => {
     ISLAND_NATIONS.forEach(id => {
-      const reachable = getSeaLanesWithinReach(id, 'gunpowder');
+      const reachable = getSeaLanesWithinReach(coastalProvinceOf(id), 'gunpowder');
       expect(reachable.length, `${id} has no Gunpowder-age sea lane`).toBeGreaterThan(0);
     });
   });
 });
 
-// The same guarantee, generalized to ALL 240 real nations rather than 6 named spot-checks — this
+// The same guarantee, generalized to every real province rather than 6 named spot-checks — this
 // is the plan §13 bullet in full: "an automated test asserting that every one of the 240 nations
 // is conquerable... This is the regression guard that stops islands from silently falling out of
 // the game again." A region graph splits into: one large land-connected mainland, a handful of
@@ -89,7 +97,7 @@ describe('island reachability guarantee', () => {
 // none of them is EVER permanently unreachable: LAUNCH_INVASION covers the land-connected graph,
 // and AMPHIBIOUS_ASSAULT (global sea reach at the Modern Age) covers every coastal region,
 // including every isolated one.
-describe('exhaustive reachability guarantee — all 240 nations', () => {
+describe('exhaustive reachability guarantee — every province', () => {
   it('every region either has a real land neighbor or is coastal (no region is land-isolated AND landlocked)', () => {
     Object.keys(REGIONS_DATA).forEach(id => {
       const hasLandNeighbor = getNeighborIds(id).length > 0;

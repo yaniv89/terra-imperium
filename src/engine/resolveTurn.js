@@ -20,7 +20,7 @@ import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSo
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
-import { REGIONS_DATA, distanceFromAnchor } from '../data/regions';
+import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange } from '../data/regions';
 import {
   REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength,
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
@@ -43,7 +43,6 @@ export const resolveTurn = (state) => {
 
   const rng = createRng(state.rngSeed);
   const logs = [];
-
   // --- time ---
   const newYear = state.year + getYearsPerTurn(state.age, state.gameSpeed);
   const newAge = getCalendarAgeId(newYear);
@@ -152,17 +151,17 @@ export const resolveTurn = (state) => {
   const unitsByOwner = {};
   Object.values(units).forEach(u => { (unitsByOwner[u.ownerId] = unitsByOwner[u.ownerId] || []).push(u); });
   Object.entries(unitsByOwner).forEach(([ownerId, ownerUnits]) => {
-    const ownedRegionIds = Object.entries(regions).filter(([, r]) => r.owner === ownerId).map(([id]) => id);
+    const ownedRegionIds = getOwnedRegionIds(regions, ownerId);
     if (ownedRegionIds.length === 0) return; // no territory of its own (e.g. rebels) — nothing to be supplied from
     const maxSupplyRange = Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure)));
-    const distanceCache = {};
+    // One bounded multi-source BFS covers every in-range region at once, rather than a fresh
+    // search per distinct region a unit happens to occupy — the set of in-range regions is the
+    // same for every one of this nation's units this turn regardless of how many distinct
+    // regions they're spread across.
+    const inSupplyRegions = regionsWithinRange(ownedRegionIds, maxSupplyRange);
     ownerUnits.forEach(u => {
       if (u.embarkedOn) return; // cargo shares its transport's supply state, not its own
-      if (distanceCache[u.regionId] === undefined) {
-        distanceCache[u.regionId] = distanceFromAnchor(ownedRegionIds, u.regionId);
-      }
-      const distance = distanceCache[u.regionId];
-      if (distance !== undefined && distance <= maxSupplyRange) return; // in supply
+      if (inSupplyRegions.has(u.regionId)) return; // in supply
       // Math.floor, not round: a unit's strength must actually reach 0 under sustained attrition
       // rather than rounding back up to 1 forever once it gets small.
       const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE)));

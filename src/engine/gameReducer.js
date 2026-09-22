@@ -12,7 +12,7 @@
 // GameContext.jsx re-exports both `createInitialState` and `gameReducer` from here so every
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
@@ -368,7 +368,7 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.developResourceSite;
       if (!region || region.owner !== state.playerNationId) return state;
       if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
-      if (!hasDeposit(regionId, resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
+      if (!hasDeposit(REGIONS_DATA[regionId]?.startOwner, resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1148,13 +1148,14 @@ export const gameReducer = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
 
       const afterWar = declareWar(state, nationId, { aggressor: state.playerNationId });
-      const homeRegion = afterWar.regions[state.playerNationId];
+      const homeRegionId = getNationCapital(state.playerNationId);
+      const homeRegion = afterWar.regions[homeRegionId];
       const nextNations = { ...afterWar.nations };
       let nextRegions = afterWar.regions;
       if (!justified) {
         // Unjustified aggression costs stability at home and relations with everyone else — the
         // plan's own framing, not just a bigger gold bill.
-        nextRegions = { ...afterWar.regions, [state.playerNationId]: { ...homeRegion, unrest: Math.min(100, (homeRegion.unrest || 0) + UNJUSTIFIED_WAR_HOME_UNREST) } };
+        nextRegions = { ...afterWar.regions, [homeRegionId]: { ...homeRegion, unrest: Math.min(100, (homeRegion.unrest || 0) + UNJUSTIFIED_WAR_HOME_UNREST) } };
         Object.keys(nextNations).forEach(id => {
           if (id === state.playerNationId || id === nationId) return;
           nextNations[id] = { ...nextNations[id], hostility: Math.min(100, (nextNations[id].hostility || 0) + UNJUSTIFIED_WAR_GLOBAL_HOSTILITY) };

@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, resolveWarProgress } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
+import { getNationCapital } from '../data/regions';
+
+// A nation now spans many real provinces, not one region matching its own id — these tests use
+// each nation's capital as "its" region wherever the old one-region-per-nation model used the
+// nation id directly as a region id.
+const cap = getNationCapital;
 
 const alwaysRolls = { next: () => 0 };       // guarantees any probability check < 1 succeeds
 const neverRolls = { next: () => 0.999999 }; // guarantees any realistic probability check fails
@@ -56,9 +62,9 @@ describe('buildWarGoal', () => {
 describe('checkWarGoal', () => {
   it('capture_region: true once the aggressor actually holds the target region', () => {
     const state = usState();
-    const war = { active: true, aggressor: 'us', enemy: 'ca', goal: { type: 'capture_region', regionId: 'ca' } };
+    const war = { active: true, aggressor: 'us', enemy: 'ca', goal: { type: 'capture_region', regionId: cap('ca') } };
     expect(checkWarGoal(war, state)).toBe(false);
-    const captured = { ...state, regions: { ...state.regions, ca: { ...state.regions.ca, owner: 'us' } } };
+    const captured = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], owner: 'us' } } };
     expect(checkWarGoal(war, captured)).toBe(true);
   });
 
@@ -174,7 +180,7 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
 
   it('leaves a war the player started completely untouched', () => {
     const state = usState();
-    const war = { id: 'war_1', aggressor: 'us', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: 'ca' } };
+    const war = { id: 'war_1', aggressor: 'us', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: cap('ca') } };
     const withWar = { ...state, wars: [war] };
     const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
     expect(result.wars[0]).toEqual(war);
@@ -183,7 +189,7 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
   });
 
   it('leaves an inactive war untouched', () => {
-    const { state, war } = aiWarState({ active: false, goal: { type: 'capture_region', regionId: 'ca' } });
+    const { state, war } = aiWarState({ active: false, goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
     expect(result.wars[0]).toEqual(war);
   });
@@ -197,10 +203,10 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
   });
 
   it('captures the goal region and ends the war (AI vs AI) when the roll succeeds', () => {
-    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: 'ca' } });
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
-    expect(result.regions.ca.owner).toBe('mx');
-    expect(result.regions.ca.formerOwner).toBe('ca');
+    expect(result.regions[cap('ca')].owner).toBe('mx');
+    expect(result.regions[cap('ca')].formerOwner).toBe('ca');
     expect(result.wars[0].active).toBe(false);
     expect(result.wars[0].goalAchieved).toBe(true);
     expect(result.nations.mx.isAtWar).toBe(false);
@@ -211,26 +217,26 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
 
   it('an AI can capture the PLAYER\'S region and end the war, exactly like any other nation', () => {
     const state = usState();
-    const war = { id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: 'us' } };
+    const war = { id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: cap('us') } };
     const withWar = { ...state, wars: [war] };
     const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
-    expect(result.regions.us.owner).toBe('ca');
-    expect(result.regions.us.formerOwner).toBe('us');
+    expect(result.regions[cap('us')].owner).toBe('ca');
+    expect(result.regions[cap('us')].formerOwner).toBe('us');
     expect(result.nations.us.isAtWar).toBe(false);
   });
 
   it('does not capture the region when the roll fails, and the war stays active', () => {
-    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: 'ca' } });
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
-    expect(result.regions.ca.owner).toBe('ca');
+    expect(result.regions[cap('ca')].owner).toBe('ca');
     expect(result.wars[0].active).toBe(true);
   });
 
   it('does not roll a capture once the target region already changed hands some other way', () => {
-    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: 'ca' } });
-    const alreadyLost = { ...state, regions: { ...state.regions, ca: { ...state.regions.ca, owner: 'us' } } };
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const alreadyLost = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], owner: 'us' } } };
     const result = resolveWarProgress(alreadyLost, alreadyLost.regions, alreadyLost.nations, alreadyLost.wars, alwaysRolls);
-    expect(result.regions.ca.owner).toBe('us'); // unchanged by this war
+    expect(result.regions[cap('ca')].owner).toBe('us'); // unchanged by this war
   });
 
   it('ends the war once a destroy_military goal is met, regardless of the capture roll', () => {
