@@ -58,3 +58,89 @@ jobs:
             -configuration Debug \
             -destination "generic/platform=iOS Simulator" \
             CODE_SIGNING_ALLOWED=NO
+
+  # Store-readiness groundwork, mirroring the Android signing scaffold's own gated pattern
+  # (android/app/build.gradle's hasKeystoreProperties): this job only runs once APPLE_TEAM_ID
+  # exists as a repo secret, so it's a complete no-op — doesn't even start — until someone actually
+  # sets up a real Apple Developer distribution certificate and provisioning profile. The
+  # simulator build above stays exactly as it was either way, unaffected by whether this job runs.
+  #
+  # Activating this for real needs 4 repo secrets, none of which exist yet:
+  # - APPLE_TEAM_ID: the 10-character Apple Developer Team ID.
+  # - APPLE_DIST_CERTIFICATE_BASE64 / APPLE_DIST_CERTIFICATE_PASSWORD: a Distribution certificate
+  #   exported as a .p12, base64-encoded (`base64 -i Certificate.p12 | pbcopy`), and the password
+  #   it was exported with.
+  # - APPLE_PROVISIONING_PROFILE_BASE64: an App Store provisioning profile for
+  #   com.terraimperium.app (capacitor.config.json's appId), base64-encoded the same way.
+  release-ios:
+    runs-on: macos-latest
+    if: ${{ secrets.APPLE_TEAM_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the mobile web bundle
+        run: npm run build:mobile
+
+      - name: Sync Capacitor's iOS project with the built web assets
+        run: npx cap sync ios
+
+      # Imports the distribution certificate into a fresh, throwaway keychain scoped to this job —
+      # never the runner's default login keychain — and installs the provisioning profile where
+      # Xcode looks for it. Standard pattern for signing on GitHub's macOS runners.
+      - name: Import signing certificate and provisioning profile
+        env:
+          APPLE_DIST_CERTIFICATE_BASE64: ${{ secrets.APPLE_DIST_CERTIFICATE_BASE64 }}
+          APPLE_DIST_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DIST_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/release-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          CERTIFICATE_PATH="$RUNNER_TEMP/dist_certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+
+          echo -n "$APPLE_DIST_CERTIFICATE_BASE64" | base64 --decode -o "$CERTIFICATE_PATH"
+          echo -n "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_DIST_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/"//g')
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Generate ExportOptions.plist from the template
+        run: sed "s/__APPLE_TEAM_ID__/${{ secrets.APPLE_TEAM_ID }}/" ios/ExportOptions.plist.template > ios/ExportOptions.plist
+
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -destination "generic/platform=iOS"
+
+      - name: Export a signed .ipa
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist ios/ExportOptions.plist
+
+      - name: Upload the signed .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: terra-imperium-release.ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: error

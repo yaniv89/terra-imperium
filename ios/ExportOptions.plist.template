@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template only — __APPLE_TEAM_ID__ is substituted by the "Release archive + export" job in
+  .github/workflows/mobile-ios.yml, which only runs once the APPLE_TEAM_ID repo secret exists (see
+  that job for the full list of secrets a real release needs). Never hand-edit a copy of this with
+  a real Team ID checked in — that's exactly the kind of thing that belongs in CI secrets/local
+  environment, never in git, same reasoning as android/keystore.properties being gitignored.
+-->
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store</string>
+  <key>teamID</key>
+  <string>__APPLE_TEAM_ID__</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>

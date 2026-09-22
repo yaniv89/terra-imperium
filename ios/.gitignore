@@ -11,3 +11,7 @@ capacitor-cordova-ios-plugins
 # Generated Config files
 App/App/capacitor.config.json
 App/App/config.xml
+
+# Generated from ExportOptions.plist.template (mobile-ios.yml's release-ios job) with a real Team
+# ID substituted in — never the template itself, which stays generic and committed.
+ExportOptions.plist
