@@ -129,11 +129,17 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     return fillColorFor(regionState, nation, isPlayerOwned);
   };
 
+  // Polygon geometry is real admin-1 provinces (loadGameRegions.js), but every province of a
+  // country shares one gameRegionId — the country IS the region. A visible stroke on every
+  // province edge drew internal province borders that don't correspond to anything clickable,
+  // making the map look divided into sub-regions it isn't. Defaulting the stroke to the same
+  // color as the fill erases those internal seams; actual country borders stay visible because
+  // neighboring countries almost always differ in fill color already.
   const strokeColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return '#2563eb';
     if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
-    return '#0f172a';
+    return capColor(feature);
   };
 
   const altitude = (feature) => {
