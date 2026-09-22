@@ -6,18 +6,23 @@
 // event modal silently blocking every future turn) the way the pure-engine test suite can't.
 //
 // TURNS_TO_PLAY is 3, not the plan's literal 10 — a real, diagnosed constraint, not an arbitrary
-// cut corner. The always-rendering WebGL globe (react-globe.gl) under headless, software-rendered
-// Chromium gets measurably slower and eventually unstable the longer the page stays open and
-// interactive (confirmed via a Playwright trace: "GL Driver Message... GPU stall due to
-// ReadPixels", and confirmed on GitHub Actions' own runners too, not just this dev sandbox — so
-// it's a real headless-Chromium-plus-WebGL characteristic, not an artifact of one constrained
-// environment). A run of exactly 10 turns DID complete once, with fully correct state progression
+// cut corner. Root cause (Task 48's investigation): GlobeView.jsx's globe auto-rotates by default
+// (a deliberate, reduced-motion-respecting "alive menu" touch) and only stops once something
+// actually drags the globe's own OrbitControls. A real player almost always does that within the
+// first few seconds — the globe is the core interaction surface — which naturally cuts the
+// continuous render short. This test's clicks never touch the globe (dispatchEvent on header/modal
+// buttons only), so auto-rotate spins for the ENTIRE run, and under headless/software-rendered
+// Chromium that sustained full-scene redraw (4,482 province polygons) gets measurably slower and
+// eventually unstable the longer it goes (confirmed via a Playwright trace: "GL Driver Message...
+// GPU stall due to ReadPixels", and reproduced on GitHub Actions' own runners too, not just this
+// dev sandbox). A run of exactly 10 turns DID complete once, with fully correct state progression
 // every turn, proving the click/event/turn-advance mechanism itself is sound — but the browser then
-// crashed shortly after, mid-assertion, consistent with resource pressure compounding over the
-// session rather than any one interaction being broken. 3 turns passed reliably across repeated
-// runs with room to spare; it's a smaller number than the plan's illustrative "10", but it
-// exercises the same real path (start screen -> game -> event resolution -> turn advance) that
-// this check exists to guard, without gambling the whole check on the environment's known ceiling.
+// crashed shortly after, mid-assertion, consistent with rendering pressure compounding over an
+// unusually long uninterrupted auto-rotate session rather than any one interaction being broken.
+// 3 turns passed reliably across repeated runs with room to spare; it's a smaller number than the
+// plan's illustrative "10", but it exercises the same real path (start screen -> game -> event
+// resolution -> turn advance) this check exists to guard, without gambling the whole check on a
+// rendering characteristic that's specific to never-touch-the-globe automation, not real play.
 import { test, expect } from '@playwright/test';
 
 const TURNS_TO_PLAY = 3;
