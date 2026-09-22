@@ -45,6 +45,7 @@ const SpacePanel = () => {
 
   const handleBuildMissile = (tierId) => {
     if (!canAfford(state.resources, ACTION_COSTS.buildMissile[tierId])) return addLog('Not enough resources', 'action');
+    triggerEffect('build_missile', { region: state.playerNationId });
     dispatch({ type: ActionTypes.BUILD_MISSILE, payload: { tierId } });
   };
 
@@ -58,6 +59,7 @@ const SpacePanel = () => {
 
   const handleBuildAbm = () => {
     if (!canAfford(state.resources, ACTION_COSTS.buildAbmDefense)) return addLog('Not enough resources', 'action');
+    triggerEffect('build_abm_defense', { region: state.playerNationId });
     dispatch({ type: ActionTypes.BUILD_ABM_DEFENSE, payload: {} });
   };
 
@@ -65,6 +67,7 @@ const SpacePanel = () => {
     const mission = SPACE_MISSIONS.find(m => m.id === missionId);
     const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    triggerEffect('launch_mission', { region: state.playerNationId });
     dispatch({ type: ActionTypes.LAUNCH_MISSION, payload: { missionId } });
   };
 

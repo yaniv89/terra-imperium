@@ -39,6 +39,7 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const handleSetTaxRate = (rate) => {
     if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
+    triggerEffect('set_tax_rate', { region: state.playerNationId });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
   };
   const handleConstructWonder = (wonderId) => {
@@ -94,14 +95,17 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const handleAdoptGovernment = (governmentId) => {
     if (!canAfford(state.resources, ACTION_COSTS.adoptGovernment)) return addLog('Not enough resources', 'action');
+    triggerEffect('adopt_government', { region: state.playerNationId });
     dispatch({ type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId } });
   };
   const handleAdoptPolicy = (policyId) => {
     if (!canAfford(state.resources, ACTION_COSTS.adoptPolicy)) return addLog('Not enough resources', 'action');
+    triggerEffect('adopt_policy', { region: state.playerNationId });
     dispatch({ type: ActionTypes.ADOPT_POLICY, payload: { policyId } });
   };
   const handleRemovePolicy = (policyId) => {
     if (!canAfford(state.resources, ACTION_COSTS.removePolicy)) return addLog('Not enough resources', 'action');
+    triggerEffect('remove_policy', { region: state.playerNationId });
     dispatch({ type: ActionTypes.REMOVE_POLICY, payload: { policyId } });
   };
 
@@ -210,10 +214,12 @@ const DomesticPanel = ({ selectedRegion }) => {
   };
   const handleQuellUnrest = () => {
     if (!canAfford(state.resources, ACTION_COSTS.quellUnrest)) return addLog('Not enough resources', 'action');
+    triggerEffect('quell_unrest', { region: selectedRegion });
     dispatchAction(ActionTypes.QUELL_UNREST);
   };
   const handlePopulationPolicy = () => {
     if (!canAfford(state.resources, ACTION_COSTS.populationPolicy)) return addLog('Not enough resources', 'action');
+    triggerEffect('population_policy', { region: selectedRegion });
     dispatchAction(ActionTypes.POPULATION_POLICY);
   };
   const handleSettleColonize = () => {

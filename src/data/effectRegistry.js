@@ -166,6 +166,34 @@ export const EFFECT_REGISTRY = {
     debris: 2,
     projectiles: [{ lateral: 0.05, loft: 0.24, delay: 0, scale: 0.7, spread: 0 }]
   },
+  fabricate_claim: {
+    primitive: 'arc',
+    palette: { base: '#f59e0b', hot: '#fef3c7' },
+    head: 'dart',
+    archPow: 0.5,
+    ease: 'smooth',
+    trailWidth: 2,
+    fireball: 0.2,
+    rings: 1,
+    debris: 3,
+    projectiles: [{ lateral: 0.1, loft: 0.3, delay: 0, scale: 0.8, spread: 0 }]
+  },
+  military_alliance: {
+    primitive: 'arc',
+    palette: { base: '#6366f1', hot: '#e0e7ff' },
+    head: 'chevron',
+    archPow: 0.6,
+    ease: 'smooth',
+    trailWidth: 2.6,
+    fireball: 0.3,
+    rings: 2,
+    debris: 4,
+    // Two shields sliding together — converging from both directions rather than one arcing over.
+    projectiles: [
+      { lateral: -0.4, loft: 0.25, delay: 0, scale: 0.9, spread: -0.4 },
+      { lateral: 0.4, loft: 0.25, delay: 60, scale: 0.9, spread: 0.4 }
+    ]
+  },
 
   // ---- pulse primitive: single-region actions with no natural "from"/"to" geography ----
   recruit_unit: { primitive: 'pulse', palette: { base: '#22c55e', hot: '#dcfce7' }, glyph: 'square', rings: 2, motes: 8 },
@@ -179,7 +207,24 @@ export const EFFECT_REGISTRY = {
   gain_control: { primitive: 'pulse', palette: { base: '#60a5fa', hot: '#dbeafe' }, glyph: 'circle', rings: 2, motes: 0 },
   settle_colonize: { primitive: 'pulse', palette: { base: '#fbbf24', hot: '#fef9c3' }, glyph: 'triangle', rings: 2, motes: 6 },
   research_tech: { primitive: 'pulse', palette: { base: '#a78bfa', hot: '#ede9fe' }, glyph: 'circle', rings: 2, motes: 6 },
-  launch_satellite: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 3, motes: 8 }
+  launch_satellite: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 3, motes: 8 },
+  quell_unrest: { primitive: 'pulse', palette: { base: '#fb7185', hot: '#fff1f2' }, glyph: 'circle', rings: 2, motes: 0 },
+  population_policy: { primitive: 'pulse', palette: { base: '#4ade80', hot: '#f0fdf4' }, glyph: 'circle', rings: 1, motes: 10 },
+  set_tax_rate: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fef9c3' }, glyph: 'circle', rings: 1, motes: 6 },
+  adopt_government: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
+  adopt_policy: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
+  remove_policy: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 0 },
+  hire_general: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'diamond', rings: 1, motes: 3 },
+  appoint_general: { primitive: 'pulse', palette: { base: '#0ea5e9', hot: '#e0f2fe' }, glyph: 'star', rings: 1, motes: 2 },
+  embark_unit: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 1, motes: 4 },
+  disembark_unit: { primitive: 'pulse', palette: { base: '#2dd4bf', hot: '#f0fdfa' }, glyph: 'triangle', rings: 1, motes: 4 },
+  set_research_focus: { primitive: 'pulse', palette: { base: '#a78bfa', hot: '#ede9fe' }, glyph: 'diamond', rings: 1, motes: 2 },
+  fund_scholars: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#eef2ff' }, glyph: 'circle', rings: 1, motes: 5 },
+  build_missile: { primitive: 'pulse', palette: { base: '#f97316', hot: '#fff7ed' }, glyph: 'triangle', rings: 2, motes: 3 },
+  build_abm_defense: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'square', rings: 2, motes: 0 },
+  // The mission ladder's showpiece moments (Sputnik, Moon landing, Mars) get the biggest pulse in
+  // the registry — matched only by construct_wonder, the other permanent-empire-scale milestone.
+  launch_mission: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 10 }
 };
 
 const DEFAULT_EFFECT_TYPE = 'missile_strike';

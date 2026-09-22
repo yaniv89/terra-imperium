@@ -105,17 +105,21 @@ const MilitaryPanel = ({ selectedRegion }) => {
   };
   const handleHireGeneral = () => {
     if (!canAfford(state.resources, ACTION_COSTS.hireGeneral)) return addLog('Not enough resources', 'action');
+    triggerEffect('hire_general', { region: state.playerNationId });
     dispatch({ type: ActionTypes.HIRE_GENERAL, payload: {} });
   };
   const handleAppointGeneral = (generalId, unitId) => {
+    triggerEffect('appoint_general', { region: unitId ? state.units[unitId]?.regionId : state.playerNationId });
     dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: unitId || null } });
   };
   const handleEmbark = (landUnitId, navalUnitId) => {
     if (!canAfford(state.resources, ACTION_COSTS.embarkUnit)) return addLog('Not enough resources', 'action');
+    triggerEffect('embark_unit', { region: state.units[landUnitId]?.regionId });
     dispatch({ type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
   };
   const handleDisembark = (landUnitId) => {
     if (!canAfford(state.resources, ACTION_COSTS.disembarkUnit)) return addLog('Not enough resources', 'action');
+    triggerEffect('disembark_unit', { region: state.units[landUnitId]?.regionId });
     dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId } });
   };
   const handleAmphibiousAssault = (navalUnitId) => {

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { shouldEventFire, pickNextEvent, HISTORICAL_EVENTS } from './events';
 import { START_YEAR, END_YEAR, AGE_ORDER, getCalendarAgeId } from './ages';
 import { EVENT_CHAINS } from './eventChains';
+import { REGIONS_DATA } from './regions';
 
 // World events (plan §9.5 Layer 1) fire for anyone; curated national flavor (Layer 3) only fires
 // for its own specific nationId. Several invariants below only make sense for one or the other.
@@ -175,5 +176,34 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     CURATED_EVENTS.forEach(event => expect(knownRealNationIds).toContain(event.nationId));
     expect(CURATED_EVENTS.length).toBeGreaterThanOrEqual(5);
     expect(new Set(CURATED_EVENTS.map(e => e.nationId)).size).toBe(CURATED_EVENTS.length); // one per nation
+  });
+
+  // Plan §13's "no event references a hardcoded nation/region id that may not exist" — the
+  // nationId/knownRealNationIds check above only covers WHICH nation a curated event targets, not
+  // any OTHER nation/region id an event's effects reference inside them (e.g. national_punic_
+  // ambitions' warWith/tradeWith: ['tn']). A typo or an id that gets removed from REGIONS_DATA
+  // later would otherwise silently no-op (every id lookup in applyEventEffects.js already guards
+  // with `if (!nations[nId]) return;`) rather than failing loudly here.
+  it('every nation/region id referenced inside an event\'s effects is a real region', () => {
+    const arrayFields = ['warWith', 'tradeWith', 'peaceWith', 'captureRegions'];
+    const singleIdFields = ['returnRegion'];
+    Object.values(HISTORICAL_EVENTS).forEach(event => {
+      event.options.forEach(option => {
+        const effects = option.effects || {};
+        arrayFields.forEach(field => {
+          if (!effects[field]) return;
+          const ids = Array.isArray(effects[field]) ? effects[field] : [effects[field]];
+          ids.forEach(id => expect(REGIONS_DATA[id], `${event.id}'s ${field} references unknown id "${id}"`).toBeDefined());
+        });
+        singleIdFields.forEach(field => {
+          if (!effects[field]) return;
+          expect(REGIONS_DATA[effects[field]], `${event.id}'s ${field} references unknown id "${effects[field]}"`).toBeDefined();
+        });
+        if (effects.nationHostility) {
+          Object.keys(effects.nationHostility).forEach(id =>
+            expect(REGIONS_DATA[id], `${event.id}'s nationHostility references unknown id "${id}"`).toBeDefined());
+        }
+      });
+    });
   });
 });

@@ -17,15 +17,14 @@ import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD } from '.
 import { hasCasusBelli } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
 
-// Diplomacy actions that travel visibly between the player's capital and the target nation's —
-// only the ones with a registered EFFECT_REGISTRY entry are listed; Fabricate Claim and Military
-// Alliance fall back to the default missile_strike visual rather than getting their own primitive
-// for now, since they're rarer clicks than the four below.
+// Diplomacy actions that travel visibly between the player's capital and the target nation's.
 const DIPLOMACY_EFFECT_BY_ACTION = {
   [ActionTypes.DECLARE_WAR]: 'declare_war',
   [ActionTypes.SUE_FOR_PEACE]: 'sue_for_peace',
   [ActionTypes.TRADE_AGREEMENT]: 'trade_agreement',
-  [ActionTypes.GIFT_BRIBE]: 'gift_bribe'
+  [ActionTypes.GIFT_BRIBE]: 'gift_bribe',
+  [ActionTypes.FABRICATE_CLAIM]: 'fabricate_claim',
+  [ActionTypes.MILITARY_ALLIANCE]: 'military_alliance'
 };
 
 const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (

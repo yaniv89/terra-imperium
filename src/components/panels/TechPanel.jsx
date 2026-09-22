@@ -28,10 +28,12 @@ const TechPanel = () => {
 
   const handleFocus = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.setResearchFocus)) return addLog('Not enough resources', 'action');
+    triggerEffect('set_research_focus', { region: state.playerNationId });
     dispatch({ type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId } });
   };
   const handleFundScholars = () => {
     if (!canAfford(state.resources, ACTION_COSTS.fundScholars)) return addLog('Not enough resources', 'action');
+    triggerEffect('fund_scholars', { region: state.playerNationId });
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
   };
   const handleResearch = (techId, techCost) => {
