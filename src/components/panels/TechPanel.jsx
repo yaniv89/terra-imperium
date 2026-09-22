@@ -10,6 +10,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
 import { TECH_TREE, canResearchTech, getTechsByCategory } from '../../data/techTree';
 import { ACTION_COSTS } from '../../data/actionCosts';
+import { getNationCapital } from '../../data/regions';
 import { canAfford } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -28,18 +29,18 @@ const TechPanel = () => {
 
   const handleFocus = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.setResearchFocus)) return addLog('Not enough resources', 'action');
-    triggerEffect('set_research_focus', { region: state.playerNationId });
+    triggerEffect('set_research_focus', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId } });
   };
   const handleFundScholars = () => {
     if (!canAfford(state.resources, ACTION_COSTS.fundScholars)) return addLog('Not enough resources', 'action');
-    triggerEffect('fund_scholars', { region: state.playerNationId });
+    triggerEffect('fund_scholars', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
   };
   const handleResearch = (techId, techCost) => {
     const costs = { ...techCost, actionPoints: ACTION_COSTS.researchTech.actionPoints };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
-    triggerEffect('research_tech', { region: state.playerNationId });
+    triggerEffect('research_tech', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
   };
 

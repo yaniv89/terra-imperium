@@ -61,9 +61,13 @@ describe('processAllAINations', () => {
   });
 });
 
-// Real region ids doubling as nation ids (Phase A's one-whole-country-region-per-nation model —
-// see src/data/regions.js). us<->ca<->mx and de<->{cz,pl,at,be,fr,...} are real adjacency from
-// worldRegions.json; 'au' (Australia) has no neighbors, making it a real Tier 3 fixture.
+// Real province ids and real adjacency from worldRegions.json, with `owner` assigned per this
+// fixture's own nation story rather than each province's real startOwner — getBorderingNationIds
+// only needs real geography (getNeighborIds, always read from the live global REGIONS_DATA) plus
+// whatever ownership this regions map declares. us-mt really borders ca-ab (Montana/Alberta);
+// de-sn really borders the foreign provinces cz-ka/pl-ds (Saxony/Czechia/Poland); au-tas
+// (Tasmania) has zero real neighbors at all, making it a genuine Tier 3 fixture regardless of
+// ownership.
 describe('getNationTier', () => {
   const baseState = (nationOverrides = {}) => ({
     playerNationId: 'us',
@@ -74,6 +78,13 @@ describe('getNationTier', () => {
       de: { id: 'de', isPlayer: false, isAtWar: false, ...nationOverrides.de },
       fr: { id: 'fr', isPlayer: false, isAtWar: false, ...nationOverrides.fr },
       au: { id: 'au', isPlayer: false, isAtWar: false, ...nationOverrides.au }
+    },
+    regions: {
+      'us-mt': { owner: 'us' },
+      'ca-ab': { owner: 'ca' },
+      'de-sn': { owner: 'de' },
+      'cz-ka': { owner: 'cz' },
+      'au-tas': { owner: 'au' }
     }
   });
 
@@ -149,13 +160,18 @@ describe('processAIWarDecisions', () => {
       ...padding
     },
     // assignDefaultWarGoal (src/engine/diplomacy.js) needs a regions map to look for a
-    // capture_region target — one region per nation, self-owned, matching the real Phase A model.
+    // capture_region target, and getBorderingNationIds (src/data/regions.js) needs one to compute
+    // which nations border 'de'. This fixture's ownership is a story — 'de'/'fr'/'be'/'at' aren't
+    // really Germany/France/Belgium/Austria here — laid over REAL adjacency: pe-lor (Loreto, Peru)
+    // really borders br-am (Brazil), co-ama (Colombia) and ec-d (Ecuador) all at once, a real
+    // province hub, which is what lets one nation ('de') border three others at once — and br-am
+    // and co-ama also really border each other directly, so 'fr' and 'be' border each other too,
+    // exactly like the old country-level fixture's France/Belgium border.
     regions: {
-      us: { owner: 'us', neighbors: ['ca', 'mx'] },
-      de: { owner: 'de', neighbors: ['cz', 'pl', 'at', 'be', 'fr', 'lu', 'dk', 'nl', 'ch'] },
-      fr: { owner: 'fr', neighbors: ['br', 'sr', 'be', 'lu', 'de', 'it', 'mc', 'ch', 'es', 'ad'] },
-      be: { owner: 'be', neighbors: ['fr', 'nl', 'lu', 'de'] },
-      at: { owner: 'at', neighbors: ['cz', 'sk', 'de', 'hu', 'si', 'ch', 'li', 'it'] }
+      'pe-lor': { owner: 'de' },
+      'br-am': { owner: 'fr' },
+      'co-ama': { owner: 'be' },
+      'ec-d': { owner: 'at' }
     },
     wars: []
   });
@@ -290,13 +306,14 @@ describe('getRelationFromHostility', () => {
   });
 });
 
-// Task 36: counter-building. de/fr/be/at reuse the same real-adjacency fixture as the war-decision
-// tests above — de borders fr, at, be for real (worldRegions.json).
+// Task 36: counter-building. de-rp (Rhineland-Palatinate) really borders fr-57 (Moselle) —
+// worldRegions.json — so 'de' and 'fr' are real bordering nations via getBorderingNationIds.
 describe('chooseAIRecruitClass', () => {
   const state = (overrides = {}) => ({
     playerNationId: 'us',
     wars: [],
     nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } },
+    regions: { 'de-rp': { owner: 'de' }, 'fr-57': { owner: 'fr' } },
     ...overrides
   });
 

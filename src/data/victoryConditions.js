@@ -7,16 +7,16 @@
 
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
-import { WORLD_NATIONS } from './worldNations';
+import { REGIONS_DATA } from './regions';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
-// Domination: a real share of the world's regions (each region is a whole nation, one-per-nation
-// in this phase — see regions.js) held by the player.
+// Domination: a real share of the world's regions (real admin-1 provinces — see regions.js) held
+// by the player.
 export const DOMINATION_REGION_SHARE = 0.4;
-// Economic Hegemony: a real share of the world's total GDP, using every NATION's own static
-// gdpMillions (WORLD_NATIONS, sourced from real-world countries-meta.json figures — region-level
-// REGIONS_DATA has no gdpMillions field of its own) — the closest thing to "world trade share"
-// this data model can compute without simulating every AI nation's own economy in full.
+// Economic Hegemony: a real share of the world's total GDP, using each region's own gdpMillions
+// (REGIONS_DATA, a province's share of its country's real countries-meta.json GDP figure — see
+// build-world-regions.mjs) — the closest thing to "world trade share" this data model can compute
+// without simulating every AI nation's own economy in full.
 export const ECONOMIC_HEGEMONY_GDP_SHARE = 0.35;
 // Diplomatic: friendly standing (trade, alliance, or genuinely low hostility) with a majority of
 // every other nation, SUSTAINED for a real stretch of turns (state.diplomaticLeadershipStreak,
@@ -60,7 +60,7 @@ export const VICTORY_CONDITIONS = {
       let ownedGdp = 0;
       let totalGdp = 0;
       Object.entries(state.regions).forEach(([id, region]) => {
-        const gdp = WORLD_NATIONS[id]?.gdpMillions || 0;
+        const gdp = REGIONS_DATA[id]?.gdpMillions || 0;
         totalGdp += gdp;
         if (region.owner === state.playerNationId) ownedGdp += gdp;
       });

@@ -11,7 +11,7 @@ import { ACTION_COSTS } from '../../data/actionCosts';
 import { SATELLITE_TYPES, SATELLITE_TYPE_IDS, canLaunchSatellite, getOrbitalEffectivenessMult } from '../../data/satellites';
 import { MISSILE_TIERS, MISSILE_TIER_IDS, MAX_ABM_LEVEL } from '../../data/missiles';
 import { SPACE_MISSIONS, canLaunchMission } from '../../data/spaceMissions';
-import { REGIONS_DATA } from '../../data/regions';
+import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -31,35 +31,35 @@ const SpacePanel = () => {
 
   const handleLaunch = (typeId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchSatellite)) return addLog('Not enough resources', 'action');
-    triggerEffect('launch_satellite', { region: state.playerNationId });
+    triggerEffect('launch_satellite', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.LAUNCH_SATELLITE, payload: { typeId } });
   };
 
   const handleAsatStrike = () => {
     if (!selectedTargetId) return addLog('Select a target satellite first', 'action');
     if (!canAfford(state.resources, ACTION_COSTS.asatStrike)) return addLog('Not enough resources', 'action');
-    triggerEffect('asat_strike', { from: state.playerNationId, to: state.satellites[selectedTargetId]?.ownerId });
+    triggerEffect('asat_strike', { from: getNationCapital(state.playerNationId), to: getNationCapital(state.satellites[selectedTargetId]?.ownerId) });
     dispatch({ type: ActionTypes.ASAT_STRIKE, payload: { targetSatelliteId: selectedTargetId } });
     setSelectedTargetId('');
   };
 
   const handleBuildMissile = (tierId) => {
     if (!canAfford(state.resources, ACTION_COSTS.buildMissile[tierId])) return addLog('Not enough resources', 'action');
-    triggerEffect('build_missile', { region: state.playerNationId });
+    triggerEffect('build_missile', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.BUILD_MISSILE, payload: { tierId } });
   };
 
   const handleMissileStrike = () => {
     if (!missileTargetRegionId) return addLog('Select a target region first', 'action');
     if (!canAfford(state.resources, ACTION_COSTS.missileStrike)) return addLog('Not enough resources', 'action');
-    triggerEffect('missile_strike', { from: state.playerNationId, to: missileTargetRegionId });
+    triggerEffect('missile_strike', { from: getNationCapital(state.playerNationId), to: missileTargetRegionId });
     dispatch({ type: ActionTypes.MISSILE_STRIKE, payload: { tierId: missileTierId, targetRegionId: missileTargetRegionId } });
     setMissileTargetRegionId('');
   };
 
   const handleBuildAbm = () => {
     if (!canAfford(state.resources, ACTION_COSTS.buildAbmDefense)) return addLog('Not enough resources', 'action');
-    triggerEffect('build_abm_defense', { region: state.playerNationId });
+    triggerEffect('build_abm_defense', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.BUILD_ABM_DEFENSE, payload: {} });
   };
 
@@ -67,7 +67,7 @@ const SpacePanel = () => {
     const mission = SPACE_MISSIONS.find(m => m.id === missionId);
     const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
-    triggerEffect('launch_mission', { region: state.playerNationId });
+    triggerEffect('launch_mission', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.LAUNCH_MISSION, payload: { missionId } });
   };
 

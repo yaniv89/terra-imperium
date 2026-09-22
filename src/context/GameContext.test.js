@@ -6,6 +6,12 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
+import { getNationCapital } from '../data/regions';
+
+// A nation now spans many real provinces, not one region matching its own id — these tests use
+// each nation's capital as "its" region wherever the old one-region-per-nation model used the
+// nation id directly as a region id.
+const cap = getNationCapital;
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
@@ -88,9 +94,9 @@ describe('Domestic tab actions', () => {
   describe('GAIN_CONTROL', () => {
     it('raises control by 5% and deducts the cost', () => {
       const before = richState();
-      const withLowControl = { ...before, regions: { ...before.regions, fr: { ...before.regions.fr, control: 50 } } };
-      const next = gameReducer(withLowControl, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: 'fr' } });
-      expect(next.regions.fr.control).toBe(55);
+      const withLowControl = { ...before, regions: { ...before.regions, [cap('fr')]: { ...before.regions[cap('fr')], control: 50 } } };
+      const next = gameReducer(withLowControl, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].control).toBe(55);
       expect(next.resources.gold).toBeLessThan(withLowControl.resources.gold);
     });
 
@@ -102,171 +108,174 @@ describe('Domestic tab actions', () => {
 
     it('is a no-op already at 100% control', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: 'fr' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: cap('fr') } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
       const state = createInitialState({ playerNationId: 'fr' });
-      const withLowControl = { ...state, resources: { ...state.resources, gold: 0 }, regions: { ...state.regions, fr: { ...state.regions.fr, control: 50 } } };
-      expect(gameReducer(withLowControl, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: 'fr' } })).toBe(withLowControl);
+      const withLowControl = { ...state, resources: { ...state.resources, gold: 0 }, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], control: 50 } } };
+      expect(gameReducer(withLowControl, { type: ActionTypes.GAIN_CONTROL, payload: { regionId: cap('fr') } })).toBe(withLowControl);
     });
   });
 
   describe('BUILD_INFRASTRUCTURE', () => {
     it('raises infrastructure level and deducts the cost', () => {
       const base = richState();
-      const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, currentInfrastructure: 3 } } };
-      const next = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } });
-      expect(next.regions.fr.currentInfrastructure).toBe(4);
+      const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], currentInfrastructure: 3 } } };
+      const next = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].currentInfrastructure).toBe(4);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
     it('is a no-op at the level cap', () => {
       const state = richState();
-      const maxed = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, currentInfrastructure: 10 } } };
-      expect(gameReducer(maxed, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } })).toBe(maxed);
+      const maxed = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], currentInfrastructure: 10 } } };
+      expect(gameReducer(maxed, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } })).toBe(maxed);
     });
   });
 
   describe('BUILD_DEFENSES', () => {
     it('raises defenseLevel and deducts the cost', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: 'fr' } });
-      expect(next.regions.fr.defenseLevel).toBe(1);
+      const next = gameReducer(state, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].defenseLevel).toBe(1);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
     it('is a no-op at the level cap', () => {
       const state = richState();
-      const maxed = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, defenseLevel: 10 } } };
-      expect(gameReducer(maxed, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: 'fr' } })).toBe(maxed);
+      const maxed = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], defenseLevel: 10 } } };
+      expect(gameReducer(maxed, { type: ActionTypes.BUILD_DEFENSES, payload: { regionId: cap('fr') } })).toBe(maxed);
     });
   });
 
   describe('CONSTRUCT_BUILDING', () => {
     it('advances a category to its first tier in the Bronze Age', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
-      expect(next.regions.fr.buildings.categories.food).toBe(0);
+      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      expect(next.regions[cap('fr')].buildings.categories.food).toBe(0);
     });
 
     it('rejects rushing more than one tier ahead of the calendar', () => {
       const state = richState();
-      const tier0 = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
-      const tier1 = gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
-      expect(tier1.regions.fr.buildings.categories.food).toBe(1); // Irrigation (classical) — one age ahead of bronze, allowed
-      const tier2Attempt = gameReducer(tier1, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'food' } });
+      const tier0 = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      const tier1 = gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(1); // Irrigation (classical) — one age ahead of bronze, allowed
+      const tier2Attempt = gameReducer(tier1, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
       expect(tier2Attempt).toBe(tier1); // Farm Estate (kingdoms) — two ages ahead, rejected
     });
 
     it('rejects an unknown category', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: 'fr', categoryId: 'not_real' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'not_real' } })).toBe(state);
     });
   });
 
   describe('DEVELOP_RESOURCE_SITE', () => {
     it('develops a deposit the region actually has', () => {
       const state = richState('cl'); // Chile has copper
-      const next = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'cl', resourceId: 'copper' } });
-      expect(next.regions.cl.buildings.extraction.copper).toBe(true);
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('cl'), resourceId: 'copper' } });
+      expect(next.regions[cap('cl')].buildings.extraction.copper).toBe(true);
     });
 
     it('rejects a resource the region has no deposit for', () => {
       const state = richState('fr'); // France has no copper deposit listed
-      expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'fr', resourceId: 'copper' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('fr'), resourceId: 'copper' } })).toBe(state);
     });
 
     it('rejects developing the same site twice', () => {
       const state = richState('cl');
-      const once = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'cl', resourceId: 'copper' } });
-      expect(gameReducer(once, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'cl', resourceId: 'copper' } })).toBe(once);
+      const once = gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('cl'), resourceId: 'copper' } });
+      expect(gameReducer(once, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('cl'), resourceId: 'copper' } })).toBe(once);
     });
 
     it('rejects a resource not yet unlocked by age', () => {
       const state = richState('sa'); // Saudi Arabia has oil, but oil needs Modern age
-      expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: 'sa', resourceId: 'oil' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('sa'), resourceId: 'oil' } })).toBe(state);
     });
   });
 
   describe('QUELL_UNREST', () => {
     const withUnrest = (unrest) => {
       const base = richState();
-      return { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest } } };
+      return { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest } } };
     };
 
     it('reduces unrest and deducts the cost', () => {
       const state = withUnrest(50);
-      const next = gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: 'fr' } });
-      expect(next.regions.fr.unrest).toBe(20);
+      const next = gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].unrest).toBe(20);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
     it('is a no-op when there is no unrest to quell', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: 'fr' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: cap('fr') } })).toBe(state);
     });
 
     it('floors at 0 rather than going negative', () => {
       const state = withUnrest(10);
-      const next = gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: 'fr' } });
-      expect(next.regions.fr.unrest).toBe(0);
+      const next = gameReducer(state, { type: ActionTypes.QUELL_UNREST, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].unrest).toBe(0);
     });
   });
 
   describe('SETTLE_COLONIZE', () => {
-    // 'be' (Belgium) is a real bordering nation of 'fr' (see worldRegions.json's adjacency).
+    // be-vwv (Hainaut) really borders fr-59 (Nord) — worldRegions.json — used instead of Belgium's
+    // (capital-heuristic) "capital" region, which isn't necessarily anywhere near the French
+    // border (Brussels isn't).
+    const BE_BORDER = 'be-vwv';
     const withCollapsedNeighbor = (control) => {
       const base = richState();
-      return { ...base, regions: { ...base.regions, be: { ...base.regions.be, control } } };
+      return { ...base, regions: { ...base.regions, [BE_BORDER]: { ...base.regions[BE_BORDER], control } } };
     };
 
     it('absorbs a bordering nation whose control has collapsed, and deducts the cost', () => {
       const state = withCollapsedNeighbor(10);
-      const next = gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'be' } });
-      expect(next.regions.be.owner).toBe('fr');
-      expect(next.regions.be.control).toBeGreaterThan(0);
-      expect(next.regions.be.control).toBeLessThan(100);
+      const next = gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: BE_BORDER } });
+      expect(next.regions[BE_BORDER].owner).toBe('fr');
+      expect(next.regions[BE_BORDER].control).toBeGreaterThan(0);
+      expect(next.regions[BE_BORDER].control).toBeLessThan(100);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
-      expect(next.regions.be.formerOwner).toBe('be');
+      expect(next.regions[BE_BORDER].formerOwner).toBe('be');
     });
 
     it('is a no-op when the target still has real control of its own territory', () => {
       const state = withCollapsedNeighbor(50);
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'be' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('be') } })).toBe(state);
     });
 
     it('is a no-op on a region that does not border the player', () => {
       // 'us' does not border 'fr'.
       const base = richState();
-      const state = { ...base, regions: { ...base.regions, us: { ...base.regions.us, control: 5 } } };
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'us' } })).toBe(state);
+      const state = { ...base, regions: { ...base.regions, [cap('us')]: { ...base.regions[cap('us')], control: 5 } } };
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('us') } })).toBe(state);
     });
 
     it('is a no-op on a region the player already owns', () => {
       const state = withCollapsedNeighbor(10);
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'fr' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('fr') } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
       const base = withCollapsedNeighbor(10);
       const state = { ...base, resources: { ...base.resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: 'be' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('be') } })).toBe(state);
     });
   });
 
   describe('POPULATION_POLICY', () => {
     it('grows population and deducts the cost', () => {
       const state = richState();
-      const before = state.regions.fr.currentPopulation;
-      const next = gameReducer(state, { type: ActionTypes.POPULATION_POLICY, payload: { regionId: 'fr' } });
-      expect(next.regions.fr.currentPopulation).toBeGreaterThan(before);
+      const before = state.regions[cap('fr')].currentPopulation;
+      const next = gameReducer(state, { type: ActionTypes.POPULATION_POLICY, payload: { regionId: cap('fr') } });
+      expect(next.regions[cap('fr')].currentPopulation).toBeGreaterThan(before);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
     it('is a no-op on a region not owned by the player', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.POPULATION_POLICY, payload: { regionId: 'be' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.POPULATION_POLICY, payload: { regionId: cap('be') } })).toBe(state);
     });
   });
 
@@ -421,8 +430,11 @@ describe('Space Race tab actions', () => {
   });
 
   describe('MISSILE_STRIKE', () => {
-    // 'de' is a real, land-adjacent (1 hop) neighbor of 'fr'; 'us' has no land path from 'fr' at
-    // all in the real adjacency data, making it a genuine out-of-range target for finite tiers.
+    // de-rp (Rhineland-Palatinate) really borders fr-57 (Moselle) — 1 hop from France's owned
+    // territory, well inside tactical range (3). 'us' cap is ~30 real land hops from France (no
+    // actual land route at all, in truth — Europe/Americas aren't land-connected in this data),
+    // making it a genuine out-of-range target for any finite-range tier.
+    const DE_REGION = 'de-rp';
     const withMissile = (tierId, count = 1) => {
       const base = spaceState();
       return { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, missiles: { ...base.nations.fr.missiles, [tierId]: count } } } };
@@ -430,48 +442,48 @@ describe('Space Race tab actions', () => {
 
     it('damages the target region and the target nation, and consumes the missile', () => {
       const state = withMissile('tactical');
-      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } });
-      expect(next.regions.de.control).toBeLessThan(state.regions.de.control);
-      expect(next.regions.de.unrest).toBeGreaterThan(state.regions.de.unrest);
+      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+      expect(next.regions[DE_REGION].control).toBeLessThan(state.regions[DE_REGION].control);
+      expect(next.regions[DE_REGION].unrest).toBeGreaterThan(state.regions[DE_REGION].unrest);
       expect(next.nations.de.militaryStrength).toBeLessThan(state.nations.de.militaryStrength);
       expect(next.nations.fr.missiles.tactical).toBe(0);
     });
 
     it('is a no-op with an empty stockpile for that tier', () => {
       const state = spaceState();
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } })).toBe(state);
     });
 
     it('is a no-op against the player\'s own region', () => {
       const state = withMissile('tactical');
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'fr' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: cap('fr') } })).toBe(state);
     });
 
     it('is a no-op when the target is out of the tier\'s range', () => {
       const state = withMissile('tactical');
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'us' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: cap('us') } })).toBe(state);
     });
 
     it('an icbm reaches a target a tactical missile could never reach', () => {
       const state = withMissile('icbm');
-      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'icbm', targetRegionId: 'us' } });
-      expect(next.regions.us.control).toBeLessThan(state.regions.us.control);
+      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'icbm', targetRegionId: cap('us') } });
+      expect(next.regions[cap('us')].control).toBeLessThan(state.regions[cap('us')].control);
     });
 
     it('an ABM defense level reduces incoming damage', () => {
       const base = withMissile('tactical', 2);
-      const noAbm = gameReducer(base, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } });
+      const noAbm = gameReducer(base, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
       const withAbmState = { ...base, nations: { ...base.nations, de: { ...base.nations.de, abmDefenseLevel: 3 } } };
-      const withAbm = gameReducer(withAbmState, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } });
-      const noAbmDamage = base.regions.de.control - noAbm.regions.de.control;
-      const withAbmDamage = base.regions.de.control - withAbm.regions.de.control;
+      const withAbm = gameReducer(withAbmState, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+      const noAbmDamage = base.regions[DE_REGION].control - noAbm.regions[DE_REGION].control;
+      const withAbmDamage = base.regions[DE_REGION].control - withAbm.regions[DE_REGION].control;
       expect(withAbmDamage).toBeLessThan(noAbmDamage);
     });
 
     it('a nuclear strike scars the region and raises every other nation\'s hostility (global condemnation)', () => {
       const state = withMissile('nuclear');
-      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: 'de' } });
-      expect(next.regions.de.nuclearScarred).toBe(true);
+      const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: DE_REGION } });
+      expect(next.regions[DE_REGION].nuclearScarred).toBe(true);
       const thirdParty = Object.keys(state.nations).find(id => id !== 'fr' && id !== 'de');
       expect(next.nations[thirdParty].hostility).toBeGreaterThan(state.nations[thirdParty].hostility);
     });
@@ -479,7 +491,7 @@ describe('Space Race tab actions', () => {
     it('is a no-op when unaffordable (the flat action-point cost)', () => {
       const base = withMissile('tactical');
       const state = { ...base, resources: { ...base.resources, actionPoints: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: 'de' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } })).toBe(state);
     });
   });
 
@@ -545,11 +557,11 @@ describe('Military tab actions', () => {
   describe('RECRUIT_UNIT', () => {
     it('creates a unit in the region with the requested class and deducts the cost', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
       const unitIds = Object.keys(next.units);
       expect(unitIds.length).toBe(1);
       const unit = next.units[unitIds[0]];
-      expect(unit.regionId).toBe('fr');
+      expect(unit.regionId).toBe(cap('fr'));
       expect(unit.classId).toBe('infantry');
       expect(unit.ownerId).toBe('fr');
       expect(unit.domain).toBe('land');
@@ -560,7 +572,7 @@ describe('Military tab actions', () => {
 
     it('sets domain to naval for the naval class', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'naval' } });
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
       const unit = Object.values(next.units)[0];
       expect(unit.domain).toBe('naval');
     });
@@ -573,20 +585,20 @@ describe('Military tab actions', () => {
 
     it('is a no-op for a class not yet available at the current age', () => {
       const state = richState(); // Bronze Age: no Air units yet
-      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'air' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'air' } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
       const state = createInitialState({ playerNationId: 'fr' });
       const poor = { ...state, resources: { ...state.resources, gold: 0, hr: 0 } };
-      expect(gameReducer(poor, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } })).toBe(poor);
+      expect(gameReducer(poor, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } })).toBe(poor);
     });
   });
 
   describe('DISBAND_UNIT', () => {
     const withUnit = () => {
       const state = richState();
-      return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
     };
 
     it('removes the unit and refunds a fraction of its HR cost', () => {
@@ -610,37 +622,43 @@ describe('Military tab actions', () => {
     });
   });
 
+  // fr-59 (Nord) really borders be-vwv (Hainaut) — worldRegions.json — used below wherever the
+  // old model's bare 'fr'/'be' needed genuine land adjacency, not just any owned region (a
+  // nation's capital, e.g. Paris, isn't necessarily anywhere near a given border).
+  const FR_BORDER = 'fr-59';
+  const BE_REGION = 'be-vwv';
+
   describe('MOVE_ARMY', () => {
     const withUnit = () => {
       const state = richState();
-      return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
     };
 
     it('moves the unit to an adjacent region and deducts the action point cost', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
-      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'be' } });
-      expect(next.units[unitId].regionId).toBe('be');
+      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } });
+      expect(next.units[unitId].regionId).toBe(BE_REGION);
     });
 
     it('is a no-op moving to a non-adjacent region', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
-      expect(gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'jp' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: cap('jp') } })).toBe(state);
     });
 
     it('is a no-op for a unit not owned by the player', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
       const stolen = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
-      expect(gameReducer(stolen, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: 'be' } })).toBe(stolen);
+      expect(gameReducer(stolen, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } })).toBe(stolen);
     });
   });
 
   describe('LAUNCH_INVASION', () => {
     const withAttacker = (strength) => {
       const state = richState();
-      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
       if (strength === undefined) return recruited;
       const unitId = Object.keys(recruited.units)[0];
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };
@@ -649,72 +667,77 @@ describe('Military tab actions', () => {
     it('captures an undefended adjacent region and moves surviving units into it', () => {
       const state = withAttacker();
       const unitId = Object.keys(state.units)[0];
-      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } });
-      expect(next.regions.be.owner).toBe('fr');
-      expect(next.units[unitId].regionId).toBe('be');
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+      expect(next.regions[BE_REGION].owner).toBe('fr');
+      expect(next.units[unitId].regionId).toBe(BE_REGION);
       expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
       expect(next.lastBattleReport.outcome).toBe('attacker');
       // Conquered territory (plan §9 revolt system): records who it was taken from, so an
       // unresolved rebellion there can later revert it rather than fighting the same army forever.
-      expect(next.regions.be.formerOwner).toBe('be');
+      expect(next.regions[BE_REGION].formerOwner).toBe('be');
     });
 
     it('does not mark a nation reclaiming its own native region as conquered territory', () => {
-      // 'be' has already lost its own homeland to 'fr', but still holds the Netherlands, land-
-      // adjacent to Belgium — a base to invade its own homeland back from.
+      // be-vwv (Hainaut) really borders nl-ze (Zeeland) — worldRegions.json — so this uses that
+      // real pair directly rather than each nation's (capital-heuristic) "capital" region, since
+      // build-world-regions.mjs's smallest-area capital pick lands on a tiny detached island
+      // territory for some nations (e.g. Saba for the Netherlands), which isn't adjacent to
+      // anything useful here.
+      const BE_REGION = 'be-vwv';
+      const NL_REGION = 'nl-ze';
       const base = richState('be');
-      const recruited = gameReducer(base, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'be', classId: 'infantry' } });
+      const recruited = gameReducer(base, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: BE_REGION, classId: 'infantry' } });
       const unitId = Object.keys(recruited.units)[0];
       const state = {
         ...recruited,
-        units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], regionId: 'nl' } },
+        units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], regionId: NL_REGION } },
         regions: {
           ...recruited.regions,
-          be: { ...recruited.regions.be, owner: 'fr' },
-          nl: { ...recruited.regions.nl, owner: 'be' }
+          [BE_REGION]: { ...recruited.regions[BE_REGION], owner: 'fr' },
+          [NL_REGION]: { ...recruited.regions[NL_REGION], owner: 'be' }
         }
       };
-      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'nl', targetRegionId: 'be' } });
-      expect(next.regions.be.owner).toBe('be');
-      expect(next.regions.be.formerOwner).toBeUndefined();
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: NL_REGION, targetRegionId: BE_REGION } });
+      expect(next.regions[BE_REGION].owner).toBe('be');
+      expect(next.regions[BE_REGION].formerOwner).toBeUndefined();
     });
 
     it('is repelled by a strong defender, leaving the region unconquered', () => {
       const state = withAttacker(100); // a token attacking force
       const defenderUnit = {
-        id: 'def_x', regionId: 'be', ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+        id: 'def_x', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
         strength: 50000, maxStrength: 50000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
       };
       const withDefender = { ...state, units: { ...state.units, def_x: defenderUnit } };
-      const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } });
-      expect(next.regions.be.owner).toBe('be');
+      const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+      expect(next.regions[BE_REGION].owner).toBe('be');
       expect(next.lastBattleReport.outcome).toBe('defender');
     });
 
     it('is a no-op from a region not owned by the player', () => {
       const state = withAttacker();
-      const otherId = Object.keys(state.regions).find(id => id !== 'fr' && id !== 'be');
-      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: otherId, targetRegionId: 'be' } })).toBe(state);
+      const otherId = Object.keys(state.regions).find(id => state.regions[id].owner !== 'fr');
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: otherId, targetRegionId: BE_REGION } })).toBe(state);
     });
 
     it('is a no-op against a region the player already owns', () => {
       const state = withAttacker();
-      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'fr' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: FR_BORDER } })).toBe(state);
     });
 
     it('is a no-op against a non-adjacent region', () => {
       const state = withAttacker();
-      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'jp' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: cap('jp') } })).toBe(state);
     });
 
     it('is a no-op when there are no attacker units in the source region', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
       const state = { ...withAttacker(), resources: { ...withAttacker().resources, actionPoints: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(state);
     });
   });
 });
@@ -728,7 +751,7 @@ describe('Promotions and generals actions', () => {
   describe('PROMOTE_UNIT', () => {
     const withUnit = (xp = 0) => {
       const state = richState();
-      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
       const unitId = Object.keys(recruited.units)[0];
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], xp } } };
     };
@@ -797,7 +820,7 @@ describe('Promotions and generals actions', () => {
     const withGeneralAndUnit = () => {
       const state = richState();
       const hired = gameReducer(state, { type: ActionTypes.HIRE_GENERAL, payload: {} });
-      const recruited = gameReducer(hired, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+      const recruited = gameReducer(hired, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
       const generalId = Object.keys(recruited.hiredCommanders)[0];
       const unitId = Object.keys(recruited.units)[0];
       return { state: recruited, generalId, unitId };
@@ -813,7 +836,7 @@ describe('Promotions and generals actions', () => {
     it('reassigning a general to a new unit vacates the old one', () => {
       const { state, generalId, unitId } = withGeneralAndUnit();
       const appointed = gameReducer(state, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId } });
-      const second = gameReducer(appointed, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'cavalry' } });
+      const second = gameReducer(appointed, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'cavalry' } });
       const secondUnitId = Object.keys(second.units).find((id) => id !== unitId);
       const reassigned = gameReducer(second, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: secondUnitId } });
       expect(reassigned.units[unitId].commanderId).toBeNull();
@@ -850,8 +873,8 @@ describe('Navies and amphibious invasion actions', () => {
 
   const withNavalAndLand = () => {
     const state = richState();
-    const withNaval = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'naval' } });
-    const withLand = gameReducer(withNaval, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+    const withNaval = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
+    const withLand = gameReducer(withNaval, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
     const navalUnitId = Object.keys(withLand.units).find((id) => withLand.units[id].domain === 'naval');
     const landUnitId = Object.keys(withLand.units).find((id) => withLand.units[id].domain === 'land');
     return { state: withLand, navalUnitId, landUnitId };
@@ -872,8 +895,8 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op once the transport is at capacity', () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
-      const withSecondLand = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'cavalry' } });
-      const withThirdLand = gameReducer(withSecondLand, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'ranged' } });
+      const withSecondLand = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'cavalry' } });
+      const withThirdLand = gameReducer(withSecondLand, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'ranged' } });
       const otherLandIds = Object.keys(withThirdLand.units).filter((id) => withThirdLand.units[id].domain === 'land' && id !== landUnitId);
       const first = gameReducer(withThirdLand, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
       const second = gameReducer(first, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: otherLandIds[0], navalUnitId } });
@@ -883,7 +906,7 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op if the units are not in the same region', () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
-      const moved = { ...state, units: { ...state.units, [landUnitId]: { ...state.units[landUnitId], regionId: 'be' } } };
+      const moved = { ...state, units: { ...state.units, [landUnitId]: { ...state.units[landUnitId], regionId: cap('be') } } };
       expect(gameReducer(moved, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } })).toBe(moved);
     });
 
@@ -932,52 +955,52 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('captures an undefended coastal region reachable only by sea', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
-      const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'gb' } });
-      expect(next.regions.gb.owner).toBe('fr');
-      expect(next.units[landUnitId].regionId).toBe('gb');
+      const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } });
+      expect(next.regions[cap('gb')].owner).toBe('fr');
+      expect(next.units[landUnitId].regionId).toBe(cap('gb'));
       expect(next.units[landUnitId].embarkedOn).toBeNull();
       expect(next.lastBattleReport.outcome).toBe('attacker');
-      expect(next.regions.gb.formerOwner).toBe('gb');
+      expect(next.regions[cap('gb')].formerOwner).toBe('gb');
     });
 
     it('sinks the transport and its cargo when intercepted by a defending fleet', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
       const enemyFleet = {
-        id: 'enemy_navy', regionId: 'gb', ownerId: 'gb', domain: 'naval', classId: 'naval', ageId: 'bronze',
+        id: 'enemy_navy', regionId: cap('gb'), ownerId: 'gb', domain: 'naval', classId: 'naval', ageId: 'bronze',
         strength: 50000, maxStrength: 50000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
       };
       const withEnemy = { ...state, units: { ...state.units, enemy_navy: enemyFleet } };
-      const next = gameReducer(withEnemy, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'gb' } });
+      const next = gameReducer(withEnemy, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } });
       expect(next.units[navalUnitId]).toBeUndefined();
       expect(next.units[landUnitId]).toBeUndefined();
-      expect(next.regions.gb.owner).toBe('gb');
+      expect(next.regions[cap('gb')].owner).toBe('gb');
     });
 
     it('is a no-op for a naval unit not owned by the player', () => {
       const { state, navalUnitId } = withEmbarkedForce();
       const stolen = { ...state, units: { ...state.units, [navalUnitId]: { ...state.units[navalUnitId], ownerId: 'de' } } };
-      expect(gameReducer(stolen, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'gb' } })).toBe(stolen);
+      expect(gameReducer(stolen, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } })).toBe(stolen);
     });
 
     it('is a no-op against a region the player already owns', () => {
       const { state, navalUnitId } = withEmbarkedForce();
-      expect(gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'fr' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('fr') } })).toBe(state);
     });
 
     it('is a no-op against a non-coastal target', () => {
       const { state, navalUnitId } = withEmbarkedForce();
-      expect(gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'lu' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('lu') } })).toBe(state);
     });
 
     it('is a no-op with no embarked land units', () => {
       const { state, navalUnitId } = withNavalAndLand();
-      expect(gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'gb' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
       const { state, navalUnitId } = withEmbarkedForce();
       const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
-      expect(gameReducer(poor, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: 'gb' } })).toBe(poor);
+      expect(gameReducer(poor, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } })).toBe(poor);
     });
   });
 
@@ -992,38 +1015,38 @@ describe('Navies and amphibious invasion actions', () => {
     };
 
     it('defeats an enemy fleet contesting a sea lane, holding position rather than advancing', () => {
-      const { state, navalUnitId } = withEnemyFleetAt('gb');
-      const next = gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr', targetRegionId: 'gb' } });
+      const { state, navalUnitId } = withEnemyFleetAt(cap('gb'));
+      const next = gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } });
       expect(next.units.enemy_navy).toBeUndefined();
-      expect(next.units[navalUnitId].regionId).toBe('fr');
+      expect(next.units[navalUnitId].regionId).toBe(cap('fr'));
       expect(next.lastBattleReport.outcome).toBe('attacker');
     });
 
     it('is a no-op when there is no enemy fleet to engage', () => {
       const { state } = withNavalAndLand();
-      expect(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr', targetRegionId: 'gb' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } })).toBe(state);
     });
 
     it('is a no-op from a region not owned by the player', () => {
-      const { state } = withEnemyFleetAt('gb');
-      expect(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'de', targetRegionId: 'gb' } })).toBe(state);
+      const { state } = withEnemyFleetAt(cap('gb'));
+      expect(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('de'), targetRegionId: cap('gb') } })).toBe(state);
     });
 
     it('is a no-op when the target is not reachable', () => {
-      const { state } = withEnemyFleetAt('jp');
-      expect(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr', targetRegionId: 'jp' } })).toBe(state);
+      const { state } = withEnemyFleetAt(cap('jp'));
+      expect(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('jp') } })).toBe(state);
     });
 
     it('is a no-op with no attacker naval units in the source region', () => {
-      const { state } = withEnemyFleetAt('gb');
+      const { state } = withEnemyFleetAt(cap('gb'));
       const noNavy = { ...state, units: {} };
-      expect(gameReducer(noNavy, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr', targetRegionId: 'gb' } })).toBe(noNavy);
+      expect(gameReducer(noNavy, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } })).toBe(noNavy);
     });
 
     it('is a no-op when unaffordable', () => {
-      const { state } = withEnemyFleetAt('gb');
+      const { state } = withEnemyFleetAt(cap('gb'));
       const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
-      expect(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr', targetRegionId: 'gb' } })).toBe(poor);
+      expect(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } })).toBe(poor);
     });
   });
 });
@@ -1035,29 +1058,29 @@ describe('SUPPRESS_REBELLION', () => {
   };
 
   const rebelUnit = (strength = 300) => ({
-    id: 'rebel_fr_1', regionId: 'fr', ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
+    id: 'rebel_fr_1', regionId: cap('fr'), ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
     strength, maxStrength: strength, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
   });
 
   const withGarrisonAndRebel = (rebelStrength = 300) => {
     const state = richState();
-    const withGarrison = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
+    const withGarrison = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
     const rebel = rebelUnit(rebelStrength);
     return { ...withGarrison, units: { ...withGarrison.units, [rebel.id]: rebel } };
   };
 
   it('crushes a weak rebellion, restoring some control and capping unrest', () => {
-    const state = { ...withGarrisonAndRebel(50), regions: { ...withGarrisonAndRebel(50).regions, fr: { ...withGarrisonAndRebel(50).regions.fr, unrest: 95, control: 40 } } };
-    const next = gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } });
+    const state = { ...withGarrisonAndRebel(50), regions: { ...withGarrisonAndRebel(50).regions, [cap('fr')]: { ...withGarrisonAndRebel(50).regions[cap('fr')], unrest: 95, control: 40 } } };
+    const next = gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } });
     expect(next.units.rebel_fr_1).toBeUndefined();
-    expect(next.regions.fr.unrest).toBeLessThan(REBELLION_UNREST_THRESHOLD);
-    expect(next.regions.fr.control).toBeGreaterThan(40);
+    expect(next.regions[cap('fr')].unrest).toBeLessThan(REBELLION_UNREST_THRESHOLD);
+    expect(next.regions[cap('fr')].control).toBeGreaterThan(40);
     expect(next.lastBattleReport.outcome).toBe('attacker');
   });
 
   it('a garrison repelled by an overwhelming rebellion leaves the rebels standing', () => {
     const state = withGarrisonAndRebel(500000);
-    const next = gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } });
+    const next = gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } });
     expect(next.units.rebel_fr_1).toBeDefined();
     expect(next.lastBattleReport.outcome).toBe('defender');
   });
@@ -1070,19 +1093,19 @@ describe('SUPPRESS_REBELLION', () => {
 
   it('is a no-op when there is no rebellion in the region', () => {
     const state = richState();
-    const withGarrison = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } });
-    expect(gameReducer(withGarrison, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } })).toBe(withGarrison);
+    const withGarrison = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
+    expect(gameReducer(withGarrison, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } })).toBe(withGarrison);
   });
 
   it('is a no-op with no garrison to fight with', () => {
     const state = richState();
     const withRebel = { ...state, units: { rebel_fr_1: rebelUnit() } };
-    expect(gameReducer(withRebel, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } })).toBe(withRebel);
+    expect(gameReducer(withRebel, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } })).toBe(withRebel);
   });
 
   it('is a no-op when unaffordable', () => {
     const state = { ...withGarrisonAndRebel(), resources: { ...withGarrisonAndRebel().resources, actionPoints: 0 } };
-    expect(gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: 'fr' } })).toBe(state);
+    expect(gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } })).toBe(state);
   });
 });
 
@@ -1168,14 +1191,14 @@ describe('Research tab actions', () => {
       });
       expect(state.techAgeId).toBe('modern');
 
-      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'air' } });
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'air' } });
       const airUnit = Object.values(next.units).find(u => u.classId === 'air');
       expect(airUnit).toBeDefined();
     });
 
     it('cannot recruit the next age\'s unit class without the tech-earned advancement', () => {
       const state = { ...richState(), age: 'gunpowder' };
-      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'air' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'air' } })).toBe(state);
     });
   });
 
@@ -1337,7 +1360,7 @@ describe('Diplomacy tab actions', () => {
       expect(next.nations.de.isAtWar).toBe(true);
       expect(next.wars.some(w => w.enemy === 'de' && w.aggressor === 'fr')).toBe(true);
       expect(next.resources.gold).toBeLessThan(state.resources.gold - 1); // more than a token AP-only cost
-      expect(next.regions.fr.unrest).toBeGreaterThan(state.regions.fr.unrest);
+      expect(next.regions[cap('fr')].unrest).toBeGreaterThan(state.regions[cap('fr')].unrest);
       expect(next.nations[other].hostility).toBeGreaterThan(before);
     });
 

@@ -15,6 +15,7 @@ import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD } from '../../data/actionCosts';
 import { hasCasusBelli } from '../../engine/diplomacy';
+import { getNationCapital } from '../../data/regions';
 import { canAfford, formatNumber, getRelationColor } from '../../utils/helpers';
 
 // Diplomacy actions that travel visibly between the player's capital and the target nation's.
@@ -47,7 +48,7 @@ const DiplomacyPanel = () => {
   const dispatchIfAffordable = (type, nationId, costs) => {
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
-    if (effectType) triggerEffect(effectType, { from: state.playerNationId, to: nationId });
+    if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nationId) });
     dispatch({ type, payload: { nationId } });
   };
 

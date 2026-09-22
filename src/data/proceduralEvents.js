@@ -11,12 +11,16 @@
 // own region/nation/general names. Splitting them into two registries would just be the same
 // content authored twice against two names for one mechanism.
 //
-// In this one-region-per-nation world model, "your region" is always state.regions[playerNationId]
-// — there's no sub-national geography to pick from yet, so every template below refers to the
-// player's single home region rather than a randomly-selected one of several.
-import { REGIONS_DATA } from './regions';
+// "Your region" below is always the player's CAPITAL — with real sub-national provinces now in
+// play, this could instead pick a random owned region per event for variety, but that requires
+// threading one rng pick through both isEligible and build so they agree on which region fired;
+// deferred rather than folded into the provinces migration.
+import { REGIONS_DATA, getNationCapital } from './regions';
 
-const home = (state) => ({ region: state.regions[state.playerNationId], data: REGIONS_DATA[state.playerNationId] });
+const home = (state) => {
+  const capitalId = getNationCapital(state.playerNationId);
+  return { region: state.regions[capitalId], data: REGIONS_DATA[capitalId] };
+};
 
 const PROCEDURAL_TEMPLATES = [
   {

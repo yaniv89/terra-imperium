@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyEventEffects } from './applyEventEffects';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from '../data/types';
+import { getNationCapital } from '../data/regions';
 
 const fixtureEvent = (id, effects) => ({ id, title: 'Test Event', options: [{ label: 'ok', effects }] });
 
@@ -71,9 +72,10 @@ describe('applyEventEffects', () => {
 
   it('captures the named regions for the player', () => {
     const state = createInitialState({ playerNationId: 'fr' });
-    const next = applyEventEffects(state, fixtureEvent('capture_event', { captureRegions: ['de'] }), 0);
-    expect(next.regions.de.owner).toBe('fr');
-    expect(next.regions.de.isOccupied).toBe(true);
+    const deCapital = getNationCapital('de');
+    const next = applyEventEffects(state, fixtureEvent('capture_event', { captureRegions: [deCapital] }), 0);
+    expect(next.regions[deCapital].owner).toBe('fr');
+    expect(next.regions[deCapital].isOccupied).toBe(true);
   });
 
   describe('nationHostility', () => {

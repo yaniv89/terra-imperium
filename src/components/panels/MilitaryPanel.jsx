@@ -13,7 +13,7 @@ import { Swords, UserPlus, Trash2, Flag, Award, UserCog, Anchor, Ship, Flame } f
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, getNeighborIds } from '../../data/regions';
+import { REGIONS_DATA, getNeighborIds, getNationCapital } from '../../data/regions';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
@@ -105,11 +105,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
   };
   const handleHireGeneral = () => {
     if (!canAfford(state.resources, ACTION_COSTS.hireGeneral)) return addLog('Not enough resources', 'action');
-    triggerEffect('hire_general', { region: state.playerNationId });
+    triggerEffect('hire_general', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.HIRE_GENERAL, payload: {} });
   };
   const handleAppointGeneral = (generalId, unitId) => {
-    triggerEffect('appoint_general', { region: unitId ? state.units[unitId]?.regionId : state.playerNationId });
+    triggerEffect('appoint_general', { region: unitId ? state.units[unitId]?.regionId : getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId, unitId: unitId || null } });
   };
   const handleEmbark = (landUnitId, navalUnitId) => {

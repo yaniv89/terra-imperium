@@ -3,6 +3,7 @@ import { pickProceduralEvent } from './proceduralEvents';
 import { createInitialState } from '../context/GameContext';
 import { createRng } from '../utils/rng';
 import { EVENT_CHAINS } from './eventChains';
+import { REGIONS_DATA, getNationCapital } from './regions';
 
 describe('pickProceduralEvent', () => {
   it('returns a real, well-formed event for at least one seed against the initial state', () => {
@@ -34,7 +35,10 @@ describe('pickProceduralEvent', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const results = Array.from({ length: 20 }, (_, seed) => pickProceduralEvent(state, createRng(seed)));
     const hit = results.find(e => e && !e.id.includes('ambitious_general') && !e.id.includes('throne_pretender'));
-    expect(hit.description).toContain('France');
+    // "Your region" is the player's capital (src/data/proceduralEvents.js's home()) — now that a
+    // nation spans many provinces, that's Paris, not "France" itself.
+    const capitalName = REGIONS_DATA[getNationCapital('fr')].name;
+    expect(hit.description).toContain(capitalName);
   });
 
   it('only offers the ambitious-general template once a general is actually hired', () => {

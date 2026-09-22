@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState } from '../context/GameContext';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { getNationCapital } from '../data/regions';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 
@@ -40,29 +41,31 @@ const largestRegionShare = (state) => {
 };
 
 describe('AI quality benchmark: turn resolution time budget', () => {
-  // Real observed cost on this machine is ~0.8ms/turn (~250ms for 300 turns) — BUDGET_MS is set
-  // an order of magnitude above that, so this is a regression guard against an accidental
-  // O(n^2)/O(n^3) sweep across 240 nations creeping in, not a strict performance SLA. The explicit
-  // per-test timeout (vitest's own default is 5000ms) gives a shared/noisy sandbox room to breathe
-  // without the test reporting a generic "timed out" instead of this test's own budget message.
-  it('resolves 300 turns across the full 240-nation world well within a generous time budget', () => {
+  // Real observed cost on this machine is ~35-45ms/turn across the full 4,482-province world
+  // (~250ms for 300 turns back when regions were one-per-nation, i.e. 18.7x fewer of them) —
+  // BUDGET_MS has room above that for a shared/noisy sandbox, so this is a regression guard
+  // against an accidental O(n^2)/O(n^3) sweep creeping back in on top of the real, larger cost of
+  // simulating a bigger world, not a strict performance SLA.
+  it('resolves 300 turns across the full 240-nation, 4,482-region world well within a generous time budget', () => {
     const TURNS = 300;
-    const BUDGET_MS = 10000;
+    const BUDGET_MS = 30000;
     const state = freshWorld();
     const start = performance.now();
     runTurns(state, TURNS);
     const elapsed = performance.now() - start;
     expect(elapsed, `resolving ${TURNS} turns took ${elapsed.toFixed(0)}ms, over the ${BUDGET_MS}ms budget`).toBeLessThan(BUDGET_MS);
-  }, 20000);
+  }, 45000);
 });
 
 describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
-  // fr borders de for real (worldRegions.json) and, in Phase A's one-region-per-nation model,
-  // playing as fr means de is bordering the player and therefore Tier 1 (aiLogic.js's
-  // getNationTier) on every single turn — no reliance on military ranking or an existing war.
-  // getRivalId (aiLogic.js) resolves a Tier-1 nation's rival to a war opponent first, else the
-  // player if bordering — so de's rival here is deterministically the player, exactly the plan's
-  // own example ("spam cavalry at your neighbor, they start fielding pikes").
+  // fr's and de's real provinces border each other for real (worldRegions.json — e.g. de-rp/fr-57),
+  // so getBorderingNationIds (src/data/regions.js) puts them on each other's border from the very
+  // first turn, before any territory changes hands — playing as fr means de is bordering the
+  // player and therefore Tier 1 (aiLogic.js's getNationTier) on every single turn, no reliance on
+  // military ranking or an existing war. getRivalId (aiLogic.js) resolves a Tier-1 nation's rival
+  // to a war opponent first, else the player if bordering — so de's rival here is deterministically
+  // the player, exactly the plan's own example ("spam cavalry at your neighbor, they start fielding
+  // pikes").
   const PLAYER_ID = 'fr';
   const RIVAL_AI_ID = 'de';
   const CAVALRY_UNIT_COUNT = 6;
@@ -73,9 +76,10 @@ describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
   // over the run, without touching the recruitment mechanism under test at all.
   const seedCavalryOpponent = (state) => {
     const seededUnits = {};
+    const playerCapital = getNationCapital(PLAYER_ID);
     for (let i = 0; i < CAVALRY_UNIT_COUNT; i++) {
       seededUnits[`seed_cav_${i}`] = {
-        id: `seed_cav_${i}`, regionId: PLAYER_ID, ownerId: PLAYER_ID, domain: 'land',
+        id: `seed_cav_${i}`, regionId: playerCapital, ownerId: PLAYER_ID, domain: 'land',
         classId: 'cavalry', ageId: state.age, strength: 1000, maxStrength: 1000, morale: 100,
         organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null,
         transportCapacity: null, embarkedOn: null
@@ -108,7 +112,7 @@ describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
 
     expect(recruitedNothing, `${RIVAL_AI_ID} recruited nothing in ${recruitedNothing}/${TRIALS} trials`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
     expect(failedToCounter, `${RIVAL_AI_ID}'s infantry ratio was below 50% in ${failedToCounter}/${TRIALS} trials that did recruit`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
-  }, 20000);
+  }, 30000); // 5 trials x 80 turns at the 4,482-region world's real per-turn cost
 });
 
 describe('AI quality benchmark: no runaway leader', () => {
@@ -127,5 +131,5 @@ describe('AI quality benchmark: no runaway leader', () => {
       if (largestRegionShare(final) > RUNAWAY_SHARE) runawayCount++;
     }
     expect(runawayCount, `${runawayCount}/${TRIALS} trials produced a runaway leader (>${RUNAWAY_SHARE * 100}% of the map)`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
-  }, 20000); // 5 trials x 300 turns — comfortably under a second normally, but see the budget test's own comment on why this has room to spare
+  }, 120000); // 5 trials x 300 turns at the 4,482-region world's real per-turn cost — see the budget test's own comment
 });

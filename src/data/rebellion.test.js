@@ -3,19 +3,24 @@ import {
   getFormerOwnerOnConquest, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD,
   REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST, REBELLION_UNREST_THRESHOLD
 } from './rebellion';
+import { getNationCapital } from './regions';
+
+// getFormerOwnerOnConquest checks the region's real static startOwner (REGIONS_DATA) against
+// newOwnerId to detect a "homecoming" — needs a real region id, not a bare nation id.
+const EGYPT_REGION = getNationCapital('eg');
 
 describe('getFormerOwnerOnConquest', () => {
   it('records whoever held the region right before the new owner took it', () => {
-    expect(getFormerOwnerOnConquest('eg', 'eg', 'fr')).toBe('eg');
+    expect(getFormerOwnerOnConquest(EGYPT_REGION, 'eg', 'fr')).toBe('eg');
   });
 
   it('carries forward an existing occupier when the region changes hands again', () => {
     // 'de' already held a region it took from 'eg'; 'fr' now takes it from 'de'.
-    expect(getFormerOwnerOnConquest('eg', 'de', 'fr')).toBe('de');
+    expect(getFormerOwnerOnConquest(EGYPT_REGION, 'de', 'fr')).toBe('de');
   });
 
   it('clears to undefined when a nation reclaims its own native region — a homecoming, not a conquest', () => {
-    expect(getFormerOwnerOnConquest('eg', 'fr', 'eg')).toBeUndefined();
+    expect(getFormerOwnerOnConquest(EGYPT_REGION, 'fr', 'eg')).toBeUndefined();
   });
 });
 

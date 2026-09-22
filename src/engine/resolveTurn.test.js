@@ -7,6 +7,12 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEG
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
+import { getNationCapital } from '../data/regions';
+
+// A nation now spans many real provinces, not one region matching its own id — these tests use
+// each nation's capital as "its" region wherever the old one-region-per-nation model used the
+// nation id directly as a region id.
+const cap = getNationCapital;
 
 // Every real scripted/procedural event already "used up" — isolates tests that aren't themselves
 // about the event system from HISTORICAL_EVENTS/proceduralEvents.js's real, non-empty content
@@ -36,13 +42,17 @@ describe('resolveTurn determinism', () => {
   it('replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results', () => {
     const initial = createInitialState({ playerNationId: 'fr' });
     const withResources = { ...initial, resources: { ...initial.resources, gold: 100000, hr: 100000, actionPoints: 100 } };
+    // fr-59 (Nord) really borders be-vwv (Hainaut) — worldRegions.json — so the recruited unit can
+    // actually launch a real invasion from one to the other, exercising real battle RNG.
+    const FRONTIER_REGION = 'fr-59';
+    const TARGET_REGION = 'be-vwv';
     const actions = [
-      { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr', classId: 'infantry' } },
+      { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FRONTIER_REGION, classId: 'infantry' } },
       { type: ActionTypes.ADVANCE_TURN },
       { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'high' } },
-      { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } },
+      { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } },
       { type: ActionTypes.ADVANCE_TURN },
-      { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: 'fr', targetRegionId: 'be' } },
+      { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FRONTIER_REGION, targetRegionId: TARGET_REGION } },
       { type: ActionTypes.ADVANCE_TURN },
       { type: ActionTypes.ADVANCE_TURN },
       { type: ActionTypes.ADVANCE_TURN }
@@ -129,7 +139,7 @@ describe('resolveTurn resource income', () => {
   it('a whole long run never runs out of action points to spend', () => {
     let state = createInitialState({ playerNationId: 'fr' });
     for (let i = 0; i < 50; i++) {
-      state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } });
+      state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
       state = resolveTurn(state);
     }
     expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints);
@@ -138,16 +148,16 @@ describe('resolveTurn resource income', () => {
 
 describe('resolveTurn unrest drift', () => {
   it('settles unrest toward 0 when every region is at full control', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), regions: { ...createInitialState({ playerNationId: 'fr' }).regions, fr: { ...createInitialState({ playerNationId: 'fr' }).regions.fr, unrest: 10 } } };
+    const state = { ...createInitialState({ playerNationId: 'fr' }), regions: { ...createInitialState({ playerNationId: 'fr' }).regions, [cap('fr')]: { ...createInitialState({ playerNationId: 'fr' }).regions[cap('fr')], unrest: 10 } } };
     const next = resolveTurn(state);
-    expect(next.regions.fr.unrest).toBeLessThan(10);
+    expect(next.regions[cap('fr')].unrest).toBeLessThan(10);
   });
 
   it('raises unrest for a region under the control threshold', () => {
     const state = createInitialState({ playerNationId: 'fr' });
-    const lowControl = { ...state, regions: { ...state.regions, fr: { ...state.regions.fr, control: 10, unrest: 0 } } };
+    const lowControl = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], control: 10, unrest: 0 } } };
     const next = resolveTurn(lowControl);
-    expect(next.regions.fr.unrest).toBeGreaterThan(0);
+    expect(next.regions[cap('fr')].unrest).toBeGreaterThan(0);
   });
 });
 
@@ -158,27 +168,27 @@ describe('resolveTurn rebellion', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     // A few points above the threshold: unrest drift (-1/turn at full control) shouldn't be
     // enough to pull it back under REBELLION_UNREST_THRESHOLD before the rebellion check reads it.
-    const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
+    const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const next = resolveTurn(state);
     const rebel = rebelUnitIn(next);
     expect(rebel).toBeDefined();
-    expect(rebel.regionId).toBe('fr');
+    expect(rebel.regionId).toBe(cap('fr'));
     expect(rebel.domain).toBe('land');
-    expect(next.regions.fr.control).toBeLessThan(state.regions.fr.control);
+    expect(next.regions[cap('fr')].control).toBeLessThan(state.regions[cap('fr')].control);
   });
 
   it('does not spawn a second rebel army in a region that already has one', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
+    const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const again = resolveTurn(withRebel);
-    const rebelCount = Object.values(again.units).filter(u => u.ownerId === REBEL_OWNER_ID && u.regionId === 'fr').length;
+    const rebelCount = Object.values(again.units).filter(u => u.ownerId === REBEL_OWNER_ID && u.regionId === cap('fr')).length;
     expect(rebelCount).toBe(1);
   });
 
   it('grows an existing rebel army while unrest stays at or above the threshold', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = { ...base, regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
+    const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const before = rebelUnitIn(withRebel).strength;
     const again = resolveTurn(withRebel);
@@ -189,13 +199,13 @@ describe('resolveTurn rebellion', () => {
   it('dissolves the rebellion once unrest drops back below the threshold', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const rebelUnit = {
-      id: 'rebel_fr_1', regionId: 'fr', ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
+      id: 'rebel_fr_1', regionId: cap('fr'), ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 500, maxStrength: 500, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
     };
     const state = {
       ...base,
       units: { rebel_fr_1: rebelUnit },
-      regions: { ...base.regions, fr: { ...base.regions.fr, unrest: 0 } }
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: 0 } }
     };
     const next = resolveTurn(state);
     expect(next.units.rebel_fr_1).toBeUndefined();
@@ -211,20 +221,20 @@ describe('resolveTurn revolt end conditions (conquered territory)', () => {
 
   it('reverts a conquered region to its former owner once the revolt runs unresolved for REVOLT_SUCCESS_TURNS', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const rebel = rebelUnitAt('de', 1);
+    const rebel = rebelUnitAt(cap('de'), 1);
     const garrison = {
-      id: 'garrison_1', regionId: 'de', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      id: 'garrison_1', regionId: cap('de'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 200, maxStrength: 200, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
     };
     const state = {
       ...base,
       turnNumber: 1 + REVOLT_SUCCESS_TURNS,
       units: { [rebel.id]: rebel, [garrison.id]: garrison },
-      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: REBELLION_UNREST_THRESHOLD + 5, control: 20 } }
+      regions: { ...base.regions, [cap('de')]: { ...base.regions[cap('de')], owner: 'fr', formerOwner: 'de', unrest: REBELLION_UNREST_THRESHOLD + 5, control: 20 } }
     };
     const next = resolveTurn(state);
-    expect(next.regions.de.owner).toBe('de');
-    expect(next.regions.de.formerOwner).toBeUndefined();
+    expect(next.regions[cap('de')].owner).toBe('de');
+    expect(next.regions[cap('de')].formerOwner).toBeUndefined();
     expect(next.units[rebel.id]).toBeUndefined();
     // The occupier's garrison is overrun along with the rebellion's victory, same as a lost battle.
     expect(next.units[garrison.id]).toBeUndefined();
@@ -232,52 +242,52 @@ describe('resolveTurn revolt end conditions (conquered territory)', () => {
 
   it('keeps growing the rebel army in conquered land that has not yet run REVOLT_SUCCESS_TURNS', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const rebel = rebelUnitAt('de', 1);
+    const rebel = rebelUnitAt(cap('de'), 1);
     const state = {
       ...base,
       turnNumber: 1, // only one turn old — far short of REVOLT_SUCCESS_TURNS
       units: { [rebel.id]: rebel },
-      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: REBELLION_UNREST_THRESHOLD + 5, control: 20 } }
+      regions: { ...base.regions, [cap('de')]: { ...base.regions[cap('de')], owner: 'fr', formerOwner: 'de', unrest: REBELLION_UNREST_THRESHOLD + 5, control: 20 } }
     };
     const next = resolveTurn(state);
-    expect(next.regions.de.owner).toBe('fr'); // still held
-    expect(next.regions.de.formerOwner).toBe('de'); // still at risk
+    expect(next.regions[cap('de')].owner).toBe('fr'); // still held
+    expect(next.regions[cap('de')].formerOwner).toBe('de'); // still at risk
     expect(next.units[rebel.id].strength).toBeGreaterThan(rebel.strength); // grew instead of succeeding
   });
 
   it('never reverts ownership for a home-territory rebellion, which has no formerOwner to revert to', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const rebel = rebelUnitAt('fr', 1);
+    const rebel = rebelUnitAt(cap('fr'), 1);
     const state = {
       ...base,
       turnNumber: 1 + REVOLT_SUCCESS_TURNS + 5, // well past the revolt-success window
       units: { [rebel.id]: rebel },
-      regions: { ...base.regions, fr: { ...base.regions.fr, unrest: REBELLION_UNREST_THRESHOLD + 5 } }
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } }
     };
     const next = resolveTurn(state);
-    expect(next.regions.fr.owner).toBe('fr');
-    expect(Object.values(next.units).some(u => u.ownerId === REBEL_OWNER_ID && u.regionId === 'fr')).toBe(true);
+    expect(next.regions[cap('fr')].owner).toBe('fr');
+    expect(Object.values(next.units).some(u => u.ownerId === REBEL_OWNER_ID && u.regionId === cap('fr'))).toBe(true);
   });
 
   it('integrates a conquered region once control reaches INTEGRATION_CONTROL_THRESHOLD without a live rebellion', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const state = {
       ...base,
-      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: 10, control: INTEGRATION_CONTROL_THRESHOLD } }
+      regions: { ...base.regions, [cap('de')]: { ...base.regions[cap('de')], owner: 'fr', formerOwner: 'de', unrest: 10, control: INTEGRATION_CONTROL_THRESHOLD } }
     };
     const next = resolveTurn(state);
-    expect(next.regions.de.formerOwner).toBeUndefined();
-    expect(next.regions.de.owner).toBe('fr'); // integration only clears the revolt-risk flag, ownership is unchanged
+    expect(next.regions[cap('de')].formerOwner).toBeUndefined();
+    expect(next.regions[cap('de')].owner).toBe('fr'); // integration only clears the revolt-risk flag, ownership is unchanged
   });
 
   it('keeps formerOwner set on conquered land that is neither revolting nor yet fully integrated', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const state = {
       ...base,
-      regions: { ...base.regions, de: { ...base.regions.de, owner: 'fr', formerOwner: 'de', unrest: 10, control: 30 } }
+      regions: { ...base.regions, [cap('de')]: { ...base.regions[cap('de')], owner: 'fr', formerOwner: 'de', unrest: 10, control: 30 } }
     };
     const next = resolveTurn(state);
-    expect(next.regions.de.formerOwner).toBe('de');
+    expect(next.regions[cap('de')].formerOwner).toBe('de');
   });
 });
 
@@ -286,7 +296,7 @@ describe('resolveTurn supply attrition', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     // 'us' is 9 land hops from France — beyond even a maxed-out region's supply range (up to 6).
     const farUnit = {
-      id: 'u_far', regionId: 'us', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      id: 'u_far', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
     };
     const state = { ...base, units: { u_far: farUnit } };
@@ -297,7 +307,7 @@ describe('resolveTurn supply attrition', () => {
   it('does not bleed a unit stationed on its own nation\'s territory', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const homeUnit = {
-      id: 'u_home', regionId: 'fr', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      id: 'u_home', regionId: cap('fr'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
     };
     const state = { ...base, units: { u_home: homeUnit } };
@@ -308,7 +318,7 @@ describe('resolveTurn supply attrition', () => {
   it('does not bleed embarked cargo directly — it shares its transport\'s supply state', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const cargoUnit = {
-      id: 'u_cargo', regionId: 'us', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      id: 'u_cargo', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: 'u_ship'
     };
     const state = { ...base, units: { u_cargo: cargoUnit } };
@@ -319,7 +329,7 @@ describe('resolveTurn supply attrition', () => {
   it('removes a unit whose strength is fully consumed by attrition', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const weakUnit = {
-      id: 'u_weak', regionId: 'us', ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      id: 'u_weak', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 1, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
     };
     const state = { ...base, units: { u_weak: weakUnit } };
@@ -435,26 +445,26 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
   };
 
   it('lets one AI nation actually conquer territory from another', () => {
-    const state = withCertainCapture('mx', 'ca', 'ca');
+    const state = withCertainCapture('mx', 'ca', cap('ca'));
     const next = resolveTurn(state);
-    expect(next.regions.ca.owner).toBe('mx');
-    expect(next.regions.ca.formerOwner).toBe('ca');
+    expect(next.regions[cap('ca')].owner).toBe('mx');
+    expect(next.regions[cap('ca')].formerOwner).toBe('ca');
     expect(next.wars.find(w => w.id === 'war_1').active).toBe(false);
     expect(next.nations.mx.isAtWar).toBe(false);
     expect(next.nations.ca.isAtWar).toBe(false);
   });
 
   it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
-    const state = withCertainCapture('de', 'fr', 'fr');
+    const state = withCertainCapture('de', 'fr', cap('fr'));
     const next = resolveTurn(state);
-    expect(next.regions.fr.owner).toBe('de');
-    expect(next.regions.fr.formerOwner).toBe('fr');
+    expect(next.regions[cap('fr')].owner).toBe('de');
+    expect(next.regions[cap('fr')].formerOwner).toBe('fr');
   });
 
   it('leaves a war the player started to be resolved by the player\'s own invasion actions, not synthetically', () => {
-    const state = withCertainCapture('fr', 'de', 'de');
+    const state = withCertainCapture('fr', 'de', cap('de'));
     const next = resolveTurn(state);
-    expect(next.regions.de.owner).toBe('de'); // untouched by resolveWarProgress
+    expect(next.regions[cap('de')].owner).toBe('de'); // untouched by resolveWarProgress
     expect(next.wars.find(w => w.id === 'war_1').active).toBe(true);
   });
 });
@@ -544,11 +554,11 @@ describe('resolveTurn orbital debris (Space Race)', () => {
     // 'de' (not the player) owns a Recon Satellite (stabilityBonus 6) and starts with unrest high
     // enough that the drift would otherwise rise this turn.
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const stateWithoutSat = { ...base, regions: { ...base.regions, de: { ...base.regions.de, control: 0, unrest: 10 } } };
+    const stateWithoutSat = { ...base, regions: { ...base.regions, [cap('de')]: { ...base.regions[cap('de')], control: 0, unrest: 10 } } };
     const stateWithSat = { ...stateWithoutSat, satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'recon' } } };
     const withoutSat = resolveTurn(stateWithoutSat);
     const withSat = resolveTurn(stateWithSat);
-    expect(withSat.regions.de.unrest).toBeLessThan(withoutSat.regions.de.unrest);
+    expect(withSat.regions[cap('de')].unrest).toBeLessThan(withoutSat.regions[cap('de')].unrest);
   });
 });
 

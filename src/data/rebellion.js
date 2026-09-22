@@ -1,4 +1,5 @@
 // src/data/rebellion.js
+import { REGIONS_DATA } from './regions';
 // Rebellion (plan §9): low stability doesn't just sit there as a number — past a threshold it
 // spawns an actual hostile army in the region, fought and won or lost like any other unit,
 // matching the plan's explicit "spawns rebel armies, not just a number" framing. Spawning, growth
@@ -47,8 +48,8 @@ export const REVOLT_RECLAIMED_CONTROL = 40;
 export const REVOLT_RECLAIMED_UNREST = 20;
 
 // What `formerOwner` should be set to when `newOwnerId` takes a region away from `previousOwnerId`.
-// A nation reclaiming its OWN native region (regionId === newOwnerId) is a homecoming, not a
-// conquest — there's no former regime for the locals to revolt back to, so formerOwner is cleared
-// rather than pointing at whoever was just driven out.
+// A nation reclaiming its OWN native region (the region's static startOwner === newOwnerId) is a
+// homecoming, not a conquest — there's no former regime for the locals to revolt back to, so
+// formerOwner is cleared rather than pointing at whoever was just driven out.
 export const getFormerOwnerOnConquest = (regionId, previousOwnerId, newOwnerId) =>
-  regionId === newOwnerId ? undefined : previousOwnerId;
+  REGIONS_DATA[regionId]?.startOwner === newOwnerId ? undefined : previousOwnerId;

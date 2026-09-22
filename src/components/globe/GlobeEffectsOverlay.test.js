@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { getImpactDelay, getFramingPov, ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS } from './GlobeEffectsOverlay';
+import { getNationCapital } from '../../data/regions';
+
+// REGION_COORDINATES is keyed by real province id now, not by nation id.
+const EGYPT_CAPITAL = getNationCapital('eg');
 
 describe('getImpactDelay', () => {
   it('returns a positive delay for an arc-primitive action type', () => {
@@ -19,13 +23,13 @@ describe('getImpactDelay', () => {
 
 describe('getFramingPov', () => {
   it('frames a close-up on a single region when from and to are the same (a pulse effect)', () => {
-    const pov = getFramingPov('eg', 'eg');
+    const pov = getFramingPov(EGYPT_CAPITAL, EGYPT_CAPITAL);
     expect(pov).not.toBeNull();
     expect(pov.altitude).toBeGreaterThanOrEqual(0.3);
   });
 
   it('returns null when the target region has no known coordinates', () => {
-    expect(getFramingPov('eg', 'not-a-real-region')).toBeNull();
+    expect(getFramingPov(EGYPT_CAPITAL, 'not-a-real-region')).toBeNull();
   });
 });
 

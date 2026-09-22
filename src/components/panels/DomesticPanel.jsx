@@ -4,16 +4,15 @@
 // and the ten remaining per-region/empire actions — Gain Control, Build Infrastructure, Build
 // Defenses, Construct Building, Develop Resource Site, Quell Unrest, Population Policy, Settle/
 // Colonize, Adopt Policy/Reform (government), and government adoption itself. All twelve of the
-// plan's Domestic actions are now real: Settle/Colonize targets a bordering nation whose own
-// control has collapsed (SETTLE_COLONIZE_CONTROL_THRESHOLD) — a real "expand without war" path
-// adapted to a one-region-per-nation world with no literal unowned land to claim outright.
+// plan's Domestic actions are now real: Settle/Colonize targets a bordering region whose own
+// control has collapsed (SETTLE_COLONIZE_CONTROL_THRESHOLD) — a real "expand without war" path.
 
 import React from 'react';
 import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, X, Sprout, Coins } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, isAdjacentToOwner } from '../../data/regions';
+import { REGIONS_DATA, isAdjacentToOwner, getNationCapital } from '../../data/regions';
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
 import { getDepositsFor } from '../../data/deposits';
@@ -39,12 +38,12 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const handleSetTaxRate = (rate) => {
     if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
-    triggerEffect('set_tax_rate', { region: state.playerNationId });
+    triggerEffect('set_tax_rate', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
   };
   const handleConstructWonder = (wonderId) => {
     if (!canAfford(state.resources, ACTION_COSTS.constructWonder)) return addLog('Not enough resources', 'action');
-    triggerEffect('construct_wonder', { region: state.playerNationId });
+    triggerEffect('construct_wonder', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId } });
   };
 
@@ -95,17 +94,17 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const handleAdoptGovernment = (governmentId) => {
     if (!canAfford(state.resources, ACTION_COSTS.adoptGovernment)) return addLog('Not enough resources', 'action');
-    triggerEffect('adopt_government', { region: state.playerNationId });
+    triggerEffect('adopt_government', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId } });
   };
   const handleAdoptPolicy = (policyId) => {
     if (!canAfford(state.resources, ACTION_COSTS.adoptPolicy)) return addLog('Not enough resources', 'action');
-    triggerEffect('adopt_policy', { region: state.playerNationId });
+    triggerEffect('adopt_policy', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.ADOPT_POLICY, payload: { policyId } });
   };
   const handleRemovePolicy = (policyId) => {
     if (!canAfford(state.resources, ACTION_COSTS.removePolicy)) return addLog('Not enough resources', 'action');
-    triggerEffect('remove_policy', { region: state.playerNationId });
+    triggerEffect('remove_policy', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.REMOVE_POLICY, payload: { policyId } });
   };
 
@@ -238,7 +237,7 @@ const DomesticPanel = ({ selectedRegion }) => {
     dispatch({ type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: selectedRegion, resourceId } });
   };
 
-  const deposits = getDepositsFor(selectedRegion);
+  const deposits = getDepositsFor(regionData?.startOwner); // deposits are geological, keyed by the province's home country
   const undevelopedDeposits = deposits.filter(resId => !regionState.buildings.extraction[resId]);
   // Matches the reducer's own gate (GameContext.jsx's CONSTRUCT_BUILDING/DEVELOP_RESOURCE_SITE) —
   // otherwise a tech-earned age ahead of the calendar would accept the action but show it as
