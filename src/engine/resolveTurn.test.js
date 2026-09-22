@@ -112,6 +112,28 @@ describe('resolveTurn resource income', () => {
     expect(next.age).toBe('classical');
     expect(next.resources.iron).toBeDefined();
   });
+
+  // Regression guard: actionPoints isn't in RESOURCE_IDS, so createEmptyResourcePool never zeroes
+  // it and calcIncome never returns it — nothing refreshed it before this fix, meaning a fresh
+  // game's starting 3 action points were, in effect, the player's ENTIRE budget for the whole
+  // ~500-turn game once spent, permanently locking out every action (recruiting, building,
+  // diplomacy, research, all of which cost actionPoints — src/data/actionCosts.js). Every other
+  // action-cost test in this codebase manually stuffs actionPoints before dispatching, which is
+  // exactly why nothing else caught this.
+  it('refreshes actionPoints to the per-turn budget every turn, however much was left over', () => {
+    const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, actionPoints: 0 } };
+    const next = resolveTurn(state);
+    expect(next.resources.actionPoints).toBe(state.resources.maxActionPoints);
+  });
+
+  it('a whole long run never runs out of action points to spend', () => {
+    let state = createInitialState({ playerNationId: 'fr' });
+    for (let i = 0; i < 50; i++) {
+      state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: 'fr' } });
+      state = resolveTurn(state);
+    }
+    expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints);
+  });
 });
 
 describe('resolveTurn unrest drift', () => {
