@@ -1,0 +1,62 @@
+name: Mobile - Android build
+
+# Phase E (mobile packaging): the actual Android compile can't run in a sandboxed dev environment
+# whose network policy blocks dl.google.com (the Android SDK's distribution host) — GitHub's own
+# hosted runners have no such restriction and come with the Android SDK preinstalled, so this is
+# where `npm run build:mobile && npx cap sync android && ./gradlew assembleDebug` actually executes.
+on:
+  push:
+    branches: [phase-a-foundation, main]
+    paths:
+      - 'src/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'vite.config.mobile.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-android.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'vite.config.mobile.js'
+  workflow_dispatch: {}
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the mobile web bundle
+        run: npm run build:mobile
+
+      - name: Sync Capacitor's Android project with the built web assets
+        run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # actions/setup-java's own gradle caching handles the Gradle wrapper/dependency cache; the
+      # Android SDK itself ships preinstalled on GitHub's ubuntu-latest runner image.
+      - name: Build a debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload the debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: terra-imperium-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

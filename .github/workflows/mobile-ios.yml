@@ -1,0 +1,57 @@
+name: Mobile - iOS build
+
+# Phase E (mobile packaging): iOS compilation requires Xcode, which only runs on macOS — that's an
+# Apple platform restriction that holds everywhere, not something any Linux sandbox can work around.
+# GitHub's macos runners have Xcode preinstalled, so that's where this actually builds. Building for
+# the SIMULATOR (not a physical device) deliberately avoids needing a real Apple Developer signing
+# certificate — that's a separate step for whenever this project is ready to distribute for real.
+on:
+  push:
+    branches: [phase-a-foundation, main]
+    paths:
+      - 'src/**'
+      - 'ios/**'
+      - 'capacitor.config.json'
+      - 'vite.config.mobile.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-ios.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'ios/**'
+      - 'capacitor.config.json'
+      - 'vite.config.mobile.js'
+  workflow_dispatch: {}
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the mobile web bundle
+        run: npm run build:mobile
+
+      - name: Sync Capacitor's iOS project with the built web assets
+        run: npx cap sync ios
+
+      # Capacitor 8's iOS platform resolves plugins via Swift Package Manager (ios/App/CapApp-SPM),
+      # which Xcode fetches automatically during the build — no `pod install`/CocoaPods step needed.
+      - name: Build for the iOS Simulator (no code signing required)
+        run: |
+          xcodebuild build \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO

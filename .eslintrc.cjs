@@ -13,7 +13,11 @@ module.exports = {
   },
   settings: { react: { version: 'detect' } },
   plugins: ['react-refresh'],
-  ignorePatterns: ['dist', 'docs', 'node_modules'],
+  // android/ios: Capacitor's native platform projects — `npx cap sync` copies the built web
+  // bundle (minified, not source) into android/app/src/main/assets/public and
+  // ios/App/App/public, which ESLint would otherwise choke on. www: the mobile build's own
+  // output directory (npm run build:mobile), same reasoning as dist/docs for the web build.
+  ignorePatterns: ['dist', 'docs', 'node_modules', 'android', 'ios', 'www'],
   rules: {
     'react/prop-types': 'off',
     'react/react-in-jsx-scope': 'off',
