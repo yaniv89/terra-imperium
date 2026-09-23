@@ -17,6 +17,7 @@ import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getMaxActionPoints } from '../utils/helpers';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
+import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { resolveWarProgress } from './diplomacy';
@@ -105,8 +106,27 @@ export const resolveTurn = (state) => {
     // attack" once it genuinely no longer is.
     const control = region.lastAttackedTurn != null ? nextSiegeControlRegen(region, newTurnNumber) : region.control;
     const stillUnderCooldown = region.lastAttackedTurn != null && (newTurnNumber - region.lastAttackedTurn) < SIEGE_REGEN_COOLDOWN_TURNS;
-    if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown)) {
-      regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false };
+
+    // Population (plan item 3): driven by the Food & Growth building tier, infrastructure,
+    // government/policy/wonder popGrowthBonus and unrest — not automatic time-based growth. A
+    // region actively under invasion this turn loses population instead of growing (src/engine/
+    // population.js has the full breakdown).
+    const modernBaseline = REGIONS_DATA[id]?.population || 0;
+    const growthRate = getPopulationGrowthRate({
+      foodTier: region.buildings?.categories?.food ?? -1,
+      infrastructure: region.currentInfrastructure || 0,
+      popGrowthBonus: getNationBonusTotal(owner, 'popGrowthBonus'),
+      unrest
+    });
+    const currentPopulation = nextRegionPopulation({
+      currentPopulation: region.currentPopulation || modernBaseline,
+      modernBaseline,
+      growthRate,
+      underInvasion: region.underInvasion
+    });
+
+    if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown) || currentPopulation !== region.currentPopulation) {
+      regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation };
     }
   });
 

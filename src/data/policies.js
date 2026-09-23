@@ -3,7 +3,9 @@
 // however many a nation's government type allows (src/data/government.js). Every effect uses the
 // same two hooks government bonuses do (goldMult/hrMult in calcIncome, stabilityBonus in
 // nextUnrest), so stacking a government bonus with several policies is just summing the same two
-// numbers rather than a bespoke interaction per pairing.
+// numbers rather than a bespoke interaction per pairing. (population.js's popGrowthBonus hook is
+// currently only granted by a wonder, src/data/wonders.js's greatLibrary — policies.test.js holds
+// every policy here to exactly one recognized effect, unlike wonders.)
 
 export const POLICIES = {
   levy_system: { id: 'levy_system', name: 'Levy System', description: '+10% HR income', effect: { hrMult: 0.1 } },
