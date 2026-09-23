@@ -6,7 +6,6 @@ import { feature } from 'topojson-client';
 
 let cachedCountryFeatures = null;
 let cachedSubregionFeatures = null;
-let cachedSubregionTopology = null;
 
 export const loadCountryFeatures = async () => {
   if (cachedCountryFeatures) return cachedCountryFeatures;
@@ -40,17 +39,6 @@ export const loadSubregionFeatures = async () => {
     f.properties = { ...f.properties, ...meta[f.id] };
   });
 
-  cachedSubregionTopology = { topology, object: topology.objects[objectKey] };
   cachedSubregionFeatures = collection.features;
   return cachedSubregionFeatures;
-};
-
-// The raw topology (not just the GeoJSON features derived from it) is what topojson-client's
-// mesh() needs to extract national-border lines — the shared arcs between two neighboring
-// provinces, filterable by whether their current owners differ. Always load subregion features
-// first (loadGameRegions.js does this on mount); this just hands back the topology that call
-// already cached, with no separate fetch.
-export const loadSubregionTopology = async () => {
-  if (!cachedSubregionTopology) await loadSubregionFeatures();
-  return cachedSubregionTopology;
 };
