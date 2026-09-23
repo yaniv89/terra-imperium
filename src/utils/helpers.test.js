@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getMaxActionPoints, getFieldedStrength } from './helpers';
+import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getMaxActionPoints, getFieldedStrength, getDisplayPopulation } from './helpers';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -324,6 +324,42 @@ describe('getFieldedStrength', () => {
 
   it('handles a missing/empty units dict gracefully', () => {
     expect(getFieldedStrength({}, 'fr')).toBe(0);
+  });
+});
+
+describe('getDisplayPopulation', () => {
+  it('scales a region\'s modern population down for a historically early year', () => {
+    const region = { currentPopulation: 1000000 };
+    const regionData = { population: 1000000 };
+    const display = getDisplayPopulation(region, regionData, -2000);
+    expect(display).toBeGreaterThan(0);
+    expect(display).toBeLessThan(region.currentPopulation);
+  });
+
+  it('matches the modern figure exactly at the modern baseline year with no Population Policy growth', () => {
+    const region = { currentPopulation: 500000 };
+    const regionData = { population: 500000 };
+    expect(getDisplayPopulation(region, regionData, 2024)).toBe(500000);
+  });
+
+  it('still reflects Population Policy growth on top of the era scaling', () => {
+    const regionData = { population: 100000 };
+    const grown = { currentPopulation: 150000 }; // 1.5x via Population Policy
+    const notGrown = { currentPopulation: 100000 };
+    const grownDisplay = getDisplayPopulation(grown, regionData, -1000);
+    const notGrownDisplay = getDisplayPopulation(notGrown, regionData, -1000);
+    expect(grownDisplay).toBeGreaterThan(notGrownDisplay);
+    expect(grownDisplay / notGrownDisplay).toBeCloseTo(1.5, 1);
+  });
+
+  it('never goes below 1 even for a tiny province at the earliest year', () => {
+    const region = { currentPopulation: 10 };
+    const regionData = { population: 10 };
+    expect(getDisplayPopulation(region, regionData, -2000)).toBeGreaterThanOrEqual(1);
+  });
+
+  it('is 0 for a region with no baseline population data', () => {
+    expect(getDisplayPopulation({ currentPopulation: 0 }, { population: 0 }, 2024)).toBe(0);
   });
 });
 

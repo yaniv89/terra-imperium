@@ -6,7 +6,7 @@ import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
-import { formatNumber, getControlColor, getRelationColor, getFieldedStrength } from '../../utils/helpers';
+import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
 import ProgressBar from '../ui/ProgressBar';
 
 const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
@@ -103,7 +103,7 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
               <Users className="w-3 h-3" /> Population:
             </span>
             <span className="font-mono text-slate-300">
-              {formatNumber(regionState.currentPopulation)}
+              {formatNumber(getDisplayPopulation(regionState, regionData, state.year))}
             </span>
           </div>
         </>

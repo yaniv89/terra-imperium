@@ -16,6 +16,7 @@ import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { TECH_TREE } from '../data/techTree';
 import { getIdentityBonus } from '../data/identity';
+import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 
 // ============ NUMBER FORMATTING ============
 
@@ -119,6 +120,21 @@ export const getMaxActionPoints = (state) => {
     .length;
   const techBonus = Math.floor(governanceTechsResearched / GOVERNANCE_TECHS_PER_AP_BONUS);
   return BASE_ACTION_POINTS + govBonus + techBonus;
+};
+
+// A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
+// itself is always seeded from the modern (~2024) figure regardless of start year, since it also
+// drives calcIncome's popGrowthMult below (pinned at 1.0 for a fresh game); scaling that pair down
+// for a 2000 BCE start would crater income by the same historical-scarcity factor. This keeps the
+// historical curve (src/data/historicalPopulation.js) purely cosmetic: any growth the player has
+// actually earned via Population Policy (currentPopulation exceeding the region's modern baseline)
+// still shows proportionally, just applied on top of the era-appropriate share rather than the
+// modern number.
+export const getDisplayPopulation = (region, regionData, year) => {
+  const modernBaseline = regionData?.population || 0;
+  if (modernBaseline <= 0) return 0;
+  const growthRatio = (region?.currentPopulation || modernBaseline) / modernBaseline;
+  return Math.max(1, Math.round(modernBaseline * getHistoricalPopulationShare(year) * growthRatio));
 };
 
 // Per-turn resource income for the player's nation: gold/hr from every owned region's gdp/

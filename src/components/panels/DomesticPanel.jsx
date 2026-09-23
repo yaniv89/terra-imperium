@@ -23,7 +23,7 @@ import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '..
 import { POLICIES, POLICY_IDS } from '../../data/policies';
 import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
-import { canAfford, formatNumber, getStability, getSupplyCapacity } from '../../utils/helpers';
+import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
 const DomesticPanel = ({ selectedRegion }) => {
@@ -339,7 +339,7 @@ const DomesticPanel = ({ selectedRegion }) => {
         </div>
         <div className="bg-slate-800/60 rounded-lg p-3">
           <div className="text-slate-400">Population</div>
-          <div className="text-white font-semibold">{formatNumber(regionState.currentPopulation)}</div>
+          <div className="text-white font-semibold">{formatNumber(getDisplayPopulation(regionState, regionData, state.year))}</div>
         </div>
         <div className="bg-slate-800/60 rounded-lg p-3">
           <div className="text-slate-400">Infrastructure</div>
