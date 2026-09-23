@@ -4,6 +4,7 @@
 import React from 'react';
 import { Coins, Users, Globe, Beaker, Zap, Swords, Hammer, Flame, Fuel, Gem, Atom } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
+import Tooltip from './Tooltip';
 
 const RESOURCE_CONFIG = {
   gold: {
@@ -16,7 +17,8 @@ const RESOURCE_CONFIG = {
     icon: Users,
     color: 'text-green-400',
     bgColor: 'bg-green-500/20',
-    label: 'HR'
+    label: 'HR',
+    description: 'HR (Manpower)'
   },
   copper: {
     icon: Hammer,
@@ -104,30 +106,31 @@ const ResourceBadge = ({
   };
 
   return (
-    <button
-      onClick={onClick}
-      disabled={!onClick}
-      className={`
-        flex items-center rounded-lg transition-all
-        ${sizeClasses[size]}
-        ${expanded ? 'bg-slate-700 ring-1 ring-blue-400' : 'bg-slate-800/60 hover:bg-slate-700/80'}
-        ${onClick ? 'cursor-pointer' : 'cursor-default'}
-        disabled:cursor-default
-      `}
-      title={config.label}
-    >
-      <span className={config.color}>
-        <Icon size={iconSizes[size]} />
-      </span>
-      <span className="font-mono font-bold text-white">
-        {displayValue}
-      </span>
-      {(expanded || showLabel) && (
-        <span className="text-slate-400 ml-1 text-xs">
-          {config.label}
+    <Tooltip content={config.description || config.label}>
+      <button
+        onClick={onClick}
+        disabled={!onClick}
+        className={`
+          flex items-center rounded-lg transition-all
+          ${sizeClasses[size]}
+          ${expanded ? 'bg-slate-700 ring-1 ring-blue-400' : 'bg-slate-800/60 hover:bg-slate-700/80'}
+          ${onClick ? 'cursor-pointer' : 'cursor-default'}
+          disabled:cursor-default
+        `}
+      >
+        <span className={config.color}>
+          <Icon size={iconSizes[size]} />
         </span>
-      )}
-    </button>
+        <span className="font-mono font-bold text-white">
+          {displayValue}
+        </span>
+        {(expanded || showLabel) && (
+          <span className="text-slate-400 ml-1 text-xs">
+            {config.label}
+          </span>
+        )}
+      </button>
+    </Tooltip>
   );
 };
 

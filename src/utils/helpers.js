@@ -303,6 +303,30 @@ export const scaleCosts = (costs, mult) =>
 
 const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals', helium3: 'Helium-3' };
 
+// How much of the player's CURRENT pool a cost would consume — the binary canAfford() check above
+// says nothing about a cost that's affordable but still eats most/all of what the player has right
+// now (e.g. turn-1 government adoption using 66% of starting AP, or a first unit recruit that costs
+// exactly 100% of starting HR). actionPoints is measured against maxActionPoints (a real cap); every
+// other resource has no cap, so it's measured against the current on-hand amount instead. Returns
+// null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just check
+// truthiness rather than branching on a 'normal' level themselves.
+export const getResourceStrain = (costs, resources) => {
+  if (!costs || !resources) return null;
+  let worst = { fraction: 0, key: null };
+  Object.entries(costs).forEach(([key, value]) => {
+    if (!value) return;
+    const denominator = key === 'actionPoints'
+      ? (resources.maxActionPoints || resources.actionPoints || 0)
+      : (resources[key] || 0);
+    if (denominator <= 0) return;
+    const fraction = value / denominator;
+    if (fraction > worst.fraction) worst = { fraction, key };
+  });
+  if (!worst.key || worst.fraction < 0.5) return null;
+  const label = worst.key === 'actionPoints' ? 'AP' : (RESOURCE_LABELS[worst.key] || worst.key);
+  return { level: worst.fraction >= 0.9 ? 'critical' : 'high', label };
+};
+
 export const getCostString = (costs) => {
   const parts = [];
   Object.entries(costs).forEach(([key, value]) => {

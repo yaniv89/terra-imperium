@@ -265,6 +265,7 @@ const MilitaryPanel = ({ selectedRegion }) => {
                 costs={ACTION_COSTS.recruitUnit}
                 onClick={() => handleRecruit(classId)}
                 disabled={!canAfford(state.resources, ACTION_COSTS.recruitUnit)}
+                resources={state.resources}
                 size="small"
               />
             ))}
