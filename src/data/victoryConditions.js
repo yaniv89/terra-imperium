@@ -7,12 +7,19 @@
 
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
-import { REGIONS_DATA } from './regions';
+import { REGIONS_DATA, getNationCapital } from './regions';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
 // Domination: a real share of the world's regions (real admin-1 provinces — see regions.js) held
 // by the player.
 export const DOMINATION_REGION_SHARE = 0.4;
+// Conqueror: a share of every OTHER nation's capital region under the player's flag — a different
+// flavor of dominance than Domination's raw region-count share, rewarding decapitating strikes on
+// the seats of power (including nations fully eliminated by src/engine/elimination.js, whose
+// former capital the player necessarily already holds) rather than grinding through peripheral
+// provinces. Set comparably "late-game dominant" to Domination's 40% region share: ~25% of the
+// ~239 other nations is ~60 capitals.
+export const CONQUEROR_CAPITAL_SHARE = 0.25;
 // Economic Hegemony: a real share of the world's total GDP, using each region's own gdpMillions
 // (REGIONS_DATA, a province's share of its country's real countries-meta.json GDP figure — see
 // build-world-regions.mjs) — the closest thing to "world trade share" this data model can compute
@@ -50,6 +57,20 @@ export const VICTORY_CONDITIONS = {
       if (total === 0) return false;
       const owned = Object.values(state.regions).filter(r => r.owner === state.playerNationId).length;
       return owned / total >= DOMINATION_REGION_SHARE;
+    }
+  },
+  conqueror: {
+    id: 'conqueror',
+    name: 'Conqueror Victory',
+    description: `Hold the capital of at least ${Math.round(CONQUEROR_CAPITAL_SHARE * 100)}% of the world's other nations.`,
+    check: (state) => {
+      const others = Object.values(state.nations).filter(n => !n.isPlayer);
+      if (others.length === 0) return false;
+      const capitalsHeld = others.filter(n => {
+        const capitalId = getNationCapital(n.id);
+        return capitalId && state.regions[capitalId]?.owner === state.playerNationId;
+      }).length;
+      return capitalsHeld / others.length >= CONQUEROR_CAPITAL_SHARE;
     }
   },
   economicHegemony: {
