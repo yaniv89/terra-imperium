@@ -772,6 +772,11 @@ export const gameReducer = (state, action) => {
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
       const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
+      // MOVE_ARMY is redeployment within your own territory, not an invasion — it has no war
+      // declaration, no combat resolution, and no AP/gold cost beyond the ordinary move, so it must
+      // never be able to walk a unit straight into someone else's region. Entering foreign
+      // territory is what LAUNCH_INVASION/AMPHIBIOUS_ASSAULT are for.
+      if (state.regions[toRegionId]?.owner !== state.playerNationId) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId } };
       // A transport takes its embarked cargo along with it.
