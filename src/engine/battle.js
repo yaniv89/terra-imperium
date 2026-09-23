@@ -135,17 +135,22 @@ const pursuitPhase = (winnerUnits, loserFront, generals, log) => {
 // commanderId, promotions, ...). `generals` is an optional {id: general} lookup (src/data/
 // generals.js) resolved by each unit's commanderId. `rng` is a src/utils/rng.js createRng()
 // instance, threaded and advanced by the caller (mirrors resolveTurn.js's rngSeed handling).
-// `attackerPenaltyMultiplier` (default 1, no penalty) is the amphibious-assault malus (plan
-// §7.5) — a flat multiplier on every hit the attacker lands, applied by the caller (src/context/
-// GameContext.jsx's AMPHIBIOUS_ASSAULT) rather than known to this generic engine.
-export const resolveBattle = ({ attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {}, attackerPenaltyMultiplier = 1 }) => {
+// `attackerPenaltyMultiplier` (default 1, no penalty) folds together every "why is the attacker's
+// damage output reduced" source the caller already knows about (amphibious-assault malus, the
+// ages-behind combat malus) — a flat multiplier on every hit the attacker lands, applied by the
+// caller (src/engine/gameReducer.js) rather than known to this generic engine.
+// `defenderDamageReductionMultiplier` (default 1, no reduction) is the SAME idea from the other
+// side: src/engine/siege.js's defenseLevel bonus ("Walls"), kept as its own param rather than
+// folded into the attacker one so it stays independently unit-testable and reads as what it is —
+// a property of the region being defended, not of the attacking force.
+export const resolveBattle = ({ attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {}, attackerPenaltyMultiplier = 1, defenderDamageReductionMultiplier = 1 }) => {
   const combatWidth = getCombatWidth(terrain);
   const log = [];
 
   const { front: attFront, reserve: attReserve } = deploy(attackerUnits, combatWidth);
   const { front: defFront, reserve: defReserve } = deploy(defenderUnits, combatWidth);
 
-  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier };
+  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * defenderDamageReductionMultiplier };
   const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false };
 
   // Ranged phase: archers/artillery on both sides fire before contact, no return fire this phase.

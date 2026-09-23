@@ -39,6 +39,7 @@ import {
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
+import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage } from './siege';
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -822,6 +823,9 @@ export const gameReducer = (state, action) => {
       const attackerUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land');
       if (attackerUnits.length === 0) return state;
       const defenderUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'land');
+      // An undefended region is taken in one hit regardless of its control — walking into an empty
+      // city needs no siege. Only a real garrison triggers the multi-turn control-grind below.
+      const isDefended = defenderUnits.length > 0;
 
       const rng = createRng(state.rngSeed);
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
@@ -833,8 +837,21 @@ export const gameReducer = (state, action) => {
         generals: state.hiredCommanders,
         // A tech-earned age fallen behind the calendar means obsolete doctrine/equipment, not just
         // a specific unit's stats — see src/data/ages.js's getAgesBehindCombatMultiplier.
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
+        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId)),
+        // defenseLevel's own damage reduction (a genuine "Walls" bonus, on top of the existing
+        // siege-vs-fortification gate) — see src/engine/siege.js.
+        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier(targetRegion.defenseLevel) : 1
       });
+
+      // A defended region's control absorbs the damage instead of an outright flip — see
+      // src/engine/siege.js's file header. `captured` here means the siege is actually over.
+      const { nextControl, captured } = isDefended
+        ? resolveSiegeControlDamage({
+            currentControl: targetRegion.control,
+            outcome,
+            hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0))
+          })
+        : { nextControl: targetRegion.control, captured: outcome === 'attacker' };
 
       // Only units actually deployed to the front line fought and earn XP; the winning side earns
       // more than the losing side, a draw splits the difference. A Logistician-commanded unit
@@ -852,35 +869,43 @@ export const gameReducer = (state, action) => {
       const xpDefenders = awardBattleXp(resolvedDefenders, report.deployedDefenderIds, defenderXpAmount);
 
       const nextUnits = { ...state.units };
-      // Attacker survivors move into the target region on a win, otherwise fall back to where
-      // they started; either way, units reduced to zero strength are destroyed and removed.
+      // Attacker survivors occupy the target region only once it's actually captured; a round that
+      // merely damages a still-defended region's control falls back to origin, same as a loss —
+      // each further round of the grind is a fresh, separately-paid LAUNCH_INVASION.
       xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = { ...u, regionId: outcome === 'attacker' ? targetRegionId : fromRegionId };
+        nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId };
       });
-      // A captured region's garrison doesn't remain a coherent defending force — on an attacker
-      // win the whole defending side is cleared, survivors and routed alike.
+      // A captured region's garrison doesn't remain a coherent defending force — on actual capture
+      // the whole defending side is cleared, survivors and routed alike. A round that only damages
+      // control (siege continues) persists surviving defenders exactly like a repelled attack does.
       xpDefenders.forEach(u => {
-        if (outcome === 'attacker' || u.strength <= 0) { delete nextUnits[u.id]; return; }
+        if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
         nextUnits[u.id] = u;
       });
 
       const nextRegions = { ...state.regions };
-      if (outcome === 'attacker') {
+      if (captured) {
         nextRegions[targetRegionId] = {
           ...targetRegion,
           owner: state.playerNationId,
           formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
           control: 25,
-          unrest: Math.max(targetRegion.unrest || 0, 50)
+          unrest: Math.max(targetRegion.unrest || 0, 50),
+          lastAttackedTurn: state.turnNumber,
+          underInvasion: false
         };
+      } else if (isDefended) {
+        nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
 
-      const outcomeMessage = outcome === 'attacker'
+      const outcomeMessage = captured
         ? `Your forces captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
-        : outcome === 'defender'
-          ? `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
-          : `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
+        : outcome === 'attacker'
+          ? `Your forces broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
+          : outcome === 'defender'
+            ? `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
+            : `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
 
       return {
         ...state,
@@ -888,7 +913,7 @@ export const gameReducer = (state, action) => {
         regions: nextRegions,
         units: nextUnits,
         rngSeed: rng.getSeed(),
-        lastBattleReport: { ...report, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+        lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }
@@ -946,6 +971,7 @@ export const gameReducer = (state, action) => {
       const hasBeachhead = getNeighborIds(targetRegionId).some(nId => state.regions[nId]?.owner === state.playerNationId);
       const attackerLandUnits = embarkedLandUnits.map(u => nextUnits[u.id] || u);
       const defenderLandUnits = Object.values(nextUnits).filter(u => u.regionId === targetRegionId && u.domain === 'land');
+      const isDefended = defenderLandUnits.length > 0;
 
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits: attackerLandUnits,
@@ -954,8 +980,19 @@ export const gameReducer = (state, action) => {
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: (hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT) * techGapCombatMultiplier
+        attackerPenaltyMultiplier: (hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT) * techGapCombatMultiplier,
+        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier(targetRegion.defenseLevel) : 1
       });
+
+      // See src/engine/siege.js — a defended region's control absorbs the damage instead of an
+      // outright flip; undefended coastline is still taken in one landing.
+      const { nextControl, captured } = isDefended
+        ? resolveSiegeControlDamage({
+            currentControl: targetRegion.control,
+            outcome,
+            hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0))
+          })
+        : { nextControl: targetRegion.control, captured: outcome === 'attacker' };
 
       const XP_WIN = 30;
       const XP_LOSE = 15;
@@ -969,35 +1006,42 @@ export const gameReducer = (state, action) => {
       const xpAttackers = awardBattleXp(resolvedAttackers, report.deployedAttackerIds, attackerXpAmount);
       const xpDefenders = awardBattleXp(resolvedDefenders, report.deployedDefenderIds, defenderXpAmount);
 
-      // Winning survivors disembark onto the captured beach; a repelled landing force falls back
-      // aboard its transport, still embarked, for another attempt.
+      // Survivors disembark onto the beach only once it's actually captured; a round that merely
+      // damages a still-defended region's control falls back aboard the transport, still embarked,
+      // for another attempt — matching how a land LAUNCH_INVASION falls back to origin.
       xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = outcome === 'attacker'
+        nextUnits[u.id] = captured
           ? { ...u, regionId: targetRegionId, embarkedOn: null }
           : { ...u, regionId: navalUnit.regionId, embarkedOn: navalUnitId };
       });
       xpDefenders.forEach(u => {
-        if (outcome === 'attacker' || u.strength <= 0) { delete nextUnits[u.id]; return; }
+        if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
         nextUnits[u.id] = u;
       });
 
       const nextRegions = { ...state.regions };
-      if (outcome === 'attacker') {
+      if (captured) {
         nextRegions[targetRegionId] = {
           ...targetRegion,
           owner: state.playerNationId,
           formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
           control: 25,
-          unrest: Math.max(targetRegion.unrest || 0, 50)
+          unrest: Math.max(targetRegion.unrest || 0, 50),
+          lastAttackedTurn: state.turnNumber,
+          underInvasion: false
         };
+      } else if (isDefended) {
+        nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
 
-      const outcomeMessage = outcome === 'attacker'
+      const outcomeMessage = captured
         ? `Your amphibious assault captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
-        : outcome === 'defender'
-          ? `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
-          : `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
+        : outcome === 'attacker'
+          ? `Your landing broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
+          : outcome === 'defender'
+            ? `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
+            : `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
 
       return {
         ...state,
@@ -1005,7 +1049,7 @@ export const gameReducer = (state, action) => {
         regions: nextRegions,
         units: nextUnits,
         rngSeed: rng.getSeed(),
-        lastBattleReport: { ...report, kind: 'amphibious', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+        lastBattleReport: { ...report, captured, kind: 'amphibious', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }

@@ -9,6 +9,7 @@ import { RelationStatus } from '../data/types';
 import { isAdjacentToOwner, REGIONS_DATA } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
 import { getFormerOwnerOnConquest } from '../data/rebellion';
+import { resolveSiegeControlDamage } from './siege';
 
 // A casus belli (plan §8/§9's "unjustified wars cost stability and global relations"): either a
 // claim the aggressor already fabricated against this target (FABRICATE_CLAIM), or a naturally
@@ -192,20 +193,33 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         const totalStrength = updatedAggressor.militaryStrength + updatedDefender.militaryStrength;
         const chance = AI_CAPTURE_BASE_CHANCE * (updatedAggressor.militaryStrength / totalStrength) * (state.difficultyMultiplier || 1);
         if (rng.next() < chance) {
+          // Same control-as-defense-HP grind as the player's own LAUNCH_INVASION (src/engine/
+          // siege.js) — a successful roll damages the region's control instead of instantly
+          // flipping it, unless the region is genuinely undefended. The AI's capture roll has no
+          // per-unit deployment model of its own, so melee presence is assumed true on a defended
+          // roll rather than checking real unit classes (see siege.js's file header).
+          const isDefended = Object.values(state.units || {}).some(u => u.regionId === war.goal.regionId && u.domain === 'land');
+          const { nextControl, captured } = isDefended
+            ? resolveSiegeControlDamage({ currentControl: targetRegion.control, outcome: 'attacker', hasMeleeUnit: true })
+            : { nextControl: targetRegion.control, captured: true };
+
           nextRegions = {
             ...nextRegions,
-            [war.goal.regionId]: {
-              ...targetRegion,
-              owner: war.aggressor,
-              formerOwner: getFormerOwnerOnConquest(war.goal.regionId, targetRegion.owner, war.aggressor),
-              control: 25,
-              unrest: Math.max(targetRegion.unrest || 0, 50)
-            }
+            [war.goal.regionId]: captured
+              ? {
+                  ...targetRegion,
+                  owner: war.aggressor,
+                  formerOwner: getFormerOwnerOnConquest(war.goal.regionId, targetRegion.owner, war.aggressor),
+                  control: 25,
+                  unrest: Math.max(targetRegion.unrest || 0, 50),
+                  lastAttackedTurn: state.turnNumber,
+                  underInvasion: false
+                }
+              : { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true }
           };
-          logs.push({
-            message: `${updatedAggressor.name} captures ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} from ${updatedDefender.name}!`,
-            type: 'combat'
-          });
+          logs.push(captured
+            ? { message: `${updatedAggressor.name} captures ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} from ${updatedDefender.name}!`, type: 'combat' }
+            : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });
         }
       }
     }

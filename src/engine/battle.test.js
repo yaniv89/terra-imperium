@@ -237,3 +237,37 @@ describe('resolveBattle: amphibious assault penalty', () => {
     expect(defenderDamage).toBe(defenderDamageNoPenalty);
   });
 });
+
+describe('resolveBattle: defenseLevel damage reduction (src/engine/siege.js)', () => {
+  it('reduces the attacker\'s damage output when below 1, same slot as the amphibious penalty', () => {
+    const dmgAt = (defenderDamageReductionMultiplier) => {
+      const attackerUnits = [makeUnit('a0', 'infantry', 1000)];
+      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const { report } = run({ attackerUnits, defenderUnits, defenderDamageReductionMultiplier }, 8);
+      return report.log.filter((e) => e.attackerId === 'a0').reduce((sum, e) => sum + e.damage, 0);
+    };
+    expect(dmgAt(0.5)).toBeLessThan(dmgAt(1));
+  });
+
+  it('stacks multiplicatively with attackerPenaltyMultiplier rather than overriding it', () => {
+    const attackerUnits = [makeUnit('a0', 'infantry', 1000)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+    const dmgWithBoth = run({ attackerUnits, defenderUnits, attackerPenaltyMultiplier: 0.75, defenderDamageReductionMultiplier: 0.5 }, 8)
+      .report.log.filter((e) => e.attackerId === 'a0').reduce((sum, e) => sum + e.damage, 0);
+    const dmgWithNeither = run({ attackerUnits, defenderUnits, attackerPenaltyMultiplier: 1, defenderDamageReductionMultiplier: 1 }, 8)
+      .report.log.filter((e) => e.attackerId === 'a0').reduce((sum, e) => sum + e.damage, 0);
+    // Both multipliers apply to the same hits, so the combined reduction is at least as large as
+    // either one alone — not merely "some reduction happened."
+    expect(dmgWithBoth).toBeLessThanOrEqual(Math.round(dmgWithNeither * 0.75 * 0.5) + 1);
+  });
+
+  it('does not affect the defender\'s own damage output', () => {
+    const attackerUnits = [makeUnit('a0', 'infantry', 100000, 100)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 1000)];
+    const { report } = run({ attackerUnits, defenderUnits, defenderDamageReductionMultiplier: 0.5 }, 8);
+    const defenderDamage = report.log.filter((e) => e.attackerId === 'd0').reduce((sum, e) => sum + e.damage, 0);
+    const { report: reportNoReduction } = run({ attackerUnits, defenderUnits, defenderDamageReductionMultiplier: 1 }, 8);
+    const defenderDamageNoReduction = reportNoReduction.log.filter((e) => e.attackerId === 'd0').reduce((sum, e) => sum + e.damage, 0);
+    expect(defenderDamage).toBe(defenderDamageNoReduction);
+  });
+});
