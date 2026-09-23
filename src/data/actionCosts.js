@@ -19,8 +19,8 @@ export const ACTION_COSTS = {
   // other single-region domestic action to compensate.
   settleColonize: { gold: 150, actionPoints: 2 },
   populationPolicy: { gold: 100, actionPoints: 1 },
-  // A slider flip, not a purchase — costs only the action point every other domestic decision does.
-  setTaxRate: { actionPoints: 1 },
+  // A slider flip, not a strategic decision competing with the rest of the AP budget — free.
+  setTaxRate: { actionPoints: 0 },
   // The biggest single-purchase cost in the game — a world-unique megaproject, not a
   // one-region improvement.
   constructWonder: { gold: 500, actionPoints: 3 },
@@ -28,9 +28,10 @@ export const ACTION_COSTS = {
   recruitUnit: { gold: 60, hr: 100, actionPoints: 1 },
   moveArmy: { actionPoints: 1 },
   launchInvasion: { actionPoints: 2 },
-  promoteUnit: { actionPoints: 1 },
+  // Bookkeeping, not a strategic decision — free, like setTaxRate/removePolicy/appointGeneral.
+  promoteUnit: { actionPoints: 0 },
   hireGeneral: { gold: 150, actionPoints: 1 },
-  appointGeneral: { actionPoints: 1 },
+  appointGeneral: { actionPoints: 0 },
 
   embarkUnit: { actionPoints: 1 },
   disembarkUnit: { actionPoints: 1 },
@@ -47,7 +48,7 @@ export const ACTION_COSTS = {
   // A government reform is deliberately pricier than a policy swap — it's the bigger decision.
   adoptGovernment: { gold: 200, actionPoints: 2 },
   adoptPolicy: { gold: 80, actionPoints: 1 },
-  removePolicy: { actionPoints: 1 },
+  removePolicy: { actionPoints: 0 },
 
   // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
   // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying

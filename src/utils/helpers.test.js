@@ -267,14 +267,14 @@ describe('getNationBonusTotal', () => {
 describe('getMaxActionPoints', () => {
   const baseState = () => createInitialState({ playerNationId: 'fr' });
 
-  it('is the flat base of 3 with no government and no researched Governance tech', () => {
-    expect(getMaxActionPoints(baseState())).toBe(3);
+  it('is the flat base of 5 with no government and no researched Governance tech', () => {
+    expect(getMaxActionPoints(baseState())).toBe(5);
   });
 
   it('adds the adopted government\'s apBonus on top of the base', () => {
     const state = baseState();
     state.nations.fr.government = 'monarchy'; // apBonus: 1
-    expect(getMaxActionPoints(state)).toBe(4);
+    expect(getMaxActionPoints(state)).toBe(6);
   });
 
   it('adds +1 AP per 3 researched Governance-line techs, ignoring other categories', () => {
@@ -285,7 +285,7 @@ describe('getMaxActionPoints', () => {
     });
     // A non-Governance tech researched too, to prove it's excluded from the count.
     state.techTree.military_bronze_casting = { ...state.techTree.military_bronze_casting, researched: true };
-    expect(getMaxActionPoints(state)).toBe(4); // 3 base + floor(3/3) = 1
+    expect(getMaxActionPoints(state)).toBe(6); // 5 base + floor(3/3) = 1
   });
 
   it('stacks the government and tech bonuses together', () => {
@@ -295,7 +295,7 @@ describe('getMaxActionPoints', () => {
       'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
       state.techTree[id] = { ...state.techTree[id], researched: true };
     });
-    expect(getMaxActionPoints(state)).toBe(7); // 3 base + 2 gov + floor(6/3)=2 tech
+    expect(getMaxActionPoints(state)).toBe(9); // 5 base + 2 gov + floor(6/3)=2 tech
   });
 });
 

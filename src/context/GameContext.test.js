@@ -311,11 +311,12 @@ describe('Domestic tab actions', () => {
   });
 
   describe('SET_TAX_RATE', () => {
-    it('changes the tax rate and deducts the (action-point-only) cost', () => {
+    // Free (0 AP) — a slider flip, not a strategic decision competing with the AP budget.
+    it('changes the tax rate at no resource cost', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'high' } });
       expect(next.nations.fr.taxRate).toBe('high');
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.actionPoints).toBe(state.resources.actionPoints);
     });
 
     it('is a no-op for an unknown rate id', () => {
@@ -909,12 +910,13 @@ describe('Promotions and generals actions', () => {
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], xp } } };
     };
 
-    it('grants the chosen perk once the unit has reached the next rank', () => {
+    // Free (0 AP) — bookkeeping, not a strategic decision competing with the AP budget.
+    it('grants the chosen perk once the unit has reached the next rank, at no resource cost', () => {
       const state = withUnit(XP_THRESHOLDS.regular);
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } });
       expect(next.units[unitId].promotions).toContain('shock');
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.actionPoints).toBe(state.resources.actionPoints);
     });
 
     it('is a no-op if the unit has not reached the next rank yet', () => {
@@ -941,12 +943,6 @@ describe('Promotions and generals actions', () => {
       const unitId = Object.keys(state.units)[0];
       const stolen = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
       expect(gameReducer(stolen, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } })).toBe(stolen);
-    });
-
-    it('is a no-op when unaffordable', () => {
-      const state = { ...withUnit(XP_THRESHOLDS.regular), resources: { ...withUnit(XP_THRESHOLDS.regular).resources, actionPoints: 0 } };
-      const unitId = Object.keys(state.units)[0];
-      expect(gameReducer(state, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId, perkId: 'shock' } })).toBe(state);
     });
   });
 
@@ -1523,11 +1519,6 @@ describe('Government and policy actions', () => {
     it('is a no-op for a policy not currently adopted', () => {
       const state = withPolicy();
       expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
-    });
-
-    it('is a no-op when unaffordable', () => {
-      const state = { ...withPolicy(), resources: { ...withPolicy().resources, actionPoints: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
     });
   });
 
