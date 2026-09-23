@@ -85,12 +85,14 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, ACTION_COSTS.recruitUnit)) return addLog('Not enough resources', 'action');
-    triggerEffect('recruit_unit', { region: selectedRegion, variant: classId });
+    // Matches RECRUIT_UNIT's own `ageId: state.age` (GameContext.jsx) — the new unit's icon must
+    // use the same age the reducer is about to stamp on it.
+    triggerEffect('recruit_unit', { region: selectedRegion, variant: classId, age: state.age });
     dispatch({ type: ActionTypes.RECRUIT_UNIT, payload: { regionId: selectedRegion, classId } });
   };
   const handleDisband = (unitId) => {
     const unit = state.units[unitId];
-    if (unit) triggerEffect('disband_unit', { region: unit.regionId, variant: unit.classId });
+    if (unit) triggerEffect('disband_unit', { region: unit.regionId, variant: unit.classId, age: unit.ageId });
     dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
   };
   const handleMove = (unitId, toRegionId) => {

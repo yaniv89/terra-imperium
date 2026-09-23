@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState, gameReducer } from '../context/GameContext';
-import { GameStatus, ActionTypes } from '../data/types';
+import { GameStatus, ActionTypes, LogTypes } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../data/rebellion';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -98,6 +98,23 @@ describe('resolveTurn calendar advance', () => {
     const state = { ...createInitialState({ playerNationId: 'fr' }), year: -840, age: 'bronze' };
     const next = resolveTurn(state);
     expect(next.age).toBe(getCalendarAgeId(next.year));
+  });
+
+  it('logs a milestone the exact turn the calendar age changes (App.jsx turns this into the banner/globe pulse)', () => {
+    const state = { ...createInitialState({ playerNationId: 'fr' }), year: -840, age: 'bronze' };
+    const next = resolveTurn(state);
+    expect(next.age).not.toBe(state.age);
+    const ageLog = next.logs.find(l => l.message.includes('new era dawns'));
+    expect(ageLog).toBeTruthy();
+    expect(ageLog.type).toBe(LogTypes.MILESTONE);
+    expect(ageLog.message).toContain('Classical Age');
+  });
+
+  it('logs nothing extra when the calendar age does not change this turn', () => {
+    const state = createInitialState({ playerNationId: 'fr' }); // fresh Bronze Age start, far from any boundary
+    const next = resolveTurn(state);
+    expect(next.age).toBe(state.age);
+    expect(next.logs.find(l => l.message.includes('new era dawns'))).toBeUndefined();
   });
 
   it('increments turnNumber', () => {

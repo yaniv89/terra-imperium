@@ -10,7 +10,7 @@
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { getCalendarAgeId, getYearsPerTurn } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
@@ -47,6 +47,13 @@ export const resolveTurn = (state) => {
   const newYear = state.year + getYearsPerTurn(state.age, state.gameSpeed);
   const newAge = getCalendarAgeId(newYear);
   const newTurnNumber = state.turnNumber + 1;
+  // The calendar age is a shared floor every nation crosses automatically (plan §2) — this is the
+  // one moment that actually happens to everyone, so it gets a log line the same turn it lands
+  // (the UI layer, App.jsx's GameLayout, is what turns this into the globe-wide banner/effect,
+  // since resolveTurn is pure and has no access to EffectsContext).
+  if (newAge !== state.age) {
+    logs.push({ year: newYear, message: `A new era dawns: the world enters the ${AGES[newAge].name}.`, type: LogTypes.MILESTONE });
+  }
 
   // --- income ---
   const income = calcIncome(state);

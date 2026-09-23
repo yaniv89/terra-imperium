@@ -219,8 +219,13 @@ export const EFFECT_REGISTRY = {
   disband_unit: { primitive: 'pulse', palette: { base: '#f87171', hot: '#fef2f2' }, glyph: 'unit', rings: 1, motes: 0 },
   promote_unit: { primitive: 'pulse', palette: { base: '#fbbf24', hot: '#fffbeb' }, glyph: 'star', rings: 1, motes: 5 },
   suppress_rebellion: { primitive: 'pulse', palette: { base: '#f87171', hot: '#fef2f2' }, glyph: 'square', rings: 2, motes: 0 },
-  construct_building: { primitive: 'pulse', palette: { base: '#f59e0b', hot: '#fef3c7' }, glyph: 'triangle', rings: 3, motes: 5 },
-  develop_resource_site: { primitive: 'pulse', palette: { base: '#fb923c', hot: '#ffedd5' }, glyph: 'diamond', rings: 2, motes: 10 },
+  // glyph: 'building' renders the real per-(age x category) building silhouette (src/data/
+  // buildingIcons.js), keyed by the effect's variant (categoryId) and age (the tier's age) — see
+  // DomesticPanel.jsx's handleConstructBuilding. glyph: 'extraction' does the same for Copper
+  // Mine/Iron Foundry/Oil Well, keyed by variant (resourceId) alone — each has exactly one fixed
+  // age, so no age lookup is needed.
+  construct_building: { primitive: 'pulse', palette: { base: '#f59e0b', hot: '#fef3c7' }, glyph: 'building', rings: 3, motes: 5 },
+  develop_resource_site: { primitive: 'pulse', palette: { base: '#fb923c', hot: '#ffedd5' }, glyph: 'extraction', rings: 2, motes: 10 },
   build_infrastructure: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'circle', rings: 3, motes: 4 },
   build_defenses: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 2, motes: 0 },
   build_climate_resilience: { primitive: 'pulse', palette: { base: '#34d399', hot: '#ecfdf5' }, glyph: 'circle', rings: 2, motes: 6 },
@@ -250,7 +255,12 @@ export const EFFECT_REGISTRY = {
   build_abm_defense: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'square', rings: 2, motes: 0 },
   // The mission ladder's showpiece moments (Sputnik, Moon landing, Mars) get the biggest pulse in
   // the registry — matched only by construct_wonder, the other permanent-empire-scale milestone.
-  launch_mission: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 10 }
+  launch_mission: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 10 },
+  // Age Advance (plan §10.5's "showpiece") — the one moment that happens to every nation on the
+  // same turn, so it gets the single biggest pulse in the registry, anchored on the player's own
+  // capital (App.jsx's GameLayout triggers this, comparing state.age turn-over-turn, since
+  // resolveTurn.js is pure and has no access to EffectsContext).
+  age_advance: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffde7' }, glyph: 'star', rings: 5, motes: 16 }
 };
 
 const DEFAULT_EFFECT_TYPE = 'missile_strike';

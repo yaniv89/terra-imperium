@@ -291,12 +291,16 @@ const DomesticPanel = ({ selectedRegion }) => {
   };
   const handleConstructBuilding = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.constructBuilding)) return addLog('Not enough resources', 'action');
-    triggerEffect('construct_building', { region: selectedRegion });
+    // The icon must match the TIER actually being built (the age it belongs to), not the current
+    // calendar/tech age — a rushed one-age-ahead build already shows next age's structure.
+    const nextTierIndex = (regionState?.buildings.categories[categoryId] ?? -1) + 1;
+    const tierAge = BUILDING_CATEGORIES[categoryId]?.tiers[nextTierIndex]?.age;
+    triggerEffect('construct_building', { region: selectedRegion, variant: categoryId, age: tierAge });
     dispatch({ type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: selectedRegion, categoryId } });
   };
   const handleDevelopResourceSite = (resourceId) => {
     if (!canAfford(state.resources, ACTION_COSTS.developResourceSite)) return addLog('Not enough resources', 'action');
-    triggerEffect('develop_resource_site', { region: selectedRegion });
+    triggerEffect('develop_resource_site', { region: selectedRegion, variant: resourceId });
     dispatch({ type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: selectedRegion, resourceId } });
   };
 
