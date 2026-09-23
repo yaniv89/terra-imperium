@@ -130,6 +130,21 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
             </span>
           </div>
 
+          {/* Siege progress (src/engine/siege.js) — only shown once this region has actually been
+              fought over, so an untouched foreign region doesn't clutter the panel with a number
+              that's never mattered yet. */}
+          {regionState.lastAttackedTurn != null && (
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-slate-400">Control:</span>
+                <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>
+                  {regionState.control}%
+                </span>
+              </div>
+              <ProgressBar value={regionState.control} color="dynamic" size="small" />
+            </div>
+          )}
+
           {/* Hostility */}
           <div className="flex items-center justify-between mb-1">
             <span className="text-slate-400">Hostility:</span>

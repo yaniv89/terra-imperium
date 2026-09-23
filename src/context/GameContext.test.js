@@ -782,6 +782,77 @@ describe('Military tab actions', () => {
       expect(behindDamage).toBeLessThan(caughtUpDamage);
     });
 
+    describe('siege (src/engine/siege.js): a defended region no longer falls in one hit', () => {
+      it('grinds down a defended region\'s control without capturing it in a single round', () => {
+        const state = withAttacker(50000); // overwhelming, guarantees an 'attacker' round outcome
+        const attackerId = Object.keys(state.units)[0];
+        const defenderUnit = {
+          id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+        };
+        const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit } };
+        const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+        expect(next.regions[BE_REGION].owner).toBe('be'); // still not captured
+        expect(next.regions[BE_REGION].control).toBe(70); // 100 - 30
+        expect(next.regions[BE_REGION].underInvasion).toBe(true);
+        expect(next.lastBattleReport.outcome).toBe('attacker');
+        expect(next.lastBattleReport.captured).toBe(false);
+        // A non-capturing win still falls back to origin — the siege continues as a fresh,
+        // separately-paid LAUNCH_INVASION next time, not an automatically-continuing occupation.
+        expect(next.units[attackerId].regionId).toBe(FR_BORDER);
+      });
+
+      it('captures once control crosses the threshold and a melee unit is present', () => {
+        const state = withAttacker(50000);
+        const defenderUnit = {
+          id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+        };
+        // Already weakened by a prior round (or unrest) down to 40 — one more 30-point hit crosses
+        // the 15 threshold.
+        const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit }, regions: { ...state.regions, [BE_REGION]: { ...state.regions[BE_REGION], control: 40 } } };
+        const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+        expect(next.regions[BE_REGION].owner).toBe('fr');
+        expect(next.regions[BE_REGION].control).toBe(25); // the usual post-capture reset
+        expect(next.regions[BE_REGION].underInvasion).toBe(false);
+        expect(next.lastBattleReport.captured).toBe(true);
+      });
+
+      it('clamps at the threshold without capturing when the attacker has no melee unit deployed', () => {
+        const state = richState();
+        const recruitedRanged = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'ranged' } });
+        const rangedId = Object.keys(recruitedRanged.units)[0];
+        const strongRanged = { ...recruitedRanged, units: { ...recruitedRanged.units, [rangedId]: { ...recruitedRanged.units[rangedId], strength: 50000 } } };
+        const defenderUnit = {
+          id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          strength: 100, maxStrength: 100, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+        };
+        const withDefender = { ...strongRanged, units: { ...strongRanged.units, def_weak: defenderUnit }, regions: { ...strongRanged.regions, [BE_REGION]: { ...strongRanged.regions[BE_REGION], control: 40 } } };
+        const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+        expect(next.lastBattleReport.outcome).toBe('attacker'); // ranged fire alone broke the weak garrison
+        expect(next.regions[BE_REGION].owner).toBe('be'); // but nothing to occupy it with
+        expect(next.regions[BE_REGION].control).toBe(15); // clamped at the threshold, not lower
+        expect(next.lastBattleReport.captured).toBe(false);
+      });
+
+      it('defenseLevel measurably reduces incoming damage (a "Walls" bonus, src/engine/siege.js)', () => {
+        const baseline = withAttacker(2000);
+        const attackerId = Object.keys(baseline.units)[0];
+        const defenderUnit = {
+          id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          strength: 20000, maxStrength: 20000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+        };
+        const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
+        const undefended = { ...withDefender, regions: { ...withDefender.regions, [BE_REGION]: { ...withDefender.regions[BE_REGION], defenseLevel: 0 } } };
+        const fortified = { ...withDefender, regions: { ...withDefender.regions, [BE_REGION]: { ...withDefender.regions[BE_REGION], defenseLevel: 10 } } };
+
+        const attackerDamage = (result) => result.lastBattleReport.log.find(l => l.attackerId === attackerId).damage;
+        const weakWallsDamage = attackerDamage(gameReducer(undefended, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+        const strongWallsDamage = attackerDamage(gameReducer(fortified, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+        expect(strongWallsDamage).toBeLessThan(weakWallsDamage);
+      });
+    });
+
     it('is a no-op from a region not owned by the player', () => {
       const state = withAttacker();
       const otherId = Object.keys(state.regions).find(id => state.regions[id].owner !== 'fr');
@@ -1042,6 +1113,23 @@ describe('Navies and amphibious invasion actions', () => {
       expect(next.units[navalUnitId]).toBeUndefined();
       expect(next.units[landUnitId]).toBeUndefined();
       expect(next.regions[cap('gb')].owner).toBe('gb');
+    });
+
+    it('grinds a defended landing zone\'s control without capturing it in one wave (src/engine/siege.js)', () => {
+      const { state, navalUnitId, landUnitId } = withEmbarkedForce();
+      const overwhelming = { ...state, units: { ...state.units, [landUnitId]: { ...state.units[landUnitId], strength: 50000 } } };
+      const defenderUnit = {
+        id: 'gb_garrison', regionId: cap('gb'), ownerId: 'gb', domain: 'land', classId: 'infantry', ageId: 'bronze',
+        strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+      };
+      const withDefender = { ...overwhelming, units: { ...overwhelming.units, gb_garrison: defenderUnit } };
+      const next = gameReducer(withDefender, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } });
+      expect(next.regions[cap('gb')].owner).toBe('gb'); // not captured yet
+      expect(next.regions[cap('gb')].control).toBe(70); // 100 - 30
+      expect(next.lastBattleReport.outcome).toBe('attacker');
+      expect(next.lastBattleReport.captured).toBe(false);
+      // A non-capturing landing falls back aboard the transport for another attempt.
+      expect(next.units[landUnitId].embarkedOn).toBe(navalUnitId);
     });
 
     it('is a no-op for a naval unit not owned by the player', () => {

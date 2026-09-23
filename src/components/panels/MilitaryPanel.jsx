@@ -308,13 +308,20 @@ const OUTCOME_LABELS = {
   defender: { text: 'Repelled', className: 'text-red-400' },
   stalemate: { text: 'Stalemate', className: 'text-amber-400' }
 };
+// A won round against a still-defended region (src/engine/siege.js) doesn't mean the region
+// changed hands — `report.captured` is only ever explicitly `false` (not merely absent) for
+// LAUNCH_INVASION/AMPHIBIOUS_ASSAULT reports where the siege continues, so this never misfires on
+// a NAVAL_ENGAGEMENT/SUPPRESS_REBELLION report (which don't set `captured` at all).
+const SIEGE_CONTINUES_LABEL = { text: 'Siege Continues', className: 'text-amber-400' };
 
 const PHASE_LABELS = { ranged: 'Ranged', shock: 'Shock', flanking: 'Flanking', pursuit: 'Pursuit' };
 
 // After-action report (plan §9's "detailed after-action reports"): an itemized, phase-by-phase
 // breakdown of the most recent LAUNCH_INVASION battle (src/engine/battle.js's report shape).
 const BattleReport = ({ report }) => {
-  const outcome = OUTCOME_LABELS[report.outcome] || OUTCOME_LABELS.stalemate;
+  const outcome = (report.outcome === 'attacker' && report.captured === false)
+    ? SIEGE_CONTINUES_LABEL
+    : (OUTCOME_LABELS[report.outcome] || OUTCOME_LABELS.stalemate);
   const phaseTotals = report.log.reduce((acc, entry) => {
     const key = entry.phase;
     acc[key] = acc[key] || { count: 0, damage: 0 };

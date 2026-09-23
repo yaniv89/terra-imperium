@@ -518,6 +518,19 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
     expect(next.nations.ca.isAtWar).toBe(false);
   });
 
+  it('grinds a defended region\'s control instead of instantly capturing it in one turn (src/engine/siege.js)', () => {
+    const state = withCertainCapture('mx', 'ca', cap('ca'));
+    const defenderUnit = {
+      id: 'ca_garrison', regionId: cap('ca'), ownerId: 'ca', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+    };
+    const withDefender = { ...state, units: { ...state.units, ca_garrison: defenderUnit } };
+    const next = resolveTurn(withDefender);
+    expect(next.regions[cap('ca')].owner).toBe('ca'); // not captured yet
+    expect(next.regions[cap('ca')].control).toBe(70); // 100 - 30
+    expect(next.wars.find(w => w.id === 'war_1').active).toBe(true); // war goal not yet achieved
+  });
+
   it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
     const state = withCertainCapture('de', 'fr', cap('fr'));
     const next = resolveTurn(state);

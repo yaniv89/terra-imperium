@@ -16,6 +16,7 @@ import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getMaxActionPoints } from '../utils/helpers';
+import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
@@ -95,7 +96,15 @@ export const resolveTurn = (state) => {
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
     const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus') + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel);
     const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta);
-    if (unrest !== region.unrest) regions[id] = { ...region, unrest };
+    // Siege recovery (src/engine/siege.js): a region not attacked recently regenerates the control
+    // combat ground down — an interrupted siege doesn't bank its damage forever. Also clears the
+    // `underInvasion` map/UI flag once the cooldown passes, so a region stops reading as "under
+    // attack" once it genuinely no longer is.
+    const control = region.lastAttackedTurn != null ? nextSiegeControlRegen(region, newTurnNumber) : region.control;
+    const stillUnderCooldown = region.lastAttackedTurn != null && (newTurnNumber - region.lastAttackedTurn) < SIEGE_REGEN_COOLDOWN_TURNS;
+    if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown)) {
+      regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false };
+    }
   });
 
   // --- rebellion (plan §9): unrest crossing the threshold spawns an actual rebel army in the
