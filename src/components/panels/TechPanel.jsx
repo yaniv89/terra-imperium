@@ -11,7 +11,8 @@ import { ActionTypes, TechCategories } from '../../data/types';
 import { TECH_TREE, canResearchTech, getTechsByCategory } from '../../data/techTree';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
-import { canAfford } from '../../utils/helpers';
+import { getAgesBehind, getAgesBehindResearchCostMultiplier, getAgesBehindCombatMultiplier } from '../../data/ages';
+import { canAfford, scaleCosts } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
 const CATEGORY_LABELS = {
@@ -26,6 +27,11 @@ const TechPanel = () => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const categories = getTechsByCategory();
+  // Falling behind the calendar on your OWN tech-earned age now has real teeth (src/data/ages.js's
+  // getAgesBehindResearchCostMultiplier/getAgesBehindCombatMultiplier) — surfaced here so the cost
+  // increase isn't a silent, confusing surprise.
+  const agesBehind = getAgesBehind(state.age, state.techAgeId);
+  const researchCostMult = getAgesBehindResearchCostMultiplier(agesBehind);
 
   const handleFocus = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.setResearchFocus)) return addLog('Not enough resources', 'action');
@@ -38,7 +44,7 @@ const TechPanel = () => {
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
   };
   const handleResearch = (techId, techCost) => {
-    const costs = { ...techCost, actionPoints: ACTION_COSTS.researchTech.actionPoints };
+    const costs = { ...scaleCosts(techCost, researchCostMult), actionPoints: ACTION_COSTS.researchTech.actionPoints };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
     triggerEffect('research_tech', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
@@ -62,6 +68,12 @@ const TechPanel = () => {
           <span className="text-slate-400">Tech-earned age:</span>
           <span className="font-mono text-purple-400 capitalize">{state.techAgeId}</span>
         </div>
+        {agesBehind > 0 && (
+          <div className="mt-1.5 pt-1.5 border-t border-amber-700/40 text-[11px] text-amber-400">
+            {agesBehind} age{agesBehind === 1 ? '' : 's'} behind the calendar — research costs +{Math.round((researchCostMult - 1) * 100)}%,
+            combat output -{Math.round((1 - getAgesBehindCombatMultiplier(agesBehind)) * 100)}% until you catch up.
+          </div>
+        )}
       </div>
 
       <ActionButton
@@ -100,8 +112,8 @@ const TechPanel = () => {
           <div className="text-xs font-semibold text-slate-300">{CATEGORY_LABELS[categoryId]}</div>
           {(categories[categoryId]?.techs || []).map(tech => {
             const techState = state.techTree[tech.id];
-            const check = canResearchTech(tech.id, state.techTree, state.resources, state.year);
-            const costs = { ...tech.cost, actionPoints: ACTION_COSTS.researchTech.actionPoints };
+            const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind);
+            const costs = { ...scaleCosts(tech.cost, researchCostMult), actionPoints: ACTION_COSTS.researchTech.actionPoints };
             return (
               <ActionButton
                 key={tech.id}

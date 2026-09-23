@@ -15,9 +15,11 @@
 // the same per-hit multiplier stack in dealDamage — every phase stays consistent by construction.
 //
 // What this deliberately does NOT model yet, because the systems don't exist: rivers, supply
-// state, tech-era gaps, doctrines, amphibious penalties, winter attrition. Those are each their
-// own plan item (Supply attrition, Naval, Government/AI); bolting fake modifiers on now would just
-// be dead weight until those land.
+// state, doctrines, winter attrition. Those are each their own plan item (Supply attrition,
+// Government/AI); bolting fake modifiers on now would just be dead weight until those land.
+// Amphibious penalties and the ages-behind combat malus (src/data/ages.js's
+// getAgesBehindCombatMultiplier) DO apply here, both via the caller-supplied
+// attackerPenaltyMultiplier — this engine stays agnostic to WHY the attacker is penalized.
 
 import { getCounterMultiplier, getSiegeMultiplier } from '../data/unitClasses';
 import { getCombatWidth } from '../data/combatWidth';

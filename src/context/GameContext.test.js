@@ -764,6 +764,24 @@ describe('Military tab actions', () => {
       expect(next.lastBattleReport.outcome).toBe('defender');
     });
 
+    it('deals less attacker damage per hit the further the player\'s tech age has fallen behind the calendar (src/data/ages.js\'s getAgesBehindCombatMultiplier)', () => {
+      const baseline = withAttacker(2000);
+      const attackerId = Object.keys(baseline.units)[0];
+      const defenderUnit = {
+        id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+        strength: 20000, maxStrength: 20000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+      };
+      const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
+      // Same rngSeed on both, so the only difference driving the outcome is the tech gap itself.
+      const behind = { ...withDefender, age: 'modern', techAgeId: 'bronze' }; // 4 ages behind -> floored 40% output
+      const caughtUp = { ...withDefender, age: 'modern', techAgeId: 'modern' }; // 0 ages behind -> full output
+
+      const attackerDamage = (result) => result.lastBattleReport.log.find(l => l.attackerId === attackerId).damage;
+      const behindDamage = attackerDamage(gameReducer(behind, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+      const caughtUpDamage = attackerDamage(gameReducer(caughtUp, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+      expect(behindDamage).toBeLessThan(caughtUpDamage);
+    });
+
     it('is a no-op from a region not owned by the player', () => {
       const state = withAttacker();
       const otherId = Object.keys(state.regions).find(id => state.regions[id].owner !== 'fr');
@@ -1178,6 +1196,19 @@ describe('Research tab actions', () => {
     it('is a no-op for a tech whose prerequisite is not yet researched', () => {
       const state = richState();
       expect(gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_composite_bow' } })).toBe(state);
+    });
+
+    it('charges a scaled-up cost the further the tech age has fallen behind the calendar (src/data/ages.js\'s getAgesBehindResearchCostMultiplier)', () => {
+      const baseline = richState();
+      const behind = { ...baseline, age: 'gunpowder', techAgeId: 'bronze' }; // 3 ages behind -> +90%
+
+      const nextBaseline = gameReducer(baseline, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const nextBehind = gameReducer(behind, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+
+      const baselineGoldSpent = baseline.resources.gold - nextBaseline.resources.gold;
+      const behindGoldSpent = behind.resources.gold - nextBehind.resources.gold;
+      expect(behindGoldSpent).toBeGreaterThan(baselineGoldSpent);
+      expect(behindGoldSpent).toBe(Math.round(baselineGoldSpent * 1.9));
     });
 
     it('is researchable once its prerequisite is researched', () => {

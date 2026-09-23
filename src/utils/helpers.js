@@ -295,6 +295,12 @@ export const applyCosts = (resources, costs) => {
   return next;
 };
 
+// Scales every field of a cost object by a flat multiplier — used for RESEARCH_TECH's
+// ages-behind penalty (src/data/ages.js's getAgesBehindResearchCostMultiplier), so falling behind
+// the calendar makes catching up cost more without needing a second cost table per age gap.
+export const scaleCosts = (costs, mult) =>
+  Object.fromEntries(Object.entries(costs).map(([key, value]) => [key, Math.round(value * mult)]));
+
 const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals', helium3: 'Helium-3' };
 
 export const getCostString = (costs) => {

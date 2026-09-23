@@ -18,7 +18,7 @@
 // require earned tech (removing that free allowance) is a real, separate design change to Phase
 // B's tested behavior, not something this task's tech-content scope should do unilaterally.
 
-import { AGE_ORDER, AGES } from './ages';
+import { AGE_ORDER, AGES, getAgesBehindResearchCostMultiplier } from './ages';
 import { TechCategories } from './types';
 
 const CATEGORY_LINES = {
@@ -112,8 +112,11 @@ export const getTechsByCategory = () => {
 
 // Check if tech can be researched. `techDefs` defaults to the real TECH_TREE — tests pass their
 // own fixture table instead, so exercising the generic gating logic never has to mutate the real
-// production tree.
-export const canResearchTech = (techId, techTree, resources, year, techDefs = TECH_TREE) => {
+// production tree. `agesBehind` (src/data/ages.js's getAgesBehind) scales the affordability check
+// by the same ages-behind research-cost multiplier the reducer actually deducts — otherwise a
+// player could see "can research" here while the reducer charges them a scaled-up cost they can't
+// afford.
+export const canResearchTech = (techId, techTree, resources, year, techDefs = TECH_TREE, agesBehind = 0) => {
   const tech = techDefs[techId];
   const state = techTree[techId];
 
@@ -132,8 +135,9 @@ export const canResearchTech = (techId, techTree, resources, year, techDefs = TE
     return { can: false, reason: `Exclusive with ${techDefs[exclusiveResearched]?.name}` };
   }
 
-  if (resources.gold < tech.cost.gold) return { can: false, reason: 'Insufficient funds' };
-  if (resources.techPoints < tech.cost.techPoints) return { can: false, reason: 'Insufficient tech points' };
+  const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
+  if (resources.gold < tech.cost.gold * costMult) return { can: false, reason: 'Insufficient funds' };
+  if (resources.techPoints < tech.cost.techPoints * costMult) return { can: false, reason: 'Insufficient tech points' };
   if (resources.actionPoints < 2) return { can: false, reason: 'Need 2 AP' };
 
   return { can: true, reason: null };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getMaxActionPoints, getFieldedStrength } from './helpers';
+import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getMaxActionPoints, getFieldedStrength } from './helpers';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -25,6 +25,14 @@ describe('canAfford / applyCosts', () => {
     const resources = { gold: 1000 };
     applyCosts(resources, { gold: 500 });
     expect(resources.gold).toBe(1000);
+  });
+
+  it('scaleCosts multiplies every field and rounds to a whole number', () => {
+    expect(scaleCosts({ gold: 40, techPoints: 10 }, 1.9)).toEqual({ gold: 76, techPoints: 19 });
+  });
+
+  it('scaleCosts is a no-op at multiplier 1', () => {
+    expect(scaleCosts({ gold: 40, techPoints: 10 }, 1)).toEqual({ gold: 40, techPoints: 10 });
   });
 });
 
