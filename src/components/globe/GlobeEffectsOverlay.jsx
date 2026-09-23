@@ -29,6 +29,8 @@
 import React, { useEffect, useRef } from 'react';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { getEffectSpec } from '../../data/effectRegistry';
+import { getUnitIconPath } from '../../data/unitIcons';
+import { getBuildingIconPath, getExtractionIconPath } from '../../data/buildingIcons';
 
 export const TRAVEL_MS = 1050; // launch -> impact, for a projectile with zero launch delay
 export const BURST_MS = 850;   // impact -> shockwave fully expanded
@@ -64,116 +66,44 @@ const PULSE_GLYPH_SHAPES = {
   star: 'M 0 -12 L 3.5 -3.7 L 12 -3.7 L 5 1.4 L 7.6 10 L 0 4.8 L -7.6 10 L -5 1.4 L -12 -3.7 L -3.5 -3.7 Z'
 };
 
-// The glyph: 'unit' pulse (recruit_unit / disband_unit) — a real per-class silhouette that DOES
-// something (marches, gallops, draws a bow, recoils, bobs at sea, banks) instead of one abstract
-// shape pulsing, so "train a unit" actually shows the unit rather than standing in for it. Each
-// def's `build` appends its static parts (in local -12..12 space, matching PULSE_GLYPH_SHAPES'
-// scale) to the given group and returns whichever element refs `animate` needs to move each frame;
-// `bobAmplitude`/`rockAmplitude`/`bankAmplitude` are optional whole-glyph motions applied
-// generically by drawPulse (translate/rotate) on top of whatever `animate` does to individual parts.
-const UNIT_GLYPHS = {
-  infantry: {
-    build: (g, fill, stroke) => {
-      const torso = make('path', { d: 'M -4 -6 L 4 -6 L 3.5 3 L -3.5 3 Z', fill, stroke, 'stroke-width': 0.8 });
-      const head = make('circle', { cx: 0, cy: -9, r: 2.6, fill, stroke, 'stroke-width': 0.8 });
-      const rifle = make('line', { x1: 3, y1: -5, x2: 9, y2: -9, stroke, 'stroke-width': 1.2, 'stroke-linecap': 'round' });
-      const legL = make('line', { x1: -2, y1: 3, x2: -2, y2: 10, stroke, 'stroke-width': 1.6, 'stroke-linecap': 'round' });
-      const legR = make('line', { x1: 2, y1: 3, x2: 2, y2: 10, stroke, 'stroke-width': 1.6, 'stroke-linecap': 'round' });
-      [torso, head, rifle, legL, legR].forEach((el) => g.appendChild(el));
-      return { legL, legR };
-    },
-    // Scissoring legs — a marching cadence, not a static stance.
-    animate: (parts, t) => {
-      const swing = Math.sin(t * 9) * 3;
-      setAttrs(parts.legL, { x2: (-2 + swing).toFixed(1) });
-      setAttrs(parts.legR, { x2: (2 - swing).toFixed(1) });
-    }
-  },
-  cavalry: {
-    build: (g, fill, stroke) => {
-      const body = make('path', {
-        d: 'M -10 2 L -6 -4 L -2 -3 L 0 -7 L 4 -6 L 6 -2 L 10 -1 L 10 2 L 6 2 L 5 6 L 3 6 L 3 2 L -4 2 L -5 6 L -7 6 L -7 2 Z',
-        fill, stroke, 'stroke-width': 0.8
-      });
-      g.appendChild(body);
-      return {};
-    },
-    animate: () => {},
-    bobAmplitude: 2.2, // the gallop — whole-glyph vertical bounce, handled by drawPulse
-    bobFrequency: 10
-  },
-  ranged: {
-    build: (g, fill, stroke) => {
-      const bow = make('path', { d: 'M -5 -10 Q 3 0 -5 10', fill: 'none', stroke, 'stroke-width': 1.4 });
-      const arrow = make('line', { x1: -3, y1: 0, x2: 9, y2: 0, stroke, 'stroke-width': 1.2, 'stroke-linecap': 'round' });
-      const head = make('path', { d: 'M 9 0 L 6 -1.6 L 6 1.6 Z', fill });
-      [bow, arrow, head].forEach((el) => g.appendChild(el));
-      return { arrow };
-    },
-    // Draw back then snap forward — a sawtooth, not a smooth sine, so the "shot" reads as a release.
-    animate: (parts, t) => {
-      const cycle = (t * 0.9) % (Math.PI * 2);
-      const draw = cycle < Math.PI ? cycle / Math.PI : 0;
-      setAttrs(parts.arrow, { x1: (-3 - draw * 4).toFixed(1) });
-    }
-  },
-  siege: {
-    build: (g, fill, stroke) => {
-      const wheel = make('circle', { cx: -3, cy: 6, r: 3.4, fill: 'none', stroke, 'stroke-width': 1.4 });
-      const barrel = make('line', { x1: -4, y1: 4, x2: 7, y2: -6, stroke, 'stroke-width': 3.2, 'stroke-linecap': 'round' });
-      const flash = make('circle', { cx: 7, cy: -6, r: 0, fill: '#ffffff', opacity: 0 });
-      [wheel, barrel, flash].forEach((el) => g.appendChild(el));
-      return { barrel, flash };
-    },
-    // Recoil snaps back along the barrel's own axis then eases forward, with a muzzle flash blip
-    // right at the moment of firing.
-    animate: (parts, t) => {
-      const cycle = (t * 1.1) % (Math.PI * 2);
-      const recoil = cycle < 0.6 ? 1 - cycle / 0.6 : 0;
-      const dx = -recoil * 2.2;
-      const dy = recoil * 1.6;
-      setAttrs(parts.barrel, { x1: (-4 + dx).toFixed(1), y1: (4 + dy).toFixed(1), x2: (7 + dx).toFixed(1), y2: (-6 + dy).toFixed(1) });
-      const firing = cycle < 0.15;
-      setAttrs(parts.flash, { r: firing ? 2.4 : 0, opacity: firing ? 0.9 : 0 });
-    }
-  },
-  naval: {
-    build: (g, fill, stroke) => {
-      const hull = make('path', { d: 'M -10 4 Q 0 9 10 4 L 8 4 L -8 4 Z', fill, stroke, 'stroke-width': 0.8 });
-      const mast = make('line', { x1: 0, y1: 4, x2: 0, y2: -9, stroke, 'stroke-width': 1 });
-      const sail = make('path', { d: 'M 0.5 -9 L 6 -2.5 L 0.5 -2.5 Z', fill, opacity: 0.9 });
-      [hull, mast, sail].forEach((el) => g.appendChild(el));
-      return {};
-    },
-    animate: () => {},
-    bobAmplitude: 1.6, // riding a swell
-    bobFrequency: 5,
-    rockAmplitude: 6 // degrees, rocking side to side
-  },
-  air: {
-    build: (g, fill, stroke) => {
-      const body = make('path', { d: 'M 11 0 L -7 -4.5 L -3 0 L -7 4.5 Z', fill, stroke, 'stroke-width': 0.8 });
-      g.appendChild(body);
-      return {};
-    },
-    animate: () => {},
-    bankAmplitude: 14 // degrees, banking through a slow circle
-  },
-  support: {
-    build: (g, fill, stroke) => {
-      const cross = make('path', {
-        d: 'M -2 -8 L 2 -8 L 2 -2 L 8 -2 L 8 2 L 2 2 L 2 8 L -2 8 L -2 2 L -8 2 L -8 -2 L -2 -2 Z',
-        fill, stroke, 'stroke-width': 0.8
-      });
-      g.appendChild(cross);
-      return {};
-    },
-    animate: () => {},
-    rockAmplitude: 10 // a wrench/tool being worked back and forth
-  }
+// The glyph: 'unit' pulse (recruit_unit / disband_unit) — a real per-(age x class) silhouette
+// (src/data/unitIcons.js) rendered at whole-glyph motion instead of one abstract shape pulsing, so
+// "train a unit" actually shows the unit rather than standing in for it. Each class also gets a
+// whole-body motion that still reads as "doing something" (a marching bounce, a gallop, a recoil
+// jolt, riding a swell, banking flight) — `bobAmplitude`/`rockAmplitude`/`bankAmplitude` are
+// applied generically by drawPulse (translate/rotate) on the glyph's inner group every frame.
+const UNIT_MOTION = {
+  infantry: { bobAmplitude: 1.4, bobFrequency: 9 },
+  cavalry: { bobAmplitude: 2.2, bobFrequency: 10 }, // the gallop
+  ranged: { rockAmplitude: 5, bobFrequency: 4 }, // a slight lean, drawing and aiming
+  siege: { bobAmplitude: 1.8, bobFrequency: 14 }, // a fast jolt suggesting recoil
+  naval: { bobAmplitude: 1.6, bobFrequency: 5, rockAmplitude: 6 }, // riding a swell, rocking side to side
+  air: { bankAmplitude: 14 }, // banking through a slow circle
+  support: { rockAmplitude: 10 } // a tool being worked back and forth
 };
 const UNIT_GLYPH_DEFAULT_CLASS = 'infantry';
-const getUnitGlyphDef = (classId) => UNIT_GLYPHS[classId] || UNIT_GLYPHS[UNIT_GLYPH_DEFAULT_CLASS];
+const UNIT_GLYPH_DEFAULT_AGE = 'modern';
+
+// Rescales a unitIcons.js/buildingIcons.js path's 0..100 viewBox into this overlay's local glyph
+// space (roughly -12..12, matching PULSE_GLYPH_SHAPES' scale) via a nested, never-reanimated <g> —
+// so the transform drawPulse sets every frame on the OUTER element it's appended to never fights
+// with this fixed content scale.
+const ICON_CONTENT_TRANSFORM = 'scale(0.24) translate(-50,-50)';
+const appendIconPath = (parent, d, fill) => {
+  const content = make('g', { transform: ICON_CONTENT_TRANSFORM });
+  content.appendChild(make('path', { d, fill, 'fill-rule': 'evenodd' }));
+  parent.appendChild(content);
+};
+
+const getUnitGlyphDef = (classId, ageId) => {
+  const resolvedClass = UNIT_MOTION[classId] ? classId : UNIT_GLYPH_DEFAULT_CLASS;
+  const d = getUnitIconPath(ageId, resolvedClass) || getUnitIconPath(UNIT_GLYPH_DEFAULT_AGE, resolvedClass);
+  return {
+    build: (g, fill) => { appendIconPath(g, d, fill); return {}; },
+    animate: () => {},
+    ...(UNIT_MOTION[resolvedClass] || UNIT_MOTION[UNIT_GLYPH_DEFAULT_CLASS])
+  };
+};
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const DEG = Math.PI / 180;
@@ -374,21 +304,33 @@ const buildImpact = (root, color, hot, spec) => {
 
 // A pulse's centerpiece: a small glyph silhouette (or plain circle) that pops in at the region and
 // fades out at the end of the pulse's life, plus a soft halo behind it. glyph: 'unit' is special —
-// it builds a real per-class unit silhouette (UNIT_GLYPHS) inside its own nested group instead of
-// one fixed shape, so drawPulse can move its parts (marching legs, a recoiling barrel, ...) every
-// frame independently of the outer position/scale/fade transform.
-const buildPulseGlyph = (root, color, hot, spec, variant) => {
+// it builds a real per-(age x class) unit silhouette (src/data/unitIcons.js) inside its own nested
+// group instead of one fixed shape, so drawPulse can apply that class's own whole-body motion
+// (a marching bounce, a recoil jolt, ...) every frame independently of the outer position/scale/
+// fade transform. glyph: 'building'/'extraction' render a real per-(age x category) building
+// silhouette (src/data/buildingIcons.js) the same way, but static (buildings don't move).
+const buildPulseGlyph = (root, color, hot, spec, variant, age) => {
   const halo = make('circle', { r: 0, fill: color, opacity: 0 });
   root.appendChild(halo);
 
   if (spec.glyph === 'unit') {
-    const def = getUnitGlyphDef(variant);
+    const def = getUnitGlyphDef(variant, age);
     const group = make('g', { opacity: 0 });
     const inner = make('g'); // carries the bob/rock/bank sub-motion, nested inside the group's own translate/scale
     group.appendChild(inner);
-    const parts = def.build(inner, hot, '#ffffff');
+    def.build(inner, hot);
     root.appendChild(group);
-    return { halo, group, inner, parts, def, isUnit: true };
+    return { halo, group, inner, def, isUnit: true };
+  }
+
+  if (spec.glyph === 'building' || spec.glyph === 'extraction') {
+    const d = spec.glyph === 'building'
+      ? (getBuildingIconPath(variant, age) || getBuildingIconPath(variant, UNIT_GLYPH_DEFAULT_AGE))
+      : getExtractionIconPath(variant);
+    const body = make('g', { fill: hot, opacity: 0 });
+    if (d) appendIconPath(body, d, hot);
+    root.appendChild(body);
+    return { halo, body };
   }
 
   const shape = PULSE_GLYPH_SHAPES[spec.glyph];
@@ -424,7 +366,7 @@ const buildEntry = (svg, defs, effect) => {
     }
     rings.forEach((r) => root.appendChild(r));
     const motes = buildMotes(root, color, hot, spec.motes || 0);
-    const glyph = buildPulseGlyph(root, color, hot, spec, effect.variant);
+    const glyph = buildPulseGlyph(root, color, hot, spec, effect.variant, effect.age);
     return { root, spec, rings, motes, glyph };
   }
 

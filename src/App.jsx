@@ -3,23 +3,52 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
-import { EffectsProvider } from './context/EffectsContext';
+import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay } from './components/modals';
+import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay, AgeAdvanceBanner } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
+import { AGES } from './data/ages';
+import { getNationCapital } from './data/regions';
+
+const AGE_ADVANCE_BANNER_MS = 5000;
 
 // Main game layout component
 const GameLayout = () => {
   const { state, resolveEvent, resetGame, exportSave, importSave, meta, completeOnboarding } = useGame();
+  const { triggerEffect } = useEffects();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
   // before anything else; an existing save skips straight to the loaded game.
   const [showStartScreen, setShowStartScreen] = useState(() => !hasExistingSave());
+
+  // Age Advance banner + globe pulse (plan §10.5's "showpiece", previously never built — the
+  // calendar age used to change with zero on-screen feedback). prevAgeRef starts at the CURRENT
+  // age so loading a save mid-age never spuriously fires this on mount, matching
+  // prevLogCountRef's pattern below. prevTurnRef additionally guards against a game RESET: a
+  // fresh Bronze Age start after finishing a previous run in, say, the Modern Age would otherwise
+  // look like an age change too — turnNumber only ever counts up during real play, so a turn
+  // count that didn't increase means this is a new game, not a genuine advance.
+  const prevAgeRef = useRef(state.age);
+  const prevTurnRef = useRef(state.turnNumber);
+  const [ageBanner, setAgeBanner] = useState(null);
+  useEffect(() => {
+    const isReset = state.turnNumber <= prevTurnRef.current;
+    prevTurnRef.current = state.turnNumber;
+    if (isReset || state.age === prevAgeRef.current) {
+      prevAgeRef.current = state.age;
+      return;
+    }
+    prevAgeRef.current = state.age;
+    setAgeBanner(AGES[state.age]?.name || state.age);
+    triggerEffect('age_advance', { region: getNationCapital(state.playerNationId) });
+    const timer = setTimeout(() => setAgeBanner(null), AGE_ADVANCE_BANNER_MS);
+    return () => clearTimeout(timer);
+  }, [state.age, state.turnNumber, state.playerNationId, triggerEffect]);
 
   // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
   // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
@@ -108,6 +137,9 @@ const GameLayout = () => {
 
       {/* Post-turn battle summary (Phase 9) - non-blocking, dismissible toast */}
       <BattleSummaryToast entries={battleSummary} onDismiss={() => setBattleSummary(null)} />
+
+      {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
+      <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />
 
       {/* Cloud saves + account (Phase F) - opened from GameHeader's Cloud button */}
       <SettingsModal
