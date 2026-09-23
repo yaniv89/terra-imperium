@@ -49,8 +49,24 @@ export const getOwnedRegionIds = (regions, nationId) => getOwnedRegionsIndex(reg
 // equivalent of "this nation's neighbors" now that a nation can hold many regions. Static
 // region-to-region adjacency (getNeighborIds) never changes, but which NATION sits on the other
 // side of a given border does, as territory changes hands — this recomputes that from current
-// ownership every time rather than caching a stale nation-to-nation border list.
+// ownership rather than caching a stale nation-to-nation border list.
+//
+// Cached per (regions object, nationId) the same way getOwnedRegionsIndex is above: aiLogic.js
+// calls this for potentially every one of 240 nations, multiple times in the same turn (tiering,
+// war-target and coalition checks all read it independently), and a fresh O(owned regions x
+// neighbors) walk on every single one of those calls was a real, measured cost at 4,482 regions —
+// this was the single biggest hot path in a profiled 300-turn simulation before this cache existed.
+// The nested Map (not a second WeakMap) is because the cache key here is a nationId STRING, which
+// WeakMap can't hold as a key on its own.
+const borderingNationsIndexCache = new WeakMap();
 export const getBorderingNationIds = (regions, nationId) => {
+  let perNation = borderingNationsIndexCache.get(regions);
+  if (!perNation) {
+    perNation = new Map();
+    borderingNationsIndexCache.set(regions, perNation);
+  }
+  if (perNation.has(nationId)) return perNation.get(nationId);
+
   const owned = new Set(getOwnedRegionIds(regions, nationId));
   const bordering = new Set();
   owned.forEach((regionId) => {
@@ -60,7 +76,9 @@ export const getBorderingNationIds = (regions, nationId) => {
       if (neighborOwner && neighborOwner !== nationId) bordering.add(neighborOwner);
     });
   });
-  return Array.from(bordering);
+  const result = Array.from(bordering);
+  perNation.set(nationId, result);
+  return result;
 };
 
 // Shortest hop count (BFS over the static adjacency graph — not current ownership, so this is a
@@ -123,8 +141,18 @@ export const regionsWithinRange = (anchorRegionIds, maxDistance) => {
 };
 
 // A nation's home anchor for overextension purposes: the one region among its (now many) provinces
-// flagged isCapital by build-world-regions.mjs.
+// flagged isCapital by build-world-regions.mjs. REGIONS_DATA is static for the whole app lifetime
+// (never rebuilt at runtime, unlike `regions` game state), so this index is built once, lazily, on
+// first use rather than scanning all 4,482 regions on every single call — this is now called for
+// potentially every one of 240 nations every turn (victoryConditions.js's Conqueror Victory check),
+// and an O(regions) scan per call per nation was a real, measured cost at that scale.
+let capitalByNationIndex = null;
 export const getNationCapital = (nationId) => {
-  const capital = Object.values(REGIONS_DATA).find(r => r.startOwner === nationId && r.isCapital);
-  return capital ? capital.id : null;
+  if (!capitalByNationIndex) {
+    capitalByNationIndex = {};
+    Object.values(REGIONS_DATA).forEach((r) => {
+      if (r.isCapital) capitalByNationIndex[r.startOwner] = r.id;
+    });
+  }
+  return capitalByNationIndex[nationId] || null;
 };
