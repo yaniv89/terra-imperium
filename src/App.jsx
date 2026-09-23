@@ -6,13 +6,14 @@ import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
-import { ActionPanel, LogConsole } from './components/panels';
+import { ActionPanel, ActionPanelTabs, LogConsole } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
+import { useIsMobile } from './hooks/useIsMobile';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
@@ -22,6 +23,8 @@ const GameLayout = () => {
   const { triggerEffect } = useEffects();
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState('domestic');
+  const isMobile = useIsMobile();
   // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
   // before anything else; an existing save skips straight to the loaded game.
   const [showStartScreen, setShowStartScreen] = useState(() => !hasExistingSave());
@@ -109,27 +112,40 @@ const GameLayout = () => {
       {/* Header with resources and controls */}
       <GameHeader onReset={handleReset} onOpenSettings={() => setShowSettings(true)} />
 
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 overflow-y-scroll min-h-0">
+      {/* Main content area. Below `lg` (phones/narrow tablets), this is no longer one long
+          scrolling page: the globe and tab bar stay put (both `shrink-0`) and only the middle
+          zone (action panel content + event log) scrolls, so switching tabs or reading the log
+          never requires scrolling back up past the globe. At `lg`+, nothing here changed from
+          before — same side-by-side globe + fixed-width panel column, tabs above content. */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 min-h-0 overflow-hidden lg:overflow-y-scroll">
         {/* Left/Top: Map — the 3D globe is the game's only map (the old flat SVG map has been
-            removed entirely). */}
-        <div className="relative flex-1 lg:flex-[2] min-h-[250px] lg:min-h-0 order-1">
+            removed entirely). Fixed, modest height on mobile (shrink-0) instead of flex-1, so it
+            can't eat space the action panel/tab bar need; still flex-[2] of the row on desktop. */}
+        <div className="relative shrink-0 h-[32vh] min-h-[200px] lg:h-auto lg:shrink lg:flex-[2] lg:min-h-0 order-1">
           <GlobeContainer
             selectedRegion={selectedRegion}
             onSelectRegion={handleSelectRegion}
           />
         </div>
 
-        {/* Right/Bottom: Action Panel and Log Console */}
-        <div className="flex flex-col gap-2 lg:w-96 xl:w-[420px] order-2 min-h-[300px] lg:min-h-0 lg:h-full">
-          {/* Action Panel with tabs */}
-          <div className="flex-1 min-h-[200px] lg:min-h-0">
-            <ActionPanel selectedRegion={selectedRegion} />
+        {/* Right/Bottom: Action Panel tabs, content, and Log Console. */}
+        <div className="flex flex-col flex-1 min-h-0 lg:w-96 xl:w-[420px] lg:flex-none order-2">
+          {/* Tabs: order-2 (after content) on mobile so they land pinned at the bottom of this
+              column once the content zone below claims all the remaining space; order-1 (their
+              natural position, above content) on desktop, unchanged from before. */}
+          <div className="order-2 lg:order-1 shrink-0">
+            <ActionPanelTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
 
-          {/* Log Console */}
-          <div className="h-48 lg:h-56 shrink-0">
-            <LogConsole maxHeight="h-full" />
+          {/* Middle zone: action panel content and the event log, each independently
+              scrollable (unchanged from before) — this wrapper just holds them, it doesn't
+              scroll itself. The log defaulting collapsed on mobile is what actually gives the
+              action panel real room here, not a shared/nested scroll region. */}
+          <div className="order-1 lg:order-2 flex-1 min-h-0 flex flex-col gap-2">
+            <ActionPanel activeTab={activeTab} selectedRegion={selectedRegion} />
+            <div className="lg:h-56 shrink-0 px-2 lg:px-0">
+              <LogConsole maxHeight="h-48 lg:h-full" defaultCollapsed={isMobile} />
+            </div>
           </div>
         </div>
       </div>
