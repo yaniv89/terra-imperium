@@ -16,6 +16,7 @@ import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { getNationColor, UNKNOWN_NATION_COLOR } from '../../data/nationColors';
+import { findClickAssistRegionId } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { RegionInfoModal } from '../modals';
@@ -216,11 +217,40 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     `;
   }, [state.regions, state.nations, state.playerNationId]);
 
-  const handleClick = useCallback((feature) => {
-    const gameRegionId = feature.properties?.gameRegionId;
-    if (!gameRegionId) return;
+  // lat/lng -> on-screen pixel + horizon-visibility, for the click-assist below. The visibility
+  // check is the same P·C >= R² horizon test GlobeEffectsOverlay.jsx already uses for its own
+  // screen-space projections (a point at world position P is hidden behind the globe's limb
+  // exactly when P·C < R², C = camera position, R = globe radius) — getCoords already returns P at
+  // its true radius-scaled magnitude, so no separate normalization step is needed here.
+  const projectToScreen = useCallback((lat, lng) => {
+    const globe = globeRef.current;
+    if (!globe) return null;
+    const camera = globe.camera?.();
+    const camPos = camera?.position;
+    const radius = globe.getGlobeRadius?.() || 100;
+    const camDist = camPos ? Math.hypot(camPos.x, camPos.y, camPos.z) : 0;
+    const p = globe.getCoords(lat, lng, 0);
+    const visible = !camPos || camDist <= radius || (p.x * camPos.x + p.y * camPos.y + p.z * camPos.z) >= radius * radius;
+    const { x, y } = globe.getScreenCoords(lat, lng, 0);
+    return { x, y, visible };
+  }, []);
+
+  // Small regions are genuinely hard to hit exactly (a real, reported problem — tapping one kept
+  // selecting a larger neighbor instead), so a click first checks whether some region's centroid
+  // projects closer to the actual click point than a normal click needs to land, and prefers that
+  // over react-globe.gl's own raw polygon hit when one exists. offsetX/offsetY are relative to the
+  // canvas itself (the click's event.target), which is exactly the coordinate space
+  // getScreenCoords uses. Utterly inert for an ordinary click deep inside a normal-sized region:
+  // no other region's centroid will be anywhere near it, so the raw hit always wins.
+  const handleClick = useCallback((feature, event) => {
+    const rawId = feature.properties?.gameRegionId;
+    if (!rawId) return;
+    const assistId = event
+      ? findClickAssistRegionId(REGION_COORDINATES, projectToScreen, event.offsetX, event.offsetY)
+      : null;
+    const gameRegionId = assistId || rawId;
     onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
-  }, [selectedRegion, onSelectRegion]);
+  }, [selectedRegion, onSelectRegion, projectToScreen]);
 
   // Memoized so polygonsData keeps a STABLE reference across re-renders that don't actually
   // change the underlying geometry (e.g. a GameContext update from an unrelated action) — a new
