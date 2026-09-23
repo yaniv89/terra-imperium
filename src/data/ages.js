@@ -75,14 +75,32 @@ export const getEffectiveAgeIndex = (calendarAgeId, techAgeId) => {
 export const getEffectiveAgeId = (calendarAgeId, techAgeId) => AGE_ORDER[getEffectiveAgeIndex(calendarAgeId, techAgeId)];
 
 // How many ages behind the calendar a nation's own tech-earned age has fallen. 0 means at or
-// ahead of calendar. Used to apply the "backward" penalty described in plan §2 (higher tech
-// costs, combat malus vs. advanced units) once buildings/units read this — not applied here.
+// ahead of calendar. Feeds the "backward" penalty described in plan §2 (higher tech costs, combat
+// malus vs. advanced units) via getAgesBehindCombatMultiplier/getAgesBehindResearchCostMultiplier
+// below — a nation that never researches falls further behind every turn the calendar advances
+// without it, and previously paid nothing for that at all.
 export const getAgesBehind = (calendarAgeId, techAgeId) => {
   const calendarIdx = getAgeIndex(calendarAgeId);
   const techIdx = getAgeIndex(techAgeId);
   if (calendarIdx === -1 || techIdx === -1) return 0;
   return Math.max(0, calendarIdx - techIdx);
 };
+
+// Combat output multiplier for a nation fighting while behind the calendar — obsolete doctrine
+// and equipment, represented as a flat malus on every hit that side lands, regardless of which
+// literal unit classes it fields (src/engine/battle.js's attackerPenaltyMultiplier). -15% per age
+// behind, floored at 40% so falling behind is a real threat without making combat pointless.
+const AGES_BEHIND_COMBAT_PENALTY_PER_AGE = 0.15;
+const AGES_BEHIND_COMBAT_MULTIPLIER_FLOOR = 0.4;
+export const getAgesBehindCombatMultiplier = (agesBehind) =>
+  Math.max(AGES_BEHIND_COMBAT_MULTIPLIER_FLOOR, 1 - agesBehind * AGES_BEHIND_COMBAT_PENALTY_PER_AGE);
+
+// Research cost multiplier for a nation trying to catch up from behind — the further behind, the
+// more it costs to research the SAME tech, so falling behind compounds instead of being a free
+// pause button. +30% per age behind, uncapped (unlike the combat floor, there's no reason to cap
+// how expensive catching up from a long neglect should get).
+const AGES_BEHIND_RESEARCH_COST_PER_AGE = 0.3;
+export const getAgesBehindResearchCostMultiplier = (agesBehind) => 1 + agesBehind * AGES_BEHIND_RESEARCH_COST_PER_AGE;
 
 // ============ GAME SPEED ============
 

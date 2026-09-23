@@ -69,6 +69,14 @@ describe('canResearchTech (generic gating, against a fixture table)', () => {
     const tree = freshTree();
     expect(canResearchTech('a', tree, { gold: 10000000, techPoints: 10000, actionPoints: 1 }, 2000, FIXTURE_TECH).can).toBe(false);
   });
+
+  it('scales the affordability check up by agesBehind\'s research-cost multiplier', () => {
+    const tree = freshTree();
+    // tech 'a' costs { gold: 100, techPoints: 5 } — exactly affordable at 1x, not at 1.3x (1 age behind).
+    const exact = { gold: 100, techPoints: 5, actionPoints: 3 };
+    expect(canResearchTech('a', tree, exact, 2000, FIXTURE_TECH, 0).can).toBe(true);
+    expect(canResearchTech('a', tree, exact, 2000, FIXTURE_TECH, 1).can).toBe(false);
+  });
 });
 
 describe('canResearchTech against the real TECH_TREE (default techDefs)', () => {

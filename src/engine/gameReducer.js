@@ -21,7 +21,7 @@ import { POLICIES } from '../data/policies';
 import { declareWar, hasCasusBelli, isWarBetween } from './diplomacy';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES } from '../data/ages';
+import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindCombatMultiplier, getAgesBehindResearchCostMultiplier } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
@@ -46,7 +46,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } 
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { canAfford, applyCosts } from '../utils/helpers';
+import { canAfford, applyCosts, scaleCosts } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
@@ -830,7 +830,10 @@ export const gameReducer = (state, action) => {
         terrain: REGIONS_DATA[targetRegionId]?.terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
-        generals: state.hiredCommanders
+        generals: state.hiredCommanders,
+        // A tech-earned age fallen behind the calendar means obsolete doctrine/equipment, not just
+        // a specific unit's stats — see src/data/ages.js's getAgesBehindCombatMultiplier.
+        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
       });
 
       // Only units actually deployed to the front line fought and earn XP; the winning side earns
@@ -907,6 +910,7 @@ export const gameReducer = (state, action) => {
 
       const rng = createRng(state.rngSeed);
       const nextUnits = { ...state.units };
+      const techGapCombatMultiplier = getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId));
 
       // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing.
       // Losing it sinks the transport and everything still aboard, and the assault never lands.
@@ -918,7 +922,8 @@ export const gameReducer = (state, action) => {
           terrain: REGIONS_DATA[targetRegionId]?.terrain,
           isAttackingFortification: false,
           rng,
-          generals: state.hiredCommanders
+          generals: state.hiredCommanders,
+          attackerPenaltyMultiplier: techGapCombatMultiplier
         });
         navalBattle.defenderUnits.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
         if (navalBattle.outcome !== 'attacker') {
@@ -949,7 +954,7 @@ export const gameReducer = (state, action) => {
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT
+        attackerPenaltyMultiplier: (hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT) * techGapCombatMultiplier
       });
 
       const XP_WIN = 30;
@@ -1026,7 +1031,8 @@ export const gameReducer = (state, action) => {
         terrain: REGIONS_DATA[targetRegionId]?.terrain,
         isAttackingFortification: false,
         rng,
-        generals: state.hiredCommanders
+        generals: state.hiredCommanders,
+        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
       });
 
       // A naval engagement only contests the lane — survivors hold their own positions, win or
@@ -1069,7 +1075,8 @@ export const gameReducer = (state, action) => {
         terrain: REGIONS_DATA[regionId]?.terrain,
         isAttackingFortification: false,
         rng,
-        generals: state.hiredCommanders
+        generals: state.hiredCommanders,
+        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
       });
 
       const nextUnits = { ...state.units };
@@ -1109,7 +1116,11 @@ export const gameReducer = (state, action) => {
       const tech = TECH_TREE[techId];
       const costs = ACTION_COSTS.researchTech;
       if (!tech) return state;
-      if (!canResearchTech(techId, state.techTree, state.resources, state.year).can) return state;
+      // A nation whose OWN tech-earned age has fallen behind the calendar (never researching while
+      // turns pass) pays more to research the same tech — see src/data/ages.js's
+      // getAgesBehindResearchCostMultiplier's file header for why.
+      const agesBehind = getAgesBehind(state.age, state.techAgeId);
+      if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind).can) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const nextTechTree = { ...state.techTree, [techId]: { ...state.techTree[techId], researched: true } };
@@ -1123,7 +1134,8 @@ export const gameReducer = (state, action) => {
       const advancesTechAge = researchedCount >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextTechAgeIndex < AGE_ORDER.length;
       const nextTechAgeId = advancesTechAge ? AGE_ORDER[nextTechAgeIndex] : state.techAgeId;
 
-      const resourcesAfterTechCost = applyCosts(applyCosts(state.resources, costs), tech.cost);
+      const scaledTechCost = scaleCosts(tech.cost, getAgesBehindResearchCostMultiplier(agesBehind));
+      const resourcesAfterTechCost = applyCosts(applyCosts(state.resources, costs), scaledTechCost);
 
       return {
         ...state,
