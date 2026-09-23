@@ -10,7 +10,8 @@ const legendItems = [
   { color: 'bg-orange-500', label: 'Weak (20-39%)' },
   { color: 'bg-red-500', label: 'Critical (<20%)' },
   { color: 'bg-slate-500', label: 'Foreign' },
-  { color: 'bg-red-500 animate-pulse', label: 'At War', border: 'border-2 border-red-400' }
+  { color: 'bg-red-500 animate-pulse', label: 'At War', border: 'border-2 border-red-400' },
+  { color: 'bg-transparent', label: 'Your Border', border: 'border-2 border-amber-400' }
 ];
 
 const MapLegend = ({ collapsed = false }) => {

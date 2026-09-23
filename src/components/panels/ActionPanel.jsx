@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 // FIX: Replaced 'Handshake' with 'Flag' to resolve the export error
 import { Home, Swords, Flag, Beaker, Trophy, Satellite } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { TabButton } from '../ui';
 import DomesticPanel from './DomesticPanel';
 import MilitaryPanel from './MilitaryPanel';
@@ -36,8 +37,9 @@ const ActionPanel = ({ selectedRegion }) => {
         return invasions > 0 ? invasions : null;
       }
       case 'diplomacy': {
-        // Show number of nations at war
-        const wars = Object.values(state.nations).filter(n => n.isAtWar).length;
+        // Show number of nations at war WITH THE PLAYER — n.isAtWar alone is "in a war with
+        // anyone", which would badge this tab for wars the player has nothing to do with.
+        const wars = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id)).length;
         return wars > 0 ? wars : null;
       }
       default:

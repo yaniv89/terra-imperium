@@ -62,6 +62,13 @@ export const assignDefaultWarGoal = (state, nationId, aggressor) => {
 export const isWarBetween = (war, idA, idB) =>
   (war.aggressor === idA && war.enemy === idB) || (war.aggressor === idB && war.enemy === idA);
 
+// nation.isAtWar is true whenever a nation is in ANY war, anywhere — that's the correct signal for
+// AI-tiering (a nation embroiled in a war becomes globally relevant) but it is NOT "at war with the
+// player", and player-facing UI (map coloring, war badges, the diplomacy/military tab war lists)
+// must use this instead, or two AI nations fighting each other lights up as if they'd attacked you.
+export const isAtWarWithPlayer = (state, nationId) =>
+  state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, nationId));
+
 // True once a war's goal condition is actually met. Pure and side-effect-free — the caller
 // (resolveTurn.js) decides what to do with a newly-achieved goal.
 export const checkWarGoal = (war, state) => {

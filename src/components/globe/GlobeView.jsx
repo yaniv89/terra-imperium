@@ -13,6 +13,7 @@ import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
+import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { useEffects } from '../../context/EffectsContext';
@@ -28,7 +29,10 @@ const prefersReducedMotion = () =>
 
 // Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic exactly, so
 // switching to the globe changed nothing about what the colors mean.
-const fillColorFor = (regionState, nation, isPlayerOwned) => {
+// `atWarWithPlayer` must already be resolved by the caller via isAtWarWithPlayer(), never from
+// nation.isAtWar directly — that flag means "in a war with ANYONE" (it's what AI-tiering reads),
+// so two AI nations fighting each other would otherwise paint themselves red on your map too.
+const fillColorFor = (regionState, nation, isPlayerOwned, atWarWithPlayer) => {
   if (isPlayerOwned) {
     const control = regionState.control || 0;
     if (control >= 80) return '#4ade80';
@@ -37,7 +41,7 @@ const fillColorFor = (regionState, nation, isPlayerOwned) => {
     if (control >= 20) return '#fb923c';
     return '#f87171';
   }
-  if (nation?.isAtWar) return '#fca5a5';
+  if (atWarWithPlayer) return '#fca5a5';
   return nation?.color || '#d1d5db';
 };
 
@@ -126,7 +130,8 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     if (!regionState) return NEUTRAL_LAND_COLOR;
     const isPlayerOwned = regionState.owner === state.playerNationId;
     const nation = !isPlayerOwned ? state.nations[regionState.owner] : null;
-    return fillColorFor(regionState, nation, isPlayerOwned);
+    const atWarWithPlayer = nation ? isAtWarWithPlayer(state, nation.id) : false;
+    return fillColorFor(regionState, nation, isPlayerOwned, atWarWithPlayer);
   };
 
   // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
@@ -138,10 +143,14 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // undifferentiated blob with no visible internal structure — defeating the point of the province
   // split. A fixed, subdued border color instead keeps every clickable province edge visible against
   // any fill color, the way an ordinary choropleth map's borders would.
+  // Player-owned territory gets its own persistent gold outline, distinct from the selection-blue
+  // and invasion-red highlights, so "which one is mine" reads at a glance at any zoom level instead
+  // of only being distinguishable by whatever color that starting nation happened to be assigned.
   const strokeColor = (feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return '#2563eb';
     if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
+    if (state.regions[gameRegionId]?.owner === state.playerNationId) return '#fbbf24';
     return '#1e293b';
   };
 
@@ -149,6 +158,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return 0.03;
     if (state.regions[gameRegionId]?.underInvasion) return 0.02;
+    if (state.regions[gameRegionId]?.owner === state.playerNationId) return 0.018;
     return 0.012;
   };
 
