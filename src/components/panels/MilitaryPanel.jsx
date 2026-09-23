@@ -24,12 +24,18 @@ import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
-// Every region a unit could move to right now: land-adjacent always, plus (for naval units) every
-// coastal region within the current age's naval reach (src/data/navalReach.js).
-const getMoveOptions = (unit, age) => {
-  const landNeighbors = getNeighborIds(unit.regionId);
+// Every region a unit could MOVE to right now (redeploying within your own territory) — land-
+// adjacent always, plus (for naval units) every coastal region within the current age's naval
+// reach (src/data/navalReach.js) — filtered to regions the player actually owns. Entering foreign
+// territory is what Launch Invasion/Amphibious Assault are for, with their own cost/war
+// consequences; Move Army has neither, so it must never be able to walk a unit into someone else's
+// region — confirmed as a real bug (playtest report: Israeli units could "move" straight into
+// Jordanian/Egyptian regions with no war, no cost beyond the ordinary move, and no consequence).
+const getMoveOptions = (unit, age, regions, playerNationId) => {
+  const isOwned = (id) => regions[id]?.owner === playerNationId;
+  const landNeighbors = getNeighborIds(unit.regionId).filter(isOwned);
   if (unit.domain !== 'naval') return landNeighbors;
-  const seaLanes = getSeaLanesWithinReach(unit.regionId, age).map((lane) => lane.to);
+  const seaLanes = getSeaLanesWithinReach(unit.regionId, age).map((lane) => lane.to).filter(isOwned);
   return [...new Set([...landNeighbors, ...seaLanes])];
 };
 
@@ -281,6 +287,8 @@ const MilitaryPanel = ({ selectedRegion }) => {
                 key={unit.id}
                 unit={unit}
                 age={state.age}
+                regions={state.regions}
+                playerNationId={state.playerNationId}
                 generals={state.hiredCommanders}
                 unassignedGenerals={unassignedGenerals}
                 navalUnitsHere={unitsHere.filter(u => u.domain === 'naval' && u.id !== unit.id)}
@@ -378,10 +386,10 @@ const OfficerCorps = ({ generals, units, canAffordHire, onHire }) => (
 );
 
 const UnitRow = ({
-  unit, age, generals, unassignedGenerals, navalUnitsHere, cargoByNavalId,
+  unit, age, regions, playerNationId, generals, unassignedGenerals, navalUnitsHere, cargoByNavalId,
   onDisband, onMove, onPromote, onAssignGeneral, onUnassignGeneral, onEmbark, onDisembark
 }) => {
-  const moveOptions = getMoveOptions(unit, age);
+  const moveOptions = getMoveOptions(unit, age, regions, playerNationId);
   const rank = getRankForXp(unit.xp || 0);
   const nextRank = RANK_ORDER[RANK_ORDER.indexOf(rank) + 1];
   const promotable = canPromote(unit);

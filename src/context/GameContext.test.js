@@ -679,16 +679,30 @@ describe('Military tab actions', () => {
   const BE_REGION = 'be-vwv';
 
   describe('MOVE_ARMY', () => {
+    // A French-owned neighbor of FR_BORDER (fr-62, Pas-de-Calais) — MOVE_ARMY is redeployment
+    // within your own territory, not an invasion, so a genuinely successful move has to land in a
+    // region the player already owns; BE_REGION (foreign, Belgium) is used below specifically to
+    // confirm that's rejected, not as a valid destination.
+    const FR_NEIGHBOR = 'fr-62';
     const withUnit = () => {
       const state = richState();
       return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
     };
 
-    it('moves the unit to an adjacent region and deducts the action point cost', () => {
+    it('moves the unit to an adjacent, player-owned region and deducts the action point cost', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
-      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } });
-      expect(next.units[unitId].regionId).toBe(BE_REGION);
+      const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
+      expect(next.units[unitId].regionId).toBe(FR_NEIGHBOR);
+    });
+
+    // Regression (playtest report): Move Army let a unit walk straight into a foreign, not-at-war
+    // region with no invasion, no combat, and no consequence beyond the ordinary move cost — a
+    // real bug, not the game's actual invasion mechanic (LAUNCH_INVASION/AMPHIBIOUS_ASSAULT).
+    it('is a no-op moving to an adjacent but foreign-owned region', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      expect(gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } })).toBe(state);
     });
 
     it('is a no-op moving to a non-adjacent region', () => {
@@ -701,7 +715,7 @@ describe('Military tab actions', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
       const stolen = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], ownerId: 'de' } } };
-      expect(gameReducer(stolen, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: BE_REGION } })).toBe(stolen);
+      expect(gameReducer(stolen, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } })).toBe(stolen);
     });
   });
 
