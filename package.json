@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
+    "@iconify-json/game-icons": "^1.2.4",
     "@playwright/test": "^1.63.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
