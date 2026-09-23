@@ -232,6 +232,49 @@ describe('resolveTurn unrest drift', () => {
   });
 });
 
+// Regression/feature: currentPopulation used to be completely static outside the manual, opt-in
+// POPULATION_POLICY action — resolveTurn.js now grows it every turn via src/engine/population.js,
+// driven by the (now-wired) Food & Growth building tier, infrastructure, and war.
+describe('resolveTurn population growth', () => {
+  it('grows a region with a built Food building faster than an unimproved one over several turns', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const withFood = {
+      ...base,
+      regions: {
+        ...base.regions,
+        [cap('fr')]: {
+          ...base.regions[cap('fr')],
+          buildings: { ...base.regions[cap('fr')].buildings, categories: { ...base.regions[cap('fr')].buildings.categories, food: 0 } }
+        }
+      }
+    };
+
+    let plainState = base;
+    let foodState = withFood;
+    for (let i = 0; i < 10; i++) {
+      plainState = resolveTurn(plainState);
+      foodState = resolveTurn(foodState);
+    }
+
+    expect(foodState.regions[cap('fr')].currentPopulation).toBeGreaterThan(plainState.regions[cap('fr')].currentPopulation);
+  });
+
+  it('loses population instead of growing while a region is under active invasion', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const startingPopulation = base.regions[cap('fr')].currentPopulation;
+    const invaded = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], underInvasion: true } } };
+    const next = resolveTurn(invaded);
+    expect(next.regions[cap('fr')].currentPopulation).toBeLessThan(startingPopulation);
+  });
+
+  it('grows even an undeveloped, calm region a little just from the passage of time', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const startingPopulation = base.regions[cap('fr')].currentPopulation;
+    const next = resolveTurn(base);
+    expect(next.regions[cap('fr')].currentPopulation).toBeGreaterThan(startingPopulation);
+  });
+});
+
 describe('resolveTurn rebellion', () => {
   const rebelUnitIn = (state) => Object.values(state.units).find(u => u.ownerId === REBEL_OWNER_ID);
 

@@ -23,8 +23,8 @@ export const WONDERS = {
     id: 'greatLibrary',
     name: 'The Great Library',
     age: 'classical',
-    effect: { hrMult: 0.1 },
-    description: 'The ancient world\'s foremost archive draws scholars and settlers alike. +10% HR income, empire-wide.'
+    effect: { hrMult: 0.1, popGrowthBonus: 0.001 },
+    description: 'The ancient world\'s foremost archive draws scholars and settlers alike. +10% HR income, +0.1%/turn population growth, empire-wide.'
   },
   grandBazaar: {
     id: 'grandBazaar',

@@ -18,6 +18,7 @@ import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTi
 import { getDepositsFor } from '../../data/deposits';
 import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
+import { FOOD_TIER_GROWTH_BONUS } from '../../engine/population';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../../data/government';
 import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
 import { POLICIES, POLICY_IDS } from '../../data/policies';
@@ -423,12 +424,20 @@ const DomesticPanel = ({ selectedRegion }) => {
               const nextTier = currentTier + 1;
               const nextName = getCategoryTierName(categoryId, nextTier);
               const buildable = nextName && canBuildTier(categoryId, effectiveAge, nextTier);
+              // Food & Growth is the one category with a mechanical effect worth naming here (it
+              // feeds resolveTurn.js's population growth via src/engine/population.js) — every
+              // other category's own action (Develop Resource Site, the Science tech-point yield,
+              // etc.) already states its effect elsewhere, so this doesn't generalize a pattern
+              // that isn't there yet for the rest.
+              const foodEffect = categoryId === 'food' && nextName
+                ? `, +${((nextTier + 1) * FOOD_TIER_GROWTH_BONUS * 100).toFixed(2)}%/turn population growth`
+                : '';
               return (
                 <ActionButton
                   key={categoryId}
                   icon={Building2}
                   label={`${category.label}: ${currentName || 'None'}`}
-                  description={nextName ? `Build ${nextName}` : 'Fully developed for this age'}
+                  description={nextName ? `Build ${nextName}${foodEffect}` : 'Fully developed for this age'}
                   costs={nextName ? ACTION_COSTS.constructBuilding : null}
                   onClick={() => handleConstructBuilding(categoryId)}
                   disabled={!buildable}
