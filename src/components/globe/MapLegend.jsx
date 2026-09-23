@@ -13,7 +13,10 @@ const legendItems = [
   { color: 'bg-orange-500', label: 'Your Territory: Weak (20-39%)' },
   { color: 'bg-red-500', label: 'Your Territory: Critical (<20%)' },
   { color: 'bg-slate-500', label: 'Foreign' },
-  { color: 'bg-red-500 animate-pulse', label: 'At War', border: 'border-2 border-red-400' }
+  { color: 'bg-red-500 animate-pulse', label: 'At War', border: 'border-2 border-red-400' },
+  // Drawn as a line swatch, not a filled square — this marks a boundary between two nations on the
+  // globe (GlobeView.jsx's customLayerData border mesh), not a region's own fill color.
+  { color: 'bg-white', label: 'National Border', line: true }
 ];
 
 const MapLegend = ({ collapsed = false }) => {
@@ -44,7 +47,9 @@ const MapLegend = ({ collapsed = false }) => {
       </div>
       {legendItems.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded ${item.color} ${item.border || ''}`} />
+          {item.line
+            ? <div className={`w-3 h-0.5 ${item.color}`} />
+            : <div className={`w-3 h-3 rounded ${item.color} ${item.border || ''}`} />}
           <span className="text-slate-300">{item.label}</span>
         </div>
       ))}
