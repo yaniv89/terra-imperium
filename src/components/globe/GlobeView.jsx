@@ -46,21 +46,38 @@ const autoRotateDisabledForTests = () =>
 // tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
 let userDismissedAutoRotate = false;
 
-// Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic, now applied to
-// every region (player-owned or foreign) so the map legend's 5 control bands actually mean what
-// they say everywhere on the map, not just on the player's own territory — a foreign nation's
-// weakly-held border provinces are now visibly Weak/Critical, a real signal for picking invasion
-// targets. `atWarWithPlayer` must already be resolved by the caller from isAtWarWithPlayer(), never
-// from nation.isAtWar directly — that flag means "in a war with ANYONE" (it's what AI-tiering
-// reads), so two AI nations fighting each other would otherwise paint themselves red on your map.
-const fillColorFor = (regionState, atWarWithPlayer) => {
+// Course correction (confirmed via an actual screenshot): an earlier version of this function
+// applied the player's 5-band control-color scale to EVERY region, foreign nations included. That
+// fixed the original complaint (foreign territory gave no stability signal at all) but created a
+// worse one — every nation starts a fresh game at 100% control everywhere, so the entire globe
+// rendered as one undifferentiated green blob at turn 1, with national identity readable only from
+// thin border strokes. Nation colors existed specifically so "whose territory is this" reads at a
+// glance; that's too valuable to give up for a control readout most of the map won't need until
+// wars/unrest actually create variation.
+// This version keeps both: the player's own territory still uses the original discrete 5-band
+// scale (unchanged — it drives revolt-adjacent readouts and hasn't changed meaning). A foreign,
+// not-at-war region keeps ITS NATION'S OWN hue (so the map stays as visually distinguishable as
+// before this whole change), but its lightness is modulated by that region's control — full
+// control renders at the nation's normal color (identical to before any of this session's changes
+// at 100% control), a weakly-held region visibly darkens/dulls toward the same hue's low end. So a
+// healthy world still reads as a colorful political map, and a war-torn one visibly shows which
+// nation's grip is slipping where, without either property drowning out the other.
+const fillColorFor = (regionState, nation, isPlayerOwned, atWarWithPlayer) => {
+  const control = Math.min(100, Math.max(0, regionState.control || 0));
+  if (isPlayerOwned) {
+    if (control >= 80) return '#4ade80';
+    if (control >= 60) return '#84cc16';
+    if (control >= 40) return '#facc15';
+    if (control >= 20) return '#fb923c';
+    return '#f87171';
+  }
   if (atWarWithPlayer) return '#fca5a5';
-  const control = regionState.control || 0;
-  if (control >= 80) return '#4ade80';
-  if (control >= 60) return '#84cc16';
-  if (control >= 40) return '#facc15';
-  if (control >= 20) return '#fb923c';
-  return '#f87171';
+  const hueMatch = nation?.color?.match(/hsl\((\d+)/);
+  const hue = hueMatch ? Number(hueMatch[1]) : 210;
+  // 45% at full control matches colorForCountry's own baseline lightness exactly (worldNations.js)
+  // — a fully-controlled foreign nation looks identical to its plain nation.color, not just close.
+  const lightness = 18 + (control / 100) * 27;
+  return `hsl(${hue}, 55%, ${lightness}%)`;
 };
 
 const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
@@ -168,9 +185,11 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     const gameRegionId = feature.properties?.gameRegionId;
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
-    const atWarWithPlayer = regionState.owner !== state.playerNationId && atWarNationIds.has(regionState.owner);
-    return fillColorFor(regionState, atWarWithPlayer);
-  }, [state.regions, state.playerNationId, atWarNationIds]);
+    const isPlayerOwned = regionState.owner === state.playerNationId;
+    const nation = !isPlayerOwned ? state.nations[regionState.owner] : null;
+    const atWarWithPlayer = !isPlayerOwned && atWarNationIds.has(regionState.owner);
+    return fillColorFor(regionState, nation, isPlayerOwned, atWarWithPlayer);
+  }, [state.regions, state.nations, state.playerNationId, atWarNationIds]);
 
   // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
   // province-level split (Task 51) every one of those provinces is its own clickable, independently
