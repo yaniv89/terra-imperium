@@ -2,7 +2,7 @@
 // Reusable action button component with cost and effect display
 
 import React from 'react';
-import { getCostString } from '../../utils/helpers';
+import { getCostString, getResourceStrain } from '../../utils/helpers';
 
 const VARIANT_STYLES = {
   default: 'bg-slate-700/80 hover:bg-slate-600 border-slate-600 text-slate-100',
@@ -43,10 +43,15 @@ const ActionButton = ({
   disabled = false,
   variant = 'default',
   size = 'normal', // 'small', 'normal', 'large'
-  className = ''
+  className = '',
+  // Optional: pass the current resources pool to surface a "this uses most/all of your X" warning
+  // (turn-1 government adoption, first unit recruit) — inert when omitted, every other call site
+  // is unaffected.
+  resources = null
 }) => {
   const costString = formatCost(costs);
   const effectString = formatEffect(effects);
+  const strain = costs && resources ? getResourceStrain(costs, resources) : null;
 
   const sizeClasses = {
     small: 'p-2 gap-2',
@@ -98,7 +103,7 @@ const ActionButton = ({
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs font-mono">
             {/* Cost */}
             {costString && (
-              <span className="text-red-400/90">
+              <span className={strain ? `${strain.level === 'critical' ? 'text-red-400' : 'text-amber-400'} font-semibold` : 'text-red-400/90'}>
                 Cost: {costString}
               </span>
             )}
@@ -108,6 +113,13 @@ const ActionButton = ({
                 → {effectString}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Resource strain warning */}
+        {strain && (
+          <div className={`text-xs mt-1 ${strain.level === 'critical' ? 'text-red-400' : 'text-amber-400'}`}>
+            ⚠ Uses {strain.level === 'critical' ? 'all' : 'most'} of your {strain.label}
           </div>
         )}
       </div>

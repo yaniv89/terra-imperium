@@ -153,6 +153,7 @@ const DomesticPanel = ({ selectedRegion }) => {
           costs={ACTION_COSTS.adoptGovernment}
           onClick={() => handleAdoptGovernment(gov.id)}
           disabled={!canAfford(state.resources, ACTION_COSTS.adoptGovernment)}
+          resources={state.resources}
           size="small"
         />
       ))}

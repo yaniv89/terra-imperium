@@ -16,6 +16,8 @@
     "deploy": "gh-pages -d docs",
     "fetch:geo": "node scripts/geo/fetch-raw.mjs",
     "build:geo": "node scripts/geo/build.mjs",
+    "build:capitals": "node scripts/geo/build-country-capitals.mjs",
+    "build:world-regions": "node scripts/geo/build-country-capitals.mjs && node scripts/geo/build-world-regions.mjs",
     "build:mobile": "vite build --config vite.config.mobile.js",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "build:edge": "node scripts/build-edge-engine.mjs"
@@ -39,6 +41,7 @@
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
     "autoprefixer": "^10.4.14",
+    "cities.json": "^1.1.61",
     "esbuild": "^0.18.20",
     "eslint": "^8.45.0",
     "eslint-plugin-react": "^7.32.2",
@@ -49,6 +52,7 @@
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
     "vite": "^4.4.5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "world-countries": "^5.1.0"
   }
 }

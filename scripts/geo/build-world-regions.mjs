@@ -24,11 +24,95 @@ const countriesMeta = readJson(path.join(geoDir, 'countries-meta.json'));
 const subregionsMeta = readJson(path.join(geoDir, 'subregions-meta.json'));
 const subregionsAdjacency = readJson(path.join(geoDir, 'subregions-adjacency.json'));
 const subregionsTopo = readJson(path.join(geoDir, 'subregions.topo.json'));
+const countryCapitals = readJson(path.join(geoDir, 'countryCapitals.json'));
+
+// Case/whitespace-normalized match between a country's real capital-city name and a province name
+// — used only as a fallback tier (see resolveCapitalId below) for the handful of countries whose
+// capital coordinates couldn't be resolved to a real point (countryCapitals.json's own build log
+// lists them). A plain lowercase equality still catches many of those: several capitals genuinely
+// ARE their own admin-1 entry (a federal district, a capital territory, a city-state province).
+const normalize = (s) => s.toLowerCase().trim();
 
 const objectKey = Object.keys(subregionsTopo.objects)[0];
 const topoObject = subregionsTopo.objects[objectKey];
 const geometries = topoObject.geometries;
 const subregionFeatures = feature(subregionsTopo, topoObject).features;
+const featuresById = {};
+subregionFeatures.forEach((f) => { featuresById[f.id] = f; });
+
+// Standard ray-casting point-in-polygon test — the PRIMARY capital-matching method (see
+// resolveCapitalId below).
+const pointInRing = (point, ring) => {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i += 1) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+};
+const pointInGeometry = (point, geometry) => {
+  const polygons = geometry.type === 'MultiPolygon' ? geometry.coordinates : [geometry.coordinates];
+  return polygons.some((rings) => pointInRing(point, rings[0]) && !rings.slice(1).some((hole) => pointInRing(point, hole)));
+};
+
+// Fallback tier for when containment finds nothing (see resolveCapitalId): nearest province
+// CENTROID, not edge — a true area-weighted polygon centroid (shoelace-based, same family of math
+// as ringArea() below), not a naive vertex average (which is skewed by wherever vertices happen to
+// be denser along a ring). This reliably recovers small/simplified provinces where the real
+// coordinate falls just outside their own simplified boundary (confirmed for Rome vs `it-rm`, and
+// for several capitals that are small enclaves inside a much larger surrounding province — Beijing
+// inside Hebei, Delhi inside Uttar Pradesh, Oslo inside Akershus): nearest-edge was tried instead
+// and got these badly wrong the OTHER way, since a small enclave's own boundary IS largely its huge
+// neighbor's boundary, so "nearest edge" kept picking the neighbor. Nearest-centroid's own failure
+// mode (huge, off-center provinces like Ontario, whose capital sits in one corner far from its own
+// centroid) is rare enough to handle with a one-off alias instead — see CAPITAL_PROVINCE_ALIASES.
+const ringCentroid = (ring) => {
+  let signedArea = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < ring.length; i += 1) {
+    const [x0, y0] = ring[i];
+    const [x1, y1] = ring[(i + 1) % ring.length];
+    const cross = x0 * y1 - x1 * y0;
+    signedArea += cross;
+    cx += (x0 + x1) * cross;
+    cy += (y0 + y1) * cross;
+  }
+  signedArea /= 2;
+  if (Math.abs(signedArea) < 1e-12) {
+    const lng = ring.reduce((s, p) => s + p[0], 0) / ring.length;
+    const lat = ring.reduce((s, p) => s + p[1], 0) / ring.length;
+    return { lat, lng, area: 0 };
+  }
+  return { lng: cx / (6 * signedArea), lat: cy / (6 * signedArea), area: Math.abs(signedArea) };
+};
+const centroidOf = (f) => {
+  const polygons = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [f.geometry.coordinates];
+  const parts = polygons.map((p) => ringCentroid(p[0]));
+  const largest = parts.reduce((a, b) => (b.area > a.area ? b : a), parts[0]);
+  return { lat: largest.lat, lng: largest.lng };
+};
+const centroidById = {};
+subregionFeatures.forEach((f) => { centroidById[f.id] = centroidOf(f); });
+const degreeDistance = (a, b) => {
+  const lonScale = Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
+  const dLng = (a.lng - b.lng) * lonScale;
+  const dLat = a.lat - b.lat;
+  return Math.sqrt(dLng * dLng + dLat * dLat);
+};
+
+// One-off overrides for countries whose real capital sits in one corner of a huge, off-center
+// province (nearest-centroid's specific failure mode — see the comment above) — found empirically
+// by manually spot-checking this build's output against known real capitals, not by reviewing all
+// 240 countries by hand. Ottawa sits right on the Ontario/Quebec border, and Ontario itself is so
+// vast (mostly far-north wilderness) that its own area centroid lands nowhere near Ottawa in the
+// southeast corner, letting a smaller, merely-nearby province win on raw centroid distance instead.
+const CAPITAL_PROVINCE_ALIASES = {
+  ca: 'Ontario'
+};
 
 // A rough 0-10 development index from GDP-per-capita, used to seed infrastructure/strategicValue —
 // richer nations score modestly higher, but this is flavor, not balance; every nation starts on
@@ -114,6 +198,45 @@ Object.entries(subregionsMeta).forEach(([id, meta]) => {
   (provincesByCountry[meta.countryId] ||= []).push(id);
 });
 
+const smallestAreaFallback = (provinceIds) =>
+  provinceIds.reduce((smallest, id) => (areaById[id] < areaById[smallest] ? id : smallest), provinceIds[0]);
+
+// Resolves a country's real capital to one of its provinces, four tiers deep:
+//   1. CAPITAL_PROVINCE_ALIASES override, for the rare case a country needs one (see its comment).
+//   2. Point-in-polygon containment against the capital's real [lat, lng] — the primary method for
+//      everything else.
+//   3. Nearest province CENTROID, for provinces small/simplified enough that the real coordinate
+//      falls just outside their own simplified boundary (see the centroidOf comment above).
+//   4. A case-insensitive name match against the real capital-city name, for the minority of
+//      countries whose coordinates couldn't be resolved at all (countryCapitals.json's own build
+//      log lists them) but whose capital genuinely IS its own admin-1 entry (a federal district, a
+//      capital territory, a city-state province) — with the old smallest-area heuristic as the
+//      absolute last resort, logged so that fallback list stays auditable rather than silent.
+const capitalFallbacks = [];
+const resolveCapitalId = (countryId, provinceIds) => {
+  const alias = CAPITAL_PROVINCE_ALIASES[countryId];
+  if (alias) {
+    const aliasMatch = provinceIds.find((id) => normalize(subregionsMeta[id].name) === normalize(alias));
+    if (aliasMatch) return aliasMatch;
+  }
+  const capitalInfo = countryCapitals[countryId];
+  if (capitalInfo?.lat != null && capitalInfo?.lng != null) {
+    const point = [capitalInfo.lng, capitalInfo.lat];
+    const containing = provinceIds.find((id) => pointInGeometry(point, featuresById[id].geometry));
+    if (containing) return containing;
+    const target = { lat: capitalInfo.lat, lng: capitalInfo.lng };
+    return provinceIds.reduce((best, id) =>
+      (degreeDistance(centroidById[id], target) < degreeDistance(centroidById[best], target) ? id : best), provinceIds[0]);
+  }
+  const capitalName = capitalInfo?.name;
+  if (capitalName) {
+    const nameMatch = provinceIds.find((id) => normalize(subregionsMeta[id].name) === normalize(capitalName));
+    if (nameMatch) return nameMatch;
+  }
+  capitalFallbacks.push({ countryId, capitalName: capitalName || '(none)' });
+  return smallestAreaFallback(provinceIds);
+};
+
 const worldRegions = {};
 Object.entries(countriesMeta).forEach(([countryId, meta]) => {
   const provinceIds = provincesByCountry[countryId] || [];
@@ -123,15 +246,7 @@ Object.entries(countriesMeta).forEach(([countryId, meta]) => {
   const nationHr = hrFromPopulation(meta.population);
   const totalWeight = provinceIds.reduce((s, id) => s + weightById[id], 0);
 
-  // No real per-province population/capital-city data is committed for this game, so the capital
-  // is a heuristic, not a researched fact: the SMALLEST-area province, on the theory that a dense
-  // urban capital district is usually smaller than the country's rural/frontier provinces (this is
-  // literally true for the many countries whose capital has its own small admin-1 entry — a
-  // federal district, a capital territory, a city-state province). It will be wrong for some
-  // countries; getting it exactly right for all 240 would need a curated real-world table this
-  // build reads none of. Being wrong here only affects flavor (which region shows a "Capital"
-  // badge) and the overextension anchor point, not correctness.
-  const capitalId = provinceIds.reduce((smallest, id) => (areaById[id] < areaById[smallest] ? id : smallest), provinceIds[0]);
+  const capitalId = resolveCapitalId(countryId, provinceIds);
 
   provinceIds.forEach((id) => {
     const provinceMeta = subregionsMeta[id];
@@ -167,3 +282,7 @@ writeFileSync(path.join(geoDir, 'worldRegions.json'), JSON.stringify(worldRegion
 const totalEdges = Object.values(worldRegions).reduce((s, r) => s + r.neighbors.length, 0);
 const coastalCount = Object.values(worldRegions).filter(r => r.isCoastal).length;
 console.log(`Wrote worldRegions.json: ${Object.keys(worldRegions).length} provinces across ${Object.keys(countriesMeta).length} nations, ${totalEdges} directed border edges, ${coastalCount} coastal provinces.`);
+if (capitalFallbacks.length > 0) {
+  console.log(`\n${capitalFallbacks.length} countries fell back to the smallest-area capital heuristic (no name match found):`);
+  capitalFallbacks.forEach(({ countryId, capitalName }) => console.log(`  ${countryId}: real capital "${capitalName}" not found among its provinces`));
+}

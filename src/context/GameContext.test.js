@@ -1084,8 +1084,12 @@ describe('Navies and amphibious invasion actions', () => {
   });
 
   describe('AMPHIBIOUS_ASSAULT', () => {
-    // 'gb' (Great Britain) is not land-adjacent to France but is within Bronze-age sea range
-    // (~33km across the Channel per sea-lanes.json) — a genuine sea-only target.
+    // A specific real GB region, not cap('gb') — the isCapital fix (build-world-regions.mjs) now
+    // correctly resolves GB's capital to Westminster (real London), which isn't coastal, so it no
+    // longer satisfies this test's actual requirement below. 'gb-ios' (Isles of Scilly) is not
+    // land-adjacent to France but is within Bronze-age sea range (~33km across the Channel per
+    // sea-lanes.json) and has no land neighbors of its own — a genuine sea-only target.
+    const GB_TARGET = 'gb-ios';
     const withEmbarkedForce = () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
       const embarked = gameReducer(state, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
@@ -1094,38 +1098,38 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('captures an undefended coastal region reachable only by sea', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
-      const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } });
-      expect(next.regions[cap('gb')].owner).toBe('fr');
-      expect(next.units[landUnitId].regionId).toBe(cap('gb'));
+      const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
+      expect(next.regions[GB_TARGET].owner).toBe('fr');
+      expect(next.units[landUnitId].regionId).toBe(GB_TARGET);
       expect(next.units[landUnitId].embarkedOn).toBeNull();
       expect(next.lastBattleReport.outcome).toBe('attacker');
-      expect(next.regions[cap('gb')].formerOwner).toBe('gb');
+      expect(next.regions[GB_TARGET].formerOwner).toBe('gb');
     });
 
     it('sinks the transport and its cargo when intercepted by a defending fleet', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
       const enemyFleet = {
-        id: 'enemy_navy', regionId: cap('gb'), ownerId: 'gb', domain: 'naval', classId: 'naval', ageId: 'bronze',
+        id: 'enemy_navy', regionId: GB_TARGET, ownerId: 'gb', domain: 'naval', classId: 'naval', ageId: 'bronze',
         strength: 50000, maxStrength: 50000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
       };
       const withEnemy = { ...state, units: { ...state.units, enemy_navy: enemyFleet } };
-      const next = gameReducer(withEnemy, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } });
+      const next = gameReducer(withEnemy, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
       expect(next.units[navalUnitId]).toBeUndefined();
       expect(next.units[landUnitId]).toBeUndefined();
-      expect(next.regions[cap('gb')].owner).toBe('gb');
+      expect(next.regions[GB_TARGET].owner).toBe('gb');
     });
 
     it('grinds a defended landing zone\'s control without capturing it in one wave (src/engine/siege.js)', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
       const overwhelming = { ...state, units: { ...state.units, [landUnitId]: { ...state.units[landUnitId], strength: 50000 } } };
       const defenderUnit = {
-        id: 'gb_garrison', regionId: cap('gb'), ownerId: 'gb', domain: 'land', classId: 'infantry', ageId: 'bronze',
+        id: 'gb_garrison', regionId: GB_TARGET, ownerId: 'gb', domain: 'land', classId: 'infantry', ageId: 'bronze',
         strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
       };
       const withDefender = { ...overwhelming, units: { ...overwhelming.units, gb_garrison: defenderUnit } };
-      const next = gameReducer(withDefender, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } });
-      expect(next.regions[cap('gb')].owner).toBe('gb'); // not captured yet
-      expect(next.regions[cap('gb')].control).toBe(70); // 100 - 30
+      const next = gameReducer(withDefender, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
+      expect(next.regions[GB_TARGET].owner).toBe('gb'); // not captured yet
+      expect(next.regions[GB_TARGET].control).toBe(70); // 100 - 30
       expect(next.lastBattleReport.outcome).toBe('attacker');
       expect(next.lastBattleReport.captured).toBe(false);
       // A non-capturing landing falls back aboard the transport for another attempt.
@@ -1135,7 +1139,7 @@ describe('Navies and amphibious invasion actions', () => {
     it('is a no-op for a naval unit not owned by the player', () => {
       const { state, navalUnitId } = withEmbarkedForce();
       const stolen = { ...state, units: { ...state.units, [navalUnitId]: { ...state.units[navalUnitId], ownerId: 'de' } } };
-      expect(gameReducer(stolen, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: cap('gb') } })).toBe(stolen);
+      expect(gameReducer(stolen, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } })).toBe(stolen);
     });
 
     it('is a no-op against a region the player already owns', () => {

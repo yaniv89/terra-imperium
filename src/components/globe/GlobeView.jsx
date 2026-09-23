@@ -8,12 +8,11 @@
 // ownership/control and clickable to drive the same selectedRegion/onSelectRegion contract the
 // rest of the game (ActionPanel, RegionInfoModal) already expects — there's no separate
 // "decorative backdrop" tier anymore, the whole world is the same one system.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { MeshBasicMaterial, Color } from 'three';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
-import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { useEffects } from '../../context/EffectsContext';
@@ -41,22 +40,27 @@ const prefersReducedMotion = () =>
 const autoRotateDisabledForTests = () =>
   typeof window !== 'undefined' && window.__E2E_DISABLE_GLOBE_AUTOROTATE__ === true;
 
-// Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic exactly, so
-// switching to the globe changed nothing about what the colors mean.
-// `atWarWithPlayer` must already be resolved by the caller via isAtWarWithPlayer(), never from
-// nation.isAtWar directly — that flag means "in a war with ANYONE" (it's what AI-tiering reads),
-// so two AI nations fighting each other would otherwise paint themselves red on your map too.
-const fillColorFor = (regionState, nation, isPlayerOwned, atWarWithPlayer) => {
-  if (isPlayerOwned) {
-    const control = regionState.control || 0;
-    if (control >= 80) return '#4ade80';
-    if (control >= 60) return '#84cc16';
-    if (control >= 40) return '#facc15';
-    if (control >= 20) return '#fb923c';
-    return '#f87171';
-  }
+// Survives a GlobeView/GlobeContainer remount within the same page session (unlike a ref or state
+// inside the component, which resets on remount) — once a real player has grabbed the globe, it
+// should never resume spinning on its own again for the rest of the session, even if they switch
+// tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
+let userDismissedAutoRotate = false;
+
+// Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic, now applied to
+// every region (player-owned or foreign) so the map legend's 5 control bands actually mean what
+// they say everywhere on the map, not just on the player's own territory — a foreign nation's
+// weakly-held border provinces are now visibly Weak/Critical, a real signal for picking invasion
+// targets. `atWarWithPlayer` must already be resolved by the caller from isAtWarWithPlayer(), never
+// from nation.isAtWar directly — that flag means "in a war with ANYONE" (it's what AI-tiering
+// reads), so two AI nations fighting each other would otherwise paint themselves red on your map.
+const fillColorFor = (regionState, atWarWithPlayer) => {
   if (atWarWithPlayer) return '#fca5a5';
-  return nation?.color || '#d1d5db';
+  const control = regionState.control || 0;
+  if (control >= 80) return '#4ade80';
+  if (control >= 60) return '#84cc16';
+  if (control >= 40) return '#facc15';
+  if (control >= 20) return '#fb923c';
+  return '#f87171';
 };
 
 const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
@@ -131,22 +135,42 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   useEffect(() => {
     const controls = globeRef.current?.controls();
     if (!controls) return;
-    controls.autoRotate = !prefersReducedMotion() && !autoRotateDisabledForTests();
+    controls.autoRotate = !userDismissedAutoRotate && !prefersReducedMotion() && !autoRotateDisabledForTests();
     controls.autoRotateSpeed = 0.4;
-    const stopOnInteract = () => { controls.autoRotate = false; };
+    const stopOnInteract = () => {
+      controls.autoRotate = false;
+      userDismissedAutoRotate = true;
+    };
     controls.addEventListener('start', stopOnInteract);
     return () => controls.removeEventListener('start', stopOnInteract);
   }, [geo]);
 
-  const capColor = (feature) => {
+  // Precomputed once per wars/playerNationId change rather than once per polygon — capColor below
+  // is invoked for every one of the ~4,482 polygons on every recompute, so an O(#wars) isWarBetween
+  // scan per polygon (O(#polygons x #wars) total) would otherwise be repeated needlessly per region.
+  const atWarNationIds = useMemo(() => {
+    const ids = new Set();
+    (state.wars || []).forEach((war) => {
+      if (!war.active) return;
+      if (war.aggressor === state.playerNationId) ids.add(war.enemy);
+      else if (war.enemy === state.playerNationId) ids.add(war.aggressor);
+    });
+    return ids;
+  }, [state.wars, state.playerNationId]);
+
+  // useCallback (scoped only to the state slices actually read here, not the whole `state` object)
+  // is what makes react-globe.gl's own reference-equality prop diff actually skip work: without it,
+  // this closure — and therefore every polygon accessor prop passed to <Globe> below — gets a new
+  // identity on every GlobeView render (i.e. on every dispatched game action, even a tax-rate change
+  // that never touches a region), which forces three-globe to re-walk and re-color all ~4,482
+  // polygons regardless of whether anything actually changed. See plan item 6 for the full trace.
+  const capColor = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
-    const isPlayerOwned = regionState.owner === state.playerNationId;
-    const nation = !isPlayerOwned ? state.nations[regionState.owner] : null;
-    const atWarWithPlayer = nation ? isAtWarWithPlayer(state, nation.id) : false;
-    return fillColorFor(regionState, nation, isPlayerOwned, atWarWithPlayer);
-  };
+    const atWarWithPlayer = regionState.owner !== state.playerNationId && atWarNationIds.has(regionState.owner);
+    return fillColorFor(regionState, atWarWithPlayer);
+  }, [state.regions, state.playerNationId, atWarNationIds]);
 
   // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
   // province-level split (Task 51) every one of those provinces is its own clickable, independently
@@ -160,23 +184,23 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // Player-owned territory gets its own persistent gold outline, distinct from the selection-blue
   // and invasion-red highlights, so "which one is mine" reads at a glance at any zoom level instead
   // of only being distinguishable by whatever color that starting nation happened to be assigned.
-  const strokeColor = (feature) => {
+  const strokeColor = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return '#2563eb';
     if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
     if (state.regions[gameRegionId]?.owner === state.playerNationId) return '#fbbf24';
     return '#1e293b';
-  };
+  }, [selectedRegion, state.regions, state.playerNationId]);
 
-  const altitude = (feature) => {
+  const altitude = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return 0.03;
     if (state.regions[gameRegionId]?.underInvasion) return 0.02;
     if (state.regions[gameRegionId]?.owner === state.playerNationId) return 0.018;
     return 0.012;
-  };
+  }, [selectedRegion, state.regions, state.playerNationId]);
 
-  const label = (feature) => {
+  const label = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     const regionData = REGIONS_DATA[gameRegionId];
     const regionState = state.regions[gameRegionId];
@@ -191,13 +215,13 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
         <span style="color:#94a3b8">${subtitle}${ownerName}${isPlayerOwned ? ` &middot; ${regionState.control || 0}%` : ''}</span>
       </div>
     `;
-  };
+  }, [state.regions, state.nations, state.playerNationId]);
 
-  const handleClick = (feature) => {
+  const handleClick = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (!gameRegionId) return;
     onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
-  };
+  }, [selectedRegion, onSelectRegion]);
 
   // Memoized so polygonsData keeps a STABLE reference across re-renders that don't actually
   // change the underlying geometry (e.g. a GameContext update from an unrelated action) — a new
