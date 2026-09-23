@@ -10,50 +10,18 @@
 // "decorative backdrop" tier anymore, the whole world is the same one system.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
-import { MeshBasicMaterial, Color, BufferGeometry, Float32BufferAttribute, LineBasicMaterial, LineSegments } from 'three';
+import { MeshBasicMaterial, Color } from 'three';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
-import { loadGameRegionFeatures, loadGameRegionTopology } from '../../data/geo/loadGameRegions';
+import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { getOwnershipFingerprint, computeNationalBorderMesh } from '../../utils/nationalBorders';
+import { getNationColor, UNKNOWN_NATION_COLOR } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { RegionInfoModal } from '../modals';
 import MapLegend from './MapLegend';
 
-const NEUTRAL_LAND_COLOR = '#334155'; // slate-700, defensive fallback — every real region has a nation color
 const OCEAN_COLOR = '#0f172a'; // slate-900
-
-// Sits above every polygonAltitude used below (max 0.03 for a selected region) so the border line
-// is never z-fought/occluded by the province fill it's tracing the edge of.
-const NATIONAL_BORDER_ALTITUDE = 0.035;
-const NATIONAL_BORDER_COLOR = '#ffffff';
-
-// Converts a topojson-client mesh() result (a single MultiLineString/LineString GeoJSON geometry —
-// each entry in `coordinates` is one chain of connected [lng, lat] arc points) into a flat array of
-// THREE.LineSegments vertex pairs, placed via the globe's own lat/lng/altitude -> xyz conversion so
-// they land exactly on the sphere the polygons themselves are rendered on.
-const buildBorderPositions = (meshGeometry, globeInstance) => {
-  const positions = [];
-  if (!meshGeometry || !globeInstance) return positions;
-  const lines = meshGeometry.type === 'MultiLineString' ? meshGeometry.coordinates
-    : meshGeometry.type === 'LineString' ? [meshGeometry.coordinates]
-      : [];
-  lines.forEach((line) => {
-    for (let i = 0; i < line.length - 1; i++) {
-      const a = globeInstance.getCoords(line[i][1], line[i][0], NATIONAL_BORDER_ALTITUDE);
-      const b = globeInstance.getCoords(line[i + 1][1], line[i + 1][0], NATIONAL_BORDER_ALTITUDE);
-      positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
-    }
-  });
-  return positions;
-};
-
-const buildBorderGeometry = (meshGeometry, globeInstance) => {
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new Float32BufferAttribute(buildBorderPositions(meshGeometry, globeInstance), 3));
-  return geometry;
-};
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -78,13 +46,14 @@ const autoRotateDisabledForTests = () =>
 // tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
 let userDismissedAutoRotate = false;
 
-// Foreign territory is flat gray — deliberately not colored per-nation. Your own territory still
-// uses the 5-band control scale below; a foreign nation only stands out from that gray once you're
-// actually at war with it (hard pink override), which is the one foreign-relations fact that
-// actually matters for reading the map at a glance.
-const FOREIGN_COLOR = '#64748b'; // slate-500
-
-const fillColorFor = (regionState, isPlayerOwned, atWarWithPlayer) => {
+// Every nation on Earth gets its own distinct, stable color (src/data/nationColors.js) — the color
+// boundary between two provinces IS the national border, so there's no separate line layer to draw
+// or keep in sync with conquest. Your own territory is the one exception: it uses this 5-band
+// control scale instead of your nation's own assigned color, since how firmly you hold your own
+// land is the one thing worth a glance-able color here — who's at war with you is a stroke
+// highlight (strokeColor below), not a fill override, so a hostile nation's own color identity
+// stays visible even while you're fighting it.
+const fillColorFor = (regionState, isPlayerOwned) => {
   if (isPlayerOwned) {
     const control = Math.min(100, Math.max(0, regionState.control || 0));
     if (control >= 80) return '#4ade80';
@@ -93,8 +62,7 @@ const fillColorFor = (regionState, isPlayerOwned, atWarWithPlayer) => {
     if (control >= 20) return '#fb923c';
     return '#f87171';
   }
-  if (atWarWithPlayer) return '#fca5a5';
-  return FOREIGN_COLOR;
+  return getNationColor(regionState.owner);
 };
 
 const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
@@ -102,12 +70,10 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   const { effects } = useEffects();
   const globeRef = useRef(null);
   const [geo, setGeo] = useState(null);
-  const [borderTopology, setBorderTopology] = useState(null);
   // No globeImageUrl (no texture fetch, no external dependency, matches the stylized/game look
   // over photorealism) — react-globe.gl defaults an untextured globe to solid black, so oceans
   // are given an explicit deep-blue material instead to read clearly against land polygons.
   const globeMaterial = useMemo(() => new MeshBasicMaterial({ color: new Color('#0c2c4d') }), []);
-  const borderMaterial = useMemo(() => new LineBasicMaterial({ color: NATIONAL_BORDER_COLOR }), []);
 
   // The globe auto-rotates (below) — without this, a newly-triggered effect could land anywhere
   // on the sphere, including the far side facing away from the camera, making it invisible.
@@ -153,7 +119,6 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   useEffect(() => {
     let cancelled = false;
     loadGameRegionFeatures().then((f) => { if (!cancelled) setGeo(f); });
-    loadGameRegionTopology().then((t) => { if (!cancelled) setBorderTopology(t); });
     return () => { cancelled = true; };
   }, []);
 
@@ -204,27 +169,27 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   const capColor = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     const regionState = state.regions[gameRegionId];
-    if (!regionState) return NEUTRAL_LAND_COLOR;
+    if (!regionState) return UNKNOWN_NATION_COLOR;
     const isPlayerOwned = regionState.owner === state.playerNationId;
-    const atWarWithPlayer = !isPlayerOwned && atWarNationIds.has(regionState.owner);
-    return fillColorFor(regionState, isPlayerOwned, atWarWithPlayer);
-  }, [state.regions, state.playerNationId, atWarNationIds]);
+    return fillColorFor(regionState, isPlayerOwned);
+  }, [state.regions, state.playerNationId]);
 
   // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
   // province-level split (Task 51) every one of those provinces is its own clickable, independently
   // owned/controlled gameRegionId — unlike the old one-gameRegionId-per-country model this stroke
   // logic was originally written for. Defaulting the stroke to plain black keeps every clickable
-  // province edge visible against any fill color (now especially important since every foreign
-  // nation shares the same flat gray fill) without the harsher, harder-to-read gold outline a
-  // previous version used to mark the player's own territory — that distinction is already visible
-  // from the fill itself (the 5-band control colors vs. flat foreign gray), so the border doesn't
-  // need to repeat it.
+  // province edge visible against any fill color. A region owned by a nation you're at war with
+  // gets a red outline instead of black — the war signal lives on the stroke, not the fill, so a
+  // hostile nation's own color identity (capColor above) stays visible the whole time you're
+  // fighting it, not just before or after.
   const strokeColor = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return '#2563eb';
-    if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
+    const regionState = state.regions[gameRegionId];
+    if (regionState?.underInvasion) return '#ef4444';
+    if (regionState && regionState.owner !== state.playerNationId && atWarNationIds.has(regionState.owner)) return '#ef4444';
     return '#000000';
-  }, [selectedRegion, state.regions]);
+  }, [selectedRegion, state.regions, state.playerNationId, atWarNationIds]);
 
   const altitude = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
@@ -262,29 +227,6 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // array identity every render would make react-globe.gl treat it as entirely new data and
   // rebuild every polygon mesh on every render instead of just once.
   const polygons = useMemo(() => geo?.gameRegionFeatures || null, [geo]);
-
-  // A cheap string, not `state.regions` itself: unrest/control drift every turn on every region,
-  // which would defeat the whole point of memoizing the (much pricier) mesh() call below by
-  // invalidating it on every dispatch instead of only on an actual conquest (see
-  // src/utils/nationalBorders.js for the fingerprint's own stability guarantee).
-  const ownershipFingerprint = useMemo(() => getOwnershipFingerprint(state.regions), [state.regions]);
-
-  // The national-border mesh: every shared arc between two neighboring provinces whose current
-  // owners differ. Recomputed only when ownership actually changes (conquest), not on every
-  // unrelated dispatch or turn-tick — mirrors the atWarNationIds/capColor discipline above.
-  const borderMesh = useMemo(() => (
-    borderTopology ? computeNationalBorderMesh(borderTopology.topology, borderTopology.object, state.regions) : null
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ownershipFingerprint stands in for state.regions here
-  ), [borderTopology, ownershipFingerprint]);
-
-  const borderLayerData = useMemo(() => (borderMesh ? [{ id: 'national-borders', mesh: borderMesh }] : []), [borderMesh]);
-
-  const buildBorderObject = useCallback((d) => new LineSegments(buildBorderGeometry(d.mesh, globeRef.current), borderMaterial), [borderMaterial]);
-
-  const updateBorderObject = useCallback((obj, d) => {
-    obj.geometry.dispose();
-    obj.geometry = buildBorderGeometry(d.mesh, globeRef.current);
-  }, []);
 
   if (!geo) {
     return (
@@ -325,9 +267,6 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
         polygonsTransitionDuration={200}
         polygonLabel={label}
         onPolygonClick={handleClick}
-        customLayerData={borderLayerData}
-        customThreeObject={buildBorderObject}
-        customThreeObjectUpdate={updateBorderObject}
       />
       {!prefersReducedMotion() && (
         <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} />
