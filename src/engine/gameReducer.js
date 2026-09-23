@@ -215,8 +215,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       hr: 100,
       diplomacyPoints: 20,
       techPoints: 0,
-      actionPoints: 3,
-      maxActionPoints: 3
+      // Matches BASE_ACTION_POINTS (src/utils/helpers.js) — a fresh nation has no government and
+      // no researched tech yet, so getMaxActionPoints(state) would return exactly the base anyway.
+      actionPoints: 5,
+      maxActionPoints: 5
     },
 
     // World state

@@ -149,19 +149,25 @@ describe('resolveTurn resource income', () => {
   // diplomacy, research, all of which cost actionPoints — src/data/actionCosts.js). Every other
   // action-cost test in this codebase manually stuffs actionPoints before dispatching, which is
   // exactly why nothing else caught this.
-  it('refreshes actionPoints to the per-turn budget every turn, however much was left over', () => {
+  it('tops actionPoints up by the per-turn budget when none was left over', () => {
     const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, actionPoints: 0 } };
     const next = resolveTurn(state);
     expect(next.resources.actionPoints).toBe(state.resources.maxActionPoints);
   });
 
   it('a whole long run never runs out of action points to spend', () => {
+    // Spending only 1 of 5 AP/turn on a single action banks the rest every turn, so under the
+    // capped-banking model (resolveTurn.js's AP_BANK_CAP_MULTIPLIER) the balance climbs and then
+    // saturates at 2x maxActionPoints rather than settling back to a flat maxActionPoints every
+    // turn — the old flat-overwrite invariant this test used to check. Either way, the player is
+    // never starved of AP to spend, which is the actual regression this test guards against.
     let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     for (let i = 0; i < 50; i++) {
       state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
       state = resolveTurn(state);
+      expect(state.resources.actionPoints).toBeGreaterThan(0);
     }
-    expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints);
+    expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints * 2);
   }, 30000); // 50 real turns at the 4,482-region world's per-turn cost — see aiQualityBenchmark.test.js's own comment
 });
 

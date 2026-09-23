@@ -95,7 +95,12 @@ export const getNationBonusTotal = (nation, hookKey) => {
 // getNationBonusTotal already sums for gold/stability) and the Governance tech line (Code of Laws
 // through Digital Administration — literally about administrative capacity), so investing in either
 // is a real choice with a payoff, rather than AP being a fixed constant for the whole ~500-turn game.
-const BASE_ACTION_POINTS = 3;
+// 3 -> 5: with a menu of ~47 distinct actions across 5 panels and most costing 1-2 AP each, 3 base
+// AP meant a turn-1 player could realistically take only 1-2 actions before government/tech bonuses
+// (below) ever kick in — playtest feedback confirmed this reads as "barely anything to do" rather
+// than meaningful prioritization. 5 gives 2-4 actions turn one without touching the late-game
+// ceiling this constant already scales from.
+const BASE_ACTION_POINTS = 5;
 const GOVERNANCE_TECHS_PER_AP_BONUS = 3; // the 10-tech Governance line caps this contribution at +3
 
 // Real fielded army strength for a nation — the sum of every unit it actually owns' `strength`

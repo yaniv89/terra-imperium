@@ -77,16 +77,18 @@ export const resolveTurn = (state) => {
     logs.push({ year: newYear, message: `Army upkeep: -${formatMoney(upkeepCost)} (${playerUnitCount} unit${playerUnitCount === 1 ? '' : 's'})`, type: LogTypes.ACTION });
   }
 
-  // Action points refresh to the nation's per-turn budget every turn. actionPoints isn't in
-  // RESOURCE_IDS (createEmptyResourcePool never touches it) and calcIncome never returns it either
-  // — without this explicit reset, whatever's left of the 3 a fresh game starts with would be the
-  // player's entire budget for all ~500 turns, since the spread above only ever carries the
-  // PREVIOUS turn's leftover forward. getMaxActionPoints (Administrative Capacity) is recomputed
-  // fresh from current government/tech every turn rather than read from a stored field, so adopting
-  // a government or finishing a Governance tech takes effect on the very next turn automatically.
+  // Action points top up to the nation's per-turn budget every turn, but unspent AP now BANKS
+  // instead of being wiped — a turn with nothing worth 1 AP right now becomes "save up for a 3-AP
+  // wonder next turn" instead of pure waste. Capped at 2x the current max so banking can't grow
+  // unbounded over a ~500-turn game; a fully-spent turn (0 left) still lands exactly on the flat
+  // maxActionPoints a player always got before this existed. getMaxActionPoints (Administrative
+  // Capacity) is recomputed fresh from current government/tech every turn rather than read from a
+  // stored field, so adopting a government or finishing a Governance tech takes effect on the very
+  // next turn automatically.
   const maxActionPoints = getMaxActionPoints(state);
+  const AP_BANK_CAP_MULTIPLIER = 2;
   resources.maxActionPoints = maxActionPoints;
-  resources.actionPoints = maxActionPoints;
+  resources.actionPoints = Math.min((state.resources.actionPoints || 0) + maxActionPoints, maxActionPoints * AP_BANK_CAP_MULTIPLIER);
 
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
   // nation's own territory is subject to) ---
