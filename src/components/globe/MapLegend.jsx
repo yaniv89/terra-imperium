@@ -3,12 +3,17 @@
 
 import React from 'react';
 
+// The 5 control bands below only apply to YOUR OWN territory (GlobeView.jsx's fillColorFor) —
+// a foreign nation instead keeps its own color (so the map stays readable as "whose territory is
+// this" at a glance) with that same color darkening as ITS control drops, shown here as one
+// gradient swatch rather than 5 discrete ones since the actual hue varies per nation.
 const legendItems = [
-  { color: 'bg-green-500', label: 'Controlled (80%+)' },
-  { color: 'bg-lime-500', label: 'Strong (60-79%)' },
-  { color: 'bg-yellow-500', label: 'Contested (40-59%)' },
-  { color: 'bg-orange-500', label: 'Weak (20-39%)' },
-  { color: 'bg-red-500', label: 'Critical (<20%)' },
+  { color: 'bg-green-500', label: 'Your Territory: Controlled (80%+)' },
+  { color: 'bg-lime-500', label: 'Your Territory: Strong (60-79%)' },
+  { color: 'bg-yellow-500', label: 'Your Territory: Contested (40-59%)' },
+  { color: 'bg-orange-500', label: 'Your Territory: Weak (20-39%)' },
+  { color: 'bg-red-500', label: 'Your Territory: Critical (<20%)' },
+  { color: 'bg-gradient-to-r from-slate-700 to-slate-300', label: 'Foreign: own color, darker = weaker hold' },
   { color: 'bg-red-500 animate-pulse', label: 'At War', border: 'border-2 border-red-400' },
   { color: 'bg-transparent', label: 'Your Border', border: 'border-2 border-amber-400' }
 ];
