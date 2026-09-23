@@ -4,7 +4,7 @@
 // (e.g. 'jo-am' for Amman) IS its game region id, matching the province-level record
 // build-world-regions.mjs generated for it. A whole country is just the set of regions sharing a
 // startOwner, not a region in its own right.
-import { loadCountryFeatures, loadSubregionFeatures } from './loadWorldFeatures';
+import { loadCountryFeatures, loadSubregionFeatures, loadSubregionTopology } from './loadWorldFeatures';
 import gameRegionsData from './gameRegions.json';
 
 const { restOfWorldCountryIds } = gameRegionsData;
@@ -36,3 +36,9 @@ export const loadGameRegionFeatures = async () => {
   cached = { gameRegionFeatures };
   return cached;
 };
+
+// For national-border rendering (GlobeView.jsx): every game region's geometry comes from the
+// subregion topology (restOfWorldCountryIds is empty — there is no country in this dataset without
+// real admin-1 provinces), so that one topology's shared arcs already cover the whole map; no need
+// to also merge in the separate country-tier topology used only as a fallback above.
+export const loadGameRegionTopology = () => loadSubregionTopology();
