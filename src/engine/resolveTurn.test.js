@@ -155,7 +155,7 @@ describe('resolveTurn resource income', () => {
   });
 
   it('a whole long run never runs out of action points to spend', () => {
-    let state = createInitialState({ playerNationId: 'fr' });
+    let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     for (let i = 0; i < 50; i++) {
       state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
       state = resolveTurn(state);

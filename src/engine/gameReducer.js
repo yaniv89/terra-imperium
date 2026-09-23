@@ -84,7 +84,16 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       owner: data.startOwner,
       control: data.startControl,
       currentPopulation: data.population,
-      currentInfrastructure: data.infrastructure,
+      // Every region starts with NO built infrastructure, regardless of `data.infrastructure`
+      // (a real-world-2024-GDP-derived 1-10 "development index" — see build-world-regions.mjs's
+      // own file header, "richer nations score modestly higher, but this is flavor, not balance;
+      // every nation starts on equal footing"). That index was never meant to seed a LIVE,
+      // buildable gameplay stat: at 2000 BCE nobody has roads or aqueducts yet, and starting a
+      // modern-GDP nation at infrastructure 10 handed it a permanent +100% gold multiplier
+      // (calcIncome's infraMult) and 6x supply range from turn one, for free, forever, while
+      // contradicting the file's own "equal footing" intent. `data.infrastructure` is still used
+      // as-is for the separate, cosmetic `strategicValue` display stat.
+      currentInfrastructure: 0,
       underInvasion: false,
       isOccupied: false,
       buildings: createEmptyRegionBuildings(),
