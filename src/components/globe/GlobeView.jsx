@@ -46,25 +46,15 @@ const autoRotateDisabledForTests = () =>
 // tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
 let userDismissedAutoRotate = false;
 
-// Course correction (confirmed via an actual screenshot): an earlier version of this function
-// applied the player's 5-band control-color scale to EVERY region, foreign nations included. That
-// fixed the original complaint (foreign territory gave no stability signal at all) but created a
-// worse one — every nation starts a fresh game at 100% control everywhere, so the entire globe
-// rendered as one undifferentiated green blob at turn 1, with national identity readable only from
-// thin border strokes. Nation colors existed specifically so "whose territory is this" reads at a
-// glance; that's too valuable to give up for a control readout most of the map won't need until
-// wars/unrest actually create variation.
-// This version keeps both: the player's own territory still uses the original discrete 5-band
-// scale (unchanged — it drives revolt-adjacent readouts and hasn't changed meaning). A foreign,
-// not-at-war region keeps ITS NATION'S OWN hue (so the map stays as visually distinguishable as
-// before this whole change), but its lightness is modulated by that region's control — full
-// control renders at the nation's normal color (identical to before any of this session's changes
-// at 100% control), a weakly-held region visibly darkens/dulls toward the same hue's low end. So a
-// healthy world still reads as a colorful political map, and a war-torn one visibly shows which
-// nation's grip is slipping where, without either property drowning out the other.
-const fillColorFor = (regionState, nation, isPlayerOwned, atWarWithPlayer) => {
-  const control = Math.min(100, Math.max(0, regionState.control || 0));
+// Foreign territory is flat gray — deliberately not colored per-nation. Your own territory still
+// uses the 5-band control scale below; a foreign nation only stands out from that gray once you're
+// actually at war with it (hard pink override), which is the one foreign-relations fact that
+// actually matters for reading the map at a glance.
+const FOREIGN_COLOR = '#64748b'; // slate-500
+
+const fillColorFor = (regionState, isPlayerOwned, atWarWithPlayer) => {
   if (isPlayerOwned) {
+    const control = Math.min(100, Math.max(0, regionState.control || 0));
     if (control >= 80) return '#4ade80';
     if (control >= 60) return '#84cc16';
     if (control >= 40) return '#facc15';
@@ -72,12 +62,7 @@ const fillColorFor = (regionState, nation, isPlayerOwned, atWarWithPlayer) => {
     return '#f87171';
   }
   if (atWarWithPlayer) return '#fca5a5';
-  const hueMatch = nation?.color?.match(/hsl\((\d+)/);
-  const hue = hueMatch ? Number(hueMatch[1]) : 210;
-  // 45% at full control matches colorForCountry's own baseline lightness exactly (worldNations.js)
-  // — a fully-controlled foreign nation looks identical to its plain nation.color, not just close.
-  const lightness = 18 + (control / 100) * 27;
-  return `hsl(${hue}, 55%, ${lightness}%)`;
+  return FOREIGN_COLOR;
 };
 
 const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
@@ -186,30 +171,25 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     const regionState = state.regions[gameRegionId];
     if (!regionState) return NEUTRAL_LAND_COLOR;
     const isPlayerOwned = regionState.owner === state.playerNationId;
-    const nation = !isPlayerOwned ? state.nations[regionState.owner] : null;
     const atWarWithPlayer = !isPlayerOwned && atWarNationIds.has(regionState.owner);
-    return fillColorFor(regionState, nation, isPlayerOwned, atWarWithPlayer);
-  }, [state.regions, state.nations, state.playerNationId, atWarNationIds]);
+    return fillColorFor(regionState, isPlayerOwned, atWarWithPlayer);
+  }, [state.regions, state.playerNationId, atWarNationIds]);
 
   // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
   // province-level split (Task 51) every one of those provinces is its own clickable, independently
   // owned/controlled gameRegionId — unlike the old one-gameRegionId-per-country model this stroke
-  // logic was originally written for. Defaulting the stroke to match the fill (as it used to) hid
-  // every province seam within a single nation's territory (same nation → same/near-identical fill
-  // → invisible border), which made a huge multi-province owner like Russia or the US render as one
-  // undifferentiated blob with no visible internal structure — defeating the point of the province
-  // split. A fixed, subdued border color instead keeps every clickable province edge visible against
-  // any fill color, the way an ordinary choropleth map's borders would.
-  // Player-owned territory gets its own persistent gold outline, distinct from the selection-blue
-  // and invasion-red highlights, so "which one is mine" reads at a glance at any zoom level instead
-  // of only being distinguishable by whatever color that starting nation happened to be assigned.
+  // logic was originally written for. Defaulting the stroke to plain black keeps every clickable
+  // province edge visible against any fill color (now especially important since every foreign
+  // nation shares the same flat gray fill) without the harsher, harder-to-read gold outline a
+  // previous version used to mark the player's own territory — that distinction is already visible
+  // from the fill itself (the 5-band control colors vs. flat foreign gray), so the border doesn't
+  // need to repeat it.
   const strokeColor = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     if (gameRegionId === selectedRegion) return '#2563eb';
     if (state.regions[gameRegionId]?.underInvasion) return '#ef4444';
-    if (state.regions[gameRegionId]?.owner === state.playerNationId) return '#fbbf24';
-    return '#1e293b';
-  }, [selectedRegion, state.regions, state.playerNationId]);
+    return '#000000';
+  }, [selectedRegion, state.regions]);
 
   const altitude = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
