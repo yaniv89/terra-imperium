@@ -7,22 +7,18 @@
 //
 // TURNS_TO_PLAY is 3, not the plan's literal 10 — a real, diagnosed constraint, not an arbitrary
 // cut corner. Root cause (Task 48's investigation): GlobeView.jsx's globe auto-rotates by default
-// (a deliberate, reduced-motion-respecting "alive menu" touch) and only stops once something
-// actually drags the globe's own OrbitControls. A real player almost always does that within the
-// first few seconds — the globe is the core interaction surface — which naturally cuts the
-// continuous render short. This test's clicks never touch the globe (dispatchEvent on header/modal
-// buttons only), so auto-rotate spins for the ENTIRE run, and under headless/software-rendered
-// Chromium that sustained full-scene redraw (4,482 province polygons) gets measurably slower and
-// eventually unstable the longer it goes (confirmed via a Playwright trace: "GL Driver Message...
-// GPU stall due to ReadPixels", and reproduced on GitHub Actions' own runners too, not just this
-// dev sandbox). A run of exactly 10 turns DID complete once, with fully correct state progression
-// every turn, proving the click/event/turn-advance mechanism itself is sound — but the browser then
-// crashed shortly after, mid-assertion, consistent with rendering pressure compounding over an
-// unusually long uninterrupted auto-rotate session rather than any one interaction being broken.
-// 3 turns passed reliably across repeated runs with room to spare; it's a smaller number than the
-// plan's illustrative "10", but it exercises the same real path (start screen -> game -> event
-// resolution -> turn advance) this check exists to guard, without gambling the whole check on a
-// rendering characteristic that's specific to never-touch-the-globe automation, not real play.
+// (a deliberate, reduced-motion-respecting "alive menu" touch), and under headless/software-
+// rendered (SwiftShader) Chromium the continuous full-scene redraw of 4,482 province polygons this
+// causes gets measurably slower and eventually unstable the longer it runs (confirmed via a trace:
+// "GL Driver Message... GPU stall due to ReadPixels"; reproduced on GitHub Actions' own runners
+// too, not just a dev sandbox) — a synchronous layout query as ordinary as `locator.boundingBox()`
+// on the live canvas can hang and take the page down with it. window.__E2E_DISABLE_GLOBE_AUTOROTATE__
+// (set below, read by GlobeView.jsx) removes the auto-rotate contribution to that without touching
+// prefers-reduced-motion (which would also disable the whole animation-effects overlay, defeating
+// tests that verify one). It measurably helps but does NOT eliminate the underlying cost — even a
+// perfectly static camera still redraws 4,482 polygons every animation frame, confirmed to take
+// over a second per frame under this rendering path regardless of camera movement — so TURNS_TO_PLAY
+// stays conservative rather than assuming the flag alone makes a long run safe.
 import { test, expect } from '@playwright/test';
 
 const TURNS_TO_PLAY = 3;
@@ -55,6 +51,10 @@ test('a randomly chosen nation can play several turns with no console errors and
   page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
   page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
+  // See the file header — disables the globe's auto-rotate for this run without touching
+  // prefers-reduced-motion, which would also disable the effects overlay this suite might later
+  // want to assert on. Must be set before goto() so it exists before the app's own scripts run.
+  await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; });
   await page.goto('/');
 
   // 240 real nations, per plan §1 — any one of them has to be a valid, playable start. Picks

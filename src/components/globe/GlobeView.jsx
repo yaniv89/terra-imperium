@@ -27,6 +27,20 @@ const OCEAN_COLOR = '#0f172a'; // slate-900
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+// Test-only escape hatch: e2e automation sets this (via page.addInitScript, before the app's own
+// scripts run) to skip auto-rotate specifically, without going through prefersReducedMotion() —
+// that flag ALSO disables the whole GlobeEffectsOverlay below, which a test verifying an
+// animation obviously can't afford to lose. Root cause this exists to sidestep (confirmed via a
+// Playwright trace with full console/crash instrumentation): under headless, software-rendered
+// (SwiftShader) WebGL, the globe's continuous auto-rotate redraw of 4,482 province polygons
+// degrades the renderer the longer it runs uninterrupted — a synchronous layout query as ordinary
+// as `locator.boundingBox()` on the live canvas can then hang and take the whole page down with
+// it. A real player almost always drags the globe within seconds anyway (see the effect below),
+// which is what keeps this invisible outside of automation that deliberately never touches it.
+// Never true for a real player — nothing in the shipped app ever sets this flag.
+const autoRotateDisabledForTests = () =>
+  typeof window !== 'undefined' && window.__E2E_DISABLE_GLOBE_AUTOROTATE__ === true;
+
 // Mirrors the flat map's old RegionPath.getFillColor() heat-map-by-control logic exactly, so
 // switching to the globe changed nothing about what the colors mean.
 // `atWarWithPlayer` must already be resolved by the caller via isAtWarWithPlayer(), never from
@@ -117,7 +131,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   useEffect(() => {
     const controls = globeRef.current?.controls();
     if (!controls) return;
-    controls.autoRotate = !prefersReducedMotion();
+    controls.autoRotate = !prefersReducedMotion() && !autoRotateDisabledForTests();
     controls.autoRotateSpeed = 0.4;
     const stopOnInteract = () => { controls.autoRotate = false; };
     controls.addEventListener('start', stopOnInteract);
