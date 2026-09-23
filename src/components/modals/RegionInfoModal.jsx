@@ -5,6 +5,7 @@ import React from 'react';
 import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
+import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { formatNumber, getControlColor, getRelationColor, getFieldedStrength } from '../../utils/helpers';
 import ProgressBar from '../ui/ProgressBar';
 
@@ -149,7 +150,7 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
                 ✓ Trade Agreement
               </span>
             )}
-            {ownerNation.isAtWar && (
+            {isAtWarWithPlayer(state, ownerNation.id) && (
               <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">
                 ⚔ At War
               </span>

@@ -14,7 +14,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../../data/actionCosts';
-import { hasCasusBelli } from '../../engine/diplomacy';
+import { hasCasusBelli, isAtWarWithPlayer } from '../../engine/diplomacy';
 import { getNationCapital } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
@@ -63,17 +63,21 @@ const DiplomacyPanel = () => {
   const isModernAge = getEffectiveAgeId(state.age, state.techAgeId) === 'modern';
   const playerNation = state.nations[state.playerNationId];
 
-  // Sort nations: at war first, then by hostility, so the ones that matter surface first; the
-  // search box is for finding one specific nation among all 240.
+  // Sort nations: at war (with the player — n.isAtWar alone just means "in a war with someone",
+  // which two AI nations fighting each other would also set) first, then by hostility, so the
+  // ones that matter surface first; the search box is for finding one specific nation among all
+  // 240.
   const sortedNations = useMemo(() => {
     return Object.values(state.nations)
       .filter(n => !n.isPlayer)
       .filter(n => !search.trim() || n.name.toLowerCase().includes(search.trim().toLowerCase()))
       .sort((a, b) => {
-        if (a.isAtWar !== b.isAtWar) return a.isAtWar ? -1 : 1;
+        const aAtWar = isAtWarWithPlayer(state, a.id);
+        const bAtWar = isAtWarWithPlayer(state, b.id);
+        if (aAtWar !== bAtWar) return aAtWar ? -1 : 1;
         return b.hostility - a.hostility;
       });
-  }, [state.nations, search]);
+  }, [state, search]);
 
   return (
     <div className="space-y-2">
@@ -102,6 +106,7 @@ const DiplomacyPanel = () => {
       <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600">
         {sortedNations.map(nation => {
           const nationData = WORLD_NATIONS[nation.id];
+          const atWarWithPlayer = isAtWarWithPlayer(state, nation.id);
           const justified = hasCasusBelli(state, state.playerNationId, nation.id);
           const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
           const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), actionPoints: 1 };
@@ -111,7 +116,7 @@ const DiplomacyPanel = () => {
               key={nation.id}
               className={`
                 p-3 rounded-lg border transition-all
-                ${nation.isAtWar
+                ${atWarWithPlayer
                   ? 'bg-red-500/10 border-red-500/30'
                   : nation.hasPeaceTreaty
                     ? 'bg-green-500/10 border-green-500/30'
@@ -149,7 +154,7 @@ const DiplomacyPanel = () => {
                   <div className="text-slate-400">
                     Military: <span className="text-red-400 font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
                   </div>
-                  {nation.isAtWar && (
+                  {atWarWithPlayer && (
                     <div className="text-slate-400">
                       War Exhaustion: <span className="text-amber-400 font-mono">{nation.warExhaustion || 0}</span>
                     </div>
@@ -178,7 +183,7 @@ const DiplomacyPanel = () => {
                     ✓ Claim Fabricated
                   </span>
                 )}
-                {nation.isAtWar && (
+                {atWarWithPlayer && (
                   <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">
                     ⚔ AT WAR
                   </span>
@@ -186,7 +191,7 @@ const DiplomacyPanel = () => {
               </div>
 
               <div className="flex flex-wrap gap-1">
-                {nation.isAtWar ? (
+                {atWarWithPlayer ? (
                   <IconButton
                     icon={Flag}
                     label={`Sue for Peace (${sueForPeaceCosts.gold}g)`}
@@ -254,7 +259,7 @@ const DiplomacyPanel = () => {
       <div className="mt-3 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div>
-            <div className="text-red-400 font-bold">{sortedNations.filter(n => n.isAtWar).length}</div>
+            <div className="text-red-400 font-bold">{sortedNations.filter(n => isAtWarWithPlayer(state, n.id)).length}</div>
             <div className="text-slate-500">At War</div>
           </div>
           <div>

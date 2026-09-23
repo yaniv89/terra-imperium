@@ -20,6 +20,7 @@ import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk
 import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
+import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -41,7 +42,9 @@ const MilitaryPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const playerNation = state.nations[state.playerNationId];
-  const atWarWith = Object.values(state.nations).filter(n => n.isAtWar && !n.isPlayer);
+  // isAtWar means "in a war with SOMEONE" (used for AI-tiering) — this list is specifically wars
+  // involving the player, so two AI nations fighting each other doesn't show up as "War with X".
+  const atWarWith = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id));
 
   const regionState = selectedRegion ? state.regions[selectedRegion] : null;
   const regionData = selectedRegion ? REGIONS_DATA[selectedRegion] : null;

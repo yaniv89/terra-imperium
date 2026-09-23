@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, resolveWarProgress } from './diplomacy';
+import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -166,6 +166,30 @@ describe('isWarBetween', () => {
   it('does not match a war between two unrelated nations', () => {
     const war = { aggressor: 'ca', enemy: 'us' };
     expect(isWarBetween(war, 'mx', 'us')).toBe(false);
+  });
+});
+
+describe('isAtWarWithPlayer', () => {
+  // Regression: nation.isAtWar means "in a war with ANYONE" (used for AI-tiering), and several UI
+  // surfaces were reading it as "at war with the player" — so two AI nations fighting each other
+  // showed up as if they'd declared war on you (map coloring, the Military/Diplomacy tabs' war
+  // lists and badges). isAtWarWithPlayer is the one function all of those must use instead.
+  const stateWith = (wars, playerNationId = 'us') => ({ playerNationId, wars });
+
+  it('is true when the player is a side of an active war', () => {
+    const state = stateWith([{ aggressor: 'de', enemy: 'us', active: true }]);
+    expect(isAtWarWithPlayer(state, 'de')).toBe(true);
+  });
+
+  it('is false for a war between two other nations, even though both are isAtWar', () => {
+    const state = stateWith([{ aggressor: 'eg', enemy: 'ps', active: true }]);
+    expect(isAtWarWithPlayer(state, 'eg')).toBe(false);
+    expect(isAtWarWithPlayer(state, 'ps')).toBe(false);
+  });
+
+  it('is false once the war against the player is no longer active', () => {
+    const state = stateWith([{ aggressor: 'de', enemy: 'us', active: false }]);
+    expect(isAtWarWithPlayer(state, 'de')).toBe(false);
   });
 });
 
