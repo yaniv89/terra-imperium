@@ -84,14 +84,18 @@ const UNIT_MOTION = {
 const UNIT_GLYPH_DEFAULT_CLASS = 'infantry';
 const UNIT_GLYPH_DEFAULT_AGE = 'modern';
 
-// Rescales a unitIcons.js/buildingIcons.js path's 0..100 viewBox into this overlay's local glyph
-// space (roughly -12..12, matching PULSE_GLYPH_SHAPES' scale) via a nested, never-reanimated <g> —
-// so the transform drawPulse sets every frame on the OUTER element it's appended to never fights
-// with this fixed content scale.
-const ICON_CONTENT_TRANSFORM = 'scale(0.24) translate(-50,-50)';
+// Rescales a unitIcons.js/buildingIcons.js path's 0..512 viewBox (game-icons.net's native size)
+// into this overlay's local glyph space (roughly -12..12, matching PULSE_GLYPH_SHAPES' scale) via
+// a nested, never-reanimated <g> — so the transform drawPulse sets every frame on the OUTER element
+// it's appended to never fights with this fixed content scale. 0.24/5.12 keeps the same on-globe
+// icon size as the old 0..100-viewBox placeholder art this replaced.
+const ICON_CONTENT_TRANSFORM = 'scale(0.046875) translate(-256,-256)';
 const appendIconPath = (parent, d, fill) => {
   const content = make('g', { transform: ICON_CONTENT_TRANSFORM });
-  content.appendChild(make('path', { d, fill, 'fill-rule': 'evenodd' }));
+  // game-icons.net paths assume the SVG default (nonzero) winding rule, not evenodd — the old
+  // hand-coded placeholder art this replaced needed evenodd for its overlapping-hole shapes, but
+  // forcing it here would mis-render the real icon art's cutouts (e.g. shield/helmet eye-holes).
+  content.appendChild(make('path', { d, fill }));
   parent.appendChild(content);
 };
 
