@@ -1,8 +1,8 @@
 // src/components/ui/GameHeader.jsx
 // Main game header with title, nation, age/year, resources, and end turn button
 
-import React, { useRef } from 'react';
-import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { AGES } from '../../data/ages';
@@ -11,6 +11,10 @@ import ResourceBar from './ResourceBar';
 const GameHeader = ({ onReset, onOpenSettings }) => {
   const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
   const fileInputRef = useRef(null);
+  // Export/Import/Cloud/Reset are rarely used mid-turn compared to End Turn, so on narrow
+  // screens they collapse into this overflow menu instead of competing for header width with
+  // the nation name/date (which were colliding/truncating before this existed).
+  const [showMenu, setShowMenu] = useState(false);
 
   const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
   const playerNation = state.nations[state.playerNationId];
@@ -55,7 +59,9 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
             </h1>
           </div>
 
-          <div className="px-2 py-0.5 rounded border text-xs font-semibold whitespace-nowrap bg-blue-500/20 text-blue-300 border-blue-500/50">
+          {/* min-w-0 + truncate: on a narrow screen this chip used to overflow and collide with
+              the date chip on its right instead of shrinking. */}
+          <div className="min-w-0 px-2 py-0.5 rounded border text-xs font-semibold truncate bg-blue-500/20 text-blue-300 border-blue-500/50">
             {playerNation?.name}
           </div>
 
@@ -70,20 +76,40 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
             <span className="font-mono text-sm sm:text-lg font-bold text-white">{yearLabel}</span>
           </div>
 
-          <button
-            onClick={handleExport}
-            className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
-            title="Export Save"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleImportClick}
-            className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
-            title="Import Save"
-          >
-            <Upload className="w-4 h-4" />
-          </button>
+          {/* Export/Import/Cloud/Reset: full icon row at sm+ (unchanged), collapsed into a single
+              overflow menu below sm — these are rarely touched mid-turn, unlike End Turn, so
+              they're the first thing to give up header width on a phone. */}
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+              title="Export Save"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleImportClick}
+              className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+              title="Import Save"
+            >
+              <Upload className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onOpenSettings}
+              className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+              title="Cloud Saves"
+            >
+              <Cloud className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onReset}
+              className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+              title="Reset Game"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -92,21 +118,46 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
             className="hidden"
           />
 
-          <button
-            onClick={onOpenSettings}
-            className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
-            title="Cloud Saves"
-          >
-            <Cloud className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onReset}
-            className="p-1.5 sm:p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-            title="Reset Game"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+          <div className="relative sm:hidden">
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              className="p-1.5 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+              title="More"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-40 py-1">
+                  <button
+                    onClick={() => { handleExport(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+                  >
+                    <Download className="w-4 h-4" /> Export Save
+                  </button>
+                  <button
+                    onClick={() => { handleImportClick(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+                  >
+                    <Upload className="w-4 h-4" /> Import Save
+                  </button>
+                  <button
+                    onClick={() => { onOpenSettings(); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+                  >
+                    <Cloud className="w-4 h-4" /> Cloud Saves
+                  </button>
+                  <button
+                    onClick={() => { setShowMenu(false); onReset(); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-slate-700"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Reset Game
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -128,7 +179,9 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >
-          <span className="hidden sm:inline">End Turn</span>
+          {/* Always labeled — this is the single most-repeated action in the game and must never
+              degrade to an unlabeled color block on a narrow screen. */}
+          <span className="whitespace-nowrap">End Turn</span>
         </button>
 
         {/* Fast Forward — resolves turns until an event, a war starting/ending, or the game

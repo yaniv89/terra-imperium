@@ -19,7 +19,12 @@ const ResourceBar = () => {
   const unlockedResourceIds = getUnlockedResourceIds(state.age);
 
   return (
-    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+    // flex-nowrap, not flex-wrap: the parent (GameHeader) already wraps this in an
+    // overflow-x-auto scroller, expecting ONE horizontally-scrollable row — flex-wrap fought that
+    // by wrapping into two full rows instead of letting the row scroll, which is what pushed all
+    // of a phone's resource badges into a tall, always-visible block above the game content.
+    // shrink-0 on every badge keeps each one at its natural width instead of being squeezed.
+    <div className="flex flex-nowrap gap-1.5 sm:gap-2 [&>*]:shrink-0">
       <ResourceBadge
         type="actionPoints"
         value={state.resources.actionPoints}
