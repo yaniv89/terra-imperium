@@ -9,6 +9,7 @@ import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
 import { getNationCapital } from '../data/regions';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { NATION_ELIMINATION_REWARD } from './elimination';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -161,7 +162,7 @@ describe('resolveTurn resource income', () => {
       state = resolveTurn(state);
     }
     expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints);
-  });
+  }, 30000); // 50 real turns at the 4,482-region world's per-turn cost — see aiQualityBenchmark.test.js's own comment
 });
 
 // Regression/feature: RECRUIT_UNIT/DISBAND_UNIT only ever charged a one-time cost — a standing
@@ -712,5 +713,54 @@ describe('resolveTurn new victory conditions wired end-to-end', () => {
     const next = resolveTurn(state);
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
     expect(next.victoryConditionId).toBe('domination');
+  });
+});
+
+describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
+  // Hands every region a nation currently owns to `newOwnerId` — simulating "this nation has just
+  // been reduced to zero regions" without needing to also drive real combat RNG through this test,
+  // matching this file's existing convention of crafting scenarios directly via state overrides
+  // (e.g. the AI war declarations describe block above just seeds state.wars by hand). control: 25
+  // matches what a real LAUNCH_INVASION capture always leaves a region at (gameReducer.js) — well
+  // under INTEGRATION_CONTROL_THRESHOLD, so the rebellion/integration pass earlier in this same
+  // resolveTurn call doesn't clear formerOwner again before the elimination sweep gets to read it.
+  const strip = (state, nationId, newOwnerId) => {
+    const regions = { ...state.regions };
+    Object.entries(regions).forEach(([id, r]) => {
+      if (r.owner === nationId) regions[id] = { ...r, owner: newOwnerId, formerOwner: nationId, control: 25 };
+    });
+    return { ...state, regions };
+  };
+
+  it('marks a nation eliminated once it holds zero regions and closes out its wars', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const withWar = { ...base, wars: [{ id: 'w1', aggressor: 'de', enemy: 'us', active: true, goalAchieved: false, startYear: base.year, goal: { type: 'destroy_military', threshold: 1 } }] };
+    // Some other AI nation ('us') absorbed Germany's last region — not the player.
+    const state = strip(withWar, 'de', 'us');
+    const next = resolveTurn(state);
+    expect(next.nations.de.isEliminated).toBe(true);
+    expect(next.nations.de.isAtWar).toBe(false);
+    expect(next.wars).toEqual([]);
+    expect(next.playerEliminatedNationId).toBeNull();
+    expect(next.logs.some(l => l.type === LogTypes.MILESTONE && l.message.includes('Germany') && l.message.includes('eliminated'))).toBe(true);
+  });
+
+  it('rewards the player and fires the popup signal when THEY are the one who eliminated a nation', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = strip(base, 'de', 'fr');
+    const goldBefore = state.resources.gold;
+    const dpBefore = state.resources.diplomacyPoints || 0;
+    const next = resolveTurn(state);
+    expect(next.nations.de.isEliminated).toBe(true);
+    expect(next.playerEliminatedNationId).toBe('de');
+    expect(next.resources.gold - goldBefore).toBeGreaterThanOrEqual(NATION_ELIMINATION_REWARD.gold);
+    expect(next.resources.diplomacyPoints).toBe(dpBefore + NATION_ELIMINATION_REWARD.diplomacyPoints);
+  });
+
+  it('never eliminates the player nation itself, however few regions remain', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = strip(base, 'fr', 'de');
+    const next = resolveTurn(state);
+    expect(next.nations.fr.isEliminated).toBeUndefined();
   });
 });

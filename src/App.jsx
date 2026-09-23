@@ -7,7 +7,7 @@ import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, LogConsole } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay, AgeAdvanceBanner } from './components/modals';
+import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
 import { GameStatus, LogTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
@@ -49,6 +49,22 @@ const GameLayout = () => {
     const timer = setTimeout(() => setAgeBanner(null), AGE_ADVANCE_BANNER_MS);
     return () => clearTimeout(timer);
   }, [state.age, state.turnNumber, state.playerNationId, triggerEffect]);
+
+  // Nation Eliminated banner (h2's "small reward for winning the war" popup): resolveTurn.js sets
+  // state.playerEliminatedNationId for exactly the one turn a player conquest reduces a rival to
+  // zero regions (src/engine/elimination.js), then it reverts to null/undefined next turn.
+  // prevEliminatedIdRef starts at the CURRENT value so loading a save that happens to have been
+  // written mid-banner never spuriously fires this on mount, same reasoning as prevAgeRef above.
+  const prevEliminatedIdRef = useRef(state.playerEliminatedNationId);
+  const [eliminatedNationName, setEliminatedNationName] = useState(null);
+  useEffect(() => {
+    const isNewElimination = state.playerEliminatedNationId && state.playerEliminatedNationId !== prevEliminatedIdRef.current;
+    prevEliminatedIdRef.current = state.playerEliminatedNationId;
+    if (!isNewElimination) return;
+    setEliminatedNationName(state.nations[state.playerEliminatedNationId]?.name || state.playerEliminatedNationId);
+    const timer = setTimeout(() => setEliminatedNationName(null), AGE_ADVANCE_BANNER_MS);
+    return () => clearTimeout(timer);
+  }, [state.playerEliminatedNationId, state.nations]);
 
   // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
   // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
@@ -140,6 +156,9 @@ const GameLayout = () => {
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />
+
+      {/* Nation Eliminated banner - non-blocking, auto-dismisses */}
+      <NationEliminatedBanner nationName={eliminatedNationName} onDismiss={() => setEliminatedNationName(null)} />
 
       {/* Cloud saves + account (Phase F) - opened from GameHeader's Cloud button */}
       <SettingsModal

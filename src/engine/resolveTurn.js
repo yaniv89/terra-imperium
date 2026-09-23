@@ -17,6 +17,7 @@ import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getMaxActionPoints } from '../utils/helpers';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
+import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
@@ -248,6 +249,31 @@ export const resolveTurn = (state) => {
   wars = warProgress.wars;
   logs.push(...warProgress.logs.map(l => ({ year: newYear, ...l })));
 
+  // --- nation elimination (src/engine/elimination.js): a nation reduced to zero regions this turn
+  // — by the player's own invasions (which land immediately via gameReducer.js, so this sweep is
+  // what actually notices them), by AI-vs-AI conquest just above, or by losing its last region to
+  // a rebellion — has nothing left to govern or fight with. playerEliminatedNationId is a
+  // transient, one-turn signal (App.jsx diffs it to show a one-shot reward popup); it's not
+  // persisted anywhere else on state. ---
+  let playerEliminatedNationId = null;
+  Object.keys(nationsAfterWars).forEach((nId) => {
+    const eliminated = checkNationElimination(nationsAfterWars, regions, nId);
+    if (!eliminated) return;
+    nationsAfterWars = { ...nationsAfterWars, [nId]: eliminated };
+    wars = closeWarsForEliminatedNation(wars, nId);
+    logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
+    if (wasEliminatedByPlayer(regions, state.playerNationId, nId)) {
+      resources.gold = (resources.gold || 0) + NATION_ELIMINATION_REWARD.gold;
+      resources.diplomacyPoints = (resources.diplomacyPoints || 0) + NATION_ELIMINATION_REWARD.diplomacyPoints;
+      playerEliminatedNationId = nId;
+      logs.push({
+        year: newYear,
+        message: `You have conquered ${eliminated.name} entirely! +${formatMoney(NATION_ELIMINATION_REWARD.gold)}, +${NATION_ELIMINATION_REWARD.diplomacyPoints} Diplomacy Points.`,
+        type: LogTypes.MILESTONE
+      });
+    }
+  });
+
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
   // is what "forces you to actually end them" rather than letting a war run forever for free.
@@ -330,6 +356,7 @@ export const resolveTurn = (state) => {
     spaceMissionProgress,
     completedMissions,
     diplomaticLeadershipStreak,
+    playerEliminatedNationId,
     activeEventId: dueEvent ? dueEvent.id : chainEventId,
     activeProceduralEvent,
     proceduralEventCooldown,

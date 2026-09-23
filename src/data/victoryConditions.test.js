@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned,
-  getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
+  getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, CONQUEROR_CAPITAL_SHARE
 } from './victoryConditions';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 import { WORLD_NATIONS } from './worldNations';
+import { getNationCapital } from './regions';
 
 describe('survival', () => {
   it('is satisfied once the year reaches END_YEAR', () => {
@@ -30,6 +31,47 @@ describe('domination', () => {
     const ownedCount = Math.ceil(ids.length * 0.41);
     ids.slice(0, ownedCount).forEach(id => { regions[id] = { ...regions[id], owner: 'fr' }; });
     expect(VICTORY_CONDITIONS.domination.check({ ...state, regions })).toBe(true);
+  });
+});
+
+describe('conqueror', () => {
+  it('is false at the start of a fresh game (owns no one else\'s capital)', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    expect(VICTORY_CONDITIONS.conqueror.check(state)).toBe(false);
+  });
+
+  it('is true once the player holds enough of the world\'s other capitals', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const regions = { ...state.regions };
+    const otherNationIds = Object.keys(state.nations).filter(id => id !== 'fr');
+    const neededCapitals = Math.ceil(otherNationIds.length * CONQUEROR_CAPITAL_SHARE);
+    let handedOver = 0;
+    for (const nationId of otherNationIds) {
+      const capitalId = getNationCapital(nationId);
+      if (!capitalId) continue;
+      regions[capitalId] = { ...regions[capitalId], owner: 'fr' };
+      handedOver += 1;
+      if (handedOver >= neededCapitals) break;
+    }
+    expect(VICTORY_CONDITIONS.conqueror.check({ ...state, regions })).toBe(true);
+  });
+
+  it('still credits a capital taken from a nation later fully eliminated', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const otherNationIds = Object.keys(state.nations).filter(id => id !== 'fr');
+    const regions = { ...state.regions };
+    const nations = { ...state.nations };
+    const neededCapitals = Math.ceil(otherNationIds.length * CONQUEROR_CAPITAL_SHARE);
+    let handedOver = 0;
+    for (const nationId of otherNationIds) {
+      const capitalId = getNationCapital(nationId);
+      if (!capitalId) continue;
+      regions[capitalId] = { ...regions[capitalId], owner: 'fr' };
+      nations[nationId] = { ...nations[nationId], isEliminated: true };
+      handedOver += 1;
+      if (handedOver >= neededCapitals) break;
+    }
+    expect(VICTORY_CONDITIONS.conqueror.check({ ...state, regions, nations })).toBe(true);
   });
 });
 
