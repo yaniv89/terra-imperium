@@ -85,6 +85,8 @@ export const ActionTypes = {
   CULTURAL_EXPORT: 'CULTURAL_EXPORT',
   // Rulers, heirs, advisors (plan §M3) — see src/engine/succession.js.
   HIRE_ADVISOR: 'HIRE_ADVISOR',
+  // Stability, legitimacy, prestige, overextension (plan §M4) — see src/engine/nationalPower.js.
+  INCREASE_STABILITY: 'INCREASE_STABILITY',
 
   // Space Race, orbital layer (plan §10.4 Layer 1).
   LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',

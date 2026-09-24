@@ -297,8 +297,19 @@ describe('resolveTurn rebellion', () => {
     expect(next.regions[cap('fr')].control).toBeLessThan(state.regions[cap('fr')].control);
   });
 
+  // M3's seeded ruler traits (src/data/traits.js) feed the SAME national.stabilityBonus hook a
+  // government/policy/wonder does, which directly shaves unrest drift (nextUnrest) every turn —
+  // a France ruler who happens to roll Just (+2) or Kind (+3) can, over 2 turns, pull unrest below
+  // REBELLION_UNREST_THRESHOLD despite the "+5" margin these tests were written with (pre-M3) to
+  // rule out. Zeroing traits here isolates the rebellion-growth invariant these tests are actually
+  // about from that unrelated (and correctly working) M3 randomness.
+  const noRulerTraits = (state) => ({
+    ...state,
+    nations: { ...state.nations, fr: { ...state.nations.fr, ruler: { ...state.nations.fr.ruler, traits: [] } } }
+  });
+
   it('does not spawn a second rebel army in a region that already has one', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = noRulerTraits(withAllEventsFired(createInitialState({ playerNationId: 'fr' })));
     const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const again = resolveTurn(withRebel);
@@ -307,7 +318,7 @@ describe('resolveTurn rebellion', () => {
   });
 
   it('grows an existing rebel army while unrest stays at or above the threshold', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = noRulerTraits(withAllEventsFired(createInitialState({ playerNationId: 'fr' })));
     const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const before = rebelUnitIn(withRebel).strength;
@@ -822,5 +833,31 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const state = strip(base, 'fr', 'de');
     const next = resolveTurn(state);
     expect(next.nations.fr.isEliminated).toBeUndefined();
+  });
+});
+
+describe('resolveTurn national power (plan §M4)', () => {
+  it('runs the stability/legitimacy/prestige pass for every nation, not just the player\'s', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, prestige: 100 } } };
+    const next = resolveTurn(state);
+    // Prestige decays 5%/turn toward 0 (nationalPower.js) — proves the pass actually ran for an
+    // AI nation, not only the one the succession/getPowerIncome code paths already special-case.
+    expect(next.nations.de.prestige).toBeLessThan(100);
+  });
+
+  it('deducts 1 stability from a nation whose succession is a crisis (heirless or low-claim)', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    // A monarchy whose reign just ended with no heir at all is unconditionally a crisis
+    // (succession.js's processSuccession) — a real, deterministic trigger, not a probabilistic one.
+    const state = {
+      ...base,
+      nations: {
+        ...base.nations,
+        fr: { ...base.nations.fr, government: 'monarchy', stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber }, heir: null }
+      }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.stability).toBe(-1);
   });
 });

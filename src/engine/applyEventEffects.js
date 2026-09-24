@@ -8,6 +8,7 @@ import { REGIONS_DATA } from '../data/regions';
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { RESOURCE_IDS } from '../data/resources';
 import { declareWar, isWarBetween } from './diplomacy';
+import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
 
 export const applyEventEffects = (state, event, optionIndex) => {
   const option = event.options[optionIndex];
@@ -171,6 +172,22 @@ export const applyEventEffects = (state, event, optionIndex) => {
       ...(next.pendingEventChains || []),
       { id, dueTurn: next.turnNumber + delayTurns }
     ];
+  }
+
+  // Stability/legitimacy/prestige deltas (plan §M4) — event authoring content itself is M17's job,
+  // but the effect keys are wired now so a `stability`/`legitimacy`/`prestige` key on a future
+  // event's `effects` object works immediately rather than needing a second patch to this file.
+  if ((effects.stability || effects.legitimacy || effects.prestige) && next.nations[playerNationId]) {
+    const playerNation = next.nations[playerNationId];
+    next.nations = {
+      ...next.nations,
+      [playerNationId]: {
+        ...playerNation,
+        stability: effects.stability ? clampStability(playerNation.stability + effects.stability) : playerNation.stability,
+        legitimacy: effects.legitimacy ? clampLegitimacy(playerNation.legitimacy + effects.legitimacy) : playerNation.legitimacy,
+        prestige: effects.prestige ? clampPrestige(playerNation.prestige + effects.prestige) : playerNation.prestige
+      }
+    };
   }
 
   if (effects.victory) {

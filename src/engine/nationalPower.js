@@ -1,0 +1,114 @@
+// src/engine/nationalPower.js
+// Plan §M4: national stability, legitimacy/tradition/devotion, prestige, and overextension.
+// Several of the plan's own listed sources/effects for these four numbers name systems that don't
+// exist yet in this codebase — estates and their loyalty (M9), buildings/Civic Center governing
+// capacity (M6), government reform tiers (M8), war score (M13), great projects (M10), capital
+// occupation/loss (M15), bankruptcy (M11) — this ships the honest subset that's mechanically real
+// today, and adapts a couple of the plan's own named triggers onto what M3 already built (a
+// heirless/low-claim succession IS a real, working trigger for -1 stability, so that one ships).
+// Every trim is called out inline with `// adapted:` or `// deferred:`.
+import { getSuccessionStyle } from './succession';
+import { TECH_TREE } from '../data/techTree';
+import { TechCategories } from '../data/types';
+
+export const STABILITY_MIN = -3;
+export const STABILITY_MAX = 3;
+export const STABILITY_DECAY_TURNS = 10; // plan: "drifts toward 0 by 1 every 10 turns when no source is active"
+export const LEGITIMACY_MIN = 0;
+export const LEGITIMACY_MAX = 100;
+export const PRESTIGE_MIN = -100;
+export const PRESTIGE_MAX = 100;
+export const PRESTIGE_DECAY_RATE = 0.05; // 5%/turn toward 0
+export const WONDER_COMPLETION_PRESTIGE = 15;
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+export const clampStability = (value) => clamp(value, STABILITY_MIN, STABILITY_MAX);
+export const clampLegitimacy = (value) => clamp(value, LEGITIMACY_MIN, LEGITIMACY_MAX);
+export const clampPrestige = (value) => clamp(value, PRESTIGE_MIN, PRESTIGE_MAX);
+
+// Base 10 (plan) + startRegionCount (relative to the nation's OWN starting size, so a 50-region
+// nation and a 1-region nation are equally "at capacity" at the same overextension% — the plan's
+// own point in calling this out) + Governance techs. Buildings (Civic Center) and reforms would
+// also add to this per the plan; both are M6/M8 work, not yet real, so they're left out rather
+// than faked. Only the player tracks a per-tech techTree today (see sources.js's identical note on
+// the apBonus governance-tech source), so the tech term is 0 for every AI nation until M16.
+export const getGoverningCapacity = (state, nationId) => {
+  const nation = state.nations?.[nationId];
+  const base = (nation?.startRegionCount || 0) + 10;
+  if (nationId !== state.playerNationId) return base;
+  const governanceTechs = Object.values(state.techTree || {})
+    .filter((t) => t.researched && TECH_TREE[t.id]?.category === TechCategories.GOVERNANCE)
+    .length;
+  return base + governanceTechs;
+};
+
+export const getOwnedRegionCount = (state, nationId) =>
+  Object.values(state.regions || {}).reduce((sum, r) => sum + (r.owner === nationId ? 1 : 0), 0);
+
+// Vassals and occupied-but-not-owned regions are excluded per the plan, but neither concept exists
+// yet (M12/M13) — every currently-owned region already counts toward the numerator, which is the
+// correct behavior once those land too (an occupied region isn't `owner`-flagged to the occupier).
+export const getOverextension = (state, nationId) => {
+  const capacity = getGoverningCapacity(state, nationId);
+  if (capacity <= 0) return 0;
+  const owned = getOwnedRegionCount(state, nationId);
+  return Math.max(0, ((owned - capacity) / capacity) * 100);
+};
+
+// Plan's own formula for this one action, verbatim: 100 ADM x (1 + overextension%) x (1 + 0.1 x
+// (stability + 3)). The plan's broader "+overextension%/2 on ADM and DIP costs" for EVERY action is
+// deferred: every other action's cost is still a flat table read by canAfford/applyCosts
+// (src/data/actionCosts.js), with no per-action modifier-aware cost pipeline yet — retrofitting one
+// just for this single multiplier would be a bigger, separate refactor, not an M4-sized change.
+export const getIncreaseStabilityCost = (state, nationId) => {
+  const overextension = getOverextension(state, nationId);
+  const stability = state.nations?.[nationId]?.stability || 0;
+  return Math.round(100 * (1 + overextension / 100) * (1 + 0.1 * (stability + 3)));
+};
+
+// The pool a ruler is best at (adm > dip > mil on ties) — used by the legitimacy-below-50 penalty,
+// which the plan aims at "the ruler's best pool" rather than a fixed one.
+export const getRulerBestPool = (ruler) => {
+  if (!ruler) return null;
+  const pools = ['adm', 'dip', 'mil'];
+  return pools.reduce((best, pool) => (ruler[pool] > ruler[best] ? pool : best), 'adm');
+};
+
+// Runs once per nation per turn (resolveTurn.js), mirroring succession.js's processSuccession
+// shape: pure, no state dependency beyond what's passed in, caller writes the result back.
+export const processNationalPowerTurn = (nation) => {
+  let stability = nation.stability || 0;
+  let stabilityDecayProgress = nation.stabilityDecayProgress || 0;
+  if (stability !== 0) {
+    stabilityDecayProgress += 1;
+    if (stabilityDecayProgress >= STABILITY_DECAY_TURNS) {
+      stability += stability > 0 ? -1 : 1;
+      stabilityDecayProgress = 0;
+    }
+  } else {
+    stabilityDecayProgress = 0;
+  }
+
+  // Legitimacy/tradition/devotion (plan groups all three government-flavored labels into the one
+  // resource; the UI can relabel by government style without needing three separate fields).
+  // Tribal has no legitimacy system yet — the plan's replacement (Cohesion, raised by raiding) is
+  // M8 work, so a tribal nation's legitimacy is simply left untouched here rather than faked.
+  let legitimacy = nation.legitimacy ?? 50;
+  const style = getSuccessionStyle(nation.government);
+  if (style !== 'tribal') {
+    const rulerAdm = nation.ruler?.adm || 0;
+    const baseGain = style === 'hereditary' ? 0.5 * (rulerAdm / 6)
+      : style === 'elective' ? 0.5 // republican tradition
+      : 0.3; // autocratic: adapted, no clergy/devotion system (M9) to drive this instead
+    const prestigeGain = (nation.prestige || 0) / 500; // plan: "prestige ... legitimacy gain"
+    legitimacy = clampLegitimacy(legitimacy + baseGain + prestigeGain);
+  }
+
+  // Math.trunc, not Math.round: rounding to the NEAREST integer has a fixed point below 10 in
+  // magnitude (e.g. 9 -> round(8.55) -> 9, stuck forever) since a half rounds away from zero as
+  // often as toward it. Truncating toward zero strictly shrinks |prestige| every turn until it
+  // actually reaches 0, which "decays toward 0" requires.
+  const prestige = clampPrestige(Math.trunc((nation.prestige || 0) * (1 - PRESTIGE_DECAY_RATE)));
+
+  return { stability, stabilityDecayProgress, legitimacy, prestige };
+};

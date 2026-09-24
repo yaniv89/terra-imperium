@@ -34,6 +34,7 @@ import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
+import { processNationalPowerTurn, clampStability } from './nationalPower';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -292,15 +293,29 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.entries(nations).forEach(([nId, nation]) => {
     const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed });
     if (!result) return;
-    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir };
+    // Plan §M4: "heirless succession: -1 stability" is the one lower-stability trigger from the
+    // plan's own table that's mechanically real today — a heirless OR low-claim succession is
+    // exactly M3's `result.crisis` flag, so this reuses it rather than inventing a parallel check.
+    const stability = result.crisis ? clampStability((nation.stability || 0) - 1) : nation.stability;
+    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir, stability };
     if (nId === state.playerNationId) {
       const message = result.crisis
-        ? `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne amid an uncertain succession.`
+        ? `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne amid an uncertain succession. (-1 stability)`
         : `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne.`;
       logs.push({ year: newYear, message, type: LogTypes.MILESTONE });
     }
   });
   mark('succession');
+
+  // --- national power: stability decay, legitimacy/tradition/devotion, prestige (plan §M4) ---
+  // runs for every nation, same cadence and reasoning as the succession pass just above (cheap,
+  // AI nations get real numbers even though nothing reads them mechanically until M16 wires AI
+  // decisions off of them).
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const result = processNationalPowerTurn(nation);
+    nations[nId] = { ...nation, ...result };
+  });
+  mark('nationalPower');
 
   // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
   // affordable across 240 nations.
