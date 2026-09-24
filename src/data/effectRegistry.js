@@ -209,6 +209,102 @@ export const EFFECT_REGISTRY = {
     ]
   },
 
+  // ---- diplomacy overhaul (plan §M12) — every one of these targets another nation, so all reuse
+  // the arc primitive, the same "crosses the map between two capitals" shape gift_bribe/
+  // trade_agreement/military_alliance/espionage already use above.
+  break_alliance: {
+    primitive: 'arc',
+    palette: { base: '#ef4444', hot: '#fee2e2' },
+    head: 'chevron',
+    archPow: 0.5,
+    ease: 'accelerate',
+    trailWidth: 2.4,
+    fireball: 0.25,
+    rings: 2,
+    debris: 5,
+    // Two shields sliding apart — the mirror image of military_alliance's converging pair.
+    projectiles: [
+      { lateral: -0.4, loft: 0.25, delay: 0, scale: 0.9, spread: 0.4 },
+      { lateral: 0.4, loft: 0.25, delay: 0, scale: 0.9, spread: -0.4 }
+    ]
+  },
+  insult: {
+    primitive: 'arc',
+    palette: { base: '#dc2626', hot: '#fecaca' },
+    head: 'dart',
+    archPow: 0.25,
+    ease: 'accelerate',
+    trailWidth: 1.2,
+    fireball: 0.08,
+    rings: 1,
+    debris: 1,
+    projectiles: [{ lateral: 0, loft: 0.15, delay: 0, scale: 0.5, spread: 0 }]
+  },
+  rival_nation: {
+    primitive: 'arc',
+    palette: { base: '#f97316', hot: '#ffedd5' },
+    head: 'dart',
+    archPow: 0.35,
+    ease: 'smooth',
+    trailWidth: 1.6,
+    fireball: 0.12,
+    rings: 1,
+    debris: 3,
+    projectiles: [{ lateral: 0, loft: 0.22, delay: 0, scale: 0.7, spread: 0 }]
+  },
+  propose_marriage: {
+    primitive: 'arc',
+    palette: { base: '#ec4899', hot: '#fce7f3' },
+    head: 'chevron',
+    archPow: 0.5,
+    ease: 'smooth',
+    trailWidth: 2,
+    fireball: 0.2,
+    rings: 2,
+    debris: 4,
+    // Two courtiers arcing toward each other, meeting at the midpoint — a union, not a strike.
+    projectiles: [
+      { lateral: -0.3, loft: 0.3, delay: 0, scale: 0.8, spread: -0.2 },
+      { lateral: 0.3, loft: 0.3, delay: 20, scale: 0.8, spread: 0.2 }
+    ]
+  },
+  assign_diplomat: {
+    primitive: 'arc',
+    palette: { base: '#0ea5e9', hot: '#e0f2fe' },
+    head: 'dart',
+    archPow: 0.4,
+    ease: 'smooth',
+    trailWidth: 1.8,
+    fireball: 0.1,
+    rings: 1,
+    debris: 2,
+    projectiles: [{ lateral: 0, loft: 0.26, delay: 0, scale: 0.7, spread: 0 }]
+  },
+  vassalize: {
+    primitive: 'arc',
+    palette: { base: '#7c3aed', hot: '#ede9fe' },
+    head: 'warhead',
+    archPow: 0.7,
+    ease: 'accelerate',
+    trailWidth: 3,
+    fireball: 0.35,
+    rings: 3,
+    debris: 6,
+    projectiles: [{ lateral: 0, loft: 0.4, delay: 0, scale: 1, spread: 0 }]
+  },
+  release_vassal: {
+    primitive: 'arc',
+    palette: { base: '#a78bfa', hot: '#f5f3ff' },
+    head: 'dart',
+    archPow: 0.3,
+    ease: 'smooth',
+    trailWidth: 1.4,
+    fireball: 0.1,
+    rings: 1,
+    debris: 2,
+    projectiles: [{ lateral: 0, loft: 0.2, delay: 0, scale: 0.6, spread: 0 }]
+  },
+
   // ---- pulse primitive: single-region actions with no natural "from"/"to" geography ----
   // glyph: 'unit' is special-cased in GlobeEffectsOverlay.jsx — instead of one fixed shape, it
   // renders the actual recruited/disbanded unit's class silhouette (src/data/unitClasses.js's

@@ -13,7 +13,7 @@ import {
 } from '../../data/estates';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
-import { FUSION_GRID_GOLD_MULT_BONUS } from '../../data/actionCosts';
+import { FUSION_GRID_GOLD_MULT_BONUS, TRADE_PACT_GOLD_MULT_PER_PACT } from '../../data/actionCosts';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
 import { TRAITS } from '../../data/traits';
@@ -121,6 +121,16 @@ export const contextSources = (state, nationId) => {
   // split trim). resolveTurn.js deactivates fusionGridActive the turn helium3 upkeep can't be paid,
   // so reading the flag here is enough — no separate "supplied" check needed.
   if (nation?.fusionGridActive) lines.push({ key: 'national.goldMult', value: FUSION_GRID_GOLD_MULT_BONUS, sourceType: 'fusionGrid', sourceId: 'fusion_grid', label: 'Fusion Grid' });
+
+  // Trade Pacts (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) — pacts
+  // are inherently player-centric today (hasTradeAgreement lives on the OTHER nation's own record,
+  // and AI nations never form pacts with each other), so this only ever applies to the player.
+  if (nationId === state.playerNationId) {
+    const activePactCount = Object.values(state.nations || {}).filter((n) => n.hasTradeAgreement).length;
+    if (activePactCount > 0) {
+      lines.push({ key: 'national.goldMult', value: activePactCount * TRADE_PACT_GOLD_MULT_PER_PACT, sourceType: 'tradePact', sourceId: 'trade_pacts', label: 'Trade Pacts' });
+    }
+  }
 
   // Plan §M10: Great Projects. Ownership is derived from the site region's current owner
   // (getGreatProjectOwner), not stored on the nation — this is why the source has to live here in

@@ -36,7 +36,9 @@ import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites'
 import {
   ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
   BANKRUPTCY_STABILITY_PENALTY, BANKRUPTCY_PRESTIGE_PENALTY, BANKRUPTCY_ESTATE_LOYALTY_PENALTY,
-  BANKRUPTCY_MODIFIER_MODS, BANKRUPTCY_DURATION_TURNS, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN
+  BANKRUPTCY_MODIFIER_MODS, BANKRUPTCY_DURATION_TURNS, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN,
+  DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
+  RIVAL_ELIMINATED_PRESTIGE_REWARD
 } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
@@ -45,6 +47,8 @@ import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
 import { GREAT_PROJECTS } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate } from './economy';
+import { getTotalDev } from './development';
+import { decayAggressiveExpansion } from './expansion';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -440,6 +444,27 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   }
   mark('economy');
 
+  // --- diplomacy (plan §M12): Aggressive Expansion decay (every nation), diplomat tasks and
+  // vassal tribute (player-only, matching every other player-only economic action this turn). ---
+  Object.assign(nations, decayAggressiveExpansion(nations));
+  {
+    const player = nations[state.playerNationId];
+    (player.diplomatTasks || []).forEach((t) => {
+      const target = nations[t.targetId];
+      if (!target) return;
+      nations[t.targetId] = { ...target, hostility: Math.max(target.hostilityFloor || 0, (target.hostility || 0) - DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN) };
+    });
+    const vassalTribute = (player.vassals || []).reduce((sum, vassalId) => {
+      const totalDev = Object.values(regions).reduce((s, r) => s + (r.owner === vassalId ? getTotalDev(r) : 0), 0);
+      return sum + Math.round(totalDev * VASSAL_TRIBUTE_RATE * VASSAL_TRIBUTE_GOLD_PER_DEV_POINT);
+    }, 0);
+    if (vassalTribute > 0) {
+      resources.gold = (resources.gold || 0) + vassalTribute;
+      logs.push({ year: newYear, message: `Vassal tribute: +${formatMoney(vassalTribute)}.`, type: LogTypes.ACTION });
+    }
+  }
+  mark('diplomacy');
+
   // --- great projects (plan §M10) --- construction is player-only for now, matching every other
   // AI-economic-action deferral since M8 (government reforms, laws, estates — AI never acts, only
   // the player does), so only player-owned regions ever carry a `greatProjectConstruction` in the
@@ -522,6 +547,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     nationsAfterWars = { ...nationsAfterWars, [nId]: eliminated };
     wars = closeWarsForEliminatedNation(wars, nId);
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
+    // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
+    // is pure decay outside one-shot sources) — this is the one real payoff instead, a one-shot
+    // reward when a designated rival goes down for good.
+    if ((nationsAfterWars[state.playerNationId]?.rivals || []).includes(nId)) {
+      const player = nationsAfterWars[state.playerNationId];
+      nationsAfterWars = { ...nationsAfterWars, [state.playerNationId]: { ...player, prestige: clampPrestige((player.prestige || 0) + RIVAL_ELIMINATED_PRESTIGE_REWARD) } };
+      logs.push({ year: newYear, message: `Your rival ${eliminated.name} has fallen. (+${RIVAL_ELIMINATED_PRESTIGE_REWARD} prestige)`, type: LogTypes.DIPLOMACY });
+    }
     if (wasEliminatedByPlayer(regions, state.playerNationId, nId)) {
       resources.gold = (resources.gold || 0) + NATION_ELIMINATION_REWARD.gold;
       resources.dip = (resources.dip || 0) + NATION_ELIMINATION_REWARD.dip;

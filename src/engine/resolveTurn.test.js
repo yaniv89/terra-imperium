@@ -1056,3 +1056,49 @@ describe('resolveTurn great projects (plan §M10)', () => {
     expect(next.greatProjects.great_pyramids).toBeUndefined();
   });
 });
+
+describe('resolveTurn diplomacy (plan §M12)', () => {
+  it('decays every nation\'s Aggressive Expansion by AE_DECAY_PER_TURN', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, ae: { fr: 10 } } } };
+    const next = resolveTurn(state);
+    expect(next.nations.de.ae.fr).toBe(8);
+  });
+
+  it('decays a diplomat\'s assigned target\'s hostility faster than passive decay alone', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const withTarget = {
+      ...base,
+      nations: {
+        ...base.nations,
+        fr: { ...base.nations.fr, diplomatTasks: [{ targetId: 'de', task: 'improve_relations', startedTurn: base.turnNumber }] },
+        de: { ...base.nations.de, hostility: 50, hostilityFloor: 0 }
+      }
+    };
+    const withoutTarget = { ...base, nations: { ...base.nations, de: { ...base.nations.de, hostility: 50, hostilityFloor: 0 } } };
+    const withNext = resolveTurn(withTarget);
+    const withoutNext = resolveTurn(withoutTarget);
+    expect(withNext.nations.de.hostility).toBeLessThan(withoutNext.nations.de.hostility);
+  });
+
+  it('pays the player real vassal tribute proportional to the vassal\'s own development', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const withVassal = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, vassals: ['de'] } } };
+    const withoutVassal = base;
+    const withNext = resolveTurn(withVassal);
+    const withoutNext = resolveTurn(withoutVassal);
+    expect(withNext.resources.gold).toBeGreaterThan(withoutNext.resources.gold);
+  });
+
+  it('rewards prestige when a designated rival is eliminated', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    // Strip every region 'de' owns so it's eliminated this turn's elimination sweep.
+    const deEliminated = { ...base, regions: { ...base.regions } };
+    Object.keys(deEliminated.regions).forEach((id) => {
+      if (deEliminated.regions[id].owner === 'de') deEliminated.regions[id] = { ...deEliminated.regions[id], owner: 'fr' };
+    });
+    const asRival = { ...deEliminated, nations: { ...deEliminated.nations, fr: { ...deEliminated.nations.fr, rivals: ['de'], prestige: 0 } } };
+    const next = resolveTurn(asRival);
+    expect(next.nations.fr.prestige).toBeGreaterThan(0);
+  });
+});

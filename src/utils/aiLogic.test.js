@@ -331,6 +331,53 @@ describe('processAIWarDecisions', () => {
     const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], dovishRng);
     expect(result.nations.de.hostility).toBe(90);
   });
+
+  // Plan §M12: a coalition member never breaks a truce with the runaway leader — isInTruce
+  // (src/engine/diplomacy.js) excludes it from pickWarTarget's candidates entirely, so it falls
+  // back to its normal weakest-neighbor targeting (fr) instead of striking the leader (de).
+  it('a coalition member honoring a truce with the leader attacks its normal weakest neighbor instead', () => {
+    const state = warState({ de: { militaryStrength: 100000 }, be: { truces: { de: 10 } } });
+    const result = processAIWarDecisions({ ...state, turnNumber: 5 }, state.nations, state.wars, ['be'], hawkishRng);
+    expect(result.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'fr' })]);
+  });
+
+  it('does not honor an EXPIRED truce with the leader — the coalition override still applies', () => {
+    const state = warState({ de: { militaryStrength: 100000 }, be: { truces: { de: 3 } } });
+    const result = processAIWarDecisions({ ...state, turnNumber: 5 }, state.nations, state.wars, ['be'], hawkishRng);
+    expect(result.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+  });
+
+  // Plan §M12: doctrine.bandwagonMult (src/data/nations.js) was declared but never actually
+  // multiplied into anything before this — an opportunist's 1.8 now genuinely raises the
+  // coalition roll above an equal-hostility attrition nation's own (bandwagonMult 1.0).
+  it('scales the coalition roll by the member\'s own doctrine.bandwagonMult', () => {
+    // attrition (warRollMult 1, bandwagonMult 1): chance = 0.02*1*1*(4*1*1)*0.3 = 0.024.
+    // opportunist (warRollMult 0.8, bandwagonMult 1.8): chance = 0.02*0.8*1*(4*1*1.8)*0.3 = 0.03456.
+    // A fixed roll of 0.03 sits strictly between the two.
+    const rngAtThreshold = { next: () => 0.03 };
+    const attrition = warState({ de: { militaryStrength: 100000 }, be: { doctrine: 'attrition' } });
+    const attritionResult = processAIWarDecisions(attrition, attrition.nations, attrition.wars, ['be'], rngAtThreshold);
+    expect(attritionResult.wars).toHaveLength(0);
+
+    const opportunist = warState({ de: { militaryStrength: 100000 }, be: { doctrine: 'opportunist' } });
+    const opportunistResult = processAIWarDecisions(opportunist, opportunist.nations, opportunist.wars, ['be'], rngAtThreshold);
+    expect(opportunistResult.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+  });
+
+  // Plan §M12: real Aggressive Expansion (expansion.js) against the leader sharpens a member's
+  // own coalition roll further, on top of the flat COALITION_WAR_ROLL_MULT.
+  it('scales the coalition roll by the member\'s own real AE against the leader', () => {
+    // attrition, no AE: chance = 0.02*1*1*(4*1*1)*0.3 = 0.024. With ae.de=100 (AE_COALITION_ROLL_SCALE):
+    // aeScale = 1 + min(1, 100/100) = 2 -> chance = 0.02*1*1*(4*1*2*1)*0.3 = 0.048. Roll 0.03 sits between.
+    const rngAtThreshold = { next: () => 0.03 };
+    const noAe = warState({ de: { militaryStrength: 100000 } });
+    const noAeResult = processAIWarDecisions(noAe, noAe.nations, noAe.wars, ['be'], rngAtThreshold);
+    expect(noAeResult.wars).toHaveLength(0);
+
+    const withAe = warState({ de: { militaryStrength: 100000 }, be: { ae: { de: 100 } } });
+    const withAeResult = processAIWarDecisions(withAe, withAe.nations, withAe.wars, ['be'], rngAtThreshold);
+    expect(withAeResult.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'de' })]);
+  });
 });
 
 describe('findRunawayLeader', () => {

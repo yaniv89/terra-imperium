@@ -24,8 +24,9 @@
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds } from '../data/regions';
-import { declareWar } from '../engine/diplomacy';
+import { declareWar, isInTruce } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
+import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -218,7 +219,11 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 // leader instead, regardless of how it compares to other neighbors — that's the whole point of
 // ganging up on it.
 const pickWarTarget = (state, nationId, preferredTargetId = null) => {
-  const candidates = getBorderingNationIds(state.regions, nationId).filter(id => state.nations[id] && !state.nations[id].isAtWar);
+  // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
+  // truce-active neighbor is filtered out of consideration entirely, the same way an already-
+  // isAtWar one is.
+  const candidates = getBorderingNationIds(state.regions, nationId)
+    .filter(id => state.nations[id] && !state.nations[id].isAtWar && !isInTruce(state, nationId, id));
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
   return candidates.reduce((weakest, id) =>
@@ -250,6 +255,9 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // nation shouldn't also get to fire off its own declaration this turn.
     const nation = currentNations[nationId];
     if (!nation || nation.isPlayer || nation.isAtWar) return;
+    // Plan §M12: a vassal "can't declare wars except independence" — no independence-war mechanic
+    // exists yet (deferred), but the self-declaration lockout itself is real and simple.
+    if (nation.vassalOf) return;
     if (getNationTier({ ...state, nations: currentNations }, nationId, sortedByMilitary) !== 1) return;
 
     const isCoalitionMember = !!runawayLeaderId && runawayLeaderId !== nationId;
@@ -261,9 +269,20 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     }
     const activeNation = currentNations[nationId];
     const leader = isCoalitionMember ? currentNations[runawayLeaderId] : null;
-    const canStrikeLeader = !!leader && !leader.isAtWar && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId);
+    const canStrikeLeader = !!leader && !leader.isAtWar
+      && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId)
+      && !isInTruce({ ...state, nations: currentNations }, nationId, runawayLeaderId);
+    // Plan §M12: real Aggressive Expansion (this nation's own accrued AE against the leader,
+    // expansion.js) scales the coalition roll further on top of the flat COALITION_WAR_ROLL_MULT —
+    // a nation the leader has personally wronged joins more eagerly than one merely nervous about
+    // its overall power share. doctrine.bandwagonMult (src/data/nations.js) was declared but never
+    // actually multiplied into anything before this — an isolationist doctrine's 0.1 now genuinely
+    // dampens its willingness to join a pile-on, and an opportunist's 1.8 genuinely sharpens it.
+    const doctrine = DOCTRINES[activeNation.doctrine] || DEFAULT_DOCTRINE;
+    const aeAgainstLeader = activeNation.ae?.[runawayLeaderId] || 0;
+    const aeScale = 1 + Math.min(AE_COALITION_ROLL_CAP - 1, aeAgainstLeader / AE_COALITION_ROLL_SCALE);
     const coalitionMult = canStrikeLeader
-      ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence)
+      ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence) * aeScale * doctrine.bandwagonMult
       : 1;
 
     if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult)) return;
