@@ -5,10 +5,11 @@
 // src/engine/nationActions/ctx.js), so the same reference really does mean the same bonuses.
 // `getNationSheet(state, nationId)` layers the contextual (state-dependent) sources on top and is
 // cached per (state, nationId) pair for the lifetime of that one state object.
-import { staticSources, contextSources } from './sources';
+import { staticSources, contextSources, regionSources } from './sources';
 import { LEGACY_HOOK } from './registry';
 
 const staticCache = new WeakMap(); // nation -> { key -> Line[] }
+const regionStaticCache = new WeakMap(); // region -> { key -> Line[] } (plan §M6: building tiers)
 
 const groupByKey = (lines) => {
   const grouped = new Map();
@@ -62,12 +63,24 @@ export const getNationSheet = (state, nationId) => {
 // which is when getRegionModifier below actually gets a first caller).
 export const getModifier = (state, nationId, key) => getNationSheet(state, nationId).explain(key);
 
-// Region scope (sparse, plan §A.2): nothing populates state.regionModifiers yet, so this always
-// returns an empty breakdown until a later milestone (M6's buildings, M14's terrain, ...) adds a
-// region-scoped source here.
+// Region scope: a region's own building tiers (plan §M6, cached per region object reference the
+// same way staticSheet caches per nation) plus any sparse TIMED modifier (plan §A.2 — nothing
+// populates state.regionModifiers yet; M14's terrain/occupation are the plan's next real source).
+const regionStaticSheet = (region) => {
+  let grouped = regionStaticCache.get(region);
+  if (!grouped) {
+    grouped = groupByKey(regionSources(region));
+    regionStaticCache.set(region, grouped);
+  }
+  return grouped;
+};
+
 export const getRegionModifier = (state, regionId, key) => {
-  const entries = (state.regionModifiers?.[regionId] || []).filter((mod) => mod.mods?.[key]);
-  const breakdown = entries.map((mod) => ({ key, value: mod.mods[key], sourceType: mod.sourceType || 'event', sourceId: mod.sourceId || mod.id, label: mod.label }));
+  const region = state.regions?.[regionId];
+  const buildingLines = region ? (regionStaticSheet(region).get(key) || []) : [];
+  const timedEntries = (state.regionModifiers?.[regionId] || []).filter((mod) => mod.mods?.[key]);
+  const timedLines = timedEntries.map((mod) => ({ key, value: mod.mods[key], sourceType: mod.sourceType || 'event', sourceId: mod.sourceId || mod.id, label: mod.label }));
+  const breakdown = [...buildingLines, ...timedLines];
   return { total: breakdown.reduce((sum, l) => sum + l.value, 0), breakdown };
 };
 

@@ -23,7 +23,10 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindCombatMultiplier, getAgesBehindResearchCostMultiplier } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
-import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
+import {
+  createEmptyRegionBuildings, canBuildTier, canBuildExtraction, BUILDING_CATEGORIES,
+  getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
+} from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
@@ -49,9 +52,9 @@ import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './succession';
 import { clampStability, clampPrestige, getIncreaseStabilityCost, WONDER_COMPLETION_PRESTIGE } from './nationalPower';
-import { seedDevelopment, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
-import { getModifier } from './modifiers/sheet';
-import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
+import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
+import { getModifier, getRegionModifier } from './modifiers/sheet';
+import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
@@ -522,18 +525,30 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.CONSTRUCT_BUILDING: {
+      // Plan §M6: tech-gated (not age-gated — the old free "rush one tier ahead" allowance is
+      // gone), real per-tier gold cost, and slot-limited (upgrading an existing category is free
+      // of slots; only a brand-new category needs a free one). Naval is now actually coastal-only
+      // in the reducer, a real pre-existing gap the plan calls out by name.
       const { regionId, categoryId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.constructBuilding;
       if (!region || region.owner !== state.playerNationId) return state;
       const currentTier = region.buildings.categories[categoryId];
       if (currentTier === undefined) return state; // unknown category
       const nextTier = currentTier + 1;
-      if (!canBuildTier(categoryId, getEffectiveAgeId(state.age, state.techAgeId), nextTier)) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      if (BUILDING_CATEGORIES[categoryId]?.coastalOnly && !isCoastal(regionId)) return state;
+      const researchedTechIds = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id].researched));
+      if (!canBuildTier(categoryId, researchedTechIds, nextTier)) return state;
+      if (currentTier < 0) {
+        const totalDev = getTotalDev(region);
+        const slots = getBuildingSlots(totalDev, !!REGIONS_DATA[regionId]?.isCapital);
+        if (getUsedBuildingSlots(region.buildings) >= slots) return state;
+      }
+      const buildingCostMult = getModifier(state, state.playerNationId, 'national.buildingCost').total;
+      const cost = getBuildingTierCost(categoryId, nextTier, buildingCostMult);
+      if ((state.resources.gold || 0) < cost) return state;
       return {
         ...state,
-        resources: applyCosts(state.resources, costs),
+        resources: { ...state.resources, gold: state.resources.gold - cost },
         regions: {
           ...state.regions,
           [regionId]: {
@@ -541,7 +556,7 @@ export const gameReducer = (state, action) => {
             buildings: { ...region.buildings, categories: { ...region.buildings.categories, [categoryId]: nextTier } }
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Constructed a new building in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, message: `Constructed ${getCategoryTierName(categoryId, nextTier)} in ${REGIONS_DATA[regionId]?.name} (-${formatMoney(cost)}).`, type: LogTypes.ACTION }]
       };
     }
 
@@ -992,8 +1007,10 @@ export const gameReducer = (state, action) => {
         // a specific unit's stats — see src/data/ages.js's getAgesBehindCombatMultiplier.
         attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId)),
         // defenseLevel's own damage reduction (a genuine "Walls" bonus, on top of the existing
-        // siege-vs-fortification gate) — see src/engine/siege.js.
-        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier(targetRegion.defenseLevel) : 1
+        // siege-vs-fortification gate) — see src/engine/siege.js. Plan §M6: the Defense building's
+        // own local.fortLevel stacks on top of the manual defenseLevel (Build Defenses) rather than
+        // replacing it — both are real, player-earned investments in the same region.
+        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) : 1
       });
 
       // A defended region's control absorbs the damage instead of an outright flip — see
@@ -1134,7 +1151,7 @@ export const gameReducer = (state, action) => {
         rng,
         generals: state.hiredCommanders,
         attackerPenaltyMultiplier: (hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT) * techGapCombatMultiplier,
-        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier(targetRegion.defenseLevel) : 1
+        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) : 1
       });
 
       // See src/engine/siege.js — a defended region's control absorbs the damage instead of an
