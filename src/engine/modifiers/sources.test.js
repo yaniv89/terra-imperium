@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { staticSources, contextSources } from './sources';
+import { staticSources, contextSources, regionSources } from './sources';
 import { createInitialState } from '../../context/GameContext';
+import { createEmptyRegionBuildings } from '../../data/buildings';
 
 describe('staticSources', () => {
   it('emits one line per non-zero hook on the nation\'s government effect', () => {
@@ -76,5 +77,38 @@ describe('contextSources', () => {
     };
     expect(contextSources(withTech, 'fr')).toContainEqual({ key: 'national.apBonus', value: 1, sourceType: 'tech', sourceId: 'governance', label: 'Governance Techs' });
     expect(contextSources(withTech, 'de').some((l) => l.sourceType === 'tech')).toBe(false);
+  });
+});
+
+describe('regionSources (plan §M6: building tiers)', () => {
+  it('emits nothing for a region with no buildings at all', () => {
+    expect(regionSources({ buildings: createEmptyRegionBuildings() })).toEqual([]);
+  });
+
+  it('emits a line per built category at its current tier\'s effect', () => {
+    const buildings = createEmptyRegionBuildings();
+    buildings.categories.economy = 0; // Market: local.taxIncome 0.15
+    const lines = regionSources({ buildings });
+    expect(lines).toContainEqual({ key: 'local.taxIncome', value: 0.15, sourceType: 'building', sourceId: 'economy_0', label: 'Market' });
+  });
+
+  it('uses the CURRENT tier\'s value only, not every tier up to it', () => {
+    const buildings = createEmptyRegionBuildings();
+    buildings.categories.military = 2; // Military Academy: local.manpower 0.50 (not Barracks' 0.20 or Drill Yard's 0.35)
+    const lines = regionSources({ buildings });
+    expect(lines.filter((l) => l.key === 'local.manpower')).toEqual([
+      { key: 'local.manpower', value: 0.50, sourceType: 'building', sourceId: 'military_2', label: 'Military Academy' }
+    ]);
+  });
+
+  it('emits nothing for a category left at -1 (unbuilt)', () => {
+    const buildings = createEmptyRegionBuildings();
+    const lines = regionSources({ buildings });
+    expect(lines).toEqual([]);
+  });
+
+  it('is safe against a region with no buildings field at all', () => {
+    expect(regionSources({})).toEqual([]);
+    expect(regionSources(null)).toEqual([]);
   });
 });

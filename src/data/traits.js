@@ -11,7 +11,7 @@ export const TRAITS = {
   scholar: { id: 'scholar', name: 'Scholar', description: '+10% Tech Point income', effects: { techPointsMult: 0.1 } }, // adapted: no legitimacy system yet (M4)
   warrior: { id: 'warrior', name: 'Warrior', description: '+1 MIL/turn', effects: { milBonus: 1 } },
   diplomat: { id: 'diplomat', name: 'Diplomat', description: '+1 DIP/turn', effects: { dipBonus: 1 } },
-  architect: { id: 'architect', name: 'Architect', description: '+8% Gold income (efficient construction)', effects: { goldMult: 0.08 } }, // adapted: no building-cost system yet (M6)
+  architect: { id: 'architect', name: 'Architect', description: '−15% building cost', effects: { buildingCost: -0.15 } }, // wired for real once M6 added the hook (was goldMult before)
   merchant: { id: 'merchant', name: 'Merchant', description: '+12% Gold income', effects: { goldMult: 0.12 } },
   administrator: { id: 'administrator', name: 'Administrator', description: '−10% Develop Province cost', effects: { developmentCost: -0.1 } }, // wired for real once M5 added the hook (was admBonus before)
   strategist: { id: 'strategist', name: 'Strategist', description: '+6% HR income', effects: { hrMult: 0.06 } }, // adapted: no generals-as-modifier system yet

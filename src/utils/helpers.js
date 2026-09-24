@@ -71,10 +71,6 @@ export const getPlayerControl = (state) => state.regions[getNationCapital(state.
 // before the same control%/infrastructure scaling every other resource gets.
 const EXTRACTION_BASE_YIELD = 20;
 
-// Base per-turn tech points from one tier level of a region's Science building (Library ->
-// Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
-const SCIENCE_TECHPOINT_YIELD = 2;
-
 // Administrative Capacity, now split three ways (plan §M2): a flat pool/turn regardless of empire
 // size meant a 50-region late-game empire acted exactly as often per turn as its 1-region start —
 // nothing about maturing your state ever expanded what you could actually DO in a turn. This adds
@@ -161,10 +157,10 @@ export const calcIncome = (state) => {
     // Province development (plan §M5): gold/hr now come from region.dev.tax/production/manpower —
     // the LIVE economic base — instead of REGIONS_DATA's static resources.gold/hr directly. The
     // clamped popFactor (development.js) replaces the old unclamped popGrowthMult specifically to
-    // stop population and development from compounding without limit, per the plan's own concern;
-    // `local.*` lines are always 0 today (nothing populates state.regionModifiers yet — M6's
-    // building tiers are the plan's first real source, same "plumbing before it has a source"
-    // pattern as national.apBonus's Governance-tech line before M2 gave it a reader).
+    // stop population and development from compounding without limit, per the plan's own concern.
+    // `local.*` lines come from M6's building tiers (Economy/Industry/Military, src/data/
+    // buildings.js), read generically the same way national.apBonus's Governance-tech line already
+    // was before M2 gave it a reader.
     if (income.gold !== undefined && income.hr !== undefined) {
       const dev = region.dev || seedDevelopment(region.id);
       const popFactor = getPopFactor(region, regData);
@@ -176,6 +172,9 @@ export const calcIncome = (state) => {
       const manpowerIncome = dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
       income.gold += taxIncome + productionIncome;
       income.hr += manpowerIncome;
+      // Naval building line (plan §M6): a flat trade-income trickle per tier, coastal-only by
+      // construction (BUILDING_CATEGORIES.naval.coastalOnly gates the building itself).
+      income.gold += getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
     }
 
     Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
@@ -184,13 +183,14 @@ export const calcIncome = (state) => {
       income[resId] += EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
 
-    // Tech points (Research tab): a Science building's tier level, same controlMult/infraMult
-    // scaling as every other region yield. techPoints isn't in RESOURCE_IDS (it's a meta-currency,
-    // like actionPoints), but resolveTurn.js applies every key calcIncome returns generically, so
-    // adding it here is enough to make it flow into resources each turn.
-    const scienceTier = region.buildings?.categories?.science;
-    if (scienceTier !== undefined && scienceTier >= 0) {
-      income.techPoints = (income.techPoints || 0) + (scienceTier + 1) * SCIENCE_TECHPOINT_YIELD * controlMult * infraMult;
+    // Tech points (Research tab): the Science building line's own authored per-tier values (plan
+    // §M6: Library +2, Scriptorium +4, University +6, Research Lab +9 — src/data/buildings.js),
+    // replacing the old uniform (tier+1)*SCIENCE_TECHPOINT_YIELD formula. techPoints isn't in
+    // RESOURCE_IDS (it's a meta-currency, like the power pools), but resolveTurn.js applies every
+    // key calcIncome returns generically, so adding it here is enough to make it flow each turn.
+    const localTechPoints = getRegionModifier(state, region.id, 'local.techPoints').total;
+    if (localTechPoints) {
+      income.techPoints = (income.techPoints || 0) + localTechPoints * controlMult * infraMult;
     }
   });
 

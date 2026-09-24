@@ -14,7 +14,11 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner, getNationCapital } from '../../data/regions';
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
-import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
+import {
+  BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction,
+  getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
+} from '../../data/buildings';
+import { TECH_TREE } from '../../data/techTree';
 import { getDepositsFor } from '../../data/deposits';
 import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
@@ -27,7 +31,7 @@ import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/succession';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
-import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost } from '../../engine/development';
+import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
 import { ActionButton } from '../ui';
@@ -421,11 +425,16 @@ const DomesticPanel = ({ selectedRegion }) => {
     triggerEffect('develop_province', { region: selectedRegion });
     dispatchAction(ActionTypes.DEVELOP_PROVINCE, { devType });
   };
+  const researchedTechIds = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id].researched));
+  const buildingCostMult = getModifier(state, state.playerNationId, 'national.buildingCost').total;
+  const buildingSlots = regionState ? getBuildingSlots(getTotalDev(regionState), !!regionData?.isCapital) : 0;
+  const usedBuildingSlots = regionState ? getUsedBuildingSlots(regionState.buildings) : 0;
   const handleConstructBuilding = (categoryId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.constructBuilding)) return addLog('Not enough resources', 'action');
+    const nextTierIndex = (regionState?.buildings.categories[categoryId] ?? -1) + 1;
+    const cost = getBuildingTierCost(categoryId, nextTierIndex, buildingCostMult);
+    if ((state.resources.gold || 0) < cost) return addLog('Not enough gold', 'action');
     // The icon must match the TIER actually being built (the age it belongs to), not the current
     // calendar/tech age — a rushed one-age-ahead build already shows next age's structure.
-    const nextTierIndex = (regionState?.buildings.categories[categoryId] ?? -1) + 1;
     const tierAge = BUILDING_CATEGORIES[categoryId]?.tiers[nextTierIndex]?.age;
     triggerEffect('construct_building', { region: selectedRegion, variant: categoryId, age: tierAge });
     dispatch({ type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: selectedRegion, categoryId } });
@@ -565,14 +574,23 @@ const DomesticPanel = ({ selectedRegion }) => {
           </div>
 
           <div className="space-y-2">
-            <div className="text-xs font-semibold text-slate-300">Buildings</div>
+            <div className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+              <span>Buildings</span>
+              <span className="text-slate-500 font-normal">{usedBuildingSlots}/{buildingSlots} slots</span>
+            </div>
             {BUILDING_CATEGORY_IDS.map(categoryId => {
               const category = BUILDING_CATEGORIES[categoryId];
               const currentTier = regionState.buildings.categories[categoryId];
               const currentName = currentTier >= 0 ? getCategoryTierName(categoryId, currentTier) : null;
               const nextTier = currentTier + 1;
               const nextName = getCategoryTierName(categoryId, nextTier);
-              const buildable = nextName && canBuildTier(categoryId, effectiveAge, nextTier);
+              const notCoastal = category.coastalOnly && !regionData.isCoastal;
+              const techGated = nextName && !canBuildTier(categoryId, researchedTechIds, nextTier);
+              const needsNewSlot = currentTier < 0;
+              const noFreeSlot = needsNewSlot && usedBuildingSlots >= buildingSlots;
+              const cost = nextName ? getBuildingTierCost(categoryId, nextTier, buildingCostMult) : null;
+              const buildable = nextName && !notCoastal && !techGated && !noFreeSlot;
+              const requiresTechName = techGated ? TECH_TREE[category.tiers[nextTier].requiresTech]?.name : null;
               // Food & Growth is the one category with a mechanical effect worth naming here (it
               // feeds resolveTurn.js's population growth via src/engine/population.js) — every
               // other category's own action (Develop Resource Site, the Science tech-point yield,
@@ -581,15 +599,21 @@ const DomesticPanel = ({ selectedRegion }) => {
               const foodEffect = categoryId === 'food' && nextName
                 ? `, +${((nextTier + 1) * FOOD_TIER_GROWTH_BONUS * 100).toFixed(2)}%/turn population growth`
                 : '';
+              const reason = notCoastal ? 'Coastal region only'
+                : techGated ? `Requires ${requiresTechName || 'a tech not yet researched'}`
+                : noFreeSlot ? 'No free building slot'
+                : nextName ? `Build ${nextName}${foodEffect}`
+                : 'Fully developed';
               return (
                 <ActionButton
                   key={categoryId}
                   icon={Building2}
                   label={`${category.label}: ${currentName || 'None'}`}
-                  description={nextName ? `Build ${nextName}${foodEffect}` : 'Fully developed for this age'}
-                  costs={nextName ? ACTION_COSTS.constructBuilding : null}
+                  description={reason}
+                  costs={cost !== null ? { gold: cost } : null}
                   onClick={() => handleConstructBuilding(categoryId)}
                   disabled={!buildable}
+                  resources={state.resources}
                   size="small"
                 />
               );

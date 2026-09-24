@@ -6,7 +6,7 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
-import { getNationCapital } from '../data/regions';
+import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
 import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
 import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
@@ -180,20 +180,59 @@ describe('Domestic tab actions', () => {
     });
   });
 
-  describe('CONSTRUCT_BUILDING', () => {
-    it('advances a category to its first tier in the Bronze Age', () => {
+  describe('CONSTRUCT_BUILDING (plan §M6: tech-gated, real per-tier gold cost, slot-limited)', () => {
+    it('builds a tier-1 with no requiresTech, at no tech at all researched', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(next.regions[cap('fr')].buildings.categories.food).toBe(0);
+      expect(next.regions[cap('fr')].buildings.categories.food).toBe(0); // Granary
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
-    it('rejects rushing more than one tier ahead of the calendar', () => {
+    it('is a no-op for a tier gated by a tech that is not researched', () => {
       const state = richState();
       const tier0 = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      const tier1 = gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(1); // Irrigation (classical) — one age ahead of bronze, allowed
-      const tier2Attempt = gameReducer(tier1, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(tier2Attempt).toBe(tier1); // Farm Estate (kingdoms) — two ages ahead, rejected
+      // Irrigation (tier 1) requires infrastructure_aqueducts — not researched.
+      expect(gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } })).toBe(tier0);
+    });
+
+    it('builds a gated tier once its specific tech is researched', () => {
+      const base = richState();
+      const tier0 = gameReducer(base, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      const withTech = { ...tier0, techTree: { ...tier0.techTree, infrastructure_aqueducts: { ...tier0.techTree.infrastructure_aqueducts, researched: true } } };
+      const tier1 = gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(1); // Irrigation
+    });
+
+    it('is a no-op for a category whose own tier-1 requires a tech (e.g. Economy needs Minted Coinage)', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'economy' } })).toBe(state);
+    });
+
+    it('is a no-op for a naval building in a non-coastal region', () => {
+      const state = richState();
+      const inlandId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && !REGIONS_DATA[id]?.isCoastal);
+      if (!inlandId) return; // no inland French region in the current dataset — nothing to assert
+      const withTech = { ...state, techTree: { ...state.techTree, economy_silk_road_trade: { ...state.techTree.economy_silk_road_trade, researched: true } } };
+      expect(gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: inlandId, categoryId: 'naval' } })).toBe(withTech);
+    });
+
+    it('rejects a new category once every building slot is used, but upgrading an existing one is still free', () => {
+      // France's capital: 1 base + 1 for being the capital = 2 slots at 0 extra dev.
+      let state = richState();
+      state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }); // slot 1/2
+      state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // slot 2/2
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'defense' } })).toBe(state); // no free slot for a THIRD category
+      const upgraded = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // Drill Yard needs Iron Weapons though
+      expect(upgraded).toBe(state); // rejected by the tech gate, not the (already-passing) slot check
+      const withTech = { ...state, techTree: { ...state.techTree, military_iron_weapons: { ...state.techTree.military_iron_weapons, researched: true } } };
+      const upgradedForReal = gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } });
+      expect(upgradedForReal.regions[cap('fr')].buildings.categories.military).toBe(1); // upgrading is free of slots
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const fresh = createInitialState({ playerNationId: 'fr' });
+      const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } })).toBe(base);
     });
 
     it('rejects an unknown category', () => {

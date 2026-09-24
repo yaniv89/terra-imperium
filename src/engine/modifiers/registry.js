@@ -24,13 +24,23 @@ export const MODIFIER_KEYS = {
   // below, which is exactly the "first real consumer" this key was added for.
   'national.developmentCost': { scope: 'nation', unit: 'pct', label: 'Development Cost' },
   // Region-scoped (plan §M5's income formula: local.taxIncome/productionIncome/manpower feed a
-  // region's own tax/production/manpower yield). Nothing populates these sparse region-modifier
-  // lines yet — M6's building tiers are the plan's first real source — so calcIncome reading them
-  // via getRegionModifier is always 0 today, exactly like national.apBonus's Governance-tech line
-  // was a no-op until M2 gave it a reader.
+  // region's own tax/production/manpower yield). M6's building tiers (src/data/buildings.js) are
+  // the first real source for all of these.
   'local.taxIncome': { scope: 'region', unit: 'pct', label: 'Local Tax Income' },
   'local.productionIncome': { scope: 'region', unit: 'pct', label: 'Local Production Income' },
-  'local.manpower': { scope: 'region', unit: 'pct', label: 'Local Manpower' }
+  'local.manpower': { scope: 'region', unit: 'pct', label: 'Local Manpower' },
+  // Plan §M6: building-tier effects for the categories that don't feed the three income keys
+  // above. techPoints/tradeIncome/supplyRange are flat; fortLevel and stabilityBonus follow their
+  // national namesakes' own sign convention (stabilityBonus: positive reduces unrest).
+  'local.techPoints': { scope: 'region', unit: 'flat', label: 'Local Tech Points' },
+  'local.tradeIncome': { scope: 'region', unit: 'flat', label: 'Local Trade Income' },
+  'local.supplyRange': { scope: 'region', unit: 'flat', label: 'Local Supply Range' },
+  'local.fortLevel': { scope: 'region', unit: 'flat', label: 'Fort Level' },
+  'local.stabilityBonus': { scope: 'region', unit: 'flat', label: 'Local Stability' },
+  // Plan §M6.1: Develop Province's national.developmentCost sibling for buildings — sourced by the
+  // Architect ruler trait (M3), which this milestone rewires from its old goldMult stand-in now
+  // that the real hook exists.
+  'national.buildingCost': { scope: 'nation', unit: 'pct', label: 'Building Cost' }
 };
 
 // Maps getNationBonusTotal's old hook-name argument to its modifier key here, so every existing
@@ -46,5 +56,6 @@ export const LEGACY_HOOK = {
   admBonus: 'national.admBonus',
   dipBonus: 'national.dipBonus',
   milBonus: 'national.milBonus',
-  developmentCost: 'national.developmentCost'
+  developmentCost: 'national.developmentCost',
+  buildingCost: 'national.buildingCost'
 };

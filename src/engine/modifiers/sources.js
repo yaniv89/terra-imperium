@@ -16,6 +16,7 @@ import { TechCategories } from '../../data/types';
 import { TRAITS } from '../../data/traits';
 import { LEGACY_HOOK } from './registry';
 import { getOverextension, getRulerBestPool } from '../nationalPower';
+import { BUILDING_CATEGORIES } from '../../data/buildings';
 
 const linesFromEffect = (effect, sourceType, sourceId, label) =>
   Object.entries(effect || {})
@@ -128,5 +129,22 @@ export const contextSources = (state, nationId) => {
     lines.push({ key: 'national.stabilityBonus', value: -1, sourceType: 'legitimacy', sourceId: 'legitimacy', label: 'Low Legitimacy' });
   }
 
+  return lines;
+};
+
+// Plan §M6: a region's own building tiers, feeding the local.* keys directly (these are already
+// the modern key names in src/data/buildings.js's `effects` objects, not old short hook names, so
+// this doesn't go through LEGACY_HOOK/linesFromEffect the way a nation source does). A region with
+// no building in a category (tier -1) contributes nothing for it.
+export const regionSources = (region) => {
+  const lines = [];
+  Object.entries(region?.buildings?.categories || {}).forEach(([categoryId, tierIndex]) => {
+    if (tierIndex < 0) return;
+    const tier = BUILDING_CATEGORIES[categoryId]?.tiers[tierIndex];
+    if (!tier?.effects) return;
+    Object.entries(tier.effects).forEach(([key, value]) => {
+      lines.push({ key, value, sourceType: 'building', sourceId: `${categoryId}_${tierIndex}`, label: tier.name });
+    });
+  });
   return lines;
 };

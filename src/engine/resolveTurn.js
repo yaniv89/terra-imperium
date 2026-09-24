@@ -16,6 +16,7 @@ import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome } from '../utils/helpers';
+import { getRegionModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
@@ -140,7 +141,11 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.entries(regions).forEach(([id, region]) => {
     const owner = modifierExpiredNations[region.owner];
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
-    const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus') + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel);
+    // Plan §M6: the Culture & Order building line's local.stabilityBonus shaves this region's own
+    // unrest, on top of the nation-wide sources (government/policy/traits/stability/overextension).
+    const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus')
+      + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel)
+      + getRegionModifier(state, id, 'local.stabilityBonus').total;
     const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta);
     // Siege recovery (src/engine/siege.js): a region not attacked recently regenerates the control
     // combat ground down — an interrupted siege doesn't bank its damage forever. Also clears the
@@ -251,7 +256,9 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.entries(unitsByOwner).forEach(([ownerId, ownerUnits]) => {
     const ownedRegionIds = getOwnedRegionIds(regions, ownerId);
     if (ownedRegionIds.length === 0) return; // no territory of its own (e.g. rebels) — nothing to be supplied from
-    const maxSupplyRange = Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure)));
+    // Plan §M6: the Logistics building line's local.supplyRange extends how far THAT region can
+    // supply from, on top of infrastructure's own existing contribution.
+    const maxSupplyRange = Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure) + getRegionModifier(state, id, 'local.supplyRange').total));
     // One bounded multi-source BFS covers every in-range region at once, rather than a fresh
     // search per distinct region a unit happens to occupy — the set of in-range regions is the
     // same for every one of this nation's units this turn regardless of how many distinct

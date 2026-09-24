@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getNationSheet, getModifier, getRegionModifier, getNationBonusTotal, explainNationBonus } from './sheet';
+import { createEmptyRegionBuildings } from '../../data/buildings';
 
 describe('getNationBonusTotal / explainNationBonus (the legacy shim)', () => {
   it('sums government + policy + wonder + identity for one hook, matching the old getNationBonusTotal', () => {
@@ -71,5 +72,26 @@ describe('getRegionModifier', () => {
       total: -0.2,
       breakdown: [{ key: 'local.taxIncome', value: -0.2, sourceType: 'event', sourceId: 'm1', label: 'Siege' }]
     });
+  });
+
+  it('includes a region\'s own building-tier lines (plan §M6), on top of any timed modifier', () => {
+    const buildings = createEmptyRegionBuildings();
+    buildings.categories.economy = 0; // Market: local.taxIncome 0.15
+    const state = {
+      regions: { 'fr-75': { buildings } },
+      regionModifiers: { 'fr-75': [{ id: 'm1', sourceType: 'event', label: 'Siege', mods: { 'local.taxIncome': -0.2 } }] }
+    };
+    const { total, breakdown } = getRegionModifier(state, 'fr-75', 'local.taxIncome');
+    expect(total).toBeCloseTo(-0.05); // 0.15 (Market) - 0.2 (siege)
+    expect(breakdown).toContainEqual({ key: 'local.taxIncome', value: 0.15, sourceType: 'building', sourceId: 'economy_0', label: 'Market' });
+  });
+
+  it('caches building lines per region object reference, the same way staticSheet caches per nation', () => {
+    const buildings = createEmptyRegionBuildings();
+    buildings.categories.economy = 0;
+    const region = { buildings };
+    const stateA = { regions: { r1: region } };
+    const stateB = { regions: { r1: region } }; // different state, same region reference
+    expect(getRegionModifier(stateA, 'r1', 'local.taxIncome').total).toBe(getRegionModifier(stateB, 'r1', 'local.taxIncome').total);
   });
 });
