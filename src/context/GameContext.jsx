@@ -12,25 +12,30 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 // they're importable, unmodified, from a server-authoritative context too — re-exported here so
 // every existing `from '../context/GameContext'` import site keeps working unchanged.
 import { createInitialState, gameReducer } from '../engine/gameReducer';
+import { migrateSave } from '../engine/saveMigrations';
 
 export { createInitialState, gameReducer };
 
 // ============ PERSISTENCE ============
 const STORAGE_KEY = 'terra-imperium-save-v1';
+// The real version now lives inside the payload (saveMigrations.js's CURRENT_SAVE_VERSION) — this
+// is just the storage key's own namespace, kept stable so existing local saves and cloud rows
+// aren't orphaned by a key rename. What used to be written here (SAVE_VERSION) is still written on
+// every save, but reading it is now migrateSave's job, not a strict equality check.
 const SAVE_VERSION = 1;
 
-// Lazily load a saved game, falling back to a fresh one. Old/corrupt/foreign-shaped saves are
-// merged over a fresh default state so a missing field never crashes the app.
+// Lazily load a saved game, falling back to a fresh one. migrateSave handles version upgrades and
+// backfills any field a newer build added that this save predates; a save it can't read at all
+// (corrupt, or from a future build) is left untouched in storage and a fresh game starts instead —
+// see saveMigrations.js's own header for why this never deletes anything.
 const loadOrCreateState = () => {
-  const fresh = createInitialState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fresh;
-    const saved = JSON.parse(raw);
-    if (!saved || saved.version !== SAVE_VERSION || !saved.state) return fresh;
-    return { ...fresh, ...saved.state };
+    if (!raw) return createInitialState();
+    const migrated = migrateSave(JSON.parse(raw));
+    return migrated ? migrated.state : createInitialState();
   } catch (e) {
-    return fresh;
+    return createInitialState();
   }
 };
 
@@ -163,8 +168,9 @@ export const GameProvider = ({ children }) => {
   const importSave = useCallback((jsonText) => {
     try {
       const parsed = JSON.parse(jsonText);
-      const payload = parsed && parsed.version === SAVE_VERSION && parsed.state ? parsed.state : parsed;
-      dispatch({ type: ActionTypes.LOAD_GAME, payload });
+      const migrated = migrateSave(parsed);
+      if (!migrated) return false;
+      dispatch({ type: ActionTypes.LOAD_GAME, payload: migrated.state });
       return true;
     } catch (e) {
       return false;

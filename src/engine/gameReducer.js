@@ -1566,3 +1566,8 @@ export const gameReducer = (state, action) => {
       return state;
   }
 };
+
+// Re-exported so the Supabase edge bundle (scripts/build-edge-engine.mjs, whose entry point is
+// this file) carries the save-migration layer automatically, without a separate bundling step —
+// see src/engine/saveMigrations.js for why this exists and what it does.
+export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
