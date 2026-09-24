@@ -60,8 +60,9 @@ const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 // one optional-chained call per phase when absent, so normal play and every other test pay nothing
 // for it; when present the closure trades one `performance.now()` read per phase for the timing.
 export const resolveTurn = (state, { onPhase } = {}) => {
-  // Guard: nothing to resolve if the game already ended or an event is blocking play.
-  if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent) {
+  // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
+  // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
+  if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent || state.pendingPeaceOffer) {
     return state;
   }
 
@@ -531,6 +532,12 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.assign(regions, warProgress.regions);
   nationsAfterWars = warProgress.nations;
   wars = warProgress.wars;
+  // A peace deal's 'gold' term (plan §M13/peace.js) only ever moves the PLAYER's own treasury (an
+  // AI nation has no simulated one pre-M16) — applied here as a delta against `resources`'s own
+  // running total rather than overwriting it outright, since this turn's income phases below add to
+  // the same object both before and after this point.
+  resources.gold = (resources.gold || 0) + ((warProgress.resources.gold || 0) - (state.resources.gold || 0));
+  const pendingPeaceOffer = warProgress.pendingPeaceOffer || null;
   logs.push(...warProgress.logs.map(l => ({ year: newYear, ...l })));
   mark('aiWarProgress');
 
@@ -650,6 +657,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     greatProjects,
     units,
     wars,
+    pendingPeaceOffer,
     regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,
@@ -667,7 +675,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
 
   // --- victory (checked against THIS turn's resolved state, not last turn's) ---
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
-  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent) {
+  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer) {
     const conditionId = checkVictoryConditions(next);
     if (conditionId) {
       const condition = VICTORY_CONDITIONS[conditionId];

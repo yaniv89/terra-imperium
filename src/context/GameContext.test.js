@@ -20,6 +20,20 @@ import { MAX_RIVALS, VASSAL_ANNEX_COOLDOWN_TURNS, TRUCE_BREAK_STABILITY_PENALTY 
 // nation id directly as a region id.
 const cap = getNationCapital;
 
+// Plan §M13: LAUNCH_INVASION/AMPHIBIOUS_ASSAULT now require an active war with the target's owner
+// (a real pre-existing gap this milestone fixes — see gameReducer.js's own comment on those cases),
+// so any test exercising them needs one declared first. A minimal, directly-constructed war record
+// is enough here; these are unit tests on the reducer's own capture logic, not on declareWar itself.
+const withWarAgainst = (state, targetNationId) => ({
+  ...state,
+  wars: [...state.wars, {
+    id: `war_test_${targetNationId}`, aggressor: state.playerNationId, enemy: targetNationId, active: true,
+    goalAchieved: false, startYear: state.year, startTurn: state.turnNumber, cb: 'none',
+    battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0,
+    goal: { type: 'destroy_military', threshold: 1 }
+  }]
+});
+
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
     const state = createInitialState({ playerNationId: 'fr' });
@@ -1003,49 +1017,33 @@ describe('Military tab actions', () => {
 
   describe('LAUNCH_INVASION', () => {
     const withAttacker = (strength) => {
-      const state = richState();
+      const state = withWarAgainst(richState(), 'be');
       const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
       if (strength === undefined) return recruited;
       const unitId = Object.keys(recruited.units)[0];
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };
     };
 
-    it('captures an undefended adjacent region and moves surviving units into it', () => {
+    it('occupies (not annexes) an undefended adjacent region and moves surviving units into it', () => {
+      // Plan §M13: capturing a region during a war sets `occupiedBy`; `owner` — and the revolt
+      // system's `formerOwner` — only change at the peace table (see peace.test.js's 'cede' tests).
       const state = withAttacker();
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-      expect(next.regions[BE_REGION].owner).toBe('fr');
+      expect(next.regions[BE_REGION].owner).toBe('be');
+      expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
+      expect(next.regions[BE_REGION].formerOwner).toBeUndefined();
       expect(next.units[unitId].regionId).toBe(BE_REGION);
       expect(next.resources.mil).toBeLessThan(state.resources.mil);
       expect(next.lastBattleReport.outcome).toBe('attacker');
-      // Conquered territory (plan §9 revolt system): records who it was taken from, so an
-      // unresolved rebellion there can later revert it rather than fighting the same army forever.
-      expect(next.regions[BE_REGION].formerOwner).toBe('be');
     });
 
-    it('does not mark a nation reclaiming its own native region as conquered territory', () => {
-      // be-vwv (Hainaut) really borders nl-ze (Zeeland) — worldRegions.json — so this uses that
-      // real pair directly rather than each nation's (capital-heuristic) "capital" region, since
-      // build-world-regions.mjs's smallest-area capital pick lands on a tiny detached island
-      // territory for some nations (e.g. Saba for the Netherlands), which isn't adjacent to
-      // anything useful here.
-      const BE_REGION = 'be-vwv';
-      const NL_REGION = 'nl-ze';
-      const base = richState('be');
-      const recruited = gameReducer(base, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: BE_REGION, classId: 'infantry' } });
-      const unitId = Object.keys(recruited.units)[0];
-      const state = {
-        ...recruited,
-        units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], regionId: NL_REGION } },
-        regions: {
-          ...recruited.regions,
-          [BE_REGION]: { ...recruited.regions[BE_REGION], owner: 'fr' },
-          [NL_REGION]: { ...recruited.regions[NL_REGION], owner: 'be' }
-        }
-      };
-      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: NL_REGION, targetRegionId: BE_REGION } });
-      expect(next.regions[BE_REGION].owner).toBe('be');
-      expect(next.regions[BE_REGION].formerOwner).toBeUndefined();
+    it('records the invasion as a battle in the war record, favoring the winning side\'s war score', () => {
+      const state = withAttacker();
+      const war = state.wars.find(w => w.enemy === 'be' || w.aggressor === 'be');
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+      const nextWar = next.wars.find(w => w.id === war.id);
+      expect(nextWar.battleScore).toBeGreaterThan(war.battleScore);
     });
 
     it('is repelled by a strong defender, leaving the region unconquered', () => {
@@ -1108,14 +1106,15 @@ describe('Military tab actions', () => {
         // the 15 threshold.
         const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit }, regions: { ...state.regions, [BE_REGION]: { ...state.regions[BE_REGION], control: 40 } } };
         const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-        expect(next.regions[BE_REGION].owner).toBe('fr');
+        expect(next.regions[BE_REGION].owner).toBe('be'); // occupation, not annexation (plan §M13)
+        expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
         expect(next.regions[BE_REGION].control).toBe(25); // the usual post-capture reset
         expect(next.regions[BE_REGION].underInvasion).toBe(false);
         expect(next.lastBattleReport.captured).toBe(true);
       });
 
       it('clamps at the threshold without capturing when the attacker has no melee unit deployed', () => {
-        const state = richState();
+        const state = withWarAgainst(richState(), 'be');
         const recruitedRanged = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'ranged' } });
         const rangedId = Object.keys(recruitedRanged.units)[0];
         const strongRanged = { ...recruitedRanged, units: { ...recruitedRanged.units, [rangedId]: { ...recruitedRanged.units[rangedId], strength: 50000 } } };
@@ -1153,6 +1152,14 @@ describe('Military tab actions', () => {
       const state = withAttacker();
       const otherId = Object.keys(state.regions).find(id => state.regions[id].owner !== 'fr');
       expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: otherId, targetRegionId: BE_REGION } })).toBe(state);
+    });
+
+    // Plan §M13: a real pre-existing gap this milestone fixes — invading previously required no
+    // declared war at all.
+    it('is a no-op with no active war against the target\'s owner', () => {
+      const state = richState();
+      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
+      expect(gameReducer(recruited, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(recruited);
     });
 
     it('is a no-op against a region the player already owns', () => {
@@ -1384,17 +1391,18 @@ describe('Navies and amphibious invasion actions', () => {
     const withEmbarkedForce = () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
       const embarked = gameReducer(state, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
-      return { state: embarked, navalUnitId, landUnitId };
+      // Plan §M13: an amphibious assault now also requires an active war with the target's owner.
+      return { state: withWarAgainst(embarked, 'gb'), navalUnitId, landUnitId };
     };
 
-    it('captures an undefended coastal region reachable only by sea', () => {
+    it('occupies (not annexes) an undefended coastal region reachable only by sea', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
       const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
-      expect(next.regions[GB_TARGET].owner).toBe('fr');
+      expect(next.regions[GB_TARGET].owner).toBe('gb');
+      expect(next.regions[GB_TARGET].occupiedBy).toBe('fr');
       expect(next.units[landUnitId].regionId).toBe(GB_TARGET);
       expect(next.units[landUnitId].embarkedOn).toBeNull();
       expect(next.lastBattleReport.outcome).toBe('attacker');
-      expect(next.regions[GB_TARGET].formerOwner).toBe('gb');
     });
 
     it('sinks the transport and its cargo when intercepted by a defending fleet', () => {

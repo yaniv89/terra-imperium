@@ -151,7 +151,13 @@ describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
 
     expect(recruitedNothing, `${RIVAL_AI_ID} recruited nothing in ${recruitedNothing}/${TRIALS} trials`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
     expect(failedToCounter, `${RIVAL_AI_ID}'s infantry ratio was below 50% in ${failedToCounter}/${TRIALS} trials that did recruit`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
-  }, 30000); // 5 trials x 80 turns at the 4,482-region world's real per-turn cost
+    // 5 trials x 80 turns at the 4,482-region world's real per-turn cost. Plan §M13's war-score
+    // bookkeeping (src/engine/diplomacy.js) adds real per-turn work on top of M11/M12's own growth,
+    // pushing the measured mean turn cost (see the budget test above) close to its 80ms/turn budget
+    // — the same ~80ms/turn this test's own 400-turn total now needs headroom for, matching the
+    // "no runaway leader" test's own 80ms/turn allowance below rather than this test's older,
+    // tighter 30s/400-turn (75ms/turn) budget.
+  }, 40000);
 });
 
 describe('AI quality benchmark: no runaway leader', () => {

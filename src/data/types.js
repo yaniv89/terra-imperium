@@ -84,6 +84,12 @@ export const ActionTypes = {
   DECLARE_WAR: 'DECLARE_WAR',
   FABRICATE_CLAIM: 'FABRICATE_CLAIM',
   SUE_FOR_PEACE: 'SUE_FOR_PEACE',
+  // Plan §M13: negotiated peace with real terms, replacing SUE_FOR_PEACE's implicit white peace
+  // for any war the player is winning enough to actually demand something in. SUE_FOR_PEACE itself
+  // is kept as a white-peace alias (see gameReducer.js's own case) rather than removed outright.
+  OFFER_PEACE: 'OFFER_PEACE',
+  ACCEPT_PENDING_PEACE: 'ACCEPT_PENDING_PEACE',
+  REJECT_PENDING_PEACE: 'REJECT_PENDING_PEACE',
   TRADE_AGREEMENT: 'TRADE_AGREEMENT',
   MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
   GIFT_BRIBE: 'GIFT_BRIBE',
