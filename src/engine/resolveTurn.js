@@ -15,7 +15,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getMaxActionPoints } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome } from '../utils/helpers';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
@@ -100,18 +100,25 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     logs.push({ year: newYear, message: `Army upkeep: -${formatMoney(upkeepCost)} (${playerUnitCount} unit${playerUnitCount === 1 ? '' : 's'})`, type: LogTypes.ACTION });
   }
 
-  // Action points top up to the nation's per-turn budget every turn, but unspent AP now BANKS
-  // instead of being wiped — a turn with nothing worth 1 AP right now becomes "save up for a 3-AP
-  // wonder next turn" instead of pure waste. Capped at 2x the current max so banking can't grow
-  // unbounded over a ~500-turn game; a fully-spent turn (0 left) still lands exactly on the flat
-  // maxActionPoints a player always got before this existed. getMaxActionPoints (Administrative
-  // Capacity) is recomputed fresh from current government/tech every turn rather than read from a
-  // stored field, so adopting a government or finishing a Governance tech takes effect on the very
-  // next turn automatically.
-  const maxActionPoints = getMaxActionPoints({ ...state, nations: modifierExpiredNations });
-  const AP_BANK_CAP_MULTIPLIER = 2;
-  resources.maxActionPoints = maxActionPoints;
-  resources.actionPoints = Math.min((state.resources.actionPoints || 0) + maxActionPoints, maxActionPoints * AP_BANK_CAP_MULTIPLIER);
+  // ADM/DIP/MIL (plan §M2) each top up to the nation's per-turn budget every turn, but unspent
+  // power now BANKS instead of being wiped — a turn with nothing worth spending ADM on right now
+  // becomes "save up for a pricier wonder next turn" instead of pure waste. Capped at 2x the
+  // current max so banking can't grow unbounded over a ~500-turn game; a fully-spent turn (0 left)
+  // still lands exactly on the flat income a player always got before this existed.
+  // getPowerIncome (Administrative Capacity) is recomputed fresh from current government/tech
+  // every turn rather than read from a stored field, so adopting a government or finishing a
+  // Governance tech takes effect on the very next turn automatically.
+  const powerIncome = getPowerIncome({ ...state, nations: modifierExpiredNations });
+  const POWER_BANK_CAP_MULTIPLIER = 2;
+  ['adm', 'dip', 'mil'].forEach((pool) => {
+    const income = powerIncome[pool];
+    // Reads `resources[pool]` (already `state.resources[pool]` at this point, or that PLUS
+    // this turn's calcIncome addition — e.g. a Communications Satellite's dipPerTurn trickle —
+    // never `state.resources[pool]` directly, or a satellite's contribution would be silently
+    // overwritten by this bank-up step immediately after calcIncome applied it.
+    resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`] = income;
+    resources[pool] = Math.min((resources[pool] || 0) + income, income * POWER_BANK_CAP_MULTIPLIER);
+  });
   mark('maintenanceAndPower');
 
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
@@ -315,11 +322,11 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
     if (wasEliminatedByPlayer(regions, state.playerNationId, nId)) {
       resources.gold = (resources.gold || 0) + NATION_ELIMINATION_REWARD.gold;
-      resources.diplomacyPoints = (resources.diplomacyPoints || 0) + NATION_ELIMINATION_REWARD.diplomacyPoints;
+      resources.dip = (resources.dip || 0) + NATION_ELIMINATION_REWARD.dip;
       playerEliminatedNationId = nId;
       logs.push({
         year: newYear,
-        message: `You have conquered ${eliminated.name} entirely! +${formatMoney(NATION_ELIMINATION_REWARD.gold)}, +${NATION_ELIMINATION_REWARD.diplomacyPoints} Diplomacy Points.`,
+        message: `You have conquered ${eliminated.name} entirely! +${formatMoney(NATION_ELIMINATION_REWARD.gold)}, +${NATION_ELIMINATION_REWARD.dip} DIP.`,
         type: LogTypes.MILESTONE
       });
     }
@@ -351,7 +358,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     completedMissions.push(missionId);
     const mission = SPACE_MISSIONS_BY_ID[missionId];
     if (mission?.oneTimeReward?.gold) resources.gold = (resources.gold || 0) + mission.oneTimeReward.gold;
-    if (mission?.oneTimeReward?.diplomacyPoints) resources.diplomacyPoints = (resources.diplomacyPoints || 0) + mission.oneTimeReward.diplomacyPoints;
+    if (mission?.oneTimeReward?.dip) resources.dip = (resources.dip || 0) + mission.oneTimeReward.dip;
     logs.push({ year: newYear, message: `${mission?.name || missionId} complete!`, type: LogTypes.MILESTONE });
   });
   mark('spaceMissions');

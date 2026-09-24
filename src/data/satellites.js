@@ -30,8 +30,8 @@ export const SATELLITE_TYPES = {
   communications: {
     id: 'communications',
     name: 'Communications Satellite',
-    description: 'Faster, more reliable contact with every embassy. +5 Diplomacy Points/turn, +5% HR income.',
-    effect: { hrMult: 0.05, diplomacyPointsPerTurn: 5 }
+    description: 'Faster, more reliable contact with every embassy. +5 DIP/turn, +5% HR income.',
+    effect: { hrMult: 0.05, dipPerTurn: 5 }
   },
   navigation: {
     id: 'navigation',

@@ -6,95 +6,120 @@
 // mid-size nation earns roughly 100-600 gold/turn (see build-world-regions.mjs's log-scaled
 // gdp/population -> gold/hr formulas) — costs in the tens-to-low-hundreds keep every action
 // affordable within a few turns without being free.
+//
+// Plan §M2: the single shared `actionPoints` pool is replaced by three EU4-style power pools —
+// `adm` (domestic/economy/government), `dip` (diplomacy/research-that-isn't-military/space), and
+// `mil` (military) — so a turn's priorities compete only against other actions of the SAME kind,
+// not against everything else in the game. Every entry below keeps its old quantity, just
+// recategorized onto whichever pool that action actually belongs to; `diplomacyPoints` (the old
+// separate diplomacy currency) folds into `dip` 1:1 rather than staying a fourth currency.
 
 export const ACTION_COSTS = {
-  gainControl: { gold: 40, actionPoints: 1 },
-  buildInfrastructure: { gold: 80, actionPoints: 1 },
-  buildDefenses: { gold: 60, actionPoints: 1 },
-  constructBuilding: { gold: 100, actionPoints: 1 },
-  developResourceSite: { gold: 120, actionPoints: 1 },
-  quellUnrest: { gold: 50, actionPoints: 1 },
+  gainControl: { gold: 40, adm: 1 },
+  buildInfrastructure: { gold: 80, adm: 1 },
+  buildDefenses: { gold: 60, adm: 1 },
+  constructBuilding: { gold: 100, adm: 1 },
+  developResourceSite: { gold: 120, adm: 1 },
+  quellUnrest: { gold: 50, adm: 1 },
   // Peacefully absorbing a bordering nation whose own grip on its territory has collapsed — no
-  // military required, unlike Launch Invasion, so it costs more gold and action points than any
-  // other single-region domestic action to compensate.
-  settleColonize: { gold: 150, actionPoints: 2 },
-  populationPolicy: { gold: 100, actionPoints: 1 },
-  // A slider flip, not a strategic decision competing with the rest of the AP budget — free.
-  setTaxRate: { actionPoints: 0 },
+  // military required, unlike Launch Invasion, so it costs more gold and ADM than any other
+  // single-region domestic action to compensate.
+  settleColonize: { gold: 150, adm: 2 },
+  populationPolicy: { gold: 100, adm: 1 },
+  // A slider flip, not a strategic decision competing with the rest of the ADM budget — free.
+  setTaxRate: { adm: 0 },
   // The biggest single-purchase cost in the game — a world-unique megaproject, not a
   // one-region improvement.
-  constructWonder: { gold: 500, actionPoints: 3 },
+  constructWonder: { gold: 500, adm: 3 },
 
-  recruitUnit: { gold: 60, hr: 100, actionPoints: 1 },
-  moveArmy: { actionPoints: 1 },
-  launchInvasion: { actionPoints: 2 },
+  recruitUnit: { gold: 60, hr: 100, mil: 1 },
+  moveArmy: { mil: 1 },
+  launchInvasion: { mil: 2 },
   // Bookkeeping, not a strategic decision — free, like setTaxRate/removePolicy/appointGeneral.
-  promoteUnit: { actionPoints: 0 },
-  hireGeneral: { gold: 150, actionPoints: 1 },
-  appointGeneral: { actionPoints: 0 },
+  promoteUnit: { mil: 0 },
+  hireGeneral: { gold: 150, mil: 1 },
+  appointGeneral: { mil: 0 },
 
-  embarkUnit: { actionPoints: 1 },
-  disembarkUnit: { actionPoints: 1 },
-  amphibiousAssault: { actionPoints: 3 },
-  navalEngagement: { actionPoints: 2 },
-  suppressRebellion: { actionPoints: 2 },
+  embarkUnit: { mil: 1 },
+  disembarkUnit: { mil: 1 },
+  amphibiousAssault: { mil: 3 },
+  navalEngagement: { mil: 2 },
+  suppressRebellion: { mil: 2 },
 
-  // A tech's own gold/techPoints cost (src/data/techTree.js) varies per tech; this is just the
-  // flat action-point cost every research action shares, matching canResearchTech's own check.
-  researchTech: { actionPoints: 2 },
-  setResearchFocus: { actionPoints: 1 },
-  fundScholars: { gold: 100, actionPoints: 1 },
+  // A tech's own gold/techPoints cost (src/data/techTree.js) varies per tech; this is the flat
+  // POWER quantity every research action shares (2, same as before M2), but which POOL it draws
+  // from now depends on the tech's own category — TECH_RESEARCH_POOL below, matching plan §M7's
+  // "Military -> MIL, Economy/Science -> DIP, Infrastructure/Governance -> ADM" line-to-pool
+  // mapping ahead of that milestone's fuller research rework.
+  researchTech: { power: 2 },
+  setResearchFocus: { adm: 1 },
+  fundScholars: { gold: 100, dip: 1 },
 
   // A government reform is deliberately pricier than a policy swap — it's the bigger decision.
-  adoptGovernment: { gold: 200, actionPoints: 2 },
-  adoptPolicy: { gold: 80, actionPoints: 1 },
-  removePolicy: { actionPoints: 0 },
+  adoptGovernment: { gold: 200, adm: 2 },
+  adoptPolicy: { gold: 80, adm: 1 },
+  removePolicy: { adm: 0 },
 
   // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
   // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
   // is easier than building) but still a real commitment, on top of the shared debris-level cost.
-  launchSatellite: { gold: 400, techPoints: 30, actionPoints: 2 },
-  asatStrike: { gold: 250, actionPoints: 2 },
+  // Satellites/missions are DIP (the plan's Science-line pool); ASAT is a military strike on an
+  // orbital asset, so it's MIL like Missile Strike.
+  launchSatellite: { gold: 400, techPoints: 30, dip: 2 },
+  asatStrike: { gold: 250, mil: 2 },
 
   // Missiles (plan §10.4 Layer 2) — cost scales steeply with range/power; a nuclear warhead is
   // priced well above even an ICBM, matching how consequential building one actually is. The gold
   // is paid up front at build time; MISSILE_STRIKE itself only spends the stockpiled missile and
-  // an action point, since the ordnance was already bought.
+  // MIL, since the ordnance was already bought.
   buildMissile: {
-    tactical: { gold: 150, iron: 20, actionPoints: 1 },
-    theatre: { gold: 350, iron: 40, actionPoints: 1 },
-    icbm: { gold: 700, iron: 60, oil: 30, actionPoints: 2 },
-    nuclear: { gold: 2000, iron: 100, oil: 60, actionPoints: 2 }
+    tactical: { gold: 150, iron: 20, mil: 1 },
+    theatre: { gold: 350, iron: 40, mil: 1 },
+    icbm: { gold: 700, iron: 60, oil: 30, mil: 2 },
+    nuclear: { gold: 2000, iron: 100, oil: 60, mil: 2 }
   },
-  missileStrike: { actionPoints: 2 },
-  buildAbmDefense: { gold: 500, actionPoints: 2 },
+  missileStrike: { mil: 2 },
+  buildAbmDefense: { gold: 500, mil: 2 },
   // A mission's own gold/techPoints cost (src/data/spaceMissions.js) varies per mission; this is
-  // just the flat action-point cost every launch shares, matching researchTech's own pattern.
-  launchMission: { actionPoints: 2 },
+  // just the flat DIP cost every launch shares, matching researchTech's own pattern.
+  launchMission: { dip: 2 },
 
   // Declaring war with a real casus belli (a fabricated claim or organic hostility) costs only
-  // action points; without one it costs a real gold premium on top — see GameContext.jsx's
-  // DECLARE_WAR for the rest of an unjustified war's cost (global relations, home unrest).
-  declareWarJustified: { actionPoints: 2 },
-  declareWarUnjustified: { gold: 300, actionPoints: 2 },
-  fabricateClaim: { gold: 150, diplomacyPoints: 10, actionPoints: 1 },
-  tradeAgreement: { gold: 100, actionPoints: 1 },
-  militaryAlliance: { gold: 150, diplomacyPoints: 15, actionPoints: 1 },
-  giftBribe: { gold: 100, actionPoints: 1 },
+  // DIP; without one it costs a real gold premium on top — see GameContext.jsx's DECLARE_WAR for
+  // the rest of an unjustified war's cost (global relations, home unrest).
+  declareWarJustified: { dip: 2 },
+  declareWarUnjustified: { gold: 300, dip: 2 },
+  // The old { diplomacyPoints: 10, actionPoints: 1 } collapses into one dip cost (10 + 1) now that
+  // diplomacyPoints and the diplomatic AP draw from the same pool.
+  fabricateClaim: { gold: 150, dip: 11 },
+  tradeAgreement: { gold: 100, dip: 1 },
+  militaryAlliance: { gold: 150, dip: 16 },
+  giftBribe: { gold: 100, dip: 1 },
   // Espionage risks the gold on a coin-flip-ish roll (see ESPIONAGE_SUCCESS_CHANCE, gameReducer.js)
   // — priced like a real covert operation, not a guaranteed purchase of techPoints.
-  espionage: { gold: 200, actionPoints: 2 },
+  espionage: { gold: 200, dip: 2 },
   // Counter-Intelligence auto-targets whoever is currently most hostile toward you rather than
   // needing a chosen target, so it's priced like Gift/Bribe (a direct relations action) rather than
   // Espionage's riskier, pricier covert-ops tier.
-  counterIntelligence: { gold: 120, actionPoints: 1 },
-  // A slider nudge, not a purchase — costs only gold and the action point every other domestic
+  counterIntelligence: { gold: 120, dip: 1 },
+  // A slider nudge, not a purchase — costs only gold and the same ADM every other domestic
   // decision does, matching Set Tax Rate's own pricing philosophy.
-  shiftIdentity: { gold: 50, actionPoints: 1 },
+  shiftIdentity: { gold: 50, adm: 1 },
   // Priced like Build Defenses — a persistent, steadily-improving region investment of the same shape.
-  buildClimateResilience: { gold: 90, actionPoints: 1 },
+  buildClimateResilience: { gold: 90, adm: 1 },
   // Priced like Gift/Bribe — a direct relations action, but empire-wide rather than one target.
-  culturalExport: { gold: 130, actionPoints: 1 }
+  culturalExport: { gold: 130, dip: 1 }
+};
+
+// Plan §M7's line-to-pool mapping, used now (ahead of the fuller M7 tech rework) so a research
+// action's flat `power` quantity (ACTION_COSTS.researchTech above) draws from the right one of the
+// three pools depending on the tech's own TechCategories value.
+export const TECH_RESEARCH_POOL = {
+  military: 'mil',
+  economy: 'dip',
+  science: 'dip',
+  infrastructure: 'adm',
+  governance: 'adm'
 };
 
 // Above this climateResilience level, a region is considered adequately prepared — the same

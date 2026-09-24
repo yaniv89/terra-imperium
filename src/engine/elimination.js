@@ -9,7 +9,7 @@ import { getOwnedRegionIds } from '../data/regions';
 
 // A modest one-time prize for finishing a nation off entirely — sized like a single mid-tier
 // action's cost (src/data/actionCosts.js), not a windfall.
-export const NATION_ELIMINATION_REWARD = { gold: 200, diplomacyPoints: 15 };
+export const NATION_ELIMINATION_REWARD = { gold: 200, dip: 15 };
 
 export const checkNationElimination = (nations, regions, nationId) => {
   const nation = nations[nationId];

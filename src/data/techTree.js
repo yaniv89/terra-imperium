@@ -20,6 +20,7 @@
 
 import { AGE_ORDER, AGES, getAgesBehindResearchCostMultiplier } from './ages';
 import { TechCategories } from './types';
+import { ACTION_COSTS, TECH_RESEARCH_POOL } from './actionCosts';
 
 const CATEGORY_LINES = {
   [TechCategories.MILITARY]: [
@@ -138,7 +139,11 @@ export const canResearchTech = (techId, techTree, resources, year, techDefs = TE
   const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
   if (resources.gold < tech.cost.gold * costMult) return { can: false, reason: 'Insufficient funds' };
   if (resources.techPoints < tech.cost.techPoints * costMult) return { can: false, reason: 'Insufficient tech points' };
-  if (resources.actionPoints < 2) return { can: false, reason: 'Need 2 AP' };
+  // Plan §M2/§M7: which power pool gates this depends on the tech's own line.
+  const pool = TECH_RESEARCH_POOL[tech.category];
+  if ((resources[pool] || 0) < ACTION_COSTS.researchTech.power) {
+    return { can: false, reason: `Need ${ACTION_COSTS.researchTech.power} ${pool.toUpperCase()}` };
+  }
 
   return { can: true, reason: null };
 };

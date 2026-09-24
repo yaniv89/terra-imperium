@@ -43,7 +43,7 @@ export const HISTORICAL_EVENTS = {
     description: 'A system of written records spreads among neighboring courts, turning administration from memory and custom into something that can be counted, taxed, and enforced.',
     options: [
       { label: 'Train a corps of royal scribes', effects: { gold: -60, techPoints: 25 } },
-      { label: 'Leave record-keeping to the temples', effects: { diplomacyPoints: 10 } }
+      { label: 'Leave record-keeping to the temples', effects: { dip: 10 } }
     ]
   },
   bronze_age_collapse: {
@@ -86,7 +86,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Word spreads of a library built to hold a copy of every book in the known world, drawing scholars from every court willing to fund the journey.',
     options: [
       { label: 'Send scholars and fund a wing of your own', effects: { gold: -100, techPoints: 40 } },
-      { label: 'Rely on your own scribes and temples', effects: { diplomacyPoints: 15 } }
+      { label: 'Rely on your own scribes and temples', effects: { dip: 15 } }
     ]
   },
   silk_road_opens: {
@@ -95,7 +95,7 @@ export const HISTORICAL_EVENTS = {
     title: 'The Silk Road Opens',
     description: 'Trade routes stretching from the Mediterranean to the far east open in earnest, carrying silk, spices, and ideas across an entire continent.',
     options: [
-      { label: 'Invest in caravanserais and trade infrastructure', effects: { gold: -100, diplomacyPoints: 15 } },
+      { label: 'Invest in caravanserais and trade infrastructure', effects: { gold: -100, dip: 15 } },
       { label: 'Focus inward and let others carry the trade', effects: { hr: 30 } }
     ]
   },
@@ -168,7 +168,7 @@ export const HISTORICAL_EVENTS = {
     description: 'A new method of reproducing text with movable type spreads rapidly, putting books — and ideas — within reach of far more people than ever before.',
     options: [
       { label: 'Fund printing houses in your major cities', effects: { gold: -80, techPoints: 40 } },
-      { label: 'Leave it to the church and the guilds', effects: { diplomacyPoints: 10 } }
+      { label: 'Leave it to the church and the guilds', effects: { dip: 10 } }
     ]
   },
 
@@ -192,7 +192,7 @@ export const HISTORICAL_EVENTS = {
     title: 'A Religious Schism',
     description: 'A challenge to established religious authority splits congregations, courts, and entire kingdoms into rival camps, each certain the other has broken faith.',
     options: [
-      { label: 'Back the reformers', effects: { diplomacyPoints: -10, controlBonus: 5 } },
+      { label: 'Back the reformers', effects: { dip: -10, controlBonus: 5 } },
       { label: 'Defend the established order', effects: { gold: -60, controlBonus: 10 } }
     ]
   },
@@ -256,7 +256,7 @@ export const HISTORICAL_EVENTS = {
     title: 'Empires Recede',
     description: 'One colonial holding after another declares independence, and the old imperial map that had held for a century unravels within a single decade.',
     options: [
-      { label: 'Negotiate an orderly withdrawal', effects: { diplomacyPoints: 20, gold: -60 } },
+      { label: 'Negotiate an orderly withdrawal', effects: { dip: 20, gold: -60 } },
       { label: 'Hold on as long as possible', effects: { gold: -150, militaryStrengthBonus: 80 } }
     ]
   },
@@ -324,7 +324,7 @@ export const HISTORICAL_EVENTS = {
     title: "The Great Khan's Succession",
     description: "With the great khan's death, the empire's constituent hordes must choose between uniting under a new ruler or fracturing into rival domains.",
     options: [
-      { label: 'Convene a kurultai to elect a strong successor', effects: { controlBonus: 10, diplomacyPoints: 10 } },
+      { label: 'Convene a kurultai to elect a strong successor', effects: { controlBonus: 10, dip: 10 } },
       { label: 'Let the strongest horde claim the title by force', effects: { militaryStrengthBonus: 100, controlPenalty: 10 } }
     ]
   },
@@ -337,7 +337,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Foreign traders and missionaries have grown numerous enough to worry the court. Some counsel closing the realm to outside influence entirely.',
     options: [
       { label: 'Seal the borders and expel foreign traders', effects: { controlBonus: 10, gold: -50 } },
-      { label: 'Keep trade open despite the risk', effects: { gold: 80, diplomacyPoints: 10 } }
+      { label: 'Keep trade open despite the risk', effects: { gold: 80, dip: 10 } }
     ]
   },
   national_britain_naval_turn: {
@@ -372,7 +372,7 @@ export const HISTORICAL_EVENTS = {
     title: 'Ships From a Distant Sea',
     description: 'Foreign ships arrive by a sea route none of your merchants have used before, eager to trade directly for the spices and cloth that made your ports famous.',
     options: [
-      { label: 'Grant them trading rights at your ports', effects: { gold: 100, diplomacyPoints: 10 } },
+      { label: 'Grant them trading rights at your ports', effects: { gold: 100, dip: 10 } },
       { label: 'Restrict them to existing merchant guilds', effects: { gold: 40, controlBonus: 5 } }
     ]
   },
@@ -396,7 +396,7 @@ export const HISTORICAL_EVENTS = {
     title: 'A Golden Age',
     description: 'Philosophy, theater and architecture flourish in your city-states, drawing students and thinkers from across the known world.',
     options: [
-      { label: 'Fund public works and monuments', effects: { gold: -100, techPoints: 40, diplomacyPoints: 10 } },
+      { label: 'Fund public works and monuments', effects: { gold: -100, techPoints: 40, dip: 10 } },
       { label: 'Let private patrons carry the cost', effects: { techPoints: 15 } }
     ]
   },
@@ -408,7 +408,7 @@ export const HISTORICAL_EVENTS = {
     title: "An Empire's Reach",
     description: 'Royal roads and a standing administration now bind together more peoples and provinces than any realm before it — the question is how tightly to hold them.',
     options: [
-      { label: 'Rule through tolerance and local custom', effects: { diplomacyPoints: 20, controlBonus: 5 } },
+      { label: 'Rule through tolerance and local custom', effects: { dip: 20, controlBonus: 5 } },
       { label: 'Impose uniform law across every province', effects: { gold: -100, controlBonus: 15 } }
     ]
   },
@@ -432,7 +432,7 @@ export const HISTORICAL_EVENTS = {
     title: 'Roads of the Sun',
     description: 'A network of roads and rope bridges now threads through the mountains, binding together valleys that would otherwise take weeks to cross on foot.',
     options: [
-      { label: 'Extend the road network further', effects: { gold: -120, diplomacyPoints: 15 } },
+      { label: 'Extend the road network further', effects: { gold: -120, dip: 15 } },
       { label: 'Maintain what already exists', effects: { gold: 40, controlBonus: 5 } }
     ]
   },
@@ -456,7 +456,7 @@ export const HISTORICAL_EVENTS = {
     title: 'A Golden Age of Trade',
     description: 'Merchant fleets and a new kind of joint-stock company make your ports the busiest in the world, and your merchants some of the wealthiest.',
     options: [
-      { label: 'Charter more trading companies', effects: { gold: -100, diplomacyPoints: 20 } },
+      { label: 'Charter more trading companies', effects: { gold: -100, dip: 20 } },
       { label: 'Tax the existing trade heavily instead', effects: { gold: 150 } }
     ]
   },

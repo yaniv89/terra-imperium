@@ -35,7 +35,7 @@ export const EVENT_CHAINS = {
     description: 'Rivals to your chosen successor refuse to accept the arrangement, and the court fractures into open, competing factions.',
     options: [
       { label: 'Purge the opposition', effects: { gold: -80, controlBonus: 10, spawnFollowUp: { id: 'succession_crisis_3', delayTurns: 5 } } },
-      { label: 'Negotiate a power-sharing settlement', effects: { gold: -40, diplomacyPoints: 20, spawnFollowUp: { id: 'succession_crisis_3', delayTurns: 5 } } }
+      { label: 'Negotiate a power-sharing settlement', effects: { gold: -40, dip: 20, spawnFollowUp: { id: 'succession_crisis_3', delayTurns: 5 } } }
     ]
   },
   succession_crisis_3: {
@@ -44,7 +44,7 @@ export const EVENT_CHAINS = {
     description: 'One way or another, the succession crisis finally reaches its end — the question now is what kind of state emerges from it.',
     options: [
       { label: 'Consolidate the new order firmly', effects: { controlBonus: 15 } },
-      { label: 'Grant the losing faction real autonomy to keep the peace', effects: { controlPenalty: 5, diplomacyPoints: 15 } }
+      { label: 'Grant the losing faction real autonomy to keep the peace', effects: { controlPenalty: 5, dip: 15 } }
     ]
   },
 
@@ -73,7 +73,7 @@ export const EVENT_CHAINS = {
     description: 'The venture has taken root and now sends real wealth home. The question is what to make of it — a formal extension of the state, or simply a source of profit.',
     options: [
       { label: 'Formalize it as a full province', effects: { gold: -100, techPoints: 20, controlBonus: 5 } },
-      { label: 'Keep it as a trading post only', effects: { gold: 80, diplomacyPoints: 10 } }
+      { label: 'Keep it as a trading post only', effects: { gold: 80, dip: 10 } }
     ]
   },
 
@@ -94,8 +94,8 @@ export const EVENT_CHAINS = {
     title: 'The Dispute Escalates',
     description: 'The punitive expedition crossed into contested ground, and what began as a raid has hardened into a genuine border dispute with a wary neighbor.',
     options: [
-      { label: 'Press your claim firmly', effects: { diplomacyPoints: -10, militaryStrengthBonus: 30, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 5 } } },
-      { label: 'Offer to submit the dispute to arbitration', effects: { diplomacyPoints: 15, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 7 } } }
+      { label: 'Press your claim firmly', effects: { dip: -10, militaryStrengthBonus: 30, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 5 } } },
+      { label: 'Offer to submit the dispute to arbitration', effects: { dip: 15, spawnFollowUp: { id: 'border_dispute_2', delayTurns: 7 } } }
     ]
   },
   border_dispute_2: {
@@ -103,7 +103,7 @@ export const EVENT_CHAINS = {
     title: 'The Dispute Concludes',
     description: 'The border dispute finally reaches its conclusion, one way or another.',
     options: [
-      { label: 'Accept a compromise line', effects: { controlBonus: 5, diplomacyPoints: 10 } },
+      { label: 'Accept a compromise line', effects: { controlBonus: 5, dip: 10 } },
       { label: 'Hold firm and let tensions simmer', effects: { militaryStrengthBonus: 20, controlPenalty: 5 } }
     ]
   }

@@ -61,8 +61,8 @@ describe('wasEliminatedByPlayer', () => {
 });
 
 describe('NATION_ELIMINATION_REWARD', () => {
-  it('is a modest, positive one-time gold + diplomacyPoints reward', () => {
+  it('is a modest, positive one-time gold + dip reward', () => {
     expect(NATION_ELIMINATION_REWARD.gold).toBeGreaterThan(0);
-    expect(NATION_ELIMINATION_REWARD.diplomacyPoints).toBeGreaterThan(0);
+    expect(NATION_ELIMINATION_REWARD.dip).toBeGreaterThan(0);
   });
 });

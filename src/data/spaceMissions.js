@@ -17,7 +17,7 @@ export const SPACE_MISSIONS = [
     description: 'Opens the space programme.',
     cost: { gold: 200, techPoints: 50 },
     turns: 3,
-    oneTimeReward: { diplomacyPoints: 10 },
+    oneTimeReward: { dip: 10 },
     recurringReward: {}
   },
   {
@@ -27,7 +27,7 @@ export const SPACE_MISSIONS = [
     description: 'The Sputnik moment — prestige and diplomacy points, seen by the whole world.',
     cost: { gold: 400, techPoints: 100 },
     turns: 4,
-    oneTimeReward: { diplomacyPoints: 30 },
+    oneTimeReward: { dip: 30 },
     recurringReward: {}
   },
   {
@@ -37,7 +37,7 @@ export const SPACE_MISSIONS = [
     description: 'Prestige, and a crew programme for every mission after this one.',
     cost: { gold: 600, techPoints: 150 },
     turns: 5,
-    oneTimeReward: { diplomacyPoints: 20 },
+    oneTimeReward: { dip: 20 },
     recurringReward: {}
   },
   {
@@ -47,8 +47,8 @@ export const SPACE_MISSIONS = [
     description: 'Major one-off prestige, plus a permanent diplomacy income.',
     cost: { gold: 1000, techPoints: 250 },
     turns: 6,
-    oneTimeReward: { diplomacyPoints: 100 },
-    recurringReward: { diplomacyPointsPerTurn: 10 }
+    oneTimeReward: { dip: 100 },
+    recurringReward: { dipPerTurn: 10 }
   },
   {
     id: 'space_station',
@@ -97,7 +97,7 @@ export const SPACE_MISSIONS = [
     description: 'Endgame prestige — completes the ladder and claims Space Ascendancy.',
     cost: { gold: 3000, techPoints: 800 },
     turns: 10,
-    oneTimeReward: { diplomacyPoints: 200 },
+    oneTimeReward: { dip: 200 },
     recurringReward: {}
   }
 ];

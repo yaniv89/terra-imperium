@@ -7,7 +7,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
 import { getNationCapital } from '../data/regions';
-import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD } from '../data/actionCosts';
+import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
 import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
 import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
 
@@ -522,7 +522,7 @@ describe('Space Race tab actions', () => {
 
     it('is a no-op when unaffordable (the flat action-point cost)', () => {
       const base = withMissile('tactical');
-      const state = { ...base, resources: { ...base.resources, actionPoints: 0 } };
+      const state = { ...base, resources: { ...base.resources, mil: 0 } };
       expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } })).toBe(state);
     });
   });
@@ -735,7 +735,7 @@ describe('Military tab actions', () => {
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
       expect(next.regions[BE_REGION].owner).toBe('fr');
       expect(next.units[unitId].regionId).toBe(BE_REGION);
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.mil).toBeLessThan(state.resources.mil);
       expect(next.lastBattleReport.outcome).toBe('attacker');
       // Conquered territory (plan §9 revolt system): records who it was taken from, so an
       // unresolved rebellion there can later revert it rather than fighting the same army forever.
@@ -890,7 +890,7 @@ describe('Military tab actions', () => {
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...withAttacker(), resources: { ...withAttacker().resources, actionPoints: 0 } };
+      const state = { ...withAttacker(), resources: { ...withAttacker().resources, mil: 0 } };
       expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(state);
     });
   });
@@ -899,7 +899,7 @@ describe('Military tab actions', () => {
 describe('Promotions and generals actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   describe('PROMOTE_UNIT', () => {
@@ -1017,7 +1017,7 @@ describe('Promotions and generals actions', () => {
 describe('Navies and amphibious invasion actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   const withNavalAndLand = () => {
@@ -1067,7 +1067,7 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op when unaffordable', () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
-      const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
+      const poor = { ...state, resources: { ...state.resources, mil: 0 } };
       expect(gameReducer(poor, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } })).toBe(poor);
     });
   });
@@ -1215,7 +1215,7 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op when unaffordable', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
-      const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
+      const poor = { ...state, resources: { ...state.resources, mil: 0 } };
       expect(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } })).toBe(poor);
     });
   });
@@ -1224,7 +1224,7 @@ describe('Navies and amphibious invasion actions', () => {
 describe('SUPPRESS_REBELLION', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   const rebelUnit = (strength = 300) => ({
@@ -1274,7 +1274,7 @@ describe('SUPPRESS_REBELLION', () => {
   });
 
   it('is a no-op when unaffordable', () => {
-    const state = { ...withGarrisonAndRebel(), resources: { ...withGarrisonAndRebel().resources, actionPoints: 0 } };
+    const state = { ...withGarrisonAndRebel(), resources: { ...withGarrisonAndRebel().resources, mil: 0 } };
     expect(gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } })).toBe(state);
   });
 });
@@ -1282,7 +1282,7 @@ describe('SUPPRESS_REBELLION', () => {
 describe('Research tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, techPoints: 100000, actionPoints: 100 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, techPoints: 100000, mil: 100, dip: 100, adm: 100 } };
   };
 
   describe('RESEARCH_TECH', () => {
@@ -1292,7 +1292,7 @@ describe('Research tab actions', () => {
       expect(next.techTree.military_bronze_casting.researched).toBe(true);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
       expect(next.resources.techPoints).toBeLessThan(state.resources.techPoints);
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.mil).toBeLessThan(state.resources.mil);
     });
 
     it('is a no-op for a tech whose prerequisite is not yet researched', () => {
@@ -1390,7 +1390,7 @@ describe('Research tab actions', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId: 'science' } });
       expect(next.researchFocus).toBe('science');
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
     });
 
     it('is a no-op for an invalid category', () => {
@@ -1405,7 +1405,7 @@ describe('Research tab actions', () => {
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, actionPoints: 0 } };
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
       expect(gameReducer(state, { type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId: 'science' } })).toBe(state);
     });
   });
@@ -1428,7 +1428,7 @@ describe('Research tab actions', () => {
 describe('Government and policy actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, actionPoints: 100 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, adm: 100 } };
   };
 
   describe('ADOPT_GOVERNMENT', () => {
@@ -1564,7 +1564,7 @@ describe('Government and policy actions', () => {
 describe('Diplomacy tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, diplomacyPoints: 1000, actionPoints: 100 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, dip: 1000 } };
   };
 
   describe('DECLARE_WAR', () => {
@@ -1812,11 +1812,11 @@ describe('Diplomacy tab actions', () => {
           [other]: { ...state.nations[other], hostility: 90 } // the most hostile — should be the one targeted
         }
       };
-      const beforeDiplo = withHostility.resources.diplomacyPoints;
+      const beforeDiplo = withHostility.resources.dip;
       const next = gameReducer(withHostility, { type: ActionTypes.COUNTER_INTELLIGENCE });
       expect(next.nations[other].hostility).toBe(90 - COUNTER_INTEL_HOSTILITY_REDUCTION);
       expect(next.nations.de.hostility).toBe(40); // untouched — it wasn't the most hostile
-      expect(next.resources.diplomacyPoints).toBe(beforeDiplo + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD);
+      expect(next.resources.dip).toBe(beforeDiplo - ACTION_COSTS.counterIntelligence.dip + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD);
       expect(next.resources.gold).toBeLessThan(withHostility.resources.gold);
     });
 

@@ -18,13 +18,35 @@ import { createInitialState } from './gameReducer';
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-export const CURRENT_SAVE_VERSION = 1;
+export const CURRENT_SAVE_VERSION = 2;
 
-// Empty today: nothing has changed the state shape since the very first save format shipped, so a
-// v1 payload only ever needs `backfillDefaults`, not a semantic conversion. The very first
-// shape-changing milestone (M2's AP -> ADM/DIP/MIL) adds `MIGRATIONS[1] = migrate1to2` and bumps
-// CURRENT_SAVE_VERSION to 2.
-const MIGRATIONS = {};
+// M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
+// currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
+// conversion since it only fills keys that are MISSING, and it would otherwise hand a v1 save
+// fresh-game defaults (3 each) for a currency the player may have banked a large amount of.
+// Old base was 5/turn banked to a 2x cap (10); new base is 3/turn per pool banked to 2x (6) — the
+// ratio 3/5 carries a banked balance over proportionally rather than resetting it to the new
+// base. diplomacyPoints folds into dip on top, 1:1, matching how the two currencies now share one
+// pool going forward.
+const migrate1to2 = (state) => {
+  // eslint-disable-next-line no-unused-vars -- destructured only to omit it from restResources; the new maxAdm/maxDip/maxMil below replace it
+  const { actionPoints, maxActionPoints, diplomacyPoints, ...restResources } = state.resources || {};
+  const perPool = Math.max(0, Math.round((actionPoints || 0) * 3 / 5));
+  return {
+    ...state,
+    resources: {
+      ...restResources,
+      adm: perPool,
+      mil: perPool,
+      dip: perPool + (diplomacyPoints || 0),
+      maxAdm: perPool,
+      maxMil: perPool,
+      maxDip: perPool
+    }
+  };
+};
+
+const MIGRATIONS = { 1: migrate1to2 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
