@@ -13,7 +13,7 @@ export const TRAITS = {
   diplomat: { id: 'diplomat', name: 'Diplomat', description: '+1 DIP/turn', effects: { dipBonus: 1 } },
   architect: { id: 'architect', name: 'Architect', description: '+8% Gold income (efficient construction)', effects: { goldMult: 0.08 } }, // adapted: no building-cost system yet (M6)
   merchant: { id: 'merchant', name: 'Merchant', description: '+12% Gold income', effects: { goldMult: 0.12 } },
-  administrator: { id: 'administrator', name: 'Administrator', description: '+1 ADM/turn', effects: { admBonus: 1 } },
+  administrator: { id: 'administrator', name: 'Administrator', description: '−10% Develop Province cost', effects: { developmentCost: -0.1 } }, // wired for real once M5 added the hook (was admBonus before)
   strategist: { id: 'strategist', name: 'Strategist', description: '+6% HR income', effects: { hrMult: 0.06 } }, // adapted: no generals-as-modifier system yet
   kind: { id: 'kind', name: 'Kind', description: '−3 unrest', effects: { stabilityBonus: 3 } },
   builder: { id: 'builder', name: 'Builder', description: '+6% HR income (faster-growing works crews)', effects: { hrMult: 0.06 } }, // adapted: no construction-time system yet (M6)

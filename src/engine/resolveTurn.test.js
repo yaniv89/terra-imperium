@@ -199,10 +199,16 @@ describe('resolveTurn army maintenance', () => {
   });
 
   it('deducts UNIT_UPKEEP_GOLD_PER_TURN per player-owned unit, on top of ordinary income', () => {
-    // Equalize starting gold so the two scenarios' outcomes differ by exactly the upkeep, not by
-    // any unrelated income difference — recruiting units doesn't itself change region income.
-    const base = { ...withUnits(0), resources: { ...withUnits(0).resources, gold: 5000 } };
-    const withArmy = { ...withUnits(3), resources: { ...withUnits(3).resources, gold: 5000 } };
+    // Both scenarios are derived from the SAME base state (one createInitialState call, one seeded
+    // ruler/traits), not two independent ones — M3's ruler generation draws real randomness during
+    // createInitialState itself, so two separate calls can seed different ruler traits/skills and
+    // make their income diverge for reasons that have nothing to do with unit upkeep. Equalizing
+    // starting gold on top isolates the outcome to exactly the upkeep difference.
+    const sharedBase = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = { ...sharedBase, resources: { ...sharedBase.resources, gold: 5000 } };
+    const armyUnits = {};
+    for (let i = 0; i < 3; i++) armyUnits[`unit_${i}`] = fakeUnit(`unit_${i}`);
+    const withArmy = { ...base, units: armyUnits };
     const nextBase = resolveTurn(base);
     const nextArmy = resolveTurn(withArmy);
     expect(nextBase.resources.gold - nextArmy.resources.gold).toBe(3 * UNIT_UPKEEP_GOLD_PER_TURN);
@@ -514,7 +520,13 @@ describe('resolveTurn AI nations', () => {
   });
 
   it('never touches the player nation\'s own stats via the AI pass', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    // A fixed rngSeed, not an unseeded one: an unseeded run has a small (~0.75%) chance an AI
+    // nation rolls a war declaration against the player on turn 1, and resolveWarProgress's
+    // per-turn attrition (diplomacy.js) legitimately reduces BOTH sides' militaryStrength once a
+    // war exists — a real, intended feature, not a bug this test should be catching. Seed 1 is
+    // verified not to trigger any turn-1 war, isolating this test to its actual point: that the AI
+    // pass itself (growth/hostility/recruitment) never reaches into the player's own stats.
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
     const next = resolveTurn(state);
     expect(next.nations.fr.militaryStrength).toBe(state.nations.fr.militaryStrength);
   });

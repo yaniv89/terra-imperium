@@ -27,6 +27,8 @@ import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/succession';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
+import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost } from '../../engine/development';
+import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
 import { ActionButton } from '../ui';
 import { Crown, Users, TrendingUp } from 'lucide-react';
@@ -411,6 +413,14 @@ const DomesticPanel = ({ selectedRegion }) => {
     triggerEffect('settle_colonize', { region: selectedRegion });
     dispatchAction(ActionTypes.SETTLE_COLONIZE);
   };
+  const developmentCostMult = getModifier(state, state.playerNationId, 'national.developmentCost').total;
+  const handleDevelopProvince = (devType) => {
+    const pool = DEV_TYPE_POOL[devType];
+    const cost = getDevelopProvinceCost(regionState, developmentCostMult);
+    if ((state.resources[pool] || 0) < cost) return addLog(`Not enough ${pool.toUpperCase()}`, 'action');
+    triggerEffect('develop_province', { region: selectedRegion });
+    dispatchAction(ActionTypes.DEVELOP_PROVINCE, { devType });
+  };
   const handleConstructBuilding = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.constructBuilding)) return addLog('Not enough resources', 'action');
     // The icon must match the TIER actually being built (the age it belongs to), not the current
@@ -489,6 +499,24 @@ const DomesticPanel = ({ selectedRegion }) => {
               onClick={handleGainControl}
               disabled={regionState.control >= 100}
             />
+            <div className="text-xs font-semibold text-slate-300 pt-1">Develop Province</div>
+            {DEV_TYPE_IDS.map((devType) => {
+              const cost = getDevelopProvinceCost(regionState, developmentCostMult);
+              const pool = DEV_TYPE_POOL[devType];
+              return (
+                <ActionButton
+                  key={devType}
+                  icon={TrendingUp}
+                  label={`Develop ${devType[0].toUpperCase()}${devType.slice(1)} (${regionState.dev?.[devType] || 0})`}
+                  description={`+1 ${devType} development`}
+                  costs={{ [pool]: cost }}
+                  onClick={() => handleDevelopProvince(devType)}
+                  disabled={(state.resources[pool] || 0) < cost}
+                  resources={state.resources}
+                  size="small"
+                />
+              );
+            })}
             <ActionButton
               icon={Hammer}
               label="Build Infrastructure"
