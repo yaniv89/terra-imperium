@@ -38,11 +38,23 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const WAR_EXHAUSTION_RISE_PER_TURN = 5;
 const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 
-export const resolveTurn = (state) => {
+// `onPhase(name, ms)` is an optional perf hook (src/engine/aiQualityBenchmark.test.js's M0.4 perf
+// harness is the only caller) fired after each named phase below with how long it took. It costs
+// one optional-chained call per phase when absent, so normal play and every other test pay nothing
+// for it; when present the closure trades one `performance.now()` read per phase for the timing.
+export const resolveTurn = (state, { onPhase } = {}) => {
   // Guard: nothing to resolve if the game already ended or an event is blocking play.
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent) {
     return state;
   }
+
+  let phaseStart = onPhase ? performance.now() : 0;
+  const mark = (name) => {
+    if (!onPhase) return;
+    const now = performance.now();
+    onPhase(name, now - phaseStart);
+    phaseStart = now;
+  };
 
   const rng = createRng(state.rngSeed);
   const logs = [];
@@ -57,12 +69,14 @@ export const resolveTurn = (state) => {
   if (newAge !== state.age) {
     logs.push({ year: newYear, message: `A new era dawns: the world enters the ${AGES[newAge].name}.`, type: LogTypes.MILESTONE });
   }
+  mark('time');
 
   // --- income ---
   const income = calcIncome(state);
   const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
+  mark('income');
 
   // --- army maintenance ---
   // A flat per-turn gold upkeep per player-owned unit (UNIT_UPKEEP_GOLD_PER_TURN, actionCosts.js):
@@ -90,6 +104,7 @@ export const resolveTurn = (state) => {
   const AP_BANK_CAP_MULTIPLIER = 2;
   resources.maxActionPoints = maxActionPoints;
   resources.actionPoints = Math.min((state.resources.actionPoints || 0) + maxActionPoints, maxActionPoints * AP_BANK_CAP_MULTIPLIER);
+  mark('maintenanceAndPower');
 
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
   // nation's own territory is subject to) ---
@@ -129,6 +144,7 @@ export const resolveTurn = (state) => {
       regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation };
     }
   });
+  mark('regionUnrestAndPopulation');
 
   // --- rebellion (plan §9): unrest crossing the threshold spawns an actual rebel army in the
   // region rather than just a number. Falling back below the threshold (e.g. after Quell Unrest,
@@ -224,6 +240,7 @@ export const resolveTurn = (state) => {
       units[u.id] = { ...u, strength };
     });
   });
+  mark('rebellionAndSupply');
 
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
@@ -239,6 +256,7 @@ export const resolveTurn = (state) => {
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiGrowthAndHostility');
 
   // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
   // affordable across 240 nations.
@@ -252,6 +270,7 @@ export const resolveTurn = (state) => {
   Object.assign(units, recruitment.units);
   Object.assign(nations, recruitment.nations);
   logs.push(...recruitment.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiRecruitment');
 
   // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
   // player, or a top-20 military power) may each declare one war this turn against a weaker
@@ -260,6 +279,7 @@ export const resolveTurn = (state) => {
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiWarDeclarations');
 
   // --- AI war progress (plan §8.5's war-goal resolution): territorial conquest rolls, mutual
   // attrition, and ending a war outright once its goal is met — this is what makes every one of
@@ -270,6 +290,7 @@ export const resolveTurn = (state) => {
   nationsAfterWars = warProgress.nations;
   wars = warProgress.wars;
   logs.push(...warProgress.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiWarProgress');
 
   // --- nation elimination (src/engine/elimination.js): a nation reduced to zero regions this turn
   // — by the player's own invasions (which land immediately via gameReducer.js, so this sweep is
@@ -295,6 +316,7 @@ export const resolveTurn = (state) => {
       });
     }
   });
+  mark('elimination');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
@@ -304,6 +326,7 @@ export const resolveTurn = (state) => {
     const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
     if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });
+  mark('warExhaustion');
 
   // --- space mission ladder (plan §10.4 Layer 3): each in-progress mission ticks down one turn;
   // reaching 0 moves it into completedMissions and applies its one-time reward. Recurring rewards
@@ -323,6 +346,7 @@ export const resolveTurn = (state) => {
     if (mission?.oneTimeReward?.diplomacyPoints) resources.diplomacyPoints = (resources.diplomacyPoints || 0) + mission.oneTimeReward.diplomacyPoints;
     logs.push({ year: newYear, message: `${mission?.name || missionId} complete!`, type: LogTypes.MILESTONE });
   });
+  mark('spaceMissions');
 
   // --- diplomatic leadership streak (plan §10.4's Diplomatic victory) ---
   const alignmentShare = getDiplomaticAlignmentShare({ ...state, nations: nationsAfterWars });
@@ -362,6 +386,7 @@ export const resolveTurn = (state) => {
   // --- orbital debris (plan §10.4): decays slowly every turn, whether or not anyone's fighting
   // over orbit this turn (ASAT_STRIKE, GameContext.jsx, is what raises it) ---
   const orbitalDebrisLevel = clamp((state.orbitalDebrisLevel || 0) - ORBITAL_DEBRIS_DECAY_PER_TURN, 0, MAX_ORBITAL_DEBRIS);
+  mark('diplomacyStreakEventsAndDebris');
 
   // --- assemble next state ---
   let next = {
@@ -386,6 +411,7 @@ export const resolveTurn = (state) => {
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
+  mark('assembleNextState');
 
   // --- victory (checked against THIS turn's resolved state, not last turn's) ---
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
@@ -397,6 +423,7 @@ export const resolveTurn = (state) => {
       next.logs = [...next.logs, { year: newYear, message: `VICTORY: ${condition.name} achieved!`, type: LogTypes.MILESTONE }];
     }
   }
+  mark('victory');
 
   return next;
 };
