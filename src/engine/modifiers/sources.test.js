@@ -64,19 +64,23 @@ describe('contextSources', () => {
     expect(contextSources(state, 'fr').some((l) => l.sourceType === 'satellite')).toBe(false);
   });
 
-  it('includes a governance-tech apBonus line for the player once 3 Governance techs are researched, and only for the player', () => {
+  it('includes a real per-tech effect line for the player\'s own researched techs, and only for the player (plan §M7)', () => {
     const base = createInitialState({ playerNationId: 'fr' });
     const withTech = {
       ...base,
-      techTree: {
-        ...base.techTree,
-        governance_code_of_laws: { ...base.techTree.governance_code_of_laws, researched: true },
-        governance_scribal_bureaucracy: { ...base.techTree.governance_scribal_bureaucracy, researched: true },
-        governance_civic_assemblies: { ...base.techTree.governance_civic_assemblies, researched: true }
-      }
+      techTree: { ...base.techTree, governance_code_of_laws: { ...base.techTree.governance_code_of_laws, researched: true } }
     };
-    expect(contextSources(withTech, 'fr')).toContainEqual({ key: 'national.apBonus', value: 1, sourceType: 'tech', sourceId: 'governance', label: 'Governance Techs' });
+    expect(contextSources(withTech, 'fr')).toContainEqual({ key: 'national.admBonus', value: 1, sourceType: 'tech', sourceId: 'governance_code_of_laws', label: 'Code of Laws' });
     expect(contextSources(withTech, 'de').some((l) => l.sourceType === 'tech')).toBe(false);
+  });
+
+  it('emits nothing for a tech with no effects table entry (an unlock-only tech)', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const withTech = {
+      ...base,
+      techTree: { ...base.techTree, governance_civic_assemblies: { ...base.techTree.governance_civic_assemblies, researched: true } }
+    };
+    expect(contextSources(withTech, 'fr').some((l) => l.sourceType === 'tech')).toBe(false);
   });
 });
 

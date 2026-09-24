@@ -46,12 +46,9 @@ export const ACTION_COSTS = {
   navalEngagement: { mil: 2 },
   suppressRebellion: { mil: 2 },
 
-  // A tech's own gold/techPoints cost (src/data/techTree.js) varies per tech; this is the flat
-  // POWER quantity every research action shares (2, same as before M2), but which POOL it draws
-  // from now depends on the tech's own category — TECH_RESEARCH_POOL below, matching plan §M7's
-  // "Military -> MIL, Economy/Science -> DIP, Infrastructure/Governance -> ADM" line-to-pool
-  // mapping ahead of that milestone's fuller research rework.
-  researchTech: { power: 2 },
+  // Plan §M7: a tech's own techPoints cost, and its power cost (src/data/techTree.js's own
+  // getTechPowerCost, scaled by age), both draw from the tech's own line — no flat action cost
+  // here for research itself (unlike every other action's ACTION_COSTS entry).
   setResearchFocus: { adm: 1 },
   fundScholars: { gold: 100, dip: 1 },
 

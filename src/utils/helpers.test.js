@@ -287,25 +287,28 @@ describe('getPowerIncome', () => {
     expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 4, mil: 4 });
   });
 
-  it('adds +1 to every pool per 3 researched Governance-line techs, ignoring other categories', () => {
+  it('adds +1 ADM per researched Governance tech with a real admBonus effect (Code of Laws), ignoring other techs', () => {
+    // Plan §M7 replaced the old flat "+1 per 3 Governance techs" rule with each tech's own real
+    // effect — Code of Laws gives +1 admBonus; Scribal Bureaucracy and Civic Assemblies don't
+    // touch any power pool (their own effects are developmentCost and an unlock respectively).
     const state = baseState();
-    // Governance techs (see techTree.js's buildLine ids: governance_<slug>).
     ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies'].forEach((id) => {
       state.techTree[id] = { ...state.techTree[id], researched: true };
     });
-    // A non-Governance tech researched too, to prove it's excluded from the count.
+    // A non-Governance tech researched too, to prove only techs with a real admBonus effect count.
     state.techTree.military_bronze_casting = { ...state.techTree.military_bronze_casting, researched: true };
-    expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 4, mil: 4 }); // 3 base + floor(3/3) = 1
+    expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 3, mil: 3 }); // 3 base + 1 (Code of Laws)
   });
 
-  it('stacks the government and tech bonuses together', () => {
+  it('stacks the government apBonus with per-tech admBonus effects together', () => {
     const state = baseState();
-    state.nations.fr.government = 'empire'; // apBonus: 2
+    state.nations.fr.government = 'empire'; // apBonus: 2, all three pools
+    // Of these 6, only Code of Laws and Royal Chancery have their own +1 admBonus effect.
     ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies',
       'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
       state.techTree[id] = { ...state.techTree[id], researched: true };
     });
-    expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 7, mil: 7 }); // 3 base + 2 gov + floor(6/3)=2 tech
+    expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 5, mil: 5 }); // 3 base + 2 gov (all) + 2 admBonus (adm only)
   });
 
   // A recurring DIP bonus (satellite or completed space mission) must be part of getPowerIncome's

@@ -56,14 +56,18 @@ export const getOverextension = (state, nationId) => {
 };
 
 // Plan's own formula for this one action, verbatim: 100 ADM x (1 + overextension%) x (1 + 0.1 x
-// (stability + 3)). The plan's broader "+overextension%/2 on ADM and DIP costs" for EVERY action is
-// deferred: every other action's cost is still a flat table read by canAfford/applyCosts
-// (src/data/actionCosts.js), with no per-action modifier-aware cost pipeline yet — retrofitting one
-// just for this single multiplier would be a bigger, separate refactor, not an M4-sized change.
-export const getIncreaseStabilityCost = (state, nationId) => {
+// (stability + 3)) x (1 + national.stabilityCost). The plan's broader "+overextension%/2 on ADM
+// and DIP costs" for EVERY action is deferred: every other action's cost is still a flat table
+// read by canAfford/applyCosts (src/data/actionCosts.js), with no per-action modifier-aware cost
+// pipeline yet — retrofitting one just for this single multiplier would be a bigger, separate
+// refactor, not an M4-sized change. `stabilityCostMult` is caller-supplied (via getModifier)
+// rather than looked up here, so this file (and nationalPower.js in general) never has to import
+// the modifier engine — src/engine/modifiers/sources.js already imports FROM this file
+// (getOverextension/getRulerBestPool), and importing back would be a real circular dependency.
+export const getIncreaseStabilityCost = (state, nationId, stabilityCostMult = 0) => {
   const overextension = getOverextension(state, nationId);
   const stability = state.nations?.[nationId]?.stability || 0;
-  return Math.round(100 * (1 + overextension / 100) * (1 + 0.1 * (stability + 3)));
+  return Math.round(100 * (1 + overextension / 100) * (1 + 0.1 * (stability + 3)) * (1 + stabilityCostMult));
 };
 
 // The pool a ruler is best at (adm > dip > mil on ties) — used by the legitimacy-below-50 penalty,

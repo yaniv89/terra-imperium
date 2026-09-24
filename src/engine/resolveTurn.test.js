@@ -473,6 +473,36 @@ describe('resolveTurn supply attrition', () => {
     const next = resolveTurn(state);
     expect(next.units.u_weak).toBeUndefined();
   });
+
+  // Plan §M7: Paved Roads/Highway Systems reduce attrition (national.attrition), read only for the
+  // player (AI nations don't track a techTree until M16) — see resolveTurn.js's own comment on why
+  // this is gated, not a blanket getModifier call across all ~240 nations every turn.
+  it('bleeds less strength from an out-of-supply unit once Paved Roads is researched', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const farUnit = {
+      id: 'u_far', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const withoutTech = { ...base, units: { u_far: farUnit } };
+    const withTech = { ...withoutTech, techTree: { ...base.techTree, infrastructure_paved_roads: { ...base.techTree.infrastructure_paved_roads, researched: true } } };
+    const nextWithout = resolveTurn(withoutTech);
+    const nextWith = resolveTurn(withTech);
+    expect(nextWith.units.u_far.strength).toBeGreaterThan(nextWithout.units.u_far.strength);
+  });
+
+  it('never applies a supplyRange/attrition bonus for an AI-owned unit, even if the player has researched one', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const withTech = { ...base, techTree: { ...base.techTree, infrastructure_paved_roads: { ...base.techTree.infrastructure_paved_roads, researched: true } } };
+    const aiFarUnit = {
+      id: 'u_ai_far', regionId: cap('fr'), ownerId: 'de', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = { ...withTech, units: { u_ai_far: aiFarUnit } };
+    const next = resolveTurn(state);
+    // Germany's own unit, sitting on French soil, is still out of ITS OWN supply and takes the
+    // full, un-discounted attrition rate — the player's tech never leaks onto another nation.
+    expect(next.units.u_ai_far.strength).toBeLessThan(1000);
+  });
 });
 
 describe('resolveTurn war exhaustion', () => {

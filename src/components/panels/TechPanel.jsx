@@ -8,11 +8,12 @@ import { Beaker, BookOpen, GraduationCap, Check, Lock } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
-import { TECH_TREE, canResearchTech, getTechsByCategory } from '../../data/techTree';
+import { TECH_TREE, canResearchTech, getTechsByCategory, getTechPowerCost } from '../../data/techTree';
 import { ACTION_COSTS, TECH_RESEARCH_POOL } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
 import { getAgesBehind, getAgesBehindResearchCostMultiplier, getAgesBehindCombatMultiplier } from '../../data/ages';
-import { canAfford, scaleCosts } from '../../utils/helpers';
+import { canAfford } from '../../utils/helpers';
+import { getModifier } from '../../engine/modifiers/sheet';
 import { ActionButton } from '../ui';
 
 const CATEGORY_LABELS = {
@@ -31,7 +32,16 @@ const TechPanel = () => {
   // getAgesBehindResearchCostMultiplier/getAgesBehindCombatMultiplier) — surfaced here so the cost
   // increase isn't a silent, confusing surprise.
   const agesBehind = getAgesBehind(state.age, state.techAgeId);
-  const researchCostMult = getAgesBehindResearchCostMultiplier(agesBehind);
+  const agesBehindMult = getAgesBehindResearchCostMultiplier(agesBehind);
+  // Plan §M7: national.researchCost (nothing sources it yet but Scientific Method's own tech
+  // effect) and Research Focus's own -15% power discount for the currently-focused line.
+  const nationalResearchCostMult = getModifier(state, state.playerNationId, 'national.researchCost').total;
+  const getTechCosts = (tech) => {
+    const focused = state.researchFocus === tech.category;
+    const power = Math.round(getTechPowerCost(tech, { researchCostMult: nationalResearchCostMult, focused }) * agesBehindMult);
+    const techPoints = Math.round(tech.cost.techPoints * (1 + nationalResearchCostMult) * agesBehindMult);
+    return { [TECH_RESEARCH_POOL[tech.category]]: power, techPoints };
+  };
 
   const handleFocus = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.setResearchFocus)) return addLog('Not enough resources', 'action');
@@ -43,11 +53,10 @@ const TechPanel = () => {
     triggerEffect('fund_scholars', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
   };
-  const handleResearch = (techId, techCost, category) => {
-    const costs = { ...scaleCosts(techCost, researchCostMult), [TECH_RESEARCH_POOL[category]]: ACTION_COSTS.researchTech.power };
-    if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+  const handleResearch = (tech) => {
+    if (!canAfford(state.resources, getTechCosts(tech))) return addLog('Not enough resources', 'action');
     triggerEffect('research_tech', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
+    dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId: tech.id } });
   };
 
   return (
@@ -70,7 +79,7 @@ const TechPanel = () => {
         </div>
         {agesBehind > 0 && (
           <div className="mt-1.5 pt-1.5 border-t border-amber-700/40 text-[11px] text-amber-400">
-            {agesBehind} age{agesBehind === 1 ? '' : 's'} behind the calendar — research costs +{Math.round((researchCostMult - 1) * 100)}%,
+            {agesBehind} age{agesBehind === 1 ? '' : 's'} behind the calendar — research costs +{Math.round((agesBehindMult - 1) * 100)}%,
             combat output -{Math.round((1 - getAgesBehindCombatMultiplier(agesBehind)) * 100)}% until you catch up.
           </div>
         )}
@@ -112,16 +121,17 @@ const TechPanel = () => {
           <div className="text-xs font-semibold text-slate-300">{CATEGORY_LABELS[categoryId]}</div>
           {(categories[categoryId]?.techs || []).map(tech => {
             const techState = state.techTree[tech.id];
-            const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind);
-            const costs = { ...scaleCosts(tech.cost, researchCostMult), [TECH_RESEARCH_POOL[categoryId]]: ACTION_COSTS.researchTech.power };
+            const focused = state.researchFocus === categoryId;
+            const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, nationalResearchCostMult, focused);
+            const costs = getTechCosts(tech);
             return (
               <ActionButton
                 key={tech.id}
                 icon={techState?.researched ? Check : check.can ? BookOpen : Lock}
                 label={tech.name}
-                description={techState?.researched ? 'Researched' : check.reason || 'Available'}
+                description={techState?.researched ? 'Researched' : focused ? `${check.reason || 'Available'} (focused: -15% power)` : check.reason || 'Available'}
                 costs={techState?.researched ? null : costs}
-                onClick={() => handleResearch(tech.id, tech.cost, categoryId)}
+                onClick={() => handleResearch(tech)}
                 disabled={techState?.researched || !check.can}
                 variant={techState?.researched ? 'success' : 'default'}
                 size="small"

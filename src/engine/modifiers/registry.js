@@ -40,7 +40,15 @@ export const MODIFIER_KEYS = {
   // Plan §M6.1: Develop Province's national.developmentCost sibling for buildings — sourced by the
   // Architect ruler trait (M3), which this milestone rewires from its old goldMult stand-in now
   // that the real hook exists.
-  'national.buildingCost': { scope: 'nation', unit: 'pct', label: 'Building Cost' }
+  'national.buildingCost': { scope: 'nation', unit: 'pct', label: 'Building Cost' },
+  // Plan §M7: research cost (power + techPoints) and stability cost (Increase Stability, M4)
+  // multipliers, and the national counterparts of M6's local.supplyRange/attrition (a nation-wide
+  // road/rail tech applies once to the empire-wide max, on top of whichever single region already
+  // supplies the farthest — see resolveTurn.js's supply-attrition pass).
+  'national.researchCost': { scope: 'nation', unit: 'pct', label: 'Research Cost' },
+  'national.stabilityCost': { scope: 'nation', unit: 'pct', label: 'Stability Cost' },
+  'national.supplyRange': { scope: 'nation', unit: 'flat', label: 'Supply Range' },
+  'national.attrition': { scope: 'nation', unit: 'pct', label: 'Attrition' }
 };
 
 // Maps getNationBonusTotal's old hook-name argument to its modifier key here, so every existing
@@ -57,5 +65,9 @@ export const LEGACY_HOOK = {
   dipBonus: 'national.dipBonus',
   milBonus: 'national.milBonus',
   developmentCost: 'national.developmentCost',
-  buildingCost: 'national.buildingCost'
+  buildingCost: 'national.buildingCost',
+  researchCost: 'national.researchCost',
+  stabilityCost: 'national.stabilityCost',
+  supplyRange: 'national.supplyRange',
+  attrition: 'national.attrition'
 };

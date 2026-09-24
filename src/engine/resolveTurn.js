@@ -16,7 +16,7 @@ import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome } from '../utils/helpers';
-import { getRegionModifier } from './modifiers/sheet';
+import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
@@ -256,9 +256,18 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.entries(unitsByOwner).forEach(([ownerId, ownerUnits]) => {
     const ownedRegionIds = getOwnedRegionIds(regions, ownerId);
     if (ownedRegionIds.length === 0) return; // no territory of its own (e.g. rebels) — nothing to be supplied from
+    // Plan §M7: Paved Roads/Highway Systems reduce attrition, and Infrastructure techs add a flat
+    // national.supplyRange — both sourced only from the player's own researched techs today (AI
+    // nations don't track a techTree until M16's AI parity), so this is gated the same way the
+    // tech-effects source itself already is. Calling getModifier for every AI-owned nation here
+    // would otherwise force contextSources' O(regions) getOverextension scan up to ~240 times a
+    // turn for a value that's unconditionally 0 for every one of them anyway.
+    const isPlayer = ownerId === state.playerNationId;
+    const attritionMult = isPlayer ? Math.max(0, 1 + getModifier(state, ownerId, 'national.attrition').total) : 1;
     // Plan §M6: the Logistics building line's local.supplyRange extends how far THAT region can
     // supply from, on top of infrastructure's own existing contribution.
-    const maxSupplyRange = Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure) + getRegionModifier(state, id, 'local.supplyRange').total));
+    const nationalSupplyRange = isPlayer ? getModifier(state, ownerId, 'national.supplyRange').total : 0;
+    const maxSupplyRange = nationalSupplyRange + Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure) + getRegionModifier(state, id, 'local.supplyRange').total));
     // One bounded multi-source BFS covers every in-range region at once, rather than a fresh
     // search per distinct region a unit happens to occupy — the set of in-range regions is the
     // same for every one of this nation's units this turn regardless of how many distinct
@@ -269,7 +278,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       if (inSupplyRegions.has(u.regionId)) return; // in supply
       // Math.floor, not round: a unit's strength must actually reach 0 under sustained attrition
       // rather than rounding back up to 1 forever once it gets small.
-      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE)));
+      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE * attritionMult)));
       if (strength <= 0) { delete units[u.id]; return; }
       units[u.id] = { ...u, strength };
     });

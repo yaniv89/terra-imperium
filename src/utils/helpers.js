@@ -230,13 +230,13 @@ export const calcIncome = (state) => {
     if (reward.helium3PerTurn && income.helium3 !== undefined) income.helium3 += reward.helium3PerTurn;
   });
 
-  // Set Research Focus (Research tab): a flat research-speed bonus for committing to a line.
-  // Which category is stored for later systems (e.g. AI reading a rival's focus) to react to —
-  // the immediate mechanical payoff is deliberately general rather than per-category, so it
-  // doesn't need to reach into RESEARCH_TECH's own cost/afford checks to have a real effect.
-  if (state.researchFocus && income.techPoints) income.techPoints *= 1.2;
-  // A ruler's Scholar trait (plan §M3) — gated on the same "no base techPoints, no bonus" rule as
-  // Research Focus above, so a nation with no Science buildings yet isn't shown a phantom gain.
+  // Set Research Focus (plan §M7) no longer boosts techPoints income here — it's now a real
+  // -15% power-cost discount applied directly in RESEARCH_TECH/canResearchTech for the focused
+  // line's own techs (src/data/techTree.js's getTechPowerCost), not a flat, line-agnostic
+  // techPoints multiplier.
+  // A ruler's Scholar trait (plan §M3) gated on the same "no base techPoints, no bonus" rule the
+  // old Research Focus line above used to share, so a nation with no Science buildings yet isn't
+  // shown a phantom gain.
   const techPointsMult = getModifier(state, state.playerNationId, 'national.techPointsMult').total;
   if (techPointsMult && income.techPoints) income.techPoints *= (1 + techPointsMult);
 
