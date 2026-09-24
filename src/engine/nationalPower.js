@@ -21,7 +21,6 @@ export const LEGITIMACY_MAX = 100;
 export const PRESTIGE_MIN = -100;
 export const PRESTIGE_MAX = 100;
 export const PRESTIGE_DECAY_RATE = 0.05; // 5%/turn toward 0
-export const WONDER_COMPLETION_PRESTIGE = 15;
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 export const clampStability = (value) => clamp(value, STABILITY_MIN, STABILITY_MAX);

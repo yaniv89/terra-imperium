@@ -934,3 +934,35 @@ describe('resolveTurn estates (plan §M9)', () => {
     expect(next.nations.fr.estates.labor).toBeUndefined();
   });
 });
+
+describe('resolveTurn great projects (plan §M10)', () => {
+  const withConstruction = (turnsLeft, tier = 1) => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    return {
+      ...base,
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], greatProjectConstruction: { projectId: 'great_pyramids', tier, turnsLeft } } }
+    };
+  };
+
+  it('ticks turnsLeft down by 1 without completing', () => {
+    const next = resolveTurn(withConstruction(4));
+    expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 1, turnsLeft: 3 });
+    expect(next.greatProjects.great_pyramids).toBeUndefined();
+  });
+
+  it('completes construction, clears the queue, records the project, and grants prestige', () => {
+    const base = withConstruction(1);
+    const next = resolveTurn(base);
+    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
+    expect(next.greatProjects.great_pyramids).toEqual({ regionId: cap('fr'), tier: 1 });
+    expect(next.nations.fr.prestige).toBeGreaterThan(base.nations.fr.prestige || 0);
+  });
+
+  it('cancels a queued project outright if the region is captured before it finishes', () => {
+    const base = withConstruction(2);
+    const captured = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], owner: 'de' } } };
+    const next = resolveTurn(captured);
+    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
+    expect(next.greatProjects.great_pyramids).toBeUndefined();
+  });
+});

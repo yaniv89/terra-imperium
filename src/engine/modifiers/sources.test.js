@@ -37,14 +37,6 @@ describe('staticSources', () => {
     expect(staticSources({ laws: { taxation: 'tribute', justice: 'customary_law' } }).some((l) => l.sourceType === 'law')).toBe(false);
   });
 
-  it('emits one line per built wonder, including multi-hook wonders', () => {
-    const lines = staticSources({ wonders: ['royalObservatory'] });
-    expect(lines).toEqual(expect.arrayContaining([
-      { key: 'national.goldMult', value: 0.1, sourceType: 'wonder', sourceId: 'royalObservatory', label: 'The Royal Observatory' },
-      { key: 'national.stabilityBonus', value: 5, sourceType: 'wonder', sourceId: 'royalObservatory', label: 'The Royal Observatory' }
-    ]));
-  });
-
   it('emits nothing for identity alone (plan §M8.3: identity gates/discounts instead of granting a flat bonus)', () => {
     expect(staticSources({ identity: { collectivism: 100, secularism: 100, globalism: 100 } }).some((l) => l.sourceType === 'identity')).toBe(false);
   });
@@ -128,6 +120,33 @@ describe('contextSources', () => {
       techTree: { ...base.techTree, governance_civic_assemblies: { ...base.techTree.governance_civic_assemblies, researched: true } }
     };
     expect(contextSources(withTech, 'fr').some((l) => l.sourceType === 'tech')).toBe(false);
+  });
+
+  it('includes a great project\'s current-tier effect only for whoever currently owns its site region (plan §M10)', () => {
+    const state = {
+      playerNationId: 'fr',
+      nations: { fr: {}, de: {} },
+      regions: { r1: { owner: 'fr' } },
+      greatProjects: { great_library: { regionId: 'r1', tier: 2 } } // techPointsMult 0.2
+    };
+    expect(contextSources(state, 'fr')).toContainEqual({ key: 'national.techPointsMult', value: 0.2, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
+    expect(contextSources(state, 'de').some((l) => l.sourceType === 'greatProject')).toBe(false);
+  });
+
+  it('follows a great project to its new owner the instant the site region is captured', () => {
+    const state = {
+      playerNationId: 'fr',
+      nations: { fr: {}, de: {} },
+      regions: { r1: { owner: 'de' } }, // captured
+      greatProjects: { great_library: { regionId: 'r1', tier: 1 } }
+    };
+    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'greatProject')).toBe(false);
+    expect(contextSources(state, 'de')).toContainEqual({ key: 'national.techPointsMult', value: 0.1, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
+  });
+
+  it('emits nothing for a project with no wired ongoing effect (e.g. the Great Wall)', () => {
+    const state = { playerNationId: 'fr', nations: { fr: {} }, regions: { r1: { owner: 'fr' } }, greatProjects: { great_wall: { regionId: 'r1', tier: 2 } } };
+    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'greatProject')).toBe(false);
   });
 
   it('a governingCapacity reform raises the overextension threshold, delaying the overextension penalty line (plan §M8.1)', () => {

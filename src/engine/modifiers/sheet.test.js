@@ -6,9 +6,12 @@ const monarchyDespotic = { type: 'monarchy', reforms: { bronze: 'despotic_rule' 
 const merchantRepublic = { type: 'republic', reforms: { classical: 'merchant_republic' } }; // goldMult 0.25
 
 describe('getNationBonusTotal / explainNationBonus (the legacy shim)', () => {
-  it('sums government reforms + laws + wonders for one hook, matching the old getNationBonusTotal', () => {
-    const nation = { government: monarchyDespotic, laws: { justice: 'rule_of_law' }, wonders: ['pyramids'] }; // stabilityBonus: -1 (despotic) + 1 (rule_of_law) + 8 (pyramids) = 8
-    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(8);
+  it('sums government reforms + laws for one hook, matching the old getNationBonusTotal', () => {
+    // Great Projects (plan §M10) replaced nation-scoped World Wonders with region-sited projects
+    // this bare-nation shim can no longer read (their owner is derived from live region state) —
+    // see sources.test.js's contextSources tests for that coverage instead.
+    const nation = { government: monarchyDespotic, laws: { justice: 'rule_of_law' } }; // stabilityBonus: -1 (despotic) + 1 (rule_of_law) = 0
+    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(0);
   });
 
   it('explainNationBonus returns a breakdown whose lines sum to the same total', () => {

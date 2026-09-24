@@ -425,35 +425,82 @@ describe('Domestic tab actions', () => {
     });
   });
 
-  describe('CONSTRUCT_WONDER', () => {
-    it('completes a wonder available at the current age, deducts the cost, and claims it globally', () => {
-      const state = richState(); // starts in the Bronze Age -> pyramids is buildable
-      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } });
-      expect(next.wondersBuilt.pyramids).toBe('fr');
-      expect(next.nations.fr.wonders).toContain('pyramids');
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
-    });
-
-    it('grants prestige on completion (plan §M4: great projects\' own prestige source, M10, isn\'t built yet)', () => {
+  describe('Great Projects (plan §M10)', () => {
+    // great_pyramids' site rule is just "a capital" — cap('fr') already satisfies it with no extra
+    // building setup, unlike most other projects.
+    const projectRichState = () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } });
-      expect(next.nations.fr.prestige).toBeGreaterThan(state.nations.fr.prestige || 0);
+      return { ...state, resources: { ...state.resources, adm: 100000 } };
+    };
+
+    describe('START_GREAT_PROJECT', () => {
+      it('starts construction at a valid site, deducts the cost, and queues it on the region', () => {
+        const state = projectRichState();
+        const next = gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } });
+        expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 1, turnsLeft: 4 });
+        expect(next.resources.gold).toBeLessThan(state.resources.gold);
+        expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      });
+
+      it('is a no-op at a region that fails the site rule', () => {
+        const state = projectRichState();
+        // hanging_gardens needs Irrigation; the player's fresh capital has no food building yet.
+        expect(gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'hanging_gardens', regionId: cap('fr') } })).toBe(state);
+      });
+
+      it('is a no-op for a region the player doesn\'t own', () => {
+        const state = projectRichState();
+        expect(gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('de') } })).toBe(state);
+      });
+
+      it('is a no-op once the project has already been started anywhere', () => {
+        const started = gameReducer(projectRichState(), { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } });
+        expect(gameReducer(started, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } })).toBe(started);
+      });
+
+      it('is a no-op when unaffordable', () => {
+        const state = { ...projectRichState(), resources: { ...projectRichState().resources, gold: 0 } };
+        expect(gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } })).toBe(state);
+      });
     });
 
-    it('is a no-op for a wonder two or more ages ahead of the current age', () => {
-      const state = richState(); // Bronze Age -> grandBazaar (Kingdoms) is two ages ahead
-      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'grandBazaar' } })).toBe(state);
-    });
+    describe('UPGRADE_GREAT_PROJECT', () => {
+      // resolveTurn.js is what actually completes construction and populates state.greatProjects —
+      // this action only tests the upgrade GATE/cost, so the fixture sets a completed tier-1 project
+      // directly rather than running resolveTurn 4 times just to get there.
+      const withTier1 = () => {
+        const state = projectRichState();
+        return { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')] } }, greatProjects: { great_pyramids: { regionId: cap('fr'), tier: 1 } } };
+      };
 
-    it('is a no-op once the wonder is already claimed by any nation', () => {
-      const state = { ...richState(), wondersBuilt: { pyramids: 'de' } };
-      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(state);
-    });
+      it('upgrades to the next tier and deducts the cost', () => {
+        const state = withTier1();
+        const next = gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } });
+        expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 2, turnsLeft: 6 });
+        expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      });
 
-    it('is a no-op when unaffordable', () => {
-      const fresh = createInitialState({ playerNationId: 'fr' });
-      const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
-      expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(base);
+      it('is a no-op for a project the player doesn\'t own', () => {
+        const state = { ...withTier1() };
+        state.greatProjects = { great_pyramids: { regionId: cap('de'), tier: 1 } };
+        expect(gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(state);
+      });
+
+      it('is a no-op for a project not yet built', () => {
+        const state = projectRichState();
+        expect(gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(state);
+      });
+
+      it('is a no-op while the region is already mid-construction', () => {
+        const state = withTier1();
+        const busy = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], greatProjectConstruction: { projectId: 'hanging_gardens', tier: 1, turnsLeft: 2 } } } };
+        expect(gameReducer(busy, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(busy);
+      });
+
+      it('is a no-op when unaffordable', () => {
+        const state = { ...withTier1(), resources: { ...withTier1().resources, adm: 0 } };
+        expect(gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(state);
+      });
     });
   });
 

@@ -11,7 +11,7 @@ import {
   ESTATE_LABELS, ESTATE_THRESHOLD_BONUS, ESTATE_THRESHOLD_MALUS, ESTATE_LOYALTY_HIGH_THRESHOLD,
   ESTATE_LOYALTY_LOW_THRESHOLD, getPrivilege, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD
 } from '../../data/estates';
-import { WONDERS } from '../../data/wonders';
+import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
@@ -41,11 +41,6 @@ export const staticSources = (nation) => {
     const lawId = nation?.laws?.[category];
     const law = lawId && getLaw(category, lawId);
     if (law) lines.push(...linesFromEffect(law.effects, 'law', lawId, law.name));
-  });
-
-  (nation?.wonders || []).forEach((id) => {
-    const wonder = WONDERS[id];
-    if (wonder) lines.push(...linesFromEffect(wonder.effect, 'wonder', id, wonder.name));
   });
 
   // Plan §M8.3: identity no longer grants a flat gold/stability multiplier here — it only gates and
@@ -119,6 +114,16 @@ export const contextSources = (state, nationId) => {
 
   const taxGoldMult = TAX_RATES[nation?.taxRate]?.goldMult || 0;
   if (taxGoldMult) lines.push({ key: 'national.goldMult', value: taxGoldMult, sourceType: 'tax', sourceId: nation?.taxRate, label: 'Tax Rate' });
+
+  // Plan §M10: Great Projects. Ownership is derived from the site region's current owner
+  // (getGreatProjectOwner), not stored on the nation — this is why the source has to live here in
+  // contextSources rather than staticSources, unlike wonders.js's old flat `nation.wonders[]`.
+  Object.entries(state.greatProjects || {}).forEach(([projectId, entry]) => {
+    if (!entry?.tier || getGreatProjectOwner(state, projectId) !== nationId) return;
+    const project = GREAT_PROJECTS[projectId];
+    const tierEffects = project?.tiers[entry.tier - 1]?.effects;
+    if (tierEffects) lines.push(...linesFromEffect(tierEffects, 'greatProject', projectId, project.name));
+  });
 
   const satellites = state.satellites || {};
   ['goldMult', 'hrMult'].forEach((hook) => {

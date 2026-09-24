@@ -238,23 +238,24 @@ describe('getStability / nextUnrest', () => {
 });
 
 describe('getNationBonusTotal', () => {
-  it('sums a completed World Wonder\'s effect alongside government and policy bonuses', () => {
-    const nation = { government: null, policies: [], wonders: ['grandBazaar'] }; // grandBazaar: goldMult 0.15
-    expect(getNationBonusTotal(nation, 'goldMult')).toBeCloseTo(0.15);
+  // Plan §M10: Great Projects replaced the old flat, nation-scoped World Wonders (`nation.wonders[]`)
+  // with region-sited projects whose owner is derived from live region state — staticSources (the
+  // only source getNationBonusTotal's bare-nation shim can read) can no longer demonstrate them; see
+  // src/engine/modifiers/sources.test.js's contextSources tests for the real coverage instead.
+  // An estate privilege is still a real nation-scoped staticSources effect, so it exercises the same
+  // "sums an effect alongside government/law bonuses" path wonders used to.
+  it('sums a granted estate privilege\'s effect alongside government and law bonuses', () => {
+    const nation = { government: { type: 'tribal', reforms: {} }, laws: {}, estates: { clergy: { loyalty: 50, influence: 10, privileges: ['control_of_education'] } } };
+    expect(getNationBonusTotal(nation, 'techPointsMult')).toBeCloseTo(0.15);
   });
 
-  it('sums multiple wonders on the same hook', () => {
-    const nation = { wonders: ['royalObservatory', 'spaceProgram'] }; // stabilityBonus 5 + 8
-    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(13);
-  });
-
-  it('ignores an unbuilt/unknown wonder id gracefully', () => {
-    const nation = { wonders: ['not_a_real_wonder'] };
+  it('ignores an unbuilt/unknown privilege id gracefully', () => {
+    const nation = { estates: { clergy: { loyalty: 50, influence: 10, privileges: ['not_a_real_privilege'] } } };
     expect(getNationBonusTotal(nation, 'goldMult')).toBe(0);
   });
 
   it('sums an enacted government reform\'s effect (identity no longer contributes directly, plan §M8.3)', () => {
-    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }, wonders: [], identity: { collectivism: 100 } };
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }, identity: { collectivism: 100 } };
     // despotic_rule's own stabilityBonus (-1); a fully-Collectivist identity contributes nothing to
     // this hook anymore — it only gates/discounts law and government-type choices now.
     expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(-1);

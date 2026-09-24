@@ -35,9 +35,10 @@ import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
-import { processNationalPowerTurn, clampStability, clampLegitimacy } from './nationalPower';
+import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
+import { GREAT_PROJECTS } from '../data/greatProjects';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -351,6 +352,41 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   });
   mark('estates');
 
+  // --- great projects (plan §M10) --- construction is player-only for now, matching every other
+  // AI-economic-action deferral since M8 (government reforms, laws, estates — AI never acts, only
+  // the player does), so only player-owned regions ever carry a `greatProjectConstruction` in the
+  // first place. A region captured mid-construction loses its queued project outright (there's no
+  // partial-credit hand-off to a new owner) rather than silently freezing forever.
+  const greatProjects = { ...state.greatProjects };
+  Object.keys(regions).forEach((regionId) => {
+    const region = regions[regionId];
+    const construction = region.greatProjectConstruction;
+    if (!construction) return;
+    if (region.owner !== state.playerNationId) {
+      regions[regionId] = { ...region, greatProjectConstruction: null };
+      return;
+    }
+    const turnsLeft = construction.turnsLeft - 1;
+    if (turnsLeft > 0) {
+      regions[regionId] = { ...region, greatProjectConstruction: { ...construction, turnsLeft } };
+      return;
+    }
+    const project = GREAT_PROJECTS[construction.projectId];
+    const tierSpec = project?.tiers[construction.tier - 1];
+    regions[regionId] = { ...region, greatProjectConstruction: null };
+    greatProjects[construction.projectId] = { regionId, tier: construction.tier };
+    if (tierSpec?.completionPrestige) {
+      const nation = nations[state.playerNationId];
+      nations[state.playerNationId] = { ...nation, prestige: clampPrestige((nation.prestige || 0) + tierSpec.completionPrestige) };
+    }
+    logs.push({
+      year: newYear,
+      message: `${project.name} (tier ${construction.tier}) completed!${tierSpec?.completionPrestige ? ` (+${tierSpec.completionPrestige} prestige)` : ''}`,
+      type: LogTypes.MILESTONE
+    });
+  });
+  mark('greatProjects');
+
   // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
   // affordable across 240 nations.
   const sortedByMilitary = getSortedByMilitary({ ...state, nations });
@@ -490,6 +526,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     resources,
     regions,
     nations: nationsAfterWars,
+    greatProjects,
     units,
     wars,
     regionModifiers,

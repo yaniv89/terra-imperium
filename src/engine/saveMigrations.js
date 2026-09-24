@@ -14,11 +14,12 @@
 //   load, after any numbered migrations, so a save from a build that's only a few commits behind
 //   (no migration needed yet) still gets any new field for free.
 import { createInitialState } from './gameReducer';
+import { getNationCapital } from '../data/regions';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-export const CURRENT_SAVE_VERSION = 3;
+export const CURRENT_SAVE_VERSION = 4;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
@@ -76,7 +77,39 @@ const migrate2to3 = (state) => {
   return { ...state, nations, resources };
 };
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3 };
+// M10 replaced the old flat, globally-unique `wondersBuilt`/`nation.wonders[]` with Great Projects
+// (src/data/greatProjects.js), whose ownership is derived from the site region's owner rather than
+// stored — see that file's header comment. Each old wonder maps to its matching project at tier 1,
+// sited at the builder's own capital (plan's own migration note); `getNationCapital` is the same
+// static-REGIONS_DATA lookup gameReducer.js already uses elsewhere, independent of who owns that
+// region NOW, matching "where they built it" rather than "who holds it today".
+const WONDER_TO_PROJECT = {
+  pyramids: 'great_pyramids',
+  greatLibrary: 'great_library',
+  grandBazaar: 'grand_bazaar',
+  royalObservatory: 'royal_observatory',
+  spaceProgram: 'space_program'
+};
+
+const migrate3to4 = (state) => {
+  const greatProjects = { ...state.greatProjects };
+  const nations = {};
+  Object.entries(state.nations || {}).forEach(([id, nation]) => {
+    const { wonders, ...rest } = nation;
+    (wonders || []).forEach((wonderId) => {
+      const projectId = WONDER_TO_PROJECT[wonderId];
+      if (!projectId || greatProjects[projectId]) return; // already claimed — wondersBuilt was global-unique, so this is only a defensive guard
+      const regionId = getNationCapital(id);
+      if (regionId) greatProjects[projectId] = { regionId, tier: 1 };
+    });
+    nations[id] = rest;
+  });
+  // eslint-disable-next-line no-unused-vars -- destructured only to omit the deleted top-level field
+  const { wondersBuilt, ...restState } = state;
+  return { ...restState, nations, greatProjects };
+};
+
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

@@ -229,7 +229,9 @@ export const EFFECT_REGISTRY = {
   build_infrastructure: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'circle', rings: 3, motes: 4 },
   build_defenses: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 2, motes: 0 },
   build_climate_resilience: { primitive: 'pulse', palette: { base: '#34d399', hot: '#ecfdf5' }, glyph: 'circle', rings: 2, motes: 6 },
-  construct_wonder: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 12 },
+  // Plan §M10: replaces the old flat, empire-wide construct_wonder.
+  start_great_project: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 12 },
+  upgrade_great_project: { primitive: 'pulse', palette: { base: '#eab308', hot: '#fef9c3' }, glyph: 'star', rings: 3, motes: 8 },
   gain_control: { primitive: 'pulse', palette: { base: '#60a5fa', hot: '#dbeafe' }, glyph: 'circle', rings: 2, motes: 0 },
   // Auto-targets whoever's most hostile rather than a chosen nation, so it's centred on the
   // player's own capital (pulse) rather than an arc to a picked target.
@@ -262,7 +264,7 @@ export const EFFECT_REGISTRY = {
   build_missile: { primitive: 'pulse', palette: { base: '#f97316', hot: '#fff7ed' }, glyph: 'triangle', rings: 2, motes: 3 },
   build_abm_defense: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'square', rings: 2, motes: 0 },
   // The mission ladder's showpiece moments (Sputnik, Moon landing, Mars) get the biggest pulse in
-  // the registry — matched only by construct_wonder, the other permanent-empire-scale milestone.
+  // the registry — matched only by start_great_project, the other permanent-empire-scale milestone.
   launch_mission: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 10 },
   // Age Advance (plan §10.5's "showpiece") — the one moment that happens to every nation on the
   // same turn, so it gets the single biggest pulse in the registry, anchored on the player's own

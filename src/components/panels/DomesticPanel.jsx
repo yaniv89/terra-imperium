@@ -30,7 +30,9 @@ import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '..
 import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost, getRequiredTechName } from '../../data/laws';
 import { ESTATE_LABELS, ESTATE_LOYALTY_HIGH_THRESHOLD, ESTATE_LOYALTY_LOW_THRESHOLD, getEstatePrivileges, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD } from '../../data/estates';
 import { canDoEstateInteraction } from '../../engine/estates';
-import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
+import {
+  GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, getGreatProjectOwner, canStartGreatProject, canUpgradeGreatProject
+} from '../../data/greatProjects';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/succession';
@@ -52,17 +54,24 @@ const DomesticPanel = ({ selectedRegion }) => {
   const regionData = selectedRegion ? REGIONS_DATA[selectedRegion] : null;
   const ownerName = regionState ? (state.nations[regionState.owner]?.name || regionState.owner) : null;
   const isPlayerOwned = regionState?.owner === state.playerNationId;
-  const effectiveAgeForEmpire = getEffectiveAgeId(state.age, state.techAgeId);
 
   const handleSetTaxRate = (rate) => {
     if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
     triggerEffect('set_tax_rate', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
   };
-  const handleConstructWonder = (wonderId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.constructWonder)) return addLog('Not enough resources', 'action');
-    triggerEffect('construct_wonder', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId } });
+  const handleStartGreatProject = (projectId, regionId) => {
+    const { gold, adm } = getGreatProjectCost(1);
+    if (!canAfford(state.resources, { gold, adm })) return addLog('Not enough resources', 'action');
+    triggerEffect('start_great_project', { region: regionId });
+    dispatch({ type: ActionTypes.START_GREAT_PROJECT, payload: { projectId, regionId } });
+  };
+  const handleUpgradeGreatProject = (projectId) => {
+    const entry = state.greatProjects[projectId];
+    const { gold, adm } = getGreatProjectCost((entry?.tier || 0) + 1);
+    if (!canAfford(state.resources, { gold, adm })) return addLog('Not enough resources', 'action');
+    triggerEffect('upgrade_great_project', { region: entry?.regionId });
+    dispatch({ type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId } });
   };
   const handleCounterIntelligence = () => {
     if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog('Not enough resources', 'action');
@@ -103,24 +112,36 @@ const DomesticPanel = ({ selectedRegion }) => {
         ))}
       </div>
 
-      <div className="text-xs font-semibold text-slate-300 pt-1">World Wonders</div>
-      {WONDER_IDS.map((wonderId) => {
-        const wonder = WONDERS[wonderId];
-        const builderId = state.wondersBuilt?.[wonderId];
-        const builtByPlayer = builderId === state.playerNationId;
-        const builtByOther = builderId && !builtByPlayer;
-        const buildable = !builderId && canConstructWonder(wonderId, effectiveAgeForEmpire, state.wondersBuilt);
+      <div className="text-xs font-semibold text-slate-300 pt-1">Great Projects</div>
+      {GREAT_PROJECT_IDS.map((projectId) => {
+        const project = GREAT_PROJECTS[projectId];
+        const entry = state.greatProjects?.[projectId];
+        const ownerId = entry ? getGreatProjectOwner(state, projectId) : null;
+        const ownedByPlayer = ownerId === state.playerNationId;
+        const status = !entry ? 'Not yet built'
+          : `Tier ${entry.tier}${ownerId ? ` — ${ownedByPlayer ? 'yours' : state.nations[ownerId]?.name || ownerId}` : ' — contested'}`;
+        const canUpgrade = ownedByPlayer && canUpgradeGreatProject(state, state.playerNationId, projectId);
+        const upgradeCost = canUpgrade ? getGreatProjectCost(entry.tier + 1) : null;
         return (
-          <ActionButton
-            key={wonderId}
-            icon={Landmark}
-            label={builtByOther ? `${wonder.name} (built by ${state.nations[builderId]?.name || builderId})` : `${wonder.name}${builtByPlayer ? ' (completed)' : ''}`}
-            description={wonder.description}
-            costs={!builderId ? ACTION_COSTS.constructWonder : null}
-            onClick={() => handleConstructWonder(wonderId)}
-            disabled={!buildable}
-            size="small"
-          />
+          <div key={projectId} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-white">{project.name}</span>
+              <span className="text-slate-400">{status}</span>
+            </div>
+            <div className="text-slate-500">{project.description}</div>
+            {canUpgrade && (
+              <ActionButton
+                icon={Landmark}
+                label={`Upgrade to Tier ${entry.tier + 1}`}
+                description={`${upgradeCost.turns} turns`}
+                costs={{ gold: upgradeCost.gold, adm: upgradeCost.adm }}
+                onClick={() => handleUpgradeGreatProject(projectId)}
+                disabled={!canAfford(state.resources, { gold: upgradeCost.gold, adm: upgradeCost.adm })}
+                resources={state.resources}
+                size="small"
+              />
+            )}
+          </div>
         );
       })}
     </div>
@@ -746,6 +767,35 @@ const DomesticPanel = ({ selectedRegion }) => {
               );
             })}
           </div>
+
+          {isPlayerOwned && (
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-slate-300">Great Projects</div>
+              {regionState.greatProjectConstruction && (
+                <div className="bg-slate-800/60 rounded-lg p-2 text-xs text-slate-300">
+                  Building {GREAT_PROJECTS[regionState.greatProjectConstruction.projectId]?.name} (tier {regionState.greatProjectConstruction.tier}) —{' '}
+                  {regionState.greatProjectConstruction.turnsLeft} turn{regionState.greatProjectConstruction.turnsLeft === 1 ? '' : 's'} left
+                </div>
+              )}
+              {GREAT_PROJECT_IDS.filter((projectId) => canStartGreatProject(state, state.playerNationId, projectId, selectedRegion)).map((projectId) => {
+                const project = GREAT_PROJECTS[projectId];
+                const cost = getGreatProjectCost(1);
+                return (
+                  <ActionButton
+                    key={projectId}
+                    icon={Landmark}
+                    label={`Start ${project.name}`}
+                    description={`${cost.turns} turns — ${project.description}`}
+                    costs={{ gold: cost.gold, adm: cost.adm }}
+                    onClick={() => handleStartGreatProject(projectId, selectedRegion)}
+                    disabled={!canAfford(state.resources, { gold: cost.gold, adm: cost.adm })}
+                    resources={state.resources}
+                    size="small"
+                  />
+                );
+              })}
+            </div>
+          )}
 
           {deposits.length > 0 && (
             <div className="space-y-2">
