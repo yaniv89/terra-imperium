@@ -59,6 +59,19 @@ export const ACTION_COSTS = {
   changeGovernmentType: { adm: 300 },
   enactGovernmentReform: { adm: 100 },
 
+  // Estates (plan §M9). Seize/Sell Land are the crown asserting or ceding authority — priced like a
+  // reform and a lesser bureaucratic action respectively. Granting a privilege is a real concession,
+  // priced like a reform; revoking one costs no resource at all because the plan's own described
+  // cost IS the -1 stability/-30 loyalty penalty (gameReducer.js's REVOKE_ESTATE_PRIVILEGE case).
+  // The two estate "asks" are free like every other bookkeeping action (setTaxRate/appointGeneral) —
+  // their real cost is the -10 loyalty they charge that estate.
+  seizeLand: { adm: 100 },
+  sellLand: { adm: 30 },
+  grantEstatePrivilege: { adm: 100 },
+  revokeEstatePrivilege: { adm: 0 },
+  clergyTithe: { adm: 0 },
+  nobilityLevies: { adm: 0 },
+
   // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
   // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
   // is easier than building) but still a real commitment, on top of the shared debris-level cost.

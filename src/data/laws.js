@@ -8,10 +8,11 @@
 //
 // Tiers within a category aren't a prerequisite chain the way techs are — you can switch straight to
 // any tier your tech/identity unlocks, matching a policy swap rather than a research queue. Each
-// tier's `effects` uses the same LEGACY_HOOK vocabulary as government reforms; a plan-described
-// effect naming a system that doesn't exist yet (estate loyalty, per-unit upkeep/morale, trade pact
-// capacity, control growth, opinion) is left off rather than faked — see each tier's `description`
-// for the full plan flavor.
+// tier's `effects` uses the same LEGACY_HOOK vocabulary as government reforms, plus the raw
+// `estateLoyalty` key (plan §M9, read directly by src/engine/estates.js — see government.js's
+// header comment for why it's nested rather than a flat number). A plan-described effect naming a
+// system that doesn't exist yet (per-unit upkeep/morale, trade pact capacity, control growth,
+// opinion) is left off rather than faked — see each tier's `description` for the full plan flavor.
 import { TECH_TREE } from './techTree';
 import { leansPositive, leansNegative } from './identity';
 import { getGovernmentReformEffectSum } from './government';
@@ -33,9 +34,9 @@ export const LAW_CATEGORIES = {
   ],
   religion: [
     { id: 'state_cult', name: 'State Cult', tier: 1, requiresTech: null, description: 'The baseline faith.', effects: {} },
-    { id: 'established_church', name: 'Established Church', tier: 2, requiresTech: 'science_scholastic_method', description: '-10% stability cost; -1 unrest; clergy loyalty/influence up (M9).', effects: { stabilityCost: -0.1, stabilityBonus: 1 } },
+    { id: 'established_church', name: 'Established Church', tier: 2, requiresTech: 'science_scholastic_method', description: '-10% stability cost; -1 unrest; +10 clergy loyalty.', effects: { stabilityCost: -0.1, stabilityBonus: 1, estateLoyalty: { clergy: 10 } } },
     { id: 'tolerance', name: 'Tolerance', tier: 3, requiresTech: 'governance_constitutional_law', description: '-0.5 unrest; identity drift toward secularism (not yet wired).', effects: { stabilityBonus: 0.5 } },
-    { id: 'secularism', name: 'Secularism', tier: 4, requiresTech: 'science_scientific_method', requiresIdentity: { axis: 'secularism', pole: 'negative' }, description: '+10% stability cost; clergy loyalty/influence down (M9).', effects: { stabilityCost: 0.1 } }
+    { id: 'secularism', name: 'Secularism', tier: 4, requiresTech: 'science_scientific_method', requiresIdentity: { axis: 'secularism', pole: 'negative' }, description: '+10% stability cost; -10 clergy loyalty.', effects: { stabilityCost: 0.1, estateLoyalty: { clergy: -10 } } }
   ],
   trade: [
     { id: 'barter', name: 'Barter', tier: 1, requiresTech: null, description: 'The baseline exchange.', effects: {} },

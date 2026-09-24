@@ -49,6 +49,36 @@ describe('staticSources', () => {
     expect(staticSources({ identity: { collectivism: 100, secularism: 100, globalism: 100 } }).some((l) => l.sourceType === 'identity')).toBe(false);
   });
 
+  it('emits an estate\'s threshold BONUS lines once its loyalty is high enough (plan §M9)', () => {
+    const lines = staticSources({ estates: { clergy: { loyalty: 60, influence: 10, privileges: [] } } });
+    expect(lines).toEqual(expect.arrayContaining([
+      { key: 'national.stabilityBonus', value: 1, sourceType: 'estate', sourceId: 'clergy', label: 'Clergy (loyal)' },
+      { key: 'national.admBonus', value: 1, sourceType: 'estate', sourceId: 'clergy', label: 'Clergy (loyal)' }
+    ]));
+  });
+
+  it('emits an estate\'s threshold MALUS lines once its loyalty is too low', () => {
+    const lines = staticSources({ estates: { nobility: { loyalty: 10, influence: 10, privileges: [] } } });
+    expect(lines).toContainEqual({ key: 'national.milBonus', value: -0.5, sourceType: 'estate', sourceId: 'nobility', label: 'Nobility (disloyal)' });
+  });
+
+  it('emits nothing for an estate in the neutral 30-59 loyalty band', () => {
+    expect(staticSources({ estates: { clergy: { loyalty: 45, influence: 10, privileges: [] } } }).some((l) => l.sourceType === 'estate')).toBe(false);
+  });
+
+  it('emits a line per granted privilege', () => {
+    const lines = staticSources({ estates: { clergy: { loyalty: 50, influence: 10, privileges: ['control_of_education'] } } });
+    expect(lines).toContainEqual({ key: 'national.techPointsMult', value: 0.15, sourceType: 'privilege', sourceId: 'control_of_education', label: 'Control of Education' });
+  });
+
+  it('emits crown land lines at the low/high thresholds, nothing in between', () => {
+    expect(staticSources({ crownLand: 20 })).toContainEqual({ key: 'national.goldMult', value: -0.1, sourceType: 'crownLand', sourceId: 'crownLand', label: 'Low Crown Land' });
+    const high = staticSources({ crownLand: 80 });
+    expect(high).toContainEqual({ key: 'national.goldMult', value: 0.1, sourceType: 'crownLand', sourceId: 'crownLand', label: 'High Crown Land' });
+    expect(high).toContainEqual({ key: 'national.stabilityBonus', value: -1, sourceType: 'crownLand', sourceId: 'crownLand', label: 'High Crown Land' });
+    expect(staticSources({ crownLand: 50 }).some((l) => l.sourceType === 'crownLand')).toBe(false);
+  });
+
   it('emits nothing for an empty/missing nation', () => {
     expect(staticSources(undefined)).toEqual([]);
     expect(staticSources({})).toEqual([]);

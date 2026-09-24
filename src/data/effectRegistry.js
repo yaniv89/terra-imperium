@@ -246,6 +246,13 @@ export const EFFECT_REGISTRY = {
   change_government_type: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
   enact_government_reform: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
   change_law: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 2 },
+  // Plan §M9: Estates.
+  seize_land: { primitive: 'pulse', palette: { base: '#b45309', hot: '#fef3c7' }, glyph: 'triangle', rings: 2, motes: 3 },
+  sell_land: { primitive: 'pulse', palette: { base: '#a16207', hot: '#fef9c3' }, glyph: 'triangle', rings: 1, motes: 3 },
+  grant_estate_privilege: { primitive: 'pulse', palette: { base: '#7c3aed', hot: '#ede9fe' }, glyph: 'diamond', rings: 2, motes: 3 },
+  revoke_estate_privilege: { primitive: 'pulse', palette: { base: '#64748b', hot: '#f1f5f9' }, glyph: 'diamond', rings: 1, motes: 0 },
+  clergy_tithe: { primitive: 'pulse', palette: { base: '#eab308', hot: '#fef9c3' }, glyph: 'circle', rings: 1, motes: 5 },
+  nobility_levies: { primitive: 'pulse', palette: { base: '#dc2626', hot: '#fee2e2' }, glyph: 'circle', rings: 1, motes: 5 },
   hire_general: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'diamond', rings: 1, motes: 3 },
   appoint_general: { primitive: 'pulse', palette: { base: '#0ea5e9', hot: '#e0f2fe' }, glyph: 'star', rings: 1, motes: 2 },
   embark_unit: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 1, motes: 4 },

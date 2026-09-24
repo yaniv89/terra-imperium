@@ -28,6 +28,8 @@ import {
 } from '../../data/government';
 import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
 import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost, getRequiredTechName } from '../../data/laws';
+import { ESTATE_LABELS, ESTATE_LOYALTY_HIGH_THRESHOLD, ESTATE_LOYALTY_LOW_THRESHOLD, getEstatePrivileges, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD } from '../../data/estates';
+import { canDoEstateInteraction } from '../../engine/estates';
 import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
@@ -356,6 +358,90 @@ const DomesticPanel = ({ selectedRegion }) => {
     </div>
   );
 
+  const handleSeizeLand = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.seizeLand)) return addLog('Not enough resources', 'action');
+    triggerEffect('seize_land', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.SEIZE_LAND, payload: {} });
+  };
+  const handleSellLand = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.sellLand)) return addLog('Not enough resources', 'action');
+    triggerEffect('sell_land', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.SELL_LAND, payload: {} });
+  };
+  const handleGrantPrivilege = (estateId, privilegeId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.grantEstatePrivilege)) return addLog('Not enough resources', 'action');
+    triggerEffect('grant_estate_privilege', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId, privilegeId } });
+  };
+  const handleRevokePrivilege = (estateId, privilegeId) => {
+    triggerEffect('revoke_estate_privilege', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId, privilegeId } });
+  };
+  const handleClergyTithe = () => {
+    triggerEffect('clergy_tithe', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.CLERGY_TITHE, payload: {} });
+  };
+  const handleNobilityLevies = () => {
+    triggerEffect('nobility_levies', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.NOBILITY_LEVIES, payload: {} });
+  };
+
+  const crownLand = playerNation?.crownLand ?? 50;
+  const estatesSection = (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold text-slate-300">Estates</div>
+      <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400">Crown Land</span>
+          <span className={`font-mono ${crownLand <= CROWN_LAND_LOW_THRESHOLD ? 'text-red-400' : crownLand >= CROWN_LAND_HIGH_THRESHOLD ? 'text-emerald-400' : 'text-white'}`}>{crownLand}%</span>
+        </div>
+        <div className="flex gap-1.5">
+          <ActionButton icon={Landmark} label="Seize Land" description="+10 crown land, -20 loyalty (all estates)" costs={ACTION_COSTS.seizeLand}
+            onClick={handleSeizeLand} disabled={!canAfford(state.resources, ACTION_COSTS.seizeLand) || !canDoEstateInteraction(playerNation, 'seizeLand', state.turnNumber)} size="small" />
+          <ActionButton icon={Coins} label="Sell Land" description="-10 crown land, +gold, +10 burgher loyalty" costs={ACTION_COSTS.sellLand}
+            onClick={handleSellLand} disabled={!canAfford(state.resources, ACTION_COSTS.sellLand) || !canDoEstateInteraction(playerNation, 'sellLand', state.turnNumber)} size="small" />
+        </div>
+      </div>
+      {Object.entries(playerNation?.estates || {}).map(([estateId, estate]) => (
+        <div key={estateId} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-white font-semibold">{ESTATE_LABELS[estateId] || estateId}</span>
+            <span className={`font-mono ${estate.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD ? 'text-red-400' : estate.loyalty >= ESTATE_LOYALTY_HIGH_THRESHOLD ? 'text-emerald-400' : 'text-slate-300'}`}>
+              Loyalty {Math.round(estate.loyalty)} · Influence {Math.round(estate.influence)}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {getEstatePrivileges(estateId).map((privilege) => {
+              const granted = estate.privileges.includes(privilege.id);
+              return granted ? (
+                <button key={privilege.id} onClick={() => handleRevokePrivilege(estateId, privilege.id)} title={privilege.description}
+                  className="text-[10px] rounded bg-amber-700/40 hover:bg-red-700/40 border border-amber-600/50 text-amber-200 px-2 py-1">
+                  {privilege.name} (revoke)
+                </button>
+              ) : (
+                <button key={privilege.id} onClick={() => handleGrantPrivilege(estateId, privilege.id)}
+                  disabled={!canAfford(state.resources, ACTION_COSTS.grantEstatePrivilege)} title={privilege.description}
+                  className="text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 px-2 py-1">
+                  Grant {privilege.name}
+                </button>
+              );
+            })}
+            {estateId === 'clergy' && (
+              <button onClick={handleClergyTithe} className="text-[10px] rounded bg-yellow-700/40 hover:bg-yellow-600/40 border border-yellow-600/50 text-yellow-200 px-2 py-1">
+                Tithe (-10 loyalty)
+              </button>
+            )}
+            {estateId === 'nobility' && (
+              <button onClick={handleNobilityLevies} className="text-[10px] rounded bg-red-700/40 hover:bg-red-600/40 border border-red-600/50 text-red-200 px-2 py-1">
+                Raise Levies (-10 loyalty)
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   const identityOnCooldown = (state.turnNumber || 0) < (playerNation?.identityShiftCooldownTurn || 0);
   const handleShiftIdentity = (axis, direction) => {
     if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog('Not enough resources', 'action');
@@ -402,6 +488,7 @@ const DomesticPanel = ({ selectedRegion }) => {
       <div className="space-y-4">
         {governmentSection}
         <div className="border-t border-slate-800 pt-2">{lawsSection}</div>
+        <div className="border-t border-slate-800 pt-2">{estatesSection}</div>
         <div className="border-t border-slate-800 pt-2">{courtSection}</div>
         <div className="border-t border-slate-800 pt-2">{identitySection}</div>
         <div className="border-t border-slate-800 pt-2">{empireSection}</div>
@@ -494,6 +581,7 @@ const DomesticPanel = ({ selectedRegion }) => {
     <div className="space-y-4">
       {governmentSection}
       <div className="pt-2 border-t border-slate-800">{lawsSection}</div>
+      <div className="pt-2 border-t border-slate-800">{estatesSection}</div>
       <div className="pt-2 border-t border-slate-800">{courtSection}</div>
       <div className="pt-2 border-t border-slate-800">{identitySection}</div>
 
