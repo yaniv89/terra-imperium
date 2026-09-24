@@ -7,6 +7,10 @@
 // object itself changing reference.
 import { getActiveReforms } from '../../data/government';
 import { LAW_CATEGORIES, getLaw } from '../../data/laws';
+import {
+  ESTATE_LABELS, ESTATE_THRESHOLD_BONUS, ESTATE_THRESHOLD_MALUS, ESTATE_LOYALTY_HIGH_THRESHOLD,
+  ESTATE_LOYALTY_LOW_THRESHOLD, getPrivilege, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD
+} from '../../data/estates';
 import { WONDERS } from '../../data/wonders';
 import { TAX_RATES } from '../../data/taxRates';
 import { getSatelliteEffectTotal } from '../../data/satellites';
@@ -47,6 +51,34 @@ export const staticSources = (nation) => {
   // Plan §M8.3: identity no longer grants a flat gold/stability multiplier here — it only gates and
   // discounts government types/laws (src/data/government.js, src/data/laws.js), which read the
   // nation's identity directly rather than through a modifier line.
+
+  // Plan §M9: each estate's loyalty threshold bonus/malus (>= 60 / < 30) and every privilege it's
+  // been granted. Loyalty drift itself lives in src/engine/estates.js (it's state-dependent —
+  // reforms/laws/traits move the target — so it's recomputed in resolveTurn, not here); this only
+  // reads today's already-computed loyalty number off the nation.
+  Object.entries(nation?.estates || {}).forEach(([estateId, estate]) => {
+    if (!estate) return;
+    const label = ESTATE_LABELS[estateId] || estateId;
+    if (estate.loyalty >= ESTATE_LOYALTY_HIGH_THRESHOLD && ESTATE_THRESHOLD_BONUS[estateId]) {
+      lines.push(...linesFromEffect(ESTATE_THRESHOLD_BONUS[estateId], 'estate', estateId, `${label} (loyal)`));
+    } else if (estate.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD && ESTATE_THRESHOLD_MALUS[estateId]) {
+      lines.push(...linesFromEffect(ESTATE_THRESHOLD_MALUS[estateId], 'estate', estateId, `${label} (disloyal)`));
+    }
+    (estate.privileges || []).forEach((privilegeId) => {
+      const privilege = getPrivilege(estateId, privilegeId);
+      if (privilege) lines.push(...linesFromEffect(privilege.effects, 'privilege', privilegeId, privilege.name));
+    });
+  });
+
+  // Crown land (plan §M9): <= 30% shrinks the tax base (a stability CAP is deferred — no floor/cap
+  // pipeline on the stability number itself exists yet); >= 70% swells it at the cost of unrest.
+  const crownLand = nation?.crownLand ?? 50;
+  if (crownLand <= CROWN_LAND_LOW_THRESHOLD) {
+    lines.push({ key: 'national.goldMult', value: -0.1, sourceType: 'crownLand', sourceId: 'crownLand', label: 'Low Crown Land' });
+  } else if (crownLand >= CROWN_LAND_HIGH_THRESHOLD) {
+    lines.push({ key: 'national.goldMult', value: 0.1, sourceType: 'crownLand', sourceId: 'crownLand', label: 'High Crown Land' });
+    lines.push({ key: 'national.stabilityBonus', value: -1, sourceType: 'crownLand', sourceId: 'crownLand', label: 'High Crown Land' });
+  }
 
   // Timed modifiers (plan §A.2) — nation.modifiers[] entries added by a future milestone's event/
   // disaster/law effect. Nothing populates this array yet, so this is currently always a no-op;

@@ -11,13 +11,15 @@
 //
 // Every reform's `effects` uses the same LEGACY_HOOK vocabulary techs/buildings/traits already do,
 // wherever the plan's own described effect maps onto a real, consumed hook. A reform whose plan text
-// names a system that doesn't exist yet (raiding/cohesion, estate loyalty/influence, combat morale,
-// election-candidate choice, trade pact capacity, casus belli, espionage defense) is left with no
-// entry for that part — still real flavor and a real age-gated choice, just not a faked modifier.
-// Two reforms use raw (non-LEGACY_HOOK) keys consumed directly by name rather than through the
+// names a system that doesn't exist yet (raiding/cohesion, combat morale, election-candidate choice,
+// trade pact capacity, casus belli, espionage defense) is left with no entry for that part — still
+// real flavor and a real age-gated choice, just not a faked modifier.
+// Several reforms use raw (non-LEGACY_HOOK) keys consumed directly by name rather than through the
 // modifier engine, because they aren't economic multipliers: `heirClaimBonus`/
-// `successionLegitimacyPenalty` (read by src/engine/succession.js) and `lawCostMult` (read by
-// src/data/laws.js's getLawChangeCost) — see getGovernmentReformEffectSum below.
+// `successionLegitimacyPenalty` (read by src/engine/succession.js), `lawCostMult` (read by
+// src/data/laws.js's getLawChangeCost), and `estateLoyalty`/`estateInfluence` (plan §M9, read by
+// src/engine/estates.js) — see getGovernmentReformEffectSum below for the flat ones; the two estate
+// keys are nested per-estate objects (`{ clergy: 10 }` or `{ all: 10 }`) summed by estates.js itself.
 import { getAgeIndex } from './ages';
 import { leansPositive } from './identity';
 
@@ -39,10 +41,10 @@ export const GOVERNMENT_REFORMS = {
   monarchy: {
     bronze: [
       { id: 'despotic_rule', name: 'Despotic Rule', description: '+1 MIL/turn, +1 unrest.', effects: { milBonus: 1, stabilityBonus: -1 } },
-      { id: 'divine_kingship', name: 'Divine Kingship', description: 'Halves legitimacy decay (not yet a mechanic); clergy +10 loyalty (Estates, M9).', effects: {} }
+      { id: 'divine_kingship', name: 'Divine Kingship', description: 'Halves legitimacy decay (not yet a mechanic); clergy +10 loyalty.', effects: { estateLoyalty: { clergy: 10 } } }
     ],
     classical: [
-      { id: 'feudal_nobility', name: 'Feudal Nobility', description: '+30% manpower; nobility influence +10 (Estates, M9).', effects: { hrMult: 0.3 } },
+      { id: 'feudal_nobility', name: 'Feudal Nobility', description: '+30% manpower; nobility influence +10.', effects: { hrMult: 0.3, estateInfluence: { nobility: 10 } } },
       { id: 'imperial_bureaucracy', name: 'Imperial Bureaucracy', description: '+10 governing capacity, +1 ADM/turn.', effects: { governingCapacity: 10, admBonus: 1 } }
     ],
     kingdoms: [
@@ -50,8 +52,8 @@ export const GOVERNMENT_REFORMS = {
       { id: 'elective_monarchy', name: 'Elective Monarchy', description: 'Choose the next ruler from three candidates (not yet a mechanic); the transition costs -10 legitimacy.', effects: { successionLegitimacyPenalty: 10 } }
     ],
     gunpowder: [
-      { id: 'absolutism', name: 'Absolutism', description: '"Harsh Treatment" unrest-suppression action (not yet wired); +1 ADM; estate influence -10 (M9).', effects: { admBonus: 1 } },
-      { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Law changes cost 50% less ADM; +1 DIP; burghers +10 loyalty (M9).', effects: { dipBonus: 1, lawCostMult: -0.5 } }
+      { id: 'absolutism', name: 'Absolutism', description: '"Harsh Treatment" unrest-suppression action (not yet wired); +1 ADM; -10 estate influence (all).', effects: { admBonus: 1, estateInfluence: { all: -10 } } },
+      { id: 'parliamentary_monarchy', name: 'Parliamentary Monarchy', description: 'Law changes cost 50% less ADM; +1 DIP; burghers +10 loyalty.', effects: { dipBonus: 1, lawCostMult: -0.5, estateLoyalty: { burghers: 10 } } }
     ],
     modern: [
       { id: 'constitutional_monarchy', name: 'Constitutional Monarchy', description: '+1 stability floor (not yet wired as a floor); +10% tax.', effects: { goldMult: 0.1 } },
@@ -60,7 +62,7 @@ export const GOVERNMENT_REFORMS = {
   },
   theocracy: {
     bronze: [
-      { id: 'temple_state', name: 'Temple State', description: '+1 ADM; clergy influence +15 (Estates, M9).', effects: { admBonus: 1 } }
+      { id: 'temple_state', name: 'Temple State', description: '+1 ADM; clergy influence +15.', effects: { admBonus: 1, estateInfluence: { clergy: 15 } } }
     ],
     classical: [
       { id: 'priest_kings', name: 'Priest-Kings', description: 'Devotion +1/turn (folded into legitimacy gain automatically); -1 unrest.', effects: { stabilityBonus: 1 } },
@@ -80,7 +82,7 @@ export const GOVERNMENT_REFORMS = {
   republic: {
     classical: [
       { id: 'oligarchic_republic', name: 'Oligarchic Republic', description: 'Elections every 8 turns; +1 DIP.', effects: { dipBonus: 1 } },
-      { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% trade income; +1 trade pact capacity (M12); burghers influence +15 (M9).', effects: { goldMult: 0.25 } }
+      { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% trade income; +1 trade pact capacity (M12); burghers influence +15.', effects: { goldMult: 0.25, estateInfluence: { burghers: 15 } } }
     ],
     kingdoms: [
       { id: 'signoria', name: 'Signoria', description: 'Ruler re-electable twice (not yet a distinct mechanic); +0.5 tradition/turn.', effects: {} },
@@ -98,7 +100,10 @@ export const GOVERNMENT_REFORMS = {
   dictatorship: {
     modern: [
       { id: 'military_junta', name: 'Military Junta', description: '+2 MIL; +20% land morale (combat, M14); -1 stability floor (not yet wired).', effects: { milBonus: 2 } },
-      { id: 'one_party_state', name: 'One-Party State', description: '+2 ADM; -50% estate influence (M9); +3 unrest; secret police (+50% espionage defense, M12).', effects: { admBonus: 2, stabilityBonus: -3 } }
+      // "-50% estate influence" is a multiplier, which the additive estateInfluence model above
+      // can't represent (unlike Absolutism/Temple State/etc.'s flat bonuses) — left unwired rather
+      // than faked as a flat number that wouldn't scale the way "-50%" actually implies.
+      { id: 'one_party_state', name: 'One-Party State', description: '+2 ADM; -50% estate influence (not yet wired — see comment); +3 unrest; secret police (+50% espionage defense, M12).', effects: { admBonus: 2, stabilityBonus: -3 } }
     ]
   }
 };

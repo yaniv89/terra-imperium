@@ -20,6 +20,13 @@ import {
 } from '../data/government';
 import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clampIdentity } from '../data/identity';
 import { getLaw, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
+import {
+  createInitialEstates, getPrivilege, clampCrownLand, CROWN_LAND_DEFAULT,
+  CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SELL_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY,
+  CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS, ESTATE_INTERACTION_COOLDOWN_TURNS,
+  ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS
+} from '../data/estates';
+import { canDoEstateInteraction } from './estates';
 import { declareWar, hasCasusBelli, isWarBetween } from './diplomacy';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
@@ -177,6 +184,13 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       laws: { ...DEFAULT_LAWS },
       lawCooldowns: {},
       identityShiftCooldownTurn: 0,
+      // Estates (plan §M9) — Clergy/Nobility/Burghers from the start; Labor is added once the
+      // nation reaches the Modern age (resolveTurn.js's age-transition check). Every nation gets
+      // the field so staticSources can read any nation's threshold bonus/malus generically, but
+      // only the player can grant/revoke privileges or run an interaction today; AI parity is M16.
+      estates: createInitialEstates(),
+      crownLand: CROWN_LAND_DEFAULT,
+      estateInteractionCooldowns: {},
       // World Wonders this nation has completed (Construct Wonder) — same getNationBonusTotal
       // hooks as government/policies (src/utils/helpers.js). Every nation carries the field so
       // that helper can read it generically, though only the player can build one today.
@@ -1483,6 +1497,141 @@ export const gameReducer = (state, action) => {
           }
         },
         logs: [...state.logs, { year: state.year, message: `Enacted the ${law.name} law.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.SEIZE_LAND: {
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.seizeLand;
+      if (!canDoEstateInteraction(nation, 'seizeLand', state.turnNumber)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const estates = {};
+      Object.entries(nation.estates).forEach(([id, estate]) => {
+        estates[id] = { ...estate, loyalty: Math.max(0, estate.loyalty - CROWN_LAND_SEIZE_LOYALTY_PENALTY) };
+      });
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            crownLand: clampCrownLand(nation.crownLand + CROWN_LAND_SEIZE_AMOUNT),
+            estates,
+            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, seizeLand: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Seized crown land from the estates. (+${CROWN_LAND_SEIZE_AMOUNT} crown land, -${CROWN_LAND_SEIZE_LOYALTY_PENALTY} loyalty for every estate)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.SELL_LAND: {
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.sellLand;
+      if (!canDoEstateInteraction(nation, 'sellLand', state.turnNumber)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
+      const goldGain = 5 * totalDev;
+      const afterCost = applyCosts(state.resources, costs);
+      const burghers = nation.estates.burghers;
+      return {
+        ...state,
+        resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            crownLand: clampCrownLand(nation.crownLand - CROWN_LAND_SELL_AMOUNT),
+            estates: { ...nation.estates, burghers: { ...burghers, loyalty: Math.min(100, burghers.loyalty + CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS) } },
+            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, sellLand: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Sold crown land to the burghers for ${formatMoney(goldGain)}. (-${CROWN_LAND_SELL_AMOUNT} crown land, +${CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS} burgher loyalty)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.GRANT_ESTATE_PRIVILEGE: {
+      const { estateId, privilegeId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const estate = nation.estates?.[estateId];
+      const privilege = getPrivilege(estateId, privilegeId);
+      const costs = ACTION_COSTS.grantEstatePrivilege;
+      if (!estate || !privilege || estate.privileges.includes(privilegeId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, estates: { ...nation.estates, [estateId]: { ...estate, privileges: [...estate.privileges, privilegeId] } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `Granted the ${privilege.name} privilege to the ${ESTATE_LABELS[estateId]}.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.REVOKE_ESTATE_PRIVILEGE: {
+      const { estateId, privilegeId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const estate = nation.estates?.[estateId];
+      const privilege = getPrivilege(estateId, privilegeId);
+      const costs = ACTION_COSTS.revokeEstatePrivilege;
+      if (!estate || !privilege || !estate.privileges.includes(privilegeId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            stability: clampStability((nation.stability || 0) - 1),
+            estates: {
+              ...nation.estates,
+              [estateId]: { ...estate, privileges: estate.privileges.filter((id) => id !== privilegeId), loyalty: Math.max(0, estate.loyalty - REVOKE_PRIVILEGE_LOYALTY_PENALTY) }
+            }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Revoked the ${privilege.name} privilege from the ${ESTATE_LABELS[estateId]}. (-1 stability, -${REVOKE_PRIVILEGE_LOYALTY_PENALTY} loyalty)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.CLERGY_TITHE: {
+      const nation = state.nations[state.playerNationId];
+      const clergy = nation.estates?.clergy;
+      const costs = ACTION_COSTS.clergyTithe;
+      if (!clergy) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
+      const goldGain = totalDev * 2;
+      const afterCost = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, estates: { ...nation.estates, clergy: { ...clergy, loyalty: Math.max(0, clergy.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `The Clergy tithes ${formatMoney(goldGain)} to the crown. (-${ESTATE_ASK_LOYALTY_PENALTY} clergy loyalty)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.NOBILITY_LEVIES: {
+      const nation = state.nations[state.playerNationId];
+      const nobility = nation.estates?.nobility;
+      const costs = ACTION_COSTS.nobilityLevies;
+      if (!nobility) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
+      const hrGain = totalDev * 2;
+      const afterCost = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...afterCost, hr: (afterCost.hr || 0) + hrGain },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, estates: { ...nation.estates, nobility: { ...nobility, loyalty: Math.max(0, nobility.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `The Nobility raises levies: +${Math.round(hrGain)} manpower. (-${ESTATE_ASK_LOYALTY_PENALTY} nobility loyalty)`, type: LogTypes.ACTION }]
       };
     }
 

@@ -68,6 +68,16 @@ export const ActionTypes = {
   ENACT_GOVERNMENT_REFORM: 'ENACT_GOVERNMENT_REFORM',
   CHANGE_LAW: 'CHANGE_LAW',
 
+  // Estates (plan §M9) — crown land interactions and privilege grant/revoke. Clergy Tithe/Nobility
+  // Raise Levies are 2 of the plan's 3 "estate asks"; Burghers' Guild Loan needs 0%-interest loans
+  // (M11), so it's deferred rather than faked as an identical gold grant.
+  SEIZE_LAND: 'SEIZE_LAND',
+  SELL_LAND: 'SELL_LAND',
+  GRANT_ESTATE_PRIVILEGE: 'GRANT_ESTATE_PRIVILEGE',
+  REVOKE_ESTATE_PRIVILEGE: 'REVOKE_ESTATE_PRIVILEGE',
+  CLERGY_TITHE: 'CLERGY_TITHE',
+  NOBILITY_LEVIES: 'NOBILITY_LEVIES',
+
   // Diplomacy tab (plan §8) — casus belli, war/peace lifecycle, and the first tier of agreements.
   DECLARE_WAR: 'DECLARE_WAR',
   FABRICATE_CLAIM: 'FABRICATE_CLAIM',

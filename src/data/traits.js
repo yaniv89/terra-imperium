@@ -15,7 +15,9 @@ export const TRAITS = {
   merchant: { id: 'merchant', name: 'Merchant', description: '+12% Gold income', effects: { goldMult: 0.12 } },
   administrator: { id: 'administrator', name: 'Administrator', description: '−10% Develop Province cost', effects: { developmentCost: -0.1 } }, // wired for real once M5 added the hook (was admBonus before)
   strategist: { id: 'strategist', name: 'Strategist', description: '+6% HR income', effects: { hrMult: 0.06 } }, // adapted: no generals-as-modifier system yet
-  kind: { id: 'kind', name: 'Kind', description: '−3 unrest', effects: { stabilityBonus: 3 } },
+  // estateLoyalty is a raw, per-estate key (plan §M9) consumed directly by src/engine/estates.js's
+  // getEstateLoyaltyTarget rather than through the modifier engine — `all` applies to every estate.
+  kind: { id: 'kind', name: 'Kind', description: '−3 unrest, +10 estate loyalty (all)', effects: { stabilityBonus: 3, estateLoyalty: { all: 10 } } },
   builder: { id: 'builder', name: 'Builder', description: '+6% HR income (faster-growing works crews)', effects: { hrMult: 0.06 } }, // adapted: no construction-time system yet (M6)
   genius: { id: 'genius', name: 'Genius', description: '+1 to every power pool per turn', effects: { admBonus: 1, dipBonus: 1, milBonus: 1 } },
 

@@ -1741,6 +1741,98 @@ describe('Government reform and law actions (plan §M8)', () => {
   });
 });
 
+describe('Estates actions (plan §M9)', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, adm: 100000, gold: 100000, hr: 100000 } };
+  };
+
+  describe('SEIZE_LAND', () => {
+    it('raises crown land, drops every estate\'s loyalty, deducts ADM, and sets a cooldown', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SEIZE_LAND, payload: {} });
+      expect(next.nations.fr.crownLand).toBe(state.nations.fr.crownLand + 10);
+      Object.values(next.nations.fr.estates).forEach((estate) => expect(estate.loyalty).toBe(30)); // 50 - 20
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      expect(next.nations.fr.estateInteractionCooldowns.seizeLand).toBe(state.turnNumber + 10);
+    });
+
+    it('is a no-op while on cooldown', () => {
+      const first = gameReducer(richState(), { type: ActionTypes.SEIZE_LAND, payload: {} });
+      expect(gameReducer(first, { type: ActionTypes.SEIZE_LAND, payload: {} })).toBe(first);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.SEIZE_LAND, payload: {} })).toBe(state);
+    });
+  });
+
+  describe('SELL_LAND', () => {
+    it('lowers crown land, grants gold, raises burgher loyalty, and sets a cooldown', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SELL_LAND, payload: {} });
+      expect(next.nations.fr.crownLand).toBe(state.nations.fr.crownLand - 10);
+      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
+      expect(next.nations.fr.estates.burghers.loyalty).toBe(60); // 50 + 10
+      expect(next.nations.fr.estateInteractionCooldowns.sellLand).toBe(state.turnNumber + 10);
+    });
+
+    it('is a no-op while on cooldown', () => {
+      const first = gameReducer(richState(), { type: ActionTypes.SELL_LAND, payload: {} });
+      expect(gameReducer(first, { type: ActionTypes.SELL_LAND, payload: {} })).toBe(first);
+    });
+  });
+
+  describe('GRANT_ESTATE_PRIVILEGE / REVOKE_ESTATE_PRIVILEGE', () => {
+    it('grants a privilege and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      expect(next.nations.fr.estates.clergy.privileges).toContain('control_of_education');
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+    });
+
+    it('is a no-op for a privilege already granted', () => {
+      const granted = gameReducer(richState(), { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      expect(gameReducer(granted, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } })).toBe(granted);
+    });
+
+    it('is a no-op for an unknown privilege id', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'not_real' } })).toBe(state);
+    });
+
+    it('revokes a granted privilege, costing -1 stability and -30 loyalty for that estate', () => {
+      const granted = gameReducer(richState(), { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      const next = gameReducer(granted, { type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      expect(next.nations.fr.estates.clergy.privileges).not.toContain('control_of_education');
+      expect(next.nations.fr.estates.clergy.loyalty).toBe(20); // 50 - 30
+      expect(next.nations.fr.stability).toBe((granted.nations.fr.stability || 0) - 1);
+    });
+
+    it('is a no-op revoking a privilege that was never granted', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } })).toBe(state);
+    });
+  });
+
+  describe('CLERGY_TITHE / NOBILITY_LEVIES', () => {
+    it('Clergy Tithe grants gold and costs 10 clergy loyalty', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.CLERGY_TITHE, payload: {} });
+      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
+      expect(next.nations.fr.estates.clergy.loyalty).toBe(40); // 50 - 10
+    });
+
+    it('Nobility Raise Levies grants manpower and costs 10 nobility loyalty', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.NOBILITY_LEVIES, payload: {} });
+      expect(next.resources.hr).toBeGreaterThan(state.resources.hr);
+      expect(next.nations.fr.estates.nobility.loyalty).toBe(40);
+    });
+  });
+});
+
 describe('Diplomacy tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });

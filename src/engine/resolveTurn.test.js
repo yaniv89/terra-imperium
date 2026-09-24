@@ -903,3 +903,34 @@ describe('resolveTurn national power (plan §M4)', () => {
     expect(next.nations.fr.stability).toBe(-1);
   });
 });
+
+describe('resolveTurn estates (plan §M9)', () => {
+  it('drifts every nation\'s estate loyalty 1 step toward its target, not just the player\'s', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      nations: {
+        ...base.nations,
+        de: { ...base.nations.de, government: { type: 'monarchy', reforms: { bronze: 'divine_kingship' } } } // clergy target 60
+      }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.de.estates.clergy.loyalty).toBe(51); // 50 -> 1 step toward 60
+  });
+
+  it('adds a Labor estate once the calendar crosses into the Modern age, for every nation', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, year: 1899, age: 'gunpowder' };
+    expect(state.nations.fr.estates.labor).toBeUndefined();
+    const next = resolveTurn(state);
+    expect(next.age).toBe('modern');
+    expect(next.nations.fr.estates.labor).toBeDefined();
+    expect(next.nations.de.estates.labor).toBeDefined();
+  });
+
+  it('does not add a Labor estate before the Modern age', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const next = resolveTurn(base); // still Bronze age at game start
+    expect(next.nations.fr.estates.labor).toBeUndefined();
+  });
+});

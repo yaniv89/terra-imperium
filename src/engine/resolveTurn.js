@@ -36,6 +36,8 @@ import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites'
 import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
 import { processNationalPowerTurn, clampStability, clampLegitimacy } from './nationalPower';
+import { processEstatesTurn } from './estates';
+import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -334,6 +336,20 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     nations[nId] = { ...nation, ...result };
   });
   mark('nationalPower');
+
+  // --- estates (plan §M9) --- loyalty drifts 1/turn toward its reform/law/trait/privilege-driven
+  // target, influence is recomputed (real for the player, a cheap privilege-only proxy for AI — see
+  // estates.js's getEstateInfluence). Labor joins once a nation reaches the Modern age, matching the
+  // plan's own gating; earlier ages never see the fourth estate at all.
+  const estatesState = { ...state, nations, regions };
+  Object.entries(nations).forEach(([nId, nation]) => {
+    let estates = processEstatesTurn(estatesState, nId);
+    if (newAge === 'modern' && estates && !estates[LABOR_ESTATE_ID]) {
+      estates = { ...estates, [LABOR_ESTATE_ID]: createInitialEstate() };
+    }
+    if (estates && estates !== nation.estates) nations[nId] = { ...nation, estates };
+  });
+  mark('estates');
 
   // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
   // affordable across 240 nations.
