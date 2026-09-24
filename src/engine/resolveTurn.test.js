@@ -664,7 +664,14 @@ describe('resolveTurn AI war declarations', () => {
     const nations = { ...fresh.nations };
     Object.keys(nations).forEach(id => { if (id !== 'fr') nations[id] = { ...nations[id], isAtWar: true }; });
     const base = { ...fresh, nations };
-    const existingWar = { id: 'war_de_-2000', enemy: 'de', startYear: base.year, active: true, aggressor: 'fr', goal: { type: 'destroy_military', threshold: 1 }, goalAchieved: false };
+    // Plan §M13: score bookkeeping (battleScore/tickScore/score) runs for every active war every
+    // turn, including one the player started — pre-seeded at their post-bookkeeping values (all 0,
+    // since nothing here moves them) so this stays an exact-shape assertion of "wars[] survives".
+    const existingWar = {
+      id: 'war_de_-2000', enemy: 'de', startYear: base.year, startTurn: base.turnNumber, active: true, aggressor: 'fr',
+      goal: { type: 'destroy_military', threshold: 1 }, goalAchieved: false, cb: 'none',
+      battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0
+    };
     const state = { ...base, wars: [existingWar] };
     const next = resolveTurn(state);
     expect(next.wars).toEqual([existingWar]);
@@ -699,22 +706,31 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
   const withCertainCapture = (aggressor, enemy, regionId) => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const war = { id: 'war_1', aggressor, enemy, active: true, goalAchieved: false, startYear: base.year, goal: { type: 'capture_region', regionId } };
+    // Plan §M13: capturing sets occupiedBy, and war score/peace bookkeeping now runs every turn —
+    // occupying just one region (here, always the capital, tripled by getOccupationScore's own
+    // capital weight) can by itself cross the AI-vs-AI peace threshold on real geography and
+    // conclude the war via a negotiated cede this same turn. Inflating the enemy's OTHER regions'
+    // dev keeps these tests scoped to "does the capture-and-occupy mechanic itself work", leaving
+    // the peace threshold's own behavior to diplomacy.test.js's dedicated peace-machinery tests.
+    const regions = { ...base.regions };
+    Object.keys(regions).forEach((id) => {
+      if (regions[id].owner === enemy && id !== regionId) regions[id] = { ...regions[id], dev: { tax: 1000, production: 1000, manpower: 1000 } };
+    });
     return {
       ...base,
+      regions,
       difficultyMultiplier: 1000,
       wars: [war],
       nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], isAtWar: true }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
     };
   };
 
-  it('lets one AI nation actually conquer territory from another', () => {
+  it('lets one AI nation actually occupy territory from another (plan §M13: occupation, not annexation)', () => {
     const state = withCertainCapture('mx', 'ca', cap('ca'));
     const next = resolveTurn(state);
-    expect(next.regions[cap('ca')].owner).toBe('mx');
-    expect(next.regions[cap('ca')].formerOwner).toBe('ca');
-    expect(next.wars.find(w => w.id === 'war_1').active).toBe(false);
-    expect(next.nations.mx.isAtWar).toBe(false);
-    expect(next.nations.ca.isAtWar).toBe(false);
+    expect(next.regions[cap('ca')].owner).toBe('ca');
+    expect(next.regions[cap('ca')].occupiedBy).toBe('mx');
+    expect(next.regions[cap('ca')].formerOwner).toBeUndefined();
   });
 
   it('grinds a defended region\'s control instead of instantly capturing it in one turn (src/engine/siege.js)', () => {
@@ -730,11 +746,11 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
     expect(next.wars.find(w => w.id === 'war_1').active).toBe(true); // war goal not yet achieved
   });
 
-  it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
+  it('lets an AI nation occupy territory from the PLAYER — every nation must be conquerable by anyone', () => {
     const state = withCertainCapture('de', 'fr', cap('fr'));
     const next = resolveTurn(state);
-    expect(next.regions[cap('fr')].owner).toBe('de');
-    expect(next.regions[cap('fr')].formerOwner).toBe('fr');
+    expect(next.regions[cap('fr')].owner).toBe('fr');
+    expect(next.regions[cap('fr')].occupiedBy).toBe('de');
   });
 
   it('leaves a war the player started to be resolved by the player\'s own invasion actions, not synthetically', () => {

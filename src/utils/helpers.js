@@ -143,8 +143,15 @@ export const getDisplayPopulation = (region, regionData, year) => {
 // population-derived base value, plus copper/iron/oil from any region that has both the deposit
 // (src/data/deposits.js) and the matching extraction building actually built
 // (src/data/buildings.js) — geography and construction gate strategic resources, not just age.
+// Plan §M13: an occupied region gives its OWNER nothing and its OCCUPIER a lesser, tax-only share
+// — occupation is a war-only revenue stream, not annexation. Player-only real computation (this
+// file's own established pattern: AI has no simulated per-region economy until M16).
+const OCCUPATION_TAX_SHARE = 0.25;
+
 export const calcIncome = (state) => {
-  const playerRegions = Object.values(state.regions).filter(r => r.owner === state.playerNationId);
+  // Occupied-by-someone-else regions are excluded from the owner's own income below (`!r.occupiedBy`)
+  // — see the OCCUPATION_TAX_SHARE block after this loop for what the OCCUPIER gets instead.
+  const playerRegions = Object.values(state.regions).filter(r => r.owner === state.playerNationId && !r.occupiedBy);
 
   const income = {};
   RESOURCE_IDS.forEach(id => { income[id] = 0; });
@@ -192,6 +199,23 @@ export const calcIncome = (state) => {
     if (localTechPoints) {
       income.techPoints = (income.techPoints || 0) + localTechPoints * controlMult * infraMult;
     }
+  });
+
+  // Occupation (plan §M13): the occupier gets a lesser tax-only share of what it holds, rather than
+  // full income — a real but reduced war-time revenue stream, distinct from a region it actually
+  // owns. Read before the goldMult multiplication below so it benefits from national bonuses the
+  // same way owned income does.
+  Object.values(state.regions).forEach((region) => {
+    if (region.occupiedBy !== state.playerNationId || region.owner === state.playerNationId) return;
+    const regData = REGIONS_DATA[region.id];
+    if (!regData) return;
+    const dev = region.dev || seedDevelopment(region.id);
+    const controlMult = region.control / 100;
+    const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
+    const popFactor = getPopFactor(region, regData);
+    const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
+    const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
+    income.gold = (income.gold || 0) + taxIncome * OCCUPATION_TAX_SHARE;
   });
 
   // Trade Pact income (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) is

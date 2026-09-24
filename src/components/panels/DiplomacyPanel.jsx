@@ -18,7 +18,7 @@ import {
   CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
   MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
 } from '../../data/actionCosts';
-import { hasCasusBelli, isAtWarWithPlayer, isInTruce } from '../../engine/diplomacy';
+import { hasCasusBelli, isAtWarWithPlayer, isInTruce, isWarBetween } from '../../engine/diplomacy';
 import { getSuccessionStyle } from '../../engine/succession';
 import { getTotalDev } from '../../engine/development';
 import { getNationCapital } from '../../data/regions';
@@ -92,8 +92,26 @@ const DiplomacyPanel = () => {
       });
   }, [state, search]);
 
+  const pendingPeaceOffer = state.pendingPeaceOffer;
+  const pendingPeaceOfferNation = pendingPeaceOffer ? state.nations[pendingPeaceOffer.from] : null;
+
   return (
     <div className="space-y-2">
+      {pendingPeaceOffer && (
+        // Plan §M13: resolveWarProgress blocks further turns until this is accepted or rejected
+        // (see resolveTurn.js's own guard) — a minimal, functional prompt; the full peace-deal
+        // screen with a term-by-term acceptance ledger is M20's UI/UX Paradox layer.
+        <div className="p-2 rounded bg-amber-900/40 border border-amber-600/50 flex items-center justify-between gap-2">
+          <div className="text-xs text-amber-200">
+            <span className="font-semibold">{pendingPeaceOfferNation?.name || pendingPeaceOffer.from}</span> offers peace
+            {pendingPeaceOffer.terms.length === 0 ? ' (white peace).' : ` (${pendingPeaceOffer.terms.length} term${pendingPeaceOffer.terms.length > 1 ? 's' : ''}, including ceded territory).`}
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <IconButton icon={HeartHandshake} label="Accept" onClick={() => dispatch({ type: ActionTypes.ACCEPT_PENDING_PEACE })} />
+            <IconButton icon={Ban} label="Reject" onClick={() => dispatch({ type: ActionTypes.REJECT_PENDING_PEACE })} />
+          </div>
+        </div>
+      )}
       {isModernAge && (
         <ActionButton
           icon={Sparkles}
@@ -120,6 +138,10 @@ const DiplomacyPanel = () => {
         {sortedNations.map(nation => {
           const nationData = WORLD_NATIONS[nation.id];
           const atWarWithPlayer = isAtWarWithPlayer(state, nation.id);
+          // War score (plan §M13), shown from the player's own perspective regardless of which
+          // side of the war record (aggressor/enemy) the player happens to be.
+          const activeWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, nation.id));
+          const playerWarScore = activeWar ? (activeWar.aggressor === state.playerNationId ? activeWar.score : -activeWar.score) : 0;
           const justified = hasCasusBelli(state, state.playerNationId, nation.id);
           const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
           const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), dip: 1 };
@@ -188,6 +210,11 @@ const DiplomacyPanel = () => {
                   {atWarWithPlayer && (
                     <div className="text-slate-400">
                       War Exhaustion: <span className="text-amber-400 font-mono">{nation.warExhaustion || 0}</span>
+                    </div>
+                  )}
+                  {atWarWithPlayer && activeWar && (
+                    <div className="text-slate-400">
+                      War Score: <span className={`font-mono ${playerWarScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span>
                     </div>
                   )}
                 </div>

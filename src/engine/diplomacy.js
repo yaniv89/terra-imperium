@@ -6,12 +6,12 @@
 // stat, so none of this needs to special-case which nation is the player.
 
 import { RelationStatus } from '../data/types';
-import { isAdjacentToOwner, REGIONS_DATA } from '../data/regions';
+import { isAdjacentToOwner, REGIONS_DATA, getNationCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
-import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { resolveSiegeControlDamage } from './siege';
 import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY } from '../data/actionCosts';
-import { applyAggressiveExpansion } from './expansion';
+import { getNationTotalDev, getTotalDev } from './development';
+import { applyPeace, buildAITerms, getPeaceAcceptance } from './peace';
 import { leansPositive, leansNegative } from '../data/identity';
 
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
@@ -101,13 +101,16 @@ export const isAtWarWithPlayer = (state, nationId) =>
   state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, nationId));
 
 // True once a war's goal condition is actually met. Pure and side-effect-free — the caller
-// (resolveTurn.js) decides what to do with a newly-achieved goal.
+// (resolveWarProgress) decides what to do with a newly-achieved goal; since plan §M13, achieving a
+// goal no longer auto-ends the war (it only feeds war score — see updateTickScore below).
 export const checkWarGoal = (war, state) => {
   if (!war.goal || war.goalAchieved || !war.active) return false;
 
   if (war.goal.type === 'capture_region') {
     const region = state.regions[war.goal.regionId];
-    return !!region && region.owner === war.aggressor;
+    // Occupation (plan §M13), not ownership: capturing a region during a war sets `occupiedBy`
+    // and leaves `owner` unchanged until a peace deal formally cedes it (see peace.js).
+    return !!region && region.occupiedBy === war.aggressor;
   }
 
   if (war.goal.type === 'destroy_military') {
@@ -124,6 +127,11 @@ export const checkWarGoal = (war, state) => {
 // Marks BOTH sides isAtWar — every isAtWar reader in the codebase (UI war counts, the globe's
 // war-red coloring, resolveTurn.js's war exhaustion accrual, aiLogic.js's "one war per turn" gate)
 // means "this nation is currently a belligerent," not "this nation is currently a war's target."
+//
+// Scope trim (plan §M13): a nation can be party to at most one active war at a time (declareWar
+// refuses an already-isAtWar target/aggressor, same as before M13). The plan's own multi-war
+// support and full `state.relations`-driven CB matrix are NOT built here — see this file's other
+// M13 comments and peace.js's header for what's trimmed and why.
 export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => {
   const nation = state.nations[nationId];
   if (!nation || nation.isAtWar) return state;
@@ -132,6 +140,7 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
   const resolvedGoal = goal || assignDefaultWarGoal(state, nationId, aggressor);
   const aggressorNation = state.nations[aggressor];
   // A fabricated claim is spent the moment it justifies a war — it doesn't carry over to the next one.
+  const hadClaim = !!aggressorNation?.claims?.includes(nationId);
   const nextNations = {
     ...state.nations,
     [nationId]: {
@@ -147,9 +156,7 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
       ...aggressorNation,
       isAtWar: true,
       relationStatus: RelationStatus.WAR,
-      claims: aggressorNation.claims?.includes(nationId)
-        ? aggressorNation.claims.filter((id) => id !== nationId)
-        : aggressorNation.claims
+      claims: hadClaim ? aggressorNation.claims.filter((id) => id !== nationId) : aggressorNation.claims
     };
   }
   return {
@@ -159,10 +166,19 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
       id: `war_${nationId}_${state.year}`,
       enemy: nationId,
       startYear: state.year,
+      startTurn: state.turnNumber,
       active: true,
       aggressor,
       goal: resolvedGoal,
-      goalAchieved: false
+      goalAchieved: false,
+      // Trimmed CB system (plan §M13/peace.js header): a single claim/none flag rather than the
+      // full 8-type CB table — a fabricated claim discounts ceding that land at the peace table;
+      // every other justification (including the pre-existing hostility-threshold one) is 'none'.
+      cb: hadClaim ? 'claim' : 'none',
+      battleScore: 0,
+      tickScore: 0,
+      score: 0,
+      peaceOfferCooldownTurn: 0
     }]
   };
 };
@@ -180,98 +196,266 @@ const WAR_ATTRITION_RATE = 0.02;
 // DECISIONS already use (plan §8.5).
 const AI_CAPTURE_BASE_CHANCE = 0.15;
 
-// Advances every ACTIVE war whose aggressor is an AI nation by one turn: mutual military
-// attrition, a capture_region roll against the goal's target region, and — once checkWarGoal
-// reports the goal met — the war actually ends and peace is restored to both sides. A war the
-// PLAYER started is left untouched here; it's resolved by the player's own LAUNCH_INVASION/
-// AMPHIBIOUS_ASSAULT actions, not synthetically. This is what makes AI wars — AI-vs-AI and
-// AI-vs-player alike — actually go somewhere instead of running forever as a pair of flags with a
-// number ticking up: every one of the 240 nations must be conquerable by ANY nation, not just the
-// player, for the game's own reachability guarantee to mean anything.
-//
-// Each nation can be party to at most one active war at a time — declareWar refuses to target an
-// already-isAtWar nation, and the AI's own decision loop (aiLogic.js) never picks an
-// already-isAtWar aggressor either — so ending a war here by clearing both belligerents' isAtWar
-// can never stomp on some OTHER war either of them is still fighting.
+// --- War score (plan §M13/§B) ---
+const BATTLE_SCORE_CLAMP = 40;
+const TICK_SCORE_CLAMP = 25;
+const WAR_SCORE_CLAMP = 100;
+const CAPITAL_OCCUPATION_SCORE_WEIGHT = 3;
+const TICK_SCORE_GRACE_TURNS = 5;
+
+// Battle results move the score toward whichever side won this particular engagement, scaled by
+// how badly the loser was hurt (a bigger rout matters more than a narrow win), clamped so no single
+// battle — or even a long streak of them — can single-handedly force a peace on its own; occupation
+// and ticking goal-progress (below) matter too. `winnerId` is a nation id (war.aggressor or
+// war.enemy), NOT a literal "attacker/defender" role — either side of a war can win an engagement.
+export const recordBattle = (war, winnerId, lossShare) => {
+  const magnitude = 2 + Math.min(8, 10 * Math.max(0, Math.min(1, lossShare)));
+  const signedDelta = winnerId === war.aggressor ? magnitude : -magnitude;
+  return Math.max(-BATTLE_SCORE_CLAMP, Math.min(BATTLE_SCORE_CLAMP, (war.battleScore || 0) + signedDelta));
+};
+
+// Computed fresh every turn from live region state, NOT stored — avoids the redundant-state-drift
+// risk the rest of the codebase's "ownership by derivation" pattern (getGreatProjectOwner, etc.)
+// warns about. Each side's occupation is scored as a % of the OTHER side's total development, so
+// occupying a small sliver of a huge nation barely moves the score, and a capital counts triple.
+export const getOccupationScore = (state, war) => {
+  const aggressorCapital = getNationCapital(war.aggressor);
+  const enemyCapital = getNationCapital(war.enemy);
+  let occupiedByAggressor = 0;
+  let occupiedByEnemy = 0;
+  Object.values(state.regions).forEach((region) => {
+    if (!region.occupiedBy) return;
+    const dev = getTotalDev(region);
+    if (region.occupiedBy === war.aggressor && region.owner === war.enemy) {
+      occupiedByAggressor += dev * (region.id === enemyCapital ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1);
+    } else if (region.occupiedBy === war.enemy && region.owner === war.aggressor) {
+      occupiedByEnemy += dev * (region.id === aggressorCapital ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1);
+    }
+  });
+  const enemyTotalDev = getNationTotalDev(state, war.enemy) || 1;
+  const aggressorTotalDev = getNationTotalDev(state, war.aggressor) || 1;
+  return (100 * occupiedByAggressor) / enemyTotalDev - (100 * occupiedByEnemy) / aggressorTotalDev;
+};
+
+// Rewards the aggressor for actually holding a `capture_region` goal's target, and penalizes
+// stalling once they've had a fair chance (a grace period) to take it. Goalless/destroy_military
+// wars don't tick at all — their score comes from battles and occupation only.
+export const updateTickScore = (war, state) => {
+  if (war.goal?.type !== 'capture_region') return war.tickScore || 0;
+  const region = state.regions[war.goal.regionId];
+  const holdsGoal = !!region && region.occupiedBy === war.aggressor;
+  const turnsSinceStart = (state.turnNumber || 0) - (war.startTurn ?? state.turnNumber ?? 0);
+  const delta = holdsGoal ? 1 : (turnsSinceStart >= TICK_SCORE_GRACE_TURNS ? -1 : 0);
+  return Math.max(-TICK_SCORE_CLAMP, Math.min(TICK_SCORE_CLAMP, (war.tickScore || 0) + delta));
+};
+
+// The final, aggressor-POV war score shown in the UI and used by tests — an O(regions) scan per
+// call, fine for a single lookup, but resolveWarProgress needs this for EVERY active war EVERY
+// turn, which the "player-only real computation" perf pattern (economy.js's own header) warns
+// against doing per-war: buildOccupationIndexes/scoreWarFromIndexes below give it the same numbers
+// from one shared O(regions) pass instead.
+export const computeWarScore = (war, state) =>
+  Math.max(-WAR_SCORE_CLAMP, Math.min(WAR_SCORE_CLAMP, Math.round((war.battleScore || 0) + getOccupationScore(state, war) + (war.tickScore || 0))));
+
+// One O(regions) pass building { devByNation, occupiedDev } so resolveWarProgress can score every
+// active war in O(1) each afterward, instead of O(regions) per war. Built once from this turn's
+// STARTING regions, before any of this turn's own captures/peace deals — a capture that happens
+// this same turn shows up in occupation score starting next turn, a deliberate one-turn lag traded
+// for turning O(wars x regions) into O(regions + wars) at up to 240 nations' worth of active wars.
+const buildOccupationIndexes = (regions, nationIds) => {
+  const capitalIds = new Set();
+  nationIds.forEach((id) => { const capitalId = getNationCapital(id); if (capitalId) capitalIds.add(capitalId); });
+  const devByNation = {};
+  const occupiedDev = {};
+  Object.values(regions).forEach((region) => {
+    if (!region.owner) return;
+    devByNation[region.owner] = (devByNation[region.owner] || 0) + getTotalDev(region);
+    if (region.occupiedBy && region.occupiedBy !== region.owner) {
+      const key = `${region.occupiedBy}|${region.owner}`;
+      const weight = capitalIds.has(region.id) ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1;
+      occupiedDev[key] = (occupiedDev[key] || 0) + getTotalDev(region) * weight;
+    }
+  });
+  return { devByNation, occupiedDev };
+};
+
+const scoreWarFromIndexes = (war, indexes) => {
+  const enemyTotalDev = indexes.devByNation[war.enemy] || 1;
+  const aggressorTotalDev = indexes.devByNation[war.aggressor] || 1;
+  const occByAggressor = 100 * (indexes.occupiedDev[`${war.aggressor}|${war.enemy}`] || 0) / enemyTotalDev;
+  const occByEnemy = 100 * (indexes.occupiedDev[`${war.enemy}|${war.aggressor}`] || 0) / aggressorTotalDev;
+  const total = (war.battleScore || 0) + occByAggressor - occByEnemy + (war.tickScore || 0);
+  return Math.max(-WAR_SCORE_CLAMP, Math.min(WAR_SCORE_CLAMP, Math.round(total)));
+};
+
+// --- Peace flow thresholds (plan §M13/§B, trimmed — see this file's other M13 comments) ---
+const PEACE_SCORE_OFFER_THRESHOLD = 30;    // the AI offers the player peace once winning by this much
+const PEACE_SCORE_ENFORCE_THRESHOLD = 90;  // an overwhelming win enforces peace outright, no offer needed
+                                            // (trim: the plan's own "held for 3 turns" streak isn't tracked)
+const AI_VS_AI_PEACE_SCORE_THRESHOLD = 25;
+// Exported so gameReducer's REJECT_PENDING_PEACE case can reuse the same cadence when the player
+// turns an offer down, rather than the AI immediately re-offering next turn.
+export const PEACE_OFFER_COOLDOWN_TURNS = 5;
+const WHITE_PEACE_EXHAUSTION_THRESHOLD = 80;
+
+// Advances every ACTIVE war by one turn: AI-aggressor territorial/military rolls, war-score
+// bookkeeping (battle/occupation/tick), and the peace machinery that actually ends wars now that
+// goal completion alone no longer does (plan §M13's core change from the pre-M13 instant-annexation
+// version of this function). A war the PLAYER started still has its capture rolls handled by their
+// own LAUNCH_INVASION/AMPHIBIOUS_ASSAULT actions, not synthesized here — but its score and peace
+// flow (including the AI defender eventually offering or being forced to accept peace) run through
+// this same code every turn, same as an AI-vs-AI war.
 export const resolveWarProgress = (state, regions, nations, wars, rng) => {
   let nextRegions = regions;
   let nextNations = nations;
+  let nextResources = state.resources;
+  let nextPendingPeaceOffer = state.pendingPeaceOffer || null;
   const logs = [];
+  // One shared O(regions) pass for every active war's score this turn (see buildOccupationIndexes's
+  // own header) — skipped entirely when nothing is at war, the common case for most of the game.
+  const occupationIndexes = wars.some(w => w.active) ? buildOccupationIndexes(regions, Object.keys(nations)) : null;
 
-  const nextWars = wars.map(war => {
-    if (!war.active || war.aggressor === state.playerNationId) return war;
-    const aggressor = nextNations[war.aggressor];
-    const defender = nextNations[war.enemy];
-    if (!aggressor || !defender) return war;
-
-    const aggressorLoss = Math.round(defender.militaryStrength * WAR_ATTRITION_RATE);
-    const defenderLoss = Math.round(aggressor.militaryStrength * WAR_ATTRITION_RATE);
+  // Ends a war right now: applies `terms` (may be [] for a white peace), marks both belligerents
+  // at peace, and starts a truce. Reads/writes the outer next* closures directly since every call
+  // site below is one of this turn's per-war peace resolutions.
+  const concludeWar = (war, offererId, terms, snapshotState) => {
+    const recipientId = offererId === war.aggressor ? war.enemy : war.aggressor;
+    const applied = applyPeace(snapshotState, war, offererId, terms);
+    nextRegions = applied.regions;
+    nextNations = applied.nations;
+    nextResources = applied.resources;
+    const winner = nextNations[offererId];
+    const loser = nextNations[recipientId];
     nextNations = {
       ...nextNations,
-      [war.aggressor]: { ...aggressor, militaryStrength: Math.max(100, aggressor.militaryStrength - aggressorLoss) },
-      [war.enemy]: { ...defender, militaryStrength: Math.max(100, defender.militaryStrength - defenderLoss) }
+      ...(winner ? { [offererId]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE } } : {}),
+      ...(loser ? { [recipientId]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE } } : {})
     };
+    nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
+    logs.push({
+      message: terms.length === 0
+        ? `${winner?.name || offererId} and ${loser?.name || recipientId} agree to a white peace.`
+        : `${winner?.name || offererId}'s war against ${loser?.name || recipientId} ends in a negotiated peace.`,
+      type: 'diplomacy'
+    });
+    return { ...war, active: false, goalAchieved: true };
+  };
 
-    // A capture_region goal only advances while the target region is still held by the defender —
-    // if it changed hands some other way mid-war, this war keeps running on destroy_military
-    // terms instead (checkWarGoal below watches militaryStrength regardless of goal.type).
-    if (war.goal?.type === 'capture_region' && !war.goalAchieved) {
-      const targetRegion = nextRegions[war.goal.regionId];
-      if (targetRegion && targetRegion.owner === war.enemy) {
-        const updatedAggressor = nextNations[war.aggressor];
-        const updatedDefender = nextNations[war.enemy];
-        const totalStrength = updatedAggressor.militaryStrength + updatedDefender.militaryStrength;
-        const chance = AI_CAPTURE_BASE_CHANCE * (updatedAggressor.militaryStrength / totalStrength) * (state.difficultyMultiplier || 1);
-        if (rng.next() < chance) {
-          // Same control-as-defense-HP grind as the player's own LAUNCH_INVASION (src/engine/
-          // siege.js) — a successful roll damages the region's control instead of instantly
-          // flipping it, unless the region is genuinely undefended. The AI's capture roll has no
-          // per-unit deployment model of its own, so melee presence is assumed true on a defended
-          // roll rather than checking real unit classes (see siege.js's file header).
-          const isDefended = Object.values(state.units || {}).some(u => u.regionId === war.goal.regionId && u.domain === 'land');
-          const { nextControl, captured } = isDefended
-            ? resolveSiegeControlDamage({ currentControl: targetRegion.control, outcome: 'attacker', hasMeleeUnit: true })
-            : { nextControl: targetRegion.control, captured: true };
+  const nextWars = wars.map((war) => {
+    if (!war.active) return war;
+    let currentWar = war;
 
-          nextRegions = {
-            ...nextRegions,
-            [war.goal.regionId]: captured
-              ? {
-                  ...targetRegion,
-                  owner: war.aggressor,
-                  formerOwner: getFormerOwnerOnConquest(war.goal.regionId, targetRegion.owner, war.aggressor),
-                  control: 25,
-                  unrest: Math.max(targetRegion.unrest || 0, 50),
-                  lastAttackedTurn: state.turnNumber,
-                  underInvasion: false
-                }
-              : { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true }
-          };
-          if (captured) {
-            nextNations = applyAggressiveExpansion(nextNations, nextRegions, war.goal.regionId, targetRegion.owner, war.aggressor);
+    // Scope trim: only the AI-aggressor side rolls a capture/attrition attempt here — an AI
+    // DEFENDER in a player-declared war doesn't counter-invade, since picking and attacking an
+    // arbitrary target region is attack-initiative the AI doesn't have until M14's stack/movement
+    // overhaul. Until then, a war the player started still ends via war exhaustion or the
+    // score/peace machinery below, using whatever battleScore the player's own invasions produced.
+    if (war.aggressor !== state.playerNationId) {
+      const aggressor = nextNations[war.aggressor];
+      const defender = nextNations[war.enemy];
+      if (!aggressor || !defender) return war;
+
+      const aggressorLoss = Math.round(defender.militaryStrength * WAR_ATTRITION_RATE);
+      const defenderLoss = Math.round(aggressor.militaryStrength * WAR_ATTRITION_RATE);
+      nextNations = {
+        ...nextNations,
+        [war.aggressor]: { ...aggressor, militaryStrength: Math.max(100, aggressor.militaryStrength - aggressorLoss) },
+        [war.enemy]: { ...defender, militaryStrength: Math.max(100, defender.militaryStrength - defenderLoss) }
+      };
+
+      // A capture_region goal only rolls while the aggressor doesn't already occupy the target —
+      // if it changed hands some other way mid-war, this war keeps running on destroy_military
+      // terms instead (checkWarGoal watches militaryStrength regardless of goal.type).
+      if (currentWar.goal?.type === 'capture_region') {
+        const targetRegion = nextRegions[currentWar.goal.regionId];
+        if (targetRegion && targetRegion.owner === currentWar.enemy && targetRegion.occupiedBy !== currentWar.aggressor) {
+          const updatedAggressor = nextNations[currentWar.aggressor];
+          const updatedDefender = nextNations[currentWar.enemy];
+          const totalStrength = updatedAggressor.militaryStrength + updatedDefender.militaryStrength;
+          const chance = AI_CAPTURE_BASE_CHANCE * (updatedAggressor.militaryStrength / totalStrength) * (state.difficultyMultiplier || 1);
+          if (rng.next() < chance) {
+            // Same control-as-defense-HP grind as the player's own LAUNCH_INVASION (src/engine/
+            // siege.js) — a successful roll damages the region's control instead of instantly
+            // flipping it, unless the region is genuinely undefended.
+            const isDefended = Object.values(state.units || {}).some(u => u.regionId === currentWar.goal.regionId && u.domain === 'land');
+            const { nextControl, captured } = isDefended
+              ? resolveSiegeControlDamage({ currentControl: targetRegion.control, outcome: 'attacker', hasMeleeUnit: true })
+              : { nextControl: targetRegion.control, captured: true };
+
+            // Occupation (plan §M13), not annexation: `owner` stays put, `occupiedBy` marks who
+            // holds it militarily. Ownership only changes at the peace table (see peace.js) — so,
+            // unlike the pre-M13 version of this function, no Aggressive Expansion fires here; it
+            // fires when land actually changes hands (applyPeace's 'cede' term).
+            nextRegions = {
+              ...nextRegions,
+              [currentWar.goal.regionId]: captured
+                ? { ...targetRegion, occupiedBy: currentWar.aggressor, control: 25, unrest: Math.max(targetRegion.unrest || 0, 50), lastAttackedTurn: state.turnNumber, underInvasion: false }
+                : { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true }
+            };
+            currentWar = { ...currentWar, battleScore: recordBattle(currentWar, currentWar.aggressor, captured ? 0.3 : 0.15) };
+            logs.push(captured
+              ? { message: `${updatedAggressor.name} occupies ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}, taken from ${updatedDefender.name}!`, type: 'combat' }
+              : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });
           }
-          logs.push(captured
-            ? { message: `${updatedAggressor.name} captures ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} from ${updatedDefender.name}!`, type: 'combat' }
-            : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });
         }
       }
     }
 
-    if (checkWarGoal(war, { ...state, regions: nextRegions, nations: nextNations })) {
-      const winner = nextNations[war.aggressor];
-      const loser = nextNations[war.enemy];
-      nextNations = {
-        ...nextNations,
-        [war.aggressor]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
-        [war.enemy]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
-      };
-      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
-      logs.push({ message: `${winner.name}'s war against ${loser.name} ends in victory.`, type: 'diplomacy' });
-      return { ...war, active: false, goalAchieved: true };
+    // --- score bookkeeping: runs for EVERY active war, regardless of who the aggressor is ---
+    const snapshotState = { ...state, regions: nextRegions, nations: nextNations, resources: nextResources };
+    if (!currentWar.goalAchieved && checkWarGoal(currentWar, snapshotState)) {
+      // destroy_military has no capture roll of its own to have already fed battleScore above —
+      // the enemy's army being crushed IS treated as a maximally decisive result, routed through
+      // the same score/peace pipeline below rather than an automatic goal-completion shortcut
+      // (that shortcut is exactly what plan §M13 removes: wars now always end at the table).
+      currentWar = currentWar.goal?.type === 'destroy_military'
+        ? { ...currentWar, goalAchieved: true, battleScore: BATTLE_SCORE_CLAMP }
+        : { ...currentWar, goalAchieved: true };
+    }
+    const tickScore = updateTickScore(currentWar, snapshotState);
+    currentWar = { ...currentWar, tickScore, score: scoreWarFromIndexes({ ...currentWar, tickScore }, occupationIndexes) };
+
+    // --- peace decision-making ---
+    const aggressorNation = nextNations[currentWar.aggressor];
+    const enemyNation = nextNations[currentWar.enemy];
+    const bothExhausted = (aggressorNation?.warExhaustion || 0) >= WHITE_PEACE_EXHAUSTION_THRESHOLD && (enemyNation?.warExhaustion || 0) >= WHITE_PEACE_EXHAUSTION_THRESHOLD;
+    const involvesPlayer = currentWar.aggressor === state.playerNationId || currentWar.enemy === state.playerNationId;
+
+    // Forced-peace backstop (plan §M13): neither side can grind the other down further, so the war
+    // ends white regardless of score. Checked before either peace path below, for AI and player
+    // wars alike.
+    if (bothExhausted) return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
+
+    if (!involvesPlayer) {
+      const leaderId = currentWar.score >= 0 ? currentWar.aggressor : currentWar.enemy;
+      const leaderScore = Math.abs(currentWar.score);
+      if (leaderScore >= AI_VS_AI_PEACE_SCORE_THRESHOLD) {
+        const terms = buildAITerms(snapshotState, currentWar, leaderId);
+        const acceptance = getPeaceAcceptance(snapshotState, currentWar, leaderId, terms);
+        // Trim: the plan's own "score 100 held for 3 turns" enforcement streak isn't tracked —
+        // a sufficiently lopsided score enforces immediately instead.
+        if (leaderScore >= PEACE_SCORE_ENFORCE_THRESHOLD || acceptance.accepted) return concludeWar(currentWar, leaderId, terms, snapshotState);
+      }
+      return currentWar;
     }
 
-    return war;
+    // Involves the player: the AI side may enforce, offer (queuing state.pendingPeaceOffer for the
+    // player to accept/reject via the reducer), or simply wait out its own cooldown. Only one offer
+    // is queued per turn — if another war already queued one this turn, this war just waits.
+    if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
+    const aiSide = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
+    const aiScore = aiSide === currentWar.aggressor ? currentWar.score : -currentWar.score;
+    if (aiScore < PEACE_SCORE_OFFER_THRESHOLD) return currentWar;
+
+    const terms = buildAITerms(snapshotState, currentWar, aiSide);
+    if (aiScore >= PEACE_SCORE_ENFORCE_THRESHOLD) {
+      logs.push({ message: `${nextNations[aiSide]?.name || aiSide} forces a peace on you — the war is lost.`, type: 'diplomacy' });
+      return concludeWar(currentWar, aiSide, terms, snapshotState);
+    }
+    nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms };
+    logs.push({ message: `${nextNations[aiSide]?.name || aiSide} offers to end the war.`, type: 'diplomacy' });
+    return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
   });
 
-  return { regions: nextRegions, nations: nextNations, wars: nextWars, logs };
+  return { regions: nextRegions, nations: nextNations, resources: nextResources, wars: nextWars, pendingPeaceOffer: nextPendingPeaceOffer, logs };
 };

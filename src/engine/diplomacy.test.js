@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress,
-  isInTruce, setTruce, getTradePactCapacity
+  isInTruce, setTruce, getTradePactCapacity, recordBattle, getOccupationScore, updateTickScore, computeWarScore
 } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
@@ -63,12 +63,12 @@ describe('buildWarGoal', () => {
 });
 
 describe('checkWarGoal', () => {
-  it('capture_region: true once the aggressor actually holds the target region', () => {
+  it('capture_region: true once the aggressor actually occupies the target region (plan §M13: occupiedBy, not owner)', () => {
     const state = usState();
     const war = { active: true, aggressor: 'us', enemy: 'ca', goal: { type: 'capture_region', regionId: cap('ca') } };
     expect(checkWarGoal(war, state)).toBe(false);
-    const captured = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], owner: 'us' } } };
-    expect(checkWarGoal(war, captured)).toBe(true);
+    const occupied = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'us' } } };
+    expect(checkWarGoal(war, occupied)).toBe(true);
   });
 
   it('destroy_military: true once the enemy nation\'s strength drops to the threshold', () => {
@@ -196,21 +196,124 @@ describe('isAtWarWithPlayer', () => {
   });
 });
 
-describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conquest)', () => {
-  // Mexico ('mx') is AI-declaring war on Canada ('ca') here — neither is the player ('us') — so
-  // this exercises the pure AI-vs-AI path. A separate test below exercises AI-vs-player.
-  const aiWarState = (overrides = {}) => {
+describe('recordBattle (plan §M13)', () => {
+  const war = { aggressor: 'us', enemy: 'ca', battleScore: 0 };
+
+  it('moves battleScore toward the aggressor when the aggressor wins', () => {
+    expect(recordBattle(war, 'us', 0.5)).toBeGreaterThan(0);
+  });
+
+  it('moves battleScore toward the enemy when the enemy wins', () => {
+    expect(recordBattle(war, 'ca', 0.5)).toBeLessThan(0);
+  });
+
+  it('clamps at +/-40', () => {
+    expect(recordBattle({ ...war, battleScore: 39 }, 'us', 1)).toBe(40);
+    expect(recordBattle({ ...war, battleScore: -39 }, 'ca', 1)).toBe(-40);
+  });
+
+  it('scales magnitude up with a bigger lossShare', () => {
+    expect(recordBattle(war, 'us', 1)).toBeGreaterThan(recordBattle(war, 'us', 0));
+  });
+});
+
+describe('getOccupationScore (plan §M13)', () => {
+  it('is 0 with no occupation either way', () => {
     const state = usState();
-    const war = { id: 'war_1', aggressor: 'mx', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, ...overrides };
+    expect(getOccupationScore(state, { aggressor: 'us', enemy: 'ca' })).toBe(0);
+  });
+
+  it('is positive when the aggressor occupies enemy territory', () => {
+    const state = usState();
+    const occupied = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'us' } } };
+    expect(getOccupationScore(occupied, { aggressor: 'us', enemy: 'ca' })).toBeGreaterThan(0);
+  });
+
+  it('is negative when the enemy occupies aggressor territory', () => {
+    const state = usState();
+    const occupied = { ...state, regions: { ...state.regions, [cap('us')]: { ...state.regions[cap('us')], occupiedBy: 'ca' } } };
+    expect(getOccupationScore(occupied, { aggressor: 'us', enemy: 'ca' })).toBeLessThan(0);
+  });
+});
+
+describe('updateTickScore (plan §M13)', () => {
+  it('ticks up while the aggressor holds a capture_region goal', () => {
+    const state = usState();
+    const war = { aggressor: 'us', enemy: 'ca', tickScore: 0, startTurn: state.turnNumber, goal: { type: 'capture_region', regionId: cap('ca') } };
+    const occupied = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'us' } } };
+    expect(updateTickScore(war, occupied)).toBe(1);
+  });
+
+  it('does not tick down before the grace period elapses', () => {
+    const state = usState();
+    const war = { aggressor: 'us', enemy: 'ca', tickScore: 0, startTurn: state.turnNumber, goal: { type: 'capture_region', regionId: cap('ca') } };
+    expect(updateTickScore(war, state)).toBe(0);
+  });
+
+  it('ticks down once the grace period elapses without holding the goal', () => {
+    const state = usState();
+    const war = { aggressor: 'us', enemy: 'ca', tickScore: 0, startTurn: state.turnNumber - 5, goal: { type: 'capture_region', regionId: cap('ca') } };
+    expect(updateTickScore(war, state)).toBe(-1);
+  });
+
+  it('stays at 0 for a destroy_military goal (no ticking territory to hold)', () => {
+    const state = usState();
+    const war = { aggressor: 'us', enemy: 'ca', tickScore: 0, startTurn: state.turnNumber, goal: { type: 'destroy_military', threshold: 1 } };
+    expect(updateTickScore(war, state)).toBe(0);
+  });
+});
+
+describe('computeWarScore (plan §M13)', () => {
+  it('sums battle and tick components, clamped to +/-100', () => {
+    const state = usState();
+    const war = { aggressor: 'us', enemy: 'ca', battleScore: 40, tickScore: 25 };
+    expect(computeWarScore(war, state)).toBe(65);
+  });
+
+  it('never exceeds the +/-100 clamp even with a large occupation component', () => {
+    const state = usState();
+    const war = { aggressor: 'us', enemy: 'ca', battleScore: 40, tickScore: 25 };
+    const occupied = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'us' } } };
+    const score = computeWarScore(war, occupied);
+    expect(score).toBeLessThanOrEqual(100);
+    expect(score).toBeGreaterThanOrEqual(65);
+  });
+});
+
+describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and the peace machinery)', () => {
+  // Mexico ('mx') is AI-declaring war on Canada ('ca') here — neither is the player ('us') — so
+  // this exercises the pure AI-vs-AI path. Separate describes below exercise AI-vs-player.
+  const aiWarState = (overrides = {}) => {
+    const base = usState();
+    // Inflates every ca region OTHER than its capital to a huge development value, so a single
+    // capital capture's tripled occupation weight (getOccupationScore's own capital bonus) stays a
+    // small fraction of ca's total dev — keeping these capture-mechanics tests decoupled from
+    // whether the resulting occupation score happens to cross the AI-vs-AI peace threshold on real
+    // Canada geography. The peace-machinery describe below tests that threshold directly instead.
+    const capId = cap('ca');
+    const regions = { ...base.regions };
+    Object.keys(regions).forEach((id) => {
+      if (regions[id].owner === 'ca' && id !== capId) regions[id] = { ...regions[id], dev: { tax: 1000, production: 1000, manpower: 1000 } };
+    });
+    const state = { ...base, regions };
+    const war = {
+      id: 'war_1', aggressor: 'mx', enemy: 'ca', active: true, goalAchieved: false,
+      startYear: state.year, startTurn: state.turnNumber, cb: 'none',
+      battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0,
+      ...overrides
+    };
     return { state: { ...state, wars: [war] }, war };
   };
 
-  it('leaves a war the player started completely untouched', () => {
+  it('runs no capture roll for a war the player started, but still keeps its score bookkeeping', () => {
     const state = usState();
-    const war = { id: 'war_1', aggressor: 'us', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: cap('ca') } };
+    const war = {
+      id: 'war_1', aggressor: 'us', enemy: 'ca', active: true, goalAchieved: false, startYear: state.year, startTurn: state.turnNumber,
+      cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'capture_region', regionId: cap('ca') }
+    };
     const withWar = { ...state, wars: [war] };
     const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
-    expect(result.wars[0]).toEqual(war);
+    expect(result.wars[0]).toEqual(war); // nothing moved: no capture roll, no attrition, score stays 0
     expect(result.regions).toBe(withWar.regions);
     expect(result.nations).toBe(withWar.nations);
   });
@@ -229,33 +332,36 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
     expect(result.nations.ca.militaryStrength).toBeLessThan(before.ca);
   });
 
-  it('captures the goal region and ends the war (AI vs AI) when the roll succeeds', () => {
+  it('occupies (not annexes) the goal region when the capture roll succeeds (AI vs AI)', () => {
     const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
-    expect(result.regions[cap('ca')].owner).toBe('mx');
-    expect(result.regions[cap('ca')].formerOwner).toBe('ca');
-    expect(result.wars[0].active).toBe(false);
-    expect(result.wars[0].goalAchieved).toBe(true);
-    expect(result.nations.mx.isAtWar).toBe(false);
-    expect(result.nations.ca.isAtWar).toBe(false);
-    expect(result.nations.mx.hasPeaceTreaty).toBe(true);
-    expect(result.nations.ca.hasPeaceTreaty).toBe(true);
+    expect(result.regions[cap('ca')].owner).toBe('ca'); // unchanged — occupation, not annexation
+    expect(result.regions[cap('ca')].occupiedBy).toBe('mx');
+    expect(result.regions[cap('ca')].formerOwner).toBeUndefined();
   });
 
-  it('an AI can capture the PLAYER\'S region and end the war, exactly like any other nation', () => {
+  it('an AI can occupy the PLAYER\'S region, exactly like any other nation', () => {
     const state = usState();
-    const war = { id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, goal: { type: 'capture_region', regionId: cap('us') } };
+    const war = {
+      id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, startTurn: state.turnNumber,
+      cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'capture_region', regionId: cap('us') }
+    };
     const withWar = { ...state, wars: [war] };
     const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
-    expect(result.regions[cap('us')].owner).toBe('ca');
-    expect(result.regions[cap('us')].formerOwner).toBe('us');
-    expect(result.nations.us.isAtWar).toBe(false);
+    expect(result.regions[cap('us')].owner).toBe('us');
+    expect(result.regions[cap('us')].occupiedBy).toBe('ca');
   });
 
-  it('does not capture the region when the roll fails, and the war stays active', () => {
+  it('records the capture as a battle, moving battleScore toward the taker', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+    expect(result.wars[0].battleScore).toBeGreaterThan(0);
+  });
+
+  it('does not occupy the region when the roll fails, and the war stays active', () => {
     const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
-    expect(result.regions[cap('ca')].owner).toBe('ca');
+    expect(result.regions[cap('ca')].occupiedBy).toBeUndefined();
     expect(result.wars[0].active).toBe(true);
   });
 
@@ -266,35 +372,86 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
     expect(result.regions[cap('ca')].owner).toBe('us'); // unchanged by this war
   });
 
-  it('ends the war once a destroy_military goal is met, regardless of the capture roll', () => {
+  it('does not re-roll once the aggressor already occupies the target region', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const alreadyOccupied = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'mx' } } };
+    const result = resolveWarProgress(alreadyOccupied, alreadyOccupied.regions, alreadyOccupied.nations, alreadyOccupied.wars, alwaysRolls);
+    expect(result.regions[cap('ca')].occupiedBy).toBe('mx');
+  });
+
+  it('sets goalAchieved (without ending the war outright) once a destroy_military goal is met', () => {
     const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 999999999 } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
-    expect(result.wars[0].active).toBe(false);
     expect(result.wars[0].goalAchieved).toBe(true);
-    expect(result.nations.mx.isAtWar).toBe(false);
-    expect(result.nations.ca.isAtWar).toBe(false);
+    expect(result.wars[0].battleScore).toBe(40); // a crushed military counts as a maximally decisive battle
   });
 
-  // Plan §M12/M13: a war ending sets a mirrored truce on both former belligerents.
-  it('sets a mirrored truce on both sides once a war ends via goal completion', () => {
+  it('does not accrue Aggressive Expansion merely from occupying a region — only from land actually changing hands at peace (see peace.test.js)', () => {
     const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
-    expect(result.nations.mx.truces.ca).toBe(state.turnNumber + 10);
-    expect(result.nations.ca.truces.mx).toBe(state.turnNumber + 10);
-  });
-
-  // Plan §M12: Aggressive Expansion (src/engine/expansion.js) is accrued by the captured region's
-  // previous owner and its immediate neighbors, proportional to its own development.
-  it('accrues Aggressive Expansion against the taker for the captured region\'s previous owner', () => {
-    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
-    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
-    expect(result.nations.ca.ae?.mx).toBeGreaterThan(0);
-  });
-
-  it('accrues no Aggressive Expansion when the capture roll fails', () => {
-    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
-    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
     expect(result.nations.ca.ae?.mx || 0).toBe(0);
+  });
+
+  describe('the peace machinery (plan §M13)', () => {
+    it('ends a war in white peace once both sides are sufficiently war-exhausted', () => {
+      const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 1 } });
+      const exhausted = {
+        ...state,
+        nations: { ...state.nations, mx: { ...state.nations.mx, warExhaustion: 85 }, ca: { ...state.nations.ca, warExhaustion: 85 } }
+      };
+      const result = resolveWarProgress(exhausted, exhausted.regions, exhausted.nations, exhausted.wars, neverRolls);
+      expect(result.wars[0].active).toBe(false);
+      expect(result.nations.mx.truces.ca).toBe(state.turnNumber + 10);
+    });
+
+    it('concludes an AI-vs-AI war once the leading side is winning by enough and the loser\'s ledger accepts', () => {
+      const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 1 }, battleScore: 95, goalAchieved: true });
+      const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
+      expect(result.wars[0].active).toBe(false);
+      expect(result.nations.mx.truces.ca).toBe(state.turnNumber + 10);
+      expect(result.nations.ca.truces.mx).toBe(state.turnNumber + 10);
+    });
+
+    it('queues a pendingPeaceOffer for the player once an AI enemy is winning enough to demand terms', () => {
+      const state = usState();
+      const war = {
+        id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: true, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 35, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const withWar = { ...state, wars: [war] };
+      const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, neverRolls);
+      expect(result.pendingPeaceOffer).toBeTruthy();
+      expect(result.pendingPeaceOffer.from).toBe('ca');
+      expect(result.wars[0].active).toBe(true); // an offer, not an enforcement — the player still decides
+    });
+
+    it('enforces peace on the player outright once the AI is winning overwhelmingly', () => {
+      const state = usState();
+      const war = {
+        id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: true, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 95, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const withWar = { ...state, wars: [war] };
+      const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, neverRolls);
+      expect(result.wars[0].active).toBe(false);
+      expect(result.pendingPeaceOffer).toBeNull();
+    });
+
+    it('an unrelated AI-vs-AI war processed the same turn does not disturb the player\'s pending offer', () => {
+      const state = usState();
+      const warA = {
+        id: 'war_a', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: true, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 35, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const warB = {
+        id: 'war_b', aggressor: 'mx', enemy: 'de', active: true, goalAchieved: false, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const withWars = { ...state, wars: [warA, warB] };
+      const result = resolveWarProgress(withWars, withWars.regions, withWars.nations, withWars.wars, neverRolls);
+      expect(result.pendingPeaceOffer.warId).toBe('war_a');
+      expect(result.wars.find(w => w.id === 'war_b').active).toBe(true);
+    });
   });
 });
 

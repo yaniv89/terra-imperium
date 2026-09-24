@@ -27,8 +27,8 @@ import {
   ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS
 } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
-import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity } from './diplomacy';
-import { applyAggressiveExpansion } from './expansion';
+import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { applyPeace, getPeaceAcceptance } from './peace';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindCombatMultiplier, getAgesBehindResearchCostMultiplier } from '../data/ages';
@@ -355,6 +355,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
     // Wars and invasions — the combat/invasion resolution engine that reads these is Phase C work.
     wars: [],
+    // Set by resolveWarProgress when an AI side wins a war by enough to demand terms (plan §M13);
+    // blocks END_TURN the same way an active event does until ACCEPT_PENDING_PEACE/
+    // REJECT_PENDING_PEACE clears it — shape: { warId, from: nationId, terms: PeaceTerm[] }.
+    pendingPeaceOffer: null,
     invasions: [],
     nextInvasionSeq: 0,
     counterAttackWindows: {},
@@ -440,7 +444,7 @@ export const gameReducer = (state, action) => {
         if (next === current) break; // resolveTurn's own no-op guard (event pending / game over)
         current = next;
         if (current.gameStatus !== GameStatus.ACTIVE) break;
-        if (current.activeEventId || current.activeProceduralEvent) break;
+        if (current.activeEventId || current.activeProceduralEvent || current.pendingPeaceOffer) break;
         if (countWars(current) !== startingWarCount) break;
       }
       return current;
@@ -595,7 +599,9 @@ export const gameReducer = (state, action) => {
       // in the reducer, a real pre-existing gap the plan calls out by name.
       const { regionId, categoryId } = action.payload;
       const region = state.regions[regionId];
-      if (!region || region.owner !== state.playerNationId) return state;
+      // Plan §M13: an occupied region can't build — it isn't producing anything for its owner
+      // while occupied (see helpers.js's calcIncome), so there's nothing to invest in either.
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       const currentTier = region.buildings.categories[categoryId];
       if (currentTier === undefined) return state; // unknown category
       const nextTier = currentTier + 1;
@@ -628,7 +634,7 @@ export const gameReducer = (state, action) => {
       const { regionId, resourceId } = action.payload;
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.developResourceSite;
-      if (!region || region.owner !== state.playerNationId) return state;
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
       if (!hasDeposit(REGIONS_DATA[regionId]?.startOwner, resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
       if (!canAfford(state.resources, costs)) return state;
@@ -653,7 +659,7 @@ export const gameReducer = (state, action) => {
       // to push further, same shape as Increase Stability's own cost curve (M4).
       const { regionId, devType } = action.payload;
       const region = state.regions[regionId];
-      if (!region || region.owner !== state.playerNationId) return state;
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!DEV_TYPE_POOL[devType]) return state;
       const pool = DEV_TYPE_POOL[devType];
       const developmentCostMult = getModifier(state, state.playerNationId, 'national.developmentCost').total;
@@ -1017,7 +1023,7 @@ export const gameReducer = (state, action) => {
       // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
       // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
       const costs = getRecruitUnitCost(state, state.age);
-      if (!region || region.owner !== state.playerNationId) return state;
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!getAvailableClasses(getEffectiveAgeId(state.age, state.techAgeId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
@@ -1154,6 +1160,11 @@ export const gameReducer = (state, action) => {
       if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
       if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
       if (!getNeighborIds(fromRegionId).includes(targetRegionId)) return state;
+      // Plan §M13: invasions now require an active war with the target's owner — a real
+      // pre-existing gap (this check never previously existed) that let the player walk into any
+      // neighboring nation's territory with no diplomatic consequence or war-score bookkeeping.
+      const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+      if (!invasionWar) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const attackerUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land');
@@ -1224,10 +1235,13 @@ export const gameReducer = (state, action) => {
 
       const nextRegions = { ...state.regions };
       if (captured) {
+        // Occupation (plan §M13), not annexation: `owner` stays put, `occupiedBy` marks who holds
+        // it militarily. Ownership only changes at the peace table (OFFER_PEACE/ACCEPT_PENDING_
+        // PEACE's 'cede' term, src/engine/peace.js) — which is also where Aggressive Expansion now
+        // fires, since land hasn't actually changed hands yet.
         nextRegions[targetRegionId] = {
           ...targetRegion,
-          owner: state.playerNationId,
-          formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
+          occupiedBy: state.playerNationId,
           control: 25,
           unrest: Math.max(targetRegion.unrest || 0, 50),
           lastAttackedTurn: state.turnNumber,
@@ -1236,14 +1250,17 @@ export const gameReducer = (state, action) => {
       } else if (isDefended) {
         nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
-      // Aggressive Expansion (plan §M12, src/engine/expansion.js) — accrued by the taken region's
-      // previous owner and its immediate neighbors, proportional to the region's own development.
-      const nextNations = captured
-        ? applyAggressiveExpansion(state.nations, nextRegions, targetRegionId, targetRegion.owner, state.playerNationId)
-        : state.nations;
+
+      // War score (plan §M13): this invasion counts as a battle in `invasionWar` regardless of
+      // which side of it the player is on, feeding the same score the AI's own peace decisions read.
+      const invasionLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
+      const invasionWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
+      const nextWars = invasionWinnerId
+        ? state.wars.map(w => (w.id === invasionWar.id ? { ...w, battleScore: recordBattle(w, invasionWinnerId, invasionLossShare) } : w))
+        : state.wars;
 
       const outcomeMessage = captured
-        ? `Your forces captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+        ? `Your forces occupy ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
         : outcome === 'attacker'
           ? `Your forces broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
           : outcome === 'defender'
@@ -1254,8 +1271,8 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
-        nations: nextNations,
         units: nextUnits,
+        wars: nextWars,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
@@ -1275,6 +1292,10 @@ export const gameReducer = (state, action) => {
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
       const embarkedLandUnits = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
       if (embarkedLandUnits.length === 0) return state;
+      // Plan §M13: an amphibious assault requires an active war with the target's owner, same as a
+      // land LAUNCH_INVASION (see that case's own comment for why this check is new).
+      const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+      if (!invasionWar) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
@@ -1366,10 +1387,10 @@ export const gameReducer = (state, action) => {
 
       const nextRegions = { ...state.regions };
       if (captured) {
+        // Occupation, not annexation — see LAUNCH_INVASION's own comment on this (plan §M13).
         nextRegions[targetRegionId] = {
           ...targetRegion,
-          owner: state.playerNationId,
-          formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
+          occupiedBy: state.playerNationId,
           control: 25,
           unrest: Math.max(targetRegion.unrest || 0, 50),
           lastAttackedTurn: state.turnNumber,
@@ -1378,12 +1399,15 @@ export const gameReducer = (state, action) => {
       } else if (isDefended) {
         nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
-      const nextNations = captured
-        ? applyAggressiveExpansion(state.nations, nextRegions, targetRegionId, targetRegion.owner, state.playerNationId)
-        : state.nations;
+
+      const assaultLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
+      const assaultWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
+      const nextWars = assaultWinnerId
+        ? state.wars.map(w => (w.id === invasionWar.id ? { ...w, battleScore: recordBattle(w, assaultWinnerId, assaultLossShare) } : w))
+        : state.wars;
 
       const outcomeMessage = captured
-        ? `Your amphibious assault captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+        ? `Your amphibious assault occupies ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
         : outcome === 'attacker'
           ? `Your landing broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
           : outcome === 'defender'
@@ -1394,8 +1418,8 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
-        nations: nextNations,
         units: nextUnits,
+        wars: nextWars,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, captured, kind: 'amphibious', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
@@ -1900,26 +1924,108 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.SUE_FOR_PEACE: {
+      // Plan §M13: kept as a white-peace alias (no cede/gold/reparations/humiliate/vassalize terms)
+      // rather than removed outright — routes through the same applyPeace/setTruce path OFFER_PEACE
+      // uses below, so it now also liberates any occupied regions and starts a truce (a real
+      // pre-existing gap: the old version of this case never called setTruce at all).
       const { nationId } = action.payload;
       const target = state.nations[nationId];
       if (!target || !target.isAtWar) return state;
+      const war = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, nationId));
+      if (!war) return state;
       const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), dip: 1 };
       if (!canAfford(state.resources, costs)) return state;
-      const player = state.nations[state.playerNationId];
+      const applied = applyPeace(state, war, state.playerNationId, []);
+      const player = applied.nations[state.playerNationId];
+      const targetAfter = applied.nations[nationId];
+      let nextNations = {
+        ...applied.nations,
+        // The war record names an aggressor and an enemy, not "the player's side" — an AI could
+        // have declared this war on the player just as easily as the reverse, and either way the
+        // player's own isAtWar must clear too, or they'd be permanently immune to any FUTURE war
+        // declaration (aiLogic.js's pickWarTarget filters out any nation still flagged isAtWar).
+        [state.playerNationId]: { ...player, isAtWar: false },
+        [nationId]: { ...targetAfter, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(targetAfter.hostility, 50), relationStatus: RelationStatus.COLD_PEACE }
+      };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
       return {
         ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: {
-          ...state.nations,
-          [nationId]: { ...target, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(target.hostility, 50), relationStatus: RelationStatus.COLD_PEACE },
-          // The war record names an aggressor and an enemy, not "the player's side" — an AI could
-          // have declared this war on the player just as easily as the reverse, and either way the
-          // player's own isAtWar must clear too, or they'd be permanently immune to any FUTURE war
-          // declaration (aiLogic.js's pickWarTarget filters out any nation still flagged isAtWar).
-          [state.playerNationId]: { ...player, isAtWar: false }
-        },
-        wars: state.wars.map(w => (isWarBetween(w, state.playerNationId, nationId) && w.active ? { ...w, active: false } : w)),
+        resources: applyCosts(applied.resources, costs),
+        regions: applied.regions,
+        nations: nextNations,
+        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
         logs: [...state.logs, { year: state.year, message: `Signed a peace treaty with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.OFFER_PEACE: {
+      // Plan §M13: negotiated peace with real terms — the AI recipient accepts iff its own
+      // acceptance ledger (src/engine/peace.js) covers the terms' combined war-score cost.
+      const { warId, terms = [] } = action.payload;
+      const war = state.wars.find(w => w.id === warId && w.active);
+      if (!war || (war.aggressor !== state.playerNationId && war.enemy !== state.playerNationId)) return state;
+      const recipientId = war.aggressor === state.playerNationId ? war.enemy : war.aggressor;
+      const recipient = state.nations[recipientId];
+      if (!recipient) return state;
+      const acceptance = getPeaceAcceptance(state, war, state.playerNationId, terms);
+      if (!acceptance.accepted) {
+        return { ...state, logs: [...state.logs, { year: state.year, message: `${recipient.name} rejects your peace terms.`, type: LogTypes.DIPLOMACY }] };
+      }
+      const applied = applyPeace(state, war, state.playerNationId, terms);
+      const winner = applied.nations[state.playerNationId];
+      const loser = applied.nations[recipientId];
+      let nextNations = {
+        ...applied.nations,
+        [state.playerNationId]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
+        [recipientId]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
+      };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
+      return {
+        ...state,
+        resources: applied.resources,
+        regions: applied.regions,
+        nations: nextNations,
+        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        logs: [...state.logs, { year: state.year, message: `Peace signed with ${recipient.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ACCEPT_PENDING_PEACE: {
+      // Plan §M13: the player accepting an AI's own OFFER_PEACE-equivalent (queued into
+      // state.pendingPeaceOffer by resolveWarProgress once the AI is winning enough to demand terms).
+      const offer = state.pendingPeaceOffer;
+      if (!offer) return state;
+      const war = state.wars.find(w => w.id === offer.warId && w.active);
+      if (!war) return { ...state, pendingPeaceOffer: null };
+      const recipientId = offer.from === war.aggressor ? war.enemy : war.aggressor;
+      const applied = applyPeace(state, war, offer.from, offer.terms);
+      const winner = applied.nations[offer.from];
+      const loser = applied.nations[recipientId];
+      let nextNations = {
+        ...applied.nations,
+        [offer.from]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
+        [recipientId]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
+      };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
+      return {
+        ...state,
+        resources: applied.resources,
+        regions: applied.regions,
+        nations: nextNations,
+        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        pendingPeaceOffer: null,
+        logs: [...state.logs, { year: state.year, message: `You accept peace with ${nextNations[recipientId]?.name || recipientId}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.REJECT_PENDING_PEACE: {
+      const offer = state.pendingPeaceOffer;
+      if (!offer) return state;
+      return {
+        ...state,
+        pendingPeaceOffer: null,
+        wars: state.wars.map(w => (w.id === offer.warId ? { ...w, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS } : w)),
+        logs: [...state.logs, { year: state.year, message: `You reject ${state.nations[offer.from]?.name || offer.from}'s peace offer — they may ask again later.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

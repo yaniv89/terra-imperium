@@ -29,6 +29,14 @@ export const getTotalDev = (region) => {
   return (dev.tax || 0) + (dev.production || 0) + (dev.manpower || 0);
 };
 
+// Sums getTotalDev across every region a nation currently OWNS (occupation doesn't move this —
+// plan §M13: "owner keeps owning it, just gets nothing from it while occupied" applies to dev too).
+// Prior call sites that needed this (M12's ANNEX_VASSAL cost, expansion.js's per-region read) each
+// inlined their own reduce; this is the first shared helper, used by war-score/peace-cost math
+// (M13) on top of those two.
+export const getNationTotalDev = (state, nationId) =>
+  Object.values(state.regions || {}).reduce((sum, r) => sum + (r.owner === nationId ? getTotalDev(r) : 0), 0);
+
 // Population and development both compounding without limit would let a heavily-grown, heavily-
 // developed region's income spiral (the plan's own concern, §M5's "clamped" note) — this replaces
 // calcIncome's old UNCLAMPED popGrowthMult with an explicit [0.5, 2.0] ceiling/floor.
