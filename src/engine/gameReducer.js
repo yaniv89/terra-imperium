@@ -47,6 +47,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } 
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './succession';
 import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
@@ -71,7 +72,7 @@ const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal' } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed } = {}) => {
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
@@ -113,9 +114,21 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     };
   });
 
+  // Ruler/heir generation (plan §M3) draws from a seeded rng so the whole nations table stays
+  // reproducible from state.rngSeed alone — the seed captured at the end of this loop already
+  // reflects every draw made generating all 240 rulers/heirs, so turn 1 continues deterministically
+  // from there rather than replaying the same draws again. `rngSeed` is an optional override (tests,
+  // and the edge-bundle parity check) so the WHOLE initial state — not just the final stored seed —
+  // can be pinned and reproduced; real gameplay always omits it and gets fresh randomness.
+  const successionRng = createRng(rngSeed ?? randomSeed());
+
   // Every one of the 240 nations gets a record — any of them can be the player's.
   const nations = {};
   Object.entries(WORLD_NATIONS).forEach(([id, data]) => {
+    // No nation starts with a government adopted, so none starts with an heir either (heirs only
+    // exist under a hereditary government — see succession.js's getSuccessionStyle) — one is
+    // generated the first time that nation's reign ends after adopting one.
+    const ruler = generateRuler(id, successionRng, { turnNumber: 1, age, gameSpeed });
     nations[id] = {
       id,
       name: data.name,
@@ -173,7 +186,15 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // array every nation carries) for the Vassalize/Release action a later task adds.
       claims: [],
       warExhaustion: 0,
-      vassals: []
+      vassals: [],
+
+      // Rulers, heirs, advisors (plan §M3) — every nation gets a ruler so resolveTurn.js's
+      // succession pass and the modifier engine's ruler-skill source (src/engine/modifiers/
+      // sources.js) can read any nation's generically; only the player's ruler/advisors actually
+      // affect anything mechanically today (AI nations don't consume power pools until M16).
+      ruler,
+      heir: null,
+      advisors: { adm: null, dip: null, mil: null }
     };
   });
 
@@ -278,6 +299,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     nextSatelliteSeq: 0,
     orbitalDebrisLevel: 0,
 
+    // Advisor candidates (plan §M3) — only the player's own is ever generated/read today (AI
+    // nations don't hire advisors until M16 gives them a real economy to hire with), keyed by
+    // nation id the same way state.satellites is, in case that changes later.
+    advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, successionRng) },
+
     // Space Race mission ladder (plan §10.4 Layer 3, src/data/spaceMissions.js) — a mission in
     // progress lives in spaceMissionProgress keyed by id with turns remaining; completing it moves
     // the id into completedMissions and applies its reward. diplomaticLeadershipStreak is the
@@ -287,7 +313,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     diplomaticLeadershipStreak: 0,
 
     // Deterministic turn resolution — see src/utils/rng.js
-    rngSeed: randomSeed(),
+    // Carries forward whatever successionRng advanced to while generating all 240 nations' rulers
+    // above, rather than a fresh randomSeed() — turn 1 then continues deterministically from
+    // exactly where ruler generation left off, instead of silently discarding those draws.
+    rngSeed: successionRng.getSeed(),
 
     // Logs
     logs: [
@@ -418,6 +447,34 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         nations: nextNations,
         logs: [...state.logs, { year: state.year, message: `Your culture spreads abroad, easing tensions worldwide. Cultural Influence: ${nextInfluence}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.HIRE_ADVISOR: {
+      // Plan §M3: hires one of the 3 current candidates for a slot, replacing whoever (if anyone)
+      // already held it — a mid-reign dismissal, not something the plan asks to cost extra on top
+      // of the new hire's own price.
+      const { pool, candidateIndex } = action.payload;
+      if (!['adm', 'dip', 'mil'].includes(pool)) return state;
+      const candidate = state.advisorPool?.[state.playerNationId]?.[pool]?.[candidateIndex];
+      if (!candidate) return state;
+      const cost = getAdvisorHireCost(candidate.level);
+      if ((state.resources.gold || 0) < cost) return state;
+
+      const nation = state.nations[state.playerNationId];
+      const rng = createRng(state.rngSeed);
+      const refreshedCandidates = { ...state.advisorPool[state.playerNationId] };
+      refreshedCandidates[pool] = [0, 1, 2].map((i) => (i === candidateIndex
+        ? generateAdvisorCandidates(state.playerNationId, rng)[pool][0] // a fresh face fills the now-hired slot
+        : refreshedCandidates[pool][i]));
+
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - cost },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, advisors: { ...nation.advisors, [pool]: candidate } } },
+        advisorPool: { ...state.advisorPool, [state.playerNationId]: refreshedCandidates },
+        rngSeed: rng.getSeed(),
+        logs: [...state.logs, { year: state.year, message: `${candidate.name} (level ${candidate.level}) hired as your ${pool.toUpperCase()} advisor.`, type: LogTypes.ACTION }]
       };
     }
 

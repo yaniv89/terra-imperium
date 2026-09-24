@@ -266,7 +266,16 @@ describe('getNationBonusTotal', () => {
 // the single AP pool with three (adm/dip/mil); apBonus applies equally to all three since neither
 // government nor tech differentiates between them yet (M3/M7 are what eventually will).
 describe('getPowerIncome', () => {
-  const baseState = () => createInitialState({ playerNationId: 'fr' });
+  // M3's ruler/advisor generation adds nonzero adm/dip/mil skill to createInitialState's nations —
+  // real for gameplay, but it would make these exact-value assertions depend on the seeded RNG roll
+  // for 'fr' specifically. Zero the ruler and clear advisors so this suite still isolates apBonus/
+  // tech/satellite/mission math the way it did before M3.
+  const baseState = () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
+    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
+    return state;
+  };
 
   it('is the flat base of 3 per pool with no government and no researched Governance tech', () => {
     expect(getPowerIncome(baseState())).toEqual({ adm: 3, dip: 3, mil: 3 });

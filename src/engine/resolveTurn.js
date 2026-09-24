@@ -33,6 +33,7 @@ import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed'
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { processSuccession, getAdvisorSalary } from './succession';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -98,6 +99,16 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   if (upkeepCost > 0) {
     resources.gold = Math.max(0, resources.gold - upkeepCost);
     logs.push({ year: newYear, message: `Army upkeep: -${formatMoney(upkeepCost)} (${playerUnitCount} unit${playerUnitCount === 1 ? '' : 's'})`, type: LogTypes.ACTION });
+  }
+
+  // Advisor salaries (plan §M3) — same one-time-hire-then-free trap the army upkeep comment above
+  // already fixed for units: a hired advisor pays for itself once and then costs nothing further
+  // unless charged an ongoing salary here.
+  const playerAdvisors = Object.values(state.nations[state.playerNationId]?.advisors || {}).filter(Boolean);
+  const advisorSalaryCost = playerAdvisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
+  if (advisorSalaryCost > 0) {
+    resources.gold = Math.max(0, resources.gold - advisorSalaryCost);
+    logs.push({ year: newYear, message: `Advisor salaries: -${formatMoney(advisorSalaryCost)} (${playerAdvisors.length} advisor${playerAdvisors.length === 1 ? '' : 's'})`, type: LogTypes.ACTION });
   }
 
   // ADM/DIP/MIL (plan §M2) each top up to the nation's per-turn budget every turn, but unspent
@@ -272,6 +283,24 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
   mark('aiGrowthAndHostility');
+
+  // --- succession (plan §M3) --- runs for every nation (cheap: a number comparison for the vast
+  // majority whose reign isn't ending this turn), but only the player's own succession is logged —
+  // 240 nations' worth of log lines every few turns would drown out everything else in the console.
+  // AI nations still get a real ruler/heir update even though nothing reads an AI ruler's stats
+  // mechanically yet (M16), so this doesn't need touching again once AI parity lands.
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed });
+    if (!result) return;
+    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir };
+    if (nId === state.playerNationId) {
+      const message = result.crisis
+        ? `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne amid an uncertain succession.`
+        : `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne.`;
+      logs.push({ year: newYear, message, type: LogTypes.MILESTONE });
+    }
+  });
+  mark('succession');
 
   // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
   // affordable across 240 nations.

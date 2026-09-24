@@ -13,6 +13,7 @@ import { TAX_RATES } from '../../data/taxRates';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
 import { TechCategories } from '../../data/types';
+import { TRAITS } from '../../data/traits';
 import { LEGACY_HOOK } from './registry';
 
 const linesFromEffect = (effect, sourceType, sourceId, label) =>
@@ -48,6 +49,27 @@ export const staticSources = (nation) => {
     Object.entries(mod.mods || {}).forEach(([key, value]) => {
       if (value) lines.push({ key, value, sourceType: mod.sourceType || 'event', sourceId: mod.sourceId || mod.id, label: mod.label });
     });
+  });
+
+  // Plan §M3: the ruler's own ADM/DIP/MIL skill (0-6 each) feeds the matching per-pool bonus hook
+  // directly — a skill of 0 contributes nothing rather than a negative, so an unskilled ruler is
+  // merely unhelpful, not actively harmful (that's what the Incompetent/Sickly TRAITS are for).
+  // Ruler and advisor traits reuse linesFromEffect exactly like a government/policy/wonder does.
+  const ruler = nation?.ruler;
+  if (ruler) {
+    ['adm', 'dip', 'mil'].forEach((pool) => {
+      if (ruler[pool]) lines.push({ key: `national.${pool}Bonus`, value: ruler[pool], sourceType: 'ruler', sourceId: ruler.id, label: ruler.name });
+    });
+    (ruler.traits || []).forEach((traitId) => {
+      const trait = TRAITS[traitId];
+      if (trait) lines.push(...linesFromEffect(trait.effects, 'trait', traitId, trait.name));
+    });
+  }
+
+  // Advisors (plan §M3): each hired advisor's level (1-3) adds straight to their own pool, on top
+  // of anything the ruler or government already contribute to it.
+  Object.entries(nation?.advisors || {}).forEach(([pool, advisor]) => {
+    if (advisor?.level) lines.push({ key: `national.${pool}Bonus`, value: advisor.level, sourceType: 'advisor', sourceId: advisor.id, label: advisor.name });
   });
 
   return lines;

@@ -25,7 +25,12 @@ import { POLICIES, POLICY_IDS } from '../../data/policies';
 import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
+import { getAdvisorHireCost } from '../../engine/succession';
+import { TRAITS } from '../../data/traits';
 import { ActionButton } from '../ui';
+import { Crown, Users } from 'lucide-react';
+
+const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
 const DomesticPanel = ({ selectedRegion }) => {
   const { state, dispatch, addLog } = useGame();
@@ -105,6 +110,82 @@ const DomesticPanel = ({ selectedRegion }) => {
             disabled={!buildable}
             size="small"
           />
+        );
+      })}
+    </div>
+  );
+
+  const handleHireAdvisor = (pool, candidateIndex, cost) => {
+    if ((state.resources.gold || 0) < cost) return addLog('Not enough gold', 'action');
+    triggerEffect('hire_advisor', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.HIRE_ADVISOR, payload: { pool, candidateIndex } });
+  };
+
+  const ruler = playerNation?.ruler;
+  const heir = playerNation?.heir;
+  const advisors = playerNation?.advisors || {};
+  const advisorCandidates = state.advisorPool?.[state.playerNationId] || {};
+
+  const courtSection = (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold text-slate-300">Court</div>
+      {ruler && (
+        <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Crown size={14} className="text-amber-400 shrink-0" />
+            <div className="text-white font-semibold">{ruler.name} of House {ruler.dynasty}</div>
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            ADM {ruler.adm} · DIP {ruler.dip} · MIL {ruler.mil}
+            {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => TRAITS[id]?.name || id).join(', ')}`}
+          </div>
+          <div className="text-[10px] text-slate-500">
+            Reign ends turn {ruler.reignEndsTurn}
+          </div>
+          {heir && (
+            <div className="text-[10px] text-slate-400 mt-1 border-t border-slate-700 pt-1">
+              Heir: {heir.name} (claim {heir.claim}) · ADM {heir.adm} · DIP {heir.dip} · MIL {heir.mil}
+            </div>
+          )}
+          {!heir && (
+            <div className="text-[10px] text-amber-500 mt-1 border-t border-slate-700 pt-1">
+              No heir — succession crisis risk
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="text-xs font-semibold text-slate-300 pt-1">Advisors</div>
+      {['adm', 'dip', 'mil'].map((pool) => {
+        const current = advisors[pool];
+        const candidates = advisorCandidates[pool] || [];
+        return (
+          <div key={pool} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Users size={12} />
+              {POWER_POOL_NAMES[pool]} Advisor
+            </div>
+            {current ? (
+              <div className="text-white">{current.name} (level {current.level})</div>
+            ) : (
+              <div className="text-slate-500">None hired</div>
+            )}
+            {candidates.map((candidate, index) => {
+              const cost = getAdvisorHireCost(candidate.level);
+              return (
+                <ActionButton
+                  key={candidate.id}
+                  icon={Users}
+                  label={`Hire ${candidate.name} (level ${candidate.level})`}
+                  costs={{ gold: cost }}
+                  onClick={() => handleHireAdvisor(pool, index, cost)}
+                  disabled={current?.id === candidate.id || (state.resources.gold || 0) < cost}
+                  resources={state.resources}
+                  size="small"
+                />
+              );
+            })}
+          </div>
         );
       })}
     </div>
@@ -239,6 +320,7 @@ const DomesticPanel = ({ selectedRegion }) => {
     return (
       <div className="space-y-4">
         {governmentSection}
+        <div className="border-t border-slate-800 pt-2">{courtSection}</div>
         <div className="border-t border-slate-800 pt-2">{identitySection}</div>
         <div className="border-t border-slate-800 pt-2">{empireSection}</div>
         <div className="text-slate-400 text-sm text-center mt-8">
@@ -316,6 +398,7 @@ const DomesticPanel = ({ selectedRegion }) => {
   return (
     <div className="space-y-4">
       {governmentSection}
+      <div className="pt-2 border-t border-slate-800">{courtSection}</div>
       <div className="pt-2 border-t border-slate-800">{identitySection}</div>
 
       <div className="flex items-center gap-2 text-white font-bold text-lg pt-2 border-t border-slate-800">

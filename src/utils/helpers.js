@@ -98,10 +98,13 @@ export const BASE_POWER_PER_TURN = 3;
 export const getFieldedStrength = (state, nationId) =>
   Object.values(state.units || {}).reduce((sum, u) => sum + (u.ownerId === nationId ? (u.strength || 0) : 0), 0);
 
-// Plan §M2: replaces the old single-pool getMaxActionPoints with the three power pools' per-turn
-// income. Recomputed fresh from current government/tech every turn rather than read from a stored
-// field, so adopting a government or finishing a Governance tech takes effect on the very next
-// turn automatically.
+// Plan §M2/§M3: replaces the old single-pool getMaxActionPoints with the three power pools' per-
+// turn income. Recomputed fresh from current government/ruler/advisors/tech every turn rather than
+// read from a stored field, so adopting a government, a succession, or finishing a Governance tech
+// all take effect on the very next turn automatically. `national.apBonus` (government maturity,
+// Governance techs) applies equally to all three pools; `national.admBonus`/`dipBonus`/`milBonus`
+// (ruler skill, advisors, pool-specific traits — src/engine/modifiers/sources.js) each touch only
+// their own pool, which is what actually makes ADM/DIP/MIL grow at different rates from each other.
 //
 // A Communications Satellite's dipPerTurn and a completed space mission's recurringReward.
 // dipPerTurn belong here, not in calcIncome's generic per-resource forEach: resolveTurn.js banks
@@ -110,11 +113,18 @@ export const getFieldedStrength = (state, nationId) =>
 // calcIncome, before the cap is applied), the very next turn's bank-up would clip it straight back
 // down to 2x the un-boosted base, silently discarding the bonus a player just earned.
 export const getPowerIncome = (state) => {
-  const bonus = getModifier(state, state.playerNationId, 'national.apBonus').total;
-  const perPool = BASE_POWER_PER_TURN + bonus;
-  const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, state.playerNationId, 'dipPerTurn', state.orbitalDebrisLevel);
+  const nationId = state.playerNationId;
+  const allPoolsBonus = getModifier(state, nationId, 'national.apBonus').total;
+  const admBonus = getModifier(state, nationId, 'national.admBonus').total;
+  const dipBonus = getModifier(state, nationId, 'national.dipBonus').total;
+  const milBonus = getModifier(state, nationId, 'national.milBonus').total;
+  const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, nationId, 'dipPerTurn', state.orbitalDebrisLevel);
   const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
-  return { adm: perPool, dip: perPool + satelliteDip + missionDip, mil: perPool };
+  return {
+    adm: BASE_POWER_PER_TURN + allPoolsBonus + admBonus,
+    dip: BASE_POWER_PER_TURN + allPoolsBonus + dipBonus + satelliteDip + missionDip,
+    mil: BASE_POWER_PER_TURN + allPoolsBonus + milBonus
+  };
 };
 
 // A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
@@ -214,6 +224,10 @@ export const calcIncome = (state) => {
   // the immediate mechanical payoff is deliberately general rather than per-category, so it
   // doesn't need to reach into RESEARCH_TECH's own cost/afford checks to have a real effect.
   if (state.researchFocus && income.techPoints) income.techPoints *= 1.2;
+  // A ruler's Scholar trait (plan §M3) — gated on the same "no base techPoints, no bonus" rule as
+  // Research Focus above, so a nation with no Science buildings yet isn't shown a phantom gain.
+  const techPointsMult = getModifier(state, state.playerNationId, 'national.techPointsMult').total;
+  if (techPointsMult && income.techPoints) income.techPoints *= (1 + techPointsMult);
 
   Object.keys(income).forEach(id => { income[id] = Math.round(income[id]); });
   return income;
