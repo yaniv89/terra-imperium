@@ -13,6 +13,7 @@ import {
 } from '../../data/estates';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
+import { FUSION_GRID_GOLD_MULT_BONUS } from '../../data/actionCosts';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
 import { TRAITS } from '../../data/traits';
@@ -114,6 +115,12 @@ export const contextSources = (state, nationId) => {
 
   const taxGoldMult = TAX_RATES[nation?.taxRate]?.goldMult || 0;
   if (taxGoldMult) lines.push({ key: 'national.goldMult', value: taxGoldMult, sourceType: 'tax', sourceId: nation?.taxRate, label: 'Tax Rate' });
+
+  // Fusion Grid (plan §M11 resource sink) — folds into goldMult like every other producer bonus in
+  // this codebase (see actionCosts.js's FUSION_GRID_GOLD_MULT_BONUS header on the tax/production
+  // split trim). resolveTurn.js deactivates fusionGridActive the turn helium3 upkeep can't be paid,
+  // so reading the flag here is enough — no separate "supplied" check needed.
+  if (nation?.fusionGridActive) lines.push({ key: 'national.goldMult', value: FUSION_GRID_GOLD_MULT_BONUS, sourceType: 'fusionGrid', sourceId: 'fusion_grid', label: 'Fusion Grid' });
 
   // Plan §M10: Great Projects. Ownership is derived from the site region's current owner
   // (getGreatProjectOwner), not stored on the nation — this is why the source has to live here in

@@ -12,6 +12,7 @@
 import { getSuccessionStyle } from './succession';
 import { TECH_TREE } from '../data/techTree';
 import { TechCategories } from '../data/types';
+import { TAX_RATES } from '../data/taxRates';
 
 export const STABILITY_MIN = -3;
 export const STABILITY_MAX = 3;
@@ -95,6 +96,21 @@ export const processNationalPowerTurn = (nation) => {
     stabilityDecayProgress = 0;
   }
 
+  // Plan §M11: Extortionate taxes cost "-1 stability every 10 turns while active" — the same
+  // progress-counter shape as stability's own drift-to-0 above, but keyed off tax rate instead of
+  // the stability value itself, and reset whenever the nation isn't on that tier.
+  let extortionateTaxProgress = nation.extortionateTaxProgress || 0;
+  const extortionatePenaltyTurns = TAX_RATES[nation.taxRate]?.extortionateStabilityPenaltyTurns;
+  if (extortionatePenaltyTurns) {
+    extortionateTaxProgress += 1;
+    if (extortionateTaxProgress >= extortionatePenaltyTurns) {
+      stability = clampStability(stability - 1);
+      extortionateTaxProgress = 0;
+    }
+  } else {
+    extortionateTaxProgress = 0;
+  }
+
   // Legitimacy/tradition/devotion (plan groups all three government-flavored labels into the one
   // resource; the UI can relabel by government style without needing three separate fields).
   // Tribal has no legitimacy system yet — the plan's replacement (Cohesion, raised by raiding) is
@@ -117,5 +133,5 @@ export const processNationalPowerTurn = (nation) => {
   // actually reaches 0, which "decays toward 0" requires.
   const prestige = clampPrestige(Math.trunc((nation.prestige || 0) * (1 - PRESTIGE_DECAY_RATE)));
 
-  return { stability, stabilityDecayProgress, legitimacy, prestige };
+  return { stability, stabilityDecayProgress, extortionateTaxProgress, legitimacy, prestige };
 };

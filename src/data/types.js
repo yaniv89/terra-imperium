@@ -112,7 +112,19 @@ export const ActionTypes = {
   BUILD_MISSILE: 'BUILD_MISSILE',
   MISSILE_STRIKE: 'MISSILE_STRIKE',
   BUILD_ABM_DEFENSE: 'BUILD_ABM_DEFENSE',
-  LAUNCH_MISSION: 'LAUNCH_MISSION'
+  LAUNCH_MISSION: 'LAUNCH_MISSION',
+
+  // Economy overhaul (plan §M11) — the maintenance slider is adjustable any time, no cooldown
+  // (unlike Set Tax Rate); loans require the Banking Houses tech (src/engine/economy.js).
+  SET_ARMY_MAINTENANCE: 'SET_ARMY_MAINTENANCE',
+  SET_NAVY_MAINTENANCE: 'SET_NAVY_MAINTENANCE',
+  REQUEST_LOAN: 'REQUEST_LOAN',
+  REPAY_LOAN: 'REPAY_LOAN',
+  // Fusion Grid national decision (plan §M11 resource sinks): the plan's own literal Megafactory/
+  // Fusion Research Complex building tiers were never built in M6 (no Future-age building line
+  // exists), so this ships as a standalone action against a helium3 stockpile instead of a building
+  // upkeep — see actionCosts.js's FUSION_GRID_* constants for the honest-adaptation note.
+  ACTIVATE_FUSION_GRID: 'ACTIVATE_FUSION_GRID'
 };
 
 export const LogTypes = {

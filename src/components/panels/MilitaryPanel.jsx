@@ -14,7 +14,7 @@ import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds, getNationCapital } from '../../data/regions';
-import { ACTION_COSTS } from '../../data/actionCosts';
+import { ACTION_COSTS, ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT } from '../../data/actionCosts';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
 import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
@@ -22,6 +22,7 @@ import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
+import { getRecruitUnitCost } from '../../engine/economy';
 import { ActionButton } from '../ui';
 
 // Every region a unit could MOVE to right now (redeploying within your own territory) — land-
@@ -89,8 +90,11 @@ const MilitaryPanel = ({ selectedRegion }) => {
   // trigger for Suppress Rebellion.
   const rebelUnits = (regionData && isPlayerOwned) ? unitsHere.filter(u => u.ownerId === REBEL_OWNER_ID) : [];
 
+  const handleSetArmyMaintenance = (value) => dispatch({ type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: Number(value) } });
+  const handleSetNavyMaintenance = (value) => dispatch({ type: ActionTypes.SET_NAVY_MAINTENANCE, payload: { value: Number(value) } });
+
   const handleRecruit = (classId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.recruitUnit)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, getRecruitUnitCost(state, state.age))) return addLog('Not enough resources', 'action');
     // Matches RECRUIT_UNIT's own `ageId: state.age` (GameContext.jsx) — the new unit's icon must
     // use the same age the reducer is about to stamp on it.
     triggerEffect('recruit_unit', { region: selectedRegion, variant: classId, age: state.age });
@@ -164,6 +168,31 @@ const MilitaryPanel = ({ selectedRegion }) => {
         <div className="text-slate-400">Military Strength</div>
         <div className="text-white font-semibold text-xl">{formatNumber(getFieldedStrength(state, state.playerNationId))}</div>
       </div>
+
+      {/* Military maintenance slider (plan §M11): free, adjustable any time — scales army/navy
+          upkeep only (see economy.js's header on the morale-recovery/reinforcement scope trim). */}
+      <div className="bg-slate-800/60 rounded-lg p-3 text-sm space-y-2">
+        <div className="text-slate-400">Maintenance</div>
+        {[
+          { label: 'Army', value: playerNation?.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT, onChange: handleSetArmyMaintenance },
+          { label: 'Navy', value: playerNation?.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT, onChange: handleSetNavyMaintenance }
+        ].map(({ label, value, onChange }) => (
+          <div key={label} className="flex items-center gap-2">
+            <span className="text-slate-400 w-10 text-xs">{label}</span>
+            <input
+              type="range"
+              min={ARMY_MAINTENANCE_MIN}
+              max={ARMY_MAINTENANCE_MAX}
+              step={10}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="flex-1"
+            />
+            <span className="text-white text-xs w-10 text-right">{value}%</span>
+          </div>
+        ))}
+      </div>
+
       <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
         <div className="text-slate-400 mb-1">Active Wars</div>
         {atWarWith.length === 0 ? (
@@ -262,19 +291,24 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
           <div className="space-y-2">
             <div className="text-xs font-semibold text-slate-300">Recruit in {regionData.name}</div>
-            {availableClasses.map(classId => (
-              <ActionButton
-                key={classId}
-                icon={UserPlus}
-                label={UNIT_CLASSES[classId].name}
-                description={UNIT_CLASSES[classId].role}
-                costs={ACTION_COSTS.recruitUnit}
-                onClick={() => handleRecruit(classId)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.recruitUnit)}
-                resources={state.resources}
-                size="small"
-              />
-            ))}
+            {(() => {
+              // Plan §M11 resource sink: cost is dynamic (the age's strategic resource, or a gold
+              // penalty when it's short) — see getRecruitUnitCost's own header.
+              const recruitCost = getRecruitUnitCost(state, state.age);
+              return availableClasses.map(classId => (
+                <ActionButton
+                  key={classId}
+                  icon={UserPlus}
+                  label={UNIT_CLASSES[classId].name}
+                  description={UNIT_CLASSES[classId].role}
+                  costs={recruitCost}
+                  onClick={() => handleRecruit(classId)}
+                  disabled={!canAfford(state.resources, recruitCost)}
+                  resources={state.resources}
+                  size="small"
+                />
+              ));
+            })()}
           </div>
 
           <div className="space-y-2">

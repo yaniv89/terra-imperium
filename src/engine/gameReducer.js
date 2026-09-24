@@ -46,7 +46,8 @@ import {
   POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE,
   ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE,
   COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
-  CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
+  CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
+  ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
@@ -70,7 +71,8 @@ import {
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
 import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
-import { TAX_RATE_IDS, DEFAULT_TAX_RATE } from '../data/taxRates';
+import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
+import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 const NAVAL_TRANSPORT_CAPACITY = 2;
@@ -193,9 +195,23 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       estates: createInitialEstates(),
       crownLand: CROWN_LAND_DEFAULT,
       estateInteractionCooldowns: {},
-      // Set Tax Rate (plan §5) — every nation gets a rate so calcIncome/nextUnrest can read any
-      // nation's generically; only the player can change theirs today.
+      // Set Tax Rate (plan §M11) — every nation gets a rate so calcIncome/nextUnrest can read any
+      // nation's generically; only the player can change theirs today. taxRateCooldownUntil is the
+      // turn the rate can next change (0 = available now), the same "store the unlock turn, default
+      // 0" shape lawCooldowns/estateInteractionCooldowns already use so a fresh nation isn't already
+      // on cooldown at turn 0. extortionateTaxProgress backs the extortionate tier's periodic
+      // stability drain (nationalPower.js), the same shape stabilityDecayProgress already uses.
       taxRate: DEFAULT_TAX_RATE,
+      taxRateCooldownUntil: 0,
+      extortionateTaxProgress: 0,
+
+      // Economy overhaul (plan §M11) — army/navy maintenance sliders (upkeep scaling; see
+      // economy.js's header for the morale-recovery/reinforcement scope trim), loans, and the
+      // Fusion Grid national decision's active/supplied flag.
+      armyMaintenance: ARMY_MAINTENANCE_DEFAULT,
+      navyMaintenance: ARMY_MAINTENANCE_DEFAULT,
+      loans: [],
+      fusionGridActive: false,
 
       // National Identity (added alongside Government/Laws, but a separate axis — see
       // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY.
@@ -695,12 +711,97 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.setTaxRate;
       const nation = state.nations[state.playerNationId];
       if (!TAX_RATE_IDS.includes(rate) || nation.taxRate === rate) return state;
+      if (state.turnNumber < (nation.taxRateCooldownUntil || 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, taxRate: rate } },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            taxRate: rate,
+            taxRateCooldownUntil: state.turnNumber + TAX_RATE_CHANGE_COOLDOWN_TURNS,
+            extortionateTaxProgress: 0
+          }
+        },
         logs: [...state.logs, { year: state.year, message: `Tax rate set to ${rate}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    // Military maintenance slider (plan §M11) — free, adjustable any time (unlike Set Tax Rate,
+    // no cooldown), clamped to ARMY_MAINTENANCE_MIN/MAX. economy.js's calcNationBalance reads it
+    // to scale army/navy upkeep; see that file's header for the morale/reinforcement scope trim.
+    case ActionTypes.SET_ARMY_MAINTENANCE: {
+      const { value } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const clamped = clampMaintenance(value);
+      if (nation.armyMaintenance === clamped) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, armyMaintenance: clamped } }
+      };
+    }
+
+    case ActionTypes.SET_NAVY_MAINTENANCE: {
+      const { value } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const clamped = clampMaintenance(value);
+      if (nation.navyMaintenance === clamped) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, navyMaintenance: clamped } }
+      };
+    }
+
+    // Loans (plan §M11) — requires Banking Houses; sized off the current balance (economy.js's
+    // getLoanSize) and capped by getLoanCapacity. Interest accrues per-turn in resolveTurn.js via
+    // calcNationBalance; auto-loans on a shortfall are also resolveTurn.js's job (the reducer only
+    // handles the player's own manual request/repay).
+    case ActionTypes.REQUEST_LOAN: {
+      const nation = state.nations[state.playerNationId];
+      if (!hasBankingHouses(state, state.playerNationId)) return state;
+      if ((nation.loans || []).length >= getLoanCapacity(state, state.playerNationId)) return state;
+      const principal = getLoanSize(state, state.playerNationId);
+      const loan = { id: `loan_${state.turnNumber}_${(nation.loans || []).length}`, principal, interestRate: getLoanInterestRate(state, state.playerNationId), takenTurn: state.turnNumber };
+      return {
+        ...state,
+        resources: { ...state.resources, gold: (state.resources.gold || 0) + principal },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: [...(nation.loans || []), loan] } },
+        logs: [...state.logs, { year: state.year, message: `Took out a loan of ${formatMoney(principal)} gold.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.REPAY_LOAN: {
+      const { loanId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const loan = (nation.loans || []).find((l) => l.id === loanId);
+      if (!loan || (state.resources.gold || 0) < loan.principal) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - loan.principal },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: nation.loans.filter((l) => l.id !== loanId) } },
+        logs: [...state.logs, { year: state.year, message: `Repaid a loan of ${formatMoney(loan.principal)} gold.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    // Fusion Grid (plan §M11 resource sink) — a standalone national decision rather than a Future-
+    // age building upkeep, since no Future building tier exists yet in this codebase (M6's own
+    // buildings.js caps at Modern; see types.js's ACTIVATE_FUSION_GRID comment). Its ongoing
+    // helium3 upkeep and goldMult bonus while supplied are applied in resolveTurn.js.
+    case ActionTypes.ACTIVATE_FUSION_GRID: {
+      const nation = state.nations[state.playerNationId];
+      if (nation.fusionGridActive) return state;
+      // Gated on the Outer Planets mission (plan: "Computing + mission outer_planets") — that
+      // mission is helium3's own real income gate (spaceMissions.js's own header), so it's the one
+      // clear prerequisite rather than stacking an extra tech check on top of an already-real gate.
+      if (!(state.completedMissions || []).includes('outer_planets')) return state;
+      if ((state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, helium3: state.resources.helium3 - FUSION_GRID_ACTIVATION_HELIUM3 },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, fusionGridActive: true } },
+        logs: [...state.logs, { year: state.year, message: 'The Fusion Grid is online.', type: LogTypes.MILESTONE }]
       };
     }
 
@@ -884,7 +985,10 @@ export const gameReducer = (state, action) => {
     case ActionTypes.RECRUIT_UNIT: {
       const { regionId, classId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.recruitUnit;
+      // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
+      // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
+      // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
+      const costs = getRecruitUnitCost(state, state.age);
       if (!region || region.owner !== state.playerNationId) return state;
       if (!getAvailableClasses(getEffectiveAgeId(state.age, state.techAgeId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
