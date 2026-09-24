@@ -1409,15 +1409,15 @@ describe('SUPPRESS_REBELLION', () => {
 describe('Research tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, techPoints: 100000, mil: 100, dip: 100, adm: 100 } };
+    // Plan §M7: research costs power (age-scaled, up to 160 at Modern) + techPoints — no gold.
+    return { ...state, resources: { ...state.resources, techPoints: 100000, mil: 100000, dip: 100000, adm: 100000 } };
   };
 
   describe('RESEARCH_TECH', () => {
-    it('researches an available first-of-chain tech and deducts its cost', () => {
+    it('researches an available first-of-chain tech and deducts its power and techPoints cost', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
       expect(next.techTree.military_bronze_casting.researched).toBe(true);
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
       expect(next.resources.techPoints).toBeLessThan(state.resources.techPoints);
       expect(next.resources.mil).toBeLessThan(state.resources.mil);
     });
@@ -1434,10 +1434,10 @@ describe('Research tab actions', () => {
       const nextBaseline = gameReducer(baseline, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
       const nextBehind = gameReducer(behind, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
 
-      const baselineGoldSpent = baseline.resources.gold - nextBaseline.resources.gold;
-      const behindGoldSpent = behind.resources.gold - nextBehind.resources.gold;
-      expect(behindGoldSpent).toBeGreaterThan(baselineGoldSpent);
-      expect(behindGoldSpent).toBe(Math.round(baselineGoldSpent * 1.9));
+      const baselineMilSpent = baseline.resources.mil - nextBaseline.resources.mil;
+      const behindMilSpent = behind.resources.mil - nextBehind.resources.mil;
+      expect(behindMilSpent).toBeGreaterThan(baselineMilSpent);
+      expect(behindMilSpent).toBe(Math.round(baselineMilSpent * 1.9));
     });
 
     it('is researchable once its prerequisite is researched', () => {
@@ -1455,8 +1455,27 @@ describe('Research tab actions', () => {
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      const state = { ...richState(), resources: { ...richState().resources, mil: 0 } };
       expect(gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } })).toBe(state);
+    });
+
+    it('charges 15% less power for a tech in the currently-focused line (plan §M7 Research Focus)', () => {
+      const base = { ...richState(), researchFocus: null };
+      const focused = { ...richState(), researchFocus: 'military' };
+      const nextBase = gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const nextFocused = gameReducer(focused, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const baseSpent = base.resources.mil - nextBase.resources.mil;
+      const focusedSpent = focused.resources.mil - nextFocused.resources.mil;
+      expect(focusedSpent).toBeLessThan(baseSpent);
+      expect(focusedSpent).toBe(Math.round(baseSpent * 0.85));
+    });
+
+    it('does not discount a tech OUTSIDE the currently-focused line', () => {
+      const base = { ...richState(), researchFocus: null };
+      const focused = { ...richState(), researchFocus: 'science' }; // focus on a different line
+      const nextBase = gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const nextFocused = gameReducer(focused, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      expect(base.resources.mil - nextBase.resources.mil).toBe(focused.resources.mil - nextFocused.resources.mil);
     });
 
     it('advances the tech-earned age once enough of the current age\'s line is researched', () => {

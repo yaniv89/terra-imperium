@@ -128,7 +128,8 @@ const DomesticPanel = ({ selectedRegion }) => {
     dispatch({ type: ActionTypes.HIRE_ADVISOR, payload: { pool, candidateIndex } });
   };
 
-  const increaseStabilityCost = getIncreaseStabilityCost(state, state.playerNationId);
+  const stabilityCostMult = getModifier(state, state.playerNationId, 'national.stabilityCost').total;
+  const increaseStabilityCost = getIncreaseStabilityCost(state, state.playerNationId, stabilityCostMult);
   const handleIncreaseStability = () => {
     if ((state.resources.adm || 0) < increaseStabilityCost) return addLog('Not enough ADM', 'action');
     triggerEffect('increase_stability', { region: getNationCapital(state.playerNationId) });

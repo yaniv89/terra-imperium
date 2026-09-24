@@ -12,7 +12,6 @@ import { getIdentityBonus } from '../../data/identity';
 import { TAX_RATES } from '../../data/taxRates';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
-import { TechCategories } from '../../data/types';
 import { TRAITS } from '../../data/traits';
 import { LEGACY_HOOK } from './registry';
 import { getOverextension, getRulerBestPool } from '../nationalPower';
@@ -90,16 +89,18 @@ export const contextSources = (state, nationId) => {
     if (value) lines.push({ key: LEGACY_HOOK[hook], value, sourceType: 'satellite', sourceId: 'satellites', label: 'Satellites' });
   });
 
-  // Governance techs -> Administrative Capacity (helpers.js's getMaxActionPoints, pre-engine).
-  // Only the player tracks a per-tech techTree today (AI nations don't independently research —
-  // see src/engine/nationState.js once M0.2's AI research support lands in a later milestone), so
-  // this line only ever appears for state.playerNationId.
+  // Plan §M7: every researched tech's own real effects (TECH_TREE[id].effects, src/data/
+  // techTree.js) — this REPLACES the old flat "+1 ADM per 3 Governance techs" rule with the
+  // per-tech table the plan always specified (Code of Laws/Royal Chancery/Digital Administration
+  // each contribute their own +1 admBonus). Only the player tracks a per-tech techTree today (AI
+  // nations don't independently research — see src/engine/nationState.js once M0.2's AI research
+  // support lands in a later milestone), so this only ever appears for state.playerNationId.
   if (nationId === state.playerNationId) {
-    const governanceTechsResearched = Object.values(state.techTree || {})
-      .filter((t) => t.researched && TECH_TREE[t.id]?.category === TechCategories.GOVERNANCE)
-      .length;
-    const techBonus = Math.floor(governanceTechsResearched / 3);
-    if (techBonus) lines.push({ key: 'national.apBonus', value: techBonus, sourceType: 'tech', sourceId: 'governance', label: 'Governance Techs' });
+    Object.entries(state.techTree || {}).forEach(([techId, techState]) => {
+      if (!techState.researched) return;
+      const tech = TECH_TREE[techId];
+      if (tech?.effects) lines.push(...linesFromEffect(tech.effects, 'tech', techId, tech.name));
+    });
   }
 
   // National stability (plan §M4): each level shaves/adds 1 unrest everywhere (national.stabilityBonus

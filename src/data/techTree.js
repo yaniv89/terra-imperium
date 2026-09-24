@@ -6,21 +6,25 @@
 // A tech's payoff is the plan's own framing: research enough of your current age's line and your
 // empire's tech-earned age (state.techAgeId, advanced by GameContext.jsx's RESEARCH_TECH) catches
 // up to the next one — which is what src/data/ages.js's already-existing getEffectiveAgeId was
-// built for. GameContext.jsx now passes that effective age to canBuildTier, getAvailableClasses
-// and canBuildExtraction instead of the raw calendar age.
+// built for. GameContext.jsx now passes that effective age to getAvailableClasses instead of the
+// raw calendar age.
 //
-// For unit recruitment this is a genuine new capability: getAvailableClasses has no rush allowance
-// of its own, so reaching a tech-earned age ahead of the calendar is the only way to recruit that
-// age's unit classes early. For buildings/extraction it currently coincides with, rather than adds
-// to, Phase B's own unconditional "rush one tier ahead of the calendar" allowance already built
-// into canBuildTier/canBuildExtraction — both cap at the same calendarAge+1 ceiling either way, so
-// tech doesn't yet buy a builder anything a flat gold spend didn't already. Making rushing actually
-// require earned tech (removing that free allowance) is a real, separate design change to Phase
-// B's tested behavior, not something this task's tech-content scope should do unilaterally.
-
+// Plan §M7: every tech now costs the power of its own line's pool (Military->MIL, Economy/
+// Science->DIP, Infrastructure/Governance->ADM, TECH_RESEARCH_POOL below) PLUS techPoints — gold
+// is removed from research entirely. Building/tech unlocks named in the plan's own §M6.3/§M7
+// tables are wired as REAL effects wherever this codebase already has the hook to receive them
+// (most of the building unlocks are src/data/buildings.js's own requiresTech, already wired in
+// M6): every tech below whose plan-described effect maps onto an EXISTING, consumed modifier hook
+// (power pools, tax/production/manpower income, tech points, population growth, development/
+// building/research/stability cost, unrest) gets that real effect via TECH_EFFECTS. A tech whose
+// plan-described effect names a system that doesn't exist yet (combat/siege/naval damage,
+// movement, attrition-by-terrain, estate loyalty, laws/reforms, trade pact capacity, event
+// chances) is left with no `effects` entry — it's still real progression (its own prerequisite
+// chain, its building unlocks where those exist), just not a faked modifier line. Those systems'
+// own milestones (M8/M9/M11/M12/M14/M17) are where those techs' remaining effects get wired.
 import { AGE_ORDER, AGES, getAgesBehindResearchCostMultiplier } from './ages';
 import { TechCategories } from './types';
-import { ACTION_COSTS, TECH_RESEARCH_POOL } from './actionCosts';
+import { TECH_RESEARCH_POOL } from './actionCosts';
 
 const CATEGORY_LINES = {
   [TechCategories.MILITARY]: [
@@ -60,6 +64,44 @@ const CATEGORY_LINES = {
   ]
 };
 
+// Real per-tech effects (short hook names, same LEGACY_HOOK vocabulary traits/policies/wonders
+// already use), keyed by tech NAME so it reads next to CATEGORY_LINES above rather than by the
+// generated id. "trade income" / "production" / "tax" all fold onto goldMult — this codebase
+// doesn't yet split tax/production/trade into separate national multipliers (M11's job), so they
+// share the one hook exactly like Set Tax Rate and satellites already do.
+const TECH_EFFECTS = {
+  // Military
+  'Feudal Levies': { hrMult: 0.15 },
+  'Standing Armies': { milBonus: 1 },
+  // Economy
+  'Bronze Trade Routes': { goldMult: 0.25 },
+  'Granary Storage': { popGrowthBonus: 0.001 },
+  'Minted Coinage': { goldMult: 0.05 },
+  'Guild Charters': { goldMult: 0.10 },
+  'Joint-Stock Companies': { goldMult: 0.10 },
+  'Industrial Capital': { goldMult: 0.15 },
+  'Global Markets': { goldMult: 0.15 },
+  // Infrastructure
+  'Mudbrick Roads': { supplyRange: 1 },
+  'Paved Roads': { supplyRange: 1, attrition: -0.10 },
+  'Postal Relay': { dipBonus: 1 },
+  'Canal Locks': { goldMult: 0.10 },
+  'Highway Systems': { supplyRange: 1, attrition: -0.15 },
+  // Governance
+  'Code of Laws': { admBonus: 1 },
+  'Scribal Bureaucracy': { developmentCost: -0.10 },
+  'Royal Chancery': { admBonus: 1, stabilityCost: -0.10 },
+  'Constitutional Law': { stabilityBonus: 1 },
+  'Digital Administration': { admBonus: 1, developmentCost: -0.20 },
+  // Science
+  'Cuneiform Records': { techPointsMult: 0.10 },
+  'Early Astronomy': { dipBonus: 1 },
+  'Natural Philosophy': { techPointsMult: 0.10 },
+  'Scientific Method': { researchCost: -0.10 },
+  'Computing': { techPointsMult: 0.20 },
+  'Genomics': { popGrowthBonus: 0.002 }
+};
+
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 const buildLine = (category, names) => {
@@ -81,7 +123,11 @@ const buildLine = (category, names) => {
       prerequisites: previousId ? [previousId] : [],
       requiresAny: false,
       exclusiveWith: [],
-      cost: { gold: 40 + ageIndex * 40, techPoints: 10 + ageIndex * 15 }
+      // Gold is gone from research cost (plan §M7) — techPoints only; the power-pool cost is
+      // computed separately (getTechPowerCost) since which POOL applies depends on category, not
+      // a fixed resource key this object could name directly.
+      cost: { techPoints: 10 + ageIndex * 15 },
+      effects: TECH_EFFECTS[name] || {}
     };
   });
   return techs;
@@ -90,6 +136,15 @@ const buildLine = (category, names) => {
 export const TECH_TREE = Object.entries(CATEGORY_LINES).reduce((acc, [category, names]) => {
   return { ...acc, ...buildLine(category, names) };
 }, {});
+
+// Plan §M7's own formula: 40 + 30 x ageIndex (Bronze 40 -> Modern 160), before the ages-behind
+// multiplier, national.researchCost, and (for the tech's own line, when it's the research focus)
+// the -15% Research Focus discount.
+export const getTechPowerCost = (tech, { researchCostMult = 0, focused = false } = {}) => {
+  const ageIndex = AGE_ORDER.indexOf(tech.ageId);
+  const base = 40 + Math.max(0, ageIndex) * 30;
+  return Math.round(base * (1 + researchCostMult) * (focused ? 0.85 : 1));
+};
 
 // How many of a given age's techs (across all 5 lines) must be researched before a nation's
 // tech-earned age (state.techAgeId) advances to the next one — a majority, not all ten, so
@@ -116,8 +171,9 @@ export const getTechsByCategory = () => {
 // production tree. `agesBehind` (src/data/ages.js's getAgesBehind) scales the affordability check
 // by the same ages-behind research-cost multiplier the reducer actually deducts — otherwise a
 // player could see "can research" here while the reducer charges them a scaled-up cost they can't
-// afford.
-export const canResearchTech = (techId, techTree, resources, year, techDefs = TECH_TREE, agesBehind = 0) => {
+// afford. `researchCostMult`/`focused` mirror getTechPowerCost's own options, applied to the power
+// check the same way the reducer will actually charge it.
+export const canResearchTech = (techId, techTree, resources, year, techDefs = TECH_TREE, agesBehind = 0, researchCostMult = 0, focused = false) => {
   const tech = techDefs[techId];
   const state = techTree[techId];
 
@@ -137,12 +193,12 @@ export const canResearchTech = (techId, techTree, resources, year, techDefs = TE
   }
 
   const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
-  if (resources.gold < tech.cost.gold * costMult) return { can: false, reason: 'Insufficient funds' };
-  if (resources.techPoints < tech.cost.techPoints * costMult) return { can: false, reason: 'Insufficient tech points' };
+  if (resources.techPoints < tech.cost.techPoints * (1 + researchCostMult) * costMult) return { can: false, reason: 'Insufficient tech points' };
   // Plan §M2/§M7: which power pool gates this depends on the tech's own line.
   const pool = TECH_RESEARCH_POOL[tech.category];
-  if ((resources[pool] || 0) < ACTION_COSTS.researchTech.power) {
-    return { can: false, reason: `Need ${ACTION_COSTS.researchTech.power} ${pool.toUpperCase()}` };
+  const powerCost = getTechPowerCost(tech, { researchCostMult, focused }) * costMult;
+  if ((resources[pool] || 0) < powerCost) {
+    return { can: false, reason: `Need ${Math.round(powerCost)} ${pool.toUpperCase()}` };
   }
 
   return { can: true, reason: null };

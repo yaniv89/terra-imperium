@@ -14,7 +14,7 @@
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
-import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
+import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from '../data/techTree';
 import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
 import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, clampIdentity } from '../data/identity';
 import { POLICIES } from '../data/policies';
@@ -54,7 +54,7 @@ import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './
 import { clampStability, clampPrestige, getIncreaseStabilityCost, WONDER_COMPLETION_PRESTIGE } from './nationalPower';
 import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
-import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
+import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
@@ -514,7 +514,8 @@ export const gameReducer = (state, action) => {
       // makes pushing stability to its +3 ceiling progressively more expensive.
       const nation = state.nations[state.playerNationId];
       if ((nation.stability || 0) >= 3) return state;
-      const cost = getIncreaseStabilityCost(state, state.playerNationId);
+      const stabilityCostMult = getModifier(state, state.playerNationId, 'national.stabilityCost').total;
+      const cost = getIncreaseStabilityCost(state, state.playerNationId, stabilityCostMult);
       if ((state.resources.adm || 0) < cost) return state;
       return {
         ...state,
@@ -1329,15 +1330,13 @@ export const gameReducer = (state, action) => {
       const { techId } = action.payload;
       const tech = TECH_TREE[techId];
       if (!tech) return state;
-      // Plan §M2/§M7: which power pool a research action draws from depends on the tech's own
-      // line (TECH_RESEARCH_POOL), not a flat shared actionPoints cost.
-      const costs = { [TECH_RESEARCH_POOL[tech.category]]: ACTION_COSTS.researchTech.power };
-      // A nation whose OWN tech-earned age has fallen behind the calendar (never researching while
-      // turns pass) pays more to research the same tech — see src/data/ages.js's
-      // getAgesBehindResearchCostMultiplier's file header for why.
+      // Plan §M7: research costs the power of the tech's own line's pool (age-scaled,
+      // getTechPowerCost) plus techPoints — gold is gone. national.researchCost and (for the
+      // currently-focused line) Research Focus's own -15% power discount both apply.
       const agesBehind = getAgesBehind(state.age, state.techAgeId);
-      if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind).can) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      const researchCostMult = getModifier(state, state.playerNationId, 'national.researchCost').total;
+      const focused = state.researchFocus === tech.category;
+      if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, researchCostMult, focused).can) return state;
 
       const nextTechTree = { ...state.techTree, [techId]: { ...state.techTree[techId], researched: true } };
 
@@ -1350,8 +1349,15 @@ export const gameReducer = (state, action) => {
       const advancesTechAge = researchedCount >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextTechAgeIndex < AGE_ORDER.length;
       const nextTechAgeId = advancesTechAge ? AGE_ORDER[nextTechAgeIndex] : state.techAgeId;
 
-      const scaledTechCost = scaleCosts(tech.cost, getAgesBehindResearchCostMultiplier(agesBehind));
-      const resourcesAfterTechCost = applyCosts(applyCosts(state.resources, costs), scaledTechCost);
+      const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
+      const powerCost = Math.round(getTechPowerCost(tech, { researchCostMult, focused }) * costMult);
+      const techPointsCost = Math.round(tech.cost.techPoints * (1 + researchCostMult) * costMult);
+      const pool = TECH_RESEARCH_POOL[tech.category];
+      const resourcesAfterTechCost = {
+        ...state.resources,
+        [pool]: state.resources[pool] - powerCost,
+        techPoints: state.resources.techPoints - techPointsCost
+      };
 
       return {
         ...state,
