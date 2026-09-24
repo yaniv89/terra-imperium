@@ -4,19 +4,18 @@
 // that with the unit-class/counter/morale system described in the plan, built fresh rather than
 // adapted from this one.
 
-import { RelationStatus, TechCategories } from '../data/types';
+import { RelationStatus } from '../data/types';
 import { REGIONS_DATA, getNationCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { hasDeposit } from '../data/deposits';
-import { GOVERNMENT_TYPES } from '../data/government';
-import { POLICIES } from '../data/policies';
-import { WONDERS } from '../data/wonders';
-import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
-import { TECH_TREE } from '../data/techTree';
-import { getIdentityBonus } from '../data/identity';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
+import { getModifier } from '../engine/modifiers/sheet';
+// Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
+// keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
+// which also exposes explainNationBonus for a future breakdown tooltip.
+export { getNationBonusTotal, explainNationBonus } from '../engine/modifiers/sheet';
 
 // ============ NUMBER FORMATTING ============
 
@@ -75,19 +74,6 @@ const EXTRACTION_BASE_YIELD = 20;
 // Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
 const SCIENCE_TECHPOINT_YIELD = 2;
 
-// Sums a nation's government effect, every adopted policy's effect, every completed World Wonder's
-// effect, and its National Identity's contribution (src/data/identity.js) for one bonus hook
-// (goldMult/hrMult, read by calcIncome; stabilityBonus, read by nextUnrest) — the one place that
-// summation happens, so government, policies, wonders and identity never drift into their own
-// separate math.
-export const getNationBonusTotal = (nation, hookKey) => {
-  const govBonus = GOVERNMENT_TYPES[nation?.government]?.effect?.[hookKey] || 0;
-  const policyBonus = (nation?.policies || []).reduce((sum, id) => sum + (POLICIES[id]?.effect?.[hookKey] || 0), 0);
-  const wonderBonus = (nation?.wonders || []).reduce((sum, id) => sum + (WONDERS[id]?.effect?.[hookKey] || 0), 0);
-  const identityBonus = getIdentityBonus(nation?.identity, hookKey);
-  return govBonus + policyBonus + wonderBonus + identityBonus;
-};
-
 // Administrative Capacity: a flat 3 AP/turn regardless of empire size meant a 50-region late-game
 // empire acted exactly as often per turn as its 1-region start — nothing about maturing your state
 // ever expanded what you could actually DO in a turn. This adds two real, already-existing levers:
@@ -101,7 +87,6 @@ export const getNationBonusTotal = (nation, hookKey) => {
 // than meaningful prioritization. 5 gives 2-4 actions turn one without touching the late-game
 // ceiling this constant already scales from.
 const BASE_ACTION_POINTS = 5;
-const GOVERNANCE_TECHS_PER_AP_BONUS = 3; // the 10-tech Governance line caps this contribution at +3
 
 // Real fielded army strength for a nation — the sum of every unit it actually owns' `strength`
 // (src/context/GameContext.jsx's flat state.units dict). This is what's shown to the player for any
@@ -117,15 +102,8 @@ const GOVERNANCE_TECHS_PER_AP_BONUS = 3; // the 10-tech Governance line caps thi
 export const getFieldedStrength = (state, nationId) =>
   Object.values(state.units || {}).reduce((sum, u) => sum + (u.ownerId === nationId ? (u.strength || 0) : 0), 0);
 
-export const getMaxActionPoints = (state) => {
-  const nation = state.nations?.[state.playerNationId];
-  const govBonus = getNationBonusTotal(nation, 'apBonus');
-  const governanceTechsResearched = Object.values(state.techTree || {})
-    .filter((t) => t.researched && TECH_TREE[t.id]?.category === TechCategories.GOVERNANCE)
-    .length;
-  const techBonus = Math.floor(governanceTechsResearched / GOVERNANCE_TECHS_PER_AP_BONUS);
-  return BASE_ACTION_POINTS + govBonus + techBonus;
-};
+export const getMaxActionPoints = (state) =>
+  BASE_ACTION_POINTS + getModifier(state, state.playerNationId, 'national.apBonus').total;
 
 // A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
 // itself is always seeded from the modern (~2024) figure regardless of start year, since it also
@@ -188,16 +166,13 @@ export const calcIncome = (state) => {
   income.gold = (income.gold || 0) + tradePartners.length * 20;
 
   // Government/policy/wonder/satellite bonuses (plan §9/§10.4) — summed on the same hook
-  // (getNationBonusTotal), applied as one multiplier, plus Set Tax Rate's own goldMult and every
-  // owned satellite's goldMult/hrMult (getSatelliteEffectTotal, scaled by the shared orbital
-  // debris penalty) on top.
-  const playerNation = state.nations[state.playerNationId];
+  // (the modifier engine, src/engine/modifiers/), applied as one multiplier — government, policy,
+  // wonder, identity, Set Tax Rate, and every owned satellite (scaled by the shared orbital debris
+  // penalty) are all sources feeding these same two keys now, so this is one lookup each instead
+  // of hand-summing every source at every call site.
   const satellites = state.satellites || {};
-  const taxGoldMult = TAX_RATES[playerNation?.taxRate]?.goldMult || 0;
-  const satelliteGoldMult = getSatelliteEffectTotal(satellites, state.playerNationId, 'goldMult', state.orbitalDebrisLevel);
-  const satelliteHrMult = getSatelliteEffectTotal(satellites, state.playerNationId, 'hrMult', state.orbitalDebrisLevel);
-  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult') + taxGoldMult + satelliteGoldMult;
-  const hrMult = 1 + getNationBonusTotal(playerNation, 'hrMult') + satelliteHrMult;
+  const goldMult = 1 + getModifier(state, state.playerNationId, 'national.goldMult').total;
+  const hrMult = 1 + getModifier(state, state.playerNationId, 'national.hrMult').total;
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
 
