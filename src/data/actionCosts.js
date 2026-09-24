@@ -117,6 +117,21 @@ export const ACTION_COSTS = {
   // needing a chosen target, so it's priced like Gift/Bribe (a direct relations action) rather than
   // Espionage's riskier, pricier covert-ops tier.
   counterIntelligence: { gold: 120, dip: 1 },
+
+  // Diplomacy overhaul (plan §M12).
+  // Rivals/Insult/Break Alliance are free relationship declarations, like Gift/Bribe's flavor
+  // sibling — their real cost is the relationship consequence itself, not a resource.
+  rivalNation: { dip: 0 },
+  proposeMarriage: { gold: 100, dip: 10 },
+  breakAlliance: { dip: 0 },
+  insult: { dip: 0 },
+  assignDiplomat: { dip: 5 },
+  // Vassalize is a major diplomatic commitment, priced well above Military Alliance; Annex scales
+  // with the vassal's own development (getAnnexVassalCost, below) so a large vassal costs more to
+  // absorb than a small one, matching the plan's own "8 DIP x total dev" shape.
+  vassalize: { gold: 300, dip: 20 },
+  releaseVassal: { dip: 0 },
+
   // Plan §M2/§M8.3: identity shifts cost ADM only (gold is gone) — a real decision, priced
   // between a reform and a law change, with its own 5-turn cooldown (IDENTITY_SHIFT_COOLDOWN_TURNS).
   shiftIdentity: { adm: 50 },
@@ -279,3 +294,87 @@ export const POPULATION_POLICY_GROWTH_RATE = 0.1;
 // worth of debris, so repeated ASAT use compounds if not given time to settle.
 export const ASAT_DEBRIS_RISE = 15;
 export const ORBITAL_DEBRIS_DECAY_PER_TURN = 2;
+
+// Diplomacy overhaul (plan §M12). Every nation gets these fields (rivals/diplomats/ae/truces/
+// vassals) the same "generic reader, player-only writer today" way government/laws/taxRate/estates
+// already do — see gameReducer.js's createInitialState comment on that pattern.
+
+// Rivals (plan: "Pick up to 3 from nations of similar strength that border you"). The plan's own
+// "+10% prestige gain/turn" and "Humiliate CB" effects have no substrate yet (there's no per-turn
+// prestige-GAIN hook — nationalPower.js's prestige is pure decay outside of great-project/event
+// one-shots — and casus belli TYPES are M13 work), so the one real, present-day effect ships
+// instead: a modest prestige reward when a rival is eliminated (elimination.js already exists).
+export const MAX_RIVALS = 3;
+export const RIVAL_ELIMINATED_PRESTIGE_REWARD = 5;
+
+// Royal Marriage (plan: "both monarchies... +25 opinion, +10 heir claim"). This game has one
+// hostility scalar per nation (not pairwise opinion), so "+25 opinion" becomes "-25 hostility
+// toward the player" — the real, existing axis a marriage can actually move.
+export const MARRIAGE_HOSTILITY_REDUCTION = 25;
+export const MARRIAGE_HEIR_CLAIM_BONUS = 10;
+
+export const BREAK_ALLIANCE_HOSTILITY_INCREASE = 25;
+export const INSULT_HOSTILITY_INCREASE = 50;
+
+// Diplomats (plan §M12): the player starts with 2, each can run one ongoing task. Only Improve
+// Relations is wired for real this milestone — Fabricate Claim/Build Spy Network already have
+// standalone real actions (FABRICATE_CLAIM; ESPIONAGE's steal_tech IS the spy-network payoff), so
+// giving diplomats a competing implementation of the same effects would just fork the mechanic
+// rather than add a new one.
+export const STARTING_DIPLOMATS = 2;
+// On top of aiLogic.js's own passive hostility decay toward hostilityFloor — an actively assigned
+// diplomat measurably outpaces simply waiting.
+export const DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN = 3;
+
+// Trade Pact capacity (plan §M8.3/§M12: "Globalism > 40 gives +1 trade pact capacity... Isolationism
+// > 40 gives... -1 trade pact capacity"). Base 1 (not the plan's abstract "capacity" default,
+// chosen so a fresh nation can still form its first pact before ever touching identity) plus/minus
+// the identity swing, floored at 0 so a committed isolationist can be locked out entirely.
+export const TRADE_PACT_BASE_CAPACITY = 1;
+// Plan: "+5% x pact count" trade income, replacing the old flat +20 gold/partner (helpers.js).
+export const TRADE_PACT_GOLD_MULT_PER_PACT = 0.05;
+
+// Truces (plan §M13's own truce rules, pulled forward since M12 is where wars first get a
+// redeclare-cooldown at all): 10 turns, mirrored on both former belligerents. The player MAY break
+// one (at a real cost); the AI never does (diplomacy.js/aiLogic.js enforce this asymmetrically).
+export const TRUCE_DURATION_TURNS = 10;
+export const TRUCE_BREAK_STABILITY_PENALTY = 2;
+export const TRUCE_BREAK_PRESTIGE_PENALTY = 30;
+export const TRUCE_BREAK_AE_AGAINST_NEIGHBORS = 25;
+
+// Aggressive Expansion (plan §M12): accrued by EVERY nation bordering a captured region (and that
+// region's previous owner) against whoever captured it, proportional to the region's own total
+// development (M5's real per-region dev.tax+production+manpower) so a rich province taken sparks
+// more outrage than a poor one. Isolationist identity discounts a nation's OWN AE generation (plan:
+// "Isolationism... -25% AE impact on you").
+export const AE_PER_DEV_POINT = 1;
+export const AE_DECAY_PER_TURN = 2;
+export const AE_PRUNE_BELOW = 1; // sparse-map hygiene — drop near-zero entries rather than let them linger forever
+export const AE_ISOLATIONIST_DISCOUNT = 0.75;
+// Coalition war-roll scaling (aiLogic.js): how much a coalition member's real AE against the
+// runaway leader further multiplies its already-large coalition roll bonus, capped so one
+// maxed-out relationship can't make the roll a certainty.
+export const AE_COALITION_ROLL_SCALE = 100;
+export const AE_COALITION_ROLL_CAP = 2;
+
+// Vassals (plan §M12; nation.vassals was scaffolded back in M4 but never had a real writer until
+// now). Vassalize requires the target's hostility already low and the player overwhelmingly
+// stronger — the plan's own "opinion >= +150... >= 3x their strength" translated onto this
+// codebase's real axes (hostility, militaryStrength). Annex opens up after a cooldown, at a DIP
+// cost scaling with the vassal's own total development — cheap early, a real commitment for a
+// large one.
+export const VASSALIZE_HOSTILITY_CEILING = 20;
+export const VASSALIZE_STRENGTH_RATIO = 3;
+export const VASSAL_ANNEX_COOLDOWN_TURNS = 10;
+export const VASSAL_ANNEX_DIP_PER_DEV = 8;
+// Plan: "Vassals pay 10% of their income as tribute" — real and computable for an AI vassal too,
+// since every nation has real per-region dev (M5), not just the player.
+export const VASSAL_TRIBUTE_RATE = 0.10;
+export const VASSAL_TRIBUTE_GOLD_PER_DEV_POINT = 1;
+
+// Espionage variants (plan §M12: "Steal Tech, Sabotage Reputation, Support Rebels"). Steal Tech is
+// the existing ESPIONAGE behavior (kept as the default `type`). Sabotage Reputation needs pairwise
+// AI-AI opinion (damaging how OTHERS see the target) which this codebase doesn't have any
+// substrate for — deferred. Support Rebels is real: it directly raises unrest in one of the
+// target's own regions, using the same unrest/rebellion mechanic resolveTurn.js already runs.
+export const ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE = 25;

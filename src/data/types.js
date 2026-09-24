@@ -93,6 +93,23 @@ export const ActionTypes = {
   // counter-espionage button with no espionage for it to counter.
   ESPIONAGE: 'ESPIONAGE',
   COUNTER_INTELLIGENCE: 'COUNTER_INTELLIGENCE',
+
+  // Diplomacy overhaul (plan §M12) — rivals, royal marriages, alliance lifecycle, diplomats, AE-
+  // driven coalitions (aiLogic.js/expansion.js), and the vassal lifecycle (nation.vassals finally
+  // gets a real writer). Truces are enforced inside declareWar itself (diplomacy.js), not a
+  // separate action. Casus belli TYPES (Claim/Reconquest/Conquest/Humiliate/...) and their peace-
+  // cost effects are M13 work (peace deals don't exist yet) — only the existing claim/hostility CB
+  // gate is in scope here.
+  RIVAL_NATION: 'RIVAL_NATION',
+  UNRIVAL_NATION: 'UNRIVAL_NATION',
+  PROPOSE_MARRIAGE: 'PROPOSE_MARRIAGE',
+  BREAK_ALLIANCE: 'BREAK_ALLIANCE',
+  INSULT: 'INSULT',
+  ASSIGN_DIPLOMAT: 'ASSIGN_DIPLOMAT',
+  RECALL_DIPLOMAT: 'RECALL_DIPLOMAT',
+  VASSALIZE: 'VASSALIZE',
+  ANNEX_VASSAL: 'ANNEX_VASSAL',
+  RELEASE_VASSAL: 'RELEASE_VASSAL',
   // National Identity (src/data/identity.js) — a separate axis from Government/Laws.
   SHIFT_IDENTITY: 'SHIFT_IDENTITY',
   // Climate/disaster mitigation (Modern age) — see region.climateResilience's comment.

@@ -94,6 +94,24 @@ describe('contextSources', () => {
     expect(lines.some((l) => l.sourceType === 'tax' && l.key === 'national.goldMult')).toBe(true);
   });
 
+  // Plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner (helpers.js). Pacts are
+  // inherently player-centric (hasTradeAgreement lives on the OTHER nation's own record).
+  it('includes a Trade Pact goldMult line for the player, scaled by how many partners have hasTradeAgreement', () => {
+    const state = { playerNationId: 'fr', nations: { fr: {}, de: { hasTradeAgreement: true }, gb: { hasTradeAgreement: true } } };
+    const lines = contextSources(state, 'fr');
+    expect(lines).toContainEqual({ key: 'national.goldMult', value: 0.1, sourceType: 'tradePact', sourceId: 'trade_pacts', label: 'Trade Pacts' });
+  });
+
+  it('emits no Trade Pact line with zero active pacts', () => {
+    const state = { playerNationId: 'fr', nations: { fr: {}, de: {} } };
+    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'tradePact')).toBe(false);
+  });
+
+  it('never emits a Trade Pact line for a non-player nation', () => {
+    const state = { playerNationId: 'fr', nations: { fr: {}, de: { hasTradeAgreement: true }, gb: {} } };
+    expect(contextSources(state, 'gb').some((l) => l.sourceType === 'tradePact')).toBe(false);
+  });
+
   it('includes satellite lines only for the satellite\'s own owner', () => {
     const state = {
       nations: { fr: {}, de: {} },

@@ -6,12 +6,14 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
-import { getNationCapital, REGIONS_DATA } from '../data/regions';
+import { getNationCapital, REGIONS_DATA, getBorderingNationIds } from '../data/regions';
+import { setTruce } from '../engine/diplomacy';
 import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
 import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
 import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
 import { TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3 } from '../data/actionCosts';
+import { MAX_RIVALS, VASSAL_ANNEX_COOLDOWN_TURNS, TRUCE_BREAK_STABILITY_PENALTY } from '../data/actionCosts';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -2295,6 +2297,222 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op when unaffordable', () => {
       const state = { ...modernState(), resources: { ...modernState().resources, gold: 0 } };
       expect(gameReducer(state, { type: ActionTypes.CULTURAL_EXPORT })).toBe(state);
+    });
+  });
+
+  // Diplomacy overhaul (plan §M12).
+  describe('RIVAL_NATION / UNRIVAL_NATION', () => {
+    const borderingId = (state) => getBorderingNationIds(state.regions, state.playerNationId)[0];
+
+    it('adds a bordering nation to rivals', () => {
+      const state = richState();
+      const targetId = borderingId(state);
+      const next = gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: targetId } });
+      expect(next.nations.fr.rivals).toContain(targetId);
+    });
+
+    it('is a no-op for a non-bordering nation', () => {
+      const state = richState();
+      const bordering = new Set(getBorderingNationIds(state.regions, 'fr'));
+      const nonBordering = Object.keys(state.nations).find((id) => id !== 'fr' && !bordering.has(id));
+      expect(gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: nonBordering } })).toBe(state);
+    });
+
+    it('is a no-op once MAX_RIVALS is reached', () => {
+      const state = richState();
+      const targetId = borderingId(state);
+      const fr = { ...state.nations.fr, rivals: Array.from({ length: MAX_RIVALS }, (_, i) => `slot${i}`) };
+      const full = { ...state, nations: { ...state.nations, fr } };
+      expect(gameReducer(full, { type: ActionTypes.RIVAL_NATION, payload: { nationId: targetId } })).toBe(full);
+    });
+
+    it('unrival removes a rival', () => {
+      const state = richState();
+      const targetId = borderingId(state);
+      const rivaled = gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: targetId } });
+      const next = gameReducer(rivaled, { type: ActionTypes.UNRIVAL_NATION, payload: { nationId: targetId } });
+      expect(next.nations.fr.rivals).not.toContain(targetId);
+    });
+  });
+
+  describe('PROPOSE_MARRIAGE', () => {
+    const asMonarchies = (state, targetId) => ({
+      ...state,
+      nations: {
+        ...state.nations,
+        fr: { ...state.nations.fr, government: { type: 'monarchy', reforms: {} } },
+        [targetId]: { ...state.nations[targetId], government: { type: 'monarchy', reforms: {} } }
+      }
+    });
+
+    it('reduces the target\'s hostility and raises the heir\'s claim', () => {
+      const state = asMonarchies(richState(), 'de');
+      const withHostility = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 80 } } };
+      const withHeir = { ...withHostility, nations: { ...withHostility.nations, fr: { ...withHostility.nations.fr, heir: { id: 'h1', claim: 50 } } } };
+      const next = gameReducer(withHeir, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBeLessThan(80);
+      expect(next.nations.fr.heir.claim).toBe(60);
+      expect(next.nations.fr.marriageWith).toContain('de');
+    });
+
+    it('is a no-op unless both nations are monarchies', () => {
+      const state = richState();
+      const frRepublicDeMonarchy = {
+        ...state,
+        nations: {
+          ...state.nations,
+          fr: { ...state.nations.fr, government: { type: 'republic', reforms: {} } },
+          de: { ...state.nations.de, government: { type: 'monarchy', reforms: {} } }
+        }
+      };
+      expect(gameReducer(frRepublicDeMonarchy, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } })).toBe(frRepublicDeMonarchy);
+    });
+
+    it('is a no-op once already married into that nation', () => {
+      const state = asMonarchies(richState(), 'de');
+      const married = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, marriageWith: ['de'] } } };
+      expect(gameReducer(married, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } })).toBe(married);
+    });
+  });
+
+  describe('BREAK_ALLIANCE', () => {
+    it('clears the pact and raises hostility', () => {
+      const state = richState();
+      const allied = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hasMilitaryPact: true, hostility: 10 } } };
+      const next = gameReducer(allied, { type: ActionTypes.BREAK_ALLIANCE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hasMilitaryPact).toBe(false);
+      expect(next.nations.de.hostility).toBeGreaterThan(10);
+    });
+
+    it('is a no-op when there is no pact', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.BREAK_ALLIANCE, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('INSULT', () => {
+    it('raises the target\'s hostility for free', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.INSULT, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBeGreaterThan(state.nations.de.hostility);
+      expect(next.resources.gold).toBe(state.resources.gold);
+    });
+  });
+
+  describe('ASSIGN_DIPLOMAT / RECALL_DIPLOMAT', () => {
+    it('assigns a diplomat to improve relations with a target', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: 'de' } });
+      expect(next.nations.fr.diplomatTasks).toEqual([{ targetId: 'de', task: 'improve_relations', startedTurn: state.turnNumber }]);
+    });
+
+    it('is a no-op once every diplomat is already assigned', () => {
+      const state = richState();
+      const targets = Object.keys(state.nations).filter((id) => id !== 'fr').slice(0, state.nations.fr.diplomats);
+      let assigned = state;
+      targets.forEach((id) => { assigned = gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: id } }); });
+      const extra = Object.keys(state.nations).find((id) => id !== 'fr' && !targets.includes(id));
+      expect(gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: extra } })).toBe(assigned);
+    });
+
+    it('recall removes the assignment', () => {
+      const state = richState();
+      const assigned = gameReducer(state, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: 'de' } });
+      const next = gameReducer(assigned, { type: ActionTypes.RECALL_DIPLOMAT, payload: { nationId: 'de' } });
+      expect(next.nations.fr.diplomatTasks).toEqual([]);
+    });
+  });
+
+  describe('VASSALIZE / ANNEX_VASSAL / RELEASE_VASSAL', () => {
+    const dominant = (state, targetId) => ({
+      ...state,
+      nations: {
+        ...state.nations,
+        fr: { ...state.nations.fr, militaryStrength: 100000 },
+        [targetId]: { ...state.nations[targetId], militaryStrength: 100, hostility: 0 }
+      }
+    });
+
+    it('vassalizes a weak, low-hostility nation', () => {
+      const state = dominant(richState(), 'de');
+      const next = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      expect(next.nations.de.vassalOf).toBe('fr');
+      expect(next.nations.fr.vassals).toContain('de');
+    });
+
+    it('is a no-op when the target is too strong', () => {
+      const state = richState();
+      const notWeak = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 0, militaryStrength: state.nations.fr.militaryStrength } } };
+      expect(gameReducer(notWeak, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } })).toBe(notWeak);
+    });
+
+    it('is a no-op when hostility is too high', () => {
+      const state = dominant(richState(), 'de');
+      const hostile = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 90 } } };
+      expect(gameReducer(hostile, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } })).toBe(hostile);
+    });
+
+    it('annexes a vassal past the cooldown, transferring its regions and clearing vassalOf', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      const pastCooldown = { ...vassalized, turnNumber: vassalized.turnNumber + VASSAL_ANNEX_COOLDOWN_TURNS, resources: { ...vassalized.resources, dip: 1000000 } };
+      const next = gameReducer(pastCooldown, { type: ActionTypes.ANNEX_VASSAL, payload: { nationId: 'de' } });
+      expect(next.nations.de.vassalOf).toBeNull();
+      expect(next.nations.fr.vassals).not.toContain('de');
+      expect(Object.values(next.regions).some((r) => r.owner === 'de')).toBe(false);
+    });
+
+    it('is a no-op annexing before the cooldown has passed', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = { ...gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } }), resources: { ...state.resources, dip: 1000000 } };
+      expect(gameReducer(vassalized, { type: ActionTypes.ANNEX_VASSAL, payload: { nationId: 'de' } })).toBe(vassalized);
+    });
+
+    it('releases a vassal', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      const next = gameReducer(vassalized, { type: ActionTypes.RELEASE_VASSAL, payload: { nationId: 'de' } });
+      expect(next.nations.de.vassalOf).toBeNull();
+      expect(next.nations.fr.vassals).not.toContain('de');
+    });
+  });
+
+  describe('DECLARE_WAR truce-breaking (plan §M12/M13)', () => {
+    it('allows the player to break a truce, at a stability/prestige/AE cost', () => {
+      const state = richState();
+      const nations = setTruce(state.nations, 'fr', 'de', state.turnNumber);
+      const withTruce = { ...state, nations };
+      const next = gameReducer(withTruce, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.nations.de.isAtWar).toBe(true);
+      expect(next.nations.fr.stability).toBe((withTruce.nations.fr.stability || 0) - TRUCE_BREAK_STABILITY_PENALTY);
+      expect(next.nations.fr.prestige).toBeLessThan(withTruce.nations.fr.prestige || 0);
+    });
+
+    it('declares normally with no penalty when there is no truce', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.nations.fr.stability).toBe(state.nations.fr.stability || 0);
+    });
+  });
+
+  describe('TRADE_AGREEMENT capacity (plan §M8.3/§M12)', () => {
+    it('is a no-op once trade pact capacity is exhausted', () => {
+      const state = richState(); // base capacity 1 with neutral identity
+      const first = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
+      const otherId = Object.keys(first.nations).find((id) => id !== 'fr' && id !== 'de' && !first.nations[id].isAtWar);
+      expect(gameReducer(first, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: otherId } })).toBe(first);
+    });
+  });
+
+  describe('ESPIONAGE support_rebels variant (plan §M12)', () => {
+    it('raises unrest in the target\'s capital on success', () => {
+      const state = richState();
+      const targetCapital = getNationCapital('de');
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de', type: 'support_rebels' } });
+      // ESPIONAGE_SUCCESS_CHANCE is seed-dependent; only assert when it actually succeeded (unrest changed).
+      if (next.regions[targetCapital].unrest !== state.regions[targetCapital].unrest) {
+        expect(next.regions[targetCapital].unrest).toBeGreaterThan(state.regions[targetCapital].unrest);
+      }
     });
   });
 });

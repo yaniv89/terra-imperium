@@ -12,7 +12,7 @@
 // GameContext.jsx re-exports both `createInitialState` and `gameReducer` from here so every
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from '../data/techTree';
 import {
@@ -27,7 +27,8 @@ import {
   ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS
 } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
-import { declareWar, hasCasusBelli, isWarBetween } from './diplomacy';
+import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity } from './diplomacy';
+import { applyAggressiveExpansion } from './expansion';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindCombatMultiplier, getAgesBehindResearchCostMultiplier } from '../data/ages';
@@ -41,13 +42,18 @@ import { getAvailableClasses } from '../data/unitClasses';
 import {
   ACTION_COSTS, TECH_RESEARCH_POOL, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
-  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING,
+  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
   POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE,
   ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE,
   COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
   CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
-  ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3
+  ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3,
+  MAX_RIVALS, MARRIAGE_HOSTILITY_REDUCTION, MARRIAGE_HEIR_CLAIM_BONUS,
+  BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
+  TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
+  VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
+  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
@@ -60,8 +66,8 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } 
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './succession';
-import { clampStability, getIncreaseStabilityCost } from './nationalPower';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle } from './succession';
+import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
@@ -238,7 +244,29 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // array every nation carries) for the Vassalize/Release action a later task adds.
       claims: [],
       warExhaustion: 0,
+      // Vassals (plan §M12; scaffolded since M4, this milestone finally gives it a real writer:
+      // VASSALIZE/ANNEX_VASSAL/RELEASE_VASSAL, gameReducer.js below). vassalOf/vassalizedTurn are
+      // set on the VASSAL's own record; vassals[] lives on the OVERLORD.
       vassals: [],
+      vassalOf: null,
+      vassalizedTurn: 0,
+      // Truces (plan §M12/M13, set by diplomacy.js's setTruce whenever a war ends): mirrored
+      // { [otherNationId]: expiresTurn } on both former belligerents.
+      truces: {},
+      // Aggressive Expansion (plan §M12, src/engine/expansion.js): { [targetId]: number }, this
+      // nation's own accrued anger at whoever captured land near it.
+      ae: {},
+      // Rivals (plan §M12) — up to MAX_RIVALS nation ids the player has designated; only the
+      // player acts on this today, the same "every nation carries the field generically" pattern
+      // as estates/laws/taxRate above.
+      rivals: [],
+      // Diplomats (plan §M12) — a flat count for now (no bonus sources wired yet); diplomatTasks
+      // holds at most `diplomats` concurrent { targetId, task, startedTurn } assignments.
+      diplomats: STARTING_DIPLOMATS,
+      diplomatTasks: [],
+      // Royal Marriage (plan §M12) — nation ids the player has already married into, so the
+      // action can't be spammed for repeated hostility reduction against the same target.
+      marriageWith: [],
 
       // Rulers, heirs, advisors (plan §M3) — every nation gets a ruler so resolveTurn.js's
       // succession pass and the modifier engine's ruler-skill source (src/engine/modifiers/
@@ -1208,6 +1236,11 @@ export const gameReducer = (state, action) => {
       } else if (isDefended) {
         nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
+      // Aggressive Expansion (plan §M12, src/engine/expansion.js) — accrued by the taken region's
+      // previous owner and its immediate neighbors, proportional to the region's own development.
+      const nextNations = captured
+        ? applyAggressiveExpansion(state.nations, nextRegions, targetRegionId, targetRegion.owner, state.playerNationId)
+        : state.nations;
 
       const outcomeMessage = captured
         ? `Your forces captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
@@ -1221,6 +1254,7 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
+        nations: nextNations,
         units: nextUnits,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
@@ -1344,6 +1378,9 @@ export const gameReducer = (state, action) => {
       } else if (isDefended) {
         nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
+      const nextNations = captured
+        ? applyAggressiveExpansion(state.nations, nextRegions, targetRegionId, targetRegion.owner, state.playerNationId)
+        : state.nations;
 
       const outcomeMessage = captured
         ? `Your amphibious assault captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
@@ -1357,6 +1394,7 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
+        nations: nextNations,
         units: nextUnits,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, captured, kind: 'amphibious', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
@@ -1788,7 +1826,35 @@ export const gameReducer = (state, action) => {
       const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
       if (!canAfford(state.resources, costs)) return state;
 
-      const afterWar = declareWar(state, nationId, { aggressor: state.playerNationId });
+      // Truce-breaking (plan §M12/M13): the player MAY declare anyway — unlike the AI, which
+      // pickWarTarget filters out entirely (aiLogic.js) — but pays a real price: home stability,
+      // prestige, and AE with every neighbor, as if this were the most aggressive kind of war.
+      const breakingTruce = isInTruce(state, state.playerNationId, nationId);
+      const player = state.nations[state.playerNationId];
+      const playerAfterTruceBreak = breakingTruce
+        ? {
+            ...player,
+            stability: clampStability((player.stability || 0) - TRUCE_BREAK_STABILITY_PENALTY),
+            prestige: clampPrestige((player.prestige || 0) - TRUCE_BREAK_PRESTIGE_PENALTY),
+            truces: { ...(player.truces || {}), [nationId]: 0 }
+          }
+        : player;
+      let stateBeforeWar = breakingTruce
+        ? { ...state, nations: { ...state.nations, [state.playerNationId]: playerAfterTruceBreak, [nationId]: { ...target, truces: { ...(target.truces || {}), [state.playerNationId]: 0 } } } }
+        : state;
+      if (breakingTruce) {
+        const neighborIds = getBorderingNationIds(state.regions, state.playerNationId);
+        const nextNations = { ...stateBeforeWar.nations };
+        neighborIds.forEach((id) => {
+          if (id === nationId) return;
+          const neighbor = nextNations[id];
+          if (!neighbor) return;
+          nextNations[id] = { ...neighbor, ae: { ...(neighbor.ae || {}), [state.playerNationId]: (neighbor.ae?.[state.playerNationId] || 0) + TRUCE_BREAK_AE_AGAINST_NEIGHBORS } };
+        });
+        stateBeforeWar = { ...stateBeforeWar, nations: nextNations };
+      }
+
+      const afterWar = declareWar(stateBeforeWar, nationId, { aggressor: state.playerNationId });
       const homeRegionId = getNationCapital(state.playerNationId);
       const homeRegion = afterWar.regions[homeRegionId];
       const nextNations = { ...afterWar.nations };
@@ -1810,7 +1876,9 @@ export const gameReducer = (state, action) => {
         regions: nextRegions,
         logs: [...afterWar.logs, {
           year: state.year,
-          message: justified ? `You declared a justified war on ${target.name}.` : `You declared an unjustified war on ${target.name} — the world takes note.`,
+          message: breakingTruce
+            ? `You broke your truce with ${target.name} to declare war! (-${TRUCE_BREAK_STABILITY_PENALTY} stability, -${TRUCE_BREAK_PRESTIGE_PENALTY} prestige, neighbors take note)`
+            : justified ? `You declared a justified war on ${target.name}.` : `You declared an unjustified war on ${target.name} — the world takes note.`,
           type: LogTypes.DIPLOMACY
         }]
       };
@@ -1860,6 +1928,11 @@ export const gameReducer = (state, action) => {
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.tradeAgreement;
       if (!target || target.isAtWar || target.hasTradeAgreement) return state;
+      // Trade Pact capacity (plan §M8.3/§M12) — Globalism/Isolationism identity swings it; see
+      // diplomacy.js's getTradePactCapacity. Counts every OTHER nation currently pacted with the
+      // player, since hasTradeAgreement lives on the target's own record.
+      const activePactCount = Object.values(state.nations).filter((n) => n.hasTradeAgreement).length;
+      if (activePactCount >= getTradePactCapacity(state.nations[state.playerNationId])) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1874,7 +1947,13 @@ export const gameReducer = (state, action) => {
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.militaryAlliance;
       if (!target || target.isAtWar || target.hasMilitaryPact) return state;
-      if (!target.hasTradeAgreement && target.hostility > ALLIANCE_HOSTILITY_CEILING) return state;
+      // Alliance acceptance (plan §M12: "opinion/4 + prestige/10 ... accept if > 0"), adapted onto
+      // this codebase's real axes: hostility stands in for opinion (inverted, since 50 is neutral
+      // on a 0-100 hostility scale the way 0 is neutral on a signed opinion scale), and an existing
+      // trade agreement is a flat vote of confidence — replacing the old flat hostility-ceiling
+      // gate with a real scored formula.
+      const acceptanceScore = (50 - (target.hostility || 0)) / 2 + (target.prestige || 0) / 10 + (target.hasTradeAgreement ? 20 : 0);
+      if (acceptanceScore < 0) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1902,7 +1981,14 @@ export const gameReducer = (state, action) => {
     // operation against a chosen nation, and a real defensive action that catches whoever's
     // currently most hostile toward you — see ESPIONAGE_SUCCESS_CHANCE etc., actionCosts.js.
     case ActionTypes.ESPIONAGE: {
-      const { nationId } = action.payload;
+      // Plan §M12: "Steal Tech, Sabotage Reputation, Support Rebels" — Steal Tech is the original,
+      // unchanged behavior (default `type`, so every existing caller keeps working). Support
+      // Rebels is real and new: it directly raises unrest in one of the target's own regions,
+      // reusing the same unrest/rebellion mechanic resolveTurn.js already runs — defaulting to
+      // their capital when no regionId is given, the same auto-target convenience Counter-
+      // Intelligence already uses. Sabotage Reputation is deferred (actionCosts.js's own header on
+      // why: no pairwise AI-AI opinion substrate exists to damage).
+      const { nationId, type = 'steal_tech', regionId } = action.payload;
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.espionage;
       if (!target) return state;
@@ -1911,6 +1997,18 @@ export const gameReducer = (state, action) => {
       const success = rng.next() < ESPIONAGE_SUCCESS_CHANCE;
       const resourcesAfterCost = applyCosts(state.resources, costs);
       if (success) {
+        if (type === 'support_rebels') {
+          const targetRegionId = regionId && state.regions[regionId]?.owner === nationId ? regionId : getNationCapital(nationId);
+          const targetRegion = state.regions[targetRegionId];
+          if (!targetRegion) return state;
+          return {
+            ...state,
+            resources: resourcesAfterCost,
+            regions: { ...state.regions, [targetRegionId]: { ...targetRegion, unrest: Math.min(100, (targetRegion.unrest || 0) + ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE) } },
+            rngSeed: rng.getSeed(),
+            logs: [...state.logs, { year: state.year, message: `Your agents stirred unrest in ${REGIONS_DATA[targetRegionId]?.name || targetRegionId}.`, type: LogTypes.DIPLOMACY }]
+          };
+        }
         return {
           ...state,
           resources: { ...resourcesAfterCost, techPoints: (resourcesAfterCost.techPoints || 0) + ESPIONAGE_TECH_POINTS_STOLEN },
@@ -1939,6 +2037,174 @@ export const gameReducer = (state, action) => {
         resources: { ...resourcesAfterCost, dip: (resourcesAfterCost.dip || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
         nations: { ...state.nations, [target.id]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - COUNTER_INTEL_HOSTILITY_REDUCTION) } },
         logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} DIP.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Diplomacy overhaul (plan §M12) — rivals, royal marriages, alliance lifecycle, diplomats,
+    // and the vassal lifecycle. See types.js's own header comment on this group for scope notes.
+    case ActionTypes.RIVAL_NATION: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      if (!target || nationId === state.playerNationId) return state;
+      if ((player.rivals || []).includes(nationId)) return state;
+      if ((player.rivals || []).length >= MAX_RIVALS) return state;
+      if (!getBorderingNationIds(state.regions, state.playerNationId).includes(nationId)) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...player, rivals: [...(player.rivals || []), nationId] } },
+        logs: [...state.logs, { year: state.year, message: `${target.name} is now considered a rival.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.UNRIVAL_NATION: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      if (!(player.rivals || []).includes(nationId)) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...player, rivals: player.rivals.filter((id) => id !== nationId) } }
+      };
+    }
+
+    case ActionTypes.PROPOSE_MARRIAGE: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.proposeMarriage;
+      if (!target || target.isAtWar) return state;
+      // Plan: "both monarchies" — this codebase's own real hereditary/monarchy check (M3).
+      if (getSuccessionStyle(player.government) !== 'hereditary' || getSuccessionStyle(target.government) !== 'hereditary') return state;
+      if ((player.marriageWith || []).includes(nationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextTarget = { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - MARRIAGE_HOSTILITY_REDUCTION) };
+      const nextPlayer = {
+        ...player,
+        marriageWith: [...(player.marriageWith || []), nationId],
+        heir: player.heir ? { ...player.heir, claim: Math.min(100, player.heir.claim + MARRIAGE_HEIR_CLAIM_BONUS) } : player.heir
+      };
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: nextPlayer, [nationId]: nextTarget },
+        logs: [...state.logs, { year: state.year, message: `A royal marriage was arranged with ${target.name}.${player.heir ? ` (+${MARRIAGE_HEIR_CLAIM_BONUS} heir claim)` : ''}`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.BREAK_ALLIANCE: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      if (!target || !target.hasMilitaryPact) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [nationId]: { ...target, hasMilitaryPact: false, hostility: Math.min(100, (target.hostility || 0) + BREAK_ALLIANCE_HOSTILITY_INCREASE) } },
+        logs: [...state.logs, { year: state.year, message: `You broke the military alliance with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.INSULT: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      if (!target) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [nationId]: { ...target, hostility: Math.min(100, (target.hostility || 0) + INSULT_HOSTILITY_INCREASE) } },
+        logs: [...state.logs, { year: state.year, message: `You publicly insulted ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ASSIGN_DIPLOMAT: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.assignDiplomat;
+      if (!target || nationId === state.playerNationId) return state;
+      const tasks = player.diplomatTasks || [];
+      if (tasks.some((t) => t.targetId === nationId)) return state;
+      if (tasks.length >= (player.diplomats || 0)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, diplomatTasks: [...tasks, { targetId: nationId, task: 'improve_relations', startedTurn: state.turnNumber }] }
+        },
+        logs: [...state.logs, { year: state.year, message: `A diplomat was sent to improve relations with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.RECALL_DIPLOMAT: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const tasks = player.diplomatTasks || [];
+      if (!tasks.some((t) => t.targetId === nationId)) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...player, diplomatTasks: tasks.filter((t) => t.targetId !== nationId) } }
+      };
+    }
+
+    case ActionTypes.VASSALIZE: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.vassalize;
+      if (!target || nationId === state.playerNationId || target.isAtWar || target.vassalOf) return state;
+      if ((target.hostility || 0) > VASSALIZE_HOSTILITY_CEILING) return state;
+      if ((player.militaryStrength || 0) < (target.militaryStrength || 0) * VASSALIZE_STRENGTH_RATIO) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, vassals: [...(player.vassals || []), nationId] },
+          [nationId]: { ...target, vassalOf: state.playerNationId, vassalizedTurn: state.turnNumber }
+        },
+        logs: [...state.logs, { year: state.year, message: `${target.name} has become your vassal.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ANNEX_VASSAL: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      if (!target || target.vassalOf !== state.playerNationId) return state;
+      if (state.turnNumber < (target.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === nationId ? getTotalDev(r) : 0), 0);
+      const costs = { dip: Math.round(VASSAL_ANNEX_DIP_PER_DEV * totalDev) };
+      if (!canAfford(state.resources, costs)) return state;
+      const nextRegions = { ...state.regions };
+      Object.keys(nextRegions).forEach((regionId) => {
+        if (nextRegions[regionId].owner === nationId) nextRegions[regionId] = { ...nextRegions[regionId], owner: state.playerNationId };
+      });
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: nextRegions,
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
+          [nationId]: { ...target, vassalOf: null }
+        },
+        logs: [...state.logs, { year: state.year, message: `${target.name} has been annexed into your realm.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.RELEASE_VASSAL: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      if (!target || target.vassalOf !== state.playerNationId) return state;
+      return {
+        ...state,
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
+          [nationId]: { ...target, vassalOf: null }
+        },
+        logs: [...state.logs, { year: state.year, message: `${target.name} has been released from vassalage.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

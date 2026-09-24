@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress } from './diplomacy';
+import {
+  declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress,
+  isInTruce, setTruce, getTradePactCapacity
+} from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -270,5 +273,68 @@ describe('resolveWarProgress (Task 32: AI-vs-AI/AI-vs-player territorial conques
     expect(result.wars[0].goalAchieved).toBe(true);
     expect(result.nations.mx.isAtWar).toBe(false);
     expect(result.nations.ca.isAtWar).toBe(false);
+  });
+
+  // Plan §M12/M13: a war ending sets a mirrored truce on both former belligerents.
+  it('sets a mirrored truce on both sides once a war ends via goal completion', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+    expect(result.nations.mx.truces.ca).toBe(state.turnNumber + 10);
+    expect(result.nations.ca.truces.mx).toBe(state.turnNumber + 10);
+  });
+
+  // Plan §M12: Aggressive Expansion (src/engine/expansion.js) is accrued by the captured region's
+  // previous owner and its immediate neighbors, proportional to its own development.
+  it('accrues Aggressive Expansion against the taker for the captured region\'s previous owner', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+    expect(result.nations.ca.ae?.mx).toBeGreaterThan(0);
+  });
+
+  it('accrues no Aggressive Expansion when the capture roll fails', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
+    expect(result.nations.ca.ae?.mx || 0).toBe(0);
+  });
+});
+
+describe('isInTruce / setTruce (plan §M12/M13)', () => {
+  it('is false with no truce entry at all', () => {
+    const state = usState();
+    expect(isInTruce(state, 'us', 'ca')).toBe(false);
+  });
+
+  it('is true immediately after setTruce, on both sides', () => {
+    const state = usState();
+    const nations = setTruce(state.nations, 'us', 'ca', state.turnNumber);
+    const withTruce = { ...state, nations };
+    expect(isInTruce(withTruce, 'us', 'ca')).toBe(true);
+    expect(isInTruce(withTruce, 'ca', 'us')).toBe(true);
+  });
+
+  it('expires after TRUCE_DURATION_TURNS turns', () => {
+    const state = usState();
+    const nations = setTruce(state.nations, 'us', 'ca', state.turnNumber);
+    const later = { ...state, nations, turnNumber: state.turnNumber + 10 };
+    expect(isInTruce(later, 'us', 'ca')).toBe(false);
+  });
+
+  it('is a no-op when either nation is missing', () => {
+    const state = usState();
+    expect(setTruce(state.nations, 'us', 'ghost', state.turnNumber)).toBe(state.nations);
+  });
+});
+
+describe('getTradePactCapacity (plan §M8.3/§M12)', () => {
+  it('is the base capacity with a neutral identity', () => {
+    expect(getTradePactCapacity({ identity: { globalism: 0 } })).toBe(1);
+  });
+
+  it('is +1 for a Globalist nation', () => {
+    expect(getTradePactCapacity({ identity: { globalism: 50 } })).toBe(2);
+  });
+
+  it('is -1, floored at 0, for an Isolationist nation', () => {
+    expect(getTradePactCapacity({ identity: { globalism: -50 } })).toBe(0);
   });
 });

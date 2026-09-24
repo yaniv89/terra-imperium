@@ -2,19 +2,25 @@
 // Diplomacy tab: a browsable relations view of all 240 nations, plus per-nation actions — Declare
 // War (with casus belli), Fabricate Claim, Sue for Peace, Trade Agreement, Military Alliance,
 // Gift/Bribe, Espionage — against src/engine/diplomacy.js's war-goal engine, plus one empire-wide
-// action with no chosen target, Cultural Export (Modern age soft power). Resource Deal, Demand
-// Tribute, Vassalize/Release, Join/Form Coalition and Embassy remain deferred as real, separate
-// follow-up work: several of them (Vassalize, Coalitions) fit more naturally alongside the AI
-// systems Tasks 23/24 build.
+// action with no chosen target, Cultural Export (Modern age soft power). Plan §M12 adds Rivals,
+// Royal Marriage, Break Alliance, Insult, Diplomats (Improve Relations), and the Vassal lifecycle
+// (Vassalize/Annex/Release) — see gameReducer.js's own header on that group for what's real vs.
+// deferred (Call to Arms/Guarantee Independence need multi-party wars, M13 territory).
 
 import React, { useMemo, useState } from 'react';
-import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles } from 'lucide-react';
+import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles, Heart, Users, Crown, Unlock, Ban, AlertTriangle } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
-import { ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../../data/actionCosts';
-import { hasCasusBelli, isAtWarWithPlayer } from '../../engine/diplomacy';
+import {
+  ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN,
+  CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
+  MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
+} from '../../data/actionCosts';
+import { hasCasusBelli, isAtWarWithPlayer, isInTruce } from '../../engine/diplomacy';
+import { getSuccessionStyle } from '../../engine/succession';
+import { getTotalDev } from '../../engine/development';
 import { getNationCapital } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
@@ -28,7 +34,14 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
   [ActionTypes.GIFT_BRIBE]: 'gift_bribe',
   [ActionTypes.FABRICATE_CLAIM]: 'fabricate_claim',
   [ActionTypes.MILITARY_ALLIANCE]: 'military_alliance',
-  [ActionTypes.ESPIONAGE]: 'espionage'
+  [ActionTypes.ESPIONAGE]: 'espionage',
+  [ActionTypes.RIVAL_NATION]: 'rival_nation',
+  [ActionTypes.PROPOSE_MARRIAGE]: 'propose_marriage',
+  [ActionTypes.BREAK_ALLIANCE]: 'break_alliance',
+  [ActionTypes.INSULT]: 'insult',
+  [ActionTypes.ASSIGN_DIPLOMAT]: 'assign_diplomat',
+  [ActionTypes.VASSALIZE]: 'vassalize',
+  [ActionTypes.RELEASE_VASSAL]: 'release_vassal'
 };
 
 const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (
@@ -111,6 +124,24 @@ const DiplomacyPanel = () => {
           const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
           const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), dip: 1 };
 
+          // Diplomacy overhaul (plan §M12).
+          const player = state.nations[state.playerNationId];
+          const isRival = (player.rivals || []).includes(nation.id);
+          const isVassalOfPlayer = nation.vassalOf === state.playerNationId;
+          const truceActive = !atWarWithPlayer && isInTruce(state, state.playerNationId, nation.id);
+          const canMarry = !atWarWithPlayer
+            && getSuccessionStyle(player.government) === 'hereditary'
+            && getSuccessionStyle(nation.government) === 'hereditary'
+            && !(player.marriageWith || []).includes(nation.id);
+          const hasDiplomatAssigned = (player.diplomatTasks || []).some((t) => t.targetId === nation.id);
+          const canAssignDiplomat = !hasDiplomatAssigned && (player.diplomatTasks || []).length < (player.diplomats || 0);
+          const canVassalize = !atWarWithPlayer && !nation.vassalOf && nation.id !== state.playerNationId
+            && (nation.hostility || 0) <= VASSALIZE_HOSTILITY_CEILING
+            && (player.militaryStrength || 0) >= (nation.militaryStrength || 0) * VASSALIZE_STRENGTH_RATIO;
+          const vassalTotalDev = isVassalOfPlayer ? Object.values(state.regions).reduce((s, r) => s + (r.owner === nation.id ? getTotalDev(r) : 0), 0) : 0;
+          const annexCost = { dip: Math.round(VASSAL_ANNEX_DIP_PER_DEV * vassalTotalDev) };
+          const canAnnex = isVassalOfPlayer && state.turnNumber >= (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS;
+
           return (
             <div
               key={nation.id}
@@ -188,10 +219,45 @@ const DiplomacyPanel = () => {
                     ⚔ AT WAR
                   </span>
                 )}
+                {truceActive && (
+                  <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded text-[10px]">
+                    Truce (turn {nation.truces?.[state.playerNationId]})
+                  </span>
+                )}
+                {isRival && (
+                  <span className="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded text-[10px]">
+                    Rival
+                  </span>
+                )}
+                {isVassalOfPlayer && (
+                  <span className="px-1.5 py-0.5 bg-violet-500/20 text-violet-400 rounded text-[10px]">
+                    Your Vassal
+                  </span>
+                )}
+                {hasDiplomatAssigned && (
+                  <span className="px-1.5 py-0.5 bg-sky-500/20 text-sky-400 rounded text-[10px]">
+                    Diplomat assigned
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-1">
-                {atWarWithPlayer ? (
+                {isVassalOfPlayer ? (
+                  <>
+                    <IconButton
+                      icon={Crown}
+                      label={`Annex (${formatNumber(annexCost.dip)} DIP)`}
+                      title={canAnnex ? 'Absorb this vassal\'s territory into your realm' : `Available turn ${(nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS}`}
+                      disabled={!canAnnex || !canAfford(state.resources, annexCost)}
+                      onClick={() => dispatch({ type: ActionTypes.ANNEX_VASSAL, payload: { nationId: nation.id } })}
+                    />
+                    <IconButton
+                      icon={Unlock}
+                      label="Release"
+                      onClick={() => dispatch({ type: ActionTypes.RELEASE_VASSAL, payload: { nationId: nation.id } })}
+                    />
+                  </>
+                ) : atWarWithPlayer ? (
                   <IconButton
                     icon={Flag}
                     label={`Sue for Peace (${sueForPeaceCosts.gold}g)`}
@@ -225,11 +291,18 @@ const DiplomacyPanel = () => {
                         onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, nation.id, ACTION_COSTS.tradeAgreement)}
                       />
                     )}
-                    {!nation.hasMilitaryPact && (
+                    {nation.hasMilitaryPact ? (
+                      <IconButton
+                        icon={Ban}
+                        label="Break Alliance"
+                        title="Ends the pact — raises their hostility"
+                        onClick={() => dispatchIfAffordable(ActionTypes.BREAK_ALLIANCE, nation.id, {})}
+                      />
+                    ) : (
                       <IconButton
                         icon={ShieldCheck}
                         label="Alliance"
-                        title="Requires calm relations or an existing trade agreement"
+                        title="Acceptance scores hostility, prestige, and any existing trade agreement"
                         disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance)}
                         onClick={() => dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, nation.id, ACTION_COSTS.militaryAlliance)}
                       />
@@ -248,6 +321,52 @@ const DiplomacyPanel = () => {
                       disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
                       onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, nation.id, ACTION_COSTS.espionage)}
                     />
+                    <IconButton
+                      icon={AlertTriangle}
+                      label="Insult"
+                      title="Free — raises their hostility, for rivalries"
+                      onClick={() => dispatchIfAffordable(ActionTypes.INSULT, nation.id, {})}
+                    />
+                    <IconButton
+                      icon={Target}
+                      label={isRival ? 'Unrival' : `Rival (${(player.rivals || []).length}/${MAX_RIVALS})`}
+                      title={isRival ? 'Stop treating them as a rival' : 'Must border you — a fallen rival grants prestige'}
+                      disabled={!isRival && ((player.rivals || []).length >= MAX_RIVALS)}
+                      onClick={() => dispatchIfAffordable(isRival ? ActionTypes.UNRIVAL_NATION : ActionTypes.RIVAL_NATION, nation.id, {})}
+                    />
+                    {canMarry && (
+                      <IconButton
+                        icon={Heart}
+                        label="Royal Marriage"
+                        title="Both monarchies — reduces hostility and raises your heir's claim"
+                        disabled={!canAfford(state.resources, ACTION_COSTS.proposeMarriage)}
+                        onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_MARRIAGE, nation.id, ACTION_COSTS.proposeMarriage)}
+                      />
+                    )}
+                    {hasDiplomatAssigned ? (
+                      <IconButton
+                        icon={Users}
+                        label="Recall Diplomat"
+                        onClick={() => dispatch({ type: ActionTypes.RECALL_DIPLOMAT, payload: { nationId: nation.id } })}
+                      />
+                    ) : (
+                      <IconButton
+                        icon={Users}
+                        label="Assign Diplomat"
+                        title={`Improve Relations — ${(player.diplomatTasks || []).length}/${player.diplomats || 0} diplomats in use`}
+                        disabled={!canAssignDiplomat || !canAfford(state.resources, ACTION_COSTS.assignDiplomat)}
+                        onClick={() => dispatchIfAffordable(ActionTypes.ASSIGN_DIPLOMAT, nation.id, ACTION_COSTS.assignDiplomat)}
+                      />
+                    )}
+                    {canVassalize && (
+                      <IconButton
+                        icon={Crown}
+                        label="Vassalize"
+                        title="Low hostility and overwhelming strength required"
+                        disabled={!canAfford(state.resources, ACTION_COSTS.vassalize)}
+                        onClick={() => dispatchIfAffordable(ActionTypes.VASSALIZE, nation.id, ACTION_COSTS.vassalize)}
+                      />
+                    )}
                   </>
                 )}
               </div>

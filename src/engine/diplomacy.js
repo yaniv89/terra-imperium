@@ -10,6 +10,36 @@ import { isAdjacentToOwner, REGIONS_DATA } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
 import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { resolveSiegeControlDamage } from './siege';
+import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY } from '../data/actionCosts';
+import { applyAggressiveExpansion } from './expansion';
+import { leansPositive, leansNegative } from '../data/identity';
+
+// Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
+// floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
+export const getTradePactCapacity = (nation) =>
+  Math.max(0, TRADE_PACT_BASE_CAPACITY + (leansPositive(nation?.identity, 'globalism') ? 1 : 0) - (leansNegative(nation?.identity, 'globalism') ? 1 : 0));
+
+// Truces (plan §M13's own truce rules, pulled forward into M12 since this is where wars first get
+// a redeclare-cooldown at all): mirrored on both former belligerents so either side's own
+// `nation.truces[otherId]` reads the same shared expiry, the same "store the unlock turn" shape
+// taxRateCooldownUntil/lawCooldowns already use. The AI never breaks one (aiLogic.js's
+// pickWarTarget filters truce-active candidates out entirely); the player MAY declare anyway, at a
+// real cost applied by the caller (gameReducer.js's DECLARE_WAR case) — declareWar itself doesn't
+// enforce the block, since "can the player override this" is a policy decision for the action
+// layer, not the shared war-transition primitive AI wars also go through.
+export const isInTruce = (state, aId, bId) => (state.nations[aId]?.truces?.[bId] || 0) > state.turnNumber;
+
+export const setTruce = (nations, aId, bId, turnNumber) => {
+  const a = nations[aId];
+  const b = nations[bId];
+  if (!a || !b) return nations;
+  const expiresTurn = turnNumber + TRUCE_DURATION_TURNS;
+  return {
+    ...nations,
+    [aId]: { ...a, truces: { ...(a.truces || {}), [bId]: expiresTurn } },
+    [bId]: { ...b, truces: { ...(b.truces || {}), [aId]: expiresTurn } }
+  };
+};
 
 // A casus belli (plan §8/§9's "unjustified wars cost stability and global relations"): either a
 // claim the aggressor already fabricated against this target (FABRICATE_CLAIM), or a naturally
@@ -217,6 +247,9 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
                 }
               : { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true }
           };
+          if (captured) {
+            nextNations = applyAggressiveExpansion(nextNations, nextRegions, war.goal.regionId, targetRegion.owner, war.aggressor);
+          }
           logs.push(captured
             ? { message: `${updatedAggressor.name} captures ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} from ${updatedDefender.name}!`, type: 'combat' }
             : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[war.goal.regionId]?.name || war.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });
@@ -232,6 +265,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         [war.aggressor]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
         [war.enemy]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
       };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
       logs.push({ message: `${winner.name}'s war against ${loser.name} ends in victory.`, type: 'diplomacy' });
       return { ...war, active: false, goalAchieved: true };
     }

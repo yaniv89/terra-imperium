@@ -194,9 +194,9 @@ export const calcIncome = (state) => {
     }
   });
 
-  // Trade agreement bonuses.
-  const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
-  income.gold = (income.gold || 0) + tradePartners.length * 20;
+  // Trade Pact income (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) is
+  // now a real goldMult line in the modifier engine (sources.js's contextSources), summed into the
+  // same goldMult lookup a few lines below rather than added here as a flat bonus.
 
   // Government/policy/wonder/satellite bonuses (plan §9/§10.4) — summed on the same hook
   // (the modifier engine, src/engine/modifiers/), applied as one multiplier — government, policy,
