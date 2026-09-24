@@ -48,6 +48,7 @@ import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './succession';
+import { clampStability, clampPrestige, getIncreaseStabilityCost, WONDER_COMPLETION_PRESTIGE } from './nationalPower';
 import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
@@ -122,6 +123,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // can be pinned and reproduced; real gameplay always omits it and gets fresh randomness.
   const successionRng = createRng(rngSeed ?? randomSeed());
 
+  // Plan §M4: overextension is measured relative to each nation's OWN starting size, so a 50-region
+  // nation and a 1-region nation are equally "at capacity" at the same overextension% — captured
+  // once, here, since region ownership churns every game while this stays a fixed reference point.
+  const startRegionCountByOwner = {};
+  Object.values(regions).forEach((r) => {
+    startRegionCountByOwner[r.owner] = (startRegionCountByOwner[r.owner] || 0) + 1;
+  });
+
   // Every one of the 240 nations gets a record — any of them can be the player's.
   const nations = {};
   Object.entries(WORLD_NATIONS).forEach(([id, data]) => {
@@ -194,7 +203,19 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // affect anything mechanically today (AI nations don't consume power pools until M16).
       ruler,
       heir: null,
-      advisors: { adm: null, dip: null, mil: null }
+      advisors: { adm: null, dip: null, mil: null },
+
+      // National stability, legitimacy, prestige, overextension (plan §M4) — every nation carries
+      // these so resolveTurn.js's national-power pass (src/engine/nationalPower.js) and the
+      // modifier engine's stability/overextension source can read any nation's generically, the
+      // same "every nation gets the field, only the player acts on it today" pattern as above.
+      // Legitimacy starts neutral (50) rather than 0 so a fresh nation isn't already suffering the
+      // below-50 penalty before a government/ruler has had any turns to earn it.
+      stability: 0,
+      stabilityDecayProgress: 0,
+      legitimacy: 50,
+      prestige: 0,
+      startRegionCount: startRegionCountByOwner[id] || 0
     };
   });
 
@@ -478,6 +499,22 @@ export const gameReducer = (state, action) => {
       };
     }
 
+    case ActionTypes.INCREASE_STABILITY: {
+      // Plan §M4: costs scale with both current overextension and how high stability already is
+      // (getIncreaseStabilityCost) — no cap check beyond that, since the ADM cost itself already
+      // makes pushing stability to its +3 ceiling progressively more expensive.
+      const nation = state.nations[state.playerNationId];
+      if ((nation.stability || 0) >= 3) return state;
+      const cost = getIncreaseStabilityCost(state, state.playerNationId);
+      if ((state.resources.adm || 0) < cost) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, adm: state.resources.adm - cost },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, stability: clampStability((nation.stability || 0) + 1) } },
+        logs: [...state.logs, { year: state.year, message: `Stability increased to ${clampStability((nation.stability || 0) + 1)}.`, type: LogTypes.ACTION }]
+      };
+    }
+
     case ActionTypes.CONSTRUCT_BUILDING: {
       const { regionId, categoryId } = action.payload;
       const region = state.regions[regionId];
@@ -609,8 +646,10 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         wondersBuilt: { ...state.wondersBuilt, [wonderId]: state.playerNationId },
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, wonders: [...(nation.wonders || []), wonderId] } },
-        logs: [...state.logs, { year: state.year, message: `${WONDERS[wonderId]?.name} completed!`, type: LogTypes.MILESTONE }]
+        // +prestige (plan §M4): great projects are M10's own prestige source; wonders are still
+        // today's real stand-in for that system, so a completion counts here in the meantime.
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, wonders: [...(nation.wonders || []), wonderId], prestige: clampPrestige((nation.prestige || 0) + WONDER_COMPLETION_PRESTIGE) } },
+        logs: [...state.logs, { year: state.year, message: `${WONDERS[wonderId]?.name} completed! (+${WONDER_COMPLETION_PRESTIGE} prestige)`, type: LogTypes.MILESTONE }]
       };
     }
 

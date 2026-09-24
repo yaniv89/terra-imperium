@@ -26,9 +26,10 @@ import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/succession';
+import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { TRAITS } from '../../data/traits';
 import { ActionButton } from '../ui';
-import { Crown, Users } from 'lucide-react';
+import { Crown, Users, TrendingUp } from 'lucide-react';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -121,10 +122,20 @@ const DomesticPanel = ({ selectedRegion }) => {
     dispatch({ type: ActionTypes.HIRE_ADVISOR, payload: { pool, candidateIndex } });
   };
 
+  const increaseStabilityCost = getIncreaseStabilityCost(state, state.playerNationId);
+  const handleIncreaseStability = () => {
+    if ((state.resources.adm || 0) < increaseStabilityCost) return addLog('Not enough ADM', 'action');
+    triggerEffect('increase_stability', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.INCREASE_STABILITY });
+  };
+
   const ruler = playerNation?.ruler;
   const heir = playerNation?.heir;
   const advisors = playerNation?.advisors || {};
   const advisorCandidates = state.advisorPool?.[state.playerNationId] || {};
+  const nationStability = playerNation?.stability || 0;
+  const nationLegitimacy = playerNation?.legitimacy ?? 50;
+  const nationPrestige = playerNation?.prestige || 0;
 
   const courtSection = (
     <div className="space-y-2">
@@ -154,6 +165,33 @@ const DomesticPanel = ({ selectedRegion }) => {
           )}
         </div>
       )}
+
+      <div className="bg-slate-800/60 rounded-lg p-3 text-xs space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400">Stability</span>
+          <span className={`font-mono font-semibold ${nationStability > 0 ? 'text-green-400' : nationStability < 0 ? 'text-red-400' : 'text-slate-300'}`}>
+            {nationStability > 0 ? `+${nationStability}` : nationStability}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400">Legitimacy</span>
+          <span className={`font-mono font-semibold ${nationLegitimacy < 50 ? 'text-red-400' : 'text-slate-300'}`}>{Math.round(nationLegitimacy)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-slate-400">Prestige</span>
+          <span className="font-mono font-semibold text-slate-300">{nationPrestige > 0 ? `+${nationPrestige}` : nationPrestige}</span>
+        </div>
+        <ActionButton
+          icon={TrendingUp}
+          label="Increase Stability"
+          description={nationStability >= STABILITY_MAX ? 'Already at maximum stability' : '+1 stability'}
+          costs={{ adm: increaseStabilityCost }}
+          onClick={handleIncreaseStability}
+          disabled={nationStability >= STABILITY_MAX || (state.resources.adm || 0) < increaseStabilityCost}
+          resources={state.resources}
+          size="small"
+        />
+      </div>
 
       <div className="text-xs font-semibold text-slate-300 pt-1">Advisors</div>
       {['adm', 'dip', 'mil'].map((pool) => {

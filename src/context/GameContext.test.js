@@ -339,6 +339,12 @@ describe('Domestic tab actions', () => {
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
+    it('grants prestige on completion (plan §M4: great projects\' own prestige source, M10, isn\'t built yet)', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } });
+      expect(next.nations.fr.prestige).toBeGreaterThan(state.nations.fr.prestige || 0);
+    });
+
     it('is a no-op for a wonder two or more ages ahead of the current age', () => {
       const state = richState(); // Bronze Age -> grandBazaar (Kingdoms) is two ages ahead
       expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'grandBazaar' } })).toBe(state);
@@ -353,6 +359,32 @@ describe('Domestic tab actions', () => {
       const fresh = createInitialState({ playerNationId: 'fr' });
       const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
       expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(base);
+    });
+  });
+
+  describe('INCREASE_STABILITY (plan §M4)', () => {
+    const admRichState = () => {
+      const state = createInitialState({ playerNationId: 'fr' });
+      return { ...state, resources: { ...state.resources, adm: 100000 } };
+    };
+
+    it('raises stability by 1 and deducts the ADM cost', () => {
+      const state = admRichState();
+      const next = gameReducer(state, { type: ActionTypes.INCREASE_STABILITY });
+      expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) + 1);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+    });
+
+    it('is a no-op once stability is already at its maximum', () => {
+      const state = { ...admRichState() };
+      state.nations = { ...state.nations, fr: { ...state.nations.fr, stability: 3 } };
+      expect(gameReducer(state, { type: ActionTypes.INCREASE_STABILITY })).toBe(state);
+    });
+
+    it('is a no-op when the player cannot afford the ADM cost', () => {
+      const fresh = createInitialState({ playerNationId: 'fr' });
+      const base = { ...fresh, resources: { ...fresh.resources, adm: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.INCREASE_STABILITY })).toBe(base);
     });
   });
 });

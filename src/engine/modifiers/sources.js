@@ -15,6 +15,7 @@ import { TECH_TREE } from '../../data/techTree';
 import { TechCategories } from '../../data/types';
 import { TRAITS } from '../../data/traits';
 import { LEGACY_HOOK } from './registry';
+import { getOverextension, getRulerBestPool } from '../nationalPower';
 
 const linesFromEffect = (effect, sourceType, sourceId, label) =>
   Object.entries(effect || {})
@@ -98,6 +99,33 @@ export const contextSources = (state, nationId) => {
       .length;
     const techBonus = Math.floor(governanceTechsResearched / 3);
     if (techBonus) lines.push({ key: 'national.apBonus', value: techBonus, sourceType: 'tech', sourceId: 'governance', label: 'Governance Techs' });
+  }
+
+  // National stability (plan §M4): each level shaves/adds 1 unrest everywhere (national.stabilityBonus
+  // already flips sign the same way traits do, see nextUnrest's convention) and ±5% tax/production
+  // (folded onto national.goldMult, the same key tax rate/satellites already use).
+  const stability = nation?.stability || 0;
+  if (stability) {
+    lines.push({ key: 'national.stabilityBonus', value: stability, sourceType: 'stability', sourceId: 'stability', label: 'Stability' });
+    lines.push({ key: 'national.goldMult', value: stability * 0.05, sourceType: 'stability', sourceId: 'stability', label: 'Stability' });
+  }
+
+  // Overextension (plan §M4): "+overextension/20 unrest in every region" — the blanket "+ADM/DIP
+  // cost" half of the plan's own effect table is deferred (see nationalPower.js's own header
+  // comment: no per-action modifier-aware cost pipeline exists yet to apply it generically).
+  const overextension = getOverextension(state, nationId);
+  if (overextension > 0) {
+    lines.push({ key: 'national.stabilityBonus', value: -(overextension / 20), sourceType: 'overextension', sourceId: 'overextension', label: 'Overextension' });
+  }
+
+  // Legitimacy/tradition/devotion below 50 (plan §M4): -1 to the ruler's best pool, +1 unrest
+  // everywhere. "Extra rebel chance" is adapted onto the same unrest line rather than a separate
+  // hook into src/data/rebellion.js's own threshold check.
+  const legitimacy = nation?.legitimacy ?? 50;
+  if (legitimacy < 50 && nation?.ruler) {
+    const bestPool = getRulerBestPool(nation.ruler);
+    lines.push({ key: `national.${bestPool}Bonus`, value: -1, sourceType: 'legitimacy', sourceId: 'legitimacy', label: 'Low Legitimacy' });
+    lines.push({ key: 'national.stabilityBonus', value: -1, sourceType: 'legitimacy', sourceId: 'legitimacy', label: 'Low Legitimacy' });
   }
 
   return lines;

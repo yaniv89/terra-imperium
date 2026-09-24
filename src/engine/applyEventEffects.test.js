@@ -24,6 +24,22 @@ describe('applyEventEffects', () => {
     expect(next.victoryConditionId).toBe('survival');
   });
 
+  it('applies stability/legitimacy/prestige deltas to the player nation (plan §M4)', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const next = applyEventEffects(state, fixtureEvent('stability_event', { stability: 1, legitimacy: 10, prestige: 20 }), 0);
+    expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) + 1);
+    expect(next.nations.fr.legitimacy).toBe(state.nations.fr.legitimacy + 10);
+    expect(next.nations.fr.prestige).toBe(state.nations.fr.prestige + 20);
+  });
+
+  it('clamps stability/legitimacy/prestige deltas to their valid ranges', () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    const next = applyEventEffects(state, fixtureEvent('extreme_event', { stability: 100, legitimacy: 1000, prestige: -1000 }), 0);
+    expect(next.nations.fr.stability).toBe(3);
+    expect(next.nations.fr.legitimacy).toBe(100);
+    expect(next.nations.fr.prestige).toBe(-100);
+  });
+
   it('declares war on the named nation for warWith', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const next = applyEventEffects(state, fixtureEvent('war_event', { warWith: 'de' }), 0);
