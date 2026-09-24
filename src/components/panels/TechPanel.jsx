@@ -9,7 +9,7 @@ import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes, TechCategories } from '../../data/types';
 import { TECH_TREE, canResearchTech, getTechsByCategory } from '../../data/techTree';
-import { ACTION_COSTS } from '../../data/actionCosts';
+import { ACTION_COSTS, TECH_RESEARCH_POOL } from '../../data/actionCosts';
 import { getNationCapital } from '../../data/regions';
 import { getAgesBehind, getAgesBehindResearchCostMultiplier, getAgesBehindCombatMultiplier } from '../../data/ages';
 import { canAfford, scaleCosts } from '../../utils/helpers';
@@ -43,8 +43,8 @@ const TechPanel = () => {
     triggerEffect('fund_scholars', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.FUND_SCHOLARS, payload: {} });
   };
-  const handleResearch = (techId, techCost) => {
-    const costs = { ...scaleCosts(techCost, researchCostMult), actionPoints: ACTION_COSTS.researchTech.actionPoints };
+  const handleResearch = (techId, techCost, category) => {
+    const costs = { ...scaleCosts(techCost, researchCostMult), [TECH_RESEARCH_POOL[category]]: ACTION_COSTS.researchTech.power };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
     triggerEffect('research_tech', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.RESEARCH_TECH, payload: { techId } });
@@ -113,7 +113,7 @@ const TechPanel = () => {
           {(categories[categoryId]?.techs || []).map(tech => {
             const techState = state.techTree[tech.id];
             const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind);
-            const costs = { ...scaleCosts(tech.cost, researchCostMult), actionPoints: ACTION_COSTS.researchTech.actionPoints };
+            const costs = { ...scaleCosts(tech.cost, researchCostMult), [TECH_RESEARCH_POOL[categoryId]]: ACTION_COSTS.researchTech.power };
             return (
               <ActionButton
                 key={tech.id}
@@ -121,7 +121,7 @@ const TechPanel = () => {
                 label={tech.name}
                 description={techState?.researched ? 'Researched' : check.reason || 'Available'}
                 costs={techState?.researched ? null : costs}
-                onClick={() => handleResearch(tech.id, tech.cost)}
+                onClick={() => handleResearch(tech.id, tech.cost, categoryId)}
                 disabled={techState?.researched || !check.can}
                 variant={techState?.researched ? 'success' : 'default'}
                 size="small"

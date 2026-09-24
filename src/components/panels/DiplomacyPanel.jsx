@@ -109,7 +109,7 @@ const DiplomacyPanel = () => {
           const atWarWithPlayer = isAtWarWithPlayer(state, nation.id);
           const justified = hasCasusBelli(state, state.playerNationId, nation.id);
           const declareWarCosts = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
-          const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), actionPoints: 1 };
+          const sueForPeaceCosts = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - (nation.warExhaustion || 0) * 2)), dip: 1 };
 
           return (
             <div

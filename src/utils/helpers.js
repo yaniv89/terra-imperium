@@ -74,19 +74,15 @@ const EXTRACTION_BASE_YIELD = 20;
 // Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
 const SCIENCE_TECHPOINT_YIELD = 2;
 
-// Administrative Capacity: a flat 3 AP/turn regardless of empire size meant a 50-region late-game
-// empire acted exactly as often per turn as its 1-region start — nothing about maturing your state
-// ever expanded what you could actually DO in a turn. This adds two real, already-existing levers:
-// government maturity (apBonus on GOVERNMENT_TYPES' effect object, via the same hook
-// getNationBonusTotal already sums for gold/stability) and the Governance tech line (Code of Laws
-// through Digital Administration — literally about administrative capacity), so investing in either
-// is a real choice with a payoff, rather than AP being a fixed constant for the whole ~500-turn game.
-// 3 -> 5: with a menu of ~47 distinct actions across 5 panels and most costing 1-2 AP each, 3 base
-// AP meant a turn-1 player could realistically take only 1-2 actions before government/tech bonuses
-// (below) ever kick in — playtest feedback confirmed this reads as "barely anything to do" rather
-// than meaningful prioritization. 5 gives 2-4 actions turn one without touching the late-game
-// ceiling this constant already scales from.
-const BASE_ACTION_POINTS = 5;
+// Administrative Capacity, now split three ways (plan §M2): a flat pool/turn regardless of empire
+// size meant a 50-region late-game empire acted exactly as often per turn as its 1-region start —
+// nothing about maturing your state ever expanded what you could actually DO in a turn. This adds
+// a real, already-existing lever on top of the base: government maturity (apBonus on
+// GOVERNMENT_TYPES' effect object) and the Governance tech line (Code of Laws through Digital
+// Administration), applied to all three pools equally since neither source differentiates by pool
+// yet — M3's rulers and M7's per-line tech effects are what eventually make ADM/DIP/MIL grow at
+// different rates from each other.
+export const BASE_POWER_PER_TURN = 3;
 
 // Real fielded army strength for a nation — the sum of every unit it actually owns' `strength`
 // (src/context/GameContext.jsx's flat state.units dict). This is what's shown to the player for any
@@ -102,8 +98,24 @@ const BASE_ACTION_POINTS = 5;
 export const getFieldedStrength = (state, nationId) =>
   Object.values(state.units || {}).reduce((sum, u) => sum + (u.ownerId === nationId ? (u.strength || 0) : 0), 0);
 
-export const getMaxActionPoints = (state) =>
-  BASE_ACTION_POINTS + getModifier(state, state.playerNationId, 'national.apBonus').total;
+// Plan §M2: replaces the old single-pool getMaxActionPoints with the three power pools' per-turn
+// income. Recomputed fresh from current government/tech every turn rather than read from a stored
+// field, so adopting a government or finishing a Governance tech takes effect on the very next
+// turn automatically.
+//
+// A Communications Satellite's dipPerTurn and a completed space mission's recurringReward.
+// dipPerTurn belong here, not in calcIncome's generic per-resource forEach: resolveTurn.js banks
+// each pool up to a CAP OF 2x THIS FUNCTION'S OWN RETURN VALUE, so a recurring DIP bonus has to be
+// part of that return value to actually raise the cap it lives under — added the other way (via
+// calcIncome, before the cap is applied), the very next turn's bank-up would clip it straight back
+// down to 2x the un-boosted base, silently discarding the bonus a player just earned.
+export const getPowerIncome = (state) => {
+  const bonus = getModifier(state, state.playerNationId, 'national.apBonus').total;
+  const perPool = BASE_POWER_PER_TURN + bonus;
+  const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, state.playerNationId, 'dipPerTurn', state.orbitalDebrisLevel);
+  const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
+  return { adm: perPool, dip: perPool + satelliteDip + missionDip, mil: perPool };
+};
 
 // A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
 // itself is always seeded from the modern (~2024) figure regardless of start year, since it also
@@ -176,23 +188,22 @@ export const calcIncome = (state) => {
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
 
-  // A Communications Satellite's flat diplomacyPoints/turn and a Spy Satellite's flat
-  // techPoints/turn — additive income, not multipliers, so they're summed separately from the
-  // goldMult/hrMult hooks above rather than forced into that multiplicative shape.
-  const satelliteDiplomacyPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'diplomacyPointsPerTurn', state.orbitalDebrisLevel);
+  // A Spy Satellite's flat techPoints/turn — additive income, not a multiplier, so it's summed
+  // separately from the goldMult/hrMult hooks above rather than forced into that multiplicative
+  // shape. (A Communications Satellite's dipPerTurn is NOT handled here — see getPowerIncome's own
+  // header for why a DIP-pool bonus has to live there instead of in this generic income object.)
   const satelliteTechPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'techPointsPerTurn', state.orbitalDebrisLevel);
-  if (satelliteDiplomacyPoints) income.diplomacyPoints = (income.diplomacyPoints || 0) + satelliteDiplomacyPoints;
   if (satelliteTechPoints) income.techPoints = (income.techPoints || 0) + satelliteTechPoints;
 
   // Space mission ladder (plan §10.4 Layer 3) — every completed mission's recurringReward is a
-  // flat per-turn addition (gold/diplomacyPoints/techPoints already exist as income keys;
-  // rareMetals/helium3 have no deposit or extraction building of their own — completing
-  // asteroid_mining/outer_planets IS their only real source, per resources.js's own header).
+  // flat per-turn addition (gold/techPoints already exist as income keys; rareMetals/helium3 have
+  // no deposit or extraction building of their own — completing asteroid_mining/outer_planets IS
+  // their only real source, per resources.js's own header). dipPerTurn is handled in
+  // getPowerIncome instead, for the same reason satellite dipPerTurn is.
   (state.completedMissions || []).forEach(missionId => {
     const reward = SPACE_MISSIONS_BY_ID[missionId]?.recurringReward;
     if (!reward) return;
     if (reward.goldPerTurn) income.gold = (income.gold || 0) + reward.goldPerTurn;
-    if (reward.diplomacyPointsPerTurn) income.diplomacyPoints = (income.diplomacyPoints || 0) + reward.diplomacyPointsPerTurn;
     if (reward.techPointsPerTurn) income.techPoints = (income.techPoints || 0) + reward.techPointsPerTurn;
     if (reward.rareMetalsPerTurn && income.rareMetals !== undefined) income.rareMetals += reward.rareMetalsPerTurn;
     if (reward.helium3PerTurn && income.helium3 !== undefined) income.helium3 += reward.helium3PerTurn;
@@ -298,28 +309,30 @@ export const scaleCosts = (costs, mult) =>
   Object.fromEntries(Object.entries(costs).map(([key, value]) => [key, Math.round(value * mult)]));
 
 const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals', helium3: 'Helium-3' };
+// Plan §M2: the three power pools, each measured against its own cap (maxAdm/maxDip/maxMil),
+// exactly like actionPoints was measured against maxActionPoints before the pool split.
+const POWER_POOL_LABELS = { adm: 'ADM', dip: 'DIP', mil: 'MIL' };
 
 // How much of the player's CURRENT pool a cost would consume — the binary canAfford() check above
 // says nothing about a cost that's affordable but still eats most/all of what the player has right
-// now (e.g. turn-1 government adoption using 66% of starting AP, or a first unit recruit that costs
-// exactly 100% of starting HR). actionPoints is measured against maxActionPoints (a real cap); every
-// other resource has no cap, so it's measured against the current on-hand amount instead. Returns
-// null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just check
-// truthiness rather than branching on a 'normal' level themselves.
+// now (e.g. turn-1 government adoption using most of starting ADM, or a first unit recruit that
+// costs exactly 100% of starting HR). A power pool is measured against its own cap (a real ceiling);
+// every other resource has no cap, so it's measured against the current on-hand amount instead.
+// Returns null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just
+// check truthiness rather than branching on a 'normal' level themselves.
 export const getResourceStrain = (costs, resources) => {
   if (!costs || !resources) return null;
   let worst = { fraction: 0, key: null };
   Object.entries(costs).forEach(([key, value]) => {
     if (!value) return;
-    const denominator = key === 'actionPoints'
-      ? (resources.maxActionPoints || resources.actionPoints || 0)
-      : (resources[key] || 0);
+    const isPower = !!POWER_POOL_LABELS[key];
+    const denominator = isPower ? (resources[`max${key[0].toUpperCase()}${key.slice(1)}`] || resources[key] || 0) : (resources[key] || 0);
     if (denominator <= 0) return;
     const fraction = value / denominator;
     if (fraction > worst.fraction) worst = { fraction, key };
   });
   if (!worst.key || worst.fraction < 0.5) return null;
-  const label = worst.key === 'actionPoints' ? 'AP' : (RESOURCE_LABELS[worst.key] || worst.key);
+  const label = POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key] || worst.key;
   return { level: worst.fraction >= 0.9 ? 'critical' : 'high', label };
 };
 
@@ -328,9 +341,8 @@ export const getCostString = (costs) => {
   Object.entries(costs).forEach(([key, value]) => {
     if (!value) return;
     if (RESOURCE_LABELS[key]) parts.push(`${formatNumber(value)} ${RESOURCE_LABELS[key]}`);
-    else if (key === 'diplomacyPoints') parts.push(`${value} DP`);
     else if (key === 'techPoints') parts.push(`${value} TP`);
-    else if (key === 'actionPoints') parts.push(`${value} AP`);
+    else if (POWER_POOL_LABELS[key]) parts.push(`${value} ${POWER_POOL_LABELS[key]}`);
   });
   return parts.join(', ');
 };

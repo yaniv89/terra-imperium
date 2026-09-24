@@ -119,3 +119,35 @@ describe('migrateSave', () => {
     expect(result.state.orbitalDebrisLevel).toBe(0);
   });
 });
+
+// M2 (plan §M2): the v1->v2 step converts the old single actionPoints pool (+ the separate
+// diplomacyPoints currency) into the three adm/dip/mil power pools.
+describe('migrateSave: v1 -> v2 (AP -> ADM/DIP/MIL)', () => {
+  it('converts a v1 save\'s actionPoints/diplomacyPoints into adm/dip/mil at the 3/5 ratio, dropping the old keys', () => {
+    const v1 = { version: 1, state: { ...createInitialState({ playerNationId: 'fr' }), resources: { gold: 500, hr: 100, actionPoints: 8, maxActionPoints: 5, diplomacyPoints: 20, techPoints: 0 } } };
+    const result = migrateSave(v1);
+    expect(result.state.resources.adm).toBe(5); // round(8 * 3/5) = round(4.8) = 5
+    expect(result.state.resources.mil).toBe(5);
+    expect(result.state.resources.dip).toBe(25); // 5 + 20 diplomacyPoints folded in
+    expect(result.state.resources.maxAdm).toBe(5);
+    expect(result.state.resources.maxDip).toBe(5);
+    expect(result.state.resources.maxMil).toBe(5);
+    expect(result.state.resources.actionPoints).toBeUndefined();
+    expect(result.state.resources.maxActionPoints).toBeUndefined();
+    expect(result.state.resources.diplomacyPoints).toBeUndefined();
+    expect(result.state.resources.gold).toBe(500); // untouched
+  });
+
+  it('the real v1 fixture (actionPoints: 8, diplomacyPoints: 20) converts the same way', () => {
+    const result = migrateSave(saveV1Fixture);
+    expect(result.state.resources.adm).toBe(5);
+    expect(result.state.resources.dip).toBe(25);
+  });
+
+  it('floors a negative/missing actionPoints at 0 rather than producing a negative pool', () => {
+    const v1 = { version: 1, state: { ...createInitialState({ playerNationId: 'fr' }), resources: { gold: 500, hr: 100 } } };
+    const result = migrateSave(v1);
+    expect(result.state.resources.adm).toBe(0);
+    expect(result.state.resources.dip).toBe(0);
+  });
+});

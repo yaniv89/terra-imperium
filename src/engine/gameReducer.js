@@ -27,7 +27,7 @@ import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '..
 import { hasDeposit } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
-  ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
+  ACTION_COSTS, TECH_RESEARCH_POOL, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
   UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
@@ -47,7 +47,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } 
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { canAfford, applyCosts, scaleCosts } from '../utils/helpers';
+import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
@@ -207,18 +207,23 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     difficultyMultiplier: 1,
 
     // Resources — Gold/HR always present; Copper/Iron/Oil (and later Rare Metals/Helium-3) join
-    // as their age unlocks (see src/data/resources.js). diplomacyPoints/techPoints/actionPoints
-    // are meta-currencies, not age-gated resources.
+    // as their age unlocks (see src/data/resources.js). techPoints/adm/dip/mil are meta-currencies,
+    // not age-gated resources. adm/dip/mil (plan §M2) replace the old single actionPoints pool
+    // (and the separate diplomacyPoints currency, folded into dip) with three EU4-style power
+    // pools that compete only against actions of their own kind.
     resources: {
       ...createEmptyResourcePool(age),
       gold: 500,
       hr: 100,
-      diplomacyPoints: 20,
       techPoints: 0,
-      // Matches BASE_ACTION_POINTS (src/utils/helpers.js) — a fresh nation has no government and
-      // no researched tech yet, so getMaxActionPoints(state) would return exactly the base anyway.
-      actionPoints: 5,
-      maxActionPoints: 5
+      // Matches BASE_POWER_PER_TURN (src/utils/helpers.js) — a fresh nation has no government and
+      // no researched tech yet, so getPowerIncome(state) would return exactly the base anyway.
+      adm: BASE_POWER_PER_TURN,
+      dip: BASE_POWER_PER_TURN,
+      mil: BASE_POWER_PER_TURN,
+      maxAdm: BASE_POWER_PER_TURN,
+      maxDip: BASE_POWER_PER_TURN,
+      maxMil: BASE_POWER_PER_TURN
     },
 
     // World state
@@ -681,7 +686,7 @@ export const gameReducer = (state, action) => {
       if (!mission) return state;
       if (!canLaunchSatellite(state.age, state.techAgeId, state.year)) return state;
       if (!canLaunchMission(missionId, state.completedMissions, state.spaceMissionProgress)) return state;
-      const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
+      const costs = { ...mission.cost, dip: ACTION_COSTS.launchMission.dip };
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1174,8 +1179,10 @@ export const gameReducer = (state, action) => {
     case ActionTypes.RESEARCH_TECH: {
       const { techId } = action.payload;
       const tech = TECH_TREE[techId];
-      const costs = ACTION_COSTS.researchTech;
       if (!tech) return state;
+      // Plan §M2/§M7: which power pool a research action draws from depends on the tech's own
+      // line (TECH_RESEARCH_POOL), not a flat shared actionPoints cost.
+      const costs = { [TECH_RESEARCH_POOL[tech.category]]: ACTION_COSTS.researchTech.power };
       // A nation whose OWN tech-earned age has fallen behind the calendar (never researching while
       // turns pass) pays more to research the same tech — see src/data/ages.js's
       // getAgesBehindResearchCostMultiplier's file header for why.
@@ -1367,7 +1374,7 @@ export const gameReducer = (state, action) => {
       const { nationId } = action.payload;
       const target = state.nations[nationId];
       if (!target || !target.isAtWar) return state;
-      const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), actionPoints: 1 };
+      const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), dip: 1 };
       if (!canAfford(state.resources, costs)) return state;
       const player = state.nations[state.playerNationId];
       return {
@@ -1468,9 +1475,9 @@ export const gameReducer = (state, action) => {
       const resourcesAfterCost = applyCosts(state.resources, costs);
       return {
         ...state,
-        resources: { ...resourcesAfterCost, diplomacyPoints: (resourcesAfterCost.diplomacyPoints || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
+        resources: { ...resourcesAfterCost, dip: (resourcesAfterCost.dip || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
         nations: { ...state.nations, [target.id]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - COUNTER_INTEL_HOSTILITY_REDUCTION) } },
-        logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} Diplomacy Points.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} DIP.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

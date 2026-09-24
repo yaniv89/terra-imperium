@@ -14,7 +14,7 @@ const formatEffectItem = (key, value) => {
     copper: 'Copper',
     iron: 'Iron',
     oil: 'Oil',
-    diplomacyPoints: 'Diplomacy',
+    dip: 'DIP',
     techPoints: 'Tech Points',
     militaryStrengthBonus: 'Military',
     controlBonus: 'Control',

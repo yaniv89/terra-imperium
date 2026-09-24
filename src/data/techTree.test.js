@@ -23,7 +23,7 @@ const freshTree = (fixture = FIXTURE_TECH) => {
   return tree;
 };
 
-const richResources = { gold: 10000000, techPoints: 10000, actionPoints: 3 };
+const richResources = { gold: 10000000, techPoints: 10000, adm: 3, dip: 3, mil: 3 };
 
 describe('canResearchTech (generic gating, against a fixture table)', () => {
   it('rejects a tech whose exclusive counterpart is already researched', () => {
@@ -62,18 +62,21 @@ describe('canResearchTech (generic gating, against a fixture table)', () => {
 
   it('rejects insufficient funds or tech points', () => {
     const tree = freshTree();
-    expect(canResearchTech('a', tree, { gold: 0, techPoints: 0, actionPoints: 3 }, 2000, FIXTURE_TECH).can).toBe(false);
+    expect(canResearchTech('a', tree, { gold: 0, techPoints: 0, mil: 3 }, 2000, FIXTURE_TECH).can).toBe(false);
   });
 
-  it('rejects fewer than 2 action points regardless of funds', () => {
+  // Tech 'a' is category 'military', which draws from the MIL pool (TECH_RESEARCH_POOL,
+  // src/data/actionCosts.js) — fewer than researchTech's flat power quantity (2) in that specific
+  // pool blocks research even with unlimited ADM/DIP.
+  it('rejects fewer than 2 power in the tech\'s own pool regardless of funds or other pools', () => {
     const tree = freshTree();
-    expect(canResearchTech('a', tree, { gold: 10000000, techPoints: 10000, actionPoints: 1 }, 2000, FIXTURE_TECH).can).toBe(false);
+    expect(canResearchTech('a', tree, { gold: 10000000, techPoints: 10000, adm: 10, dip: 10, mil: 1 }, 2000, FIXTURE_TECH).can).toBe(false);
   });
 
   it('scales the affordability check up by agesBehind\'s research-cost multiplier', () => {
     const tree = freshTree();
     // tech 'a' costs { gold: 100, techPoints: 5 } — exactly affordable at 1x, not at 1.3x (1 age behind).
-    const exact = { gold: 100, techPoints: 5, actionPoints: 3 };
+    const exact = { gold: 100, techPoints: 5, mil: 3 };
     expect(canResearchTech('a', tree, exact, 2000, FIXTURE_TECH, 0).can).toBe(true);
     expect(canResearchTech('a', tree, exact, 2000, FIXTURE_TECH, 1).can).toBe(false);
   });

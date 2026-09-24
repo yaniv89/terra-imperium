@@ -24,7 +24,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   RESOURCE_IDS.forEach(id => {
     if (effects[id] && resources[id] !== undefined) resources[id] += effects[id];
   });
-  if (effects.diplomacyPoints) resources.diplomacyPoints = (resources.diplomacyPoints || 0) + effects.diplomacyPoints;
+  if (effects.dip) resources.dip = (resources.dip || 0) + effects.dip;
   if (effects.techPoints) resources.techPoints = (resources.techPoints || 0) + effects.techPoints;
   next.resources = resources;
 

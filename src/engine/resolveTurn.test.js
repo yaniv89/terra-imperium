@@ -43,7 +43,7 @@ describe('resolveTurn determinism', () => {
   // economic actions, which wouldn't actually exercise the seeded randomness this guarantees.
   it('replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results', () => {
     const initial = createInitialState({ playerNationId: 'fr' });
-    const withResources = { ...initial, resources: { ...initial.resources, gold: 100000, hr: 100000, actionPoints: 100 } };
+    const withResources = { ...initial, resources: { ...initial.resources, gold: 100000, hr: 100000, mil: 100 } };
     // fr-59 (Nord) really borders be-vwv (Hainaut) — worldRegions.json — so the recruited unit can
     // actually launch a real invasion from one to the other, exercising real battle RNG.
     const FRONTIER_REGION = 'fr-59';
@@ -142,32 +142,34 @@ describe('resolveTurn resource income', () => {
     expect(next.resources.iron).toBeDefined();
   });
 
-  // Regression guard: actionPoints isn't in RESOURCE_IDS, so createEmptyResourcePool never zeroes
-  // it and calcIncome never returns it — nothing refreshed it before this fix, meaning a fresh
-  // game's starting 3 action points were, in effect, the player's ENTIRE budget for the whole
+  // Regression guard: adm/dip/mil aren't in RESOURCE_IDS, so createEmptyResourcePool never zeroes
+  // them and calcIncome never returns them — nothing refreshed them before this fix, meaning a
+  // fresh game's starting power was, in effect, the player's ENTIRE budget for the whole
   // ~500-turn game once spent, permanently locking out every action (recruiting, building,
-  // diplomacy, research, all of which cost actionPoints — src/data/actionCosts.js). Every other
-  // action-cost test in this codebase manually stuffs actionPoints before dispatching, which is
-  // exactly why nothing else caught this.
-  it('tops actionPoints up by the per-turn budget when none was left over', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, actionPoints: 0 } };
+  // diplomacy, research, all of which cost adm/dip/mil — src/data/actionCosts.js). Every other
+  // action-cost test in this codebase manually stuffs the relevant pool before dispatching, which
+  // is exactly why nothing else caught this.
+  it('tops adm/dip/mil up by the per-turn budget when none was left over', () => {
+    const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, adm: 0, dip: 0, mil: 0 } };
     const next = resolveTurn(state);
-    expect(next.resources.actionPoints).toBe(state.resources.maxActionPoints);
+    expect(next.resources.adm).toBe(state.resources.maxAdm);
+    expect(next.resources.dip).toBe(state.resources.maxDip);
+    expect(next.resources.mil).toBe(state.resources.maxMil);
   });
 
-  it('a whole long run never runs out of action points to spend', () => {
-    // Spending only 1 of 5 AP/turn on a single action banks the rest every turn, so under the
-    // capped-banking model (resolveTurn.js's AP_BANK_CAP_MULTIPLIER) the balance climbs and then
-    // saturates at 2x maxActionPoints rather than settling back to a flat maxActionPoints every
-    // turn — the old flat-overwrite invariant this test used to check. Either way, the player is
-    // never starved of AP to spend, which is the actual regression this test guards against.
+  it('a whole long run never runs out of ADM to spend', () => {
+    // Spending only 1 of 3 ADM/turn on a single action banks the rest every turn, so under the
+    // capped-banking model (resolveTurn.js's POWER_BANK_CAP_MULTIPLIER) the balance climbs and then
+    // saturates at 2x maxAdm rather than settling back to a flat maxAdm every turn — the old
+    // flat-overwrite invariant this test used to check. Either way, the player is never starved of
+    // ADM to spend, which is the actual regression this test guards against.
     let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     for (let i = 0; i < 50; i++) {
       state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
       state = resolveTurn(state);
-      expect(state.resources.actionPoints).toBeGreaterThan(0);
+      expect(state.resources.adm).toBeGreaterThan(0);
     }
-    expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints * 2);
+    expect(state.resources.adm).toBe(state.resources.maxAdm * 2);
   }, 30000); // 50 real turns at the 4,482-region world's per-turn cost — see aiQualityBenchmark.test.js's own comment
 });
 
@@ -701,8 +703,8 @@ describe('resolveTurn space mission ladder', () => {
     const next = resolveTurn(base);
     expect(next.spaceMissionProgress.sounding_rocket).toBeUndefined();
     expect(next.completedMissions).toContain('sounding_rocket');
-    // sounding_rocket's oneTimeReward is diplomacyPoints: 10, on top of that turn's own income.
-    expect(next.resources.diplomacyPoints).toBeGreaterThanOrEqual(base.resources.diplomacyPoints + 10);
+    // sounding_rocket's oneTimeReward is dip: 10, on top of that turn's own income.
+    expect(next.resources.dip).toBeGreaterThanOrEqual(base.resources.dip + 10);
   });
 
   it('leaves unrelated in-progress missions untouched', () => {
@@ -720,8 +722,8 @@ describe('resolveTurn space mission ladder', () => {
     const withoutMission = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const withMission = resolveTurn(base);
     const without = resolveTurn(withoutMission);
-    // moon_landing's recurringReward is diplomacyPointsPerTurn: 10.
-    expect(withMission.resources.diplomacyPoints).toBeGreaterThan(without.resources.diplomacyPoints);
+    // moon_landing's recurringReward is dipPerTurn: 10.
+    expect(withMission.resources.dip).toBeGreaterThan(without.resources.dip);
   });
 });
 
@@ -798,12 +800,14 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const state = strip(base, 'de', 'fr');
     const goldBefore = state.resources.gold;
-    const dpBefore = state.resources.diplomacyPoints || 0;
+    const dpBefore = state.resources.dip || 0;
     const next = resolveTurn(state);
     expect(next.nations.de.isEliminated).toBe(true);
     expect(next.playerEliminatedNationId).toBe('de');
     expect(next.resources.gold - goldBefore).toBeGreaterThanOrEqual(NATION_ELIMINATION_REWARD.gold);
-    expect(next.resources.diplomacyPoints).toBe(dpBefore + NATION_ELIMINATION_REWARD.diplomacyPoints);
+    // >= rather than exact equality: the pool also banks its normal per-turn DIP income this same
+    // turn (getPowerIncome/resolveTurn.js's power-banking step), on top of the elimination reward.
+    expect(next.resources.dip).toBeGreaterThanOrEqual(dpBefore + NATION_ELIMINATION_REWARD.dip);
   });
 
   it('never eliminates the player nation itself, however few regions remain', () => {
