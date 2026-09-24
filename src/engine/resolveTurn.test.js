@@ -152,9 +152,13 @@ describe('resolveTurn resource income', () => {
   it('tops adm/dip/mil up by the per-turn budget when none was left over', () => {
     const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, adm: 0, dip: 0, mil: 0 } };
     const next = resolveTurn(state);
-    expect(next.resources.adm).toBe(state.resources.maxAdm);
-    expect(next.resources.dip).toBe(state.resources.maxDip);
-    expect(next.resources.mil).toBe(state.resources.maxMil);
+    // Compared against next's OWN maxAdm/maxDip/maxMil, not state's: createInitialState hardcodes
+    // maxAdm/maxDip/maxMil to the flat BASE_POWER_PER_TURN at creation, while resolveTurn recomputes
+    // them from getPowerIncome (which includes the nation's seeded ruler's adm/dip/mil skill, M3) —
+    // so state's own pre-turn max is stale the moment a nonzero ruler skill exists.
+    expect(next.resources.adm).toBe(next.resources.maxAdm);
+    expect(next.resources.dip).toBe(next.resources.maxDip);
+    expect(next.resources.mil).toBe(next.resources.maxMil);
   });
 
   it('a whole long run never runs out of ADM to spend', () => {
@@ -791,7 +795,10 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const next = resolveTurn(state);
     expect(next.nations.de.isEliminated).toBe(true);
     expect(next.nations.de.isAtWar).toBe(false);
-    expect(next.wars).toEqual([]);
+    // Not `toEqual([])`: M3's per-nation ruler generation at game creation consumes extra RNG
+    // draws, which can shift an unrelated AI nation into declaring its own war during this same
+    // turn's AI phase. This test only cares that Germany's own war closed out on elimination.
+    expect(next.wars.some((w) => w.aggressor === 'de' || w.enemy === 'de')).toBe(false);
     expect(next.playerEliminatedNationId).toBeNull();
     expect(next.logs.some(l => l.type === LogTypes.MILESTONE && l.message.includes('Germany') && l.message.includes('eliminated'))).toBe(true);
   });

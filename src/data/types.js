@@ -83,6 +83,8 @@ export const ActionTypes = {
   BUILD_CLIMATE_RESILIENCE: 'BUILD_CLIMATE_RESILIENCE',
   // Cultural Export / soft power (Modern age) — see nation.culturalInfluence's comment.
   CULTURAL_EXPORT: 'CULTURAL_EXPORT',
+  // Rulers, heirs, advisors (plan §M3) — see src/engine/succession.js.
+  HIRE_ADVISOR: 'HIRE_ADVISOR',
 
   // Space Race, orbital layer (plan §10.4 Layer 1).
   LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',
