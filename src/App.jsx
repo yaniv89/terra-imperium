@@ -7,24 +7,63 @@ import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { GlobeContainer } from './components/globe';
 import { ActionPanel, ActionPanelTabs, LogConsole } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, SettingsModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
-import { GameStatus, LogTypes } from './data/types';
+import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
+import AdminPage from './components/admin/AdminPage';
+import { GameStatus, LogTypes, ActionTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
 import { useIsMobile } from './hooks/useIsMobile';
+import { useCloudSync } from './hooks/useCloudSync';
+import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
+import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
 // Main game layout component
 const GameLayout = () => {
-  const { state, resolveEvent, resetGame, exportSave, importSave, meta, completeOnboarding } = useGame();
+  const { state, dispatch, resolveEvent, resetGame, meta, completeOnboarding } = useGame();
   const { triggerEffect } = useEffects();
   const [selectedRegion, setSelectedRegion] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState('domestic');
   const isMobile = useIsMobile();
+
+  // Accounts & cloud saves (plan §M0.5). `client` is stable for the app's lifetime once cloud
+  // saves are configured at all; `user`/`profile` track sign-in state so a guest never triggers
+  // any of this. Cloud sync is purely additive on top of the existing local autosave above — a
+  // guest keeps exactly today's local-only save/export, signing in only adds the cloud autosave +
+  // 3 manual slots (src/components/modals/AccountModal.jsx) on top.
+  const client = isCloudSaveConfigured ? getSupabaseClient() : null;
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  useEffect(() => {
+    if (!client) return undefined;
+    getCurrentUser(client).then(setUser).catch(() => {});
+    return onAuthStateChange(client, setUser);
+  }, [client]);
+  useEffect(() => {
+    if (!client || !user) { setProfile(null); return; }
+    getProfile(client, user.id).then(setProfile).catch(() => {});
+  }, [client, user]);
+
+  const getPayload = useCallback(() => ({ version: 1, state }), [state]);
+  const onAdoptState = useCallback((adoptedState) => {
+    dispatch({ type: ActionTypes.LOAD_GAME, payload: adoptedState });
+  }, [dispatch]);
+  const cloudSync = useCloudSync({ client, user, getPayload, onAdoptState });
+
+  // Every completed End Turn (turnNumber only ever counts up during real play — see the age-banner
+  // effect above for why that's the reliable "did a turn actually happen" signal) queues the
+  // latest state for the cloud autosave slot. No-op while signed out; useCloudSync itself is what
+  // guards that.
+  const prevTurnForSyncRef = useRef(state.turnNumber);
+  useEffect(() => {
+    if (state.turnNumber > prevTurnForSyncRef.current) cloudSync.syncNow(getPayload());
+    prevTurnForSyncRef.current = state.turnNumber;
+  }, [state.turnNumber, cloudSync, getPayload]);
   // A brand-new player (no save yet) sees the country-select/difficulty/speed start screen
   // before anything else; an existing save skips straight to the loaded game.
   const [showStartScreen, setShowStartScreen] = useState(() => !hasExistingSave());
@@ -110,7 +149,7 @@ const GameLayout = () => {
   return (
     <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 flex flex-col overflow-y-scroll">
       {/* Header with resources and controls */}
-      <GameHeader onReset={handleReset} onOpenSettings={() => setShowSettings(true)} />
+      <GameHeader onReset={handleReset} onOpenSettings={() => setShowAccount(true)} cloudStatus={client ? cloudSync.status : null} />
 
       {/* Main content area. Below `lg` (phones/narrow tablets), this is no longer one long
           scrolling page: the globe and tab bar stay put (both `shrink-0`) and only the middle
@@ -176,13 +215,23 @@ const GameLayout = () => {
       {/* Nation Eliminated banner - non-blocking, auto-dismisses */}
       <NationEliminatedBanner nationName={eliminatedNationName} onDismiss={() => setEliminatedNationName(null)} />
 
-      {/* Cloud saves + account (Phase F) - opened from GameHeader's Cloud button */}
-      <SettingsModal
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-        exportSave={exportSave}
-        importSave={importSave}
+      {/* Cloud saves + account (plan §M0.5) - opened from GameHeader's Cloud button */}
+      <AccountModal
+        open={showAccount}
+        onClose={() => setShowAccount(false)}
+        onOpenAdmin={() => { setShowAccount(false); setShowAdmin(true); }}
       />
+
+      {/* Admin page (plan §M0.5) - only reachable via AccountModal's Admin button, which only
+          renders for profile.role === 'admin'; the database's RLS is the real gate (see
+          supabase/migrations/0003_accounts_saves_admin.sql), this is just the UI entry point. */}
+      {user && profile?.role === 'admin' && (
+        <AdminPage open={showAdmin} onClose={() => setShowAdmin(false)} client={client} adminId={user.id} />
+      )}
+
+      {/* Cross-device save conflict (plan §M0.5) - blocks play until resolved, since there is no
+          silent merge between two diverged games. */}
+      <ConflictChooserModal conflict={cloudSync.conflict} onChoose={cloudSync.resolveConflict} />
 
       {/* Onboarding (Phase H) - once ever, per browser, for a genuinely new player. Sits above
           the event modal (z-[70] vs z-50) as a defensive measure, though a fresh game's turn 0
