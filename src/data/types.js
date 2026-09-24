@@ -30,6 +30,9 @@ export const ActionTypes = {
   BUILD_DEFENSES: 'BUILD_DEFENSES',
   CONSTRUCT_BUILDING: 'CONSTRUCT_BUILDING',
   DEVELOP_RESOURCE_SITE: 'DEVELOP_RESOURCE_SITE',
+  // Province development (plan §M5) — see src/engine/development.js. Distinct from
+  // DEVELOP_RESOURCE_SITE above, which is about extraction deposits, not tax/production/manpower.
+  DEVELOP_PROVINCE: 'DEVELOP_PROVINCE',
   QUELL_UNREST: 'QUELL_UNREST',
   SETTLE_COLONIZE: 'SETTLE_COLONIZE',
   POPULATION_POLICY: 'POPULATION_POLICY',

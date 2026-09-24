@@ -226,6 +226,62 @@ describe('Domestic tab actions', () => {
     });
   });
 
+  describe('DEVELOP_PROVINCE (plan §M5)', () => {
+    const powerRichState = () => {
+      const state = createInitialState({ playerNationId: 'fr' });
+      return { ...state, resources: { ...state.resources, adm: 100000, dip: 100000, mil: 100000 } };
+    };
+
+    it('raises the region\'s tax development by 1 and deducts the ADM cost', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].dev.tax;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'tax' } });
+      expect(next.regions[cap('fr')].dev.tax).toBe(before + 1);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+    });
+
+    it('raises production development and spends DIP', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].dev.production;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'production' } });
+      expect(next.regions[cap('fr')].dev.production).toBe(before + 1);
+      expect(next.resources.dip).toBeLessThan(state.resources.dip);
+      expect(next.resources.adm).toBe(state.resources.adm);
+    });
+
+    it('raises manpower development and spends MIL', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].dev.manpower;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'manpower' } });
+      expect(next.regions[cap('fr')].dev.manpower).toBe(before + 1);
+      expect(next.resources.mil).toBeLessThan(state.resources.mil);
+    });
+
+    it('grows the region\'s population by 3% of its modern baseline', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].currentPopulation;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'tax' } });
+      expect(next.regions[cap('fr')].currentPopulation).toBeGreaterThan(before);
+    });
+
+    it('is a no-op on a region not owned by the player', () => {
+      const state = powerRichState();
+      const otherId = Object.keys(state.regions).find((id) => id !== cap('fr') && state.regions[id].owner !== 'fr');
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: otherId, devType: 'tax' } })).toBe(state);
+    });
+
+    it('is a no-op for an invalid devType', () => {
+      const state = powerRichState();
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'bogus' } })).toBe(state);
+    });
+
+    it('is a no-op when the matching pool cannot afford the cost', () => {
+      const fresh = createInitialState({ playerNationId: 'fr' });
+      const base = { ...fresh, resources: { ...fresh.resources, adm: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'tax' } })).toBe(base);
+    });
+  });
+
   describe('QUELL_UNREST', () => {
     const withUnrest = (unrest) => {
       const base = richState();

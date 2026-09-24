@@ -18,7 +18,19 @@ export const MODIFIER_KEYS = {
   'national.apBonus': { scope: 'nation', unit: 'flat', label: 'All Power Pools' },
   'national.admBonus': { scope: 'nation', unit: 'flat', label: 'Administrative Power' },
   'national.dipBonus': { scope: 'nation', unit: 'flat', label: 'Diplomatic Power' },
-  'national.milBonus': { scope: 'nation', unit: 'flat', label: 'Military Power' }
+  'national.milBonus': { scope: 'nation', unit: 'flat', label: 'Military Power' },
+  // Plan §M5: Develop Province's own cost multiplier. Nothing sources this yet (M6/M8's building/
+  // reform effect tables are the plan's named sources) other than the Administrator ruler trait
+  // below, which is exactly the "first real consumer" this key was added for.
+  'national.developmentCost': { scope: 'nation', unit: 'pct', label: 'Development Cost' },
+  // Region-scoped (plan §M5's income formula: local.taxIncome/productionIncome/manpower feed a
+  // region's own tax/production/manpower yield). Nothing populates these sparse region-modifier
+  // lines yet — M6's building tiers are the plan's first real source — so calcIncome reading them
+  // via getRegionModifier is always 0 today, exactly like national.apBonus's Governance-tech line
+  // was a no-op until M2 gave it a reader.
+  'local.taxIncome': { scope: 'region', unit: 'pct', label: 'Local Tax Income' },
+  'local.productionIncome': { scope: 'region', unit: 'pct', label: 'Local Production Income' },
+  'local.manpower': { scope: 'region', unit: 'pct', label: 'Local Manpower' }
 };
 
 // Maps getNationBonusTotal's old hook-name argument to its modifier key here, so every existing
@@ -33,5 +45,6 @@ export const LEGACY_HOOK = {
   apBonus: 'national.apBonus',
   admBonus: 'national.admBonus',
   dipBonus: 'national.dipBonus',
-  milBonus: 'national.milBonus'
+  milBonus: 'national.milBonus',
+  developmentCost: 'national.developmentCost'
 };

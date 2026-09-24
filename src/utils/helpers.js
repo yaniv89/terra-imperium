@@ -11,7 +11,8 @@ import { hasDeposit } from '../data/deposits';
 import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
-import { getModifier } from '../engine/modifiers/sheet';
+import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
+import { getPopFactor, seedDevelopment } from '../engine/development';
 // Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
 // keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
 // which also exposes explainNationBonus for a future breakdown tooltip.
@@ -157,15 +158,25 @@ export const calcIncome = (state) => {
     if (!regData) return;
     const controlMult = region.control / 100;
     const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
-    // Population Policy (plan §5, "more HR and tax later"): gold/hr scale with how much this
-    // region has grown past its starting population. Deposit/extraction/tech yields below don't
-    // scale with it — they're geography- and building-driven, not population-driven.
-    const popGrowthMult = regData.population > 0 ? (region.currentPopulation || regData.population) / regData.population : 1;
-    Object.entries(regData.resources || {}).forEach(([resId, amount]) => {
-      if (income[resId] === undefined) return; // not unlocked at the current age
-      const growthMult = (resId === 'gold' || resId === 'hr') ? popGrowthMult : 1;
-      income[resId] += amount * controlMult * infraMult * growthMult;
-    });
+    // Province development (plan §M5): gold/hr now come from region.dev.tax/production/manpower —
+    // the LIVE economic base — instead of REGIONS_DATA's static resources.gold/hr directly. The
+    // clamped popFactor (development.js) replaces the old unclamped popGrowthMult specifically to
+    // stop population and development from compounding without limit, per the plan's own concern;
+    // `local.*` lines are always 0 today (nothing populates state.regionModifiers yet — M6's
+    // building tiers are the plan's first real source, same "plumbing before it has a source"
+    // pattern as national.apBonus's Governance-tech line before M2 gave it a reader).
+    if (income.gold !== undefined && income.hr !== undefined) {
+      const dev = region.dev || seedDevelopment(region.id);
+      const popFactor = getPopFactor(region, regData);
+      const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
+      const localProduction = getRegionModifier(state, region.id, 'local.productionIncome').total;
+      const localManpower = getRegionModifier(state, region.id, 'local.manpower').total;
+      const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
+      const productionIncome = dev.production * (1 + localProduction) * controlMult * infraMult * popFactor;
+      const manpowerIncome = dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
+      income.gold += taxIncome + productionIncome;
+      income.hr += manpowerIncome;
+    }
 
     Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
       if (!built || income[resId] === undefined) return;

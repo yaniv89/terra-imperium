@@ -49,6 +49,8 @@ import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './succession';
 import { clampStability, clampPrestige, getIncreaseStabilityCost, WONDER_COMPLETION_PRESTIGE } from './nationalPower';
+import { seedDevelopment, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
+import { getModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, scaleCosts, BASE_POWER_PER_TURN } from '../utils/helpers';
 import { WONDERS, canConstructWonder } from '../data/wonders';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
@@ -111,7 +113,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // defenseLevel already gates frontier_raiders. Closes the loop the plan's climate_stress world
       // event otherwise left one-way: investing here measurably reduces future weather/disaster
       // exposure instead of only ever reacting to it after the fact.
-      climateResilience: 0
+      climateResilience: 0,
+      // Province development (plan §M5) — the live economic base calcIncome now reads instead of
+      // REGIONS_DATA's static resources.gold/hr directly; see src/engine/development.js's own
+      // header for why this seeding preserves today's exact starting income.
+      dev: seedDevelopment(id)
     };
   });
 
@@ -558,6 +564,36 @@ export const gameReducer = (state, action) => {
           }
         },
         logs: [...state.logs, { year: state.year, message: `Developed a ${resourceId} extraction site in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.DEVELOP_PROVINCE: {
+      // Plan §M5: +1 to one of the region's own tax/production/manpower development, spending the
+      // matching power pool (DEV_TYPE_POOL) rather than gold — the cost scales with the region's
+      // OWN current total development, so an already-developed province costs progressively more
+      // to push further, same shape as Increase Stability's own cost curve (M4).
+      const { regionId, devType } = action.payload;
+      const region = state.regions[regionId];
+      if (!region || region.owner !== state.playerNationId) return state;
+      if (!DEV_TYPE_POOL[devType]) return state;
+      const pool = DEV_TYPE_POOL[devType];
+      const developmentCostMult = getModifier(state, state.playerNationId, 'national.developmentCost').total;
+      const cost = getDevelopProvinceCost(region, developmentCostMult);
+      if ((state.resources[pool] || 0) < cost) return state;
+      const modernBaseline = REGIONS_DATA[regionId]?.population || 0;
+      const popGain = Math.round(modernBaseline * DEVELOP_PROVINCE_POP_GAIN_RATIO);
+      return {
+        ...state,
+        resources: { ...state.resources, [pool]: state.resources[pool] - cost },
+        regions: {
+          ...state.regions,
+          [regionId]: {
+            ...region,
+            dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 },
+            currentPopulation: (region.currentPopulation || modernBaseline) + popGain
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Developed ${devType} in ${REGIONS_DATA[regionId]?.name} (+1).`, type: LogTypes.ACTION }]
       };
     }
 
