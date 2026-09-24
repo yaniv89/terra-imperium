@@ -28,9 +28,9 @@ export const ACTION_COSTS = {
   populationPolicy: { gold: 100, adm: 1 },
   // A slider flip, not a strategic decision competing with the rest of the ADM budget — free.
   setTaxRate: { adm: 0 },
-  // The biggest single-purchase cost in the game — a world-unique megaproject, not a
-  // one-region improvement.
-  constructWonder: { gold: 500, adm: 3 },
+  // Great Projects (plan §M10): cost scales by tier (500/1000/2000 gold + 100/150/200 ADM, 4/6/8
+  // turns) via src/data/greatProjects.js's getGreatProjectCost — no flat ACTION_COSTS entry here,
+  // matching the RESEARCH_TECH/CHANGE_LAW pattern for dynamically-priced actions.
 
   recruitUnit: { gold: 60, hr: 100, mil: 1 },
   moveArmy: { mil: 1 },

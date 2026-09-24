@@ -37,7 +37,10 @@ export const getEstateLoyaltyTarget = (nation, estateId) => {
 // owned-region shape is scanned (O(regions)) — AI nations get the cheap privilege-only term, the
 // same "player-only real computation" trim M7/M8 already established for per-nation costs that
 // would otherwise force an O(regions) scan for all ~240 AI nations every turn.
-export const getEstateInfluence = (state, nationId, estateId) => {
+// `ownedRegions` is an optional pre-computed `Object.values(state.regions).filter(owner === nationId)`
+// — processEstatesTurn computes it ONCE per nation per turn and passes it to every estate's call
+// instead of each of the 3-4 estates re-scanning all of state.regions itself.
+export const getEstateInfluence = (state, nationId, estateId, ownedRegions = null) => {
   const nation = state.nations?.[nationId];
   const estate = nation?.estates?.[estateId];
   if (!estate) return 0;
@@ -48,17 +51,17 @@ export const getEstateInfluence = (state, nationId, estateId) => {
   });
   if (nationId !== state.playerNationId) return Math.max(0, Math.min(100, influence));
 
-  const ownedRegions = Object.values(state.regions || {}).filter((r) => r.owner === nationId);
-  influence += Math.min(30, ownedRegions.length); // land share, capped so a sprawling empire doesn't dominate influence unboundedly
+  const regions = ownedRegions || Object.values(state.regions || {}).filter((r) => r.owner === nationId);
+  influence += Math.min(30, regions.length); // land share, capped so a sprawling empire doesn't dominate influence unboundedly
 
   if (estateId === 'clergy') {
-    const cultureBuildings = ownedRegions.filter((r) => (r.buildings?.categories?.culture ?? -1) >= 0).length;
+    const cultureBuildings = regions.filter((r) => (r.buildings?.categories?.culture ?? -1) >= 0).length;
     influence += Math.min(30, cultureBuildings * 2);
   } else if (estateId === 'nobility') {
-    const manpowerDev = ownedRegions.reduce((sum, r) => sum + (r.dev?.manpower || 0), 0);
+    const manpowerDev = regions.reduce((sum, r) => sum + (r.dev?.manpower || 0), 0);
     influence += Math.min(30, Math.round(manpowerDev / 10));
   } else if (estateId === 'burghers') {
-    const tradeDev = ownedRegions.reduce((sum, r) => sum + (r.dev?.tax || 0) + (r.dev?.production || 0), 0);
+    const tradeDev = regions.reduce((sum, r) => sum + (r.dev?.tax || 0) + (r.dev?.production || 0), 0);
     influence += Math.min(30, Math.round(tradeDev / 10));
   }
   return Math.max(0, Math.min(100, influence));
@@ -70,6 +73,9 @@ export const getEstateInfluence = (state, nationId, estateId) => {
 export const processEstatesTurn = (state, nationId) => {
   const nation = state.nations?.[nationId];
   if (!nation?.estates) return nation?.estates;
+  const ownedRegions = nationId === state.playerNationId
+    ? Object.values(state.regions || {}).filter((r) => r.owner === nationId)
+    : null;
   let changed = false;
   const estates = {};
   Object.entries(nation.estates).forEach(([id, estate]) => {
@@ -77,7 +83,7 @@ export const processEstatesTurn = (state, nationId) => {
     const diff = target - estate.loyalty;
     const step = Math.sign(diff) * Math.min(1, Math.abs(diff));
     const loyalty = Math.max(0, Math.min(100, estate.loyalty + step));
-    const influence = getEstateInfluence(state, nationId, id);
+    const influence = getEstateInfluence(state, nationId, id, ownedRegions);
     if (loyalty !== estate.loyalty || influence !== estate.influence) {
       changed = true;
       estates[id] = { ...estate, loyalty, influence };

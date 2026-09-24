@@ -60,11 +60,13 @@ import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './succession';
-import { clampStability, clampPrestige, getIncreaseStabilityCost, WONDER_COMPLETION_PRESTIGE } from './nationalPower';
+import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
-import { WONDERS, canConstructWonder } from '../data/wonders';
+import {
+  GREAT_PROJECTS, getGreatProjectCost, canStartGreatProject, canUpgradeGreatProject
+} from '../data/greatProjects';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
 import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
@@ -191,19 +193,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       estates: createInitialEstates(),
       crownLand: CROWN_LAND_DEFAULT,
       estateInteractionCooldowns: {},
-      // World Wonders this nation has completed (Construct Wonder) — same getNationBonusTotal
-      // hooks as government/policies (src/utils/helpers.js). Every nation carries the field so
-      // that helper can read it generically, though only the player can build one today.
-      wonders: [],
       // Set Tax Rate (plan §5) — every nation gets a rate so calcIncome/nextUnrest can read any
       // nation's generically; only the player can change theirs today.
       taxRate: DEFAULT_TAX_RATE,
 
-      // National Identity (added alongside Government/Policies, but a separate axis — see
-      // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY
-      // rather than adopted outright, feeding the same getNationBonusTotal hooks government/policy/
-      // wonders already use. Every nation carries the field for the same generic-read reason as
-      // government/policies/taxRate above; only the player can shift theirs today.
+      // National Identity (added alongside Government/Laws, but a separate axis — see
+      // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY.
+      // Every nation carries the field for the same generic-read reason as government/laws/taxRate
+      // above; only the player can shift theirs today.
       identity: { collectivism: 0, secularism: 0, globalism: 0 },
       // Cultural Export (Modern age, CULTURAL_EXPORT action) — a "Great Innovator"-style prestige
       // score for culture rather than tech: a persistent, ever-growing soft-power total on top of
@@ -337,10 +334,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // Persistent effect from event choices, applied to combat once combat exists again (Phase C).
     eventDefenseBonus: 0,
 
-    // Construct Wonder (plan §5/§6) — { wonderId: builderNationId }, checked by
-    // src/data/wonders.js's canConstructWonder so a wonder can only ever be finished once,
-    // globally, no matter which nation gets there first.
-    wondersBuilt: {},
+    // Great Projects (plan §M10) — { projectId: { regionId, tier } }, keyed globally so a project
+    // can only ever be STARTED once anywhere (canStartGreatProject). Its current owner is derived
+    // from `regions[regionId].owner`, never stored here — see src/data/greatProjects.js's header
+    // comment on why that can't drift out of sync the way a stored copy could.
+    greatProjects: {},
 
     // Space Race, orbital layer (plan §10.4) — a flat dict keyed by satellite id, mirroring
     // state.units/state.hiredCommanders, since satellites are per-nation persistent assets, not
@@ -706,23 +704,39 @@ export const gameReducer = (state, action) => {
       };
     }
 
-    case ActionTypes.CONSTRUCT_WONDER: {
-      // Empire-wide, not region-scoped — a Wonder is one permanent bonus for the whole nation
-      // (plan §5's "permanent empire bonus"), not tied to the region it was raised in.
-      const { wonderId } = action.payload;
-      const costs = ACTION_COSTS.constructWonder;
-      const effectiveAge = getEffectiveAgeId(state.age, state.techAgeId);
-      if (!canConstructWonder(wonderId, effectiveAge, state.wondersBuilt)) return state;
+    case ActionTypes.START_GREAT_PROJECT: {
+      // Region-scoped, not empire-wide (plan §M10) — a project's SITE is a specific region meeting
+      // the project's own rule (a capital, a region with a named building, coastal, etc.), unlike
+      // the old flat Construct Wonder. Its owner is derived from the region's owner from here on,
+      // never stored — see src/data/greatProjects.js's header comment.
+      const { projectId, regionId } = action.payload;
+      if (!canStartGreatProject(state, state.playerNationId, projectId, regionId)) return state;
+      const { turns, ...costs } = getGreatProjectCost(1);
       if (!canAfford(state.resources, costs)) return state;
-      const nation = state.nations[state.playerNationId];
+      const project = GREAT_PROJECTS[projectId];
+      const region = state.regions[regionId];
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        wondersBuilt: { ...state.wondersBuilt, [wonderId]: state.playerNationId },
-        // +prestige (plan §M4): great projects are M10's own prestige source; wonders are still
-        // today's real stand-in for that system, so a completion counts here in the meantime.
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, wonders: [...(nation.wonders || []), wonderId], prestige: clampPrestige((nation.prestige || 0) + WONDER_COMPLETION_PRESTIGE) } },
-        logs: [...state.logs, { year: state.year, message: `${WONDERS[wonderId]?.name} completed! (+${WONDER_COMPLETION_PRESTIGE} prestige)`, type: LogTypes.MILESTONE }]
+        regions: { ...state.regions, [regionId]: { ...region, greatProjectConstruction: { projectId, tier: 1, turnsLeft: turns } } },
+        logs: [...state.logs, { year: state.year, message: `Construction of ${project.name} has begun.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.UPGRADE_GREAT_PROJECT: {
+      const { projectId } = action.payload;
+      if (!canUpgradeGreatProject(state, state.playerNationId, projectId)) return state;
+      const entry = state.greatProjects[projectId];
+      const nextTier = entry.tier + 1;
+      const { turns, ...costs } = getGreatProjectCost(nextTier);
+      if (!canAfford(state.resources, costs)) return state;
+      const project = GREAT_PROJECTS[projectId];
+      const region = state.regions[entry.regionId];
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [entry.regionId]: { ...region, greatProjectConstruction: { projectId, tier: nextTier, turnsLeft: turns } } },
+        logs: [...state.logs, { year: state.year, message: `Upgrading ${project.name} to tier ${nextTier}.`, type: LogTypes.ACTION }]
       };
     }
 
