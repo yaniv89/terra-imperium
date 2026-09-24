@@ -15,9 +15,11 @@ import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } fro
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from '../data/techTree';
-import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
-import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, clampIdentity } from '../data/identity';
-import { POLICIES } from '../data/policies';
+import {
+  GOVERNMENT_TYPES, canChangeGovernmentType, canEnactReform, resetReformsForType, getReformChoices
+} from '../data/government';
+import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clampIdentity } from '../data/identity';
+import { getLaw, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
 import { declareWar, hasCasusBelli, isWarBetween } from './diplomacy';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
@@ -165,11 +167,16 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // nation is broken by a new war — see src/engine/diplomacy.js declareWar().
       hostilityFloor: 0,
 
-      // Government & policies (plan §9) — every nation gets these fields so resolveTurn.js's
-      // stability pass can read any nation's bonus generically, but only the player can change
-      // them via ADOPT_GOVERNMENT/ADOPT_POLICY today; AI adoption is Task 23's job.
-      government: null,
-      policies: [],
+      // Government (plan §M8.1) — a TYPE plus one reform choice per age tier reached, replacing
+      // the old flat 10-id model. Every nation gets the field so resolveTurn.js's stability pass
+      // can read any nation's bonus generically, but only the player can change it via
+      // CHANGE_GOVERNMENT_TYPE/ENACT_GOVERNMENT_REFORM today; AI adoption is M16's job.
+      government: { type: 'tribal', reforms: {} },
+      // Laws (plan §M8.2) — one law per category, replacing the old shared policy-slot pool
+      // (policies.js, deleted). Every nation starts on each category's tier-1 law.
+      laws: { ...DEFAULT_LAWS },
+      lawCooldowns: {},
+      identityShiftCooldownTurn: 0,
       // World Wonders this nation has completed (Construct Wonder) — same getNationBonusTotal
       // hooks as government/policies (src/utils/helpers.js). Every nation carries the field so
       // that helper can read it generically, though only the player can build one today.
@@ -1396,13 +1403,12 @@ export const gameReducer = (state, action) => {
       };
     }
 
-    case ActionTypes.ADOPT_GOVERNMENT: {
-      const { governmentId } = action.payload;
-      const gov = GOVERNMENT_TYPES[governmentId];
+    case ActionTypes.CHANGE_GOVERNMENT_TYPE: {
+      const { typeId } = action.payload;
+      const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
-      const costs = ACTION_COSTS.adoptGovernment;
-      if (!gov || nation.government === governmentId) return state;
-      if (!canAdoptGovernment(governmentId, state.age)) return state;
+      const costs = ACTION_COSTS.changeGovernmentType;
+      if (!type || !canChangeGovernmentType(nation, typeId, state.age)) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1411,30 +1417,72 @@ export const gameReducer = (state, action) => {
           ...state.nations,
           [state.playerNationId]: {
             ...nation,
-            government: governmentId,
-            // A reform to fewer slots than currently filled bumps the excess policies — a real
-            // cost of switching, not just a formality.
-            policies: nation.policies.slice(0, gov.slots)
+            government: { type: typeId, reforms: resetReformsForType(typeId, state.age) },
+            stability: clampStability((nation.stability || 0) - 2)
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Your empire has adopted ${gov.name}.`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, message: `Your empire has become a ${type.name}. (-2 stability)`, type: LogTypes.MILESTONE }]
       };
     }
 
-    case ActionTypes.ADOPT_POLICY: {
-      const { policyId } = action.payload;
-      const policy = POLICIES[policyId];
+    case ActionTypes.ENACT_GOVERNMENT_REFORM: {
+      const { ageId, reformId } = action.payload;
       const nation = state.nations[state.playerNationId];
-      const gov = GOVERNMENT_TYPES[nation.government];
-      const costs = ACTION_COSTS.adoptPolicy;
-      if (!policy || !gov) return state;
-      if (nation.policies.includes(policyId) || nation.policies.length >= gov.slots) return state;
+      const costs = ACTION_COSTS.enactGovernmentReform;
+      if (!canEnactReform(nation, ageId, reformId, state.age)) return state;
       if (!canAfford(state.resources, costs)) return state;
+      const reform = getReformChoices(nation.government.type, ageId).find((r) => r.id === reformId);
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: [...nation.policies, policyId] } },
-        logs: [...state.logs, { year: state.year, message: `Adopted the ${policy.name} policy.`, type: LogTypes.MILESTONE }]
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: reformId } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `Enacted the ${reform.name} reform.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.CHANGE_LAW: {
+      const { category, lawId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const law = getLaw(category, lawId);
+      if (!law || !canEnactLaw(state, state.playerNationId, category, lawId)) return state;
+      const costs = { adm: getLawChangeCost(state, state.playerNationId, category, lawId) };
+      if (!canAfford(state.resources, costs)) return state;
+
+      // Plan §M8.2: two law tiers apply a one-shot effect on top of their ongoing `effects` —
+      // Collectivization pushes a real 10-turn timed modifier (plan §A.2's nation.modifiers[]),
+      // Martial Law costs a permanent -1 stability the instant it's enacted.
+      let modifiers = nation.modifiers || [];
+      let stability = nation.stability || 0;
+      if (lawId === 'collectivization') {
+        modifiers = [...modifiers, {
+          id: `collectivization_${state.turnNumber}`,
+          sourceType: 'law',
+          sourceId: 'collectivization',
+          label: 'Collectivization',
+          mods: { 'national.stabilityBonus': COLLECTIVIZATION_UNREST_MODIFIER },
+          expiresTurn: state.turnNumber + COLLECTIVIZATION_UNREST_TURNS
+        }];
+      } else if (lawId === 'martial_law') {
+        stability = clampStability(stability - 1);
+      }
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            laws: { ...nation.laws, [category]: lawId },
+            lawCooldowns: { ...nation.lawCooldowns, [category]: state.turnNumber + LAW_CHANGE_COOLDOWN_TURNS },
+            modifiers,
+            stability
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Enacted the ${law.name} law.`, type: LogTypes.MILESTONE }]
       };
     }
 
@@ -1444,6 +1492,7 @@ export const gameReducer = (state, action) => {
       const axisSpec = IDENTITY_AXES[axis];
       const costs = ACTION_COSTS.shiftIdentity;
       if (!axisSpec || (direction !== 1 && direction !== -1)) return state;
+      if ((state.turnNumber || 0) < (nation.identityShiftCooldownTurn || 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const currentValue = nation.identity?.[axis] || 0;
       const nextValue = clampIdentity(currentValue + direction * IDENTITY_SHIFT_STEP);
@@ -1454,23 +1503,13 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         nations: {
           ...state.nations,
-          [state.playerNationId]: { ...nation, identity: { ...nation.identity, [axis]: nextValue } }
+          [state.playerNationId]: {
+            ...nation,
+            identity: { ...nation.identity, [axis]: nextValue },
+            identityShiftCooldownTurn: state.turnNumber + IDENTITY_SHIFT_COOLDOWN_TURNS
+          }
         },
         logs: [...state.logs, { year: state.year, message: `Your nation leans further ${poleName}.`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.REMOVE_POLICY: {
-      const { policyId } = action.payload;
-      const nation = state.nations[state.playerNationId];
-      const costs = ACTION_COSTS.removePolicy;
-      if (!nation.policies.includes(policyId)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: nation.policies.filter(id => id !== policyId) } },
-        logs: [...state.logs, { year: state.year, message: `Repealed the ${POLICIES[policyId]?.name || policyId} policy.`, type: LogTypes.MILESTONE }]
       };
     }
 

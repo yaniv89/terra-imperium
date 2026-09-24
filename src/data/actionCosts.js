@@ -35,7 +35,7 @@ export const ACTION_COSTS = {
   recruitUnit: { gold: 60, hr: 100, mil: 1 },
   moveArmy: { mil: 1 },
   launchInvasion: { mil: 2 },
-  // Bookkeeping, not a strategic decision — free, like setTaxRate/removePolicy/appointGeneral.
+  // Bookkeeping, not a strategic decision — free, like setTaxRate/appointGeneral.
   promoteUnit: { mil: 0 },
   hireGeneral: { gold: 150, mil: 1 },
   appointGeneral: { mil: 0 },
@@ -52,10 +52,12 @@ export const ACTION_COSTS = {
   setResearchFocus: { adm: 1 },
   fundScholars: { gold: 100, dip: 1 },
 
-  // A government reform is deliberately pricier than a policy swap — it's the bigger decision.
-  adoptGovernment: { gold: 200, adm: 2 },
-  adoptPolicy: { gold: 80, adm: 1 },
-  removePolicy: { adm: 0 },
+  // Plan §M8.1: changing government TYPE is the big, rare decision (300 ADM, plus -2 stability
+  // applied directly in the reducer); enacting a reform for the current age tier is the smaller,
+  // routine one. A law's own cost is computed dynamically (src/data/laws.js's getLawChangeCost:
+  // 50 x the law's tier, discounted by reforms/identity) rather than a flat entry here.
+  changeGovernmentType: { adm: 300 },
+  enactGovernmentReform: { adm: 100 },
 
   // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
   // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
@@ -99,9 +101,9 @@ export const ACTION_COSTS = {
   // needing a chosen target, so it's priced like Gift/Bribe (a direct relations action) rather than
   // Espionage's riskier, pricier covert-ops tier.
   counterIntelligence: { gold: 120, dip: 1 },
-  // A slider nudge, not a purchase — costs only gold and the same ADM every other domestic
-  // decision does, matching Set Tax Rate's own pricing philosophy.
-  shiftIdentity: { gold: 50, adm: 1 },
+  // Plan §M2/§M8.3: identity shifts cost ADM only (gold is gone) — a real decision, priced
+  // between a reform and a law change, with its own 5-turn cooldown (IDENTITY_SHIFT_COOLDOWN_TURNS).
+  shiftIdentity: { adm: 50 },
   // Priced like Build Defenses — a persistent, steadily-improving region investment of the same shape.
   buildClimateResilience: { gold: 90, adm: 1 },
   // Priced like Gift/Bribe — a direct relations action, but empire-wide rather than one target.

@@ -253,10 +253,11 @@ describe('getNationBonusTotal', () => {
     expect(getNationBonusTotal(nation, 'goldMult')).toBe(0);
   });
 
-  it('adds National Identity\'s contribution alongside government/policy/wonder bonuses', () => {
-    const nation = { government: 'monarchy', policies: [], wonders: [], identity: { collectivism: 100 } };
-    // monarchy's own stabilityBonus (5) plus fully-Collectivist identity's stabilityBonus (10).
-    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(15);
+  it('sums an enacted government reform\'s effect (identity no longer contributes directly, plan §M8.3)', () => {
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }, wonders: [], identity: { collectivism: 100 } };
+    // despotic_rule's own stabilityBonus (-1); a fully-Collectivist identity contributes nothing to
+    // this hook anymore — it only gates/discounts law and government-type choices now.
+    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(-1);
   });
 });
 
@@ -281,9 +282,9 @@ describe('getPowerIncome', () => {
     expect(getPowerIncome(baseState())).toEqual({ adm: 3, dip: 3, mil: 3 });
   });
 
-  it('adds the adopted government\'s apBonus to all three pools equally', () => {
+  it('adds an enacted reform\'s admBonus/dipBonus/milBonus to their respective pools', () => {
     const state = baseState();
-    state.nations.fr.government = 'monarchy'; // apBonus: 1
+    state.nations.fr.government = { type: 'republic', reforms: { modern: 'presidential_republic' } }; // +1 adm/dip/mil each
     expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 4, mil: 4 });
   });
 
@@ -300,15 +301,16 @@ describe('getPowerIncome', () => {
     expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 3, mil: 3 }); // 3 base + 1 (Code of Laws)
   });
 
-  it('stacks the government apBonus with per-tech admBonus effects together', () => {
+  it('stacks a reform\'s admBonus with per-tech admBonus effects together', () => {
     const state = baseState();
-    state.nations.fr.government = 'empire'; // apBonus: 2, all three pools
+    // imperial_bureaucracy and absolutism each give +1 ADM/turn.
+    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy', gunpowder: 'absolutism' } };
     // Of these 6, only Code of Laws and Royal Chancery have their own +1 admBonus effect.
     ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies',
       'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
       state.techTree[id] = { ...state.techTree[id], researched: true };
     });
-    expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 5, mil: 5 }); // 3 base + 2 gov (all) + 2 admBonus (adm only)
+    expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 3, mil: 3 }); // 3 base + 2 reforms (adm only) + 2 admBonus (adm only)
   });
 
   // A recurring DIP bonus (satellite or completed space mission) must be part of getPowerIncome's

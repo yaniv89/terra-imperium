@@ -6,23 +6,24 @@ import {
 } from './succession';
 
 describe('getSuccessionStyle', () => {
-  it('classifies hereditary governments', () => {
-    ['monarchy', 'feudal', 'empire', 'absolutist', 'constitutional'].forEach((g) => {
-      expect(getSuccessionStyle(g)).toBe('hereditary');
-    });
+  it('classifies Monarchy as hereditary', () => {
+    expect(getSuccessionStyle({ type: 'monarchy' })).toBe('hereditary');
   });
 
-  it('classifies autocracy as autocratic', () => {
-    expect(getSuccessionStyle('autocracy')).toBe('autocratic');
+  it('classifies Republic as elective', () => {
+    expect(getSuccessionStyle({ type: 'republic' })).toBe('elective');
   });
 
-  it('classifies any other adopted government as elective', () => {
-    ['republic', 'democracy', 'federation'].forEach((g) => {
-      expect(getSuccessionStyle(g)).toBe('elective');
-    });
+  it('classifies Theocracy as theocratic', () => {
+    expect(getSuccessionStyle({ type: 'theocracy' })).toBe('theocratic');
   });
 
-  it('classifies no government as tribal', () => {
+  it('classifies Dictatorship as autocratic', () => {
+    expect(getSuccessionStyle({ type: 'dictatorship' })).toBe('autocratic');
+  });
+
+  it('classifies Tribal or no government type as tribal', () => {
+    expect(getSuccessionStyle({ type: 'tribal' })).toBe('tribal');
     expect(getSuccessionStyle(null)).toBe('tribal');
     expect(getSuccessionStyle(undefined)).toBe('tribal');
   });
@@ -98,6 +99,35 @@ describe('generateRuler / generateHeir determinism', () => {
     const heir = generateHeir('fr', createRng(1), 'Bourbon', 3);
     expect(heir.dynasty).toBe('Bourbon');
   });
+
+  it('a claimBonus raises the heir\'s claim, capped at 100 (plan §M8.1: Hereditary Primogeniture)', () => {
+    const rng = createRng(21);
+    for (let i = 0; i < 50; i++) {
+      const heir = generateHeir('fr', rng, 'Valois', i, 20);
+      expect(heir.claim).toBeGreaterThanOrEqual(60); // 40 base minimum + 20 bonus
+      expect(heir.claim).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('theocratic style biases ADM upward (rolls twice, keeps the higher)', () => {
+    const rng = createRng(3);
+    let theocraticTotal = 0;
+    let plainTotal = 0;
+    for (let i = 0; i < 100; i++) {
+      theocraticTotal += generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal', style: 'theocratic' }).adm;
+    }
+    for (let i = 0; i < 100; i++) {
+      plainTotal += generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal' }).adm;
+    }
+    expect(theocraticTotal).toBeGreaterThan(plainTotal);
+  });
+
+  it('autocratic style floors MIL at 3', () => {
+    const rng = createRng(11);
+    for (let i = 0; i < 50; i++) {
+      expect(generateRuler('fr', rng, { turnNumber: i, age: 'bronze', gameSpeed: 'normal', style: 'autocratic' }).mil).toBeGreaterThanOrEqual(3);
+    }
+  });
 });
 
 describe('advisor cost formulas', () => {
@@ -135,18 +165,18 @@ describe('processSuccession', () => {
   const ctx = { turnNumber: 20, age: 'bronze', gameSpeed: 'normal' };
 
   it('returns null while the current ruler\'s reign has not ended', () => {
-    const nation = { id: 'fr', government: 'monarchy', ruler: { reignEndsTurn: 999 }, heir: null };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: {} }, ruler: { reignEndsTurn: 999 }, heir: null };
     expect(processSuccession(nation, createRng(1), ctx)).toBeNull();
   });
 
   it('returns null when there is no ruler at all', () => {
-    const nation = { id: 'fr', government: 'monarchy', ruler: null, heir: null };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: {} }, ruler: null, heir: null };
     expect(processSuccession(nation, createRng(1), ctx)).toBeNull();
   });
 
   it('hereditary with an heir: the heir succeeds and a new heir is generated', () => {
     const heir = { id: 'heir_fr_5', name: 'Louis', dynasty: 'Bourbon', adm: 3, dip: 2, mil: 4, traits: [], claim: 80 };
-    const nation = { id: 'fr', government: 'monarchy', ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: {} }, ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir };
     const result = processSuccession(nation, createRng(1), ctx);
     expect(result.ruler.id).toBe(heir.id);
     expect(result.ruler.reignStartTurn).toBe(20);
@@ -158,29 +188,50 @@ describe('processSuccession', () => {
 
   it('hereditary with a low-claim heir flags a succession crisis', () => {
     const heir = { id: 'heir_fr_5', name: 'Louis', dynasty: 'Bourbon', adm: 3, dip: 2, mil: 4, traits: [], claim: 10 };
-    const nation = { id: 'fr', government: 'monarchy', ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: {} }, ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir };
     const result = processSuccession(nation, createRng(1), ctx);
     expect(result.crisis).toBe(true);
   });
 
   it('hereditary with NO heir is itself a crisis, with a fresh ruler and a new heir generated', () => {
-    const nation = { id: 'fr', government: 'monarchy', ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir: null };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: {} }, ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir: null };
     const result = processSuccession(nation, createRng(1), ctx);
     expect(result.crisis).toBe(true);
     expect(result.ruler.dynasty).toBe('Bourbon'); // dynasty line continues even through a crisis
     expect(result.heir).not.toBeNull();
   });
 
+  it('Hereditary Primogeniture raises the succeeding heir\'s own generated heir claim (plan §M8.1)', () => {
+    const heir = { id: 'heir_fr_5', name: 'Louis', dynasty: 'Bourbon', adm: 3, dip: 2, mil: 4, traits: [], claim: 80 };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: { kingdoms: 'hereditary_primogeniture' } }, ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir };
+    const result = processSuccession(nation, createRng(1), ctx);
+    expect(result.heir.claim).toBeGreaterThanOrEqual(60); // 40 base minimum + 20 reform bonus
+  });
+
+  it('Elective Monarchy reports a legitimacy penalty on succession (plan §M8.1)', () => {
+    const heir = { id: 'heir_fr_5', name: 'Louis', dynasty: 'Bourbon', adm: 3, dip: 2, mil: 4, traits: [], claim: 80 };
+    const nation = { id: 'fr', government: { type: 'monarchy', reforms: { kingdoms: 'elective_monarchy' } }, ruler: { dynasty: 'Bourbon', reignEndsTurn: 20 }, heir };
+    const result = processSuccession(nation, createRng(1), ctx);
+    expect(result.legitimacyPenalty).toBe(10);
+  });
+
   it('elective: a fresh ruler with a new dynasty and no heir carried over', () => {
-    const nation = { id: 'fr', government: 'republic', ruler: { dynasty: 'OldGuard', reignEndsTurn: 20 }, heir: null };
+    const nation = { id: 'fr', government: { type: 'republic', reforms: {} }, ruler: { dynasty: 'OldGuard', reignEndsTurn: 20 }, heir: null };
     const result = processSuccession(nation, createRng(1), ctx);
     expect(result.heir).toBeNull();
     expect(result.crisis).toBe(false);
     expect(result.ruler.dynasty).not.toBe('OldGuard');
   });
 
+  it('theocratic: a fresh ruler, no heir, no crisis', () => {
+    const nation = { id: 'fr', government: { type: 'theocracy', reforms: {} }, ruler: { dynasty: 'Oracle', reignEndsTurn: 20 }, heir: null };
+    const result = processSuccession(nation, createRng(1), ctx);
+    expect(result.heir).toBeNull();
+    expect(result.crisis).toBe(false);
+  });
+
   it('autocratic: a fresh ruler, no heir, no crisis', () => {
-    const nation = { id: 'fr', government: 'autocracy', ruler: { dynasty: 'Junta', reignEndsTurn: 20 }, heir: null };
+    const nation = { id: 'fr', government: { type: 'dictatorship', reforms: {} }, ruler: { dynasty: 'Junta', reignEndsTurn: 20 }, heir: null };
     const result = processSuccession(nation, createRng(1), ctx);
     expect(result.heir).toBeNull();
     expect(result.crisis).toBe(false);

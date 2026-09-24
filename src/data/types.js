@@ -62,10 +62,11 @@ export const ActionTypes = {
   SET_RESEARCH_FOCUS: 'SET_RESEARCH_FOCUS',
   FUND_SCHOLARS: 'FUND_SCHOLARS',
 
-  // Government & policies (plan §9).
-  ADOPT_GOVERNMENT: 'ADOPT_GOVERNMENT',
-  ADOPT_POLICY: 'ADOPT_POLICY',
-  REMOVE_POLICY: 'REMOVE_POLICY',
+  // Government reforms & laws (plan §M8; replaces the old flat ADOPT_GOVERNMENT/ADOPT_POLICY/
+  // REMOVE_POLICY trio).
+  CHANGE_GOVERNMENT_TYPE: 'CHANGE_GOVERNMENT_TYPE',
+  ENACT_GOVERNMENT_REFORM: 'ENACT_GOVERNMENT_REFORM',
+  CHANGE_LAW: 'CHANGE_LAW',
 
   // Diplomacy tab (plan §8) — casus belli, war/peace lifecycle, and the first tier of agreements.
   DECLARE_WAR: 'DECLARE_WAR',
@@ -80,7 +81,7 @@ export const ActionTypes = {
   // counter-espionage button with no espionage for it to counter.
   ESPIONAGE: 'ESPIONAGE',
   COUNTER_INTELLIGENCE: 'COUNTER_INTELLIGENCE',
-  // National Identity (src/data/identity.js) — a separate axis from Government/Policies.
+  // National Identity (src/data/identity.js) — a separate axis from Government/Laws.
   SHIFT_IDENTITY: 'SHIFT_IDENTITY',
   // Climate/disaster mitigation (Modern age) — see region.climateResilience's comment.
   BUILD_CLIMATE_RESILIENCE: 'BUILD_CLIMATE_RESILIENCE',

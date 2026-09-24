@@ -242,9 +242,10 @@ export const EFFECT_REGISTRY = {
   set_tax_rate: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fef9c3' }, glyph: 'circle', rings: 1, motes: 6 },
   shift_identity: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'diamond', rings: 1, motes: 4 },
   cultural_export: { primitive: 'pulse', palette: { base: '#f472b6', hot: '#fce7f3' }, glyph: 'star', rings: 3, motes: 8 },
-  adopt_government: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
-  adopt_policy: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
-  remove_policy: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 0 },
+  // Plan §M8: replaces the old adopt_government/adopt_policy/remove_policy trio.
+  change_government_type: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
+  enact_government_reform: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
+  change_law: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 2 },
   hire_general: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'diamond', rings: 1, motes: 3 },
   appoint_general: { primitive: 'pulse', palette: { base: '#0ea5e9', hot: '#e0f2fe' }, glyph: 'star', rings: 1, motes: 2 },
   embark_unit: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 1, motes: 4 },

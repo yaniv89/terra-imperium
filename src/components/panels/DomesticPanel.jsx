@@ -8,7 +8,7 @@
 // control has collapsed (SETTLE_COLONIZE_CONTROL_THRESHOLD) — a real "expand without war" path.
 
 import React from 'react';
-import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, X, Sprout, Coins, ShieldAlert } from 'lucide-react';
+import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, Sprout, Coins, ShieldAlert } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -23,9 +23,11 @@ import { getDepositsFor } from '../../data/deposits';
 import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
 import { FOOD_TIER_GROWTH_BONUS } from '../../engine/population';
-import { GOVERNMENT_TYPES, canAdoptGovernment } from '../../data/government';
+import {
+  GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
+} from '../../data/government';
 import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
-import { POLICIES, POLICY_IDS } from '../../data/policies';
+import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost, getRequiredTechName } from '../../data/laws';
 import { WONDERS, WONDER_IDS, canConstructWonder } from '../../data/wonders';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
@@ -236,91 +238,125 @@ const DomesticPanel = ({ selectedRegion }) => {
     </div>
   );
 
-  const handleAdoptGovernment = (governmentId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.adoptGovernment)) return addLog('Not enough resources', 'action');
-    triggerEffect('adopt_government', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId } });
+  const handleChangeGovernmentType = (typeId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.changeGovernmentType)) return addLog('Not enough resources', 'action');
+    triggerEffect('change_government_type', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId } });
   };
-  const handleAdoptPolicy = (policyId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.adoptPolicy)) return addLog('Not enough resources', 'action');
-    triggerEffect('adopt_policy', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.ADOPT_POLICY, payload: { policyId } });
+  const handleEnactReform = (ageId, reformId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform)) return addLog('Not enough resources', 'action');
+    triggerEffect('enact_government_reform', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId, reformId } });
   };
-  const handleRemovePolicy = (policyId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.removePolicy)) return addLog('Not enough resources', 'action');
-    triggerEffect('remove_policy', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.REMOVE_POLICY, payload: { policyId } });
+  const handleChangeLaw = (category, lawId) => {
+    const costs = { adm: getLawChangeCost(state, state.playerNationId, category, lawId) };
+    if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    triggerEffect('change_law', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.CHANGE_LAW, payload: { category, lawId } });
   };
 
-  const currentGovernment = GOVERNMENT_TYPES[playerNation?.government];
-  const availableGovernments = Object.values(GOVERNMENT_TYPES).filter(
-    (gov) => gov.id !== playerNation?.government && canAdoptGovernment(gov.id, state.age)
-  );
-  const adoptedPolicies = playerNation?.policies || [];
-  const availablePolicies = POLICY_IDS.filter((id) => !adoptedPolicies.includes(id));
+  const currentGovernmentType = GOVERNMENT_TYPES[playerNation?.government?.type];
+  const availableGovernmentTypes = getAvailableGovernmentTypes(state.age, playerNation?.identity)
+    .filter((t) => t.id !== playerNation?.government?.type);
+  const activeReforms = getActiveReforms(playerNation);
+  const currentAgeReformChoices = playerNation?.government ? getReformChoices(playerNation.government.type, state.age) : [];
+  const currentAgeReformChosen = playerNation?.government?.reforms?.[state.age];
 
   const governmentSection = (
     <div className="space-y-2">
       <div className="text-xs font-semibold text-slate-300">Government</div>
       <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
         <div className="text-slate-400">Current</div>
-        <div className="text-white font-semibold">{currentGovernment ? currentGovernment.name : 'None adopted'}</div>
-        {currentGovernment && (
-          <div className="text-[10px] text-slate-500 mt-0.5">
-            {adoptedPolicies.length}/{currentGovernment.slots} policy slots filled
-          </div>
+        <div className="text-white font-semibold">{currentGovernmentType ? currentGovernmentType.name : 'None adopted'}</div>
+        {activeReforms.length > 0 && (
+          <div className="text-[10px] text-slate-500 mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
         )}
       </div>
-      {availableGovernments.map((gov) => (
+      {availableGovernmentTypes.map((gov) => (
         <ActionButton
           key={gov.id}
           icon={Landmark}
-          label={`Adopt ${gov.name}`}
-          description={`${gov.slots} policy slot${gov.slots === 1 ? '' : 's'}`}
-          costs={ACTION_COSTS.adoptGovernment}
-          onClick={() => handleAdoptGovernment(gov.id)}
-          disabled={!canAfford(state.resources, ACTION_COSTS.adoptGovernment)}
+          label={`Become a ${gov.name}`}
+          description="Resets your reform choices; -2 stability."
+          costs={ACTION_COSTS.changeGovernmentType}
+          onClick={() => handleChangeGovernmentType(gov.id)}
+          disabled={!canAfford(state.resources, ACTION_COSTS.changeGovernmentType) || !canChangeGovernmentType(playerNation, gov.id, state.age)}
           resources={state.resources}
           size="small"
         />
       ))}
 
-      {currentGovernment && (
+      {currentGovernmentType && currentAgeReformChoices.length > 0 && (
         <>
-          <div className="text-xs font-semibold text-slate-300 pt-1">Policies</div>
-          {adoptedPolicies.map((policyId) => (
-            <div key={policyId} className="flex items-center gap-1.5 bg-slate-800/60 rounded-lg p-2 text-xs">
-              <ScrollText size={14} className="text-amber-400 shrink-0" />
-              <div className="flex-1">
-                <div className="text-white">{POLICIES[policyId]?.name}</div>
-                <div className="text-slate-500">{POLICIES[policyId]?.description}</div>
+          <div className="text-xs font-semibold text-slate-300 pt-1">
+            {currentAgeReformChosen ? 'Current Reform' : 'Choose a Reform'}
+          </div>
+          {currentAgeReformChoices.map((reform) => (
+            currentAgeReformChosen === reform.id ? (
+              <div key={reform.id} className="flex items-center gap-1.5 bg-slate-800/60 rounded-lg p-2 text-xs">
+                <ScrollText size={14} className="text-amber-400 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-white">{reform.name}</div>
+                  <div className="text-slate-500">{reform.description}</div>
+                </div>
               </div>
-              <button
-                onClick={() => handleRemovePolicy(policyId)}
-                className="shrink-0 p-1 rounded bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400"
-                title="Repeal policy"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          ))}
-          {adoptedPolicies.length < currentGovernment.slots && availablePolicies.map((policyId) => (
-            <ActionButton
-              key={policyId}
-              icon={ScrollText}
-              label={POLICIES[policyId].name}
-              description={POLICIES[policyId].description}
-              costs={ACTION_COSTS.adoptPolicy}
-              onClick={() => handleAdoptPolicy(policyId)}
-              disabled={!canAfford(state.resources, ACTION_COSTS.adoptPolicy)}
-              size="small"
-            />
+            ) : (
+              <ActionButton
+                key={reform.id}
+                icon={ScrollText}
+                label={reform.name}
+                description={reform.description}
+                costs={ACTION_COSTS.enactGovernmentReform}
+                onClick={() => handleEnactReform(state.age, reform.id)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.enactGovernmentReform) || !canEnactReform(playerNation, state.age, reform.id, state.age)}
+                size="small"
+              />
+            )
           ))}
         </>
       )}
     </div>
   );
 
+  const lawsSection = (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold text-slate-300">Laws</div>
+      {LAW_CATEGORY_IDS.map((category) => {
+        const currentLawId = playerNation?.laws?.[category];
+        const currentLaw = getLaw(category, currentLawId);
+        const alternatives = LAW_CATEGORIES[category].filter((l) => l.id !== currentLawId);
+        return (
+          <div key={category} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 capitalize">{category}</span>
+              <span className="text-white font-semibold">{currentLaw?.name}</span>
+            </div>
+            {currentLaw?.description && <div className="text-slate-500">{currentLaw.description}</div>}
+            <div className="flex flex-wrap gap-1 pt-1">
+              {alternatives.map((law) => {
+                const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
+                const cost = { adm: getLawChangeCost(state, state.playerNationId, category, law.id) };
+                const requiredTech = getRequiredTechName(law);
+                return (
+                  <button
+                    key={law.id}
+                    onClick={() => handleChangeLaw(category, law.id)}
+                    disabled={!canEnact || !canAfford(state.resources, cost)}
+                    title={requiredTech && !canEnact ? `Requires ${requiredTech}` : law.description}
+                    className="text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 px-2 py-1"
+                  >
+                    {law.name} ({cost.adm} ADM)
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const identityOnCooldown = (state.turnNumber || 0) < (playerNation?.identityShiftCooldownTurn || 0);
   const handleShiftIdentity = (axis, direction) => {
     if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog('Not enough resources', 'action');
     triggerEffect('shift_identity', { region: getNationCapital(state.playerNationId) });
@@ -342,14 +378,14 @@ const DomesticPanel = ({ selectedRegion }) => {
             <div className="flex gap-1.5">
               <button
                 onClick={() => handleShiftIdentity(axisId, -1)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || value <= IDENTITY_MIN}
+                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value <= IDENTITY_MIN}
                 className="flex-1 text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 py-1"
               >
                 &larr; {axis.negativePole}
               </button>
               <button
                 onClick={() => handleShiftIdentity(axisId, 1)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || value >= IDENTITY_MAX}
+                disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value >= IDENTITY_MAX}
                 className="flex-1 text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 py-1"
               >
                 {axis.positivePole} &rarr;
@@ -365,6 +401,7 @@ const DomesticPanel = ({ selectedRegion }) => {
     return (
       <div className="space-y-4">
         {governmentSection}
+        <div className="border-t border-slate-800 pt-2">{lawsSection}</div>
         <div className="border-t border-slate-800 pt-2">{courtSection}</div>
         <div className="border-t border-slate-800 pt-2">{identitySection}</div>
         <div className="border-t border-slate-800 pt-2">{empireSection}</div>
@@ -456,6 +493,7 @@ const DomesticPanel = ({ selectedRegion }) => {
   return (
     <div className="space-y-4">
       {governmentSection}
+      <div className="pt-2 border-t border-slate-800">{lawsSection}</div>
       <div className="pt-2 border-t border-slate-800">{courtSection}</div>
       <div className="pt-2 border-t border-slate-800">{identitySection}</div>
 

@@ -2,22 +2,24 @@ import { describe, it, expect } from 'vitest';
 import { getNationSheet, getModifier, getRegionModifier, getNationBonusTotal, explainNationBonus } from './sheet';
 import { createEmptyRegionBuildings } from '../../data/buildings';
 
+const monarchyDespotic = { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }; // milBonus 1, stabilityBonus -1
+const merchantRepublic = { type: 'republic', reforms: { classical: 'merchant_republic' } }; // goldMult 0.25
+
 describe('getNationBonusTotal / explainNationBonus (the legacy shim)', () => {
-  it('sums government + policy + wonder + identity for one hook, matching the old getNationBonusTotal', () => {
-    const nation = { government: 'monarchy', policies: ['civic_pride'], wonders: ['pyramids'], identity: { collectivism: 100 } };
-    // stabilityBonus: monarchy 5 + civic_pride 6 + pyramids 8 + identity 10 = 29
-    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(29);
+  it('sums government reforms + laws + wonders for one hook, matching the old getNationBonusTotal', () => {
+    const nation = { government: monarchyDespotic, laws: { justice: 'rule_of_law' }, wonders: ['pyramids'] }; // stabilityBonus: -1 (despotic) + 1 (rule_of_law) + 8 (pyramids) = 8
+    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(8);
   });
 
   it('explainNationBonus returns a breakdown whose lines sum to the same total', () => {
-    const nation = { government: 'republic', policies: ['merchant_charter'] };
+    const nation = { government: merchantRepublic, laws: { trade: 'mercantilism' } };
     const { total, breakdown } = explainNationBonus(nation, 'goldMult');
     expect(breakdown.reduce((sum, l) => sum + l.value, 0)).toBeCloseTo(total);
-    expect(breakdown.map((l) => l.sourceType).sort()).toEqual(['government', 'policy']);
+    expect(breakdown.map((l) => l.sourceType).sort()).toEqual(['government', 'law']);
   });
 
   it('is 0 for a hook nothing on the nation contributes to', () => {
-    expect(getNationBonusTotal({ government: 'monarchy' }, 'goldMult')).toBe(0);
+    expect(getNationBonusTotal({ government: monarchyDespotic }, 'goldMult')).toBe(0);
   });
 });
 
@@ -25,7 +27,7 @@ describe('getNationSheet / getModifier', () => {
   it('a breakdown\'s lines always sum to its own total', () => {
     const state = {
       playerNationId: 'fr',
-      nations: { fr: { government: 'empire', taxRate: 'high' } },
+      nations: { fr: { government: { type: 'monarchy', reforms: {} }, taxRate: 'high' } },
       satellites: {}
     };
     const { total, breakdown } = getModifier(state, 'fr', 'national.goldMult');
@@ -33,18 +35,18 @@ describe('getNationSheet / getModifier', () => {
   });
 
   it('caches the sheet per (state, nationId): the same state object returns the same sheet instance data without recomputation drift', () => {
-    const state = { playerNationId: 'fr', nations: { fr: { government: 'monarchy' } }, satellites: {} };
+    const state = { playerNationId: 'fr', nations: { fr: { government: monarchyDespotic } }, satellites: {} };
     const a = getNationSheet(state, 'fr');
     const b = getNationSheet(state, 'fr');
     expect(a).toBe(b);
   });
 
   it('a different state object (even with identical content) gets its own sheet, not a stale cached one', () => {
-    const nation = { government: 'monarchy' };
+    const nation = { government: monarchyDespotic };
     const stateA = { playerNationId: 'fr', nations: { fr: nation }, satellites: {} };
-    const stateB = { playerNationId: 'fr', nations: { fr: { ...nation, government: 'empire' } }, satellites: {} };
-    expect(getModifier(stateA, 'fr', 'national.stabilityBonus').total).toBe(5); // monarchy
-    expect(getModifier(stateB, 'fr', 'national.stabilityBonus').total).toBe(0); // empire has no stabilityBonus
+    const stateB = { playerNationId: 'fr', nations: { fr: { ...nation, government: { type: 'monarchy', reforms: {} } } }, satellites: {} };
+    expect(getModifier(stateA, 'fr', 'national.stabilityBonus').total).toBe(-1); // despotic_rule
+    expect(getModifier(stateB, 'fr', 'national.stabilityBonus').total).toBe(0); // no reform chosen yet
   });
 
   it('returns a zero total with an empty breakdown for an unknown nation id', () => {

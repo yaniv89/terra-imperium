@@ -1,25 +1,22 @@
 // src/engine/succession.js
-// Plan §M3: ruler/heir generation and succession. Government in this codebase is still the flat
-// 10-type model (src/data/government.js) — M8's reform-tier rework (Monarchy/Republic/Theocracy/
-// Dictatorship, each with its own succession flavor) hasn't happened yet, so succession style here
-// is bucketed from today's real government ids instead of the plan's eventual government TYPE:
-// hereditary (monarchy/feudal/empire/absolutist/constitutional — the heir succeeds), elective
-// (republic/democracy/federation — a fresh "elected" ruler, no heir carried), autocratic
-// (autocracy — the next ruler is rerolled favoring a high MIL stat), and tribal/none (no government
-// adopted yet — a fresh ruler, no heir, no dynasty continuity). Revisit this bucketing once M8
-// actually ships government TYPES rather than 10 flat ids.
+// Plan §M3: ruler/heir generation and succession. Succession style is bucketed straight from the
+// plan's M8 government TYPE (src/data/government.js): Monarchy is hereditary (the heir succeeds),
+// Republic is elective (a fresh "elected" ruler, no heir carried), Theocracy is its own bucket
+// ("weighted towards high ADM" — see generateRuler's `style` param), Dictatorship is autocratic (the
+// next ruler is rerolled favoring a high MIL stat), and Tribal (or no type yet) carries no dynasty.
 import { getYearsPerTurn } from '../data/ages';
 import { generateGivenName, generateDynastyName } from '../data/names';
 import { POSITIVE_TRAIT_IDS, NEGATIVE_TRAIT_IDS } from '../data/traits';
+import { getGovernmentReformEffectSum } from '../data/government';
 
-const HEREDITARY_GOVERNMENTS = ['monarchy', 'feudal', 'empire', 'absolutist', 'constitutional'];
-const AUTOCRATIC_GOVERNMENTS = ['autocracy'];
-
-export const getSuccessionStyle = (governmentId) => {
-  if (HEREDITARY_GOVERNMENTS.includes(governmentId)) return 'hereditary';
-  if (AUTOCRATIC_GOVERNMENTS.includes(governmentId)) return 'autocratic';
-  if (governmentId) return 'elective'; // republic, democracy, federation
-  return 'tribal'; // null/tribal: no government adopted yet
+export const getSuccessionStyle = (government) => {
+  switch (government?.type) {
+    case 'monarchy': return 'hereditary';
+    case 'republic': return 'elective';
+    case 'theocracy': return 'theocratic';
+    case 'dictatorship': return 'autocratic';
+    default: return 'tribal'; // tribal, or no government type yet
+  }
 };
 
 // A triangular-ish distribution centered on 2-3 (roll two dice, keep the lower-weighted sum) so
@@ -52,24 +49,39 @@ export const reignLengthTurns = (rng, age, gameSpeed) => {
 // generated id to be reproducible from state alone, the same way rebel unit ids already are
 // (elimination.js's `rebel_${regionId}_${turnNumber}` pattern). Only one ruler AND one heir are
 // ever generated for a given nation on a given turn, so this pairing is always unique.
-export const generateRuler = (nationId, rng, { dynasty, turnNumber, age, gameSpeed } = {}) => ({
-  id: `ruler_${nationId}_${turnNumber}`,
-  name: generateGivenName(nationId, rng),
-  dynasty: dynasty || generateDynastyName(nationId, rng),
-  adm: rollSkill(rng),
-  dip: rollSkill(rng),
-  mil: rollSkill(rng),
-  traits: rollTraits(rng),
-  reignStartTurn: turnNumber,
-  reignEndsTurn: turnNumber + reignLengthTurns(rng, age, gameSpeed),
-  isRegency: false
-});
+// `style` biases stat generation for two of the plan's own succession flavors: Theocracy ("weighted
+// towards high ADM") rolls ADM twice and keeps the higher; Dictatorship ("the best MIL general
+// becomes ruler; otherwise a generated ruler with MIL >= 3") floors MIL at 3 rather than modeling a
+// real general-to-ruler promotion, which nothing in this codebase's general/nation model supports
+// yet. Every other style (undefined, hereditary, elective, tribal) rolls exactly as before.
+export const generateRuler = (nationId, rng, { dynasty, turnNumber, age, gameSpeed, style } = {}) => {
+  const adm = style === 'theocratic' ? Math.max(rollSkill(rng), rollSkill(rng)) : rollSkill(rng);
+  const dip = rollSkill(rng);
+  const milRoll = rollSkill(rng);
+  const mil = style === 'autocratic' ? Math.max(3, milRoll) : milRoll;
+  return {
+    id: `ruler_${nationId}_${turnNumber}`,
+    name: generateGivenName(nationId, rng),
+    dynasty: dynasty || generateDynastyName(nationId, rng),
+    adm,
+    dip,
+    mil,
+    traits: rollTraits(rng),
+    reignStartTurn: turnNumber,
+    reignEndsTurn: turnNumber + reignLengthTurns(rng, age, gameSpeed),
+    isRegency: false
+  };
+};
 
 // A hereditary heir's claim (0-100) governs how smooth their eventual succession is (see
 // processSuccession below) — a low-claim or missing heir is what the plan's succession crisis
 // framing is about; the crisis EVENT itself is M17's job (event content), this only produces the
 // raw claim number that content would react to.
-export const generateHeir = (nationId, rng, dynasty, turnNumber) => ({
+// `claimBonus` (plan §M8.1: Monarchy's Hereditary Primogeniture reform, +20) is added on top of the
+// usual 40-100 roll, then capped at 100 — it's the real mechanism behind "sharply reducing
+// succession-crisis risk" (processSuccession's crisis check is claim < 20, and 40 + any positive
+// bonus is already well clear of that).
+export const generateHeir = (nationId, rng, dynasty, turnNumber, claimBonus = 0) => ({
   id: `heir_${nationId}_${turnNumber}`,
   name: generateGivenName(nationId, rng),
   dynasty,
@@ -77,7 +89,7 @@ export const generateHeir = (nationId, rng, dynasty, turnNumber) => ({
   dip: rollSkill(rng),
   mil: rollSkill(rng),
   traits: rollTraits(rng),
-  claim: 40 + Math.floor(rng.next() * 61) // 40-100: a generated heir is never a near-certain crisis
+  claim: Math.min(100, 40 + Math.floor(rng.next() * 61) + claimBonus) // 40-100 base: never a near-certain crisis
 });
 
 // Advisors (plan §M3). A hired advisor's ONLY mechanical effect here is +level to their own power
@@ -117,6 +129,7 @@ export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed }) =
 
   const style = getSuccessionStyle(nation.government);
   const dynasty = nation.ruler.dynasty;
+  const claimBonus = getGovernmentReformEffectSum(nation, 'heirClaimBonus');
 
   if (style === 'hereditary' && nation.heir) {
     const newRuler = {
@@ -125,14 +138,23 @@ export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed }) =
       reignEndsTurn: turnNumber + reignLengthTurns(rng, age, gameSpeed),
       isRegency: false
     };
-    return { ruler: newRuler, heir: generateHeir(nation.id, rng, dynasty, turnNumber), crisis: newRuler.claim < 20 };
+    // Elective Monarchy (plan §M8.1): "choose the next ruler from three candidates" isn't a real
+    // mechanic yet (no UI for a successor pick), but its real, mechanical cost — "-10 legitimacy at
+    // succession" — is: resolveTurn.js applies this against the succeeding nation's legitimacy.
+    const legitimacyPenalty = getGovernmentReformEffectSum(nation, 'successionLegitimacyPenalty');
+    return {
+      ruler: newRuler,
+      heir: generateHeir(nation.id, rng, dynasty, turnNumber, claimBonus),
+      crisis: newRuler.claim < 20,
+      legitimacyPenalty
+    };
   }
 
-  // Elective/autocratic/tribal, or hereditary with no heir (a real succession crisis per the
-  // plan) — either way, a fresh ruler with no continuing claim to carry over. A hereditary
+  // Elective/theocratic/autocratic/tribal, or hereditary with no heir (a real succession crisis per
+  // the plan) — either way, a fresh ruler with no continuing claim to carry over. A hereditary
   // government keeps its OWN dynasty name rather than rolling a new one (the line continues, even
   // if this particular heir failed); every other style gets a new dynasty entirely.
   const nextDynasty = style === 'hereditary' ? dynasty : generateDynastyName(nation.id, rng);
-  const ruler = generateRuler(nation.id, rng, { dynasty: nextDynasty, turnNumber, age, gameSpeed });
-  return { ruler, heir: style === 'hereditary' ? generateHeir(nation.id, rng, nextDynasty, turnNumber) : null, crisis: style === 'hereditary' };
+  const ruler = generateRuler(nation.id, rng, { dynasty: nextDynasty, turnNumber, age, gameSpeed, style });
+  return { ruler, heir: style === 'hereditary' ? generateHeir(nation.id, rng, nextDynasty, turnNumber, claimBonus) : null, crisis: style === 'hereditary' };
 };
