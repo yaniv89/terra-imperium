@@ -896,7 +896,7 @@ describe('resolveTurn national power (plan §M4)', () => {
       ...base,
       nations: {
         ...base.nations,
-        fr: { ...base.nations.fr, government: 'monarchy', stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber }, heir: null }
+        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber }, heir: null }
       }
     };
     const next = resolveTurn(state);

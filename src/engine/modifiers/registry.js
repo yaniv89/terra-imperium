@@ -48,7 +48,12 @@ export const MODIFIER_KEYS = {
   'national.researchCost': { scope: 'nation', unit: 'pct', label: 'Research Cost' },
   'national.stabilityCost': { scope: 'nation', unit: 'pct', label: 'Stability Cost' },
   'national.supplyRange': { scope: 'nation', unit: 'flat', label: 'Supply Range' },
-  'national.attrition': { scope: 'nation', unit: 'pct', label: 'Attrition' }
+  'national.attrition': { scope: 'nation', unit: 'pct', label: 'Attrition' },
+  // Plan §M8.1: government reforms (Imperial Bureaucracy, Dutch-style Federal Republic) that grant
+  // governing capacity directly, on top of nationalPower.js's own base/startRegionCount/Governance-
+  // tech terms — see sources.js's contextSources, which reads this key off the nation's OWN static
+  // reform lines (not through getModifier, to avoid a circular import into nationalPower.js).
+  'national.governingCapacity': { scope: 'nation', unit: 'flat', label: 'Governing Capacity' }
 };
 
 // Maps getNationBonusTotal's old hook-name argument to its modifier key here, so every existing
@@ -69,5 +74,6 @@ export const LEGACY_HOOK = {
   researchCost: 'national.researchCost',
   stabilityCost: 'national.stabilityCost',
   supplyRange: 'national.supplyRange',
-  attrition: 'national.attrition'
+  attrition: 'national.attrition',
+  governingCapacity: 'national.governingCapacity'
 };

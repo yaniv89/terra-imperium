@@ -132,19 +132,19 @@ describe('processNationalPowerTurn', () => {
   });
 
   it('hereditary government gains legitimacy scaled by ruler ADM skill', () => {
-    const withSkill = processNationalPowerTurn({ legitimacy: 50, prestige: 0, government: 'monarchy', ruler: { adm: 6 } });
-    const withoutSkill = processNationalPowerTurn({ legitimacy: 50, prestige: 0, government: 'monarchy', ruler: { adm: 0 } });
+    const withSkill = processNationalPowerTurn({ legitimacy: 50, prestige: 0, government: { type: 'monarchy', reforms: {} }, ruler: { adm: 6 } });
+    const withoutSkill = processNationalPowerTurn({ legitimacy: 50, prestige: 0, government: { type: 'monarchy', reforms: {} }, ruler: { adm: 0 } });
     expect(withSkill.legitimacy).toBeGreaterThan(withoutSkill.legitimacy);
     expect(withoutSkill.legitimacy).toBe(50); // 0 adm skill and 0 prestige contributes nothing
   });
 
   it('elective government gains a flat legitimacy tick regardless of ruler skill', () => {
-    const result = processNationalPowerTurn({ legitimacy: 50, prestige: 0, government: 'republic', ruler: { adm: 0 } });
+    const result = processNationalPowerTurn({ legitimacy: 50, prestige: 0, government: { type: 'republic', reforms: {} }, ruler: { adm: 0 } });
     expect(result.legitimacy).toBeGreaterThan(50);
   });
 
   it('legitimacy never exceeds 100', () => {
-    let nation = { legitimacy: 99.9, prestige: 100, government: 'monarchy', ruler: { adm: 6 } };
+    let nation = { legitimacy: 99.9, prestige: 100, government: { type: 'monarchy', reforms: {} }, ruler: { adm: 6 } };
     for (let i = 0; i < 5; i++) nation = processNationalPowerTurn(nation);
     expect(nation.legitimacy).toBeLessThanOrEqual(100);
   });

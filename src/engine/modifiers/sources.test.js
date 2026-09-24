@@ -4,20 +4,37 @@ import { createInitialState } from '../../context/GameContext';
 import { createEmptyRegionBuildings } from '../../data/buildings';
 
 describe('staticSources', () => {
-  it('emits one line per non-zero hook on the nation\'s government effect', () => {
-    const lines = staticSources({ government: 'monarchy' });
+  it('emits one line per non-zero hook across every active government reform tier', () => {
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule', classical: 'imperial_bureaucracy' } } };
+    const lines = staticSources(nation);
     expect(lines).toEqual(expect.arrayContaining([
-      { key: 'national.stabilityBonus', value: 5, sourceType: 'government', sourceId: 'monarchy', label: 'Monarchy' },
-      { key: 'national.apBonus', value: 1, sourceType: 'government', sourceId: 'monarchy', label: 'Monarchy' }
+      { key: 'national.milBonus', value: 1, sourceType: 'government', sourceId: 'despotic_rule', label: 'Despotic Rule' },
+      { key: 'national.stabilityBonus', value: -1, sourceType: 'government', sourceId: 'despotic_rule', label: 'Despotic Rule' },
+      { key: 'national.governingCapacity', value: 10, sourceType: 'government', sourceId: 'imperial_bureaucracy', label: 'Imperial Bureaucracy' },
+      { key: 'national.admBonus', value: 1, sourceType: 'government', sourceId: 'imperial_bureaucracy', label: 'Imperial Bureaucracy' }
     ]));
   });
 
-  it('emits one line per adopted policy', () => {
-    const lines = staticSources({ policies: ['levy_system', 'civic_pride'] });
+  it('emits nothing for a reform tier with no wired effects (e.g. Divine Kingship)', () => {
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'divine_kingship' } } };
+    expect(staticSources(nation).some((l) => l.sourceType === 'government')).toBe(false);
+  });
+
+  it('emits nothing when the nation has no government type at all', () => {
+    expect(staticSources({}).some((l) => l.sourceType === 'government')).toBe(false);
+  });
+
+  it('emits one line per non-zero hook on the nation\'s active law in every category', () => {
+    const lines = staticSources({ laws: { taxation: 'land_tax', justice: 'martial_law' } });
     expect(lines).toEqual(expect.arrayContaining([
-      { key: 'national.hrMult', value: 0.1, sourceType: 'policy', sourceId: 'levy_system', label: 'Levy System' },
-      { key: 'national.stabilityBonus', value: 6, sourceType: 'policy', sourceId: 'civic_pride', label: 'Civic Pride' }
+      { key: 'national.goldMult', value: 0.1, sourceType: 'law', sourceId: 'land_tax', label: 'Land Tax' },
+      { key: 'national.goldMult', value: -0.2, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' },
+      { key: 'national.dipBonus', value: -1, sourceType: 'law', sourceId: 'martial_law', label: 'Martial Law' }
     ]));
+  });
+
+  it('emits nothing for a law with no wired effects (e.g. the Tribute/Customary Law defaults)', () => {
+    expect(staticSources({ laws: { taxation: 'tribute', justice: 'customary_law' } }).some((l) => l.sourceType === 'law')).toBe(false);
   });
 
   it('emits one line per built wonder, including multi-hook wonders', () => {
@@ -28,9 +45,8 @@ describe('staticSources', () => {
     ]));
   });
 
-  it('emits an identity line for a hook the identity axes actually contribute to', () => {
-    const lines = staticSources({ identity: { collectivism: 100 } });
-    expect(lines).toContainEqual({ key: 'national.stabilityBonus', value: 10, sourceType: 'identity', sourceId: 'identity', label: 'National Identity' });
+  it('emits nothing for identity alone (plan §M8.3: identity gates/discounts instead of granting a flat bonus)', () => {
+    expect(staticSources({ identity: { collectivism: 100, secularism: 100, globalism: 100 } }).some((l) => l.sourceType === 'identity')).toBe(false);
   });
 
   it('emits nothing for an empty/missing nation', () => {
@@ -44,7 +60,8 @@ describe('staticSources', () => {
   });
 
   it('skips a hook with no LEGACY_HOOK mapping rather than throwing', () => {
-    expect(() => staticSources({ policies: ['some_future_policy_with_unknown_hook'] })).not.toThrow();
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }, laws: { taxation: 'not_real' } };
+    expect(() => staticSources(nation)).not.toThrow();
   });
 });
 
@@ -81,6 +98,17 @@ describe('contextSources', () => {
       techTree: { ...base.techTree, governance_civic_assemblies: { ...base.techTree.governance_civic_assemblies, researched: true } }
     };
     expect(contextSources(withTech, 'fr').some((l) => l.sourceType === 'tech')).toBe(false);
+  });
+
+  it('a governingCapacity reform raises the overextension threshold, delaying the overextension penalty line (plan §M8.1)', () => {
+    const manyRegions = {};
+    for (let i = 0; i < 15; i++) manyRegions[`r${i}`] = { owner: 'fr' };
+    const withoutReform = { playerNationId: 'fr', nations: { fr: { startRegionCount: 1, government: { type: 'tribal', reforms: {} } } }, regions: manyRegions };
+    const withReform = { playerNationId: 'fr', nations: { fr: { startRegionCount: 1, government: { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } } } }, regions: manyRegions };
+    const without = contextSources(withoutReform, 'fr').find((l) => l.sourceType === 'overextension');
+    const withGov = contextSources(withReform, 'fr').find((l) => l.sourceType === 'overextension');
+    expect(without).toBeDefined();
+    expect(withGov?.value ?? 0).toBeGreaterThan(without.value); // less negative (or absent) — the reform's +10 capacity eases it
   });
 });
 

@@ -18,7 +18,7 @@ import { createInitialState } from './gameReducer';
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-export const CURRENT_SAVE_VERSION = 2;
+export const CURRENT_SAVE_VERSION = 3;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
@@ -46,7 +46,37 @@ const migrate1to2 = (state) => {
   };
 };
 
-const MIGRATIONS = { 1: migrate1to2 };
+// M8 replaced the flat 10-id `nation.government` string with `{ type, reforms }` (plain backfill
+// can't invent this — a string isn't a plain object, so deepFillMissing would otherwise silently
+// discard which government the nation had adopted and hand it a fresh `tribal` default instead, see
+// backfillDefaults' NATION_IDENTITY_KEYS comment on exactly this failure mode) and replaced the
+// shared `policies[]` slot pool with `laws`/`lawCooldowns` (new keys plain backfill handles fine on
+// its own, since they're entirely ABSENT rather than reshaped — only `government`'s reshape and
+// `policies`' removal need a real conversion here).
+const GOVERNMENT_TYPE_MIGRATION = {
+  tribal: 'tribal', monarchy: 'monarchy', feudal: 'monarchy', empire: 'monarchy',
+  absolutist: 'monarchy', constitutional: 'monarchy',
+  republic: 'republic', democracy: 'republic', federation: 'republic',
+  autocracy: 'dictatorship'
+};
+
+const migrate2to3 = (state) => {
+  const nations = {};
+  Object.entries(state.nations || {}).forEach(([id, nation]) => {
+    // eslint-disable-next-line no-unused-vars -- destructured only to omit the deleted field
+    const { policies, ...rest } = nation;
+    const oldGovernmentId = typeof nation.government === 'string' ? nation.government : null;
+    nations[id] = { ...rest, government: { type: GOVERNMENT_TYPE_MIGRATION[oldGovernmentId] || 'tribal', reforms: {} } };
+  });
+  // Refund the player's spent ADM for every repealed policy (plan §M8.2's own migration note),
+  // matching CHANGE_LAW/ENACT_GOVERNMENT_REFORM's 80-100 ADM price range rather than the old flat
+  // gold cost policies used to have.
+  const playerPolicyCount = (state.nations?.[state.playerNationId]?.policies || []).length;
+  const resources = playerPolicyCount ? { ...state.resources, adm: (state.resources?.adm || 0) + playerPolicyCount * 80 } : state.resources;
+  return { ...state, nations, resources };
+};
+
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

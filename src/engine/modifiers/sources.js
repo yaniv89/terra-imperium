@@ -5,10 +5,9 @@
 // per nation object rather than per (state, nationId) pair. `contextSources` depends on the wider
 // state (tax rate, satellites, tech) and is NOT cached, since those can change without the nation
 // object itself changing reference.
-import { GOVERNMENT_TYPES } from '../../data/government';
-import { POLICIES } from '../../data/policies';
+import { getActiveReforms } from '../../data/government';
+import { LAW_CATEGORIES, getLaw } from '../../data/laws';
 import { WONDERS } from '../../data/wonders';
-import { getIdentityBonus } from '../../data/identity';
 import { TAX_RATES } from '../../data/taxRates';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
@@ -25,12 +24,19 @@ const linesFromEffect = (effect, sourceType, sourceId, label) =>
 export const staticSources = (nation) => {
   const lines = [];
 
-  const gov = GOVERNMENT_TYPES[nation?.government];
-  if (gov) lines.push(...linesFromEffect(gov.effect, 'government', gov.id, gov.name));
+  // Plan §M8.1: every reform tier the nation has reached and picked contributes simultaneously
+  // (see government.js's header comment on why they stack rather than replace one another) —
+  // this REPLACES the old flat "one government id -> one effect object" lookup.
+  getActiveReforms(nation).forEach((reform) => {
+    lines.push(...linesFromEffect(reform.effects, 'government', reform.id, reform.name));
+  });
 
-  (nation?.policies || []).forEach((id) => {
-    const policy = POLICIES[id];
-    if (policy) lines.push(...linesFromEffect(policy.effect, 'policy', id, policy.name));
+  // Plan §M8.2: laws replace policies — one law per category, always present (DEFAULT_LAWS), rather
+  // than a shared slot pool a government's slot count used to limit.
+  Object.keys(LAW_CATEGORIES).forEach((category) => {
+    const lawId = nation?.laws?.[category];
+    const law = lawId && getLaw(category, lawId);
+    if (law) lines.push(...linesFromEffect(law.effects, 'law', lawId, law.name));
   });
 
   (nation?.wonders || []).forEach((id) => {
@@ -38,10 +44,9 @@ export const staticSources = (nation) => {
     if (wonder) lines.push(...linesFromEffect(wonder.effect, 'wonder', id, wonder.name));
   });
 
-  Object.keys(LEGACY_HOOK).forEach((hook) => {
-    const value = getIdentityBonus(nation?.identity, hook);
-    if (value) lines.push({ key: LEGACY_HOOK[hook], value, sourceType: 'identity', sourceId: 'identity', label: 'National Identity' });
-  });
+  // Plan §M8.3: identity no longer grants a flat gold/stability multiplier here — it only gates and
+  // discounts government types/laws (src/data/government.js, src/data/laws.js), which read the
+  // nation's identity directly rather than through a modifier line.
 
   // Timed modifiers (plan §A.2) — nation.modifiers[] entries added by a future milestone's event/
   // disaster/law effect. Nothing populates this array yet, so this is currently always a no-op;
@@ -115,7 +120,14 @@ export const contextSources = (state, nationId) => {
   // Overextension (plan §M4): "+overextension/20 unrest in every region" — the blanket "+ADM/DIP
   // cost" half of the plan's own effect table is deferred (see nationalPower.js's own header
   // comment: no per-action modifier-aware cost pipeline exists yet to apply it generically).
-  const overextension = getOverextension(state, nationId);
+  // Plan §M8.1: a reform's own national.governingCapacity line (Imperial Bureaucracy, Dutch-style
+  // Federal Republic) is read straight off staticSources here — NOT via getModifier/getNationSheet
+  // — so this file never calls back into itself through the sheet cache, and nationalPower.js never
+  // has to import the modifier engine (see its own header comment on why that would be circular).
+  const capacityBonus = nation ? staticSources(nation)
+    .filter((l) => l.key === 'national.governingCapacity')
+    .reduce((sum, l) => sum + l.value, 0) : 0;
+  const overextension = getOverextension(state, nationId, capacityBonus);
   if (overextension > 0) {
     lines.push({ key: 'national.stabilityBonus', value: -(overextension / 20), sourceType: 'overextension', sourceId: 'overextension', label: 'Overextension' });
   }

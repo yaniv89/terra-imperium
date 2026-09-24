@@ -1571,109 +1571,137 @@ describe('Research tab actions', () => {
   });
 });
 
-describe('Government and policy actions', () => {
+describe('Government reform and law actions (plan §M8)', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, adm: 100 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, adm: 100000 } };
   };
 
-  describe('ADOPT_GOVERNMENT', () => {
-    it('adopts a government available at the current age and deducts the cost', () => {
+  describe('CHANGE_GOVERNMENT_TYPE', () => {
+    it('changes to an available type at the current age, deducts the cost, and applies -2 stability', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      expect(next.nations.fr.government).toBe('tribal');
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.government.type).toBe('monarchy');
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) - 2);
     });
 
-    it('trims policies that no longer fit after reforming to a government with fewer slots', () => {
-      const monarchy = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'monarchy' } });
-      const withTwoPolicies = ['levy_system', 'merchant_charter'].reduce(
-        (s, policyId) => gameReducer(s, { type: ActionTypes.ADOPT_POLICY, payload: { policyId } }),
-        monarchy
-      );
-      expect(withTwoPolicies.nations.fr.policies.length).toBe(2);
-      // Reforming back to Tribal Council (1 slot) should drop one of the two adopted policies.
-      const next = gameReducer(withTwoPolicies, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      expect(next.nations.fr.policies.length).toBe(1);
+    it('resets reforms to the new type\'s first choice for every age tier up to the calendar age', () => {
+      const next = gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.government.reforms).toEqual({ bronze: 'despotic_rule' }); // calendar age is bronze at game start
     });
 
-    it('is a no-op for a government more than one age ahead of the calendar', () => {
+    it('is a no-op for a type not yet reached by age (Republic needs Classical)', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'feudal' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'republic' } })).toBe(state);
     });
 
-    it('is a no-op when already that government', () => {
-      const state = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } })).toBe(state);
+    it('is a no-op when already that type', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } })).toBe(state);
+    });
+
+    it('is a no-op for Theocracy without the identity gate', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'theocracy' } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } })).toBe(state);
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } })).toBe(state);
     });
   });
 
-  describe('ADOPT_POLICY', () => {
-    const withGovernment = () => gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+  describe('ENACT_GOVERNMENT_REFORM', () => {
+    const withMonarchy = () => gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
 
-    it('adopts a policy into an open slot and deducts the cost', () => {
-      const state = withGovernment();
-      const next = gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
-      expect(next.nations.fr.policies).toContain('levy_system');
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    it('cannot re-pick a tier CHANGE_GOVERNMENT_TYPE already auto-filled (once per tier locks in)', () => {
+      const state = withMonarchy(); // resetReformsForType already set bronze: despotic_rule
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'divine_kingship' } })).toBe(state);
     });
 
-    it('is a no-op without a government adopted yet', () => {
+    it('enacts a reform for an unset tier and deducts the cost', () => {
+      // A fresh tribal nation has no reforms set yet at all.
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+      const next = gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'chieftaincy' } });
+      expect(next.nations.fr.government.reforms.bronze).toBe('chieftaincy');
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
     });
 
-    it('is a no-op once every slot is filled', () => {
-      // Tribal Council has exactly 1 slot.
-      const state = gameReducer(withGovernment(), { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
+    it('is a no-op for a tier ahead of the calendar age', () => {
+      const state = withMonarchy();
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'classical', reformId: 'imperial_bureaucracy' } })).toBe(state);
     });
 
-    it('is a no-op for a policy already adopted', () => {
-      const state = gameReducer(withGovernment(), { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
-    });
-
-    it('is a no-op for an unknown policy id', () => {
-      const state = withGovernment();
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'not_real' } })).toBe(state);
+    it('is a no-op for a reform id that does not belong to the current type/age', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'despotic_rule' } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...withGovernment(), resources: { ...withGovernment().resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'chieftaincy' } })).toBe(state);
     });
   });
 
-  describe('REMOVE_POLICY', () => {
-    const withPolicy = () => {
-      const state = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      return gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
+  describe('CHANGE_LAW', () => {
+    const withMintedCoinage = () => {
+      const base = richState();
+      return { ...base, techTree: { ...base.techTree, economy_minted_coinage: { ...base.techTree.economy_minted_coinage, researched: true } } };
     };
 
-    it('removes an adopted policy', () => {
-      const state = withPolicy();
-      const next = gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'levy_system' } });
-      expect(next.nations.fr.policies).not.toContain('levy_system');
+    it('changes a category\'s law, deducts the dynamic ADM cost, and sets a cooldown', () => {
+      const state = withMintedCoinage();
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } });
+      expect(next.nations.fr.laws.taxation).toBe('land_tax');
+      expect(next.resources.adm).toBe(state.resources.adm - 100); // 50 x tier 2
+      expect(next.nations.fr.lawCooldowns.taxation).toBe(state.turnNumber + 5);
     });
 
-    it('is a no-op for a policy not currently adopted', () => {
-      const state = withPolicy();
-      expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
+    it('is a no-op for a law already active in that category', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'tribute' } })).toBe(state);
+    });
+
+    it('is a no-op for a tech-gated law without the tech researched', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } })).toBe(state);
+    });
+
+    it('is a no-op while the category is on cooldown', () => {
+      const state = withMintedCoinage();
+      const first = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } });
+      expect(gameReducer(first, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'tribute' } })).toBe(first);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...withMintedCoinage(), resources: { ...withMintedCoinage().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } })).toBe(state);
+    });
+
+    it('applies a one-time -1 stability when enacting Martial Law', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'justice', lawId: 'martial_law' } });
+      expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) - 1);
+    });
+
+    it('pushes a 10-turn timed unrest modifier when enacting Collectivization', () => {
+      const base = richState();
+      const state = { ...base, techTree: { ...base.techTree, economy_industrial_capital: { ...base.techTree.economy_industrial_capital, researched: true } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'land', lawId: 'collectivization' } });
+      expect(next.nations.fr.modifiers).toContainEqual(expect.objectContaining({
+        sourceType: 'law', sourceId: 'collectivization', mods: { 'national.stabilityBonus': -2 }, expiresTurn: state.turnNumber + 10
+      }));
     });
   });
 
   describe('SHIFT_IDENTITY', () => {
-    it('shifts the named axis by IDENTITY_SHIFT_STEP in the given direction and deducts the cost', () => {
+    it('shifts the named axis by IDENTITY_SHIFT_STEP in the given direction, deducts ADM, and sets a cooldown', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } });
       expect(next.nations.fr.identity.collectivism).toBe(IDENTITY_SHIFT_STEP);
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      expect(next.nations.fr.identityShiftCooldownTurn).toBe(state.turnNumber + 5);
     });
 
     it('shifts in the negative direction too, and other axes stay untouched', () => {
@@ -1700,8 +1728,14 @@ describe('Government and policy actions', () => {
       expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 0 } })).toBe(state);
     });
 
+    it('is a no-op while on cooldown', () => {
+      const state = richState();
+      const first = gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } });
+      expect(gameReducer(first, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'globalism', direction: 1 } })).toBe(first);
+    });
+
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
       expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } })).toBe(state);
     });
   });

@@ -1,58 +1,166 @@
 import { describe, it, expect } from 'vitest';
-import { GOVERNMENT_TYPES, getGovernment, getAvailableGovernments, canAdoptGovernment } from './government';
+import {
+  GOVERNMENT_TYPES, GOVERNMENT_REFORMS, getGovernmentType, getAvailableGovernmentTypes, getReformChoices,
+  getActiveReforms, getGovernmentReformEffectSum, canChangeGovernmentType, canEnactReform, resetReformsForType
+} from './government';
 import { AGE_ORDER } from './ages';
 
-describe('GOVERNMENT_TYPES data integrity', () => {
-  it('every government belongs to a real age', () => {
-    Object.values(GOVERNMENT_TYPES).forEach((gov) => {
-      expect(AGE_ORDER, gov.id).toContain(gov.ageId);
+const RECOGNIZED_HOOKS = [
+  'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus', 'admBonus',
+  'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
+  'supplyRange', 'attrition', 'governingCapacity'
+];
+// These three are raw, non-LEGACY_HOOK keys consumed directly by succession.js/laws.js rather than
+// through the modifier engine — see government.js's header comment.
+const RAW_KEYS = ['heirClaimBonus', 'successionLegitimacyPenalty', 'lawCostMult'];
+
+describe('GOVERNMENT_TYPES / GOVERNMENT_REFORMS data integrity', () => {
+  it('every type belongs to a real age', () => {
+    Object.values(GOVERNMENT_TYPES).forEach((t) => expect(AGE_ORDER, t.id).toContain(t.minAgeId));
+  });
+
+  it('every reform effect key is either a real modifier hook or one of the known raw keys', () => {
+    Object.entries(GOVERNMENT_REFORMS).forEach(([typeId, byAge]) => {
+      Object.values(byAge).forEach((choices) => {
+        choices.forEach((reform) => {
+          Object.keys(reform.effects || {}).forEach((key) => {
+            expect([...RECOGNIZED_HOOKS, ...RAW_KEYS], `${typeId}/${reform.id}/${key}`).toContain(key);
+          });
+        });
+      });
     });
   });
 
-  it('slot counts never decrease age over age', () => {
-    const maxSlotsByAgeIndex = AGE_ORDER.map((ageId) =>
-      Math.max(...getAvailableGovernments(ageId).map((g) => g.slots), 0)
-    );
-    for (let i = 1; i < maxSlotsByAgeIndex.length; i++) {
-      expect(maxSlotsByAgeIndex[i]).toBeGreaterThanOrEqual(maxSlotsByAgeIndex[i - 1]);
-    }
-  });
-
-  it('bronze offers only Tribal Council (no choice yet)', () => {
-    expect(getAvailableGovernments('bronze').map((g) => g.id)).toEqual(['tribal']);
-  });
-
-  it('later ages offer more than one government choice', () => {
-    ['classical', 'kingdoms', 'gunpowder', 'modern'].forEach((ageId) => {
-      expect(getAvailableGovernments(ageId).length).toBeGreaterThan(1);
+  it('every reform tier offers at least one choice', () => {
+    Object.entries(GOVERNMENT_REFORMS).forEach(([typeId, byAge]) => {
+      Object.entries(byAge).forEach(([ageId, choices]) => {
+        expect(choices.length, `${typeId}/${ageId}`).toBeGreaterThan(0);
+      });
     });
   });
-});
 
-describe('getGovernment', () => {
-  it('returns the government by id', () => {
-    expect(getGovernment('monarchy')?.name).toBe('Monarchy');
-  });
-
-  it('returns null for an unknown id', () => {
-    expect(getGovernment('not_real')).toBeNull();
+  it('Tribal and Theocracy are available from Bronze; Republic only from Classical; Dictatorship only from Modern', () => {
+    expect(getGovernmentType('tribal').minAgeId).toBe('bronze');
+    expect(getGovernmentType('theocracy').minAgeId).toBe('bronze');
+    expect(getGovernmentType('republic').minAgeId).toBe('classical');
+    expect(getGovernmentType('dictatorship').minAgeId).toBe('modern');
   });
 });
 
-describe('canAdoptGovernment', () => {
-  it('allows a government at the current calendar age', () => {
-    expect(canAdoptGovernment('tribal', 'bronze')).toBe(true);
+describe('getGovernmentType', () => {
+  it('returns the type by id', () => expect(getGovernmentType('monarchy')?.name).toBe('Monarchy'));
+  it('returns null for an unknown id', () => expect(getGovernmentType('not_real')).toBeNull());
+});
+
+describe('getAvailableGovernmentTypes', () => {
+  it('at Bronze age, offers Tribal and Monarchy but not Republic/Dictatorship', () => {
+    const ids = getAvailableGovernmentTypes('bronze', {}).map((t) => t.id);
+    expect(ids).toEqual(expect.arrayContaining(['tribal', 'monarchy']));
+    expect(ids).not.toContain('republic');
+    expect(ids).not.toContain('dictatorship');
   });
 
-  it('allows rushing one age ahead of the calendar', () => {
-    expect(canAdoptGovernment('monarchy', 'bronze')).toBe(true);
+  it('excludes Theocracy unless the nation has leaned Religious (secularism > 40)', () => {
+    expect(getAvailableGovernmentTypes('bronze', {}).map((t) => t.id)).not.toContain('theocracy');
+    expect(getAvailableGovernmentTypes('bronze', { secularism: 50 }).map((t) => t.id)).toContain('theocracy');
   });
 
-  it('rejects a government two or more ages ahead', () => {
-    expect(canAdoptGovernment('feudal', 'bronze')).toBe(false);
+  it('offers every type once its minimum age is reached', () => {
+    expect(getAvailableGovernmentTypes('modern', { secularism: 50 }).map((t) => t.id).sort())
+      .toEqual(Object.keys(GOVERNMENT_TYPES).sort());
+  });
+});
+
+describe('getReformChoices', () => {
+  it('returns the 2 Bronze-tier Monarchy reforms', () => {
+    expect(getReformChoices('monarchy', 'bronze').map((r) => r.id)).toEqual(['despotic_rule', 'divine_kingship']);
   });
 
-  it('rejects an unknown government id', () => {
-    expect(canAdoptGovernment('not_real', 'bronze')).toBe(false);
+  it('returns an empty array for a tier the type has no reforms at', () => {
+    expect(getReformChoices('republic', 'bronze')).toEqual([]);
+    expect(getReformChoices('dictatorship', 'classical')).toEqual([]);
+  });
+});
+
+describe('getActiveReforms / getGovernmentReformEffectSum', () => {
+  it('collects every reform tier the nation has picked, across ages', () => {
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule', classical: 'imperial_bureaucracy' } } };
+    expect(getActiveReforms(nation).map((r) => r.id).sort()).toEqual(['despotic_rule', 'imperial_bureaucracy'].sort());
+  });
+
+  it('is empty for a nation with no government type yet', () => {
+    expect(getActiveReforms({})).toEqual([]);
+    expect(getActiveReforms(undefined)).toEqual([]);
+  });
+
+  it('sums a raw effect key across every active reform', () => {
+    const nation = { government: { type: 'monarchy', reforms: { kingdoms: 'hereditary_primogeniture' } } };
+    expect(getGovernmentReformEffectSum(nation, 'heirClaimBonus')).toBe(20);
+    expect(getGovernmentReformEffectSum(nation, 'lawCostMult')).toBe(0);
+  });
+});
+
+describe('canChangeGovernmentType', () => {
+  it('allows a type at or before the current age', () => {
+    expect(canChangeGovernmentType({ government: { type: 'tribal', reforms: {} } }, 'monarchy', 'bronze')).toBe(true);
+  });
+
+  it('rejects a type not yet reached by age', () => {
+    expect(canChangeGovernmentType({ government: { type: 'tribal', reforms: {} } }, 'republic', 'bronze')).toBe(false);
+  });
+
+  it('rejects switching to the type already held', () => {
+    expect(canChangeGovernmentType({ government: { type: 'monarchy', reforms: {} } }, 'monarchy', 'bronze')).toBe(false);
+  });
+
+  it('rejects Theocracy without the identity gate', () => {
+    expect(canChangeGovernmentType({ government: { type: 'tribal', reforms: {} }, identity: {} }, 'theocracy', 'bronze')).toBe(false);
+    expect(canChangeGovernmentType({ government: { type: 'tribal', reforms: {} }, identity: { secularism: 50 } }, 'theocracy', 'bronze')).toBe(true);
+  });
+});
+
+describe('canEnactReform', () => {
+  const nation = { government: { type: 'monarchy', reforms: {} } };
+
+  it('allows a reform choice for a tier at or before the current age', () => {
+    expect(canEnactReform(nation, 'bronze', 'despotic_rule', 'bronze')).toBe(true);
+  });
+
+  it('rejects a tier ahead of the current age', () => {
+    expect(canEnactReform(nation, 'classical', 'imperial_bureaucracy', 'bronze')).toBe(false);
+  });
+
+  it('rejects a reform id that does not belong to that type/age', () => {
+    expect(canEnactReform(nation, 'bronze', 'imperial_bureaucracy', 'bronze')).toBe(false);
+  });
+
+  it('rejects re-enacting once a tier is already chosen (locks in)', () => {
+    const chosen = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule' } } };
+    expect(canEnactReform(chosen, 'bronze', 'divine_kingship', 'bronze')).toBe(false);
+  });
+
+  it('rejects when the nation has no government type', () => {
+    expect(canEnactReform({}, 'bronze', 'despotic_rule', 'bronze')).toBe(false);
+  });
+});
+
+describe('resetReformsForType', () => {
+  it('fills every reachable age tier the new type actually offers with its first choice', () => {
+    expect(resetReformsForType('monarchy', 'kingdoms')).toEqual({
+      bronze: 'despotic_rule',
+      classical: 'feudal_nobility',
+      kingdoms: 'hereditary_primogeniture'
+    });
+  });
+
+  it('leaves ages beyond the calendar age unset', () => {
+    const reforms = resetReformsForType('monarchy', 'bronze');
+    expect(reforms).toEqual({ bronze: 'despotic_rule' });
+    expect(reforms.classical).toBeUndefined();
+  });
+
+  it('skips ages the type has no reforms for at all', () => {
+    expect(resetReformsForType('republic', 'bronze')).toEqual({});
+    expect(resetReformsForType('dictatorship', 'gunpowder')).toEqual({});
   });
 });
