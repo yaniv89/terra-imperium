@@ -10,6 +10,8 @@ import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
 import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
 import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
+import { TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
+import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3 } from '../data/actionCosts';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -422,6 +424,109 @@ describe('Domestic tab actions', () => {
     it('is a no-op when already at the requested rate', () => {
       const state = richState();
       expect(gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'normal' } })).toBe(state);
+    });
+
+    // Plan §M11: "cooldown 3 turns".
+    it('is a no-op while on cooldown, and allows a change again once it has passed', () => {
+      const state = richState();
+      const changed = gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'high' } });
+      expect(gameReducer(changed, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'low' } })).toBe(changed);
+      const afterCooldown = { ...changed, turnNumber: changed.turnNumber + TAX_RATE_CHANGE_COOLDOWN_TURNS };
+      const next = gameReducer(afterCooldown, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'low' } });
+      expect(next.nations.fr.taxRate).toBe('low');
+    });
+  });
+
+  describe('SET_ARMY_MAINTENANCE / SET_NAVY_MAINTENANCE (plan §M11)', () => {
+    it('sets and clamps the army maintenance slider', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: 70 } }).nations.fr.armyMaintenance).toBe(70);
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: 10 } }).nations.fr.armyMaintenance).toBe(ARMY_MAINTENANCE_MIN);
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: 200 } }).nations.fr.armyMaintenance).toBe(ARMY_MAINTENANCE_MAX);
+    });
+
+    it('sets the navy maintenance slider independently of army', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SET_NAVY_MAINTENANCE, payload: { value: 60 } });
+      expect(next.nations.fr.navyMaintenance).toBe(60);
+      expect(next.nations.fr.armyMaintenance).toBe(ARMY_MAINTENANCE_DEFAULT);
+    });
+
+    it('is a no-op (free, no cost) when the clamped value is unchanged', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: ARMY_MAINTENANCE_DEFAULT } })).toBe(state);
+    });
+  });
+
+  describe('REQUEST_LOAN / REPAY_LOAN (plan §M11)', () => {
+    const withBankingHouses = (state) => ({
+      ...state,
+      techTree: { ...state.techTree, economy_banking_houses: { ...state.techTree.economy_banking_houses, researched: true } }
+    });
+
+    it('is a no-op without Banking Houses researched', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.REQUEST_LOAN })).toBe(state);
+    });
+
+    it('adds gold and a loan record once Banking Houses is researched', () => {
+      const state = withBankingHouses(richState());
+      const next = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      expect(next.nations.fr.loans.length).toBe(1);
+      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
+      expect(next.nations.fr.loans[0].principal).toBeGreaterThanOrEqual(200);
+    });
+
+    it('is a no-op once loan capacity is exhausted', () => {
+      let state = withBankingHouses(richState());
+      const capacity = 4; // base 3 + 1 for Banking Houses, no Bank buildings
+      for (let i = 0; i < capacity; i++) state = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      expect(state.nations.fr.loans.length).toBe(capacity);
+      expect(gameReducer(state, { type: ActionTypes.REQUEST_LOAN })).toBe(state);
+    });
+
+    it('repaying a loan removes it and deducts its principal', () => {
+      const state = withBankingHouses(richState());
+      const withLoan = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      const loan = withLoan.nations.fr.loans[0];
+      const next = gameReducer(withLoan, { type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } });
+      expect(next.nations.fr.loans.length).toBe(0);
+      expect(next.resources.gold).toBe(withLoan.resources.gold - loan.principal);
+    });
+
+    it('repaying is a no-op when the player can\'t afford the principal', () => {
+      const state = withBankingHouses(richState());
+      const withLoan = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      const loan = withLoan.nations.fr.loans[0];
+      const poor = { ...withLoan, resources: { ...withLoan.resources, gold: 0 } };
+      expect(gameReducer(poor, { type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } })).toBe(poor);
+    });
+  });
+
+  describe('ACTIVATE_FUSION_GRID (plan §M11 resource sink)', () => {
+    const withOuterPlanets = (state) => ({ ...state, completedMissions: ['outer_planets'] });
+
+    it('is a no-op without the Outer Planets mission completed', () => {
+      const state = { ...richState(), resources: { ...richState().resources, helium3: 1000 } };
+      expect(gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID })).toBe(state);
+    });
+
+    it('is a no-op without enough helium3', () => {
+      const state = withOuterPlanets({ ...richState(), resources: { ...richState().resources, helium3: 0 } });
+      expect(gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID })).toBe(state);
+    });
+
+    it('activates, deducting the one-time helium3 cost', () => {
+      const state = withOuterPlanets({ ...richState(), resources: { ...richState().resources, helium3: 1000 } });
+      const next = gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID });
+      expect(next.nations.fr.fusionGridActive).toBe(true);
+      expect(next.resources.helium3).toBe(1000 - FUSION_GRID_ACTIVATION_HELIUM3);
+    });
+
+    it('is a no-op once already active', () => {
+      const state = withOuterPlanets({ ...richState(), resources: { ...richState().resources, helium3: 1000 } });
+      const active = gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID });
+      expect(gameReducer(active, { type: ActionTypes.ACTIVATE_FUSION_GRID })).toBe(active);
     });
   });
 

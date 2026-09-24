@@ -159,4 +159,43 @@ describe('processNationalPowerTurn', () => {
     for (let i = 0; i < 50; i++) nation = processNationalPowerTurn(nation);
     expect(nation.prestige).toBeCloseTo(0, 0);
   });
+
+  // Plan §M11: "extortionate taxes... -1 stability every 10 turns while active". These merge the
+  // result onto the nation (`{ ...nation, ...processNationalPowerTurn(nation) }`), the same way
+  // resolveTurn.js's real caller does, rather than replacing the whole nation object each turn —
+  // taxRate isn't part of processNationalPowerTurn's own return shape, so a bare reassignment would
+  // silently drop it after the first iteration and the drain could never accumulate past turn 1.
+  describe('extortionate tax rate stability drain', () => {
+    it('does not drain stability before 10 turns on the extortionate rate', () => {
+      let nation = { stability: 0, stabilityDecayProgress: 0, extortionateTaxProgress: 0, legitimacy: 50, prestige: 0, government: null, taxRate: 'extortionate' };
+      for (let i = 0; i < 9; i++) nation = { ...nation, ...processNationalPowerTurn(nation) };
+      expect(nation.stability).toBe(0);
+    });
+
+    it('drains 1 stability every 10 turns while on the extortionate rate', () => {
+      let nation = { stability: 0, stabilityDecayProgress: 0, extortionateTaxProgress: 0, legitimacy: 50, prestige: 0, government: null, taxRate: 'extortionate' };
+      for (let i = 0; i < 10; i++) nation = { ...nation, ...processNationalPowerTurn(nation) };
+      expect(nation.stability).toBe(-1);
+    });
+
+    it('resets progress the instant the nation leaves the extortionate rate', () => {
+      let nation = { stability: 0, stabilityDecayProgress: 0, extortionateTaxProgress: 0, legitimacy: 50, prestige: 0, government: null, taxRate: 'extortionate' };
+      for (let i = 0; i < 5; i++) nation = { ...nation, ...processNationalPowerTurn(nation) };
+      nation = { ...nation, taxRate: 'normal' };
+      nation = { ...nation, ...processNationalPowerTurn(nation) };
+      expect(nation.extortionateTaxProgress).toBe(0);
+    });
+
+    it('never drains stability on any other tax rate', () => {
+      let nation = { stability: 0, stabilityDecayProgress: 0, extortionateTaxProgress: 0, legitimacy: 50, prestige: 0, government: null, taxRate: 'high' };
+      for (let i = 0; i < 30; i++) nation = { ...nation, ...processNationalPowerTurn(nation) };
+      expect(nation.stability).toBe(0);
+    });
+
+    it('never drains stability below STABILITY_MIN', () => {
+      let nation = { stability: STABILITY_MIN, stabilityDecayProgress: 0, extortionateTaxProgress: 0, legitimacy: 50, prestige: 0, government: null, taxRate: 'extortionate' };
+      for (let i = 0; i < 10; i++) nation = { ...nation, ...processNationalPowerTurn(nation) };
+      expect(nation.stability).toBe(STABILITY_MIN);
+    });
+  });
 });

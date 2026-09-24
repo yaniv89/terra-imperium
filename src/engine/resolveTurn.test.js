@@ -195,9 +195,11 @@ describe('resolveTurn army maintenance', () => {
   it('charges no upkeep, and logs none, with no units fielded', () => {
     const state = withUnits(0);
     const next = resolveTurn(state);
-    expect(next.logs.some(l => l.message.includes('Army upkeep'))).toBe(false);
+    expect(next.logs.some(l => l.message.includes('Upkeep'))).toBe(false);
   });
 
+  // Plan §M11 extends this into a combined army/navy/fort/advisor/loan-interest ledger line
+  // ("Upkeep: ...") — this test now checks the army component of that combined line.
   it('deducts UNIT_UPKEEP_GOLD_PER_TURN per player-owned unit, on top of ordinary income', () => {
     // Both scenarios are derived from the SAME base state (one createInitialState call, one seeded
     // ruler/traits), not two independent ones — M3's ruler generation draws real randomness during
@@ -212,20 +214,108 @@ describe('resolveTurn army maintenance', () => {
     const nextBase = resolveTurn(base);
     const nextArmy = resolveTurn(withArmy);
     expect(nextBase.resources.gold - nextArmy.resources.gold).toBe(3 * UNIT_UPKEEP_GOLD_PER_TURN);
-    expect(nextArmy.logs.some(l => l.message.includes('Army upkeep: -15g (3 units)'))).toBe(true);
+    expect(nextArmy.logs.some(l => l.message.includes('army 15g'))).toBe(true);
   });
 
   it('never charges upkeep for another nation\'s units', () => {
     const state = withUnits(0);
     state.units.enemy_unit = { ...fakeUnit('enemy_unit'), ownerId: 'de' };
     const next = resolveTurn(state);
-    expect(next.logs.some(l => l.message.includes('Army upkeep'))).toBe(false);
+    expect(next.logs.some(l => l.message.includes('Upkeep'))).toBe(false);
   });
 
-  it('floors gold at zero rather than going negative from upkeep', () => {
+  // Plan §M11: without Banking Houses, loan capacity is 0 (see economy.js's getLoanCapacity), so a
+  // shortfall this large goes straight to bankruptcy rather than an auto-loan — either outcome
+  // floors the treasury at 0, which is what this test actually pins.
+  it('floors gold at zero (via bankruptcy, pre-Banking-Houses) rather than going negative from upkeep', () => {
     const state = { ...withUnits(1000), resources: { ...withUnits(1000).resources, gold: 0 } };
     const next = resolveTurn(state);
     expect(next.resources.gold).toBeGreaterThanOrEqual(0);
+    expect(next.logs.some(l => l.message.includes('Bankruptcy'))).toBe(true);
+  });
+});
+
+// Plan §M11: fort upkeep, auto-loans, bankruptcy's real effects, and the Fusion Grid sink.
+describe('resolveTurn economy (plan §M11)', () => {
+  const withBankingHouses = (state) => ({
+    ...state,
+    techTree: { ...state.techTree, economy_banking_houses: { ...state.techTree.economy_banking_houses, researched: true } }
+  });
+
+  it('charges fort upkeep for a built Defense-tier region', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const buildings = { ...base.regions[cap('fr')].buildings, categories: { ...base.regions[cap('fr')].buildings.categories, defense: 0 } }; // Palisade: fortLevel 1
+    const withFort = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], buildings } } };
+    const nextBase = resolveTurn(base);
+    const nextFort = resolveTurn(withFort);
+    expect(nextBase.resources.gold - nextFort.resources.gold).toBe(1); // FORT_UPKEEP_GOLD_PER_FORT_LEVEL x fortLevel 1
+  });
+
+  it('auto-takes a loan on a shortfall once Banking Houses is researched, rather than going bankrupt', () => {
+    const base = withBankingHouses(withAllEventsFired(createInitialState({ playerNationId: 'fr' })));
+    const hugeArmy = Array.from({ length: 200 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }])
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+    const poor = { ...base, resources: { ...base.resources, gold: 0 }, units: hugeArmy };
+    const next = resolveTurn(poor);
+    expect(next.nations.fr.loans.length).toBe(1);
+    expect(next.resources.gold).toBeGreaterThanOrEqual(0);
+    expect(next.logs.some(l => l.message.includes('auto-took a loan'))).toBe(true);
+  });
+
+  it('bankruptcy applies -3 stability, -20 prestige, drops every estate 20 loyalty, clears loans, and pushes a 10-turn modifier', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const fr = {
+      ...base.nations.fr,
+      stability: 0,
+      prestige: 50,
+      // No ruler traits — a randomly-rolled loyalty-shifting trait (Kind, Zealot, ...) would move
+      // an estate's equilibrium target off 50 and make this turn's own loyalty DRIFT (estates.js's
+      // own per-turn pass, which runs before this bankruptcy check) nonzero, which would break the
+      // exact "-20 from 50" arithmetic this test pins.
+      ruler: { ...base.nations.fr.ruler, traits: [] },
+      // A pre-existing loan is here to confirm it gets wiped by bankruptcy, not what CAUSES it —
+      // the huge army's upkeep below is the actual shortfall (Banking Houses isn't researched, so
+      // loan capacity is 0 regardless of this loan's own presence).
+      loans: [{ id: 'l1', principal: 100, interestRate: 0.04, takenTurn: 0 }],
+      estates: Object.fromEntries(Object.entries(base.nations.fr.estates).map(([id, e]) => [id, { ...e, loyalty: 50 }]))
+    };
+    const hugeArmy = Array.from({ length: 1000 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }])
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+    const state = { ...base, nations: { ...base.nations, fr }, resources: { ...base.resources, gold: 0 }, units: hugeArmy };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.stability).toBe(-3);
+    // prestige decays 5% toward 0 in the national-power phase BEFORE bankruptcy's own -20 applies:
+    // trunc(50 x 0.95) = 47, then 47 - 20 = 27.
+    expect(next.nations.fr.prestige).toBe(27);
+    expect(next.nations.fr.loans).toEqual([]);
+    Object.values(next.nations.fr.estates).forEach((e) => expect(e.loyalty).toBe(30));
+    expect(next.nations.fr.modifiers.some((m) => m.sourceType === 'bankruptcy' && m.expiresTurn === next.turnNumber + 10)).toBe(true);
+  });
+
+  it('bankruptcy cancels in-progress Great Project construction without refund', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const region = { ...base.regions[cap('fr')], greatProjectConstruction: { projectId: 'great_pyramids', tier: 1, turnsLeft: 3 } };
+    const state = { ...base, regions: { ...base.regions, [cap('fr')]: region }, resources: { ...base.resources, gold: 0 } };
+    const withHugeArmy = { ...state, units: Array.from({ length: 1000 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }]).reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}) };
+    const next = resolveTurn(withHugeArmy);
+    expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
+    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
+  });
+
+  it('Fusion Grid deducts its per-turn helium3 upkeep while active', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 10 } };
+    const next = resolveTurn(state);
+    expect(next.resources.helium3).toBe(8); // FUSION_GRID_UPKEEP_HELIUM3_PER_TURN = 2
+    expect(next.nations.fr.fusionGridActive).toBe(true);
+  });
+
+  it('Fusion Grid goes offline once helium3 can no longer cover its upkeep', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 1 } };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.fusionGridActive).toBe(false);
+    expect(next.logs.some((l) => l.message.includes('Fusion Grid has gone offline'))).toBe(true);
   });
 });
 

@@ -84,11 +84,14 @@ export const ACTION_COSTS = {
   // priced well above even an ICBM, matching how consequential building one actually is. The gold
   // is paid up front at build time; MISSILE_STRIKE itself only spends the stockpiled missile and
   // MIL, since the ordnance was already bought.
+  // Plan §M11 resource sink: ICBM/nuclear tiers add a rareMetals cost on top of their existing
+  // iron/oil (tactical/theatre stay as they were — rareMetals is a Modern-age strategic resource,
+  // per resources.js's own header, with no earlier-age source to draw it from).
   buildMissile: {
     tactical: { gold: 150, iron: 20, mil: 1 },
     theatre: { gold: 350, iron: 40, mil: 1 },
-    icbm: { gold: 700, iron: 60, oil: 30, mil: 2 },
-    nuclear: { gold: 2000, iron: 100, oil: 60, mil: 2 }
+    icbm: { gold: 700, iron: 60, oil: 30, rareMetals: 10, mil: 2 },
+    nuclear: { gold: 2000, iron: 100, oil: 60, rareMetals: 25, mil: 2 }
   },
   missileStrike: { mil: 2 },
   buildAbmDefense: { gold: 500, mil: 2 },
@@ -152,6 +155,77 @@ export const CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION = 3;
 // standing army has to be paid to stay fielded, not just raised. ~12 turns of upkeep equals one
 // unit's own recruit cost, so a long-lived army is a real ongoing expense, not a rounding error.
 export const UNIT_UPKEEP_GOLD_PER_TURN = 5;
+
+// Military maintenance slider (plan §M11): army/navy upkeep scale linearly with it (100% = full
+// UNIT_UPKEEP_GOLD_PER_TURN, 50% = half). The plan's own "morale recovery/reinforcement also scale
+// with it" is deferred — this codebase has no per-turn morale-recovery or reinforcement mechanic
+// yet at all (units are only ever initialized at 100 morale/organization, never regenerated), so
+// scaling a mechanic that doesn't exist would be faking it; M14 (Military overhaul) is where both
+// land and the maintenance scaling on them ship together.
+export const ARMY_MAINTENANCE_MIN = 50;
+export const ARMY_MAINTENANCE_MAX = 100;
+export const ARMY_MAINTENANCE_DEFAULT = 100;
+
+// Fort upkeep (plan §M6.2/§M11): "1g x fortLevel per turn" — the Defense building line's
+// local.fortLevel already exists (src/data/buildings.js) but had no upkeep consumer until now.
+export const FORT_UPKEEP_GOLD_PER_FORT_LEVEL = 1;
+
+// Loans (plan §M11). Requires the Banking Houses tech; before that the treasury simply can't go
+// negative (RESOURCE floor at 0 everywhere already), so actions just fail for lack of gold.
+export const LOAN_BASE_INTEREST_RATE = 0.04;
+export const LOAN_INTEREST_PER_EXISTING_LOAN = 0.01;
+export const LOAN_INTEREST_BANKING_HOUSES_DISCOUNT = 0.01;
+export const LOAN_MIN_INTEREST_RATE = 0.01;
+export const LOAN_BASE_CAPACITY = 3;
+export const LOAN_BANK_CAPACITY_CAP = 3; // plan: "Bank tier +1 loan capacity each, max +3 total"
+export const LOAN_MIN_SIZE = 200;
+// Plan's own formula is "5 x avg net income over the last 5 turns" — this codebase has no per-turn
+// income history buffer yet (state.history is M20 work), so this uses the CURRENT turn's net
+// income as the proxy instead of a 5-turn average; an honest scope trim, not a different formula.
+export const LOAN_SIZE_INCOME_MULTIPLIER = 5;
+
+// Bankruptcy (plan §M11): triggers when a loan is needed (a would-be-negative treasury) and loan
+// capacity is already full. BANKRUPTCY_MODIFIER_MODS reuses the existing timed nation.modifiers[]
+// mechanism (M1/M4/M9 already push entries there) rather than inventing a second timed-effect
+// list. Only 2 of the plan's 4 listed modifier effects have a real hook today: goldMult
+// (national.taxIncome) and stabilityBonus (national.unrest, sign-flipped — see registry.js). The
+// plan's other two, "-50% land/naval morale", have no substrate: battle.js doesn't consume the
+// modifier engine at all yet (no `national.land*`/`navalMorale*` keys exist, and no combat
+// multiplier is read from a nation's timed modifiers) — that's M14 (Military overhaul) work, so
+// it's left out rather than added as a modifier line nothing will ever read.
+export const BANKRUPTCY_DURATION_TURNS = 10;
+export const BANKRUPTCY_STABILITY_PENALTY = 3;
+export const BANKRUPTCY_PRESTIGE_PENALTY = 20;
+export const BANKRUPTCY_ESTATE_LOYALTY_PENALTY = 20;
+// Keyed by the FULL modifier-engine key (national.goldMult), not the short LEGACY_HOOK name —
+// nation.modifiers[] entries are read directly by sources.js's staticSources with no LEGACY_HOOK
+// translation (unlike government/law/trait effect tables, which use the short hook names).
+export const BANKRUPTCY_MODIFIER_MODS = {
+  'national.goldMult': -0.33,
+  'national.stabilityBonus': -2
+};
+
+// Unit recruitment strategic-resource cost (plan §M11 resource sink: "bronze-age units cost
+// copper, iron-age units cost iron, modern units cost oil" — adapted onto this game's own 5 ages,
+// since it has no literal "Iron Age"; kingdoms/gunpowder read as the iron-tool/iron-weapon era).
+// "Missing resources give +50% gold cost instead of blocking" (plan, verbatim) — see
+// src/engine/economy.js's getRecruitUnitCost for the fallback.
+export const RECRUIT_STRATEGIC_RESOURCE_BY_AGE = {
+  bronze: { key: 'copper', amount: 5 },
+  classical: { key: 'copper', amount: 5 },
+  kingdoms: { key: 'iron', amount: 8 },
+  gunpowder: { key: 'iron', amount: 8 },
+  modern: { key: 'oil', amount: 10 }
+};
+export const RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT = 0.5;
+
+// Fusion Grid (plan §M11 resource sink): "50 helium3 once, then 2/turn upkeep, for +20% production
+// nationwide while supplied". This game folds tax/production/trade income into one goldMult hook
+// (techTree.js's own header comment on the same trim), so the bonus applies there rather than to a
+// production-only multiplier that doesn't exist yet.
+export const FUSION_GRID_ACTIVATION_HELIUM3 = 50;
+export const FUSION_GRID_UPKEEP_HELIUM3_PER_TURN = 2;
+export const FUSION_GRID_GOLD_MULT_BONUS = 0.20;
 
 // Sue for Peace's gold cost floors here regardless of how war-weary the target is — ending a war
 // is never entirely free.

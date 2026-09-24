@@ -30,15 +30,21 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
+import { expireNationModifiers, expireRegionModifiers, addNationModifier } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
-import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import {
+  ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
+  BANKRUPTCY_STABILITY_PENALTY, BANKRUPTCY_PRESTIGE_PENALTY, BANKRUPTCY_ESTATE_LOYALTY_PENALTY,
+  BANKRUPTCY_MODIFIER_MODS, BANKRUPTCY_DURATION_TURNS, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN
+} from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
 import { GREAT_PROJECTS } from '../data/greatProjects';
+import { BUILDING_CATEGORIES } from '../data/buildings';
+import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate } from './economy';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -92,29 +98,10 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
   mark('income');
 
-  // --- army maintenance ---
-  // A flat per-turn gold upkeep per player-owned unit (UNIT_UPKEEP_GOLD_PER_TURN, actionCosts.js):
-  // RECRUIT_UNIT/DISBAND_UNIT only ever charged a one-time cost, so a standing army was free to hold
-  // once raised — this makes army size a real, continuous tradeoff against everything else gold
-  // buys, not just a one-time purchase. AI nations aren't charged this: they have no simulated gold
-  // economy of their own (calcIncome only computes the player's), and their fielded-army size is
-  // already bounded by aiLogic.js's own age-scaled standing-unit cap.
-  const playerUnitCount = Object.values(state.units).filter(u => u.ownerId === state.playerNationId).length;
-  const upkeepCost = playerUnitCount * UNIT_UPKEEP_GOLD_PER_TURN;
-  if (upkeepCost > 0) {
-    resources.gold = Math.max(0, resources.gold - upkeepCost);
-    logs.push({ year: newYear, message: `Army upkeep: -${formatMoney(upkeepCost)} (${playerUnitCount} unit${playerUnitCount === 1 ? '' : 's'})`, type: LogTypes.ACTION });
-  }
-
-  // Advisor salaries (plan §M3) — same one-time-hire-then-free trap the army upkeep comment above
-  // already fixed for units: a hired advisor pays for itself once and then costs nothing further
-  // unless charged an ongoing salary here.
-  const playerAdvisors = Object.values(state.nations[state.playerNationId]?.advisors || {}).filter(Boolean);
-  const advisorSalaryCost = playerAdvisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
-  if (advisorSalaryCost > 0) {
-    resources.gold = Math.max(0, resources.gold - advisorSalaryCost);
-    logs.push({ year: newYear, message: `Advisor salaries: -${formatMoney(advisorSalaryCost)} (${playerAdvisors.length} advisor${playerAdvisors.length === 1 ? '' : 's'})`, type: LogTypes.ACTION });
-  }
+  // Army/navy/fort upkeep, advisor salaries, and loan interest are all deducted together in the
+  // "economy" phase below (plan §M11), once `regions`/`nations` exist — a shortfall there can
+  // trigger an auto-loan or bankruptcy, both of which need to touch nation/region state that
+  // doesn't exist yet this early in the turn.
 
   // ADM/DIP/MIL (plan §M2) each top up to the nation's per-turn budget every turn, but unspent
   // power now BANKS instead of being wiped — a turn with nothing worth spending ADM on right now
@@ -351,6 +338,107 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     if (estates && estates !== nation.estates) nations[nId] = { ...nation, estates };
   });
   mark('estates');
+
+  // --- economy (plan §M11): army/navy/fort upkeep (maintenance-slider-scaled), advisor salaries,
+  // and loan interest are all subtracted together so a shortfall can trigger ONE auto-loan or
+  // bankruptcy, rather than three independent floor-at-0 deductions each masking part of the real
+  // shortfall. Player-only, matching calcIncome/calcNationBalance's own scope — AI nations have no
+  // simulated gold economy or loans. This replaces the old flat, army-only upkeep block.
+  {
+    const playerId = state.playerNationId;
+    const nation = nations[playerId];
+    const playerUnits = Object.values(state.units).filter((u) => u.ownerId === playerId);
+    const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
+    const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
+    const armyUpkeep = Math.round(playerUnits.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
+    const navyUpkeep = Math.round(playerUnits.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);
+    // Fort upkeep (plan §M6.2/§M11): 1g x fortLevel/turn — the Defense building line's
+    // local.fortLevel already existed with no upkeep consumer until now.
+    const fortLevels = Object.values(regions).filter((r) => r.owner === playerId).reduce((sum, r) => {
+      const tier = r.buildings?.categories?.defense;
+      const fortLevel = tier >= 0 ? BUILDING_CATEGORIES.defense.tiers[tier]?.effects?.['local.fortLevel'] : 0;
+      return sum + (fortLevel || 0);
+    }, 0);
+    const fortUpkeep = fortLevels * FORT_UPKEEP_GOLD_PER_FORT_LEVEL;
+    const advisors = Object.values(nation.advisors || {}).filter(Boolean);
+    const advisorSalaryCost = advisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
+    const loanInterestCost = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
+    const totalExpenses = armyUpkeep + navyUpkeep + fortUpkeep + advisorSalaryCost + loanInterestCost;
+
+    if (totalExpenses > 0) {
+      logs.push({
+        year: newYear,
+        message: `Upkeep: -${formatMoney(totalExpenses)} (army ${formatMoney(armyUpkeep)}, navy ${formatMoney(navyUpkeep)}, forts ${formatMoney(fortUpkeep)}, advisors ${formatMoney(advisorSalaryCost)}, loan interest ${formatMoney(loanInterestCost)})`,
+        type: LogTypes.ACTION
+      });
+    }
+    const rawGold = resources.gold - totalExpenses;
+
+    if (rawGold < 0) {
+      const loanCapacity = getLoanCapacity({ ...state, regions, nations }, playerId);
+      if ((nation.loans || []).length < loanCapacity) {
+        // Auto-loan (plan §M11): "if expenses would push gold below 0, a loan is auto-taken and
+        // logged" — sized by the plan's own getLoanSize formula, floored at whatever actually
+        // covers this turn's shortfall so the treasury doesn't stay negative regardless.
+        const principal = Math.max(getLoanSize({ ...state, regions, nations, resources }, playerId), Math.ceil(-rawGold));
+        const loan = { id: `loan_auto_${newTurnNumber}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
+        nations[playerId] = { ...nations[playerId], loans: [...(nation.loans || []), loan] };
+        resources.gold = rawGold + principal;
+        logs.push({ year: newYear, message: `Treasury shortfall — auto-took a loan of ${formatMoney(principal)} gold.`, type: LogTypes.CRISIS });
+      } else {
+        // Bankruptcy (plan §M11): loan capacity is already exhausted. See actionCosts.js's
+        // BANKRUPTCY_* constants and BANKRUPTCY_MODIFIER_MODS's own header for which of the plan's
+        // listed effects have a real hook today and which are deferred to M14.
+        const bankruptNation = nations[playerId];
+        const estates = { ...bankruptNation.estates };
+        Object.keys(estates).forEach((estateId) => {
+          estates[estateId] = { ...estates[estateId], loyalty: Math.max(0, estates[estateId].loyalty - BANKRUPTCY_ESTATE_LOYALTY_PENALTY) };
+        });
+        nations[playerId] = addNationModifier(
+          {
+            ...bankruptNation,
+            loans: [],
+            stability: clampStability((bankruptNation.stability || 0) - BANKRUPTCY_STABILITY_PENALTY),
+            prestige: clampPrestige((bankruptNation.prestige || 0) - BANKRUPTCY_PRESTIGE_PENALTY),
+            estates
+          },
+          { sourceType: 'bankruptcy', sourceId: 'bankruptcy', label: 'Bankruptcy', mods: BANKRUPTCY_MODIFIER_MODS, duration: BANKRUPTCY_DURATION_TURNS, turnNumber: newTurnNumber }
+        );
+        // "All construction is cancelled without refund" — regular buildings complete instantly in
+        // this codebase (M6), so a Great Project's multi-turn queue is the only real substrate for
+        // this effect; cancelling it here (before the greatProjects tick phase below) means that
+        // phase simply sees nothing queued for these regions.
+        Object.keys(regions).forEach((regionId) => {
+          if (regions[regionId].owner === playerId && regions[regionId].greatProjectConstruction) {
+            regions[regionId] = { ...regions[regionId], greatProjectConstruction: null };
+          }
+        });
+        resources.gold = 0;
+        logs.push({
+          year: newYear,
+          message: 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, every estate -20 loyalty, a 10-turn economic crisis)',
+          type: LogTypes.CRISIS
+        });
+      }
+    } else {
+      resources.gold = rawGold;
+    }
+
+    // Fusion Grid (plan §M11 resource sink): upkeep is deducted every turn while active; going
+    // unpaid takes it offline (sources.js's contextSources only reads this flag for the goldMult
+    // bonus) — the same "disabled when upkeep can't be paid" behavior the plan's own Future-
+    // building resource sinks describe, applied to this standalone action instead (see
+    // types.js's ACTIVATE_FUSION_GRID comment on why no Future building tier exists to hang it on).
+    if (nations[playerId].fusionGridActive) {
+      if ((resources.helium3 || 0) >= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN) {
+        resources.helium3 -= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN;
+      } else {
+        nations[playerId] = { ...nations[playerId], fusionGridActive: false };
+        logs.push({ year: newYear, message: 'The Fusion Grid has gone offline — insufficient Helium-3.', type: LogTypes.CRISIS });
+      }
+    }
+  }
+  mark('economy');
 
   // --- great projects (plan §M10) --- construction is player-only for now, matching every other
   // AI-economic-action deferral since M8 (government reforms, laws, estates — AI never acts, only

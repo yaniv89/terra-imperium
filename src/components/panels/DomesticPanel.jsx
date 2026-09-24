@@ -13,7 +13,10 @@ import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, isAdjacentToOwner, getNationCapital } from '../../data/regions';
-import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
+import {
+  ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
+  FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS
+} from '../../data/actionCosts';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction,
   getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
@@ -34,6 +37,7 @@ import {
   GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, getGreatProjectOwner, canStartGreatProject, canUpgradeGreatProject
 } from '../../data/greatProjects';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
+import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/succession';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
@@ -93,24 +97,90 @@ const DomesticPanel = ({ selectedRegion }) => {
       />
 
       <div className="text-xs font-semibold text-slate-300 pt-1">Taxes</div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {TAX_RATE_IDS.map((rateId) => (
-          <button
-            key={rateId}
-            onClick={() => handleSetTaxRate(rateId)}
-            disabled={playerNation?.taxRate === rateId || !canAfford(state.resources, ACTION_COSTS.setTaxRate)}
-            title={TAX_RATES[rateId].description}
-            className={`text-xs rounded-lg p-2 border ${
-              playerNation?.taxRate === rateId
-                ? 'bg-amber-600/30 border-amber-500 text-amber-300'
-                : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800'
-            } disabled:opacity-50`}
-          >
-            <Coins size={14} className="mx-auto mb-0.5" />
-            {TAX_RATES[rateId].name}
-          </button>
-        ))}
-      </div>
+      {(() => {
+        const taxCooldownTurn = playerNation?.taxRateCooldownUntil || 0;
+        const onTaxCooldown = state.turnNumber < taxCooldownTurn;
+        return (
+          <div className="grid grid-cols-4 gap-1.5">
+            {TAX_RATE_IDS.map((rateId) => (
+              <button
+                key={rateId}
+                onClick={() => handleSetTaxRate(rateId)}
+                disabled={playerNation?.taxRate === rateId || onTaxCooldown || !canAfford(state.resources, ACTION_COSTS.setTaxRate)}
+                title={onTaxCooldown && playerNation?.taxRate !== rateId
+                  ? `${TAX_RATES[rateId].description} (available turn ${taxCooldownTurn})`
+                  : TAX_RATES[rateId].description}
+                className={`text-xs rounded-lg p-2 border ${
+                  playerNation?.taxRate === rateId
+                    ? 'bg-amber-600/30 border-amber-500 text-amber-300'
+                    : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800'
+                } disabled:opacity-50`}
+              >
+                <Coins size={14} className="mx-auto mb-0.5" />
+                {TAX_RATES[rateId].name}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
+      <div className="text-xs font-semibold text-slate-300 pt-1">Economy</div>
+      {(() => {
+        const { income, expenses, net } = calcNationBalance(state, state.playerNationId);
+        const loans = playerNation?.loans || [];
+        const loanCapacity = getLoanCapacity(state, state.playerNationId);
+        const canBorrow = hasBankingHouses(state, state.playerNationId);
+        return (
+          <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex justify-between text-slate-300">
+              <span>Income</span><span>+{formatNumber(Math.round(income.gold || 0))}g</span>
+            </div>
+            <div className="flex justify-between text-slate-400">
+              <span>Upkeep &amp; interest</span>
+              <span>-{formatNumber(Object.values(expenses).reduce((s, v) => s + v, 0))}g</span>
+            </div>
+            <div className={`flex justify-between font-semibold ${net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <span>Net</span><span>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}g</span>
+            </div>
+            {!canBorrow ? (
+              <div className="text-slate-500 pt-1">Loans require Banking Houses (Economy tech).</div>
+            ) : (
+              <>
+                <div className="text-slate-400 pt-1">Loans: {loans.length}/{loanCapacity}</div>
+                {loans.map((loan) => (
+                  <div key={loan.id} className="flex justify-between items-center text-slate-300">
+                    <span>{formatNumber(loan.principal)}g @ {Math.round(loan.interestRate * 100)}%</span>
+                    <button
+                      onClick={() => dispatch({ type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } })}
+                      disabled={(state.resources.gold || 0) < loan.principal}
+                      className="text-[10px] bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded px-1.5 py-0.5"
+                    >
+                      Repay
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => dispatch({ type: ActionTypes.REQUEST_LOAN })}
+                  disabled={loans.length >= loanCapacity}
+                  className="w-full text-[10px] bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded px-1.5 py-1 mt-1"
+                >
+                  Request Loan (~{formatNumber(getLoanSize(state, state.playerNationId))}g)
+                </button>
+              </>
+            )}
+            {(state.completedMissions || []).includes('outer_planets') && (
+              <button
+                onClick={() => dispatch({ type: ActionTypes.ACTIVATE_FUSION_GRID })}
+                disabled={playerNation?.fusionGridActive || (state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3}
+                title={`50 Helium-3 once, then ${FUSION_GRID_UPKEEP_HELIUM3_PER_TURN}/turn, for +${Math.round(FUSION_GRID_GOLD_MULT_BONUS * 100)}% Gold income while supplied.`}
+                className="w-full text-[10px] bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded px-1.5 py-1 mt-1"
+              >
+                {playerNation?.fusionGridActive ? 'Fusion Grid Online' : `Activate Fusion Grid (${FUSION_GRID_ACTIVATION_HELIUM3} He-3)`}
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       <div className="text-xs font-semibold text-slate-300 pt-1">Great Projects</div>
       {GREAT_PROJECT_IDS.map((projectId) => {
