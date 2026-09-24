@@ -29,6 +29,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
@@ -69,10 +70,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   if (newAge !== state.age) {
     logs.push({ year: newYear, message: `A new era dawns: the world enters the ${AGES[newAge].name}.`, type: LogTypes.MILESTONE });
   }
+
+  // Timed modifier expiry (plan §A.2) — runs right after the time step so an entry that expires
+  // this turn no longer affects this turn's income/unrest/etc below. Nothing pushes an entry into
+  // nation.modifiers[] or state.regionModifiers yet (a later milestone's event/law/disaster effect
+  // will be the first real writer), so both calls are a same-reference no-op today.
+  const modifierExpiredNations = expireNationModifiers(state.nations, newTurnNumber);
+  const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
   mark('time');
 
   // --- income ---
-  const income = calcIncome(state);
+  const income = calcIncome({ ...state, nations: modifierExpiredNations });
   const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
@@ -100,7 +108,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // Capacity) is recomputed fresh from current government/tech every turn rather than read from a
   // stored field, so adopting a government or finishing a Governance tech takes effect on the very
   // next turn automatically.
-  const maxActionPoints = getMaxActionPoints(state);
+  const maxActionPoints = getMaxActionPoints({ ...state, nations: modifierExpiredNations });
   const AP_BANK_CAP_MULTIPLIER = 2;
   resources.maxActionPoints = maxActionPoints;
   resources.actionPoints = Math.min((state.resources.actionPoints || 0) + maxActionPoints, maxActionPoints * AP_BANK_CAP_MULTIPLIER);
@@ -111,7 +119,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   const regions = { ...state.regions };
   const satellites = state.satellites || {};
   Object.entries(regions).forEach(([id, region]) => {
-    const owner = state.nations[region.owner];
+    const owner = modifierExpiredNations[region.owner];
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
     const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus') + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel);
     const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta);
@@ -244,7 +252,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
 
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
-  const nations = { ...state.nations };
+  const nations = { ...modifierExpiredNations };
   Object.entries(nations).forEach(([nId, nation]) => {
     if (nation.isPlayer) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
@@ -399,6 +407,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     nations: nationsAfterWars,
     units,
     wars,
+    regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,
     completedMissions,
