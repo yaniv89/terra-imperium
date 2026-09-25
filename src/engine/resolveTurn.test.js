@@ -1110,6 +1110,114 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const next = resolveTurn(state);
     expect(next.nations.fr.isEliminated).toBeUndefined();
   });
+
+  it('sets GameStatus.DEFEAT once the PLAYER is reduced to zero regions (plan §M15)', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = strip(base, 'fr', 'de');
+    const next = resolveTurn(state);
+    expect(next.gameStatus).toBe(GameStatus.DEFEAT);
+    expect(next.logs.some((l) => l.type === LogTypes.MILESTONE && l.message.includes('DEFEAT'))).toBe(true);
+  });
+
+  it('does not set DEFEAT while the player still owns at least one region', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const next = resolveTurn(base);
+    expect(next.gameStatus).toBe(GameStatus.ACTIVE);
+  });
+});
+
+describe('resolveTurn capitals (plan §M15)', () => {
+  it('applies a one-time -1 stability the turn the capital first becomes occupied', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } },
+      nations: { ...base.nations, fr: { ...base.nations.fr, stability: 0 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.capitalOccupied).toBe(true);
+    expect(next.nations.fr.stability).toBe(-1);
+  });
+
+  it('does not repeat the stability penalty on a later turn the capital is STILL occupied', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } },
+      nations: { ...base.nations, fr: { ...base.nations.fr, stability: -1, capitalOccupied: true } }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.stability).toBe(-1); // unchanged — only the pool penalty recurs
+  });
+
+  it('deducts 1 ADM/DIP/MIL every turn the player\'s capital stays occupied', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const free = resolveTurn(base);
+    const occupied = resolveTurn({ ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } } });
+    expect(occupied.resources.adm).toBe(free.resources.adm - 1);
+    expect(occupied.resources.dip).toBe(free.resources.dip - 1);
+    expect(occupied.resources.mil).toBe(free.resources.mil - 1);
+  });
+
+  it('clears the occupied flag and stops the penalty once the capital is liberated', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, capitalOccupied: true } } };
+    const next = resolveTurn(state); // capital is NOT occupied in state.regions here
+    expect(next.nations.fr.capitalOccupied).toBe(false);
+  });
+});
+
+describe('resolveTurn civil war trigger (plan §M15)', () => {
+  it('descends into civil war after 3 consecutive turns at the stability floor', () => {
+    let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
+    for (let i = 0; i < 2; i++) {
+      state = resolveTurn(state);
+      expect(state.nations.fr.civilWar).toBeNull();
+      state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
+    }
+    const next = resolveTurn(state);
+    expect(next.nations.fr.civilWar?.active).toBe(true);
+    expect(Object.values(next.units).some((u) => u.isPretender)).toBe(true);
+    expect(next.logs.some((l) => l.type === LogTypes.CRISIS && l.message.toLowerCase().includes('civil war'))).toBe(true);
+  });
+
+  it('the streak resets once stability recovers above the floor', () => {
+    let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
+    state = resolveTurn(state);
+    state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: 0 } } };
+    state = resolveTurn(state);
+    expect(state.nations.fr.lowStabilityStreak).toBe(0);
+  });
+});
+
+describe('resolveTurn disasters (plan §M15)', () => {
+  // Succession War (heirless monarchy, low legitimacy), not Estate Takeover, is the disaster used
+  // to prove this wiring: Estate Takeover's own trigger (estate influence/loyalty) is recomputed
+  // for real by the estates phase EVERY turn, before this phase ever runs, so a hand-set influence/
+  // loyalty override here would just be overwritten first — disasters.test.js already covers Estate
+  // Takeover directly, at the unit level, where that isn't a confound.
+  it('grows the Succession War meter for a heirless, low-legitimacy monarchy', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, heir: null, legitimacy: 10 } } };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.disasters.successionWar).toBeGreaterThan(0);
+  });
+
+  it('completes into a civil war once the Succession War meter reaches 100', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      nations: {
+        ...base.nations,
+        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, heir: null, legitimacy: 10, disasters: { ...base.nations.fr.disasters, successionWar: 90 } }
+      }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.disasters.successionWar).toBe(0); // completed and reset
+    expect(next.nations.fr.civilWar?.active).toBe(true);
+  });
 });
 
 describe('resolveTurn national power (plan §M4)', () => {

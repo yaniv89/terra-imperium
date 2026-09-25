@@ -2504,6 +2504,103 @@ describe('Diplomacy tab actions', () => {
       expect(next.nations.de.vassalOf).toBeNull();
       expect(next.nations.fr.vassals).not.toContain('de');
     });
+
+    it('a vassal player cannot declare an ordinary war (plan §M15: "except independence")', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      // fr is now de's OVERLORD in this fixture, not a vassal — flip the roles to test the guard.
+      const frIsVassal = { ...vassalized, nations: { ...vassalized.nations, fr: { ...vassalized.nations.fr, vassalOf: 'de' } } };
+      const other = Object.keys(frIsVassal.nations).find((id) => id !== 'fr' && id !== 'de');
+      expect(gameReducer(frIsVassal, { type: ActionTypes.DECLARE_WAR, payload: { nationId: other } })).toBe(frIsVassal);
+    });
+  });
+
+  describe('MOVE_CAPITAL (plan §M15)', () => {
+    const affordable = () => {
+      const state = richState();
+      return { ...state, resources: { ...state.resources, adm: 500 } };
+    };
+
+    it('moves the capital to an owned, unoccupied region and deducts the cost', () => {
+      const state = affordable();
+      const targetId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      const next = gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: targetId } });
+      expect(next.nations.fr.capitalRegionId).toBe(targetId);
+      expect(next.resources.adm).toBe(state.resources.adm - ACTION_COSTS.moveCapital.adm);
+      expect(next.resources.gold).toBe(state.resources.gold - ACTION_COSTS.moveCapital.gold);
+    });
+
+    it('costs an extra -1 stability when the new capital is outside the nation\'s own original territory', () => {
+      const state = affordable();
+      const foreignId = Object.keys(state.regions).find((id) => REGIONS_DATA[id].startOwner !== 'fr');
+      const conquered = { ...state, regions: { ...state.regions, [foreignId]: { ...state.regions[foreignId], owner: 'fr' } } };
+      const next = gameReducer(conquered, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: foreignId } });
+      expect(next.nations.fr.capitalRegionId).toBe(foreignId);
+      expect(next.nations.fr.stability).toBe((conquered.nations.fr.stability || 0) - 1);
+    });
+
+    it('does not cost stability when relocating within the nation\'s own original territory', () => {
+      const state = affordable();
+      const nativeId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      const next = gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: nativeId } });
+      expect(next.nations.fr.stability).toBe(state.nations.fr.stability || 0);
+    });
+
+    it('is a no-op targeting a region the player does not own', () => {
+      const state = affordable();
+      expect(gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: cap('de') } })).toBe(state);
+    });
+
+    it('is a no-op targeting an occupied region', () => {
+      const state = affordable();
+      const targetId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      const occupied = { ...state, regions: { ...state.regions, [targetId]: { ...state.regions[targetId], occupiedBy: 'de' } } };
+      expect(gameReducer(occupied, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: targetId } })).toBe(occupied);
+    });
+
+    it('is a no-op without enough ADM/gold', () => {
+      const state = richState(); // no adm top-up
+      const targetId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      expect(gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: targetId } })).toBe(state);
+    });
+  });
+
+  describe('DECLARE_INDEPENDENCE (plan §M15)', () => {
+    const vassalState = (libertyDesire) => {
+      const state = richState();
+      return {
+        ...state,
+        nations: {
+          ...state.nations,
+          fr: { ...state.nations.fr, vassalOf: 'de', libertyDesire },
+          de: { ...state.nations.de, vassals: ['fr'] }
+        }
+      };
+    };
+
+    it('is a no-op below the liberty desire threshold', () => {
+      const state = vassalState(10);
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} })).toBe(state);
+    });
+
+    it('is a no-op for a nation that is not anyone\'s vassal', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} })).toBe(state);
+    });
+
+    it('declares an independence war against the overlord once liberty desire clears the threshold', () => {
+      const state = vassalState(60);
+      const next = gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} });
+      expect(next.nations.fr.isAtWar).toBe(true);
+      const war = next.wars.find((w) => w.aggressor === 'fr' && w.enemy === 'de');
+      expect(war).toBeDefined();
+      expect(war.cb).toBe('independence');
+    });
+
+    it('is a no-op while already at war', () => {
+      const state = { ...vassalState(60), nations: { ...vassalState(60).nations, fr: { ...vassalState(60).nations.fr, isAtWar: true } } };
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} })).toBe(state);
+    });
   });
 
   describe('DECLARE_WAR truce-breaking (plan §M12/M13)', () => {

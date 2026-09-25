@@ -7,7 +7,7 @@
 
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
-import { REGIONS_DATA, getNationCapital } from './regions';
+import { REGIONS_DATA, getCapital } from './regions';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
 // Domination: a real share of the world's regions (real admin-1 provinces — see regions.js) held
@@ -67,7 +67,7 @@ export const VICTORY_CONDITIONS = {
       const others = Object.values(state.nations).filter(n => !n.isPlayer);
       if (others.length === 0) return false;
       const capitalsHeld = others.filter(n => {
-        const capitalId = getNationCapital(n.id);
+        const capitalId = getCapital(state, n.id);
         return capitalId && state.regions[capitalId]?.owner === state.playerNationId;
       }).length;
       return capitalsHeld / others.length >= CONQUEROR_CAPITAL_SHARE;

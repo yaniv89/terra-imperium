@@ -191,6 +191,23 @@ describe('applyPeace', () => {
     const result = applyPeace(occupiedState, war, 'ca', [{ type: 'cede', regionId: cap('us') }]);
     expect(result.regions[cap('us')].owner).toBe('ca');
   });
+
+  it('capital lost in peace (plan §M15): the recipient auto-relocates its capital and loses stability', () => {
+    const state = usState();
+    const war = warWithOccupiedCapital(state);
+    const occupiedState = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'us' } } };
+    const result = applyPeace(occupiedState, war, 'us', [{ type: 'cede', regionId: cap('ca') }]);
+    expect(result.nations.ca.capitalRegionId).not.toBe(cap('ca'));
+    expect(result.regions[result.nations.ca.capitalRegionId].owner).toBe('ca');
+    expect(result.nations.ca.stability).toBe((occupiedState.nations.ca.stability || 0) - 2);
+  });
+
+  it('does not relocate the capital when a peace deal leaves it in the recipient\'s hands', () => {
+    const state = usState();
+    const war = warWithOccupiedCapital(state);
+    const result = applyPeace(state, war, 'us', []); // white peace
+    expect(result.nations.ca.capitalRegionId).toBe(state.nations.ca.capitalRegionId);
+  });
 });
 
 describe('buildAITerms', () => {
@@ -223,6 +240,28 @@ describe('buildAITerms', () => {
     const terms = buildAITerms(occupiedState, war, 'us');
     const cost = getPeaceCost(occupiedState, war, 'us', terms);
     expect(cost).toBeLessThanOrEqual(getMaxPeaceCost(war, 'us'));
+  });
+
+  it('forced vassalage (plan §M15): demands vassalize instead of land once the win is overwhelming', () => {
+    const state = usState();
+    const war = warWithOccupiedCapital(state, { score: 90, battleScore: 40 });
+    const terms = buildAITerms(state, war, 'us');
+    expect(terms).toEqual([{ type: 'vassalize' }]);
+  });
+
+  it('does not demand vassalize when the recipient is already someone else\'s vassal', () => {
+    const state = usState();
+    const alreadyAVassal = { ...state, nations: { ...state.nations, ca: { ...state.nations.ca, vassalOf: 'mx' } } };
+    const war = warWithOccupiedCapital(alreadyAVassal, { score: 90, battleScore: 40 });
+    const terms = buildAITerms(alreadyAVassal, war, 'us');
+    expect(terms).toEqual([{ type: 'reparations' }]);
+  });
+
+  it('does not demand vassalize for a merely decisive (not overwhelming) win', () => {
+    const state = usState();
+    const war = warWithOccupiedCapital(state, { battleScore: 40, score: 40 });
+    const terms = buildAITerms(state, war, 'us');
+    expect(terms).not.toContainEqual({ type: 'vassalize' });
   });
 });
 

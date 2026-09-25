@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD
+  checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat
 } from './elimination';
 
 describe('checkNationElimination', () => {
@@ -64,5 +64,21 @@ describe('NATION_ELIMINATION_REWARD', () => {
   it('is a modest, positive one-time gold + dip reward', () => {
     expect(NATION_ELIMINATION_REWARD.gold).toBeGreaterThan(0);
     expect(NATION_ELIMINATION_REWARD.dip).toBeGreaterThan(0);
+  });
+});
+
+describe('checkPlayerDefeat (plan §M15)', () => {
+  it('is true once the player owns zero regions', () => {
+    const regions = { r1: { owner: 'de' }, r2: { owner: 'us' } };
+    expect(checkPlayerDefeat(regions, 'fr')).toBe(true);
+  });
+
+  it('is false while the player still owns at least one region', () => {
+    const regions = { r1: { owner: 'fr' }, r2: { owner: 'de' } };
+    expect(checkPlayerDefeat(regions, 'fr')).toBe(false);
+  });
+
+  it('is true for a completely empty regions map', () => {
+    expect(checkPlayerDefeat({}, 'fr')).toBe(true);
   });
 });

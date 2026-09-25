@@ -15,30 +15,31 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
-import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
+import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
-import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange } from '../data/regions';
+import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange, getCapital } from '../data/regions';
 import {
   REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength,
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { expireNationModifiers, expireRegionModifiers, addNationModifier } from './modifiers/timed';
+import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import {
   ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
-  BANKRUPTCY_STABILITY_PENALTY, BANKRUPTCY_PRESTIGE_PENALTY, BANKRUPTCY_ESTATE_LOYALTY_PENALTY,
-  BANKRUPTCY_MODIFIER_MODS, BANKRUPTCY_DURATION_TURNS, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN,
+  FUSION_GRID_UPKEEP_HELIUM3_PER_TURN,
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
-  RIVAL_ELIMINATED_PRESTIGE_REWARD
+  RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
+  CIVIL_WAR_SUCCESSION_CRISIS_CHANCE, ECONOMIC_COLLAPSE_STABILITY_PENALTY,
+  LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN
 } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
@@ -46,7 +47,11 @@ import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
 import { GREAT_PROJECTS } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
-import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate } from './economy';
+import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
+import {
+  nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn
+} from './civilWar';
+import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
 import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
 import { hasPerk } from '../data/promotions';
@@ -377,6 +382,19 @@ export const resolveTurn = (state, { onPhase } = {}) => {
         : `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne.`;
       logs.push({ year: newYear, message, type: LogTypes.MILESTONE });
     }
+    // Civil war trigger #1 (plan §M3/§M15): "a heirless OR low-claim succession fires the Succession
+    // Crisis chain... a pretender rebel spawns with 40% chance" — the plan named this chance back in
+    // M3 but nothing existed yet to spawn into (civil war IS that "pretender rebel" substrate, so
+    // this is where the M3 comment's own deferred 40% roll is finally wired, not a new mechanic).
+    if (result.crisis && !nation.civilWar?.active && rng.next() < CIVIL_WAR_SUCCESSION_CRISIS_CHANCE) {
+      const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
+      if (started) {
+        Object.assign(regions, started.regions);
+        Object.assign(units, started.units);
+        nations[nId] = { ...nations[nId], civilWar: started.civilWar };
+        logs.push({ year: newYear, message: `${nations[nId].name}: the succession crisis erupts into open civil war!`, type: LogTypes.CRISIS });
+      }
+    }
   });
   mark('succession');
 
@@ -389,6 +407,28 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     nations[nId] = { ...nation, ...result };
   });
   mark('nationalPower');
+
+  // --- capitals (plan §M15) --- "Capital occupied: -1 stability (once), -1 all pools per turn" —
+  // the stability hit only fires on the turn occupation actually STARTS (nation.capitalOccupied
+  // tracks whether it already fired this occupation, the same one-shot-flag shape
+  // region.underInvasion already uses); the pool penalty re-applies every turn it stays occupied.
+  // Every nation gets the stability side generically (capitalOccupied/stability are both already
+  // real for AI); the pool penalty only actually deducts for the player (economy.js's own
+  // "player-only real computation" scope — AI has no simulated ADM/DIP/MIL pool pre-M16).
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const capitalId = getCapital({ nations }, nId);
+    const capitalOccupied = !!capitalId && !!regions[capitalId]?.occupiedBy && regions[capitalId].occupiedBy !== nId;
+    if (capitalOccupied === !!nation.capitalOccupied) return;
+    nations[nId] = capitalOccupied
+      ? { ...nation, capitalOccupied: true, stability: clampStability((nation.stability || 0) - CAPITAL_OCCUPIED_STABILITY_PENALTY) }
+      : { ...nation, capitalOccupied: false };
+  });
+  if (nations[state.playerNationId].capitalOccupied) {
+    resources.adm = Math.max(0, (resources.adm || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
+    resources.dip = Math.max(0, (resources.dip || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
+    resources.mil = Math.max(0, (resources.mil || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
+  }
+  mark('capitals');
 
   // --- estates (plan §M9) --- loyalty drifts 1/turn toward its reform/law/trait/privilege-driven
   // target, influence is recomputed (real for the player, a cheap privilege-only proxy for AI — see
@@ -403,6 +443,46 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     if (estates && estates !== nation.estates) nations[nId] = { ...nation, estates };
   });
   mark('estates');
+
+  // --- disasters & civil war (plan §M15) --- runs for every nation, the same "real for player and
+  // AI both" cadence as stability/estates/succession above. Disasters read only fields every nation
+  // already tracks for real; a nation already fighting a civil war skips straight to
+  // processCivilWarTurn instead of re-checking triggers (declareWar's own one-active-thing-at-a-time
+  // spirit, applied here even though this isn't a state.wars entry — see civilWar.js's own header on
+  // why not).
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, newAge, newTurnNumber);
+    if (nId === state.playerNationId) logs.push(...disasterLogs.map((l) => ({ year: newYear, ...l })));
+    nations[nId] = afterDisasters;
+
+    if (nation.civilWar?.active) {
+      const result = processCivilWarTurn({ ...state, age: newAge }, regions, units, nations[nId], nId, rng, newTurnNumber);
+      Object.assign(regions, result.regions);
+      Object.assign(units, result.units);
+      nations[nId] = result.nation;
+      if (result.result === 'crushed') {
+        logs.push({ year: newYear, message: `${nations[nId].name} crushes the pretender uprising. (+1 stability, +10 legitimacy)`, type: LogTypes.CRISIS });
+      } else if (result.result === 'lost') {
+        logs.push({ year: newYear, message: `${nations[nId].name} falls to the pretenders — a new regime takes power.`, type: LogTypes.CRISIS });
+      }
+      return;
+    }
+
+    const lowStabilityStreak = nextLowStabilityStreak(nations[nId]);
+    const shouldStart = triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak);
+    if (shouldStart) {
+      const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
+      if (started) {
+        Object.assign(regions, started.regions);
+        Object.assign(units, started.units);
+        nations[nId] = { ...nations[nId], civilWar: started.civilWar, lowStabilityStreak: 0 };
+        logs.push({ year: newYear, message: `${nations[nId].name} descends into civil war!`, type: LogTypes.CRISIS });
+        return;
+      }
+    }
+    nations[nId] = { ...nations[nId], lowStabilityStreak };
+  });
+  mark('disastersAndCivilWar');
 
   // --- economy (plan §M11): army/navy/fort upkeep (maintenance-slider-scaled), advisor salaries,
   // and loan interest are all subtracted together so a shortfall can trigger ONE auto-loan or
@@ -439,54 +519,46 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     }
     const rawGold = resources.gold - totalExpenses;
 
-    if (rawGold < 0) {
-      const loanCapacity = getLoanCapacity({ ...state, regions, nations }, playerId);
-      if ((nation.loans || []).length < loanCapacity) {
-        // Auto-loan (plan §M11): "if expenses would push gold below 0, a loan is auto-taken and
-        // logged" — sized by the plan's own getLoanSize formula, floored at whatever actually
-        // covers this turn's shortfall so the treasury doesn't stay negative regardless.
-        const principal = Math.max(getLoanSize({ ...state, regions, nations, resources }, playerId), Math.ceil(-rawGold));
-        const loan = { id: `loan_auto_${newTurnNumber}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
-        nations[playerId] = { ...nations[playerId], loans: [...(nation.loans || []), loan] };
-        resources.gold = rawGold + principal;
-        logs.push({ year: newYear, message: `Treasury shortfall — auto-took a loan of ${formatMoney(principal)} gold.`, type: LogTypes.CRISIS });
-      } else {
-        // Bankruptcy (plan §M11): loan capacity is already exhausted. See actionCosts.js's
-        // BANKRUPTCY_* constants and BANKRUPTCY_MODIFIER_MODS's own header for which of the plan's
-        // listed effects have a real hook today and which are deferred to M14.
-        const bankruptNation = nations[playerId];
-        const estates = { ...bankruptNation.estates };
-        Object.keys(estates).forEach((estateId) => {
-          estates[estateId] = { ...estates[estateId], loyalty: Math.max(0, estates[estateId].loyalty - BANKRUPTCY_ESTATE_LOYALTY_PENALTY) };
-        });
-        nations[playerId] = addNationModifier(
-          {
-            ...bankruptNation,
-            loans: [],
-            stability: clampStability((bankruptNation.stability || 0) - BANKRUPTCY_STABILITY_PENALTY),
-            prestige: clampPrestige((bankruptNation.prestige || 0) - BANKRUPTCY_PRESTIGE_PENALTY),
-            estates
-          },
-          { sourceType: 'bankruptcy', sourceId: 'bankruptcy', label: 'Bankruptcy', mods: BANKRUPTCY_MODIFIER_MODS, duration: BANKRUPTCY_DURATION_TURNS, turnNumber: newTurnNumber }
-        );
-        // "All construction is cancelled without refund" — regular buildings complete instantly in
-        // this codebase (M6), so a Great Project's multi-turn queue is the only real substrate for
-        // this effect; cancelling it here (before the greatProjects tick phase below) means that
-        // phase simply sees nothing queued for these regions.
-        Object.keys(regions).forEach((regionId) => {
-          if (regions[regionId].owner === playerId && regions[regionId].greatProjectConstruction) {
-            regions[regionId] = { ...regions[regionId], greatProjectConstruction: null };
-          }
-        });
-        resources.gold = 0;
-        logs.push({
-          year: newYear,
-          message: 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, every estate -20 loyalty, a 10-turn economic crisis)',
-          type: LogTypes.CRISIS
-        });
-      }
+    // Economic Collapse (plan §M15): "3 loans and negative net income for 5 turns... at 100:
+    // bankruptcy plus -2 stability" — tracked off THIS turn's real income vs. expenses (not merely
+    // whether the banked treasury went negative, which the auto-loan/bankruptcy path below already
+    // reacts to on its own), so a nation running a persistent deficit gets an early warning even
+    // while still solvent on paper.
+    const netIncomeNegative = (income.gold || 0) < totalExpenses;
+    const economicCollapseProgress = nextEconomicCollapseProgress(nation, netIncomeNegative);
+    const disasterBankruptcyReady = isEconomicCollapseDisasterReady(economicCollapseProgress);
+    const loanCapacity = rawGold < 0 ? getLoanCapacity({ ...state, regions, nations }, playerId) : 0;
+    const canAutoLoan = rawGold < 0 && (nation.loans || []).length < loanCapacity;
+
+    if ((rawGold < 0 && !canAutoLoan) || disasterBankruptcyReady) {
+      // Bankruptcy (plan §M11/§M15): loan capacity already exhausted, OR the Economic Collapse
+      // disaster forces it outright even while nominally solvent. See actionCosts.js's BANKRUPTCY_*
+      // constants and BANKRUPTCY_MODIFIER_MODS's own header for which of the plan's listed effects
+      // have a real hook today and which are deferred to M14; economy.js's applyBankruptcy is the
+      // one shared implementation both this natural path and the disaster's own completion use.
+      const applied = applyBankruptcy(nations[playerId], regions, playerId, newTurnNumber, disasterBankruptcyReady ? ECONOMIC_COLLAPSE_STABILITY_PENALTY : 0);
+      nations[playerId] = { ...applied.nation, disasters: { ...applied.nation.disasters, economicCollapse: 0 } };
+      Object.assign(regions, applied.regions);
+      resources.gold = 0;
+      logs.push({
+        year: newYear,
+        message: disasterBankruptcyReady && rawGold >= 0
+          ? 'Economic Collapse! Years of mounting debt force bankruptcy outright. (-2 stability on top of the usual bankruptcy penalties)'
+          : 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, every estate -20 loyalty, a 10-turn economic crisis)',
+        type: LogTypes.CRISIS
+      });
+    } else if (rawGold < 0) {
+      // Auto-loan (plan §M11): "if expenses would push gold below 0, a loan is auto-taken and
+      // logged" — sized by the plan's own getLoanSize formula, floored at whatever actually
+      // covers this turn's shortfall so the treasury doesn't stay negative regardless.
+      const principal = Math.max(getLoanSize({ ...state, regions, nations, resources }, playerId), Math.ceil(-rawGold));
+      const loan = { id: `loan_auto_${newTurnNumber}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
+      nations[playerId] = { ...nations[playerId], loans: [...(nation.loans || []), loan], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
+      resources.gold = rawGold + principal;
+      logs.push({ year: newYear, message: `Treasury shortfall — auto-took a loan of ${formatMoney(principal)} gold.`, type: LogTypes.CRISIS });
     } else {
       resources.gold = rawGold;
+      nations[playerId] = { ...nations[playerId], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
     }
 
     // Fusion Grid (plan §M11 resource sink): upkeep is deducted every turn while active; going
@@ -524,6 +596,19 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       logs.push({ year: newYear, message: `Vassal tribute: +${formatMoney(vassalTribute)}.`, type: LogTypes.ACTION });
     }
   }
+
+  // Liberty desire (plan §M12/§M15: "rises with your weakness and their strength... at >= 50 they
+  // may declare an independence war") — generic for every vassal, player or AI, the same real-
+  // fielded-strength comparison civil war's own pretender sizing uses rather than the abstract
+  // militaryStrength number, since that's what an independence war would actually be fought with.
+  Object.entries(nations).forEach(([nId, nation]) => {
+    if (!nation.vassalOf || !nations[nation.vassalOf]) return;
+    const vassalStrength = getFieldedStrength({ units }, nId);
+    const overlordStrength = getFieldedStrength({ units }, nation.vassalOf);
+    const rising = vassalStrength > overlordStrength;
+    const libertyDesire = clamp((nation.libertyDesire || 0) + (rising ? LIBERTY_DESIRE_RISE_PER_TURN : -LIBERTY_DESIRE_DECAY_PER_TURN), 0, 100);
+    if (libertyDesire !== nation.libertyDesire) nations[nId] = { ...nation, libertyDesire };
+  });
   mark('diplomacy');
 
   // --- great projects (plan §M10) --- construction is player-only for now, matching every other
@@ -732,6 +817,19 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     logs: [...state.logs, ...logs]
   };
   mark('assembleNextState');
+
+  // --- defeat (plan §M15, checked against THIS turn's resolved state) --- "GameStatus.DEFEAT is set
+  // when the player owns 0 regions: annexed by a peace deal, or all regions lost to rebels or
+  // revolts." Checked BEFORE victory and under the same not-mid-event gating: a player just ceded
+  // down to nothing can't also "survive" the same turn, and a defeat should never land mid-event.
+  // elimination.js's checkNationElimination stays player-exempt (it flags an AI nation's RECORD dead;
+  // the player's own record keeps playing out its defeat/game-over screen instead) — this is the
+  // real player-losing condition elimination.js never had before this milestone.
+  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer && checkPlayerDefeat(next.regions, next.playerNationId)) {
+    next = { ...next, gameStatus: GameStatus.DEFEAT };
+    next.logs = [...next.logs, { year: newYear, message: 'DEFEAT: your nation has fallen — no territory remains under your control.', type: LogTypes.MILESTONE }];
+  }
+  mark('defeat');
 
   // --- victory (checked against THIS turn's resolved state, not last turn's) ---
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.

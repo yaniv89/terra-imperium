@@ -342,6 +342,9 @@ export const EFFECT_REGISTRY = {
   cultural_export: { primitive: 'pulse', palette: { base: '#f472b6', hot: '#fce7f3' }, glyph: 'star', rings: 3, motes: 8 },
   // Plan §M8: replaces the old adopt_government/adopt_policy/remove_policy trio.
   change_government_type: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
+  // Plan §M15: crises & defeat.
+  move_capital: { primitive: 'pulse', palette: { base: '#f59e0b', hot: '#fef3c7' }, glyph: 'star', rings: 2, motes: 4 },
+  declare_independence: { primitive: 'pulse', palette: { base: '#dc2626', hot: '#fee2e2' }, glyph: 'star', rings: 2, motes: 5 },
   enact_government_reform: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
   change_law: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 2 },
   // Plan §M9: Estates.
