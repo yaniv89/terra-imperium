@@ -9,6 +9,17 @@ import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { RESOURCE_IDS } from '../data/resources';
 import { declareWar, isWarBetween } from './diplomacy';
 import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
+import { addNationModifier, addRegionModifier } from './modifiers/timed';
+import { REBEL_OWNER_ID, getRebelSpawnStrength } from '../data/rebellion';
+import { getLaw } from '../data/laws';
+import { seedDevelopment } from './development';
+
+// Plan §M17: "defenseBonus becomes a timed fort modifier" — the old value (0.05-0.1, meant as a
+// percentage under the pre-M6 combat model) is scaled onto the modifier engine's FLAT
+// local.fortLevel scale (real Defense buildings grant 1/2/4/6) rather than reinterpreted as a
+// percentage of something fortLevel was never denominated in.
+const DEFENSE_BONUS_FORT_LEVEL_SCALE = 20;
+const DEFENSE_BONUS_DURATION_TURNS = 20;
 
 export const applyEventEffects = (state, event, optionIndex) => {
   const option = event.options[optionIndex];
@@ -41,11 +52,22 @@ export const applyEventEffects = (state, event, optionIndex) => {
     };
   }
 
-  // Plan §M14 removes the dead `eventDefenseBonus` field this accumulated into — it was carried on
-  // state for years waiting on a combat system to read it, but never got one before the field
-  // itself was cut. Plan §M17 ("defenseBonus becomes a timed fort modifier") is where this effect
-  // key is meant to gain a real, wired-up meaning; until then any event still declaring it (several
-  // do, in src/data/events.js/proceduralEvents.js) simply has no effect from this key.
+  // Plan §M17: "defenseBonus becomes a timed fort modifier" — a real local.fortLevel entry on every
+  // region the player currently owns, through the same addRegionModifier/expireRegionModifiers
+  // infrastructure M1 built and nothing had called yet. This replaces the dead `eventDefenseBonus`
+  // field (removed with M14) that this key used to accumulate into with no combat system reading it.
+  if (effects.defenseBonus) {
+    let regionModifiers = next.regionModifiers || {};
+    const fortLevelBonus = Math.max(1, Math.round(effects.defenseBonus * DEFENSE_BONUS_FORT_LEVEL_SCALE));
+    Object.values(next.regions).forEach((r) => {
+      if (r.owner !== playerNationId) return;
+      regionModifiers = addRegionModifier(regionModifiers, r.id, {
+        sourceType: 'event', sourceId: event.id, label: event.title,
+        mods: { 'local.fortLevel': fortLevelBonus }, duration: DEFENSE_BONUS_DURATION_TURNS, turnNumber: next.turnNumber
+      });
+    });
+    next.regionModifiers = regionModifiers;
+  }
 
   if (effects.controlBonus) {
     const regions = { ...next.regions };
@@ -56,10 +78,12 @@ export const applyEventEffects = (state, event, optionIndex) => {
     });
     next.regions = regions;
   }
+  // Plan §M17: "isOccupied-based controlPenalty now applies to regions with occupiedBy set" — M13
+  // introduced real occupation (`occupiedBy`) and left `isOccupied` a stale field (cleanup in M21).
   if (effects.controlPenalty) {
     const regions = { ...next.regions };
     Object.values(regions).forEach(r => {
-      if (r.owner === playerNationId && r.isOccupied) {
+      if (r.owner === playerNationId && r.occupiedBy) {
         regions[r.id] = { ...r, control: Math.max(0, r.control - effects.controlPenalty) };
       }
     });
@@ -187,6 +211,122 @@ export const applyEventEffects = (state, event, optionIndex) => {
         legitimacy: effects.legitimacy ? clampLegitimacy(playerNation.legitimacy + effects.legitimacy) : playerNation.legitimacy,
         prestige: effects.prestige ? clampPrestige(playerNation.prestige + effects.prestige) : playerNation.prestige
       }
+    };
+  }
+
+  // Plan §M17 effect vocabulary — each of these hooks into an EXISTING M3/M5/M6/M8/M9/M12/M14
+  // system rather than inventing a parallel one, so the effect is exactly as real as the action a
+  // player would take to get the same result manually.
+
+  // addModifier: { id, label, mods, duration } — the first real production caller of
+  // addNationModifier (src/engine/modifiers/timed.js's M1 infrastructure, unused until now).
+  if (effects.addModifier && next.nations[playerNationId]) {
+    next.nations = {
+      ...next.nations,
+      [playerNationId]: addNationModifier(next.nations[playerNationId], {
+        sourceType: 'event', sourceId: event.id, label: effects.addModifier.label || event.title,
+        mods: effects.addModifier.mods, duration: effects.addModifier.duration, turnNumber: next.turnNumber
+      })
+    };
+  }
+
+  // estateLoyalty: { estateId: delta } — loyalty is a real, drifting STORED field (processEstatesTurn
+  // pulls it toward equilibrium every turn); influence is deliberately NOT wired here because it's a
+  // derived snapshot recomputed fresh every turn (src/engine/estates.js's own header comment), so a
+  // flat delta on it would just be silently overwritten on the very next turn.
+  if (effects.estateLoyalty && next.nations[playerNationId]?.estates) {
+    const player = next.nations[playerNationId];
+    const estates = { ...player.estates };
+    Object.entries(effects.estateLoyalty).forEach(([estateId, delta]) => {
+      const estate = estates[estateId];
+      if (!estate) return;
+      estates[estateId] = { ...estate, loyalty: Math.max(0, Math.min(100, estate.loyalty + delta)) };
+    });
+    next.nations = { ...next.nations, [playerNationId]: { ...player, estates } };
+  }
+
+  // addClaim: nationId — this codebase's own claim model (src/engine/diplomacy.js's hasCasusBelli)
+  // is per-NATION, not per-region as the plan's own text describes; an event reuses the exact same
+  // `nation.claims` array FABRICATE_CLAIM (gameReducer.js) already writes to.
+  if (effects.addClaim && next.nations[playerNationId] && !next.nations[playerNationId].claims.includes(effects.addClaim)) {
+    const player = next.nations[playerNationId];
+    next.nations = { ...next.nations, [playerNationId]: { ...player, claims: [...player.claims, effects.addClaim] } };
+  }
+
+  // spawnRebels: { regionId, strength } — the exact rebel-unit shape resolveTurn.js's own
+  // rebellion phase creates (src/data/rebellion.js), so an event-spawned uprising is fought,
+  // suppressed, or grows exactly like an organic one; a no-op if that region is already rebelling.
+  if (effects.spawnRebels && next.regions[effects.spawnRebels.regionId]) {
+    const { regionId, strength: givenStrength } = effects.spawnRebels;
+    const alreadyRebelling = Object.values(next.units).some((u) => u.ownerId === REBEL_OWNER_ID && u.regionId === regionId);
+    if (!alreadyRebelling) {
+      const region = next.regions[regionId];
+      const strength = givenStrength || getRebelSpawnStrength(region);
+      const rebelId = `rebel_${regionId}_${next.turnNumber}`;
+      next.units = {
+        ...next.units,
+        [rebelId]: {
+          id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry',
+          strength, maxStrength: strength, morale: 100, movesLeft: 1,
+          xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
+          spawnedTurn: next.turnNumber
+        }
+      };
+      next.regions = { ...next.regions, [regionId]: { ...region, control: Math.max(0, (region.control || 0) - 30) } };
+    }
+  }
+
+  // ruler: { addTrait, removeTrait } — src/data/traits.js's existing 20-trait table.
+  if (effects.ruler && next.nations[playerNationId]?.ruler) {
+    const player = next.nations[playerNationId];
+    let traits = player.ruler.traits || [];
+    if (effects.ruler.removeTrait) traits = traits.filter((t) => t !== effects.ruler.removeTrait);
+    if (effects.ruler.addTrait && !traits.includes(effects.ruler.addTrait)) traits = [...traits, effects.ruler.addTrait];
+    next.nations = { ...next.nations, [playerNationId]: { ...player, ruler: { ...player.ruler, traits } } };
+  }
+
+  // heir: { claim: delta } — src/engine/succession.js's own 0-100 claim field.
+  if (effects.heir?.claim && next.nations[playerNationId]?.heir) {
+    const player = next.nations[playerNationId];
+    next.nations = {
+      ...next.nations,
+      [playerNationId]: { ...player, heir: { ...player.heir, claim: Math.max(0, Math.min(100, player.heir.claim + effects.heir.claim)) } }
+    };
+  }
+
+  // dev: { regionId, type, delta } — a direct, permanent development bump (distinct from the
+  // Develop Province ACTION's ADM/DIP/MIL cost — the event itself IS the cost here).
+  if (effects.dev && next.regions[effects.dev.regionId]) {
+    const { regionId, type, delta } = effects.dev;
+    const region = next.regions[regionId];
+    const dev = region.dev || seedDevelopment(regionId);
+    next.regions = { ...next.regions, [regionId]: { ...region, dev: { ...dev, [type]: Math.max(1, dev[type] + delta) } } };
+  }
+
+  // construct: { regionId, category } — grants a free tier-0 building (no gold cost, no
+  // construction time — the event is the cost), only if that category isn't already built there.
+  if (effects.construct && next.regions[effects.construct.regionId]) {
+    const { regionId, category } = effects.construct;
+    const region = next.regions[regionId];
+    const categories = region.buildings?.categories || {};
+    if ((categories[category] ?? -1) === -1) {
+      next.regions = { ...next.regions, [regionId]: { ...region, buildings: { ...region.buildings, categories: { ...categories, [category]: 0 } } } };
+    }
+  }
+
+  // law: { category, lawId } — the same field ENACT_LAW already writes; getLaw validates the id is
+  // real for that category first, so a typo'd event author gets a silent no-op, not a crash.
+  if (effects.law && next.nations[playerNationId] && getLaw(effects.law.category, effects.law.lawId)) {
+    const player = next.nations[playerNationId];
+    next.nations = { ...next.nations, [playerNationId]: { ...player, laws: { ...player.laws, [effects.law.category]: effects.law.lawId } } };
+  }
+
+  // crownLand: delta — src/engine/nationalPower.js/estates.js's existing 0-100 field.
+  if (effects.crownLand && next.nations[playerNationId]) {
+    const player = next.nations[playerNationId];
+    next.nations = {
+      ...next.nations,
+      [playerNationId]: { ...player, crownLand: Math.max(0, Math.min(100, (player.crownLand ?? 50) + effects.crownLand)) }
     };
   }
 
