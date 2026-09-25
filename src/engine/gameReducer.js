@@ -69,7 +69,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } 
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle } from './succession';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle, generateHeir } from './succession';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -127,7 +127,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // as-is for the separate, cosmetic `strategicValue` display stat.
       currentInfrastructure: 0,
       underInvasion: false,
-      isOccupied: false,
       buildings: createEmptyRegionBuildings(),
       // Unrest (plan §9): 0 = fully calm. Drifts each turn based on control% (resolveTurn.js) and
       // can be pushed down directly via the Quell Unrest action. Every nation starts at full
@@ -1690,6 +1689,15 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.changeGovernmentType;
       if (!type || !canChangeGovernmentType(nation, typeId, state.age)) return state;
       if (!canAfford(state.resources, costs)) return state;
+      // Plan §M21 balance fix: scripts/simulate.mjs found ~30-40% of nations hitting a Succession
+      // Crisis (and its 40% civil-war roll) almost immediately after becoming a monarchy — because
+      // `heir` stays null until a reign actually ENDS (see createInitialState's own comment on why
+      // it starts null), a brand-new monarchy's first-ever reign end was ALWAYS heirless. Generating
+      // an heir the moment a nation first becomes hereditary — same as a real dynasty already having
+      // an heir apparent — closes that gap without touching the succession-crisis mechanic itself.
+      const rng = createRng(state.rngSeed);
+      const needsHeir = getSuccessionStyle({ type: typeId }) === 'hereditary' && !nation.heir;
+      const heir = needsHeir ? generateHeir(state.playerNationId, rng, nation.ruler?.dynasty, state.turnNumber) : nation.heir;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
@@ -1698,9 +1706,11 @@ export const gameReducer = (state, action) => {
           [state.playerNationId]: {
             ...nation,
             government: { type: typeId, reforms: resetReformsForType(typeId, state.age) },
-            stability: clampStability((nation.stability || 0) - 2)
+            stability: clampStability((nation.stability || 0) - 2),
+            heir
           }
         },
+        rngSeed: rng.getSeed(),
         logs: [...state.logs, { year: state.year, message: `Your empire has become a ${type.name}. (-2 stability)`, type: LogTypes.MILESTONE }]
       };
     }

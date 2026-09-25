@@ -103,7 +103,6 @@ describe('applyEventEffects', () => {
     const deCapital = getNationCapital('de');
     const next = applyEventEffects(state, fixtureEvent('capture_event', { captureRegions: [deCapital] }), 0);
     expect(next.regions[deCapital].owner).toBe('fr');
-    expect(next.regions[deCapital].isOccupied).toBe(true);
   });
 
   describe('nationHostility', () => {

@@ -1839,6 +1839,29 @@ describe('Government reform and law actions (plan §M8)', () => {
       const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
       expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } })).toBe(state);
     });
+
+    // Plan §M21 balance fix: scripts/simulate.mjs found a Succession Crisis (and its 40% civil-war
+    // roll) hitting a huge share of nations almost immediately, because `heir` stayed null until a
+    // reign actually ended — a brand-new monarchy's very first reign end was ALWAYS heirless.
+    it('generates a real heir the moment the player first becomes a monarchy (a hereditary type)', () => {
+      const state = { ...richState(), nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: null } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.heir).toBeTruthy();
+      expect(next.nations.fr.heir.claim).toBeGreaterThanOrEqual(40); // generateHeir's own 40-100 base — never a near-certain crisis
+    });
+
+    it('never overwrites an heir the player already has', () => {
+      const existingHeir = { id: 'heir_fr_existing', claim: 55 };
+      const state = { ...richState(), nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: existingHeir } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.heir).toBe(existingHeir);
+    });
+
+    it('does not generate an heir for a non-hereditary type (Dictatorship)', () => {
+      const state = { ...richState(), age: 'modern', nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: null } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'dictatorship' } });
+      expect(next.nations.fr.heir).toBeFalsy();
+    });
   });
 
   describe('ENACT_GOVERNMENT_REFORM', () => {

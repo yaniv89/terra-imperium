@@ -45,6 +45,26 @@ import { TECH_RESEARCH_POOL } from '../data/actionCosts';
 import { AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
+import { clampStability, getIncreaseStabilityCost } from './nationalPower';
+import { getSuccessionStyle, generateHeir } from './succession';
+import { createRng } from '../utils/rng';
+
+// Plan §M21 balance harness (scripts/simulate.mjs) found that a 150-turn AI-vs-AI run produced
+// roughly one civil war per 3 nations — this file's own scope-trim list above never actually named
+// stability management as an intentional omission (unlike loans/bankruptcy, which does), so this was
+// a real parity gap rather than a deliberate trim: nothing ever gave the AI a reason to spend ADM on
+// the player's own Increase Stability action, so a nation drifting toward the M15 civil-war floor
+// (stability <= -3 for 3 turns) had no counterplay at all. -1, not 0 or -3: low enough that a nation
+// merely having a rough patch doesn't burn ADM it would rather spend building/researching, but high
+// enough to give a nation real turns to recover before it nears the actual civil-war trigger.
+const AI_STABILITY_RAISE_THRESHOLD = -1;
+const tryIncreaseStability = (state, nation) => {
+  if ((nation.stability || 0) > AI_STABILITY_RAISE_THRESHOLD) return null;
+  const stabilityCostMult = getModifier(state, nation.id, 'national.stabilityCost').total;
+  const cost = getIncreaseStabilityCost(state, nation.id, stabilityCostMult);
+  if ((nation.economy.adm || 0) < cost) return null;
+  return { ...nation, economy: { ...nation.economy, adm: nation.economy.adm - cost }, stability: clampStability((nation.stability || 0) + 1) };
+};
 
 // Plan §C: "a nation thinks when (turn + fnv1a(nationId)) % period === 0" — Tier 1 every turn,
 // Tier 2 every 3, Tier 3 every 10, spread across turns by a hash of the nation's own id rather than
@@ -119,7 +139,17 @@ const tryAdoptOrReformGovernment = (state, nation) => {
     const available = getAvailableGovernmentTypes(ageId, nation.identity).filter((t) => t.id !== 'tribal');
     if (available.length === 0) return null;
     const choice = available[fnv1a(`${nation.id}gov`) % available.length];
-    return { ...nation, government: { type: choice.id, reforms: resetReformsForType(choice.id, ageId) } };
+    // Plan §M21 balance fix (see this file's own header on the M16 laws/reform scope trim, and
+    // gameReducer.js's CHANGE_GOVERNMENT_TYPE case for the identical player-side fix): without
+    // this, an AI nation's FIRST reign as a fresh monarchy is always heirless (heir stays null
+    // until a reign actually ends), guaranteeing a Succession Crisis — and its 40% civil-war roll
+    // — the moment that first reign runs out. A one-off deterministic rng (not a threaded seed,
+    // matching this file's own `fnv1a`-keyed pseudo-randomness elsewhere) generates an heir right
+    // when hereditary government is adopted, the same as the player gets.
+    const heir = getSuccessionStyle({ type: choice.id }) === 'hereditary'
+      ? generateHeir(nation.id, createRng(fnv1a(`${nation.id}heir${state.turnNumber}`)), nation.ruler?.dynasty, state.turnNumber)
+      : nation.heir;
+    return { ...nation, government: { type: choice.id, reforms: resetReformsForType(choice.id, ageId) }, heir };
   }
   const reforms = getReformChoices(nation.government.type, ageId);
   if (reforms.length > 0 && !nation.government.reforms?.[ageId]) {
@@ -229,17 +259,25 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
   pool.gold = Math.max(0, pool.gold - ownUnitCount * UNIT_UPKEEP_GOLD_PER_TURN);
   let nextNation = { ...nation, economy: pool };
 
-  const govResult = tryAdoptOrReformGovernment(state, nextNation);
-  if (govResult) {
-    nextNation = govResult;
+  // A nation on the brink of civil war (see this function's own AI_STABILITY_RAISE_THRESHOLD
+  // comment) gets first call on its ADM, ahead of government/building/research — those can all
+  // wait a think; losing regions to a pretender army cannot.
+  const stabilityResult = tryIncreaseStability(state, nextNation);
+  if (stabilityResult) {
+    nextNation = stabilityResult;
   } else {
-    const buildResult = tryConstructBuilding(state, nextNation, regions);
-    if (buildResult) {
-      nextNation = buildResult.nation;
-      regions[buildResult.regionId] = buildResult.updatedRegion;
+    const govResult = tryAdoptOrReformGovernment(state, nextNation);
+    if (govResult) {
+      nextNation = govResult;
     } else {
-      const techResult = tryResearchTech(state, nextNation);
-      if (techResult) nextNation = techResult;
+      const buildResult = tryConstructBuilding(state, nextNation, regions);
+      if (buildResult) {
+        nextNation = buildResult.nation;
+        regions[buildResult.regionId] = buildResult.updatedRegion;
+      } else {
+        const techResult = tryResearchTech(state, nextNation);
+        if (techResult) nextNation = techResult;
+      }
     }
   }
 

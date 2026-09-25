@@ -7,38 +7,45 @@
 // system to build on, and a wrong reference to a moved element would be a worse failure mode
 // (pointing at nothing) than a plain, centered explanation card.
 import React, { useState } from 'react';
-import { Globe2, Coins, Swords, HeartHandshake, Beaker, Rocket, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Globe2, ScrollText, Landmark, Hammer, Swords, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
 
+// Plan §M21: rewritten to reflect the Paradox Overhaul (M1-M19), which replaced almost everything
+// the old copy described — Action Points became three power pools, a free "research one age ahead"
+// rush was removed entirely (every tech now needs its own unlock), and "survival to 2300" stopped
+// being a free win. The five topic cards below match the plan's own onboarding list; the Counter
+// Triangle / "Diplomacy Has Teeth" military-counters card was dropped to make room for them — the
+// Military tab still shows each unit's counters directly, so a dedicated intro card for it is lower
+// priority than the mechanics that have no in-game explanation at all otherwise.
 const STEPS = [
   {
     icon: Globe2,
     title: 'Welcome to Terra Imperium',
-    body: 'You lead one nation, on one real Earth, from 2000 BCE to 2300 CE. Every other country is a living rival — build, conquer, or outlast them all the way to the year 2300.'
+    body: 'You lead one nation, on one real Earth, from 2000 BCE to 2300 CE. Every other country plays the same game you do — its own economy, government, army, and diplomacy — build, conquer, or outlast them all.'
   },
   {
-    icon: Coins,
-    title: 'Resources & Turns',
-    body: 'Gold and HR (manpower) fund everything you do; Copper, Iron, and Oil unlock as your age advances. Each turn costs Action Points to spend — when you\'re done, hit End Turn to let the world move.'
+    icon: ScrollText,
+    title: 'ADM / DIP / MIL Power',
+    body: 'Gold and Manpower fund your economy and army; three power pools — Administrative, Diplomatic, and Military — fund everything else: development, laws, research, and diplomacy. Every pool refills slowly each turn, so spend it deliberately.'
+  },
+  {
+    icon: Landmark,
+    title: 'Stability & Estates',
+    body: 'Stability, legitimacy, and prestige are your realm\'s foundation — let them slip and unrest, rebellions, and even civil war follow. Your Clergy, Nobility, and Burghers each have their own loyalty and influence, and an ignored estate can turn on you.'
+  },
+  {
+    icon: Hammer,
+    title: 'Buildings & Development',
+    body: 'Develop a province\'s tax, production, and manpower to grow its economy, then build up to six building categories per province — each with real, distinct effects that unlock as your technology advances.'
   },
   {
     icon: Swords,
-    title: 'The Counter Triangle',
-    body: 'Infantry beats Cavalry, Cavalry beats Ranged, Ranged beats Infantry. Every unit shows its counters in the Military tab — the AI reads your army and builds against it, so mixing forces matters.'
+    title: 'War & Peace',
+    body: 'Wars need a real justification and are won on war score, not instant conquest — occupy what you\'re fighting for, then dictate peace terms at the table. Push too far and a coalition may form against you.'
   },
   {
-    icon: HeartHandshake,
-    title: 'Diplomacy Has Teeth',
-    body: 'War needs a real justification, or it costs you at home and abroad. Alliances, trade, and vassals all shape the board — and the world will gang up on whoever starts winning too fast.'
-  },
-  {
-    icon: Beaker,
-    title: 'Research & Growth',
-    body: 'The Tech tab pushes your age forward — you can research up to one age ahead of the calendar, never more. Falling behind has real costs against a more advanced rival.'
-  },
-  {
-    icon: Rocket,
-    title: 'Five Ways to Win',
-    body: 'Dominate the map, out-trade the world, out-diplomat every rival, win the Modern Age\'s space race, or simply outlast everyone to 2300. Good luck, and welcome to the world.'
+    icon: Trophy,
+    title: 'Ambitions & Score',
+    body: 'Ambitions like Domination, Economic Hegemony, or the Space Race are optional early wins — clear one and you can keep playing. Otherwise, the game ends in 2300 and ranks you against the world\'s strongest nations. Good luck.'
   }
 ];
 
