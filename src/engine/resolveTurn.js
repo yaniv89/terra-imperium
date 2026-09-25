@@ -10,7 +10,7 @@
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
@@ -24,6 +24,7 @@ import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSo
 import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
+import { getPlayerRank } from './score';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange, getCapital } from '../data/regions';
 import {
@@ -43,7 +44,7 @@ import {
   LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN
 } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
-import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
+import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
 import { GREAT_PROJECTS } from '../data/greatProjects';
@@ -422,7 +423,12 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     const stability = result.crisis ? clampStability((nation.stability || 0) - 1) : nation.stability;
     // Plan §M8.1: Elective Monarchy's "-10 legitimacy at succession" (result.legitimacyPenalty).
     const legitimacy = result.legitimacyPenalty ? clampLegitimacy((nation.legitimacy ?? 50) - result.legitimacyPenalty) : nation.legitimacy;
-    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir, stability, legitimacy };
+    // Plan §M18's "Dynasty" achievement ("the same dynasty for 10 rulers"): a real consecutive-
+    // succession counter, reset the instant the ruling house actually changes (an elective/
+    // theocratic/autocratic/tribal succession, or a hereditary line that just failed, both roll a
+    // brand-new dynasty name per succession.js's own nextDynasty logic).
+    const sameDynastyStreak = result.ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
+    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir, stability, legitimacy, sameDynastyStreak };
     if (nId === state.playerNationId) {
       const message = result.crisis
         ? `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne amid an uncertain succession. (-1 stability)`
@@ -451,7 +457,11 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // decisions off of them).
   Object.entries(nations).forEach(([nId, nation]) => {
     const result = processNationalPowerTurn(nation);
-    nations[nId] = { ...nation, ...result };
+    // Plan §M18's "Iron Grip" achievement ("+3 stability for 20 turns"): a real sustained-streak
+    // counter, the same shape diplomaticLeadershipStreak already uses for Diplomatic Victory —
+    // reset to 0 the instant stability drops off the max, so a fresh run of turns is required.
+    const stability3Streak = result.stability >= STABILITY_MAX ? (nation.stability3Streak || 0) + 1 : 0;
+    nations[nId] = { ...nation, ...result, stability3Streak };
   });
   mark('nationalPower');
 
@@ -880,12 +890,26 @@ export const resolveTurn = (state, { onPhase } = {}) => {
 
   // --- victory (checked against THIS turn's resolved state, not last turn's) ---
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
+  // Plan §M18: "Remove the free win... at END_YEAR the game ends with a Final Score screen ranking
+  // the player against the top 10 nations... 'Victory' if the player ranks #1; otherwise 'Game
+  // Complete — Rank N'." An ambition (domination/conqueror/economicHegemony/diplomatic/
+  // spaceAscendancy) can still win outright at ANY year — only reaching the calendar's own end
+  // with no ambition met routes through this ranked step instead of an automatic win.
   if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer) {
     const conditionId = checkVictoryConditions(next);
     if (conditionId) {
       const condition = VICTORY_CONDITIONS[conditionId];
       next = applyVictory(next, conditionId);
       next.logs = [...next.logs, { year: newYear, message: `VICTORY: ${condition.name} achieved!`, type: LogTypes.MILESTONE }];
+    } else if (next.year >= END_YEAR) {
+      const rank = getPlayerRank(next);
+      if (rank === 1) {
+        next = applyVictory(next, 'finalScore');
+        next.logs = [...next.logs, { year: newYear, message: 'VICTORY: Score Victory achieved — your nation leads the world!', type: LogTypes.MILESTONE }];
+      } else {
+        next = { ...next, gameStatus: GameStatus.COMPLETE, finalRank: rank };
+        next.logs = [...next.logs, { year: newYear, message: `GAME COMPLETE: your nation finishes ranked #${rank} in the world.`, type: LogTypes.MILESTONE }];
+      }
     }
   }
   mark('victory');

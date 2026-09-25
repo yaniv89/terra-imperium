@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { ActionTypes, GameStatus } from '../data/types';
-import { AGES, getYearsPerTurn } from '../data/ages';
+import { AGES, getYearsPerTurn, END_YEAR } from '../data/ages';
 import { SATELLITE_UNLOCK_YEAR } from '../data/satellites';
 import { SPACE_MISSIONS, FINAL_SPACE_MISSION_ID } from '../data/spaceMissions';
 import {
@@ -52,12 +52,24 @@ const advanceUntil = (state, predicate, maxTurns) => {
   return current;
 };
 
-describe('endgame reachability: the game always resolves to a victory by 2300', () => {
-  it('a passive run (no player actions at all) still reaches Score Victory by END_YEAR', () => {
+describe('endgame reachability: the game always resolves to a definite outcome by 2300', () => {
+  // Plan §M18: "Remove the free win... the passive run must NOT win by default." A player who never
+  // acts can't form the trade pact/alliance a Diplomatic Victory needs, can't conquer anything a
+  // Domination/Conqueror/Economic Hegemony victory needs, and can't launch a single space mission —
+  // so none of the five ambitions can fire for them. With M16's AI now running a real economy on
+  // all 239 other nations, the only real outcomes left are DEFEAT (conquered before END_YEAR) or
+  // COMPLETE (survives to END_YEAR, ranked well below the AI nations that spent the whole game
+  // actually building an economy).
+  it('a passive run (no player actions at all) never wins by default', () => {
     const MAX_TURNS = 1200; // Marathon's ~990-turn estimate (plan §3) plus generous headroom
     const state = advanceUntil(freshWorld(), (s) => s.gameStatus !== GameStatus.ACTIVE, MAX_TURNS);
-    expect(state.gameStatus, 'the game never reached a victory within the turn budget').toBe(GameStatus.VICTORY);
-    expect(state.year).toBeLessThanOrEqual(2300);
+    expect(state.gameStatus, 'the game never reached a definite outcome within the turn budget').not.toBe(GameStatus.ACTIVE);
+    expect(state.gameStatus).not.toBe(GameStatus.VICTORY);
+    expect([GameStatus.DEFEAT, GameStatus.COMPLETE]).toContain(state.gameStatus);
+    expect(state.year).toBeLessThanOrEqual(END_YEAR);
+    if (state.gameStatus === GameStatus.COMPLETE) {
+      expect(state.finalRank, 'a nation that never acted should not rank #1 against 239 real AI economies').toBeGreaterThan(1);
+    }
   }, 120000); // 4,482 real provinces makes a turn cost tens of ms, not fractions — 1200 of them needs real wall-clock room
 });
 

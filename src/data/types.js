@@ -4,7 +4,10 @@
 export const GameStatus = {
   ACTIVE: 'ACTIVE',
   VICTORY: 'VICTORY',
-  DEFEAT: 'DEFEAT'
+  DEFEAT: 'DEFEAT',
+  // Plan §M18: reaching END_YEAR without ranking #1 in the world (src/engine/score.js) ends the
+  // game, but isn't framed as a win — "Game Complete — Rank N" rather than a Victory/Defeat binary.
+  COMPLETE: 'COMPLETE'
 };
 
 export const RelationStatus = {
@@ -153,7 +156,10 @@ export const ActionTypes = {
   // war, disasters, and defeat itself have no player-initiated action of their own: they're
   // engine-driven consequences resolved in resolveTurn.js (src/engine/civilWar.js, disasters.js).
   MOVE_CAPITAL: 'MOVE_CAPITAL',
-  DECLARE_INDEPENDENCE: 'DECLARE_INDEPENDENCE'
+  DECLARE_INDEPENDENCE: 'DECLARE_INDEPENDENCE',
+  // Plan §M18: "Continue playing after victory" — resumes an ambition-triggered VICTORY back to
+  // ACTIVE so the game keeps running toward END_YEAR's own ranked ending.
+  CONTINUE_AFTER_VICTORY: 'CONTINUE_AFTER_VICTORY'
 };
 
 export const LogTypes = {

@@ -107,7 +107,11 @@ export const applyBankruptcy = (nation, regions, nationId, turnNumber, extraStab
       loans: [],
       stability: clampStability((nation.stability || 0) - BANKRUPTCY_STABILITY_PENALTY - extraStabilityPenalty),
       prestige: clampPrestige((nation.prestige || 0) - BANKRUPTCY_PRESTIGE_PENALTY),
-      estates
+      estates,
+      // Plan §M18's "Phoenix" achievement ("recover from bankruptcy to 5,000g") needs a permanent
+      // marker that bankruptcy actually happened — a nation's treasury clearing 5,000g on its own
+      // means nothing without proof it was ever the one recovering from something.
+      hasBeenBankrupt: true
     },
     { sourceType: 'bankruptcy', sourceId: 'bankruptcy', label: 'Bankruptcy', mods: BANKRUPTCY_MODIFIER_MODS, duration: BANKRUPTCY_DURATION_TURNS, turnNumber }
   );

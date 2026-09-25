@@ -890,11 +890,33 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
 });
 
 describe('resolveTurn victory', () => {
-  it('triggers survival victory once the year reaches END_YEAR', () => {
-    const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
-    const next = resolveTurn(state);
+  // Plan §M18: reaching END_YEAR is no longer an automatic win — it's a RANKED ending
+  // (src/engine/score.js): VICTORY only if the player leads the world, GameStatus.COMPLETE
+  // (with finalRank) otherwise.
+  it('triggers a Score Victory at END_YEAR only when the player actually ranks #1', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
+    // Prestige alone won't do it here — processNationalPowerTurn's own decay/clamp runs earlier in
+    // this same turn and would clamp any artificial value straight back into [-100, 100] before the
+    // victory check ever reads it. 500 extra NON-CAPITAL regions is enough to lead the score table
+    // outright while staying safely under every ambition's own threshold (domination 40% of
+    // 4,482 regions, conqueror 25% of capitals, economicHegemony 45% of GDP) — this must resolve
+    // through the END_YEAR ranked step, not accidentally trip an ambition first.
+    const capitalIds = new Set(Object.keys(base.nations).map((id) => getNationCapital(id)).filter(Boolean));
+    const regions = { ...base.regions };
+    Object.keys(regions).filter((id) => !capitalIds.has(id) && regions[id].owner !== 'fr').slice(0, 500)
+      .forEach((id) => { regions[id] = { ...regions[id], owner: 'fr' }; });
+    const next = resolveTurn({ ...base, regions });
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('survival');
+    expect(next.victoryConditionId).toBe('finalScore');
+  });
+
+  it('ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at END_YEAR', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
+    const regions = {};
+    Object.keys(base.regions).forEach((id) => { regions[id] = { ...base.regions[id], owner: id === cap('fr') ? 'fr' : 'de' }; });
+    const next = resolveTurn({ ...base, regions });
+    expect(next.gameStatus).toBe(GameStatus.COMPLETE);
+    expect(next.finalRank).toBeGreaterThan(1);
   });
 
   it('does not check victory conditions while an event is pending', () => {

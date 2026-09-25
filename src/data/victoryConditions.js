@@ -24,7 +24,10 @@ export const CONQUEROR_CAPITAL_SHARE = 0.25;
 // (REGIONS_DATA, a province's share of its country's real countries-meta.json GDP figure — see
 // build-world-regions.mjs) — the closest thing to "world trade share" this data model can compute
 // without simulating every AI nation's own economy in full.
-export const ECONOMIC_HEGEMONY_GDP_SHARE = 0.35;
+// Plan §M18: "raise to 45% ... so it's no easier than Domination (40% regions)" — GDP is far more
+// concentrated than region count (a handful of nations hold most of it), so 35% used to be reachable
+// well before 40% of regions was; 45% closes that gap.
+export const ECONOMIC_HEGEMONY_GDP_SHARE = 0.45;
 // Diplomatic: friendly standing (trade, alliance, or genuinely low hostility) with a majority of
 // every other nation, SUSTAINED for a real stretch of turns (state.diplomaticLeadershipStreak,
 // incremented in resolveTurn.js) — a momentary majority shouldn't win outright; "leadership" per
@@ -101,17 +104,37 @@ export const VICTORY_CONDITIONS = {
     description: 'Complete the entire space mission ladder.',
     check: (state) => (state.completedMissions || []).includes(FINAL_SPACE_MISSION_ID)
   },
-  survival: {
-    id: 'survival',
+  // Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching END_YEAR is no
+  // longer a `check` in this table at all; it's handled as its own ranked step in resolveTurn.js
+  // (src/engine/score.js), since "did the game end at the calendar limit" and "did THIS PARTICULAR
+  // AMBITION'S threshold get met" are different enough shapes (one needs to rank against all 240
+  // nations, not just check the player) that forcing them through one `check(state) -> bool`
+  // signature would be more confusing than the two real entries below, kept for GameOverModal's
+  // `VICTORY_CONDITIONS[state.victoryConditionId]` display lookup — their own `check` always
+  // returns false since neither is ever meant to fire through this table's own loop.
+  eventVictory: {
+    id: 'eventVictory',
+    name: 'Victory',
+    description: 'A decisive turning point secured your nation\'s triumph.',
+    check: () => false
+  },
+  finalScore: {
+    id: 'finalScore',
     name: 'Score Victory',
-    description: `Lead your nation all the way to ${END_YEAR}.`,
-    check: (state) => state.year >= END_YEAR
+    description: `Lead your nation to the highest score in the world by ${END_YEAR}.`,
+    check: () => false
   }
 };
 
-// Returns the id of the first satisfied victory condition, or null.
+// Returns the id of the first satisfied AMBITION, or null — an ambition already recorded in
+// `state.victoriesAchieved` (plan §M18: "Continue playing after victory") is skipped, so choosing
+// to keep playing past an earlier win doesn't immediately re-trigger the SAME game-over screen the
+// very next turn just because its threshold is, naturally, still met.
 export const checkVictoryConditions = (state) => {
-  const satisfied = Object.values(VICTORY_CONDITIONS).find(condition => condition.check(state));
+  const alreadyAchieved = state.victoriesAchieved || [];
+  const satisfied = Object.values(VICTORY_CONDITIONS).find(
+    (condition) => !alreadyAchieved.includes(condition.id) && condition.check(state)
+  );
   return satisfied ? satisfied.id : null;
 };
 
