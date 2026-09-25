@@ -24,6 +24,7 @@ import { getTotalDev } from '../../engine/development';
 import { getNationCapital } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
+import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { ActionButton } from '../ui';
 
 // Diplomacy actions that travel visibly between the player's capital and the target nation's.
@@ -177,7 +178,7 @@ const DiplomacyPanel = () => {
           const canAssignDiplomat = !hasDiplomatAssigned && (player.diplomatTasks || []).length < (player.diplomats || 0);
           const canVassalize = !atWarWithPlayer && !nation.vassalOf && nation.id !== state.playerNationId
             && (nation.hostility || 0) <= VASSALIZE_HOSTILITY_CEILING
-            && (player.militaryStrength || 0) >= (nation.militaryStrength || 0) * VASSALIZE_STRENGTH_RATIO;
+            && getEffectiveMilitaryPower(state, state.playerNationId) >= getEffectiveMilitaryPower(state, nation.id) * VASSALIZE_STRENGTH_RATIO;
           const vassalTotalDev = isVassalOfPlayer ? Object.values(state.regions).reduce((s, r) => s + (r.owner === nation.id ? getTotalDev(r) : 0), 0) : 0;
           const annexCost = { dip: Math.round(VASSAL_ANNEX_DIP_PER_DEV * vassalTotalDev) };
           const canAnnex = isVassalOfPlayer && state.turnNumber >= (nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS;

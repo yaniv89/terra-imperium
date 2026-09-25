@@ -20,7 +20,8 @@ import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
-import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
+import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
+import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
@@ -360,6 +361,52 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
   mark('aiGrowthAndHostility');
+
+  // --- AI economy (plan §M16) --- real gold/hr/techPoints/adm/dip/mil income credits every non-
+  // player nation's own economy pool EVERY turn (calcAllNationIncomes is one O(regions) pass, cheap
+  // enough to run unconditionally for all 240 nations — the same "one shared pass" perf pattern
+  // buildOccupationIndexes/calcAllNationIncomes-style functions already use elsewhere in this
+  // codebase). Spending it — adopt/reform a government, construct a building, or research a tech —
+  // only happens on each nation's own tiered cadence (aiEconomy.js's thinksThisTurn: Tier 1 every
+  // turn, Tier 2 every 3, Tier 3 every 10), which is what keeps this affordable at 240 nations.
+  // Recruitment stays a separate pass below (processAIRecruitment, Tier 1 only, unchanged cadence)
+  // now drawing on this same real economy once it exists — see aiEconomy.js's own header for the
+  // full list of what's deliberately NOT part of this milestone (laws, estates, identity, advisors,
+  // diplomat tasks, AI loans/bankruptcy).
+  // ONE shared state snapshot for this whole phase — critically, the SAME object reference for
+  // every nation's calcAllNationIncomes/getPowerIncome/getNationTier/processAIEconomyTurn call.
+  // The modifier engine (src/engine/modifiers/sheet.js) caches a nation's sheet per (state
+  // reference, nationId) pair; a fresh `{ ...state, ... }` literal built INSIDE this loop, once per
+  // nation, would defeat that cache entirely (each nation's sheet — including its own O(regions)
+  // overextension scan — rebuilt from scratch 2-3x every turn instead of once), which is exactly
+  // the "per-nation state spread" trap buildOccupationIndexes/estatesState elsewhere in this same
+  // file are already careful to avoid. `regions`/`nations` are passed by REFERENCE, not spread, so
+  // this snapshot stays valid even as later lines in this same loop mutate their properties.
+  const aiEconState = { ...state, regions, nations };
+  const allIncomes = calcAllNationIncomes(aiEconState);
+  const tieringSortedByMilitary = getSortedByMilitary(aiEconState);
+  Object.keys(nations).forEach((nId) => {
+    if (nId === state.playerNationId) return;
+    const nation = nations[nId];
+    if (!nation.economy) return; // a legacy/test fixture with no seeded economy stays on the old abstract-only path
+    const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
+    const powerIncome = getPowerIncome(aiEconState, nId);
+    const pool = { ...nation.economy };
+    pool.gold += income.gold;
+    pool.hr += income.hr;
+    pool.techPoints += income.techPoints;
+    // Same "bank up to 2x this turn's own income" cap the player's own power pools use (the
+    // maintenanceAndPower phase above) — applied here too so an AI nation's pools don't grow
+    // unbounded over a long game.
+    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], powerIncome[p] * 2); });
+    nations[nId] = { ...nation, economy: pool };
+
+    const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
+    if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
+    const result = processAIEconomyTurn(aiEconState, regions, nId);
+    nations[nId] = result.nation;
+  });
+  mark('aiEconomy');
 
   // --- succession (plan §M3) --- runs for every nation (cheap: a number comparison for the vast
   // majority whose reign isn't ending this turn), but only the player's own succession is logged —

@@ -28,6 +28,7 @@ import {
 } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
@@ -174,7 +175,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       isPlayer: id === playerNationId,
       hostility: data.startHostility,
       militaryStrength: data.startMilitary,
-      aggression: data.aggression,
       doctrine: data.doctrine || 'attrition',
       relationStatus: RelationStatus.NEUTRAL,
       isAtWar: false,
@@ -301,7 +301,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       lowStabilityStreak: 0,
       civilWar: null,
       disasters: { estateTakeover: 0, economicCollapse: 0, successionWar: 0, revolution: 0 },
-      libertyDesire: 0
+      libertyDesire: 0,
+
+      // AI parity (plan §M16). Only non-player nations get these — the player keeps living on
+      // state.resources/techTree/techAgeId (src/engine/nationState.js's own header explains why:
+      // moving the player onto this shape too would touch every existing test and UI component that
+      // reads state.resources directly, for zero present benefit). tech.ageId starts equal to the
+      // calendar age, mirroring state.techAgeId's own seeding.
+      ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {})
     };
   });
 
@@ -2312,7 +2319,9 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.vassalize;
       if (!target || nationId === state.playerNationId || target.isAtWar || target.vassalOf) return state;
       if ((target.hostility || 0) > VASSALIZE_HOSTILITY_CEILING) return state;
-      if ((player.militaryStrength || 0) < (target.militaryStrength || 0) * VASSALIZE_STRENGTH_RATIO) return state;
+      // Plan §M16: real fielded strength (+ damped garrison), not the abstract number alone — see
+      // src/engine/aiEconomy.js's getEffectiveMilitaryPower and peace.js's own use of the same metric.
+      if (getEffectiveMilitaryPower(state, state.playerNationId) < getEffectiveMilitaryPower(state, nationId) * VASSALIZE_STRENGTH_RATIO) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
