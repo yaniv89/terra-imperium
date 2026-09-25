@@ -11,7 +11,7 @@ const NationEliminatedBanner = ({ nationName, onDismiss }) => {
   if (!nationName) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-top-4 duration-500">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 animate-banner-in">
       <div className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 border border-emerald-300/60 rounded-full shadow-2xl shadow-emerald-900/40 pl-4 pr-2 py-2">
         <Crown className="w-4 h-4 text-emerald-50 shrink-0" />
         <div className="text-sm font-semibold text-emerald-50 tracking-wide whitespace-nowrap">

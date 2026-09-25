@@ -205,10 +205,10 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
             <span>Under Invasion!</span>
           </div>
         )}
-        {regionState.isOccupied && (
+        {regionState.occupiedBy && (
           <div className="flex items-center gap-1.5 text-yellow-400 text-[10px]">
             <Flag className="w-3 h-3" />
-            <span>Occupied Territory</span>
+            <span>Occupied by {state.nations[regionState.occupiedBy]?.name || 'Unknown'}</span>
           </div>
         )}
         {regionData.isCapital && (

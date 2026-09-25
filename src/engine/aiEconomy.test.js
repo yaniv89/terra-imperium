@@ -5,6 +5,7 @@ import {
 } from './aiEconomy';
 import { REGIONS_DATA } from '../data/regions';
 import { seedDevelopment } from './development';
+import { getIncreaseStabilityCost } from './nationalPower';
 
 // Real geo ids (both start-owned by Indonesia, both coastal) rather than hand-faked region data —
 // calcAllNationIncomes/tryConstructBuilding read isCoastal/isCapital/population straight off
@@ -209,6 +210,59 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
   it('does nothing (no crash, no change) for a nation with no seeded economy — a legacy/test fixture', () => {
     const state = makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { id: { doctrine: 'attrition' } } });
     expect(() => processAIEconomyTurn(state, state.regions, 'id')).not.toThrow();
+  });
+
+  // Plan §M21: scripts/simulate.mjs's 150-turn AI-vs-AI runs found roughly one civil war per three
+  // nations before this — nothing ever gave the AI a reason to spend ADM raising stability, so a
+  // nation drifting toward the M15 civil-war floor had no counterplay. These pin the fix's priority
+  // (ahead of government/building/research) and its threshold/affordability edges.
+  describe('stability management (plan §M21 balance fix)', () => {
+    it('spends ADM to raise stability instead of any other decision when at the AI threshold and affordable', () => {
+      const state = makeState({
+        age: 'classical', // old enough that a government decision would otherwise win priority
+        regions: { [REGION_A]: makeRegion(REGION_A) },
+        nations: {
+          id: makeAiNation({
+            government: null,
+            stability: -1,
+            economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
+          })
+        }
+      });
+      const cost = getIncreaseStabilityCost(state, 'id', 0);
+      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      expect(nation.stability).toBe(0);
+      expect(nation.economy.adm).toBe(1000 - cost);
+      expect(nation.government).toBeFalsy(); // the government decision never got a turn
+    });
+
+    it('leaves stability alone and falls through to the next decision once above the threshold', () => {
+      const state = makeState({
+        age: 'bronze',
+        regions: { [REGION_A]: makeRegion(REGION_A) },
+        nations: {
+          id: makeAiNation({
+            stability: 0,
+            government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
+            economy: { gold: 1000, hr: 0, techPoints: 0, adm: 1000, dip: 0, mil: 0 }
+          })
+        }
+      });
+      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      expect(nation.stability).toBe(0);
+      expect(nation.economy.gold).toBeLessThan(1000); // spent on a building instead
+    });
+
+    it('never goes into debt — no-op when it cannot afford the cost, even at the threshold', () => {
+      const state = makeState({
+        age: 'classical',
+        regions: { [REGION_A]: makeRegion(REGION_A) },
+        nations: { id: makeAiNation({ government: null, stability: -1, economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 } }) }
+      });
+      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      expect(nation.stability).toBe(-1);
+      expect(nation.economy.adm).toBe(0);
+    });
   });
 });
 

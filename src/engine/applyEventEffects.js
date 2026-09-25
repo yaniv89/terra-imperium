@@ -79,7 +79,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.regions = regions;
   }
   // Plan §M17: "isOccupied-based controlPenalty now applies to regions with occupiedBy set" — M13
-  // introduced real occupation (`occupiedBy`) and left `isOccupied` a stale field (cleanup in M21).
+  // introduced real occupation (`occupiedBy`); the stale `isOccupied` field itself was removed in M21.
   if (effects.controlPenalty) {
     const regions = { ...next.regions };
     Object.values(regions).forEach(r => {
@@ -98,7 +98,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
           ...regions[rId],
           owner: playerNationId,
           control: 80,
-          isOccupied: true,
           underInvasion: false
         };
       }
@@ -114,8 +113,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
         [effects.returnRegion]: {
           ...next.regions[effects.returnRegion],
           owner: origOwner,
-          control: 100,
-          isOccupied: false
+          control: 100
         }
       };
     }
