@@ -87,14 +87,15 @@ const RESOURCE_CONFIG = {
   }
 };
 
-const ResourceBadge = ({ 
-  type, 
-  value, 
-  maxValue = null, 
-  expanded = false, 
+const ResourceBadge = ({
+  type,
+  value,
+  maxValue = null,
+  expanded = false,
   onClick = null,
   showLabel = false,
-  size = 'normal' // 'small', 'normal', 'large'
+  size = 'normal', // 'small', 'normal', 'large'
+  tooltipContent = null // plan §M20: overrides the flat description with a real breakdown (e.g. ADM/DIP/MIL income)
 }) => {
   const config = RESOURCE_CONFIG[type];
   if (!config) return null;
@@ -117,7 +118,7 @@ const ResourceBadge = ({
   };
 
   return (
-    <Tooltip content={config.description || config.label}>
+    <Tooltip content={tooltipContent || config.description || config.label}>
       <button
         onClick={onClick}
         disabled={!onClick}

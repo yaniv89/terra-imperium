@@ -153,6 +153,27 @@ export const getPowerIncome = (state, nationId = state.playerNationId) => {
   };
 };
 
+// Plan §M20: the real per-source lines behind one pool's getPowerIncome total, for the Tooltip v2 /
+// Breakdown UI ("every number explains itself"). Reuses getModifier's own breakdown arrays instead
+// of re-deriving them, so this can never drift out of sync with the total getPowerIncome returns —
+// the two satellite/mission dipPerTurn lines are the only pieces getModifier doesn't already carry,
+// added here as synthetic breakdown rows in the same {label, value} shape.
+const POOL_BONUS_KEY = { adm: 'national.admBonus', dip: 'national.dipBonus', mil: 'national.milBonus' };
+export const getPowerBreakdown = (state, nationId = state.playerNationId, pool) => {
+  const rows = [{ label: 'Base', value: BASE_POWER_PER_TURN }];
+  const allPools = getModifier(state, nationId, 'national.apBonus');
+  allPools.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
+  const poolSpecific = getModifier(state, nationId, POOL_BONUS_KEY[pool]);
+  poolSpecific.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
+  if (pool === 'dip') {
+    const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, nationId, 'dipPerTurn', state.orbitalDebrisLevel);
+    if (satelliteDip) rows.push({ label: 'Satellites', value: satelliteDip });
+    const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
+    if (missionDip) rows.push({ label: 'Space Missions', value: missionDip });
+  }
+  return rows;
+};
+
 // A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
 // itself is always seeded from the modern (~2024) figure regardless of start year, since it also
 // drives calcIncome's popGrowthMult below (pinned at 1.0 for a fresh game); scaling that pair down
