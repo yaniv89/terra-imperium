@@ -13,6 +13,7 @@ import { getSuccessionStyle } from './succession';
 import { TECH_TREE } from '../data/techTree';
 import { TechCategories } from '../data/types';
 import { TAX_RATES } from '../data/taxRates';
+import { getOwnedRegionIds } from '../data/regions';
 
 export const STABILITY_MIN = -3;
 export const STABILITY_MAX = 3;
@@ -45,8 +46,14 @@ export const getGoverningCapacity = (state, nationId, reformCapacityBonus = 0) =
   return base + governanceTechs;
 };
 
-export const getOwnedRegionCount = (state, nationId) =>
-  Object.values(state.regions || {}).reduce((sum, r) => sum + (r.owner === nationId ? 1 : 0), 0);
+// Plan §M16: routed through src/data/regions.js's own memoized owned-region index (built once per
+// `state.regions` object reference, O(1) per nation after that) rather than a fresh O(4,482) scan —
+// this was a real, measured cost once M16's AI-economy phase became the first production caller to
+// invoke getModifier (and therefore this, via contextSources' overextension term) for every one of
+// 240 AI nations every turn; a raw `Object.values(state.regions).reduce(...)` here made that
+// O(nations x regions) instead of O(regions + nations), the exact perf trap this file's own sibling
+// comments elsewhere already warn about avoiding.
+export const getOwnedRegionCount = (state, nationId) => getOwnedRegionIds(state.regions || {}, nationId).length;
 
 // Vassals and occupied-but-not-owned regions are excluded per the plan, but neither concept exists
 // yet (M12/M13) — every currently-owned region already counts toward the numerator, which is the

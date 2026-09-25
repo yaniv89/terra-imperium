@@ -15,6 +15,7 @@ import { getCapital } from '../data/regions';
 import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { applyAggressiveExpansion } from './expansion';
 import { addNationModifier } from './modifiers/timed';
+import { getEffectiveMilitaryPower } from './aiEconomy';
 import { clampPrestige, clampStability } from './nationalPower';
 import {
   FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
@@ -84,8 +85,14 @@ export const getPeaceAcceptance = (state, war, offererId, terms) => {
   const offererScore = offererId === war.aggressor ? (war.score || 0) : -(war.score || 0);
   const recipientCapitalId = getCapital(state, recipientId);
   const recipientCapitalOccupied = !!recipientCapitalId && state.regions[recipientCapitalId]?.occupiedBy === offererId;
-  const offererStrength = offerer?.militaryStrength || 1;
-  const recipientStrength = recipient?.militaryStrength || 1;
+  // Plan §M16: real fielded strength (plus a damped abstract-garrison component for a nation that
+  // hasn't recruited much) now weighs the "Military balance" line, not the abstract militaryStrength
+  // number alone — src/engine/aiEconomy.js's getEffectiveMilitaryPower is the same metric
+  // getSortedByMilitary uses. Scaling both sides by the same abstract-garrison factor leaves a
+  // fresh, unitless fixture's ratio exactly as it was before this change (only real, divergent
+  // armies actually move it).
+  const offererStrength = offerer ? getEffectiveMilitaryPower(state, offererId) || 1 : 1;
+  const recipientStrength = recipient ? getEffectiveMilitaryPower(state, recipientId) || 1 : 1;
   const strengthShare = offererStrength / (offererStrength + recipientStrength);
   const turnsAtWar = Math.max(0, (state.turnNumber || 0) - (war.startTurn ?? state.turnNumber ?? 0));
   const cedesCapital = terms.some((t) => t.type === 'cede' && t.regionId === recipientCapitalId);

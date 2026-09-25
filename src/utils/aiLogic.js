@@ -27,6 +27,7 @@ import { getBorderingNationIds } from '../data/regions';
 import { declareWar, isInTruce } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
+import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -120,10 +121,17 @@ export const getNationTier = (state, nationId, sortedByMilitary) => {
   return 3;
 };
 
+// Plan §M16: "getSortedByMilitary uses getFieldedStrength plus the garrison value" — a nation's real
+// recruited army now outweighs its abstract militaryStrength number (which still feeds in, damped,
+// as a stand-in "reserve" for a nation that hasn't recruited much yet — src/engine/aiEconomy.js's
+// own GARRISON_STRENGTH_WEIGHT). findRunawayLeader and pickWarTarget below are NOT switched — the
+// plan only names this one function, and both of those have many existing call sites/tests built
+// around plain nations-map fixtures with no state.units at all; narrowing the change to exactly what
+// the plan calls out keeps this a safe, well-scoped step rather than a blanket rip-and-replace.
 export const getSortedByMilitary = (state) =>
   Object.values(state.nations)
     .filter(n => !n.isPlayer)
-    .sort((a, b) => b.militaryStrength - a.militaryStrength)
+    .sort((a, b) => getEffectiveMilitaryPower(state, b.id) - getEffectiveMilitaryPower(state, a.id))
     .map(n => n.id);
 
 // The rival whose composition a Tier 1 nation actually reacts to: its live war opponent if it has
@@ -188,7 +196,12 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     const nation = nextNations[nationId];
     if (!nation || nation.isPlayer) return;
     if (getNationTier({ ...state, nations: nextNations }, nationId, sortedByMilitary) !== 1) return;
-    if (nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
+    // Plan §M16: "Tier 1 recruits from treasury and manpower with the same costs" once a nation has
+    // a real economy (src/engine/aiEconomy.js, populated every turn by resolveTurn.js's own AI-
+    // economy phase); a nation without one yet (a hand-built test fixture, mainly) falls back to the
+    // original abstract-militaryStrength debit so this function still works standalone.
+    const usesRealEconomy = !!nation.economy;
+    if (usesRealEconomy ? !canAffordAIRecruit(nation) : nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
     const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
     if (standingCount >= getAIMaxStandingUnits(ageId)) return;
     if (rng.next() >= AI_RECRUIT_CHANCE) return;
@@ -207,7 +220,9 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
       xp: 0, rank: 'recruit', promotions: [], commanderId: null,
       transportCapacity: null, embarkedOn: null
     };
-    nextNations[nationId] = { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
+    nextNations[nationId] = usesRealEconomy
+      ? applyAIRecruitCost(nation)
+      : { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
   });
 
   return { units: nextUnits, nations: nextNations, logs };

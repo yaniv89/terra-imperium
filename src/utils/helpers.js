@@ -92,8 +92,33 @@ export const BASE_POWER_PER_TURN = 3;
 // power" and "their power" read as wildly, nonsensically far apart even though neither side's real
 // army was. A real fielded-strength comparison can't do that — it's bounded by what was actually
 // recruited (and, for the player, by RECRUIT_UNIT/DISBAND_UNIT's own strength math).
-export const getFieldedStrength = (state, nationId) =>
-  Object.values(state.units || {}).reduce((sum, u) => sum + (u.ownerId === nationId ? (u.strength || 0) : 0), 0);
+// Plan §M16: memoized per `state.units` OBJECT REFERENCE the same way src/data/regions.js's own
+// getOwnedRegionsIndex is — units are never mutated in place (src/engine/battle.js clones a unit
+// before touching its strength, and every write path replaces the units map via spread), so a
+// same-reference `units` really does mean the same per-nation totals. This was a real, measured
+// cost once M16's getSortedByMilitary started calling getFieldedStrength (via
+// getEffectiveMilitaryPower) from inside a .sort() comparator for all 240 AI nations every turn —
+// O(n log n) comparator calls x a fresh O(units) scan each, the same class of perf trap
+// nationalPower.js's own getOwnedRegionCount fix already called out.
+// Same index also backs getUnitCount below (aiEconomy.js's per-nation unit upkeep needs a COUNT,
+// not a strength sum) — one O(units) pass covers both rather than two separate scans.
+const fieldedStrengthIndexCache = new WeakMap(); // units -> { [ownerId]: { strength, count } }
+const getFieldedStrengthIndex = (units) => {
+  let index = fieldedStrengthIndexCache.get(units);
+  if (!index) {
+    index = {};
+    Object.values(units).forEach((u) => {
+      const entry = index[u.ownerId] || { strength: 0, count: 0 };
+      entry.strength += u.strength || 0;
+      entry.count += 1;
+      index[u.ownerId] = entry;
+    });
+    fieldedStrengthIndexCache.set(units, index);
+  }
+  return index;
+};
+export const getFieldedStrength = (state, nationId) => getFieldedStrengthIndex(state.units || {})[nationId]?.strength || 0;
+export const getUnitCount = (state, nationId) => getFieldedStrengthIndex(state.units || {})[nationId]?.count || 0;
 
 // Plan §M2/§M3: replaces the old single-pool getMaxActionPoints with the three power pools' per-
 // turn income. Recomputed fresh from current government/ruler/advisors/tech every turn rather than
@@ -109,8 +134,12 @@ export const getFieldedStrength = (state, nationId) =>
 // part of that return value to actually raise the cap it lives under — added the other way (via
 // calcIncome, before the cap is applied), the very next turn's bank-up would clip it straight back
 // down to 2x the un-boosted base, silently discarding the bonus a player just earned.
-export const getPowerIncome = (state) => {
-  const nationId = state.playerNationId;
+// `nationId` defaults to the player (every existing call site omits it) but plan §M16's AI economy
+// (src/engine/resolveTurn.js's own AI-economy phase) passes an AI nation id through the same
+// formula — satellite/mission dipPerTurn naturally comes back 0 for a nation that hasn't launched any,
+// since those are player-exclusive systems (no per-nation tracking exists) rather than something
+// needing a separate AI branch here.
+export const getPowerIncome = (state, nationId = state.playerNationId) => {
   const allPoolsBonus = getModifier(state, nationId, 'national.apBonus').total;
   const admBonus = getModifier(state, nationId, 'national.admBonus').total;
   const dipBonus = getModifier(state, nationId, 'national.dipBonus').total;
