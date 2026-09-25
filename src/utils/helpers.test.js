@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength, getDisplayPopulation } from './helpers';
+import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getPowerIncome, getPowerBreakdown, getFieldedStrength, getDisplayPopulation } from './helpers';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -332,6 +332,50 @@ describe('getPowerIncome', () => {
   it('never counts a rival nation\'s satellites toward the player\'s own power income', () => {
     const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'communications' } } };
     expect(getPowerIncome(state).dip).toBe(3);
+  });
+});
+
+// Plan §M20: getPowerBreakdown exposes the real per-source lines behind one getPowerIncome pool, for
+// the Tooltip v2 / Breakdown UI. Its rows must always sum to the matching getPowerIncome total —
+// that's the whole point of reusing getModifier's own breakdown arrays instead of re-deriving them.
+describe('getPowerBreakdown', () => {
+  const baseState = () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
+    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
+    return state;
+  };
+
+  const sumRows = (rows) => rows.reduce((sum, r) => sum + r.value, 0);
+
+  it('is just a "Base" row of 3 with no government and no researched Governance tech', () => {
+    const rows = getPowerBreakdown(baseState(), 'fr', 'adm');
+    expect(rows).toEqual([{ label: 'Base', value: 3 }]);
+  });
+
+  it('sums to the same total getPowerIncome returns once a reform and a tech both add ADM', () => {
+    const state = baseState();
+    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } }; // +1 adm reform
+    state.techTree.governance_code_of_laws = { ...state.techTree.governance_code_of_laws, researched: true }; // +1 admBonus
+    const rows = getPowerBreakdown(state, 'fr', 'adm');
+    expect(sumRows(rows)).toBe(getPowerIncome(state).adm);
+    expect(rows.length).toBeGreaterThan(1); // Base + at least one real source line, not a flat total
+  });
+
+  it('includes a Satellites row for dip only when the player owns a Communications Satellite', () => {
+    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'fr', typeId: 'communications' } } };
+    const dipRows = getPowerBreakdown(state, 'fr', 'dip');
+    expect(dipRows.some((r) => r.label === 'Satellites')).toBe(true);
+    expect(sumRows(dipRows)).toBe(getPowerIncome(state).dip);
+    // The same satellite must never leak into adm/mil, which have no satellite-derived source.
+    expect(getPowerBreakdown(state, 'fr', 'adm').some((r) => r.label === 'Satellites')).toBe(false);
+  });
+
+  it('includes a Space Missions row only for dip, matching the mission\'s recurring dipPerTurn', () => {
+    const state = { ...baseState(), completedMissions: ['moon_landing'] };
+    const dipRows = getPowerBreakdown(state, 'fr', 'dip');
+    expect(dipRows.some((r) => r.label === 'Space Missions')).toBe(true);
+    expect(sumRows(dipRows)).toBe(getPowerIncome(state).dip);
   });
 });
 

@@ -5,8 +5,9 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { getUnlockedResourceIds } from '../../data/resources';
-import { getFieldedStrength } from '../../utils/helpers';
+import { getFieldedStrength, getPowerBreakdown } from '../../utils/helpers';
 import ResourceBadge from './ResourceBadge';
+import Breakdown from './Breakdown';
 
 const ResourceBar = () => {
   const { state } = useGame();
@@ -33,6 +34,12 @@ const ResourceBar = () => {
           maxValue={state.resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`]}
           expanded={expandedResource === pool}
           onClick={() => handleToggle(pool)}
+          tooltipContent={(
+            <div>
+              <div className="font-semibold mb-1">{pool.toUpperCase()} per turn</div>
+              <Breakdown rows={getPowerBreakdown(state, state.playerNationId, pool)} />
+            </div>
+          )}
         />
       ))}
 
