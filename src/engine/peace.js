@@ -145,6 +145,12 @@ export const applyPeace = (state, war, offererId, terms) => {
         }
       };
       nextNations = applyAggressiveExpansion(nextNations, nextRegions, term.regionId, recipientId, offererId);
+      // Plan §M18's "Unbroken" achievement ("never lose a region to a peace deal") needs a real,
+      // permanent marker the instant the PLAYER is the one ceding — not derived after the fact from
+      // region ownership history, which isn't tracked anywhere.
+      if (recipientId === state.playerNationId && nextNations[recipientId]) {
+        nextNations = { ...nextNations, [recipientId]: { ...nextNations[recipientId], hasCededRegionInPeace: true } };
+      }
     } else if (term.type === 'gold') {
       const amount = term.amount || 0;
       // AI has no simulated treasury pre-M16 (economy.js's own "player-only real computation"

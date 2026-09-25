@@ -32,7 +32,7 @@ import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
@@ -2425,6 +2425,24 @@ export const gameReducer = (state, action) => {
         ...afterWar,
         wars,
         logs: [...afterWar.logs, { year: state.year, message: `${player.name} declares independence from ${overlord.name}!`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Plan §M18: "Continue playing after victory" — only valid for an AMBITION win reached BEFORE
+    // the calendar's own end (year < END_YEAR); the END_YEAR ranked ending (finalScore) is the
+    // real, final game-over and has nothing left to continue toward. Records the condition in
+    // victoriesAchieved so checkVictoryConditions (still true every later turn, since the region/
+    // GDP/streak/etc. threshold that was met usually stays met) doesn't immediately re-fire the
+    // SAME victory the very next turn.
+    case ActionTypes.CONTINUE_AFTER_VICTORY: {
+      if (state.gameStatus !== GameStatus.VICTORY || state.year >= END_YEAR) return state;
+      const conditionId = state.victoryConditionId;
+      return {
+        ...state,
+        gameStatus: GameStatus.ACTIVE,
+        victoryConditionId: null,
+        victoriesAchieved: [...(state.victoriesAchieved || []), conditionId],
+        logs: [...state.logs, { year: state.year, message: 'You choose to continue your reign.', type: LogTypes.MILESTONE }]
       };
     }
 

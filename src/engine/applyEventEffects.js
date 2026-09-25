@@ -332,7 +332,11 @@ export const applyEventEffects = (state, event, optionIndex) => {
 
   if (effects.victory) {
     next.gameStatus = GameStatus.VICTORY;
-    next.victoryConditionId = 'survival';
+    // Plan §M18 removed the old 'survival' auto-win-at-END_YEAR condition entirely — an event
+    // granting victory directly is a different, still-real mechanic (unrelated to reaching the
+    // calendar's end), so it now records the display-only 'eventVictory' entry instead
+    // (src/data/victoryConditions.js), kept solely for GameOverModal's name/description lookup.
+    next.victoryConditionId = 'eventVictory';
     logs.push({ year: next.year, message: 'VICTORY!', type: LogTypes.MILESTONE });
   }
 

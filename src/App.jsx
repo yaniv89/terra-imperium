@@ -137,6 +137,13 @@ const GameLayout = () => {
     setShowStartScreen(false);
   }, [resetGame]);
 
+  // Plan §M18: "Continue playing after victory" — an ambition win before END_YEAR isn't forced to
+  // end the run; dismissing GameOverModal this way resumes play instead of resetting to the start
+  // screen.
+  const handleContinueAfterVictory = useCallback(() => {
+    dispatch({ type: ActionTypes.CONTINUE_AFTER_VICTORY });
+  }, [dispatch]);
+
   // Handle region selection
   const handleSelectRegion = useCallback((regionId) => {
     setSelectedRegion(regionId);
@@ -204,6 +211,7 @@ const GameLayout = () => {
         status={state.gameStatus}
         state={state}
         onReset={handleReset}
+        onContinue={handleContinueAfterVictory}
       />
 
       {/* Post-turn battle summary (Phase 9) - non-blocking, dismissible toast */}

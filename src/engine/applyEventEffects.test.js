@@ -21,7 +21,9 @@ describe('applyEventEffects', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const next = applyEventEffects(state, fixtureEvent('win_event', { victory: true }), 0);
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('survival');
+    // Plan §M18 removed the old 'survival' auto-win-at-END_YEAR condition entirely — an event
+    // granting victory directly records the display-only 'eventVictory' entry instead.
+    expect(next.victoryConditionId).toBe('eventVictory');
   });
 
   it('applies stability/legitimacy/prestige deltas to the player nation (plan §M4)', () => {
