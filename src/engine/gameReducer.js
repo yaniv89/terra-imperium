@@ -28,6 +28,7 @@ import {
 } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { HISTORICAL_EVENTS } from '../data/events';
@@ -77,7 +78,10 @@ import {
   GREAT_PROJECTS, getGreatProjectCost, canStartGreatProject, canUpgradeGreatProject
 } from '../data/greatProjects';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
-import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
+import {
+  MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
+  NUCLEAR_PRESTIGE_PENALTY, NUCLEAR_PARIAH_DURATION_TURNS, NUCLEAR_PARIAH_GOLD_MULT_PENALTY
+} from '../data/missiles';
 import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
@@ -991,6 +995,28 @@ export const gameReducer = (state, action) => {
         });
       }
 
+      // Plan §M19: "Missiles and nuclear strikes now affect war score (+2 per strike, +10 per
+      // nuclear strike)." recordBattle's own `2 + min(8, 10 x lossShare)` formula already produces
+      // exactly 2 at lossShare 0 and exactly 10 at lossShare >= 0.8 — a missile strike is expressed
+      // as that same battle-score bump rather than a bespoke war-score formula, so it rolls into
+      // war.score the same way an invasion's battleScore already does (resolveWarProgress
+      // recomputes war.score from battleScore + occupation + tick every turn).
+      let nextWars = state.wars;
+      const missileWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+      if (missileWar) {
+        const lossShare = tierId === 'nuclear' ? 1 : 0;
+        nextWars = state.wars.map(w => (w.id === missileWar.id ? { ...w, battleScore: recordBattle(w, state.playerNationId, lossShare) } : w));
+      }
+
+      // Plan §M19: "-50 prestige and a 'Nuclear Pariah' 20-turn modifier" for the striker.
+      if (tierId === 'nuclear') {
+        const striker = nextNations[state.playerNationId];
+        nextNations[state.playerNationId] = addNationModifier(
+          { ...striker, prestige: clampPrestige((striker.prestige || 0) - NUCLEAR_PRESTIGE_PENALTY) },
+          { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
+        );
+      }
+
       const targetNationName = targetNation?.name || targetRegion.owner;
       const message = tierId === 'nuclear'
         ? `A nuclear strike devastates ${REGIONS_DATA[targetRegionId]?.name} (${targetNationName}). The world condemns the attack.`
@@ -1000,6 +1026,7 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
         nations: nextNations,
+        wars: nextWars,
         logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }]
       };
     }

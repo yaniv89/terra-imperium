@@ -26,6 +26,7 @@ import {
 } from '../data/victoryConditions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { getNationCapital } from '../data/regions';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 
@@ -208,4 +209,36 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     expect(state.gameStatus).toBe(GameStatus.VICTORY);
     expect(state.victoryConditionId).toBe('spaceAscendancy');
   }, 120000); // several hundred simulated turns at 4,482 real provinces' per-turn cost
+
+  // Plan §M19: "Space ladder costs retuned so a real Modern economy can afford the ladder (the
+  // current test force-feeds 999,999 gold). Add a reachability test using the natural income of a
+  // strong nation." No injected gold/techPoints here at all — every mission is paid for out of
+  // whatever calcIncome has actually accrued by the time it's affordable. A totally passive nation's
+  // techPoints income is 0 (nothing generates it without at least one Science building — a genuinely
+  // untouched nation, per the passive-run test above, never plays at all), so "a strong nation" here
+  // means one Research Lab (Science tier 3) in the capital: a single, modest, realistic build for
+  // any nation that reached the Modern Age still playing — not a min-maxed or resource-injected one.
+  it('a nation with one Research Lab affords the entire ladder from its own natural income, no injected resources', () => {
+    const capitalId = getNationCapital('us');
+    const base = freshWorld('us');
+    let state = { ...base, regions: { ...base.regions, [capitalId]: { ...base.regions[capitalId], buildings: { categories: { science: 3 } } } } };
+    state = advanceUntil(state, (s) => s.year >= SATELLITE_UNLOCK_YEAR, 400);
+    expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
+
+    for (const mission of SPACE_MISSIONS) {
+      let waited = 0;
+      while (!(state.resources.gold >= mission.cost.gold && state.resources.techPoints >= mission.cost.techPoints) && waited < 60 && state.gameStatus === GameStatus.ACTIVE) {
+        state = advance(state);
+        waited++;
+      }
+      expect(waited, `${mission.id} never became affordable from natural income alone`).toBeLessThan(60);
+      expect(state.gameStatus, `the game ended while waiting to afford ${mission.id}`).toBe(GameStatus.ACTIVE);
+      const launched = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: mission.id } });
+      expect(launched, `${mission.id} failed to launch even though it was affordable`).not.toBe(state);
+      state = advanceUntil(launched, (s) => s.completedMissions.includes(mission.id) || s.gameStatus !== GameStatus.ACTIVE, mission.turns + 1);
+      expect(state.completedMissions, `${mission.id} never completed`).toContain(mission.id);
+    }
+    expect(state.gameStatus).toBe(GameStatus.VICTORY);
+    expect(state.victoryConditionId).toBe('spaceAscendancy');
+  }, 120000);
 });
