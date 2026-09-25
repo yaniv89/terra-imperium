@@ -58,6 +58,12 @@ export const ACTION_COSTS = {
   // 50 x the law's tier, discounted by reforms/identity) rather than a flat entry here.
   changeGovernmentType: { adm: 300 },
   enactGovernmentReform: { adm: 100 },
+  // Plan §M15: relocating the capital is a rare, deliberate decision — priced like changing
+  // government type (the other "big ADM decision"), plus a real gold cost the plan itself specifies.
+  moveCapital: { adm: 200, gold: 300 },
+  // Declaring independence costs nothing beyond the war itself (like every other DECLARE_WAR variant
+  // in this codebase) — a vassal already pays 10% tribute every turn just for existing as a subject.
+  declareIndependence: {},
 
   // Estates (plan §M9). Seize/Sell Land are the crown asserting or ceding authority — priced like a
   // reform and a lesser bureaucratic action respectively. Granting a privilege is a real concession,
@@ -371,6 +377,56 @@ export const VASSAL_ANNEX_DIP_PER_DEV = 8;
 // since every nation has real per-region dev (M5), not just the player.
 export const VASSAL_TRIBUTE_RATE = 0.10;
 export const VASSAL_TRIBUTE_GOLD_PER_DEV_POINT = 1;
+
+// Crises & defeat (plan §M15). Dynamic capital: Move Capital's own -1 stability ("if the new capital
+// is outside the original start regions") reuses REGIONS_DATA[id].startOwner, the same field
+// getFormerOwnerOnConquest (rebellion.js) already uses for "is this the nation's own native soil".
+// Capital-occupied and capital-lost-in-peace penalties are separate, smaller stability hits, matching
+// the plan's own distinct table entries for each of the three capital events.
+export const MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY = 1;
+export const CAPITAL_OCCUPIED_STABILITY_PENALTY = 1;
+export const CAPITAL_OCCUPIED_POOL_PENALTY = 1; // -1 ADM/DIP/MIL per turn while occupied (player only, see resolveTurn.js)
+export const CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY = 2;
+
+// Civil war (plan §M15). Pretender rebels reuse REBEL_OWNER_ID (src/data/rebellion.js) for combat —
+// a pretender army is just a rebel army with a cause — but mark the regions they seize with
+// `occupiedBy` (the same "someone else holds this militarily, ownership hasn't changed" field M13
+// wars use) so "holds >= 50% of your regions" is a plain count, not a second tracking structure.
+export const CIVIL_WAR_STABILITY_STREAK_TURNS = 3; // plan: "3 consecutive turns at stability -3"
+export const CIVIL_WAR_SUCCESSION_CRISIS_CHANCE = 0.4; // plan §M3's own "40% chance" pretender spawn, finally wired
+export const CIVIL_WAR_PRETENDER_REGION_SHARE = 0.15;
+export const CIVIL_WAR_PRETENDER_STRENGTH_SHARE = 0.15; // vs. the nation's own real fielded strength
+export const CIVIL_WAR_HOLD_SHARE_TO_LOSE = 0.5;
+export const CIVIL_WAR_HOLD_STREAK_TO_LOSE_TURNS = 5;
+export const CIVIL_WAR_LOSE_PRESTIGE_PENALTY = 20;
+export const CIVIL_WAR_CRUSH_STABILITY_REWARD = 1;
+export const CIVIL_WAR_CRUSH_LEGITIMACY_REWARD = 10;
+
+// Disasters (plan §M15): four independent 0-100 progress meters, each growing 10/turn while its
+// trigger condition holds and decaying 10/turn otherwise (a flat, symmetric rate — the plan gives
+// concrete thresholds for the endpoints, not a described curve in between).
+export const DISASTER_PROGRESS_STEP = 10;
+export const DISASTER_MAX_PROGRESS = 100;
+export const ESTATE_TAKEOVER_ADM_DIP_MIL_PENALTY = 2;
+export const ESTATE_TAKEOVER_MODIFIER_DURATION_TURNS = 20;
+export const ECONOMIC_COLLAPSE_MIN_LOANS = 3;
+export const ECONOMIC_COLLAPSE_STABILITY_PENALTY = 2; // on top of applyBankruptcy's own -3
+export const SUCCESSION_WAR_LEGITIMACY_THRESHOLD = 30;
+export const REVOLUTION_LABOR_LOYALTY_THRESHOLD = 30;
+
+// Forced vassalage (plan §M15: "An AI peace deal can vassalize the player") — buildAITerms only
+// reaches for a vassalize term once its cede/reparations options can't fully use a truly overwhelming
+// war-score budget, so this only fires against a recipient already crushed almost totally.
+export const FORCED_VASSALIZE_MIN_MAX_PEACE_COST = 90;
+
+// Vassal independence (plan §M12/§M15: "libertyDesire... at >= 50 they may declare an independence
+// war"). Liberty desire has no substrate before M15 (see the M12 survey), so its drift here is a
+// simple, honest first cut: it rises when the vassal is comparatively strong next to its overlord and
+// decays otherwise, exactly the plan's own "rises with your weakness and their strength" framing.
+export const LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD = 50;
+export const LIBERTY_DESIRE_RISE_PER_TURN = 2;
+export const LIBERTY_DESIRE_DECAY_PER_TURN = 1;
+export const INDEPENDENCE_WAR_WIN_SCORE = 60;
 
 // Espionage variants (plan §M12: "Steal Tech, Sabotage Reputation, Support Rebels"). Steal Tech is
 // the existing ESPIONAGE behavior (kept as the default `type`). Sabotage Reputation needs pairwise

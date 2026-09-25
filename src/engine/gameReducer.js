@@ -12,7 +12,7 @@
 // GameContext.jsx re-exports both `createInitialState` and `gameReducer` from here so every
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getBorderingNationIds } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from '../data/techTree';
 import {
@@ -54,7 +54,7 @@ import {
   BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
   TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
   VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
-  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE
+  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
@@ -287,7 +287,21 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       stabilityDecayProgress: 0,
       legitimacy: 50,
       prestige: 0,
-      startRegionCount: startRegionCountByOwner[id] || 0
+      startRegionCount: startRegionCountByOwner[id] || 0,
+
+      // Crises & defeat (plan §M15). capitalRegionId seeds from the nation's static native capital
+      // (getNationCapital) and is the live source of truth from here on — see src/data/regions.js's
+      // getCapital for why getNationCapital ITSELF stays untouched (buildings.js/greatProjects.js's
+      // site rules read the ORIGINAL capital deliberately). lowStabilityStreak backs the civil war
+      // stability trigger (src/engine/civilWar.js); civilWar/disasters/libertyDesire are scaffolded
+      // for every nation the same "generic reader, real for player and AI both" way stability/
+      // estates/succession already are (every nation gets real per-turn crisis processing, matching
+      // M3/M4/M9's own precedent — this is deliberately NOT deferred to M16's AI-parity milestone).
+      capitalRegionId: getNationCapital(id),
+      lowStabilityStreak: 0,
+      civilWar: null,
+      disasters: { estateTakeover: 0, economicCollapse: 0, successionWar: 0, revolution: 0 },
+      libertyDesire: 0
     };
   });
 
@@ -1883,7 +1897,10 @@ export const gameReducer = (state, action) => {
     case ActionTypes.DECLARE_WAR: {
       const { nationId } = action.payload;
       const target = state.nations[nationId];
-      if (!target || nationId === state.playerNationId || target.isAtWar) return state;
+      const player = state.nations[state.playerNationId];
+      // Plan §M12/§M15: "a vassal... can't declare wars except independence" — DECLARE_INDEPENDENCE
+      // below is the one exception, and it doesn't go through this case.
+      if (!target || nationId === state.playerNationId || target.isAtWar || player?.vassalOf) return state;
       const justified = hasCasusBelli(state, state.playerNationId, nationId);
       const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
       if (!canAfford(state.resources, costs)) return state;
@@ -1892,7 +1909,6 @@ export const gameReducer = (state, action) => {
       // pickWarTarget filters out entirely (aiLogic.js) — but pays a real price: home stability,
       // prestige, and AE with every neighbor, as if this were the most aggressive kind of war.
       const breakingTruce = isInTruce(state, state.playerNationId, nationId);
-      const player = state.nations[state.playerNationId];
       const playerAfterTruceBreak = breakingTruce
         ? {
             ...player,
@@ -1917,7 +1933,7 @@ export const gameReducer = (state, action) => {
       }
 
       const afterWar = declareWar(stateBeforeWar, nationId, { aggressor: state.playerNationId });
-      const homeRegionId = getNationCapital(state.playerNationId);
+      const homeRegionId = getCapital(afterWar, state.playerNationId);
       const homeRegion = afterWar.regions[homeRegionId];
       const nextNations = { ...afterWar.nations };
       let nextRegions = afterWar.regions;
@@ -2142,7 +2158,7 @@ export const gameReducer = (state, action) => {
       const resourcesAfterCost = applyCosts(state.resources, costs);
       if (success) {
         if (type === 'support_rebels') {
-          const targetRegionId = regionId && state.regions[regionId]?.owner === nationId ? regionId : getNationCapital(nationId);
+          const targetRegionId = regionId && state.regions[regionId]?.owner === nationId ? regionId : getCapital(state, nationId);
           const targetRegion = state.regions[targetRegionId];
           if (!targetRegion) return state;
           return {
@@ -2349,6 +2365,57 @@ export const gameReducer = (state, action) => {
           [nationId]: { ...target, vassalOf: null }
         },
         logs: [...state.logs, { year: state.year, message: `${target.name} has been released from vassalage.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Crises & defeat (plan §M15). Move Capital: a deliberate, costly relocation to any owned,
+    // unoccupied region — the plan's own "-1 stability if outside the original start regions" reuses
+    // REGIONS_DATA[id].startOwner, the same "is this the nation's own native soil" test
+    // getFormerOwnerOnConquest (rebellion.js) already applies for conquered-territory purposes.
+    case ActionTypes.MOVE_CAPITAL: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const player = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.moveCapital;
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
+      if (regionId === getCapital(state, state.playerNationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const isForeignSoil = REGIONS_DATA[regionId]?.startOwner !== state.playerNationId;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...player,
+            capitalRegionId: regionId,
+            stability: isForeignSoil ? clampStability((player.stability || 0) - MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY) : player.stability
+          }
+        },
+        logs: [...state.logs, {
+          year: state.year,
+          message: `The capital has moved to ${REGIONS_DATA[regionId]?.name || regionId}.${isForeignSoil ? ' (-1 stability)' : ''}`,
+          type: LogTypes.MILESTONE
+        }]
+      };
+    }
+
+    // A vassal's own path out of subjection (plan §M12/§M15) — the one war DECLARE_WAR's own
+    // vassalOf guard above still allows. Winning is resolved entirely inside resolveWarProgress
+    // (src/engine/diplomacy.js's own 'independence' cb branch), not here; this only opens the war.
+    case ActionTypes.DECLARE_INDEPENDENCE: {
+      const player = state.nations[state.playerNationId];
+      const overlordId = player?.vassalOf;
+      const overlord = overlordId ? state.nations[overlordId] : null;
+      if (!overlord || player.isAtWar || (player.libertyDesire || 0) < LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD) return state;
+      const afterWar = declareWar(state, overlordId, { aggressor: state.playerNationId, goal: { type: 'independence' } });
+      if (afterWar === state) return state;
+      const wars = [...afterWar.wars];
+      wars[wars.length - 1] = { ...wars[wars.length - 1], cb: 'independence' };
+      return {
+        ...afterWar,
+        wars,
+        logs: [...afterWar.logs, { year: state.year, message: `${player.name} declares independence from ${overlord.name}!`, type: LogTypes.DIPLOMACY }]
       };
     }
 

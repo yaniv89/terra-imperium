@@ -124,6 +124,38 @@ describe('endgame reachability: each victory condition fires when its real thres
   });
 });
 
+describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15)', () => {
+  it('a forced enemy conquest (the player reduced to zero regions) leads to DEFEAT', () => {
+    const state = freshWorld();
+    const regions = { ...state.regions };
+    Object.keys(regions).forEach((id) => {
+      if (regions[id].owner === state.playerNationId) regions[id] = { ...regions[id], owner: 'de' };
+    });
+    const next = resolveTurn({ ...state, regions });
+    expect(next.gameStatus).toBe(GameStatus.DEFEAT);
+  });
+
+  it('a treasury that cannot cover upkeep, with no loan capacity available, reaches bankruptcy', () => {
+    const state = freshWorld();
+    const playerId = state.playerNationId;
+    const capitalId = state.nations[playerId].capitalRegionId;
+    // A large standing army's upkeep alone, against an empty treasury with no Banking Houses
+    // researched (loan capacity 0 — economy.js's own hasBankingHouses gate), goes straight to
+    // bankruptcy rather than an auto-loan — the SAME natural shortfall path a real, unlucky game
+    // could reach, not a hand-set disaster meter.
+    const units = { ...state.units };
+    for (let i = 0; i < 300; i++) {
+      const id = `bankrupt_test_unit_${i}`;
+      units[id] = { id, regionId: capitalId, ownerId: playerId, domain: 'land', classId: 'infantry', strength: 10, maxStrength: 10, morale: 100, movesLeft: 1 };
+    }
+    const broke = { ...state, units, resources: { ...state.resources, gold: 0 } };
+    const next = resolveTurn(broke);
+    expect(next.nations[playerId].loans).toEqual([]);
+    expect(next.resources.gold).toBe(0);
+    expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
+  });
+});
+
 describe('endgame reachability: the space-race ladder completes within the Modern Age\'s turn budget', () => {
   // Plan §13: "the Modern Age is ~200 turns and must not outlast its own content." The ladder
   // itself only unlocks once a satellite can be launched (SATELLITE_UNLOCK_YEAR, 1957) — real

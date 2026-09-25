@@ -453,6 +453,44 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
       expect(result.wars.find(w => w.id === 'war_b').active).toBe(true);
     });
   });
+
+  describe('independence wars (plan §M12/§M15)', () => {
+    const vassalWarState = (score) => {
+      const base = usState();
+      const state = {
+        ...base,
+        nations: {
+          ...base.nations,
+          us: { ...base.nations.us, vassalOf: 'ca', isAtWar: true },
+          ca: { ...base.nations.ca, vassals: ['us'], isAtWar: true }
+        }
+      };
+      const war = {
+        id: 'war_1', aggressor: 'us', enemy: 'ca', active: true, goalAchieved: false,
+        startYear: state.year, startTurn: state.turnNumber, cb: 'independence',
+        battleScore: score, tickScore: 0, score, peaceOfferCooldownTurn: 0, goal: null
+      };
+      return { ...state, wars: [war] };
+    };
+
+    it('frees the vassal outright once it wins decisively, clearing vassalOf/vassals and setting a truce', () => {
+      const state = vassalWarState(60);
+      const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+      expect(result.wars[0].active).toBe(false);
+      expect(result.nations.us.vassalOf).toBeNull();
+      expect(result.nations.ca.vassals).not.toContain('us');
+      expect(result.nations.us.isAtWar).toBe(false);
+      expect(result.nations.ca.isAtWar).toBe(false);
+      expect(result.nations.us.truces?.ca).toBeGreaterThan(state.turnNumber);
+    });
+
+    it('falls through to the ordinary peace machinery short of the win-score threshold', () => {
+      const state = vassalWarState(10);
+      const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+      expect(result.wars[0].active).toBe(true);
+      expect(result.nations.us.vassalOf).toBe('ca');
+    });
+  });
 });
 
 describe('isInTruce / setTruce (plan §M12/M13)', () => {

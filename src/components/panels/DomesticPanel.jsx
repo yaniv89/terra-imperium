@@ -12,7 +12,7 @@ import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText,
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, isAdjacentToOwner, getNationCapital } from '../../data/regions';
+import { REGIONS_DATA, isAdjacentToOwner, getNationCapital, getCapital } from '../../data/regions';
 import {
   ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
   FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS
@@ -81,6 +81,11 @@ const DomesticPanel = ({ selectedRegion }) => {
     if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog('Not enough resources', 'action');
     triggerEffect('counter_intelligence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.COUNTER_INTELLIGENCE });
+  };
+  const handleMoveCapital = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.moveCapital)) return addLog('Not enough resources', 'action');
+    triggerEffect('move_capital', { region: selectedRegion });
+    dispatch({ type: ActionTypes.MOVE_CAPITAL, payload: { regionId: selectedRegion } });
   };
 
   const empireSection = (
@@ -726,6 +731,16 @@ const DomesticPanel = ({ selectedRegion }) => {
               onClick={handleGainControl}
               disabled={regionState.control >= 100}
             />
+            {selectedRegion !== getCapital(state, state.playerNationId) && (
+              <ActionButton
+                icon={Landmark}
+                label="Move Capital Here"
+                description={REGIONS_DATA[selectedRegion]?.startOwner !== state.playerNationId ? 'Relocates the capital (-1 stability: outside your native territory)' : 'Relocates the capital'}
+                costs={ACTION_COSTS.moveCapital}
+                onClick={handleMoveCapital}
+                disabled={!!regionState.occupiedBy}
+              />
+            )}
             <div className="text-xs font-semibold text-slate-300 pt-1">Develop Province</div>
             {DEV_TYPE_IDS.map((devType) => {
               const cost = getDevelopProvinceCost(regionState, developmentCostMult);

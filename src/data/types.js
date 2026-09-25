@@ -147,7 +147,13 @@ export const ActionTypes = {
   // Fusion Research Complex building tiers were never built in M6 (no Future-age building line
   // exists), so this ships as a standalone action against a helium3 stockpile instead of a building
   // upkeep — see actionCosts.js's FUSION_GRID_* constants for the honest-adaptation note.
-  ACTIVATE_FUSION_GRID: 'ACTIVATE_FUSION_GRID'
+  ACTIVATE_FUSION_GRID: 'ACTIVATE_FUSION_GRID',
+
+  // Crises & defeat (plan §M15) — dynamic capital and a vassal's own path out of subjection. Civil
+  // war, disasters, and defeat itself have no player-initiated action of their own: they're
+  // engine-driven consequences resolved in resolveTurn.js (src/engine/civilWar.js, disasters.js).
+  MOVE_CAPITAL: 'MOVE_CAPITAL',
+  DECLARE_INDEPENDENCE: 'DECLARE_INDEPENDENCE'
 };
 
 export const LogTypes = {

@@ -6,10 +6,10 @@
 // stat, so none of this needs to special-case which nation is the player.
 
 import { RelationStatus } from '../data/types';
-import { isAdjacentToOwner, REGIONS_DATA, getNationCapital } from '../data/regions';
+import { isAdjacentToOwner, REGIONS_DATA, getCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
 import { resolveSiegeControlDamage } from './siege';
-import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY } from '../data/actionCosts';
+import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY, INDEPENDENCE_WAR_WIN_SCORE } from '../data/actionCosts';
 import { getNationTotalDev, getTotalDev } from './development';
 import { applyPeace, buildAITerms, getPeaceAcceptance } from './peace';
 import { leansPositive, leansNegative } from '../data/identity';
@@ -219,8 +219,8 @@ export const recordBattle = (war, winnerId, lossShare) => {
 // warns about. Each side's occupation is scored as a % of the OTHER side's total development, so
 // occupying a small sliver of a huge nation barely moves the score, and a capital counts triple.
 export const getOccupationScore = (state, war) => {
-  const aggressorCapital = getNationCapital(war.aggressor);
-  const enemyCapital = getNationCapital(war.enemy);
+  const aggressorCapital = getCapital(state, war.aggressor);
+  const enemyCapital = getCapital(state, war.enemy);
   let occupiedByAggressor = 0;
   let occupiedByEnemy = 0;
   Object.values(state.regions).forEach((region) => {
@@ -262,9 +262,9 @@ export const computeWarScore = (war, state) =>
 // STARTING regions, before any of this turn's own captures/peace deals — a capture that happens
 // this same turn shows up in occupation score starting next turn, a deliberate one-turn lag traded
 // for turning O(wars x regions) into O(regions + wars) at up to 240 nations' worth of active wars.
-const buildOccupationIndexes = (regions, nationIds) => {
+const buildOccupationIndexes = (regions, nations) => {
   const capitalIds = new Set();
-  nationIds.forEach((id) => { const capitalId = getNationCapital(id); if (capitalId) capitalIds.add(capitalId); });
+  Object.keys(nations).forEach((id) => { const capitalId = getCapital({ nations }, id); if (capitalId) capitalIds.add(capitalId); });
   const devByNation = {};
   const occupiedDev = {};
   Object.values(regions).forEach((region) => {
@@ -313,7 +313,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
   const logs = [];
   // One shared O(regions) pass for every active war's score this turn (see buildOccupationIndexes's
   // own header) — skipped entirely when nothing is at war, the common case for most of the game.
-  const occupationIndexes = wars.some(w => w.active) ? buildOccupationIndexes(regions, Object.keys(nations)) : null;
+  const occupationIndexes = wars.some(w => w.active) ? buildOccupationIndexes(regions, nations) : null;
 
   // Ends a war right now: applies `terms` (may be [] for a white peace), marks both belligerents
   // at peace, and starts a truce. Reads/writes the outer next* closures directly since every call
@@ -414,6 +414,26 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     }
     const tickScore = updateTickScore(currentWar, snapshotState);
     currentWar = { ...currentWar, tickScore, score: scoreWarFromIndexes({ ...currentWar, tickScore }, occupationIndexes) };
+
+    // Independence war (plan §M12/§M15): a vassal (always the aggressor — DECLARE_INDEPENDENCE,
+    // gameReducer.js, is the only place this cb gets assigned) that has fought its overlord to a
+    // decisive score wins its freedom outright. There's no negotiated-terms path for this — the
+    // plan's own 'release' peace term is a dropped M13 scope-trim (peace.js's own header), so freeing
+    // the vassal is this war's own bespoke resolution instead of a buildAITerms/applyPeace call. A
+    // vassal that loses instead falls through to the ordinary peace machinery below exactly like any
+    // other war the player is losing — nothing else about it is special.
+    if (currentWar.cb === 'independence' && currentWar.score >= INDEPENDENCE_WAR_WIN_SCORE) {
+      const vassal = nextNations[currentWar.aggressor];
+      const overlord = nextNations[currentWar.enemy];
+      nextNations = {
+        ...nextNations,
+        ...(vassal ? { [currentWar.aggressor]: { ...vassal, vassalOf: null, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE } } : {}),
+        ...(overlord ? { [currentWar.enemy]: { ...overlord, vassals: (overlord.vassals || []).filter((id) => id !== currentWar.aggressor), isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE } } : {})
+      };
+      nextNations = setTruce(nextNations, currentWar.aggressor, currentWar.enemy, state.turnNumber);
+      logs.push({ message: `${vassal?.name || currentWar.aggressor} wins its independence from ${overlord?.name || currentWar.enemy}!`, type: 'diplomacy' });
+      return { ...currentWar, active: false, goalAchieved: true };
+    }
 
     // --- peace decision-making ---
     const aggressorNation = nextNations[currentWar.aggressor];

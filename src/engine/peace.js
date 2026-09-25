@@ -11,11 +11,14 @@
 // at a fidelity worth spending a peace term on, and adding them later is a pure addition, not a
 // reshape of what's here.
 import { getNationTotalDev, getTotalDev } from './development';
-import { getNationCapital } from '../data/regions';
+import { getCapital } from '../data/regions';
 import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { applyAggressiveExpansion } from './expansion';
 import { addNationModifier } from './modifiers/timed';
 import { clampPrestige, clampStability } from './nationalPower';
+import {
+  FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
+} from '../data/actionCosts';
 
 const CEDE_MIN_COST = 3;
 const GOLD_COST_DIVISOR = 500;
@@ -79,7 +82,7 @@ export const getPeaceAcceptance = (state, war, offererId, terms) => {
   const recipient = state.nations[recipientId];
   const offerer = state.nations[offererId];
   const offererScore = offererId === war.aggressor ? (war.score || 0) : -(war.score || 0);
-  const recipientCapitalId = getNationCapital(recipientId);
+  const recipientCapitalId = getCapital(state, recipientId);
   const recipientCapitalOccupied = !!recipientCapitalId && state.regions[recipientCapitalId]?.occupiedBy === offererId;
   const offererStrength = offerer?.militaryStrength || 1;
   const recipientStrength = recipient?.militaryStrength || 1;
@@ -180,6 +183,28 @@ export const applyPeace = (state, war, offererId, terms) => {
     }
   });
 
+  // Capital lost in peace (plan §M15): if a 'cede' term above just took the recipient's OWN capital,
+  // it auto-relocates to their own highest-remaining-development region — the same real move
+  // MOVE_CAPITAL makes (gameReducer.js), just paid for in stability instead of gold/ADM since neither
+  // side chose the timing. A recipient ceded down to nothing has nowhere to relocate to; that's the
+  // DEFEAT path (elimination.js's checkPlayerDefeat / resolveTurn.js), not a capital move.
+  const recipientCapitalId = getCapital({ nations: nextNations }, recipientId);
+  if (recipientCapitalId && nextRegions[recipientCapitalId]?.owner !== recipientId) {
+    const remainingOwned = Object.values(nextRegions).filter((r) => r.owner === recipientId);
+    const recipient = nextNations[recipientId];
+    if (remainingOwned.length > 0 && recipient) {
+      const newCapital = remainingOwned.reduce((best, r) => (getTotalDev(r) > getTotalDev(best) ? r : best));
+      nextNations = {
+        ...nextNations,
+        [recipientId]: {
+          ...recipient,
+          capitalRegionId: newCapital.id,
+          stability: clampStability((recipient.stability || 0) - CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY)
+        }
+      };
+    }
+  }
+
   return { regions: nextRegions, nations: nextNations, resources: nextResources };
 };
 
@@ -197,6 +222,19 @@ export const buildAITerms = (state, war, offererId) => {
     terms.push(term);
     spent += cost;
   };
+
+  // Forced vassalage (plan §M15: "An AI peace deal can vassalize the player" — generalized here,
+  // since nothing in this function needs to know which side is human). Only reached once the offerer
+  // is winning so overwhelmingly that vassalize's own steep cost (getTermCost's VASSALIZE_BASE_COST +
+  // dev-share term) fits inside the justified budget at all — a marginal win still just cedes land.
+  // Skips the rest of this function outright: subjugating the recipient wholesale and ALSO stripping
+  // its land in the same breath double-dips the same win.
+  const recipient = state.nations[recipientId];
+  const offererNation = state.nations[offererId];
+  if (maxCost >= FORCED_VASSALIZE_MIN_MAX_PEACE_COST && !recipient?.vassalOf && !offererNation?.vassalOf) {
+    tryAdd({ type: 'vassalize' });
+    if (terms.length > 0) return terms;
+  }
 
   if (war.goal?.type === 'capture_region') {
     const goalRegion = state.regions[war.goal.regionId];

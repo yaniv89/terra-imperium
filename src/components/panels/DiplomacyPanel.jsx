@@ -73,6 +73,10 @@ const DiplomacyPanel = () => {
     triggerEffect('cultural_export', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CULTURAL_EXPORT });
   };
+  const handleDeclareIndependence = () => {
+    triggerEffect('declare_independence', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} });
+  };
   const isModernAge = getEffectiveAgeId(state.age, state.techAgeId) === 'modern';
   const playerNation = state.nations[state.playerNationId];
 
@@ -111,6 +115,20 @@ const DiplomacyPanel = () => {
             <IconButton icon={Ban} label="Reject" onClick={() => dispatch({ type: ActionTypes.REJECT_PENDING_PEACE })} />
           </div>
         </div>
+      )}
+      {playerNation?.vassalOf && (
+        // Plan §M12/§M15: a vassal's own path out of subjection — liberty desire rises the
+        // stronger the vassal grows relative to its overlord (resolveTurn.js), and clears the
+        // way for a war whose OWN win condition (not a peace deal) frees them outright.
+        <ActionButton
+          icon={Unlock}
+          label="Declare Independence"
+          description={`Liberty Desire ${Math.round(playerNation.libertyDesire || 0)}/100 from ${state.nations[playerNation.vassalOf]?.name || playerNation.vassalOf} — needs 50 to declare`}
+          costs={ACTION_COSTS.declareIndependence}
+          onClick={handleDeclareIndependence}
+          disabled={playerNation.isAtWar || (playerNation.libertyDesire || 0) < 50}
+          size="small"
+        />
       )}
       {isModernAge && (
         <ActionButton

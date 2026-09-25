@@ -5,7 +5,7 @@
 // adapted from this one.
 
 import { RelationStatus } from '../data/types';
-import { REGIONS_DATA, getNationCapital } from '../data/regions';
+import { REGIONS_DATA, getCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { hasDeposit } from '../data/deposits';
 import { getSatelliteEffectTotal } from '../data/satellites';
@@ -65,7 +65,7 @@ export const getHostilityColor = (hostility) => {
 // many provinces), emergency "comeback" actions unlock.
 export const COMEBACK_THRESHOLD = 30;
 
-export const getPlayerControl = (state) => state.regions[getNationCapital(state.playerNationId)]?.control ?? 0;
+export const getPlayerControl = (state) => state.regions[getCapital(state, state.playerNationId)]?.control ?? 0;
 
 // Base per-turn yield of a developed extraction building (Copper Mine / Iron Foundry / Oil Well),
 // before the same control%/infrastructure scaling every other resource gets.
