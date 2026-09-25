@@ -75,25 +75,22 @@ export const getEffectiveAgeIndex = (calendarAgeId, techAgeId) => {
 export const getEffectiveAgeId = (calendarAgeId, techAgeId) => AGE_ORDER[getEffectiveAgeIndex(calendarAgeId, techAgeId)];
 
 // How many ages behind the calendar a nation's own tech-earned age has fallen. 0 means at or
-// ahead of calendar. Feeds the "backward" penalty described in plan §2 (higher tech costs, combat
-// malus vs. advanced units) via getAgesBehindCombatMultiplier/getAgesBehindResearchCostMultiplier
-// below — a nation that never researches falls further behind every turn the calendar advances
-// without it, and previously paid nothing for that at all.
+// ahead of calendar. Feeds the "backward" penalty described in plan §2 (higher tech costs) via
+// getAgesBehindResearchCostMultiplier below — a nation that never researches falls further behind
+// every turn the calendar advances without it, and previously paid nothing for that at all.
+//
+// Plan §M14 removes this file's own former combat-side penalty (getAgesBehindCombatMultiplier,
+// -15%/age behind, floored at 40%) — it only ever penalized ONE side and double-counted against
+// src/data/unitClasses.js's roster stats once those got wired into combat. A real two-sided
+// comparison (getRosterCombatMultiplier there) replaces it: two nations at the SAME age always net
+// to a neutral 1.0, whichever age that is, and an age GAP swings the multiplier in both directions
+// at once rather than only ever punishing whoever fell behind.
 export const getAgesBehind = (calendarAgeId, techAgeId) => {
   const calendarIdx = getAgeIndex(calendarAgeId);
   const techIdx = getAgeIndex(techAgeId);
   if (calendarIdx === -1 || techIdx === -1) return 0;
   return Math.max(0, calendarIdx - techIdx);
 };
-
-// Combat output multiplier for a nation fighting while behind the calendar — obsolete doctrine
-// and equipment, represented as a flat malus on every hit that side lands, regardless of which
-// literal unit classes it fields (src/engine/battle.js's attackerPenaltyMultiplier). -15% per age
-// behind, floored at 40% so falling behind is a real threat without making combat pointless.
-const AGES_BEHIND_COMBAT_PENALTY_PER_AGE = 0.15;
-const AGES_BEHIND_COMBAT_MULTIPLIER_FLOOR = 0.4;
-export const getAgesBehindCombatMultiplier = (agesBehind) =>
-  Math.max(AGES_BEHIND_COMBAT_MULTIPLIER_FLOOR, 1 - agesBehind * AGES_BEHIND_COMBAT_PENALTY_PER_AGE);
 
 // Research cost multiplier for a nation trying to catch up from behind — the further behind, the
 // more it costs to research the SAME tech, so falling behind compounds instead of being a free

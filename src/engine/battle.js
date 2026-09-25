@@ -14,15 +14,17 @@
 // Promotions (src/data/promotions.js) and generals (src/data/generals.js) both bias combat through
 // the same per-hit multiplier stack in dealDamage — every phase stays consistent by construction.
 //
-// What this deliberately does NOT model yet, because the systems don't exist: rivers, supply
-// state, doctrines, winter attrition. Those are each their own plan item (Supply attrition,
-// Government/AI); bolting fake modifiers on now would just be dead weight until those land.
-// Amphibious penalties and the ages-behind combat malus (src/data/ages.js's
-// getAgesBehindCombatMultiplier) DO apply here, both via the caller-supplied
-// attackerPenaltyMultiplier — this engine stays agnostic to WHY the attacker is penalized.
+// What this deliberately does NOT model yet, because the systems don't exist: rivers, doctrines,
+// winter attrition. Those are each their own plan item; bolting fake modifiers on now would just be
+// dead weight until those land. The amphibious-assault landing penalty DOES apply here, via the
+// caller-supplied attackerPenaltyMultiplier — this engine stays agnostic to WHY the attacker is
+// penalized. Terrain (src/data/terrain.js) and each side's roster age (src/data/unitClasses.js's
+// getRosterCombatMultiplier, replacing the old flat ages-behind malus) apply here directly, since
+// both are inputs this engine already needs for combat width and IS the natural place to fold them
+// into the same per-hit multiplier stack as everything else.
 
-import { getCounterMultiplier, getSiegeMultiplier } from '../data/unitClasses';
-import { getCombatWidth } from '../data/combatWidth';
+import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
+import { getCombatWidth, getTerrainCombatModifier } from '../data/terrain';
 import {
   getPromotionDamageMultiplier,
   getPromotionDefenseMultiplier,
@@ -35,7 +37,9 @@ import { getGeneralDamageMultiplier, getGeneralDefenseMultiplier } from '../data
 const RANGED_CLASSES = ['ranged', 'siege'];
 const MORALE_ROUT_THRESHOLD = 20;
 const BASE_DAMAGE_RATE = 0.1; // fraction of an attacking unit's strength dealt per exchange, before multipliers
-const RNG_VARIANCE = 0.2; // +/-20% swing per damage roll, seeded so it's still reproducible
+// Plan §M14: tighter variance than M0-M13's baseline (was +/-20%) — now that counters (1.75/0.6) and
+// roster stats both swing outcomes harder, a wide RNG band on top would drown both signals out.
+const RNG_VARIANCE = 0.1; // +/-10% swing per damage roll, seeded so it's still reproducible
 const FLANK_BONUS_MULT = 1.3;
 const PURSUIT_EXTRA_LOSS_MULT = 0.5; // routed units lose another 50% of their remaining strength when pursued
 
@@ -53,7 +57,8 @@ const deploy = (units, combatWidth) => {
 // flanking, volley fire, pursuit) stays consistent by construction.
 const dealDamage = (rng, phase, unit, target, { sourceIsInvadingFortification, generals, targetIsDefendingSide, baseMultiplier = 1 }, log) => {
   if (unit.strength <= 0 || target.strength <= 0) return;
-  const variance = 1 + (rng.next() * 2 - 1) * RNG_VARIANCE;
+  const roll = rng.next();
+  const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
   let multiplier = getCounterMultiplier(unit.classId, target.classId) * baseMultiplier;
   if (unit.classId === 'siege') {
     multiplier *= applySapperToSiegeMultiplier(unit, sourceIsInvadingFortification, getSiegeMultiplier(sourceIsInvadingFortification));
@@ -67,7 +72,10 @@ const dealDamage = (rng, phase, unit, target, { sourceIsInvadingFortification, g
   target.strength = Math.max(0, target.strength - damage);
   const moraleLoss = Math.round((damage / 25) * getPromotionMoraleLossMultiplier(target));
   target.morale = Math.max(0, target.morale - moraleLoss);
-  log.push({ phase, attackerId: unit.id, attackerClass: unit.classId, defenderId: target.id, defenderClass: target.classId, damage, multiplier: Math.round(multiplier * 100) / 100 });
+  // `roll` (plan §M14: "the battle report shows the dice for each phase") is the raw 0-1 draw behind
+  // this hit's variance swing, exposed alongside the multiplier it already logged — a UI battle
+  // report can render either as a literal die without re-deriving anything from `damage`.
+  log.push({ phase, attackerId: unit.id, attackerClass: unit.classId, defenderId: target.id, defenderClass: target.classId, damage, multiplier: Math.round(multiplier * 100) / 100, roll: Math.round(roll * 100) / 100 });
 };
 
 // One side's units deal damage to the other side's front line, index-paired (wrapping if uneven).
@@ -135,23 +143,43 @@ const pursuitPhase = (winnerUnits, loserFront, generals, log) => {
 // commanderId, promotions, ...). `generals` is an optional {id: general} lookup (src/data/
 // generals.js) resolved by each unit's commanderId. `rng` is a src/utils/rng.js createRng()
 // instance, threaded and advanced by the caller (mirrors resolveTurn.js's rngSeed handling).
-// `attackerPenaltyMultiplier` (default 1, no penalty) folds together every "why is the attacker's
-// damage output reduced" source the caller already knows about (amphibious-assault malus, the
-// ages-behind combat malus) — a flat multiplier on every hit the attacker lands, applied by the
-// caller (src/engine/gameReducer.js) rather than known to this generic engine.
+// `attackerPenaltyMultiplier` (default 1, no penalty) folds together every OTHER "why is the
+// attacker's damage output reduced" source the caller already knows about (currently just the
+// amphibious-assault landing malus — the old ages-behind combat malus is gone, replaced by the
+// attackerAgeId/defenderAgeId roster comparison below) — a flat multiplier on every hit the
+// attacker lands, applied by the caller (src/engine/gameReducer.js) rather than known to this
+// generic engine.
 // `defenderDamageReductionMultiplier` (default 1, no reduction) is the SAME idea from the other
 // side: src/engine/siege.js's defenseLevel bonus ("Walls"), kept as its own param rather than
 // folded into the attacker one so it stays independently unit-testable and reads as what it is —
 // a property of the region being defended, not of the attacking force.
-export const resolveBattle = ({ attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {}, attackerPenaltyMultiplier = 1, defenderDamageReductionMultiplier = 1 }) => {
+// `attackerAgeId`/`defenderAgeId` (plan §M14, default 'bronze' each — i.e. no roster skew unless a
+// caller supplies real ages): each side's current effective tech age, used to derive a roster
+// combat multiplier (src/data/unitClasses.js's getRosterCombatMultiplier) that replaces the old
+// flat "ages-behind" combat malus (src/data/ages.js's now-removed getAgesBehindCombatMultiplier) —
+// a real comparison of BOTH sides' ages instead of a one-sided penalty, netting to 1.0 whenever the
+// two sides share an age, whichever age that is. `attackerPenaltyMultiplier` still exists
+// separately for context-specific mali the roster comparison knows nothing about (the amphibious-
+// assault landing malus).
+export const resolveBattle = ({
+  attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {},
+  attackerPenaltyMultiplier = 1, defenderDamageReductionMultiplier = 1,
+  attackerAgeId = 'bronze', defenderAgeId = 'bronze'
+}) => {
   const combatWidth = getCombatWidth(terrain);
+  const terrainMod = getTerrainCombatModifier(terrain);
   const log = [];
 
   const { front: attFront, reserve: attReserve } = deploy(attackerUnits, combatWidth);
   const { front: defFront, reserve: defReserve } = deploy(defenderUnits, combatWidth);
 
-  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * defenderDamageReductionMultiplier };
-  const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false };
+  const attackerRosterMult = getRosterCombatMultiplier(attackerAgeId, defenderAgeId);
+  const defenderRosterMult = getRosterCombatMultiplier(defenderAgeId, attackerAgeId);
+
+  // Terrain favors the DEFENDER (plan §M14's own table: hills/forest/mountains all reduce the
+  // attacker's output, none reduce the defender's) — folded only into the attacker's own multiplier.
+  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult };
+  const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false, baseMultiplier: defenderRosterMult };
 
   // Ranged phase: archers/artillery on both sides fire before contact, no return fire this phase.
   exchangeDamage(rng, 'ranged', attFront, defFront, attackerCtx, log);

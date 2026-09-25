@@ -7,7 +7,8 @@ import {
   getSiegeMultiplier,
   UNIT_ROSTER,
   getUnitDefinition,
-  getAvailableClasses
+  getAvailableClasses,
+  getRosterCombatMultiplier
 } from './unitClasses';
 import { AGE_ORDER } from './ages';
 
@@ -53,12 +54,13 @@ describe('counter triangle integrity (Infantry/Cavalry/Ranged)', () => {
 });
 
 describe('getCounterMultiplier', () => {
-  it('applies the +50% bonus when attacker beats defender', () => {
-    expect(getCounterMultiplier('infantry', 'cavalry')).toBeCloseTo(1.5, 5);
+  // Plan §M14: sharper than M0-M13's baseline (was 1.5/0.67) — see unitClasses.js's own comment.
+  it('applies the +75% bonus when attacker beats defender', () => {
+    expect(getCounterMultiplier('infantry', 'cavalry')).toBeCloseTo(1.75, 5);
   });
 
-  it('applies the -33% penalty when attacker loses to defender', () => {
-    expect(getCounterMultiplier('infantry', 'ranged')).toBeCloseTo(0.67, 5);
+  it('applies the -40% penalty when attacker loses to defender', () => {
+    expect(getCounterMultiplier('infantry', 'ranged')).toBeCloseTo(0.6, 5);
   });
 
   it('is neutral (1x) for a non-counter matchup', () => {
@@ -71,7 +73,24 @@ describe('getCounterMultiplier', () => {
   });
 
   it('cavalry also hard-counters siege (caught in the open)', () => {
-    expect(getCounterMultiplier('cavalry', 'siege')).toBeCloseTo(1.5, 5);
+    expect(getCounterMultiplier('cavalry', 'siege')).toBeCloseTo(1.75, 5);
+  });
+});
+
+// Plan §M14: Support's own counter — the only asymmetric-class relationship that changed shape
+// (not just magnitude) this milestone, so it gets its own describe rather than folding into the
+// reciprocity test above.
+describe('Support vs Air (plan §M14)', () => {
+  it('Support (Anti-Air) beats Air', () => {
+    expect(getCounterMultiplier('support', 'air')).toBeCloseTo(1.75, 5);
+  });
+
+  it('Air loses to Support', () => {
+    expect(getCounterMultiplier('air', 'support')).toBeCloseTo(0.6, 5);
+  });
+
+  it('Air no longer beats Naval', () => {
+    expect(getCounterMultiplier('air', 'naval')).toBe(1);
   });
 });
 
@@ -109,6 +128,29 @@ describe('UNIT_ROSTER data integrity', () => {
   });
 });
 
+// Plan §M14: replaces the old flat "ages-behind" combat malus with a real two-sided comparison.
+describe('getRosterCombatMultiplier', () => {
+  it('is exactly 1.0 whenever both sides share an age, regardless of which age', () => {
+    AGE_ORDER.forEach((ageId) => {
+      expect(getRosterCombatMultiplier(ageId, ageId)).toBeCloseTo(1, 5);
+    });
+  });
+
+  it('rewards a more advanced attacker against a less advanced defender', () => {
+    expect(getRosterCombatMultiplier('modern', 'bronze')).toBeGreaterThan(1);
+  });
+
+  it('punishes a less advanced attacker against a more advanced defender', () => {
+    expect(getRosterCombatMultiplier('bronze', 'modern')).toBeLessThan(1);
+  });
+
+  it('scales with how far apart the two ages are, not just which side is ahead', () => {
+    const oneAgeAhead = getRosterCombatMultiplier('classical', 'bronze');
+    const fourAgesAhead = getRosterCombatMultiplier('modern', 'bronze');
+    expect(fourAgesAhead).toBeGreaterThan(oneAgeAhead);
+  });
+});
+
 describe('getUnitDefinition / getAvailableClasses', () => {
   it('returns the roster entry for a real age/class pair', () => {
     expect(getUnitDefinition('bronze', 'infantry')?.name).toBe('Spearmen');
@@ -119,7 +161,7 @@ describe('getUnitDefinition / getAvailableClasses', () => {
   });
 
   it('lists exactly the classes available at a given age', () => {
-    expect(getAvailableClasses('bronze').sort()).toEqual(['cavalry', 'infantry', 'naval', 'ranged', 'siege'].sort());
+    expect(getAvailableClasses('bronze').sort()).toEqual(['cavalry', 'infantry', 'naval', 'ranged', 'siege', 'support'].sort());
     expect(getAvailableClasses('modern')).toContain('air');
   });
 });

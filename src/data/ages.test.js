@@ -9,7 +9,6 @@ import {
   getEffectiveAgeIndex,
   getEffectiveAgeId,
   getAgesBehind,
-  getAgesBehindCombatMultiplier,
   getAgesBehindResearchCostMultiplier,
   GAME_SPEEDS,
   getYearsPerTurn
@@ -75,22 +74,6 @@ describe('getAgesBehind', () => {
 
   it('counts how many ages a nation has fallen behind the calendar', () => {
     expect(getAgesBehind('modern', 'classical')).toBe(3);
-  });
-});
-
-describe('getAgesBehindCombatMultiplier', () => {
-  it('is 1 (no penalty) when not behind', () => {
-    expect(getAgesBehindCombatMultiplier(0)).toBe(1);
-  });
-
-  it('drops 15% per age behind', () => {
-    expect(getAgesBehindCombatMultiplier(1)).toBeCloseTo(0.85);
-    expect(getAgesBehindCombatMultiplier(2)).toBeCloseTo(0.7);
-  });
-
-  it('floors at 40% so falling far behind never zeroes out combat entirely', () => {
-    expect(getAgesBehindCombatMultiplier(4)).toBe(0.4);
-    expect(getAgesBehindCombatMultiplier(10)).toBe(0.4);
   });
 });
 

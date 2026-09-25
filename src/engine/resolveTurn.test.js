@@ -595,6 +595,134 @@ describe('resolveTurn supply attrition', () => {
   });
 });
 
+describe('resolveTurn movement reset, reinforcement, and morale recovery (plan §M14)', () => {
+  const makeUnit = (overrides = {}) => ({
+    id: 'u1', regionId: cap('fr'), ownerId: 'fr', domain: 'land', classId: 'infantry',
+    strength: 500, maxStrength: 1000, morale: 50, movesLeft: 0,
+    xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
+    ...overrides
+  });
+
+  it('resets a fully-spent unit\'s move at the start of its next turn', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ movesLeft: 0 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.movesLeft).toBe(1);
+  });
+
+  it('grants a second move to a unit with the forcedMarch perk', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ movesLeft: 0, promotions: ['forcedMarch'] }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.movesLeft).toBe(2);
+  });
+
+  it('recovers morale for a unit that did not fight this turn', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ morale: 50 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.morale).toBeGreaterThan(50);
+  });
+
+  it('does not recover morale for a unit that fought THIS turn', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ morale: 50, lastBattleTurn: base.turnNumber }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.morale).toBe(50);
+  });
+
+  it('never recovers morale past 100', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ morale: 95 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.morale).toBeLessThanOrEqual(100);
+  });
+
+  it('reinforces a below-strength unit in its owner\'s own, unoccupied territory', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 500 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBeGreaterThan(500);
+  });
+
+  it('costs the player manpower for the strength it reinforces', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 500 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBeGreaterThan(500);
+    // Same turn's income applies to both runs identically, so any DIFFERENCE in resulting hr is
+    // exactly the manpower this unit's own reinforcement consumed.
+    const fullyHealed = { ...base, units: { u1: makeUnit({ strength: 1000 }) } };
+    const nextHealed = resolveTurn(fullyHealed);
+    expect(next.resources.hr).toBeLessThan(nextHealed.resources.hr);
+  });
+
+  it('does not reinforce a unit in a region occupied by someone else', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = {
+      ...base,
+      units: { u1: makeUnit({ strength: 500 }) },
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } }
+    };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBe(500);
+  });
+
+  it('does not reinforce a unit outside its owner\'s own territory', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 500, regionId: cap('de') }) } };
+    const next = resolveTurn(state);
+    // Out of supply AND out of home territory: no reinforcement, only attrition (a strict decrease).
+    expect(next.units.u1.strength).toBeLessThanOrEqual(500);
+  });
+
+  it('never reinforces past maxStrength', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 990 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBeLessThanOrEqual(1000);
+  });
+
+  it('the Cadre perk doubles the reinforcement gain', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const plain = { ...base, units: { u1: makeUnit({ strength: 500 }) } };
+    const withCadre = { ...base, units: { u1: makeUnit({ strength: 500, promotions: ['cadre'] }) } };
+    const plainGain = resolveTurn(plain).units.u1.strength - 500;
+    const cadreGain = resolveTurn(withCadre).units.u1.strength - 500;
+    expect(cadreGain).toBeGreaterThan(plainGain);
+  });
+
+  it('reinforces an AI-owned unit\'s strength without touching the player\'s manpower', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const aiUnit = { ...makeUnit({ strength: 500, ownerId: 'de', regionId: cap('de') }), id: 'u_ai' };
+    const state = { ...base, units: { u_ai: aiUnit } };
+    const next = resolveTurn(state);
+    expect(next.units.u_ai.strength).toBeGreaterThan(500);
+  });
+
+  it('the Forager perk halves out-of-supply attrition', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const plain = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
+    const withForager = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), promotions: ['forager'] }) } };
+    const plainStrength = resolveTurn(plain).units.u1.strength;
+    const foragerStrength = resolveTurn(withForager).units.u1.strength;
+    expect(foragerStrength).toBeGreaterThan(plainStrength);
+  });
+
+  it('a logistician-commanded unit also takes half attrition', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const plain = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
+    const withLogistician = {
+      ...base,
+      units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), commanderId: 'g1' }) },
+      hiredCommanders: { g1: { id: 'g1', nationId: 'fr', name: 'Test', martial: 3, shock: 3, fire: 3, maneuver: 3, personality: 'logistician', assignedUnitId: 'u1' } }
+    };
+    const plainStrength = resolveTurn(plain).units.u1.strength;
+    const logisticianStrength = resolveTurn(withLogistician).units.u1.strength;
+    expect(logisticianStrength).toBeGreaterThan(plainStrength);
+  });
+});
+
 describe('resolveTurn war exhaustion', () => {
   it('rises for a nation at war', () => {
     const base = createInitialState({ playerNationId: 'fr' });

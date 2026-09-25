@@ -49,6 +49,8 @@ import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate } from './economy';
 import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
+import { hasPerk } from '../data/promotions';
+import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -218,8 +220,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
         const rebelId = `rebel_${regionId}_${newTurnNumber}`;
         const strength = getRebelSpawnStrength(region);
         units[rebelId] = {
-          id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: newAge,
-          strength, maxStrength: strength, morale: 100, organization: 100,
+          id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry',
+          strength, maxStrength: strength, morale: 100, movesLeft: 1,
           xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
           spawnedTurn: newTurnNumber
         };
@@ -271,14 +273,72 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     ownerUnits.forEach(u => {
       if (u.embarkedOn) return; // cargo shares its transport's supply state, not its own
       if (inSupplyRegions.has(u.regionId)) return; // in supply
+      // Plan §M14: terrain hardship (desert/mountains/arctic) compounds with the ages-old out-of-
+      // supply attrition instead of being a second, separate drain — this codebase has exactly one
+      // attrition mechanic, so terrain's own attrition modifier folds into it. Forager (-50%, a real
+      // per-unit perk) and a logistician-commanded unit's own general (-50%, standing in for the
+      // plan's "whole stack" until generals command more than one unit — see this milestone's own
+      // scope-trim note in gameReducer.js) both reduce it further, and stack.
+      let unitAttritionMult = attritionMult * getTerrainCombatModifier(getRegionTerrain(u.regionId, REGIONS_DATA)).attritionMult;
+      if (hasPerk(u, 'forager')) unitAttritionMult *= 0.5;
+      if (state.hiredCommanders[u.commanderId]?.personality === 'logistician') unitAttritionMult *= 0.5;
       // Math.floor, not round: a unit's strength must actually reach 0 under sustained attrition
       // rather than rounding back up to 1 forever once it gets small.
-      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE * attritionMult)));
+      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE * unitAttritionMult)));
       if (strength <= 0) { delete units[u.id]; return; }
       units[u.id] = { ...u, strength };
     });
   });
   mark('rebellionAndSupply');
+
+  // --- movement reset, reinforcement, and morale recovery (plan §M14) ---
+  // Every unit gets its move back at the start of the turn it's about to take (forcedMarch grants a
+  // second one) — MOVE_ARMY/LAUNCH_INVASION/AMPHIBIOUS_ASSAULT/NAVAL_ENGAGEMENT/SUPPRESS_REBELLION
+  // all spend it, one attack or move per stack per turn.
+  //
+  // Reinforcement and morale recovery are keyed off `lastBattleTurn === state.turnNumber` (the turn
+  // that's ENDING right now, before newTurnNumber's own increment above) — a unit that fought this
+  // turn doesn't recover until next turn, same as the plan's own "when not in battle that turn"
+  // wording. This is also the actual fix for the long-standing one-way morale bug (src/engine/
+  // battle.js's dealDamage only ever subtracts morale — nothing anywhere ever added it back).
+  const REINFORCEMENT_RATE = 0.10;
+  const MORALE_RECOVERY_PER_TURN = 15;
+  Object.values(units).forEach((u) => {
+    if (u.ownerId === REBEL_OWNER_ID || u.embarkedOn) return;
+    const nation = state.nations[u.ownerId];
+    if (!nation) return;
+    const foughtThisTurn = u.lastBattleTurn === state.turnNumber;
+    const isPlayer = u.ownerId === state.playerNationId;
+    const maintenanceLevel = clampMaintenance(nation[u.domain === 'naval' ? 'navyMaintenance' : 'armyMaintenance'] ?? ARMY_MAINTENANCE_DEFAULT);
+    const maintenanceFactor = Math.max(0, (maintenanceLevel - 50) / 50); // 50% maintenance = no recovery at all
+    const reinforceSpeedBonus = isPlayer ? getModifier(state, u.ownerId, 'national.reinforceSpeed').total : 0;
+    const moraleRecoveryBonus = isPlayer ? getModifier(state, u.ownerId, 'national.moraleRecovery').total : 0;
+    let patch = null;
+
+    if (!foughtThisTurn && u.morale < 100) {
+      patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
+    }
+
+    const region = regions[u.regionId];
+    const isSuppliedHomeTerritory = region && region.owner === u.ownerId && !region.occupiedBy;
+    if (!foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
+      const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
+      const gain = Math.min(u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
+      if (gain > 0) {
+        // Manpower is a real, spendable resource only for the player pre-M16 (economy.js's own
+        // "player-only real computation" pattern) — an AI unit's strength still regrows (so the AI
+        // isn't permanently crippled by a single lost battle), it just doesn't draw down a manpower
+        // pool that doesn't meaningfully exist for it yet.
+        if (isPlayer) resources.hr = Math.max(0, (resources.hr || 0) - Math.round(gain / 10));
+        patch = { ...patch, strength: u.strength + gain };
+      }
+    }
+
+    // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one.
+    const movesLeft = 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
+    units[u.id] = { ...u, ...patch, movesLeft };
+  });
+  mark('reinforcementAndMorale');
 
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
