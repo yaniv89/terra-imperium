@@ -3,117 +3,25 @@
 
 import React from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { formatNumber, formatMoney } from '../../utils/helpers';
-import { WORLD_NATIONS as NATIONS_DATA } from '../../data/worldNations';
+import { describeEffects } from '../../engine/describeEffects';
 
-// Format effect for display
-const formatEffectItem = (key, value) => {
-  const labels = {
-    gold: 'Gold',
-    hr: 'HR',
-    copper: 'Copper',
-    iron: 'Iron',
-    oil: 'Oil',
-    diplomacyPoints: 'Diplomacy',
-    techPoints: 'Tech Points',
-    militaryStrengthBonus: 'Military',
-    controlBonus: 'Control',
-    controlPenalty: 'Control',
-    defenseBonus: 'Defense',
-    captureRegions: 'Capture',
-    returnRegion: 'Return',
-    peaceWith: 'Peace with',
-    tradeWith: 'Trade with',
-    warWith: 'War with'
-  };
-
-  const label = labels[key] || key;
-
-  // Handle different effect types
-  if (key === 'captureRegions' && Array.isArray(value)) {
-    return { label: 'Capture', value: value.join(', '), type: 'positive' };
-  }
-  if (key === 'returnRegion') {
-    return { label: 'Return', value: value, type: 'negative' };
-  }
-  if (key === 'peaceWith') {
-    const nations = Array.isArray(value) ? value.join(', ') : value;
-    return { label: 'Peace', value: nations, type: 'positive' };
-  }
-  if (key === 'tradeWith') {
-    const nations = Array.isArray(value) ? value.join(', ') : value;
-    return { label: 'Trade', value: nations, type: 'positive' };
-  }
-  if (key === 'warWith') {
-    const nations = Array.isArray(value) ? value.join(', ') : value;
-    return { label: 'War', value: nations, type: 'negative' };
-  }
-  if (key === 'nationHostility') {
-    // { nationId: delta } — procedural events (Phase 6) only ever target one nation per option.
-    const [nId, delta] = Object.entries(value)[0] || [];
-    const name = NATIONS_DATA[nId]?.name || nId;
-    return { label: `Relations: ${name}`, value: `${delta >= 0 ? '+' : ''}${delta}`, type: delta >= 0 ? 'negative' : 'positive' };
-  }
-  if (key === 'controlPenalty') {
-    return { label, value: `-${value}%`, type: 'negative' };
-  }
-  if (key === 'defenseBonus') {
-    return { label, value: `+${(value * 100).toFixed(0)}%`, type: 'positive' };
-  }
-
-  // Numeric values
-  if (typeof value === 'number') {
-    let displayValue;
-    if (key === 'gold') {
-      displayValue = formatMoney(Math.abs(value));
-    } else if (key === 'controlBonus') {
-      displayValue = `${Math.abs(value)}%`;
-    } else {
-      displayValue = formatNumber(Math.abs(value));
-    }
-    
-    const prefix = value >= 0 ? '+' : '-';
-    return {
-      label,
-      value: `${prefix}${displayValue}`,
-      type: value >= 0 ? 'positive' : 'negative'
-    };
-  }
-
-  return { label, value: String(value), type: 'neutral' };
-};
-
-// Parse all effects from an option
-const parseEffects = (effects) => {
-  if (!effects) return [];
-
-  const parsed = [];
-  Object.entries(effects).forEach(([key, value]) => {
-    // spawnFollowUp (event chains, src/data/eventChains.js) is an internal scheduling detail, not
-    // a player-facing consequence — the story it sets in motion speaks for itself when it fires.
-    if (key === 'spawnFollowUp') return;
-    if (value !== undefined && value !== null && value !== false) {
-      parsed.push(formatEffectItem(key, value));
-    }
-  });
-
-  return parsed;
-};
-
-const EffectBadge = ({ label, value, type }) => {
-  const typeStyles = {
+// Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
+// describeEffects.js) — this replaces the local formatEffectItem/parseEffects pair that used to
+// live here, which had already drifted out of sync with applyEventEffects.js (it never knew about
+// stability/legitimacy/prestige/victory even though that file long since applied them).
+const EffectBadge = ({ text, sign, tooltip }) => {
+  const signStyles = {
     positive: 'bg-green-500/20 text-green-400 border-green-500/30',
     negative: 'bg-red-500/20 text-red-400 border-red-500/30',
     neutral: 'bg-slate-500/20 text-slate-400 border-slate-500/30'
   };
 
-  const TypeIcon = type === 'positive' ? TrendingUp : type === 'negative' ? TrendingDown : Minus;
+  const SignIcon = sign === 'positive' ? TrendingUp : sign === 'negative' ? TrendingDown : Minus;
 
   return (
-    <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs ${typeStyles[type]}`}>
-      <TypeIcon className="w-3 h-3" />
-      <span className="font-medium">{label}:</span>
-      <span className="font-mono">{value}</span>
+    <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs ${signStyles[sign]}`} title={tooltip || undefined}>
+      <SignIcon className="w-3 h-3" />
+      <span className="font-mono">{text}</span>
     </div>
   );
 };
@@ -158,7 +66,7 @@ const EventModal = ({ event, onResolve }) => {
           {/* Options */}
           <div className="space-y-3">
             {event.options.map((option, index) => {
-              const effects = parseEffects(option.effects);
+              const effects = describeEffects(option.effects);
               
               return (
                 <button

@@ -2,13 +2,25 @@
 // Main game header with title, nation, age/year, resources, and end turn button
 
 import React, { useRef, useState } from 'react';
-import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, MoreVertical } from 'lucide-react';
+import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { AGES } from '../../data/ages';
 import ResourceBar from './ResourceBar';
 
-const GameHeader = ({ onReset, onOpenSettings }) => {
+// plan §M0.5's header cloud status icon: guest/idle (not signed in — nothing to sync), synced,
+// syncing, offline (queued, will retry), conflict/error (needs attention, red).
+const CLOUD_STATUS = {
+  guest: { Icon: CloudOff, className: 'text-slate-500', title: 'Not saved — sign in to save to the cloud' },
+  idle: { Icon: CloudOff, className: 'text-slate-500', title: 'Not saved — sign in to save to the cloud' },
+  syncing: { Icon: CloudCog, className: 'text-blue-400 animate-pulse', title: 'Syncing...' },
+  synced: { Icon: Cloud, className: 'text-green-400', title: 'Saved to the cloud' },
+  offline: { Icon: WifiOff, className: 'text-amber-400', title: 'Offline — will sync when back online' },
+  conflict: { Icon: AlertTriangle, className: 'text-red-400', title: 'Save conflict — click to resolve' },
+  error: { Icon: AlertTriangle, className: 'text-red-400', title: 'Cloud sync error — click to retry' }
+};
+
+const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
   const fileInputRef = useRef(null);
   // Export/Import/Cloud/Reset are rarely used mid-turn compared to End Turn, so on narrow
@@ -17,6 +29,8 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
+  const cloudInfo = CLOUD_STATUS[cloudStatus] || CLOUD_STATUS.guest;
+  const CloudIcon = cloudInfo.Icon;
   const playerNation = state.nations[state.playerNationId];
   const ageName = AGES[state.age]?.name || state.age;
   const yearLabel = state.year < 0 ? `${-state.year} BCE` : `${state.year} CE`;
@@ -96,10 +110,10 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
             </button>
             <button
               onClick={onOpenSettings}
-              className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
-              title="Cloud Saves"
+              className="p-1.5 sm:p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors"
+              title={cloudInfo.title}
             >
-              <Cloud className="w-4 h-4" />
+              <CloudIcon className={`w-4 h-4 ${cloudInfo.className}`} />
             </button>
             <button
               onClick={onReset}
@@ -146,7 +160,7 @@ const GameHeader = ({ onReset, onOpenSettings }) => {
                     onClick={() => { onOpenSettings(); setShowMenu(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
                   >
-                    <Cloud className="w-4 h-4" /> Cloud Saves
+                    <CloudIcon className={`w-4 h-4 ${cloudInfo.className}`} /> {cloudInfo.title}
                   </button>
                   <button
                     onClick={() => { setShowMenu(false); onReset(); }}

@@ -10,39 +10,79 @@
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getMaxActionPoints } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
+import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
-import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD } from './elimination';
-import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility } from '../utils/aiLogic';
+import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
+import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
+import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
+import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
+import { getPlayerRank } from './score';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
-import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange } from '../data/regions';
+import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange, getCapital } from '../data/regions';
 import {
   REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength,
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
-import { ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import {
+  ORBITAL_DEBRIS_DECAY_PER_TURN, UNIT_UPKEEP_GOLD_PER_TURN, ARMY_MAINTENANCE_DEFAULT, FORT_UPKEEP_GOLD_PER_FORT_LEVEL,
+  FUSION_GRID_UPKEEP_HELIUM3_PER_TURN,
+  DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
+  RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
+  CIVIL_WAR_SUCCESSION_CRISIS_CHANCE, ECONOMIC_COLLAPSE_STABILITY_PENALTY,
+  LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN
+} from '../data/actionCosts';
+import { processSuccession, getAdvisorSalary } from './succession';
+import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
+import { processEstatesTurn } from './estates';
+import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
+import { GREAT_PROJECTS } from '../data/greatProjects';
+import { BUILDING_CATEGORIES } from '../data/buildings';
+import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
+import {
+  nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn
+} from './civilWar';
+import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
+import { getTotalDev } from './development';
+import { decayAggressiveExpansion } from './expansion';
+import { hasPerk } from '../data/promotions';
+import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 const WAR_EXHAUSTION_RISE_PER_TURN = 5;
 const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 
-export const resolveTurn = (state) => {
-  // Guard: nothing to resolve if the game already ended or an event is blocking play.
-  if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent) {
+// `onPhase(name, ms)` is an optional perf hook (src/engine/aiQualityBenchmark.test.js's M0.4 perf
+// harness is the only caller) fired after each named phase below with how long it took. It costs
+// one optional-chained call per phase when absent, so normal play and every other test pay nothing
+// for it; when present the closure trades one `performance.now()` read per phase for the timing.
+export const resolveTurn = (state, { onPhase } = {}) => {
+  // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
+  // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
+  if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent || state.pendingPeaceOffer) {
     return state;
   }
+
+  let phaseStart = onPhase ? performance.now() : 0;
+  const mark = (name) => {
+    if (!onPhase) return;
+    const now = performance.now();
+    onPhase(name, now - phaseStart);
+    phaseStart = now;
+  };
 
   const rng = createRng(state.rngSeed);
   const logs = [];
@@ -58,47 +98,59 @@ export const resolveTurn = (state) => {
     logs.push({ year: newYear, message: `A new era dawns: the world enters the ${AGES[newAge].name}.`, type: LogTypes.MILESTONE });
   }
 
+  // Timed modifier expiry (plan §A.2) — runs right after the time step so an entry that expires
+  // this turn no longer affects this turn's income/unrest/etc below. Nothing pushes an entry into
+  // nation.modifiers[] or state.regionModifiers yet (a later milestone's event/law/disaster effect
+  // will be the first real writer), so both calls are a same-reference no-op today.
+  const modifierExpiredNations = expireNationModifiers(state.nations, newTurnNumber);
+  const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
+  mark('time');
+
   // --- income ---
-  const income = calcIncome(state);
+  const income = calcIncome({ ...state, nations: modifierExpiredNations });
   const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
+  mark('income');
 
-  // --- army maintenance ---
-  // A flat per-turn gold upkeep per player-owned unit (UNIT_UPKEEP_GOLD_PER_TURN, actionCosts.js):
-  // RECRUIT_UNIT/DISBAND_UNIT only ever charged a one-time cost, so a standing army was free to hold
-  // once raised — this makes army size a real, continuous tradeoff against everything else gold
-  // buys, not just a one-time purchase. AI nations aren't charged this: they have no simulated gold
-  // economy of their own (calcIncome only computes the player's), and their fielded-army size is
-  // already bounded by aiLogic.js's own age-scaled standing-unit cap.
-  const playerUnitCount = Object.values(state.units).filter(u => u.ownerId === state.playerNationId).length;
-  const upkeepCost = playerUnitCount * UNIT_UPKEEP_GOLD_PER_TURN;
-  if (upkeepCost > 0) {
-    resources.gold = Math.max(0, resources.gold - upkeepCost);
-    logs.push({ year: newYear, message: `Army upkeep: -${formatMoney(upkeepCost)} (${playerUnitCount} unit${playerUnitCount === 1 ? '' : 's'})`, type: LogTypes.ACTION });
-  }
+  // Army/navy/fort upkeep, advisor salaries, and loan interest are all deducted together in the
+  // "economy" phase below (plan §M11), once `regions`/`nations` exist — a shortfall there can
+  // trigger an auto-loan or bankruptcy, both of which need to touch nation/region state that
+  // doesn't exist yet this early in the turn.
 
-  // Action points top up to the nation's per-turn budget every turn, but unspent AP now BANKS
-  // instead of being wiped — a turn with nothing worth 1 AP right now becomes "save up for a 3-AP
-  // wonder next turn" instead of pure waste. Capped at 2x the current max so banking can't grow
-  // unbounded over a ~500-turn game; a fully-spent turn (0 left) still lands exactly on the flat
-  // maxActionPoints a player always got before this existed. getMaxActionPoints (Administrative
-  // Capacity) is recomputed fresh from current government/tech every turn rather than read from a
-  // stored field, so adopting a government or finishing a Governance tech takes effect on the very
-  // next turn automatically.
-  const maxActionPoints = getMaxActionPoints(state);
-  const AP_BANK_CAP_MULTIPLIER = 2;
-  resources.maxActionPoints = maxActionPoints;
-  resources.actionPoints = Math.min((state.resources.actionPoints || 0) + maxActionPoints, maxActionPoints * AP_BANK_CAP_MULTIPLIER);
+  // ADM/DIP/MIL (plan §M2) each top up to the nation's per-turn budget every turn, but unspent
+  // power now BANKS instead of being wiped — a turn with nothing worth spending ADM on right now
+  // becomes "save up for a pricier wonder next turn" instead of pure waste. Capped at 2x the
+  // current max so banking can't grow unbounded over a ~500-turn game; a fully-spent turn (0 left)
+  // still lands exactly on the flat income a player always got before this existed.
+  // getPowerIncome (Administrative Capacity) is recomputed fresh from current government/tech
+  // every turn rather than read from a stored field, so adopting a government or finishing a
+  // Governance tech takes effect on the very next turn automatically.
+  const powerIncome = getPowerIncome({ ...state, nations: modifierExpiredNations });
+  const POWER_BANK_CAP_MULTIPLIER = 2;
+  ['adm', 'dip', 'mil'].forEach((pool) => {
+    const income = powerIncome[pool];
+    // Reads `resources[pool]` (already `state.resources[pool]` at this point, or that PLUS
+    // this turn's calcIncome addition — e.g. a Communications Satellite's dipPerTurn trickle —
+    // never `state.resources[pool]` directly, or a satellite's contribution would be silently
+    // overwritten by this bank-up step immediately after calcIncome applied it.
+    resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`] = income;
+    resources[pool] = Math.min((resources[pool] || 0) + income, income * POWER_BANK_CAP_MULTIPLIER);
+  });
+  mark('maintenanceAndPower');
 
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
   // nation's own territory is subject to) ---
   const regions = { ...state.regions };
   const satellites = state.satellites || {};
   Object.entries(regions).forEach(([id, region]) => {
-    const owner = state.nations[region.owner];
+    const owner = modifierExpiredNations[region.owner];
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
-    const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus') + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel);
+    // Plan §M6: the Culture & Order building line's local.stabilityBonus shaves this region's own
+    // unrest, on top of the nation-wide sources (government/policy/traits/stability/overextension).
+    const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus')
+      + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel)
+      + getRegionModifier(state, id, 'local.stabilityBonus').total;
     const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta);
     // Siege recovery (src/engine/siege.js): a region not attacked recently regenerates the control
     // combat ground down — an interrupted siege doesn't bank its damage forever. Also clears the
@@ -129,6 +181,7 @@ export const resolveTurn = (state) => {
       regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation };
     }
   });
+  mark('regionUnrestAndPopulation');
 
   // --- rebellion (plan §9): unrest crossing the threshold spawns an actual rebel army in the
   // region rather than just a number. Falling back below the threshold (e.g. after Quell Unrest,
@@ -175,8 +228,8 @@ export const resolveTurn = (state) => {
         const rebelId = `rebel_${regionId}_${newTurnNumber}`;
         const strength = getRebelSpawnStrength(region);
         units[rebelId] = {
-          id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', ageId: newAge,
-          strength, maxStrength: strength, morale: 100, organization: 100,
+          id: rebelId, regionId, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry',
+          strength, maxStrength: strength, morale: 100, movesLeft: 1,
           xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
           spawnedTurn: newTurnNumber
         };
@@ -208,7 +261,18 @@ export const resolveTurn = (state) => {
   Object.entries(unitsByOwner).forEach(([ownerId, ownerUnits]) => {
     const ownedRegionIds = getOwnedRegionIds(regions, ownerId);
     if (ownedRegionIds.length === 0) return; // no territory of its own (e.g. rebels) — nothing to be supplied from
-    const maxSupplyRange = Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure)));
+    // Plan §M7: Paved Roads/Highway Systems reduce attrition, and Infrastructure techs add a flat
+    // national.supplyRange — both sourced only from the player's own researched techs today (AI
+    // nations don't track a techTree until M16's AI parity), so this is gated the same way the
+    // tech-effects source itself already is. Calling getModifier for every AI-owned nation here
+    // would otherwise force contextSources' O(regions) getOverextension scan up to ~240 times a
+    // turn for a value that's unconditionally 0 for every one of them anyway.
+    const isPlayer = ownerId === state.playerNationId;
+    const attritionMult = isPlayer ? Math.max(0, 1 + getModifier(state, ownerId, 'national.attrition').total) : 1;
+    // Plan §M6: the Logistics building line's local.supplyRange extends how far THAT region can
+    // supply from, on top of infrastructure's own existing contribution.
+    const nationalSupplyRange = isPlayer ? getModifier(state, ownerId, 'national.supplyRange').total : 0;
+    const maxSupplyRange = nationalSupplyRange + Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure) + getRegionModifier(state, id, 'local.supplyRange').total));
     // One bounded multi-source BFS covers every in-range region at once, rather than a fresh
     // search per distinct region a unit happens to occupy — the set of in-range regions is the
     // same for every one of this nation's units this turn regardless of how many distinct
@@ -217,17 +281,76 @@ export const resolveTurn = (state) => {
     ownerUnits.forEach(u => {
       if (u.embarkedOn) return; // cargo shares its transport's supply state, not its own
       if (inSupplyRegions.has(u.regionId)) return; // in supply
+      // Plan §M14: terrain hardship (desert/mountains/arctic) compounds with the ages-old out-of-
+      // supply attrition instead of being a second, separate drain — this codebase has exactly one
+      // attrition mechanic, so terrain's own attrition modifier folds into it. Forager (-50%, a real
+      // per-unit perk) and a logistician-commanded unit's own general (-50%, standing in for the
+      // plan's "whole stack" until generals command more than one unit — see this milestone's own
+      // scope-trim note in gameReducer.js) both reduce it further, and stack.
+      let unitAttritionMult = attritionMult * getTerrainCombatModifier(getRegionTerrain(u.regionId, REGIONS_DATA)).attritionMult;
+      if (hasPerk(u, 'forager')) unitAttritionMult *= 0.5;
+      if (state.hiredCommanders[u.commanderId]?.personality === 'logistician') unitAttritionMult *= 0.5;
       // Math.floor, not round: a unit's strength must actually reach 0 under sustained attrition
       // rather than rounding back up to 1 forever once it gets small.
-      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE)));
+      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE * unitAttritionMult)));
       if (strength <= 0) { delete units[u.id]; return; }
       units[u.id] = { ...u, strength };
     });
   });
+  mark('rebellionAndSupply');
+
+  // --- movement reset, reinforcement, and morale recovery (plan §M14) ---
+  // Every unit gets its move back at the start of the turn it's about to take (forcedMarch grants a
+  // second one) — MOVE_ARMY/LAUNCH_INVASION/AMPHIBIOUS_ASSAULT/NAVAL_ENGAGEMENT/SUPPRESS_REBELLION
+  // all spend it, one attack or move per stack per turn.
+  //
+  // Reinforcement and morale recovery are keyed off `lastBattleTurn === state.turnNumber` (the turn
+  // that's ENDING right now, before newTurnNumber's own increment above) — a unit that fought this
+  // turn doesn't recover until next turn, same as the plan's own "when not in battle that turn"
+  // wording. This is also the actual fix for the long-standing one-way morale bug (src/engine/
+  // battle.js's dealDamage only ever subtracts morale — nothing anywhere ever added it back).
+  const REINFORCEMENT_RATE = 0.10;
+  const MORALE_RECOVERY_PER_TURN = 15;
+  Object.values(units).forEach((u) => {
+    if (u.ownerId === REBEL_OWNER_ID || u.embarkedOn) return;
+    const nation = state.nations[u.ownerId];
+    if (!nation) return;
+    const foughtThisTurn = u.lastBattleTurn === state.turnNumber;
+    const isPlayer = u.ownerId === state.playerNationId;
+    const maintenanceLevel = clampMaintenance(nation[u.domain === 'naval' ? 'navyMaintenance' : 'armyMaintenance'] ?? ARMY_MAINTENANCE_DEFAULT);
+    const maintenanceFactor = Math.max(0, (maintenanceLevel - 50) / 50); // 50% maintenance = no recovery at all
+    const reinforceSpeedBonus = isPlayer ? getModifier(state, u.ownerId, 'national.reinforceSpeed').total : 0;
+    const moraleRecoveryBonus = isPlayer ? getModifier(state, u.ownerId, 'national.moraleRecovery').total : 0;
+    let patch = null;
+
+    if (!foughtThisTurn && u.morale < 100) {
+      patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
+    }
+
+    const region = regions[u.regionId];
+    const isSuppliedHomeTerritory = region && region.owner === u.ownerId && !region.occupiedBy;
+    if (!foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
+      const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
+      const gain = Math.min(u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
+      if (gain > 0) {
+        // Manpower is a real, spendable resource only for the player pre-M16 (economy.js's own
+        // "player-only real computation" pattern) — an AI unit's strength still regrows (so the AI
+        // isn't permanently crippled by a single lost battle), it just doesn't draw down a manpower
+        // pool that doesn't meaningfully exist for it yet.
+        if (isPlayer) resources.hr = Math.max(0, (resources.hr || 0) - Math.round(gain / 10));
+        patch = { ...patch, strength: u.strength + gain };
+      }
+    }
+
+    // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one.
+    const movesLeft = 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
+    units[u.id] = { ...u, ...patch, movesLeft };
+  });
+  mark('reinforcementAndMorale');
 
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
-  const nations = { ...state.nations };
+  const nations = { ...modifierExpiredNations };
   Object.entries(nations).forEach(([nId, nation]) => {
     if (nation.isPlayer) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
@@ -239,6 +362,347 @@ export const resolveTurn = (state) => {
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiGrowthAndHostility');
+
+  // --- AI economy (plan §M16) --- real gold/hr/techPoints/adm/dip/mil income credits every non-
+  // player nation's own economy pool EVERY turn (calcAllNationIncomes is one O(regions) pass, cheap
+  // enough to run unconditionally for all 240 nations — the same "one shared pass" perf pattern
+  // buildOccupationIndexes/calcAllNationIncomes-style functions already use elsewhere in this
+  // codebase). Spending it — adopt/reform a government, construct a building, or research a tech —
+  // only happens on each nation's own tiered cadence (aiEconomy.js's thinksThisTurn: Tier 1 every
+  // turn, Tier 2 every 3, Tier 3 every 10), which is what keeps this affordable at 240 nations.
+  // Recruitment stays a separate pass below (processAIRecruitment, Tier 1 only, unchanged cadence)
+  // now drawing on this same real economy once it exists — see aiEconomy.js's own header for the
+  // full list of what's deliberately NOT part of this milestone (laws, estates, identity, advisors,
+  // diplomat tasks, AI loans/bankruptcy).
+  // ONE shared state snapshot for this whole phase — critically, the SAME object reference for
+  // every nation's calcAllNationIncomes/getPowerIncome/getNationTier/processAIEconomyTurn call.
+  // The modifier engine (src/engine/modifiers/sheet.js) caches a nation's sheet per (state
+  // reference, nationId) pair; a fresh `{ ...state, ... }` literal built INSIDE this loop, once per
+  // nation, would defeat that cache entirely (each nation's sheet — including its own O(regions)
+  // overextension scan — rebuilt from scratch 2-3x every turn instead of once), which is exactly
+  // the "per-nation state spread" trap buildOccupationIndexes/estatesState elsewhere in this same
+  // file are already careful to avoid. `regions`/`nations` are passed by REFERENCE, not spread, so
+  // this snapshot stays valid even as later lines in this same loop mutate their properties.
+  const aiEconState = { ...state, regions, nations };
+  const allIncomes = calcAllNationIncomes(aiEconState);
+  const tieringSortedByMilitary = getSortedByMilitary(aiEconState);
+  Object.keys(nations).forEach((nId) => {
+    if (nId === state.playerNationId) return;
+    const nation = nations[nId];
+    if (!nation.economy) return; // a legacy/test fixture with no seeded economy stays on the old abstract-only path
+    const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
+    const powerIncome = getPowerIncome(aiEconState, nId);
+    const pool = { ...nation.economy };
+    pool.gold += income.gold;
+    pool.hr += income.hr;
+    pool.techPoints += income.techPoints;
+    // Same "bank up to 2x this turn's own income" cap the player's own power pools use (the
+    // maintenanceAndPower phase above) — applied here too so an AI nation's pools don't grow
+    // unbounded over a long game.
+    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], powerIncome[p] * 2); });
+    nations[nId] = { ...nation, economy: pool };
+
+    const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
+    if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
+    const result = processAIEconomyTurn(aiEconState, regions, nId);
+    nations[nId] = result.nation;
+  });
+  mark('aiEconomy');
+
+  // --- succession (plan §M3) --- runs for every nation (cheap: a number comparison for the vast
+  // majority whose reign isn't ending this turn), but only the player's own succession is logged —
+  // 240 nations' worth of log lines every few turns would drown out everything else in the console.
+  // AI nations still get a real ruler/heir update even though nothing reads an AI ruler's stats
+  // mechanically yet (M16), so this doesn't need touching again once AI parity lands.
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed });
+    if (!result) return;
+    // Plan §M4: "heirless succession: -1 stability" is the one lower-stability trigger from the
+    // plan's own table that's mechanically real today — a heirless OR low-claim succession is
+    // exactly M3's `result.crisis` flag, so this reuses it rather than inventing a parallel check.
+    const stability = result.crisis ? clampStability((nation.stability || 0) - 1) : nation.stability;
+    // Plan §M8.1: Elective Monarchy's "-10 legitimacy at succession" (result.legitimacyPenalty).
+    const legitimacy = result.legitimacyPenalty ? clampLegitimacy((nation.legitimacy ?? 50) - result.legitimacyPenalty) : nation.legitimacy;
+    // Plan §M18's "Dynasty" achievement ("the same dynasty for 10 rulers"): a real consecutive-
+    // succession counter, reset the instant the ruling house actually changes (an elective/
+    // theocratic/autocratic/tribal succession, or a hereditary line that just failed, both roll a
+    // brand-new dynasty name per succession.js's own nextDynasty logic).
+    const sameDynastyStreak = result.ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
+    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir, stability, legitimacy, sameDynastyStreak };
+    if (nId === state.playerNationId) {
+      const message = result.crisis
+        ? `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne amid an uncertain succession. (-1 stability)`
+        : `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne.`;
+      logs.push({ year: newYear, message, type: LogTypes.MILESTONE });
+    }
+    // Civil war trigger #1 (plan §M3/§M15): "a heirless OR low-claim succession fires the Succession
+    // Crisis chain... a pretender rebel spawns with 40% chance" — the plan named this chance back in
+    // M3 but nothing existed yet to spawn into (civil war IS that "pretender rebel" substrate, so
+    // this is where the M3 comment's own deferred 40% roll is finally wired, not a new mechanic).
+    if (result.crisis && !nation.civilWar?.active && rng.next() < CIVIL_WAR_SUCCESSION_CRISIS_CHANCE) {
+      const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
+      if (started) {
+        Object.assign(regions, started.regions);
+        Object.assign(units, started.units);
+        nations[nId] = { ...nations[nId], civilWar: started.civilWar };
+        logs.push({ year: newYear, message: `${nations[nId].name}: the succession crisis erupts into open civil war!`, type: LogTypes.CRISIS });
+      }
+    }
+  });
+  mark('succession');
+
+  // --- national power: stability decay, legitimacy/tradition/devotion, prestige (plan §M4) ---
+  // runs for every nation, same cadence and reasoning as the succession pass just above (cheap,
+  // AI nations get real numbers even though nothing reads them mechanically until M16 wires AI
+  // decisions off of them).
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const result = processNationalPowerTurn(nation);
+    // Plan §M18's "Iron Grip" achievement ("+3 stability for 20 turns"): a real sustained-streak
+    // counter, the same shape diplomaticLeadershipStreak already uses for Diplomatic Victory —
+    // reset to 0 the instant stability drops off the max, so a fresh run of turns is required.
+    const stability3Streak = result.stability >= STABILITY_MAX ? (nation.stability3Streak || 0) + 1 : 0;
+    nations[nId] = { ...nation, ...result, stability3Streak };
+  });
+  mark('nationalPower');
+
+  // --- capitals (plan §M15) --- "Capital occupied: -1 stability (once), -1 all pools per turn" —
+  // the stability hit only fires on the turn occupation actually STARTS (nation.capitalOccupied
+  // tracks whether it already fired this occupation, the same one-shot-flag shape
+  // region.underInvasion already uses); the pool penalty re-applies every turn it stays occupied.
+  // Every nation gets the stability side generically (capitalOccupied/stability are both already
+  // real for AI); the pool penalty only actually deducts for the player (economy.js's own
+  // "player-only real computation" scope — AI has no simulated ADM/DIP/MIL pool pre-M16).
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const capitalId = getCapital({ nations }, nId);
+    const capitalOccupied = !!capitalId && !!regions[capitalId]?.occupiedBy && regions[capitalId].occupiedBy !== nId;
+    if (capitalOccupied === !!nation.capitalOccupied) return;
+    nations[nId] = capitalOccupied
+      ? { ...nation, capitalOccupied: true, stability: clampStability((nation.stability || 0) - CAPITAL_OCCUPIED_STABILITY_PENALTY) }
+      : { ...nation, capitalOccupied: false };
+  });
+  if (nations[state.playerNationId].capitalOccupied) {
+    resources.adm = Math.max(0, (resources.adm || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
+    resources.dip = Math.max(0, (resources.dip || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
+    resources.mil = Math.max(0, (resources.mil || 0) - CAPITAL_OCCUPIED_POOL_PENALTY);
+  }
+  mark('capitals');
+
+  // --- estates (plan §M9) --- loyalty drifts 1/turn toward its reform/law/trait/privilege-driven
+  // target, influence is recomputed (real for the player, a cheap privilege-only proxy for AI — see
+  // estates.js's getEstateInfluence). Labor joins once a nation reaches the Modern age, matching the
+  // plan's own gating; earlier ages never see the fourth estate at all.
+  const estatesState = { ...state, nations, regions };
+  Object.entries(nations).forEach(([nId, nation]) => {
+    let estates = processEstatesTurn(estatesState, nId);
+    if (newAge === 'modern' && estates && !estates[LABOR_ESTATE_ID]) {
+      estates = { ...estates, [LABOR_ESTATE_ID]: createInitialEstate() };
+    }
+    if (estates && estates !== nation.estates) nations[nId] = { ...nation, estates };
+  });
+  mark('estates');
+
+  // --- disasters & civil war (plan §M15) --- runs for every nation, the same "real for player and
+  // AI both" cadence as stability/estates/succession above. Disasters read only fields every nation
+  // already tracks for real; a nation already fighting a civil war skips straight to
+  // processCivilWarTurn instead of re-checking triggers (declareWar's own one-active-thing-at-a-time
+  // spirit, applied here even though this isn't a state.wars entry — see civilWar.js's own header on
+  // why not).
+  Object.entries(nations).forEach(([nId, nation]) => {
+    const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, newAge, newTurnNumber);
+    if (nId === state.playerNationId) logs.push(...disasterLogs.map((l) => ({ year: newYear, ...l })));
+    nations[nId] = afterDisasters;
+
+    if (nation.civilWar?.active) {
+      const result = processCivilWarTurn({ ...state, age: newAge }, regions, units, nations[nId], nId, rng, newTurnNumber);
+      Object.assign(regions, result.regions);
+      Object.assign(units, result.units);
+      nations[nId] = result.nation;
+      if (result.result === 'crushed') {
+        logs.push({ year: newYear, message: `${nations[nId].name} crushes the pretender uprising. (+1 stability, +10 legitimacy)`, type: LogTypes.CRISIS });
+      } else if (result.result === 'lost') {
+        logs.push({ year: newYear, message: `${nations[nId].name} falls to the pretenders — a new regime takes power.`, type: LogTypes.CRISIS });
+      }
+      return;
+    }
+
+    const lowStabilityStreak = nextLowStabilityStreak(nations[nId]);
+    const shouldStart = triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak);
+    if (shouldStart) {
+      const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
+      if (started) {
+        Object.assign(regions, started.regions);
+        Object.assign(units, started.units);
+        nations[nId] = { ...nations[nId], civilWar: started.civilWar, lowStabilityStreak: 0 };
+        logs.push({ year: newYear, message: `${nations[nId].name} descends into civil war!`, type: LogTypes.CRISIS });
+        return;
+      }
+    }
+    nations[nId] = { ...nations[nId], lowStabilityStreak };
+  });
+  mark('disastersAndCivilWar');
+
+  // --- economy (plan §M11): army/navy/fort upkeep (maintenance-slider-scaled), advisor salaries,
+  // and loan interest are all subtracted together so a shortfall can trigger ONE auto-loan or
+  // bankruptcy, rather than three independent floor-at-0 deductions each masking part of the real
+  // shortfall. Player-only, matching calcIncome/calcNationBalance's own scope — AI nations have no
+  // simulated gold economy or loans. This replaces the old flat, army-only upkeep block.
+  {
+    const playerId = state.playerNationId;
+    const nation = nations[playerId];
+    const playerUnits = Object.values(state.units).filter((u) => u.ownerId === playerId);
+    const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
+    const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
+    const armyUpkeep = Math.round(playerUnits.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
+    const navyUpkeep = Math.round(playerUnits.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);
+    // Fort upkeep (plan §M6.2/§M11): 1g x fortLevel/turn — the Defense building line's
+    // local.fortLevel already existed with no upkeep consumer until now.
+    const fortLevels = Object.values(regions).filter((r) => r.owner === playerId).reduce((sum, r) => {
+      const tier = r.buildings?.categories?.defense;
+      const fortLevel = tier >= 0 ? BUILDING_CATEGORIES.defense.tiers[tier]?.effects?.['local.fortLevel'] : 0;
+      return sum + (fortLevel || 0);
+    }, 0);
+    const fortUpkeep = fortLevels * FORT_UPKEEP_GOLD_PER_FORT_LEVEL;
+    const advisors = Object.values(nation.advisors || {}).filter(Boolean);
+    const advisorSalaryCost = advisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
+    const loanInterestCost = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
+    const totalExpenses = armyUpkeep + navyUpkeep + fortUpkeep + advisorSalaryCost + loanInterestCost;
+
+    if (totalExpenses > 0) {
+      logs.push({
+        year: newYear,
+        message: `Upkeep: -${formatMoney(totalExpenses)} (army ${formatMoney(armyUpkeep)}, navy ${formatMoney(navyUpkeep)}, forts ${formatMoney(fortUpkeep)}, advisors ${formatMoney(advisorSalaryCost)}, loan interest ${formatMoney(loanInterestCost)})`,
+        type: LogTypes.ACTION
+      });
+    }
+    const rawGold = resources.gold - totalExpenses;
+
+    // Economic Collapse (plan §M15): "3 loans and negative net income for 5 turns... at 100:
+    // bankruptcy plus -2 stability" — tracked off THIS turn's real income vs. expenses (not merely
+    // whether the banked treasury went negative, which the auto-loan/bankruptcy path below already
+    // reacts to on its own), so a nation running a persistent deficit gets an early warning even
+    // while still solvent on paper.
+    const netIncomeNegative = (income.gold || 0) < totalExpenses;
+    const economicCollapseProgress = nextEconomicCollapseProgress(nation, netIncomeNegative);
+    const disasterBankruptcyReady = isEconomicCollapseDisasterReady(economicCollapseProgress);
+    const loanCapacity = rawGold < 0 ? getLoanCapacity({ ...state, regions, nations }, playerId) : 0;
+    const canAutoLoan = rawGold < 0 && (nation.loans || []).length < loanCapacity;
+
+    if ((rawGold < 0 && !canAutoLoan) || disasterBankruptcyReady) {
+      // Bankruptcy (plan §M11/§M15): loan capacity already exhausted, OR the Economic Collapse
+      // disaster forces it outright even while nominally solvent. See actionCosts.js's BANKRUPTCY_*
+      // constants and BANKRUPTCY_MODIFIER_MODS's own header for which of the plan's listed effects
+      // have a real hook today and which are deferred to M14; economy.js's applyBankruptcy is the
+      // one shared implementation both this natural path and the disaster's own completion use.
+      const applied = applyBankruptcy(nations[playerId], regions, playerId, newTurnNumber, disasterBankruptcyReady ? ECONOMIC_COLLAPSE_STABILITY_PENALTY : 0);
+      nations[playerId] = { ...applied.nation, disasters: { ...applied.nation.disasters, economicCollapse: 0 } };
+      Object.assign(regions, applied.regions);
+      resources.gold = 0;
+      logs.push({
+        year: newYear,
+        message: disasterBankruptcyReady && rawGold >= 0
+          ? 'Economic Collapse! Years of mounting debt force bankruptcy outright. (-2 stability on top of the usual bankruptcy penalties)'
+          : 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, every estate -20 loyalty, a 10-turn economic crisis)',
+        type: LogTypes.CRISIS
+      });
+    } else if (rawGold < 0) {
+      // Auto-loan (plan §M11): "if expenses would push gold below 0, a loan is auto-taken and
+      // logged" — sized by the plan's own getLoanSize formula, floored at whatever actually
+      // covers this turn's shortfall so the treasury doesn't stay negative regardless.
+      const principal = Math.max(getLoanSize({ ...state, regions, nations, resources }, playerId), Math.ceil(-rawGold));
+      const loan = { id: `loan_auto_${newTurnNumber}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
+      nations[playerId] = { ...nations[playerId], loans: [...(nation.loans || []), loan], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
+      resources.gold = rawGold + principal;
+      logs.push({ year: newYear, message: `Treasury shortfall — auto-took a loan of ${formatMoney(principal)} gold.`, type: LogTypes.CRISIS });
+    } else {
+      resources.gold = rawGold;
+      nations[playerId] = { ...nations[playerId], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
+    }
+
+    // Fusion Grid (plan §M11 resource sink): upkeep is deducted every turn while active; going
+    // unpaid takes it offline (sources.js's contextSources only reads this flag for the goldMult
+    // bonus) — the same "disabled when upkeep can't be paid" behavior the plan's own Future-
+    // building resource sinks describe, applied to this standalone action instead (see
+    // types.js's ACTIVATE_FUSION_GRID comment on why no Future building tier exists to hang it on).
+    if (nations[playerId].fusionGridActive) {
+      if ((resources.helium3 || 0) >= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN) {
+        resources.helium3 -= FUSION_GRID_UPKEEP_HELIUM3_PER_TURN;
+      } else {
+        nations[playerId] = { ...nations[playerId], fusionGridActive: false };
+        logs.push({ year: newYear, message: 'The Fusion Grid has gone offline — insufficient Helium-3.', type: LogTypes.CRISIS });
+      }
+    }
+  }
+  mark('economy');
+
+  // --- diplomacy (plan §M12): Aggressive Expansion decay (every nation), diplomat tasks and
+  // vassal tribute (player-only, matching every other player-only economic action this turn). ---
+  Object.assign(nations, decayAggressiveExpansion(nations));
+  {
+    const player = nations[state.playerNationId];
+    (player.diplomatTasks || []).forEach((t) => {
+      const target = nations[t.targetId];
+      if (!target) return;
+      nations[t.targetId] = { ...target, hostility: Math.max(target.hostilityFloor || 0, (target.hostility || 0) - DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN) };
+    });
+    const vassalTribute = (player.vassals || []).reduce((sum, vassalId) => {
+      const totalDev = Object.values(regions).reduce((s, r) => s + (r.owner === vassalId ? getTotalDev(r) : 0), 0);
+      return sum + Math.round(totalDev * VASSAL_TRIBUTE_RATE * VASSAL_TRIBUTE_GOLD_PER_DEV_POINT);
+    }, 0);
+    if (vassalTribute > 0) {
+      resources.gold = (resources.gold || 0) + vassalTribute;
+      logs.push({ year: newYear, message: `Vassal tribute: +${formatMoney(vassalTribute)}.`, type: LogTypes.ACTION });
+    }
+  }
+
+  // Liberty desire (plan §M12/§M15: "rises with your weakness and their strength... at >= 50 they
+  // may declare an independence war") — generic for every vassal, player or AI, the same real-
+  // fielded-strength comparison civil war's own pretender sizing uses rather than the abstract
+  // militaryStrength number, since that's what an independence war would actually be fought with.
+  Object.entries(nations).forEach(([nId, nation]) => {
+    if (!nation.vassalOf || !nations[nation.vassalOf]) return;
+    const vassalStrength = getFieldedStrength({ units }, nId);
+    const overlordStrength = getFieldedStrength({ units }, nation.vassalOf);
+    const rising = vassalStrength > overlordStrength;
+    const libertyDesire = clamp((nation.libertyDesire || 0) + (rising ? LIBERTY_DESIRE_RISE_PER_TURN : -LIBERTY_DESIRE_DECAY_PER_TURN), 0, 100);
+    if (libertyDesire !== nation.libertyDesire) nations[nId] = { ...nation, libertyDesire };
+  });
+  mark('diplomacy');
+
+  // --- great projects (plan §M10) --- construction is player-only for now, matching every other
+  // AI-economic-action deferral since M8 (government reforms, laws, estates — AI never acts, only
+  // the player does), so only player-owned regions ever carry a `greatProjectConstruction` in the
+  // first place. A region captured mid-construction loses its queued project outright (there's no
+  // partial-credit hand-off to a new owner) rather than silently freezing forever.
+  const greatProjects = { ...state.greatProjects };
+  Object.keys(regions).forEach((regionId) => {
+    const region = regions[regionId];
+    const construction = region.greatProjectConstruction;
+    if (!construction) return;
+    if (region.owner !== state.playerNationId) {
+      regions[regionId] = { ...region, greatProjectConstruction: null };
+      return;
+    }
+    const turnsLeft = construction.turnsLeft - 1;
+    if (turnsLeft > 0) {
+      regions[regionId] = { ...region, greatProjectConstruction: { ...construction, turnsLeft } };
+      return;
+    }
+    const project = GREAT_PROJECTS[construction.projectId];
+    const tierSpec = project?.tiers[construction.tier - 1];
+    regions[regionId] = { ...region, greatProjectConstruction: null };
+    greatProjects[construction.projectId] = { regionId, tier: construction.tier };
+    if (tierSpec?.completionPrestige) {
+      const nation = nations[state.playerNationId];
+      nations[state.playerNationId] = { ...nation, prestige: clampPrestige((nation.prestige || 0) + tierSpec.completionPrestige) };
+    }
+    logs.push({
+      year: newYear,
+      message: `${project.name} (tier ${construction.tier}) completed!${tierSpec?.completionPrestige ? ` (+${tierSpec.completionPrestige} prestige)` : ''}`,
+      type: LogTypes.MILESTONE
+    });
+  });
+  mark('greatProjects');
 
   // sortedByMilitary is computed once here, not per nation, to keep both of the following passes
   // affordable across 240 nations.
@@ -252,6 +716,7 @@ export const resolveTurn = (state) => {
   Object.assign(units, recruitment.units);
   Object.assign(nations, recruitment.nations);
   logs.push(...recruitment.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiRecruitment');
 
   // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
   // player, or a top-20 military power) may each declare one war this turn against a weaker
@@ -260,6 +725,13 @@ export const resolveTurn = (state) => {
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiWarDeclarations');
+
+  // --- AI ABM defense (plan §M19: "AI builds ABM to level 1-2 when at war with a nuclear power") ---
+  const abmResult = processAIAbmDefense({ ...state, wars }, nationsAfterWars);
+  nationsAfterWars = abmResult.nations;
+  logs.push(...abmResult.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiAbmDefense');
 
   // --- AI war progress (plan §8.5's war-goal resolution): territorial conquest rolls, mutual
   // attrition, and ending a war outright once its goal is met — this is what makes every one of
@@ -269,7 +741,14 @@ export const resolveTurn = (state) => {
   Object.assign(regions, warProgress.regions);
   nationsAfterWars = warProgress.nations;
   wars = warProgress.wars;
+  // A peace deal's 'gold' term (plan §M13/peace.js) only ever moves the PLAYER's own treasury (an
+  // AI nation has no simulated one pre-M16) — applied here as a delta against `resources`'s own
+  // running total rather than overwriting it outright, since this turn's income phases below add to
+  // the same object both before and after this point.
+  resources.gold = (resources.gold || 0) + ((warProgress.resources.gold || 0) - (state.resources.gold || 0));
+  const pendingPeaceOffer = warProgress.pendingPeaceOffer || null;
   logs.push(...warProgress.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiWarProgress');
 
   // --- nation elimination (src/engine/elimination.js): a nation reduced to zero regions this turn
   // — by the player's own invasions (which land immediately via gameReducer.js, so this sweep is
@@ -284,17 +763,26 @@ export const resolveTurn = (state) => {
     nationsAfterWars = { ...nationsAfterWars, [nId]: eliminated };
     wars = closeWarsForEliminatedNation(wars, nId);
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
+    // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
+    // is pure decay outside one-shot sources) — this is the one real payoff instead, a one-shot
+    // reward when a designated rival goes down for good.
+    if ((nationsAfterWars[state.playerNationId]?.rivals || []).includes(nId)) {
+      const player = nationsAfterWars[state.playerNationId];
+      nationsAfterWars = { ...nationsAfterWars, [state.playerNationId]: { ...player, prestige: clampPrestige((player.prestige || 0) + RIVAL_ELIMINATED_PRESTIGE_REWARD) } };
+      logs.push({ year: newYear, message: `Your rival ${eliminated.name} has fallen. (+${RIVAL_ELIMINATED_PRESTIGE_REWARD} prestige)`, type: LogTypes.DIPLOMACY });
+    }
     if (wasEliminatedByPlayer(regions, state.playerNationId, nId)) {
       resources.gold = (resources.gold || 0) + NATION_ELIMINATION_REWARD.gold;
-      resources.diplomacyPoints = (resources.diplomacyPoints || 0) + NATION_ELIMINATION_REWARD.diplomacyPoints;
+      resources.dip = (resources.dip || 0) + NATION_ELIMINATION_REWARD.dip;
       playerEliminatedNationId = nId;
       logs.push({
         year: newYear,
-        message: `You have conquered ${eliminated.name} entirely! +${formatMoney(NATION_ELIMINATION_REWARD.gold)}, +${NATION_ELIMINATION_REWARD.diplomacyPoints} Diplomacy Points.`,
+        message: `You have conquered ${eliminated.name} entirely! +${formatMoney(NATION_ELIMINATION_REWARD.gold)}, +${NATION_ELIMINATION_REWARD.dip} DIP.`,
         type: LogTypes.MILESTONE
       });
     }
   });
+  mark('elimination');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
@@ -304,6 +792,7 @@ export const resolveTurn = (state) => {
     const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
     if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });
+  mark('warExhaustion');
 
   // --- space mission ladder (plan §10.4 Layer 3): each in-progress mission ticks down one turn;
   // reaching 0 moves it into completedMissions and applies its one-time reward. Recurring rewards
@@ -320,9 +809,10 @@ export const resolveTurn = (state) => {
     completedMissions.push(missionId);
     const mission = SPACE_MISSIONS_BY_ID[missionId];
     if (mission?.oneTimeReward?.gold) resources.gold = (resources.gold || 0) + mission.oneTimeReward.gold;
-    if (mission?.oneTimeReward?.diplomacyPoints) resources.diplomacyPoints = (resources.diplomacyPoints || 0) + mission.oneTimeReward.diplomacyPoints;
+    if (mission?.oneTimeReward?.dip) resources.dip = (resources.dip || 0) + mission.oneTimeReward.dip;
     logs.push({ year: newYear, message: `${mission?.name || missionId} complete!`, type: LogTypes.MILESTONE });
   });
+  mark('spaceMissions');
 
   // --- diplomatic leadership streak (plan §10.4's Diplomatic victory) ---
   const alignmentShare = getDiplomaticAlignmentShare({ ...state, nations: nationsAfterWars });
@@ -362,6 +852,7 @@ export const resolveTurn = (state) => {
   // --- orbital debris (plan §10.4): decays slowly every turn, whether or not anyone's fighting
   // over orbit this turn (ASAT_STRIKE, GameContext.jsx, is what raises it) ---
   const orbitalDebrisLevel = clamp((state.orbitalDebrisLevel || 0) - ORBITAL_DEBRIS_DECAY_PER_TURN, 0, MAX_ORBITAL_DEBRIS);
+  mark('diplomacyStreakEventsAndDebris');
 
   // --- assemble next state ---
   let next = {
@@ -372,8 +863,11 @@ export const resolveTurn = (state) => {
     resources,
     regions,
     nations: nationsAfterWars,
+    greatProjects,
     units,
     wars,
+    pendingPeaceOffer,
+    regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,
     completedMissions,
@@ -386,17 +880,46 @@ export const resolveTurn = (state) => {
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
+  mark('assembleNextState');
+
+  // --- defeat (plan §M15, checked against THIS turn's resolved state) --- "GameStatus.DEFEAT is set
+  // when the player owns 0 regions: annexed by a peace deal, or all regions lost to rebels or
+  // revolts." Checked BEFORE victory and under the same not-mid-event gating: a player just ceded
+  // down to nothing can't also "survive" the same turn, and a defeat should never land mid-event.
+  // elimination.js's checkNationElimination stays player-exempt (it flags an AI nation's RECORD dead;
+  // the player's own record keeps playing out its defeat/game-over screen instead) — this is the
+  // real player-losing condition elimination.js never had before this milestone.
+  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer && checkPlayerDefeat(next.regions, next.playerNationId)) {
+    next = { ...next, gameStatus: GameStatus.DEFEAT };
+    next.logs = [...next.logs, { year: newYear, message: 'DEFEAT: your nation has fallen — no territory remains under your control.', type: LogTypes.MILESTONE }];
+  }
+  mark('defeat');
 
   // --- victory (checked against THIS turn's resolved state, not last turn's) ---
   // Not checked while an event is actively pending, so a victory never lands mid-event-resolution.
-  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent) {
+  // Plan §M18: "Remove the free win... at END_YEAR the game ends with a Final Score screen ranking
+  // the player against the top 10 nations... 'Victory' if the player ranks #1; otherwise 'Game
+  // Complete — Rank N'." An ambition (domination/conqueror/economicHegemony/diplomatic/
+  // spaceAscendancy) can still win outright at ANY year — only reaching the calendar's own end
+  // with no ambition met routes through this ranked step instead of an automatic win.
+  if (next.gameStatus === GameStatus.ACTIVE && !next.activeEventId && !next.activeProceduralEvent && !next.pendingPeaceOffer) {
     const conditionId = checkVictoryConditions(next);
     if (conditionId) {
       const condition = VICTORY_CONDITIONS[conditionId];
       next = applyVictory(next, conditionId);
       next.logs = [...next.logs, { year: newYear, message: `VICTORY: ${condition.name} achieved!`, type: LogTypes.MILESTONE }];
+    } else if (next.year >= END_YEAR) {
+      const rank = getPlayerRank(next);
+      if (rank === 1) {
+        next = applyVictory(next, 'finalScore');
+        next.logs = [...next.logs, { year: newYear, message: 'VICTORY: Score Victory achieved — your nation leads the world!', type: LogTypes.MILESTONE }];
+      } else {
+        next = { ...next, gameStatus: GameStatus.COMPLETE, finalRank: rank };
+        next.logs = [...next.logs, { year: newYear, message: `GAME COMPLETE: your nation finishes ranked #${rank} in the world.`, type: LogTypes.MILESTONE }];
+      }
     }
   }
+  mark('victory');
 
   return next;
 };

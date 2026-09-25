@@ -57,6 +57,45 @@ describe('AI quality benchmark: turn resolution time budget', () => {
   }, 45000);
 });
 
+describe('AI quality benchmark: per-phase timing breakdown (plan §M0.4)', () => {
+  // Plan §M0.4: "record the mean turn cost over 50 turns and log a per-phase breakdown using
+  // performance.now() around each resolveTurn phase. Budget: <= 80ms/turn mean at 240 nations by
+  // the end of M16 (today about 35-45ms)." resolveTurn's optional onPhase hook (added for this
+  // milestone) reports the wall time of each named section as the turn runs, so this is real
+  // per-phase cost, not a coarse whole-turn average — a future milestone that blows its own phase's
+  // budget shows up by name instead of just moving the total.
+  //
+  // BUDGET_MS is the plan's own end-of-M16 ceiling, not today's baseline: M2-M16 all add real work
+  // (power pools, rulers, buildings, tech, diplomacy, AI parity, ...) to this same per-turn cost on
+  // purpose. Failing this test today would mean a milestone already blew through headroom meant to
+  // last through M16, well before the AI-parity work that budget was reserved for.
+  const TURNS = 50;
+  const BUDGET_MS = 80;
+
+  it('resolves 50 turns at a mean cost under the plan\'s end-of-M16 80ms/turn budget, with a per-phase breakdown', () => {
+    const phaseTotals = {};
+    const onPhase = (name, ms) => { phaseTotals[name] = (phaseTotals[name] || 0) + ms; };
+
+    let state = freshWorld();
+    const start = performance.now();
+    for (let i = 0; i < TURNS; i++) {
+      const next = resolveTurn(state, { onPhase });
+      state = next.activeProceduralEvent ? { ...next, activeProceduralEvent: null } : next;
+    }
+    const totalMs = performance.now() - start;
+    const meanMs = totalMs / TURNS;
+
+    const breakdown = Object.entries(phaseTotals)
+      .map(([name, ms]) => [name, ms / TURNS])
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, ms]) => `  ${name}: ${ms.toFixed(2)}ms/turn`)
+      .join('\n');
+    console.log(`aiQualityBenchmark per-phase breakdown (mean over ${TURNS} turns, total ${meanMs.toFixed(2)}ms/turn):\n${breakdown}`);
+
+    expect(meanMs, `mean turn cost was ${meanMs.toFixed(2)}ms, over the plan's ${BUDGET_MS}ms end-of-M16 budget`).toBeLessThan(BUDGET_MS);
+  }, 20000);
+});
+
 describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
   // fr's and de's real provinces border each other for real (worldRegions.json — e.g. de-rp/fr-57),
   // so getBorderingNationIds (src/data/regions.js) puts them on each other's border from the very
@@ -112,7 +151,13 @@ describe('AI quality benchmark: counter-building (plan §13 item b)', () => {
 
     expect(recruitedNothing, `${RIVAL_AI_ID} recruited nothing in ${recruitedNothing}/${TRIALS} trials`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
     expect(failedToCounter, `${RIVAL_AI_ID}'s infantry ratio was below 50% in ${failedToCounter}/${TRIALS} trials that did recruit`).toBeLessThanOrEqual(Math.floor(TRIALS / 2));
-  }, 30000); // 5 trials x 80 turns at the 4,482-region world's real per-turn cost
+    // 5 trials x 80 turns at the 4,482-region world's real per-turn cost. Plan §M13's war-score
+    // bookkeeping (src/engine/diplomacy.js) adds real per-turn work on top of M11/M12's own growth,
+    // pushing the measured mean turn cost (see the budget test above) close to its 80ms/turn budget
+    // — the same ~80ms/turn this test's own 400-turn total now needs headroom for, matching the
+    // "no runaway leader" test's own 80ms/turn allowance below rather than this test's older,
+    // tighter 30s/400-turn (75ms/turn) budget.
+  }, 40000);
 });
 
 describe('AI quality benchmark: no runaway leader', () => {

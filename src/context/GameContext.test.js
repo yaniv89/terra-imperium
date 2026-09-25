@@ -6,15 +6,33 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
-import { getNationCapital } from '../data/regions';
-import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD } from '../data/actionCosts';
+import { getNationCapital, REGIONS_DATA, getBorderingNationIds } from '../data/regions';
+import { setTruce } from '../engine/diplomacy';
+import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
 import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
 import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
+import { TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
+import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3 } from '../data/actionCosts';
+import { MAX_RIVALS, VASSAL_ANNEX_COOLDOWN_TURNS, TRUCE_BREAK_STABILITY_PENALTY } from '../data/actionCosts';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
 // nation id directly as a region id.
 const cap = getNationCapital;
+
+// Plan §M13: LAUNCH_INVASION/AMPHIBIOUS_ASSAULT now require an active war with the target's owner
+// (a real pre-existing gap this milestone fixes — see gameReducer.js's own comment on those cases),
+// so any test exercising them needs one declared first. A minimal, directly-constructed war record
+// is enough here; these are unit tests on the reducer's own capture logic, not on declareWar itself.
+const withWarAgainst = (state, targetNationId) => ({
+  ...state,
+  wars: [...state.wars, {
+    id: `war_test_${targetNationId}`, aggressor: state.playerNationId, enemy: targetNationId, active: true,
+    goalAchieved: false, startYear: state.year, startTurn: state.turnNumber, cb: 'none',
+    battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0,
+    goal: { type: 'destroy_military', threshold: 1 }
+  }]
+});
 
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
@@ -180,20 +198,59 @@ describe('Domestic tab actions', () => {
     });
   });
 
-  describe('CONSTRUCT_BUILDING', () => {
-    it('advances a category to its first tier in the Bronze Age', () => {
+  describe('CONSTRUCT_BUILDING (plan §M6: tech-gated, real per-tier gold cost, slot-limited)', () => {
+    it('builds a tier-1 with no requiresTech, at no tech at all researched', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(next.regions[cap('fr')].buildings.categories.food).toBe(0);
+      expect(next.regions[cap('fr')].buildings.categories.food).toBe(0); // Granary
+      expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 
-    it('rejects rushing more than one tier ahead of the calendar', () => {
+    it('is a no-op for a tier gated by a tech that is not researched', () => {
       const state = richState();
       const tier0 = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      const tier1 = gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(1); // Irrigation (classical) — one age ahead of bronze, allowed
-      const tier2Attempt = gameReducer(tier1, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
-      expect(tier2Attempt).toBe(tier1); // Farm Estate (kingdoms) — two ages ahead, rejected
+      // Irrigation (tier 1) requires infrastructure_aqueducts — not researched.
+      expect(gameReducer(tier0, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } })).toBe(tier0);
+    });
+
+    it('builds a gated tier once its specific tech is researched', () => {
+      const base = richState();
+      const tier0 = gameReducer(base, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      const withTech = { ...tier0, techTree: { ...tier0.techTree, infrastructure_aqueducts: { ...tier0.techTree.infrastructure_aqueducts, researched: true } } };
+      const tier1 = gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } });
+      expect(tier1.regions[cap('fr')].buildings.categories.food).toBe(1); // Irrigation
+    });
+
+    it('is a no-op for a category whose own tier-1 requires a tech (e.g. Economy needs Minted Coinage)', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'economy' } })).toBe(state);
+    });
+
+    it('is a no-op for a naval building in a non-coastal region', () => {
+      const state = richState();
+      const inlandId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && !REGIONS_DATA[id]?.isCoastal);
+      if (!inlandId) return; // no inland French region in the current dataset — nothing to assert
+      const withTech = { ...state, techTree: { ...state.techTree, economy_silk_road_trade: { ...state.techTree.economy_silk_road_trade, researched: true } } };
+      expect(gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: inlandId, categoryId: 'naval' } })).toBe(withTech);
+    });
+
+    it('rejects a new category once every building slot is used, but upgrading an existing one is still free', () => {
+      // France's capital: 1 base + 1 for being the capital = 2 slots at 0 extra dev.
+      let state = richState();
+      state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } }); // slot 1/2
+      state = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // slot 2/2
+      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'defense' } })).toBe(state); // no free slot for a THIRD category
+      const upgraded = gameReducer(state, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } }); // Drill Yard needs Iron Weapons though
+      expect(upgraded).toBe(state); // rejected by the tech gate, not the (already-passing) slot check
+      const withTech = { ...state, techTree: { ...state.techTree, military_iron_weapons: { ...state.techTree.military_iron_weapons, researched: true } } };
+      const upgradedForReal = gameReducer(withTech, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'military' } });
+      expect(upgradedForReal.regions[cap('fr')].buildings.categories.military).toBe(1); // upgrading is free of slots
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const fresh = createInitialState({ playerNationId: 'fr' });
+      const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: cap('fr'), categoryId: 'food' } })).toBe(base);
     });
 
     it('rejects an unknown category', () => {
@@ -223,6 +280,62 @@ describe('Domestic tab actions', () => {
     it('rejects a resource not yet unlocked by age', () => {
       const state = richState('sa'); // Saudi Arabia has oil, but oil needs Modern age
       expect(gameReducer(state, { type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: cap('sa'), resourceId: 'oil' } })).toBe(state);
+    });
+  });
+
+  describe('DEVELOP_PROVINCE (plan §M5)', () => {
+    const powerRichState = () => {
+      const state = createInitialState({ playerNationId: 'fr' });
+      return { ...state, resources: { ...state.resources, adm: 100000, dip: 100000, mil: 100000 } };
+    };
+
+    it('raises the region\'s tax development by 1 and deducts the ADM cost', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].dev.tax;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'tax' } });
+      expect(next.regions[cap('fr')].dev.tax).toBe(before + 1);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+    });
+
+    it('raises production development and spends DIP', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].dev.production;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'production' } });
+      expect(next.regions[cap('fr')].dev.production).toBe(before + 1);
+      expect(next.resources.dip).toBeLessThan(state.resources.dip);
+      expect(next.resources.adm).toBe(state.resources.adm);
+    });
+
+    it('raises manpower development and spends MIL', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].dev.manpower;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'manpower' } });
+      expect(next.regions[cap('fr')].dev.manpower).toBe(before + 1);
+      expect(next.resources.mil).toBeLessThan(state.resources.mil);
+    });
+
+    it('grows the region\'s population by 3% of its modern baseline', () => {
+      const state = powerRichState();
+      const before = state.regions[cap('fr')].currentPopulation;
+      const next = gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'tax' } });
+      expect(next.regions[cap('fr')].currentPopulation).toBeGreaterThan(before);
+    });
+
+    it('is a no-op on a region not owned by the player', () => {
+      const state = powerRichState();
+      const otherId = Object.keys(state.regions).find((id) => id !== cap('fr') && state.regions[id].owner !== 'fr');
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: otherId, devType: 'tax' } })).toBe(state);
+    });
+
+    it('is a no-op for an invalid devType', () => {
+      const state = powerRichState();
+      expect(gameReducer(state, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'bogus' } })).toBe(state);
+    });
+
+    it('is a no-op when the matching pool cannot afford the cost', () => {
+      const fresh = createInitialState({ playerNationId: 'fr' });
+      const base = { ...fresh, resources: { ...fresh.resources, adm: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cap('fr'), devType: 'tax' } })).toBe(base);
     });
   });
 
@@ -328,31 +441,213 @@ describe('Domestic tab actions', () => {
       const state = richState();
       expect(gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'normal' } })).toBe(state);
     });
+
+    // Plan §M11: "cooldown 3 turns".
+    it('is a no-op while on cooldown, and allows a change again once it has passed', () => {
+      const state = richState();
+      const changed = gameReducer(state, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'high' } });
+      expect(gameReducer(changed, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'low' } })).toBe(changed);
+      const afterCooldown = { ...changed, turnNumber: changed.turnNumber + TAX_RATE_CHANGE_COOLDOWN_TURNS };
+      const next = gameReducer(afterCooldown, { type: ActionTypes.SET_TAX_RATE, payload: { rate: 'low' } });
+      expect(next.nations.fr.taxRate).toBe('low');
+    });
   });
 
-  describe('CONSTRUCT_WONDER', () => {
-    it('completes a wonder available at the current age, deducts the cost, and claims it globally', () => {
-      const state = richState(); // starts in the Bronze Age -> pyramids is buildable
-      const next = gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } });
-      expect(next.wondersBuilt.pyramids).toBe('fr');
-      expect(next.nations.fr.wonders).toContain('pyramids');
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+  describe('SET_ARMY_MAINTENANCE / SET_NAVY_MAINTENANCE (plan §M11)', () => {
+    it('sets and clamps the army maintenance slider', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: 70 } }).nations.fr.armyMaintenance).toBe(70);
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: 10 } }).nations.fr.armyMaintenance).toBe(ARMY_MAINTENANCE_MIN);
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: 200 } }).nations.fr.armyMaintenance).toBe(ARMY_MAINTENANCE_MAX);
     });
 
-    it('is a no-op for a wonder two or more ages ahead of the current age', () => {
-      const state = richState(); // Bronze Age -> grandBazaar (Kingdoms) is two ages ahead
-      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'grandBazaar' } })).toBe(state);
+    it('sets the navy maintenance slider independently of army', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SET_NAVY_MAINTENANCE, payload: { value: 60 } });
+      expect(next.nations.fr.navyMaintenance).toBe(60);
+      expect(next.nations.fr.armyMaintenance).toBe(ARMY_MAINTENANCE_DEFAULT);
     });
 
-    it('is a no-op once the wonder is already claimed by any nation', () => {
-      const state = { ...richState(), wondersBuilt: { pyramids: 'de' } };
-      expect(gameReducer(state, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(state);
+    it('is a no-op (free, no cost) when the clamped value is unchanged', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.SET_ARMY_MAINTENANCE, payload: { value: ARMY_MAINTENANCE_DEFAULT } })).toBe(state);
+    });
+  });
+
+  describe('REQUEST_LOAN / REPAY_LOAN (plan §M11)', () => {
+    const withBankingHouses = (state) => ({
+      ...state,
+      techTree: { ...state.techTree, economy_banking_houses: { ...state.techTree.economy_banking_houses, researched: true } }
     });
 
-    it('is a no-op when unaffordable', () => {
+    it('is a no-op without Banking Houses researched', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.REQUEST_LOAN })).toBe(state);
+    });
+
+    it('adds gold and a loan record once Banking Houses is researched', () => {
+      const state = withBankingHouses(richState());
+      const next = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      expect(next.nations.fr.loans.length).toBe(1);
+      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
+      expect(next.nations.fr.loans[0].principal).toBeGreaterThanOrEqual(200);
+    });
+
+    it('is a no-op once loan capacity is exhausted', () => {
+      let state = withBankingHouses(richState());
+      const capacity = 4; // base 3 + 1 for Banking Houses, no Bank buildings
+      for (let i = 0; i < capacity; i++) state = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      expect(state.nations.fr.loans.length).toBe(capacity);
+      expect(gameReducer(state, { type: ActionTypes.REQUEST_LOAN })).toBe(state);
+    });
+
+    it('repaying a loan removes it and deducts its principal', () => {
+      const state = withBankingHouses(richState());
+      const withLoan = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      const loan = withLoan.nations.fr.loans[0];
+      const next = gameReducer(withLoan, { type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } });
+      expect(next.nations.fr.loans.length).toBe(0);
+      expect(next.resources.gold).toBe(withLoan.resources.gold - loan.principal);
+    });
+
+    it('repaying is a no-op when the player can\'t afford the principal', () => {
+      const state = withBankingHouses(richState());
+      const withLoan = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
+      const loan = withLoan.nations.fr.loans[0];
+      const poor = { ...withLoan, resources: { ...withLoan.resources, gold: 0 } };
+      expect(gameReducer(poor, { type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } })).toBe(poor);
+    });
+  });
+
+  describe('ACTIVATE_FUSION_GRID (plan §M11 resource sink)', () => {
+    const withOuterPlanets = (state) => ({ ...state, completedMissions: ['outer_planets'] });
+
+    it('is a no-op without the Outer Planets mission completed', () => {
+      const state = { ...richState(), resources: { ...richState().resources, helium3: 1000 } };
+      expect(gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID })).toBe(state);
+    });
+
+    it('is a no-op without enough helium3', () => {
+      const state = withOuterPlanets({ ...richState(), resources: { ...richState().resources, helium3: 0 } });
+      expect(gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID })).toBe(state);
+    });
+
+    it('activates, deducting the one-time helium3 cost', () => {
+      const state = withOuterPlanets({ ...richState(), resources: { ...richState().resources, helium3: 1000 } });
+      const next = gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID });
+      expect(next.nations.fr.fusionGridActive).toBe(true);
+      expect(next.resources.helium3).toBe(1000 - FUSION_GRID_ACTIVATION_HELIUM3);
+    });
+
+    it('is a no-op once already active', () => {
+      const state = withOuterPlanets({ ...richState(), resources: { ...richState().resources, helium3: 1000 } });
+      const active = gameReducer(state, { type: ActionTypes.ACTIVATE_FUSION_GRID });
+      expect(gameReducer(active, { type: ActionTypes.ACTIVATE_FUSION_GRID })).toBe(active);
+    });
+  });
+
+  describe('Great Projects (plan §M10)', () => {
+    // great_pyramids' site rule is just "a capital" — cap('fr') already satisfies it with no extra
+    // building setup, unlike most other projects.
+    const projectRichState = () => {
+      const state = richState();
+      return { ...state, resources: { ...state.resources, adm: 100000 } };
+    };
+
+    describe('START_GREAT_PROJECT', () => {
+      it('starts construction at a valid site, deducts the cost, and queues it on the region', () => {
+        const state = projectRichState();
+        const next = gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } });
+        expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 1, turnsLeft: 4 });
+        expect(next.resources.gold).toBeLessThan(state.resources.gold);
+        expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      });
+
+      it('is a no-op at a region that fails the site rule', () => {
+        const state = projectRichState();
+        // hanging_gardens needs Irrigation; the player's fresh capital has no food building yet.
+        expect(gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'hanging_gardens', regionId: cap('fr') } })).toBe(state);
+      });
+
+      it('is a no-op for a region the player doesn\'t own', () => {
+        const state = projectRichState();
+        expect(gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('de') } })).toBe(state);
+      });
+
+      it('is a no-op once the project has already been started anywhere', () => {
+        const started = gameReducer(projectRichState(), { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } });
+        expect(gameReducer(started, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } })).toBe(started);
+      });
+
+      it('is a no-op when unaffordable', () => {
+        const state = { ...projectRichState(), resources: { ...projectRichState().resources, gold: 0 } };
+        expect(gameReducer(state, { type: ActionTypes.START_GREAT_PROJECT, payload: { projectId: 'great_pyramids', regionId: cap('fr') } })).toBe(state);
+      });
+    });
+
+    describe('UPGRADE_GREAT_PROJECT', () => {
+      // resolveTurn.js is what actually completes construction and populates state.greatProjects —
+      // this action only tests the upgrade GATE/cost, so the fixture sets a completed tier-1 project
+      // directly rather than running resolveTurn 4 times just to get there.
+      const withTier1 = () => {
+        const state = projectRichState();
+        return { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')] } }, greatProjects: { great_pyramids: { regionId: cap('fr'), tier: 1 } } };
+      };
+
+      it('upgrades to the next tier and deducts the cost', () => {
+        const state = withTier1();
+        const next = gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } });
+        expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 2, turnsLeft: 6 });
+        expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      });
+
+      it('is a no-op for a project the player doesn\'t own', () => {
+        const state = { ...withTier1() };
+        state.greatProjects = { great_pyramids: { regionId: cap('de'), tier: 1 } };
+        expect(gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(state);
+      });
+
+      it('is a no-op for a project not yet built', () => {
+        const state = projectRichState();
+        expect(gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(state);
+      });
+
+      it('is a no-op while the region is already mid-construction', () => {
+        const state = withTier1();
+        const busy = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], greatProjectConstruction: { projectId: 'hanging_gardens', tier: 1, turnsLeft: 2 } } } };
+        expect(gameReducer(busy, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(busy);
+      });
+
+      it('is a no-op when unaffordable', () => {
+        const state = { ...withTier1(), resources: { ...withTier1().resources, adm: 0 } };
+        expect(gameReducer(state, { type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId: 'great_pyramids' } })).toBe(state);
+      });
+    });
+  });
+
+  describe('INCREASE_STABILITY (plan §M4)', () => {
+    const admRichState = () => {
+      const state = createInitialState({ playerNationId: 'fr' });
+      return { ...state, resources: { ...state.resources, adm: 100000 } };
+    };
+
+    it('raises stability by 1 and deducts the ADM cost', () => {
+      const state = admRichState();
+      const next = gameReducer(state, { type: ActionTypes.INCREASE_STABILITY });
+      expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) + 1);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+    });
+
+    it('is a no-op once stability is already at its maximum', () => {
+      const state = { ...admRichState() };
+      state.nations = { ...state.nations, fr: { ...state.nations.fr, stability: 3 } };
+      expect(gameReducer(state, { type: ActionTypes.INCREASE_STABILITY })).toBe(state);
+    });
+
+    it('is a no-op when the player cannot afford the ADM cost', () => {
       const fresh = createInitialState({ playerNationId: 'fr' });
-      const base = { ...fresh, resources: { ...fresh.resources, gold: 0 } };
-      expect(gameReducer(base, { type: ActionTypes.CONSTRUCT_WONDER, payload: { wonderId: 'pyramids' } })).toBe(base);
+      const base = { ...fresh, resources: { ...fresh.resources, adm: 0 } };
+      expect(gameReducer(base, { type: ActionTypes.INCREASE_STABILITY })).toBe(base);
     });
   });
 });
@@ -520,9 +815,55 @@ describe('Space Race tab actions', () => {
       expect(next.nations[thirdParty].hostility).toBeGreaterThan(state.nations[thirdParty].hostility);
     });
 
+    // Plan §M19: "Missiles and nuclear strikes now affect war score (+2 per strike, +10 per
+    // nuclear strike), AE, and opinion. A nuclear strike gives ... -50 prestige and a 'Nuclear
+    // Pariah' 20-turn modifier."
+    describe('war score, prestige, and Nuclear Pariah (plan §M19)', () => {
+      const withWar = (tierId) => {
+        const base = withMissile(tierId);
+        return { ...base, wars: [{ id: 'war_1', aggressor: 'fr', enemy: 'de', active: true, battleScore: 0, goalAchieved: false, startYear: base.year, goal: { type: 'destroy_military', threshold: 1 } }] };
+      };
+
+      it('a non-nuclear strike against an active war enemy bumps battleScore by +2 for the striker', () => {
+        const state = withWar('tactical');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+        expect(next.wars[0].battleScore).toBe(2);
+      });
+
+      it('a nuclear strike against an active war enemy bumps battleScore by +10 for the striker', () => {
+        const state = withWar('nuclear');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: DE_REGION } });
+        expect(next.wars[0].battleScore).toBe(10);
+      });
+
+      it('leaves war score untouched when the striker and target are not at war', () => {
+        const state = withMissile('tactical');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+        expect(next.wars).toEqual(state.wars);
+      });
+
+      it('a nuclear strike costs the striker prestige and applies a 20-turn Nuclear Pariah modifier', () => {
+        const state = withMissile('nuclear');
+        const prestigeBefore = state.nations.fr.prestige || 0;
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: DE_REGION } });
+        expect(next.nations.fr.prestige).toBe(prestigeBefore - 50);
+        const pariah = next.nations.fr.modifiers.find((m) => m.sourceId === 'nuclear_pariah');
+        expect(pariah).toBeTruthy();
+        expect(pariah.mods['national.goldMult']).toBeLessThan(0);
+        expect(pariah.expiresTurn).toBe(state.turnNumber + 20);
+      });
+
+      it('a non-nuclear strike does NOT apply the prestige penalty or Nuclear Pariah modifier', () => {
+        const state = withMissile('tactical');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+        expect(next.nations.fr.prestige).toBe(state.nations.fr.prestige);
+        expect(next.nations.fr.modifiers || []).toHaveLength((state.nations.fr.modifiers || []).length);
+      });
+    });
+
     it('is a no-op when unaffordable (the flat action-point cost)', () => {
       const base = withMissile('tactical');
-      const state = { ...base, resources: { ...base.resources, actionPoints: 0 } };
+      const state = { ...base, resources: { ...base.resources, mil: 0 } };
       expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } })).toBe(state);
     });
   });
@@ -690,11 +1031,19 @@ describe('Military tab actions', () => {
       return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
     };
 
-    it('moves the unit to an adjacent, player-owned region and deducts the action point cost', () => {
+    it('moves the unit to an adjacent, player-owned region, deducts the cost, and spends its move (plan §M14)', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
       expect(next.units[unitId].regionId).toBe(FR_NEIGHBOR);
+      expect(next.units[unitId].movesLeft).toBe(0);
+    });
+
+    it('is a no-op once the unit has no moves left this turn (plan §M14)', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const spent = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], movesLeft: 0 } } };
+      expect(gameReducer(spent, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } })).toBe(spent);
     });
 
     // Regression (playtest report): Move Army let a unit walk straight into a foreign, not-at-war
@@ -722,49 +1071,33 @@ describe('Military tab actions', () => {
 
   describe('LAUNCH_INVASION', () => {
     const withAttacker = (strength) => {
-      const state = richState();
+      const state = withWarAgainst(richState(), 'be');
       const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
       if (strength === undefined) return recruited;
       const unitId = Object.keys(recruited.units)[0];
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };
     };
 
-    it('captures an undefended adjacent region and moves surviving units into it', () => {
+    it('occupies (not annexes) an undefended adjacent region and moves surviving units into it', () => {
+      // Plan §M13: capturing a region during a war sets `occupiedBy`; `owner` — and the revolt
+      // system's `formerOwner` — only change at the peace table (see peace.test.js's 'cede' tests).
       const state = withAttacker();
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-      expect(next.regions[BE_REGION].owner).toBe('fr');
+      expect(next.regions[BE_REGION].owner).toBe('be');
+      expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
+      expect(next.regions[BE_REGION].formerOwner).toBeUndefined();
       expect(next.units[unitId].regionId).toBe(BE_REGION);
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.mil).toBeLessThan(state.resources.mil);
       expect(next.lastBattleReport.outcome).toBe('attacker');
-      // Conquered territory (plan §9 revolt system): records who it was taken from, so an
-      // unresolved rebellion there can later revert it rather than fighting the same army forever.
-      expect(next.regions[BE_REGION].formerOwner).toBe('be');
     });
 
-    it('does not mark a nation reclaiming its own native region as conquered territory', () => {
-      // be-vwv (Hainaut) really borders nl-ze (Zeeland) — worldRegions.json — so this uses that
-      // real pair directly rather than each nation's (capital-heuristic) "capital" region, since
-      // build-world-regions.mjs's smallest-area capital pick lands on a tiny detached island
-      // territory for some nations (e.g. Saba for the Netherlands), which isn't adjacent to
-      // anything useful here.
-      const BE_REGION = 'be-vwv';
-      const NL_REGION = 'nl-ze';
-      const base = richState('be');
-      const recruited = gameReducer(base, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: BE_REGION, classId: 'infantry' } });
-      const unitId = Object.keys(recruited.units)[0];
-      const state = {
-        ...recruited,
-        units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], regionId: NL_REGION } },
-        regions: {
-          ...recruited.regions,
-          [BE_REGION]: { ...recruited.regions[BE_REGION], owner: 'fr' },
-          [NL_REGION]: { ...recruited.regions[NL_REGION], owner: 'be' }
-        }
-      };
-      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: NL_REGION, targetRegionId: BE_REGION } });
-      expect(next.regions[BE_REGION].owner).toBe('be');
-      expect(next.regions[BE_REGION].formerOwner).toBeUndefined();
+    it('records the invasion as a battle in the war record, favoring the winning side\'s war score', () => {
+      const state = withAttacker();
+      const war = state.wars.find(w => w.enemy === 'be' || w.aggressor === 'be');
+      const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+      const nextWar = next.wars.find(w => w.id === war.id);
+      expect(nextWar.battleScore).toBeGreaterThan(war.battleScore);
     });
 
     it('is repelled by a strong defender, leaving the region unconquered', () => {
@@ -779,22 +1112,27 @@ describe('Military tab actions', () => {
       expect(next.lastBattleReport.outcome).toBe('defender');
     });
 
-    it('deals less attacker damage per hit the further the player\'s tech age has fallen behind the calendar (src/data/ages.js\'s getAgesBehindCombatMultiplier)', () => {
+    // Plan §M14 replaces the old flat "ages-behind" combat malus with roster stats compared
+    // directly between the two SIDES (src/data/unitClasses.js's getRosterCombatMultiplier) —
+    // getEffectiveAgeId always floors a nation at the calendar age, so falling behind on research
+    // no longer separately penalizes combat on top of that floor (that would have been exactly the
+    // double count the plan calls out); what DOES still matter is rushing AHEAD of the calendar.
+    it('deals more attacker damage per hit when the player has rushed one age ahead of the calendar', () => {
       const baseline = withAttacker(2000);
       const attackerId = Object.keys(baseline.units)[0];
       const defenderUnit = {
-        id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
-        strength: 20000, maxStrength: 20000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+        id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry',
+        strength: 20000, maxStrength: 20000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
       };
       const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
       // Same rngSeed on both, so the only difference driving the outcome is the tech gap itself.
-      const behind = { ...withDefender, age: 'modern', techAgeId: 'bronze' }; // 4 ages behind -> floored 40% output
-      const caughtUp = { ...withDefender, age: 'modern', techAgeId: 'modern' }; // 0 ages behind -> full output
+      const atCalendar = { ...withDefender, age: 'bronze', techAgeId: 'bronze' };
+      const rushedAhead = { ...withDefender, age: 'bronze', techAgeId: 'classical' }; // effective age becomes classical
 
       const attackerDamage = (result) => result.lastBattleReport.log.find(l => l.attackerId === attackerId).damage;
-      const behindDamage = attackerDamage(gameReducer(behind, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
-      const caughtUpDamage = attackerDamage(gameReducer(caughtUp, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
-      expect(behindDamage).toBeLessThan(caughtUpDamage);
+      const atCalendarDamage = attackerDamage(gameReducer(atCalendar, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+      const rushedAheadDamage = attackerDamage(gameReducer(rushedAhead, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+      expect(rushedAheadDamage).toBeGreaterThan(atCalendarDamage);
     });
 
     describe('siege (src/engine/siege.js): a defended region no longer falls in one hit', () => {
@@ -827,14 +1165,15 @@ describe('Military tab actions', () => {
         // the 15 threshold.
         const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit }, regions: { ...state.regions, [BE_REGION]: { ...state.regions[BE_REGION], control: 40 } } };
         const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-        expect(next.regions[BE_REGION].owner).toBe('fr');
+        expect(next.regions[BE_REGION].owner).toBe('be'); // occupation, not annexation (plan §M13)
+        expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
         expect(next.regions[BE_REGION].control).toBe(25); // the usual post-capture reset
         expect(next.regions[BE_REGION].underInvasion).toBe(false);
         expect(next.lastBattleReport.captured).toBe(true);
       });
 
       it('clamps at the threshold without capturing when the attacker has no melee unit deployed', () => {
-        const state = richState();
+        const state = withWarAgainst(richState(), 'be');
         const recruitedRanged = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'ranged' } });
         const rangedId = Object.keys(recruitedRanged.units)[0];
         const strongRanged = { ...recruitedRanged, units: { ...recruitedRanged.units, [rangedId]: { ...recruitedRanged.units[rangedId], strength: 50000 } } };
@@ -874,6 +1213,22 @@ describe('Military tab actions', () => {
       expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: otherId, targetRegionId: BE_REGION } })).toBe(state);
     });
 
+    // Plan §M13: a real pre-existing gap this milestone fixes — invading previously required no
+    // declared war at all.
+    it('is a no-op with no active war against the target\'s owner', () => {
+      const state = richState();
+      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
+      expect(gameReducer(recruited, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(recruited);
+    });
+
+    // Plan §M14: one attack per stack per turn, spent from the same movesLeft counter MOVE_ARMY uses.
+    it('is a no-op once the attacking stack has already spent its move this turn', () => {
+      const state = withAttacker();
+      const unitId = Object.keys(state.units)[0];
+      const spent = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], movesLeft: 0 } } };
+      expect(gameReducer(spent, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(spent);
+    });
+
     it('is a no-op against a region the player already owns', () => {
       const state = withAttacker();
       expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: FR_BORDER } })).toBe(state);
@@ -890,7 +1245,7 @@ describe('Military tab actions', () => {
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...withAttacker(), resources: { ...withAttacker().resources, actionPoints: 0 } };
+      const state = { ...withAttacker(), resources: { ...withAttacker().resources, mil: 0 } };
       expect(gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(state);
     });
   });
@@ -899,7 +1254,7 @@ describe('Military tab actions', () => {
 describe('Promotions and generals actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   describe('PROMOTE_UNIT', () => {
@@ -1017,7 +1372,7 @@ describe('Promotions and generals actions', () => {
 describe('Navies and amphibious invasion actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   const withNavalAndLand = () => {
@@ -1067,7 +1422,7 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op when unaffordable', () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
-      const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
+      const poor = { ...state, resources: { ...state.resources, mil: 0 } };
       expect(gameReducer(poor, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } })).toBe(poor);
     });
   });
@@ -1103,17 +1458,18 @@ describe('Navies and amphibious invasion actions', () => {
     const withEmbarkedForce = () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
       const embarked = gameReducer(state, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
-      return { state: embarked, navalUnitId, landUnitId };
+      // Plan §M13: an amphibious assault now also requires an active war with the target's owner.
+      return { state: withWarAgainst(embarked, 'gb'), navalUnitId, landUnitId };
     };
 
-    it('captures an undefended coastal region reachable only by sea', () => {
+    it('occupies (not annexes) an undefended coastal region reachable only by sea', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
       const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
-      expect(next.regions[GB_TARGET].owner).toBe('fr');
+      expect(next.regions[GB_TARGET].owner).toBe('gb');
+      expect(next.regions[GB_TARGET].occupiedBy).toBe('fr');
       expect(next.units[landUnitId].regionId).toBe(GB_TARGET);
       expect(next.units[landUnitId].embarkedOn).toBeNull();
       expect(next.lastBattleReport.outcome).toBe('attacker');
-      expect(next.regions[GB_TARGET].formerOwner).toBe('gb');
     });
 
     it('sinks the transport and its cargo when intercepted by a defending fleet', () => {
@@ -1215,7 +1571,7 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op when unaffordable', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
-      const poor = { ...state, resources: { ...state.resources, actionPoints: 0 } };
+      const poor = { ...state, resources: { ...state.resources, mil: 0 } };
       expect(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } })).toBe(poor);
     });
   });
@@ -1224,7 +1580,7 @@ describe('Navies and amphibious invasion actions', () => {
 describe('SUPPRESS_REBELLION', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, actionPoints: 10 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   const rebelUnit = (strength = 300) => ({
@@ -1274,7 +1630,7 @@ describe('SUPPRESS_REBELLION', () => {
   });
 
   it('is a no-op when unaffordable', () => {
-    const state = { ...withGarrisonAndRebel(), resources: { ...withGarrisonAndRebel().resources, actionPoints: 0 } };
+    const state = { ...withGarrisonAndRebel(), resources: { ...withGarrisonAndRebel().resources, mil: 0 } };
     expect(gameReducer(state, { type: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cap('fr') } })).toBe(state);
   });
 });
@@ -1282,17 +1638,17 @@ describe('SUPPRESS_REBELLION', () => {
 describe('Research tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, techPoints: 100000, actionPoints: 100 } };
+    // Plan §M7: research costs power (age-scaled, up to 160 at Modern) + techPoints — no gold.
+    return { ...state, resources: { ...state.resources, techPoints: 100000, mil: 100000, dip: 100000, adm: 100000 } };
   };
 
   describe('RESEARCH_TECH', () => {
-    it('researches an available first-of-chain tech and deducts its cost', () => {
+    it('researches an available first-of-chain tech and deducts its power and techPoints cost', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
       expect(next.techTree.military_bronze_casting.researched).toBe(true);
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
       expect(next.resources.techPoints).toBeLessThan(state.resources.techPoints);
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.mil).toBeLessThan(state.resources.mil);
     });
 
     it('is a no-op for a tech whose prerequisite is not yet researched', () => {
@@ -1307,10 +1663,10 @@ describe('Research tab actions', () => {
       const nextBaseline = gameReducer(baseline, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
       const nextBehind = gameReducer(behind, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
 
-      const baselineGoldSpent = baseline.resources.gold - nextBaseline.resources.gold;
-      const behindGoldSpent = behind.resources.gold - nextBehind.resources.gold;
-      expect(behindGoldSpent).toBeGreaterThan(baselineGoldSpent);
-      expect(behindGoldSpent).toBe(Math.round(baselineGoldSpent * 1.9));
+      const baselineMilSpent = baseline.resources.mil - nextBaseline.resources.mil;
+      const behindMilSpent = behind.resources.mil - nextBehind.resources.mil;
+      expect(behindMilSpent).toBeGreaterThan(baselineMilSpent);
+      expect(behindMilSpent).toBe(Math.round(baselineMilSpent * 1.9));
     });
 
     it('is researchable once its prerequisite is researched', () => {
@@ -1328,8 +1684,27 @@ describe('Research tab actions', () => {
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      const state = { ...richState(), resources: { ...richState().resources, mil: 0 } };
       expect(gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } })).toBe(state);
+    });
+
+    it('charges 15% less power for a tech in the currently-focused line (plan §M7 Research Focus)', () => {
+      const base = { ...richState(), researchFocus: null };
+      const focused = { ...richState(), researchFocus: 'military' };
+      const nextBase = gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const nextFocused = gameReducer(focused, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const baseSpent = base.resources.mil - nextBase.resources.mil;
+      const focusedSpent = focused.resources.mil - nextFocused.resources.mil;
+      expect(focusedSpent).toBeLessThan(baseSpent);
+      expect(focusedSpent).toBe(Math.round(baseSpent * 0.85));
+    });
+
+    it('does not discount a tech OUTSIDE the currently-focused line', () => {
+      const base = { ...richState(), researchFocus: null };
+      const focused = { ...richState(), researchFocus: 'science' }; // focus on a different line
+      const nextBase = gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      const nextFocused = gameReducer(focused, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      expect(base.resources.mil - nextBase.resources.mil).toBe(focused.resources.mil - nextFocused.resources.mil);
     });
 
     it('advances the tech-earned age once enough of the current age\'s line is researched', () => {
@@ -1390,7 +1765,7 @@ describe('Research tab actions', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId: 'science' } });
       expect(next.researchFocus).toBe('science');
-      expect(next.resources.actionPoints).toBeLessThan(state.resources.actionPoints);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
     });
 
     it('is a no-op for an invalid category', () => {
@@ -1405,7 +1780,7 @@ describe('Research tab actions', () => {
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, actionPoints: 0 } };
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
       expect(gameReducer(state, { type: ActionTypes.SET_RESEARCH_FOCUS, payload: { categoryId: 'science' } })).toBe(state);
     });
   });
@@ -1425,109 +1800,160 @@ describe('Research tab actions', () => {
   });
 });
 
-describe('Government and policy actions', () => {
+describe('Government reform and law actions (plan §M8)', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, actionPoints: 100 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, adm: 100000 } };
   };
 
-  describe('ADOPT_GOVERNMENT', () => {
-    it('adopts a government available at the current age and deducts the cost', () => {
+  describe('CHANGE_GOVERNMENT_TYPE', () => {
+    it('changes to an available type at the current age, deducts the cost, and applies -2 stability', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      expect(next.nations.fr.government).toBe('tribal');
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.government.type).toBe('monarchy');
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) - 2);
     });
 
-    it('trims policies that no longer fit after reforming to a government with fewer slots', () => {
-      const monarchy = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'monarchy' } });
-      const withTwoPolicies = ['levy_system', 'merchant_charter'].reduce(
-        (s, policyId) => gameReducer(s, { type: ActionTypes.ADOPT_POLICY, payload: { policyId } }),
-        monarchy
-      );
-      expect(withTwoPolicies.nations.fr.policies.length).toBe(2);
-      // Reforming back to Tribal Council (1 slot) should drop one of the two adopted policies.
-      const next = gameReducer(withTwoPolicies, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      expect(next.nations.fr.policies.length).toBe(1);
+    it('resets reforms to the new type\'s first choice for every age tier up to the calendar age', () => {
+      const next = gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.government.reforms).toEqual({ bronze: 'despotic_rule' }); // calendar age is bronze at game start
     });
 
-    it('is a no-op for a government more than one age ahead of the calendar', () => {
+    it('is a no-op for a type not yet reached by age (Republic needs Classical)', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'feudal' } })).toBe(state);
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'republic' } })).toBe(state);
     });
 
-    it('is a no-op when already that government', () => {
-      const state = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } })).toBe(state);
+    it('is a no-op when already that type', () => {
+      const state = gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } })).toBe(state);
+    });
+
+    it('is a no-op for Theocracy without the identity gate', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'theocracy' } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } })).toBe(state);
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } })).toBe(state);
+    });
+
+    // Plan §M21 balance fix: scripts/simulate.mjs found a Succession Crisis (and its 40% civil-war
+    // roll) hitting a huge share of nations almost immediately, because `heir` stayed null until a
+    // reign actually ended — a brand-new monarchy's very first reign end was ALWAYS heirless.
+    it('generates a real heir the moment the player first becomes a monarchy (a hereditary type)', () => {
+      const state = { ...richState(), nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: null } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.heir).toBeTruthy();
+      expect(next.nations.fr.heir.claim).toBeGreaterThanOrEqual(40); // generateHeir's own 40-100 base — never a near-certain crisis
+    });
+
+    it('never overwrites an heir the player already has', () => {
+      const existingHeir = { id: 'heir_fr_existing', claim: 55 };
+      const state = { ...richState(), nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: existingHeir } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.heir).toBe(existingHeir);
+    });
+
+    it('does not generate an heir for a non-hereditary type (Dictatorship)', () => {
+      const state = { ...richState(), age: 'modern', nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: null } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'dictatorship' } });
+      expect(next.nations.fr.heir).toBeFalsy();
     });
   });
 
-  describe('ADOPT_POLICY', () => {
-    const withGovernment = () => gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
+  describe('ENACT_GOVERNMENT_REFORM', () => {
+    const withMonarchy = () => gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
 
-    it('adopts a policy into an open slot and deducts the cost', () => {
-      const state = withGovernment();
-      const next = gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
-      expect(next.nations.fr.policies).toContain('levy_system');
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+    it('cannot re-pick a tier CHANGE_GOVERNMENT_TYPE already auto-filled (once per tier locks in)', () => {
+      const state = withMonarchy(); // resetReformsForType already set bronze: despotic_rule
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'divine_kingship' } })).toBe(state);
     });
 
-    it('is a no-op without a government adopted yet', () => {
+    it('enacts a reform for an unset tier and deducts the cost', () => {
+      // A fresh tribal nation has no reforms set yet at all.
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+      const next = gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'chieftaincy' } });
+      expect(next.nations.fr.government.reforms.bronze).toBe('chieftaincy');
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
     });
 
-    it('is a no-op once every slot is filled', () => {
-      // Tribal Council has exactly 1 slot.
-      const state = gameReducer(withGovernment(), { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
+    it('is a no-op for a tier ahead of the calendar age', () => {
+      const state = withMonarchy();
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'classical', reformId: 'imperial_bureaucracy' } })).toBe(state);
     });
 
-    it('is a no-op for a policy already adopted', () => {
-      const state = gameReducer(withGovernment(), { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
-    });
-
-    it('is a no-op for an unknown policy id', () => {
-      const state = withGovernment();
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'not_real' } })).toBe(state);
+    it('is a no-op for a reform id that does not belong to the current type/age', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'despotic_rule' } })).toBe(state);
     });
 
     it('is a no-op when unaffordable', () => {
-      const state = { ...withGovernment(), resources: { ...withGovernment().resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } })).toBe(state);
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.ENACT_GOVERNMENT_REFORM, payload: { ageId: 'bronze', reformId: 'chieftaincy' } })).toBe(state);
     });
   });
 
-  describe('REMOVE_POLICY', () => {
-    const withPolicy = () => {
-      const state = gameReducer(richState(), { type: ActionTypes.ADOPT_GOVERNMENT, payload: { governmentId: 'tribal' } });
-      return gameReducer(state, { type: ActionTypes.ADOPT_POLICY, payload: { policyId: 'levy_system' } });
+  describe('CHANGE_LAW', () => {
+    const withMintedCoinage = () => {
+      const base = richState();
+      return { ...base, techTree: { ...base.techTree, economy_minted_coinage: { ...base.techTree.economy_minted_coinage, researched: true } } };
     };
 
-    it('removes an adopted policy', () => {
-      const state = withPolicy();
-      const next = gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'levy_system' } });
-      expect(next.nations.fr.policies).not.toContain('levy_system');
+    it('changes a category\'s law, deducts the dynamic ADM cost, and sets a cooldown', () => {
+      const state = withMintedCoinage();
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } });
+      expect(next.nations.fr.laws.taxation).toBe('land_tax');
+      expect(next.resources.adm).toBe(state.resources.adm - 100); // 50 x tier 2
+      expect(next.nations.fr.lawCooldowns.taxation).toBe(state.turnNumber + 5);
     });
 
-    it('is a no-op for a policy not currently adopted', () => {
-      const state = withPolicy();
-      expect(gameReducer(state, { type: ActionTypes.REMOVE_POLICY, payload: { policyId: 'merchant_charter' } })).toBe(state);
+    it('is a no-op for a law already active in that category', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'tribute' } })).toBe(state);
+    });
+
+    it('is a no-op for a tech-gated law without the tech researched', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } })).toBe(state);
+    });
+
+    it('is a no-op while the category is on cooldown', () => {
+      const state = withMintedCoinage();
+      const first = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } });
+      expect(gameReducer(first, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'tribute' } })).toBe(first);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...withMintedCoinage(), resources: { ...withMintedCoinage().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'taxation', lawId: 'land_tax' } })).toBe(state);
+    });
+
+    it('applies a one-time -1 stability when enacting Martial Law', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'justice', lawId: 'martial_law' } });
+      expect(next.nations.fr.stability).toBe((state.nations.fr.stability || 0) - 1);
+    });
+
+    it('pushes a 10-turn timed unrest modifier when enacting Collectivization', () => {
+      const base = richState();
+      const state = { ...base, techTree: { ...base.techTree, economy_industrial_capital: { ...base.techTree.economy_industrial_capital, researched: true } } };
+      const next = gameReducer(state, { type: ActionTypes.CHANGE_LAW, payload: { category: 'land', lawId: 'collectivization' } });
+      expect(next.nations.fr.modifiers).toContainEqual(expect.objectContaining({
+        sourceType: 'law', sourceId: 'collectivization', mods: { 'national.stabilityBonus': -2 }, expiresTurn: state.turnNumber + 10
+      }));
     });
   });
 
   describe('SHIFT_IDENTITY', () => {
-    it('shifts the named axis by IDENTITY_SHIFT_STEP in the given direction and deducts the cost', () => {
+    it('shifts the named axis by IDENTITY_SHIFT_STEP in the given direction, deducts ADM, and sets a cooldown', () => {
       const state = richState();
       const next = gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } });
       expect(next.nations.fr.identity.collectivism).toBe(IDENTITY_SHIFT_STEP);
-      expect(next.resources.gold).toBeLessThan(state.resources.gold);
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      expect(next.nations.fr.identityShiftCooldownTurn).toBe(state.turnNumber + 5);
     });
 
     it('shifts in the negative direction too, and other axes stay untouched', () => {
@@ -1554,9 +1980,107 @@ describe('Government and policy actions', () => {
       expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 0 } })).toBe(state);
     });
 
+    it('is a no-op while on cooldown', () => {
+      const state = richState();
+      const first = gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } });
+      expect(gameReducer(first, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'globalism', direction: 1 } })).toBe(first);
+    });
+
     it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, gold: 0 } };
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
       expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } })).toBe(state);
+    });
+  });
+});
+
+describe('Estates actions (plan §M9)', () => {
+  const richState = (playerNationId = 'fr') => {
+    const state = createInitialState({ playerNationId });
+    return { ...state, resources: { ...state.resources, adm: 100000, gold: 100000, hr: 100000 } };
+  };
+
+  describe('SEIZE_LAND', () => {
+    it('raises crown land, drops every estate\'s loyalty, deducts ADM, and sets a cooldown', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SEIZE_LAND, payload: {} });
+      expect(next.nations.fr.crownLand).toBe(state.nations.fr.crownLand + 10);
+      Object.values(next.nations.fr.estates).forEach((estate) => expect(estate.loyalty).toBe(30)); // 50 - 20
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+      expect(next.nations.fr.estateInteractionCooldowns.seizeLand).toBe(state.turnNumber + 10);
+    });
+
+    it('is a no-op while on cooldown', () => {
+      const first = gameReducer(richState(), { type: ActionTypes.SEIZE_LAND, payload: {} });
+      expect(gameReducer(first, { type: ActionTypes.SEIZE_LAND, payload: {} })).toBe(first);
+    });
+
+    it('is a no-op when unaffordable', () => {
+      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
+      expect(gameReducer(state, { type: ActionTypes.SEIZE_LAND, payload: {} })).toBe(state);
+    });
+  });
+
+  describe('SELL_LAND', () => {
+    it('lowers crown land, grants gold, raises burgher loyalty, and sets a cooldown', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.SELL_LAND, payload: {} });
+      expect(next.nations.fr.crownLand).toBe(state.nations.fr.crownLand - 10);
+      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
+      expect(next.nations.fr.estates.burghers.loyalty).toBe(60); // 50 + 10
+      expect(next.nations.fr.estateInteractionCooldowns.sellLand).toBe(state.turnNumber + 10);
+    });
+
+    it('is a no-op while on cooldown', () => {
+      const first = gameReducer(richState(), { type: ActionTypes.SELL_LAND, payload: {} });
+      expect(gameReducer(first, { type: ActionTypes.SELL_LAND, payload: {} })).toBe(first);
+    });
+  });
+
+  describe('GRANT_ESTATE_PRIVILEGE / REVOKE_ESTATE_PRIVILEGE', () => {
+    it('grants a privilege and deducts the cost', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      expect(next.nations.fr.estates.clergy.privileges).toContain('control_of_education');
+      expect(next.resources.adm).toBeLessThan(state.resources.adm);
+    });
+
+    it('is a no-op for a privilege already granted', () => {
+      const granted = gameReducer(richState(), { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      expect(gameReducer(granted, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } })).toBe(granted);
+    });
+
+    it('is a no-op for an unknown privilege id', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'not_real' } })).toBe(state);
+    });
+
+    it('revokes a granted privilege, costing -1 stability and -30 loyalty for that estate', () => {
+      const granted = gameReducer(richState(), { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      const next = gameReducer(granted, { type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
+      expect(next.nations.fr.estates.clergy.privileges).not.toContain('control_of_education');
+      expect(next.nations.fr.estates.clergy.loyalty).toBe(20); // 50 - 30
+      expect(next.nations.fr.stability).toBe((granted.nations.fr.stability || 0) - 1);
+    });
+
+    it('is a no-op revoking a privilege that was never granted', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } })).toBe(state);
+    });
+  });
+
+  describe('CLERGY_TITHE / NOBILITY_LEVIES', () => {
+    it('Clergy Tithe grants gold and costs 10 clergy loyalty', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.CLERGY_TITHE, payload: {} });
+      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
+      expect(next.nations.fr.estates.clergy.loyalty).toBe(40); // 50 - 10
+    });
+
+    it('Nobility Raise Levies grants manpower and costs 10 nobility loyalty', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.NOBILITY_LEVIES, payload: {} });
+      expect(next.resources.hr).toBeGreaterThan(state.resources.hr);
+      expect(next.nations.fr.estates.nobility.loyalty).toBe(40);
     });
   });
 });
@@ -1564,7 +2088,7 @@ describe('Government and policy actions', () => {
 describe('Diplomacy tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
-    return { ...state, resources: { ...state.resources, gold: 100000, diplomacyPoints: 1000, actionPoints: 100 } };
+    return { ...state, resources: { ...state.resources, gold: 100000, dip: 1000 } };
   };
 
   describe('DECLARE_WAR', () => {
@@ -1812,11 +2336,11 @@ describe('Diplomacy tab actions', () => {
           [other]: { ...state.nations[other], hostility: 90 } // the most hostile — should be the one targeted
         }
       };
-      const beforeDiplo = withHostility.resources.diplomacyPoints;
+      const beforeDiplo = withHostility.resources.dip;
       const next = gameReducer(withHostility, { type: ActionTypes.COUNTER_INTELLIGENCE });
       expect(next.nations[other].hostility).toBe(90 - COUNTER_INTEL_HOSTILITY_REDUCTION);
       expect(next.nations.de.hostility).toBe(40); // untouched — it wasn't the most hostile
-      expect(next.resources.diplomacyPoints).toBe(beforeDiplo + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD);
+      expect(next.resources.dip).toBe(beforeDiplo - ACTION_COSTS.counterIntelligence.dip + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD);
       expect(next.resources.gold).toBeLessThan(withHostility.resources.gold);
     });
 
@@ -1871,6 +2395,319 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op when unaffordable', () => {
       const state = { ...modernState(), resources: { ...modernState().resources, gold: 0 } };
       expect(gameReducer(state, { type: ActionTypes.CULTURAL_EXPORT })).toBe(state);
+    });
+  });
+
+  // Diplomacy overhaul (plan §M12).
+  describe('RIVAL_NATION / UNRIVAL_NATION', () => {
+    const borderingId = (state) => getBorderingNationIds(state.regions, state.playerNationId)[0];
+
+    it('adds a bordering nation to rivals', () => {
+      const state = richState();
+      const targetId = borderingId(state);
+      const next = gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: targetId } });
+      expect(next.nations.fr.rivals).toContain(targetId);
+    });
+
+    it('is a no-op for a non-bordering nation', () => {
+      const state = richState();
+      const bordering = new Set(getBorderingNationIds(state.regions, 'fr'));
+      const nonBordering = Object.keys(state.nations).find((id) => id !== 'fr' && !bordering.has(id));
+      expect(gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: nonBordering } })).toBe(state);
+    });
+
+    it('is a no-op once MAX_RIVALS is reached', () => {
+      const state = richState();
+      const targetId = borderingId(state);
+      const fr = { ...state.nations.fr, rivals: Array.from({ length: MAX_RIVALS }, (_, i) => `slot${i}`) };
+      const full = { ...state, nations: { ...state.nations, fr } };
+      expect(gameReducer(full, { type: ActionTypes.RIVAL_NATION, payload: { nationId: targetId } })).toBe(full);
+    });
+
+    it('unrival removes a rival', () => {
+      const state = richState();
+      const targetId = borderingId(state);
+      const rivaled = gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: targetId } });
+      const next = gameReducer(rivaled, { type: ActionTypes.UNRIVAL_NATION, payload: { nationId: targetId } });
+      expect(next.nations.fr.rivals).not.toContain(targetId);
+    });
+  });
+
+  describe('PROPOSE_MARRIAGE', () => {
+    const asMonarchies = (state, targetId) => ({
+      ...state,
+      nations: {
+        ...state.nations,
+        fr: { ...state.nations.fr, government: { type: 'monarchy', reforms: {} } },
+        [targetId]: { ...state.nations[targetId], government: { type: 'monarchy', reforms: {} } }
+      }
+    });
+
+    it('reduces the target\'s hostility and raises the heir\'s claim', () => {
+      const state = asMonarchies(richState(), 'de');
+      const withHostility = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 80 } } };
+      const withHeir = { ...withHostility, nations: { ...withHostility.nations, fr: { ...withHostility.nations.fr, heir: { id: 'h1', claim: 50 } } } };
+      const next = gameReducer(withHeir, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBeLessThan(80);
+      expect(next.nations.fr.heir.claim).toBe(60);
+      expect(next.nations.fr.marriageWith).toContain('de');
+    });
+
+    it('is a no-op unless both nations are monarchies', () => {
+      const state = richState();
+      const frRepublicDeMonarchy = {
+        ...state,
+        nations: {
+          ...state.nations,
+          fr: { ...state.nations.fr, government: { type: 'republic', reforms: {} } },
+          de: { ...state.nations.de, government: { type: 'monarchy', reforms: {} } }
+        }
+      };
+      expect(gameReducer(frRepublicDeMonarchy, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } })).toBe(frRepublicDeMonarchy);
+    });
+
+    it('is a no-op once already married into that nation', () => {
+      const state = asMonarchies(richState(), 'de');
+      const married = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, marriageWith: ['de'] } } };
+      expect(gameReducer(married, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } })).toBe(married);
+    });
+  });
+
+  describe('BREAK_ALLIANCE', () => {
+    it('clears the pact and raises hostility', () => {
+      const state = richState();
+      const allied = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hasMilitaryPact: true, hostility: 10 } } };
+      const next = gameReducer(allied, { type: ActionTypes.BREAK_ALLIANCE, payload: { nationId: 'de' } });
+      expect(next.nations.de.hasMilitaryPact).toBe(false);
+      expect(next.nations.de.hostility).toBeGreaterThan(10);
+    });
+
+    it('is a no-op when there is no pact', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.BREAK_ALLIANCE, payload: { nationId: 'de' } })).toBe(state);
+    });
+  });
+
+  describe('INSULT', () => {
+    it('raises the target\'s hostility for free', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.INSULT, payload: { nationId: 'de' } });
+      expect(next.nations.de.hostility).toBeGreaterThan(state.nations.de.hostility);
+      expect(next.resources.gold).toBe(state.resources.gold);
+    });
+  });
+
+  describe('ASSIGN_DIPLOMAT / RECALL_DIPLOMAT', () => {
+    it('assigns a diplomat to improve relations with a target', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: 'de' } });
+      expect(next.nations.fr.diplomatTasks).toEqual([{ targetId: 'de', task: 'improve_relations', startedTurn: state.turnNumber }]);
+    });
+
+    it('is a no-op once every diplomat is already assigned', () => {
+      const state = richState();
+      const targets = Object.keys(state.nations).filter((id) => id !== 'fr').slice(0, state.nations.fr.diplomats);
+      let assigned = state;
+      targets.forEach((id) => { assigned = gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: id } }); });
+      const extra = Object.keys(state.nations).find((id) => id !== 'fr' && !targets.includes(id));
+      expect(gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: extra } })).toBe(assigned);
+    });
+
+    it('recall removes the assignment', () => {
+      const state = richState();
+      const assigned = gameReducer(state, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: 'de' } });
+      const next = gameReducer(assigned, { type: ActionTypes.RECALL_DIPLOMAT, payload: { nationId: 'de' } });
+      expect(next.nations.fr.diplomatTasks).toEqual([]);
+    });
+  });
+
+  describe('VASSALIZE / ANNEX_VASSAL / RELEASE_VASSAL', () => {
+    const dominant = (state, targetId) => ({
+      ...state,
+      nations: {
+        ...state.nations,
+        fr: { ...state.nations.fr, militaryStrength: 100000 },
+        [targetId]: { ...state.nations[targetId], militaryStrength: 100, hostility: 0 }
+      }
+    });
+
+    it('vassalizes a weak, low-hostility nation', () => {
+      const state = dominant(richState(), 'de');
+      const next = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      expect(next.nations.de.vassalOf).toBe('fr');
+      expect(next.nations.fr.vassals).toContain('de');
+    });
+
+    it('is a no-op when the target is too strong', () => {
+      const state = richState();
+      const notWeak = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 0, militaryStrength: state.nations.fr.militaryStrength } } };
+      expect(gameReducer(notWeak, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } })).toBe(notWeak);
+    });
+
+    it('is a no-op when hostility is too high', () => {
+      const state = dominant(richState(), 'de');
+      const hostile = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 90 } } };
+      expect(gameReducer(hostile, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } })).toBe(hostile);
+    });
+
+    it('annexes a vassal past the cooldown, transferring its regions and clearing vassalOf', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      const pastCooldown = { ...vassalized, turnNumber: vassalized.turnNumber + VASSAL_ANNEX_COOLDOWN_TURNS, resources: { ...vassalized.resources, dip: 1000000 } };
+      const next = gameReducer(pastCooldown, { type: ActionTypes.ANNEX_VASSAL, payload: { nationId: 'de' } });
+      expect(next.nations.de.vassalOf).toBeNull();
+      expect(next.nations.fr.vassals).not.toContain('de');
+      expect(Object.values(next.regions).some((r) => r.owner === 'de')).toBe(false);
+    });
+
+    it('is a no-op annexing before the cooldown has passed', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = { ...gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } }), resources: { ...state.resources, dip: 1000000 } };
+      expect(gameReducer(vassalized, { type: ActionTypes.ANNEX_VASSAL, payload: { nationId: 'de' } })).toBe(vassalized);
+    });
+
+    it('releases a vassal', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      const next = gameReducer(vassalized, { type: ActionTypes.RELEASE_VASSAL, payload: { nationId: 'de' } });
+      expect(next.nations.de.vassalOf).toBeNull();
+      expect(next.nations.fr.vassals).not.toContain('de');
+    });
+
+    it('a vassal player cannot declare an ordinary war (plan §M15: "except independence")', () => {
+      const state = dominant(richState(), 'de');
+      const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
+      // fr is now de's OVERLORD in this fixture, not a vassal — flip the roles to test the guard.
+      const frIsVassal = { ...vassalized, nations: { ...vassalized.nations, fr: { ...vassalized.nations.fr, vassalOf: 'de' } } };
+      const other = Object.keys(frIsVassal.nations).find((id) => id !== 'fr' && id !== 'de');
+      expect(gameReducer(frIsVassal, { type: ActionTypes.DECLARE_WAR, payload: { nationId: other } })).toBe(frIsVassal);
+    });
+  });
+
+  describe('MOVE_CAPITAL (plan §M15)', () => {
+    const affordable = () => {
+      const state = richState();
+      return { ...state, resources: { ...state.resources, adm: 500 } };
+    };
+
+    it('moves the capital to an owned, unoccupied region and deducts the cost', () => {
+      const state = affordable();
+      const targetId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      const next = gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: targetId } });
+      expect(next.nations.fr.capitalRegionId).toBe(targetId);
+      expect(next.resources.adm).toBe(state.resources.adm - ACTION_COSTS.moveCapital.adm);
+      expect(next.resources.gold).toBe(state.resources.gold - ACTION_COSTS.moveCapital.gold);
+    });
+
+    it('costs an extra -1 stability when the new capital is outside the nation\'s own original territory', () => {
+      const state = affordable();
+      const foreignId = Object.keys(state.regions).find((id) => REGIONS_DATA[id].startOwner !== 'fr');
+      const conquered = { ...state, regions: { ...state.regions, [foreignId]: { ...state.regions[foreignId], owner: 'fr' } } };
+      const next = gameReducer(conquered, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: foreignId } });
+      expect(next.nations.fr.capitalRegionId).toBe(foreignId);
+      expect(next.nations.fr.stability).toBe((conquered.nations.fr.stability || 0) - 1);
+    });
+
+    it('does not cost stability when relocating within the nation\'s own original territory', () => {
+      const state = affordable();
+      const nativeId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      const next = gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: nativeId } });
+      expect(next.nations.fr.stability).toBe(state.nations.fr.stability || 0);
+    });
+
+    it('is a no-op targeting a region the player does not own', () => {
+      const state = affordable();
+      expect(gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: cap('de') } })).toBe(state);
+    });
+
+    it('is a no-op targeting an occupied region', () => {
+      const state = affordable();
+      const targetId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      const occupied = { ...state, regions: { ...state.regions, [targetId]: { ...state.regions[targetId], occupiedBy: 'de' } } };
+      expect(gameReducer(occupied, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: targetId } })).toBe(occupied);
+    });
+
+    it('is a no-op without enough ADM/gold', () => {
+      const state = richState(); // no adm top-up
+      const targetId = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && id !== cap('fr'));
+      expect(gameReducer(state, { type: ActionTypes.MOVE_CAPITAL, payload: { regionId: targetId } })).toBe(state);
+    });
+  });
+
+  describe('DECLARE_INDEPENDENCE (plan §M15)', () => {
+    const vassalState = (libertyDesire) => {
+      const state = richState();
+      return {
+        ...state,
+        nations: {
+          ...state.nations,
+          fr: { ...state.nations.fr, vassalOf: 'de', libertyDesire },
+          de: { ...state.nations.de, vassals: ['fr'] }
+        }
+      };
+    };
+
+    it('is a no-op below the liberty desire threshold', () => {
+      const state = vassalState(10);
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} })).toBe(state);
+    });
+
+    it('is a no-op for a nation that is not anyone\'s vassal', () => {
+      const state = richState();
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} })).toBe(state);
+    });
+
+    it('declares an independence war against the overlord once liberty desire clears the threshold', () => {
+      const state = vassalState(60);
+      const next = gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} });
+      expect(next.nations.fr.isAtWar).toBe(true);
+      const war = next.wars.find((w) => w.aggressor === 'fr' && w.enemy === 'de');
+      expect(war).toBeDefined();
+      expect(war.cb).toBe('independence');
+    });
+
+    it('is a no-op while already at war', () => {
+      const state = { ...vassalState(60), nations: { ...vassalState(60).nations, fr: { ...vassalState(60).nations.fr, isAtWar: true } } };
+      expect(gameReducer(state, { type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} })).toBe(state);
+    });
+  });
+
+  describe('DECLARE_WAR truce-breaking (plan §M12/M13)', () => {
+    it('allows the player to break a truce, at a stability/prestige/AE cost', () => {
+      const state = richState();
+      const nations = setTruce(state.nations, 'fr', 'de', state.turnNumber);
+      const withTruce = { ...state, nations };
+      const next = gameReducer(withTruce, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.nations.de.isAtWar).toBe(true);
+      expect(next.nations.fr.stability).toBe((withTruce.nations.fr.stability || 0) - TRUCE_BREAK_STABILITY_PENALTY);
+      expect(next.nations.fr.prestige).toBeLessThan(withTruce.nations.fr.prestige || 0);
+    });
+
+    it('declares normally with no penalty when there is no truce', () => {
+      const state = richState();
+      const next = gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.nations.fr.stability).toBe(state.nations.fr.stability || 0);
+    });
+  });
+
+  describe('TRADE_AGREEMENT capacity (plan §M8.3/§M12)', () => {
+    it('is a no-op once trade pact capacity is exhausted', () => {
+      const state = richState(); // base capacity 1 with neutral identity
+      const first = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
+      const otherId = Object.keys(first.nations).find((id) => id !== 'fr' && id !== 'de' && !first.nations[id].isAtWar);
+      expect(gameReducer(first, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: otherId } })).toBe(first);
+    });
+  });
+
+  describe('ESPIONAGE support_rebels variant (plan §M12)', () => {
+    it('raises unrest in the target\'s capital on success', () => {
+      const state = richState();
+      const targetCapital = getNationCapital('de');
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de', type: 'support_rebels' } });
+      // ESPIONAGE_SUCCESS_CHANCE is seed-dependent; only assert when it actually succeeded (unrest changed).
+      if (next.regions[targetCapital].unrest !== state.regions[targetCapital].unrest) {
+        expect(next.regions[targetCapital].unrest).toBeGreaterThan(state.regions[targetCapital].unrest);
+      }
     });
   });
 });

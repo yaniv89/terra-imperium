@@ -1,0 +1,3023 @@
+{
+  "version": 1,
+  "state": {
+    "playerNationId": "fr",
+    "year": -1960,
+    "age": "bronze",
+    "techAgeId": "bronze",
+    "gameSpeed": "normal",
+    "turnNumber": 2,
+    "gameStatus": "ACTIVE",
+    "victoryConditionId": null,
+    "difficultyId": "prince",
+    "difficultyMultiplier": 1,
+    "resources": {
+      "gold": 621,
+      "hr": 194,
+      "copper": 0,
+      "diplomacyPoints": 20,
+      "techPoints": 0,
+      "actionPoints": 8,
+      "maxActionPoints": 5,
+      "iron": 0,
+      "oil": 0,
+      "rareMetals": 0,
+      "helium3": 0
+    },
+    "regions": {
+      "cn-xj": {
+        "id": "cn-xj",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 120764484.06719999,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-xz": {
+        "id": "cn-xz",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 100862018.37,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-nm": {
+        "id": "cn-nm",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 101359736.89379999,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-gs": {
+        "id": "cn-gs",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 60765153.6006,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-yn": {
+        "id": "cn-yn",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 58859100.4662,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-hl": {
+        "id": "cn-hl",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 63572316.921,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-jl": {
+        "id": "cn-jl",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 41044857.33,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-ln": {
+        "id": "cn-ln",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 35660508.6756,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-gx": {
+        "id": "cn-gx",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 46285128.1746,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-gd": {
+        "id": "cn-gd",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 40216384.6686,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-hi": {
+        "id": "cn-hi",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 17063047.9272,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-fj": {
+        "id": "cn-fj",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 32728516.3944,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-zj": {
+        "id": "cn-zj",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 30370373.8602,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-sh": {
+        "id": "cn-sh",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 6709736.679,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-js": {
+        "id": "cn-js",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 30598405.457399998,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-sd": {
+        "id": "cn-sd",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 37569604.4184,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-he": {
+        "id": "cn-he",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 41293943.1372,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-tj": {
+        "id": "cn-tj",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 9857817.1692,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-x01": {
+        "id": "cn-x01",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 81547.30619999999,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-bj": {
+        "id": "cn-bj",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 11980793.6796,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-sc": {
+        "id": "cn-sc",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 65828520.0714,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-cq": {
+        "id": "cn-cq",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 27171471.2076,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-gz": {
+        "id": "cn-gz",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 39698421.096599996,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-hn": {
+        "id": "cn-hn",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 42983624.0058,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-nx": {
+        "id": "cn-nx",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 21361166.379,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-sn": {
+        "id": "cn-sn",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 42961480.578,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-qh": {
+        "id": "cn-qh",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 80085521.9016,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-sx": {
+        "id": "cn-sx",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 37194805.4736,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-jx": {
+        "id": "cn-jx",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 38744978.4462,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-ha": {
+        "id": "cn-ha",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 38496781.8168,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-hb": {
+        "id": "cn-hb",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 40880675.500199996,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "cn-ah": {
+        "id": "cn-ah",
+        "owner": "cn",
+        "control": 100,
+        "currentPopulation": 34943620.3266,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-gf": {
+        "id": "fr-gf",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 2609332.7621999998,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-59": {
+        "id": "fr-59",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 713767.725,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-08": {
+        "id": "fr-08",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 629552.8854,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-02": {
+        "id": "fr-02",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 745353.0408,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-55": {
+        "id": "fr-55",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 689495.8716,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-54": {
+        "id": "fr-54",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 655943.1624,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-57": {
+        "id": "fr-57",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 741468.264,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-06": {
+        "id": "fr-06",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 618281.6316,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-04": {
+        "id": "fr-04",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 774848.9388,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-05": {
+        "id": "fr-05",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 639688.9122,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-73": {
+        "id": "fr-73",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 652675.509,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-74": {
+        "id": "fr-74",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 624749.9249999999,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-64": {
+        "id": "fr-64",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 809837.9352,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-31": {
+        "id": "fr-31",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 772550.4792,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-65": {
+        "id": "fr-65",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 589175.8116,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-09": {
+        "id": "fr-09",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 647668.5078,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-66": {
+        "id": "fr-66",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 610476.0708,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-67": {
+        "id": "fr-67",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 560134.0044,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-68": {
+        "id": "fr-68",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 538899.7583999999,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-90": {
+        "id": "fr-90",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 215065.0044,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-25": {
+        "id": "fr-25",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 615924.1602,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-01": {
+        "id": "fr-01",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 674920.9572,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-39": {
+        "id": "fr-39",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 643045.5834,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-83": {
+        "id": "fr-83",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 704234.8188,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-13": {
+        "id": "fr-13",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 658887.7511999999,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-30": {
+        "id": "fr-30",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 720490.0692,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-34": {
+        "id": "fr-34",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 679915.956,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-11": {
+        "id": "fr-11",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 733881.747,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "fr-75": {
+        "id": "fr-75",
+        "owner": "fr",
+        "control": 100,
+        "currentPopulation": 70972.6461,
+        "currentInfrastructure": 1,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "sr-si": {
+        "id": "sr-si",
+        "owner": "sr",
+        "control": 100,
+        "currentPopulation": 239537.898,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "ru-sa": {
+        "id": "ru-sa",
+        "owner": "ru",
+        "control": 100,
+        "currentPopulation": 8664665.5866,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "be-wht": {
+        "id": "be-wht",
+        "owner": "be",
+        "control": 100,
+        "currentPopulation": 1380031.9512,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "tr-42": {
+        "id": "tr-42",
+        "owner": "tr",
+        "control": 100,
+        "currentPopulation": 2229613.8336,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "ch-gr": {
+        "id": "ch-gr",
+        "owner": "ch",
+        "control": 100,
+        "currentPopulation": 904011.7662,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "pk-ba": {
+        "id": "pk-ba",
+        "owner": "pk",
+        "control": 100,
+        "currentPopulation": 57050459.8104,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "mc-x01": {
+        "id": "mc-x01",
+        "owner": "mc",
+        "control": 100,
+        "currentPopulation": 38971.792799999996,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      },
+      "jp-01": {
+        "id": "jp-01",
+        "owner": "jp",
+        "control": 100,
+        "currentPopulation": 9449380.4982,
+        "currentInfrastructure": 0,
+        "underInvasion": false,
+        "isOccupied": false,
+        "buildings": {
+          "categories": {
+            "food": -1,
+            "economy": -1,
+            "military": -1,
+            "defense": -1,
+            "science": -1,
+            "industry": -1,
+            "culture": -1,
+            "naval": -1,
+            "logistics": -1
+          },
+          "extraction": {
+            "copper": false,
+            "iron": false,
+            "oil": false
+          }
+        },
+        "unrest": 0,
+        "defenseLevel": 0,
+        "climateResilience": 0
+      }
+    },
+    "nations": {
+      "fr": {
+        "id": "fr",
+        "name": "France",
+        "color": "hsl(230, 55%, 45%)",
+        "isPlayer": true,
+        "hostility": 5,
+        "militaryStrength": 16653,
+        "aggression": 0.1,
+        "doctrine": "attrition",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "de": {
+        "id": "de",
+        "name": "Germany",
+        "color": "hsl(120, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 16092,
+        "aggression": 0.1,
+        "doctrine": "isolationist",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "es": {
+        "id": "es",
+        "name": "Spain",
+        "color": "hsl(298, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 15589,
+        "aggression": 0.1,
+        "doctrine": "isolationist",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "it": {
+        "id": "it",
+        "name": "Italy",
+        "color": "hsl(358, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 15685,
+        "aggression": 0.1,
+        "doctrine": "zealot",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "be": {
+        "id": "be",
+        "name": "Belgium",
+        "color": "hsl(55, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 14039,
+        "aggression": 0.1,
+        "doctrine": "defender",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "gb": {
+        "id": "gb",
+        "name": "United Kingdom",
+        "color": "hsl(148, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 15890,
+        "aggression": 0.1,
+        "doctrine": "isolationist",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "us": {
+        "id": "us",
+        "name": "United States of America",
+        "color": "hsl(244, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 17272,
+        "aggression": 0.1,
+        "doctrine": "defender",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "cn": {
+        "id": "cn",
+        "name": "China",
+        "color": "hsl(20, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 18493,
+        "aggression": 0.1,
+        "doctrine": "opportunist",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "ru": {
+        "id": "ru",
+        "name": "Russia",
+        "color": "hsl(205, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 16279,
+        "aggression": 0.1,
+        "doctrine": "isolationist",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "jp": {
+        "id": "jp",
+        "name": "Japan",
+        "color": "hsl(271, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 16049,
+        "aggression": 0.1,
+        "doctrine": "zealot",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "eg": {
+        "id": "eg",
+        "name": "Egypt",
+        "color": "hsl(126, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 16213,
+        "aggression": 0.1,
+        "doctrine": "cautious",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      },
+      "br": {
+        "id": "br",
+        "name": "Brazil",
+        "color": "hsl(153, 55%, 45%)",
+        "isPlayer": false,
+        "hostility": 4,
+        "militaryStrength": 16858,
+        "aggression": 0.1,
+        "doctrine": "opportunist",
+        "relationStatus": "Neutral",
+        "isAtWar": false,
+        "hasPeaceTreaty": false,
+        "hasTradeAgreement": false,
+        "hasMilitaryPact": false,
+        "hostilityFloor": 0,
+        "government": null,
+        "policies": [],
+        "wonders": [],
+        "taxRate": "normal",
+        "identity": {
+          "collectivism": 0,
+          "secularism": 0,
+          "globalism": 0
+        },
+        "culturalInfluence": 0,
+        "missiles": {
+          "tactical": 0,
+          "theatre": 0,
+          "icbm": 0,
+          "nuclear": 0
+        },
+        "abmDefenseLevel": 0,
+        "claims": [],
+        "warExhaustion": 0,
+        "vassals": []
+      }
+    },
+    "techTree": {
+      "military_bronze_casting": {
+        "id": "military_bronze_casting",
+        "researched": false,
+        "available": true
+      },
+      "military_composite_bow": {
+        "id": "military_composite_bow",
+        "researched": false,
+        "available": false
+      },
+      "military_iron_weapons": {
+        "id": "military_iron_weapons",
+        "researched": false,
+        "available": false
+      },
+      "military_siege_engineering": {
+        "id": "military_siege_engineering",
+        "researched": false,
+        "available": false
+      },
+      "military_feudal_levies": {
+        "id": "military_feudal_levies",
+        "researched": false,
+        "available": false
+      },
+      "military_plate_armor": {
+        "id": "military_plate_armor",
+        "researched": false,
+        "available": false
+      },
+      "military_gunpowder_weapons": {
+        "id": "military_gunpowder_weapons",
+        "researched": false,
+        "available": false
+      },
+      "military_standing_armies": {
+        "id": "military_standing_armies",
+        "researched": false,
+        "available": false
+      },
+      "military_mechanized_warfare": {
+        "id": "military_mechanized_warfare",
+        "researched": false,
+        "available": false
+      },
+      "military_precision_guidance": {
+        "id": "military_precision_guidance",
+        "researched": false,
+        "available": false
+      },
+      "economy_bronze_trade_routes": {
+        "id": "economy_bronze_trade_routes",
+        "researched": false,
+        "available": true
+      },
+      "economy_granary_storage": {
+        "id": "economy_granary_storage",
+        "researched": false,
+        "available": false
+      },
+      "economy_minted_coinage": {
+        "id": "economy_minted_coinage",
+        "researched": false,
+        "available": false
+      },
+      "economy_silk_road_trade": {
+        "id": "economy_silk_road_trade",
+        "researched": false,
+        "available": false
+      },
+      "economy_guild_charters": {
+        "id": "economy_guild_charters",
+        "researched": false,
+        "available": false
+      },
+      "economy_banking_houses": {
+        "id": "economy_banking_houses",
+        "researched": false,
+        "available": false
+      },
+      "economy_joint_stock_companies": {
+        "id": "economy_joint_stock_companies",
+        "researched": false,
+        "available": false
+      },
+      "economy_colonial_trade": {
+        "id": "economy_colonial_trade",
+        "researched": false,
+        "available": false
+      },
+      "economy_industrial_capital": {
+        "id": "economy_industrial_capital",
+        "researched": false,
+        "available": false
+      },
+      "economy_global_markets": {
+        "id": "economy_global_markets",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_irrigation_canals": {
+        "id": "infrastructure_irrigation_canals",
+        "researched": false,
+        "available": true
+      },
+      "infrastructure_mudbrick_roads": {
+        "id": "infrastructure_mudbrick_roads",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_paved_roads": {
+        "id": "infrastructure_paved_roads",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_aqueducts": {
+        "id": "infrastructure_aqueducts",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_stone_bridges": {
+        "id": "infrastructure_stone_bridges",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_postal_relay": {
+        "id": "infrastructure_postal_relay",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_canal_locks": {
+        "id": "infrastructure_canal_locks",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_turnpike_roads": {
+        "id": "infrastructure_turnpike_roads",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_rail_networks": {
+        "id": "infrastructure_rail_networks",
+        "researched": false,
+        "available": false
+      },
+      "infrastructure_highway_systems": {
+        "id": "infrastructure_highway_systems",
+        "researched": false,
+        "available": false
+      },
+      "governance_code_of_laws": {
+        "id": "governance_code_of_laws",
+        "researched": false,
+        "available": true
+      },
+      "governance_scribal_bureaucracy": {
+        "id": "governance_scribal_bureaucracy",
+        "researched": false,
+        "available": false
+      },
+      "governance_civic_assemblies": {
+        "id": "governance_civic_assemblies",
+        "researched": false,
+        "available": false
+      },
+      "governance_provincial_administration": {
+        "id": "governance_provincial_administration",
+        "researched": false,
+        "available": false
+      },
+      "governance_feudal_charters": {
+        "id": "governance_feudal_charters",
+        "researched": false,
+        "available": false
+      },
+      "governance_royal_chancery": {
+        "id": "governance_royal_chancery",
+        "researched": false,
+        "available": false
+      },
+      "governance_bureaucratic_reform": {
+        "id": "governance_bureaucratic_reform",
+        "researched": false,
+        "available": false
+      },
+      "governance_constitutional_law": {
+        "id": "governance_constitutional_law",
+        "researched": false,
+        "available": false
+      },
+      "governance_civil_service": {
+        "id": "governance_civil_service",
+        "researched": false,
+        "available": false
+      },
+      "governance_digital_administration": {
+        "id": "governance_digital_administration",
+        "researched": false,
+        "available": false
+      },
+      "science_cuneiform_records": {
+        "id": "science_cuneiform_records",
+        "researched": false,
+        "available": true
+      },
+      "science_early_astronomy": {
+        "id": "science_early_astronomy",
+        "researched": false,
+        "available": false
+      },
+      "science_geometry": {
+        "id": "science_geometry",
+        "researched": false,
+        "available": false
+      },
+      "science_natural_philosophy": {
+        "id": "science_natural_philosophy",
+        "researched": false,
+        "available": false
+      },
+      "science_scholastic_method": {
+        "id": "science_scholastic_method",
+        "researched": false,
+        "available": false
+      },
+      "science_optics": {
+        "id": "science_optics",
+        "researched": false,
+        "available": false
+      },
+      "science_scientific_method": {
+        "id": "science_scientific_method",
+        "researched": false,
+        "available": false
+      },
+      "science_calculus": {
+        "id": "science_calculus",
+        "researched": false,
+        "available": false
+      },
+      "science_computing": {
+        "id": "science_computing",
+        "researched": false,
+        "available": false
+      },
+      "science_genomics": {
+        "id": "science_genomics",
+        "researched": false,
+        "available": false
+      }
+    },
+    "researchFocus": null,
+    "units": {
+      "unit_0": {
+        "id": "unit_0",
+        "regionId": "fr-75",
+        "ownerId": "fr",
+        "domain": "land",
+        "classId": "infantry",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_sr_1": {
+        "id": "unit_ai_sr_1",
+        "regionId": "sr-si",
+        "ownerId": "sr",
+        "domain": "land",
+        "classId": "ranged",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_ru_1": {
+        "id": "unit_ai_ru_1",
+        "regionId": "ru-sa",
+        "ownerId": "ru",
+        "domain": "land",
+        "classId": "infantry",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_be_1": {
+        "id": "unit_ai_be_1",
+        "regionId": "be-wht",
+        "ownerId": "be",
+        "domain": "land",
+        "classId": "ranged",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_tr_1": {
+        "id": "unit_ai_tr_1",
+        "regionId": "tr-42",
+        "ownerId": "tr",
+        "domain": "land",
+        "classId": "infantry",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_ch_1": {
+        "id": "unit_ai_ch_1",
+        "regionId": "ch-gr",
+        "ownerId": "ch",
+        "domain": "land",
+        "classId": "ranged",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_pk_1": {
+        "id": "unit_ai_pk_1",
+        "regionId": "pk-ba",
+        "ownerId": "pk",
+        "domain": "land",
+        "classId": "infantry",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_mc_1": {
+        "id": "unit_ai_mc_1",
+        "regionId": "mc-x01",
+        "ownerId": "mc",
+        "domain": "land",
+        "classId": "ranged",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      },
+      "unit_ai_jp_1": {
+        "id": "unit_ai_jp_1",
+        "regionId": "jp-01",
+        "ownerId": "jp",
+        "domain": "land",
+        "classId": "infantry",
+        "ageId": "bronze",
+        "strength": 1000,
+        "maxStrength": 1000,
+        "morale": 100,
+        "organization": 100,
+        "xp": 0,
+        "rank": "recruit",
+        "promotions": [],
+        "commanderId": null,
+        "transportCapacity": null,
+        "embarkedOn": null
+      }
+    },
+    "nextUnitSeq": 1,
+    "wars": [],
+    "invasions": [],
+    "nextInvasionSeq": 0,
+    "counterAttackWindows": {},
+    "hiredCommanders": {},
+    "nextCommanderSeq": 0,
+    "lastBattleReport": null,
+    "activeEventId": null,
+    "activeProceduralEvent": {
+      "id": "procedural_harsh_winter_2",
+      "year": -1960,
+      "mandatory": false,
+      "procedural": true,
+      "title": "A Harsh Winter",
+      "description": "An unusually harsh winter settles over Paris, straining stores of food and fuel alike.",
+      "options": [
+        {
+          "label": "Open the granaries to everyone",
+          "effects": {
+            "hr": 10,
+            "gold": -60
+          }
+        },
+        {
+          "label": "Ration carefully and wait it out",
+          "effects": {
+            "hr": -20
+          }
+        }
+      ]
+    },
+    "proceduralEventCooldown": 7,
+    "pendingEventChains": [],
+    "firedEvents": {},
+    "eventDefenseBonus": 0,
+    "wondersBuilt": {},
+    "satellites": {},
+    "nextSatelliteSeq": 0,
+    "orbitalDebrisLevel": 0,
+    "spaceMissionProgress": {},
+    "completedMissions": [],
+    "diplomaticLeadershipStreak": 0,
+    "rngSeed": 3388093387,
+    "logs": [
+      {
+        "year": -2000,
+        "message": "2000 BCE: Your nation's story begins.",
+        "type": "milestone"
+      },
+      {
+        "year": -2000,
+        "message": "Built infrastructure in Paris. Level 1",
+        "type": "action"
+      },
+      {
+        "year": -2000,
+        "message": "Recruited a new infantry unit in Paris.",
+        "type": "action"
+      },
+      {
+        "year": -1960,
+        "message": "-1960: +266g",
+        "type": "action"
+      },
+      {
+        "year": -1960,
+        "message": "Army upkeep: -5g (1 unit)",
+        "type": "action"
+      }
+    ],
+    "playerEliminatedNationId": null
+  }
+}

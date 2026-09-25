@@ -218,3 +218,21 @@ describe('HISTORICAL_EVENTS data integrity', () => {
     });
   });
 });
+
+// Plan §M17: "≥60% of options do something structural (a modifier, loyalty, opinion, claim, law,
+// rebels, dev) rather than just a resource delta." Scoped to the two STATICALLY authored registries
+// (HISTORICAL_EVENTS, EVENT_CHAINS) — proceduralEvents.js's templates build their event object
+// dynamically via `build(state)`, so a static content-lint would need to instantiate every one
+// with a representative state just to count effect keys, a bigger, separate authoring-lint harness
+// this milestone's core ask doesn't require.
+describe('content structure ratio (plan §M17)', () => {
+  const PURE_RESOURCE_KEYS = new Set(['gold', 'hr', 'copper', 'iron', 'oil', 'rareMetals', 'helium3', 'dip', 'techPoints', 'militaryStrengthBonus']);
+  const isStructural = (effects) => Object.keys(effects || {}).some((k) => k !== 'spawnFollowUp' && !PURE_RESOURCE_KEYS.has(k));
+
+  it('at least 60% of scripted-event options do something structural, not just move a resource number', () => {
+    const allOptions = [...Object.values(HISTORICAL_EVENTS), ...Object.values(EVENT_CHAINS)]
+      .flatMap((e) => e.options);
+    const structuralCount = allOptions.filter((o) => isStructural(o.effects)).length;
+    expect(structuralCount / allOptions.length).toBeGreaterThanOrEqual(0.6);
+  });
+});

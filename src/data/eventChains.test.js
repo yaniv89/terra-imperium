@@ -44,4 +44,17 @@ describe('EVENT_CHAINS', () => {
     const chainRoots = new Set(Object.keys(EVENT_CHAINS).map(id => id.replace(/_\d+$/, '')));
     expect(chainRoots.size).toBeGreaterThanOrEqual(3);
   });
+
+  // Plan §M17: "a branching chain reaches different endings" — succession_crisis is the one chain
+  // whose two step-2 options fork to genuinely different final ids, rather than reconverging on a
+  // single shared next step the way every other chain here still does.
+  it('succession_crisis branches to two distinct, differently-titled endings', () => {
+    const [purge, negotiate] = EVENT_CHAINS.succession_crisis_2.options;
+    const purgeEndingId = purge.effects.spawnFollowUp.id;
+    const negotiateEndingId = negotiate.effects.spawnFollowUp.id;
+    expect(purgeEndingId).not.toBe(negotiateEndingId);
+    expect(EVENT_CHAINS[purgeEndingId]).toBeDefined();
+    expect(EVENT_CHAINS[negotiateEndingId]).toBeDefined();
+    expect(EVENT_CHAINS[purgeEndingId].title).not.toBe(EVENT_CHAINS[negotiateEndingId].title);
+  });
 });

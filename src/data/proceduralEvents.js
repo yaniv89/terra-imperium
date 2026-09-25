@@ -38,7 +38,7 @@ const PROCEDURAL_TEMPLATES = [
         description: `Your coastal region of ${data.name} grows rich on trade, its harbors crowded with foreign ships eager to do business.`,
         options: [
           { label: 'Tax the merchants heavily', effects: { gold: 120 } },
-          { label: 'Keep tariffs low to keep them coming back', effects: { gold: 50, diplomacyPoints: 10 } }
+          { label: 'Keep tariffs low to keep them coming back', effects: { gold: 50, dip: 10 } }
         ]
       };
     }
@@ -94,7 +94,7 @@ const PROCEDURAL_TEMPLATES = [
         title: 'A General Grows Ambitious',
         description: `${general.name}, flush with recent victories, begins courting favor among the officer corps — a loyal commander, or the seed of a future rival?`,
         options: [
-          { label: 'Reward their loyalty publicly', effects: { gold: -100, diplomacyPoints: 10 } },
+          { label: 'Reward their loyalty publicly', effects: { gold: -100, dip: 10 } },
           { label: 'Quietly reassign them to a distant post', effects: { gold: -30, controlPenalty: 5 } }
         ]
       };

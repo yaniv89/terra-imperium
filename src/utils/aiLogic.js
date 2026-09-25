@@ -24,8 +24,10 @@
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds } from '../data/regions';
-import { declareWar } from '../engine/diplomacy';
+import { declareWar, isInTruce } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
+import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
+import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -119,10 +121,17 @@ export const getNationTier = (state, nationId, sortedByMilitary) => {
   return 3;
 };
 
+// Plan §M16: "getSortedByMilitary uses getFieldedStrength plus the garrison value" — a nation's real
+// recruited army now outweighs its abstract militaryStrength number (which still feeds in, damped,
+// as a stand-in "reserve" for a nation that hasn't recruited much yet — src/engine/aiEconomy.js's
+// own GARRISON_STRENGTH_WEIGHT). findRunawayLeader and pickWarTarget below are NOT switched — the
+// plan only names this one function, and both of those have many existing call sites/tests built
+// around plain nations-map fixtures with no state.units at all; narrowing the change to exactly what
+// the plan calls out keeps this a safe, well-scoped step rather than a blanket rip-and-replace.
 export const getSortedByMilitary = (state) =>
   Object.values(state.nations)
     .filter(n => !n.isPlayer)
-    .sort((a, b) => b.militaryStrength - a.militaryStrength)
+    .sort((a, b) => getEffectiveMilitaryPower(state, b.id) - getEffectiveMilitaryPower(state, a.id))
     .map(n => n.id);
 
 // The rival whose composition a Tier 1 nation actually reacts to: its live war opponent if it has
@@ -187,7 +196,12 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     const nation = nextNations[nationId];
     if (!nation || nation.isPlayer) return;
     if (getNationTier({ ...state, nations: nextNations }, nationId, sortedByMilitary) !== 1) return;
-    if (nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
+    // Plan §M16: "Tier 1 recruits from treasury and manpower with the same costs" once a nation has
+    // a real economy (src/engine/aiEconomy.js, populated every turn by resolveTurn.js's own AI-
+    // economy phase); a nation without one yet (a hand-built test fixture, mainly) falls back to the
+    // original abstract-militaryStrength debit so this function still works standalone.
+    const usesRealEconomy = !!nation.economy;
+    if (usesRealEconomy ? !canAffordAIRecruit(nation) : nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
     const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
     if (standingCount >= getAIMaxStandingUnits(ageId)) return;
     if (rng.next() >= AI_RECRUIT_CHANCE) return;
@@ -201,12 +215,14 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 
     const unitId = `unit_ai_${nationId}_${state.turnNumber}`;
     nextUnits[unitId] = {
-      id: unitId, regionId, ownerId: nationId, domain: 'land', classId, ageId,
-      strength: 1000, maxStrength: 1000, morale: 100, organization: 100,
+      id: unitId, regionId, ownerId: nationId, domain: 'land', classId,
+      strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1,
       xp: 0, rank: 'recruit', promotions: [], commanderId: null,
       transportCapacity: null, embarkedOn: null
     };
-    nextNations[nationId] = { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
+    nextNations[nationId] = usesRealEconomy
+      ? applyAIRecruitCost(nation)
+      : { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
   });
 
   return { units: nextUnits, nations: nextNations, logs };
@@ -218,7 +234,11 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 // leader instead, regardless of how it compares to other neighbors — that's the whole point of
 // ganging up on it.
 const pickWarTarget = (state, nationId, preferredTargetId = null) => {
-  const candidates = getBorderingNationIds(state.regions, nationId).filter(id => state.nations[id] && !state.nations[id].isAtWar);
+  // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
+  // truce-active neighbor is filtered out of consideration entirely, the same way an already-
+  // isAtWar one is.
+  const candidates = getBorderingNationIds(state.regions, nationId)
+    .filter(id => state.nations[id] && !state.nations[id].isAtWar && !isInTruce(state, nationId, id));
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
   return candidates.reduce((weakest, id) =>
@@ -250,6 +270,9 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // nation shouldn't also get to fire off its own declaration this turn.
     const nation = currentNations[nationId];
     if (!nation || nation.isPlayer || nation.isAtWar) return;
+    // Plan §M12: a vassal "can't declare wars except independence" — no independence-war mechanic
+    // exists yet (deferred), but the self-declaration lockout itself is real and simple.
+    if (nation.vassalOf) return;
     if (getNationTier({ ...state, nations: currentNations }, nationId, sortedByMilitary) !== 1) return;
 
     const isCoalitionMember = !!runawayLeaderId && runawayLeaderId !== nationId;
@@ -261,9 +284,20 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     }
     const activeNation = currentNations[nationId];
     const leader = isCoalitionMember ? currentNations[runawayLeaderId] : null;
-    const canStrikeLeader = !!leader && !leader.isAtWar && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId);
+    const canStrikeLeader = !!leader && !leader.isAtWar
+      && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId)
+      && !isInTruce({ ...state, nations: currentNations }, nationId, runawayLeaderId);
+    // Plan §M12: real Aggressive Expansion (this nation's own accrued AE against the leader,
+    // expansion.js) scales the coalition roll further on top of the flat COALITION_WAR_ROLL_MULT —
+    // a nation the leader has personally wronged joins more eagerly than one merely nervous about
+    // its overall power share. doctrine.bandwagonMult (src/data/nations.js) was declared but never
+    // actually multiplied into anything before this — an isolationist doctrine's 0.1 now genuinely
+    // dampens its willingness to join a pile-on, and an opportunist's 1.8 genuinely sharpens it.
+    const doctrine = DOCTRINES[activeNation.doctrine] || DEFAULT_DOCTRINE;
+    const aeAgainstLeader = activeNation.ae?.[runawayLeaderId] || 0;
+    const aeScale = 1 + Math.min(AE_COALITION_ROLL_CAP - 1, aeAgainstLeader / AE_COALITION_ROLL_SCALE);
     const coalitionMult = canStrikeLeader
-      ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence)
+      ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence) * aeScale * doctrine.bandwagonMult
       : 1;
 
     if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult)) return;

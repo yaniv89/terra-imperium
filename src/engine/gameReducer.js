@@ -12,34 +12,56 @@
 // GameContext.jsx re-exports both `createInitialState` and `gameReducer` from here so every
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
-import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { GOVERNMENT_TYPES, canAdoptGovernment } from '../data/government';
-import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, clampIdentity } from '../data/identity';
-import { POLICIES } from '../data/policies';
-import { declareWar, hasCasusBelli, isWarBetween } from './diplomacy';
+import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from '../data/techTree';
+import {
+  GOVERNMENT_TYPES, canChangeGovernmentType, canEnactReform, resetReformsForType, getReformChoices
+} from '../data/government';
+import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clampIdentity } from '../data/identity';
+import { getLaw, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
+import {
+  createInitialEstates, getPrivilege, clampCrownLand, CROWN_LAND_DEFAULT,
+  CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SELL_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY,
+  CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS, ESTATE_INTERACTION_COOLDOWN_TURNS,
+  ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS
+} from '../data/estates';
+import { canDoEstateInteraction } from './estates';
+import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { addNationModifier } from './modifiers/timed';
+import { getEffectiveMilitaryPower } from './aiEconomy';
+import { applyPeace, getPeaceAcceptance } from './peace';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindCombatMultiplier, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
-import { createEmptyRegionBuildings, canBuildTier, canBuildExtraction } from '../data/buildings';
+import {
+  createEmptyRegionBuildings, canBuildTier, canBuildExtraction, BUILDING_CATEGORIES,
+  getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
+} from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
-  ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
+  ACTION_COSTS, TECH_RESEARCH_POOL, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
-  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST, ALLIANCE_HOSTILITY_CEILING,
+  UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
   POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE,
   ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE,
   COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
-  CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
+  CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
+  ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3,
+  MAX_RIVALS, MARRIAGE_HOSTILITY_REDUCTION, MARRIAGE_HEIR_CLAIM_BONUS,
+  BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
+  TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
+  VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
+  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
-import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage } from './siege';
+import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier } from './siege';
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -47,12 +69,22 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } 
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { canAfford, applyCosts, scaleCosts } from '../utils/helpers';
-import { WONDERS, canConstructWonder } from '../data/wonders';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle, generateHeir } from './succession';
+import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
+import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
+import { getModifier, getRegionModifier } from './modifiers/sheet';
+import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
+import {
+  GREAT_PROJECTS, getGreatProjectCost, canStartGreatProject, canUpgradeGreatProject
+} from '../data/greatProjects';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
-import { MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY } from '../data/missiles';
+import {
+  MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
+  NUCLEAR_PRESTIGE_PENALTY, NUCLEAR_PARIAH_DURATION_TURNS, NUCLEAR_PARIAH_GOLD_MULT_PENALTY
+} from '../data/missiles';
 import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
-import { TAX_RATE_IDS, DEFAULT_TAX_RATE } from '../data/taxRates';
+import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
+import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 const NAVAL_TRANSPORT_CAPACITY = 2;
@@ -71,7 +103,7 @@ const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal' } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed } = {}) => {
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
@@ -95,7 +127,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // as-is for the separate, cosmetic `strategicValue` display stat.
       currentInfrastructure: 0,
       underInvasion: false,
-      isOccupied: false,
       buildings: createEmptyRegionBuildings(),
       // Unrest (plan §9): 0 = fully calm. Drifts each turn based on control% (resolveTurn.js) and
       // can be pushed down directly via the Quell Unrest action. Every nation starts at full
@@ -109,13 +140,37 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // defenseLevel already gates frontier_raiders. Closes the loop the plan's climate_stress world
       // event otherwise left one-way: investing here measurably reduces future weather/disaster
       // exposure instead of only ever reacting to it after the fact.
-      climateResilience: 0
+      climateResilience: 0,
+      // Province development (plan §M5) — the live economic base calcIncome now reads instead of
+      // REGIONS_DATA's static resources.gold/hr directly; see src/engine/development.js's own
+      // header for why this seeding preserves today's exact starting income.
+      dev: seedDevelopment(id)
     };
+  });
+
+  // Ruler/heir generation (plan §M3) draws from a seeded rng so the whole nations table stays
+  // reproducible from state.rngSeed alone — the seed captured at the end of this loop already
+  // reflects every draw made generating all 240 rulers/heirs, so turn 1 continues deterministically
+  // from there rather than replaying the same draws again. `rngSeed` is an optional override (tests,
+  // and the edge-bundle parity check) so the WHOLE initial state — not just the final stored seed —
+  // can be pinned and reproduced; real gameplay always omits it and gets fresh randomness.
+  const successionRng = createRng(rngSeed ?? randomSeed());
+
+  // Plan §M4: overextension is measured relative to each nation's OWN starting size, so a 50-region
+  // nation and a 1-region nation are equally "at capacity" at the same overextension% — captured
+  // once, here, since region ownership churns every game while this stays a fixed reference point.
+  const startRegionCountByOwner = {};
+  Object.values(regions).forEach((r) => {
+    startRegionCountByOwner[r.owner] = (startRegionCountByOwner[r.owner] || 0) + 1;
   });
 
   // Every one of the 240 nations gets a record — any of them can be the player's.
   const nations = {};
   Object.entries(WORLD_NATIONS).forEach(([id, data]) => {
+    // No nation starts with a government adopted, so none starts with an heir either (heirs only
+    // exist under a hereditary government — see succession.js's getSuccessionStyle) — one is
+    // generated the first time that nation's reign ends after adopting one.
+    const ruler = generateRuler(id, successionRng, { turnNumber: 1, age, gameSpeed });
     nations[id] = {
       id,
       name: data.name,
@@ -123,7 +178,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       isPlayer: id === playerNationId,
       hostility: data.startHostility,
       militaryStrength: data.startMilitary,
-      aggression: data.aggression,
       doctrine: data.doctrine || 'attrition',
       relationStatus: RelationStatus.NEUTRAL,
       isAtWar: false,
@@ -134,24 +188,45 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // nation is broken by a new war — see src/engine/diplomacy.js declareWar().
       hostilityFloor: 0,
 
-      // Government & policies (plan §9) — every nation gets these fields so resolveTurn.js's
-      // stability pass can read any nation's bonus generically, but only the player can change
-      // them via ADOPT_GOVERNMENT/ADOPT_POLICY today; AI adoption is Task 23's job.
-      government: null,
-      policies: [],
-      // World Wonders this nation has completed (Construct Wonder) — same getNationBonusTotal
-      // hooks as government/policies (src/utils/helpers.js). Every nation carries the field so
-      // that helper can read it generically, though only the player can build one today.
-      wonders: [],
-      // Set Tax Rate (plan §5) — every nation gets a rate so calcIncome/nextUnrest can read any
-      // nation's generically; only the player can change theirs today.
+      // Government (plan §M8.1) — a TYPE plus one reform choice per age tier reached, replacing
+      // the old flat 10-id model. Every nation gets the field so resolveTurn.js's stability pass
+      // can read any nation's bonus generically, but only the player can change it via
+      // CHANGE_GOVERNMENT_TYPE/ENACT_GOVERNMENT_REFORM today; AI adoption is M16's job.
+      government: { type: 'tribal', reforms: {} },
+      // Laws (plan §M8.2) — one law per category, replacing the old shared policy-slot pool
+      // (policies.js, deleted). Every nation starts on each category's tier-1 law.
+      laws: { ...DEFAULT_LAWS },
+      lawCooldowns: {},
+      identityShiftCooldownTurn: 0,
+      // Estates (plan §M9) — Clergy/Nobility/Burghers from the start; Labor is added once the
+      // nation reaches the Modern age (resolveTurn.js's age-transition check). Every nation gets
+      // the field so staticSources can read any nation's threshold bonus/malus generically, but
+      // only the player can grant/revoke privileges or run an interaction today; AI parity is M16.
+      estates: createInitialEstates(),
+      crownLand: CROWN_LAND_DEFAULT,
+      estateInteractionCooldowns: {},
+      // Set Tax Rate (plan §M11) — every nation gets a rate so calcIncome/nextUnrest can read any
+      // nation's generically; only the player can change theirs today. taxRateCooldownUntil is the
+      // turn the rate can next change (0 = available now), the same "store the unlock turn, default
+      // 0" shape lawCooldowns/estateInteractionCooldowns already use so a fresh nation isn't already
+      // on cooldown at turn 0. extortionateTaxProgress backs the extortionate tier's periodic
+      // stability drain (nationalPower.js), the same shape stabilityDecayProgress already uses.
       taxRate: DEFAULT_TAX_RATE,
+      taxRateCooldownUntil: 0,
+      extortionateTaxProgress: 0,
 
-      // National Identity (added alongside Government/Policies, but a separate axis — see
-      // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY
-      // rather than adopted outright, feeding the same getNationBonusTotal hooks government/policy/
-      // wonders already use. Every nation carries the field for the same generic-read reason as
-      // government/policies/taxRate above; only the player can shift theirs today.
+      // Economy overhaul (plan §M11) — army/navy maintenance sliders (upkeep scaling; see
+      // economy.js's header for the morale-recovery/reinforcement scope trim), loans, and the
+      // Fusion Grid national decision's active/supplied flag.
+      armyMaintenance: ARMY_MAINTENANCE_DEFAULT,
+      navyMaintenance: ARMY_MAINTENANCE_DEFAULT,
+      loans: [],
+      fusionGridActive: false,
+
+      // National Identity (added alongside Government/Laws, but a separate axis — see
+      // src/data/identity.js): three independent sliders shifted a step at a time via SHIFT_IDENTITY.
+      // Every nation carries the field for the same generic-read reason as government/laws/taxRate
+      // above; only the player can shift theirs today.
       identity: { collectivism: 0, secularism: 0, globalism: 0 },
       // Cultural Export (Modern age, CULTURAL_EXPORT action) — a "Great Innovator"-style prestige
       // score for culture rather than tech: a persistent, ever-growing soft-power total on top of
@@ -173,7 +248,70 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // array every nation carries) for the Vassalize/Release action a later task adds.
       claims: [],
       warExhaustion: 0,
-      vassals: []
+      // Vassals (plan §M12; scaffolded since M4, this milestone finally gives it a real writer:
+      // VASSALIZE/ANNEX_VASSAL/RELEASE_VASSAL, gameReducer.js below). vassalOf/vassalizedTurn are
+      // set on the VASSAL's own record; vassals[] lives on the OVERLORD.
+      vassals: [],
+      vassalOf: null,
+      vassalizedTurn: 0,
+      // Truces (plan §M12/M13, set by diplomacy.js's setTruce whenever a war ends): mirrored
+      // { [otherNationId]: expiresTurn } on both former belligerents.
+      truces: {},
+      // Aggressive Expansion (plan §M12, src/engine/expansion.js): { [targetId]: number }, this
+      // nation's own accrued anger at whoever captured land near it.
+      ae: {},
+      // Rivals (plan §M12) — up to MAX_RIVALS nation ids the player has designated; only the
+      // player acts on this today, the same "every nation carries the field generically" pattern
+      // as estates/laws/taxRate above.
+      rivals: [],
+      // Diplomats (plan §M12) — a flat count for now (no bonus sources wired yet); diplomatTasks
+      // holds at most `diplomats` concurrent { targetId, task, startedTurn } assignments.
+      diplomats: STARTING_DIPLOMATS,
+      diplomatTasks: [],
+      // Royal Marriage (plan §M12) — nation ids the player has already married into, so the
+      // action can't be spammed for repeated hostility reduction against the same target.
+      marriageWith: [],
+
+      // Rulers, heirs, advisors (plan §M3) — every nation gets a ruler so resolveTurn.js's
+      // succession pass and the modifier engine's ruler-skill source (src/engine/modifiers/
+      // sources.js) can read any nation's generically; only the player's ruler/advisors actually
+      // affect anything mechanically today (AI nations don't consume power pools until M16).
+      ruler,
+      heir: null,
+      advisors: { adm: null, dip: null, mil: null },
+
+      // National stability, legitimacy, prestige, overextension (plan §M4) — every nation carries
+      // these so resolveTurn.js's national-power pass (src/engine/nationalPower.js) and the
+      // modifier engine's stability/overextension source can read any nation's generically, the
+      // same "every nation gets the field, only the player acts on it today" pattern as above.
+      // Legitimacy starts neutral (50) rather than 0 so a fresh nation isn't already suffering the
+      // below-50 penalty before a government/ruler has had any turns to earn it.
+      stability: 0,
+      stabilityDecayProgress: 0,
+      legitimacy: 50,
+      prestige: 0,
+      startRegionCount: startRegionCountByOwner[id] || 0,
+
+      // Crises & defeat (plan §M15). capitalRegionId seeds from the nation's static native capital
+      // (getNationCapital) and is the live source of truth from here on — see src/data/regions.js's
+      // getCapital for why getNationCapital ITSELF stays untouched (buildings.js/greatProjects.js's
+      // site rules read the ORIGINAL capital deliberately). lowStabilityStreak backs the civil war
+      // stability trigger (src/engine/civilWar.js); civilWar/disasters/libertyDesire are scaffolded
+      // for every nation the same "generic reader, real for player and AI both" way stability/
+      // estates/succession already are (every nation gets real per-turn crisis processing, matching
+      // M3/M4/M9's own precedent — this is deliberately NOT deferred to M16's AI-parity milestone).
+      capitalRegionId: getNationCapital(id),
+      lowStabilityStreak: 0,
+      civilWar: null,
+      disasters: { estateTakeover: 0, economicCollapse: 0, successionWar: 0, revolution: 0 },
+      libertyDesire: 0,
+
+      // AI parity (plan §M16). Only non-player nations get these — the player keeps living on
+      // state.resources/techTree/techAgeId (src/engine/nationState.js's own header explains why:
+      // moving the player onto this shape too would touch every existing test and UI component that
+      // reads state.resources directly, for zero present benefit). tech.ageId starts equal to the
+      // calendar age, mirroring state.techAgeId's own seeding.
+      ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {})
     };
   });
 
@@ -207,18 +345,23 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     difficultyMultiplier: 1,
 
     // Resources — Gold/HR always present; Copper/Iron/Oil (and later Rare Metals/Helium-3) join
-    // as their age unlocks (see src/data/resources.js). diplomacyPoints/techPoints/actionPoints
-    // are meta-currencies, not age-gated resources.
+    // as their age unlocks (see src/data/resources.js). techPoints/adm/dip/mil are meta-currencies,
+    // not age-gated resources. adm/dip/mil (plan §M2) replace the old single actionPoints pool
+    // (and the separate diplomacyPoints currency, folded into dip) with three EU4-style power
+    // pools that compete only against actions of their own kind.
     resources: {
       ...createEmptyResourcePool(age),
       gold: 500,
       hr: 100,
-      diplomacyPoints: 20,
       techPoints: 0,
-      // Matches BASE_ACTION_POINTS (src/utils/helpers.js) — a fresh nation has no government and
-      // no researched tech yet, so getMaxActionPoints(state) would return exactly the base anyway.
-      actionPoints: 5,
-      maxActionPoints: 5
+      // Matches BASE_POWER_PER_TURN (src/utils/helpers.js) — a fresh nation has no government and
+      // no researched tech yet, so getPowerIncome(state) would return exactly the base anyway.
+      adm: BASE_POWER_PER_TURN,
+      dip: BASE_POWER_PER_TURN,
+      mil: BASE_POWER_PER_TURN,
+      maxAdm: BASE_POWER_PER_TURN,
+      maxDip: BASE_POWER_PER_TURN,
+      maxMil: BASE_POWER_PER_TURN
     },
 
     // World state
@@ -237,6 +380,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
 
     // Wars and invasions — the combat/invasion resolution engine that reads these is Phase C work.
     wars: [],
+    // Set by resolveWarProgress when an AI side wins a war by enough to demand terms (plan §M13);
+    // blocks END_TURN the same way an active event does until ACCEPT_PENDING_PEACE/
+    // REJECT_PENDING_PEACE clears it — shape: { warId, from: nationId, terms: PeaceTerm[] }.
+    pendingPeaceOffer: null,
     invasions: [],
     nextInvasionSeq: 0,
     counterAttackWindows: {},
@@ -257,13 +404,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     pendingEventChains: [],
     firedEvents: {},
 
-    // Persistent effect from event choices, applied to combat once combat exists again (Phase C).
-    eventDefenseBonus: 0,
-
-    // Construct Wonder (plan §5/§6) — { wonderId: builderNationId }, checked by
-    // src/data/wonders.js's canConstructWonder so a wonder can only ever be finished once,
-    // globally, no matter which nation gets there first.
-    wondersBuilt: {},
+    // Great Projects (plan §M10) — { projectId: { regionId, tier } }, keyed globally so a project
+    // can only ever be STARTED once anywhere (canStartGreatProject). Its current owner is derived
+    // from `regions[regionId].owner`, never stored here — see src/data/greatProjects.js's header
+    // comment on why that can't drift out of sync the way a stored copy could.
+    greatProjects: {},
 
     // Space Race, orbital layer (plan §10.4) — a flat dict keyed by satellite id, mirroring
     // state.units/state.hiredCommanders, since satellites are per-nation persistent assets, not
@@ -272,6 +417,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     satellites: {},
     nextSatelliteSeq: 0,
     orbitalDebrisLevel: 0,
+
+    // Advisor candidates (plan §M3) — only the player's own is ever generated/read today (AI
+    // nations don't hire advisors until M16 gives them a real economy to hire with), keyed by
+    // nation id the same way state.satellites is, in case that changes later.
+    advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, successionRng) },
 
     // Space Race mission ladder (plan §10.4 Layer 3, src/data/spaceMissions.js) — a mission in
     // progress lives in spaceMissionProgress keyed by id with turns remaining; completing it moves
@@ -282,7 +432,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     diplomaticLeadershipStreak: 0,
 
     // Deterministic turn resolution — see src/utils/rng.js
-    rngSeed: randomSeed(),
+    // Carries forward whatever successionRng advanced to while generating all 240 nations' rulers
+    // above, rather than a fresh randomSeed() — turn 1 then continues deterministically from
+    // exactly where ruler generation left off, instead of silently discarding those draws.
+    rngSeed: successionRng.getSeed(),
 
     // Logs
     logs: [
@@ -313,7 +466,7 @@ export const gameReducer = (state, action) => {
         if (next === current) break; // resolveTurn's own no-op guard (event pending / game over)
         current = next;
         if (current.gameStatus !== GameStatus.ACTIVE) break;
-        if (current.activeEventId || current.activeProceduralEvent) break;
+        if (current.activeEventId || current.activeProceduralEvent || current.pendingPeaceOffer) break;
         if (countWars(current) !== startingWarCount) break;
       }
       return current;
@@ -416,19 +569,78 @@ export const gameReducer = (state, action) => {
       };
     }
 
+    case ActionTypes.HIRE_ADVISOR: {
+      // Plan §M3: hires one of the 3 current candidates for a slot, replacing whoever (if anyone)
+      // already held it — a mid-reign dismissal, not something the plan asks to cost extra on top
+      // of the new hire's own price.
+      const { pool, candidateIndex } = action.payload;
+      if (!['adm', 'dip', 'mil'].includes(pool)) return state;
+      const candidate = state.advisorPool?.[state.playerNationId]?.[pool]?.[candidateIndex];
+      if (!candidate) return state;
+      const cost = getAdvisorHireCost(candidate.level);
+      if ((state.resources.gold || 0) < cost) return state;
+
+      const nation = state.nations[state.playerNationId];
+      const rng = createRng(state.rngSeed);
+      const refreshedCandidates = { ...state.advisorPool[state.playerNationId] };
+      refreshedCandidates[pool] = [0, 1, 2].map((i) => (i === candidateIndex
+        ? generateAdvisorCandidates(state.playerNationId, rng)[pool][0] // a fresh face fills the now-hired slot
+        : refreshedCandidates[pool][i]));
+
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - cost },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, advisors: { ...nation.advisors, [pool]: candidate } } },
+        advisorPool: { ...state.advisorPool, [state.playerNationId]: refreshedCandidates },
+        rngSeed: rng.getSeed(),
+        logs: [...state.logs, { year: state.year, message: `${candidate.name} (level ${candidate.level}) hired as your ${pool.toUpperCase()} advisor.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.INCREASE_STABILITY: {
+      // Plan §M4: costs scale with both current overextension and how high stability already is
+      // (getIncreaseStabilityCost) — no cap check beyond that, since the ADM cost itself already
+      // makes pushing stability to its +3 ceiling progressively more expensive.
+      const nation = state.nations[state.playerNationId];
+      if ((nation.stability || 0) >= 3) return state;
+      const stabilityCostMult = getModifier(state, state.playerNationId, 'national.stabilityCost').total;
+      const cost = getIncreaseStabilityCost(state, state.playerNationId, stabilityCostMult);
+      if ((state.resources.adm || 0) < cost) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, adm: state.resources.adm - cost },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, stability: clampStability((nation.stability || 0) + 1) } },
+        logs: [...state.logs, { year: state.year, message: `Stability increased to ${clampStability((nation.stability || 0) + 1)}.`, type: LogTypes.ACTION }]
+      };
+    }
+
     case ActionTypes.CONSTRUCT_BUILDING: {
+      // Plan §M6: tech-gated (not age-gated — the old free "rush one tier ahead" allowance is
+      // gone), real per-tier gold cost, and slot-limited (upgrading an existing category is free
+      // of slots; only a brand-new category needs a free one). Naval is now actually coastal-only
+      // in the reducer, a real pre-existing gap the plan calls out by name.
       const { regionId, categoryId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.constructBuilding;
-      if (!region || region.owner !== state.playerNationId) return state;
+      // Plan §M13: an occupied region can't build — it isn't producing anything for its owner
+      // while occupied (see helpers.js's calcIncome), so there's nothing to invest in either.
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       const currentTier = region.buildings.categories[categoryId];
       if (currentTier === undefined) return state; // unknown category
       const nextTier = currentTier + 1;
-      if (!canBuildTier(categoryId, getEffectiveAgeId(state.age, state.techAgeId), nextTier)) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      if (BUILDING_CATEGORIES[categoryId]?.coastalOnly && !isCoastal(regionId)) return state;
+      const researchedTechIds = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id].researched));
+      if (!canBuildTier(categoryId, researchedTechIds, nextTier)) return state;
+      if (currentTier < 0) {
+        const totalDev = getTotalDev(region);
+        const slots = getBuildingSlots(totalDev, !!REGIONS_DATA[regionId]?.isCapital);
+        if (getUsedBuildingSlots(region.buildings) >= slots) return state;
+      }
+      const buildingCostMult = getModifier(state, state.playerNationId, 'national.buildingCost').total;
+      const cost = getBuildingTierCost(categoryId, nextTier, buildingCostMult);
+      if ((state.resources.gold || 0) < cost) return state;
       return {
         ...state,
-        resources: applyCosts(state.resources, costs),
+        resources: { ...state.resources, gold: state.resources.gold - cost },
         regions: {
           ...state.regions,
           [regionId]: {
@@ -436,7 +648,7 @@ export const gameReducer = (state, action) => {
             buildings: { ...region.buildings, categories: { ...region.buildings.categories, [categoryId]: nextTier } }
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Constructed a new building in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, message: `Constructed ${getCategoryTierName(categoryId, nextTier)} in ${REGIONS_DATA[regionId]?.name} (-${formatMoney(cost)}).`, type: LogTypes.ACTION }]
       };
     }
 
@@ -444,7 +656,7 @@ export const gameReducer = (state, action) => {
       const { regionId, resourceId } = action.payload;
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.developResourceSite;
-      if (!region || region.owner !== state.playerNationId) return state;
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (region.buildings.extraction[resourceId] === undefined || region.buildings.extraction[resourceId]) return state;
       if (!hasDeposit(REGIONS_DATA[regionId]?.startOwner, resourceId) || !canBuildExtraction(resourceId, getEffectiveAgeId(state.age, state.techAgeId))) return state;
       if (!canAfford(state.resources, costs)) return state;
@@ -459,6 +671,36 @@ export const gameReducer = (state, action) => {
           }
         },
         logs: [...state.logs, { year: state.year, message: `Developed a ${resourceId} extraction site in ${REGIONS_DATA[regionId]?.name}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.DEVELOP_PROVINCE: {
+      // Plan §M5: +1 to one of the region's own tax/production/manpower development, spending the
+      // matching power pool (DEV_TYPE_POOL) rather than gold — the cost scales with the region's
+      // OWN current total development, so an already-developed province costs progressively more
+      // to push further, same shape as Increase Stability's own cost curve (M4).
+      const { regionId, devType } = action.payload;
+      const region = state.regions[regionId];
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
+      if (!DEV_TYPE_POOL[devType]) return state;
+      const pool = DEV_TYPE_POOL[devType];
+      const developmentCostMult = getModifier(state, state.playerNationId, 'national.developmentCost').total;
+      const cost = getDevelopProvinceCost(region, developmentCostMult);
+      if ((state.resources[pool] || 0) < cost) return state;
+      const modernBaseline = REGIONS_DATA[regionId]?.population || 0;
+      const popGain = Math.round(modernBaseline * DEVELOP_PROVINCE_POP_GAIN_RATIO);
+      return {
+        ...state,
+        resources: { ...state.resources, [pool]: state.resources[pool] - cost },
+        regions: {
+          ...state.regions,
+          [regionId]: {
+            ...region,
+            dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 },
+            currentPopulation: (region.currentPopulation || modernBaseline) + popGain
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Developed ${devType} in ${REGIONS_DATA[regionId]?.name} (+1).`, type: LogTypes.ACTION }]
       };
     }
 
@@ -525,30 +767,133 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.setTaxRate;
       const nation = state.nations[state.playerNationId];
       if (!TAX_RATE_IDS.includes(rate) || nation.taxRate === rate) return state;
+      if (state.turnNumber < (nation.taxRateCooldownUntil || 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, taxRate: rate } },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            taxRate: rate,
+            taxRateCooldownUntil: state.turnNumber + TAX_RATE_CHANGE_COOLDOWN_TURNS,
+            extortionateTaxProgress: 0
+          }
+        },
         logs: [...state.logs, { year: state.year, message: `Tax rate set to ${rate}.`, type: LogTypes.ACTION }]
       };
     }
 
-    case ActionTypes.CONSTRUCT_WONDER: {
-      // Empire-wide, not region-scoped — a Wonder is one permanent bonus for the whole nation
-      // (plan §5's "permanent empire bonus"), not tied to the region it was raised in.
-      const { wonderId } = action.payload;
-      const costs = ACTION_COSTS.constructWonder;
-      const effectiveAge = getEffectiveAgeId(state.age, state.techAgeId);
-      if (!canConstructWonder(wonderId, effectiveAge, state.wondersBuilt)) return state;
-      if (!canAfford(state.resources, costs)) return state;
+    // Military maintenance slider (plan §M11) — free, adjustable any time (unlike Set Tax Rate,
+    // no cooldown), clamped to ARMY_MAINTENANCE_MIN/MAX. economy.js's calcNationBalance reads it
+    // to scale army/navy upkeep; see that file's header for the morale/reinforcement scope trim.
+    case ActionTypes.SET_ARMY_MAINTENANCE: {
+      const { value } = action.payload;
       const nation = state.nations[state.playerNationId];
+      const clamped = clampMaintenance(value);
+      if (nation.armyMaintenance === clamped) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, armyMaintenance: clamped } }
+      };
+    }
+
+    case ActionTypes.SET_NAVY_MAINTENANCE: {
+      const { value } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const clamped = clampMaintenance(value);
+      if (nation.navyMaintenance === clamped) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, navyMaintenance: clamped } }
+      };
+    }
+
+    // Loans (plan §M11) — requires Banking Houses; sized off the current balance (economy.js's
+    // getLoanSize) and capped by getLoanCapacity. Interest accrues per-turn in resolveTurn.js via
+    // calcNationBalance; auto-loans on a shortfall are also resolveTurn.js's job (the reducer only
+    // handles the player's own manual request/repay).
+    case ActionTypes.REQUEST_LOAN: {
+      const nation = state.nations[state.playerNationId];
+      if (!hasBankingHouses(state, state.playerNationId)) return state;
+      if ((nation.loans || []).length >= getLoanCapacity(state, state.playerNationId)) return state;
+      const principal = getLoanSize(state, state.playerNationId);
+      const loan = { id: `loan_${state.turnNumber}_${(nation.loans || []).length}`, principal, interestRate: getLoanInterestRate(state, state.playerNationId), takenTurn: state.turnNumber };
+      return {
+        ...state,
+        resources: { ...state.resources, gold: (state.resources.gold || 0) + principal },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: [...(nation.loans || []), loan] } },
+        logs: [...state.logs, { year: state.year, message: `Took out a loan of ${formatMoney(principal)} gold.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.REPAY_LOAN: {
+      const { loanId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const loan = (nation.loans || []).find((l) => l.id === loanId);
+      if (!loan || (state.resources.gold || 0) < loan.principal) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - loan.principal },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: nation.loans.filter((l) => l.id !== loanId) } },
+        logs: [...state.logs, { year: state.year, message: `Repaid a loan of ${formatMoney(loan.principal)} gold.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    // Fusion Grid (plan §M11 resource sink) — a standalone national decision rather than a Future-
+    // age building upkeep, since no Future building tier exists yet in this codebase (M6's own
+    // buildings.js caps at Modern; see types.js's ACTIVATE_FUSION_GRID comment). Its ongoing
+    // helium3 upkeep and goldMult bonus while supplied are applied in resolveTurn.js.
+    case ActionTypes.ACTIVATE_FUSION_GRID: {
+      const nation = state.nations[state.playerNationId];
+      if (nation.fusionGridActive) return state;
+      // Gated on the Outer Planets mission (plan: "Computing + mission outer_planets") — that
+      // mission is helium3's own real income gate (spaceMissions.js's own header), so it's the one
+      // clear prerequisite rather than stacking an extra tech check on top of an already-real gate.
+      if (!(state.completedMissions || []).includes('outer_planets')) return state;
+      if ((state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, helium3: state.resources.helium3 - FUSION_GRID_ACTIVATION_HELIUM3 },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, fusionGridActive: true } },
+        logs: [...state.logs, { year: state.year, message: 'The Fusion Grid is online.', type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.START_GREAT_PROJECT: {
+      // Region-scoped, not empire-wide (plan §M10) — a project's SITE is a specific region meeting
+      // the project's own rule (a capital, a region with a named building, coastal, etc.), unlike
+      // the old flat Construct Wonder. Its owner is derived from the region's owner from here on,
+      // never stored — see src/data/greatProjects.js's header comment.
+      const { projectId, regionId } = action.payload;
+      if (!canStartGreatProject(state, state.playerNationId, projectId, regionId)) return state;
+      const { turns, ...costs } = getGreatProjectCost(1);
+      if (!canAfford(state.resources, costs)) return state;
+      const project = GREAT_PROJECTS[projectId];
+      const region = state.regions[regionId];
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        wondersBuilt: { ...state.wondersBuilt, [wonderId]: state.playerNationId },
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, wonders: [...(nation.wonders || []), wonderId] } },
-        logs: [...state.logs, { year: state.year, message: `${WONDERS[wonderId]?.name} completed!`, type: LogTypes.MILESTONE }]
+        regions: { ...state.regions, [regionId]: { ...region, greatProjectConstruction: { projectId, tier: 1, turnsLeft: turns } } },
+        logs: [...state.logs, { year: state.year, message: `Construction of ${project.name} has begun.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.UPGRADE_GREAT_PROJECT: {
+      const { projectId } = action.payload;
+      if (!canUpgradeGreatProject(state, state.playerNationId, projectId)) return state;
+      const entry = state.greatProjects[projectId];
+      const nextTier = entry.tier + 1;
+      const { turns, ...costs } = getGreatProjectCost(nextTier);
+      if (!canAfford(state.resources, costs)) return state;
+      const project = GREAT_PROJECTS[projectId];
+      const region = state.regions[entry.regionId];
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: { ...state.regions, [entry.regionId]: { ...region, greatProjectConstruction: { projectId, tier: nextTier, turnsLeft: turns } } },
+        logs: [...state.logs, { year: state.year, message: `Upgrading ${project.name} to tier ${nextTier}.`, type: LogTypes.ACTION }]
       };
     }
 
@@ -649,6 +994,28 @@ export const gameReducer = (state, action) => {
         });
       }
 
+      // Plan §M19: "Missiles and nuclear strikes now affect war score (+2 per strike, +10 per
+      // nuclear strike)." recordBattle's own `2 + min(8, 10 x lossShare)` formula already produces
+      // exactly 2 at lossShare 0 and exactly 10 at lossShare >= 0.8 — a missile strike is expressed
+      // as that same battle-score bump rather than a bespoke war-score formula, so it rolls into
+      // war.score the same way an invasion's battleScore already does (resolveWarProgress
+      // recomputes war.score from battleScore + occupation + tick every turn).
+      let nextWars = state.wars;
+      const missileWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+      if (missileWar) {
+        const lossShare = tierId === 'nuclear' ? 1 : 0;
+        nextWars = state.wars.map(w => (w.id === missileWar.id ? { ...w, battleScore: recordBattle(w, state.playerNationId, lossShare) } : w));
+      }
+
+      // Plan §M19: "-50 prestige and a 'Nuclear Pariah' 20-turn modifier" for the striker.
+      if (tierId === 'nuclear') {
+        const striker = nextNations[state.playerNationId];
+        nextNations[state.playerNationId] = addNationModifier(
+          { ...striker, prestige: clampPrestige((striker.prestige || 0) - NUCLEAR_PRESTIGE_PENALTY) },
+          { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
+        );
+      }
+
       const targetNationName = targetNation?.name || targetRegion.owner;
       const message = tierId === 'nuclear'
         ? `A nuclear strike devastates ${REGIONS_DATA[targetRegionId]?.name} (${targetNationName}). The world condemns the attack.`
@@ -658,6 +1025,7 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
         nations: nextNations,
+        wars: nextWars,
         logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }]
       };
     }
@@ -681,7 +1049,7 @@ export const gameReducer = (state, action) => {
       if (!mission) return state;
       if (!canLaunchSatellite(state.age, state.techAgeId, state.year)) return state;
       if (!canLaunchMission(missionId, state.completedMissions, state.spaceMissionProgress)) return state;
-      const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
+      const costs = { ...mission.cost, dip: ACTION_COSTS.launchMission.dip };
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -696,8 +1064,11 @@ export const gameReducer = (state, action) => {
     case ActionTypes.RECRUIT_UNIT: {
       const { regionId, classId } = action.payload;
       const region = state.regions[regionId];
-      const costs = ACTION_COSTS.recruitUnit;
-      if (!region || region.owner !== state.playerNationId) return state;
+      // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
+      // penalty (getRecruitUnitCost's own header) — computed fresh per recruit, not a flat table
+      // entry, the same "dynamically-priced action" shape RESEARCH_TECH/CHANGE_LAW already use.
+      const costs = getRecruitUnitCost(state, state.age);
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
       if (!getAvailableClasses(getEffectiveAgeId(state.age, state.techAgeId)).includes(classId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
@@ -708,11 +1079,18 @@ export const gameReducer = (state, action) => {
         ownerId: state.playerNationId,
         domain: isNaval ? 'naval' : 'land',
         classId,
-        ageId: state.age,
+        // Plan §M14: the stale, frozen-at-recruitment ageId is gone — a unit's roster stats
+        // (src/data/unitClasses.js) are now looked up live via its OWNER's current effective age
+        // every time combat needs them, so a unit auto-upgrades as its nation researches forward
+        // instead of being permanently stuck at whatever age it was recruited in.
         strength: 1000,
         maxStrength: 1000,
         morale: 100,
-        organization: 100,
+        // Plan §M14: `organization` is removed — it was written everywhere and read nowhere but a
+        // cosmetic UI label (MilitaryPanel.jsx), never mutated by battle or turn resolution.
+        // Plan §M14: resets to a full move every turn (see resolveTurn.js's own reset phase);
+        // consumed by MOVE_ARMY/LAUNCH_INVASION/AMPHIBIOUS_ASSAULT/NAVAL_ENGAGEMENT.
+        movesLeft: 1,
         xp: 0,
         rank: 'recruit',
         promotions: [],
@@ -771,6 +1149,8 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.moveArmy;
       if (!unit || unit.ownerId !== state.playerNationId) return state;
       if (unit.embarkedOn) return state; // embarked units move with their transport, not on their own
+      // Plan §M14: a stack moves at most once per turn — forcedMarch grants a unit a second move.
+      if ((unit.movesLeft ?? 1) <= 0) return state;
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
       const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
@@ -780,7 +1160,7 @@ export const gameReducer = (state, action) => {
       // territory is what LAUNCH_INVASION/AMPHIBIOUS_ASSAULT are for.
       if (state.regions[toRegionId]?.owner !== state.playerNationId) return state;
       if (!canAfford(state.resources, costs)) return state;
-      const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId } };
+      const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId, movesLeft: (unit.movesLeft ?? 1) - 1 } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
         if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId };
@@ -834,29 +1214,50 @@ export const gameReducer = (state, action) => {
       if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
       if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
       if (!getNeighborIds(fromRegionId).includes(targetRegionId)) return state;
+      // Plan §M13: invasions now require an active war with the target's owner — a real
+      // pre-existing gap (this check never previously existed) that let the player walk into any
+      // neighboring nation's territory with no diplomatic consequence or war-score bookkeeping.
+      const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+      if (!invasionWar) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const attackerUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land');
       if (attackerUnits.length === 0) return state;
+      // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still
+      // have its move, same movesLeft counter MOVE_ARMY spends (an all-or-nothing gate on the
+      // WHOLE stack, matching "an army is every unit in one region" rather than letting some units
+      // attack while others that already moved this turn tag along for free).
+      if (!attackerUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       const defenderUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'land');
       // An undefended region is taken in one hit regardless of its control — walking into an empty
       // city needs no siege. Only a real garrison triggers the multi-turn control-grind below.
       const isDefended = defenderUnits.length > 0;
+      const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
+      // Plan §M14: each side's roster stats (src/data/unitClasses.js) are looked up live from its
+      // OWNER's current effective age — a unit auto-upgrades with its nation rather than being
+      // frozen at whatever age it was recruited in. The defender has no independent tech age
+      // pre-M16 (AI parity), so it fights at the calendar age, same asymmetry the old ages-behind
+      // malus already assumed.
+      const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
 
       const rng = createRng(state.rngSeed);
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits,
         defenderUnits,
-        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
         generals: state.hiredCommanders,
-        // A tech-earned age fallen behind the calendar means obsolete doctrine/equipment, not just
-        // a specific unit's stats — see src/data/ages.js's getAgesBehindCombatMultiplier.
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId)),
+        attackerAgeId,
+        defenderAgeId: state.age,
         // defenseLevel's own damage reduction (a genuine "Walls" bonus, on top of the existing
-        // siege-vs-fortification gate) — see src/engine/siege.js.
-        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier(targetRegion.defenseLevel) : 1
+        // siege-vs-fortification gate) — see src/engine/siege.js. Plan §M6: the Defense building's
+        // own local.fortLevel stacks on top of the manual defenseLevel (Build Defenses) rather than
+        // replacing it — both are real, player-earned investments in the same region. Plan §M14
+        // folds Zone of Control into the same slot — a fortified neighbor makes a siege harder too.
+        defenderDamageReductionMultiplier: isDefended
+          ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
+          : 1
       });
 
       // A defended region's control absorbs the damage instead of an outright flip — see
@@ -887,25 +1288,30 @@ export const gameReducer = (state, action) => {
       const nextUnits = { ...state.units };
       // Attacker survivors occupy the target region only once it's actually captured; a round that
       // merely damages a still-defended region's control falls back to origin, same as a loss —
-      // each further round of the grind is a fresh, separately-paid LAUNCH_INVASION.
+      // each further round of the grind is a fresh, separately-paid LAUNCH_INVASION. Plan §M14:
+      // spends the whole stack's move (one attack per stack per turn) and marks it as having
+      // fought this turn, so resolveTurn.js's reinforcement/morale-recovery phase skips it.
       xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId };
+        nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId, movesLeft: 0, lastBattleTurn: state.turnNumber };
       });
       // A captured region's garrison doesn't remain a coherent defending force — on actual capture
       // the whole defending side is cleared, survivors and routed alike. A round that only damages
       // control (siege continues) persists surviving defenders exactly like a repelled attack does.
       xpDefenders.forEach(u => {
         if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = u;
+        nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
       });
 
       const nextRegions = { ...state.regions };
       if (captured) {
+        // Occupation (plan §M13), not annexation: `owner` stays put, `occupiedBy` marks who holds
+        // it militarily. Ownership only changes at the peace table (OFFER_PEACE/ACCEPT_PENDING_
+        // PEACE's 'cede' term, src/engine/peace.js) — which is also where Aggressive Expansion now
+        // fires, since land hasn't actually changed hands yet.
         nextRegions[targetRegionId] = {
           ...targetRegion,
-          owner: state.playerNationId,
-          formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
+          occupiedBy: state.playerNationId,
           control: 25,
           unrest: Math.max(targetRegion.unrest || 0, 50),
           lastAttackedTurn: state.turnNumber,
@@ -915,8 +1321,16 @@ export const gameReducer = (state, action) => {
         nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
 
+      // War score (plan §M13): this invasion counts as a battle in `invasionWar` regardless of
+      // which side of it the player is on, feeding the same score the AI's own peace decisions read.
+      const invasionLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
+      const invasionWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
+      const nextWars = invasionWinnerId
+        ? state.wars.map(w => (w.id === invasionWar.id ? { ...w, battleScore: recordBattle(w, invasionWinnerId, invasionLossShare) } : w))
+        : state.wars;
+
       const outcomeMessage = captured
-        ? `Your forces captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+        ? `Your forces occupy ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
         : outcome === 'attacker'
           ? `Your forces broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
           : outcome === 'defender'
@@ -928,6 +1342,7 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
         units: nextUnits,
+        wars: nextWars,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
@@ -947,11 +1362,18 @@ export const gameReducer = (state, action) => {
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
       const embarkedLandUnits = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
       if (embarkedLandUnits.length === 0) return state;
+      // Plan §M13: an amphibious assault requires an active war with the target's owner, same as a
+      // land LAUNCH_INVASION (see that case's own comment for why this check is new).
+      const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+      if (!invasionWar) return state;
+      // Plan §M14: one attack per stack per turn — the transport and its whole embarked cargo.
+      if ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
       const nextUnits = { ...state.units };
-      const techGapCombatMultiplier = getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId));
+      const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
+      const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
 
       // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing.
       // Losing it sinks the transport and everything still aboard, and the assault never lands.
@@ -960,11 +1382,12 @@ export const gameReducer = (state, action) => {
         const navalBattle = resolveBattle({
           attackerUnits: [navalUnit],
           defenderUnits: defenderNavalUnits,
-          terrain: REGIONS_DATA[targetRegionId]?.terrain,
+          terrain,
           isAttackingFortification: false,
           rng,
           generals: state.hiredCommanders,
-          attackerPenaltyMultiplier: techGapCombatMultiplier
+          attackerAgeId,
+          defenderAgeId: state.age
         });
         navalBattle.defenderUnits.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
         if (navalBattle.outcome !== 'attacker') {
@@ -992,12 +1415,16 @@ export const gameReducer = (state, action) => {
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits: attackerLandUnits,
         defenderUnits: defenderLandUnits,
-        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: (hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT) * techGapCombatMultiplier,
-        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier(targetRegion.defenseLevel) : 1
+        attackerAgeId,
+        defenderAgeId: state.age,
+        attackerPenaltyMultiplier: hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT,
+        defenderDamageReductionMultiplier: isDefended
+          ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
+          : 1
       });
 
       // See src/engine/siege.js — a defended region's control absorbs the damage instead of an
@@ -1028,20 +1455,21 @@ export const gameReducer = (state, action) => {
       xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
         nextUnits[u.id] = captured
-          ? { ...u, regionId: targetRegionId, embarkedOn: null }
-          : { ...u, regionId: navalUnit.regionId, embarkedOn: navalUnitId };
+          ? { ...u, regionId: targetRegionId, embarkedOn: null, movesLeft: 0, lastBattleTurn: state.turnNumber }
+          : { ...u, regionId: navalUnit.regionId, embarkedOn: navalUnitId, movesLeft: 0, lastBattleTurn: state.turnNumber };
       });
       xpDefenders.forEach(u => {
         if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = u;
+        nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
       });
+      if (nextUnits[navalUnitId]) nextUnits[navalUnitId] = { ...nextUnits[navalUnitId], movesLeft: 0, lastBattleTurn: state.turnNumber };
 
       const nextRegions = { ...state.regions };
       if (captured) {
+        // Occupation, not annexation — see LAUNCH_INVASION's own comment on this (plan §M13).
         nextRegions[targetRegionId] = {
           ...targetRegion,
-          owner: state.playerNationId,
-          formerOwner: getFormerOwnerOnConquest(targetRegionId, targetRegion.owner, state.playerNationId),
+          occupiedBy: state.playerNationId,
           control: 25,
           unrest: Math.max(targetRegion.unrest || 0, 50),
           lastAttackedTurn: state.turnNumber,
@@ -1051,8 +1479,14 @@ export const gameReducer = (state, action) => {
         nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
       }
 
+      const assaultLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
+      const assaultWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
+      const nextWars = assaultWinnerId
+        ? state.wars.map(w => (w.id === invasionWar.id ? { ...w, battleScore: recordBattle(w, assaultWinnerId, assaultLossShare) } : w))
+        : state.wars;
+
       const outcomeMessage = captured
-        ? `Your amphibious assault captured ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+        ? `Your amphibious assault occupies ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
         : outcome === 'attacker'
           ? `Your landing broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
           : outcome === 'defender'
@@ -1064,6 +1498,7 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
         units: nextUnits,
+        wars: nextWars,
         rngSeed: rng.getSeed(),
         lastBattleReport: { ...report, captured, kind: 'amphibious', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
@@ -1080,6 +1515,8 @@ export const gameReducer = (state, action) => {
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
       const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
       if (attackerNavalUnits.length === 0) return state;
+      // Plan §M14: one attack per stack per turn.
+      if (!attackerNavalUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
       if (defenderNavalUnits.length === 0) return state;
       if (!canAfford(state.resources, costs)) return state;
@@ -1088,18 +1525,19 @@ export const gameReducer = (state, action) => {
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits: attackerNavalUnits,
         defenderUnits: defenderNavalUnits,
-        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),
         isAttackingFortification: false,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
+        attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+        defenderAgeId: state.age
       });
 
       // A naval engagement only contests the lane — survivors hold their own positions, win or
       // lose; there's no ground to capture from a fleet-on-fleet action.
       const nextUnits = { ...state.units };
-      resolvedAttackers.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
-      resolvedDefenders.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+      resolvedAttackers.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, movesLeft: 0, lastBattleTurn: state.turnNumber }; });
+      resolvedDefenders.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber }; });
 
       const outcomeMessage = outcome === 'attacker'
         ? `Your fleet cleared the enemy from the waters near ${REGIONS_DATA[targetRegionId]?.name}.`
@@ -1126,21 +1564,24 @@ export const gameReducer = (state, action) => {
       if (rebelUnits.length === 0) return state;
       const garrisonUnits = Object.values(state.units).filter(u => u.regionId === regionId && u.ownerId === state.playerNationId && u.domain === 'land');
       if (garrisonUnits.length === 0) return state;
+      // Plan §M14: one attack per stack per turn — suppressing a rebellion is an attack too.
+      if (!garrisonUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
       const { outcome, attackerUnits: resolvedGarrison, defenderUnits: resolvedRebels, report } = resolveBattle({
         attackerUnits: garrisonUnits,
         defenderUnits: rebelUnits,
-        terrain: REGIONS_DATA[regionId]?.terrain,
+        terrain: getRegionTerrain(regionId, REGIONS_DATA),
         isAttackingFortification: false,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
+        attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+        defenderAgeId: state.age
       });
 
       const nextUnits = { ...state.units };
-      resolvedGarrison.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+      resolvedGarrison.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, movesLeft: 0, lastBattleTurn: state.turnNumber }; });
       // The rebellion is crushed outright on a win — a defeated uprising doesn't leave survivors
       // to regroup the way a foreign army might retreat and return.
       resolvedRebels.forEach(u => { if (outcome === 'attacker' || u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
@@ -1174,14 +1615,14 @@ export const gameReducer = (state, action) => {
     case ActionTypes.RESEARCH_TECH: {
       const { techId } = action.payload;
       const tech = TECH_TREE[techId];
-      const costs = ACTION_COSTS.researchTech;
       if (!tech) return state;
-      // A nation whose OWN tech-earned age has fallen behind the calendar (never researching while
-      // turns pass) pays more to research the same tech — see src/data/ages.js's
-      // getAgesBehindResearchCostMultiplier's file header for why.
+      // Plan §M7: research costs the power of the tech's own line's pool (age-scaled,
+      // getTechPowerCost) plus techPoints — gold is gone. national.researchCost and (for the
+      // currently-focused line) Research Focus's own -15% power discount both apply.
       const agesBehind = getAgesBehind(state.age, state.techAgeId);
-      if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind).can) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      const researchCostMult = getModifier(state, state.playerNationId, 'national.researchCost').total;
+      const focused = state.researchFocus === tech.category;
+      if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, researchCostMult, focused).can) return state;
 
       const nextTechTree = { ...state.techTree, [techId]: { ...state.techTree[techId], researched: true } };
 
@@ -1194,8 +1635,15 @@ export const gameReducer = (state, action) => {
       const advancesTechAge = researchedCount >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextTechAgeIndex < AGE_ORDER.length;
       const nextTechAgeId = advancesTechAge ? AGE_ORDER[nextTechAgeIndex] : state.techAgeId;
 
-      const scaledTechCost = scaleCosts(tech.cost, getAgesBehindResearchCostMultiplier(agesBehind));
-      const resourcesAfterTechCost = applyCosts(applyCosts(state.resources, costs), scaledTechCost);
+      const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
+      const powerCost = Math.round(getTechPowerCost(tech, { researchCostMult, focused }) * costMult);
+      const techPointsCost = Math.round(tech.cost.techPoints * (1 + researchCostMult) * costMult);
+      const pool = TECH_RESEARCH_POOL[tech.category];
+      const resourcesAfterTechCost = {
+        ...state.resources,
+        [pool]: state.resources[pool] - powerCost,
+        techPoints: state.resources.techPoints - techPointsCost
+      };
 
       return {
         ...state,
@@ -1234,13 +1682,176 @@ export const gameReducer = (state, action) => {
       };
     }
 
-    case ActionTypes.ADOPT_GOVERNMENT: {
-      const { governmentId } = action.payload;
-      const gov = GOVERNMENT_TYPES[governmentId];
+    case ActionTypes.CHANGE_GOVERNMENT_TYPE: {
+      const { typeId } = action.payload;
+      const type = GOVERNMENT_TYPES[typeId];
       const nation = state.nations[state.playerNationId];
-      const costs = ACTION_COSTS.adoptGovernment;
-      if (!gov || nation.government === governmentId) return state;
-      if (!canAdoptGovernment(governmentId, state.age)) return state;
+      const costs = ACTION_COSTS.changeGovernmentType;
+      if (!type || !canChangeGovernmentType(nation, typeId, state.age)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      // Plan §M21 balance fix: scripts/simulate.mjs found ~30-40% of nations hitting a Succession
+      // Crisis (and its 40% civil-war roll) almost immediately after becoming a monarchy — because
+      // `heir` stays null until a reign actually ENDS (see createInitialState's own comment on why
+      // it starts null), a brand-new monarchy's first-ever reign end was ALWAYS heirless. Generating
+      // an heir the moment a nation first becomes hereditary — same as a real dynasty already having
+      // an heir apparent — closes that gap without touching the succession-crisis mechanic itself.
+      const rng = createRng(state.rngSeed);
+      const needsHeir = getSuccessionStyle({ type: typeId }) === 'hereditary' && !nation.heir;
+      const heir = needsHeir ? generateHeir(state.playerNationId, rng, nation.ruler?.dynasty, state.turnNumber) : nation.heir;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            government: { type: typeId, reforms: resetReformsForType(typeId, state.age) },
+            stability: clampStability((nation.stability || 0) - 2),
+            heir
+          }
+        },
+        rngSeed: rng.getSeed(),
+        logs: [...state.logs, { year: state.year, message: `Your empire has become a ${type.name}. (-2 stability)`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.ENACT_GOVERNMENT_REFORM: {
+      const { ageId, reformId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.enactGovernmentReform;
+      if (!canEnactReform(nation, ageId, reformId, state.age)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const reform = getReformChoices(nation.government.type, ageId).find((r) => r.id === reformId);
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: reformId } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `Enacted the ${reform.name} reform.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.CHANGE_LAW: {
+      const { category, lawId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const law = getLaw(category, lawId);
+      if (!law || !canEnactLaw(state, state.playerNationId, category, lawId)) return state;
+      const costs = { adm: getLawChangeCost(state, state.playerNationId, category, lawId) };
+      if (!canAfford(state.resources, costs)) return state;
+
+      // Plan §M8.2: two law tiers apply a one-shot effect on top of their ongoing `effects` —
+      // Collectivization pushes a real 10-turn timed modifier (plan §A.2's nation.modifiers[]),
+      // Martial Law costs a permanent -1 stability the instant it's enacted.
+      let modifiers = nation.modifiers || [];
+      let stability = nation.stability || 0;
+      if (lawId === 'collectivization') {
+        modifiers = [...modifiers, {
+          id: `collectivization_${state.turnNumber}`,
+          sourceType: 'law',
+          sourceId: 'collectivization',
+          label: 'Collectivization',
+          mods: { 'national.stabilityBonus': COLLECTIVIZATION_UNREST_MODIFIER },
+          expiresTurn: state.turnNumber + COLLECTIVIZATION_UNREST_TURNS
+        }];
+      } else if (lawId === 'martial_law') {
+        stability = clampStability(stability - 1);
+      }
+
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            laws: { ...nation.laws, [category]: lawId },
+            lawCooldowns: { ...nation.lawCooldowns, [category]: state.turnNumber + LAW_CHANGE_COOLDOWN_TURNS },
+            modifiers,
+            stability
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Enacted the ${law.name} law.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.SEIZE_LAND: {
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.seizeLand;
+      if (!canDoEstateInteraction(nation, 'seizeLand', state.turnNumber)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const estates = {};
+      Object.entries(nation.estates).forEach(([id, estate]) => {
+        estates[id] = { ...estate, loyalty: Math.max(0, estate.loyalty - CROWN_LAND_SEIZE_LOYALTY_PENALTY) };
+      });
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            crownLand: clampCrownLand(nation.crownLand + CROWN_LAND_SEIZE_AMOUNT),
+            estates,
+            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, seizeLand: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Seized crown land from the estates. (+${CROWN_LAND_SEIZE_AMOUNT} crown land, -${CROWN_LAND_SEIZE_LOYALTY_PENALTY} loyalty for every estate)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.SELL_LAND: {
+      const nation = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.sellLand;
+      if (!canDoEstateInteraction(nation, 'sellLand', state.turnNumber)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
+      const goldGain = 5 * totalDev;
+      const afterCost = applyCosts(state.resources, costs);
+      const burghers = nation.estates.burghers;
+      return {
+        ...state,
+        resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...nation,
+            crownLand: clampCrownLand(nation.crownLand - CROWN_LAND_SELL_AMOUNT),
+            estates: { ...nation.estates, burghers: { ...burghers, loyalty: Math.min(100, burghers.loyalty + CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS) } },
+            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, sellLand: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
+          }
+        },
+        logs: [...state.logs, { year: state.year, message: `Sold crown land to the burghers for ${formatMoney(goldGain)}. (-${CROWN_LAND_SELL_AMOUNT} crown land, +${CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS} burgher loyalty)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.GRANT_ESTATE_PRIVILEGE: {
+      const { estateId, privilegeId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const estate = nation.estates?.[estateId];
+      const privilege = getPrivilege(estateId, privilegeId);
+      const costs = ACTION_COSTS.grantEstatePrivilege;
+      if (!estate || !privilege || estate.privileges.includes(privilegeId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, estates: { ...nation.estates, [estateId]: { ...estate, privileges: [...estate.privileges, privilegeId] } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `Granted the ${privilege.name} privilege to the ${ESTATE_LABELS[estateId]}.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.REVOKE_ESTATE_PRIVILEGE: {
+      const { estateId, privilegeId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const estate = nation.estates?.[estateId];
+      const privilege = getPrivilege(estateId, privilegeId);
+      const costs = ACTION_COSTS.revokeEstatePrivilege;
+      if (!estate || !privilege || !estate.privileges.includes(privilegeId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1249,30 +1860,54 @@ export const gameReducer = (state, action) => {
           ...state.nations,
           [state.playerNationId]: {
             ...nation,
-            government: governmentId,
-            // A reform to fewer slots than currently filled bumps the excess policies — a real
-            // cost of switching, not just a formality.
-            policies: nation.policies.slice(0, gov.slots)
+            stability: clampStability((nation.stability || 0) - 1),
+            estates: {
+              ...nation.estates,
+              [estateId]: { ...estate, privileges: estate.privileges.filter((id) => id !== privilegeId), loyalty: Math.max(0, estate.loyalty - REVOKE_PRIVILEGE_LOYALTY_PENALTY) }
+            }
           }
         },
-        logs: [...state.logs, { year: state.year, message: `Your empire has adopted ${gov.name}.`, type: LogTypes.MILESTONE }]
+        logs: [...state.logs, { year: state.year, message: `Revoked the ${privilege.name} privilege from the ${ESTATE_LABELS[estateId]}. (-1 stability, -${REVOKE_PRIVILEGE_LOYALTY_PENALTY} loyalty)`, type: LogTypes.ACTION }]
       };
     }
 
-    case ActionTypes.ADOPT_POLICY: {
-      const { policyId } = action.payload;
-      const policy = POLICIES[policyId];
+    case ActionTypes.CLERGY_TITHE: {
       const nation = state.nations[state.playerNationId];
-      const gov = GOVERNMENT_TYPES[nation.government];
-      const costs = ACTION_COSTS.adoptPolicy;
-      if (!policy || !gov) return state;
-      if (nation.policies.includes(policyId) || nation.policies.length >= gov.slots) return state;
+      const clergy = nation.estates?.clergy;
+      const costs = ACTION_COSTS.clergyTithe;
+      if (!clergy) return state;
       if (!canAfford(state.resources, costs)) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
+      const goldGain = totalDev * 2;
+      const afterCost = applyCosts(state.resources, costs);
       return {
         ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: [...nation.policies, policyId] } },
-        logs: [...state.logs, { year: state.year, message: `Adopted the ${policy.name} policy.`, type: LogTypes.MILESTONE }]
+        resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, estates: { ...nation.estates, clergy: { ...clergy, loyalty: Math.max(0, clergy.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `The Clergy tithes ${formatMoney(goldGain)} to the crown. (-${ESTATE_ASK_LOYALTY_PENALTY} clergy loyalty)`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.NOBILITY_LEVIES: {
+      const nation = state.nations[state.playerNationId];
+      const nobility = nation.estates?.nobility;
+      const costs = ACTION_COSTS.nobilityLevies;
+      if (!nobility) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
+      const hrGain = totalDev * 2;
+      const afterCost = applyCosts(state.resources, costs);
+      return {
+        ...state,
+        resources: { ...afterCost, hr: (afterCost.hr || 0) + hrGain },
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...nation, estates: { ...nation.estates, nobility: { ...nobility, loyalty: Math.max(0, nobility.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } } }
+        },
+        logs: [...state.logs, { year: state.year, message: `The Nobility raises levies: +${Math.round(hrGain)} manpower. (-${ESTATE_ASK_LOYALTY_PENALTY} nobility loyalty)`, type: LogTypes.ACTION }]
       };
     }
 
@@ -1282,6 +1917,7 @@ export const gameReducer = (state, action) => {
       const axisSpec = IDENTITY_AXES[axis];
       const costs = ACTION_COSTS.shiftIdentity;
       if (!axisSpec || (direction !== 1 && direction !== -1)) return state;
+      if ((state.turnNumber || 0) < (nation.identityShiftCooldownTurn || 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const currentValue = nation.identity?.[axis] || 0;
       const nextValue = clampIdentity(currentValue + direction * IDENTITY_SHIFT_STEP);
@@ -1292,36 +1928,56 @@ export const gameReducer = (state, action) => {
         resources: applyCosts(state.resources, costs),
         nations: {
           ...state.nations,
-          [state.playerNationId]: { ...nation, identity: { ...nation.identity, [axis]: nextValue } }
+          [state.playerNationId]: {
+            ...nation,
+            identity: { ...nation.identity, [axis]: nextValue },
+            identityShiftCooldownTurn: state.turnNumber + IDENTITY_SHIFT_COOLDOWN_TURNS
+          }
         },
         logs: [...state.logs, { year: state.year, message: `Your nation leans further ${poleName}.`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.REMOVE_POLICY: {
-      const { policyId } = action.payload;
-      const nation = state.nations[state.playerNationId];
-      const costs = ACTION_COSTS.removePolicy;
-      if (!nation.policies.includes(policyId)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, policies: nation.policies.filter(id => id !== policyId) } },
-        logs: [...state.logs, { year: state.year, message: `Repealed the ${POLICIES[policyId]?.name || policyId} policy.`, type: LogTypes.MILESTONE }]
       };
     }
 
     case ActionTypes.DECLARE_WAR: {
       const { nationId } = action.payload;
       const target = state.nations[nationId];
-      if (!target || nationId === state.playerNationId || target.isAtWar) return state;
+      const player = state.nations[state.playerNationId];
+      // Plan §M12/§M15: "a vassal... can't declare wars except independence" — DECLARE_INDEPENDENCE
+      // below is the one exception, and it doesn't go through this case.
+      if (!target || nationId === state.playerNationId || target.isAtWar || player?.vassalOf) return state;
       const justified = hasCasusBelli(state, state.playerNationId, nationId);
       const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
       if (!canAfford(state.resources, costs)) return state;
 
-      const afterWar = declareWar(state, nationId, { aggressor: state.playerNationId });
-      const homeRegionId = getNationCapital(state.playerNationId);
+      // Truce-breaking (plan §M12/M13): the player MAY declare anyway — unlike the AI, which
+      // pickWarTarget filters out entirely (aiLogic.js) — but pays a real price: home stability,
+      // prestige, and AE with every neighbor, as if this were the most aggressive kind of war.
+      const breakingTruce = isInTruce(state, state.playerNationId, nationId);
+      const playerAfterTruceBreak = breakingTruce
+        ? {
+            ...player,
+            stability: clampStability((player.stability || 0) - TRUCE_BREAK_STABILITY_PENALTY),
+            prestige: clampPrestige((player.prestige || 0) - TRUCE_BREAK_PRESTIGE_PENALTY),
+            truces: { ...(player.truces || {}), [nationId]: 0 }
+          }
+        : player;
+      let stateBeforeWar = breakingTruce
+        ? { ...state, nations: { ...state.nations, [state.playerNationId]: playerAfterTruceBreak, [nationId]: { ...target, truces: { ...(target.truces || {}), [state.playerNationId]: 0 } } } }
+        : state;
+      if (breakingTruce) {
+        const neighborIds = getBorderingNationIds(state.regions, state.playerNationId);
+        const nextNations = { ...stateBeforeWar.nations };
+        neighborIds.forEach((id) => {
+          if (id === nationId) return;
+          const neighbor = nextNations[id];
+          if (!neighbor) return;
+          nextNations[id] = { ...neighbor, ae: { ...(neighbor.ae || {}), [state.playerNationId]: (neighbor.ae?.[state.playerNationId] || 0) + TRUCE_BREAK_AE_AGAINST_NEIGHBORS } };
+        });
+        stateBeforeWar = { ...stateBeforeWar, nations: nextNations };
+      }
+
+      const afterWar = declareWar(stateBeforeWar, nationId, { aggressor: state.playerNationId });
+      const homeRegionId = getCapital(afterWar, state.playerNationId);
       const homeRegion = afterWar.regions[homeRegionId];
       const nextNations = { ...afterWar.nations };
       let nextRegions = afterWar.regions;
@@ -1342,7 +1998,9 @@ export const gameReducer = (state, action) => {
         regions: nextRegions,
         logs: [...afterWar.logs, {
           year: state.year,
-          message: justified ? `You declared a justified war on ${target.name}.` : `You declared an unjustified war on ${target.name} — the world takes note.`,
+          message: breakingTruce
+            ? `You broke your truce with ${target.name} to declare war! (-${TRUCE_BREAK_STABILITY_PENALTY} stability, -${TRUCE_BREAK_PRESTIGE_PENALTY} prestige, neighbors take note)`
+            : justified ? `You declared a justified war on ${target.name}.` : `You declared an unjustified war on ${target.name} — the world takes note.`,
           type: LogTypes.DIPLOMACY
         }]
       };
@@ -1364,26 +2022,108 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.SUE_FOR_PEACE: {
+      // Plan §M13: kept as a white-peace alias (no cede/gold/reparations/humiliate/vassalize terms)
+      // rather than removed outright — routes through the same applyPeace/setTruce path OFFER_PEACE
+      // uses below, so it now also liberates any occupied regions and starts a truce (a real
+      // pre-existing gap: the old version of this case never called setTruce at all).
       const { nationId } = action.payload;
       const target = state.nations[nationId];
       if (!target || !target.isAtWar) return state;
-      const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), actionPoints: 1 };
+      const war = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, nationId));
+      if (!war) return state;
+      const costs = { gold: Math.max(SUE_FOR_PEACE_MIN_GOLD, Math.round(SUE_FOR_PEACE_BASE_GOLD - target.warExhaustion * 2)), dip: 1 };
       if (!canAfford(state.resources, costs)) return state;
-      const player = state.nations[state.playerNationId];
+      const applied = applyPeace(state, war, state.playerNationId, []);
+      const player = applied.nations[state.playerNationId];
+      const targetAfter = applied.nations[nationId];
+      let nextNations = {
+        ...applied.nations,
+        // The war record names an aggressor and an enemy, not "the player's side" — an AI could
+        // have declared this war on the player just as easily as the reverse, and either way the
+        // player's own isAtWar must clear too, or they'd be permanently immune to any FUTURE war
+        // declaration (aiLogic.js's pickWarTarget filters out any nation still flagged isAtWar).
+        [state.playerNationId]: { ...player, isAtWar: false },
+        [nationId]: { ...targetAfter, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(targetAfter.hostility, 50), relationStatus: RelationStatus.COLD_PEACE }
+      };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
       return {
         ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: {
-          ...state.nations,
-          [nationId]: { ...target, isAtWar: false, hasPeaceTreaty: true, hostility: Math.min(target.hostility, 50), relationStatus: RelationStatus.COLD_PEACE },
-          // The war record names an aggressor and an enemy, not "the player's side" — an AI could
-          // have declared this war on the player just as easily as the reverse, and either way the
-          // player's own isAtWar must clear too, or they'd be permanently immune to any FUTURE war
-          // declaration (aiLogic.js's pickWarTarget filters out any nation still flagged isAtWar).
-          [state.playerNationId]: { ...player, isAtWar: false }
-        },
-        wars: state.wars.map(w => (isWarBetween(w, state.playerNationId, nationId) && w.active ? { ...w, active: false } : w)),
+        resources: applyCosts(applied.resources, costs),
+        regions: applied.regions,
+        nations: nextNations,
+        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
         logs: [...state.logs, { year: state.year, message: `Signed a peace treaty with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.OFFER_PEACE: {
+      // Plan §M13: negotiated peace with real terms — the AI recipient accepts iff its own
+      // acceptance ledger (src/engine/peace.js) covers the terms' combined war-score cost.
+      const { warId, terms = [] } = action.payload;
+      const war = state.wars.find(w => w.id === warId && w.active);
+      if (!war || (war.aggressor !== state.playerNationId && war.enemy !== state.playerNationId)) return state;
+      const recipientId = war.aggressor === state.playerNationId ? war.enemy : war.aggressor;
+      const recipient = state.nations[recipientId];
+      if (!recipient) return state;
+      const acceptance = getPeaceAcceptance(state, war, state.playerNationId, terms);
+      if (!acceptance.accepted) {
+        return { ...state, logs: [...state.logs, { year: state.year, message: `${recipient.name} rejects your peace terms.`, type: LogTypes.DIPLOMACY }] };
+      }
+      const applied = applyPeace(state, war, state.playerNationId, terms);
+      const winner = applied.nations[state.playerNationId];
+      const loser = applied.nations[recipientId];
+      let nextNations = {
+        ...applied.nations,
+        [state.playerNationId]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
+        [recipientId]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
+      };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
+      return {
+        ...state,
+        resources: applied.resources,
+        regions: applied.regions,
+        nations: nextNations,
+        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        logs: [...state.logs, { year: state.year, message: `Peace signed with ${recipient.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ACCEPT_PENDING_PEACE: {
+      // Plan §M13: the player accepting an AI's own OFFER_PEACE-equivalent (queued into
+      // state.pendingPeaceOffer by resolveWarProgress once the AI is winning enough to demand terms).
+      const offer = state.pendingPeaceOffer;
+      if (!offer) return state;
+      const war = state.wars.find(w => w.id === offer.warId && w.active);
+      if (!war) return { ...state, pendingPeaceOffer: null };
+      const recipientId = offer.from === war.aggressor ? war.enemy : war.aggressor;
+      const applied = applyPeace(state, war, offer.from, offer.terms);
+      const winner = applied.nations[offer.from];
+      const loser = applied.nations[recipientId];
+      let nextNations = {
+        ...applied.nations,
+        [offer.from]: { ...winner, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE },
+        [recipientId]: { ...loser, isAtWar: false, hasPeaceTreaty: true, relationStatus: RelationStatus.COLD_PEACE }
+      };
+      nextNations = setTruce(nextNations, war.aggressor, war.enemy, state.turnNumber);
+      return {
+        ...state,
+        resources: applied.resources,
+        regions: applied.regions,
+        nations: nextNations,
+        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        pendingPeaceOffer: null,
+        logs: [...state.logs, { year: state.year, message: `You accept peace with ${nextNations[recipientId]?.name || recipientId}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.REJECT_PENDING_PEACE: {
+      const offer = state.pendingPeaceOffer;
+      if (!offer) return state;
+      return {
+        ...state,
+        pendingPeaceOffer: null,
+        wars: state.wars.map(w => (w.id === offer.warId ? { ...w, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS } : w)),
+        logs: [...state.logs, { year: state.year, message: `You reject ${state.nations[offer.from]?.name || offer.from}'s peace offer — they may ask again later.`, type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -1392,6 +2132,11 @@ export const gameReducer = (state, action) => {
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.tradeAgreement;
       if (!target || target.isAtWar || target.hasTradeAgreement) return state;
+      // Trade Pact capacity (plan §M8.3/§M12) — Globalism/Isolationism identity swings it; see
+      // diplomacy.js's getTradePactCapacity. Counts every OTHER nation currently pacted with the
+      // player, since hasTradeAgreement lives on the target's own record.
+      const activePactCount = Object.values(state.nations).filter((n) => n.hasTradeAgreement).length;
+      if (activePactCount >= getTradePactCapacity(state.nations[state.playerNationId])) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1406,7 +2151,13 @@ export const gameReducer = (state, action) => {
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.militaryAlliance;
       if (!target || target.isAtWar || target.hasMilitaryPact) return state;
-      if (!target.hasTradeAgreement && target.hostility > ALLIANCE_HOSTILITY_CEILING) return state;
+      // Alliance acceptance (plan §M12: "opinion/4 + prestige/10 ... accept if > 0"), adapted onto
+      // this codebase's real axes: hostility stands in for opinion (inverted, since 50 is neutral
+      // on a 0-100 hostility scale the way 0 is neutral on a signed opinion scale), and an existing
+      // trade agreement is a flat vote of confidence — replacing the old flat hostility-ceiling
+      // gate with a real scored formula.
+      const acceptanceScore = (50 - (target.hostility || 0)) / 2 + (target.prestige || 0) / 10 + (target.hasTradeAgreement ? 20 : 0);
+      if (acceptanceScore < 0) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -1434,7 +2185,14 @@ export const gameReducer = (state, action) => {
     // operation against a chosen nation, and a real defensive action that catches whoever's
     // currently most hostile toward you — see ESPIONAGE_SUCCESS_CHANCE etc., actionCosts.js.
     case ActionTypes.ESPIONAGE: {
-      const { nationId } = action.payload;
+      // Plan §M12: "Steal Tech, Sabotage Reputation, Support Rebels" — Steal Tech is the original,
+      // unchanged behavior (default `type`, so every existing caller keeps working). Support
+      // Rebels is real and new: it directly raises unrest in one of the target's own regions,
+      // reusing the same unrest/rebellion mechanic resolveTurn.js already runs — defaulting to
+      // their capital when no regionId is given, the same auto-target convenience Counter-
+      // Intelligence already uses. Sabotage Reputation is deferred (actionCosts.js's own header on
+      // why: no pairwise AI-AI opinion substrate exists to damage).
+      const { nationId, type = 'steal_tech', regionId } = action.payload;
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.espionage;
       if (!target) return state;
@@ -1443,6 +2201,18 @@ export const gameReducer = (state, action) => {
       const success = rng.next() < ESPIONAGE_SUCCESS_CHANCE;
       const resourcesAfterCost = applyCosts(state.resources, costs);
       if (success) {
+        if (type === 'support_rebels') {
+          const targetRegionId = regionId && state.regions[regionId]?.owner === nationId ? regionId : getCapital(state, nationId);
+          const targetRegion = state.regions[targetRegionId];
+          if (!targetRegion) return state;
+          return {
+            ...state,
+            resources: resourcesAfterCost,
+            regions: { ...state.regions, [targetRegionId]: { ...targetRegion, unrest: Math.min(100, (targetRegion.unrest || 0) + ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE) } },
+            rngSeed: rng.getSeed(),
+            logs: [...state.logs, { year: state.year, message: `Your agents stirred unrest in ${REGIONS_DATA[targetRegionId]?.name || targetRegionId}.`, type: LogTypes.DIPLOMACY }]
+          };
+        }
         return {
           ...state,
           resources: { ...resourcesAfterCost, techPoints: (resourcesAfterCost.techPoints || 0) + ESPIONAGE_TECH_POINTS_STOLEN },
@@ -1468,9 +2238,248 @@ export const gameReducer = (state, action) => {
       const resourcesAfterCost = applyCosts(state.resources, costs);
       return {
         ...state,
-        resources: { ...resourcesAfterCost, diplomacyPoints: (resourcesAfterCost.diplomacyPoints || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
+        resources: { ...resourcesAfterCost, dip: (resourcesAfterCost.dip || 0) + COUNTER_INTEL_DIPLOMACY_POINTS_REWARD },
         nations: { ...state.nations, [target.id]: { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - COUNTER_INTEL_HOSTILITY_REDUCTION) } },
-        logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} Diplomacy Points.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, message: `Your counter-intelligence service uncovered a plot by ${target.name}. Hostility reduced, +${COUNTER_INTEL_DIPLOMACY_POINTS_REWARD} DIP.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Diplomacy overhaul (plan §M12) — rivals, royal marriages, alliance lifecycle, diplomats,
+    // and the vassal lifecycle. See types.js's own header comment on this group for scope notes.
+    case ActionTypes.RIVAL_NATION: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      if (!target || nationId === state.playerNationId) return state;
+      if ((player.rivals || []).includes(nationId)) return state;
+      if ((player.rivals || []).length >= MAX_RIVALS) return state;
+      if (!getBorderingNationIds(state.regions, state.playerNationId).includes(nationId)) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...player, rivals: [...(player.rivals || []), nationId] } },
+        logs: [...state.logs, { year: state.year, message: `${target.name} is now considered a rival.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.UNRIVAL_NATION: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      if (!(player.rivals || []).includes(nationId)) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...player, rivals: player.rivals.filter((id) => id !== nationId) } }
+      };
+    }
+
+    case ActionTypes.PROPOSE_MARRIAGE: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.proposeMarriage;
+      if (!target || target.isAtWar) return state;
+      // Plan: "both monarchies" — this codebase's own real hereditary/monarchy check (M3).
+      if (getSuccessionStyle(player.government) !== 'hereditary' || getSuccessionStyle(target.government) !== 'hereditary') return state;
+      if ((player.marriageWith || []).includes(nationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const nextTarget = { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - MARRIAGE_HOSTILITY_REDUCTION) };
+      const nextPlayer = {
+        ...player,
+        marriageWith: [...(player.marriageWith || []), nationId],
+        heir: player.heir ? { ...player.heir, claim: Math.min(100, player.heir.claim + MARRIAGE_HEIR_CLAIM_BONUS) } : player.heir
+      };
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: { ...state.nations, [state.playerNationId]: nextPlayer, [nationId]: nextTarget },
+        logs: [...state.logs, { year: state.year, message: `A royal marriage was arranged with ${target.name}.${player.heir ? ` (+${MARRIAGE_HEIR_CLAIM_BONUS} heir claim)` : ''}`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.BREAK_ALLIANCE: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      if (!target || !target.hasMilitaryPact) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [nationId]: { ...target, hasMilitaryPact: false, hostility: Math.min(100, (target.hostility || 0) + BREAK_ALLIANCE_HOSTILITY_INCREASE) } },
+        logs: [...state.logs, { year: state.year, message: `You broke the military alliance with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.INSULT: {
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      if (!target) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [nationId]: { ...target, hostility: Math.min(100, (target.hostility || 0) + INSULT_HOSTILITY_INCREASE) } },
+        logs: [...state.logs, { year: state.year, message: `You publicly insulted ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ASSIGN_DIPLOMAT: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.assignDiplomat;
+      if (!target || nationId === state.playerNationId) return state;
+      const tasks = player.diplomatTasks || [];
+      if (tasks.some((t) => t.targetId === nationId)) return state;
+      if (tasks.length >= (player.diplomats || 0)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, diplomatTasks: [...tasks, { targetId: nationId, task: 'improve_relations', startedTurn: state.turnNumber }] }
+        },
+        logs: [...state.logs, { year: state.year, message: `A diplomat was sent to improve relations with ${target.name}.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.RECALL_DIPLOMAT: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const tasks = player.diplomatTasks || [];
+      if (!tasks.some((t) => t.targetId === nationId)) return state;
+      return {
+        ...state,
+        nations: { ...state.nations, [state.playerNationId]: { ...player, diplomatTasks: tasks.filter((t) => t.targetId !== nationId) } }
+      };
+    }
+
+    case ActionTypes.VASSALIZE: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.vassalize;
+      if (!target || nationId === state.playerNationId || target.isAtWar || target.vassalOf) return state;
+      if ((target.hostility || 0) > VASSALIZE_HOSTILITY_CEILING) return state;
+      // Plan §M16: real fielded strength (+ damped garrison), not the abstract number alone — see
+      // src/engine/aiEconomy.js's getEffectiveMilitaryPower and peace.js's own use of the same metric.
+      if (getEffectiveMilitaryPower(state, state.playerNationId) < getEffectiveMilitaryPower(state, nationId) * VASSALIZE_STRENGTH_RATIO) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, vassals: [...(player.vassals || []), nationId] },
+          [nationId]: { ...target, vassalOf: state.playerNationId, vassalizedTurn: state.turnNumber }
+        },
+        logs: [...state.logs, { year: state.year, message: `${target.name} has become your vassal.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ANNEX_VASSAL: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      if (!target || target.vassalOf !== state.playerNationId) return state;
+      if (state.turnNumber < (target.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS) return state;
+      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === nationId ? getTotalDev(r) : 0), 0);
+      const costs = { dip: Math.round(VASSAL_ANNEX_DIP_PER_DEV * totalDev) };
+      if (!canAfford(state.resources, costs)) return state;
+      const nextRegions = { ...state.regions };
+      Object.keys(nextRegions).forEach((regionId) => {
+        if (nextRegions[regionId].owner === nationId) nextRegions[regionId] = { ...nextRegions[regionId], owner: state.playerNationId };
+      });
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        regions: nextRegions,
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
+          [nationId]: { ...target, vassalOf: null }
+        },
+        logs: [...state.logs, { year: state.year, message: `${target.name} has been annexed into your realm.`, type: LogTypes.MILESTONE }]
+      };
+    }
+
+    case ActionTypes.RELEASE_VASSAL: {
+      const { nationId } = action.payload;
+      const player = state.nations[state.playerNationId];
+      const target = state.nations[nationId];
+      if (!target || target.vassalOf !== state.playerNationId) return state;
+      return {
+        ...state,
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
+          [nationId]: { ...target, vassalOf: null }
+        },
+        logs: [...state.logs, { year: state.year, message: `${target.name} has been released from vassalage.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Crises & defeat (plan §M15). Move Capital: a deliberate, costly relocation to any owned,
+    // unoccupied region — the plan's own "-1 stability if outside the original start regions" reuses
+    // REGIONS_DATA[id].startOwner, the same "is this the nation's own native soil" test
+    // getFormerOwnerOnConquest (rebellion.js) already applies for conquered-territory purposes.
+    case ActionTypes.MOVE_CAPITAL: {
+      const { regionId } = action.payload;
+      const region = state.regions[regionId];
+      const player = state.nations[state.playerNationId];
+      const costs = ACTION_COSTS.moveCapital;
+      if (!region || region.owner !== state.playerNationId || region.occupiedBy) return state;
+      if (regionId === getCapital(state, state.playerNationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const isForeignSoil = REGIONS_DATA[regionId]?.startOwner !== state.playerNationId;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: {
+          ...state.nations,
+          [state.playerNationId]: {
+            ...player,
+            capitalRegionId: regionId,
+            stability: isForeignSoil ? clampStability((player.stability || 0) - MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY) : player.stability
+          }
+        },
+        logs: [...state.logs, {
+          year: state.year,
+          message: `The capital has moved to ${REGIONS_DATA[regionId]?.name || regionId}.${isForeignSoil ? ' (-1 stability)' : ''}`,
+          type: LogTypes.MILESTONE
+        }]
+      };
+    }
+
+    // A vassal's own path out of subjection (plan §M12/§M15) — the one war DECLARE_WAR's own
+    // vassalOf guard above still allows. Winning is resolved entirely inside resolveWarProgress
+    // (src/engine/diplomacy.js's own 'independence' cb branch), not here; this only opens the war.
+    case ActionTypes.DECLARE_INDEPENDENCE: {
+      const player = state.nations[state.playerNationId];
+      const overlordId = player?.vassalOf;
+      const overlord = overlordId ? state.nations[overlordId] : null;
+      if (!overlord || player.isAtWar || (player.libertyDesire || 0) < LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD) return state;
+      const afterWar = declareWar(state, overlordId, { aggressor: state.playerNationId, goal: { type: 'independence' } });
+      if (afterWar === state) return state;
+      const wars = [...afterWar.wars];
+      wars[wars.length - 1] = { ...wars[wars.length - 1], cb: 'independence' };
+      return {
+        ...afterWar,
+        wars,
+        logs: [...afterWar.logs, { year: state.year, message: `${player.name} declares independence from ${overlord.name}!`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // Plan §M18: "Continue playing after victory" — only valid for an AMBITION win reached BEFORE
+    // the calendar's own end (year < END_YEAR); the END_YEAR ranked ending (finalScore) is the
+    // real, final game-over and has nothing left to continue toward. Records the condition in
+    // victoriesAchieved so checkVictoryConditions (still true every later turn, since the region/
+    // GDP/streak/etc. threshold that was met usually stays met) doesn't immediately re-fire the
+    // SAME victory the very next turn.
+    case ActionTypes.CONTINUE_AFTER_VICTORY: {
+      if (state.gameStatus !== GameStatus.VICTORY || state.year >= END_YEAR) return state;
+      const conditionId = state.victoryConditionId;
+      return {
+        ...state,
+        gameStatus: GameStatus.ACTIVE,
+        victoryConditionId: null,
+        victoriesAchieved: [...(state.victoriesAchieved || []), conditionId],
+        logs: [...state.logs, { year: state.year, message: 'You choose to continue your reign.', type: LogTypes.MILESTONE }]
       };
     }
 
@@ -1566,3 +2575,8 @@ export const gameReducer = (state, action) => {
       return state;
   }
 };
+
+// Re-exported so the Supabase edge bundle (scripts/build-edge-engine.mjs, whose entry point is
+// this file) carries the save-migration layer automatically, without a separate bundling step —
+// see src/engine/saveMigrations.js for why this exists and what it does.
+export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';

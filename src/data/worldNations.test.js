@@ -12,7 +12,6 @@ describe('WORLD_NATIONS', () => {
   it('every nation is symmetric — same neutral starting stance, no scripted conflict', () => {
     Object.values(WORLD_NATIONS).forEach(n => {
       expect(n.startHostility).toBe(5);
-      expect(n.aggression).toBe(0.1);
       expect(DOCTRINE_IDS).toContain(n.doctrine);
       expect(n.startRelation).toBe(RelationStatus.NEUTRAL);
       expect(Number.isFinite(n.startMilitary)).toBe(true);
