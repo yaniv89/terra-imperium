@@ -9,14 +9,26 @@ import { getOwnedRegionIds } from '../data/regions';
 
 // A modest one-time prize for finishing a nation off entirely — sized like a single mid-tier
 // action's cost (src/data/actionCosts.js), not a windfall.
-export const NATION_ELIMINATION_REWARD = { gold: 200, diplomacyPoints: 15 };
+export const NATION_ELIMINATION_REWARD = { gold: 200, dip: 15 };
 
+// The player nation record is never flagged isEliminated by this function (an AI nation's zero-
+// regions state means "dead and done"; the player's does not — GameStatus.DEFEAT, checked separately
+// below, is the real player-losing condition, and it doesn't retire the nation record the way this
+// does for an AI one). Before plan §M15 the player had NO losing condition at all; checkPlayerDefeat
+// is that condition now.
 export const checkNationElimination = (nations, regions, nationId) => {
   const nation = nations[nationId];
   if (!nation || nation.isPlayer || nation.isEliminated) return null;
   if (getOwnedRegionIds(regions, nationId).length > 0) return null;
   return { ...nation, isEliminated: true, isAtWar: false };
 };
+
+// Plan §M15: "GameStatus.DEFEAT is set when the player owns 0 regions: annexed by a peace deal, or
+// all regions lost to rebels or revolts." No separate cause-tracking is needed here — however the
+// player got to 0 regions (a cede-everything peace term, every region reverting to rebels, or an AI
+// conquest via resolveWarProgress), the check is the same one checkNationElimination already uses
+// for every other nation, just without flagging the record isEliminated.
+export const checkPlayerDefeat = (regions, playerNationId) => getOwnedRegionIds(regions, playerNationId).length === 0;
 
 // Ends every war naming a newly eliminated nation — it has nothing left to fight with or for.
 export const closeWarsForEliminatedNation = (wars, nationId) =>

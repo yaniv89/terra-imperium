@@ -34,11 +34,14 @@ const getPath = (iconName) => {
 };
 
 const UNIT_ICONS = {
-  bronze: { infantry: 'stone-spear', cavalry: 'chariot', ranged: 'sling', siege: 'siege-ram', naval: 'galley' },
-  classical: { infantry: 'gladius', cavalry: 'elephant', ranged: 'bowman', siege: 'catapult', naval: 'trireme' },
-  kingdoms: { infantry: 'pikeman', cavalry: 'mounted-knight', ranged: 'crossbow', siege: 'trebuchet', naval: 'drakkar' },
-  gunpowder: { infantry: 'musket', cavalry: 'saber-and-pistol', ranged: 'crossed-pistols', siege: 'cannon', naval: 'galleon' },
-  modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter' }
+  // 'support' (plan §M14 — Baggage Train/Engineers/Pioneers/Sappers/Anti-Air Battery) added
+  // alongside the original five classes; every other id here is unchanged from before that
+  // milestone.
+  bronze: { infantry: 'stone-spear', cavalry: 'chariot', ranged: 'sling', siege: 'siege-ram', naval: 'galley', support: 'old-wagon' },
+  classical: { infantry: 'gladius', cavalry: 'elephant', ranged: 'bowman', siege: 'catapult', naval: 'trireme', support: 'trowel' },
+  kingdoms: { infantry: 'pikeman', cavalry: 'mounted-knight', ranged: 'crossbow', siege: 'trebuchet', naval: 'drakkar', support: 'toolbox' },
+  gunpowder: { infantry: 'musket', cavalry: 'saber-and-pistol', ranged: 'crossed-pistols', siege: 'cannon', naval: 'galleon', support: 'dynamite' },
+  modern: { infantry: 'rifle', cavalry: 'battle-tank', ranged: 'machine-gun', siege: 'artillery-shell', naval: 'battleship', air: 'jet-fighter', support: 'anti-aircraft-gun' }
 };
 
 const BUILDING_ICONS = {

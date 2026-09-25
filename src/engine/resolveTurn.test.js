@@ -43,7 +43,7 @@ describe('resolveTurn determinism', () => {
   // economic actions, which wouldn't actually exercise the seeded randomness this guarantees.
   it('replaying an identical sequence of turns and player actions from the same starting state converges to byte-identical results', () => {
     const initial = createInitialState({ playerNationId: 'fr' });
-    const withResources = { ...initial, resources: { ...initial.resources, gold: 100000, hr: 100000, actionPoints: 100 } };
+    const withResources = { ...initial, resources: { ...initial.resources, gold: 100000, hr: 100000, mil: 100 } };
     // fr-59 (Nord) really borders be-vwv (Hainaut) — worldRegions.json — so the recruited unit can
     // actually launch a real invasion from one to the other, exercising real battle RNG.
     const FRONTIER_REGION = 'fr-59';
@@ -142,32 +142,38 @@ describe('resolveTurn resource income', () => {
     expect(next.resources.iron).toBeDefined();
   });
 
-  // Regression guard: actionPoints isn't in RESOURCE_IDS, so createEmptyResourcePool never zeroes
-  // it and calcIncome never returns it — nothing refreshed it before this fix, meaning a fresh
-  // game's starting 3 action points were, in effect, the player's ENTIRE budget for the whole
+  // Regression guard: adm/dip/mil aren't in RESOURCE_IDS, so createEmptyResourcePool never zeroes
+  // them and calcIncome never returns them — nothing refreshed them before this fix, meaning a
+  // fresh game's starting power was, in effect, the player's ENTIRE budget for the whole
   // ~500-turn game once spent, permanently locking out every action (recruiting, building,
-  // diplomacy, research, all of which cost actionPoints — src/data/actionCosts.js). Every other
-  // action-cost test in this codebase manually stuffs actionPoints before dispatching, which is
-  // exactly why nothing else caught this.
-  it('tops actionPoints up by the per-turn budget when none was left over', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, actionPoints: 0 } };
+  // diplomacy, research, all of which cost adm/dip/mil — src/data/actionCosts.js). Every other
+  // action-cost test in this codebase manually stuffs the relevant pool before dispatching, which
+  // is exactly why nothing else caught this.
+  it('tops adm/dip/mil up by the per-turn budget when none was left over', () => {
+    const state = { ...createInitialState({ playerNationId: 'fr' }), resources: { ...createInitialState({ playerNationId: 'fr' }).resources, adm: 0, dip: 0, mil: 0 } };
     const next = resolveTurn(state);
-    expect(next.resources.actionPoints).toBe(state.resources.maxActionPoints);
+    // Compared against next's OWN maxAdm/maxDip/maxMil, not state's: createInitialState hardcodes
+    // maxAdm/maxDip/maxMil to the flat BASE_POWER_PER_TURN at creation, while resolveTurn recomputes
+    // them from getPowerIncome (which includes the nation's seeded ruler's adm/dip/mil skill, M3) —
+    // so state's own pre-turn max is stale the moment a nonzero ruler skill exists.
+    expect(next.resources.adm).toBe(next.resources.maxAdm);
+    expect(next.resources.dip).toBe(next.resources.maxDip);
+    expect(next.resources.mil).toBe(next.resources.maxMil);
   });
 
-  it('a whole long run never runs out of action points to spend', () => {
-    // Spending only 1 of 5 AP/turn on a single action banks the rest every turn, so under the
-    // capped-banking model (resolveTurn.js's AP_BANK_CAP_MULTIPLIER) the balance climbs and then
-    // saturates at 2x maxActionPoints rather than settling back to a flat maxActionPoints every
-    // turn — the old flat-overwrite invariant this test used to check. Either way, the player is
-    // never starved of AP to spend, which is the actual regression this test guards against.
+  it('a whole long run never runs out of ADM to spend', () => {
+    // Spending only 1 of 3 ADM/turn on a single action banks the rest every turn, so under the
+    // capped-banking model (resolveTurn.js's POWER_BANK_CAP_MULTIPLIER) the balance climbs and then
+    // saturates at 2x maxAdm rather than settling back to a flat maxAdm every turn — the old
+    // flat-overwrite invariant this test used to check. Either way, the player is never starved of
+    // ADM to spend, which is the actual regression this test guards against.
     let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     for (let i = 0; i < 50; i++) {
       state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
       state = resolveTurn(state);
-      expect(state.resources.actionPoints).toBeGreaterThan(0);
+      expect(state.resources.adm).toBeGreaterThan(0);
     }
-    expect(state.resources.actionPoints).toBe(state.resources.maxActionPoints * 2);
+    expect(state.resources.adm).toBe(state.resources.maxAdm * 2);
   }, 30000); // 50 real turns at the 4,482-region world's per-turn cost — see aiQualityBenchmark.test.js's own comment
 });
 
@@ -189,31 +195,127 @@ describe('resolveTurn army maintenance', () => {
   it('charges no upkeep, and logs none, with no units fielded', () => {
     const state = withUnits(0);
     const next = resolveTurn(state);
-    expect(next.logs.some(l => l.message.includes('Army upkeep'))).toBe(false);
+    expect(next.logs.some(l => l.message.includes('Upkeep'))).toBe(false);
   });
 
+  // Plan §M11 extends this into a combined army/navy/fort/advisor/loan-interest ledger line
+  // ("Upkeep: ...") — this test now checks the army component of that combined line.
   it('deducts UNIT_UPKEEP_GOLD_PER_TURN per player-owned unit, on top of ordinary income', () => {
-    // Equalize starting gold so the two scenarios' outcomes differ by exactly the upkeep, not by
-    // any unrelated income difference — recruiting units doesn't itself change region income.
-    const base = { ...withUnits(0), resources: { ...withUnits(0).resources, gold: 5000 } };
-    const withArmy = { ...withUnits(3), resources: { ...withUnits(3).resources, gold: 5000 } };
+    // Both scenarios are derived from the SAME base state (one createInitialState call, one seeded
+    // ruler/traits), not two independent ones — M3's ruler generation draws real randomness during
+    // createInitialState itself, so two separate calls can seed different ruler traits/skills and
+    // make their income diverge for reasons that have nothing to do with unit upkeep. Equalizing
+    // starting gold on top isolates the outcome to exactly the upkeep difference.
+    const sharedBase = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = { ...sharedBase, resources: { ...sharedBase.resources, gold: 5000 } };
+    const armyUnits = {};
+    for (let i = 0; i < 3; i++) armyUnits[`unit_${i}`] = fakeUnit(`unit_${i}`);
+    const withArmy = { ...base, units: armyUnits };
     const nextBase = resolveTurn(base);
     const nextArmy = resolveTurn(withArmy);
     expect(nextBase.resources.gold - nextArmy.resources.gold).toBe(3 * UNIT_UPKEEP_GOLD_PER_TURN);
-    expect(nextArmy.logs.some(l => l.message.includes('Army upkeep: -15g (3 units)'))).toBe(true);
+    expect(nextArmy.logs.some(l => l.message.includes('army 15g'))).toBe(true);
   });
 
   it('never charges upkeep for another nation\'s units', () => {
     const state = withUnits(0);
     state.units.enemy_unit = { ...fakeUnit('enemy_unit'), ownerId: 'de' };
     const next = resolveTurn(state);
-    expect(next.logs.some(l => l.message.includes('Army upkeep'))).toBe(false);
+    expect(next.logs.some(l => l.message.includes('Upkeep'))).toBe(false);
   });
 
-  it('floors gold at zero rather than going negative from upkeep', () => {
+  // Plan §M11: without Banking Houses, loan capacity is 0 (see economy.js's getLoanCapacity), so a
+  // shortfall this large goes straight to bankruptcy rather than an auto-loan — either outcome
+  // floors the treasury at 0, which is what this test actually pins.
+  it('floors gold at zero (via bankruptcy, pre-Banking-Houses) rather than going negative from upkeep', () => {
     const state = { ...withUnits(1000), resources: { ...withUnits(1000).resources, gold: 0 } };
     const next = resolveTurn(state);
     expect(next.resources.gold).toBeGreaterThanOrEqual(0);
+    expect(next.logs.some(l => l.message.includes('Bankruptcy'))).toBe(true);
+  });
+});
+
+// Plan §M11: fort upkeep, auto-loans, bankruptcy's real effects, and the Fusion Grid sink.
+describe('resolveTurn economy (plan §M11)', () => {
+  const withBankingHouses = (state) => ({
+    ...state,
+    techTree: { ...state.techTree, economy_banking_houses: { ...state.techTree.economy_banking_houses, researched: true } }
+  });
+
+  it('charges fort upkeep for a built Defense-tier region', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const buildings = { ...base.regions[cap('fr')].buildings, categories: { ...base.regions[cap('fr')].buildings.categories, defense: 0 } }; // Palisade: fortLevel 1
+    const withFort = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], buildings } } };
+    const nextBase = resolveTurn(base);
+    const nextFort = resolveTurn(withFort);
+    expect(nextBase.resources.gold - nextFort.resources.gold).toBe(1); // FORT_UPKEEP_GOLD_PER_FORT_LEVEL x fortLevel 1
+  });
+
+  it('auto-takes a loan on a shortfall once Banking Houses is researched, rather than going bankrupt', () => {
+    const base = withBankingHouses(withAllEventsFired(createInitialState({ playerNationId: 'fr' })));
+    const hugeArmy = Array.from({ length: 200 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }])
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+    const poor = { ...base, resources: { ...base.resources, gold: 0 }, units: hugeArmy };
+    const next = resolveTurn(poor);
+    expect(next.nations.fr.loans.length).toBe(1);
+    expect(next.resources.gold).toBeGreaterThanOrEqual(0);
+    expect(next.logs.some(l => l.message.includes('auto-took a loan'))).toBe(true);
+  });
+
+  it('bankruptcy applies -3 stability, -20 prestige, drops every estate 20 loyalty, clears loans, and pushes a 10-turn modifier', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const fr = {
+      ...base.nations.fr,
+      stability: 0,
+      prestige: 50,
+      // No ruler traits — a randomly-rolled loyalty-shifting trait (Kind, Zealot, ...) would move
+      // an estate's equilibrium target off 50 and make this turn's own loyalty DRIFT (estates.js's
+      // own per-turn pass, which runs before this bankruptcy check) nonzero, which would break the
+      // exact "-20 from 50" arithmetic this test pins.
+      ruler: { ...base.nations.fr.ruler, traits: [] },
+      // A pre-existing loan is here to confirm it gets wiped by bankruptcy, not what CAUSES it —
+      // the huge army's upkeep below is the actual shortfall (Banking Houses isn't researched, so
+      // loan capacity is 0 regardless of this loan's own presence).
+      loans: [{ id: 'l1', principal: 100, interestRate: 0.04, takenTurn: 0 }],
+      estates: Object.fromEntries(Object.entries(base.nations.fr.estates).map(([id, e]) => [id, { ...e, loyalty: 50 }]))
+    };
+    const hugeArmy = Array.from({ length: 1000 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }])
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+    const state = { ...base, nations: { ...base.nations, fr }, resources: { ...base.resources, gold: 0 }, units: hugeArmy };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.stability).toBe(-3);
+    // prestige decays 5% toward 0 in the national-power phase BEFORE bankruptcy's own -20 applies:
+    // trunc(50 x 0.95) = 47, then 47 - 20 = 27.
+    expect(next.nations.fr.prestige).toBe(27);
+    expect(next.nations.fr.loans).toEqual([]);
+    Object.values(next.nations.fr.estates).forEach((e) => expect(e.loyalty).toBe(30));
+    expect(next.nations.fr.modifiers.some((m) => m.sourceType === 'bankruptcy' && m.expiresTurn === next.turnNumber + 10)).toBe(true);
+  });
+
+  it('bankruptcy cancels in-progress Great Project construction without refund', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const region = { ...base.regions[cap('fr')], greatProjectConstruction: { projectId: 'great_pyramids', tier: 1, turnsLeft: 3 } };
+    const state = { ...base, regions: { ...base.regions, [cap('fr')]: region }, resources: { ...base.resources, gold: 0 } };
+    const withHugeArmy = { ...state, units: Array.from({ length: 1000 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }]).reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}) };
+    const next = resolveTurn(withHugeArmy);
+    expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
+    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
+  });
+
+  it('Fusion Grid deducts its per-turn helium3 upkeep while active', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 10 } };
+    const next = resolveTurn(state);
+    expect(next.resources.helium3).toBe(8); // FUSION_GRID_UPKEEP_HELIUM3_PER_TURN = 2
+    expect(next.nations.fr.fusionGridActive).toBe(true);
+  });
+
+  it('Fusion Grid goes offline once helium3 can no longer cover its upkeep', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 1 } };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.fusionGridActive).toBe(false);
+    expect(next.logs.some((l) => l.message.includes('Fusion Grid has gone offline'))).toBe(true);
   });
 });
 
@@ -291,8 +393,19 @@ describe('resolveTurn rebellion', () => {
     expect(next.regions[cap('fr')].control).toBeLessThan(state.regions[cap('fr')].control);
   });
 
+  // M3's seeded ruler traits (src/data/traits.js) feed the SAME national.stabilityBonus hook a
+  // government/policy/wonder does, which directly shaves unrest drift (nextUnrest) every turn —
+  // a France ruler who happens to roll Just (+2) or Kind (+3) can, over 2 turns, pull unrest below
+  // REBELLION_UNREST_THRESHOLD despite the "+5" margin these tests were written with (pre-M3) to
+  // rule out. Zeroing traits here isolates the rebellion-growth invariant these tests are actually
+  // about from that unrelated (and correctly working) M3 randomness.
+  const noRulerTraits = (state) => ({
+    ...state,
+    nations: { ...state.nations, fr: { ...state.nations.fr, ruler: { ...state.nations.fr.ruler, traits: [] } } }
+  });
+
   it('does not spawn a second rebel army in a region that already has one', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = noRulerTraits(withAllEventsFired(createInitialState({ playerNationId: 'fr' })));
     const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const again = resolveTurn(withRebel);
@@ -301,7 +414,7 @@ describe('resolveTurn rebellion', () => {
   });
 
   it('grows an existing rebel army while unrest stays at or above the threshold', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = noRulerTraits(withAllEventsFired(createInitialState({ playerNationId: 'fr' })));
     const state = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: REBELLION_UNREST_THRESHOLD + 5 } } };
     const withRebel = resolveTurn(state);
     const before = rebelUnitIn(withRebel).strength;
@@ -450,6 +563,164 @@ describe('resolveTurn supply attrition', () => {
     const next = resolveTurn(state);
     expect(next.units.u_weak).toBeUndefined();
   });
+
+  // Plan §M7: Paved Roads/Highway Systems reduce attrition (national.attrition), read only for the
+  // player (AI nations don't track a techTree until M16) — see resolveTurn.js's own comment on why
+  // this is gated, not a blanket getModifier call across all ~240 nations every turn.
+  it('bleeds less strength from an out-of-supply unit once Paved Roads is researched', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const farUnit = {
+      id: 'u_far', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const withoutTech = { ...base, units: { u_far: farUnit } };
+    const withTech = { ...withoutTech, techTree: { ...base.techTree, infrastructure_paved_roads: { ...base.techTree.infrastructure_paved_roads, researched: true } } };
+    const nextWithout = resolveTurn(withoutTech);
+    const nextWith = resolveTurn(withTech);
+    expect(nextWith.units.u_far.strength).toBeGreaterThan(nextWithout.units.u_far.strength);
+  });
+
+  it('never applies a supplyRange/attrition bonus for an AI-owned unit, even if the player has researched one', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const withTech = { ...base, techTree: { ...base.techTree, infrastructure_paved_roads: { ...base.techTree.infrastructure_paved_roads, researched: true } } };
+    const aiFarUnit = {
+      id: 'u_ai_far', regionId: cap('fr'), ownerId: 'de', domain: 'land', classId: 'infantry', ageId: 'bronze',
+      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
+    };
+    const state = { ...withTech, units: { u_ai_far: aiFarUnit } };
+    const next = resolveTurn(state);
+    // Germany's own unit, sitting on French soil, is still out of ITS OWN supply and takes the
+    // full, un-discounted attrition rate — the player's tech never leaks onto another nation.
+    expect(next.units.u_ai_far.strength).toBeLessThan(1000);
+  });
+});
+
+describe('resolveTurn movement reset, reinforcement, and morale recovery (plan §M14)', () => {
+  const makeUnit = (overrides = {}) => ({
+    id: 'u1', regionId: cap('fr'), ownerId: 'fr', domain: 'land', classId: 'infantry',
+    strength: 500, maxStrength: 1000, morale: 50, movesLeft: 0,
+    xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null,
+    ...overrides
+  });
+
+  it('resets a fully-spent unit\'s move at the start of its next turn', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ movesLeft: 0 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.movesLeft).toBe(1);
+  });
+
+  it('grants a second move to a unit with the forcedMarch perk', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ movesLeft: 0, promotions: ['forcedMarch'] }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.movesLeft).toBe(2);
+  });
+
+  it('recovers morale for a unit that did not fight this turn', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ morale: 50 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.morale).toBeGreaterThan(50);
+  });
+
+  it('does not recover morale for a unit that fought THIS turn', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ morale: 50, lastBattleTurn: base.turnNumber }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.morale).toBe(50);
+  });
+
+  it('never recovers morale past 100', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ morale: 95 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.morale).toBeLessThanOrEqual(100);
+  });
+
+  it('reinforces a below-strength unit in its owner\'s own, unoccupied territory', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 500 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBeGreaterThan(500);
+  });
+
+  it('costs the player manpower for the strength it reinforces', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 500 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBeGreaterThan(500);
+    // Same turn's income applies to both runs identically, so any DIFFERENCE in resulting hr is
+    // exactly the manpower this unit's own reinforcement consumed.
+    const fullyHealed = { ...base, units: { u1: makeUnit({ strength: 1000 }) } };
+    const nextHealed = resolveTurn(fullyHealed);
+    expect(next.resources.hr).toBeLessThan(nextHealed.resources.hr);
+  });
+
+  it('does not reinforce a unit in a region occupied by someone else', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = {
+      ...base,
+      units: { u1: makeUnit({ strength: 500 }) },
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } }
+    };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBe(500);
+  });
+
+  it('does not reinforce a unit outside its owner\'s own territory', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 500, regionId: cap('de') }) } };
+    const next = resolveTurn(state);
+    // Out of supply AND out of home territory: no reinforcement, only attrition (a strict decrease).
+    expect(next.units.u1.strength).toBeLessThanOrEqual(500);
+  });
+
+  it('never reinforces past maxStrength', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const state = { ...base, units: { u1: makeUnit({ strength: 990 }) } };
+    const next = resolveTurn(state);
+    expect(next.units.u1.strength).toBeLessThanOrEqual(1000);
+  });
+
+  it('the Cadre perk doubles the reinforcement gain', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const plain = { ...base, units: { u1: makeUnit({ strength: 500 }) } };
+    const withCadre = { ...base, units: { u1: makeUnit({ strength: 500, promotions: ['cadre'] }) } };
+    const plainGain = resolveTurn(plain).units.u1.strength - 500;
+    const cadreGain = resolveTurn(withCadre).units.u1.strength - 500;
+    expect(cadreGain).toBeGreaterThan(plainGain);
+  });
+
+  it('reinforces an AI-owned unit\'s strength without touching the player\'s manpower', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const aiUnit = { ...makeUnit({ strength: 500, ownerId: 'de', regionId: cap('de') }), id: 'u_ai' };
+    const state = { ...base, units: { u_ai: aiUnit } };
+    const next = resolveTurn(state);
+    expect(next.units.u_ai.strength).toBeGreaterThan(500);
+  });
+
+  it('the Forager perk halves out-of-supply attrition', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const plain = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
+    const withForager = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), promotions: ['forager'] }) } };
+    const plainStrength = resolveTurn(plain).units.u1.strength;
+    const foragerStrength = resolveTurn(withForager).units.u1.strength;
+    expect(foragerStrength).toBeGreaterThan(plainStrength);
+  });
+
+  it('a logistician-commanded unit also takes half attrition', () => {
+    const base = createInitialState({ playerNationId: 'fr' });
+    const plain = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
+    const withLogistician = {
+      ...base,
+      units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), commanderId: 'g1' }) },
+      hiredCommanders: { g1: { id: 'g1', nationId: 'fr', name: 'Test', martial: 3, shock: 3, fire: 3, maneuver: 3, personality: 'logistician', assignedUnitId: 'u1' } }
+    };
+    const plainStrength = resolveTurn(plain).units.u1.strength;
+    const logisticianStrength = resolveTurn(withLogistician).units.u1.strength;
+    expect(logisticianStrength).toBeGreaterThan(plainStrength);
+  });
 });
 
 describe('resolveTurn war exhaustion', () => {
@@ -497,7 +768,13 @@ describe('resolveTurn AI nations', () => {
   });
 
   it('never touches the player nation\'s own stats via the AI pass', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    // A fixed rngSeed, not an unseeded one: an unseeded run has a small (~0.75%) chance an AI
+    // nation rolls a war declaration against the player on turn 1, and resolveWarProgress's
+    // per-turn attrition (diplomacy.js) legitimately reduces BOTH sides' militaryStrength once a
+    // war exists — a real, intended feature, not a bug this test should be catching. Seed 1 is
+    // verified not to trigger any turn-1 war, isolating this test to its actual point: that the AI
+    // pass itself (growth/hostility/recruitment) never reaches into the player's own stats.
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
     const next = resolveTurn(state);
     expect(next.nations.fr.militaryStrength).toBe(state.nations.fr.militaryStrength);
   });
@@ -515,7 +792,14 @@ describe('resolveTurn AI war declarations', () => {
     const nations = { ...fresh.nations };
     Object.keys(nations).forEach(id => { if (id !== 'fr') nations[id] = { ...nations[id], isAtWar: true }; });
     const base = { ...fresh, nations };
-    const existingWar = { id: 'war_de_-2000', enemy: 'de', startYear: base.year, active: true, aggressor: 'fr', goal: { type: 'destroy_military', threshold: 1 }, goalAchieved: false };
+    // Plan §M13: score bookkeeping (battleScore/tickScore/score) runs for every active war every
+    // turn, including one the player started — pre-seeded at their post-bookkeeping values (all 0,
+    // since nothing here moves them) so this stays an exact-shape assertion of "wars[] survives".
+    const existingWar = {
+      id: 'war_de_-2000', enemy: 'de', startYear: base.year, startTurn: base.turnNumber, active: true, aggressor: 'fr',
+      goal: { type: 'destroy_military', threshold: 1 }, goalAchieved: false, cb: 'none',
+      battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0
+    };
     const state = { ...base, wars: [existingWar] };
     const next = resolveTurn(state);
     expect(next.wars).toEqual([existingWar]);
@@ -550,22 +834,31 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
   const withCertainCapture = (aggressor, enemy, regionId) => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const war = { id: 'war_1', aggressor, enemy, active: true, goalAchieved: false, startYear: base.year, goal: { type: 'capture_region', regionId } };
+    // Plan §M13: capturing sets occupiedBy, and war score/peace bookkeeping now runs every turn —
+    // occupying just one region (here, always the capital, tripled by getOccupationScore's own
+    // capital weight) can by itself cross the AI-vs-AI peace threshold on real geography and
+    // conclude the war via a negotiated cede this same turn. Inflating the enemy's OTHER regions'
+    // dev keeps these tests scoped to "does the capture-and-occupy mechanic itself work", leaving
+    // the peace threshold's own behavior to diplomacy.test.js's dedicated peace-machinery tests.
+    const regions = { ...base.regions };
+    Object.keys(regions).forEach((id) => {
+      if (regions[id].owner === enemy && id !== regionId) regions[id] = { ...regions[id], dev: { tax: 1000, production: 1000, manpower: 1000 } };
+    });
     return {
       ...base,
+      regions,
       difficultyMultiplier: 1000,
       wars: [war],
       nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], isAtWar: true }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
     };
   };
 
-  it('lets one AI nation actually conquer territory from another', () => {
+  it('lets one AI nation actually occupy territory from another (plan §M13: occupation, not annexation)', () => {
     const state = withCertainCapture('mx', 'ca', cap('ca'));
     const next = resolveTurn(state);
-    expect(next.regions[cap('ca')].owner).toBe('mx');
-    expect(next.regions[cap('ca')].formerOwner).toBe('ca');
-    expect(next.wars.find(w => w.id === 'war_1').active).toBe(false);
-    expect(next.nations.mx.isAtWar).toBe(false);
-    expect(next.nations.ca.isAtWar).toBe(false);
+    expect(next.regions[cap('ca')].owner).toBe('ca');
+    expect(next.regions[cap('ca')].occupiedBy).toBe('mx');
+    expect(next.regions[cap('ca')].formerOwner).toBeUndefined();
   });
 
   it('grinds a defended region\'s control instead of instantly capturing it in one turn (src/engine/siege.js)', () => {
@@ -581,11 +874,11 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
     expect(next.wars.find(w => w.id === 'war_1').active).toBe(true); // war goal not yet achieved
   });
 
-  it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
+  it('lets an AI nation occupy territory from the PLAYER — every nation must be conquerable by anyone', () => {
     const state = withCertainCapture('de', 'fr', cap('fr'));
     const next = resolveTurn(state);
-    expect(next.regions[cap('fr')].owner).toBe('de');
-    expect(next.regions[cap('fr')].formerOwner).toBe('fr');
+    expect(next.regions[cap('fr')].owner).toBe('fr');
+    expect(next.regions[cap('fr')].occupiedBy).toBe('de');
   });
 
   it('leaves a war the player started to be resolved by the player\'s own invasion actions, not synthetically', () => {
@@ -597,11 +890,33 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
 });
 
 describe('resolveTurn victory', () => {
-  it('triggers survival victory once the year reaches END_YEAR', () => {
-    const state = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
-    const next = resolveTurn(state);
+  // Plan §M18: reaching END_YEAR is no longer an automatic win — it's a RANKED ending
+  // (src/engine/score.js): VICTORY only if the player leads the world, GameStatus.COMPLETE
+  // (with finalRank) otherwise.
+  it('triggers a Score Victory at END_YEAR only when the player actually ranks #1', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
+    // Prestige alone won't do it here — processNationalPowerTurn's own decay/clamp runs earlier in
+    // this same turn and would clamp any artificial value straight back into [-100, 100] before the
+    // victory check ever reads it. 500 extra NON-CAPITAL regions is enough to lead the score table
+    // outright while staying safely under every ambition's own threshold (domination 40% of
+    // 4,482 regions, conqueror 25% of capitals, economicHegemony 45% of GDP) — this must resolve
+    // through the END_YEAR ranked step, not accidentally trip an ambition first.
+    const capitalIds = new Set(Object.keys(base.nations).map((id) => getNationCapital(id)).filter(Boolean));
+    const regions = { ...base.regions };
+    Object.keys(regions).filter((id) => !capitalIds.has(id) && regions[id].owner !== 'fr').slice(0, 500)
+      .forEach((id) => { regions[id] = { ...regions[id], owner: 'fr' }; });
+    const next = resolveTurn({ ...base, regions });
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('survival');
+    expect(next.victoryConditionId).toBe('finalScore');
+  });
+
+  it('ends as GameStatus.COMPLETE with a real finalRank when the player does NOT rank #1 at END_YEAR', () => {
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), year: END_YEAR - 1 });
+    const regions = {};
+    Object.keys(base.regions).forEach((id) => { regions[id] = { ...base.regions[id], owner: id === cap('fr') ? 'fr' : 'de' }; });
+    const next = resolveTurn({ ...base, regions });
+    expect(next.gameStatus).toBe(GameStatus.COMPLETE);
+    expect(next.finalRank).toBeGreaterThan(1);
   });
 
   it('does not check victory conditions while an event is pending', () => {
@@ -701,8 +1016,8 @@ describe('resolveTurn space mission ladder', () => {
     const next = resolveTurn(base);
     expect(next.spaceMissionProgress.sounding_rocket).toBeUndefined();
     expect(next.completedMissions).toContain('sounding_rocket');
-    // sounding_rocket's oneTimeReward is diplomacyPoints: 10, on top of that turn's own income.
-    expect(next.resources.diplomacyPoints).toBeGreaterThanOrEqual(base.resources.diplomacyPoints + 10);
+    // sounding_rocket's oneTimeReward is dip: 10, on top of that turn's own income.
+    expect(next.resources.dip).toBeGreaterThanOrEqual(base.resources.dip + 10);
   });
 
   it('leaves unrelated in-progress missions untouched', () => {
@@ -720,8 +1035,8 @@ describe('resolveTurn space mission ladder', () => {
     const withoutMission = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const withMission = resolveTurn(base);
     const without = resolveTurn(withoutMission);
-    // moon_landing's recurringReward is diplomacyPointsPerTurn: 10.
-    expect(withMission.resources.diplomacyPoints).toBeGreaterThan(without.resources.diplomacyPoints);
+    // moon_landing's recurringReward is dipPerTurn: 10.
+    expect(withMission.resources.dip).toBeGreaterThan(without.resources.dip);
   });
 });
 
@@ -789,7 +1104,10 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const next = resolveTurn(state);
     expect(next.nations.de.isEliminated).toBe(true);
     expect(next.nations.de.isAtWar).toBe(false);
-    expect(next.wars).toEqual([]);
+    // Not `toEqual([])`: M3's per-nation ruler generation at game creation consumes extra RNG
+    // draws, which can shift an unrelated AI nation into declaring its own war during this same
+    // turn's AI phase. This test only cares that Germany's own war closed out on elimination.
+    expect(next.wars.some((w) => w.aggressor === 'de' || w.enemy === 'de')).toBe(false);
     expect(next.playerEliminatedNationId).toBeNull();
     expect(next.logs.some(l => l.type === LogTypes.MILESTONE && l.message.includes('Germany') && l.message.includes('eliminated'))).toBe(true);
   });
@@ -798,12 +1116,14 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const state = strip(base, 'de', 'fr');
     const goldBefore = state.resources.gold;
-    const dpBefore = state.resources.diplomacyPoints || 0;
+    const dpBefore = state.resources.dip || 0;
     const next = resolveTurn(state);
     expect(next.nations.de.isEliminated).toBe(true);
     expect(next.playerEliminatedNationId).toBe('de');
     expect(next.resources.gold - goldBefore).toBeGreaterThanOrEqual(NATION_ELIMINATION_REWARD.gold);
-    expect(next.resources.diplomacyPoints).toBe(dpBefore + NATION_ELIMINATION_REWARD.diplomacyPoints);
+    // >= rather than exact equality: the pool also banks its normal per-turn DIP income this same
+    // turn (getPowerIncome/resolveTurn.js's power-banking step), on top of the elimination reward.
+    expect(next.resources.dip).toBeGreaterThanOrEqual(dpBefore + NATION_ELIMINATION_REWARD.dip);
   });
 
   it('never eliminates the player nation itself, however few regions remain', () => {
@@ -811,5 +1131,248 @@ describe('resolveTurn nation elimination (src/engine/elimination.js)', () => {
     const state = strip(base, 'fr', 'de');
     const next = resolveTurn(state);
     expect(next.nations.fr.isEliminated).toBeUndefined();
+  });
+
+  it('sets GameStatus.DEFEAT once the PLAYER is reduced to zero regions (plan §M15)', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = strip(base, 'fr', 'de');
+    const next = resolveTurn(state);
+    expect(next.gameStatus).toBe(GameStatus.DEFEAT);
+    expect(next.logs.some((l) => l.type === LogTypes.MILESTONE && l.message.includes('DEFEAT'))).toBe(true);
+  });
+
+  it('does not set DEFEAT while the player still owns at least one region', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const next = resolveTurn(base);
+    expect(next.gameStatus).toBe(GameStatus.ACTIVE);
+  });
+});
+
+describe('resolveTurn capitals (plan §M15)', () => {
+  it('applies a one-time -1 stability the turn the capital first becomes occupied', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } },
+      nations: { ...base.nations, fr: { ...base.nations.fr, stability: 0 } }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.capitalOccupied).toBe(true);
+    expect(next.nations.fr.stability).toBe(-1);
+  });
+
+  it('does not repeat the stability penalty on a later turn the capital is STILL occupied', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } },
+      nations: { ...base.nations, fr: { ...base.nations.fr, stability: -1, capitalOccupied: true } }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.stability).toBe(-1); // unchanged — only the pool penalty recurs
+  });
+
+  it('deducts 1 ADM/DIP/MIL every turn the player\'s capital stays occupied', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const free = resolveTurn(base);
+    const occupied = resolveTurn({ ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], occupiedBy: 'de' } } });
+    expect(occupied.resources.adm).toBe(free.resources.adm - 1);
+    expect(occupied.resources.dip).toBe(free.resources.dip - 1);
+    expect(occupied.resources.mil).toBe(free.resources.mil - 1);
+  });
+
+  it('clears the occupied flag and stops the penalty once the capital is liberated', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, capitalOccupied: true } } };
+    const next = resolveTurn(state); // capital is NOT occupied in state.regions here
+    expect(next.nations.fr.capitalOccupied).toBe(false);
+  });
+});
+
+describe('resolveTurn civil war trigger (plan §M15)', () => {
+  it('descends into civil war after 3 consecutive turns at the stability floor', () => {
+    let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
+    for (let i = 0; i < 2; i++) {
+      state = resolveTurn(state);
+      expect(state.nations.fr.civilWar).toBeNull();
+      state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
+    }
+    const next = resolveTurn(state);
+    expect(next.nations.fr.civilWar?.active).toBe(true);
+    expect(Object.values(next.units).some((u) => u.isPretender)).toBe(true);
+    expect(next.logs.some((l) => l.type === LogTypes.CRISIS && l.message.toLowerCase().includes('civil war'))).toBe(true);
+  });
+
+  it('the streak resets once stability recovers above the floor', () => {
+    let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
+    state = resolveTurn(state);
+    state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: 0 } } };
+    state = resolveTurn(state);
+    expect(state.nations.fr.lowStabilityStreak).toBe(0);
+  });
+});
+
+describe('resolveTurn disasters (plan §M15)', () => {
+  // Succession War (heirless monarchy, low legitimacy), not Estate Takeover, is the disaster used
+  // to prove this wiring: Estate Takeover's own trigger (estate influence/loyalty) is recomputed
+  // for real by the estates phase EVERY turn, before this phase ever runs, so a hand-set influence/
+  // loyalty override here would just be overwritten first — disasters.test.js already covers Estate
+  // Takeover directly, at the unit level, where that isn't a confound.
+  it('grows the Succession War meter for a heirless, low-legitimacy monarchy', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, heir: null, legitimacy: 10 } } };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.disasters.successionWar).toBeGreaterThan(0);
+  });
+
+  it('completes into a civil war once the Succession War meter reaches 100', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      nations: {
+        ...base.nations,
+        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, heir: null, legitimacy: 10, disasters: { ...base.nations.fr.disasters, successionWar: 90 } }
+      }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.disasters.successionWar).toBe(0); // completed and reset
+    expect(next.nations.fr.civilWar?.active).toBe(true);
+  });
+});
+
+describe('resolveTurn national power (plan §M4)', () => {
+  it('runs the stability/legitimacy/prestige pass for every nation, not just the player\'s', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, prestige: 100 } } };
+    const next = resolveTurn(state);
+    // Prestige decays 5%/turn toward 0 (nationalPower.js) — proves the pass actually ran for an
+    // AI nation, not only the one the succession/getPowerIncome code paths already special-case.
+    expect(next.nations.de.prestige).toBeLessThan(100);
+  });
+
+  it('deducts 1 stability from a nation whose succession is a crisis (heirless or low-claim)', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    // A monarchy whose reign just ended with no heir at all is unconditionally a crisis
+    // (succession.js's processSuccession) — a real, deterministic trigger, not a probabilistic one.
+    const state = {
+      ...base,
+      nations: {
+        ...base.nations,
+        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber }, heir: null }
+      }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.fr.stability).toBe(-1);
+  });
+});
+
+describe('resolveTurn estates (plan §M9)', () => {
+  it('drifts every nation\'s estate loyalty 1 step toward its target, not just the player\'s', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = {
+      ...base,
+      nations: {
+        ...base.nations,
+        de: { ...base.nations.de, government: { type: 'monarchy', reforms: { bronze: 'divine_kingship' } } } // clergy target 60
+      }
+    };
+    const next = resolveTurn(state);
+    expect(next.nations.de.estates.clergy.loyalty).toBe(51); // 50 -> 1 step toward 60
+  });
+
+  it('adds a Labor estate once the calendar crosses into the Modern age, for every nation', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, year: 1899, age: 'gunpowder' };
+    expect(state.nations.fr.estates.labor).toBeUndefined();
+    const next = resolveTurn(state);
+    expect(next.age).toBe('modern');
+    expect(next.nations.fr.estates.labor).toBeDefined();
+    expect(next.nations.de.estates.labor).toBeDefined();
+  });
+
+  it('does not add a Labor estate before the Modern age', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const next = resolveTurn(base); // still Bronze age at game start
+    expect(next.nations.fr.estates.labor).toBeUndefined();
+  });
+});
+
+describe('resolveTurn great projects (plan §M10)', () => {
+  const withConstruction = (turnsLeft, tier = 1) => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    return {
+      ...base,
+      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], greatProjectConstruction: { projectId: 'great_pyramids', tier, turnsLeft } } }
+    };
+  };
+
+  it('ticks turnsLeft down by 1 without completing', () => {
+    const next = resolveTurn(withConstruction(4));
+    expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 1, turnsLeft: 3 });
+    expect(next.greatProjects.great_pyramids).toBeUndefined();
+  });
+
+  it('completes construction, clears the queue, records the project, and grants prestige', () => {
+    const base = withConstruction(1);
+    const next = resolveTurn(base);
+    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
+    expect(next.greatProjects.great_pyramids).toEqual({ regionId: cap('fr'), tier: 1 });
+    expect(next.nations.fr.prestige).toBeGreaterThan(base.nations.fr.prestige || 0);
+  });
+
+  it('cancels a queued project outright if the region is captured before it finishes', () => {
+    const base = withConstruction(2);
+    const captured = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], owner: 'de' } } };
+    const next = resolveTurn(captured);
+    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
+    expect(next.greatProjects.great_pyramids).toBeUndefined();
+  });
+});
+
+describe('resolveTurn diplomacy (plan §M12)', () => {
+  it('decays every nation\'s Aggressive Expansion by AE_DECAY_PER_TURN', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, ae: { fr: 10 } } } };
+    const next = resolveTurn(state);
+    expect(next.nations.de.ae.fr).toBe(8);
+  });
+
+  it('decays a diplomat\'s assigned target\'s hostility faster than passive decay alone', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const withTarget = {
+      ...base,
+      nations: {
+        ...base.nations,
+        fr: { ...base.nations.fr, diplomatTasks: [{ targetId: 'de', task: 'improve_relations', startedTurn: base.turnNumber }] },
+        de: { ...base.nations.de, hostility: 50, hostilityFloor: 0 }
+      }
+    };
+    const withoutTarget = { ...base, nations: { ...base.nations, de: { ...base.nations.de, hostility: 50, hostilityFloor: 0 } } };
+    const withNext = resolveTurn(withTarget);
+    const withoutNext = resolveTurn(withoutTarget);
+    expect(withNext.nations.de.hostility).toBeLessThan(withoutNext.nations.de.hostility);
+  });
+
+  it('pays the player real vassal tribute proportional to the vassal\'s own development', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const withVassal = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, vassals: ['de'] } } };
+    const withoutVassal = base;
+    const withNext = resolveTurn(withVassal);
+    const withoutNext = resolveTurn(withoutVassal);
+    expect(withNext.resources.gold).toBeGreaterThan(withoutNext.resources.gold);
+  });
+
+  it('rewards prestige when a designated rival is eliminated', () => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    // Strip every region 'de' owns so it's eliminated this turn's elimination sweep.
+    const deEliminated = { ...base, regions: { ...base.regions } };
+    Object.keys(deEliminated.regions).forEach((id) => {
+      if (deEliminated.regions[id].owner === 'de') deEliminated.regions[id] = { ...deEliminated.regions[id], owner: 'fr' };
+    });
+    const asRival = { ...deEliminated, nations: { ...deEliminated.nations, fr: { ...deEliminated.nations.fr, rivals: ['de'], prestige: 0 } } };
+    const next = resolveTurn(asRival);
+    expect(next.nations.fr.prestige).toBeGreaterThan(0);
   });
 });

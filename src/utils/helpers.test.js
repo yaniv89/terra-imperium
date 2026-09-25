@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getMaxActionPoints, getFieldedStrength, getDisplayPopulation } from './helpers';
+import { canAfford, applyCosts, scaleCosts, calcIncome, getPlayerControl, getCostString, getResourceStrain, formatNumber, formatMoney, getSupplyCapacity, getStability, nextUnrest, getNationBonusTotal, getPowerIncome, getPowerBreakdown, getFieldedStrength, getDisplayPopulation } from './helpers';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
 
@@ -10,9 +10,9 @@ const cap = getNationCapital;
 
 describe('canAfford / applyCosts', () => {
   it('rejects when any single resource is short', () => {
-    const resources = { gold: 1000, actionPoints: 3 };
-    expect(canAfford(resources, { gold: 500, actionPoints: 5 })).toBe(false);
-    expect(canAfford(resources, { gold: 500, actionPoints: 2 })).toBe(true);
+    const resources = { gold: 1000, adm: 3 };
+    expect(canAfford(resources, { gold: 500, adm: 5 })).toBe(false);
+    expect(canAfford(resources, { gold: 500, adm: 2 })).toBe(true);
   });
 
   it('applyCosts never drives a resource negative', () => {
@@ -165,16 +165,15 @@ describe('calcIncome', () => {
     expect(withSatellites.hr).toBeGreaterThan(withoutSatellites.hr);
   });
 
-  it('adds a Communications Satellite\'s flat diplomacyPoints/turn and a Spy Satellite\'s techPoints/turn', () => {
+  it('adds a Spy Satellite\'s flat techPoints/turn', () => {
+    // A Communications Satellite's DIP/turn is asserted in getPowerIncome's own tests instead —
+    // see that describe block's header comment for why a DIP-pool bonus has to be computed there,
+    // not in calcIncome's generic per-resource income object.
     const state = createInitialState({ playerNationId: 'fr' });
     const withSatellites = calcIncome({
       ...state,
-      satellites: {
-        s1: { id: 's1', ownerId: 'fr', typeId: 'communications' },
-        s2: { id: 's2', ownerId: 'fr', typeId: 'spy' }
-      }
+      satellites: { s2: { id: 's2', ownerId: 'fr', typeId: 'spy' } }
     });
-    expect(withSatellites.diplomacyPoints).toBeGreaterThan(0);
     expect(withSatellites.techPoints).toBeGreaterThan(0);
   });
 
@@ -239,63 +238,144 @@ describe('getStability / nextUnrest', () => {
 });
 
 describe('getNationBonusTotal', () => {
-  it('sums a completed World Wonder\'s effect alongside government and policy bonuses', () => {
-    const nation = { government: null, policies: [], wonders: ['grandBazaar'] }; // grandBazaar: goldMult 0.15
-    expect(getNationBonusTotal(nation, 'goldMult')).toBeCloseTo(0.15);
+  // Plan §M10: Great Projects replaced the old flat, nation-scoped World Wonders (`nation.wonders[]`)
+  // with region-sited projects whose owner is derived from live region state — staticSources (the
+  // only source getNationBonusTotal's bare-nation shim can read) can no longer demonstrate them; see
+  // src/engine/modifiers/sources.test.js's contextSources tests for the real coverage instead.
+  // An estate privilege is still a real nation-scoped staticSources effect, so it exercises the same
+  // "sums an effect alongside government/law bonuses" path wonders used to.
+  it('sums a granted estate privilege\'s effect alongside government and law bonuses', () => {
+    const nation = { government: { type: 'tribal', reforms: {} }, laws: {}, estates: { clergy: { loyalty: 50, influence: 10, privileges: ['control_of_education'] } } };
+    expect(getNationBonusTotal(nation, 'techPointsMult')).toBeCloseTo(0.15);
   });
 
-  it('sums multiple wonders on the same hook', () => {
-    const nation = { wonders: ['royalObservatory', 'spaceProgram'] }; // stabilityBonus 5 + 8
-    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(13);
-  });
-
-  it('ignores an unbuilt/unknown wonder id gracefully', () => {
-    const nation = { wonders: ['not_a_real_wonder'] };
+  it('ignores an unbuilt/unknown privilege id gracefully', () => {
+    const nation = { estates: { clergy: { loyalty: 50, influence: 10, privileges: ['not_a_real_privilege'] } } };
     expect(getNationBonusTotal(nation, 'goldMult')).toBe(0);
   });
 
-  it('adds National Identity\'s contribution alongside government/policy/wonder bonuses', () => {
-    const nation = { government: 'monarchy', policies: [], wonders: [], identity: { collectivism: 100 } };
-    // monarchy's own stabilityBonus (5) plus fully-Collectivist identity's stabilityBonus (10).
-    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(15);
+  it('sums an enacted government reform\'s effect (identity no longer contributes directly, plan §M8.3)', () => {
+    const nation = { government: { type: 'monarchy', reforms: { bronze: 'despotic_rule' } }, identity: { collectivism: 100 } };
+    // despotic_rule's own stabilityBonus (-1); a fully-Collectivist identity contributes nothing to
+    // this hook anymore — it only gates/discounts law and government-type choices now.
+    expect(getNationBonusTotal(nation, 'stabilityBonus')).toBe(-1);
   });
 });
 
 // Regression: AP was a flat 3/turn regardless of empire size or maturity — a 50-region late-game
 // empire acted exactly as often per turn as a 1-region start. Administrative Capacity fixes that via
-// two real levers: government maturity (apBonus) and the Governance tech line.
-describe('getMaxActionPoints', () => {
-  const baseState = () => createInitialState({ playerNationId: 'fr' });
+// two real levers: government maturity (apBonus) and the Governance tech line. Plan §M2 replaced
+// the single AP pool with three (adm/dip/mil); apBonus applies equally to all three since neither
+// government nor tech differentiates between them yet (M3/M7 are what eventually will).
+describe('getPowerIncome', () => {
+  // M3's ruler/advisor generation adds nonzero adm/dip/mil skill to createInitialState's nations —
+  // real for gameplay, but it would make these exact-value assertions depend on the seeded RNG roll
+  // for 'fr' specifically. Zero the ruler and clear advisors so this suite still isolates apBonus/
+  // tech/satellite/mission math the way it did before M3.
+  const baseState = () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
+    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
+    return state;
+  };
 
-  it('is the flat base of 5 with no government and no researched Governance tech', () => {
-    expect(getMaxActionPoints(baseState())).toBe(5);
+  it('is the flat base of 3 per pool with no government and no researched Governance tech', () => {
+    expect(getPowerIncome(baseState())).toEqual({ adm: 3, dip: 3, mil: 3 });
   });
 
-  it('adds the adopted government\'s apBonus on top of the base', () => {
+  it('adds an enacted reform\'s admBonus/dipBonus/milBonus to their respective pools', () => {
     const state = baseState();
-    state.nations.fr.government = 'monarchy'; // apBonus: 1
-    expect(getMaxActionPoints(state)).toBe(6);
+    state.nations.fr.government = { type: 'republic', reforms: { modern: 'presidential_republic' } }; // +1 adm/dip/mil each
+    expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 4, mil: 4 });
   });
 
-  it('adds +1 AP per 3 researched Governance-line techs, ignoring other categories', () => {
+  it('adds +1 ADM per researched Governance tech with a real admBonus effect (Code of Laws), ignoring other techs', () => {
+    // Plan §M7 replaced the old flat "+1 per 3 Governance techs" rule with each tech's own real
+    // effect — Code of Laws gives +1 admBonus; Scribal Bureaucracy and Civic Assemblies don't
+    // touch any power pool (their own effects are developmentCost and an unlock respectively).
     const state = baseState();
-    // Governance techs (see techTree.js's buildLine ids: governance_<slug>).
     ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies'].forEach((id) => {
       state.techTree[id] = { ...state.techTree[id], researched: true };
     });
-    // A non-Governance tech researched too, to prove it's excluded from the count.
+    // A non-Governance tech researched too, to prove only techs with a real admBonus effect count.
     state.techTree.military_bronze_casting = { ...state.techTree.military_bronze_casting, researched: true };
-    expect(getMaxActionPoints(state)).toBe(6); // 5 base + floor(3/3) = 1
+    expect(getPowerIncome(state)).toEqual({ adm: 4, dip: 3, mil: 3 }); // 3 base + 1 (Code of Laws)
   });
 
-  it('stacks the government and tech bonuses together', () => {
+  it('stacks a reform\'s admBonus with per-tech admBonus effects together', () => {
     const state = baseState();
-    state.nations.fr.government = 'empire'; // apBonus: 2
+    // imperial_bureaucracy and absolutism each give +1 ADM/turn.
+    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy', gunpowder: 'absolutism' } };
+    // Of these 6, only Code of Laws and Royal Chancery have their own +1 admBonus effect.
     ['governance_code_of_laws', 'governance_scribal_bureaucracy', 'governance_civic_assemblies',
       'governance_provincial_administration', 'governance_feudal_charters', 'governance_royal_chancery'].forEach((id) => {
       state.techTree[id] = { ...state.techTree[id], researched: true };
     });
-    expect(getMaxActionPoints(state)).toBe(9); // 5 base + 2 gov + floor(6/3)=2 tech
+    expect(getPowerIncome(state)).toEqual({ adm: 7, dip: 3, mil: 3 }); // 3 base + 2 reforms (adm only) + 2 admBonus (adm only)
+  });
+
+  // A recurring DIP bonus (satellite or completed space mission) must be part of getPowerIncome's
+  // OWN return value, not added afterward — resolveTurn.js banks each pool up to 2x whatever this
+  // function returns, so a bonus added only after the fact gets clipped straight back down the
+  // very next turn instead of raising the effective cap along with the income (see this
+  // function's own header comment).
+  it('adds a Communications Satellite\'s DIP/turn to the dip pool only, not adm/mil', () => {
+    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'fr', typeId: 'communications' } } };
+    expect(getPowerIncome(state)).toEqual({ adm: 3, dip: 8, mil: 3 }); // 3 base + 5 satellite
+  });
+
+  it('adds a completed space mission\'s recurring dipPerTurn reward to the dip pool', () => {
+    const state = { ...baseState(), completedMissions: ['moon_landing'] };
+    expect(getPowerIncome(state).dip).toBe(13); // 3 base + 10 moon_landing dipPerTurn
+  });
+
+  it('never counts a rival nation\'s satellites toward the player\'s own power income', () => {
+    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'de', typeId: 'communications' } } };
+    expect(getPowerIncome(state).dip).toBe(3);
+  });
+});
+
+// Plan §M20: getPowerBreakdown exposes the real per-source lines behind one getPowerIncome pool, for
+// the Tooltip v2 / Breakdown UI. Its rows must always sum to the matching getPowerIncome total —
+// that's the whole point of reusing getModifier's own breakdown arrays instead of re-deriving them.
+describe('getPowerBreakdown', () => {
+  const baseState = () => {
+    const state = createInitialState({ playerNationId: 'fr' });
+    state.nations.fr.ruler = { ...state.nations.fr.ruler, adm: 0, dip: 0, mil: 0, traits: [] };
+    state.nations.fr.advisors = { adm: null, dip: null, mil: null };
+    return state;
+  };
+
+  const sumRows = (rows) => rows.reduce((sum, r) => sum + r.value, 0);
+
+  it('is just a "Base" row of 3 with no government and no researched Governance tech', () => {
+    const rows = getPowerBreakdown(baseState(), 'fr', 'adm');
+    expect(rows).toEqual([{ label: 'Base', value: 3 }]);
+  });
+
+  it('sums to the same total getPowerIncome returns once a reform and a tech both add ADM', () => {
+    const state = baseState();
+    state.nations.fr.government = { type: 'monarchy', reforms: { classical: 'imperial_bureaucracy' } }; // +1 adm reform
+    state.techTree.governance_code_of_laws = { ...state.techTree.governance_code_of_laws, researched: true }; // +1 admBonus
+    const rows = getPowerBreakdown(state, 'fr', 'adm');
+    expect(sumRows(rows)).toBe(getPowerIncome(state).adm);
+    expect(rows.length).toBeGreaterThan(1); // Base + at least one real source line, not a flat total
+  });
+
+  it('includes a Satellites row for dip only when the player owns a Communications Satellite', () => {
+    const state = { ...baseState(), satellites: { s1: { id: 's1', ownerId: 'fr', typeId: 'communications' } } };
+    const dipRows = getPowerBreakdown(state, 'fr', 'dip');
+    expect(dipRows.some((r) => r.label === 'Satellites')).toBe(true);
+    expect(sumRows(dipRows)).toBe(getPowerIncome(state).dip);
+    // The same satellite must never leak into adm/mil, which have no satellite-derived source.
+    expect(getPowerBreakdown(state, 'fr', 'adm').some((r) => r.label === 'Satellites')).toBe(false);
+  });
+
+  it('includes a Space Missions row only for dip, matching the mission\'s recurring dipPerTurn', () => {
+    const state = { ...baseState(), completedMissions: ['moon_landing'] };
+    const dipRows = getPowerBreakdown(state, 'fr', 'dip');
+    expect(dipRows.some((r) => r.label === 'Space Missions')).toBe(true);
+    expect(sumRows(dipRows)).toBe(getPowerIncome(state).dip);
   });
 });
 
@@ -363,9 +443,36 @@ describe('getDisplayPopulation', () => {
   });
 });
 
+describe('getResourceStrain', () => {
+  it('is null when nothing crosses the 50% threshold', () => {
+    expect(getResourceStrain({ gold: 10, adm: 1 }, { gold: 1000, adm: 5, maxAdm: 5 })).toBeNull();
+  });
+
+  it('measures a power-pool cost against its own max, not its current amount', () => {
+    // Banked well above max (8/5) — the strain should still be judged against the 5 cap, not 8.
+    const result = getResourceStrain({ mil: 3 }, { mil: 8, maxMil: 5 });
+    expect(result).toEqual({ level: 'high', label: 'MIL' }); // 3/5 = 60%
+  });
+
+  it('falls back to the current amount for a power pool with no max recorded yet', () => {
+    const result = getResourceStrain({ dip: 9 }, { dip: 10 });
+    expect(result).toEqual({ level: 'critical', label: 'DIP' }); // 9/10 = 90%
+  });
+
+  it('measures every other resource against its current on-hand amount (no cap)', () => {
+    const result = getResourceStrain({ gold: 800 }, { gold: 1000 });
+    expect(result).toEqual({ level: 'high', label: 'Gold' }); // 80%: high, not yet critical (>= 90%)
+  });
+
+  it('reports only the worst-strained resource among several costs', () => {
+    const result = getResourceStrain({ gold: 100, mil: 4 }, { gold: 1000, mil: 5, maxMil: 5 });
+    expect(result.label).toBe('MIL'); // 4/5 = 80% beats gold's 10%
+  });
+});
+
 describe('getCostString', () => {
   it('formats known resource and meta-currency costs', () => {
-    expect(getCostString({ gold: 1500, diplomacyPoints: 5, actionPoints: 2 })).toBe('1.5K Gold, 5 DP, 2 AP');
+    expect(getCostString({ gold: 1500, techPoints: 5, adm: 2, dip: 1, mil: 3 })).toBe('1.5K Gold, 5 TP, 2 ADM, 1 DIP, 3 MIL');
   });
 
   it('omits zero/falsy costs', () => {

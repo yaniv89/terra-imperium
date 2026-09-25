@@ -12,7 +12,7 @@ const BattleSummaryToast = ({ entries, onDismiss }) => {
   if (!entries || entries.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-80 max-w-[90vw] bg-slate-900 border border-orange-500/40 rounded-lg shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="fixed bottom-4 right-4 z-40 w-80 max-w-[90vw] bg-slate-900 border border-orange-500/40 rounded-lg shadow-2xl animate-toast-in">
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700">
         <div className="flex items-center gap-1.5 text-orange-400 text-xs font-semibold">
           <Swords className="w-3.5 h-3.5" />

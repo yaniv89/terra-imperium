@@ -5,8 +5,9 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { getUnlockedResourceIds } from '../../data/resources';
-import { getFieldedStrength } from '../../utils/helpers';
+import { getFieldedStrength, getPowerBreakdown } from '../../utils/helpers';
 import ResourceBadge from './ResourceBadge';
+import Breakdown from './Breakdown';
 
 const ResourceBar = () => {
   const { state } = useGame();
@@ -25,13 +26,22 @@ const ResourceBar = () => {
     // of a phone's resource badges into a tall, always-visible block above the game content.
     // shrink-0 on every badge keeps each one at its natural width instead of being squeezed.
     <div className="flex flex-nowrap gap-1.5 sm:gap-2 [&>*]:shrink-0">
-      <ResourceBadge
-        type="actionPoints"
-        value={state.resources.actionPoints}
-        maxValue={state.resources.maxActionPoints}
-        expanded={expandedResource === 'actionPoints'}
-        onClick={() => handleToggle('actionPoints')}
-      />
+      {['adm', 'dip', 'mil'].map((pool) => (
+        <ResourceBadge
+          key={pool}
+          type={pool}
+          value={state.resources[pool]}
+          maxValue={state.resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`]}
+          expanded={expandedResource === pool}
+          onClick={() => handleToggle(pool)}
+          tooltipContent={(
+            <div>
+              <div className="font-semibold mb-1">{pool.toUpperCase()} per turn</div>
+              <Breakdown rows={getPowerBreakdown(state, state.playerNationId, pool)} />
+            </div>
+          )}
+        />
+      ))}
 
       {unlockedResourceIds.map(resourceId => (
         <ResourceBadge
@@ -42,13 +52,6 @@ const ResourceBar = () => {
           onClick={() => handleToggle(resourceId)}
         />
       ))}
-
-      <ResourceBadge
-        type="diplomacyPoints"
-        value={state.resources.diplomacyPoints}
-        expanded={expandedResource === 'diplomacyPoints'}
-        onClick={() => handleToggle('diplomacyPoints')}
-      />
 
       <ResourceBadge
         type="techPoints"

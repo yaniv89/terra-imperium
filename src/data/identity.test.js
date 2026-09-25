@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getIdentityBonus, clampIdentity, IDENTITY_MAX, IDENTITY_MIN } from './identity';
+import { clampIdentity, leansPositive, leansNegative, IDENTITY_MAX, IDENTITY_MIN, IDENTITY_GATE_THRESHOLD } from './identity';
 
 describe('clampIdentity', () => {
   it('clamps to the max/min bounds', () => {
@@ -12,38 +12,22 @@ describe('clampIdentity', () => {
   });
 });
 
-describe('getIdentityBonus', () => {
-  it('is zero on every hook with no identity set', () => {
-    expect(getIdentityBonus(undefined, 'stabilityBonus')).toBe(0);
-    expect(getIdentityBonus(undefined, 'goldMult')).toBe(0);
-    expect(getIdentityBonus(undefined, 'hrMult')).toBe(0);
+// Plan §M8.3: identity no longer grants a flat gold/stability multiplier (getIdentityBonus is
+// gone) — leansPositive/leansNegative is the one check every gate/discount in government.js and
+// laws.js is built from.
+describe('leansPositive / leansNegative', () => {
+  it('is false for an axis at or below the gate threshold', () => {
+    expect(leansPositive({ secularism: IDENTITY_GATE_THRESHOLD }, 'secularism')).toBe(false);
+    expect(leansPositive(undefined, 'secularism')).toBe(false);
   });
 
-  it('Collectivist (positive collectivism) raises stabilityBonus, not goldMult', () => {
-    const identity = { collectivism: IDENTITY_MAX, secularism: 0, globalism: 0 };
-    expect(getIdentityBonus(identity, 'stabilityBonus')).toBeCloseTo(10);
-    expect(getIdentityBonus(identity, 'goldMult')).toBe(0);
+  it('is true once an axis leans past the threshold', () => {
+    expect(leansPositive({ secularism: IDENTITY_GATE_THRESHOLD + 1 }, 'secularism')).toBe(true);
   });
 
-  it('Individualist (negative collectivism) raises goldMult, not stabilityBonus', () => {
-    const identity = { collectivism: -IDENTITY_MAX, secularism: 0, globalism: 0 };
-    expect(getIdentityBonus(identity, 'goldMult')).toBeCloseTo(0.12);
-    expect(getIdentityBonus(identity, 'stabilityBonus')).toBe(0);
-  });
-
-  it('Isolationist (negative globalism) raises hrMult', () => {
-    const identity = { collectivism: 0, secularism: 0, globalism: -IDENTITY_MAX };
-    expect(getIdentityBonus(identity, 'hrMult')).toBeCloseTo(0.15);
-  });
-
-  it('Globalist (positive globalism) raises goldMult, not hrMult', () => {
-    const identity = { collectivism: 0, secularism: 0, globalism: IDENTITY_MAX };
-    expect(getIdentityBonus(identity, 'goldMult')).toBeCloseTo(0.1);
-    expect(getIdentityBonus(identity, 'hrMult')).toBe(0);
-  });
-
-  it('an unknown hook key returns zero', () => {
-    const identity = { collectivism: IDENTITY_MAX };
-    expect(getIdentityBonus(identity, 'not_a_real_hook')).toBe(0);
+  it('leansNegative mirrors leansPositive on the opposite pole', () => {
+    expect(leansNegative({ collectivism: -(IDENTITY_GATE_THRESHOLD + 1) }, 'collectivism')).toBe(true);
+    expect(leansNegative({ collectivism: -IDENTITY_GATE_THRESHOLD }, 'collectivism')).toBe(false);
+    expect(leansPositive({ collectivism: -(IDENTITY_GATE_THRESHOLD + 1) }, 'collectivism')).toBe(false);
   });
 });

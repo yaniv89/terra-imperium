@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { ActionTypes, GameStatus } from '../data/types';
-import { AGES, getYearsPerTurn } from '../data/ages';
+import { AGES, getYearsPerTurn, END_YEAR } from '../data/ages';
 import { SATELLITE_UNLOCK_YEAR } from '../data/satellites';
 import { SPACE_MISSIONS, FINAL_SPACE_MISSION_ID } from '../data/spaceMissions';
 import {
@@ -26,6 +26,7 @@ import {
 } from '../data/victoryConditions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { getNationCapital } from '../data/regions';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 
@@ -52,12 +53,24 @@ const advanceUntil = (state, predicate, maxTurns) => {
   return current;
 };
 
-describe('endgame reachability: the game always resolves to a victory by 2300', () => {
-  it('a passive run (no player actions at all) still reaches Score Victory by END_YEAR', () => {
+describe('endgame reachability: the game always resolves to a definite outcome by 2300', () => {
+  // Plan §M18: "Remove the free win... the passive run must NOT win by default." A player who never
+  // acts can't form the trade pact/alliance a Diplomatic Victory needs, can't conquer anything a
+  // Domination/Conqueror/Economic Hegemony victory needs, and can't launch a single space mission —
+  // so none of the five ambitions can fire for them. With M16's AI now running a real economy on
+  // all 239 other nations, the only real outcomes left are DEFEAT (conquered before END_YEAR) or
+  // COMPLETE (survives to END_YEAR, ranked well below the AI nations that spent the whole game
+  // actually building an economy).
+  it('a passive run (no player actions at all) never wins by default', () => {
     const MAX_TURNS = 1200; // Marathon's ~990-turn estimate (plan §3) plus generous headroom
     const state = advanceUntil(freshWorld(), (s) => s.gameStatus !== GameStatus.ACTIVE, MAX_TURNS);
-    expect(state.gameStatus, 'the game never reached a victory within the turn budget').toBe(GameStatus.VICTORY);
-    expect(state.year).toBeLessThanOrEqual(2300);
+    expect(state.gameStatus, 'the game never reached a definite outcome within the turn budget').not.toBe(GameStatus.ACTIVE);
+    expect(state.gameStatus).not.toBe(GameStatus.VICTORY);
+    expect([GameStatus.DEFEAT, GameStatus.COMPLETE]).toContain(state.gameStatus);
+    expect(state.year).toBeLessThanOrEqual(END_YEAR);
+    if (state.gameStatus === GameStatus.COMPLETE) {
+      expect(state.finalRank, 'a nation that never acted should not rank #1 against 239 real AI economies').toBeGreaterThan(1);
+    }
   }, 120000); // 4,482 real provinces makes a turn cost tens of ms, not fractions — 1200 of them needs real wall-clock room
 });
 
@@ -124,6 +137,38 @@ describe('endgame reachability: each victory condition fires when its real thres
   });
 });
 
+describe('endgame reachability: defeat and bankruptcy are achievable (plan §M15)', () => {
+  it('a forced enemy conquest (the player reduced to zero regions) leads to DEFEAT', () => {
+    const state = freshWorld();
+    const regions = { ...state.regions };
+    Object.keys(regions).forEach((id) => {
+      if (regions[id].owner === state.playerNationId) regions[id] = { ...regions[id], owner: 'de' };
+    });
+    const next = resolveTurn({ ...state, regions });
+    expect(next.gameStatus).toBe(GameStatus.DEFEAT);
+  });
+
+  it('a treasury that cannot cover upkeep, with no loan capacity available, reaches bankruptcy', () => {
+    const state = freshWorld();
+    const playerId = state.playerNationId;
+    const capitalId = state.nations[playerId].capitalRegionId;
+    // A large standing army's upkeep alone, against an empty treasury with no Banking Houses
+    // researched (loan capacity 0 — economy.js's own hasBankingHouses gate), goes straight to
+    // bankruptcy rather than an auto-loan — the SAME natural shortfall path a real, unlucky game
+    // could reach, not a hand-set disaster meter.
+    const units = { ...state.units };
+    for (let i = 0; i < 300; i++) {
+      const id = `bankrupt_test_unit_${i}`;
+      units[id] = { id, regionId: capitalId, ownerId: playerId, domain: 'land', classId: 'infantry', strength: 10, maxStrength: 10, morale: 100, movesLeft: 1 };
+    }
+    const broke = { ...state, units, resources: { ...state.resources, gold: 0 } };
+    const next = resolveTurn(broke);
+    expect(next.nations[playerId].loans).toEqual([]);
+    expect(next.resources.gold).toBe(0);
+    expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
+  });
+});
+
 describe('endgame reachability: the space-race ladder completes within the Modern Age\'s turn budget', () => {
   // Plan §13: "the Modern Age is ~200 turns and must not outlast its own content." The ladder
   // itself only unlocks once a satellite can be launched (SATELLITE_UNLOCK_YEAR, 1957) — real
@@ -164,4 +209,36 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     expect(state.gameStatus).toBe(GameStatus.VICTORY);
     expect(state.victoryConditionId).toBe('spaceAscendancy');
   }, 120000); // several hundred simulated turns at 4,482 real provinces' per-turn cost
+
+  // Plan §M19: "Space ladder costs retuned so a real Modern economy can afford the ladder (the
+  // current test force-feeds 999,999 gold). Add a reachability test using the natural income of a
+  // strong nation." No injected gold/techPoints here at all — every mission is paid for out of
+  // whatever calcIncome has actually accrued by the time it's affordable. A totally passive nation's
+  // techPoints income is 0 (nothing generates it without at least one Science building — a genuinely
+  // untouched nation, per the passive-run test above, never plays at all), so "a strong nation" here
+  // means one Research Lab (Science tier 3) in the capital: a single, modest, realistic build for
+  // any nation that reached the Modern Age still playing — not a min-maxed or resource-injected one.
+  it('a nation with one Research Lab affords the entire ladder from its own natural income, no injected resources', () => {
+    const capitalId = getNationCapital('us');
+    const base = freshWorld('us');
+    let state = { ...base, regions: { ...base.regions, [capitalId]: { ...base.regions[capitalId], buildings: { categories: { science: 3 } } } } };
+    state = advanceUntil(state, (s) => s.year >= SATELLITE_UNLOCK_YEAR, 400);
+    expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
+
+    for (const mission of SPACE_MISSIONS) {
+      let waited = 0;
+      while (!(state.resources.gold >= mission.cost.gold && state.resources.techPoints >= mission.cost.techPoints) && waited < 60 && state.gameStatus === GameStatus.ACTIVE) {
+        state = advance(state);
+        waited++;
+      }
+      expect(waited, `${mission.id} never became affordable from natural income alone`).toBeLessThan(60);
+      expect(state.gameStatus, `the game ended while waiting to afford ${mission.id}`).toBe(GameStatus.ACTIVE);
+      const launched = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: mission.id } });
+      expect(launched, `${mission.id} failed to launch even though it was affordable`).not.toBe(state);
+      state = advanceUntil(launched, (s) => s.completedMissions.includes(mission.id) || s.gameStatus !== GameStatus.ACTIVE, mission.turns + 1);
+      expect(state.completedMissions, `${mission.id} never completed`).toContain(mission.id);
+    }
+    expect(state.gameStatus).toBe(GameStatus.VICTORY);
+    expect(state.victoryConditionId).toBe('spaceAscendancy');
+  }, 120000);
 });

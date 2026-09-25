@@ -4,7 +4,10 @@
 export const GameStatus = {
   ACTIVE: 'ACTIVE',
   VICTORY: 'VICTORY',
-  DEFEAT: 'DEFEAT'
+  DEFEAT: 'DEFEAT',
+  // Plan §M18: reaching END_YEAR without ranking #1 in the world (src/engine/score.js) ends the
+  // game, but isn't framed as a win — "Game Complete — Rank N" rather than a Victory/Defeat binary.
+  COMPLETE: 'COMPLETE'
 };
 
 export const RelationStatus = {
@@ -30,11 +33,16 @@ export const ActionTypes = {
   BUILD_DEFENSES: 'BUILD_DEFENSES',
   CONSTRUCT_BUILDING: 'CONSTRUCT_BUILDING',
   DEVELOP_RESOURCE_SITE: 'DEVELOP_RESOURCE_SITE',
+  // Province development (plan §M5) — see src/engine/development.js. Distinct from
+  // DEVELOP_RESOURCE_SITE above, which is about extraction deposits, not tax/production/manpower.
+  DEVELOP_PROVINCE: 'DEVELOP_PROVINCE',
   QUELL_UNREST: 'QUELL_UNREST',
   SETTLE_COLONIZE: 'SETTLE_COLONIZE',
   POPULATION_POLICY: 'POPULATION_POLICY',
   SET_TAX_RATE: 'SET_TAX_RATE',
-  CONSTRUCT_WONDER: 'CONSTRUCT_WONDER',
+  // Great Projects (plan §M10) replace the old flat, empire-wide CONSTRUCT_WONDER.
+  START_GREAT_PROJECT: 'START_GREAT_PROJECT',
+  UPGRADE_GREAT_PROJECT: 'UPGRADE_GREAT_PROJECT',
 
   // Military tab (plan §7) — per-region armies.
   RECRUIT_UNIT: 'RECRUIT_UNIT',
@@ -59,15 +67,32 @@ export const ActionTypes = {
   SET_RESEARCH_FOCUS: 'SET_RESEARCH_FOCUS',
   FUND_SCHOLARS: 'FUND_SCHOLARS',
 
-  // Government & policies (plan §9).
-  ADOPT_GOVERNMENT: 'ADOPT_GOVERNMENT',
-  ADOPT_POLICY: 'ADOPT_POLICY',
-  REMOVE_POLICY: 'REMOVE_POLICY',
+  // Government reforms & laws (plan §M8; replaces the old flat ADOPT_GOVERNMENT/ADOPT_POLICY/
+  // REMOVE_POLICY trio).
+  CHANGE_GOVERNMENT_TYPE: 'CHANGE_GOVERNMENT_TYPE',
+  ENACT_GOVERNMENT_REFORM: 'ENACT_GOVERNMENT_REFORM',
+  CHANGE_LAW: 'CHANGE_LAW',
+
+  // Estates (plan §M9) — crown land interactions and privilege grant/revoke. Clergy Tithe/Nobility
+  // Raise Levies are 2 of the plan's 3 "estate asks"; Burghers' Guild Loan needs 0%-interest loans
+  // (M11), so it's deferred rather than faked as an identical gold grant.
+  SEIZE_LAND: 'SEIZE_LAND',
+  SELL_LAND: 'SELL_LAND',
+  GRANT_ESTATE_PRIVILEGE: 'GRANT_ESTATE_PRIVILEGE',
+  REVOKE_ESTATE_PRIVILEGE: 'REVOKE_ESTATE_PRIVILEGE',
+  CLERGY_TITHE: 'CLERGY_TITHE',
+  NOBILITY_LEVIES: 'NOBILITY_LEVIES',
 
   // Diplomacy tab (plan §8) — casus belli, war/peace lifecycle, and the first tier of agreements.
   DECLARE_WAR: 'DECLARE_WAR',
   FABRICATE_CLAIM: 'FABRICATE_CLAIM',
   SUE_FOR_PEACE: 'SUE_FOR_PEACE',
+  // Plan §M13: negotiated peace with real terms, replacing SUE_FOR_PEACE's implicit white peace
+  // for any war the player is winning enough to actually demand something in. SUE_FOR_PEACE itself
+  // is kept as a white-peace alias (see gameReducer.js's own case) rather than removed outright.
+  OFFER_PEACE: 'OFFER_PEACE',
+  ACCEPT_PENDING_PEACE: 'ACCEPT_PENDING_PEACE',
+  REJECT_PENDING_PEACE: 'REJECT_PENDING_PEACE',
   TRADE_AGREEMENT: 'TRADE_AGREEMENT',
   MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
   GIFT_BRIBE: 'GIFT_BRIBE',
@@ -77,12 +102,33 @@ export const ActionTypes = {
   // counter-espionage button with no espionage for it to counter.
   ESPIONAGE: 'ESPIONAGE',
   COUNTER_INTELLIGENCE: 'COUNTER_INTELLIGENCE',
-  // National Identity (src/data/identity.js) — a separate axis from Government/Policies.
+
+  // Diplomacy overhaul (plan §M12) — rivals, royal marriages, alliance lifecycle, diplomats, AE-
+  // driven coalitions (aiLogic.js/expansion.js), and the vassal lifecycle (nation.vassals finally
+  // gets a real writer). Truces are enforced inside declareWar itself (diplomacy.js), not a
+  // separate action. Casus belli TYPES (Claim/Reconquest/Conquest/Humiliate/...) and their peace-
+  // cost effects are M13 work (peace deals don't exist yet) — only the existing claim/hostility CB
+  // gate is in scope here.
+  RIVAL_NATION: 'RIVAL_NATION',
+  UNRIVAL_NATION: 'UNRIVAL_NATION',
+  PROPOSE_MARRIAGE: 'PROPOSE_MARRIAGE',
+  BREAK_ALLIANCE: 'BREAK_ALLIANCE',
+  INSULT: 'INSULT',
+  ASSIGN_DIPLOMAT: 'ASSIGN_DIPLOMAT',
+  RECALL_DIPLOMAT: 'RECALL_DIPLOMAT',
+  VASSALIZE: 'VASSALIZE',
+  ANNEX_VASSAL: 'ANNEX_VASSAL',
+  RELEASE_VASSAL: 'RELEASE_VASSAL',
+  // National Identity (src/data/identity.js) — a separate axis from Government/Laws.
   SHIFT_IDENTITY: 'SHIFT_IDENTITY',
   // Climate/disaster mitigation (Modern age) — see region.climateResilience's comment.
   BUILD_CLIMATE_RESILIENCE: 'BUILD_CLIMATE_RESILIENCE',
   // Cultural Export / soft power (Modern age) — see nation.culturalInfluence's comment.
   CULTURAL_EXPORT: 'CULTURAL_EXPORT',
+  // Rulers, heirs, advisors (plan §M3) — see src/engine/succession.js.
+  HIRE_ADVISOR: 'HIRE_ADVISOR',
+  // Stability, legitimacy, prestige, overextension (plan §M4) — see src/engine/nationalPower.js.
+  INCREASE_STABILITY: 'INCREASE_STABILITY',
 
   // Space Race, orbital layer (plan §10.4 Layer 1).
   LAUNCH_SATELLITE: 'LAUNCH_SATELLITE',
@@ -92,7 +138,28 @@ export const ActionTypes = {
   BUILD_MISSILE: 'BUILD_MISSILE',
   MISSILE_STRIKE: 'MISSILE_STRIKE',
   BUILD_ABM_DEFENSE: 'BUILD_ABM_DEFENSE',
-  LAUNCH_MISSION: 'LAUNCH_MISSION'
+  LAUNCH_MISSION: 'LAUNCH_MISSION',
+
+  // Economy overhaul (plan §M11) — the maintenance slider is adjustable any time, no cooldown
+  // (unlike Set Tax Rate); loans require the Banking Houses tech (src/engine/economy.js).
+  SET_ARMY_MAINTENANCE: 'SET_ARMY_MAINTENANCE',
+  SET_NAVY_MAINTENANCE: 'SET_NAVY_MAINTENANCE',
+  REQUEST_LOAN: 'REQUEST_LOAN',
+  REPAY_LOAN: 'REPAY_LOAN',
+  // Fusion Grid national decision (plan §M11 resource sinks): the plan's own literal Megafactory/
+  // Fusion Research Complex building tiers were never built in M6 (no Future-age building line
+  // exists), so this ships as a standalone action against a helium3 stockpile instead of a building
+  // upkeep — see actionCosts.js's FUSION_GRID_* constants for the honest-adaptation note.
+  ACTIVATE_FUSION_GRID: 'ACTIVATE_FUSION_GRID',
+
+  // Crises & defeat (plan §M15) — dynamic capital and a vassal's own path out of subjection. Civil
+  // war, disasters, and defeat itself have no player-initiated action of their own: they're
+  // engine-driven consequences resolved in resolveTurn.js (src/engine/civilWar.js, disasters.js).
+  MOVE_CAPITAL: 'MOVE_CAPITAL',
+  DECLARE_INDEPENDENCE: 'DECLARE_INDEPENDENCE',
+  // Plan §M18: "Continue playing after victory" — resumes an ambition-triggered VICTORY back to
+  // ACTIVE so the game keeps running toward END_YEAR's own ranked ending.
+  CONTINUE_AFTER_VICTORY: 'CONTINUE_AFTER_VICTORY'
 };
 
 export const LogTypes = {

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned,
-  getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, CONQUEROR_CAPITAL_SHARE
+  getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, CONQUEROR_CAPITAL_SHARE,
+  ECONOMIC_HEGEMONY_GDP_SHARE
 } from './victoryConditions';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from './types';
@@ -10,11 +11,15 @@ import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 import { WORLD_NATIONS } from './worldNations';
 import { getNationCapital } from './regions';
 
-describe('survival', () => {
-  it('is satisfied once the year reaches END_YEAR', () => {
+// Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching END_YEAR is no
+// longer a `check` in this table at all (see resolveTurn.test.js/endgameReachability.test.js for
+// the real, ranked ending it's replaced with, src/engine/score.js). The two display-only entries
+// kept for GameOverModal's lookup must never fire through checkVictoryConditions's own loop.
+describe('eventVictory / finalScore (display-only entries)', () => {
+  it('never fire on their own — checkVictoryConditions only ever returns null for them', () => {
     const state = createInitialState();
-    expect(VICTORY_CONDITIONS.survival.check({ ...state, year: END_YEAR - 1 })).toBe(false);
-    expect(VICTORY_CONDITIONS.survival.check({ ...state, year: END_YEAR })).toBe(true);
+    expect(VICTORY_CONDITIONS.eventVictory.check(state)).toBe(false);
+    expect(VICTORY_CONDITIONS.finalScore.check({ ...state, year: END_YEAR })).toBe(false);
   });
 });
 
@@ -98,7 +103,7 @@ describe('economicHegemony', () => {
         regions[id] = { ...regions[id], owner: 'fr' };
         ownedGdp += regions[id].gdpMillions || 0;
       });
-      if (ownedGdp / totalGdp >= 0.35) break;
+      if (ownedGdp / totalGdp >= ECONOMIC_HEGEMONY_GDP_SHARE) break;
     }
     expect(VICTORY_CONDITIONS.economicHegemony.check({ ...state, regions })).toBe(true);
   });
@@ -167,22 +172,38 @@ describe('checkVictoryConditions', () => {
     expect(checkVictoryConditions(createInitialState())).toBeNull();
   });
 
-  it('returns the id of a satisfied condition', () => {
-    expect(checkVictoryConditions({ ...createInitialState(), year: END_YEAR })).toBe('survival');
+  it('returns the id of a satisfied ambition', () => {
+    const state = { ...createInitialState({ playerNationId: 'fr' }), diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS };
+    expect(checkVictoryConditions(state)).toBe('diplomatic');
+  });
+
+  // Plan §M18: "Continue playing after victory" — an ambition already recorded as achieved must
+  // not immediately re-fire the next turn just because its threshold, naturally, is often still met.
+  it('skips an ambition already recorded in state.victoriesAchieved', () => {
+    const state = {
+      ...createInitialState({ playerNationId: 'fr' }),
+      diplomaticLeadershipStreak: DIPLOMATIC_LEADERSHIP_STREAK_TURNS,
+      victoriesAchieved: ['diplomatic']
+    };
+    expect(checkVictoryConditions(state)).toBeNull();
+  });
+
+  it('never returns the END_YEAR calendar limit on its own — that is resolveTurn.js\'s own ranked step, not a `check` in this table', () => {
+    expect(checkVictoryConditions({ ...createInitialState(), year: END_YEAR })).toBeNull();
   });
 });
 
 describe('applyVictory', () => {
   it('sets gameStatus to VICTORY and records which condition triggered it', () => {
     const state = createInitialState();
-    const next = applyVictory(state, 'survival');
+    const next = applyVictory(state, 'domination');
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
-    expect(next.victoryConditionId).toBe('survival');
+    expect(next.victoryConditionId).toBe('domination');
   });
 
   it('does not mutate the input state', () => {
     const state = createInitialState();
-    applyVictory(state, 'survival');
+    applyVictory(state, 'domination');
     expect(state.gameStatus).toBe(GameStatus.ACTIVE);
   });
 });

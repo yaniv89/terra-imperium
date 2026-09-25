@@ -4,19 +4,19 @@
 // that with the unit-class/counter/morale system described in the plan, built fresh rather than
 // adapted from this one.
 
-import { RelationStatus, TechCategories } from '../data/types';
-import { REGIONS_DATA, getNationCapital } from '../data/regions';
+import { RelationStatus } from '../data/types';
+import { REGIONS_DATA, getCapital } from '../data/regions';
 import { RESOURCE_IDS } from '../data/resources';
 import { hasDeposit } from '../data/deposits';
-import { GOVERNMENT_TYPES } from '../data/government';
-import { POLICIES } from '../data/policies';
-import { WONDERS } from '../data/wonders';
-import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
-import { TECH_TREE } from '../data/techTree';
-import { getIdentityBonus } from '../data/identity';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
+import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
+import { getPopFactor, seedDevelopment } from '../engine/development';
+// Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
+// keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
+// which also exposes explainNationBonus for a future breakdown tooltip.
+export { getNationBonusTotal, explainNationBonus } from '../engine/modifiers/sheet';
 
 // ============ NUMBER FORMATTING ============
 
@@ -65,43 +65,21 @@ export const getHostilityColor = (hostility) => {
 // many provinces), emergency "comeback" actions unlock.
 export const COMEBACK_THRESHOLD = 30;
 
-export const getPlayerControl = (state) => state.regions[getNationCapital(state.playerNationId)]?.control ?? 0;
+export const getPlayerControl = (state) => state.regions[getCapital(state, state.playerNationId)]?.control ?? 0;
 
 // Base per-turn yield of a developed extraction building (Copper Mine / Iron Foundry / Oil Well),
 // before the same control%/infrastructure scaling every other resource gets.
 const EXTRACTION_BASE_YIELD = 20;
 
-// Base per-turn tech points from one tier level of a region's Science building (Library ->
-// Scriptorium -> University -> Research Lab), before control%/infrastructure scaling.
-const SCIENCE_TECHPOINT_YIELD = 2;
-
-// Sums a nation's government effect, every adopted policy's effect, every completed World Wonder's
-// effect, and its National Identity's contribution (src/data/identity.js) for one bonus hook
-// (goldMult/hrMult, read by calcIncome; stabilityBonus, read by nextUnrest) — the one place that
-// summation happens, so government, policies, wonders and identity never drift into their own
-// separate math.
-export const getNationBonusTotal = (nation, hookKey) => {
-  const govBonus = GOVERNMENT_TYPES[nation?.government]?.effect?.[hookKey] || 0;
-  const policyBonus = (nation?.policies || []).reduce((sum, id) => sum + (POLICIES[id]?.effect?.[hookKey] || 0), 0);
-  const wonderBonus = (nation?.wonders || []).reduce((sum, id) => sum + (WONDERS[id]?.effect?.[hookKey] || 0), 0);
-  const identityBonus = getIdentityBonus(nation?.identity, hookKey);
-  return govBonus + policyBonus + wonderBonus + identityBonus;
-};
-
-// Administrative Capacity: a flat 3 AP/turn regardless of empire size meant a 50-region late-game
-// empire acted exactly as often per turn as its 1-region start — nothing about maturing your state
-// ever expanded what you could actually DO in a turn. This adds two real, already-existing levers:
-// government maturity (apBonus on GOVERNMENT_TYPES' effect object, via the same hook
-// getNationBonusTotal already sums for gold/stability) and the Governance tech line (Code of Laws
-// through Digital Administration — literally about administrative capacity), so investing in either
-// is a real choice with a payoff, rather than AP being a fixed constant for the whole ~500-turn game.
-// 3 -> 5: with a menu of ~47 distinct actions across 5 panels and most costing 1-2 AP each, 3 base
-// AP meant a turn-1 player could realistically take only 1-2 actions before government/tech bonuses
-// (below) ever kick in — playtest feedback confirmed this reads as "barely anything to do" rather
-// than meaningful prioritization. 5 gives 2-4 actions turn one without touching the late-game
-// ceiling this constant already scales from.
-const BASE_ACTION_POINTS = 5;
-const GOVERNANCE_TECHS_PER_AP_BONUS = 3; // the 10-tech Governance line caps this contribution at +3
+// Administrative Capacity, now split three ways (plan §M2): a flat pool/turn regardless of empire
+// size meant a 50-region late-game empire acted exactly as often per turn as its 1-region start —
+// nothing about maturing your state ever expanded what you could actually DO in a turn. This adds
+// a real, already-existing lever on top of the base: government maturity (apBonus on
+// GOVERNMENT_TYPES' effect object) and the Governance tech line (Code of Laws through Digital
+// Administration), applied to all three pools equally since neither source differentiates by pool
+// yet — M3's rulers and M7's per-line tech effects are what eventually make ADM/DIP/MIL grow at
+// different rates from each other.
+export const BASE_POWER_PER_TURN = 3;
 
 // Real fielded army strength for a nation — the sum of every unit it actually owns' `strength`
 // (src/context/GameContext.jsx's flat state.units dict). This is what's shown to the player for any
@@ -114,17 +92,86 @@ const GOVERNANCE_TECHS_PER_AP_BONUS = 3; // the 10-tech Governance line caps thi
 // power" and "their power" read as wildly, nonsensically far apart even though neither side's real
 // army was. A real fielded-strength comparison can't do that — it's bounded by what was actually
 // recruited (and, for the player, by RECRUIT_UNIT/DISBAND_UNIT's own strength math).
-export const getFieldedStrength = (state, nationId) =>
-  Object.values(state.units || {}).reduce((sum, u) => sum + (u.ownerId === nationId ? (u.strength || 0) : 0), 0);
+// Plan §M16: memoized per `state.units` OBJECT REFERENCE the same way src/data/regions.js's own
+// getOwnedRegionsIndex is — units are never mutated in place (src/engine/battle.js clones a unit
+// before touching its strength, and every write path replaces the units map via spread), so a
+// same-reference `units` really does mean the same per-nation totals. This was a real, measured
+// cost once M16's getSortedByMilitary started calling getFieldedStrength (via
+// getEffectiveMilitaryPower) from inside a .sort() comparator for all 240 AI nations every turn —
+// O(n log n) comparator calls x a fresh O(units) scan each, the same class of perf trap
+// nationalPower.js's own getOwnedRegionCount fix already called out.
+// Same index also backs getUnitCount below (aiEconomy.js's per-nation unit upkeep needs a COUNT,
+// not a strength sum) — one O(units) pass covers both rather than two separate scans.
+const fieldedStrengthIndexCache = new WeakMap(); // units -> { [ownerId]: { strength, count } }
+const getFieldedStrengthIndex = (units) => {
+  let index = fieldedStrengthIndexCache.get(units);
+  if (!index) {
+    index = {};
+    Object.values(units).forEach((u) => {
+      const entry = index[u.ownerId] || { strength: 0, count: 0 };
+      entry.strength += u.strength || 0;
+      entry.count += 1;
+      index[u.ownerId] = entry;
+    });
+    fieldedStrengthIndexCache.set(units, index);
+  }
+  return index;
+};
+export const getFieldedStrength = (state, nationId) => getFieldedStrengthIndex(state.units || {})[nationId]?.strength || 0;
+export const getUnitCount = (state, nationId) => getFieldedStrengthIndex(state.units || {})[nationId]?.count || 0;
 
-export const getMaxActionPoints = (state) => {
-  const nation = state.nations?.[state.playerNationId];
-  const govBonus = getNationBonusTotal(nation, 'apBonus');
-  const governanceTechsResearched = Object.values(state.techTree || {})
-    .filter((t) => t.researched && TECH_TREE[t.id]?.category === TechCategories.GOVERNANCE)
-    .length;
-  const techBonus = Math.floor(governanceTechsResearched / GOVERNANCE_TECHS_PER_AP_BONUS);
-  return BASE_ACTION_POINTS + govBonus + techBonus;
+// Plan §M2/§M3: replaces the old single-pool getMaxActionPoints with the three power pools' per-
+// turn income. Recomputed fresh from current government/ruler/advisors/tech every turn rather than
+// read from a stored field, so adopting a government, a succession, or finishing a Governance tech
+// all take effect on the very next turn automatically. `national.apBonus` (government maturity,
+// Governance techs) applies equally to all three pools; `national.admBonus`/`dipBonus`/`milBonus`
+// (ruler skill, advisors, pool-specific traits — src/engine/modifiers/sources.js) each touch only
+// their own pool, which is what actually makes ADM/DIP/MIL grow at different rates from each other.
+//
+// A Communications Satellite's dipPerTurn and a completed space mission's recurringReward.
+// dipPerTurn belong here, not in calcIncome's generic per-resource forEach: resolveTurn.js banks
+// each pool up to a CAP OF 2x THIS FUNCTION'S OWN RETURN VALUE, so a recurring DIP bonus has to be
+// part of that return value to actually raise the cap it lives under — added the other way (via
+// calcIncome, before the cap is applied), the very next turn's bank-up would clip it straight back
+// down to 2x the un-boosted base, silently discarding the bonus a player just earned.
+// `nationId` defaults to the player (every existing call site omits it) but plan §M16's AI economy
+// (src/engine/resolveTurn.js's own AI-economy phase) passes an AI nation id through the same
+// formula — satellite/mission dipPerTurn naturally comes back 0 for a nation that hasn't launched any,
+// since those are player-exclusive systems (no per-nation tracking exists) rather than something
+// needing a separate AI branch here.
+export const getPowerIncome = (state, nationId = state.playerNationId) => {
+  const allPoolsBonus = getModifier(state, nationId, 'national.apBonus').total;
+  const admBonus = getModifier(state, nationId, 'national.admBonus').total;
+  const dipBonus = getModifier(state, nationId, 'national.dipBonus').total;
+  const milBonus = getModifier(state, nationId, 'national.milBonus').total;
+  const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, nationId, 'dipPerTurn', state.orbitalDebrisLevel);
+  const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
+  return {
+    adm: BASE_POWER_PER_TURN + allPoolsBonus + admBonus,
+    dip: BASE_POWER_PER_TURN + allPoolsBonus + dipBonus + satelliteDip + missionDip,
+    mil: BASE_POWER_PER_TURN + allPoolsBonus + milBonus
+  };
+};
+
+// Plan §M20: the real per-source lines behind one pool's getPowerIncome total, for the Tooltip v2 /
+// Breakdown UI ("every number explains itself"). Reuses getModifier's own breakdown arrays instead
+// of re-deriving them, so this can never drift out of sync with the total getPowerIncome returns —
+// the two satellite/mission dipPerTurn lines are the only pieces getModifier doesn't already carry,
+// added here as synthetic breakdown rows in the same {label, value} shape.
+const POOL_BONUS_KEY = { adm: 'national.admBonus', dip: 'national.dipBonus', mil: 'national.milBonus' };
+export const getPowerBreakdown = (state, nationId = state.playerNationId, pool) => {
+  const rows = [{ label: 'Base', value: BASE_POWER_PER_TURN }];
+  const allPools = getModifier(state, nationId, 'national.apBonus');
+  allPools.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
+  const poolSpecific = getModifier(state, nationId, POOL_BONUS_KEY[pool]);
+  poolSpecific.breakdown.forEach((l) => rows.push({ label: l.label, value: l.value }));
+  if (pool === 'dip') {
+    const satelliteDip = getSatelliteEffectTotal(state.satellites || {}, nationId, 'dipPerTurn', state.orbitalDebrisLevel);
+    if (satelliteDip) rows.push({ label: 'Satellites', value: satelliteDip });
+    const missionDip = (state.completedMissions || []).reduce((sum, id) => sum + (SPACE_MISSIONS_BY_ID[id]?.recurringReward?.dipPerTurn || 0), 0);
+    if (missionDip) rows.push({ label: 'Space Missions', value: missionDip });
+  }
+  return rows;
 };
 
 // A realistic DISPLAY population for a region at the game's CURRENT year — region.currentPopulation
@@ -146,8 +193,15 @@ export const getDisplayPopulation = (region, regionData, year) => {
 // population-derived base value, plus copper/iron/oil from any region that has both the deposit
 // (src/data/deposits.js) and the matching extraction building actually built
 // (src/data/buildings.js) — geography and construction gate strategic resources, not just age.
+// Plan §M13: an occupied region gives its OWNER nothing and its OCCUPIER a lesser, tax-only share
+// — occupation is a war-only revenue stream, not annexation. Player-only real computation (this
+// file's own established pattern: AI has no simulated per-region economy until M16).
+const OCCUPATION_TAX_SHARE = 0.25;
+
 export const calcIncome = (state) => {
-  const playerRegions = Object.values(state.regions).filter(r => r.owner === state.playerNationId);
+  // Occupied-by-someone-else regions are excluded from the owner's own income below (`!r.occupiedBy`)
+  // — see the OCCUPATION_TAX_SHARE block after this loop for what the OCCUPIER gets instead.
+  const playerRegions = Object.values(state.regions).filter(r => r.owner === state.playerNationId && !r.occupiedBy);
 
   const income = {};
   RESOURCE_IDS.forEach(id => { income[id] = 0; });
@@ -157,15 +211,28 @@ export const calcIncome = (state) => {
     if (!regData) return;
     const controlMult = region.control / 100;
     const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
-    // Population Policy (plan §5, "more HR and tax later"): gold/hr scale with how much this
-    // region has grown past its starting population. Deposit/extraction/tech yields below don't
-    // scale with it — they're geography- and building-driven, not population-driven.
-    const popGrowthMult = regData.population > 0 ? (region.currentPopulation || regData.population) / regData.population : 1;
-    Object.entries(regData.resources || {}).forEach(([resId, amount]) => {
-      if (income[resId] === undefined) return; // not unlocked at the current age
-      const growthMult = (resId === 'gold' || resId === 'hr') ? popGrowthMult : 1;
-      income[resId] += amount * controlMult * infraMult * growthMult;
-    });
+    // Province development (plan §M5): gold/hr now come from region.dev.tax/production/manpower —
+    // the LIVE economic base — instead of REGIONS_DATA's static resources.gold/hr directly. The
+    // clamped popFactor (development.js) replaces the old unclamped popGrowthMult specifically to
+    // stop population and development from compounding without limit, per the plan's own concern.
+    // `local.*` lines come from M6's building tiers (Economy/Industry/Military, src/data/
+    // buildings.js), read generically the same way national.apBonus's Governance-tech line already
+    // was before M2 gave it a reader.
+    if (income.gold !== undefined && income.hr !== undefined) {
+      const dev = region.dev || seedDevelopment(region.id);
+      const popFactor = getPopFactor(region, regData);
+      const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
+      const localProduction = getRegionModifier(state, region.id, 'local.productionIncome').total;
+      const localManpower = getRegionModifier(state, region.id, 'local.manpower').total;
+      const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
+      const productionIncome = dev.production * (1 + localProduction) * controlMult * infraMult * popFactor;
+      const manpowerIncome = dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
+      income.gold += taxIncome + productionIncome;
+      income.hr += manpowerIncome;
+      // Naval building line (plan §M6): a flat trade-income trickle per tier, coastal-only by
+      // construction (BUILDING_CATEGORIES.naval.coastalOnly gates the building itself).
+      income.gold += getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
+    }
 
     Object.entries(region.buildings?.extraction || {}).forEach(([resId, built]) => {
       if (!built || income[resId] === undefined) return;
@@ -173,61 +240,79 @@ export const calcIncome = (state) => {
       income[resId] += EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
 
-    // Tech points (Research tab): a Science building's tier level, same controlMult/infraMult
-    // scaling as every other region yield. techPoints isn't in RESOURCE_IDS (it's a meta-currency,
-    // like actionPoints), but resolveTurn.js applies every key calcIncome returns generically, so
-    // adding it here is enough to make it flow into resources each turn.
-    const scienceTier = region.buildings?.categories?.science;
-    if (scienceTier !== undefined && scienceTier >= 0) {
-      income.techPoints = (income.techPoints || 0) + (scienceTier + 1) * SCIENCE_TECHPOINT_YIELD * controlMult * infraMult;
+    // Tech points (Research tab): the Science building line's own authored per-tier values (plan
+    // §M6: Library +2, Scriptorium +4, University +6, Research Lab +9 — src/data/buildings.js),
+    // replacing the old uniform (tier+1)*SCIENCE_TECHPOINT_YIELD formula. techPoints isn't in
+    // RESOURCE_IDS (it's a meta-currency, like the power pools), but resolveTurn.js applies every
+    // key calcIncome returns generically, so adding it here is enough to make it flow each turn.
+    const localTechPoints = getRegionModifier(state, region.id, 'local.techPoints').total;
+    if (localTechPoints) {
+      income.techPoints = (income.techPoints || 0) + localTechPoints * controlMult * infraMult;
     }
   });
 
-  // Trade agreement bonuses.
-  const tradePartners = Object.values(state.nations).filter(n => n.hasTradeAgreement);
-  income.gold = (income.gold || 0) + tradePartners.length * 20;
+  // Occupation (plan §M13): the occupier gets a lesser tax-only share of what it holds, rather than
+  // full income — a real but reduced war-time revenue stream, distinct from a region it actually
+  // owns. Read before the goldMult multiplication below so it benefits from national bonuses the
+  // same way owned income does.
+  Object.values(state.regions).forEach((region) => {
+    if (region.occupiedBy !== state.playerNationId || region.owner === state.playerNationId) return;
+    const regData = REGIONS_DATA[region.id];
+    if (!regData) return;
+    const dev = region.dev || seedDevelopment(region.id);
+    const controlMult = region.control / 100;
+    const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
+    const popFactor = getPopFactor(region, regData);
+    const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
+    const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
+    income.gold = (income.gold || 0) + taxIncome * OCCUPATION_TAX_SHARE;
+  });
+
+  // Trade Pact income (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) is
+  // now a real goldMult line in the modifier engine (sources.js's contextSources), summed into the
+  // same goldMult lookup a few lines below rather than added here as a flat bonus.
 
   // Government/policy/wonder/satellite bonuses (plan §9/§10.4) — summed on the same hook
-  // (getNationBonusTotal), applied as one multiplier, plus Set Tax Rate's own goldMult and every
-  // owned satellite's goldMult/hrMult (getSatelliteEffectTotal, scaled by the shared orbital
-  // debris penalty) on top.
-  const playerNation = state.nations[state.playerNationId];
+  // (the modifier engine, src/engine/modifiers/), applied as one multiplier — government, policy,
+  // wonder, identity, Set Tax Rate, and every owned satellite (scaled by the shared orbital debris
+  // penalty) are all sources feeding these same two keys now, so this is one lookup each instead
+  // of hand-summing every source at every call site.
   const satellites = state.satellites || {};
-  const taxGoldMult = TAX_RATES[playerNation?.taxRate]?.goldMult || 0;
-  const satelliteGoldMult = getSatelliteEffectTotal(satellites, state.playerNationId, 'goldMult', state.orbitalDebrisLevel);
-  const satelliteHrMult = getSatelliteEffectTotal(satellites, state.playerNationId, 'hrMult', state.orbitalDebrisLevel);
-  const goldMult = 1 + getNationBonusTotal(playerNation, 'goldMult') + taxGoldMult + satelliteGoldMult;
-  const hrMult = 1 + getNationBonusTotal(playerNation, 'hrMult') + satelliteHrMult;
+  const goldMult = 1 + getModifier(state, state.playerNationId, 'national.goldMult').total;
+  const hrMult = 1 + getModifier(state, state.playerNationId, 'national.hrMult').total;
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
 
-  // A Communications Satellite's flat diplomacyPoints/turn and a Spy Satellite's flat
-  // techPoints/turn — additive income, not multipliers, so they're summed separately from the
-  // goldMult/hrMult hooks above rather than forced into that multiplicative shape.
-  const satelliteDiplomacyPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'diplomacyPointsPerTurn', state.orbitalDebrisLevel);
+  // A Spy Satellite's flat techPoints/turn — additive income, not a multiplier, so it's summed
+  // separately from the goldMult/hrMult hooks above rather than forced into that multiplicative
+  // shape. (A Communications Satellite's dipPerTurn is NOT handled here — see getPowerIncome's own
+  // header for why a DIP-pool bonus has to live there instead of in this generic income object.)
   const satelliteTechPoints = getSatelliteEffectTotal(satellites, state.playerNationId, 'techPointsPerTurn', state.orbitalDebrisLevel);
-  if (satelliteDiplomacyPoints) income.diplomacyPoints = (income.diplomacyPoints || 0) + satelliteDiplomacyPoints;
   if (satelliteTechPoints) income.techPoints = (income.techPoints || 0) + satelliteTechPoints;
 
   // Space mission ladder (plan §10.4 Layer 3) — every completed mission's recurringReward is a
-  // flat per-turn addition (gold/diplomacyPoints/techPoints already exist as income keys;
-  // rareMetals/helium3 have no deposit or extraction building of their own — completing
-  // asteroid_mining/outer_planets IS their only real source, per resources.js's own header).
+  // flat per-turn addition (gold/techPoints already exist as income keys; rareMetals/helium3 have
+  // no deposit or extraction building of their own — completing asteroid_mining/outer_planets IS
+  // their only real source, per resources.js's own header). dipPerTurn is handled in
+  // getPowerIncome instead, for the same reason satellite dipPerTurn is.
   (state.completedMissions || []).forEach(missionId => {
     const reward = SPACE_MISSIONS_BY_ID[missionId]?.recurringReward;
     if (!reward) return;
     if (reward.goldPerTurn) income.gold = (income.gold || 0) + reward.goldPerTurn;
-    if (reward.diplomacyPointsPerTurn) income.diplomacyPoints = (income.diplomacyPoints || 0) + reward.diplomacyPointsPerTurn;
     if (reward.techPointsPerTurn) income.techPoints = (income.techPoints || 0) + reward.techPointsPerTurn;
     if (reward.rareMetalsPerTurn && income.rareMetals !== undefined) income.rareMetals += reward.rareMetalsPerTurn;
     if (reward.helium3PerTurn && income.helium3 !== undefined) income.helium3 += reward.helium3PerTurn;
   });
 
-  // Set Research Focus (Research tab): a flat research-speed bonus for committing to a line.
-  // Which category is stored for later systems (e.g. AI reading a rival's focus) to react to —
-  // the immediate mechanical payoff is deliberately general rather than per-category, so it
-  // doesn't need to reach into RESEARCH_TECH's own cost/afford checks to have a real effect.
-  if (state.researchFocus && income.techPoints) income.techPoints *= 1.2;
+  // Set Research Focus (plan §M7) no longer boosts techPoints income here — it's now a real
+  // -15% power-cost discount applied directly in RESEARCH_TECH/canResearchTech for the focused
+  // line's own techs (src/data/techTree.js's getTechPowerCost), not a flat, line-agnostic
+  // techPoints multiplier.
+  // A ruler's Scholar trait (plan §M3) gated on the same "no base techPoints, no bonus" rule the
+  // old Research Focus line above used to share, so a nation with no Science buildings yet isn't
+  // shown a phantom gain.
+  const techPointsMult = getModifier(state, state.playerNationId, 'national.techPointsMult').total;
+  if (techPointsMult && income.techPoints) income.techPoints *= (1 + techPointsMult);
 
   Object.keys(income).forEach(id => { income[id] = Math.round(income[id]); });
   return income;
@@ -323,28 +408,30 @@ export const scaleCosts = (costs, mult) =>
   Object.fromEntries(Object.entries(costs).map(([key, value]) => [key, Math.round(value * mult)]));
 
 const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals', helium3: 'Helium-3' };
+// Plan §M2: the three power pools, each measured against its own cap (maxAdm/maxDip/maxMil),
+// exactly like actionPoints was measured against maxActionPoints before the pool split.
+const POWER_POOL_LABELS = { adm: 'ADM', dip: 'DIP', mil: 'MIL' };
 
 // How much of the player's CURRENT pool a cost would consume — the binary canAfford() check above
 // says nothing about a cost that's affordable but still eats most/all of what the player has right
-// now (e.g. turn-1 government adoption using 66% of starting AP, or a first unit recruit that costs
-// exactly 100% of starting HR). actionPoints is measured against maxActionPoints (a real cap); every
-// other resource has no cap, so it's measured against the current on-hand amount instead. Returns
-// null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just check
-// truthiness rather than branching on a 'normal' level themselves.
+// now (e.g. turn-1 government adoption using most of starting ADM, or a first unit recruit that
+// costs exactly 100% of starting HR). A power pool is measured against its own cap (a real ceiling);
+// every other resource has no cap, so it's measured against the current on-hand amount instead.
+// Returns null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just
+// check truthiness rather than branching on a 'normal' level themselves.
 export const getResourceStrain = (costs, resources) => {
   if (!costs || !resources) return null;
   let worst = { fraction: 0, key: null };
   Object.entries(costs).forEach(([key, value]) => {
     if (!value) return;
-    const denominator = key === 'actionPoints'
-      ? (resources.maxActionPoints || resources.actionPoints || 0)
-      : (resources[key] || 0);
+    const isPower = !!POWER_POOL_LABELS[key];
+    const denominator = isPower ? (resources[`max${key[0].toUpperCase()}${key.slice(1)}`] || resources[key] || 0) : (resources[key] || 0);
     if (denominator <= 0) return;
     const fraction = value / denominator;
     if (fraction > worst.fraction) worst = { fraction, key };
   });
   if (!worst.key || worst.fraction < 0.5) return null;
-  const label = worst.key === 'actionPoints' ? 'AP' : (RESOURCE_LABELS[worst.key] || worst.key);
+  const label = POWER_POOL_LABELS[worst.key] || RESOURCE_LABELS[worst.key] || worst.key;
   return { level: worst.fraction >= 0.9 ? 'critical' : 'high', label };
 };
 
@@ -353,9 +440,8 @@ export const getCostString = (costs) => {
   Object.entries(costs).forEach(([key, value]) => {
     if (!value) return;
     if (RESOURCE_LABELS[key]) parts.push(`${formatNumber(value)} ${RESOURCE_LABELS[key]}`);
-    else if (key === 'diplomacyPoints') parts.push(`${value} DP`);
     else if (key === 'techPoints') parts.push(`${value} TP`);
-    else if (key === 'actionPoints') parts.push(`${value} AP`);
+    else if (POWER_POOL_LABELS[key]) parts.push(`${value} ${POWER_POOL_LABELS[key]}`);
   });
   return parts.join(', ');
 };

@@ -2,7 +2,7 @@
 // Individual resource badge component with expand/collapse functionality
 
 import React from 'react';
-import { Coins, Users, Globe, Beaker, Zap, Swords, Hammer, Flame, Fuel, Gem, Atom } from 'lucide-react';
+import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, Atom, ScrollText, Landmark } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
 import Tooltip from './Tooltip';
 
@@ -50,23 +50,34 @@ const RESOURCE_CONFIG = {
     bgColor: 'bg-indigo-500/20',
     label: 'Helium-3'
   },
-  diplomacyPoints: {
-    icon: Globe,
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/20',
-    label: 'Diplomacy'
-  },
   techPoints: {
     icon: Beaker,
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/20',
     label: 'Tech Points'
   },
-  actionPoints: {
-    icon: Zap,
-    color: 'text-yellow-400',
-    bgColor: 'bg-yellow-500/20',
-    label: 'Action Points'
+  // Plan §M2's three power pools, replacing the old single actionPoints + diplomacyPoints pair —
+  // ADM (administration/economy/government), DIP (diplomacy/research/space), MIL (military).
+  adm: {
+    icon: ScrollText,
+    color: 'text-amber-300',
+    bgColor: 'bg-amber-500/20',
+    label: 'ADM',
+    description: 'Administrative Power — domestic, economic and government actions'
+  },
+  dip: {
+    icon: Landmark,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    label: 'DIP',
+    description: 'Diplomatic Power — diplomacy, research and space actions'
+  },
+  mil: {
+    icon: Swords,
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+    label: 'MIL',
+    description: 'Military Power — recruitment, fleets and warfare actions'
   },
   militaryStrength: {
     icon: Swords,
@@ -76,14 +87,15 @@ const RESOURCE_CONFIG = {
   }
 };
 
-const ResourceBadge = ({ 
-  type, 
-  value, 
-  maxValue = null, 
-  expanded = false, 
+const ResourceBadge = ({
+  type,
+  value,
+  maxValue = null,
+  expanded = false,
   onClick = null,
   showLabel = false,
-  size = 'normal' // 'small', 'normal', 'large'
+  size = 'normal', // 'small', 'normal', 'large'
+  tooltipContent = null // plan §M20: overrides the flat description with a real breakdown (e.g. ADM/DIP/MIL income)
 }) => {
   const config = RESOURCE_CONFIG[type];
   if (!config) return null;
@@ -106,7 +118,7 @@ const ResourceBadge = ({
   };
 
   return (
-    <Tooltip content={config.description || config.label}>
+    <Tooltip content={tooltipContent || config.description || config.label}>
       <button
         onClick={onClick}
         disabled={!onClick}

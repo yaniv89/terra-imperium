@@ -7,11 +7,14 @@
 // - Siege cracks fortifications (+200%) but is helpless in the open field (-50%) — a context
 //   multiplier (getSiegeMultiplier), not a class-vs-class counter, though Cavalry still hard-
 //   counters it directly (a siege train caught by cavalry in the open is defenseless).
-// - Naval fights in its own domain — real counters land in Phase C's navy work (Task: Navies and
-//   amphibious invasion), not here.
-// - Air (Modern-only) has reach without borders — its dedicated counter (anti-air) isn't a unit
-//   class yet, so it currently only has upside, matching "the reach without borders" framing.
-// - Support (engineer/medic/supply train) is explicitly non-combat: multipliers only, no counters.
+// - Naval fights in its own domain — real counters land in a future naval-class expansion (plan
+//   §M14's light/heavy/transport/carrier split is deferred — see this file's own header note below
+//   the class table for why).
+// - Air (Modern-only) has reach without borders, but plan §M14 gives Support real teeth as its
+//   Anti-Air counter (renamed in its Modern-age flavor text, not a new class) — Support now beats
+//   Air, and Air no longer beats Naval or Support.
+// - Support (engineer/medic/supply train in early ages, Anti-Air battery in Modern) is otherwise
+//   non-combat: no counters of its own beyond the Air matchup above.
 
 export const UNIT_CLASSES = {
   infantry: {
@@ -47,20 +50,25 @@ export const UNIT_CLASSES = {
     name: 'Naval',
     role: 'Sea lanes, transport, bombardment.',
     beats: [],
-    losesTo: ['air']
+    losesTo: []
   },
+  // Plan §M14: Air no longer beats Naval or Support — its reach still overwhelms ground troops, but
+  // it's no longer strictly upside once Support (Anti-Air in Modern) is actually recruitable.
   air: {
     id: 'air',
     name: 'Air',
     role: 'Reach without borders.',
-    beats: ['infantry', 'cavalry', 'ranged', 'siege', 'naval'],
-    losesTo: []
+    beats: ['infantry', 'cavalry', 'ranged', 'siege'],
+    losesTo: ['support']
   },
+  // Plan §M14: Support is now a real recruitable class (see UNIT_ROSTER below) with one real
+  // counter — Anti-Air (its Modern-age flavor name) shoots down Air. It still has no OTHER
+  // counters of its own; it isn't meant to fight infantry/cavalry/ranged/siege/naval directly.
   support: {
     id: 'support',
     name: 'Support',
-    role: 'Non-combat multipliers (engineer, medic, supply train).',
-    beats: [],
+    role: 'Non-combat multipliers early; Anti-Air defense in the Modern age.',
+    beats: ['air'],
     losesTo: []
   }
 };
@@ -71,8 +79,11 @@ export const UNIT_CLASS_IDS = Object.keys(UNIT_CLASSES);
 // their first war — every OTHER class's counters are intentionally asymmetric (see file header).
 export const CORE_TRIANGLE_CLASS_IDS = ['infantry', 'cavalry', 'ranged'];
 
-const COUNTER_BONUS_MULT = 1.5; // +50% damage
-const COUNTER_PENALTY_MULT = 0.67; // -33% damage (1 - 0.33, matching the plan's stated number)
+// Plan §M14: sharper counters than M0-M13's baseline (was 1.5/0.67) — a matchup you win should feel
+// more decisive, and one you lose should hurt more, now that roster stats (below) also separately
+// reward staying at the front of the tech curve.
+const COUNTER_BONUS_MULT = 1.75; // +75% damage
+const COUNTER_PENALTY_MULT = 0.6; // -40% damage
 
 // The generic class-vs-class multiplier. Siege's fortification/open-field multiplier is handled
 // separately by getSiegeMultiplier below, since it isn't a class matchup.
@@ -141,11 +152,42 @@ export const UNIT_ROSTER = {
     ranged: rosterEntry('ATGM Teams', 4),
     siege: rosterEntry('Artillery', 4),
     naval: rosterEntry('Destroyer', 4),
-    air: rosterEntry('Fighter Jet', 4)
+    air: rosterEntry('Fighter Jet', 4),
+    support: rosterEntry('Anti-Air Battery', 4)
   }
 };
+
+// Plan §M14: Support becomes a real recruitable class — flavor names change by age (a construction/
+// logistics role early on, hardening into dedicated Anti-Air once Air exists to shoot down), but the
+// class id and its counter (support beats air) stay the same throughout.
+UNIT_ROSTER.bronze.support = rosterEntry('Baggage Train', 0);
+UNIT_ROSTER.classical.support = rosterEntry('Engineers', 1);
+UNIT_ROSTER.kingdoms.support = rosterEntry('Pioneers', 2);
+UNIT_ROSTER.gunpowder.support = rosterEntry('Sappers', 3);
 
 export const getUnitDefinition = (ageId, classId) => UNIT_ROSTER[ageId]?.[classId] || null;
 
 // Every class recruitable at (and including) the given age — Air only exists from Modern on.
 export const getAvailableClasses = (ageId) => Object.keys(UNIT_ROSTER[ageId] || {});
+
+// Plan §M14: roster stats wired into combat, replacing the old flat "ages-behind" combat malus
+// (src/data/ages.js's now-removed getAgesBehindCombatMultiplier) — that malus only ever penalized
+// a nation falling behind; this instead directly compares the two SIDES' own current ages, so a
+// nation ahead of an opponent is rewarded exactly as much as a nation behind one is punished, and
+// two nations at the SAME age always net out to 1.0 no matter which age that is.
+//
+// Honest simplification of the plan's literal "attackerRoster.baseAttack / defenderRoster.
+// baseDefense" wording: baseAttack and baseDefense deliberately scale at DIFFERENT per-age rates
+// (see rosterEntry above — a design choice for how a single roster entry's own numbers read, not
+// meant to double as a cross-age normalization base), so a raw attack/defense ratio does NOT stay
+// constant across ages and can't be "normalized to 1.0 for same-age units" by any single divisor.
+// Comparing each side's baseATTACK against the other side's baseATTACK (same stat, both sides)
+// sidesteps that mismatch entirely and gives the same real-content promise — an age gap swings the
+// multiplier away from 1.0 by exactly how far apart the two roster tiers are — with an exact 1.0 at
+// equal ages guaranteed by construction, not by a coincidental ratio.
+const ROSTER_REFERENCE_CLASS = 'infantry';
+export const getRosterCombatMultiplier = (attackerAgeId, defenderAgeId) => {
+  const attackerAttack = UNIT_ROSTER[attackerAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER.bronze[ROSTER_REFERENCE_CLASS].baseAttack;
+  const defenderAttack = UNIT_ROSTER[defenderAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER.bronze[ROSTER_REFERENCE_CLASS].baseAttack;
+  return attackerAttack / defenderAttack;
+};

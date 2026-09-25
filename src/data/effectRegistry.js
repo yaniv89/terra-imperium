@@ -209,6 +209,102 @@ export const EFFECT_REGISTRY = {
     ]
   },
 
+  // ---- diplomacy overhaul (plan §M12) — every one of these targets another nation, so all reuse
+  // the arc primitive, the same "crosses the map between two capitals" shape gift_bribe/
+  // trade_agreement/military_alliance/espionage already use above.
+  break_alliance: {
+    primitive: 'arc',
+    palette: { base: '#ef4444', hot: '#fee2e2' },
+    head: 'chevron',
+    archPow: 0.5,
+    ease: 'accelerate',
+    trailWidth: 2.4,
+    fireball: 0.25,
+    rings: 2,
+    debris: 5,
+    // Two shields sliding apart — the mirror image of military_alliance's converging pair.
+    projectiles: [
+      { lateral: -0.4, loft: 0.25, delay: 0, scale: 0.9, spread: 0.4 },
+      { lateral: 0.4, loft: 0.25, delay: 0, scale: 0.9, spread: -0.4 }
+    ]
+  },
+  insult: {
+    primitive: 'arc',
+    palette: { base: '#dc2626', hot: '#fecaca' },
+    head: 'dart',
+    archPow: 0.25,
+    ease: 'accelerate',
+    trailWidth: 1.2,
+    fireball: 0.08,
+    rings: 1,
+    debris: 1,
+    projectiles: [{ lateral: 0, loft: 0.15, delay: 0, scale: 0.5, spread: 0 }]
+  },
+  rival_nation: {
+    primitive: 'arc',
+    palette: { base: '#f97316', hot: '#ffedd5' },
+    head: 'dart',
+    archPow: 0.35,
+    ease: 'smooth',
+    trailWidth: 1.6,
+    fireball: 0.12,
+    rings: 1,
+    debris: 3,
+    projectiles: [{ lateral: 0, loft: 0.22, delay: 0, scale: 0.7, spread: 0 }]
+  },
+  propose_marriage: {
+    primitive: 'arc',
+    palette: { base: '#ec4899', hot: '#fce7f3' },
+    head: 'chevron',
+    archPow: 0.5,
+    ease: 'smooth',
+    trailWidth: 2,
+    fireball: 0.2,
+    rings: 2,
+    debris: 4,
+    // Two courtiers arcing toward each other, meeting at the midpoint — a union, not a strike.
+    projectiles: [
+      { lateral: -0.3, loft: 0.3, delay: 0, scale: 0.8, spread: -0.2 },
+      { lateral: 0.3, loft: 0.3, delay: 20, scale: 0.8, spread: 0.2 }
+    ]
+  },
+  assign_diplomat: {
+    primitive: 'arc',
+    palette: { base: '#0ea5e9', hot: '#e0f2fe' },
+    head: 'dart',
+    archPow: 0.4,
+    ease: 'smooth',
+    trailWidth: 1.8,
+    fireball: 0.1,
+    rings: 1,
+    debris: 2,
+    projectiles: [{ lateral: 0, loft: 0.26, delay: 0, scale: 0.7, spread: 0 }]
+  },
+  vassalize: {
+    primitive: 'arc',
+    palette: { base: '#7c3aed', hot: '#ede9fe' },
+    head: 'warhead',
+    archPow: 0.7,
+    ease: 'accelerate',
+    trailWidth: 3,
+    fireball: 0.35,
+    rings: 3,
+    debris: 6,
+    projectiles: [{ lateral: 0, loft: 0.4, delay: 0, scale: 1, spread: 0 }]
+  },
+  release_vassal: {
+    primitive: 'arc',
+    palette: { base: '#a78bfa', hot: '#f5f3ff' },
+    head: 'dart',
+    archPow: 0.3,
+    ease: 'smooth',
+    trailWidth: 1.4,
+    fireball: 0.1,
+    rings: 1,
+    debris: 2,
+    projectiles: [{ lateral: 0, loft: 0.2, delay: 0, scale: 0.6, spread: 0 }]
+  },
+
   // ---- pulse primitive: single-region actions with no natural "from"/"to" geography ----
   // glyph: 'unit' is special-cased in GlobeEffectsOverlay.jsx — instead of one fixed shape, it
   // renders the actual recruited/disbanded unit's class silhouette (src/data/unitClasses.js's
@@ -229,7 +325,9 @@ export const EFFECT_REGISTRY = {
   build_infrastructure: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'circle', rings: 3, motes: 4 },
   build_defenses: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 2, motes: 0 },
   build_climate_resilience: { primitive: 'pulse', palette: { base: '#34d399', hot: '#ecfdf5' }, glyph: 'circle', rings: 2, motes: 6 },
-  construct_wonder: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 12 },
+  // Plan §M10: replaces the old flat, empire-wide construct_wonder.
+  start_great_project: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 12 },
+  upgrade_great_project: { primitive: 'pulse', palette: { base: '#eab308', hot: '#fef9c3' }, glyph: 'star', rings: 3, motes: 8 },
   gain_control: { primitive: 'pulse', palette: { base: '#60a5fa', hot: '#dbeafe' }, glyph: 'circle', rings: 2, motes: 0 },
   // Auto-targets whoever's most hostile rather than a chosen nation, so it's centred on the
   // player's own capital (pulse) rather than an arc to a picked target.
@@ -242,9 +340,20 @@ export const EFFECT_REGISTRY = {
   set_tax_rate: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fef9c3' }, glyph: 'circle', rings: 1, motes: 6 },
   shift_identity: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'diamond', rings: 1, motes: 4 },
   cultural_export: { primitive: 'pulse', palette: { base: '#f472b6', hot: '#fce7f3' }, glyph: 'star', rings: 3, motes: 8 },
-  adopt_government: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
-  adopt_policy: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
-  remove_policy: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 0 },
+  // Plan §M8: replaces the old adopt_government/adopt_policy/remove_policy trio.
+  change_government_type: { primitive: 'pulse', palette: { base: '#818cf8', hot: '#e0e7ff' }, glyph: 'diamond', rings: 2, motes: 4 },
+  // Plan §M15: crises & defeat.
+  move_capital: { primitive: 'pulse', palette: { base: '#f59e0b', hot: '#fef3c7' }, glyph: 'star', rings: 2, motes: 4 },
+  declare_independence: { primitive: 'pulse', palette: { base: '#dc2626', hot: '#fee2e2' }, glyph: 'star', rings: 2, motes: 5 },
+  enact_government_reform: { primitive: 'pulse', palette: { base: '#c084fc', hot: '#f3e8ff' }, glyph: 'square', rings: 1, motes: 3 },
+  change_law: { primitive: 'pulse', palette: { base: '#94a3b8', hot: '#f1f5f9' }, glyph: 'square', rings: 1, motes: 2 },
+  // Plan §M9: Estates.
+  seize_land: { primitive: 'pulse', palette: { base: '#b45309', hot: '#fef3c7' }, glyph: 'triangle', rings: 2, motes: 3 },
+  sell_land: { primitive: 'pulse', palette: { base: '#a16207', hot: '#fef9c3' }, glyph: 'triangle', rings: 1, motes: 3 },
+  grant_estate_privilege: { primitive: 'pulse', palette: { base: '#7c3aed', hot: '#ede9fe' }, glyph: 'diamond', rings: 2, motes: 3 },
+  revoke_estate_privilege: { primitive: 'pulse', palette: { base: '#64748b', hot: '#f1f5f9' }, glyph: 'diamond', rings: 1, motes: 0 },
+  clergy_tithe: { primitive: 'pulse', palette: { base: '#eab308', hot: '#fef9c3' }, glyph: 'circle', rings: 1, motes: 5 },
+  nobility_levies: { primitive: 'pulse', palette: { base: '#dc2626', hot: '#fee2e2' }, glyph: 'circle', rings: 1, motes: 5 },
   hire_general: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'diamond', rings: 1, motes: 3 },
   appoint_general: { primitive: 'pulse', palette: { base: '#0ea5e9', hot: '#e0f2fe' }, glyph: 'star', rings: 1, motes: 2 },
   embark_unit: { primitive: 'pulse', palette: { base: '#22d3ee', hot: '#ecfeff' }, glyph: 'triangle', rings: 1, motes: 4 },
@@ -254,7 +363,7 @@ export const EFFECT_REGISTRY = {
   build_missile: { primitive: 'pulse', palette: { base: '#f97316', hot: '#fff7ed' }, glyph: 'triangle', rings: 2, motes: 3 },
   build_abm_defense: { primitive: 'pulse', palette: { base: '#38bdf8', hot: '#e0f2fe' }, glyph: 'square', rings: 2, motes: 0 },
   // The mission ladder's showpiece moments (Sputnik, Moon landing, Mars) get the biggest pulse in
-  // the registry — matched only by construct_wonder, the other permanent-empire-scale milestone.
+  // the registry — matched only by start_great_project, the other permanent-empire-scale milestone.
   launch_mission: { primitive: 'pulse', palette: { base: '#facc15', hot: '#fffbeb' }, glyph: 'star', rings: 4, motes: 10 },
   // Age Advance (plan §10.5's "showpiece") — the one moment that happens to every nation on the
   // same turn, so it gets the single biggest pulse in the registry, anchored on the player's own

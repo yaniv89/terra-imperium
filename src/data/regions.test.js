@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REGIONS_DATA, isAdjacentToOwner, distanceFromAnchor, getNationCapital } from './regions';
+import { REGIONS_DATA, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital } from './regions';
 
 describe('region adjacency graph', () => {
   it('covers all 240 nations via their real admin-1 provinces', () => {
@@ -93,5 +93,17 @@ describe('getNationCapital (overextension anchor)', () => {
 
   it('returns null for an unknown nation id', () => {
     expect(getNationCapital('not-a-real-nation')).toBeNull();
+  });
+});
+
+describe('getCapital (plan §M15: dynamic capital)', () => {
+  it('falls back to the native capital when a nation has no capitalRegionId (no state.nations, or a record missing the field)', () => {
+    expect(getCapital({ nations: {} }, 'fr')).toBe(getNationCapital('fr'));
+    expect(getCapital({ nations: { fr: {} } }, 'fr')).toBe(getNationCapital('fr'));
+  });
+
+  it('prefers the nation\'s own capitalRegionId once one has been set (e.g. after Move Capital)', () => {
+    const state = { nations: { fr: { capitalRegionId: 'some-other-region' } } };
+    expect(getCapital(state, 'fr')).toBe('some-other-region');
   });
 });

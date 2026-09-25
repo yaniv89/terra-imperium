@@ -156,3 +156,12 @@ export const getNationCapital = (nationId) => {
   }
   return capitalByNationIndex[nationId] || null;
 };
+
+// Plan §M15: capitals become dynamic — Move Capital (gameReducer.js's MOVE_CAPITAL) can relocate
+// one, and a peace deal that cedes it auto-relocates the loser's (peace.js). `nation.capitalRegionId`
+// is seeded from getNationCapital at createInitialState and is the live source of truth from then on;
+// getNationCapital itself is untouched (still "this nation's ORIGINAL native capital", read by
+// buildings.js's capital building-slot bonus and greatProjects.js's site rules, which the plan does
+// NOT say should follow a moved capital) and stays the fallback for a nation record that predates
+// this field (an old save mid-migration, or a hand-built test fixture).
+export const getCapital = (state, nationId) => state.nations?.[nationId]?.capitalRegionId || getNationCapital(nationId);

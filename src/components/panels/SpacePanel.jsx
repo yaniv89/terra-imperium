@@ -65,7 +65,7 @@ const SpacePanel = () => {
 
   const handleLaunchMission = (missionId) => {
     const mission = SPACE_MISSIONS.find(m => m.id === missionId);
-    const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
+    const costs = { ...mission.cost, dip: ACTION_COSTS.launchMission.dip };
     if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
     triggerEffect('launch_mission', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.LAUNCH_MISSION, payload: { missionId } });
@@ -218,7 +218,7 @@ const SpacePanel = () => {
           const completed = (state.completedMissions || []).includes(mission.id);
           const turnsRemaining = state.spaceMissionProgress?.[mission.id];
           const eligible = launchable && canLaunchMission(mission.id, state.completedMissions || [], state.spaceMissionProgress || {});
-          const costs = { ...mission.cost, actionPoints: ACTION_COSTS.launchMission.actionPoints };
+          const costs = { ...mission.cost, dip: ACTION_COSTS.launchMission.dip };
           let status = mission.description;
           if (completed) status = 'Completed';
           else if (turnsRemaining !== undefined) status = `In progress — ${turnsRemaining} turn${turnsRemaining === 1 ? '' : 's'} remaining`;
