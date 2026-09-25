@@ -33,6 +33,14 @@ export const getAbmReductionMult = (abmLevel) => 1 - Math.min(MAX_ABM_LEVEL, abm
 // pattern GameContext.jsx's unjustified-war branch already applies globally.
 export const NUCLEAR_GLOBAL_HOSTILITY = 30;
 
+// Plan §M19: "A nuclear strike gives ... −50 prestige and a 'Nuclear Pariah' 20-turn modifier."
+// The pariah modifier reuses the same 'national.goldMult' key reparations/bankruptcy's own timed
+// modifiers already use (src/engine/peace.js/economy.js) — international isolation reads as real
+// trade friction, not a bespoke new hook.
+export const NUCLEAR_PRESTIGE_PENALTY = 50;
+export const NUCLEAR_PARIAH_DURATION_TURNS = 20;
+export const NUCLEAR_PARIAH_GOLD_MULT_PENALTY = 0.15;
+
 // True if `targetRegionId` is within `tierId`'s range from any of `ownRegionIds` — Infinity-range
 // tiers (icbm/nuclear) always return true without needing the hop search at all.
 export const isMissileInRange = (tierId, ownRegionIds, targetRegionId, distanceFromAnchorFn) => {

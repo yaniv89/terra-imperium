@@ -22,6 +22,7 @@ import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
+import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress } from './diplomacy';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
@@ -725,6 +726,12 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
   mark('aiWarDeclarations');
+
+  // --- AI ABM defense (plan §M19: "AI builds ABM to level 1-2 when at war with a nuclear power") ---
+  const abmResult = processAIAbmDefense({ ...state, wars }, nationsAfterWars);
+  nationsAfterWars = abmResult.nations;
+  logs.push(...abmResult.logs.map(l => ({ year: newYear, ...l })));
+  mark('aiAbmDefense');
 
   // --- AI war progress (plan §8.5's war-goal resolution): territorial conquest rolls, mutual
   // attrition, and ending a war outright once its goal is met — this is what makes every one of

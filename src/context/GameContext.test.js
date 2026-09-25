@@ -815,6 +815,52 @@ describe('Space Race tab actions', () => {
       expect(next.nations[thirdParty].hostility).toBeGreaterThan(state.nations[thirdParty].hostility);
     });
 
+    // Plan §M19: "Missiles and nuclear strikes now affect war score (+2 per strike, +10 per
+    // nuclear strike), AE, and opinion. A nuclear strike gives ... -50 prestige and a 'Nuclear
+    // Pariah' 20-turn modifier."
+    describe('war score, prestige, and Nuclear Pariah (plan §M19)', () => {
+      const withWar = (tierId) => {
+        const base = withMissile(tierId);
+        return { ...base, wars: [{ id: 'war_1', aggressor: 'fr', enemy: 'de', active: true, battleScore: 0, goalAchieved: false, startYear: base.year, goal: { type: 'destroy_military', threshold: 1 } }] };
+      };
+
+      it('a non-nuclear strike against an active war enemy bumps battleScore by +2 for the striker', () => {
+        const state = withWar('tactical');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+        expect(next.wars[0].battleScore).toBe(2);
+      });
+
+      it('a nuclear strike against an active war enemy bumps battleScore by +10 for the striker', () => {
+        const state = withWar('nuclear');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: DE_REGION } });
+        expect(next.wars[0].battleScore).toBe(10);
+      });
+
+      it('leaves war score untouched when the striker and target are not at war', () => {
+        const state = withMissile('tactical');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+        expect(next.wars).toEqual(state.wars);
+      });
+
+      it('a nuclear strike costs the striker prestige and applies a 20-turn Nuclear Pariah modifier', () => {
+        const state = withMissile('nuclear');
+        const prestigeBefore = state.nations.fr.prestige || 0;
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'nuclear', targetRegionId: DE_REGION } });
+        expect(next.nations.fr.prestige).toBe(prestigeBefore - 50);
+        const pariah = next.nations.fr.modifiers.find((m) => m.sourceId === 'nuclear_pariah');
+        expect(pariah).toBeTruthy();
+        expect(pariah.mods['national.goldMult']).toBeLessThan(0);
+        expect(pariah.expiresTurn).toBe(state.turnNumber + 20);
+      });
+
+      it('a non-nuclear strike does NOT apply the prestige penalty or Nuclear Pariah modifier', () => {
+        const state = withMissile('tactical');
+        const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
+        expect(next.nations.fr.prestige).toBe(state.nations.fr.prestige);
+        expect(next.nations.fr.modifiers || []).toHaveLength((state.nations.fr.modifiers || []).length);
+      });
+    });
+
     it('is a no-op when unaffordable (the flat action-point cost)', () => {
       const base = withMissile('tactical');
       const state = { ...base, resources: { ...base.resources, mil: 0 } };
