@@ -73,10 +73,13 @@ describe('applyEventEffects', () => {
     expect(state.activeEventId).toBeNull(); // unchanged - was already null
   });
 
-  it('accumulates event defenseBonus so it can feed combat once combat exists', () => {
+  // Plan §M14: eventDefenseBonus is removed (dead field — accumulated for years with nothing ever
+  // reading it). The defenseBonus effect key itself stays declared on several events for now; it's
+  // simply a no-op until plan §M17 gives it a real, wired-up meaning (a timed fort modifier).
+  it('is a no-op for the now-removed defenseBonus effect key, not an error', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const next = applyEventEffects(state, fixtureEvent('defense_event', { defenseBonus: 0.2 }), 0);
-    expect(next.eventDefenseBonus).toBeGreaterThan(0);
+    expect(next.eventDefenseBonus).toBeUndefined();
   });
 
   it('applies militaryStrengthBonus to the player nation\'s militaryStrength', () => {

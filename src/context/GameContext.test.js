@@ -985,11 +985,19 @@ describe('Military tab actions', () => {
       return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
     };
 
-    it('moves the unit to an adjacent, player-owned region and deducts the action point cost', () => {
+    it('moves the unit to an adjacent, player-owned region, deducts the cost, and spends its move (plan §M14)', () => {
       const state = withUnit();
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } });
       expect(next.units[unitId].regionId).toBe(FR_NEIGHBOR);
+      expect(next.units[unitId].movesLeft).toBe(0);
+    });
+
+    it('is a no-op once the unit has no moves left this turn (plan §M14)', () => {
+      const state = withUnit();
+      const unitId = Object.keys(state.units)[0];
+      const spent = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], movesLeft: 0 } } };
+      expect(gameReducer(spent, { type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId: FR_NEIGHBOR } })).toBe(spent);
     });
 
     // Regression (playtest report): Move Army let a unit walk straight into a foreign, not-at-war
@@ -1058,22 +1066,27 @@ describe('Military tab actions', () => {
       expect(next.lastBattleReport.outcome).toBe('defender');
     });
 
-    it('deals less attacker damage per hit the further the player\'s tech age has fallen behind the calendar (src/data/ages.js\'s getAgesBehindCombatMultiplier)', () => {
+    // Plan §M14 replaces the old flat "ages-behind" combat malus with roster stats compared
+    // directly between the two SIDES (src/data/unitClasses.js's getRosterCombatMultiplier) —
+    // getEffectiveAgeId always floors a nation at the calendar age, so falling behind on research
+    // no longer separately penalizes combat on top of that floor (that would have been exactly the
+    // double count the plan calls out); what DOES still matter is rushing AHEAD of the calendar.
+    it('deals more attacker damage per hit when the player has rushed one age ahead of the calendar', () => {
       const baseline = withAttacker(2000);
       const attackerId = Object.keys(baseline.units)[0];
       const defenderUnit = {
-        id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
-        strength: 20000, maxStrength: 20000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
+        id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry',
+        strength: 20000, maxStrength: 20000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
       };
       const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
       // Same rngSeed on both, so the only difference driving the outcome is the tech gap itself.
-      const behind = { ...withDefender, age: 'modern', techAgeId: 'bronze' }; // 4 ages behind -> floored 40% output
-      const caughtUp = { ...withDefender, age: 'modern', techAgeId: 'modern' }; // 0 ages behind -> full output
+      const atCalendar = { ...withDefender, age: 'bronze', techAgeId: 'bronze' };
+      const rushedAhead = { ...withDefender, age: 'bronze', techAgeId: 'classical' }; // effective age becomes classical
 
       const attackerDamage = (result) => result.lastBattleReport.log.find(l => l.attackerId === attackerId).damage;
-      const behindDamage = attackerDamage(gameReducer(behind, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
-      const caughtUpDamage = attackerDamage(gameReducer(caughtUp, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
-      expect(behindDamage).toBeLessThan(caughtUpDamage);
+      const atCalendarDamage = attackerDamage(gameReducer(atCalendar, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+      const rushedAheadDamage = attackerDamage(gameReducer(rushedAhead, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } }));
+      expect(rushedAheadDamage).toBeGreaterThan(atCalendarDamage);
     });
 
     describe('siege (src/engine/siege.js): a defended region no longer falls in one hit', () => {
@@ -1160,6 +1173,14 @@ describe('Military tab actions', () => {
       const state = richState();
       const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
       expect(gameReducer(recruited, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(recruited);
+    });
+
+    // Plan §M14: one attack per stack per turn, spent from the same movesLeft counter MOVE_ARMY uses.
+    it('is a no-op once the attacking stack has already spent its move this turn', () => {
+      const state = withAttacker();
+      const unitId = Object.keys(state.units)[0];
+      const spent = { ...state, units: { ...state.units, [unitId]: { ...state.units[unitId], movesLeft: 0 } } };
+      expect(gameReducer(spent, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } })).toBe(spent);
     });
 
     it('is a no-op against a region the player already owns', () => {

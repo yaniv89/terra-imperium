@@ -95,14 +95,15 @@ const MilitaryPanel = ({ selectedRegion }) => {
 
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, getRecruitUnitCost(state, state.age))) return addLog('Not enough resources', 'action');
-    // Matches RECRUIT_UNIT's own `ageId: state.age` (GameContext.jsx) — the new unit's icon must
-    // use the same age the reducer is about to stamp on it.
     triggerEffect('recruit_unit', { region: selectedRegion, variant: classId, age: state.age });
     dispatch({ type: ActionTypes.RECRUIT_UNIT, payload: { regionId: selectedRegion, classId } });
   };
   const handleDisband = (unitId) => {
     const unit = state.units[unitId];
-    if (unit) triggerEffect('disband_unit', { region: unit.regionId, variant: unit.classId, age: unit.ageId });
+    // Plan §M14: units no longer carry their own frozen ageId (they auto-upgrade with their owner's
+    // current tech instead) — the disband effect's age is purely cosmetic, so it uses the CURRENT
+    // calendar age rather than one this unit no longer remembers.
+    if (unit) triggerEffect('disband_unit', { region: unit.regionId, variant: unit.classId, age: state.age });
     dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
   };
   const handleMove = (unitId, toRegionId) => {
@@ -440,7 +441,9 @@ const UnitRow = ({
       <div className="flex gap-3 text-slate-400 font-mono">
         <span>STR {unit.strength}/{unit.maxStrength}</span>
         <span>MOR {unit.morale}</span>
-        <span>ORG {unit.organization}</span>
+        {/* Plan §M14: replaces the dead `organization` field (written everywhere, read nowhere but
+            this exact label) with the real, newly-meaningful movesLeft counter. */}
+        <span>MOV {unit.movesLeft ?? 1}</span>
       </div>
       <div className="text-slate-500 font-mono">
         XP {unit.xp || 0}{nextRank ? ` / ${XP_THRESHOLDS[nextRank]} to ${nextRank}` : ' (max rank)'}

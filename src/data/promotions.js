@@ -46,13 +46,17 @@ export const PROMOTION_BRANCHES = {
     id: 'logistics',
     name: 'Logistics',
     perks: {
-      forcedMarch: { id: 'forcedMarch', branch: 'logistics', name: 'Forced March', description: 'Move Army costs no action points for this unit' },
-      // forager/cadre are real plan perks with no system to hook into yet — Supply attrition
-      // (Task 19) and a training-queue system respectively — so they're listed and pickable now,
-      // matching this codebase's existing pattern of scaffolding a field ahead of its consumer
-      // (see eventDefenseBonus in GameContext.jsx), but have no mechanical effect until then.
-      forager: { id: 'forager', branch: 'logistics', name: 'Forager', description: 'Less supply drain outside friendly territory (once supply attrition lands)' },
-      cadre: { id: 'cadre', branch: 'logistics', name: 'Cadre', description: 'Trains new units faster in this region (once a training queue exists)' }
+      // Plan §M14: this unit gets a second move each turn (src/engine/resolveTurn.js's own
+      // movement-reset phase) — Move Army/Launch Invasion/Amphibious Assault/Naval Engagement all
+      // spend from the same movesLeft counter this grants an extra point of.
+      forcedMarch: { id: 'forcedMarch', branch: 'logistics', name: 'Forced March', description: 'Gains a second move each turn' },
+      // Plan §M14: -50% out-of-supply attrition (src/engine/resolveTurn.js's own supply-attrition
+      // phase), stacking with a logistician-commanded unit's own -50%.
+      forager: { id: 'forager', branch: 'logistics', name: 'Forager', description: '-50% attrition outside friendly territory' },
+      // Plan §M14: doubles this unit's own reinforcement rate (src/engine/resolveTurn.js's own
+      // reinforcement phase) — repurposed from this codebase's earlier "once a training queue
+      // exists" placeholder description, since M14 gives the id a real, different mechanical home.
+      cadre: { id: 'cadre', branch: 'logistics', name: 'Cadre', description: 'Reinforces at double speed' }
     }
   }
 };

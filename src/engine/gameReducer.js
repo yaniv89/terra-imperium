@@ -31,7 +31,8 @@ import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacit
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindCombatMultiplier, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { START_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
   createEmptyRegionBuildings, canBuildTier, canBuildExtraction, BUILDING_CATEGORIES,
@@ -58,7 +59,7 @@ import {
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
-import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage } from './siege';
+import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier } from './siege';
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -378,9 +379,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     proceduralEventCooldown: 0,
     pendingEventChains: [],
     firedEvents: {},
-
-    // Persistent effect from event choices, applied to combat once combat exists again (Phase C).
-    eventDefenseBonus: 0,
 
     // Great Projects (plan §M10) — { projectId: { regionId, tier } }, keyed globally so a project
     // can only ever be STARTED once anywhere (canStartGreatProject). Its current owner is derived
@@ -1034,11 +1032,18 @@ export const gameReducer = (state, action) => {
         ownerId: state.playerNationId,
         domain: isNaval ? 'naval' : 'land',
         classId,
-        ageId: state.age,
+        // Plan §M14: the stale, frozen-at-recruitment ageId is gone — a unit's roster stats
+        // (src/data/unitClasses.js) are now looked up live via its OWNER's current effective age
+        // every time combat needs them, so a unit auto-upgrades as its nation researches forward
+        // instead of being permanently stuck at whatever age it was recruited in.
         strength: 1000,
         maxStrength: 1000,
         morale: 100,
-        organization: 100,
+        // Plan §M14: `organization` is removed — it was written everywhere and read nowhere but a
+        // cosmetic UI label (MilitaryPanel.jsx), never mutated by battle or turn resolution.
+        // Plan §M14: resets to a full move every turn (see resolveTurn.js's own reset phase);
+        // consumed by MOVE_ARMY/LAUNCH_INVASION/AMPHIBIOUS_ASSAULT/NAVAL_ENGAGEMENT.
+        movesLeft: 1,
         xp: 0,
         rank: 'recruit',
         promotions: [],
@@ -1097,6 +1102,8 @@ export const gameReducer = (state, action) => {
       const costs = ACTION_COSTS.moveArmy;
       if (!unit || unit.ownerId !== state.playerNationId) return state;
       if (unit.embarkedOn) return state; // embarked units move with their transport, not on their own
+      // Plan §M14: a stack moves at most once per turn — forcedMarch grants a unit a second move.
+      if ((unit.movesLeft ?? 1) <= 0) return state;
       const isLandAdjacent = getNeighborIds(unit.regionId).includes(toRegionId);
       const isSeaLaneReachable = unit.domain === 'naval' && isReachableBySea(unit.regionId, toRegionId, state.age);
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
@@ -1106,7 +1113,7 @@ export const gameReducer = (state, action) => {
       // territory is what LAUNCH_INVASION/AMPHIBIOUS_ASSAULT are for.
       if (state.regions[toRegionId]?.owner !== state.playerNationId) return state;
       if (!canAfford(state.resources, costs)) return state;
-      const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId } };
+      const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId, movesLeft: (unit.movesLeft ?? 1) - 1 } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
         if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId };
@@ -1169,27 +1176,41 @@ export const gameReducer = (state, action) => {
 
       const attackerUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land');
       if (attackerUnits.length === 0) return state;
+      // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still
+      // have its move, same movesLeft counter MOVE_ARMY spends (an all-or-nothing gate on the
+      // WHOLE stack, matching "an army is every unit in one region" rather than letting some units
+      // attack while others that already moved this turn tag along for free).
+      if (!attackerUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       const defenderUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'land');
       // An undefended region is taken in one hit regardless of its control — walking into an empty
       // city needs no siege. Only a real garrison triggers the multi-turn control-grind below.
       const isDefended = defenderUnits.length > 0;
+      const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
+      // Plan §M14: each side's roster stats (src/data/unitClasses.js) are looked up live from its
+      // OWNER's current effective age — a unit auto-upgrades with its nation rather than being
+      // frozen at whatever age it was recruited in. The defender has no independent tech age
+      // pre-M16 (AI parity), so it fights at the calendar age, same asymmetry the old ages-behind
+      // malus already assumed.
+      const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
 
       const rng = createRng(state.rngSeed);
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits,
         defenderUnits,
-        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
         generals: state.hiredCommanders,
-        // A tech-earned age fallen behind the calendar means obsolete doctrine/equipment, not just
-        // a specific unit's stats — see src/data/ages.js's getAgesBehindCombatMultiplier.
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId)),
+        attackerAgeId,
+        defenderAgeId: state.age,
         // defenseLevel's own damage reduction (a genuine "Walls" bonus, on top of the existing
         // siege-vs-fortification gate) — see src/engine/siege.js. Plan §M6: the Defense building's
         // own local.fortLevel stacks on top of the manual defenseLevel (Build Defenses) rather than
-        // replacing it — both are real, player-earned investments in the same region.
-        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) : 1
+        // replacing it — both are real, player-earned investments in the same region. Plan §M14
+        // folds Zone of Control into the same slot — a fortified neighbor makes a siege harder too.
+        defenderDamageReductionMultiplier: isDefended
+          ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
+          : 1
       });
 
       // A defended region's control absorbs the damage instead of an outright flip — see
@@ -1220,17 +1241,19 @@ export const gameReducer = (state, action) => {
       const nextUnits = { ...state.units };
       // Attacker survivors occupy the target region only once it's actually captured; a round that
       // merely damages a still-defended region's control falls back to origin, same as a loss —
-      // each further round of the grind is a fresh, separately-paid LAUNCH_INVASION.
+      // each further round of the grind is a fresh, separately-paid LAUNCH_INVASION. Plan §M14:
+      // spends the whole stack's move (one attack per stack per turn) and marks it as having
+      // fought this turn, so resolveTurn.js's reinforcement/morale-recovery phase skips it.
       xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId };
+        nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId, movesLeft: 0, lastBattleTurn: state.turnNumber };
       });
       // A captured region's garrison doesn't remain a coherent defending force — on actual capture
       // the whole defending side is cleared, survivors and routed alike. A round that only damages
       // control (siege continues) persists surviving defenders exactly like a repelled attack does.
       xpDefenders.forEach(u => {
         if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = u;
+        nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
       });
 
       const nextRegions = { ...state.regions };
@@ -1296,11 +1319,14 @@ export const gameReducer = (state, action) => {
       // land LAUNCH_INVASION (see that case's own comment for why this check is new).
       const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
       if (!invasionWar) return state;
+      // Plan §M14: one attack per stack per turn — the transport and its whole embarked cargo.
+      if ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
       const nextUnits = { ...state.units };
-      const techGapCombatMultiplier = getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId));
+      const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
+      const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
 
       // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing.
       // Losing it sinks the transport and everything still aboard, and the assault never lands.
@@ -1309,11 +1335,12 @@ export const gameReducer = (state, action) => {
         const navalBattle = resolveBattle({
           attackerUnits: [navalUnit],
           defenderUnits: defenderNavalUnits,
-          terrain: REGIONS_DATA[targetRegionId]?.terrain,
+          terrain,
           isAttackingFortification: false,
           rng,
           generals: state.hiredCommanders,
-          attackerPenaltyMultiplier: techGapCombatMultiplier
+          attackerAgeId,
+          defenderAgeId: state.age
         });
         navalBattle.defenderUnits.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
         if (navalBattle.outcome !== 'attacker') {
@@ -1341,12 +1368,16 @@ export const gameReducer = (state, action) => {
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits: attackerLandUnits,
         defenderUnits: defenderLandUnits,
-        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: (hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT) * techGapCombatMultiplier,
-        defenderDamageReductionMultiplier: isDefended ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) : 1
+        attackerAgeId,
+        defenderAgeId: state.age,
+        attackerPenaltyMultiplier: hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT,
+        defenderDamageReductionMultiplier: isDefended
+          ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
+          : 1
       });
 
       // See src/engine/siege.js — a defended region's control absorbs the damage instead of an
@@ -1377,13 +1408,14 @@ export const gameReducer = (state, action) => {
       xpAttackers.forEach(u => {
         if (u.strength <= 0) { delete nextUnits[u.id]; return; }
         nextUnits[u.id] = captured
-          ? { ...u, regionId: targetRegionId, embarkedOn: null }
-          : { ...u, regionId: navalUnit.regionId, embarkedOn: navalUnitId };
+          ? { ...u, regionId: targetRegionId, embarkedOn: null, movesLeft: 0, lastBattleTurn: state.turnNumber }
+          : { ...u, regionId: navalUnit.regionId, embarkedOn: navalUnitId, movesLeft: 0, lastBattleTurn: state.turnNumber };
       });
       xpDefenders.forEach(u => {
         if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = u;
+        nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
       });
+      if (nextUnits[navalUnitId]) nextUnits[navalUnitId] = { ...nextUnits[navalUnitId], movesLeft: 0, lastBattleTurn: state.turnNumber };
 
       const nextRegions = { ...state.regions };
       if (captured) {
@@ -1436,6 +1468,8 @@ export const gameReducer = (state, action) => {
       if (!isLandAdjacent && !isSeaLaneReachable) return state;
       const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
       if (attackerNavalUnits.length === 0) return state;
+      // Plan §M14: one attack per stack per turn.
+      if (!attackerNavalUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
       if (defenderNavalUnits.length === 0) return state;
       if (!canAfford(state.resources, costs)) return state;
@@ -1444,18 +1478,19 @@ export const gameReducer = (state, action) => {
       const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
         attackerUnits: attackerNavalUnits,
         defenderUnits: defenderNavalUnits,
-        terrain: REGIONS_DATA[targetRegionId]?.terrain,
+        terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),
         isAttackingFortification: false,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
+        attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+        defenderAgeId: state.age
       });
 
       // A naval engagement only contests the lane — survivors hold their own positions, win or
       // lose; there's no ground to capture from a fleet-on-fleet action.
       const nextUnits = { ...state.units };
-      resolvedAttackers.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
-      resolvedDefenders.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+      resolvedAttackers.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, movesLeft: 0, lastBattleTurn: state.turnNumber }; });
+      resolvedDefenders.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber }; });
 
       const outcomeMessage = outcome === 'attacker'
         ? `Your fleet cleared the enemy from the waters near ${REGIONS_DATA[targetRegionId]?.name}.`
@@ -1482,21 +1517,24 @@ export const gameReducer = (state, action) => {
       if (rebelUnits.length === 0) return state;
       const garrisonUnits = Object.values(state.units).filter(u => u.regionId === regionId && u.ownerId === state.playerNationId && u.domain === 'land');
       if (garrisonUnits.length === 0) return state;
+      // Plan §M14: one attack per stack per turn — suppressing a rebellion is an attack too.
+      if (!garrisonUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
       const { outcome, attackerUnits: resolvedGarrison, defenderUnits: resolvedRebels, report } = resolveBattle({
         attackerUnits: garrisonUnits,
         defenderUnits: rebelUnits,
-        terrain: REGIONS_DATA[regionId]?.terrain,
+        terrain: getRegionTerrain(regionId, REGIONS_DATA),
         isAttackingFortification: false,
         rng,
         generals: state.hiredCommanders,
-        attackerPenaltyMultiplier: getAgesBehindCombatMultiplier(getAgesBehind(state.age, state.techAgeId))
+        attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+        defenderAgeId: state.age
       });
 
       const nextUnits = { ...state.units };
-      resolvedGarrison.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
+      resolvedGarrison.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, movesLeft: 0, lastBattleTurn: state.turnNumber }; });
       // The rebellion is crushed outright on a win — a defeated uprising doesn't leave survivors
       // to regroup the way a foreign army might retreat and return.
       resolvedRebels.forEach(u => { if (outcome === 'attacker' || u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });

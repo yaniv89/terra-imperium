@@ -41,11 +41,11 @@ export const applyEventEffects = (state, event, optionIndex) => {
     };
   }
 
-  // Applied to combat as a persistent defense multiplier (Phase C) — carried on state so it
-  // survives until the combat system that consumes it exists.
-  if (effects.defenseBonus) {
-    next.eventDefenseBonus = (next.eventDefenseBonus || 0) + effects.defenseBonus;
-  }
+  // Plan §M14 removes the dead `eventDefenseBonus` field this accumulated into — it was carried on
+  // state for years waiting on a combat system to read it, but never got one before the field
+  // itself was cut. Plan §M17 ("defenseBonus becomes a timed fort modifier") is where this effect
+  // key is meant to gain a real, wired-up meaning; until then any event still declaring it (several
+  // do, in src/data/events.js/proceduralEvents.js) simply has no effect from this key.
 
   if (effects.controlBonus) {
     const regions = { ...next.regions };

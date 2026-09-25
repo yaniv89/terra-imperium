@@ -16,6 +16,8 @@
 // captured in one hit — walking into an empty city needs no siege — see the caller-side check in
 // gameReducer.js (`defenderUnits.length === 0`), not handled here.
 
+import { getNeighborIds } from '../data/regions';
+
 export const SIEGE_CONTROL_DAMAGE = { attacker: 30, stalemate: 10, defender: 0 };
 export const SIEGE_CAPTURE_CONTROL_THRESHOLD = 15;
 export const SIEGE_CONTROL_REGEN_PER_TURN = 4;
@@ -60,4 +62,24 @@ export const nextSiegeControlRegen = (region, currentTurn) => {
   const sinceAttack = currentTurn - (region.lastAttackedTurn ?? -Infinity);
   if (sinceAttack < SIEGE_REGEN_COOLDOWN_TURNS) return region.control;
   return Math.min(100, (region.control || 0) + SIEGE_CONTROL_REGEN_PER_TURN);
+};
+
+// Zone of Control (plan §M14, trimmed): a region backed by a genuinely fortified neighbor (Star
+// Fort-tier or better) is harder to crack than its own defenses alone suggest — an attacker sieging
+// it also has to worry about a sally from next door. Folded into the SAME
+// defenderDamageReductionMultiplier slot as defenseLevel's own "Walls" bonus (src/engine/battle.js),
+// since both are region-level defensive context, not a property of either army.
+//
+// Scope trim: the plan's own "you can't leapfrog forts" movement restriction isn't implemented —
+// this codebase has no multi-hop pathing to leapfrog with in the first place (plan §M14's own
+// movesLeft is 1 region/turn), so that half of ZoC has nothing to restrict yet.
+export const ZOC_FORT_LEVEL_THRESHOLD = 4;
+export const ZOC_DAMAGE_REDUCTION_MULT = 0.5;
+export const getZoneOfControlMultiplier = (regions, regionId, defenderId) => {
+  const hasProtectingFort = getNeighborIds(regionId).some((nId) => {
+    const region = regions[nId];
+    if (!region || (region.owner !== defenderId && region.occupiedBy !== defenderId)) return false;
+    return (region.defenseLevel || 0) >= ZOC_FORT_LEVEL_THRESHOLD;
+  });
+  return hasProtectingFort ? ZOC_DAMAGE_REDUCTION_MULT : 1;
 };
