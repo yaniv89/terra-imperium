@@ -15,7 +15,7 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { findClickAssistRegionId } from '../../utils/regionClickAssist';
+import { resolveClickedRegionId } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
@@ -208,13 +208,23 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // canvas itself (the click's event.target), which is exactly the coordinate space
   // getScreenCoords uses. Utterly inert for an ordinary click deep inside a normal-sized region:
   // no other region's centroid will be anywhere near it, so the raw hit always wins.
+  //
+  // Bug fix (plan feedback: "still can't pick Tel Aviv"): the assist used to search ALL regions for
+  // the closest centroid within a flat 24px tolerance, with no regard for how good the RAW hit
+  // already was. Tel Aviv is a tiny sliver whose own label point isn't always the very closest
+  // thing on screen to every click that lands validly inside it — HaMerkaz (the much bigger
+  // district it sits inside) has its own label point nearby, and it sometimes won that "closest
+  // centroid" contest even when the click had already landed precisely on Tel Aviv's own polygon,
+  // silently overriding a correct pick with the wrong, bigger neighbor. resolveClickedRegionId
+  // (regionClickAssist.js) fixes this: the assist may now only replace the raw hit with a candidate
+  // SMALLER (by on-screen `extent`) than whatever region was actually hit — it can still rescue a
+  // genuine miss (click landed on a big neighbor, but a small region's label is nearer), it just
+  // can never redirect away from a region that's already the smallest thing under the cursor. See
+  // regionClickAssist.js's own header for why comparing label distance alone wasn't sufficient.
   const handleClick = useCallback((feature, event) => {
     const rawId = feature.properties?.gameRegionId;
     if (!rawId) return;
-    const assistId = event
-      ? findClickAssistRegionId(REGION_COORDINATES, projectToScreen, event.offsetX, event.offsetY)
-      : null;
-    const gameRegionId = assistId || rawId;
+    const gameRegionId = event ? resolveClickedRegionId(rawId, REGION_COORDINATES, projectToScreen, event.offsetX, event.offsetY) : rawId;
     onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
   }, [selectedRegion, onSelectRegion, projectToScreen]);
 
