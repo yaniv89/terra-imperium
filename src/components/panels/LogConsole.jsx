@@ -2,7 +2,7 @@
 // Scrollable game log console showing all events, actions, and combat
 
 import React, { useRef, useEffect, useState } from 'react';
-import { ScrollText, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { ScrollText, Filter } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { LogTypes } from '../../data/types';
 import { AGES } from '../../data/ages';
@@ -107,15 +107,15 @@ const FilterButton = ({ type, label, isActive, onClick, count }) => {
   );
 };
 
-const LogConsole = ({ maxHeight = 'h-48', expanded = false, defaultCollapsed = false }) => {
+// Plan feedback: the event log used to sit permanently embedded under the action panel (even
+// "collapsed" it still claimed a header-bar-height row, and expanded it ate a fixed h-48/h-56
+// chunk other panels never got back) — now it only exists inside LogDrawer.jsx, a dismissible
+// overlay opened from LogTrigger.jsx's slim trigger bar, so this component itself no longer owns
+// any collapse/expand state — it always renders its full content, sized to fill whatever
+// container the drawer gives it.
+const LogConsole = () => {
   const { state } = useGame();
   const scrollRef = useRef(null);
-  const [isExpanded, setIsExpanded] = useState(expanded);
-  // A separate concept from isExpanded (which only resizes between compact/tall while always
-  // visible): this fully hides the filter row, log content, and footer, leaving just the header
-  // bar — used to keep the log out of a phone's way by default without losing the desktop
-  // compact/expanded behavior, which stays untouched.
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [autoScroll, setAutoScroll] = useState(true);
   const [filters, setFilters] = useState({
     [LogTypes.ACTION]: true,
@@ -169,128 +169,102 @@ const LogConsole = ({ maxHeight = 'h-48', expanded = false, defaultCollapsed = f
   const years = Object.keys(groupedByYear).sort((a, b) => Number(a) - Number(b));
 
   return (
-    <div className={`
-      bg-slate-950 rounded-lg border border-slate-800 flex flex-col
-      ${isCollapsed ? 'h-auto' : (isExpanded ? 'h-80' : maxHeight)}
-      transition-all duration-300 shadow-xl overflow-y-scroll
-    `}>
+    <div className="bg-slate-950 rounded-lg border border-slate-800 flex flex-col h-full shadow-xl overflow-hidden">
       {/* Header */}
       <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950 z-10">
-        <button
-          onClick={() => setIsCollapsed((v) => !v)}
-          className="flex items-center gap-2 min-w-0"
-          title={isCollapsed ? 'Show event log' : 'Hide event log'}
-        >
-          {isCollapsed ? <ChevronUp className="w-3 h-3 text-slate-500 shrink-0" /> : <ChevronDown className="w-3 h-3 text-slate-500 shrink-0" />}
+        <div className="flex items-center gap-2 min-w-0">
           <ScrollText className="w-4 h-4 text-slate-500 shrink-0" />
           <span className="text-xs font-semibold text-slate-400">Event Log</span>
           <span className="text-[10px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">
             {filteredLogs.length} / {state.logs.length}
           </span>
-        </button>
+        </div>
 
-        {!isCollapsed && (
-          <div className="flex items-center gap-1">
-            {/* Auto-scroll indicator */}
-            {!autoScroll && (
-              <button
-                onClick={() => {
-                  setAutoScroll(true);
-                  if (scrollRef.current) {
-                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-                  }
-                }}
-                className="text-[9px] text-blue-400 hover:text-blue-300 px-1.5 py-0.5 bg-blue-500/20 rounded animate-pulse"
-              >
-                ↓ New
-              </button>
-            )}
-
-            {/* Expand/Collapse (compact vs. tall height, while visible) */}
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-slate-300"
-              title={isExpanded ? 'Compact' : 'Expand'}
-            >
-              {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-            </button>
-          </div>
+        {/* Auto-scroll indicator */}
+        {!autoScroll && (
+          <button
+            onClick={() => {
+              setAutoScroll(true);
+              if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+              }
+            }}
+            className="text-[9px] text-blue-400 hover:text-blue-300 px-1.5 py-0.5 bg-blue-500/20 rounded animate-pulse"
+          >
+            ↓ New
+          </button>
         )}
       </div>
 
-      {!isCollapsed && (
-        <>
-          {/* Filters Row */}
-          <div className="px-2 py-1.5 border-b border-slate-800/50 flex flex-wrap gap-1 shrink-0 bg-slate-900/50">
-            <Filter className="w-3 h-3 text-slate-600 mr-1 mt-0.5" />
-            {Object.entries(LOG_STYLES).map(([type, style]) => (
-              <FilterButton
-                key={type}
-                type={type}
-                label={style.label}
-                isActive={filters[type]}
-                onClick={() => toggleFilter(type)}
-                count={logCounts[type] || 0}
-              />
-            ))}
+      {/* Filters Row */}
+      <div className="px-2 py-1.5 border-b border-slate-800/50 flex flex-wrap gap-1 shrink-0 bg-slate-900/50">
+        <Filter className="w-3 h-3 text-slate-600 mr-1 mt-0.5" />
+        {Object.entries(LOG_STYLES).map(([type, style]) => (
+          <FilterButton
+            key={type}
+            type={type}
+            label={style.label}
+            isActive={filters[type]}
+            onClick={() => toggleFilter(type)}
+            count={logCounts[type] || 0}
+          />
+        ))}
+      </div>
+
+      {/* Log Content */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex flex-col
+          flex-1
+          min-h-0
+          overflow-y-auto
+          p-2
+          font-mono
+          space-y-0.5
+          scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900
+          overscroll-contain
+          pb-6
+        "
+      >
+        {filteredLogs.length === 0 ? (
+          <div className="text-slate-600 text-xs text-center py-4 italic">
+            No logs match current filters
           </div>
-
-          {/* Log Content */}
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="flex flex-col
-              flex-1
-              min-h-0
-              overflow-y-auto
-              p-2
-              font-mono
-              space-y-0.5
-              scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900
-              overscroll-contain
-              pb-6
-            "
-          >
-            {filteredLogs.length === 0 ? (
-              <div className="text-slate-600 text-xs text-center py-4 italic">
-                No logs match current filters
-              </div>
-            ) : (
-              // Render logs grouped by year
-              years.map(year => (
-                <div key={year} className="mb-2">
-                  {/* Year separator for milestone years */}
-                  {(Number(year) % 10 === 0 || groupedByYear[year].some(l => l.type === LogTypes.MILESTONE)) && (
-                    <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-1 mt-2
-                                  border-t border-slate-800 pt-1 sticky top-0 bg-slate-950/90 backdrop-blur-sm z-10">
-                      — {year} —
-                    </div>
-                  )}
-
-                  {/* Logs for this year */}
-                  {groupedByYear[year].map((log, idx) => (
-                    <LogEntry
-                      key={`${year}-${idx}`}
-                      log={log}
-                      index={idx}
-                      showYear={!years.some(y => Number(y) % 10 === 0) || Number(year) % 10 !== 0}
-                    />
-                  ))}
+        ) : (
+          // Render logs grouped by year
+          years.map(year => (
+            <div key={year} className="mb-2">
+              {/* Year separator for milestone years */}
+              {(Number(year) % 10 === 0 || groupedByYear[year].some(l => l.type === LogTypes.MILESTONE)) && (
+                <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-1 mt-2
+                              border-t border-slate-800 pt-1 sticky top-0 bg-slate-950/90 backdrop-blur-sm z-10">
+                  — {year} —
                 </div>
-              ))
-            )}
-          </div>
+              )}
 
-          {/* Footer with turn info */}
-          <div className="px-2 py-1 border-t border-slate-800 text-[9px] text-slate-600
-                          flex justify-between items-center shrink-0 bg-slate-900/50">
-            <span>Turn {state.turnNumber} • Year {state.year}</span>
-            <span className="flex items-center gap-2">
-              {AGES[state.age]?.name || state.age}
-            </span>
-          </div>
-        </>
-      )}
+              {/* Logs for this year */}
+              {groupedByYear[year].map((log, idx) => (
+                <LogEntry
+                  key={`${year}-${idx}`}
+                  log={log}
+                  index={idx}
+                  showYear={!years.some(y => Number(y) % 10 === 0) || Number(year) % 10 !== 0}
+                />
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Footer with turn info */}
+      <div className="px-2 py-1 border-t border-slate-800 text-[9px] text-slate-600
+                      flex justify-between items-center shrink-0 bg-slate-900/50">
+        <span>Turn {state.turnNumber} • Year {state.year}</span>
+        <span className="flex items-center gap-2">
+          {AGES[state.age]?.name || state.age}
+        </span>
+      </div>
     </div>
   );
 };
