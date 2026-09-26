@@ -20,6 +20,7 @@ import 'd3-transition';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
+import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
@@ -30,6 +31,12 @@ const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundCo
 // other change is needed for click accuracy at high zoom.
 const ZOOM_EXTENT = [1, 40];
 const ZOOM_STEP_SCALE = 1.6;
+// Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
+// space above/below the map on a tall/narrow (mobile) viewport, since the world's ~2:1 aspect
+// ratio is much wider than a phone screen. GlobeView.jsx already opens centered on the player's
+// capital at a reasonable altitude (its own `home` pointOfView effect) — this mirrors that same
+// idea for the flat map instead of always starting fully zoomed out.
+const INITIAL_FOCUS_ZOOM = 5;
 
 // `interactive: false` is the minimap's own mode: no click handling, no hover title, no zoom/pan
 // (see below), and a slightly thinner/absent stroke so a few thousand paths stay cheap to render
@@ -40,11 +47,20 @@ const ZOOM_STEP_SCALE = 1.6;
 // title bar / the minimap) shifts the zoom controls down below GameHeader's real, responsive
 // height via its --header-height custom property — only the main full-bleed map view
 // (MapContainer -> Map2DContainer) needs this, since MapModal's own header isn't GameHeader.
-const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false }) => {
+// `initialFocusRegionId` (only meaningful alongside `interactive`) centers the map on that
+// region once, on first load, at `INITIAL_FOCUS_ZOOM` instead of the whole-world default — see
+// the constant's own comment above. `focusRegionId` is a SEPARATE, ongoing focus target (the
+// region ProvinceModal/"Manage Region" is currently open for, or null) — see its own effect below
+// for why this needs to be distinct from the once-only initial focus.
+const Map2DView = ({
+  width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
+  initialFocusRegionId = null, focusRegionId = null
+}) => {
   const { state } = useGame();
   const [polygons, setPolygons] = useState(null);
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
+  const appliedInitialFocusRef = useRef(false);
   const [transform, setTransform] = useState(zoomIdentity);
 
   useEffect(() => {
@@ -53,9 +69,15 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
     return () => { cancelled = true; };
   }, []);
 
-  const pathsById = useMemo(() => {
+  // Split out from pathsById below so the initial-focus effect can reuse the exact same
+  // projection to convert a region's lat/lng into the same pixel space the paths are drawn in.
+  const projection = useMemo(() => {
     if (!polygons || width <= 0 || height <= 0) return null;
-    const projection = geoEquirectangular().fitSize([width, height], { type: 'FeatureCollection', features: polygons });
+    return geoEquirectangular().fitSize([width, height], { type: 'FeatureCollection', features: polygons });
+  }, [polygons, width, height]);
+
+  const pathsById = useMemo(() => {
+    if (!projection || !polygons) return null;
     const pathGen = geoPath(projection);
     const map = new Map();
     polygons.forEach((feature) => {
@@ -64,7 +86,7 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
       map.set(gameRegionId, pathGen(feature));
     });
     return map;
-  }, [polygons, width, height]);
+  }, [projection, polygons]);
   // A plain boolean (not the Map itself) for the zoom effect's dependency array below — react-
   // hooks/exhaustive-deps wants a simple, statically-checkable expression there, not an inline
   // `!!pathsById`.
@@ -91,6 +113,47 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
     selection.call(behavior);
     return () => { selection.on('.zoom', null); };
   }, [interactive, width, height, hasMap]);
+
+  // Shared by both focus effects below: pans/zooms the real d3 zoom behavior to center the given
+  // region on screen (so scaleExtent/translateExtent clamp it exactly like any other zoom, instead
+  // of just seeding React state directly). Returns whether it actually applied — `projection`/
+  // `zoomBehaviorRef` aren't ready on the very first render (polygons load asynchronously), so the
+  // initial-focus effect below needs to know the difference between "applied" and "silently no-op'd
+  // because it wasn't ready yet" to know whether it's safe to mark itself done.
+  const focusOnRegionId = useCallback((targetRegionId, k = INITIAL_FOCUS_ZOOM) => {
+    if (!projection || !zoomBehaviorRef.current || !svgRef.current) return false;
+    const focusCoords = REGION_COORDINATES[targetRegionId];
+    if (!focusCoords) return false;
+    const [px, py] = projection([focusCoords.lng, focusCoords.lat]);
+    const desired = zoomIdentity.translate(width / 2 - px * k, height / 2 - py * k).scale(k);
+    select(svgRef.current).call(zoomBehaviorRef.current.transform, desired);
+    return true;
+  }, [projection, width, height]);
+
+  // Runs once (see appliedInitialFocusRef) — but only marks itself done once focusOnRegionId
+  // actually applied, not on a first attempt that no-op'd because `projection`/the zoom behavior
+  // weren't ready yet (both depend on the async polygon fetch above). Bug fix: an earlier version
+  // set the ref BEFORE calling focusOnRegionId, so a too-early first attempt (before polygons had
+  // loaded) permanently skipped every later, real attempt once `focusOnRegionId`'s reference
+  // updated with the real projection — the map never actually recentered.
+  useEffect(() => {
+    if (!interactive || appliedInitialFocusRef.current) return;
+    if (!initialFocusRegionId) return;
+    if (focusOnRegionId(initialFocusRegionId)) appliedInitialFocusRef.current = true;
+  }, [interactive, initialFocusRegionId, focusOnRegionId]);
+
+  // Bug fix (plan feedback: "on army tab u see in map sweden and not the selected region"):
+  // opening ProvinceModal ("Manage Region") never moved the map at all, so wherever the player had
+  // last panned/zoomed to stayed on screen behind it — completely unrelated to the region actually
+  // being managed. MapContainer.jsx passes `focusRegionId` = the region ProvinceModal is currently
+  // open for (null otherwise), so this re-centers there the moment Manage Region opens, independent
+  // of which of its tabs is active (switching tabs doesn't change `focusRegionId`). Deliberately
+  // separate from the once-only initial-focus effect above: this one is meant to re-fire every time
+  // a different region is opened for management, not just on first mount.
+  useEffect(() => {
+    if (!interactive || !focusRegionId) return;
+    focusOnRegionId(focusRegionId);
+  }, [interactive, focusRegionId, focusOnRegionId]);
 
   const zoomBy = useCallback((factor) => {
     if (!zoomBehaviorRef.current || !svgRef.current) return;
