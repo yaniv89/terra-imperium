@@ -4,6 +4,7 @@
 export { default as ResourceBadge } from './ResourceBadge';
 export { default as ResourceBar } from './ResourceBar';
 export { default as ActionButton } from './ActionButton';
+export { default as CollapsibleSection } from './CollapsibleSection';
 export { default as GameHeader } from './GameHeader';
 export { default as TabButton } from './TabButton';
 export { default as ProgressBar } from './ProgressBar';

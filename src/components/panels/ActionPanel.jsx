@@ -10,14 +10,14 @@ import TechPanel from './TechPanel';
 import SpacePanel from './SpacePanel';
 import LegacyPanel from './LegacyPanel';
 
-const ActionPanel = ({ activeTab, selectedRegion }) => {
+const ActionPanel = ({ activeTab }) => {
   return (
     <div className="flex-1 overflow-y-scroll p-4 relative bg-slate-900">
       {activeTab === 'domestic' && (
-        <DomesticPanel selectedRegion={selectedRegion} />
+        <DomesticPanel />
       )}
       {activeTab === 'military' && (
-        <MilitaryPanel selectedRegion={selectedRegion} />
+        <MilitaryPanel />
       )}
       {activeTab === 'diplomacy' && (
         <DiplomacyPanel />

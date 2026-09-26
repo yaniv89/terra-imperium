@@ -2,7 +2,7 @@
 // Region information modal/panel with close button
 
 import React from 'react';
-import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords } from 'lucide-react';
+import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords, Settings2 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
@@ -15,7 +15,7 @@ import ProgressBar from '../ui/ProgressBar';
 // past the map card's edges. On mobile this now renders as a real bottom sheet instead — `fixed`
 // to the viewport (not confined to the map's own small bounding box), capped height with its own
 // scroll, sliding up from below the whole screen rather than floating on top of the map.
-const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
+const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
   const { state } = useGame();
   const isMobile = useIsMobile();
 
@@ -88,6 +88,19 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
           {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation?.name || 'Unknown'}
         </span>
       </div>
+
+      {/* Civ-style "manage this region" entry point (plan feedback: region actions used to live
+          in the Domestic/Military tabs, overcrowding them) — always shown so even a foreign
+          region can be inspected in the full modal, same as Civilization lets you open any city. */}
+      {onManage && (
+        <button
+          onClick={onManage}
+          className="w-full flex items-center justify-center gap-1.5 mb-2 py-1.5 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-semibold"
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          Manage Region
+        </button>
+      )}
 
       {/* Player-owned region info */}
       {isPlayerOwned && (
