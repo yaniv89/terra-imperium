@@ -30,3 +30,26 @@ export const findClickAssistRegionId = (
   });
   return bestId;
 };
+
+// Bug fix (plan feedback: "still can't pick Tel Aviv"): GlobeView.jsx used to run the assist above
+// unconditionally against EVERY region, with no regard for how good the raw hit already was. Tel
+// Aviv is a tiny enclave inside HaMerkaz (a much bigger district) — HaMerkaz's own label point can
+// legitimately be the closest thing on screen to some pixels that still land, correctly, on Tel
+// Aviv's own polygon (an elongated small region's own label isn't necessarily the closest point to
+// every part of it), so the plain "closest centroid wins" search would happily override an
+// ALREADY-CORRECT raw hit with the bigger neighbor. Comparing raw-hit distance alone doesn't fully
+// fix this (the bigger neighbor's label can still be nominally closer even to a valid click), so
+// this instead only ever considers a candidate SMALLER (by `extent`, both regions' own on-screen
+// size proxy — see build-region-coordinates.mjs) than the region actually hit: the assist can still
+// rescue a genuine miss (raw hit is the big region, a smaller one's label is nearby), it just can
+// never redirect AWAY from a region that's already the smallest thing under the cursor.
+export const resolveClickedRegionId = (
+  rawId, regionCoordinates, project, clickX, clickY, maxDistance = CLICK_ASSIST_MAX_PIXEL_DISTANCE
+) => {
+  const rawExtent = regionCoordinates[rawId]?.extent;
+  if (rawExtent == null) return rawId; // no size data for whatever was hit — nothing safe to compare against
+  const smallerCandidates = Object.fromEntries(
+    Object.entries(regionCoordinates).filter(([id, r]) => id !== rawId && r.extent != null && r.extent < rawExtent)
+  );
+  return findClickAssistRegionId(smallerCandidates, project, clickX, clickY, maxDistance) || rawId;
+};
