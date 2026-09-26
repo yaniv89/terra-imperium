@@ -20,6 +20,7 @@ import 'd3-transition';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
+import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
@@ -30,6 +31,12 @@ const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundCo
 // other change is needed for click accuracy at high zoom.
 const ZOOM_EXTENT = [1, 40];
 const ZOOM_STEP_SCALE = 1.6;
+// Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
+// space above/below the map on a tall/narrow (mobile) viewport, since the world's ~2:1 aspect
+// ratio is much wider than a phone screen. GlobeView.jsx already opens centered on the player's
+// capital at a reasonable altitude (its own `home` pointOfView effect) — this mirrors that same
+// idea for the flat map instead of always starting fully zoomed out.
+const INITIAL_FOCUS_ZOOM = 5;
 
 // `interactive: false` is the minimap's own mode: no click handling, no hover title, no zoom/pan
 // (see below), and a slightly thinner/absent stroke so a few thousand paths stay cheap to render
@@ -40,11 +47,17 @@ const ZOOM_STEP_SCALE = 1.6;
 // title bar / the minimap) shifts the zoom controls down below GameHeader's real, responsive
 // height via its --header-height custom property — only the main full-bleed map view
 // (MapContainer -> Map2DContainer) needs this, since MapModal's own header isn't GameHeader.
-const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false }) => {
+// `initialFocusRegionId` (only meaningful alongside `interactive`) centers the map on that
+// region once, on first load, at `INITIAL_FOCUS_ZOOM` instead of the whole-world default — see
+// the constant's own comment above.
+const Map2DView = ({
+  width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false, initialFocusRegionId = null
+}) => {
   const { state } = useGame();
   const [polygons, setPolygons] = useState(null);
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
+  const appliedInitialFocusRef = useRef(false);
   const [transform, setTransform] = useState(zoomIdentity);
 
   useEffect(() => {
@@ -53,9 +66,15 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
     return () => { cancelled = true; };
   }, []);
 
-  const pathsById = useMemo(() => {
+  // Split out from pathsById below so the initial-focus effect can reuse the exact same
+  // projection to convert a region's lat/lng into the same pixel space the paths are drawn in.
+  const projection = useMemo(() => {
     if (!polygons || width <= 0 || height <= 0) return null;
-    const projection = geoEquirectangular().fitSize([width, height], { type: 'FeatureCollection', features: polygons });
+    return geoEquirectangular().fitSize([width, height], { type: 'FeatureCollection', features: polygons });
+  }, [polygons, width, height]);
+
+  const pathsById = useMemo(() => {
+    if (!projection || !polygons) return null;
     const pathGen = geoPath(projection);
     const map = new Map();
     polygons.forEach((feature) => {
@@ -64,7 +83,7 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
       map.set(gameRegionId, pathGen(feature));
     });
     return map;
-  }, [polygons, width, height]);
+  }, [projection, polygons]);
   // A plain boolean (not the Map itself) for the zoom effect's dependency array below — react-
   // hooks/exhaustive-deps wants a simple, statically-checkable expression there, not an inline
   // `!!pathsById`.
@@ -91,6 +110,22 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
     selection.call(behavior);
     return () => { selection.on('.zoom', null); };
   }, [interactive, width, height, hasMap]);
+
+  // Runs once (see appliedInitialFocusRef), right after the zoom-behavior effect above has set
+  // zoomBehaviorRef.current for the same render — applies the requested initial framing through
+  // the real zoom behavior (so scaleExtent/translateExtent clamp it exactly like any other zoom)
+  // instead of just seeding React state directly.
+  useEffect(() => {
+    if (!interactive || appliedInitialFocusRef.current) return;
+    if (!initialFocusRegionId || !projection || !zoomBehaviorRef.current || !svgRef.current) return;
+    appliedInitialFocusRef.current = true;
+    const focusCoords = REGION_COORDINATES[initialFocusRegionId];
+    if (!focusCoords) return;
+    const [px, py] = projection([focusCoords.lng, focusCoords.lat]);
+    const k = INITIAL_FOCUS_ZOOM;
+    const desired = zoomIdentity.translate(width / 2 - px * k, height / 2 - py * k).scale(k);
+    select(svgRef.current).call(zoomBehaviorRef.current.transform, desired);
+  }, [interactive, initialFocusRegionId, projection, width, height]);
 
   const zoomBy = useCallback((factor) => {
     if (!zoomBehaviorRef.current || !svgRef.current) return;
