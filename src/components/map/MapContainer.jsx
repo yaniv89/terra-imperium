@@ -16,6 +16,11 @@
 // mode — the flat map now opens zoomed in on the player's capital by default (see Map2DView.jsx's
 // `initialFocusRegionId`) rather than always showing the whole world, so a "where am I" overview
 // is genuinely useful there too, not just in globe mode.
+//
+// `focusRegionId` (bug fix, plan feedback: "on army tab u see in map sweden and not the selected
+// region"): while ProvinceModal is open, this is the region it's managing; otherwise null. Passed
+// to both map views so whichever is active re-centers on that region the moment Manage Region
+// opens, instead of leaving the camera wherever it happened to be pointed.
 import React, { useState } from 'react';
 import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
@@ -43,6 +48,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const playerCapitalId = getNationCapital(state.playerNationId);
+  const focusRegionId = manageOpen ? selectedRegion : null;
 
   const handleModeChange = (next) => {
     setMode(next);
@@ -52,8 +58,16 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   return (
     <div className="relative w-full h-full">
       {mode === 'globe'
-        ? <GlobeContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} />
-        : <Map2DContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} hudOffset initialFocusRegionId={playerCapitalId} />}
+        ? <GlobeContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} focusRegionId={focusRegionId} />
+        : (
+          <Map2DContainer
+            selectedRegion={selectedRegion}
+            onSelectRegion={onSelectRegion}
+            hudOffset
+            initialFocusRegionId={playerCapitalId}
+            focusRegionId={focusRegionId}
+          />
+        )}
 
       <RegionInfoModal
         regionId={selectedRegion}

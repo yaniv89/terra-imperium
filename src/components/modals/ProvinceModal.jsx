@@ -13,11 +13,14 @@
 // of the screen) card, which blocked the map — and any GlobeEffectsOverlay pulse triggered by an
 // action taken here — completely out of view. It's a non-dimming overlay now: the outer wrapper is
 // just an invisible full-screen click-catcher (still closes on click-outside), and the actual card
-// docks to the LEFT edge (desktop, full height, opposite PanelDrawer's right-docked empire tabs —
-// "this specific region" on the left, "my whole empire" on the right) or a much shorter bottom
-// sheet (mobile, capped at 65vh instead of 92vh) so the map stays visible everywhere else the panel
-// doesn't cover. It can't guarantee the acted-on region itself is never behind the panel (that would
-// need panning the camera to it), but it stops the once-total screen takeover.
+// docks to the LEFT edge on BOTH breakpoints — full width up to max-w-md on desktop (opposite
+// PanelDrawer's right-docked empire tabs — "this specific region" on the left, "my whole empire" on
+// the right), and a narrower 80%-width strip (max-w-xs) on mobile (plan feedback: tried a bottom
+// sheet first, then asked to try left-docking there too, matching desktop and LogTrigger's own
+// move to the left on mobile) so at least a sliver of map stays visible on the right on a phone.
+// Paired with MapContainer.jsx's `focusRegionId` (see GlobeView.jsx/Map2DView.jsx), the map is also
+// now actively re-centered on the region being managed the moment this opens, so what little map
+// IS visible beside/around the panel is actually relevant, not some unrelated part of the world.
 import React, { useState, useEffect } from 'react';
 import {
   X, Building2, Shield, Flag, Hammer, Gem, HeartCrack, Sprout, Landmark, TrendingUp,
@@ -215,7 +218,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
       <div
         onClick={(e) => e.stopPropagation()}
         className={isMobile
-          ? 'absolute inset-x-0 bottom-0 max-h-[65vh] rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]'
+          ? 'absolute left-0 top-0 bottom-0 w-[80%] max-w-xs bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col pt-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem))] pb-[env(safe-area-inset-bottom)]'
           : 'absolute left-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col pt-[var(--header-height,4.5rem)]'}
       >
         {/* Header */}

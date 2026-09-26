@@ -7,7 +7,7 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 
 const GlobeView = lazy(() => import('./GlobeView'));
 
-const GlobeContainer = ({ selectedRegion, onSelectRegion }) => {
+const GlobeContainer = ({ selectedRegion, onSelectRegion, focusRegionId = null }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -35,6 +35,7 @@ const GlobeContainer = ({ selectedRegion, onSelectRegion }) => {
             height={size.height}
             selectedRegion={selectedRegion}
             onSelectRegion={onSelectRegion}
+            focusRegionId={focusRegionId}
           />
         )}
       </Suspense>
