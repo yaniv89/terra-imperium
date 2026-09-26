@@ -24,8 +24,12 @@ import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
-const ZOOM_EXTENT = [1, 8];
-const ZOOM_STEP_SCALE = 1.4;
+// Max raised from 8x to 40x (plan feedback: playing as a small nation like Israel, its provinces
+// stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
+// already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
+// other change is needed for click accuracy at high zoom.
+const ZOOM_EXTENT = [1, 40];
+const ZOOM_STEP_SCALE = 1.6;
 
 // `interactive: false` is the minimap's own mode: no click handling, no hover title, no zoom/pan
 // (see below), and a slightly thinner/absent stroke so a few thousand paths stay cheap to render

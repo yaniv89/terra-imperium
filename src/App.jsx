@@ -196,7 +196,7 @@ const GameLayout = () => {
               log's actual content only exists in the LogDrawer overlay below, opened on demand —
               see this file's own header comment on LogTrigger/LogDrawer for why). */}
           <div className="order-1 lg:order-2 flex-1 min-h-0 flex flex-col gap-2">
-            <ActionPanel activeTab={activeTab} selectedRegion={selectedRegion} />
+            <ActionPanel activeTab={activeTab} />
             <div className="shrink-0 px-2 lg:px-0">
               <LogTrigger onClick={handleOpenLogDrawer} unreadCount={Math.max(0, state.logs.length - lastSeenLogCountRef.current)} />
             </div>
