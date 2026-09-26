@@ -45,7 +45,7 @@ const autoRotateDisabledForTests = () =>
 // tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
 let userDismissedAutoRotate = false;
 
-const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
+const GlobeView = ({ width, height, selectedRegion, onSelectRegion, focusRegionId = null }) => {
   const { state } = useGame();
   const { effects } = useEffects();
   const globeRef = useRef(null);
@@ -110,6 +110,20 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
     if (!home) return;
     globeRef.current.pointOfView({ lat: home.lat, lng: home.lng, altitude: 1.4 }, 0);
   }, [geo, state.playerNationId]);
+
+  // Bug fix (plan feedback: "on army tab u see in map sweden and not the selected region"):
+  // opening ProvinceModal ("Manage Region") never moved the camera at all, so whatever the globe
+  // happened to be pointed at (wherever it last drifted to, e.g. from auto-rotate) stayed on
+  // screen behind the modal — completely unrelated to the region actually being managed.
+  // MapContainer.jsx passes `focusRegionId` = the region ProvinceModal is currently open for (null
+  // otherwise), so this flies there the moment Manage Region opens, independent of which of its
+  // tabs is active (switching tabs doesn't change `focusRegionId`, so it won't re-fire pointlessly).
+  useEffect(() => {
+    if (!focusRegionId || !globeRef.current) return;
+    const target = REGION_COORDINATES[focusRegionId];
+    if (!target) return;
+    globeRef.current.pointOfView({ lat: target.lat, lng: target.lng, altitude: 1.0 }, 500);
+  }, [focusRegionId]);
 
   // Auto-rotate is a nice "alive" default for a menu-screen-style globe, but it's motion a
   // reduced-motion user explicitly asked not to see, and it should stop as soon as they've
