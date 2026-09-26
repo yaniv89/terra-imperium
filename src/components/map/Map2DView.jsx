@@ -36,7 +36,11 @@ const ZOOM_STEP_SCALE = 1.6;
 // at a tiny size. Loads its own geometry (loadGameRegionFeatures() below) rather than taking it as
 // a prop — that loader already caches at the module level (see its own file), so a second
 // Map2DView instance (the minimap, alongside the main flat map) re-fetches nothing.
-const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive = true }) => {
+// `hudOffset` (default false, preserving the original tuned offset for MapModal's own compact
+// title bar / the minimap) shifts the zoom controls down below GameHeader's real, responsive
+// height via its --header-height custom property — only the main full-bleed map view
+// (MapContainer -> Map2DContainer) needs this, since MapModal's own header isn't GameHeader.
+const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false }) => {
   const { state } = useGame();
   const [polygons, setPolygons] = useState(null);
   const svgRef = useRef(null);
@@ -153,7 +157,7 @@ const Map2DView = ({ width, height, selectedRegion, onSelectRegion, interactive 
   return (
     <div className="relative w-full h-full">
       {map}
-      <div className="absolute top-12 right-2 z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden">
+      <div className={`absolute right-2 z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
           onClick={() => zoomBy(ZOOM_STEP_SCALE)}
           disabled={transform.k >= ZOOM_EXTENT[1]}

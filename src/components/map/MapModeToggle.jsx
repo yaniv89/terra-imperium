@@ -4,7 +4,7 @@ import React from 'react';
 import { Globe2, Map as MapIcon } from 'lucide-react';
 
 const MapModeToggle = ({ mode, onChange }) => (
-  <div className="absolute top-2 right-2 z-10 flex bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden">
+  <div className="absolute right-2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-10 flex bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden">
     <button
       onClick={() => onChange('globe')}
       className={`flex items-center gap-1 px-2 py-1.5 text-[10px] font-semibold transition-colors ${

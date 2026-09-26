@@ -1,11 +1,17 @@
 // src/components/map/MapContainer.jsx
-// Top-level map orchestrator, replacing a direct GlobeContainer usage in App.jsx. Owns which main
-// view is showing (3D globe or the flat 2D map — src/components/globe/GlobeContainer.jsx /
-// src/components/map/Map2DContainer.jsx, both pure sizing wrappers), the mode toggle, the
-// corner minimap (globe mode only — in flat mode the main view already IS the full 2D map, so a
-// minimap of the same thing adds nothing), and the region info panel + legend that overlay
-// whichever one is active. The chosen mode is remembered per browser (localStorage) so it doesn't
-// reset every reload.
+// Top-level map orchestrator, rendered as the app's full-bleed base layer (App.jsx) with GameHeader
+// and PanelDrawer floating over it, instead of sitting in its own bounded flex cell (plan feedback:
+// "combine the map and the play panel"). Owns which main view is showing (3D globe or the flat 2D
+// map — src/components/globe/GlobeContainer.jsx / src/components/map/Map2DContainer.jsx, both pure
+// sizing wrappers), the mode toggle, the corner minimap (globe mode only — in flat mode the main
+// view already IS the full 2D map, so a minimap of the same thing adds nothing), and the region
+// info panel + legend that overlay whichever one is active. The chosen mode is remembered per
+// browser (localStorage) so it doesn't reset every reload.
+//
+// MiniMap and MapLegend are clustered together in one bottom-left corner box (rather than each
+// hardcoding its own absolute corner) so the entire right edge stays exclusively PanelDrawer's, and
+// `position="panel-hud"` tells RegionInfoModal to offset itself below GameHeader's real height via
+// the --header-height custom property GameHeader publishes — see RegionInfoModal.jsx's own comment.
 import React, { useState } from 'react';
 import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
@@ -39,17 +45,19 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
     <div className="relative w-full h-full">
       {mode === 'globe'
         ? <GlobeContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} />
-        : <Map2DContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} />}
+        : <Map2DContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} hudOffset />}
 
       <RegionInfoModal
         regionId={selectedRegion}
         onClose={() => { setManageOpen(false); onSelectRegion(null); }}
         onManage={selectedRegion ? () => setManageOpen(true) : undefined}
-        position="panel"
+        position="panel-hud"
       />
-      <MapLegend />
+      <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2">
+        {mode === 'globe' && <MiniMap onOpen={() => setModalOpen(true)} />}
+        <MapLegend />
+      </div>
       <MapModeToggle mode={mode} onChange={handleModeChange} />
-      {mode === 'globe' && <MiniMap onOpen={() => setModalOpen(true)} />}
 
       <MapModal
         open={modalOpen}
