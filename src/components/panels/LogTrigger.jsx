@@ -1,27 +1,30 @@
 // src/components/panels/LogTrigger.jsx
-// A slim, single-row replacement for the old always-embedded LogConsole panel (which claimed a
-// fixed h-48/h-56 chunk of the action-panel column even "collapsed"). This is the only piece that
-// lives inline now; clicking it opens the full log in LogDrawer.jsx, an overlay that takes zero
-// layout space while closed.
+// A small floating button that opens the full log in LogDrawer.jsx (an overlay that takes zero
+// layout space while closed), replacing the old always-embedded LogConsole panel. Now that the map
+// is the app's full-bleed base layer with no sidebar column left for this to sit at the bottom of
+// (plan feedback: "combine the map and the play panel"), it floats over the map instead: bottom-
+// left on desktop (clear of PanelDrawer's right-docked panel), top-right under GameHeader on
+// mobile (clear of PanelDrawer's bottom tab bar) via the --header-height custom property GameHeader
+// publishes.
 import React from 'react';
-import { ScrollText, ChevronUp } from 'lucide-react';
+import { ScrollText } from 'lucide-react';
 
 const LogTrigger = ({ onClick, unreadCount = 0 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-950 border border-slate-800
-               hover:bg-slate-900 transition-colors shrink-0"
+    className="fixed z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 backdrop-blur-md
+               border border-slate-700 shadow-xl text-slate-300 hover:bg-slate-800 transition-colors
+               right-3 top-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem)+0.5rem)]
+               lg:top-auto lg:right-auto lg:bottom-4 lg:left-4"
+    aria-label="Open event log"
   >
-    <span className="flex items-center gap-2 min-w-0">
-      <ScrollText className="w-4 h-4 text-slate-500 shrink-0" />
-      <span className="text-xs font-semibold text-slate-400">Event Log</span>
-      {unreadCount > 0 && (
-        <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
-      )}
-    </span>
-    <ChevronUp className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+    <ScrollText className="w-4 h-4 text-slate-400 shrink-0" />
+    <span className="hidden sm:inline text-xs font-semibold">Event Log</span>
+    {unreadCount > 0 && (
+      <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+        {unreadCount > 99 ? '99+' : unreadCount}
+      </span>
+    )}
   </button>
 );
 

@@ -6,7 +6,7 @@ import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { MapContainer } from './components/map';
-import { ActionPanel, ActionPanelTabs, LogTrigger, LogDrawer } from './components/panels';
+import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
 import AdminPage from './components/admin/AdminPage';
 import { GameStatus, LogTypes, ActionTypes } from './data/types';
@@ -162,47 +162,29 @@ const GameLayout = () => {
   }
 
   return (
-    <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 flex flex-col overflow-y-scroll">
-      {/* Header with resources and controls */}
+    <div className="h-[100dvh] w-full bg-slate-950 text-slate-100 relative overflow-hidden">
+      {/* Layer 0: the map is the entire game surface (plan feedback: "combine the map and the
+          play panel into one surface" instead of two separate sections) — everything else below
+          floats over it as a fixed/absolute overlay rather than claiming its own layout space. */}
+      <div className="absolute inset-0">
+        <MapContainer
+          selectedRegion={selectedRegion}
+          onSelectRegion={handleSelectRegion}
+        />
+      </div>
+
+      {/* Translucent HUD header, floating over the map's top edge. */}
       <GameHeader onReset={handleReset} onOpenSettings={() => setShowAccount(true)} cloudStatus={client ? cloudSync.status : null} />
 
-      {/* Main content area. Below `lg` (phones/narrow tablets), this is no longer one long
-          scrolling page: the globe and tab bar stay put (both `shrink-0`) and only the middle
-          zone (action panel content + event log) scrolls, so switching tabs or reading the log
-          never requires scrolling back up past the globe. At `lg`+, nothing here changed from
-          before — same side-by-side globe + fixed-width panel column, tabs above content. */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 min-h-0 overflow-hidden lg:overflow-y-scroll">
-        {/* Left/Top: Map — a globe/flat-2D-map toggle (MapContainer), plus a corner minimap that
-            opens the flat map full-screen. Fixed, modest height on mobile (shrink-0) instead of
-            flex-1, so it can't eat space the action panel/tab bar need; still flex-[2] of the row
-            on desktop. */}
-        <div className="relative shrink-0 h-[32vh] min-h-[200px] lg:h-auto lg:shrink lg:flex-[2] lg:min-h-0 order-1">
-          <MapContainer
-            selectedRegion={selectedRegion}
-            onSelectRegion={handleSelectRegion}
-          />
-        </div>
+      {/* Empire-management tabs/content: a collapsible right-docked drawer on desktop, a bottom
+          tab bar + on-demand sheet on mobile (PanelDrawer.jsx) — floating over the map instead of
+          a fixed sidebar column next to it. */}
+      <PanelDrawer activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Right/Bottom: Action Panel tabs, content, and Log Console. */}
-        <div className="flex flex-col flex-1 min-h-0 lg:w-96 xl:w-[420px] lg:flex-none order-2">
-          {/* Tabs: order-2 (after content) on mobile so they land pinned at the bottom of this
-              column once the content zone below claims all the remaining space; order-1 (their
-              natural position, above content) on desktop, unchanged from before. */}
-          <div className="order-2 lg:order-1 shrink-0">
-            <ActionPanelTabs activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
-
-          {/* Middle zone: action panel content, with a slim log trigger pinned below it (the
-              log's actual content only exists in the LogDrawer overlay below, opened on demand —
-              see this file's own header comment on LogTrigger/LogDrawer for why). */}
-          <div className="order-1 lg:order-2 flex-1 min-h-0 flex flex-col gap-2">
-            <ActionPanel activeTab={activeTab} />
-            <div className="shrink-0 px-2 lg:px-0">
-              <LogTrigger onClick={handleOpenLogDrawer} unreadCount={Math.max(0, state.logs.length - lastSeenLogCountRef.current)} />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Event log trigger — a small floating button now that there's no sidebar column left for
+          it to sit at the bottom of (the log's actual content only exists in the LogDrawer
+          overlay below, opened on demand). */}
+      <LogTrigger onClick={handleOpenLogDrawer} unreadCount={Math.max(0, state.logs.length - lastSeenLogCountRef.current)} />
 
       {/* Event Modal - overlays everything when active. A procedural event (Phase 6) is carried
           in full on the state itself rather than looked up by id from HISTORICAL_EVENTS. A chain
