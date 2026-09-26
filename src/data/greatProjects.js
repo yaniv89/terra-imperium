@@ -21,10 +21,24 @@
 // CURRENT cumulative value (matching how building tiers work — Bazaar's 25% REPLACES Market's 15%,
 // it doesn't stack on top), not an incremental delta. `completionPrestige` is a ONE-TIME grant when
 // construction of that tier finishes (reusing nationalPower.js's existing prestige stat), and every
-// project has one at every tier — even the ones whose flavor effect (naval reach%, ship cost%,
-// mission-time%, per-unit morale, "unlock" flags) names a system that doesn't exist yet, so no
-// project is ever a dead investment even when its full flavor is trimmed. Every trim is noted
-// inline in that project's own `description`.
+// project has one at every tier.
+//
+// A `LEGACY_HOOK` key only counts as "real" here if it's actually read somewhere via
+// `getModifier`/`getNationSheet` (sheet.js) — that's what makes a great project's effect visible to
+// BOTH the player and the AI's own decisions generically. `governingCapacity` (the Forbidden City's
+// own effect) was a real bug of exactly that shape: nationalPower.js's overextension calc used to
+// read it straight off `staticSources(nation)` only, to avoid a circular import, which meant a great
+// project's (contextSources-sourced) governingCapacity contribution silently never applied —
+// src/engine/modifiers/sources.js's own `capacityBonus` computation now folds in this function's own
+// already-accumulated `lines` (which includes the great-project loop above) alongside
+// staticSources(nation), fixing it without nationalPower.js ever needing to import the modifier
+// engine. estates.js had the identical bug shape for `estateLoyalty` — see its own header.
+//
+// Five projects (Pyramids, Great Wall, Arsenal, Space Program, Atomic Research Center) name a
+// flavor effect that doesn't exist as a real mechanic yet (a stability floor, a combat malus on
+// invaders, ship cost/naval morale, a mission-time discount, a missile-cost discount) — each gets a
+// modest real bonus from an already-wired hook instead, as a stand-in, so building one is never a
+// pure dead end; every such trim/substitution is noted inline in that project's own `description`.
 import { REGIONS_DATA } from './regions';
 import { isCoastal } from './navalReach';
 import { getTotalDev } from '../engine/development';
@@ -51,8 +65,12 @@ export const SITE_RULES = {
 export const GREAT_PROJECTS = {
   great_pyramids: {
     id: 'great_pyramids', name: 'The Great Pyramids', ageId: 'bronze', siteRule: 'capital',
-    description: 'Built at your capital. A monumental tomb complex — legitimacy/turn and a stability floor are not yet wired (M4/M15); prestige is real.',
-    tiers: [{ effects: {}, completionPrestige: 10 }, { effects: {}, completionPrestige: 20 }, { effects: {}, completionPrestige: 30 }]
+    description: 'Built at your capital. +1/2/3 stability, standing in for the legitimacy/turn and stability-floor effects a monumental tomb complex would ideally grant (M4/M15 aren\'t wired yet).',
+    tiers: [
+      { effects: { stabilityBonus: 1 }, completionPrestige: 10 },
+      { effects: { stabilityBonus: 2 }, completionPrestige: 20 },
+      { effects: { stabilityBonus: 3 }, completionPrestige: 30 }
+    ]
   },
   hanging_gardens: {
     id: 'hanging_gardens', name: 'The Hanging Gardens', ageId: 'bronze', siteRule: 'irrigation',
@@ -65,8 +83,12 @@ export const GREAT_PROJECTS = {
   },
   great_wall: {
     id: 'great_wall', name: 'The Great Wall', ageId: 'bronze', siteRule: 'palisade',
-    description: 'Built in a region with a Palisade. Enemy stacks losing strength entering your border regions is a combat mechanic (M14) — not yet wired; prestige is real.',
-    tiers: [{ effects: {}, completionPrestige: 10 }, { effects: {}, completionPrestige: 20 }, { effects: {}, completionPrestige: 30 }]
+    description: 'Built in a region with a Palisade. +1/2/3 Administrative Power per turn (a secured, well-administered frontier), standing in for the "enemy stacks lose strength entering your border regions" combat mechanic (M14 isn\'t wired yet).',
+    tiers: [
+      { effects: { admBonus: 1 }, completionPrestige: 10 },
+      { effects: { admBonus: 2 }, completionPrestige: 20 },
+      { effects: { admBonus: 3 }, completionPrestige: 30 }
+    ]
   },
   great_library: {
     id: 'great_library', name: 'The Great Library', ageId: 'classical', siteRule: 'capitalWithLibrary',
@@ -133,8 +155,12 @@ export const GREAT_PROJECTS = {
   },
   arsenal: {
     id: 'arsenal', name: 'The Arsenal', ageId: 'gunpowder', siteRule: 'coastalNavalBase',
-    description: 'Built in a coastal region with a Naval Base. Ship cost/naval morale effects are M14, not yet wired; prestige is real.',
-    tiers: [{ effects: {}, completionPrestige: 10 }, { effects: {}, completionPrestige: 20 }, { effects: {}, completionPrestige: 30 }]
+    description: 'Built in a coastal region with a Naval Base. +1/2/3 Military Power per turn, standing in for the ship-cost/naval-morale effects (M14 isn\'t wired yet).',
+    tiers: [
+      { effects: { milBonus: 1 }, completionPrestige: 10 },
+      { effects: { milBonus: 2 }, completionPrestige: 20 },
+      { effects: { milBonus: 3 }, completionPrestige: 30 }
+    ]
   },
   palace_of_versailles: {
     id: 'palace_of_versailles', name: 'The Palace of Versailles', ageId: 'gunpowder', siteRule: 'capital',
@@ -147,8 +173,12 @@ export const GREAT_PROJECTS = {
   },
   space_program: {
     id: 'space_program', name: 'The Space Program', ageId: 'modern', siteRule: 'researchLab',
-    description: 'Built in a region with a Research Lab. Mission-time reduction isn\'t a modeled discount yet; prestige is real.',
-    tiers: [{ effects: {}, completionPrestige: 10 }, { effects: {}, completionPrestige: 20 }, { effects: {}, completionPrestige: 30 }]
+    description: 'Built in a region with a Research Lab. -5/10/15% research cost, standing in for a mission-time discount that isn\'t a modeled mechanic yet.',
+    tiers: [
+      { effects: { researchCost: -0.05 }, completionPrestige: 10 },
+      { effects: { researchCost: -0.1 }, completionPrestige: 20 },
+      { effects: { researchCost: -0.15 }, completionPrestige: 30 }
+    ]
   },
   international_exchange: {
     id: 'international_exchange', name: 'The International Exchange', ageId: 'modern', siteRule: 'stockExchange',
@@ -161,8 +191,12 @@ export const GREAT_PROJECTS = {
   },
   atomic_research_center: {
     id: 'atomic_research_center', name: 'The Atomic Research Center', ageId: 'modern', siteRule: 'factory',
-    description: 'Built in a region with a Factory. Nuclear missiles already unlock via the existing tech/mission ladder; a missile-cost discount is not yet a modeled hook.',
-    tiers: [{ effects: {}, completionPrestige: 10 }, { effects: {}, completionPrestige: 20 }, { effects: {}, completionPrestige: 30 }]
+    description: 'Built in a region with a Factory. +10/20/30% tech point income, standing in for a missile-cost discount that isn\'t a modeled hook yet (nuclear missiles already unlock via the existing tech/mission ladder).',
+    tiers: [
+      { effects: { techPointsMult: 0.1 }, completionPrestige: 10 },
+      { effects: { techPointsMult: 0.2 }, completionPrestige: 20 },
+      { effects: { techPointsMult: 0.3 }, completionPrestige: 30 }
+    ]
   }
 };
 

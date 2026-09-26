@@ -162,9 +162,11 @@ describe('contextSources', () => {
     expect(contextSources(state, 'de')).toContainEqual({ key: 'national.techPointsMult', value: 0.1, sourceType: 'greatProject', sourceId: 'great_library', label: 'The Great Library' });
   });
 
-  it('emits nothing for a project with no wired ongoing effect (e.g. the Great Wall)', () => {
+  // Plan feedback ("issue with great works"): every one of the 15 projects now grants a real,
+  // ongoing effect from an already-wired hook — none is a pure one-time-prestige dead end anymore.
+  it('emits the Great Wall\'s real (stand-in) admBonus effect', () => {
     const state = { playerNationId: 'fr', nations: { fr: {} }, regions: { r1: { owner: 'fr' } }, greatProjects: { great_wall: { regionId: 'r1', tier: 2 } } };
-    expect(contextSources(state, 'fr').some((l) => l.sourceType === 'greatProject')).toBe(false);
+    expect(contextSources(state, 'fr')).toContainEqual({ key: 'national.admBonus', value: 2, sourceType: 'greatProject', sourceId: 'great_wall', label: 'The Great Wall' });
   });
 
   it('a governingCapacity reform raises the overextension threshold, delaying the overextension penalty line (plan §M8.1)', () => {
@@ -176,6 +178,25 @@ describe('contextSources', () => {
     const withGov = contextSources(withReform, 'fr').find((l) => l.sourceType === 'overextension');
     expect(without).toBeDefined();
     expect(withGov?.value ?? 0).toBeGreaterThan(without.value); // less negative (or absent) — the reform's +10 capacity eases it
+  });
+
+  // Bug fix (plan feedback): the Forbidden City's own governingCapacity effect used to be read
+  // straight off staticSources(nation) here, which never includes a great project (contextSources-
+  // sourced, since ownership needs live region state) — so it silently never eased overextension.
+  it('the Forbidden City\'s governingCapacity ALSO raises the overextension threshold, same as a reform', () => {
+    const manyRegions = {};
+    for (let i = 0; i < 15; i++) manyRegions[`r${i}`] = { owner: 'fr' };
+    const withoutProject = { playerNationId: 'fr', nations: { fr: { startRegionCount: 1 } }, regions: manyRegions };
+    const withProject = {
+      playerNationId: 'fr',
+      nations: { fr: { startRegionCount: 1 } },
+      regions: { ...manyRegions, capital: { owner: 'fr' } },
+      greatProjects: { forbidden_city: { regionId: 'capital', tier: 1 } } // +10 governing capacity
+    };
+    const without = contextSources(withoutProject, 'fr').find((l) => l.sourceType === 'overextension');
+    const withProj = contextSources(withProject, 'fr').find((l) => l.sourceType === 'overextension');
+    expect(without).toBeDefined();
+    expect(withProj?.value ?? 0).toBeGreaterThan(without.value);
   });
 });
 

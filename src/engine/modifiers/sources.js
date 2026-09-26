@@ -178,9 +178,15 @@ export const contextSources = (state, nationId) => {
   // Federal Republic) is read straight off staticSources here — NOT via getModifier/getNationSheet
   // — so this file never calls back into itself through the sheet cache, and nationalPower.js never
   // has to import the modifier engine (see its own header comment on why that would be circular).
-  const capacityBonus = nation ? staticSources(nation)
+  // Bug fix (plan feedback: "issue with great works" — the Forbidden City's own governingCapacity
+  // effect was silently a no-op): `lines` already holds this function's OWN contextSources pushes
+  // by this point, including the great-project loop above — concatenating it in here, rather than
+  // reading staticSources(nation) alone, is what makes a great project's governingCapacity actually
+  // count, with no new import (state.greatProjects is already read earlier in this same function).
+  const capacityBonus = (nation ? staticSources(nation) : [])
+    .concat(lines)
     .filter((l) => l.key === 'national.governingCapacity')
-    .reduce((sum, l) => sum + l.value, 0) : 0;
+    .reduce((sum, l) => sum + l.value, 0);
   const overextension = getOverextension(state, nationId, capacityBonus);
   if (overextension > 0) {
     lines.push({ key: 'national.stabilityBonus', value: -(overextension / 20), sourceType: 'overextension', sourceId: 'overextension', label: 'Overextension' });
