@@ -1,7 +1,7 @@
 // src/components/ui/GameHeader.jsx
 // Main game header with title, nation, age/year, resources, and end turn button
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
@@ -23,10 +23,27 @@ const CLOUD_STATUS = {
 const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
   const fileInputRef = useRef(null);
+  const headerRef = useRef(null);
   // Export/Import/Cloud/Reset are rarely used mid-turn compared to End Turn, so on narrow
   // screens they collapse into this overflow menu instead of competing for header width with
   // the nation name/date (which were colliding/truncating before this existed).
   const [showMenu, setShowMenu] = useState(false);
+
+  // Now that the header floats over the full-bleed map (plan feedback: "combine the map and the
+  // play panel") instead of pushing it down as a flex sibling, the map's own corner controls
+  // (MapModeToggle, zoom buttons, RegionInfoModal's corner card) need to know how tall this
+  // responsive, two-row header actually is so they can offset below it. Publishing it as a CSS
+  // custom property on <html> means those consumers never need a hardcoded guess that drifts out
+  // of sync whenever this header's own padding/rows change.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty('--header-height', `${Math.round(entry.contentRect.height)}px`);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
   const cloudInfo = CLOUD_STATUS[cloudStatus] || CLOUD_STATUS.guest;
@@ -61,7 +78,12 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 p-2 sm:p-3 flex flex-col gap-2 sm:gap-3 shrink-0">
+    <header
+      ref={headerRef}
+      className="fixed top-0 inset-x-0 z-20 bg-gradient-to-r from-slate-900/85 via-slate-800/80 to-slate-900/85
+                 backdrop-blur-md border-b border-slate-700/50 p-2 sm:p-3 pt-[calc(env(safe-area-inset-top)+0.5rem)]
+                 sm:pt-[calc(env(safe-area-inset-top)+0.75rem)] flex flex-col gap-2 sm:gap-3"
+    >
       {/* Top Row: Title, Nation/Age, Year, Reset */}
       <div className="flex justify-between items-center gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">

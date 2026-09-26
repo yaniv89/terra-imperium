@@ -26,7 +26,7 @@ const FOREIGN_SAMPLE_COLORS = NATION_COLOR_PALETTE.filter((_, i) => i % 4 === 0)
 const MapLegend = ({ collapsed = false }) => {
   if (collapsed) {
     return (
-      <div className="hidden lg:block absolute bottom-2 left-2 bg-slate-900/90 backdrop-blur-sm p-1.5 rounded-lg border border-slate-700 z-10">
+      <div className="hidden lg:block bg-slate-900/90 backdrop-blur-sm p-1.5 rounded-lg border border-slate-700">
         <div className="flex gap-1">
           {legendItems.slice(0, 4).map((item, i) => (
             <div
@@ -40,12 +40,11 @@ const MapLegend = ({ collapsed = false }) => {
     );
   }
 
-  // The globe shares vertical space with the rest of the UI on mobile (App.jsx stacks
-  // everything in a column below `lg`, leaving the globe only ~250px tall), so an always-on
-  // legend there covers real map area for little benefit. It only renders at the `lg` layout,
-  // where the globe gets a dedicated two-thirds-width column with room to spare.
+  // A phone-sized screen has little room to spare even though the map is now full-bleed — an
+  // always-on legend there would cover real map area for little benefit alongside the header/tab
+  // bar HUD chrome. It only renders at the `lg` layout, where there's genuinely space for it.
   return (
-    <div className="hidden lg:block absolute bottom-2 left-2 bg-slate-900/90 backdrop-blur-sm p-2 rounded-lg text-xs space-y-1 border border-slate-700 z-10">
+    <div className="hidden lg:block bg-slate-900/90 backdrop-blur-sm p-2 rounded-lg text-xs space-y-1 border border-slate-700">
       <div className="text-slate-400 font-semibold mb-1.5 text-[10px] uppercase tracking-wide">
         Legend
       </div>

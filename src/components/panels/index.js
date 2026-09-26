@@ -3,6 +3,7 @@
 
 export { default as ActionPanel } from './ActionPanel';
 export { default as ActionPanelTabs } from './ActionPanelTabs';
+export { default as PanelDrawer } from './PanelDrawer';
 export { default as DomesticPanel } from './DomesticPanel';
 export { default as MilitaryPanel } from './MilitaryPanel';
 export { default as DiplomacyPanel } from './DiplomacyPanel';

@@ -23,7 +23,7 @@ const GlobeContainer = ({ selectedRegion, onSelectRegion }) => {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-slate-900 rounded-lg overflow-hidden border border-slate-700 shadow-2xl">
+    <div ref={containerRef} className="relative w-full h-full bg-slate-900">
       <Suspense fallback={
         <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
           Loading globe renderer…

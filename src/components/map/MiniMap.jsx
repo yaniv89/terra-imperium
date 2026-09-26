@@ -14,7 +14,7 @@ const HEIGHT = 74;
 const MiniMap = ({ onOpen }) => (
   <button
     onClick={onOpen}
-    className="absolute bottom-2 right-2 z-10 rounded-lg overflow-hidden border border-slate-700 shadow-xl
+    className="rounded-lg overflow-hidden border border-slate-700 shadow-xl
                bg-slate-900/90 group hover:border-blue-500 transition-colors"
     style={{ width: WIDTH, height: HEIGHT }}
     title="Open full map"

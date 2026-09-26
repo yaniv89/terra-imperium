@@ -26,20 +26,27 @@ const isReachable = (fromRegionId, toRegionId, age) =>
 // past the map card's edges. On mobile this now renders as a real bottom sheet instead — `fixed`
 // to the viewport (not confined to the map's own small bounding box), capped height with its own
 // scroll, sliding up from below the whole screen rather than floating on top of the map.
+// position="panel" (used inside MapModal's own full-screen flat map, which has its own compact
+// title bar, not GameHeader) keeps the plain top-2 corner offset. position="panel-hud" (used by
+// MapContainer's main view, now the full-bleed game surface under the floating GameHeader) offsets
+// below GameHeader's real, responsive height via the --header-height custom property it publishes,
+// so this card never renders underneath the fixed header.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
+  const isCornerCard = position === 'panel' || position === 'panel-hud';
+  const cornerTopClass = position === 'panel-hud' ? 'top-[calc(var(--header-height,4.5rem)+0.5rem)]' : 'top-2';
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
   // since there it's a small, stationary corner hint, not a sheet competing for screen space.
   if (!regionId) {
-    if (isMobile && position === 'panel') return null;
+    if (isMobile && isCornerCard) return null;
     return (
       <div className={`
-        ${position === 'panel'
-          ? 'absolute top-2 left-2 z-20'
+        ${isCornerCard
+          ? `absolute ${cornerTopClass} left-2 z-20`
           : 'relative'
         }
         bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[180px]
@@ -104,13 +111,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     dispatch({ type: ActionTypes.SETTLE_COLONIZE, payload: { regionId } });
   };
 
-  const mobileSheet = isMobile && position === 'panel';
+  const mobileSheet = isMobile && isCornerCard;
 
   return (
     <div className={
       mobileSheet
         ? 'fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto rounded-t-2xl bg-slate-900/98 backdrop-blur-sm p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl'
-        : `${position === 'panel' ? 'absolute top-2 left-2 z-20' : 'relative'}
+        : `${isCornerCard ? `absolute ${cornerTopClass} left-2 z-20` : 'relative'}
            bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
            border border-slate-700 shadow-xl`
     }>
