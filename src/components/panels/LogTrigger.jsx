@@ -2,10 +2,15 @@
 // A small floating button that opens the full log in LogDrawer.jsx (an overlay that takes zero
 // layout space while closed), replacing the old always-embedded LogConsole panel. Now that the map
 // is the app's full-bleed base layer with no sidebar column left for this to sit at the bottom of
-// (plan feedback: "combine the map and the play panel"), it floats over the map instead: bottom-
-// left on desktop (clear of PanelDrawer's right-docked panel), top-right under GameHeader on
-// mobile (clear of PanelDrawer's bottom tab bar) via the --header-height custom property GameHeader
-// publishes.
+// (plan feedback: "combine the map and the play panel"), it floats over the map instead.
+//
+// Bug fix (plan feedback: "event logs are floating on place that hid map buttons"): this used to
+// sit top-right on mobile (colliding with MapModeToggle + the flat map's zoom controls, both also
+// top-right) and bottom-left on desktop (colliding with the MiniMap/MapLegend corner cluster,
+// also bottom-left). Every corner of the map is already claimed by something else — top-right
+// (mode toggle, zoom), bottom-left (minimap, legend), the whole right edge (PanelDrawer), the
+// bottom edge on mobile (PanelDrawer's tab bar) — so this now docks top-CENTER, just under
+// GameHeader via the --header-height custom property it publishes, the one spot nothing else uses.
 import React from 'react';
 import { ScrollText } from 'lucide-react';
 
@@ -14,8 +19,7 @@ const LogTrigger = ({ onClick, unreadCount = 0 }) => (
     onClick={onClick}
     className="fixed z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 backdrop-blur-md
                border border-slate-700 shadow-xl text-slate-300 hover:bg-slate-800 transition-colors
-               right-3 top-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem)+0.5rem)]
-               lg:top-auto lg:right-auto lg:bottom-4 lg:left-4"
+               left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem)+0.5rem)]"
     aria-label="Open event log"
   >
     <ScrollText className="w-4 h-4 text-slate-400 shrink-0" />

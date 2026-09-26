@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Map2DView from './Map2DView';
 
-const Map2DContainer = ({ selectedRegion, onSelectRegion, hudOffset = false }) => {
+const Map2DContainer = ({ selectedRegion, onSelectRegion, hudOffset = false, initialFocusRegionId = null }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -23,7 +23,14 @@ const Map2DContainer = ({ selectedRegion, onSelectRegion, hudOffset = false }) =
   return (
     <div ref={containerRef} className="relative w-full h-full bg-slate-900">
       {size.width > 0 && size.height > 0 && (
-        <Map2DView width={size.width} height={size.height} selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} hudOffset={hudOffset} />
+        <Map2DView
+          width={size.width}
+          height={size.height}
+          selectedRegion={selectedRegion}
+          onSelectRegion={onSelectRegion}
+          hudOffset={hudOffset}
+          initialFocusRegionId={initialFocusRegionId}
+        />
       )}
     </div>
   );

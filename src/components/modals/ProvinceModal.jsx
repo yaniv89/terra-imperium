@@ -6,6 +6,18 @@
 // modal is what that button opens. Three tabs — Overview / Economy & Buildings / Military — hold
 // every region-specific action, moved out of DomesticPanel.jsx's and MilitaryPanel.jsx's old
 // region branches (behavior is unchanged, just relocated).
+//
+// Bug fix (plan feedback: "manage region is full screen and hid all the animations we worked on"):
+// this used to be a true full-screen modal — a `bg-black/70`/`bg-black/80 backdrop-blur-sm` dimming
+// layer covering the ENTIRE viewport behind a centered (desktop) or near-full-height (mobile, 92%
+// of the screen) card, which blocked the map — and any GlobeEffectsOverlay pulse triggered by an
+// action taken here — completely out of view. It's a non-dimming overlay now: the outer wrapper is
+// just an invisible full-screen click-catcher (still closes on click-outside), and the actual card
+// docks to the LEFT edge (desktop, full height, opposite PanelDrawer's right-docked empire tabs —
+// "this specific region" on the left, "my whole empire" on the right) or a much shorter bottom
+// sheet (mobile, capped at 65vh instead of 92vh) so the map stays visible everywhere else the panel
+// doesn't cover. It can't guarantee the acted-on region itself is never behind the panel (that would
+// need panning the camera to it), but it stops the once-total screen takeover.
 import React, { useState, useEffect } from 'react';
 import {
   X, Building2, Shield, Flag, Hammer, Gem, HeartCrack, Sprout, Landmark, TrendingUp,
@@ -199,15 +211,12 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   };
 
   return (
-    <div
-      className={isMobile ? 'fixed inset-0 z-40 bg-black/70' : 'fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm'}
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[35]" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         className={isMobile
-          ? 'fixed inset-x-0 bottom-0 top-[8vh] rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col'
-          : 'bg-slate-900 rounded-xl border border-slate-700 max-w-2xl w-full shadow-2xl max-h-[90vh] flex flex-col'}
+          ? 'absolute inset-x-0 bottom-0 max-h-[65vh] rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]'
+          : 'absolute left-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col pt-[var(--header-height,4.5rem)]'}
       >
         {/* Header */}
         <div className="p-4 border-b border-slate-700 shrink-0 flex items-start justify-between gap-2">

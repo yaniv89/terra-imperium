@@ -31,6 +31,13 @@ const isReachable = (fromRegionId, toRegionId, age) =>
 // MapContainer's main view, now the full-bleed game surface under the floating GameHeader) offsets
 // below GameHeader's real, responsive height via the --header-height custom property it publishes,
 // so this card never renders underneath the fixed header.
+//
+// Bug fix (plan feedback: "region popup visibility... can't read shit"): this used to render its
+// actual text/stats directly on a translucent, blurred background (bg-slate-900/95 or /98) — fine
+// for a small "select a region" hint, much harder to read once it's a real content card sitting
+// over a busy map. It's plain solid bg-slate-900 now, matching every other content surface in the
+// game (ProvinceModal, LogDrawer, PanelDrawer's ActionPanel) — only small HUD chrome (the header,
+// the mode toggle) stays translucent.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
@@ -49,7 +56,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           ? `absolute ${cornerTopClass} left-2 z-20`
           : 'relative'
         }
-        bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[180px]
+        bg-slate-900 p-3 rounded-lg text-xs min-w-[180px]
         border border-slate-700 shadow-xl
       `}>
         <div className="text-slate-400 italic flex items-center gap-2">
@@ -116,9 +123,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   return (
     <div className={
       mobileSheet
-        ? 'fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto rounded-t-2xl bg-slate-900/98 backdrop-blur-sm p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl'
+        ? 'fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl'
         : `${isCornerCard ? `absolute ${cornerTopClass} left-2 z-20` : 'relative'}
-           bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
+           bg-slate-900 p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
            border border-slate-700 shadow-xl`
     }>
       {mobileSheet && (
