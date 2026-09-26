@@ -10,3 +10,5 @@ export { default as TechPanel } from './TechPanel';
 export { default as SpacePanel } from './SpacePanel';
 export { default as LegacyPanel } from './LegacyPanel';
 export { default as LogConsole } from './LogConsole';
+export { default as LogTrigger } from './LogTrigger';
+export { default as LogDrawer } from './LogDrawer';
