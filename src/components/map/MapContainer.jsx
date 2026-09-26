@@ -13,7 +13,7 @@ import MapModeToggle from './MapModeToggle';
 import MiniMap from './MiniMap';
 import MapModal from './MapModal';
 import MapLegend from '../globe/MapLegend';
-import { RegionInfoModal } from '../modals';
+import { RegionInfoModal, ProvinceModal } from '../modals';
 
 const MODE_STORAGE_KEY = 'terra-imperium-map-mode';
 const readStoredMode = () => {
@@ -28,6 +28,7 @@ const readStoredMode = () => {
 const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const handleModeChange = (next) => {
     setMode(next);
@@ -40,7 +41,12 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
         ? <GlobeContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} />
         : <Map2DContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} />}
 
-      <RegionInfoModal regionId={selectedRegion} onClose={() => onSelectRegion(null)} position="panel" />
+      <RegionInfoModal
+        regionId={selectedRegion}
+        onClose={() => { setManageOpen(false); onSelectRegion(null); }}
+        onManage={selectedRegion ? () => setManageOpen(true) : undefined}
+        position="panel"
+      />
       <MapLegend />
       <MapModeToggle mode={mode} onChange={handleModeChange} />
       {mode === 'globe' && <MiniMap onOpen={() => setModalOpen(true)} />}
@@ -51,6 +57,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
         selectedRegion={selectedRegion}
         onSelectRegion={onSelectRegion}
       />
+      <ProvinceModal regionId={selectedRegion} open={manageOpen} onClose={() => setManageOpen(false)} />
     </div>
   );
 };

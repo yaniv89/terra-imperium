@@ -1,31 +1,22 @@
 // src/components/panels/DomesticPanel.jsx
-// Domestic tab (plan §5 / §9): an empire-wide Government & Policies section (always visible),
-// an empire-wide Taxes & Wonders section (Set Tax Rate, Construct Wonder), plus region details
-// and the ten remaining per-region/empire actions — Gain Control, Build Infrastructure, Build
-// Defenses, Construct Building, Develop Resource Site, Quell Unrest, Population Policy, Settle/
-// Colonize, Adopt Policy/Reform (government), and government adoption itself. All twelve of the
-// plan's Domestic actions are now real: Settle/Colonize targets a bordering region whose own
-// control has collapsed (SETTLE_COLONIZE_CONTROL_THRESHOLD) — a real "expand without war" path.
-
+// Domestic tab (plan §5 / §9): purely empire-wide management now — Government & Reforms, Laws,
+// Estates, Court (ruler/heir/advisors/stability), National Identity, and Empire (Security/Taxes/
+// Economy/Great Projects). Region-specific actions (development, buildings, resource deposits,
+// per-region great projects) used to be appended here whenever a region was selected, which is what
+// made this tab overcrowded — they now live in their own Civ-style screen, ProvinceModal.jsx,
+// opened via RegionInfoModal's "Manage Region" button. Government/Laws/Estates/Identity default
+// collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
+// CollapsibleSection.
 import React from 'react';
-import { Building2, Shield, Flag, Hammer, Gem, HeartCrack, Landmark, ScrollText, Sprout, Coins, ShieldAlert } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, isAdjacentToOwner, getNationCapital, getCapital } from '../../data/regions';
+import { getNationCapital } from '../../data/regions';
 import {
-  ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
+  ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD,
   FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS
 } from '../../data/actionCosts';
-import {
-  BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction,
-  getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
-} from '../../data/buildings';
-import { TECH_TREE } from '../../data/techTree';
-import { getDepositsFor } from '../../data/deposits';
-import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
-import { getEffectiveAgeId } from '../../data/ages';
-import { FOOD_TIER_GROWTH_BONUS } from '../../engine/population';
 import {
   GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
 } from '../../data/government';
@@ -34,41 +25,28 @@ import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost
 import { ESTATE_LABELS, ESTATE_LOYALTY_HIGH_THRESHOLD, ESTATE_LOYALTY_LOW_THRESHOLD, getEstatePrivileges, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD } from '../../data/estates';
 import { canDoEstateInteraction } from '../../engine/estates';
 import {
-  GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, getGreatProjectOwner, canStartGreatProject, canUpgradeGreatProject
+  GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, getGreatProjectOwner, canUpgradeGreatProject
 } from '../../data/greatProjects';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
-import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
+import { canAfford, formatNumber } from '../../utils/helpers';
 import { getAdvisorHireCost } from '../../engine/succession';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
-import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
-import { ActionButton } from '../ui';
-import { Crown, Users, TrendingUp } from 'lucide-react';
+import { ActionButton, CollapsibleSection } from '../ui';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
-const DomesticPanel = ({ selectedRegion }) => {
+const DomesticPanel = () => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const playerNation = state.nations[state.playerNationId];
-
-  const regionState = selectedRegion ? state.regions[selectedRegion] : null;
-  const regionData = selectedRegion ? REGIONS_DATA[selectedRegion] : null;
-  const ownerName = regionState ? (state.nations[regionState.owner]?.name || regionState.owner) : null;
-  const isPlayerOwned = regionState?.owner === state.playerNationId;
 
   const handleSetTaxRate = (rate) => {
     if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
     triggerEffect('set_tax_rate', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
-  };
-  const handleStartGreatProject = (projectId, regionId) => {
-    const { gold, adm } = getGreatProjectCost(1);
-    if (!canAfford(state.resources, { gold, adm })) return addLog('Not enough resources', 'action');
-    triggerEffect('start_great_project', { region: regionId });
-    dispatch({ type: ActionTypes.START_GREAT_PROJECT, payload: { projectId, regionId } });
   };
   const handleUpgradeGreatProject = (projectId) => {
     const entry = state.greatProjects[projectId];
@@ -81,11 +59,6 @@ const DomesticPanel = ({ selectedRegion }) => {
     if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog('Not enough resources', 'action');
     triggerEffect('counter_intelligence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.COUNTER_INTELLIGENCE });
-  };
-  const handleMoveCapital = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.moveCapital)) return addLog('Not enough resources', 'action');
-    triggerEffect('move_capital', { region: selectedRegion });
-    dispatch({ type: ActionTypes.MOVE_CAPITAL, payload: { regionId: selectedRegion } });
   };
 
   const empireSection = (
@@ -246,7 +219,6 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const courtSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">Court</div>
       {ruler && (
         <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
           <div className="flex items-center gap-2">
@@ -362,7 +334,6 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const governmentSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">Government</div>
       <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
         <div className="text-slate-400">Current</div>
         <div className="text-white font-semibold">{currentGovernmentType ? currentGovernmentType.name : 'None adopted'}</div>
@@ -418,7 +389,6 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const lawsSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">Laws</div>
       {LAW_CATEGORY_IDS.map((category) => {
         const currentLawId = playerNation?.laws?.[category];
         const currentLaw = getLaw(category, currentLawId);
@@ -485,7 +455,6 @@ const DomesticPanel = ({ selectedRegion }) => {
   const crownLand = playerNation?.crownLand ?? 50;
   const estatesSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">Estates</div>
       <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
         <div className="flex items-center justify-between">
           <span className="text-slate-400">Crown Land</span>
@@ -547,7 +516,6 @@ const DomesticPanel = ({ selectedRegion }) => {
 
   const identitySection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">National Identity</div>
       {IDENTITY_AXIS_IDS.map((axisId) => {
         const axis = IDENTITY_AXES[axisId];
         const value = playerNation?.identity?.[axisId] || 0;
@@ -579,355 +547,31 @@ const DomesticPanel = ({ selectedRegion }) => {
     </div>
   );
 
-  if (!regionData || !regionState) {
-    return (
-      <div className="space-y-4">
-        {governmentSection}
-        <div className="border-t border-slate-800 pt-2">{lawsSection}</div>
-        <div className="border-t border-slate-800 pt-2">{estatesSection}</div>
-        <div className="border-t border-slate-800 pt-2">{courtSection}</div>
-        <div className="border-t border-slate-800 pt-2">{identitySection}</div>
-        <div className="border-t border-slate-800 pt-2">{empireSection}</div>
-        <div className="text-slate-400 text-sm text-center mt-8">
-          Select a region on the globe to see its details.
-        </div>
-      </div>
-    );
-  }
-
-  const dispatchAction = (type, payload, insufficientMessage) => {
-    if (insufficientMessage) {
-      addLog(insufficientMessage, 'action');
-      return;
-    }
-    dispatch({ type, payload: { regionId: selectedRegion, ...payload } });
-  };
-
-  const handleGainControl = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.gainControl)) return addLog('Not enough resources', 'action');
-    triggerEffect('gain_control', { region: selectedRegion });
-    dispatchAction(ActionTypes.GAIN_CONTROL);
-  };
-  const handleBuildInfrastructure = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.buildInfrastructure)) return addLog('Not enough resources', 'action');
-    triggerEffect('build_infrastructure', { region: selectedRegion });
-    dispatchAction(ActionTypes.BUILD_INFRASTRUCTURE);
-  };
-  const handleBuildDefenses = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.buildDefenses)) return addLog('Not enough resources', 'action');
-    triggerEffect('build_defenses', { region: selectedRegion });
-    dispatchAction(ActionTypes.BUILD_DEFENSES);
-  };
-  const handleBuildClimateResilience = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.buildClimateResilience)) return addLog('Not enough resources', 'action');
-    triggerEffect('build_climate_resilience', { region: selectedRegion });
-    dispatchAction(ActionTypes.BUILD_CLIMATE_RESILIENCE);
-  };
-  const handleQuellUnrest = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.quellUnrest)) return addLog('Not enough resources', 'action');
-    triggerEffect('quell_unrest', { region: selectedRegion });
-    dispatchAction(ActionTypes.QUELL_UNREST);
-  };
-  const handlePopulationPolicy = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.populationPolicy)) return addLog('Not enough resources', 'action');
-    triggerEffect('population_policy', { region: selectedRegion });
-    dispatchAction(ActionTypes.POPULATION_POLICY);
-  };
-  const handleSettleColonize = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog('Not enough resources', 'action');
-    triggerEffect('settle_colonize', { region: selectedRegion });
-    dispatchAction(ActionTypes.SETTLE_COLONIZE);
-  };
-  const developmentCostMult = getModifier(state, state.playerNationId, 'national.developmentCost').total;
-  const handleDevelopProvince = (devType) => {
-    const pool = DEV_TYPE_POOL[devType];
-    const cost = getDevelopProvinceCost(regionState, developmentCostMult);
-    if ((state.resources[pool] || 0) < cost) return addLog(`Not enough ${pool.toUpperCase()}`, 'action');
-    triggerEffect('develop_province', { region: selectedRegion });
-    dispatchAction(ActionTypes.DEVELOP_PROVINCE, { devType });
-  };
-  const researchedTechIds = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id].researched));
-  const buildingCostMult = getModifier(state, state.playerNationId, 'national.buildingCost').total;
-  const buildingSlots = regionState ? getBuildingSlots(getTotalDev(regionState), !!regionData?.isCapital) : 0;
-  const usedBuildingSlots = regionState ? getUsedBuildingSlots(regionState.buildings) : 0;
-  const handleConstructBuilding = (categoryId) => {
-    const nextTierIndex = (regionState?.buildings.categories[categoryId] ?? -1) + 1;
-    const cost = getBuildingTierCost(categoryId, nextTierIndex, buildingCostMult);
-    if ((state.resources.gold || 0) < cost) return addLog('Not enough gold', 'action');
-    // The icon must match the TIER actually being built (the age it belongs to), not the current
-    // calendar/tech age — a rushed one-age-ahead build already shows next age's structure.
-    const tierAge = BUILDING_CATEGORIES[categoryId]?.tiers[nextTierIndex]?.age;
-    triggerEffect('construct_building', { region: selectedRegion, variant: categoryId, age: tierAge });
-    dispatch({ type: ActionTypes.CONSTRUCT_BUILDING, payload: { regionId: selectedRegion, categoryId } });
-  };
-  const handleDevelopResourceSite = (resourceId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.developResourceSite)) return addLog('Not enough resources', 'action');
-    triggerEffect('develop_resource_site', { region: selectedRegion, variant: resourceId });
-    dispatch({ type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId: selectedRegion, resourceId } });
-  };
-
-  const deposits = getDepositsFor(regionData?.startOwner); // deposits are geological, keyed by the province's home country
-  const undevelopedDeposits = deposits.filter(resId => !regionState.buildings.extraction[resId]);
-  // Matches the reducer's own gate (GameContext.jsx's CONSTRUCT_BUILDING/DEVELOP_RESOURCE_SITE) —
-  // otherwise a tech-earned age ahead of the calendar would accept the action but show it as
-  // disabled here.
-  const effectiveAge = getEffectiveAgeId(state.age, state.techAgeId);
-
   return (
-    <div className="space-y-4">
-      {governmentSection}
-      <div className="pt-2 border-t border-slate-800">{lawsSection}</div>
-      <div className="pt-2 border-t border-slate-800">{estatesSection}</div>
-      <div className="pt-2 border-t border-slate-800">{courtSection}</div>
-      <div className="pt-2 border-t border-slate-800">{identitySection}</div>
-
-      <div className="flex items-center gap-2 text-white font-bold text-lg pt-2 border-t border-slate-800">
-        <Building2 size={20} className="text-blue-400" />
-        {regionData.name}
-      </div>
-      {isPlayerOwned && regionState.formerOwner && (
-        <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
-          Conquered from {state.nations[regionState.formerOwner]?.name || regionState.formerOwner} — still at risk of
-          reverting if it revolts. Raise control to {INTEGRATION_CONTROL_THRESHOLD}% ({regionState.control}% now) to
-          fully integrate it.
-        </div>
-      )}
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="bg-slate-800/60 rounded-lg p-3">
-          <div className="text-slate-400">Owner</div>
-          <div className="text-white font-semibold">{ownerName}</div>
-        </div>
-        <div className="bg-slate-800/60 rounded-lg p-3">
-          <div className="text-slate-400">Control</div>
-          <div className="text-white font-semibold">{regionState.control}%</div>
-        </div>
-        <div className="bg-slate-800/60 rounded-lg p-3">
-          <div className="text-slate-400">Population</div>
-          <div className="text-white font-semibold">{formatNumber(getDisplayPopulation(regionState, regionData, state.year))}</div>
-        </div>
-        <div className="bg-slate-800/60 rounded-lg p-3">
-          <div className="text-slate-400">Infrastructure</div>
-          <div className="text-white font-semibold">Level {regionState.currentInfrastructure} (Supply {getSupplyCapacity(regionState.currentInfrastructure)})</div>
-        </div>
-        <div className="bg-slate-800/60 rounded-lg p-3">
-          <div className="text-slate-400">Defense</div>
-          <div className="text-white font-semibold">Level {regionState.defenseLevel}</div>
-        </div>
-        <div className="bg-slate-800/60 rounded-lg p-3">
-          <div className="text-slate-400">Stability</div>
-          <div className="text-white font-semibold">{getStability(regionState)}%</div>
-        </div>
-      </div>
-
-      {isPlayerOwned && (
-        <>
-          <div className="space-y-2">
-            <ActionButton
-              icon={Flag}
-              label="Gain Control"
-              description="Raise control in this region"
-              costs={ACTION_COSTS.gainControl}
-              effects={{ control: 5 }}
-              onClick={handleGainControl}
-              disabled={regionState.control >= 100}
-            />
-            {selectedRegion !== getCapital(state, state.playerNationId) && (
-              <ActionButton
-                icon={Landmark}
-                label="Move Capital Here"
-                description={REGIONS_DATA[selectedRegion]?.startOwner !== state.playerNationId ? 'Relocates the capital (-1 stability: outside your native territory)' : 'Relocates the capital'}
-                costs={ACTION_COSTS.moveCapital}
-                onClick={handleMoveCapital}
-                disabled={!!regionState.occupiedBy}
-              />
-            )}
-            <div className="text-xs font-semibold text-slate-300 pt-1">Develop Province</div>
-            {DEV_TYPE_IDS.map((devType) => {
-              const cost = getDevelopProvinceCost(regionState, developmentCostMult);
-              const pool = DEV_TYPE_POOL[devType];
-              return (
-                <ActionButton
-                  key={devType}
-                  icon={TrendingUp}
-                  label={`Develop ${devType[0].toUpperCase()}${devType.slice(1)} (${regionState.dev?.[devType] || 0})`}
-                  description={`+1 ${devType} development`}
-                  costs={{ [pool]: cost }}
-                  onClick={() => handleDevelopProvince(devType)}
-                  disabled={(state.resources[pool] || 0) < cost}
-                  resources={state.resources}
-                  size="small"
-                />
-              );
-            })}
-            <ActionButton
-              icon={Hammer}
-              label="Build Infrastructure"
-              description="Raises supply capacity and resource output"
-              costs={ACTION_COSTS.buildInfrastructure}
-              effects={{ infrastructure: 1 }}
-              onClick={handleBuildInfrastructure}
-              disabled={regionState.currentInfrastructure >= 10}
-            />
-            <ActionButton
-              icon={Shield}
-              label="Build Defenses"
-              description="Strengthens this region against invasion"
-              costs={ACTION_COSTS.buildDefenses}
-              effects={{ defense: 1 }}
-              onClick={handleBuildDefenses}
-              disabled={regionState.defenseLevel >= 10}
-            />
-            {effectiveAge === 'modern' && (
-              <ActionButton
-                icon={Sprout}
-                label="Build Climate Resilience"
-                description="Reduces this region's exposure to weather/harvest disasters"
-                costs={ACTION_COSTS.buildClimateResilience}
-                effects={{ custom: '+1 Resilience' }}
-                onClick={handleBuildClimateResilience}
-                disabled={(regionState.climateResilience || 0) >= CLIMATE_RESILIENCE_MAX}
-              />
-            )}
-            <ActionButton
-              icon={HeartCrack}
-              label="Quell Unrest"
-              description="Suppress unrest before it spreads"
-              costs={ACTION_COSTS.quellUnrest}
-              effects={{ unrest: 30 }}
-              onClick={handleQuellUnrest}
-              disabled={regionState.unrest <= 0}
-            />
-            <ActionButton
-              icon={Sprout}
-              label="Population Policy"
-              description="Invest in growth — more population means more gold and HR income here"
-              costs={ACTION_COSTS.populationPolicy}
-              onClick={handlePopulationPolicy}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-              <span>Buildings</span>
-              <span className="text-slate-500 font-normal">{usedBuildingSlots}/{buildingSlots} slots</span>
-            </div>
-            {BUILDING_CATEGORY_IDS.map(categoryId => {
-              const category = BUILDING_CATEGORIES[categoryId];
-              const currentTier = regionState.buildings.categories[categoryId];
-              const currentName = currentTier >= 0 ? getCategoryTierName(categoryId, currentTier) : null;
-              const nextTier = currentTier + 1;
-              const nextName = getCategoryTierName(categoryId, nextTier);
-              const notCoastal = category.coastalOnly && !regionData.isCoastal;
-              const techGated = nextName && !canBuildTier(categoryId, researchedTechIds, nextTier);
-              const needsNewSlot = currentTier < 0;
-              const noFreeSlot = needsNewSlot && usedBuildingSlots >= buildingSlots;
-              const cost = nextName ? getBuildingTierCost(categoryId, nextTier, buildingCostMult) : null;
-              const buildable = nextName && !notCoastal && !techGated && !noFreeSlot;
-              const requiresTechName = techGated ? TECH_TREE[category.tiers[nextTier].requiresTech]?.name : null;
-              // Food & Growth is the one category with a mechanical effect worth naming here (it
-              // feeds resolveTurn.js's population growth via src/engine/population.js) — every
-              // other category's own action (Develop Resource Site, the Science tech-point yield,
-              // etc.) already states its effect elsewhere, so this doesn't generalize a pattern
-              // that isn't there yet for the rest.
-              const foodEffect = categoryId === 'food' && nextName
-                ? `, +${((nextTier + 1) * FOOD_TIER_GROWTH_BONUS * 100).toFixed(2)}%/turn population growth`
-                : '';
-              const reason = notCoastal ? 'Coastal region only'
-                : techGated ? `Requires ${requiresTechName || 'a tech not yet researched'}`
-                : noFreeSlot ? 'No free building slot'
-                : nextName ? `Build ${nextName}${foodEffect}`
-                : 'Fully developed';
-              return (
-                <ActionButton
-                  key={categoryId}
-                  icon={Building2}
-                  label={`${category.label}: ${currentName || 'None'}`}
-                  description={reason}
-                  costs={cost !== null ? { gold: cost } : null}
-                  onClick={() => handleConstructBuilding(categoryId)}
-                  disabled={!buildable}
-                  resources={state.resources}
-                  size="small"
-                />
-              );
-            })}
-          </div>
-
-          {isPlayerOwned && (
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-slate-300">Great Projects</div>
-              {regionState.greatProjectConstruction && (
-                <div className="bg-slate-800/60 rounded-lg p-2 text-xs text-slate-300">
-                  Building {GREAT_PROJECTS[regionState.greatProjectConstruction.projectId]?.name} (tier {regionState.greatProjectConstruction.tier}) —{' '}
-                  {regionState.greatProjectConstruction.turnsLeft} turn{regionState.greatProjectConstruction.turnsLeft === 1 ? '' : 's'} left
-                </div>
-              )}
-              {GREAT_PROJECT_IDS.filter((projectId) => canStartGreatProject(state, state.playerNationId, projectId, selectedRegion)).map((projectId) => {
-                const project = GREAT_PROJECTS[projectId];
-                const cost = getGreatProjectCost(1);
-                return (
-                  <ActionButton
-                    key={projectId}
-                    icon={Landmark}
-                    label={`Start ${project.name}`}
-                    description={`${cost.turns} turns — ${project.description}`}
-                    costs={{ gold: cost.gold, adm: cost.adm }}
-                    onClick={() => handleStartGreatProject(projectId, selectedRegion)}
-                    disabled={!canAfford(state.resources, { gold: cost.gold, adm: cost.adm })}
-                    resources={state.resources}
-                    size="small"
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          {deposits.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-slate-300">Resource Deposits</div>
-              {deposits.map(resId => {
-                const developed = regionState.buildings.extraction[resId];
-                const buildable = !developed && canBuildExtraction(resId, effectiveAge);
-                return (
-                  <ActionButton
-                    key={resId}
-                    icon={Gem}
-                    label={`${EXTRACTION_BUILDINGS[resId].name}${developed ? ' (built)' : ''}`}
-                    description={`Develop this region's ${resId} deposit`}
-                    costs={!developed ? ACTION_COSTS.developResourceSite : null}
-                    onClick={() => handleDevelopResourceSite(resId)}
-                    disabled={!buildable}
-                    size="small"
-                  />
-                );
-              })}
-              {undevelopedDeposits.length === 0 && (
-                <div className="text-[10px] text-slate-500">Every known deposit here is already developed.</div>
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      {!isPlayerOwned && (
-        <div className="space-y-2 pt-2 border-t border-slate-800">
-          {isAdjacentToOwner(selectedRegion, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD ? (
-            <ActionButton
-              icon={Flag}
-              label="Settle / Colonize"
-              description={`${ownerName}'s grip here has collapsed (${regionState.control}% control) — absorb it peacefully, no military required`}
-              costs={ACTION_COSTS.settleColonize}
-              onClick={handleSettleColonize}
-            />
-          ) : (
-            <div className="text-slate-500 text-xs text-center">
-              You don&apos;t control this region — domestic actions are unavailable here.
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="pt-2 border-t border-slate-800">{empireSection}</div>
+    <div className="space-y-3">
+      <CollapsibleSection title="Court" icon={Crown} defaultOpen>
+        {courtSection}
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection title="Empire" icon={ShieldAlert} defaultOpen>
+        {empireSection}
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection title="Government" icon={Landmark} summary={currentGovernmentType?.name}>
+        {governmentSection}
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection title="Laws" icon={ScrollText}>
+        {lawsSection}
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection title="Estates" icon={Coins} summary={`Crown Land ${crownLand}%`}>
+        {estatesSection}
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection title="National Identity" icon={Users}>
+        {identitySection}
+      </CollapsibleSection>
     </div>
   );
 };

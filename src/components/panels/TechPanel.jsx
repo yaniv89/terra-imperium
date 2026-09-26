@@ -14,7 +14,7 @@ import { getNationCapital } from '../../data/regions';
 import { getAgesBehind, getAgesBehindResearchCostMultiplier } from '../../data/ages';
 import { canAfford } from '../../utils/helpers';
 import { getModifier } from '../../engine/modifiers/sheet';
-import { ActionButton } from '../ui';
+import { ActionButton, CollapsibleSection } from '../ui';
 
 const CATEGORY_LABELS = {
   [TechCategories.MILITARY]: 'Military',
@@ -44,6 +44,19 @@ const TechPanel = () => {
     const techPoints = Math.round(tech.cost.techPoints * (1 + nationalResearchCostMult) * agesBehindMult);
     return { [TECH_RESEARCH_POOL[tech.category]]: power, techPoints };
   };
+
+  // Plan feedback: a flat ~50-button list was overcrowded. Only one category starts expanded — the
+  // focused one, or (with no focus set) the first category with a tech that's structurally eligible
+  // (prerequisites/age/exclusivity met) even if not affordable THIS turn — affordability changes
+  // turn to turn and shouldn't be what decides which section a player sees on load, or nothing
+  // would ever auto-expand at the very start of a game when nobody can afford anything yet.
+  const defaultOpenCategoryId = state.researchFocus || Object.values(TechCategories).find((categoryId) => (
+    (categories[categoryId]?.techs || []).some((tech) => {
+      if (state.techTree[tech.id]?.researched) return false;
+      const { can, reason } = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, nationalResearchCostMult, false);
+      return can || reason === 'Insufficient tech points' || reason?.startsWith('Need ');
+    })
+  ));
 
   const handleFocus = (categoryId) => {
     if (!canAfford(state.resources, ACTION_COSTS.setResearchFocus)) return addLog('Not enough resources', 'action');
@@ -118,30 +131,38 @@ const TechPanel = () => {
         </div>
       </div>
 
-      {Object.values(TechCategories).map(categoryId => (
-        <div key={categoryId} className="space-y-1.5">
-          <div className="text-xs font-semibold text-slate-300">{CATEGORY_LABELS[categoryId]}</div>
-          {(categories[categoryId]?.techs || []).map(tech => {
-            const techState = state.techTree[tech.id];
-            const focused = state.researchFocus === categoryId;
-            const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, nationalResearchCostMult, focused);
-            const costs = getTechCosts(tech);
-            return (
-              <ActionButton
-                key={tech.id}
-                icon={techState?.researched ? Check : check.can ? BookOpen : Lock}
-                label={tech.name}
-                description={techState?.researched ? 'Researched' : focused ? `${check.reason || 'Available'} (focused: -15% power)` : check.reason || 'Available'}
-                costs={techState?.researched ? null : costs}
-                onClick={() => handleResearch(tech)}
-                disabled={techState?.researched || !check.can}
-                variant={techState?.researched ? 'success' : 'default'}
-                size="small"
-              />
-            );
-          })}
-        </div>
-      ))}
+      {Object.values(TechCategories).map(categoryId => {
+        const techs = categories[categoryId]?.techs || [];
+        const researchedCount = techs.filter((t) => state.techTree[t.id]?.researched).length;
+        return (
+          <CollapsibleSection
+            key={categoryId}
+            title={CATEGORY_LABELS[categoryId]}
+            defaultOpen={categoryId === defaultOpenCategoryId}
+            summary={`${researchedCount}/${techs.length} researched`}
+          >
+            {techs.map(tech => {
+              const techState = state.techTree[tech.id];
+              const focused = state.researchFocus === categoryId;
+              const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, nationalResearchCostMult, focused);
+              const costs = getTechCosts(tech);
+              return (
+                <ActionButton
+                  key={tech.id}
+                  icon={techState?.researched ? Check : check.can ? BookOpen : Lock}
+                  label={tech.name}
+                  description={techState?.researched ? 'Researched' : focused ? `${check.reason || 'Available'} (focused: -15% power)` : check.reason || 'Available'}
+                  costs={techState?.researched ? null : costs}
+                  onClick={() => handleResearch(tech)}
+                  disabled={techState?.researched || !check.can}
+                  variant={techState?.researched ? 'success' : 'default'}
+                  size="small"
+                />
+              );
+            })}
+          </CollapsibleSection>
+        );
+      })}
     </div>
   );
 };
