@@ -48,6 +48,10 @@ describe('getEstateLoyaltyTarget', () => {
     const nation = { ...baseNation(), laws: { ...DEFAULT_LAWS, religion: 'secularism' } };
     expect(getEstateLoyaltyTarget(nation, 'clergy')).toBe(ESTATE_LOYALTY_EQUILIBRIUM - 10);
   });
+
+  it('rises with a pre-computed owned-great-project estateLoyalty effect (the optional 3rd arg)', () => {
+    expect(getEstateLoyaltyTarget(baseNation(), 'nobility', [{ nobility: 5 }])).toBe(ESTATE_LOYALTY_EQUILIBRIUM + 5);
+  });
 });
 
 describe('getEstateInfluence', () => {
@@ -137,6 +141,34 @@ describe('processEstatesTurn', () => {
   it('is safe for a nation with no estates field at all', () => {
     const state = { playerNationId: 'fr', nations: { fr: {} }, regions: {} };
     expect(processEstatesTurn(state, 'fr')).toBeUndefined();
+  });
+
+  // Bug fix (plan feedback: "issue with great works" — the Colosseum/Great Cathedral/Palace of
+  // Versailles descriptions all promise a real estateLoyalty bonus, but processEstatesTurn never
+  // read state.greatProjects at all, so it silently never applied).
+  describe('great project estateLoyalty (bug fix)', () => {
+    it('pulls loyalty toward a target that includes an owned great project\'s effect', () => {
+      const nation = baseNation();
+      nation.estates.nobility = { ...nation.estates.nobility, loyalty: 50 };
+      const state = {
+        playerNationId: 'fr',
+        nations: { fr: nation },
+        regions: { r1: { owner: 'fr' } },
+        greatProjects: { colosseum: { regionId: 'r1', tier: 1 } } // +5 nobility loyalty at every tier
+      };
+      expect(processEstatesTurn(state, 'fr').nobility.loyalty).toBe(51); // stepping toward the new target, 55
+    });
+
+    it('ignores a great project once its site region no longer belongs to this nation', () => {
+      const nation = baseNation();
+      const state = {
+        playerNationId: 'fr',
+        nations: { fr: nation },
+        regions: { r1: { owner: 'de' } }, // captured away
+        greatProjects: { colosseum: { regionId: 'r1', tier: 1 } }
+      };
+      expect(processEstatesTurn(state, 'fr').nobility.loyalty).toBe(50); // unaffected
+    });
   });
 });
 

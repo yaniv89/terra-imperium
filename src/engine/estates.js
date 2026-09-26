@@ -6,16 +6,30 @@ import { ESTATE_LOYALTY_EQUILIBRIUM, getPrivilege } from '../data/estates';
 import { getActiveReforms } from '../data/government';
 import { getLaw } from '../data/laws';
 import { TRAITS } from '../data/traits';
+import { GREAT_PROJECTS, getGreatProjectOwner } from '../data/greatProjects';
 
 const sumRawEstateEffect = (effect, estateId) => {
   if (!effect) return 0;
   return (effect[estateId] || 0) + (effect.all || 0);
 };
 
+// Bug fix (plan feedback: "issue with great works" — the Colosseum/Great Cathedral/Palace of
+// Versailles descriptions all promise a real estateLoyalty bonus, but nothing ever read it): every
+// great project this nation currently owns (ownership derived from its site region, same as
+// src/engine/modifiers/sources.js's own contextSources reads it), at its current tier's effects.
+const getOwnedGreatProjectEstateLoyaltyEffects = (state, nationId) =>
+  Object.entries(state?.greatProjects || {})
+    .filter(([projectId, entry]) => entry?.tier && getGreatProjectOwner(state, projectId) === nationId)
+    .map(([projectId, entry]) => GREAT_PROJECTS[projectId]?.tiers[entry.tier - 1]?.effects?.estateLoyalty)
+    .filter(Boolean);
+
 // Every real source of a loyalty PULL away from the 50 equilibrium: privileges granted (a permanent
-// floor-raise while held), government reforms, laws, and ruler traits — each may target one named
-// estate or `all` of them (see government.js's header comment on the raw `estateLoyalty` key).
-export const getEstateLoyaltyTarget = (nation, estateId) => {
+// floor-raise while held), government reforms, laws, ruler traits, and owned great projects — each
+// may target one named estate or `all` of them (see government.js's header comment on the raw
+// `estateLoyalty` key). `greatProjectEffects` is optional and pre-computed by the one real caller
+// (processEstatesTurn, once per nation per turn rather than once per estate) — every other/existing
+// call site keeps working unchanged without it.
+export const getEstateLoyaltyTarget = (nation, estateId, greatProjectEffects = []) => {
   let target = ESTATE_LOYALTY_EQUILIBRIUM;
   const estate = nation?.estates?.[estateId];
   (estate?.privileges || []).forEach((privilegeId) => {
@@ -28,6 +42,7 @@ export const getEstateLoyaltyTarget = (nation, estateId) => {
     target += sumRawEstateEffect(law?.effects?.estateLoyalty, estateId);
   });
   (nation?.ruler?.traits || []).forEach((traitId) => { target += sumRawEstateEffect(TRAITS[traitId]?.effects?.estateLoyalty, estateId); });
+  greatProjectEffects.forEach((effect) => { target += sumRawEstateEffect(effect, estateId); });
   return Math.max(0, Math.min(100, target));
 };
 
@@ -76,10 +91,11 @@ export const processEstatesTurn = (state, nationId) => {
   const ownedRegions = nationId === state.playerNationId
     ? Object.values(state.regions || {}).filter((r) => r.owner === nationId)
     : null;
+  const greatProjectEffects = getOwnedGreatProjectEstateLoyaltyEffects(state, nationId);
   let changed = false;
   const estates = {};
   Object.entries(nation.estates).forEach(([id, estate]) => {
-    const target = getEstateLoyaltyTarget(nation, id);
+    const target = getEstateLoyaltyTarget(nation, id, greatProjectEffects);
     const diff = target - estate.loyalty;
     const step = Math.sign(diff) * Math.min(1, Math.abs(diff));
     const loyalty = Math.max(0, Math.min(100, estate.loyalty + step));
