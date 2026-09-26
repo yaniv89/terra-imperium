@@ -48,6 +48,17 @@ describe('GREAT_PROJECTS data integrity', () => {
     });
   });
 
+  // Bug-pattern regression guard (plan feedback: "issue with great works" — 5 projects gave
+  // literally no ongoing effect at all, and 3 more claimed an estateLoyalty bonus that nothing ever
+  // applied). Keeps both classes of bug from quietly coming back.
+  it('no project is effect-free at any tier (every project gives a real, ongoing bonus beyond one-time prestige)', () => {
+    Object.values(GREAT_PROJECTS).forEach((project) => {
+      project.tiers.forEach((tier, i) => {
+        expect(Object.keys(tier.effects).length, `${project.id}/tier${i + 1}`).toBeGreaterThan(0);
+      });
+    });
+  });
+
   it('prestige rises with tier for every project', () => {
     Object.values(GREAT_PROJECTS).forEach((project) => {
       expect(project.tiers[1].completionPrestige, project.id).toBeGreaterThan(project.tiers[0].completionPrestige);

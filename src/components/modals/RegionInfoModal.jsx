@@ -2,13 +2,24 @@
 // Region information modal/panel with close button
 
 import React from 'react';
-import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords, Settings2 } from 'lucide-react';
+import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords, Settings2, Anchor, Ship } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { REGIONS_DATA } from '../../data/regions';
+import { useEffects } from '../../context/EffectsContext';
+import { ActionTypes } from '../../data/types';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner } from '../../data/regions';
+import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
+import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
-import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
+import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import ProgressBar from '../ui/ProgressBar';
+import { ActionButton } from '../ui';
+
+// Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
+// within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
+// player-owned-side reachability checks.
+const isReachable = (fromRegionId, toRegionId, age) =>
+  getNeighborIds(fromRegionId).includes(toRegionId) || isReachableBySea(fromRegionId, toRegionId, age);
 
 // Plan feedback: on mobile the old corner-panel treatment (absolute, no height cap) could grow
 // taller than the small mobile map itself, hiding the very region you just tapped and spilling
@@ -16,7 +27,8 @@ import ProgressBar from '../ui/ProgressBar';
 // to the viewport (not confined to the map's own small bounding box), capped height with its own
 // scroll, sliding up from below the whole screen rather than floating on top of the map.
 const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) => {
-  const { state } = useGame();
+  const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
@@ -48,6 +60,49 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
   const isPlayerOwned = regionState.owner === state.playerNationId;
   const ownerNation = !isPlayerOwned ? state.nations[regionState.owner] : null;
+
+  // Foreign-region attack/settle options (plan feedback: "Manage Region" now only opens for your
+  // own provinces, Civ-style — a foreign region's available actions surface here directly instead).
+  const invasionSources = !isPlayerOwned
+    ? getNeighborIds(regionId)
+      .filter((nId) => state.regions[nId]?.owner === state.playerNationId)
+      .map((nId) => ({ regionId: nId, unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length }))
+      .filter((source) => source.unitCount > 0)
+    : [];
+  const amphibiousSources = (!isPlayerOwned && isCoastal(regionId))
+    ? Object.values(state.units)
+      .filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age))
+      .map((u) => ({ unit: u, cargoCount: Object.values(state.units).filter((c) => c.embarkedOn === u.id).length }))
+      .filter(({ cargoCount }) => cargoCount > 0)
+    : [];
+  const defendingNavalUnits = !isPlayerOwned
+    ? Object.values(state.units).filter((u) => u.regionId === regionId && u.domain === 'naval' && u.ownerId !== state.playerNationId)
+    : [];
+  const navalEngagementSources = (!isPlayerOwned && defendingNavalUnits.length > 0)
+    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age)).map((u) => u.regionId))]
+    : [];
+  const canSettle = !isPlayerOwned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
+
+  const handleInvade = (fromRegionId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
+    triggerEffect('ground_invasion', { from: fromRegionId, to: regionId });
+    dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: regionId } });
+  };
+  const handleAmphibiousAssault = (navalUnitId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
+    triggerEffect('amphibious_assault', { from: state.units[navalUnitId]?.regionId, to: regionId });
+    dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: regionId } });
+  };
+  const handleNavalEngagement = (fromRegionId) => {
+    if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
+    triggerEffect('naval_engagement', { from: fromRegionId, to: regionId });
+    dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: regionId } });
+  };
+  const handleSettleColonize = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog('Not enough resources', 'action');
+    triggerEffect('settle_colonize', { region: regionId });
+    dispatch({ type: ActionTypes.SETTLE_COLONIZE, payload: { regionId } });
+  };
 
   const mobileSheet = isMobile && position === 'panel';
 
@@ -90,9 +145,10 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       </div>
 
       {/* Civ-style "manage this region" entry point (plan feedback: region actions used to live
-          in the Domestic/Military tabs, overcrowding them) — always shown so even a foreign
-          region can be inspected in the full modal, same as Civilization lets you open any city. */}
-      {onManage && (
+          in the Domestic/Military tabs, overcrowding them) — only for your own provinces, same as
+          Civilization only gives you a city screen for your own cities. A foreign region's
+          available actions (invade, settle, etc.) render directly below instead. */}
+      {onManage && isPlayerOwned && (
         <button
           onClick={onManage}
           className="w-full flex items-center justify-center gap-1.5 mb-2 py-1.5 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-semibold"
@@ -198,6 +254,64 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">
                 ⚔ At War
               </span>
+            )}
+          </div>
+
+          {/* Attack / settle options — the foreign-region equivalent of "Manage Region" above,
+              since a foreign region never gets its own management screen. */}
+          <div className="mt-2 pt-2 border-t border-slate-700 space-y-1.5">
+            {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && !canSettle && (
+              <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
+            )}
+            {invasionSources.map(({ regionId: srcId, unitCount }) => (
+              <ActionButton
+                key={srcId}
+                icon={Flag}
+                label={`Invade from ${REGIONS_DATA[srcId]?.name}`}
+                description={`${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
+                costs={ACTION_COSTS.launchInvasion}
+                onClick={() => handleInvade(srcId)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
+                variant="danger"
+                size="small"
+              />
+            ))}
+            {amphibiousSources.map(({ unit, cargoCount }) => (
+              <ActionButton
+                key={unit.id}
+                icon={Anchor}
+                label={`Amphibious assault from ${REGIONS_DATA[unit.regionId]?.name}`}
+                description={`${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}`}
+                costs={ACTION_COSTS.amphibiousAssault}
+                onClick={() => handleAmphibiousAssault(unit.id)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)}
+                variant="danger"
+                size="small"
+              />
+            ))}
+            {navalEngagementSources.map((srcId) => (
+              <ActionButton
+                key={srcId}
+                icon={Ship}
+                label={`Naval engagement from ${REGIONS_DATA[srcId]?.name}`}
+                description={`Contest ${defendingNavalUnits.length} enemy fleet unit${defendingNavalUnits.length === 1 ? '' : 's'}`}
+                costs={ACTION_COSTS.navalEngagement}
+                onClick={() => handleNavalEngagement(srcId)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
+                variant="danger"
+                size="small"
+              />
+            ))}
+            {canSettle && (
+              <ActionButton
+                icon={Flag}
+                label="Settle / Colonize"
+                description={`Grip here has collapsed (${regionState.control}% control) — absorb it peacefully, no military required`}
+                costs={ACTION_COSTS.settleColonize}
+                onClick={handleSettleColonize}
+                disabled={!canAfford(state.resources, ACTION_COSTS.settleColonize)}
+                size="small"
+              />
             )}
           </div>
         </>

@@ -207,6 +207,64 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     expect(nation.tech.researched.length).toBe(1);
   });
 
+  // Plan feedback: an AI nation's own province dev.tax/production/manpower never moved past its
+  // seeded starting value before this — nothing in the decision chain ever spent ADM/DIP/MIL on it,
+  // even once government/building/tech all had nothing left to do that turn.
+  describe('province development (plan feedback: AI parity gap — dev never grew past its seeded value)', () => {
+    const blockedBuildings = { categories: { food: 0, economy: 0, military: 0, defense: 0, science: 0, industry: 0, culture: 0, naval: 0, logistics: 0 } };
+
+    it('develops the highest-dev owned region using whichever power pool can afford it, once nothing else fires', () => {
+      const state = makeState({
+        age: 'bronze',
+        regions: {
+          [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }),
+          [REGION_B]: makeRegion(REGION_B, { dev: { tax: 30, production: 30, manpower: 30 }, buildings: blockedBuildings }) // clearly higher dev
+        },
+        nations: {
+          id: makeAiNation({
+            government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } }, // already reformed -> falls through
+            economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 1000 } // only MIL is funded
+          })
+        }
+      });
+      const { nation } = processAIEconomyTurn(state, state.regions, 'id');
+      expect(nation.economy.mil).toBeLessThan(1000); // spent on development
+      expect(state.regions[REGION_B].dev.manpower).toBe(31); // the higher-dev region, +1 manpower (the only affordable pool)
+      expect(state.regions[REGION_A].dev.manpower).toBe(seedDevelopment(REGION_A).manpower); // the OTHER owned region is untouched
+    });
+
+    it('never touches a region it does not own', () => {
+      const state = makeState({
+        age: 'bronze',
+        regions: { [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }), [REGION_C]: makeRegion(REGION_C, { owner: 'br', dev: { tax: 99, production: 99, manpower: 99 } }) },
+        nations: {
+          id: makeAiNation({
+            government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
+            economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 1000 }
+          })
+        }
+      });
+      processAIEconomyTurn(state, state.regions, 'id');
+      expect(state.regions[REGION_C].dev.manpower).toBe(99);
+    });
+
+    it('never goes into debt — no-op when no power pool can afford the development cost', () => {
+      const state = makeState({
+        age: 'bronze',
+        regions: { [REGION_A]: makeRegion(REGION_A, { buildings: blockedBuildings }) },
+        nations: {
+          id: makeAiNation({
+            government: { type: 'dictatorship', reforms: { bronze: 'x', classical: 'x' } },
+            economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }
+          })
+        }
+      });
+      const before = seedDevelopment(REGION_A);
+      processAIEconomyTurn(state, state.regions, 'id');
+      expect(state.regions[REGION_A].dev).toEqual(before);
+    });
+  });
+
   it('does nothing (no crash, no change) for a nation with no seeded economy — a legacy/test fixture', () => {
     const state = makeState({ regions: { [REGION_A]: makeRegion(REGION_A) }, nations: { id: { doctrine: 'attrition' } } });
     expect(() => processAIEconomyTurn(state, state.regions, 'id')).not.toThrow();
