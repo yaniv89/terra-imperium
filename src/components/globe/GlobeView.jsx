@@ -15,12 +15,10 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { getNationColor, UNKNOWN_NATION_COLOR } from '../../data/nationColors';
 import { findClickAssistRegionId } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
-import { RegionInfoModal } from '../modals';
-import MapLegend from './MapLegend';
+import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
 const OCEAN_COLOR = '#0f172a'; // slate-900
 
@@ -46,25 +44,6 @@ const autoRotateDisabledForTests = () =>
 // should never resume spinning on its own again for the rest of the session, even if they switch
 // tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
 let userDismissedAutoRotate = false;
-
-// Every nation on Earth gets its own distinct, stable color (src/data/nationColors.js) — the color
-// boundary between two provinces IS the national border, so there's no separate line layer to draw
-// or keep in sync with conquest. Your own territory is the one exception: it uses this 5-band
-// control scale instead of your nation's own assigned color, since how firmly you hold your own
-// land is the one thing worth a glance-able color here — who's at war with you is a stroke
-// highlight (strokeColor below), not a fill override, so a hostile nation's own color identity
-// stays visible even while you're fighting it.
-const fillColorFor = (regionState, isPlayerOwned) => {
-  if (isPlayerOwned) {
-    const control = Math.min(100, Math.max(0, regionState.control || 0));
-    if (control >= 80) return '#4ade80';
-    if (control >= 60) return '#84cc16';
-    if (control >= 40) return '#facc15';
-    if (control >= 20) return '#fb923c';
-    return '#f87171';
-  }
-  return getNationColor(regionState.owner);
-};
 
 const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   const { state } = useGame();
@@ -151,15 +130,7 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // Precomputed once per wars/playerNationId change rather than once per polygon — capColor below
   // is invoked for every one of the ~4,482 polygons on every recompute, so an O(#wars) isWarBetween
   // scan per polygon (O(#polygons x #wars) total) would otherwise be repeated needlessly per region.
-  const atWarNationIds = useMemo(() => {
-    const ids = new Set();
-    (state.wars || []).forEach((war) => {
-      if (!war.active) return;
-      if (war.aggressor === state.playerNationId) ids.add(war.enemy);
-      else if (war.enemy === state.playerNationId) ids.add(war.aggressor);
-    });
-    return ids;
-  }, [state.wars, state.playerNationId]);
+  const atWarNationIds = useMemo(() => getAtWarNationIds(state.wars, state.playerNationId), [state.wars, state.playerNationId]);
 
   // useCallback (scoped only to the state slices actually read here, not the whole `state` object)
   // is what makes react-globe.gl's own reference-equality prop diff actually skip work: without it,
@@ -167,13 +138,12 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // identity on every GlobeView render (i.e. on every dispatched game action, even a tax-rate change
   // that never touches a region), which forces three-globe to re-walk and re-color all ~4,482
   // polygons regardless of whether anything actually changed. See plan item 6 for the full trace.
-  const capColor = useCallback((feature) => {
-    const gameRegionId = feature.properties?.gameRegionId;
-    const regionState = state.regions[gameRegionId];
-    if (!regionState) return UNKNOWN_NATION_COLOR;
-    const isPlayerOwned = regionState.owner === state.playerNationId;
-    return fillColorFor(regionState, isPlayerOwned);
-  }, [state.regions, state.playerNationId]);
+  // fillColorForRegion/getRegionStrokeColor are shared with Map2DView (src/utils/mapRegionStyle.js)
+  // so the globe and the flat map always agree on what a region looks like.
+  const capColor = useCallback(
+    (feature) => getRegionFillColor(state.regions, state.playerNationId, feature.properties?.gameRegionId),
+    [state.regions, state.playerNationId]
+  );
 
   // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
   // province-level split (Task 51) every one of those provinces is its own clickable, independently
@@ -183,14 +153,10 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
   // gets a red outline instead of black — the war signal lives on the stroke, not the fill, so a
   // hostile nation's own color identity (capColor above) stays visible the whole time you're
   // fighting it, not just before or after.
-  const strokeColor = useCallback((feature) => {
-    const gameRegionId = feature.properties?.gameRegionId;
-    if (gameRegionId === selectedRegion) return '#2563eb';
-    const regionState = state.regions[gameRegionId];
-    if (regionState?.underInvasion) return '#ef4444';
-    if (regionState && regionState.owner !== state.playerNationId && atWarNationIds.has(regionState.owner)) return '#ef4444';
-    return '#000000';
-  }, [selectedRegion, state.regions, state.playerNationId, atWarNationIds]);
+  const strokeColor = useCallback(
+    (feature) => getRegionStrokeColor(state.regions, state.playerNationId, feature.properties?.gameRegionId, selectedRegion, atWarNationIds),
+    [selectedRegion, state.regions, state.playerNationId, atWarNationIds]
+  );
 
   const altitude = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
@@ -268,12 +234,9 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion }) => {
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      <RegionInfoModal
-        regionId={selectedRegion}
-        onClose={() => onSelectRegion(null)}
-        position="panel"
-      />
-      <MapLegend />
+      {/* RegionInfoModal/MapLegend now live one level up, in MapContainer.jsx, so they overlay
+          whichever main view (this globe, or the flat 2D map) is currently active rather than
+          being duplicated inside each renderer. */}
       {/* The globe and its effects overlay share one wrapper so the impact shake moves them
           together — shaking the canvas alone would slide the map out from under the animation.
           The panel chrome (legend, region card) deliberately sits outside it and stays still. */}

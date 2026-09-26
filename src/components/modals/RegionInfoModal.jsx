@@ -7,20 +7,30 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import ProgressBar from '../ui/ProgressBar';
 
+// Plan feedback: on mobile the old corner-panel treatment (absolute, no height cap) could grow
+// taller than the small mobile map itself, hiding the very region you just tapped and spilling
+// past the map card's edges. On mobile this now renders as a real bottom sheet instead — `fixed`
+// to the viewport (not confined to the map's own small bounding box), capped height with its own
+// scroll, sliding up from below the whole screen rather than floating on top of the map.
 const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
   const { state } = useGame();
+  const isMobile = useIsMobile();
 
-  // Empty state
+  // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
+  // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
+  // since there it's a small, stationary corner hint, not a sheet competing for screen space.
   if (!regionId) {
+    if (isMobile && position === 'panel') return null;
     return (
       <div className={`
-        ${position === 'panel' 
-          ? 'absolute top-2 left-2 z-20' 
+        ${position === 'panel'
+          ? 'absolute top-2 left-2 z-20'
           : 'relative'
         }
-        bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[180px] 
+        bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[180px]
         border border-slate-700 shadow-xl
       `}>
         <div className="text-slate-400 italic flex items-center gap-2">
@@ -39,15 +49,21 @@ const RegionInfoModal = ({ regionId, onClose, position = 'panel' }) => {
   const isPlayerOwned = regionState.owner === state.playerNationId;
   const ownerNation = !isPlayerOwned ? state.nations[regionState.owner] : null;
 
+  const mobileSheet = isMobile && position === 'panel';
+
   return (
-    <div className={`
-      ${position === 'panel' 
-        ? 'absolute top-2 left-2 z-20' 
-        : 'relative'
-      }
-      bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
-      border border-slate-700 shadow-xl
-    `}>
+    <div className={
+      mobileSheet
+        ? 'fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto rounded-t-2xl bg-slate-900/98 backdrop-blur-sm p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl'
+        : `${position === 'panel' ? 'absolute top-2 left-2 z-20' : 'relative'}
+           bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
+           border border-slate-700 shadow-xl`
+    }>
+      {mobileSheet && (
+        <div className="flex justify-center mb-2 -mt-1">
+          <div className="w-10 h-1 rounded-full bg-slate-700" />
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-start border-b border-slate-700 pb-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">

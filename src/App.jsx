@@ -5,8 +5,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { GameHeader, StartScreen } from './components/ui';
-import { GlobeContainer } from './components/globe';
-import { ActionPanel, ActionPanelTabs, LogConsole } from './components/panels';
+import { MapContainer } from './components/map';
+import { ActionPanel, ActionPanelTabs, LogTrigger, LogDrawer } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
 import AdminPage from './components/admin/AdminPage';
 import { GameStatus, LogTypes, ActionTypes } from './data/types';
@@ -14,7 +14,6 @@ import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
-import { useIsMobile } from './hooks/useIsMobile';
 import { useCloudSync } from './hooks/useCloudSync';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
@@ -29,7 +28,16 @@ const GameLayout = () => {
   const [showAccount, setShowAccount] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState('domestic');
-  const isMobile = useIsMobile();
+  // Event log (plan feedback: it used to be a permanently embedded panel eating real vertical
+  // space even collapsed). LogTrigger shows how many log lines arrived since the drawer was last
+  // opened; lastSeenLogCountRef only updates on open, not on every new log, so the badge doesn't
+  // reset itself while the player just keeps playing with the drawer closed.
+  const [logDrawerOpen, setLogDrawerOpen] = useState(false);
+  const lastSeenLogCountRef = useRef(0);
+  const handleOpenLogDrawer = useCallback(() => {
+    lastSeenLogCountRef.current = state.logs.length;
+    setLogDrawerOpen(true);
+  }, [state.logs.length]);
 
   // Accounts & cloud saves (plan §M0.5). `client` is stable for the app's lifetime once cloud
   // saves are configured at all; `user`/`profile` track sign-in state so a guest never triggers
@@ -164,11 +172,12 @@ const GameLayout = () => {
           never requires scrolling back up past the globe. At `lg`+, nothing here changed from
           before — same side-by-side globe + fixed-width panel column, tabs above content. */}
       <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 min-h-0 overflow-hidden lg:overflow-y-scroll">
-        {/* Left/Top: Map — the 3D globe is the game's only map (the old flat SVG map has been
-            removed entirely). Fixed, modest height on mobile (shrink-0) instead of flex-1, so it
-            can't eat space the action panel/tab bar need; still flex-[2] of the row on desktop. */}
+        {/* Left/Top: Map — a globe/flat-2D-map toggle (MapContainer), plus a corner minimap that
+            opens the flat map full-screen. Fixed, modest height on mobile (shrink-0) instead of
+            flex-1, so it can't eat space the action panel/tab bar need; still flex-[2] of the row
+            on desktop. */}
         <div className="relative shrink-0 h-[32vh] min-h-[200px] lg:h-auto lg:shrink lg:flex-[2] lg:min-h-0 order-1">
-          <GlobeContainer
+          <MapContainer
             selectedRegion={selectedRegion}
             onSelectRegion={handleSelectRegion}
           />
@@ -183,14 +192,13 @@ const GameLayout = () => {
             <ActionPanelTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
 
-          {/* Middle zone: action panel content and the event log, each independently
-              scrollable (unchanged from before) — this wrapper just holds them, it doesn't
-              scroll itself. The log defaulting collapsed on mobile is what actually gives the
-              action panel real room here, not a shared/nested scroll region. */}
+          {/* Middle zone: action panel content, with a slim log trigger pinned below it (the
+              log's actual content only exists in the LogDrawer overlay below, opened on demand —
+              see this file's own header comment on LogTrigger/LogDrawer for why). */}
           <div className="order-1 lg:order-2 flex-1 min-h-0 flex flex-col gap-2">
             <ActionPanel activeTab={activeTab} selectedRegion={selectedRegion} />
-            <div className="lg:h-56 shrink-0 px-2 lg:px-0">
-              <LogConsole maxHeight="h-48 lg:h-full" defaultCollapsed={isMobile} />
+            <div className="shrink-0 px-2 lg:px-0">
+              <LogTrigger onClick={handleOpenLogDrawer} unreadCount={Math.max(0, state.logs.length - lastSeenLogCountRef.current)} />
             </div>
           </div>
         </div>
@@ -222,6 +230,9 @@ const GameLayout = () => {
 
       {/* Nation Eliminated banner - non-blocking, auto-dismisses */}
       <NationEliminatedBanner nationName={eliminatedNationName} onDismiss={() => setEliminatedNationName(null)} />
+
+      {/* Event Log drawer - the log's actual content, opened on demand from LogTrigger above */}
+      <LogDrawer open={logDrawerOpen} onClose={() => setLogDrawerOpen(false)} />
 
       {/* Cloud saves + account (plan §M0.5) - opened from GameHeader's Cloud button */}
       <AccountModal
