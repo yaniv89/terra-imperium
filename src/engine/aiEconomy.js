@@ -23,17 +23,26 @@
 //   RECRUIT_STRATEGIC_RESOURCE_BY_AGE penalty/discount.
 // - Satellites and space missions are player-exclusive systems (no AI participation until M19); the
 //   income pass below deliberately leaves them out rather than half-wiring a system AI can't use yet.
-// - Exactly ONE spending decision happens per "think" (government, then a building, then a tech, in
-//   that priority order), not the plan's own "up to 1 + floor(period/2) actions" — a bounded, simpler
-//   model that still turns a nation's accumulated treasury into one real, visible decision instead
-//   of none. Gold/manpower/techPoints/power themselves accrue EVERY turn regardless of whether a
-//   nation "thinks" that turn (the same continuous accrual the player's own resources use), so a
-//   nation that thinks less often simply arrives with more banked up, not less spending power.
+// - Exactly ONE spending decision happens per "think" (government, then a building, then a tech,
+//   then — only once nothing else fired — developing a province), not the plan's own "up to
+//   1 + floor(period/2) actions" — a bounded, simpler model that still turns a nation's accumulated
+//   treasury into one real, visible decision instead of none. Gold/manpower/techPoints/power
+//   themselves accrue EVERY turn regardless of whether a nation "thinks" that turn (the same
+//   continuous accrual the player's own resources use), so a nation that thinks less often simply
+//   arrives with more banked up, not less spending power.
+// - Province development (dev.tax/production/manpower) sits LAST in that chain rather than
+//   alongside building/tech: it's the "always something useful to spend ADM/DIP/MIL on" catch-all,
+//   not a decision worth pre-empting a building or a tech for. Without it at all, an AI nation's own
+//   development numbers would never move past their seeded starting value for the entire game —
+//   the player's income keeps growing (Develop Province) while every AI nation's economic base
+//   stays frozen, which is a real parity gap this closes.
 import { UNIT_UPKEEP_GOLD_PER_TURN, ACTION_COSTS } from '../data/actionCosts';
 import { getFieldedStrength, getUnitCount } from '../utils/helpers';
 import { getResearched, getTechAgeId } from './nationState';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
-import { getPopFactor, seedDevelopment, getTotalDev } from './development';
+import {
+  getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO
+} from './development';
 import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
@@ -244,8 +253,42 @@ const tryResearchTech = (state, nation) => {
   return null;
 };
 
+// Develops the nation's own highest-dev owned region (same placement convention as
+// tryConstructBuilding above) by +1 in whichever of tax/production/manpower its corresponding power
+// pool (adm/dip/mil — see DEV_TYPE_POOL) can most easily afford, mirroring the player's own
+// DEVELOP_PROVINCE action/cost curve exactly (src/engine/gameReducer.js's case, and
+// getDevelopProvinceCost) so an AI nation's economic base actually grows over a long game instead of
+// staying pinned at its seeded starting value.
+const tryDevelopProvince = (state, nation, regions) => {
+  const ownedRegionIds = getOwnedRegionIds(regions, nation.id).filter((id) => !regions[id].occupiedBy);
+  if (ownedRegionIds.length === 0) return null;
+  const regionId = ownedRegionIds.reduce((best, id) => (getTotalDev(regions[id]) > getTotalDev(regions[best]) ? id : best), ownedRegionIds[0]);
+  const region = regions[regionId];
+  const developmentCostMult = getModifier(state, nation.id, 'national.developmentCost').total;
+  const cost = getDevelopProvinceCost(region, developmentCostMult);
+  const pool = { ...emptyAIPool(), ...nation.economy };
+  // Whichever pool can afford it AND currently has the largest balance — a simple, doctrine-free
+  // "spend your fullest currency" heuristic rather than a fourth priority table.
+  const devType = DEV_TYPE_IDS
+    .filter((type) => (pool[DEV_TYPE_POOL[type]] || 0) >= cost)
+    .sort((a, b) => (pool[DEV_TYPE_POOL[b]] || 0) - (pool[DEV_TYPE_POOL[a]] || 0))[0];
+  if (!devType) return null;
+  const poolKey = DEV_TYPE_POOL[devType];
+  const modernBaseline = REGIONS_DATA[regionId]?.population || 0;
+  const popGain = Math.round(modernBaseline * DEVELOP_PROVINCE_POP_GAIN_RATIO);
+  return {
+    nation: { ...nation, economy: { ...pool, [poolKey]: pool[poolKey] - cost } },
+    regionId,
+    updatedRegion: {
+      ...region,
+      dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 },
+      currentPopulation: (region.currentPopulation || modernBaseline) + popGain
+    }
+  };
+};
+
 // One "think" for one nation: unit upkeep, then the FIRST affordable decision in priority order
-// (government, building, tech). `state` must already reflect this turn's income having been
+// (government, building, tech, then province development). `state` must already reflect this turn's income having been
 // credited to nation.economy (the caller, resolveTurn.js, does this for every nation every turn,
 // not just thinking ones). Returns { nation }. `regions` is resolveTurn.js's own once-per-turn
 // draft (built via one `{ ...state.regions }` at the top of that function and mutated everywhere
@@ -276,7 +319,15 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
         regions[buildResult.regionId] = buildResult.updatedRegion;
       } else {
         const techResult = tryResearchTech(state, nextNation);
-        if (techResult) nextNation = techResult;
+        if (techResult) {
+          nextNation = techResult;
+        } else {
+          const devResult = tryDevelopProvince(state, nextNation, regions);
+          if (devResult) {
+            nextNation = devResult.nation;
+            regions[devResult.regionId] = devResult.updatedRegion;
+          }
+        }
       }
     }
   }

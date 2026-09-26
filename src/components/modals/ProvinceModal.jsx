@@ -1,21 +1,22 @@
 // src/components/modals/ProvinceModal.jsx
-// Civ-style "manage this region" screen (plan feedback: region actions used to be mixed into the
-// Domestic/Military tabs alongside empire-wide content, which is what made both tabs overcrowded).
-// Selecting a region shows the compact RegionInfoModal with a "Manage Region" button; this modal is
-// what that button opens. Three tabs — Overview / Economy & Buildings / Military — hold every
-// region-specific action, moved out of DomesticPanel.jsx's and MilitaryPanel.jsx's old region
-// branches (behavior is unchanged, just relocated).
+// Civ-style "manage this region" screen for your OWN provinces only (plan feedback: a foreign
+// region gets no management screen — same as Civilization only gives you a city screen for your
+// own cities; RegionInfoModal.jsx surfaces a foreign region's attack/settle options directly
+// instead). Selecting a region you own shows RegionInfoModal with a "Manage Region" button; this
+// modal is what that button opens. Three tabs — Overview / Economy & Buildings / Military — hold
+// every region-specific action, moved out of DomesticPanel.jsx's and MilitaryPanel.jsx's old
+// region branches (behavior is unchanged, just relocated).
 import React, { useState, useEffect } from 'react';
 import {
   X, Building2, Shield, Flag, Hammer, Gem, HeartCrack, Sprout, Landmark, TrendingUp,
-  UserPlus, Trash2, Award, Anchor, Ship, Flame
+  UserPlus, Trash2, Award, Anchor, Flame
 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getCapital } from '../../data/regions';
-import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
+import { REGIONS_DATA, getNeighborIds, getCapital } from '../../data/regions';
+import { ACTION_COSTS, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction,
   getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
@@ -32,7 +33,7 @@ import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPop
 import { getRecruitUnitCost } from '../../engine/economy';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
-import { isCoastal, getSeaLanesWithinReach, isReachableBySea } from '../../data/navalReach';
+import { getSeaLanesWithinReach } from '../../data/navalReach';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { ActionButton } from '../ui';
 
@@ -42,7 +43,7 @@ const TABS = [
   { id: 'military', label: 'Military' }
 ];
 
-// Same reachability helpers MilitaryPanel used to define — see its own header (before this move)
+// Same reachability helper MilitaryPanel used to define — see its own header (before this move)
 // for why: land-adjacent always, plus (for naval units) sea lanes within the current age's reach.
 const getMoveOptions = (unit, age, regions, playerNationId) => {
   const isOwned = (id) => regions[id]?.owner === playerNationId;
@@ -51,8 +52,6 @@ const getMoveOptions = (unit, age, regions, playerNationId) => {
   const seaLanes = getSeaLanesWithinReach(unit.regionId, age).map((lane) => lane.to).filter(isOwned);
   return [...new Set([...landNeighbors, ...seaLanes])];
 };
-const isReachable = (fromRegionId, toRegionId, age) =>
-  getNeighborIds(fromRegionId).includes(toRegionId) || isReachableBySea(fromRegionId, toRegionId, age);
 
 const ProvinceModal = ({ regionId, open, onClose }) => {
   const { state, dispatch, addLog } = useGame();
@@ -69,7 +68,10 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   if (!regionData || !regionState) return null;
 
   const ownerName = state.nations[regionState.owner]?.name || regionState.owner;
-  const isPlayerOwned = regionState.owner === state.playerNationId;
+  // This modal only ever opens via RegionInfoModal's "Manage Region" button, which is itself
+  // gated to owned regions — this is a defensive backstop, e.g. against the region changing hands
+  // while the modal happens to still be open.
+  if (regionState.owner !== state.playerNationId) return null;
   const effectiveAge = getEffectiveAgeId(state.age, state.techAgeId);
 
   const dispatchAction = (type, payload) => dispatch({ type, payload: { regionId, ...payload } });
@@ -95,12 +97,6 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
     triggerEffect('population_policy', { region: regionId });
     dispatchAction(ActionTypes.POPULATION_POLICY);
   };
-  const handleSettleColonize = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog('Not enough resources', 'action');
-    triggerEffect('settle_colonize', { region: regionId });
-    dispatchAction(ActionTypes.SETTLE_COLONIZE);
-  };
-
   // --- Economy & Buildings handlers ------------------------------------------------------
   const developmentCostMult = getModifier(state, state.playerNationId, 'national.developmentCost').total;
   const handleDevelopProvince = (devType) => {
@@ -160,23 +156,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   const generals = Object.entries(state.hiredCommanders);
   const unassignedGenerals = generals.filter(([, g]) => !g.assignedUnitId);
 
-  const invasionSources = !isPlayerOwned
-    ? getNeighborIds(regionId)
-      .filter((nId) => state.regions[nId]?.owner === state.playerNationId)
-      .map((nId) => ({ regionId: nId, unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length }))
-      .filter((source) => source.unitCount > 0)
-    : [];
-  const amphibiousSources = (!isPlayerOwned && isCoastal(regionId))
-    ? Object.values(state.units)
-      .filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age))
-      .map((u) => ({ unit: u, cargoCount: Object.values(state.units).filter((c) => c.embarkedOn === u.id).length }))
-      .filter(({ cargoCount }) => cargoCount > 0)
-    : [];
-  const defendingNavalUnits = Object.values(state.units).filter((u) => u.regionId === regionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
-  const navalEngagementSources = (!isPlayerOwned && defendingNavalUnits.length > 0)
-    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age)).map((u) => u.regionId))]
-    : [];
-  const rebelUnits = isPlayerOwned ? unitsHere.filter((u) => u.ownerId === REBEL_OWNER_ID) : [];
+  const rebelUnits = unitsHere.filter((u) => u.ownerId === REBEL_OWNER_ID);
 
   const handleRecruit = (classId) => {
     if (!canAfford(state.resources, getRecruitUnitCost(state, state.age))) return addLog('Not enough resources', 'action');
@@ -192,11 +172,6 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
     if (!canAfford(state.resources, ACTION_COSTS.moveArmy)) return addLog('Not enough resources', 'action');
     triggerEffect('move_army', { from: state.units[unitId]?.regionId, to: toRegionId });
     dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId } });
-  };
-  const handleInvade = (fromRegionId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
-    triggerEffect('ground_invasion', { from: fromRegionId, to: regionId });
-    dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: regionId } });
   };
   const handlePromote = (unitId, perkId) => {
     if (!canAfford(state.resources, ACTION_COSTS.promoteUnit)) return addLog('Not enough resources', 'action');
@@ -216,16 +191,6 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
     if (!canAfford(state.resources, ACTION_COSTS.disembarkUnit)) return addLog('Not enough resources', 'action');
     triggerEffect('disembark_unit', { region: state.units[landUnitId]?.regionId });
     dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId } });
-  };
-  const handleAmphibiousAssault = (navalUnitId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
-    triggerEffect('amphibious_assault', { from: state.units[navalUnitId]?.regionId, to: regionId });
-    dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: regionId } });
-  };
-  const handleNavalEngagement = (fromRegionId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
-    triggerEffect('naval_engagement', { from: fromRegionId, to: regionId });
-    dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: regionId } });
   };
   const handleSuppressRebellion = () => {
     if (!canAfford(state.resources, ACTION_COSTS.suppressRebellion)) return addLog('Not enough resources', 'action');
@@ -277,7 +242,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
           {tab === 'overview' && (
             <div className="space-y-3">
-              {isPlayerOwned && regionState.formerOwner && (
+              {regionState.formerOwner && (
                 <div className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
                   Conquered from {state.nations[regionState.formerOwner]?.name || regionState.formerOwner} — still at risk of
                   reverting if it revolts. Raise control to {INTEGRATION_CONTROL_THRESHOLD}% ({regionState.control}% now) to
@@ -311,62 +276,47 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
                 </div>
               </div>
 
-              {isPlayerOwned ? (
-                <div className="space-y-2">
-                  <ActionButton
-                    icon={Flag}
-                    label="Gain Control"
-                    description="Raise control in this region"
-                    costs={ACTION_COSTS.gainControl}
-                    effects={{ control: 5 }}
-                    onClick={handleGainControl}
-                    disabled={regionState.control >= 100}
-                  />
-                  {regionId !== getCapital(state, state.playerNationId) && (
-                    <ActionButton
-                      icon={Landmark}
-                      label="Move Capital Here"
-                      description={regionData.startOwner !== state.playerNationId ? 'Relocates the capital (-1 stability: outside your native territory)' : 'Relocates the capital'}
-                      costs={ACTION_COSTS.moveCapital}
-                      onClick={handleMoveCapital}
-                      disabled={!!regionState.occupiedBy}
-                    />
-                  )}
-                  <ActionButton
-                    icon={HeartCrack}
-                    label="Quell Unrest"
-                    description="Suppress unrest before it spreads"
-                    costs={ACTION_COSTS.quellUnrest}
-                    effects={{ unrest: 30 }}
-                    onClick={handleQuellUnrest}
-                    disabled={regionState.unrest <= 0}
-                  />
-                  <ActionButton
-                    icon={Sprout}
-                    label="Population Policy"
-                    description="Invest in growth — more population means more gold and HR income here"
-                    costs={ACTION_COSTS.populationPolicy}
-                    onClick={handlePopulationPolicy}
-                  />
-                </div>
-              ) : isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD ? (
+              <div className="space-y-2">
                 <ActionButton
                   icon={Flag}
-                  label="Settle / Colonize"
-                  description={`${ownerName}'s grip here has collapsed (${regionState.control}% control) — absorb it peacefully, no military required`}
-                  costs={ACTION_COSTS.settleColonize}
-                  onClick={handleSettleColonize}
+                  label="Gain Control"
+                  description="Raise control in this region"
+                  costs={ACTION_COSTS.gainControl}
+                  effects={{ control: 5 }}
+                  onClick={handleGainControl}
+                  disabled={regionState.control >= 100}
                 />
-              ) : (
-                <div className="text-slate-500 text-xs text-center py-2">
-                  You don&apos;t control this region — domestic actions are unavailable here.
-                </div>
-              )}
+                {regionId !== getCapital(state, state.playerNationId) && (
+                  <ActionButton
+                    icon={Landmark}
+                    label="Move Capital Here"
+                    description={regionData.startOwner !== state.playerNationId ? 'Relocates the capital (-1 stability: outside your native territory)' : 'Relocates the capital'}
+                    costs={ACTION_COSTS.moveCapital}
+                    onClick={handleMoveCapital}
+                    disabled={!!regionState.occupiedBy}
+                  />
+                )}
+                <ActionButton
+                  icon={HeartCrack}
+                  label="Quell Unrest"
+                  description="Suppress unrest before it spreads"
+                  costs={ACTION_COSTS.quellUnrest}
+                  effects={{ unrest: 30 }}
+                  onClick={handleQuellUnrest}
+                  disabled={regionState.unrest <= 0}
+                />
+                <ActionButton
+                  icon={Sprout}
+                  label="Population Policy"
+                  description="Invest in growth — more population means more gold and HR income here"
+                  costs={ACTION_COSTS.populationPolicy}
+                  onClick={handlePopulationPolicy}
+                />
+              </div>
             </div>
           )}
 
           {tab === 'economy' && (
-            isPlayerOwned ? (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-slate-300">Develop Province</div>
@@ -515,66 +465,10 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="text-slate-500 text-xs text-center py-2">
-                You don&apos;t control this region — its economy and buildings are unavailable here.
-              </div>
-            )
           )}
 
           {tab === 'military' && (
             <div className="space-y-3">
-              {!isPlayerOwned && (
-                <div className="space-y-2">
-                  {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && (
-                    <div className="text-[10px] text-slate-500">
-                      You don&apos;t control an adjacent region with land units, or a fleet within reach.
-                    </div>
-                  )}
-                  {invasionSources.map(({ regionId: srcId, unitCount }) => (
-                    <ActionButton
-                      key={srcId}
-                      icon={Flag}
-                      label={`Launch from ${REGIONS_DATA[srcId]?.name}`}
-                      description={`${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
-                      costs={ACTION_COSTS.launchInvasion}
-                      onClick={() => handleInvade(srcId)}
-                      disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
-                      variant="danger"
-                      size="small"
-                    />
-                  ))}
-                  {amphibiousSources.map(({ unit, cargoCount }) => (
-                    <ActionButton
-                      key={unit.id}
-                      icon={Anchor}
-                      label={`Amphibious assault from ${REGIONS_DATA[unit.regionId]?.name}`}
-                      description={`${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}${getNeighborIds(regionId).some((nId) => state.regions[nId]?.owner === state.playerNationId) ? '' : ' — no beachhead, takes a landing penalty'}`}
-                      costs={ACTION_COSTS.amphibiousAssault}
-                      onClick={() => handleAmphibiousAssault(unit.id)}
-                      disabled={!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)}
-                      variant="danger"
-                      size="small"
-                    />
-                  ))}
-                  {navalEngagementSources.map((srcId) => (
-                    <ActionButton
-                      key={srcId}
-                      icon={Ship}
-                      label={`Naval engagement from ${REGIONS_DATA[srcId]?.name}`}
-                      description={`Contest ${defendingNavalUnits.length} enemy fleet unit${defendingNavalUnits.length === 1 ? '' : 's'}`}
-                      costs={ACTION_COSTS.navalEngagement}
-                      onClick={() => handleNavalEngagement(srcId)}
-                      disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
-                      variant="danger"
-                      size="small"
-                    />
-                  ))}
-                </div>
-              )}
-
-              {isPlayerOwned && (
-                <>
                   {rebelUnits.length > 0 && (
                     <ActionButton
                       icon={Flame}
@@ -640,8 +534,6 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
                       />
                     ))}
                   </div>
-                </>
-              )}
             </div>
           )}
         </div>
