@@ -81,15 +81,11 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
 const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title }) => (
   <button
     onClick={(e) => {
-      // eslint-disable-next-line no-alert
-      window.alert(`[diag] tapped: ${label}`);
       try {
         onClick(e);
-        // eslint-disable-next-line no-alert
-        window.alert('[diag] handler completed with no error');
       } catch (err) {
         // eslint-disable-next-line no-alert
-        window.alert(`[diag] handler THREW: ${err?.message || err}`);
+        window.alert(`[diag] "${label}" handler THREW: ${err?.message || err}\n${err?.stack || ''}`);
       }
     }}
     title={title}
@@ -224,24 +220,31 @@ const NationCard = ({ nation }) => {
   const [expanded, setExpanded] = useState(false);
 
   const dispatchIfAffordable = (type, costs) => {
+    const diagPlayer = state.nations[state.playerNationId];
+    const diagTarget = state.nations[nation.id];
+    const action = { type, payload: { nationId: nation.id } };
+    let diagLine;
+    try {
+      const directResult = gameReducer(state, action);
+      diagLine = [
+        `type=${type} target=${diagTarget?.name}(${nation.id})`,
+        `costs=${JSON.stringify(costs)} canAfford=${canAfford(state.resources, costs)}`,
+        `target.isAtWar=${diagTarget?.isAtWar} atWarWithPlayer=${isAtWarWithPlayer(state, nation.id)}`,
+        `player.vassalOf=${diagPlayer?.vassalOf} target.vassalOf=${diagTarget?.vassalOf}`,
+        `player.claims=${JSON.stringify(diagPlayer?.claims)} includesTarget=${diagPlayer?.claims?.includes(nation.id)}`,
+        `target.hasTradeAgreement=${diagTarget?.hasTradeAgreement} target.hasMilitaryPact=${diagTarget?.hasMilitaryPact}`,
+        `REDUCER sameReference=${directResult === state} resultGold=${directResult?.resources?.gold}`
+      ].join('\n');
+    } catch (err) {
+      diagLine = `type=${type} PURE gameReducer() THREW: ${err?.message || err}\n${err?.stack || ''}`;
+    }
     // eslint-disable-next-line no-alert
-    window.alert(`[diag] dispatchIfAffordable(${type}) costs=${JSON.stringify(costs)} resources=${JSON.stringify(state.resources)} canAfford=${canAfford(state.resources, costs)}`);
+    window.alert(`[diag]\n${diagLine}`);
+
     if (!canAfford(state.resources, costs)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, costs)}`, 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
-
-    // eslint-disable-next-line no-alert
-    try {
-      const directResult = gameReducer(state, { type, payload: { nationId: nation.id } });
-      window.alert(`[diag] PURE gameReducer() called directly: sameReference=${directResult === state}, resultGold=${directResult.resources.gold}, resultClaims=${JSON.stringify(directResult.nations[state.playerNationId]?.claims)}`);
-    } catch (err) {
-      // eslint-disable-next-line no-alert
-      window.alert(`[diag] PURE gameReducer() THREW: ${err?.message || err}\n${err?.stack || ''}`);
-    }
-
-    dispatch({ type, payload: { nationId: nation.id } });
-    // eslint-disable-next-line no-alert
-    window.alert('[diag] dispatch() call returned (no throw)');
+    dispatch(action);
   };
 
   const nationData = WORLD_NATIONS[nation.id];
