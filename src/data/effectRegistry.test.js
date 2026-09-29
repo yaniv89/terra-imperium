@@ -1,56 +1,33 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import { EFFECT_REGISTRY, getEffectSpec } from './effectRegistry';
 import { ACTION_COSTS } from './actionCosts';
-
-const IMPLEMENTED_PRIMITIVES = ['arc', 'pulse'];
-const PULSE_GLYPHS = ['circle', 'square', 'diamond', 'triangle', 'star', 'unit', 'building', 'extraction'];
+import { SCENES } from '../effects/scenes';
 
 describe('EFFECT_REGISTRY', () => {
-  it('every entry declares a primitive and a two-tone palette', () => {
+  it('every entry names a real scene and a two-tone palette', () => {
     Object.entries(EFFECT_REGISTRY).forEach(([actionType, spec]) => {
-      expect(typeof spec.primitive, `${actionType} has no primitive`).toBe('string');
+      expect(SCENES[spec.scene], `${actionType} uses unknown scene "${spec.scene}"`).toBeDefined();
       expect(spec.palette?.base, `${actionType} has no palette.base`).toMatch(/^#[0-9a-f]{6}$/i);
       expect(spec.palette?.hot, `${actionType} has no palette.hot`).toMatch(/^#[0-9a-f]{6}$/i);
     });
   });
 
-  it('every `arc` entry declares a head glyph and at least one projectile', () => {
-    Object.entries(EFFECT_REGISTRY).filter(([, spec]) => spec.primitive === 'arc').forEach(([actionType, spec]) => {
-      expect(typeof spec.head, `${actionType} has no head`).toBe('string');
-      expect(Array.isArray(spec.projectiles), `${actionType} has no projectiles array`).toBe(true);
-      expect(spec.projectiles.length, `${actionType} has an empty projectiles array`).toBeGreaterThan(0);
+  it('every strike entry declares at least one projectile', () => {
+    Object.entries(EFFECT_REGISTRY).filter(([, spec]) => spec.scene === 'strike').forEach(([actionType, spec]) => {
+      expect(Array.isArray(spec.projectiles) && spec.projectiles.length > 0, `${actionType} has no projectiles`).toBe(true);
     });
   });
 
-  it('every `pulse` entry declares a known glyph, ring count and mote count', () => {
-    Object.entries(EFFECT_REGISTRY).filter(([, spec]) => spec.primitive === 'pulse').forEach(([actionType, spec]) => {
-      expect(PULSE_GLYPHS, `${actionType} has an unknown glyph "${spec.glyph}"`).toContain(spec.glyph);
-      expect(typeof spec.rings, `${actionType} has no rings count`).toBe('number');
-      expect(typeof spec.motes, `${actionType} has no motes count`).toBe('number');
-    });
-  });
-
-  it('every registered entry uses an implemented primitive', () => {
-    // Only `arc` and `pulse` have renderers today (GlobeEffectsOverlay) — a registry entry using
-    // an unimplemented primitive would silently render nothing, so this guards against that until
-    // more primitives ship.
-    Object.entries(EFFECT_REGISTRY).forEach(([actionType, spec]) => {
-      expect(IMPLEMENTED_PRIMITIVES, `${actionType} uses unimplemented primitive "${spec.primitive}"`).toContain(spec.primitive);
-    });
+  it('actions are not all lumped into a couple of generic animations', () => {
+    // The old registry had exactly two primitives for ~70 actions.
+    expect(new Set(Object.values(EFFECT_REGISTRY).map((s) => s.scene)).size).toBeGreaterThanOrEqual(20);
   });
 });
 
-// Plan §13's "effects coverage": every action type in ACTION_COSTS must have a real
-// EFFECT_REGISTRY entry, so a newly added action can't silently ship with no animation —
-// getEffectSpec's own silent fallback to missile_strike (tested above) is exactly the mechanism
-// that would otherwise mask a missing mapping instead of failing loudly.
+// Plan §13's "effects coverage": every action in ACTION_COSTS must have a real entry.
 describe('effects coverage (plan §13)', () => {
-  // ACTION_COSTS keys are camelCase; EFFECT_REGISTRY keys (the literal string passed to
-  // triggerEffect at each call site) are snake_case, so this converts one to the other. Three
-  // ACTION_COSTS keys don't literally become their EFFECT_REGISTRY key this way: declareWarJustified
-  // and declareWarUnjustified are two cost tiers for the one Declare War action and share its
-  // effect, and launchInvasion's actionType has always been 'ground_invasion' (matching the
-  // invasion's ground-pincer visual) rather than a generic "invasion" glyph.
   const IRREGULAR_EFFECT_TYPE = {
     launchInvasion: 'ground_invasion',
     declareWarJustified: 'declare_war',
@@ -63,6 +40,28 @@ describe('effects coverage (plan §13)', () => {
       .map((key) => IRREGULAR_EFFECT_TYPE[key] || toSnakeCase(key))
       .filter((effectType) => !EFFECT_REGISTRY[effectType]);
     expect(missing).toEqual([]);
+  });
+
+  // getEffectSpec silently falls back to a missile strike for an unknown type — which is how
+  // develop_province, hire_advisor and increase_stability ended up playing a missile explosion.
+  // This scans every real triggerEffect('...') call in the UI so that can't happen again.
+  it('every effect type the UI actually triggers has a registry entry', () => {
+    const srcDir = path.resolve(__dirname, '..');
+    const files = [];
+    const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach((d) => {
+      const p = path.join(dir, d.name);
+      if (d.isDirectory()) walk(p); else if (/\.(jsx?|tsx?)$/.test(d.name) && !d.name.includes('.test.')) files.push(p);
+    });
+    walk(srcDir);
+    const triggered = new Set();
+    files.forEach((file) => {
+      const text = fs.readFileSync(file, 'utf8');
+      for (const m of text.matchAll(/triggerEffect\(\s*'([a-z_]+)'/g)) triggered.add(m[1]);
+      const map = text.match(/DIPLOMACY_EFFECT_BY_ACTION = \{([\s\S]*?)\};/);
+      if (map) for (const m of map[1].matchAll(/:\s*'([a-z_]+)'/g)) triggered.add(m[1]);
+    });
+    expect(triggered.size).toBeGreaterThan(40);
+    expect([...triggered].filter((t) => !EFFECT_REGISTRY[t])).toEqual([]);
   });
 });
 

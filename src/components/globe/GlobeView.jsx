@@ -338,7 +338,7 @@ const GlobeView = ({
         onPolygonClick={handleClick}
       />
       {!prefersReducedMotion() && (
-        <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} />
+        <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} ageId={state.age} />
       )}
       </div>
       </div>
