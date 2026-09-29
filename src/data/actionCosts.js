@@ -286,6 +286,8 @@ export const FUND_SCHOLARS_TECHPOINTS = 20;
 export const ESPIONAGE_SUCCESS_CHANCE = 0.6;
 export const ESPIONAGE_TECH_POINTS_STOLEN = 15;
 export const ESPIONAGE_FAILURE_HOSTILITY_INCREASE = 15;
+// How long a successful espionage op keeps the target's provinces visible (src/engine/intel.js).
+export const INTEL_DURATION_TURNS = 10;
 // Counter-Intelligence auto-targets whoever is currently most hostile toward the player (no chosen
 // target) and both calms them down and rewards the player for catching the plot.
 export const COUNTER_INTEL_HOSTILITY_REDUCTION = 20;
