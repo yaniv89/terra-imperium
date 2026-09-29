@@ -1,7 +1,7 @@
 // src/components/modals/RegionInfoModal.jsx
 // Region information modal/panel with close button
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords, Settings2, Anchor, Ship } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
@@ -13,6 +13,8 @@ import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useAutoPeek } from '../../hooks/useAutoPeek';
+import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 
@@ -45,6 +47,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const isMobile = useIsMobile();
   const isCornerCard = position === 'panel' || position === 'panel-hud';
   const cornerTopClass = position === 'panel-hud' ? 'top-[calc(var(--header-height,4.5rem)+0.5rem)]' : 'top-2';
+  // Plan §5.1/§5.2: the mobile bottom sheet reports its height so the map centres things above it,
+  // and shrinks to a peek while an invasion/settle animation fired from here plays.
+  const sheetRef = useRef(null);
+  const sheetShown = isMobile && isCornerCard && !!regionId;
+  useReportInset('region-info', 'bottom', sheetRef, sheetShown);
+  const [peeking, cancelPeek] = useAutoPeek(sheetShown);
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
@@ -126,15 +134,15 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const mobileSheet = isMobile && isCornerCard;
 
   return (
-    <div className={
+    <div ref={mobileSheet ? sheetRef : undefined} className={
       mobileSheet
-        ? 'fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl'
+        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : 'max-h-[50vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl`
         : `${isCornerCard ? `absolute ${cornerTopClass} left-2 z-20` : 'relative'}
            bg-slate-900 p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
            border border-slate-700 shadow-xl`
     }>
       {mobileSheet && (
-        <div className="flex justify-center mb-2 -mt-1">
+        <div onClick={peeking ? cancelPeek : undefined} className="flex justify-center mb-2 -mt-1">
           <div className="w-10 h-1 rounded-full bg-slate-700" />
         </div>
       )}

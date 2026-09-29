@@ -39,8 +39,13 @@ const freshWorld = (playerNationId = 'fr') => ({
   proceduralEventCooldown: 999999
 });
 
+// A passive player also has to ANSWER an AI's peace offer — resolveTurn pauses on a pending one
+// (just as it does on an event), so the harness rejects it the way a do-nothing player would. Since
+// the power-pool fix let AI nations actually grow, AI wars on the player (and their peace offers)
+// became common enough that an unanswered offer stalled roughly half of all passive runs.
 const advance = (state) => {
-  const next = resolveTurn(state);
+  const current = state.pendingPeaceOffer ? gameReducer(state, { type: ActionTypes.REJECT_PENDING_PEACE }) : state;
+  const next = resolveTurn(current);
   return next.activeProceduralEvent ? { ...next, activeProceduralEvent: null } : next;
 };
 

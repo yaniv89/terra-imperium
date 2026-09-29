@@ -15,6 +15,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useAutoPeek } from '../../hooks/useAutoPeek';
+import { useReportInset } from '../../context/MapInsetsContext';
 import ActionPanelTabs from './ActionPanelTabs';
 import ActionPanel from './ActionPanel';
 
@@ -32,6 +34,16 @@ const PanelDrawer = ({ activeTab, onTabChange }) => {
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const mobileBarRef = useRef(null);
+  const mobileSheetRef = useRef(null);
+  const desktopPanelRef = useRef(null);
+  // Plan §5.1/§5.2: every piece of this drawer reports the screen it covers so the map centres its
+  // camera/animations in what's left visible; the mobile sheet (92% of the screen tall) also drops
+  // to a short peek while an action's animation plays — e.g. an empire-wide action pulsing on the
+  // capital from the Domestic tab.
+  useReportInset('panel-bar', 'bottom', mobileBarRef, isMobile);
+  useReportInset('panel-sheet', 'bottom', mobileSheetRef, isMobile && mobileSheetOpen);
+  useReportInset('panel-drawer', 'right', desktopPanelRef, !isMobile && !collapsed);
+  const [peeking, cancelPeek] = useAutoPeek(isMobile && mobileSheetOpen);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
@@ -45,8 +57,8 @@ const PanelDrawer = ({ activeTab, onTabChange }) => {
     if (!isMobile) return undefined;
     const el = mobileBarRef.current;
     if (!el) return undefined;
-    const observer = new ResizeObserver(([entry]) => {
-      document.documentElement.style.setProperty('--panel-bar-height', `${Math.round(entry.contentRect.height)}px`);
+    const observer = new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--panel-bar-height', `${Math.round(el.getBoundingClientRect().height)}px`);
     });
     observer.observe(el);
     return () => {
@@ -70,8 +82,11 @@ const PanelDrawer = ({ activeTab, onTabChange }) => {
     return (
       <>
         {mobileSheetOpen && (
-          <div className="fixed inset-x-0 bottom-0 top-[8vh] z-20 rounded-t-2xl bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 shadow-2xl flex flex-col">
-            <div className="flex items-center justify-center relative px-3 py-2 border-b border-slate-800 shrink-0">
+          <div
+            ref={mobileSheetRef}
+            className={`fixed inset-x-0 bottom-0 ${peeking ? 'top-[80vh]' : 'top-[var(--header-height,4.5rem)]'} transition-[top] duration-300 ease-out z-20 rounded-t-2xl bg-slate-900/98 backdrop-blur-sm border-t border-slate-700 shadow-2xl flex flex-col`}
+          >
+            <div onClick={peeking ? cancelPeek : undefined} className="flex items-center justify-center relative px-3 py-2 border-b border-slate-800 shrink-0">
               <div className="w-10 h-1 rounded-full bg-slate-700" />
               <button
                 onClick={() => setMobileSheetOpen(false)}
@@ -96,9 +111,10 @@ const PanelDrawer = ({ activeTab, onTabChange }) => {
 
   return (
     <div
-      className={`fixed top-0 right-0 bottom-0 z-20 w-96 xl:w-[420px] flex flex-col
+      ref={desktopPanelRef}
+      className={`fixed top-[var(--header-height,4.5rem)] right-0 bottom-0 z-20 w-96 xl:w-[420px] flex flex-col
                   bg-slate-900/90 backdrop-blur-md border-l border-slate-700/70 shadow-2xl
-                  transition-transform duration-200 pt-[var(--header-height,4.5rem)]
+                  transition-transform duration-200
                   ${collapsed ? 'translate-x-full' : 'translate-x-0'}`}
     >
       <button
