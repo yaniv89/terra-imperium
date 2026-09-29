@@ -448,13 +448,14 @@ describe('getResourceStrain', () => {
     expect(getResourceStrain({ gold: 10, adm: 1 }, { gold: 1000, adm: 5, maxAdm: 5 })).toBeNull();
   });
 
-  it('measures a power-pool cost against its own max, not its current amount', () => {
-    // Banked well above max (8/5) — the strain should still be judged against the 5 cap, not 8.
-    const result = getResourceStrain({ mil: 3 }, { mil: 8, maxMil: 5 });
-    expect(result).toEqual({ level: 'high', label: 'MIL' }); // 3/5 = 60%
+  it('measures a power-pool cost against its banked amount, not its per-turn income', () => {
+    // maxMil is per-turn income (pools bank up to POWER_POOL_CAP), so a 40-MIL tech against a 100
+    // bank is 40% — not "8x one turn's income".
+    expect(getResourceStrain({ mil: 40 }, { mil: 100, maxMil: 5 })).toBeNull();
+    expect(getResourceStrain({ mil: 60 }, { mil: 100, maxMil: 5 })).toEqual({ level: 'high', label: 'MIL' });
   });
 
-  it('falls back to the current amount for a power pool with no max recorded yet', () => {
+  it('measures a power pool with no income recorded yet against its current amount', () => {
     const result = getResourceStrain({ dip: 9 }, { dip: 10 });
     expect(result).toEqual({ level: 'critical', label: 'DIP' }); // 9/10 = 90%
   });
@@ -465,7 +466,7 @@ describe('getResourceStrain', () => {
   });
 
   it('reports only the worst-strained resource among several costs', () => {
-    const result = getResourceStrain({ gold: 100, mil: 4 }, { gold: 1000, mil: 5, maxMil: 5 });
+    const result = getResourceStrain({ gold: 100, mil: 4 }, { gold: 1000, mil: 5, maxMil: 3 });
     expect(result.label).toBe('MIL'); // 4/5 = 80% beats gold's 10%
   });
 });
