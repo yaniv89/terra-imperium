@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { getUnlockedResourceIds } from '../../data/resources';
-import { getFieldedStrength, getPowerBreakdown } from '../../utils/helpers';
+import { getFieldedStrength, getPowerBreakdown, getPowerIncome } from '../../utils/helpers';
 import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
 import { POWER_POOL_CAP } from '../../data/actionCosts';
@@ -19,6 +19,10 @@ const ResourceBar = () => {
   };
 
   const unlockedResourceIds = getUnlockedResourceIds(state.age);
+  // The live per-turn income (ruler, advisors, government, tech...), the same number the tooltip
+  // breaks down. resources.maxAdm/maxDip/maxMil only refresh when a turn resolves, so reading them
+  // showed a flat +3 on turn one (and +0 on some migrated saves) instead of what you'll really get.
+  const powerIncome = getPowerIncome(state);
 
   return (
     // flex-nowrap, not flex-wrap: the parent (GameHeader) already wraps this in an
@@ -32,7 +36,7 @@ const ResourceBar = () => {
           key={pool}
           type={pool}
           value={state.resources[pool]}
-          perTurn={state.resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`]}
+          perTurn={powerIncome[pool]}
           expanded={expandedResource === pool}
           onClick={() => handleToggle(pool)}
           tooltipContent={(
