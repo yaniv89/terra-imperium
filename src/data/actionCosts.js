@@ -75,8 +75,8 @@ export const ACTION_COSTS = {
   sellLand: { adm: 30 },
   grantEstatePrivilege: { adm: 100 },
   revokeEstatePrivilege: { adm: 0 },
-  clergyTithe: { adm: 0 },
-  nobilityLevies: { adm: 0 },
+  clergyTithe: { adm: 10 },
+  nobilityLevies: { adm: 10 },
 
   // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
   // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
@@ -303,6 +303,8 @@ export const SETTLE_COLONIZE_CONTROL_THRESHOLD = 20;
 // Launch Invasion's own numbers (GameContext.jsx), since both are "you now hold contested land".
 export const SETTLE_COLONIZE_START_CONTROL = 25;
 export const SETTLE_COLONIZE_START_UNREST = 50;
+// Hostility a living owner gains toward you when you settle a province it lost to rebels.
+export const SETTLE_COLONIZE_OWNER_HOSTILITY = 15;
 
 // Population Policy's flat per-use growth rate — compounds each time it's used, so early
 // investment pays off more over a long game (guns vs. butter, per the plan).

@@ -443,6 +443,14 @@ const DomesticPanel = () => {
     triggerEffect('revoke_estate_privilege', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId, privilegeId } });
   };
+  // Tithe/Levies have a cooldown and need loyalty >= the low threshold (the reducer logs why when
+  // refused); the button stays tappable so a refusal still explains itself, just dimmed.
+  const estateAskReady = (key, estate) => canDoEstateInteraction(playerNation, key, state.turnNumber) && estate.loyalty >= ESTATE_LOYALTY_LOW_THRESHOLD;
+  const estateAskNote = (key, estate) => {
+    if (!canDoEstateInteraction(playerNation, key, state.turnNumber)) return ` · turn ${playerNation.estateInteractionCooldowns[key]}`;
+    if (estate.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return ` · needs ${ESTATE_LOYALTY_LOW_THRESHOLD} loyalty`;
+    return '';
+  };
   const handleClergyTithe = () => {
     triggerEffect('clergy_tithe', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CLERGY_TITHE, payload: {} });
@@ -492,13 +500,13 @@ const DomesticPanel = () => {
               );
             })}
             {estateId === 'clergy' && (
-              <button onClick={handleClergyTithe} className="text-[10px] rounded bg-yellow-700/40 hover:bg-yellow-600/40 border border-yellow-600/50 text-yellow-200 px-2 py-1">
-                Tithe (-10 loyalty)
+              <button onClick={handleClergyTithe} className={`text-[10px] rounded border px-2 py-1 ${estateAskReady('clergyTithe', estate) ? 'bg-yellow-700/40 hover:bg-yellow-600/40 border-yellow-600/50 text-yellow-200' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                Tithe ({ACTION_COSTS.clergyTithe.adm} ADM, -10 loyalty){estateAskNote('clergyTithe', estate)}
               </button>
             )}
             {estateId === 'nobility' && (
-              <button onClick={handleNobilityLevies} className="text-[10px] rounded bg-red-700/40 hover:bg-red-600/40 border border-red-600/50 text-red-200 px-2 py-1">
-                Raise Levies (-10 loyalty)
+              <button onClick={handleNobilityLevies} className={`text-[10px] rounded border px-2 py-1 ${estateAskReady('nobilityLevies', estate) ? 'bg-red-700/40 hover:bg-red-600/40 border-red-600/50 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
+                Raise Levies ({ACTION_COSTS.nobilityLevies.adm} ADM, -10 loyalty){estateAskNote('nobilityLevies', estate)}
               </button>
             )}
           </div>

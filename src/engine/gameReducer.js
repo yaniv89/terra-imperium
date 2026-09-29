@@ -24,9 +24,10 @@ import {
   createInitialEstates, getPrivilege, clampCrownLand, CROWN_LAND_DEFAULT,
   CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SELL_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY,
   CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS, ESTATE_INTERACTION_COOLDOWN_TURNS,
-  ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS
+  ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS, ESTATE_LOYALTY_LOW_THRESHOLD
 } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
+import { transferRegion } from './regionTransfer';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
@@ -46,7 +47,7 @@ import {
   ACTION_COSTS, TECH_RESEARCH_POOL, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
   UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST,
-  SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST,
+  SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST, SETTLE_COLONIZE_OWNER_HOSTILITY,
   POPULATION_POLICY_GROWTH_RATE, ASAT_DEBRIS_RISE,
   ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE,
   COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
@@ -65,7 +66,7 @@ import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolve
 import { awardXp, canPromote, getPerk } from '../data/promotions';
 import { generateGeneral, getGeneralXpMultiplier } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
-import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, getFormerOwnerOnConquest } from '../data/rebellion';
+import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
@@ -79,7 +80,7 @@ import {
 } from '../data/greatProjects';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import {
-  MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
+  MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, canBuildMissile, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
   NUCLEAR_PRESTIGE_PENALTY, NUCLEAR_PARIAH_DURATION_TURNS, NUCLEAR_PARIAH_GOLD_MULT_PENALTY
 } from '../data/missiles';
 import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
@@ -377,6 +378,9 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // roster data a unit's classId/ageId reference.
     units: {},
     nextUnitSeq: 0,
+    // Loan ids come from a counter (like units/satellites) — the old `loan_${turn}_${loans.length}`
+    // repeated after a repay-then-borrow, and REPAY_LOAN's id filter then cleared BOTH loans.
+    nextLoanSeq: 1,
 
     // Wars and invasions — the combat/invasion resolution engine that reads these is Phase C work.
     wars: [],
@@ -443,6 +447,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     ]
   };
 };
+
+// A player action the engine refuses still has to SAY why — a bare `return state` is invisible to
+// the player (the lesson of this codebase's diplomacy "buttons do nothing" bug). New guards use this;
+// older ones are migrated as they're touched (implementation plan §0.3).
+const reject = (state, message) => ({
+  ...state,
+  logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }]
+});
 
 // ============ REDUCER ============
 // Exported for direct unit testing (see GameContext.test.js) — the reducer is the authoritative
@@ -709,6 +721,7 @@ export const gameReducer = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.quellUnrest;
       if (!region || region.owner !== state.playerNationId || region.unrest <= 0) return state;
+      if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
@@ -719,31 +732,39 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.SETTLE_COLONIZE: {
-      // Peacefully absorbs a bordering nation's own homeland once its control there has
-      // collapsed below SETTLE_COLONIZE_CONTROL_THRESHOLD — the "minimally-held adjacent land"
-      // the plan describes, adapted to a one-region-per-nation world with no literal unowned
-      // territory. No military required, unlike LAUNCH_INVASION.
+      // Peaceful settlement of land NOBODY really governs any more: a province held by rebels, or
+      // the remnant of a nation that's been wiped out. It used to accept ANY adjacent province under
+      // 20 control — including an ally's — with no diplomatic cost, and since a missile strike could
+      // push control that low at peace, the pair was conquest without a war.
       const { regionId } = action.payload;
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.settleColonize;
       if (!region || region.owner === state.playerNationId) return state;
-      if (region.control >= SETTLE_COLONIZE_CONTROL_THRESHOLD) return state;
-      if (!isAdjacentToOwner(regionId, state.regions, state.playerNationId)) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      const regionName = REGIONS_DATA[regionId]?.name || regionId;
+      const owner = state.nations[region.owner];
+      const rebelUnitIds = Object.values(state.units).filter((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID).map((u) => u.id);
+      if (owner && !owner.isEliminated && rebelUnitIds.length === 0) return reject(state, `${owner.name} still governs ${regionName} — only rebel-held or abandoned land can be settled peacefully.`);
+      if (owner && !owner.isEliminated && (owner.hasMilitaryPact || owner.vassalOf === state.playerNationId)) return reject(state, `${regionName} belongs to your ally or vassal ${owner.name}.`);
+      if (region.control >= SETTLE_COLONIZE_CONTROL_THRESHOLD) return reject(state, `Control in ${regionName} is still ${Math.round(region.control)} — it must fall below ${SETTLE_COLONIZE_CONTROL_THRESHOLD}.`);
+      if (!isAdjacentToOwner(regionId, state.regions, state.playerNationId)) return reject(state, `${regionName} must border your territory.`);
+      if (!canAfford(state.resources, costs)) return reject(state, `Not enough resources to settle ${regionName}.`);
+      const { region: settled } = transferRegion(region, state.playerNationId, state.nations, {
+        control: SETTLE_COLONIZE_START_CONTROL,
+        unrest: Math.max(region.unrest || 0, SETTLE_COLONIZE_START_UNREST)
+      });
+      const nextUnits = { ...state.units };
+      rebelUnitIds.forEach((id) => { delete nextUnits[id]; });
+      // Taking a living nation's rebel-held province still costs you with that nation.
+      const nextNations = owner && !owner.isEliminated
+        ? { ...state.nations, [owner.id]: { ...owner, hostility: Math.min(100, (owner.hostility || 0) + SETTLE_COLONIZE_OWNER_HOSTILITY) } }
+        : state.nations;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        regions: {
-          ...state.regions,
-          [regionId]: {
-            ...region,
-            owner: state.playerNationId,
-            formerOwner: getFormerOwnerOnConquest(regionId, region.owner, state.playerNationId),
-            control: SETTLE_COLONIZE_START_CONTROL,
-            unrest: Math.max(region.unrest || 0, SETTLE_COLONIZE_START_UNREST)
-          }
-        },
-        logs: [...state.logs, { year: state.year, message: `Settlers peacefully absorbed ${REGIONS_DATA[regionId]?.name}, whose own control there had collapsed.`, type: LogTypes.ACTION }]
+        regions: { ...state.regions, [regionId]: settled },
+        units: nextUnits,
+        nations: nextNations,
+        logs: [...state.logs, { year: state.year, message: `Settlers absorbed ${regionName}, which ${owner && !owner.isEliminated ? `${owner.name} had lost to rebels` : 'no one governed any more'}.`, type: LogTypes.ACTION }]
       };
     }
 
@@ -752,6 +773,7 @@ export const gameReducer = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.populationPolicy;
       if (!region || region.owner !== state.playerNationId) return state;
+      if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
       if (!canAfford(state.resources, costs)) return state;
       const nextPopulation = Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE));
       return {
@@ -819,9 +841,11 @@ export const gameReducer = (state, action) => {
       if (!hasBankingHouses(state, state.playerNationId)) return state;
       if ((nation.loans || []).length >= getLoanCapacity(state, state.playerNationId)) return state;
       const principal = getLoanSize(state, state.playerNationId);
-      const loan = { id: `loan_${state.turnNumber}_${(nation.loans || []).length}`, principal, interestRate: getLoanInterestRate(state, state.playerNationId), takenTurn: state.turnNumber };
+      const loanSeq = state.nextLoanSeq || 1;
+      const loan = { id: `loan_${loanSeq}`, principal, interestRate: getLoanInterestRate(state, state.playerNationId), takenTurn: state.turnNumber };
       return {
         ...state,
+        nextLoanSeq: loanSeq + 1,
         resources: { ...state.resources, gold: (state.resources.gold || 0) + principal },
         nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: [...(nation.loans || []), loan] } },
         logs: [...state.logs, { year: state.year, message: `Took out a loan of ${formatMoney(principal)} gold.`, type: LogTypes.ACTION }]
@@ -831,12 +855,16 @@ export const gameReducer = (state, action) => {
     case ActionTypes.REPAY_LOAN: {
       const { loanId } = action.payload;
       const nation = state.nations[state.playerNationId];
-      const loan = (nation.loans || []).find((l) => l.id === loanId);
-      if (!loan || (state.resources.gold || 0) < loan.principal) return state;
+      // By index, not by id filter: a save from before nextLoanSeq can still hold two loans with the
+      // same id, and repaying one must never clear the other for free.
+      const loanIndex = (nation.loans || []).findIndex((l) => l.id === loanId);
+      const loan = nation.loans?.[loanIndex];
+      if (!loan) return reject(state, 'No such loan.');
+      if ((state.resources.gold || 0) < loan.principal) return reject(state, `Not enough gold to repay this loan (need ${formatMoney(loan.principal)}).`);
       return {
         ...state,
         resources: { ...state.resources, gold: state.resources.gold - loan.principal },
-        nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: nation.loans.filter((l) => l.id !== loanId) } },
+        nations: { ...state.nations, [state.playerNationId]: { ...nation, loans: nation.loans.filter((_, i) => i !== loanIndex) } },
         logs: [...state.logs, { year: state.year, message: `Repaid a loan of ${formatMoney(loan.principal)} gold.`, type: LogTypes.ACTION }]
       };
     }
@@ -936,8 +964,9 @@ export const gameReducer = (state, action) => {
     case ActionTypes.BUILD_MISSILE: {
       const { tierId } = action.payload;
       if (!MISSILE_TIERS[tierId]) return state;
+      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, 'Missiles unlock in the Modern age.');
       const costs = ACTION_COSTS.buildMissile[tierId];
-      if (!canAfford(state.resources, costs)) return state;
+      if (!canAfford(state.resources, costs)) return reject(state, `Not enough resources to build a ${MISSILE_TIERS[tierId].name}.`);
       const nation = state.nations[state.playerNationId];
       return {
         ...state,
@@ -955,8 +984,16 @@ export const gameReducer = (state, action) => {
       const tier = MISSILE_TIERS[tierId];
       const nation = state.nations[state.playerNationId];
       const targetRegion = state.regions[targetRegionId];
-      if (!tier || !nation.missiles[tierId]) return state;
+      if (!tier || !nation.missiles[tierId]) return reject(state, 'No missile of that type in stock.');
       if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
+      // A strike is an act of war, not a free action: before this, a nation at peace could be
+      // missiled with no war, no hostility and no AE — and SETTLE_COLONIZE could then annex the
+      // province once its control collapsed. Rebel-held land is fair game without a war.
+      const strikeTargetOwner = targetRegion.occupiedBy ?? targetRegion.owner;
+      const atWarWithTarget = state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, strikeTargetOwner));
+      if (strikeTargetOwner !== REBEL_OWNER_ID && !atWarWithTarget) {
+        return reject(state, `You must be at war with ${state.nations[strikeTargetOwner]?.name || strikeTargetOwner} to strike ${REGIONS_DATA[targetRegionId]?.name}.`);
+      }
       const costs = ACTION_COSTS.missileStrike;
       if (!canAfford(state.resources, costs)) return state;
       const ownRegionIds = Object.keys(state.regions).filter(id => state.regions[id].owner === state.playerNationId);
@@ -1033,6 +1070,7 @@ export const gameReducer = (state, action) => {
     case ActionTypes.BUILD_ABM_DEFENSE: {
       const costs = ACTION_COSTS.buildAbmDefense;
       const nation = state.nations[state.playerNationId];
+      if (!canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, 'ABM defense unlocks in the Modern age.');
       if ((nation.abmDefenseLevel || 0) >= MAX_ABM_LEVEL) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
@@ -1876,7 +1914,11 @@ export const gameReducer = (state, action) => {
       const clergy = nation.estates?.clergy;
       const costs = ACTION_COSTS.clergyTithe;
       if (!clergy) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      // Cooldown + loyalty floor: without them this was free, unlimited gold — loyalty just pinned at 0
+      // and every further click cost nothing (10 tithes + 10 levies on turn 1 = +9,560 gold/manpower).
+      if (!canDoEstateInteraction(nation, 'clergyTithe', state.turnNumber)) return reject(state, `The Clergy can be asked for a tithe again on turn ${nation.estateInteractionCooldowns.clergyTithe}.`);
+      if (clergy.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return reject(state, `The Clergy refuse a tithe — their loyalty is below ${ESTATE_LOYALTY_LOW_THRESHOLD}.`);
+      if (!canAfford(state.resources, costs)) return reject(state, `Not enough ADM for a tithe (need ${costs.adm}).`);
       const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
       const goldGain = totalDev * 2;
       const afterCost = applyCosts(state.resources, costs);
@@ -1885,7 +1927,11 @@ export const gameReducer = (state, action) => {
         resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
         nations: {
           ...state.nations,
-          [state.playerNationId]: { ...nation, estates: { ...nation.estates, clergy: { ...clergy, loyalty: Math.max(0, clergy.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } } }
+          [state.playerNationId]: {
+            ...nation,
+            estates: { ...nation.estates, clergy: { ...clergy, loyalty: Math.max(0, clergy.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } },
+            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, clergyTithe: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
+          }
         },
         logs: [...state.logs, { year: state.year, message: `The Clergy tithes ${formatMoney(goldGain)} to the crown. (-${ESTATE_ASK_LOYALTY_PENALTY} clergy loyalty)`, type: LogTypes.ACTION }]
       };
@@ -1896,7 +1942,9 @@ export const gameReducer = (state, action) => {
       const nobility = nation.estates?.nobility;
       const costs = ACTION_COSTS.nobilityLevies;
       if (!nobility) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      if (!canDoEstateInteraction(nation, 'nobilityLevies', state.turnNumber)) return reject(state, `The Nobility can be asked for levies again on turn ${nation.estateInteractionCooldowns.nobilityLevies}.`);
+      if (nobility.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return reject(state, `The Nobility refuse to raise levies — their loyalty is below ${ESTATE_LOYALTY_LOW_THRESHOLD}.`);
+      if (!canAfford(state.resources, costs)) return reject(state, `Not enough ADM to raise levies (need ${costs.adm}).`);
       const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
       const hrGain = totalDev * 2;
       const afterCost = applyCosts(state.resources, costs);
@@ -1905,7 +1953,11 @@ export const gameReducer = (state, action) => {
         resources: { ...afterCost, hr: (afterCost.hr || 0) + hrGain },
         nations: {
           ...state.nations,
-          [state.playerNationId]: { ...nation, estates: { ...nation.estates, nobility: { ...nobility, loyalty: Math.max(0, nobility.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } } }
+          [state.playerNationId]: {
+            ...nation,
+            estates: { ...nation.estates, nobility: { ...nobility, loyalty: Math.max(0, nobility.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } },
+            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, nobilityLevies: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
+          }
         },
         logs: [...state.logs, { year: state.year, message: `The Nobility raises levies: +${Math.round(hrGain)} manpower. (-${ESTATE_ASK_LOYALTY_PENALTY} nobility loyalty)`, type: LogTypes.ACTION }]
       };
@@ -2156,7 +2208,8 @@ export const gameReducer = (state, action) => {
       // on a 0-100 hostility scale the way 0 is neutral on a signed opinion scale), and an existing
       // trade agreement is a flat vote of confidence — replacing the old flat hostility-ceiling
       // gate with a real scored formula.
-      const acceptanceScore = (50 - (target.hostility || 0)) / 2 + (target.prestige || 0) / 10 + (target.hasTradeAgreement ? 20 : 0);
+      // Prestige is the ASKER's (the player's) standing — the formula used to read the target's own.
+      const acceptanceScore = (50 - (target.hostility || 0)) / 2 + (state.nations[state.playerNationId]?.prestige || 0) / 10 + (target.hasTradeAgreement ? 20 : 0);
       if (acceptanceScore < 0) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {

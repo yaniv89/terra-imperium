@@ -4,6 +4,7 @@
 import React from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { describeEffects } from '../../engine/describeEffects';
+import { getOptionShortfall } from '../../engine/applyEventEffects';
 
 // Plan §M17: describeEffects is the ONE shared effect-description function (src/engine/
 // describeEffects.js) — this replaces the local formatEffectItem/parseEffects pair that used to
@@ -26,8 +27,12 @@ const EffectBadge = ({ text, sign, tooltip }) => {
   );
 };
 
-const EventModal = ({ event, onResolve }) => {
+const EventModal = ({ event, onResolve, resources }) => {
   if (!event) return null;
+  // An option the treasury can't cover is shown but not clickable — unless NO option is affordable,
+  // in which case every option stays open and the engine charges what it can (-1 stability).
+  const shortfalls = event.options.map((option) => getOptionShortfall(resources, option.effects));
+  const anyAffordable = shortfalls.some((sf) => sf.length === 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -67,13 +72,18 @@ const EventModal = ({ event, onResolve }) => {
           <div className="space-y-3">
             {event.options.map((option, index) => {
               const effects = describeEffects(option.effects);
-              
+              const blocked = anyAffordable && shortfalls[index].length > 0;
+
               return (
                 <button
                   key={index}
-                  onClick={() => onResolve(index)}
-                  className="w-full p-4 rounded-lg text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-amber-500/50 transition-all group"
+                  onClick={() => { if (!blocked) onResolve(index); }}
+                  aria-disabled={blocked}
+                  className={`w-full p-4 rounded-lg text-left border transition-all group ${blocked ? 'bg-slate-900 border-slate-800 opacity-60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700 border-slate-700 hover:border-amber-500/50'}`}
                 >
+                  {blocked && (
+                    <div className="text-[11px] text-red-400 mb-1">Can&apos;t afford: {shortfalls[index].map((id) => `${-option.effects[id]} ${id}`).join(', ')}</div>
+                  )}
                   {/* Option Label */}
                   <div className="font-semibold text-sm text-white group-hover:text-amber-300 transition-colors">
                     {option.label}

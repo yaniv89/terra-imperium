@@ -13,6 +13,7 @@ import { addNationModifier, addRegionModifier } from './modifiers/timed';
 import { REBEL_OWNER_ID, getRebelSpawnStrength } from '../data/rebellion';
 import { getLaw } from '../data/laws';
 import { seedDevelopment } from './development';
+import { transferRegion } from './regionTransfer';
 
 // Plan §M17: "defenseBonus becomes a timed fort modifier" — the old value (0.05-0.1, meant as a
 // percentage under the pre-M6 combat model) is scaled onto the modifier engine's FLAT
@@ -21,9 +22,22 @@ import { seedDevelopment } from './development';
 const DEFENSE_BONUS_FORT_LEVEL_SCALE = 20;
 const DEFENSE_BONUS_DURATION_TURNS = 20;
 
+// Resources an event option costs more of than the player currently holds (negative deltas only).
+// EventModal greys such an option out; the engine refuses it too while any other option is payable.
+const PAYABLE_KEYS = [...RESOURCE_IDS, 'dip', 'techPoints'];
+export const getOptionShortfall = (resources, effects = {}) =>
+  PAYABLE_KEYS.filter((id) => (effects[id] || 0) < 0 && (resources?.[id] || 0) < -effects[id]);
+
 export const applyEventEffects = (state, event, optionIndex) => {
   const option = event.options[optionIndex];
   if (!option) return state;
+  // Events can't be skipped, so an unaffordable choice used to go through anyway and push the
+  // treasury negative (20 gold -> -80), which the economy phase then turned into bankruptcy.
+  const shortfall = getOptionShortfall(state.resources, option.effects);
+  const anyAffordable = event.options.some((o) => getOptionShortfall(state.resources, o.effects).length === 0);
+  if (shortfall.length && anyAffordable) {
+    return { ...state, logs: [...state.logs, { year: state.year, message: `You can't afford "${option.label}" (${shortfall.join(', ')}).`, type: LogTypes.ACTION }] };
+  }
 
   let next = { ...state };
   const logs = [];
@@ -38,7 +52,15 @@ export const applyEventEffects = (state, event, optionIndex) => {
   });
   if (effects.dip) resources.dip = (resources.dip || 0) + effects.dip;
   if (effects.techPoints) resources.techPoints = (resources.techPoints || 0) + effects.techPoints;
+  // Only reachable when NO option was affordable: pay what exists, and the realm feels the default.
+  const couldNotPay = shortfall.length > 0;
+  if (couldNotPay) shortfall.forEach((id) => { resources[id] = Math.max(0, resources[id] || 0); });
   next.resources = resources;
+  if (couldNotPay && next.nations[playerNationId]) {
+    const player = next.nations[playerNationId];
+    next.nations = { ...next.nations, [playerNationId]: { ...player, stability: clampStability((player.stability || 0) - 1) } };
+    logs.push({ year: next.year, message: `The crown could not pay in full (${shortfall.join(', ')}). (-1 stability)`, type: LogTypes.CRISIS });
+  }
 
   // A flat bump to the player nation's military stat — the finer-grained unit-composition system
   // (plan §7) is Phase C work; this is the generic placeholder until then.
@@ -90,16 +112,14 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.regions = regions;
   }
 
+  // Both region effects go through transferRegion (src/engine/regionTransfer.js) so an event
+  // capture sets formerOwner and clears any occupation like a real conquest, and handing land back to
+  // a nation that's since been wiped out revives it instead of creating a zombie owner.
   if (effects.captureRegions) {
     const regions = { ...next.regions };
     effects.captureRegions.forEach(rId => {
-      if (regions[rId]) {
-        regions[rId] = {
-          ...regions[rId],
-          owner: playerNationId,
-          control: 80,
-          underInvasion: false
-        };
+      if (regions[rId] && regions[rId].owner !== playerNationId) {
+        regions[rId] = transferRegion(regions[rId], playerNationId, next.nations, { control: 80 }).region;
       }
     });
     next.regions = regions;
@@ -107,15 +127,13 @@ export const applyEventEffects = (state, event, optionIndex) => {
 
   if (effects.returnRegion && next.regions[effects.returnRegion]?.owner === playerNationId) {
     const origOwner = REGIONS_DATA[effects.returnRegion]?.startOwner;
-    if (origOwner) {
-      next.regions = {
-        ...next.regions,
-        [effects.returnRegion]: {
-          ...next.regions[effects.returnRegion],
-          owner: origOwner,
-          control: 100
-        }
-      };
+    if (origOwner && next.nations[origOwner]) {
+      const { region, revivedNation } = transferRegion(next.regions[effects.returnRegion], origOwner, next.nations, { formerOwner: undefined, control: 100 });
+      next.regions = { ...next.regions, [effects.returnRegion]: region };
+      if (revivedNation) {
+        next.nations = { ...next.nations, [origOwner]: revivedNation };
+        logs.push({ year: next.year, message: `${revivedNation.name} rises again!`, type: LogTypes.MILESTONE });
+      }
     }
   }
 

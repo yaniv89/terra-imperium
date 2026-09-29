@@ -194,6 +194,7 @@ const GameLayout = () => {
           ? (HISTORICAL_EVENTS[state.activeEventId] || EVENT_CHAINS[state.activeEventId])
           : state.activeProceduralEvent}
         onResolve={resolveEvent}
+        resources={state.resources}
       />
 
       {/* Game Over screen - overlays everything once the run ends */}

@@ -17,6 +17,8 @@ export const REBELLION_UNREST_THRESHOLD = 90;
 // +15% strength per turn a rebellion is left unaddressed — ignoring one gets more costly to fix,
 // not less, which is the point.
 export const REBEL_GROWTH_RATE = 0.15;
+// A growing uprising tops out at this multiple of a fresh spawn's strength for its region.
+export const REBEL_MAX_GROWTH_MULT = 3;
 
 // Log-scaled against real population, mirroring build-world-regions.mjs's gold/HR formulas — the
 // same reason applies: real population figures need compressing into a playable band rather than

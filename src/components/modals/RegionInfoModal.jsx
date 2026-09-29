@@ -10,6 +10,7 @@ import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner } from '../../data/regi
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
+import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import ProgressBar from '../ui/ProgressBar';
@@ -95,7 +96,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const navalEngagementSources = (!isPlayerOwned && defendingNavalUnits.length > 0)
     ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age)).map((u) => u.regionId))]
     : [];
-  const canSettle = !isPlayerOwned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
+  // Mirrors SETTLE_COLONIZE: only rebel-held land, or a wiped-out nation's remnant, can be settled.
+  const regionOwner = state.nations[regionState.owner];
+  const isRebelHeld = Object.values(state.units).some((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID);
+  const isUngoverned = !regionOwner || regionOwner.isEliminated || (isRebelHeld && !regionOwner.hasMilitaryPact && regionOwner.vassalOf !== state.playerNationId);
+  const canSettle = !isPlayerOwned && isUngoverned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
 
   const handleInvade = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
@@ -320,7 +325,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <ActionButton
                 icon={Flag}
                 label="Settle / Colonize"
-                description={`Grip here has collapsed (${regionState.control}% control) — absorb it peacefully, no military required`}
+                description={`${regionOwner && !regionOwner.isEliminated ? 'Rebels hold this land' : 'No one governs this land'} (${Math.round(regionState.control)}% control) — absorb it peacefully, no military required`}
                 costs={ACTION_COSTS.settleColonize}
                 onClick={handleSettleColonize}
                 disabled={!canAfford(state.resources, ACTION_COSTS.settleColonize)}
