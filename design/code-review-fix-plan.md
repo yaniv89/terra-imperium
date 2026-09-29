@@ -197,8 +197,143 @@ Right now full-height sheets cover the map, so you can't see what your actions d
 
 ---
 
+## Second review pass — tech, economy, buildings, government/estates, events, space, stability, victory
+
+> Every finding marked **verified** was reproduced with a scratch simulation against the real engine
+> (`createInitialState` → real reducer actions → `ADVANCE_TURN`, events auto-resolved). The numbers
+> quoted are from those runs. Items marked *code-read* are clear from the code but weren't simulated.
+> Code fragments for every fix are in `design/implementation-plan.md` → **Phase 0B**.
+
+### Critical — game-breaking
+
+#### S1. ADM/DIP/MIL can never reach the price of most actions — research is impossible (verified)
+- `resolveTurn.js:138` caps each pool at **2× its per-turn income**:
+  `Math.min(pool + income, income * 2)`. `resolveTurn.js:403` applies the same cap to AI pools.
+  Incomes are 4–9 per turn, so pools top out around **8–18**.
+- That cap dates from the old action-point model, where actions cost 1–3. M7/M8/M9 then priced
+  actions in the tens and hundreds, and nobody re-checked the cap.
+- Sim, 30 turns each as France, the USA and China: pools never exceeded 18; the cheapest tech costs 40.
+- **0 of 239 AI nations researched a single tech in 40 turns**; the highest AI pool was 22.
+- Out of reach for the whole game:
+  - **All research** (40–160 power). That also locks:
+    - every tech-gated building tier (Market, Library, Stone Walls…);
+    - every non-default law;
+    - Banking Houses, and with it loans;
+    - tech-age advancement;
+    - the Tech Titan achievement.
+  - **Increase Stability** (≥100 ADM) — stability can only ever go down.
+  - **Develop Province** (≥50).
+  - **Change Law** (≥100).
+  - **Change Government** (300) and **Reforms** (100).
+  - **Seize Land** and **Grant Privilege** (100).
+  - **Move Capital** (200).
+  - **Shift Identity** (50).
+- Affordable only with a strong DIP ruler: Vassalize (20 DIP), Alliance (16 DIP).
+- The player never sees why. The Tech tab just says "Need 40 ADM" while the pool is capped at 14.
+- Fix: a flat bank cap (EU4 uses 999), shared by the player and the AI. Add a guard test that
+  every power cost in the game fits under the cap, plus a sim test that the AI researches.
+
+#### S2. Civil wars end by themselves the next turn, and reward the player (verified)
+- `civilWar.js` says pretender armies are skipped by the normal unrest-rebellion code, but
+  `resolveTurn.js:197` never checks `isPretender`.
+- The next turn, every pretender sitting in a low-unrest province hits "unrest has eased, it
+  dissolves". The civil war then ends as **crushed**, paying the +10 legitimacy (and +1 stability)
+  reward.
+- Sim: 15 pretender armies → 0 after one turn, `civilWar: null`, +10 legitimacy.
+- Even once that's fixed, the system still can't work:
+  - Pretenders spawn in 15% of provinces and never spread, but the lose condition needs them to
+    hold 50%. A civil war can never be lost.
+  - The AI never fights rebels, so an AI civil war would last forever.
+- `startCivilWar` also overwrites a foreign occupier's `occupiedBy` with the pretender marker, which
+  wipes that war's occupation score. When the pretender goes, the province is freed for nothing.
+
+### High — exploits
+
+#### S3. Unlimited free gold and manpower from estates (verified)
+- `CLERGY_TITHE` and `NOBILITY_LEVIES` cost 0 ADM, have **no cooldown**, and loyalty just stops
+  at 0. After that, extra clicks cost nothing at all.
+- Sim, turn 1: 10 tithes + 10 levies = **+9,560 gold and +9,560 manpower** (starting gold: 500).
+- Fix: use the same cooldown as Seize/Sell Land, refuse when loyalty is below the low threshold,
+  and charge a small ADM cost.
+
+#### S4. Missiles need no war and no era (verified)
+- `BUILD_MISSILE` has no age or tech gate. A Tactical Missile only needs iron, which exists from
+  the **Classical** age.
+- `MISSILE_STRIKE` needs no war and no casus belli. Hostility doesn't change (except for nukes),
+  no truce is broken and no AE is gained. The Space tab is always visible.
+- Sim, Classical age: 9 tactical strikes on a neighbour at peace. Control 100 → 10, still no war,
+  hostility −1 (it drifted down).
+
+#### S5. Settle/Colonize annexes anyone's land, allies included (verified)
+- `SETTLE_COLONIZE` (`gameReducer.js:721`) only checks control < 20 and adjacency. It ignores who
+  owns the province, alliances, vassals and truces, and costs no AE or hostility.
+- Sim: annexed an allied neighbour's province; the alliance survived and hostility didn't move.
+- Combined with S4, this is **conquest with zero diplomatic cost**: missile a neighbour's border
+  province below 20 control, then settle it. Sim: 9 strikes → control 0 the next turn → settled.
+
+#### S6. Duplicate loan ids let one repayment clear several loans (verified)
+- `REQUEST_LOAN` uses `loan_${turn}_${loans.length}` as the id. Take two loans, repay the first,
+  take another, and you have two loans called `loan_1_1`.
+- `REPAY_LOAN` filters by id, so repaying one of them (1,185 gold) **deleted both**.
+
+### Medium
+
+#### S7. A successful revolt hands the province to a dead nation and leaves it occupied (verified)
+- `resolveTurn.js:211` sets `owner = formerOwner` without checking `isEliminated`. It also never
+  clears `occupiedBy`.
+- Sim: the province went to an eliminated nation (a zombie owner that never acts), and a third
+  party's `occupiedBy` stayed on it.
+- Same pattern in events:
+  - `applyEventEffects.js:108` (`returnRegion`) has the same problem.
+  - `captureRegions` (`:93`) sets the owner without `formerOwner`, without clearing `occupiedBy`,
+    and without an elimination check.
+
+#### S8. Event choices ignore whether you can afford them (verified)
+- `applyEventEffects.js:37` adds resource deltas unchecked. EventModal has no disabled state, and
+  events "cannot be skipped". 61 event options cost gold.
+- Sim: gold 20 → **−80** after picking a −100 option.
+- If the next turn's income doesn't cover it, the economy phase declares **bankruptcy**. Loans
+  can't save you, because they need Banking Houses, which is unreachable (S1).
+
+#### S9. Achievements awarded for other nations' wars (code-read, Phase 1 overlap)
+- `three_front_war` counts *any* AI at war, even AI-vs-AI wars the player isn't in.
+- `master_diplomat` counts AI-vs-AI peace treaties (1.3), so it can unlock passively.
+- `tech_titan` is unreachable (S1).
+
+#### S10. Diplomatic victory math (code-read)
+- The denominator counts eliminated nations, so every AI conquest makes the win harder.
+- Alliances have no cap and no obligations. Once S1 is fixed, "Diplomatic Victory" just means
+  spamming 16-DIP alliances with 120 nations.
+- Alliance acceptance (`gameReducer.js:2159`) adds the **target's** prestige; the formula means the
+  asker's.
+
+### Low
+
+- **S11.** Player upkeep counts `state.units` from before the turn (`resolveTurn.js:553`), not the
+  updated `units`. Units lost to attrition or revolts that turn are still charged.
+- **S12.** Estate privileges' `influenceBonus` is never read (`estates.js:62` uses a flat 10 per
+  privilege). Officer Corps has no effect at all.
+- **S13.** Rebel armies grow 15% per turn, compounding with no cap (`resolveTurn.js:224`).
+  Home-province rebellions have no end condition other than unrest falling, and the AI never
+  quells unrest. Not seen in a 40-turn sim, but unbounded.
+- **S14.** `POPULATION_POLICY` and `QUELL_UNREST` don't check `occupiedBy`; the other domestic
+  actions do.
+
+### How these relate to the war rework (Phase 1)
+- **S9 and S10** go away with the relations matrix: count wars and treaties *with the player*.
+- **S4 and S5** want Phase 1's `areAtWar`. They can ship first using the existing `isWarBetween`,
+  then switch over.
+- **S7's** "revive a dead nation" should go through Phase 1's `endWar`/elimination path, so a
+  revived nation starts with clean war state.
+- **S1, S2, S3, S6, S8, S11–S14** are independent, and can ship before Phase 1.
+
+---
+
 ## Suggested order of work
 
+0. **S1 first** — a one-line cap change plus a reachability test and a balance sim. Nothing in
+   tech, laws, government, stability or development works until it lands. Then the other
+   independent second-pass fixes (S2, S3, S6, S8, S11–S14), followed by S4/S5/S7.
 1. **Phase 1** (relations matrix + derived war state + multi-party wars + unique ids) — largest, but
    it removes the root cause of 1.1–1.6 and unlocks 3.2 and the RTS battles.
 2. **Phase 2** (liberation, deep offensives, defender filtering, AI counter-attacks).

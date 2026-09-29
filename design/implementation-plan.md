@@ -9,6 +9,7 @@
 
 | Phase | What | Size | Depends on |
 |---|---|---|---|
+| 0B | **Second-pass fixes: power-pool cap (S1), civil war, estate/loan/missile/settle exploits, events** | S–M | — (S1 first of everything) |
 | 0 | Quick wins (vassal cycle, war ids, tap feedback everywhere) | S | — |
 | 1 | Relations matrix + wars derived from `state.wars` + multi-party wars | XL | 0 |
 | 2 | Military: liberation, deep offensives, defender filtering, AI counter-attack | L | 1 |
@@ -83,6 +84,269 @@ Then:
 - Rule going forward: **no reducer case returns `state` unchanged for a player action without a
   log line.** Enforce with a test that dispatches every `ActionTypes` value with junk payloads and
   asserts `state.logs` grew or state changed.
+
+---
+
+## Phase 0B — Second review pass fixes
+
+Findings S1–S14 are described in `design/code-review-fix-plan.md` → "Second review pass". Every
+fix below is independent of Phase 1 unless noted. S1 goes first: until it lands, research, laws,
+government, stability and development are all unreachable.
+
+### S1. Power-pool bank cap (`resolveTurn.js:130-139`, `:403`)
+
+```js
+// src/data/actionCosts.js
+// Flat bank cap (EU4 uses 999). The old `income * 2` cap dates from the 1–3 AP era; every M7+ cost
+// (techs 40–160, laws 50×tier, government 300, stability ≥100) sits above it.
+export const POWER_POOL_CAP = 999;
+```
+
+```js
+// src/engine/resolveTurn.js — player (maintenanceAndPower phase)
+resources[`max${cap(pool)}`] = income;               // keep: it's the per-turn income the UI shows
+resources[pool] = Math.min((resources[pool] || 0) + income, POWER_POOL_CAP);
+
+// src/engine/resolveTurn.js — AI economy phase
+['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
+```
+
+- Rename the UI label: `maxAdm` is shown as a maximum but really means income per turn. The
+  ResourceBar tooltip should read "+7/turn (bank up to 999)".
+- Guard test: every price in the game fits under the cap, so this can't regress when someone
+  adds a 1,200-ADM action.
+
+```js
+// src/data/powerCosts.test.js
+it('every ADM/DIP/MIL cost fits under POWER_POOL_CAP', () => {
+  const worstTechMult = getAgesBehindResearchCostMultiplier(AGE_ORDER.length - 1);
+  Object.values(TECH_TREE).forEach((t) => expect(getTechPowerCost(t) * worstTechMult).toBeLessThanOrEqual(POWER_POOL_CAP));
+  Object.values(ACTION_COSTS).flatMap((c) => (c.adm !== undefined ? [c] : Object.values(c)))
+    .forEach((c) => ['adm', 'dip', 'mil'].forEach((p) => expect(c[p] || 0).toBeLessThanOrEqual(POWER_POOL_CAP)));
+  Object.values(LAW_CATEGORIES).flat().forEach((l) => expect(50 * l.tier).toBeLessThanOrEqual(POWER_POOL_CAP));
+});
+```
+
+- Reachability sim test (uses `stateAfterTurns`, Phase 6):
+  - After 30 turns, the player can research at least one tech (ignoring techPoints).
+  - After 60 turns, more than half of the AI nations have at least one tech.
+- Then run `scripts/simulate.mjs` to rebalance:
+  - Research pace: the first tech now takes ~5–10 turns of one pool.
+  - techPoints stay the real bottleneck until a Library exists: Fund Scholars gives 20 TP; the
+    first tech costs 10 TP.
+- No save migration needed. Existing pools just stop being clipped.
+
+### S2. Civil war (`resolveTurn.js:197`, `civilWar.js`)
+
+```js
+// resolveTurn.js — the unrest-rebellion block must not own pretender armies
+Object.values(units).forEach((u) => {
+  if (u.ownerId === REBEL_OWNER_ID && !u.isPretender) rebelUnitIdByRegion[u.regionId] = u.id;
+});
+```
+
+```js
+// civilWar.js — startCivilWar: never overwrite a foreign occupation
+const ownedIds = Object.keys(regions).filter((id) => regions[id].owner === nationId && !regions[id].occupiedBy);
+```
+
+```js
+// civilWar.js — processCivilWarTurn: pretenders spread, so "lost" is reachable
+// Each pretender stack stronger than the loyal garrison next door takes one adjacent owned
+// province per turn (clone at 60% strength, mark occupiedBy: PRETENDER_MARKER).
+pretenderUnits.forEach((u) => {
+  const target = getNeighborIds(u.regionId).find((id) =>
+    regions[id]?.owner === nationId && !regions[id].occupiedBy && garrisonStrength(units, id, nationId) < u.strength);
+  if (!target || rng.next() > PRETENDER_SPREAD_CHANCE) return;
+  const id = `pretender_${nationId}_${target}_${turnNumber}`;
+  nextUnits[id] = { ...u, id, regionId: target, strength: Math.round(u.strength * 0.6), maxStrength: Math.round(u.strength * 0.6) };
+  nextRegions[target] = { ...nextRegions[target], occupiedBy: PRETENDER_MARKER };
+});
+```
+
+- AI suppression: in the same function, for non-player nations, fight each pretender stack with
+  the AI's own units in or next to that province via `resolveBattle`. This is the same call
+  `SUPPRESS_REBELLION` makes, so AI civil wars end by winning or losing, not by timing out.
+- Tests:
+  - A pretender in a zero-unrest province survives the turn.
+  - A civil war with an unopposed pretender is lost within `CIVIL_WAR_HOLD_STREAK_TO_LOSE_TURNS`
+    plus the spread turns.
+  - A foreign `occupiedBy` survives `startCivilWar`.
+
+### S3. Estate asks (`gameReducer.js` CLERGY_TITHE / NOBILITY_LEVIES)
+
+```js
+case ActionTypes.CLERGY_TITHE: {
+  const nation = state.nations[state.playerNationId];
+  const clergy = nation.estates?.clergy;
+  if (!clergy) return reject(state, 'No Clergy estate');
+  if (!canDoEstateInteraction(nation, 'clergyTithe', state.turnNumber))
+    return reject(state, `The Clergy can be asked again on turn ${nation.estateInteractionCooldowns.clergyTithe}`);
+  if (clergy.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return reject(state, 'The Clergy refuse — loyalty below 30');
+  // ...existing payout...
+  estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, clergyTithe: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS },
+}
+// same for NOBILITY_LEVIES with key 'nobilityLevies'; ACTION_COSTS.clergyTithe/nobilityLevies → { adm: 10 }
+```
+
+- Test: a second tithe in the same turn is rejected, and gold goes up exactly once.
+
+### S4. Missiles (`data/missiles.js`, `gameReducer.js` BUILD_MISSILE / MISSILE_STRIKE)
+
+```js
+// data/missiles.js — every tier gets an era gate (the space race is a Modern-age system)
+tactical: { ..., minAge: 'modern' }, theatre: { ..., minAge: 'modern' }, icbm: { ..., minAge: 'modern' }, nuclear: { ..., minAge: 'modern' },
+export const canBuildMissile = (tierId, effectiveAgeId) =>
+  getAgeIndex(effectiveAgeId) >= getAgeIndex(MISSILE_TIERS[tierId]?.minAge ?? 'modern');
+```
+
+```js
+// gameReducer.js — BUILD_MISSILE
+if (!canBuildMissile(tierId, getEffectiveAgeId(state.age, state.techAgeId))) return reject(state, 'Missiles unlock in the Modern age');
+
+// gameReducer.js — MISSILE_STRIKE: striking is an act of war, not a free action
+const targetOwner = targetRegion.occupiedBy ?? targetRegion.owner;
+const atWar = state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, targetOwner)); // → areAtWar() after Phase 1
+if (targetOwner !== REBEL_OWNER_ID && !atWar) return reject(state, `You must be at war with ${state.nations[targetOwner]?.name} to strike it`);
+```
+
+- SpacePanel: hide or disable the missile section before the Modern age, and filter the target
+  dropdown to regions of nations you're at war with.
+- Tests:
+  - Classical-age build is rejected.
+  - Strike at peace is rejected.
+  - Strike at war lowers control and adds battle score.
+
+### S5. Settle / Colonize (`gameReducer.js:721`)
+
+```js
+case ActionTypes.SETTLE_COLONIZE: {
+  const { regionId } = action.payload;
+  const region = state.regions[regionId];
+  if (!region || region.owner === state.playerNationId) return reject(state, 'Not a foreign province');
+  const owner = state.nations[region.owner];
+  const rebelHeld = Object.values(state.units).some((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID);
+  // Peaceful settlement is only for land nobody really holds: rebel-held or a dead nation's remnants.
+  if (owner && !owner.isEliminated && !rebelHeld) return reject(state, `${owner.name} still governs ${REGIONS_DATA[regionId]?.name} — take it by war`);
+  if (owner?.hasMilitaryPact || owner?.vassalOf === state.playerNationId) return reject(state, "You can't settle an ally's or vassal's land");
+  if (region.control >= SETTLE_COLONIZE_CONTROL_THRESHOLD) return reject(state, 'Control there is still too high');
+  if (!isAdjacentToOwner(regionId, state.regions, state.playerNationId)) return reject(state, 'Must border your territory');
+  // ...existing transfer, plus: remove the rebel unit(s) there, +10 AE and +10 hostility for `owner` if it's alive
+}
+```
+
+### S6. Loans (`gameReducer.js` REQUEST_LOAN / REPAY_LOAN, `resolveTurn.js:613`)
+
+```js
+// REQUEST_LOAN (and the auto-loan in resolveTurn.js)
+const seq = state.nextLoanSeq || 1;
+const loan = { id: `loan_${seq}`, principal, interestRate, takenTurn: state.turnNumber };
+return { ...state, nextLoanSeq: seq + 1, /* ... */ };
+
+// REPAY_LOAN — remove exactly one entry even if old saves still hold duplicate ids
+const idx = (nation.loans || []).findIndex((l) => l.id === loanId);
+if (idx === -1) return reject(state, 'No such loan');
+loans: nation.loans.filter((_, i) => i !== idx)
+```
+
+- Migration (fold into `migrate4to5`): re-id every nation's loans as `loan_1..n` and set
+  `nextLoanSeq` to max + 1.
+- Invariant (6.1): loan ids are unique within `state`.
+
+### S7. Revolts and event region transfers (`resolveTurn.js:204-222`, `applyEventEffects.js:93-120`)
+
+One shared helper, used by revolts, `returnRegion`, `captureRegions`, SETTLE_COLONIZE and
+(Phase 2) liberation:
+
+```js
+// src/engine/regionTransfer.js (new)
+export const transferRegion = (regions, nations, regionId, newOwnerId, { control, unrest } = {}) => {
+  const region = regions[regionId];
+  // eslint-disable-next-line no-unused-vars
+  const { occupiedBy, ...rest } = region;
+  const nextRegions = { ...regions, [regionId]: {
+    ...rest, owner: newOwnerId,
+    formerOwner: getFormerOwnerOnConquest(regionId, region.owner, newOwnerId),
+    control: control ?? region.control, unrest: unrest ?? region.unrest, underInvasion: false
+  } };
+  let nextNations = nations;
+  const heir = nations[newOwnerId];
+  if (heir?.isEliminated) {
+    // A dead nation reclaiming land rises again — a real liberation, not a zombie owner.
+    nextNations = { ...nations, [newOwnerId]: { ...heir, isEliminated: false, capitalRegionId: regionId } };
+  }
+  return { regions: nextRegions, nations: nextNations, revived: !!heir?.isEliminated };
+};
+```
+
+- In `resolveTurn.js`, the revolt phase runs before the `nations` object for the turn exists
+  (line 353). Collect `revivedNationIds` there and apply them when `nations` is built.
+- Log "X rises again" for each revived nation.
+- After Phase 1, a revived nation starts with empty relations rows. `endWar` has already run for
+  it at elimination.
+
+### S8. Events you can't afford (`applyEventEffects.js`, `EventModal.jsx`)
+
+```js
+// src/engine/applyEventEffects.js
+export const getOptionShortfall = (resources, effects = {}) =>
+  [...RESOURCE_IDS, 'dip', 'techPoints'].filter((id) => (effects[id] || 0) < 0 && (resources[id] || 0) < -effects[id]);
+
+// at the top of applyEventEffects
+const short = getOptionShortfall(state.resources, option.effects);
+const anyAffordable = event.options.some((o) => getOptionShortfall(state.resources, o.effects).length === 0);
+if (short.length && anyAffordable) return state; // the UI disables it; nothing else dispatches it
+// if NO option is affordable: pay what exists (floor at 0) and apply -1 stability, "could not pay"
+```
+
+- EventModal: grey out an option whose shortfall isn't empty and show "Need 100 gold".
+- Always leave at least one option clickable.
+
+### S9 / S10. Achievements and Diplomatic victory (with Phase 1)
+
+```js
+// data/achievements.js — only the player's own wars and treaties count
+three_front_war: { check: (s) => enemiesOf(s, s.playerNationId).length >= 3 },           // Phase 1 selector
+master_diplomat: { check: (s) => otherIds(s).filter((id) => { const r = getRel(s, s.playerNationId, id); return r.treaty || r.trade; }).length >= 3 },
+
+// data/victoryConditions.js
+const others = Object.values(state.nations).filter((n) => !n.isPlayer && !n.isEliminated);
+```
+
+- Alliances:
+  - Add a capacity: `ALLIANCE_BASE_CAPACITY = 3`, +1 at 50 and 100 prestige, +1 for Postal Relay.
+  - Diplomatic victory then counts alliances *plus* trade pacts *plus* guarantees and vassals, so
+    it stays reachable without spam.
+  - Fix `acceptanceScore` to use the player's prestige.
+
+### S11–S14. Small fixes
+
+```js
+// S11 resolveTurn.js:553 — charge only units that survived this turn
+const playerUnits = Object.values(units).filter((u) => u.ownerId === playerId);
+
+// S12 engine/estates.js:62 — use each privilege's own influence value
+let influence = 10 + estate.privileges.reduce((sum, id) => sum + (getPrivilege(estateId, id)?.influenceBonus ?? 10), 0);
+
+// S13 resolveTurn.js:224 — cap rebel growth at 3x the spawn size
+const cap = getRebelSpawnStrength(region) * 3;
+const strength = Math.min(cap, Math.round(rebel.strength * (1 + REBEL_GROWTH_RATE)));
+// + aiEconomy.js: an AI nation spends ADM to quell (-30 unrest) its worst region >= 70 unrest
+
+// S14 gameReducer.js POPULATION_POLICY / QUELL_UNREST
+if (!region || region.owner !== state.playerNationId || region.occupiedBy) return reject(state, 'Region is occupied');
+```
+
+### Phase 0B tests (added to 6.3)
+- Power reachability: the S1 guard test and the sims above.
+- Exploits:
+  - Double tithe in one turn is rejected.
+  - Missile at peace is rejected; Classical-age missile build is rejected.
+  - Settling an ally's province is rejected.
+  - Duplicate loan ids are impossible, and repaying removes exactly one loan.
+- Civil war: pretenders survive the unrest phase and spread; an AI civil war ends.
+- Revolt to an eliminated nation revives it and clears `occupiedBy`.
+- An unaffordable event option is rejected while an affordable one exists.
 
 ---
 
@@ -669,6 +933,10 @@ export const assertInvariants = (state) => {
     expect(w.attackers.some(a => w.defenders.includes(a))).toBe(false);
   }
   expect(new Set(state.wars.map(w => w.id)).size).toBe(state.wars.length);
+  const loanIds = Object.values(state.nations).flatMap(n => (n.loans || []).map(l => l.id));
+  expect(new Set(loanIds).size).toBe(loanIds.length);                       // S6
+  for (const r of Object.values(state.regions)) expect(state.nations[r.owner]?.isEliminated).not.toBe(true); // S7
+  for (const p of ['adm', 'dip', 'mil']) expect(state.resources[p]).toBeLessThanOrEqual(POWER_POOL_CAP);     // S1
   for (const id of Object.keys(state.nations)) expect(getOverlordChain(state.nations, id)).not.toContain(id);
 };
 ```
@@ -724,6 +992,10 @@ only in CI (dedicated runners).
 
 ## PR breakdown
 
+0. `phase0b-power-cap` — S1 only: `POWER_POOL_CAP`, player + AI, guard test, reachability sim,
+   balance pass. Smallest diff, biggest effect: unlocks tech/laws/government/stability/development.
+0b. `phase0b-exploits-and-crises` — S2 civil war, S3 estates, S6 loans (+ migration step), S8
+   events, S11–S14; S4/S5 missiles and settle (on `isWarBetween` for now); S7 `transferRegion`.
 1. `phase0-quick-wins` — vassal cycle, war seq ids, `reject()` + log on every guard, ActionButton
    tap feedback, reducer-feedback test.
 2. `phase5a-visible-map-rect` — MapInsetsContext, globe translate, flat-map centring, auto-peek.
