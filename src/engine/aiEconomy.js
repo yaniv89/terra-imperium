@@ -332,9 +332,11 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
     }
   }
 
-  // eslint-disable-next-line no-unused-vars -- `id` was only added above to let the try* helpers key off nation.id; strip it back out before returning
-  const { id, ...nationWithoutId } = nextNation;
-  return { nation: nationWithoutId };
+  // `id` is kept, not stripped: every nation record already carries its own `id` (createInitialState
+  // sets it), so stripping it here deleted the REAL field on every AI think — after a few turns most
+  // nations had no `id`, and every player diplomacy action silently no-oped (gameReducer.js looks the
+  // target up by `nation.id`).
+  return { nation: nextNation };
 };
 
 // Real recruitment cost for an AI nation once it has a real economy (plan §M16: "Tier 1 recruits
