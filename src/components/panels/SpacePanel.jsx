@@ -9,7 +9,9 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { SATELLITE_TYPES, SATELLITE_TYPE_IDS, canLaunchSatellite, getOrbitalEffectivenessMult } from '../../data/satellites';
-import { MISSILE_TIERS, MISSILE_TIER_IDS, MAX_ABM_LEVEL } from '../../data/missiles';
+import { MISSILE_TIERS, MISSILE_TIER_IDS, MAX_ABM_LEVEL, canBuildMissile } from '../../data/missiles';
+import { getEffectiveAgeId } from '../../data/ages';
+import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { SPACE_MISSIONS, canLaunchMission } from '../../data/spaceMissions';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { canAfford, formatNumber } from '../../utils/helpers';
@@ -27,7 +29,17 @@ const SpacePanel = () => {
   const enemySatellites = Object.values(state.satellites).filter(s => s.ownerId !== state.playerNationId);
   const effectivenessMult = getOrbitalEffectivenessMult(state.orbitalDebrisLevel);
   const playerNation = state.nations[state.playerNationId];
-  const otherRegionIds = Object.keys(state.regions).filter(id => state.regions[id].owner !== state.playerNationId).sort();
+  // Strikes are acts of war (the reducer rejects a strike on anyone you're not at war with), so only
+  // enemy- or rebel-held provinces are offered as targets.
+  const enemyIds = new Set(state.wars.filter(w => w.active && (w.aggressor === state.playerNationId || w.enemy === state.playerNationId))
+    .map(w => (w.aggressor === state.playerNationId ? w.enemy : w.aggressor)));
+  const otherRegionIds = Object.keys(state.regions).filter((id) => {
+    const r = state.regions[id];
+    if (r.owner === state.playerNationId) return false;
+    const holder = r.occupiedBy ?? r.owner;
+    return holder === REBEL_OWNER_ID || enemyIds.has(holder);
+  }).sort();
+  const missilesUnlocked = canBuildMissile(getEffectiveAgeId(state.age, state.techAgeId));
 
   const handleLaunch = (typeId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchSatellite)) return addLog('Not enough resources', 'action');
@@ -146,6 +158,10 @@ const SpacePanel = () => {
         World satellites in orbit: {formatNumber(Object.keys(state.satellites).length)}
       </div>
 
+      {!missilesUnlocked && (
+        <div className="pt-2 border-t border-slate-800 text-xs text-slate-500">Missiles and ABM defense unlock in the Modern age.</div>
+      )}
+      {missilesUnlocked && (
       <div className="space-y-2 pt-2 border-t border-slate-800">
         <div className="text-xs font-semibold text-slate-300">Missile Stockpile</div>
         <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] text-slate-400">
@@ -184,7 +200,7 @@ const SpacePanel = () => {
           onChange={(e) => setMissileTargetRegionId(e.target.value)}
           className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white"
         >
-          <option value="">Select a target region...</option>
+          <option value="">{otherRegionIds.length ? 'Select a target region...' : 'No targets — you must be at war to strike'}</option>
           {otherRegionIds.map(id => (
             <option key={id} value={id}>{REGIONS_DATA[id]?.name || id} ({state.nations[state.regions[id].owner]?.name || state.regions[id].owner})</option>
           ))}
@@ -192,7 +208,7 @@ const SpacePanel = () => {
         <ActionButton
           icon={Zap}
           label="Launch Missile Strike"
-          description="Damages the target region and nation directly — no army required."
+          description="Damages an enemy region and nation directly — no army required, but you must be at war."
           costs={ACTION_COSTS.missileStrike}
           onClick={handleMissileStrike}
           disabled={!missileTargetRegionId || !(playerNation?.missiles?.[missileTierId] > 0) || !canAfford(state.resources, ACTION_COSTS.missileStrike)}
@@ -208,6 +224,7 @@ const SpacePanel = () => {
           size="small"
         />
       </div>
+      )}
 
       <div className="space-y-2 pt-2 border-t border-slate-800">
         <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">

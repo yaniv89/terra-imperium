@@ -80,8 +80,13 @@ export const ACHIEVEMENTS = {
     id: 'master_diplomat',
     name: 'Master Diplomat',
     description: 'Hold peace treaties or trade agreements with at least 3 nations at once.',
-    check: (state) => Object.values(state.nations)
-      .filter(n => !n.isPlayer && (n.hasPeaceTreaty || n.hasTradeAgreement)).length >= 3
+    // A peace treaty only counts if it's WITH the player (a truce on the player's own record) —
+    // hasPeaceTreaty alone is also set by AI-vs-AI peace deals the player had no part in.
+    check: (state) => {
+      const playerTruces = state.nations[state.playerNationId]?.truces || {};
+      return Object.values(state.nations)
+        .filter(n => !n.isPlayer && (n.hasTradeAgreement || (n.hasPeaceTreaty && playerTruces[n.id] !== undefined))).length >= 3;
+    }
   },
   tech_titan: {
     id: 'tech_titan',
@@ -93,7 +98,8 @@ export const ACHIEVEMENTS = {
     id: 'three_front_war',
     name: 'Three-Front War',
     description: 'Be simultaneously at war with 3 or more nations.',
-    check: (state) => Object.values(state.nations).filter(n => !n.isPlayer && n.isAtWar).length >= 3
+    // Wars the PLAYER is in — n.isAtWar is also true for AI-vs-AI wars.
+    check: (state) => (state.wars || []).filter(w => w.active && (w.aggressor === state.playerNationId || w.enemy === state.playerNationId)).length >= 3
   }
 };
 

@@ -10,6 +10,8 @@
 // land borders. ICBM and nuclear tiers sidestep this entirely with unlimited range (matching the
 // plan's "ICBM (global)"), so islands and other hop-unreachable targets are still reachable by the
 // tiers that should realistically reach them.
+import { getAgeIndex } from './ages';
+
 export const MISSILE_TIERS = {
   tactical: { id: 'tactical', name: 'Tactical Missile', range: 3, controlDamage: 10, unrestDamage: 15, militaryDamage: 100 },
   theatre: { id: 'theatre', name: 'Theatre Missile', range: 8, controlDamage: 20, unrestDamage: 25, militaryDamage: 250 },
@@ -21,6 +23,11 @@ export const MISSILE_TIERS = {
 };
 
 export const MISSILE_TIER_IDS = Object.keys(MISSILE_TIERS);
+
+// Ballistic missiles are a Modern-age system (plan §10.4 Layer 2). Before this gate, BUILD_MISSILE only
+// checked affordability, so a Tactical Missile was buildable as soon as iron existed (Classical age).
+export const MISSILE_MIN_AGE = 'modern';
+export const canBuildMissile = (effectiveAgeId) => getAgeIndex(effectiveAgeId) >= getAgeIndex(MISSILE_MIN_AGE);
 
 // ABM defense (plan: "intercepts incoming; never perfect"). Each level shaves 15% off incoming
 // missile damage, capped at 5 levels — 75% reduction at maximum, never full immunity.

@@ -45,7 +45,9 @@ export const isDiplomaticallyAligned = (nation) => !!(nation.hasTradeAgreement |
 // The share of every OTHER nation the player currently holds friendly standing with — exported so
 // resolveTurn.js can both check it for the streak counter and reuse the exact same math.
 export const getDiplomaticAlignmentShare = (state) => {
-  const others = Object.values(state.nations).filter(n => !n.isPlayer);
+  // Only nations still in the game — an eliminated nation can't be befriended, and counting it made
+  // every AI conquest quietly push this victory further out of reach.
+  const others = Object.values(state.nations).filter(n => !n.isPlayer && !n.isEliminated);
   if (others.length === 0) return 0;
   return others.filter(isDiplomaticallyAligned).length / others.length;
 };
