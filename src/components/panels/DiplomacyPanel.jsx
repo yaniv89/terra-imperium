@@ -31,6 +31,24 @@ import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '.
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { ActionButton } from '../ui';
 
+// Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
+// player was reading the top-bar Gold total and assuming that meant "affordable," when most
+// diplomacy actions are actually gated on ADM/DIP/MIL power (separate, far scarcer pools —
+// src/components/ui/ResourceBar.jsx's adm/dip/mil badges) rather than gold. `formatCost` puts the
+// real price directly in the button label (matching the pattern "Sue for Peace (200g)"/"Annex (…
+// DIP)" already used below), and `describeShortfall` turns a failed dispatchIfAffordable into a
+// specific reason instead of a generic "Not enough resources" — both readable without a hover
+// tooltip, which mobile touch has no equivalent of.
+const RESOURCE_SHORT_LABEL = { gold: 'g', dip: 'DIP', adm: 'ADM', mil: 'MIL' };
+const formatCost = (costs) => Object.entries(costs)
+  .filter(([, amount]) => amount > 0)
+  .map(([key, amount]) => `${formatNumber(amount)}${RESOURCE_SHORT_LABEL[key] || key}`)
+  .join(' ');
+const describeShortfall = (resources, costs) => Object.entries(costs)
+  .filter(([key, amount]) => (resources[key] || 0) < amount)
+  .map(([key, amount]) => `${formatNumber(amount)}${RESOURCE_SHORT_LABEL[key] || key} (have ${formatNumber(resources[key] || 0)})`)
+  .join(', ');
+
 // Diplomacy actions that travel visibly between the player's capital and the target nation's.
 const DIPLOMACY_EFFECT_BY_ACTION = {
   [ActionTypes.DECLARE_WAR]: 'declare_war',
@@ -73,7 +91,7 @@ const DiplomacyPanel = () => {
   const [search, setSearch] = useState('');
 
   const handleCulturalExport = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.culturalExport)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, ACTION_COSTS.culturalExport)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, ACTION_COSTS.culturalExport)}`, 'action');
     triggerEffect('cultural_export', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.CULTURAL_EXPORT });
   };
@@ -189,7 +207,7 @@ const NationCard = ({ nation }) => {
   const [expanded, setExpanded] = useState(false);
 
   const dispatchIfAffordable = (type, costs) => {
-    if (!canAfford(state.resources, costs)) return addLog('Not enough resources', 'action');
+    if (!canAfford(state.resources, costs)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, costs)}`, 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
     dispatch({ type, payload: { nationId: nation.id } });
@@ -315,7 +333,7 @@ const NationCard = ({ nation }) => {
               disabled={!canAnnex || !canAfford(state.resources, annexCost)}
               onClick={() => {
                 if (!canAnnex) return addLog(`Can't annex yet — available turn ${(nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS}`, 'action');
-                if (!canAfford(state.resources, annexCost)) return addLog('Not enough resources', 'action');
+                if (!canAfford(state.resources, annexCost)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, annexCost)}`, 'action');
                 dispatch({ type: ActionTypes.ANNEX_VASSAL, payload: { nationId: nation.id } });
               }}
             />
@@ -334,7 +352,7 @@ const NationCard = ({ nation }) => {
             {/* Primary actions — always visible */}
             <IconButton
               icon={Swords}
-              label={justified ? 'Declare War' : 'Declare War (unjustified)'}
+              label={`${justified ? 'Declare War' : 'Declare War (unjustified)'} (${formatCost(declareWarCosts)})`}
               title={justified ? 'A casus belli justifies this war' : 'No casus belli — costs more and hurts relations'}
               disabled={!canAfford(state.resources, declareWarCosts)}
               onClick={() => dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts)}
@@ -349,7 +367,7 @@ const NationCard = ({ nation }) => {
             ) : (
               <IconButton
                 icon={ShieldCheck}
-                label="Alliance"
+                label={`Alliance (${formatCost(ACTION_COSTS.militaryAlliance)})`}
                 title="Acceptance scores hostility, prestige, and any existing trade agreement"
                 disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance)}
                 onClick={() => dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance)}
@@ -371,7 +389,7 @@ const NationCard = ({ nation }) => {
                 {!player.claims?.includes(nation.id) && (
                   <IconButton
                     icon={Target}
-                    label="Fabricate Claim"
+                    label={`Fabricate Claim (${formatCost(ACTION_COSTS.fabricateClaim)})`}
                     title="Manufacture a casus belli for a future war"
                     disabled={!canAfford(state.resources, ACTION_COSTS.fabricateClaim)}
                     onClick={() => dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim)}
@@ -380,21 +398,21 @@ const NationCard = ({ nation }) => {
                 {!nation.hasTradeAgreement && (
                   <IconButton
                     icon={HeartHandshake}
-                    label="Trade Agreement"
+                    label={`Trade Agreement (${formatCost(ACTION_COSTS.tradeAgreement)})`}
                     disabled={!canAfford(state.resources, ACTION_COSTS.tradeAgreement)}
                     onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)}
                   />
                 )}
                 <IconButton
                   icon={Gift}
-                  label="Gift"
+                  label={`Gift (${formatCost(ACTION_COSTS.giftBribe)})`}
                   title="Reduces hostility"
                   disabled={!canAfford(state.resources, ACTION_COSTS.giftBribe)}
                   onClick={() => dispatchIfAffordable(ActionTypes.GIFT_BRIBE, ACTION_COSTS.giftBribe)}
                 />
                 <IconButton
                   icon={Eye}
-                  label="Espionage"
+                  label={`Espionage (${formatCost(ACTION_COSTS.espionage)})`}
                   title={`Steal ${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points (${Math.round(ESPIONAGE_SUCCESS_CHANCE * 100)}% chance) — if caught, hostility rises`}
                   disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
                   onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, ACTION_COSTS.espionage)}
@@ -418,7 +436,7 @@ const NationCard = ({ nation }) => {
                 {canMarry && (
                   <IconButton
                     icon={Heart}
-                    label="Royal Marriage"
+                    label={`Royal Marriage (${formatCost(ACTION_COSTS.proposeMarriage)})`}
                     title="Both monarchies — reduces hostility and raises your heir's claim"
                     disabled={!canAfford(state.resources, ACTION_COSTS.proposeMarriage)}
                     onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_MARRIAGE, ACTION_COSTS.proposeMarriage)}
@@ -429,7 +447,7 @@ const NationCard = ({ nation }) => {
                 ) : (
                   <IconButton
                     icon={Users}
-                    label="Assign Diplomat"
+                    label={`Assign Diplomat (${formatCost(ACTION_COSTS.assignDiplomat)})`}
                     title={`Improve Relations — ${(player.diplomatTasks || []).length}/${player.diplomats || 0} diplomats in use`}
                     disabled={!canAssignDiplomat || !canAfford(state.resources, ACTION_COSTS.assignDiplomat)}
                     onClick={() => {
@@ -441,7 +459,7 @@ const NationCard = ({ nation }) => {
                 {canVassalize && (
                   <IconButton
                     icon={Crown}
-                    label="Vassalize"
+                    label={`Vassalize (${formatCost(ACTION_COSTS.vassalize)})`}
                     title="Low hostility and overwhelming strength required"
                     disabled={!canAfford(state.resources, ACTION_COSTS.vassalize)}
                     onClick={() => dispatchIfAffordable(ActionTypes.VASSALIZE, ACTION_COSTS.vassalize)}
