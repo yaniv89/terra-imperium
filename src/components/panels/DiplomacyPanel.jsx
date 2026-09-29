@@ -22,10 +22,10 @@ import {
   CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
   MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
 } from '../../data/actionCosts';
-import { hasCasusBelli, isAtWarWithPlayer, isInTruce, isWarBetween } from '../../engine/diplomacy';
+import { hasCasusBelli, isAtWarWithPlayer, isInTruce, isWarBetween, getTradePactCapacity } from '../../engine/diplomacy';
 import { getSuccessionStyle } from '../../engine/succession';
 import { getTotalDev } from '../../engine/development';
-import { getNationCapital } from '../../data/regions';
+import { getNationCapital, getBorderingNationIds } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
@@ -227,7 +227,20 @@ const NationCard = ({ nation }) => {
   const isRival = (player.rivals || []).includes(nation.id);
   const isVassalOfPlayer = nation.vassalOf === state.playerNationId;
   const truceActive = !atWarWithPlayer && isInTruce(state, state.playerNationId, nation.id);
+  // `nation.isAtWar` is broad — true if they're fighting ANYONE, not just the player — which is
+  // exactly what gameReducer.js's DECLARE_WAR/PROPOSE_MARRIAGE cases silently gate on (a real
+  // engaged-elsewhere nation can't also be wooed or fought by you). `atWarWithPlayer` above only
+  // covers the narrower "at war with YOU" case the primary action buttons key off of.
+  const targetEngagedElsewhere = nation.isAtWar && !atWarWithPlayer;
+  const bordersPlayer = getBorderingNationIds(state.regions, state.playerNationId).includes(nation.id);
+  const tradePactCapacity = getTradePactCapacity(player);
+  const activeTradePactCount = Object.values(state.nations).filter((n) => n.hasTradeAgreement).length;
+  // Mirrors gameReducer.js's own MILITARY_ALLIANCE acceptance formula exactly — a silent reducer-
+  // side guard the UI previously had no idea existed, so a high-hostility/low-prestige nation would
+  // just do nothing when Alliance was tapped.
+  const allianceAcceptanceScore = (50 - (nation.hostility || 0)) / 2 + (nation.prestige || 0) / 10 + (nation.hasTradeAgreement ? 20 : 0);
   const canMarry = !atWarWithPlayer
+    && !targetEngagedElsewhere
     && getSuccessionStyle(player.government) === 'hereditary'
     && getSuccessionStyle(nation.government) === 'hereditary'
     && !(player.marriageWith || []).includes(nation.id);
@@ -354,8 +367,12 @@ const NationCard = ({ nation }) => {
               icon={Swords}
               label={`${justified ? 'Declare War' : 'Declare War (unjustified)'} (${formatCost(declareWarCosts)})`}
               title={justified ? 'A casus belli justifies this war' : 'No casus belli — costs more and hurts relations'}
-              disabled={!canAfford(state.resources, declareWarCosts)}
-              onClick={() => dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts)}
+              disabled={!canAfford(state.resources, declareWarCosts) || targetEngagedElsewhere || !!player.vassalOf}
+              onClick={() => {
+                if (player.vassalOf) return addLog("Can't declare war while you're a vassal", 'action');
+                if (targetEngagedElsewhere) return addLog(`${nation.name} is already at war with someone else`, 'action');
+                dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
+              }}
             />
             {nation.hasMilitaryPact ? (
               <IconButton
@@ -369,8 +386,12 @@ const NationCard = ({ nation }) => {
                 icon={ShieldCheck}
                 label={`Alliance (${formatCost(ACTION_COSTS.militaryAlliance)})`}
                 title="Acceptance scores hostility, prestige, and any existing trade agreement"
-                disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance)}
-                onClick={() => dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance)}
+                disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance) || targetEngagedElsewhere || allianceAcceptanceScore < 0}
+                onClick={() => {
+                  if (targetEngagedElsewhere) return addLog(`${nation.name} is already at war with someone else`, 'action');
+                  if (allianceAcceptanceScore < 0) return addLog(`${nation.name} won't accept an alliance yet — needs lower hostility or more of your prestige`, 'action');
+                  dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance);
+                }}
               />
             )}
 
@@ -399,8 +420,13 @@ const NationCard = ({ nation }) => {
                   <IconButton
                     icon={HeartHandshake}
                     label={`Trade Agreement (${formatCost(ACTION_COSTS.tradeAgreement)})`}
-                    disabled={!canAfford(state.resources, ACTION_COSTS.tradeAgreement)}
-                    onClick={() => dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement)}
+                    title={`Trade pacts in use: ${activeTradePactCount}/${tradePactCapacity}`}
+                    disabled={!canAfford(state.resources, ACTION_COSTS.tradeAgreement) || nation.isAtWar || activeTradePactCount >= tradePactCapacity}
+                    onClick={() => {
+                      if (nation.isAtWar) return addLog(`${nation.name} is at war and won't sign a trade agreement`, 'action');
+                      if (activeTradePactCount >= tradePactCapacity) return addLog(`Already at your trade pact capacity (${activeTradePactCount}/${tradePactCapacity})`, 'action');
+                      dispatchIfAffordable(ActionTypes.TRADE_AGREEMENT, ACTION_COSTS.tradeAgreement);
+                    }}
                   />
                 )}
                 <IconButton
@@ -427,8 +453,9 @@ const NationCard = ({ nation }) => {
                   icon={Target}
                   label={isRival ? 'Unrival' : `Rival (${(player.rivals || []).length}/${MAX_RIVALS})`}
                   title={isRival ? 'Stop treating them as a rival' : 'Must border you — a fallen rival grants prestige'}
-                  disabled={!isRival && ((player.rivals || []).length >= MAX_RIVALS)}
+                  disabled={!isRival && ((player.rivals || []).length >= MAX_RIVALS || !bordersPlayer)}
                   onClick={() => {
+                    if (!isRival && !bordersPlayer) return addLog(`${nation.name} doesn't border you — can't become a rival`, 'action');
                     if (!isRival && (player.rivals || []).length >= MAX_RIVALS) return addLog(`Already have ${MAX_RIVALS} rivals`, 'action');
                     dispatchIfAffordable(isRival ? ActionTypes.UNRIVAL_NATION : ActionTypes.RIVAL_NATION, {});
                   }}
