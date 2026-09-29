@@ -147,17 +147,26 @@ export const backfillDefaults = (state) => {
 
   let out = deepFillMissing(state, freshTop);
 
+  // `id` is excluded from both identity-key strip lists above on purpose (see NATION_IDENTITY_KEYS/
+  // REGION_IDENTITY_KEYS): it's a real, confirmed bug this diagnosed on a live save — a record's
+  // own `.id` was missing entirely (predating the field's introduction to the schema), and since
+  // `deepFillMissing` only ever ADDS keys the template offers, and `id` was deliberately never
+  // offered (to avoid ever overwriting a record's real identity), a save missing it could never
+  // self-heal on any later load, no matter how many other fields backfilled correctly. Unlike
+  // owner/isPlayer/name/color, a record's `id` can never legitimately differ from the very map key
+  // it's stored under, so force-setting it here is always correct, never a save-data overwrite —
+  // it's the one identity field safe to unconditionally repair.
   const regions = { ...(state.regions || {}) };
   Object.keys(freshRegions).forEach((id) => {
     const freshMechanicDefaults = stripIdentity(freshRegions[id], REGION_IDENTITY_KEYS);
-    regions[id] = deepFillMissing(regions[id] ?? freshRegions[id], freshMechanicDefaults);
+    regions[id] = { ...deepFillMissing(regions[id] ?? freshRegions[id], freshMechanicDefaults), id };
   });
   out.regions = regions;
 
   const nations = { ...(state.nations || {}) };
   Object.keys(freshNations).forEach((id) => {
     const freshMechanicDefaults = stripIdentity(freshNations[id], NATION_IDENTITY_KEYS);
-    nations[id] = deepFillMissing(nations[id] ?? freshNations[id], freshMechanicDefaults);
+    nations[id] = { ...deepFillMissing(nations[id] ?? freshNations[id], freshMechanicDefaults), id };
   });
   out.nations = nations;
 
