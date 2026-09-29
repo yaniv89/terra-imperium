@@ -377,6 +377,17 @@ for (const side of ['attackers', 'defenders']) {
 }
 ```
 
+Same defender bug on the AI side (`diplomacy.js` ~line 380): the AI capture roll decides a region
+is "defended" if **any** land unit is in it — including the attacker's own units or a third
+nation's. Filter to the current holder's side of the war:
+
+```js
+const holder = controllerOf(targetRegion);
+const enemySide = new Set(war[sideOf(war, holder)]);
+const isDefended = Object.values(state.units || {}).some(u =>
+  u.regionId === targetRegion.id && u.domain === 'land' && enemySide.has(u.ownerId));
+```
+
 ---
 
 ## Phase 3 — Alliances with teeth
