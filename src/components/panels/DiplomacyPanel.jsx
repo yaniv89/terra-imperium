@@ -223,10 +223,14 @@ const NationCard = ({ nation }) => {
   const [expanded, setExpanded] = useState(false);
 
   const dispatchIfAffordable = (type, costs) => {
+    // eslint-disable-next-line no-alert
+    window.alert(`[diag] dispatchIfAffordable(${type}) costs=${JSON.stringify(costs)} resources=${JSON.stringify(state.resources)} canAfford=${canAfford(state.resources, costs)}`);
     if (!canAfford(state.resources, costs)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, costs)}`, 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
     dispatch({ type, payload: { nationId: nation.id } });
+    // eslint-disable-next-line no-alert
+    window.alert('[diag] dispatch() call returned (no throw)');
   };
 
   const nationData = WORLD_NATIONS[nation.id];
