@@ -59,7 +59,9 @@ export const getEstateInfluence = (state, nationId, estateId, ownedRegions = nul
   const nation = state.nations?.[nationId];
   const estate = nation?.estates?.[estateId];
   if (!estate) return 0;
-  let influence = 10 + 10 * estate.privileges.length;
+  // Each privilege's own authored influenceBonus (0-10 in src/data/estates.js); an unknown id still
+  // counts the old flat 10 so a stale save can't silently lose influence.
+  let influence = 10 + estate.privileges.reduce((sum, privilegeId) => sum + (getPrivilege(estateId, privilegeId)?.influenceBonus ?? 10), 0);
   getActiveReforms(nation).forEach((reform) => { influence += sumRawEstateEffect(reform.effects?.estateInfluence, estateId); });
   Object.entries(nation?.laws || {}).forEach(([category, lawId]) => {
     influence += sumRawEstateEffect(getLaw(category, lawId)?.effects?.estateInfluence, estateId);

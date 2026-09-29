@@ -34,6 +34,15 @@ const withWarAgainst = (state, targetNationId) => ({
   }]
 });
 
+
+// A refused player action now logs WHY (gameReducer.js's `reject`), so it's no longer the identical
+// state object — but nothing other than that one log line may change.
+const expectRefused = (next, state) => {
+  if (next === state) return;
+  expect(next.logs.length).toBe(state.logs.length + 1);
+  ['resources', 'regions', 'nations', 'units', 'wars'].forEach((key) => expect(next[key]).toBe(state[key]));
+};
+
 describe('ADVANCE_TURN / RESOLVE_EVENT delegate to the pure engine', () => {
   it('ADVANCE_TURN advances the year and delegates to resolveTurn', () => {
     const state = createInitialState({ playerNationId: 'fr' });
@@ -369,12 +378,22 @@ describe('Domestic tab actions', () => {
     // (capital-heuristic) "capital" region, which isn't necessarily anywhere near the French
     // border (Brussels isn't).
     const BE_BORDER = 'be-vwv';
-    const withCollapsedNeighbor = (control) => {
+    // Settling now needs land nobody governs: a rebel army holding the province (or a dead owner).
+    const withCollapsedNeighbor = (control, rebels = true) => {
       const base = richState();
-      return { ...base, regions: { ...base.regions, [BE_BORDER]: { ...base.regions[BE_BORDER], control } } };
+      const units = rebels
+        ? { ...base.units, rebel_be: { id: 'rebel_be', regionId: BE_BORDER, ownerId: REBEL_OWNER_ID, domain: 'land', classId: 'infantry', strength: 20, maxStrength: 20, morale: 100, movesLeft: 1 } }
+        : base.units;
+      return { ...base, units, regions: { ...base.regions, [BE_BORDER]: { ...base.regions[BE_BORDER], control } } };
     };
 
-    it('absorbs a bordering nation whose control has collapsed, and deducts the cost', () => {
+    it('refuses a living nation\'s province that no rebels hold, however low its control', () => {
+      const state = withCollapsedNeighbor(10, false);
+      const next = gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: BE_BORDER } });
+      expectRefused(next, state);
+    });
+
+    it('absorbs a bordering rebel-held province whose control has collapsed, and deducts the cost', () => {
       const state = withCollapsedNeighbor(10);
       const next = gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: BE_BORDER } });
       expect(next.regions[BE_BORDER].owner).toBe('fr');
@@ -386,14 +405,14 @@ describe('Domestic tab actions', () => {
 
     it('is a no-op when the target still has real control of its own territory', () => {
       const state = withCollapsedNeighbor(50);
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('be') } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: BE_BORDER } }), state);
     });
 
     it('is a no-op on a region that does not border the player', () => {
       // 'us' does not border 'fr'.
       const base = richState();
       const state = { ...base, regions: { ...base.regions, [cap('us')]: { ...base.regions[cap('us')], control: 5 } } };
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('us') } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('us') } }), state);
     });
 
     it('is a no-op on a region the player already owns', () => {
@@ -404,7 +423,7 @@ describe('Domestic tab actions', () => {
     it('is a no-op when unaffordable', () => {
       const base = withCollapsedNeighbor(10);
       const state = { ...base, resources: { ...base.resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: cap('be') } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.SETTLE_COLONIZE, payload: { regionId: BE_BORDER } }), state);
     });
   });
 
@@ -515,7 +534,7 @@ describe('Domestic tab actions', () => {
       const withLoan = gameReducer(state, { type: ActionTypes.REQUEST_LOAN });
       const loan = withLoan.nations.fr.loans[0];
       const poor = { ...withLoan, resources: { ...withLoan.resources, gold: 0 } };
-      expect(gameReducer(poor, { type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } })).toBe(poor);
+      expectRefused(gameReducer(poor, { type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } }), poor);
     });
   });
 
@@ -752,7 +771,7 @@ describe('Space Race tab actions', () => {
     it('is a no-op when unaffordable', () => {
       const base = spaceState();
       const state = { ...base, resources: { ...base.resources, gold: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.BUILD_MISSILE, payload: { tierId: 'tactical' } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.BUILD_MISSILE, payload: { tierId: 'tactical' } }), state);
     });
   });
 
@@ -762,9 +781,14 @@ describe('Space Race tab actions', () => {
     // actual land route at all, in truth — Europe/Americas aren't land-connected in this data),
     // making it a genuine out-of-range target for any finite-range tier.
     const DE_REGION = 'de-rp';
-    const withMissile = (tierId, count = 1) => {
+    // A strike is an act of war (second review pass S4), so the default fixture is at war with both
+    // target nations; `atWar: false` exercises the refusal.
+    const withMissile = (tierId, count = 1, { atWar = true } = {}) => {
       const base = spaceState();
-      return { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, missiles: { ...base.nations.fr.missiles, [tierId]: count } } } };
+      const wars = atWar
+        ? ['de', 'us'].map((enemy) => ({ id: `war_${enemy}`, aggressor: 'fr', enemy, active: true, battleScore: 0, goalAchieved: false, startYear: base.year, goal: { type: 'destroy_military', threshold: 1 } }))
+        : base.wars;
+      return { ...base, wars, nations: { ...base.nations, fr: { ...base.nations.fr, missiles: { ...base.nations.fr.missiles, [tierId]: count } } } };
     };
 
     it('damages the target region and the target nation, and consumes the missile', () => {
@@ -778,7 +802,7 @@ describe('Space Race tab actions', () => {
 
     it('is a no-op with an empty stockpile for that tier', () => {
       const state = spaceState();
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } }), state);
     });
 
     it('is a no-op against the player\'s own region', () => {
@@ -788,7 +812,7 @@ describe('Space Race tab actions', () => {
 
     it('is a no-op when the target is out of the tier\'s range', () => {
       const state = withMissile('tactical');
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: cap('us') } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: cap('us') } }), state);
     });
 
     it('an icbm reaches a target a tactical missile could never reach', () => {
@@ -836,10 +860,11 @@ describe('Space Race tab actions', () => {
         expect(next.wars[0].battleScore).toBe(10);
       });
 
-      it('leaves war score untouched when the striker and target are not at war', () => {
-        const state = withMissile('tactical');
+      it('refuses a strike on a nation the striker is not at war with (no damage, missile kept)', () => {
+        const state = withMissile('tactical', 1, { atWar: false });
         const next = gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } });
-        expect(next.wars).toEqual(state.wars);
+        expectRefused(next, state);
+        expect(next.nations.fr.missiles.tactical).toBe(1);
       });
 
       it('a nuclear strike costs the striker prestige and applies a 20-turn Nuclear Pariah modifier', () => {
@@ -864,7 +889,7 @@ describe('Space Race tab actions', () => {
     it('is a no-op when unaffordable (the flat action-point cost)', () => {
       const base = withMissile('tactical');
       const state = { ...base, resources: { ...base.resources, mil: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } })).toBe(state);
+      expectRefused(gameReducer(state, { type: ActionTypes.MISSILE_STRIKE, payload: { tierId: 'tactical', targetRegionId: DE_REGION } }), state);
     });
   });
 

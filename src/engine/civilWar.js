@@ -22,8 +22,16 @@
 // the game's one existing anti-rebel action would be a real regression, not a feature. They're tagged
 // `isPretender: true` instead, and resolveTurn.js's own unrest-driven rebellion block skips any unit
 // carrying that flag, so ordinary unrest-rebellion bookkeeping (grow/dissolve by REGION unrest) never
-// touches a civil war's pretenders — this module owns their entire lifecycle instead.
+// touches a civil war's pretenders — this module owns their entire lifecycle instead. (That skip was
+// missing until the second review pass: every pretender in a calm province "dissolved" the next
+// turn and the civil war ended as a free "crushed" reward.)
+//
+// A civil war also has to be winnable by BOTH sides: pretenders spread into neighbouring provinces
+// the loyal garrison can't hold (PRETENDER_SPREAD_CHANCE), so the 50% "lost" threshold is reachable
+// from the 15% start, and an AI nation — which has no SUPPRESS_REBELLION of its own — grinds its
+// pretenders down in proportion to its real fielded strength (AI_SUPPRESS_CHANCE_SCALE).
 import { REBEL_OWNER_ID } from '../data/rebellion';
+import { getNeighborIds } from '../data/regions';
 import { generateRuler } from './succession';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { DEFAULT_LAWS } from '../data/laws';
@@ -35,7 +43,10 @@ import {
 } from '../data/actionCosts';
 
 export const PRETENDER_MARKER = 'pretenders';
-export const STABILITY_MIN_FOR_CIVIL_WAR = -3; // nationalPower.js's own STABILITY_MIN — a civil war needs the floor, not just "low"
+export const STABILITY_MIN_FOR_CIVIL_WAR = -3;
+export const PRETENDER_SPREAD_CHANCE = 0.25; // per pretender stack per turn
+export const PRETENDER_SPLIT_STRENGTH_SHARE = 0.6; // a spreading stack's offshoot, vs. its parent
+export const AI_SUPPRESS_CHANCE_SCALE = 0.5; // max per-stack per-turn destruction chance for an AI loyalist army // nationalPower.js's own STABILITY_MIN — a civil war needs the floor, not just "low"
 
 // Plan: "starts after 3 consecutive turns at stability -3" — call every turn, for every nation,
 // regardless of whether a civil war is already active, so the streak still tracks correctly through
@@ -52,7 +63,9 @@ export const isStabilityCivilWarTrigger = (streak) => streak >= CIVIL_WAR_STABIL
 // no-bias-from-Set-iteration-order idiom other AI/rebellion code in this codebase already uses),
 // not a Fisher-Yates shuffle, so it's trivially reproducible from the RNG stream alone.
 export const startCivilWar = (regions, units, nationId, fieldedStrength, rng, turnNumber) => {
-  const ownedIds = Object.keys(regions).filter((id) => regions[id].owner === nationId);
+  // Never a province a foreign war already occupies — overwriting that occupiedBy with the
+  // pretender marker would silently erase the foreign war's occupation score.
+  const ownedIds = Object.keys(regions).filter((id) => regions[id].owner === nationId && !regions[id].occupiedBy);
   if (ownedIds.length === 0) return null;
   const count = Math.max(1, Math.round(ownedIds.length * CIVIL_WAR_PRETENDER_REGION_SHARE));
   const chosenIds = ownedIds
@@ -84,7 +97,41 @@ export const startCivilWar = (regions, units, nationId, fieldedStrength, rng, tu
 // crushed (no pretender-held regions left) or lost (held >= 50% of the nation's regions for 5
 // consecutive turns). Returns null when nothing about this civil war changes that resolveTurn.js
 // needs to react to beyond the streak counter (still active, share below the losing threshold).
-export const processCivilWarTurn = (state, regions, units, nation, nationId, rng, turnNumber) => {
+const loyalLandStrength = (units, regionId, nationId) => Object.values(units)
+  .reduce((sum, u) => sum + (u.regionId === regionId && u.ownerId === nationId && u.domain === 'land' ? (u.strength || 0) : 0), 0);
+
+// One turn of pretender movement and (AI-only) loyalist suppression. Mutates the passed-in copies.
+const advancePretenders = (state, regions, units, nationId, rng, turnNumber) => {
+  const pretenders = Object.values(units).filter((u) => u.isPretender && regions[u.regionId]?.owner === nationId);
+  if (pretenders.length === 0) return;
+
+  // AI loyalists: a player fights pretenders with SUPPRESS_REBELLION; an AI nation has no such
+  // action, so each stack is destroyed with a chance scaled by the nation's real fielded strength vs.
+  // the pretenders' total — a strong AI crushes a small uprising in a few turns, a weak one may lose.
+  if (nationId !== state.playerNationId) {
+    const loyalStrength = Object.values(units).reduce((sum, u) => sum + (u.ownerId === nationId && u.domain === 'land' ? (u.strength || 0) : 0), 0);
+    const pretenderStrength = pretenders.reduce((sum, u) => sum + (u.strength || 0), 0);
+    const chance = AI_SUPPRESS_CHANCE_SCALE * (loyalStrength / Math.max(1, loyalStrength + pretenderStrength));
+    pretenders.forEach((u) => { if (rng.next() < chance) delete units[u.id]; });
+  }
+
+  // Spread: a surviving stack stronger than the loyal garrison next door may take that province.
+  Object.values(units).filter((u) => u.isPretender && regions[u.regionId]?.owner === nationId).forEach((u) => {
+    if (rng.next() >= PRETENDER_SPREAD_CHANCE) return;
+    const target = getNeighborIds(u.regionId).find((id) =>
+      regions[id]?.owner === nationId && !regions[id].occupiedBy && loyalLandStrength(units, id, nationId) < u.strength);
+    if (!target) return;
+    const strength = Math.max(1, Math.round(u.strength * PRETENDER_SPLIT_STRENGTH_SHARE));
+    const id = `pretender_${nationId}_${target}_${turnNumber}`;
+    units[id] = { ...u, id, regionId: target, strength, maxStrength: strength, spawnedTurn: turnNumber };
+    regions[target] = { ...regions[target], occupiedBy: PRETENDER_MARKER };
+  });
+};
+
+export const processCivilWarTurn = (state, regionsIn, unitsIn, nation, nationId, rng, turnNumber) => {
+  const regions = { ...regionsIn };
+  const units = { ...unitsIn };
+  advancePretenders(state, regions, units, nationId, rng, turnNumber);
   const ownedIds = Object.keys(regions).filter((id) => regions[id].owner === nationId);
   const pretenderRegionIds = new Set(
     Object.values(units)
