@@ -15,6 +15,7 @@ import React, { useMemo, useState } from 'react';
 import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles, Heart, Users, Crown, Unlock, Ban, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
+import { gameReducer } from '../../engine/gameReducer';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
 import {
@@ -228,6 +229,16 @@ const NationCard = ({ nation }) => {
     if (!canAfford(state.resources, costs)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, costs)}`, 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
+
+    // eslint-disable-next-line no-alert
+    try {
+      const directResult = gameReducer(state, { type, payload: { nationId: nation.id } });
+      window.alert(`[diag] PURE gameReducer() called directly: sameReference=${directResult === state}, resultGold=${directResult.resources.gold}, resultClaims=${JSON.stringify(directResult.nations[state.playerNationId]?.claims)}`);
+    } catch (err) {
+      // eslint-disable-next-line no-alert
+      window.alert(`[diag] PURE gameReducer() THREW: ${err?.message || err}\n${err?.stack || ''}`);
+    }
+
     dispatch({ type, payload: { nationId: nation.id } });
     // eslint-disable-next-line no-alert
     window.alert('[diag] dispatch() call returned (no throw)');
