@@ -12,15 +12,23 @@
 // layer covering the ENTIRE viewport behind a centered (desktop) or near-full-height (mobile, 92%
 // of the screen) card, which blocked the map — and any GlobeEffectsOverlay pulse triggered by an
 // action taken here — completely out of view. It's a non-dimming overlay now: the outer wrapper is
-// just an invisible full-screen click-catcher (still closes on click-outside), and the actual card
-// docks to the LEFT edge on BOTH breakpoints — full width up to max-w-md on desktop (opposite
-// PanelDrawer's right-docked empire tabs — "this specific region" on the left, "my whole empire" on
-// the right), and a narrower 80%-width strip (max-w-xs) on mobile (plan feedback: tried a bottom
-// sheet first, then asked to try left-docking there too, matching desktop and LogTrigger's own
-// move to the left on mobile) so at least a sliver of map stays visible on the right on a phone.
+// just an invisible full-screen click-catcher (still closes on click-outside).
+//
+// Desktop docks to the LEFT edge, full height, opposite PanelDrawer's right-docked empire tabs —
+// "this specific region" on the left, "my whole empire" on the right. Mobile tried a left dock too
+// (plan feedback) but that was worse ("not good the current location") — it now opens as a bottom
+// sheet in the exact same spot RegionInfoModal's own "Manage Region" button already lives (that
+// button IS inside RegionInfoModal's own mobile bottom sheet), so opening this doesn't relocate
+// anything, it just grows in place. Capped at 65vh (not the old 92vh) so the globe's top portion —
+// where GlobeEffectsOverlay's action-triggered pulses/arcs render — stays visible above it.
+//
 // Paired with MapContainer.jsx's `focusRegionId` (see GlobeView.jsx/Map2DView.jsx), the map is also
-// now actively re-centered on the region being managed the moment this opens, so what little map
-// IS visible beside/around the panel is actually relevant, not some unrelated part of the world.
+// actively re-centered on the region being managed the moment this opens. GlobeView.jsx separately
+// already flies the camera to whatever region ANY triggerEffect() call targets (not just combat —
+// EffectsContext.jsx's triggerEffect defaults `toRegionId` to the plain `region` field every action
+// handler below already passes), so every action taken here — build, recruit, develop, etc. — keeps
+// re-centering the globe on this exact region as its own animation fires, independent of this
+// modal's own position.
 import React, { useState, useEffect } from 'react';
 import {
   X, Building2, Shield, Flag, Hammer, Gem, HeartCrack, Sprout, Landmark, TrendingUp,
@@ -218,7 +226,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
       <div
         onClick={(e) => e.stopPropagation()}
         className={isMobile
-          ? 'absolute left-0 top-0 bottom-0 w-[80%] max-w-xs bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col pt-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem))] pb-[env(safe-area-inset-bottom)]'
+          ? 'absolute inset-x-0 bottom-0 max-h-[65vh] rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]'
           : 'absolute left-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col pt-[var(--header-height,4.5rem)]'}
       >
         {/* Header */}

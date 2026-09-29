@@ -51,10 +51,15 @@ const INITIAL_FOCUS_ZOOM = 5;
 // region once, on first load, at `INITIAL_FOCUS_ZOOM` instead of the whole-world default — see
 // the constant's own comment above. `focusRegionId` is a SEPARATE, ongoing focus target (the
 // region ProvinceModal/"Manage Region" is currently open for, or null) — see its own effect below
-// for why this needs to be distinct from the once-only initial focus.
+// for why this needs to be distinct from the once-only initial focus. `navigateTarget`
+// (`{lat, lng} | null`, a freshly-created object every time so re-navigating to the exact same
+// spot still re-triggers) is MiniMap.jsx's own "click/drag to navigate" request. `onViewportChange`
+// reports this view's current visible lat/lng extent (as `{centerLat, centerLng, halfWidthDeg,
+// halfHeightDeg}`) so MiniMap.jsx can draw a real "you are here" rectangle — see MiniMap.jsx's own
+// header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
   width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
-  initialFocusRegionId = null, focusRegionId = null
+  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null
 }) => {
   const { state } = useGame();
   const [polygons, setPolygons] = useState(null);
@@ -114,21 +119,26 @@ const Map2DView = ({
     return () => { selection.on('.zoom', null); };
   }, [interactive, width, height, hasMap]);
 
-  // Shared by both focus effects below: pans/zooms the real d3 zoom behavior to center the given
-  // region on screen (so scaleExtent/translateExtent clamp it exactly like any other zoom, instead
-  // of just seeding React state directly). Returns whether it actually applied — `projection`/
-  // `zoomBehaviorRef` aren't ready on the very first render (polygons load asynchronously), so the
-  // initial-focus effect below needs to know the difference between "applied" and "silently no-op'd
-  // because it wasn't ready yet" to know whether it's safe to mark itself done.
-  const focusOnRegionId = useCallback((targetRegionId, k = INITIAL_FOCUS_ZOOM) => {
+  // Shared by every focus/navigate effect below: pans/zooms the real d3 zoom behavior to center a
+  // given lat/lng on screen (so scaleExtent/translateExtent clamp it exactly like any other zoom,
+  // instead of just seeding React state directly). Returns whether it actually applied —
+  // `projection`/`zoomBehaviorRef` aren't ready on the very first render (polygons load
+  // asynchronously), so the initial-focus effect below needs to know the difference between
+  // "applied" and "silently no-op'd because it wasn't ready yet" to know whether it's safe to mark
+  // itself done.
+  const focusOnLatLng = useCallback((lat, lng, k = INITIAL_FOCUS_ZOOM) => {
     if (!projection || !zoomBehaviorRef.current || !svgRef.current) return false;
-    const focusCoords = REGION_COORDINATES[targetRegionId];
-    if (!focusCoords) return false;
-    const [px, py] = projection([focusCoords.lng, focusCoords.lat]);
+    const [px, py] = projection([lng, lat]);
     const desired = zoomIdentity.translate(width / 2 - px * k, height / 2 - py * k).scale(k);
     select(svgRef.current).call(zoomBehaviorRef.current.transform, desired);
     return true;
   }, [projection, width, height]);
+
+  const focusOnRegionId = useCallback((targetRegionId, k = INITIAL_FOCUS_ZOOM) => {
+    const focusCoords = REGION_COORDINATES[targetRegionId];
+    if (!focusCoords) return false;
+    return focusOnLatLng(focusCoords.lat, focusCoords.lng, k);
+  }, [focusOnLatLng]);
 
   // Runs once (see appliedInitialFocusRef) — but only marks itself done once focusOnRegionId
   // actually applied, not on a first attempt that no-op'd because `projection`/the zoom behavior
@@ -154,6 +164,39 @@ const Map2DView = ({
     if (!interactive || !focusRegionId) return;
     focusOnRegionId(focusRegionId);
   }, [interactive, focusRegionId, focusOnRegionId]);
+
+  // MiniMap.jsx's "click/drag to navigate" request — a raw lat/lng rather than a region, and (per
+  // navigateTarget's own doc comment above) a freshly-created object every time so clicking the
+  // same spot on the minimap twice in a row still re-centers there (nothing else about the view
+  // may have changed in between, so a same-reference check would otherwise skip the second one).
+  useEffect(() => {
+    if (!interactive || !navigateTarget) return;
+    focusOnLatLng(navigateTarget.lat, navigateTarget.lng, Math.max(transform.k, INITIAL_FOCUS_ZOOM));
+    // transform.k intentionally omitted from deps — reading "current zoom, if already zoomed in
+    // further than the default" at the moment of navigation is exactly what's wanted here; this
+    // must NOT re-fire just because the resulting pan changes transform.k.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactive, navigateTarget, focusOnLatLng]);
+
+  // Reports this view's own visible lat/lng extent so MiniMap.jsx can draw a real "you are here"
+  // rectangle — see the component's own doc comment above for the shared `{centerLat, centerLng,
+  // halfWidthDeg, halfHeightDeg}` contract GlobeView.jsx also reports in. Inverts the four corners
+  // of the current [0,width]x[0,height] screen-space viewport through the same transform+projection
+  // used to render everything else, so this is always exactly what's actually on screen (not an
+  // approximation, unlike the globe's spherical-cap version of this same contract).
+  useEffect(() => {
+    if (!onViewportChange || !projection || width <= 0 || height <= 0) return;
+    const toWorld = (sx, sy) => [(sx - transform.x) / transform.k, (sy - transform.y) / transform.k];
+    const corners = [[0, 0], [width, 0], [0, height], [width, height]].map(([sx, sy]) => projection.invert(toWorld(sx, sy)));
+    const lngs = corners.map((c) => c[0]);
+    const lats = corners.map((c) => c[1]);
+    const minLng = Math.min(...lngs); const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats); const maxLat = Math.max(...lats);
+    onViewportChange({
+      centerLng: (minLng + maxLng) / 2, centerLat: (minLat + maxLat) / 2,
+      halfWidthDeg: (maxLng - minLng) / 2, halfHeightDeg: (maxLat - minLat) / 2
+    });
+  }, [onViewportChange, projection, transform, width, height]);
 
   const zoomBy = useCallback((factor) => {
     if (!zoomBehaviorRef.current || !svgRef.current) return;

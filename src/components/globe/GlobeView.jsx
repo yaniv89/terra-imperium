@@ -45,7 +45,19 @@ const autoRotateDisabledForTests = () =>
 // tabs/panels in a way that unmounts and remounts the globe. Only a full page reload clears it.
 let userDismissedAutoRotate = false;
 
-const GlobeView = ({ width, height, selectedRegion, onSelectRegion, focusRegionId = null }) => {
+// Converts react-globe.gl's `altitude` (camera distance above the surface, in globe-radii) into
+// the angular half-width/half-height (degrees) of the roughly-circular visible cap, for
+// MiniMap.jsx's viewport rectangle — see this component's own onViewportChange effect below for
+// the shared `{centerLat, centerLng, halfWidthDeg, halfHeightDeg}` contract Map2DView.jsx also
+// reports in. Camera distance from globe center is R(1+altitude); the visible half-angle from the
+// center is arccos(R/distance) = arccos(1/(1+altitude)) — standard "horizon angle" trigonometry.
+// An approximation (a sphere's visible cap isn't a lat/lng rectangle), but plenty good enough for
+// a small minimap indicator, and it's the same approach Civ/Paradox minimaps use for a 3D camera.
+const visibleHalfAngleDeg = (altitude) => (Math.acos(1 / (1 + Math.max(altitude, 0.01))) * 180) / Math.PI;
+
+const GlobeView = ({
+  width, height, selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null
+}) => {
   const { state } = useGame();
   const { effects } = useEffects();
   const globeRef = useRef(null);
@@ -124,6 +136,32 @@ const GlobeView = ({ width, height, selectedRegion, onSelectRegion, focusRegionI
     if (!target) return;
     globeRef.current.pointOfView({ lat: target.lat, lng: target.lng, altitude: 1.0 }, 500);
   }, [focusRegionId]);
+
+  // MiniMap.jsx's "click/drag to navigate" request — see Map2DView.jsx's own navigateTarget effect
+  // for why this needs a freshly-created `{lat,lng}` object every time (so navigating to the same
+  // spot twice in a row still re-fires). Keeps whatever altitude the player is already at rather
+  // than resetting zoom, the same way a real map app's minimap-click only pans, never re-zooms.
+  useEffect(() => {
+    if (!navigateTarget || !globeRef.current) return;
+    const current = globeRef.current.pointOfView();
+    globeRef.current.pointOfView({ lat: navigateTarget.lat, lng: navigateTarget.lng, altitude: current?.altitude || 1.4 }, 500);
+  }, [navigateTarget]);
+
+  // Reports this view's own visible area so MiniMap.jsx can draw a real "you are here" rectangle —
+  // see visibleHalfAngleDeg's own comment above for the shared contract and the approximation it's
+  // built on. react-globe.gl/three's OrbitControls don't expose a clean "camera settled" event
+  // worth wiring up just for this, so a light poll is simplest; 400ms is imperceptible for a small
+  // corner indicator that only needs to be roughly current, not frame-accurate.
+  useEffect(() => {
+    if (!onViewportChange) return undefined;
+    const interval = setInterval(() => {
+      const pov = globeRef.current?.pointOfView?.();
+      if (!pov) return;
+      const halfDeg = visibleHalfAngleDeg(pov.altitude);
+      onViewportChange({ centerLat: pov.lat, centerLng: pov.lng, halfWidthDeg: halfDeg, halfHeightDeg: halfDeg });
+    }, 400);
+    return () => clearInterval(interval);
+  }, [onViewportChange]);
 
   // Auto-rotate is a nice "alive" default for a menu-screen-style globe, but it's motion a
   // reduced-motion user explicitly asked not to see, and it should stop as soon as they've
