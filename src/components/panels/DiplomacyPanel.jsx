@@ -72,9 +72,25 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
 // "broken" on mobile (no hover tooltip to explain why, and no tap ever reaches onClick). `looksDisabled`
 // is styling only — onClick still fires, and callers are expected to explain the block via addLog
 // (dispatchIfAffordable already does for cost; a few callers add their own reason on top).
+// TEMPORARY diagnostic (plan feedback: "shows like there is a click since the button changes
+// background color but still nothing happens" — a live report we could not reproduce through
+// automated testing on any of the touch/click/reducer-guard theories tried so far). This alerts on
+// every tap and on any error the handler throws, so the very next real-device tap tells us directly
+// whether onClick fires at all and whether it throws — remove once the real cause is found.
 const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title }) => (
   <button
-    onClick={onClick}
+    onClick={(e) => {
+      // eslint-disable-next-line no-alert
+      window.alert(`[diag] tapped: ${label}`);
+      try {
+        onClick(e);
+        // eslint-disable-next-line no-alert
+        window.alert('[diag] handler completed with no error');
+      } catch (err) {
+        // eslint-disable-next-line no-alert
+        window.alert(`[diag] handler THREW: ${err?.message || err}`);
+      }
+    }}
     title={title}
     className={`flex items-center gap-1 px-1.5 py-1 rounded text-[10px] ${
       looksDisabled ? 'bg-slate-800 text-slate-500' : 'bg-slate-700/80 hover:bg-slate-600 text-slate-200'
