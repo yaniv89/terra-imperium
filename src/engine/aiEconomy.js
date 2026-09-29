@@ -36,7 +36,7 @@
 //   development numbers would never move past their seeded starting value for the entire game —
 //   the player's income keeps growing (Develop Province) while every AI nation's economic base
 //   stays frozen, which is a real parity gap this closes.
-import { UNIT_UPKEEP_GOLD_PER_TURN, ACTION_COSTS } from '../data/actionCosts';
+import { UNIT_UPKEEP_GOLD_PER_TURN, ACTION_COSTS, BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
 import { getFieldedStrength, getUnitCount } from '../utils/helpers';
 import { getResearched, getTechAgeId } from './nationState';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -131,7 +131,7 @@ export const calcAllNationIncomes = (state) => {
     incomes[nationId] = {
       gold: Math.round(incomes[nationId].gold * goldMult),
       hr: Math.round(incomes[nationId].hr * hrMult),
-      techPoints: Math.round(incomes[nationId].techPoints)
+      techPoints: Math.round(incomes[nationId].techPoints) + BASE_TECHPOINTS_PER_TURN
     };
   });
   return incomes;

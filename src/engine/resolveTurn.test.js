@@ -8,7 +8,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { applyEventEffects } from './applyEventEffects';
 import { getNationCapital } from '../data/regions';
-import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
+import { UNIT_UPKEEP_GOLD_PER_TURN, POWER_POOL_CAP } from '../data/actionCosts';
 import { NATION_ELIMINATION_REWARD } from './elimination';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
@@ -162,18 +162,18 @@ describe('resolveTurn resource income', () => {
   });
 
   it('a whole long run never runs out of ADM to spend', () => {
-    // Spending only 1 of 3 ADM/turn on a single action banks the rest every turn, so under the
-    // capped-banking model (resolveTurn.js's POWER_BANK_CAP_MULTIPLIER) the balance climbs and then
-    // saturates at 2x maxAdm rather than settling back to a flat maxAdm every turn — the old
-    // flat-overwrite invariant this test used to check. Either way, the player is never starved of
-    // ADM to spend, which is the actual regression this test guards against.
+    // Spending only 1 ADM/turn on a single action banks the rest every turn, so the balance keeps
+    // climbing toward the flat POWER_POOL_CAP (src/data/actionCosts.js) — enough, over time, to pay
+    // for a 40-160 power tech or a 300-ADM government change, which the old 2x-income cap never
+    // allowed. Either way, the player is never starved of ADM to spend.
     let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     for (let i = 0; i < 50; i++) {
       state = gameReducer(state, { type: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cap('fr') } });
       state = resolveTurn(state);
       expect(state.resources.adm).toBeGreaterThan(0);
     }
-    expect(state.resources.adm).toBe(state.resources.maxAdm * 2);
+    expect(state.resources.adm).toBeGreaterThan(state.resources.maxAdm * 2);
+    expect(state.resources.adm).toBeLessThanOrEqual(POWER_POOL_CAP);
   }, 30000); // 50 real turns at the 4,482-region world's per-turn cost — see aiQualityBenchmark.test.js's own comment
 });
 
@@ -327,8 +327,15 @@ describe('resolveTurn unrest drift', () => {
   });
 
   it('raises unrest for a region under the control threshold', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const lowControl = { ...state, regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], control: 10, unrest: 0 } } };
+    // Fixed seed and a trait-free ruler at 0 stability: createInitialState otherwise rolls a random
+    // ruler, and a stability-heavy trait roll could cancel the +3/turn rise on its own (a real flake).
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 12345 });
+    const fr = state.nations.fr;
+    const lowControl = {
+      ...state,
+      nations: { ...state.nations, fr: { ...fr, stability: 0, ruler: { ...fr.ruler, traits: [] } } },
+      regions: { ...state.regions, [cap('fr')]: { ...state.regions[cap('fr')], control: 10, unrest: 0 } }
+    };
     const next = resolveTurn(lowControl);
     expect(next.regions[cap('fr')].unrest).toBeGreaterThan(0);
   });

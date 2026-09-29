@@ -91,6 +91,7 @@ const ResourceBadge = ({
   type,
   value,
   maxValue = null,
+  perTurn = null, // ADM/DIP/MIL: shown as a small "+N" after the banked value (pools bank up to POWER_POOL_CAP)
   expanded = false,
   onClick = null,
   showLabel = false,
@@ -136,6 +137,9 @@ const ResourceBadge = ({
         <span className="font-mono font-bold text-white">
           {displayValue}
         </span>
+        {perTurn !== null && (
+          <span className="font-mono text-[10px] text-emerald-400">+{perTurn}</span>
+        )}
         {(expanded || showLabel) && (
           <span className="text-slate-400 ml-1 text-xs">
             {config.label}
