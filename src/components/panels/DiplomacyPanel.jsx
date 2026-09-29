@@ -220,6 +220,8 @@ const NationCard = ({ nation }) => {
   const [expanded, setExpanded] = useState(false);
 
   const dispatchIfAffordable = (type, costs) => {
+    // eslint-disable-next-line no-alert
+    window.alert(`[diag] RAW nation prop keys: ${Object.keys(nation).join(',')}\nnation.id=${nation.id} nation.name=${nation.name}\nstate.nations key count=${Object.keys(state.nations).length}\nis nation.id a real key in state.nations? ${Object.prototype.hasOwnProperty.call(state.nations, nation.id)}`);
     const diagPlayer = state.nations[state.playerNationId];
     const diagTarget = state.nations[nation.id];
     const action = { type, payload: { nationId: nation.id } };
