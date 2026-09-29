@@ -102,9 +102,11 @@ const ResourceBadge = ({
   if (!config) return null;
 
   const Icon = config.icon;
-  const displayValue = maxValue !== null 
-    ? `${value}/${maxValue}` 
-    : (typeof value === 'number' ? formatNumber(value) : value);
+  // Power pools (perTurn set) show their exact banked amount — they bank into the thousands, and an
+  // abbreviated "1.2K ADM" would hide whether a 1,250-ADM action is actually affordable.
+  const displayValue = maxValue !== null
+    ? `${value}/${maxValue}`
+    : (perTurn !== null && typeof value === 'number' ? String(Math.floor(value)) : (typeof value === 'number' ? formatNumber(value) : value));
 
   const sizeClasses = {
     small: 'px-1.5 py-0.5 text-xs gap-1',
