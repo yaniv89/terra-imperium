@@ -13,6 +13,7 @@ import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
 import { getPopFactor, seedDevelopment } from '../engine/development';
+import { BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
 // Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
 // keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
 // which also exposes explainNationBonus for a future breakdown tooltip.
@@ -308,9 +309,11 @@ export const calcIncome = (state) => {
   // -15% power-cost discount applied directly in RESEARCH_TECH/canResearchTech for the focused
   // line's own techs (src/data/techTree.js's getTechPowerCost), not a flat, line-agnostic
   // techPoints multiplier.
-  // A ruler's Scholar trait (plan §M3) gated on the same "no base techPoints, no bonus" rule the
-  // old Research Focus line above used to share, so a nation with no Science buildings yet isn't
-  // shown a phantom gain.
+  // A flat base trickle for every nation that still holds territory (BASE_TECHPOINTS_PER_TURN's own
+  // header comment) — added before the Scholar/techPointsMult bonus below so that bonus applies to it.
+  if (playerRegions.length > 0) income.techPoints = (income.techPoints || 0) + BASE_TECHPOINTS_PER_TURN;
+  // A ruler's Scholar trait (plan §M3) and other techPointsMult sources scale whatever techPoints
+  // income exists, base trickle included.
   const techPointsMult = getModifier(state, state.playerNationId, 'national.techPointsMult').total;
   if (techPointsMult && income.techPoints) income.techPoints *= (1 + techPointsMult);
 
@@ -408,15 +411,15 @@ export const scaleCosts = (costs, mult) =>
   Object.fromEntries(Object.entries(costs).map(([key, value]) => [key, Math.round(value * mult)]));
 
 const RESOURCE_LABELS = { gold: 'Gold', hr: 'HR', copper: 'Copper', iron: 'Iron', oil: 'Oil', rareMetals: 'Rare Metals', helium3: 'Helium-3' };
-// Plan §M2: the three power pools, each measured against its own cap (maxAdm/maxDip/maxMil),
-// exactly like actionPoints was measured against maxActionPoints before the pool split.
+// Plan §M2: the three power pools' display labels.
 const POWER_POOL_LABELS = { adm: 'ADM', dip: 'DIP', mil: 'MIL' };
 
-// How much of the player's CURRENT pool a cost would consume — the binary canAfford() check above
-// says nothing about a cost that's affordable but still eats most/all of what the player has right
-// now (e.g. turn-1 government adoption using most of starting ADM, or a first unit recruit that
-// costs exactly 100% of starting HR). A power pool is measured against its own cap (a real ceiling);
-// every other resource has no cap, so it's measured against the current on-hand amount instead.
+// How much of the player's CURRENT on-hand amount a cost would consume — the binary canAfford()
+// check above says nothing about a cost that's affordable but still eats most/all of what the player
+// has right now (e.g. turn-1 government adoption using most of the banked ADM, or a first unit recruit
+// that costs exactly 100% of starting HR). Power pools are measured the same way as every other
+// resource now that they bank up to a flat POWER_POOL_CAP: their per-turn income (maxAdm/...) is no
+// longer a ceiling, so "cost vs. one turn's income" would flag every 40+ power tech as critical.
 // Returns null when the cost isn't a meaningful strain (below 50% of any pool), so callers can just
 // check truthiness rather than branching on a 'normal' level themselves.
 export const getResourceStrain = (costs, resources) => {
@@ -424,8 +427,7 @@ export const getResourceStrain = (costs, resources) => {
   let worst = { fraction: 0, key: null };
   Object.entries(costs).forEach(([key, value]) => {
     if (!value) return;
-    const isPower = !!POWER_POOL_LABELS[key];
-    const denominator = isPower ? (resources[`max${key[0].toUpperCase()}${key.slice(1)}`] || resources[key] || 0) : (resources[key] || 0);
+    const denominator = resources[key] || 0;
     if (denominator <= 0) return;
     const fraction = value / denominator;
     if (fraction > worst.fraction) worst = { fraction, key };

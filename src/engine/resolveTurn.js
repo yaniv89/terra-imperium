@@ -42,7 +42,8 @@ import {
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
   RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
   CIVIL_WAR_SUCCESSION_CRISIS_CHANCE, ECONOMIC_COLLAPSE_STABILITY_PENALTY,
-  LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN
+  LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN,
+  POWER_POOL_CAP
 } from '../data/actionCosts';
 import { processSuccession, getAdvisorSalary } from './succession';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
@@ -118,16 +119,15 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // trigger an auto-loan or bankruptcy, both of which need to touch nation/region state that
   // doesn't exist yet this early in the turn.
 
-  // ADM/DIP/MIL (plan §M2) each top up to the nation's per-turn budget every turn, but unspent
-  // power now BANKS instead of being wiped — a turn with nothing worth spending ADM on right now
-  // becomes "save up for a pricier wonder next turn" instead of pure waste. Capped at 2x the
-  // current max so banking can't grow unbounded over a ~500-turn game; a fully-spent turn (0 left)
-  // still lands exactly on the flat income a player always got before this existed.
+  // ADM/DIP/MIL (plan §M2) each gain the nation's per-turn income every turn, and unspent power
+  // BANKS up to the flat POWER_POOL_CAP (src/data/actionCosts.js) — saving up across turns is how a
+  // 40-160 power tech, a 300-ADM government change or a 100+ ADM stability increase is ever paid for.
   // getPowerIncome (Administrative Capacity) is recomputed fresh from current government/tech
   // every turn rather than read from a stored field, so adopting a government or finishing a
-  // Governance tech takes effect on the very next turn automatically.
+  // Governance tech takes effect on the very next turn automatically. maxAdm/maxDip/maxMil keep
+  // their old names for save compatibility but hold that per-turn INCOME (what the UI shows as
+  // "+N/turn"), not a ceiling.
   const powerIncome = getPowerIncome({ ...state, nations: modifierExpiredNations });
-  const POWER_BANK_CAP_MULTIPLIER = 2;
   ['adm', 'dip', 'mil'].forEach((pool) => {
     const income = powerIncome[pool];
     // Reads `resources[pool]` (already `state.resources[pool]` at this point, or that PLUS
@@ -135,7 +135,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     // never `state.resources[pool]` directly, or a satellite's contribution would be silently
     // overwritten by this bank-up step immediately after calcIncome applied it.
     resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`] = income;
-    resources[pool] = Math.min((resources[pool] || 0) + income, income * POWER_BANK_CAP_MULTIPLIER);
+    resources[pool] = Math.min((resources[pool] || 0) + income, POWER_POOL_CAP);
   });
   mark('maintenanceAndPower');
 
@@ -397,10 +397,10 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     pool.gold += income.gold;
     pool.hr += income.hr;
     pool.techPoints += income.techPoints;
-    // Same "bank up to 2x this turn's own income" cap the player's own power pools use (the
-    // maintenanceAndPower phase above) — applied here too so an AI nation's pools don't grow
-    // unbounded over a long game.
-    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], powerIncome[p] * 2); });
+    // Same flat POWER_POOL_CAP bank the player's own pools use (the maintenanceAndPower phase
+    // above) — the old 2x-income cap here kept every AI pool below the cheapest tech's 40 power,
+    // so no AI nation ever researched anything.
+    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool };
 
     const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
