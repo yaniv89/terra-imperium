@@ -49,12 +49,18 @@ const DIPLOMACY_EFFECT_BY_ACTION = {
   [ActionTypes.RELEASE_VASSAL]: 'release_vassal'
 };
 
-const IconButton = ({ icon: Icon, label, onClick, disabled, title }) => (
+// Deliberately never sets the native `disabled` attribute: a real disabled button swallows every
+// click/tap with zero feedback, which is exactly what made every gated diplomacy action look
+// "broken" on mobile (no hover tooltip to explain why, and no tap ever reaches onClick). `looksDisabled`
+// is styling only — onClick still fires, and callers are expected to explain the block via addLog
+// (dispatchIfAffordable already does for cost; a few callers add their own reason on top).
+const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title }) => (
   <button
     onClick={onClick}
-    disabled={disabled}
     title={title}
-    className="flex items-center gap-1 px-1.5 py-1 rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 text-[10px]"
+    className={`flex items-center gap-1 px-1.5 py-1 rounded text-[10px] ${
+      looksDisabled ? 'bg-slate-800 text-slate-500' : 'bg-slate-700/80 hover:bg-slate-600 text-slate-200'
+    }`}
   >
     <Icon size={11} />
     {label}
@@ -307,7 +313,11 @@ const NationCard = ({ nation }) => {
               label={`Annex (${formatNumber(annexCost.dip)} DIP)`}
               title={canAnnex ? 'Absorb this vassal\'s territory into your realm' : `Available turn ${(nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS}`}
               disabled={!canAnnex || !canAfford(state.resources, annexCost)}
-              onClick={() => dispatch({ type: ActionTypes.ANNEX_VASSAL, payload: { nationId: nation.id } })}
+              onClick={() => {
+                if (!canAnnex) return addLog(`Can't annex yet — available turn ${(nation.vassalizedTurn || 0) + VASSAL_ANNEX_COOLDOWN_TURNS}`, 'action');
+                if (!canAfford(state.resources, annexCost)) return addLog('Not enough resources', 'action');
+                dispatch({ type: ActionTypes.ANNEX_VASSAL, payload: { nationId: nation.id } });
+              }}
             />
             <IconButton icon={Unlock} label="Release" onClick={() => dispatch({ type: ActionTypes.RELEASE_VASSAL, payload: { nationId: nation.id } })} />
           </>
@@ -400,7 +410,10 @@ const NationCard = ({ nation }) => {
                   label={isRival ? 'Unrival' : `Rival (${(player.rivals || []).length}/${MAX_RIVALS})`}
                   title={isRival ? 'Stop treating them as a rival' : 'Must border you — a fallen rival grants prestige'}
                   disabled={!isRival && ((player.rivals || []).length >= MAX_RIVALS)}
-                  onClick={() => dispatchIfAffordable(isRival ? ActionTypes.UNRIVAL_NATION : ActionTypes.RIVAL_NATION, {})}
+                  onClick={() => {
+                    if (!isRival && (player.rivals || []).length >= MAX_RIVALS) return addLog(`Already have ${MAX_RIVALS} rivals`, 'action');
+                    dispatchIfAffordable(isRival ? ActionTypes.UNRIVAL_NATION : ActionTypes.RIVAL_NATION, {});
+                  }}
                 />
                 {canMarry && (
                   <IconButton
@@ -419,7 +432,10 @@ const NationCard = ({ nation }) => {
                     label="Assign Diplomat"
                     title={`Improve Relations — ${(player.diplomatTasks || []).length}/${player.diplomats || 0} diplomats in use`}
                     disabled={!canAssignDiplomat || !canAfford(state.resources, ACTION_COSTS.assignDiplomat)}
-                    onClick={() => dispatchIfAffordable(ActionTypes.ASSIGN_DIPLOMAT, ACTION_COSTS.assignDiplomat)}
+                    onClick={() => {
+                      if (!canAssignDiplomat) return addLog(`No free diplomats (${(player.diplomatTasks || []).length}/${player.diplomats || 0} in use)`, 'action');
+                      dispatchIfAffordable(ActionTypes.ASSIGN_DIPLOMAT, ACTION_COSTS.assignDiplomat);
+                    }}
                   />
                 )}
                 {canVassalize && (

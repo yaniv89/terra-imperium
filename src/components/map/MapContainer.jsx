@@ -21,6 +21,15 @@
 // region"): while ProvinceModal is open, this is the region it's managing; otherwise null. Passed
 // to both map views so whichever is active re-centers on that region the moment Manage Region
 // opens, instead of leaving the camera wherever it happened to be pointed.
+//
+// `viewportBounds`/`navigateTarget` (plan feedback: "do [the minimap] like every game mini map...
+// show where we are now with a little white border square and that we can navigate with mini
+// map"): whichever main view is active reports its own visible lat/lng extent up via
+// `onViewportChange` (GlobeView.jsx/Map2DView.jsx share one `{centerLat, centerLng, halfWidthDeg,
+// halfHeightDeg}` contract — see their own comments for how each computes it), and MiniMap.jsx
+// draws that as a real "you are here" rectangle. Clicking/dragging the minimap calls
+// `handleMiniMapNavigate`, which sets `navigateTarget` — a fresh `{lat,lng}` object every time —
+// and both views know how to fly/pan there (only the active one is actually mounted).
 import React, { useState } from 'react';
 import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
@@ -47,8 +56,11 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [viewportBounds, setViewportBounds] = useState(null);
+  const [navigateTarget, setNavigateTarget] = useState(null);
   const playerCapitalId = getNationCapital(state.playerNationId);
   const focusRegionId = manageOpen ? selectedRegion : null;
+  const handleMiniMapNavigate = (lat, lng) => setNavigateTarget({ lat, lng });
 
   const handleModeChange = (next) => {
     setMode(next);
@@ -58,7 +70,15 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   return (
     <div className="relative w-full h-full">
       {mode === 'globe'
-        ? <GlobeContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} focusRegionId={focusRegionId} />
+        ? (
+          <GlobeContainer
+            selectedRegion={selectedRegion}
+            onSelectRegion={onSelectRegion}
+            focusRegionId={focusRegionId}
+            navigateTarget={navigateTarget}
+            onViewportChange={setViewportBounds}
+          />
+        )
         : (
           <Map2DContainer
             selectedRegion={selectedRegion}
@@ -66,6 +86,8 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
             hudOffset
             initialFocusRegionId={playerCapitalId}
             focusRegionId={focusRegionId}
+            navigateTarget={navigateTarget}
+            onViewportChange={setViewportBounds}
           />
         )}
 
@@ -76,7 +98,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
         position="panel-hud"
       />
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2">
-        <MiniMap onOpen={() => setModalOpen(true)} />
+        <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
         <MapLegend />
       </div>
       <MapModeToggle mode={mode} onChange={handleModeChange} />
