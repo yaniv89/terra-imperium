@@ -533,3 +533,24 @@ describe('getTradePactCapacity (plan §M8.3/§M12)', () => {
     expect(getTradePactCapacity({ identity: { globalism: -50 } })).toBe(0);
   });
 });
+
+// Real live bug: aiEconomy.js's processAIEconomyTurn stripped `id` off every AI nation that
+// "thought" each turn, so after a few turns most nations had no `id` — and every player diplomacy
+// action (which looks its target up by `nation.id`) silently no-oped. Turn 1 always worked, which
+// is why it slipped past tests that only ever acted on a fresh state.
+describe('nation ids survive turn resolution (regression)', () => {
+  it('every nation keeps an id matching its key, and player diplomacy still works, after several turns', async () => {
+    const { gameReducer } = await import('./gameReducer');
+    const { ActionTypes } = await import('../data/types');
+    let state = usState();
+    for (let i = 0; i < 4; i++) state = gameReducer(state, { type: ActionTypes.ADVANCE_TURN });
+
+    const mismatched = Object.entries(state.nations).filter(([key, n]) => n.id !== key);
+    expect(mismatched).toEqual([]);
+
+    const target = Object.values(state.nations).find(n => !n.isPlayer && !n.isAtWar);
+    const rich = { ...state, resources: { ...state.resources, gold: 10000, dip: 100 } };
+    const next = gameReducer(rich, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: target.id } });
+    expect(next.nations[state.playerNationId].claims).toContain(target.id);
+  });
+});
