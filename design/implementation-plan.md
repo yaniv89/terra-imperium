@@ -702,6 +702,16 @@ const withTreasury = (s, id, delta) => id === s.playerNationId
 
 ## Phase 5 — Mobile: "I can't see what my action does"
 
+> **Status (shipped to `main`):**
+> - **5.1** visible-map rect (`MapInsetsContext` / `useReportInset`, globe shift, flat-map
+>   visible-band centring) — shipped.
+> - **5.2** auto-peek (`useAutoPeek`, on Manage Region, the region sheet and the empire tab
+>   sheet) — shipped.
+> - **5.4** flat-map effects (`Map2DEffectsOverlay`) — shipped.
+> - **Also shipped:** memoized flat-map paths, linear pan interpolation, and the header is no
+>   longer covered by side panels.
+> - **Still open:** 5.3 (snap-point `BottomSheet`), 5.5 (Nation hub) and 5.6.
+
 ### 5.0 The concrete problem
 
 Flow: tap region → **Manage Region** → Military tab → **Recruit Infantry**.
