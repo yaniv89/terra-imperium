@@ -24,12 +24,13 @@ import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSo
 import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
 import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress } from './diplomacy';
+import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange, getCapital } from '../data/regions';
 import {
-  REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, getRebelSpawnStrength,
+  REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, REBEL_MAX_GROWTH_MULT, getRebelSpawnStrength,
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
@@ -193,8 +194,11 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // revolt succeeds outright and the region reverts to whoever held it before its current owner.
   // Home territory (no formerOwner) has nothing to revert to, so it never takes this branch.
   const units = { ...state.units };
+  const revivedNations = {}; // eliminated nations a successful revolt handed land back to (see transferRegion)
   const rebelUnitIdByRegion = {};
-  Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID) rebelUnitIdByRegion[u.regionId] = u.id; });
+  // Civil-war pretenders (isPretender) are owned by src/engine/civilWar.js, not by this unrest block —
+  // letting this block see them made every pretender in a calm province "dissolve" the next turn.
+  Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID && !u.isPretender) rebelUnitIdByRegion[u.regionId] = u.id; });
   Object.entries(regions).forEach(([regionId, region]) => {
     const existingRebelId = rebelUnitIdByRegion[regionId];
     if (region.unrest >= REBELLION_UNREST_THRESHOLD) {
@@ -208,20 +212,27 @@ export const resolveTurn = (state, { onPhase } = {}) => {
           Object.values(units)
             .filter(u => u.regionId === regionId && u.ownerId === occupierId)
             .forEach(u => { delete units[u.id]; });
-          regions[regionId] = {
-            ...region,
-            owner: reclaimedBy,
+          // transferRegion also drops any third party's lingering occupiedBy and, if the former
+          // owner had been wiped out, revives it rather than handing land to a dead nation.
+          const transfer = transferRegion(region, reclaimedBy, modifierExpiredNations, {
             formerOwner: undefined,
             control: REVOLT_RECLAIMED_CONTROL,
             unrest: REVOLT_RECLAIMED_UNREST
-          };
+          });
+          regions[regionId] = transfer.region;
           logs.push({
             year: newYear,
             message: `The uprising in ${REGIONS_DATA[regionId]?.name || regionId} succeeds — ${state.nations[reclaimedBy]?.name || reclaimedBy} reclaims it from ${state.nations[occupierId]?.name || occupierId}.`,
             type: LogTypes.CRISIS
           });
+          if (transfer.revivedNation) {
+            revivedNations[reclaimedBy] = transfer.revivedNation;
+            logs.push({ year: newYear, message: `${transfer.revivedNation.name} rises again!`, type: LogTypes.MILESTONE });
+          }
         } else {
-          const strength = Math.round(rebel.strength * (1 + REBEL_GROWTH_RATE));
+          // Capped at REBEL_MAX_GROWTH_MULT x a fresh uprising's size: uncapped, 15%/turn compounding
+          // grew an ignored home-province rebellion without bound (x1,000+ within 50 turns).
+          const strength = Math.min(getRebelSpawnStrength(region) * REBEL_MAX_GROWTH_MULT, Math.round(rebel.strength * (1 + REBEL_GROWTH_RATE)));
           units[existingRebelId] = { ...rebel, strength, maxStrength: Math.max(rebel.maxStrength, strength) };
         }
       } else {
@@ -350,7 +361,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
 
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
-  const nations = { ...modifierExpiredNations };
+  const nations = { ...modifierExpiredNations, ...revivedNations };
   Object.entries(nations).forEach(([nId, nation]) => {
     if (nation.isPlayer) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
@@ -516,6 +527,9 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     if (nation.civilWar?.active) {
       const result = processCivilWarTurn({ ...state, age: newAge }, regions, units, nations[nId], nId, rng, newTurnNumber);
       Object.assign(regions, result.regions);
+      // Object.assign alone can only ADD/replace keys — pretender stacks the civil war removed
+      // (suppressed by an AI, or cleared when the pretenders win) must be deleted explicitly too.
+      Object.keys(units).forEach((id) => { if (units[id].isPretender && !result.units[id]) delete units[id]; });
       Object.assign(units, result.units);
       nations[nId] = result.nation;
       if (result.result === 'crushed') {
@@ -542,6 +556,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   });
   mark('disastersAndCivilWar');
 
+  let nextLoanSeq = state.nextLoanSeq || 1;
   // --- economy (plan §M11): army/navy/fort upkeep (maintenance-slider-scaled), advisor salaries,
   // and loan interest are all subtracted together so a shortfall can trigger ONE auto-loan or
   // bankruptcy, rather than three independent floor-at-0 deductions each masking part of the real
@@ -550,7 +565,9 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   {
     const playerId = state.playerNationId;
     const nation = nations[playerId];
-    const playerUnits = Object.values(state.units).filter((u) => u.ownerId === playerId);
+    // `units` (this turn's draft), not state.units: a unit lost to attrition, a revolt or a civil war
+    // earlier this same turn must not still be charged upkeep.
+    const playerUnits = Object.values(units).filter((u) => u.ownerId === playerId);
     const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
     const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
     const armyUpkeep = Math.round(playerUnits.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
@@ -610,7 +627,9 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       // logged" — sized by the plan's own getLoanSize formula, floored at whatever actually
       // covers this turn's shortfall so the treasury doesn't stay negative regardless.
       const principal = Math.max(getLoanSize({ ...state, regions, nations, resources }, playerId), Math.ceil(-rawGold));
-      const loan = { id: `loan_auto_${newTurnNumber}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
+      const loanSeq = state.nextLoanSeq || 1;
+      nextLoanSeq = loanSeq + 1;
+      const loan = { id: `loan_${loanSeq}`, principal, interestRate: getLoanInterestRate({ ...state, nations }, playerId), takenTurn: newTurnNumber };
       nations[playerId] = { ...nations[playerId], loans: [...(nation.loans || []), loan], disasters: { ...nations[playerId].disasters, economicCollapse: economicCollapseProgress } };
       resources.gold = rawGold + principal;
       logs.push({ year: newYear, message: `Treasury shortfall — auto-took a loan of ${formatMoney(principal)} gold.`, type: LogTypes.CRISIS });
@@ -877,6 +896,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     activeProceduralEvent,
     proceduralEventCooldown,
     pendingEventChains: nextPendingEventChains,
+    nextLoanSeq,
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };

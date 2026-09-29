@@ -92,16 +92,22 @@ describe('checkAchievements', () => {
     const state = createInitialState();
     const nationIds = Object.keys(state.nations).filter(id => !state.nations[id].isPlayer);
 
-    const twoFriendly = { ...state, nations: { ...state.nations } };
-    nationIds.slice(0, 2).forEach(id => {
-      twoFriendly.nations[id] = { ...twoFriendly.nations[id], hasPeaceTreaty: true };
-    });
+    // A peace treaty counts only when it's WITH the player — a truce on the player's own record.
+    const withTreaties = (count) => {
+      const next = { ...state, nations: { ...state.nations } };
+      const player = next.nations[state.playerNationId];
+      const truces = { ...(player.truces || {}) };
+      nationIds.slice(0, count).forEach(id => {
+        next.nations[id] = { ...next.nations[id], hasPeaceTreaty: true };
+        truces[id] = 999;
+      });
+      next.nations[state.playerNationId] = { ...player, truces };
+      return next;
+    };
+    const twoFriendly = withTreaties(2);
     expect(checkAchievements(twoFriendly)).not.toContain('master_diplomat');
 
-    const threeFriendly = { ...state, nations: { ...state.nations } };
-    nationIds.slice(0, 3).forEach(id => {
-      threeFriendly.nations[id] = { ...threeFriendly.nations[id], hasPeaceTreaty: true };
-    });
+    const threeFriendly = withTreaties(3);
     expect(checkAchievements(threeFriendly)).toContain('master_diplomat');
   });
 
@@ -117,9 +123,11 @@ describe('checkAchievements', () => {
   it('detects three_front_war at 3 simultaneous wars', () => {
     const state = createInitialState();
     const nationIds = Object.keys(state.nations).filter(id => !state.nations[id].isPlayer).slice(0, 3);
-    const atWar = { ...state, nations: { ...state.nations } };
-    nationIds.forEach(id => { atWar.nations[id] = { ...atWar.nations[id], isAtWar: true }; });
+    // Wars the player is actually in (state.wars), not merely nations flagged isAtWar.
+    const atWar = { ...state, wars: nationIds.map((id, i) => ({ id: `war_${i}`, active: true, aggressor: state.playerNationId, enemy: id })) };
     expect(checkAchievements(atWar)).toContain('three_front_war');
+    const twoWars = { ...atWar, wars: atWar.wars.slice(0, 2) };
+    expect(checkAchievements(twoWars)).not.toContain('three_front_war');
   });
 
   it('every ACHIEVEMENTS entry has an id matching its key and a check function', () => {

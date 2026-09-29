@@ -60,11 +60,11 @@ describe('getEstateInfluence', () => {
     expect(getEstateInfluence(state, 'fr', 'clergy')).toBe(10);
   });
 
-  it('adds 10 per granted privilege', () => {
+  it("adds each granted privilege's own influenceBonus", () => {
     const nation = baseNation();
     nation.estates.clergy = { ...nation.estates.clergy, privileges: ['religious_tax_exemption', 'control_of_education'] };
     const state = { playerNationId: 'fr', nations: { fr: nation }, regions: {} };
-    expect(getEstateInfluence(state, 'fr', 'clergy')).toBe(30); // 10 + 10x2
+    expect(getEstateInfluence(state, 'fr', 'clergy')).toBe(25); // 10 + 5 (Religious Tax Exemption) + 10 (Control of Education)
   });
 
   it('adds land share from owned region count, for the player only', () => {
