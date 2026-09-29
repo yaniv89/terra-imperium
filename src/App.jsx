@@ -4,6 +4,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
+import { MapInsetsProvider } from './context/MapInsetsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
@@ -248,7 +249,9 @@ const App = () => {
   return (
     <GameProvider>
       <EffectsProvider>
-        <GameLayout />
+        <MapInsetsProvider>
+          <GameLayout />
+        </MapInsetsProvider>
       </EffectsProvider>
     </GameProvider>
   );

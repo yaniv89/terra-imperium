@@ -22,6 +22,10 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
+import { useEffects } from '../../context/EffectsContext';
+import { useMapInsets } from '../../context/MapInsetsContext';
+import Map2DEffectsOverlay from './Map2DEffectsOverlay';
+import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
@@ -37,6 +41,9 @@ const ZOOM_STEP_SCALE = 1.6;
 // capital at a reasonable altitude (its own `home` pointOfView effect) — this mirrors that same
 // idea for the flat map instead of always starting fully zoomed out.
 const INITIAL_FOCUS_ZOOM = 5;
+// d3-zoom's view triple is [centerX, centerY, visibleWidth]; interpolating each linearly pans in a
+// straight line and scales steadily (see the .interpolate() call below for why).
+const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 // `interactive: false` is the minimap's own mode: no click handling, no hover title, no zoom/pan
 // (see below), and a slightly thinner/absent stroke so a few thousand paths stay cheap to render
@@ -62,6 +69,11 @@ const Map2DView = ({
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null
 }) => {
   const { state } = useGame();
+  const { effects } = useEffects();
+  // Only the main full-bleed map (hudOffset) sits under the game's floating panels; MapModal's and
+  // the minimap's own Map2DView instances are in their own boxes and ignore the insets.
+  const rawInsets = useMapInsets();
+  const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0 };
   const [polygons, setPolygons] = useState(null);
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
@@ -110,6 +122,11 @@ const Map2DView = ({
   useEffect(() => {
     if (!interactive || !svgRef.current || width <= 0 || height <= 0) return undefined;
     const behavior = d3zoom()
+      // Linear view interpolation for button/programmatic transitions instead of d3's default
+      // "smooth zoom" (interpolateZoom), which zooms OUT then back in on any pan. Re-centring on an
+      // effect and on a sheet peeking can interrupt each other, and an interrupted smooth zoom
+      // left the map stuck zoomed out exactly while the animation was playing.
+      .interpolate(linearViewInterpolate)
       .scaleExtent(ZOOM_EXTENT)
       .translateExtent([[0, 0], [width, height]])
       .on('zoom', (event) => setTransform(event.transform));
@@ -126,18 +143,24 @@ const Map2DView = ({
   // asynchronously), so the initial-focus effect below needs to know the difference between
   // "applied" and "silently no-op'd because it wasn't ready yet" to know whether it's safe to mark
   // itself done.
-  const focusOnLatLng = useCallback((lat, lng, k = INITIAL_FOCUS_ZOOM) => {
+  // Plan §5.1: centred in the part of the screen the floating panels DON'T cover (MapInsetsContext)
+  // — the screen's own centre sits under the Manage Region sheet on a phone. `animate` smooths the
+  // move for effect/focus pans; the one-time initial focus stays instant.
+  const focusOnLatLng = useCallback((lat, lng, k = INITIAL_FOCUS_ZOOM, animate = false) => {
     if (!projection || !zoomBehaviorRef.current || !svgRef.current) return false;
     const [px, py] = projection([lng, lat]);
-    const desired = zoomIdentity.translate(width / 2 - px * k, height / 2 - py * k).scale(k);
-    select(svgRef.current).call(zoomBehaviorRef.current.transform, desired);
+    const visibleCenterX = insets.left + (width - insets.left - insets.right) / 2;
+    const visibleCenterY = insets.top + (height - insets.top - insets.bottom) / 2;
+    const desired = zoomIdentity.translate(visibleCenterX - px * k, visibleCenterY - py * k).scale(k);
+    const selection = select(svgRef.current);
+    (animate ? selection.transition().duration(450) : selection).call(zoomBehaviorRef.current.transform, desired);
     return true;
-  }, [projection, width, height]);
+  }, [projection, width, height, insets.left, insets.right, insets.top, insets.bottom]);
 
-  const focusOnRegionId = useCallback((targetRegionId, k = INITIAL_FOCUS_ZOOM) => {
+  const focusOnRegionId = useCallback((targetRegionId, k = INITIAL_FOCUS_ZOOM, animate = false) => {
     const focusCoords = REGION_COORDINATES[targetRegionId];
     if (!focusCoords) return false;
-    return focusOnLatLng(focusCoords.lat, focusCoords.lng, k);
+    return focusOnLatLng(focusCoords.lat, focusCoords.lng, k, animate);
   }, [focusOnLatLng]);
 
   // Runs once (see appliedInitialFocusRef) — but only marks itself done once focusOnRegionId
@@ -160,10 +183,39 @@ const Map2DView = ({
   // of which of its tabs is active (switching tabs doesn't change `focusRegionId`). Deliberately
   // separate from the once-only initial-focus effect above: this one is meant to re-fire every time
   // a different region is opened for management, not just on first mount.
+  // The flat map used to ignore action effects entirely (plan §5.4). Like GlobeView's camera, it now
+  // pans to each new effect's target (keeping any deeper zoom the player already chose) so the
+  // Map2DEffectsOverlay animation below plays in view. While that effect is still playing it stays
+  // the thing to keep centred — `followRef` — even as a sheet peeks/restores and the visible band
+  // moves (the re-centre effect below).
+  const lastEffectIdRef = useRef(effects.length ? effects[effects.length - 1].id : null);
+  const followRef = useRef(null); // { lat, lng, k, until }
   useEffect(() => {
-    if (!interactive || !focusRegionId) return;
-    focusOnRegionId(focusRegionId);
-  }, [interactive, focusRegionId, focusOnRegionId]);
+    if (!interactive) return;
+    const latest = effects[effects.length - 1];
+    if (!latest || latest.id === lastEffectIdRef.current) return;
+    lastEffectIdRef.current = latest.id;
+    const target = REGION_COORDINATES[latest.toRegionId];
+    if (!target) return;
+    const k = Math.max(transform.k, INITIAL_FOCUS_ZOOM);
+    followRef.current = { lat: target.lat, lng: target.lng, k, until: Date.now() + getEffectPeekDuration(latest.actionType) };
+    focusOnLatLng(target.lat, target.lng, k, true);
+    // transform.k intentionally omitted — same reasoning as the navigateTarget effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactive, effects, focusOnLatLng]);
+
+  // Re-centres whenever the managed region changes OR the visible band moves (focusOnLatLng's
+  // identity changes with the insets — a sheet opening, peeking or restoring): a live effect's
+  // target first, otherwise the region Manage Region is open for.
+  useEffect(() => {
+    if (!interactive) return;
+    const follow = followRef.current;
+    if (follow && Date.now() < follow.until) {
+      focusOnLatLng(follow.lat, follow.lng, follow.k, true);
+      return;
+    }
+    if (focusRegionId) focusOnRegionId(focusRegionId, INITIAL_FOCUS_ZOOM, true);
+  }, [interactive, focusRegionId, focusOnRegionId, focusOnLatLng]);
 
   // MiniMap.jsx's "click/drag to navigate" request — a raw lat/lng rather than a region, and (per
   // navigateTarget's own doc comment above) a freshly-created object every time so clicking the
@@ -171,7 +223,7 @@ const Map2DView = ({
   // may have changed in between, so a same-reference check would otherwise skip the second one).
   useEffect(() => {
     if (!interactive || !navigateTarget) return;
-    focusOnLatLng(navigateTarget.lat, navigateTarget.lng, Math.max(transform.k, INITIAL_FOCUS_ZOOM));
+    focusOnLatLng(navigateTarget.lat, navigateTarget.lng, Math.max(transform.k, INITIAL_FOCUS_ZOOM), true);
     // transform.k intentionally omitted from deps — reading "current zoom, if already zoomed in
     // further than the default" at the moment of navigation is exactly what's wanted here; this
     // must NOT re-fire just because the resulting pan changes transform.k.
@@ -214,6 +266,41 @@ const Map2DView = ({
     onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
   }, [interactive, onSelectRegion, selectedRegion]);
 
+  // The ~4,482 province <path>s are memoized on everything EXCEPT the pan offset: a pan (drag, the
+  // minimap, or the smooth re-centring on an effect/sheet change) only moves the parent <g>'s
+  // transform, so React doesn't re-diff every path on every animation frame. Zoom level (k) stays a
+  // dependency because stroke width is divided by it. Before this, each frame of a d3 pan
+  // transition re-rendered all 4,482 paths — janky on a phone and the dominant cost of every pan.
+  const zoomK = transform.k;
+  const pathElements = useMemo(() => {
+    if (!pathsById) return null;
+    return (
+      [...pathsById.entries()].map(([gameRegionId, d]) => {
+        if (!d) return null;
+        const fill = getRegionFillColor(state.regions, state.playerNationId, gameRegionId);
+        const stroke = interactive
+          ? getRegionStrokeColor(state.regions, state.playerNationId, gameRegionId, selectedRegion, atWarNationIds)
+          : 'rgba(0,0,0,0.4)';
+        // Divided by the current zoom scale so the stroke's SCREEN width stays constant as the
+        // map zooms in — without this, an 8x zoom would render a "thin" 0.4 stroke 3.2px wide.
+        const strokeWidth = (gameRegionId === selectedRegion ? 1.5 : 0.4) / zoomK;
+        return (
+          <path
+            key={gameRegionId}
+            d={d}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            onClick={interactive ? () => handleClick(gameRegionId) : undefined}
+            style={interactive ? { cursor: 'pointer' } : undefined}
+          >
+            {interactive && <title>{REGIONS_DATA[gameRegionId]?.name || gameRegionId}</title>}
+          </path>
+        );
+      })
+    );
+  }, [pathsById, state.regions, state.playerNationId, interactive, selectedRegion, atWarNationIds, handleClick, zoomK]);
+
   if (!pathsById) {
     return (
       <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm" style={{ background: OCEAN_COLOR }}>
@@ -231,29 +318,7 @@ const Map2DView = ({
       style={{ background: OCEAN_COLOR, display: 'block', touchAction: interactive ? 'none' : undefined }}
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-        {[...pathsById.entries()].map(([gameRegionId, d]) => {
-          if (!d) return null;
-          const fill = getRegionFillColor(state.regions, state.playerNationId, gameRegionId);
-          const stroke = interactive
-            ? getRegionStrokeColor(state.regions, state.playerNationId, gameRegionId, selectedRegion, atWarNationIds)
-            : 'rgba(0,0,0,0.4)';
-          // Divided by the current zoom scale so the stroke's SCREEN width stays constant as the
-          // map zooms in — without this, an 8x zoom would render a "thin" 0.4 stroke 3.2px wide.
-          const strokeWidth = (gameRegionId === selectedRegion ? 1.5 : 0.4) / transform.k;
-          return (
-            <path
-              key={gameRegionId}
-              d={d}
-              fill={fill}
-              stroke={stroke}
-              strokeWidth={strokeWidth}
-              onClick={interactive ? () => handleClick(gameRegionId) : undefined}
-              style={interactive ? { cursor: 'pointer' } : undefined}
-            >
-              {interactive && <title>{REGIONS_DATA[gameRegionId]?.name || gameRegionId}</title>}
-            </path>
-          );
-        })}
+        {pathElements}
       </g>
     </svg>
   );
@@ -263,6 +328,7 @@ const Map2DView = ({
   return (
     <div className="relative w-full h-full">
       {map}
+      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} />
       <div className={`absolute right-2 z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
           onClick={() => zoomBy(ZOOM_STEP_SCALE)}
