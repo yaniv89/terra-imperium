@@ -17,6 +17,7 @@ import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { resolveClickedRegionId } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
+import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
@@ -60,6 +61,7 @@ const GlobeView = ({
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
+  const insets = useMapInsets();
   const globeRef = useRef(null);
   const [geo, setGeo] = useState(null);
   // No globeImageUrl (no texture fetch, no external dependency, matches the stylized/game look
@@ -302,6 +304,18 @@ const GlobeView = ({
       {/* The globe and its effects overlay share one wrapper so the impact shake moves them
           together — shaking the canvas alone would slide the map out from under the animation.
           The panel chrome (legend, region card) deliberately sits outside it and stays still. */}
+      {/* Plan §5.1: shifted so the globe's centre — where every camera move (Manage Region focus,
+          effect framing, minimap navigation) puts its target — sits in the middle of the part of
+          the screen NOT covered by panels (MapInsetsContext), instead of under a bottom sheet.
+          A CSS transform rather than resizing the canvas: no three.js reflow as sheets move, and
+          pointer events/getScreenCoords stay consistent because the overlay moves with it. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          transform: `translate(${(insets.left - insets.right) / 2}px, ${(insets.top - insets.bottom) / 2}px)`,
+          transition: 'transform 280ms ease'
+        }}
+      >
       <div ref={shakeRef} className="absolute inset-0">
       <Globe
         ref={globeRef}
@@ -326,6 +340,7 @@ const GlobeView = ({
       {!prefersReducedMotion() && (
         <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} />
       )}
+      </div>
       </div>
     </div>
   );

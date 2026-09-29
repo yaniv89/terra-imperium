@@ -29,7 +29,7 @@
 // handler below already passes), so every action taken here — build, recruit, develop, etc. — keeps
 // re-centering the globe on this exact region as its own animation fires, independent of this
 // modal's own position.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Building2, Shield, Flag, Hammer, Gem, HeartCrack, Sprout, Landmark, TrendingUp,
   UserPlus, Trash2, Award, Anchor, Flame
@@ -37,6 +37,8 @@ import {
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useAutoPeek } from '../../hooks/useAutoPeek';
+import { useReportInset } from '../../context/MapInsetsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds, getCapital } from '../../data/regions';
 import { ACTION_COSTS, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
@@ -81,6 +83,13 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState('overview');
+  const sheetRef = useRef(null);
+  // Plan §5.1/§5.2: report how much of the screen this panel covers so the map centres the region
+  // (and every animation fired from here) in the part still visible, and on a phone shrink to a
+  // short "peek" while an animation plays — the recruit/build effect lands just above the sheet.
+  const isShown = open && !!regionId;
+  useReportInset('province-panel', isMobile ? 'bottom' : 'left', sheetRef, isShown);
+  const [peeking, cancelPeek] = useAutoPeek(isShown && isMobile);
 
   useEffect(() => { setTab('overview'); }, [regionId]);
 
@@ -222,15 +231,19 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[35]" onClick={onClose}>
+    // The click-outside catcher starts BELOW the header so End Turn and the resource bar stay usable
+    // while a region is being managed (it used to cover them — and on desktop both side panels were
+    // drawn over the header too).
+    <div className="fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-[35]" onClick={onClose}>
       <div
+        ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
         className={isMobile
-          ? 'absolute inset-x-0 bottom-0 max-h-[65vh] rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]'
-          : 'absolute left-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col pt-[var(--header-height,4.5rem)]'}
+          ? `absolute inset-x-0 bottom-0 ${peeking ? 'max-h-[22vh]' : 'max-h-[65vh]'} transition-[max-height] duration-300 ease-out rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]`
+          : 'absolute left-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col'}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-slate-700 shrink-0 flex items-start justify-between gap-2">
+        {/* Header — tapping it while the sheet is peeking brings the full sheet straight back. */}
+        <div onClick={peeking ? cancelPeek : undefined} className="p-4 border-b border-slate-700 shrink-0 flex items-start justify-between gap-2">
           <div className="min-w-0 flex items-center gap-2">
             <Building2 size={20} className="text-blue-400 shrink-0" />
             <div className="min-w-0">
