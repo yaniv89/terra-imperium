@@ -1,5 +1,9 @@
 # RON-Style Tactical Invasion Battles — Research & Specification
 
+> **Superseded by [`rts-battles-implementation-plan.md`](./rts-battles-implementation-plan.md)** — the
+> build-ready plan (code, milestones, mobile controls, fog, defense battles, multiplayer determinism).
+> Kept for history.
+
 > Requested: "check what it'll take from us to do the fighting like in RON [Rise of Nations],
 > that we invade land and then an RTS fight begins." This document is research-and-design only —
 > nothing here has been implemented. It audits what the game already has, what a real-time
