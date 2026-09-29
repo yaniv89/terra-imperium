@@ -328,7 +328,7 @@ const Map2DView = ({
   return (
     <div className="relative w-full h-full">
       {map}
-      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} />
+      <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
       <div className={`absolute right-2 z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
           onClick={() => zoomBy(ZOOM_STEP_SCALE)}

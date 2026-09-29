@@ -156,51 +156,6 @@ body {
   animation: globe-impact-shake 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Flat-map action effects (src/components/map/Map2DEffectsOverlay.jsx, plan §5.4). SVG elements use
-   transform-box: fill-box so scale() grows each shape around its own centre. */
-@keyframes map2d-draw {
-  0%   { stroke-dashoffset: 1; opacity: 1; }
-  85%  { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-.map2d-draw {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation-name: map2d-draw;
-  animation-timing-function: ease-in;
-  animation-fill-mode: both;
-}
-@keyframes map2d-ring {
-  0%   { transform: scale(0.3); opacity: 0.95; }
-  100% { transform: scale(3.2); opacity: 0; }
-}
-.map2d-ring {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: map2d-ring 900ms ease-out both;
-}
-@keyframes map2d-flash {
-  0%   { transform: scale(0.4); opacity: 0; }
-  20%  { transform: scale(1.8); opacity: 1; }
-  100% { transform: scale(0.6); opacity: 0; }
-}
-.map2d-flash {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: map2d-flash 700ms ease-out both;
-}
-@keyframes map2d-pop {
-  0%   { transform: scale(0); opacity: 0; }
-  18%  { transform: scale(1.2); opacity: 1; }
-  30%  { transform: scale(1); opacity: 1; }
-  80%  { transform: scale(1) translateY(-6px); opacity: 1; }
-  100% { transform: scale(0.9) translateY(-10px); opacity: 0; }
-}
-.map2d-pop {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: map2d-pop 1300ms ease-out both;
-}
 
 .animate-in {
   animation-duration: 300ms;

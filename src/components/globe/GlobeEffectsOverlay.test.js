@@ -1,19 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { getImpactDelay, getFramingPov, ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS } from './GlobeEffectsOverlay';
+import { getImpactDelay, getFramingPov, getEffectDuration } from './GlobeEffectsOverlay';
 import { getNationCapital } from '../../data/regions';
+import { EFFECT_REGISTRY } from '../../data/effectRegistry';
 
-// REGION_COORDINATES is keyed by real province id now, not by nation id.
 const EGYPT_CAPITAL = getNationCapital('eg');
 
 describe('getImpactDelay', () => {
-  it('returns a positive delay for an arc-primitive action type', () => {
-    expect(getImpactDelay('missile_strike')).toBeGreaterThan(0);
-  });
-
-  it('returns a positive delay for a pulse-primitive action type without throwing', () => {
-    // pulse specs have no `projectiles` array — the arc-only calculation would throw on one.
-    expect(() => getImpactDelay('recruit_unit')).not.toThrow();
-    expect(getImpactDelay('recruit_unit')).toBeGreaterThan(0);
+  it('lands inside the effect\'s own lifetime for every registered action', () => {
+    Object.keys(EFFECT_REGISTRY).forEach((type) => {
+      const d = getImpactDelay(type);
+      expect(d, type).toBeGreaterThanOrEqual(0);
+      expect(d, type).toBeLessThan(getEffectDuration(type));
+    });
   });
 
   it('falls back to the default spec for an unknown action type rather than throwing', () => {
@@ -22,7 +20,7 @@ describe('getImpactDelay', () => {
 });
 
 describe('getFramingPov', () => {
-  it('frames a close-up on a single region when from and to are the same (a pulse effect)', () => {
+  it('frames a close-up on a single region when from and to are the same', () => {
     const pov = getFramingPov(EGYPT_CAPITAL, EGYPT_CAPITAL);
     expect(pov).not.toBeNull();
     expect(pov.altitude).toBeGreaterThanOrEqual(0.3);
@@ -30,12 +28,5 @@ describe('getFramingPov', () => {
 
   it('returns null when the target region has no known coordinates', () => {
     expect(getFramingPov(EGYPT_CAPITAL, 'not-a-real-region')).toBeNull();
-  });
-});
-
-describe('effect lifetime durations', () => {
-  it('both implemented primitives report a positive total duration', () => {
-    expect(ARC_EFFECT_DURATION_MS).toBeGreaterThan(0);
-    expect(PULSE_EFFECT_DURATION_MS).toBeGreaterThan(0);
   });
 });
