@@ -203,6 +203,15 @@ Right now full-height sheets cover the map, so you can't see what your actions d
 > (`createInitialState` → real reducer actions → `ADVANCE_TURN`, events auto-resolved). The numbers
 > quoted are from those runs. Items marked *code-read* are clear from the code but weren't simulated.
 > Code fragments for every fix are in `design/implementation-plan.md` → **Phase 0B**.
+>
+> **Status (shipped to `main`):**
+> - **S1** — `POWER_POOL_CAP`, plus a base 2 tech points per turn for every nation, since AI nations
+>   had no tech-point source at all. Guarded by `src/data/powerCosts.test.js`.
+> - **S2–S8 and S11–S14** — shipped. Guarded by `src/engine/secondReviewFixes.test.js`.
+> - **S9/S10, partial** — the achievement checks now count only the player's own wars and
+>   treaties; Diplomatic victory ignores eliminated nations; alliance acceptance uses the player's
+>   prestige.
+> - **Still open** — an alliance cap and a real relations matrix. Both wait for Phase 1.
 
 ### Critical — game-breaking
 
