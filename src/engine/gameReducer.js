@@ -28,6 +28,7 @@ import {
 } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
+import { grantIntel } from './intel';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
@@ -57,7 +58,7 @@ import {
   BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
   TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
   VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
-  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
+  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { applyEventEffects } from './applyEventEffects';
@@ -337,6 +338,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     techAgeId: age,
     gameSpeed,
     turnNumber: 1,
+    // Player intel on foreign nations: { [nationId]: lastTurnWithIntel } — src/engine/intel.js.
+    intel: {},
     gameStatus: GameStatus.ACTIVE,
     // Which VICTORY_CONDITIONS entry ended the game, if any.
     victoryConditionId: null,
@@ -2254,6 +2257,17 @@ export const gameReducer = (state, action) => {
       const success = rng.next() < ESPIONAGE_SUCCESS_CHANCE;
       const resourcesAfterCost = applyCosts(state.resources, costs);
       if (success) {
+        // Every successful op leaves agents in place: the target's provinces become visible.
+        const intel = grantIntel(state, nationId);
+        if (type === 'gather_intel') {
+          return {
+            ...state,
+            resources: resourcesAfterCost,
+            intel,
+            rngSeed: rng.getSeed(),
+            logs: [...state.logs, { year: state.year, message: `Your agents mapped ${target.name}'s provinces — their armies, buildings and resources are visible for ${INTEL_DURATION_TURNS} turns.`, type: LogTypes.DIPLOMACY }]
+          };
+        }
         if (type === 'support_rebels') {
           const targetRegionId = regionId && state.regions[regionId]?.owner === nationId ? regionId : getCapital(state, nationId);
           const targetRegion = state.regions[targetRegionId];
@@ -2262,6 +2276,7 @@ export const gameReducer = (state, action) => {
             ...state,
             resources: resourcesAfterCost,
             regions: { ...state.regions, [targetRegionId]: { ...targetRegion, unrest: Math.min(100, (targetRegion.unrest || 0) + ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE) } },
+            intel,
             rngSeed: rng.getSeed(),
             logs: [...state.logs, { year: state.year, message: `Your agents stirred unrest in ${REGIONS_DATA[targetRegionId]?.name || targetRegionId}.`, type: LogTypes.DIPLOMACY }]
           };
@@ -2269,6 +2284,7 @@ export const gameReducer = (state, action) => {
         return {
           ...state,
           resources: { ...resourcesAfterCost, techPoints: (resourcesAfterCost.techPoints || 0) + ESPIONAGE_TECH_POINTS_STOLEN },
+          intel,
           rngSeed: rng.getSeed(),
           logs: [...state.logs, { year: state.year, message: `Your agents stole technological secrets from ${target.name}. +${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points.`, type: LogTypes.DIPLOMACY }]
         };

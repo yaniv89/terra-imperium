@@ -18,7 +18,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
 import {
-  ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, ESPIONAGE_TECH_POINTS_STOLEN,
+  ACTION_COSTS, SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS, ESPIONAGE_TECH_POINTS_STOLEN,
   CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
   MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
 } from '../../data/actionCosts';
@@ -28,6 +28,7 @@ import { getTotalDev } from '../../engine/development';
 import { getNationCapital, getBorderingNationIds } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
+import { hasIntel } from '../../engine/intel';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { ActionButton } from '../ui';
 
@@ -291,7 +292,9 @@ const NationCard = ({ nation }) => {
             Hostility: <span className="text-orange-400 font-mono">{nation.hostility}</span>
           </div>
           <div className="text-slate-400">
-            Military: <span className="text-red-400 font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
+            Military: {hasIntel(state, nation.id)
+              ? <span className="text-red-400 font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
+              : <span className="text-slate-500 font-mono" title="Unknown — a successful espionage op reveals it">?</span>}
           </div>
           {atWarWithPlayer && (
             <div className="text-slate-400">
@@ -439,7 +442,7 @@ const NationCard = ({ nation }) => {
                 <IconButton
                   icon={Eye}
                   label={`Espionage (${formatCost(ACTION_COSTS.espionage)})`}
-                  title={`Steal ${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points (${Math.round(ESPIONAGE_SUCCESS_CHANCE * 100)}% chance) — if caught, hostility rises`}
+                  title={`Steal ${ESPIONAGE_TECH_POINTS_STOLEN} Tech Points (${Math.round(ESPIONAGE_SUCCESS_CHANCE * 100)}% chance) and reveal their provinces and army for ${INTEL_DURATION_TURNS} turns — if caught, hostility rises`}
                   disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
                   onClick={() => dispatchIfAffordable(ActionTypes.ESPIONAGE, ACTION_COSTS.espionage)}
                 />

@@ -4,13 +4,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   MapPin, X, Shield, Users, Building, Building2, Target, AlertTriangle, Flag, Swords, Settings2, Anchor, Ship,
-  ChevronUp, Flame, HeartPulse, Sprout, TrendingUp, Landmark, Hammer, Gem, Compass
+  ChevronUp, Flame, HeartPulse, Eye, EyeOff, Sprout, TrendingUp, Landmark, Hammer, Gem, Compass
 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner } from '../../data/regions';
-import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/actionCosts';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getCapital } from '../../data/regions';
+import { canSeeRegionDetails, getIntelTurnsLeft } from '../../engine/intel';
+import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS } from '../../data/actionCosts';
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
@@ -123,6 +124,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const isUngoverned = !regionOwner || regionOwner.isEliminated || (isRebelHeld && !regionOwner.hasMilitaryPact && regionOwner.vassalOf !== state.playerNationId);
   const canSettle = !isPlayerOwned && isUngoverned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
 
+  // Foreign provinces only show their insides with intel on the owner (src/engine/intel.js).
+  const revealed = canSeeRegionDetails(state, regionId);
+  const intelTurnsLeft = getIntelTurnsLeft(state, regionState.owner);
   // The big-picture data every region shows, owned or foreign.
   const coastal = isCoastal(regionId);
   const unitsHere = Object.values(state.units).filter((u) => u.regionId === regionId);
@@ -164,6 +168,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
     triggerEffect('naval_engagement', { from: fromRegionId, to: regionId });
     dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: regionId } });
+  };
+  const handleGatherIntel = () => {
+    if (!canAfford(state.resources, ACTION_COSTS.espionage)) return addLog('Not enough resources', 'action');
+    triggerEffect('espionage', { from: getCapital(state, state.playerNationId), to: regionId });
+    dispatch({ type: ActionTypes.ESPIONAGE, payload: { nationId: regionState.owner, type: 'gather_intel' } });
   };
   const handleSettleColonize = () => {
     if (!canAfford(state.resources, ACTION_COSTS.settleColonize)) return addLog('Not enough resources', 'action');
@@ -238,7 +247,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       )}
 
       {/* Alerts */}
-      {(regionState.underInvasion || regionState.occupiedBy || rebelsHere.length > 0 || (isPlayerOwned && regionState.formerOwner)) && (
+      {(regionState.underInvasion || regionState.occupiedBy || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
@@ -250,7 +259,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <Flag className="w-3 h-3" /><span>Occupied by {state.nations[regionState.occupiedBy]?.name || 'Unknown'}</span>
             </div>
           )}
-          {rebelsHere.length > 0 && (
+          {revealed && rebelsHere.length > 0 && (
             <div className="flex items-center gap-1.5 text-red-400">
               <Flame className="w-3 h-3" /><span>{rebelsHere.length} rebel unit{rebelsHere.length === 1 ? '' : 's'} in revolt here</span>
             </div>
@@ -268,7 +277,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {!isPlayerOwned && ownerNation && (
         <div className="mb-2 space-y-1">
           <StatLine label="Relation" value={ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
-          <StatLine icon={Swords} label="Nation's army" value={formatNumber(getFieldedStrength(state, regionState.owner))} valueClass="text-red-400" />
+          <StatLine icon={Swords} label="Nation's army" value={revealed ? formatNumber(getFieldedStrength(state, regionState.owner)) : 'Unknown'} valueClass={revealed ? 'text-red-400' : 'text-slate-500'} />
           <StatLine label="Hostility" value={`${ownerNation.hostility}%`} valueClass="text-orange-400" />
           <div className="flex flex-wrap gap-1 pt-1">
             {ownerNation.hasPeaceTreaty && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">✓ Peace Treaty</span>}
@@ -337,8 +346,37 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       )}
 
-      {/* ---- The big picture: everything about this province, scrollable ---- */}
-      <Section icon={Target} title="Overview">
+      {/* ---- The big picture: everything about this province, scrollable. A foreign province's
+          insides stay hidden until a successful espionage op against its owner (engine/intel.js). ---- */}
+      {!revealed && (
+        <Section icon={EyeOff} title="No intelligence">
+          <div className="text-slate-400 mb-2">
+            {ownerNation?.name || 'Its owner'} keeps its provinces closed to you. Population, garrisons, buildings,
+            development and resources stay unknown until your agents get inside.
+          </div>
+          {regionState.lastAttackedTurn != null && (
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-slate-400">Control (siege)</span>
+                <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>{Math.round(regionState.control)}%</span>
+              </div>
+              <ProgressBar value={regionState.control} color="dynamic" size="small" />
+            </div>
+          )}
+          <ActionButton
+            icon={Eye}
+            label="Gather Intelligence"
+            description={`Send agents into ${ownerNation?.name || 'this nation'} — ${Math.round(ESPIONAGE_SUCCESS_CHANCE * 100)}% chance to reveal all of its provinces for ${INTEL_DURATION_TURNS} turns; if caught, their hostility rises`}
+            costs={ACTION_COSTS.espionage}
+            onClick={handleGatherIntel}
+            disabled={!canAfford(state.resources, ACTION_COSTS.espionage)}
+            resources={state.resources}
+            size="small"
+          />
+        </Section>
+      )}
+      {revealed && (<>
+      <Section icon={Target} title="Overview" aside={!isPlayerOwned && intelTurnsLeft !== null ? (intelTurnsLeft > 0 ? `Intel: ${intelTurnsLeft} turn${intelTurnsLeft === 1 ? '' : 's'} left` : 'Intel: last turn') : null}>
         <div className="mb-2">
           <div className="flex justify-between items-center mb-1">
             <span className="text-slate-400">Control</span>
@@ -441,6 +479,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           })}
         </div>
       </Section>
+      </>)}
 
       <Section icon={Compass} title="Neighbours" aside={neighbors.length ? `${neighbors.length}` : null}>
         {neighbors.length === 0 && <Empty>No land neighbours.</Empty>}

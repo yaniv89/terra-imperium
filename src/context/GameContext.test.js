@@ -8,7 +8,8 @@ import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
 import { getNationCapital, REGIONS_DATA, getBorderingNationIds } from '../data/regions';
 import { setTruce } from '../engine/diplomacy';
-import { ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
+import { hasIntel, getIntelTurnsLeft, canSeeRegionDetails } from '../engine/intel';
+import { INTEL_DURATION_TURNS, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
 import { IDENTITY_SHIFT_STEP, IDENTITY_MAX } from '../data/identity';
 import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION } from '../data/actionCosts';
 import { TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
@@ -2337,6 +2338,43 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op against an unknown nation', () => {
       const state = richState();
       expect(gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'not_a_real_nation' } })).toBe(state);
+    });
+
+    // Foreign provinces stay hidden until an op succeeds (src/engine/intel.js).
+    it('gather_intel reveals the target\'s provinces for INTEL_DURATION_TURNS, and nothing else', () => {
+      const state = { ...richState(), rngSeed: 7 };
+      const deRegion = Object.keys(state.regions).find((id) => state.regions[id].owner === 'de');
+      expect(canSeeRegionDetails(state, deRegion)).toBe(false);
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de', type: 'gather_intel' } });
+      expect(hasIntel(next, 'de')).toBe(true);
+      expect(canSeeRegionDetails(next, deRegion)).toBe(true);
+      expect(getIntelTurnsLeft(next, 'de')).toBe(INTEL_DURATION_TURNS);
+      expect(getIntelTurnsLeft(state, 'de')).toBe(null);
+      expect(next.resources.techPoints || 0).toBe(state.resources.techPoints || 0);
+      // Expires once the window has passed.
+      const later = { ...next, turnNumber: next.turnNumber + INTEL_DURATION_TURNS + 1 };
+      expect(hasIntel(later, 'de')).toBe(false);
+      expect(canSeeRegionDetails(later, deRegion)).toBe(false);
+    });
+
+    it('a caught gather_intel op reveals nothing and raises hostility', () => {
+      const state = { ...richState(), rngSeed: 1 };
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de', type: 'gather_intel' } });
+      expect(hasIntel(next, 'de')).toBe(false);
+      expect(next.nations.de.hostility).toBe(state.nations.de.hostility + ESPIONAGE_FAILURE_HOSTILITY_INCREASE);
+    });
+
+    it('a successful steal-tech op also leaves intel behind', () => {
+      const state = { ...richState(), rngSeed: 7 };
+      const next = gameReducer(state, { type: ActionTypes.ESPIONAGE, payload: { nationId: 'de' } });
+      expect(hasIntel(next, 'de')).toBe(true);
+      expect(hasIntel(next, 'fr')).toBe(false);
+    });
+
+    it('your own provinces are always visible', () => {
+      const state = richState();
+      const own = Object.keys(state.regions).find((id) => state.regions[id].owner === state.playerNationId);
+      expect(canSeeRegionDetails(state, own)).toBe(true);
     });
   });
 
