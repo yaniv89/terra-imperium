@@ -1,8 +1,11 @@
 // src/components/modals/RegionInfoModal.jsx
 // Region information modal/panel with close button
 
-import React, { useRef } from 'react';
-import { MapPin, X, Shield, Users, Building, Target, AlertTriangle, Flag, Swords, Settings2, Anchor, Ship } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  MapPin, X, Shield, Users, Building, Building2, Target, AlertTriangle, Flag, Swords, Settings2, Anchor, Ship,
+  ChevronUp, Flame, HeartPulse, Sprout, TrendingUp, Landmark, Hammer, Gem, Compass
+} from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -11,7 +14,15 @@ import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD } from '../../data/acti
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
-import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation } from '../../utils/helpers';
+import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
+import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
+import { getBuildingIconPath, getExtractionIconPath } from '../../data/buildingIcons';
+import { getUnitIconPath } from '../../data/unitIcons';
+import { UNIT_CLASSES } from '../../data/unitClasses';
+import { getRankForXp } from '../../data/promotions';
+import { getDepositsFor } from '../../data/deposits';
+import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { getTotalDev } from '../../engine/development';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
@@ -53,6 +64,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const sheetShown = isMobile && isCornerCard && !!regionId;
   useReportInset('region-info', 'bottom', sheetRef, sheetShown);
   const [peeking, cancelPeek] = useAutoPeek(sheetShown);
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => { setExpanded(false); }, [regionId]);
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
@@ -110,6 +123,33 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const isUngoverned = !regionOwner || regionOwner.isEliminated || (isRebelHeld && !regionOwner.hasMilitaryPact && regionOwner.vassalOf !== state.playerNationId);
   const canSettle = !isPlayerOwned && isUngoverned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
 
+  // The big-picture data every region shows, owned or foreign.
+  const coastal = isCoastal(regionId);
+  const unitsHere = Object.values(state.units).filter((u) => u.regionId === regionId);
+  const rebelsHere = unitsHere.filter((u) => u.ownerId === REBEL_OWNER_ID);
+  const ownGarrison = unitsHere.filter((u) => u.ownerId === regionState.owner && !u.embarkedOn);
+  // Your forces first, then everyone else's, grouped by owner.
+  const unitGroups = [...new Set(unitsHere.map((u) => u.ownerId))]
+    .sort((a, b) => (a === state.playerNationId ? -1 : b === state.playerNationId ? 1 : 0))
+    .map((ownerId) => ({ ownerId, units: unitsHere.filter((u) => u.ownerId === ownerId) }));
+  const totalDev = getTotalDev(regionState);
+  const buildingSlots = getBuildingSlots(totalDev, !!regionData.isCapital);
+  const usedBuildingSlots = regionState.buildings ? getUsedBuildingSlots(regionState.buildings) : 0;
+  const builtCategories = BUILDING_CATEGORY_IDS
+    .map((categoryId) => ({ categoryId, tier: regionState.buildings?.categories?.[categoryId] ?? -1 }))
+    .filter(({ tier }) => tier >= 0);
+  const projectsHere = Object.entries(state.greatProjects || {})
+    .filter(([, entry]) => entry?.regionId === regionId)
+    .map(([projectId, entry]) => ({ projectId, tier: entry.tier || 1 }));
+  const deposits = getDepositsFor(regionData.startOwner); // geological, keyed by the province's home country
+  const neighbors = getNeighborIds(regionId)
+    .filter((id) => REGIONS_DATA[id])
+    .map((id) => {
+      const owner = state.regions[id]?.owner;
+      return { id, name: REGIONS_DATA[id].name, color: state.nations[owner]?.color || '#64748b', mine: owner === state.playerNationId };
+    })
+    .sort((a, b) => Number(b.mine) - Number(a.mine) || a.name.localeCompare(b.name));
+
   const handleInvade = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
     triggerEffect('ground_invasion', { from: fromRegionId, to: regionId });
@@ -136,27 +176,40 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   return (
     <div ref={mobileSheet ? sheetRef : undefined} className={
       mobileSheet
-        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : 'max-h-[50vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl`
-        : `${isCornerCard ? `absolute ${cornerTopClass} left-2 z-20` : 'relative'}
-           bg-slate-900 p-3 rounded-lg text-xs min-w-[220px] max-w-[280px]
+        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl`
+        : `${isCornerCard ? `absolute ${cornerTopClass} left-2 z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
+           bg-slate-900 p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)]
            border border-slate-700 shadow-xl`
     }>
       {mobileSheet && (
-        <div onClick={peeking ? cancelPeek : undefined} className="flex justify-center mb-2 -mt-1">
+        // Tapping the grab handle toggles between the half-height sheet and a near-full-screen one
+        // (and brings a peeking sheet straight back).
+        <button
+          type="button"
+          aria-label={expanded ? 'Collapse region details' : 'Expand region details'}
+          onClick={peeking ? cancelPeek : () => setExpanded((v) => !v)}
+          className="w-full flex flex-col items-center justify-center -mt-3 -mb-1 text-slate-500"
+        >
           <div className="w-10 h-1 rounded-full bg-slate-700" />
-        </div>
+          <ChevronUp className={`w-3.5 h-3.5 mt-0.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
       )}
       {/* Header */}
       <div className="flex justify-between items-start border-b border-slate-700 pb-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <MapPin className="w-4 h-4 text-blue-400 shrink-0" />
           <div className="min-w-0">
-            <div className="font-bold text-white truncate">{regionData.name}</div>
-            <div className="text-slate-500 text-[10px] capitalize">{regionData.terrain}</div>
+            <div className="font-bold text-white truncate text-sm">{regionData.name}</div>
+            <div className="text-slate-500 text-[10px] capitalize flex flex-wrap gap-x-1.5">
+              <span>{regionData.terrain}</span>
+              {coastal && <span>· Coastal</span>}
+              {regionData.isCapital && <span className="text-purple-400">· Capital</span>}
+            </div>
           </div>
         </div>
         <button
           onClick={onClose}
+          aria-label="Close"
           className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors shrink-0"
         >
           <X className="w-4 h-4" />
@@ -171,10 +224,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </span>
       </div>
 
-      {/* Civ-style "manage this region" entry point (plan feedback: region actions used to live
-          in the Domestic/Military tabs, overcrowding them) — only for your own provinces, same as
+      {/* Civ-style "manage this region" entry point — only for your own provinces, same as
           Civilization only gives you a city screen for your own cities. A foreign region's
-          available actions (invade, settle, etc.) render directly below instead. */}
+          available actions (invade, settle, etc.) render further down instead. */}
       {onManage && isPlayerOwned && (
         <button
           onClick={onManage}
@@ -185,209 +237,222 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </button>
       )}
 
-      {/* Player-owned region info */}
-      {isPlayerOwned && (
-        <>
-          {/* Control */}
-          <div className="mb-2">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-slate-400">Control:</span>
-              <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>
-                {regionState.control}%
-              </span>
-            </div>
-            <ProgressBar value={regionState.control} color="dynamic" size="small" />
-          </div>
-
-          {/* Infrastructure */}
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Building className="w-3 h-3" /> Infrastructure:
-            </span>
-            <span className="font-mono text-slate-300">
-              {regionState.currentInfrastructure}/10
-            </span>
-          </div>
-
-          {/* Population */}
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Users className="w-3 h-3" /> Population:
-            </span>
-            <span className="font-mono text-slate-300">
-              {formatNumber(getDisplayPopulation(regionState, regionData, state.year))}
-            </span>
-          </div>
-        </>
-      )}
-
-      {/* Foreign region info */}
-      {!isPlayerOwned && ownerNation && (
-        <>
-          {/* Relation Status */}
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400">Relation:</span>
-            <span className="font-semibold" style={{ color: getRelationColor(ownerNation.relationStatus) }}>
-              {ownerNation.relationStatus}
-            </span>
-          </div>
-
-          {/* Military Power */}
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Swords className="w-3 h-3" /> Military:
-            </span>
-            <span className="font-mono text-red-400">
-              {formatNumber(getFieldedStrength(state, regionState.owner))}
-            </span>
-          </div>
-
-          {/* Siege progress (src/engine/siege.js) — only shown once this region has actually been
-              fought over, so an untouched foreign region doesn't clutter the panel with a number
-              that's never mattered yet. */}
-          {regionState.lastAttackedTurn != null && (
-            <div className="mb-2">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-slate-400">Control:</span>
-                <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>
-                  {regionState.control}%
-                </span>
-              </div>
-              <ProgressBar value={regionState.control} color="dynamic" size="small" />
+      {/* Alerts */}
+      {(regionState.underInvasion || regionState.occupiedBy || rebelsHere.length > 0 || (isPlayerOwned && regionState.formerOwner)) && (
+        <div className="mb-2 space-y-1">
+          {regionState.underInvasion && (
+            <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
+              <AlertTriangle className="w-3 h-3" /><span>Under Invasion!</span>
             </div>
           )}
-
-          {/* Hostility */}
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400">Hostility:</span>
-            <span className="font-mono text-orange-400">
-              {ownerNation.hostility}%
-            </span>
-          </div>
-
-          {/* Treaties */}
-          <div className="flex flex-wrap gap-1 mt-2">
-            {ownerNation.hasPeaceTreaty && (
-              <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">
-                ✓ Peace Treaty
-              </span>
-            )}
-            {ownerNation.hasTradeAgreement && (
-              <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px]">
-                ✓ Trade Agreement
-              </span>
-            )}
-            {isAtWarWithPlayer(state, ownerNation.id) && (
-              <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">
-                ⚔ At War
-              </span>
-            )}
-          </div>
-
-          {/* Attack / settle options — the foreign-region equivalent of "Manage Region" above,
-              since a foreign region never gets its own management screen. */}
-          <div className="mt-2 pt-2 border-t border-slate-700 space-y-1.5">
-            {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && !canSettle && (
-              <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
-            )}
-            {invasionSources.map(({ regionId: srcId, unitCount }) => (
-              <ActionButton
-                key={srcId}
-                icon={Flag}
-                label={`Invade from ${REGIONS_DATA[srcId]?.name}`}
-                description={`${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
-                costs={ACTION_COSTS.launchInvasion}
-                onClick={() => handleInvade(srcId)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
-                variant="danger"
-                size="small"
-              />
-            ))}
-            {amphibiousSources.map(({ unit, cargoCount }) => (
-              <ActionButton
-                key={unit.id}
-                icon={Anchor}
-                label={`Amphibious assault from ${REGIONS_DATA[unit.regionId]?.name}`}
-                description={`${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}`}
-                costs={ACTION_COSTS.amphibiousAssault}
-                onClick={() => handleAmphibiousAssault(unit.id)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)}
-                variant="danger"
-                size="small"
-              />
-            ))}
-            {navalEngagementSources.map((srcId) => (
-              <ActionButton
-                key={srcId}
-                icon={Ship}
-                label={`Naval engagement from ${REGIONS_DATA[srcId]?.name}`}
-                description={`Contest ${defendingNavalUnits.length} enemy fleet unit${defendingNavalUnits.length === 1 ? '' : 's'}`}
-                costs={ACTION_COSTS.navalEngagement}
-                onClick={() => handleNavalEngagement(srcId)}
-                disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
-                variant="danger"
-                size="small"
-              />
-            ))}
-            {canSettle && (
-              <ActionButton
-                icon={Flag}
-                label="Settle / Colonize"
-                description={`${regionOwner && !regionOwner.isEliminated ? 'Rebels hold this land' : 'No one governs this land'} (${Math.round(regionState.control)}% control) — absorb it peacefully, no military required`}
-                costs={ACTION_COSTS.settleColonize}
-                onClick={handleSettleColonize}
-                disabled={!canAfford(state.resources, ACTION_COSTS.settleColonize)}
-                size="small"
-              />
-            )}
-          </div>
-        </>
+          {regionState.occupiedBy && (
+            <div className="flex items-center gap-1.5 text-yellow-400">
+              <Flag className="w-3 h-3" /><span>Occupied by {state.nations[regionState.occupiedBy]?.name || 'Unknown'}</span>
+            </div>
+          )}
+          {rebelsHere.length > 0 && (
+            <div className="flex items-center gap-1.5 text-red-400">
+              <Flame className="w-3 h-3" /><span>{rebelsHere.length} rebel unit{rebelsHere.length === 1 ? '' : 's'} in revolt here</span>
+            </div>
+          )}
+          {isPlayerOwned && regionState.formerOwner && (
+            <div className="flex items-center gap-1.5 text-amber-400">
+              <AlertTriangle className="w-3 h-3" />
+              <span>Conquered from {state.nations[regionState.formerOwner]?.name || regionState.formerOwner} — not yet integrated</span>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Divider */}
-      <div className="border-t border-slate-700 mt-2 pt-2">
-        {/* Strategic Info */}
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-slate-400 flex items-center gap-1">
-            <Target className="w-3 h-3" /> Strategic Value:
-          </span>
-          <span className="font-mono text-slate-300">
-            {regionData.strategicValue}/10
-          </span>
+      {/* Foreign relations */}
+      {!isPlayerOwned && ownerNation && (
+        <div className="mb-2 space-y-1">
+          <StatLine label="Relation" value={ownerNation.relationStatus} valueStyle={{ color: getRelationColor(ownerNation.relationStatus) }} />
+          <StatLine icon={Swords} label="Nation's army" value={formatNumber(getFieldedStrength(state, regionState.owner))} valueClass="text-red-400" />
+          <StatLine label="Hostility" value={`${ownerNation.hostility}%`} valueClass="text-orange-400" />
+          <div className="flex flex-wrap gap-1 pt-1">
+            {ownerNation.hasPeaceTreaty && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">✓ Peace Treaty</span>}
+            {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px]">✓ Trade Agreement</span>}
+            {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ At War</span>}
+          </div>
         </div>
+      )}
 
-        {/* Fortification */}
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400 flex items-center gap-1">
-            <Shield className="w-3 h-3" /> Fortification:
-          </span>
-          <span className="font-mono text-slate-300">
-            {regionData.fortification}
-          </span>
+      {/* Attack / settle options — the foreign-region equivalent of "Manage Region" above. */}
+      {!isPlayerOwned && ownerNation && (
+        <div className="mb-2 pt-2 border-t border-slate-700 space-y-1.5">
+          {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && !canSettle && (
+            <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
+          )}
+          {invasionSources.map(({ regionId: srcId, unitCount }) => (
+            <ActionButton
+              key={srcId}
+              icon={Flag}
+              label={`Invade from ${REGIONS_DATA[srcId]?.name}`}
+              description={`${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
+              costs={ACTION_COSTS.launchInvasion}
+              onClick={() => handleInvade(srcId)}
+              disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
+              variant="danger"
+              size="small"
+            />
+          ))}
+          {amphibiousSources.map(({ unit, cargoCount }) => (
+            <ActionButton
+              key={unit.id}
+              icon={Anchor}
+              label={`Amphibious assault from ${REGIONS_DATA[unit.regionId]?.name}`}
+              description={`${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}`}
+              costs={ACTION_COSTS.amphibiousAssault}
+              onClick={() => handleAmphibiousAssault(unit.id)}
+              disabled={!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)}
+              variant="danger"
+              size="small"
+            />
+          ))}
+          {navalEngagementSources.map((srcId) => (
+            <ActionButton
+              key={srcId}
+              icon={Ship}
+              label={`Naval engagement from ${REGIONS_DATA[srcId]?.name}`}
+              description={`Contest ${defendingNavalUnits.length} enemy fleet unit${defendingNavalUnits.length === 1 ? '' : 's'}`}
+              costs={ACTION_COSTS.navalEngagement}
+              onClick={() => handleNavalEngagement(srcId)}
+              disabled={!canAfford(state.resources, ACTION_COSTS.navalEngagement)}
+              variant="danger"
+              size="small"
+            />
+          ))}
+          {canSettle && (
+            <ActionButton
+              icon={Flag}
+              label="Settle / Colonize"
+              description={`${regionOwner && !regionOwner.isEliminated ? 'Rebels hold this land' : 'No one governs this land'} (${Math.round(regionState.control)}% control) — absorb it peacefully, no military required`}
+              costs={ACTION_COSTS.settleColonize}
+              onClick={handleSettleColonize}
+              disabled={!canAfford(state.resources, ACTION_COSTS.settleColonize)}
+              size="small"
+            />
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Status badges */}
-      <div className="mt-2 space-y-1">
-        {regionState.underInvasion && (
-          <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
-            <AlertTriangle className="w-3 h-3" />
-            <span>Under Invasion!</span>
+      {/* ---- The big picture: everything about this province, scrollable ---- */}
+      <Section icon={Target} title="Overview">
+        <div className="mb-2">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-slate-400">Control</span>
+            <span className="font-mono font-bold" style={{ color: getControlColor(regionState.control) }}>{Math.round(regionState.control)}%</span>
           </div>
-        )}
-        {regionState.occupiedBy && (
-          <div className="flex items-center gap-1.5 text-yellow-400 text-[10px]">
-            <Flag className="w-3 h-3" />
-            <span>Occupied by {state.nations[regionState.occupiedBy]?.name || 'Unknown'}</span>
+          <ProgressBar value={regionState.control} color="dynamic" size="small" />
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <StatTile icon={Users} label="Population" value={formatNumber(getDisplayPopulation(regionState, regionData, state.year))} />
+          <StatTile icon={HeartPulse} label="Stability" value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-red-400' : 'text-slate-100'} />
+          <StatTile icon={Building} label="Infrastructure" value={`${regionState.currentInfrastructure || 0}/10`} sub={`Supply ${getSupplyCapacity(regionState.currentInfrastructure)}`} />
+          <StatTile icon={Shield} label="Defenses" value={`Lv ${regionState.defenseLevel || 0}`} sub={`Terrain fort ${regionData.fortification}`} />
+          <StatTile icon={Target} label="Strategic value" value={`${regionData.strategicValue}/10`} />
+          {(regionState.climateResilience || 0) > 0
+            ? <StatTile icon={Sprout} label="Climate resilience" value={regionState.climateResilience} />
+            : <StatTile icon={Swords} label="Garrison" value={ownGarrison.length} sub={ownGarrison.length ? `${formatNumber(ownGarrison.reduce((sum, u) => sum + (u.strength || 0), 0))} strength` : 'No troops'} />}
+        </div>
+      </Section>
+
+      <Section icon={TrendingUp} title="Development" aside={`${totalDev} total`}>
+        <div className="grid grid-cols-3 gap-1.5">
+          <StatTile label="Tax" value={regionState.dev?.tax || 0} valueClass="text-amber-300" />
+          <StatTile label="Production" value={regionState.dev?.production || 0} valueClass="text-sky-300" />
+          <StatTile label="Manpower" value={regionState.dev?.manpower || 0} valueClass="text-red-300" />
+        </div>
+      </Section>
+
+      <Section icon={Swords} title="Armies here" aside={unitsHere.length ? `${unitsHere.length} unit${unitsHere.length === 1 ? '' : 's'}` : null}>
+        {unitsHere.length === 0 && <Empty>No units stationed in this region.</Empty>}
+        <div className="space-y-1.5">
+          {unitGroups.map(({ ownerId, units }) => (
+            <div key={ownerId}>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-1">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ownerId === REBEL_OWNER_ID ? '#ef4444' : state.nations[ownerId]?.color || '#64748b' }} />
+                <span className="truncate">{ownerId === REBEL_OWNER_ID ? 'Rebels' : ownerId === state.playerNationId ? 'Your forces' : state.nations[ownerId]?.name || ownerId}</span>
+                <span className="ml-auto font-mono">{formatNumber(units.reduce((sum, u) => sum + (u.strength || 0), 0))} str</span>
+              </div>
+              <div className="space-y-1">
+                {units.map((unit) => (
+                  <UnitLine key={unit.id} unit={unit} age={state.age} commander={unit.commanderId ? state.hiredCommanders?.[unit.commanderId] : null} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section icon={Building2} title="Buildings" aside={`${usedBuildingSlots}/${buildingSlots} slots`}>
+        {builtCategories.length === 0 && <Empty>No buildings yet.</Empty>}
+        <div className="space-y-1">
+          {builtCategories.map(({ categoryId, tier }) => {
+            const category = BUILDING_CATEGORIES[categoryId];
+            const tierAge = category.tiers[tier]?.age;
+            return (
+              <div key={categoryId} className="flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1.5">
+                <GameIcon path={getBuildingIconPath(categoryId, tierAge)} className="w-5 h-5 text-amber-300 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-slate-100 font-semibold truncate">{getCategoryTierName(categoryId, tier)}</div>
+                  <div className="text-slate-500 text-[10px]">{category.label}</div>
+                </div>
+                <TierPips filled={tier + 1} total={category.tiers.length} />
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {(projectsHere.length > 0 || regionState.greatProjectConstruction) && (
+        <Section icon={Landmark} title="Great projects">
+          <div className="space-y-1">
+            {projectsHere.map(({ projectId, tier }) => (
+              <div key={projectId} className="flex items-center justify-between bg-slate-800/60 rounded px-2 py-1.5">
+                <span className="text-yellow-200 font-semibold truncate">{GREAT_PROJECTS[projectId]?.name || projectId}</span>
+                <TierPips filled={tier} total={GREAT_PROJECTS[projectId]?.tiers?.length || 3} />
+              </div>
+            ))}
+            {regionState.greatProjectConstruction && (
+              <div className="bg-slate-800/60 rounded px-2 py-1.5 text-slate-300">
+                <Hammer className="w-3 h-3 inline mr-1 text-amber-300" />
+                Building {GREAT_PROJECTS[regionState.greatProjectConstruction.projectId]?.name} (tier {regionState.greatProjectConstruction.tier}) —{' '}
+                {regionState.greatProjectConstruction.turnsLeft} turn{regionState.greatProjectConstruction.turnsLeft === 1 ? '' : 's'} left
+              </div>
+            )}
           </div>
-        )}
-        {regionData.isCapital && (
-          <div className="flex items-center gap-1.5 text-purple-400 text-[10px]">
-            <Flag className="w-3 h-3" />
-            <span>Capital City</span>
-          </div>
-        )}
-      </div>
+        </Section>
+      )}
+
+      <Section icon={Gem} title="Resources">
+        {deposits.length === 0 && <Empty>No known resource deposits.</Empty>}
+        <div className="flex flex-wrap gap-1.5">
+          {deposits.map((resId) => {
+            const developed = !!regionState.buildings?.extraction?.[resId];
+            return (
+              <div key={resId} className={`flex items-center gap-1.5 rounded px-2 py-1 border ${developed ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300' : 'border-slate-700 bg-slate-800/60 text-slate-400'}`}>
+                <GameIcon path={getExtractionIconPath(resId)} className="w-4 h-4 shrink-0" />
+                <span className="capitalize">{resId}</span>
+                <span className="text-[10px] opacity-80">{developed ? EXTRACTION_BUILDINGS[resId]?.name : 'undeveloped'}</span>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section icon={Compass} title="Neighbours" aside={neighbors.length ? `${neighbors.length}` : null}>
+        {neighbors.length === 0 && <Empty>No land neighbours.</Empty>}
+        <div className="flex flex-wrap gap-1">
+          {neighbors.map(({ id, name, color, mine }) => (
+            <span key={id} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${mine ? 'bg-blue-500/15 text-blue-200' : 'bg-slate-800/70 text-slate-300'}`}>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+              {name}
+            </span>
+          ))}
+        </div>
+      </Section>
 
       {/* Description */}
       {regionData.description && (
@@ -395,6 +460,74 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionData.description}
         </div>
       )}
+    </div>
+  );
+};
+
+// ---- small presentational pieces ------------------------------------------------------------
+
+const Section = ({ icon: Icon, title, aside, children }) => (
+  <div className="mt-2 pt-2 border-t border-slate-700">
+    <div className="flex items-center gap-1.5 mb-1.5 text-slate-300 font-semibold">
+      {Icon && <Icon className="w-3.5 h-3.5 text-slate-400" />}
+      <span>{title}</span>
+      {aside && <span className="ml-auto text-slate-500 font-normal text-[10px]">{aside}</span>}
+    </div>
+    {children}
+  </div>
+);
+
+const Empty = ({ children }) => <div className="text-slate-500 text-[10px]">{children}</div>;
+
+const StatLine = ({ icon: Icon, label, value, valueClass = 'text-slate-300', valueStyle }) => (
+  <div className="flex items-center justify-between">
+    <span className="text-slate-400 flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}:</span>
+    <span className={`font-semibold ${valueClass}`} style={valueStyle}>{value}</span>
+  </div>
+);
+
+const StatTile = ({ icon: Icon, label, value, sub, valueClass = 'text-slate-100' }) => (
+  <div className="bg-slate-800/60 rounded px-2 py-1.5 min-w-0">
+    <div className="text-slate-500 text-[10px] flex items-center gap-1 truncate">{Icon && <Icon className="w-3 h-3 shrink-0" />}{label}</div>
+    <div className={`font-mono font-bold ${valueClass}`}>{value}</div>
+    {sub && <div className="text-slate-500 text-[10px] truncate">{sub}</div>}
+  </div>
+);
+
+const TierPips = ({ filled, total }) => (
+  <div className="flex gap-0.5 shrink-0" title={`Tier ${filled} of ${total}`}>
+    {Array.from({ length: total }, (_, i) => (
+      <span key={i} className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-amber-400' : 'bg-slate-700'}`} />
+    ))}
+  </div>
+);
+
+// A game-icons.net silhouette (0..512 viewBox), recoloured through currentColor.
+const GameIcon = ({ path, className }) => (path
+  ? <svg viewBox="0 0 512 512" className={className} fill="currentColor" aria-hidden="true"><path d={path} /></svg>
+  : <span className={className} />);
+
+const UnitLine = ({ unit, age, commander }) => {
+  const cls = UNIT_CLASSES[unit.classId];
+  const strengthPct = unit.maxStrength ? Math.round((unit.strength / unit.maxStrength) * 100) : 100;
+  return (
+    <div className="flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1.5">
+      <GameIcon path={getUnitIconPath(age, unit.classId)} className="w-5 h-5 text-slate-200 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-100 font-semibold truncate">{cls?.name || unit.classId}</span>
+          <span className="text-slate-500 text-[10px] capitalize">{getRankForXp(unit.xp || 0)}</span>
+          {unit.embarkedOn && <Anchor className="w-3 h-3 text-sky-400" aria-label="Embarked" />}
+        </div>
+        <div className="h-1 bg-slate-700 rounded-full mt-1 overflow-hidden">
+          <div className="h-full rounded-full" style={{ width: `${strengthPct}%`, background: strengthPct > 60 ? '#22c55e' : strengthPct > 30 ? '#f59e0b' : '#ef4444' }} />
+        </div>
+        {commander && <div className="text-[10px] text-purple-300 truncate mt-0.5">Led by {commander.name}</div>}
+      </div>
+      <div className="text-right font-mono text-[10px] text-slate-400 shrink-0">
+        <div>{unit.strength}/{unit.maxStrength}</div>
+        <div>MOR {unit.morale}</div>
+      </div>
     </div>
   );
 };
