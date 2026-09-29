@@ -147,15 +147,13 @@ export const ACTION_COSTS = {
   culturalExport: { gold: 130, dip: 1 }
 };
 
-// Plan §M7's line-to-pool mapping, used now (ahead of the fuller M7 tech rework) so a research
-// action's flat `power` quantity (ACTION_COSTS.researchTech above) draws from the right one of the
-// three pools depending on the tech's own TechCategories value.
-// Flat bank cap for ADM/DIP/MIL (EU4 uses the same 999). The old cap was 2x a nation's per-turn
+// Flat bank cap for ADM/DIP/MIL (9,999 — EU4 uses 999, but this game's turns can span decades and a
+// long hoard toward several 300-ADM reforms shouldn't hit a ceiling). The old cap was 2x a nation's per-turn
 // income, left over from the 1-3 point action-point era — once M7+ priced techs at 40-160, laws at
 // 50 x tier, government changes at 300 and Increase Stability at 100+, every one of those sat above
 // what a pool could ever hold (a 4-9/turn income capped out at 8-18), so none was ever affordable,
 // for the player or any AI. src/data/powerCosts.test.js guards that every power cost fits under it.
-export const POWER_POOL_CAP = 999;
+export const POWER_POOL_CAP = 9999;
 
 // Every nation's flat techPoints/turn before any Science building. Tech points otherwise came ONLY
 // from Science buildings, whose first tier (Library) itself needs a researched tech — a closed loop
@@ -163,6 +161,9 @@ export const POWER_POOL_CAP = 999;
 // 10-TP Bronze tech every 5 turns and a 25-TP Classical one every ~12, so Libraries still matter.
 export const BASE_TECHPOINTS_PER_TURN = 2;
 
+// Plan §M7's line-to-pool mapping, used now (ahead of the fuller M7 tech rework) so a research
+// action's flat `power` quantity (ACTION_COSTS.researchTech above) draws from the right one of the
+// three pools depending on the tech's own TechCategories value.
 export const TECH_RESEARCH_POOL = {
   military: 'mil',
   economy: 'dip',

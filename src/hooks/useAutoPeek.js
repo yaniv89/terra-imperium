@@ -10,16 +10,14 @@
 // globe skips its effects overlay for them entirely, so there'd be nothing to reveal.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEffects } from '../context/EffectsContext';
-import { getEffectSpec } from '../data/effectRegistry';
-import { ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS } from '../components/globe/GlobeEffectsOverlay';
+import { getEffectDuration } from '../effects/scenes';
 
 // The camera's framing move runs before the effect's own animation starts (GlobeView.jsx); a
 // little slack on top so the sheet doesn't spring back over the effect's final frames.
 const CAMERA_LEAD_MS = 520;
 const SLACK_MS = 300;
 
-export const getEffectPeekDuration = (actionType) =>
-  (getEffectSpec(actionType)?.primitive === 'arc' ? ARC_EFFECT_DURATION_MS : PULSE_EFFECT_DURATION_MS) + CAMERA_LEAD_MS + SLACK_MS;
+export const getEffectPeekDuration = (actionType) => getEffectDuration(actionType) + CAMERA_LEAD_MS + SLACK_MS;
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

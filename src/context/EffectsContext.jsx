@@ -10,15 +10,13 @@
 // {fromRegionId, toRegionId} into real lat/lng (regionCoordinates.js) and projects that onto the
 // globe's current camera every frame.
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS } from '../components/globe/GlobeEffectsOverlay';
+import { getEffectDuration } from '../effects/scenes';
 
 const EffectsContext = createContext(null);
 
-// How long an effect stays mounted before removing itself — must be >= the total animation
-// duration any implemented primitive uses, or a shape would visibly snap away mid-motion. A
-// little slack on top absorbs rAF/timer scheduling jitter. This is a max() over every implemented
-// primitive's own duration — update it whenever a new, longer-running primitive ships.
-const EFFECT_LIFETIME_MS = Math.max(ARC_EFFECT_DURATION_MS, PULSE_EFFECT_DURATION_MS) + 100;
+// How long an effect stays mounted: its own choreography's length (src/effects/scenes/), plus a
+// little slack for rAF/timer jitter so nothing snaps away mid-motion.
+const EFFECT_SLACK_MS = 150;
 
 export const EffectsProvider = ({ children }) => {
   const [effects, setEffects] = useState([]);
@@ -41,7 +39,7 @@ export const EffectsProvider = ({ children }) => {
     setEffects((prev) => [...prev, { id, actionType, fromRegionId, toRegionId, magnitude, variant, age, createdAt: Date.now() }]);
     setTimeout(() => {
       setEffects((prev) => prev.filter((e) => e.id !== id));
-    }, EFFECT_LIFETIME_MS);
+    }, getEffectDuration(actionType) + EFFECT_SLACK_MS);
   }, []);
 
   return (
