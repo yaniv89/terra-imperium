@@ -8,6 +8,7 @@ import { getUnlockedResourceIds } from '../../data/resources';
 import { getFieldedStrength, getPowerBreakdown } from '../../utils/helpers';
 import ResourceBadge from './ResourceBadge';
 import Breakdown from './Breakdown';
+import { POWER_POOL_CAP } from '../../data/actionCosts';
 
 const ResourceBar = () => {
   const { state } = useGame();
@@ -31,12 +32,12 @@ const ResourceBar = () => {
           key={pool}
           type={pool}
           value={state.resources[pool]}
-          maxValue={state.resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`]}
+          perTurn={state.resources[`max${pool[0].toUpperCase()}${pool.slice(1)}`]}
           expanded={expandedResource === pool}
           onClick={() => handleToggle(pool)}
           tooltipContent={(
             <div>
-              <div className="font-semibold mb-1">{pool.toUpperCase()} per turn</div>
+              <div className="font-semibold mb-1">{pool.toUpperCase()} per turn (banks up to {POWER_POOL_CAP})</div>
               <Breakdown rows={getPowerBreakdown(state, state.playerNationId, pool)} />
             </div>
           )}
