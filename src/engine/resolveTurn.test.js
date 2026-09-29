@@ -1260,7 +1260,9 @@ describe('resolveTurn national power (plan §M4)', () => {
   });
 
   it('deducts 1 stability from a nation whose succession is a crisis (heirless or low-claim)', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    // Fixed seed: with a random one, ~6% of runs also rolled the crisis's 40% civil war AND had the
+    // pretenders seize the capital, whose capital-occupied penalty takes a second point (-2).
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
     // A monarchy whose reign just ended with no heir at all is unconditionally a crisis
     // (succession.js's processSuccession) — a real, deterministic trigger, not a probabilistic one.
     const state = {

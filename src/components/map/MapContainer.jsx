@@ -38,6 +38,7 @@ import MiniMap from './MiniMap';
 import MapModal from './MapModal';
 import MapLegend from '../globe/MapLegend';
 import { RegionInfoModal, ProvinceModal } from '../modals';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 
@@ -56,6 +57,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [viewportBounds, setViewportBounds] = useState(null);
   const [navigateTarget, setNavigateTarget] = useState(null);
   const playerCapitalId = getNationCapital(state.playerNationId);
@@ -91,12 +93,17 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
           />
         )}
 
+      {/* On a phone, Manage Region grows out of this same bottom sheet — keeping both mounted
+          stacked a second sheet behind it that stayed visible (and kept covering the map) whenever
+          Manage Region peeked during an animation. */}
+      {!(isMobile && manageOpen) && (
       <RegionInfoModal
         regionId={selectedRegion}
         onClose={() => { setManageOpen(false); onSelectRegion(null); }}
         onManage={selectedRegion ? () => setManageOpen(true) : undefined}
         position="panel-hud"
       />
+      )}
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2">
         <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
         <MapLegend />

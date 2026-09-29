@@ -2,6 +2,7 @@
 // Main game header with title, nation, age/year, resources, and end turn button
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useReportInset } from '../../context/MapInsetsContext';
 import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
@@ -38,12 +39,17 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return undefined;
-    const observer = new ResizeObserver(([entry]) => {
-      document.documentElement.style.setProperty('--header-height', `${Math.round(entry.contentRect.height)}px`);
+    // getBoundingClientRect (border box), not contentRect: contentRect leaves out the header's own
+    // padding (incl. the safe-area inset), so everything offset by --header-height overlapped the
+    // header's bottom edge — End Turn's lower half sat under the side panels.
+    const observer = new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--header-height', `${Math.round(el.getBoundingClientRect().height)}px`);
     });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // The header floats over the map's top edge — reported so the map centres below it (plan §5.1).
+  useReportInset('game-header', 'top', headerRef);
 
   const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
   const cloudInfo = CLOUD_STATUS[cloudStatus] || CLOUD_STATUS.guest;
