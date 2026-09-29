@@ -51,6 +51,33 @@ describe('backfillDefaults', () => {
     expect(result.regions[capital].owner).toBe('de');
   });
 
+  // Real live bug, found via a player's own save: a nation record missing `id` entirely (predating
+  // the field's introduction to the schema) could never self-heal, because `id` was deliberately
+  // excluded from what backfill is allowed to add (to protect real identity data like `owner`/
+  // `isPlayer` from ever being reset). Every gated diplomacy action silently no-oped forever on
+  // that save, since gameReducer.js's own `state.nations[nationId]` lookup — using the exact same
+  // `nation.id` the UI reads — always resolved to undefined. Unlike owner/isPlayer/name/color, a
+  // record's own `id` can never legitimately differ from the map key it's stored under, so
+  // repairing it is always safe, never an overwrite of real save data.
+  it('repairs a nation record missing its own id field entirely', () => {
+    const fresh = createInitialState({ playerNationId: 'fr' });
+    // eslint-disable-next-line no-unused-vars -- destructured only to omit id, simulating the bug
+    const { id, ...nationWithoutId } = fresh.nations.de;
+    const damaged = { ...fresh, nations: { ...fresh.nations, de: nationWithoutId } };
+    const result = backfillDefaults(damaged);
+    expect(result.nations.de.id).toBe('de');
+  });
+
+  it('repairs a region record missing its own id field entirely', () => {
+    const fresh = createInitialState({ playerNationId: 'fr' });
+    const capital = 'fr-75';
+    // eslint-disable-next-line no-unused-vars -- destructured only to omit id, simulating the bug
+    const { id, ...regionWithoutId } = fresh.regions[capital];
+    const damaged = { ...fresh, regions: { ...fresh.regions, [capital]: regionWithoutId } };
+    const result = backfillDefaults(damaged);
+    expect(result.regions[capital].id).toBe(capital);
+  });
+
   it('is idempotent: backfilling an already-complete state changes nothing', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
     const once = backfillDefaults(fresh);
