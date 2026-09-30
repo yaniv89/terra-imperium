@@ -1,28 +1,37 @@
 // src/battle/render/BattleRenderer.js
 // The battlefield on screen (Tactical Battles plan §15): a three.js scene with an orthographic,
-// isometric camera (the Red Alert 2 look), a heightmapped terrain mesh coloured per tile, instanced
-// trees/rocks/buildings, the keep and towers, capture-point flags, and every soldier of every squad
-// as an instanced extruded token. It only ever READS render views from the sim and interpolates
+// isometric camera (the Red Alert 2 look), soft sun shadows and filmic tone mapping, a heightmapped
+// terrain mesh with natural colour variation, water, instanced trees/rocks/grass/houses, the keep
+// and towers, capture-point flags, and every soldier of every squad as an animated 3D model
+// (src/battle/render/soldierFactory.js: they walk, strike and gallop, rigged in the shader). It only ever READS render views from the sim and interpolates
 // between the last two (20 Hz sim → smooth 60 fps), plus short-lived effects driven by sim events.
 import {
   WebGLRenderer, Scene, OrthographicCamera, Color, HemisphereLight, DirectionalLight, PlaneGeometry,
   MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, Object3D, Vector3, Vector2, Raycaster, Plane,
-  ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry, CircleGeometry,
-  Float32BufferAttribute, DoubleSide, Group, Mesh, Fog, DataTexture, RGBAFormat, LinearFilter
+  ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry,
+  Float32BufferAttribute, DoubleSide, Group, Mesh, Fog, DataTexture, RGBAFormat, LinearFilter,
+  ACESFilmicToneMapping, PCFSoftShadowMap, InstancedBufferAttribute, MeshStandardMaterial, IcosahedronGeometry
 } from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount } from '../data/battleStats';
-import { getUnitTokenGeometry, disposeTokenCache } from './tokenFactory';
+import { getSoldierGeometry, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { Q } from '../sim/constants';
 
 const GROUND = {
-  plains: '#6f9a41', mixed: '#628f3c', hills: '#7c8d47', forest: '#4d7a33', mountains: '#7f7f70',
-  desert: '#d6bd86', arctic: '#e6edf1', urban: '#8b908a', island: '#79ab4a'
+  plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
+  desert: '#cdb07a', arctic: '#e4ebef', urban: '#7d8078', island: '#6f9c42'
+};
+// A second grass/soil tone, blended in by large-scale noise so fields don't look painted flat.
+const GROUND_ALT = {
+  plains: '#8d9a4a', mixed: '#7a8a45', hills: '#8f8a55', forest: '#3f5f2a', mountains: '#8d8a7a',
+  desert: '#dcc28f', arctic: '#d3dde3', urban: '#8a8a80', island: '#8aa653'
 };
 const TILE_TINT = {
-  [TILE.FOREST]: '#3b6528', [TILE.WATER]: '#2f6f9f', [TILE.ROCK]: '#6e6d66', [TILE.ROAD]: '#a88f63',
-  [TILE.FORD]: '#5f93b3', [TILE.BUILDING]: '#6b6f73'
+  [TILE.FOREST]: '#3d5f29', [TILE.WATER]: '#3a5f63', [TILE.ROCK]: '#6f6d63', [TILE.ROAD]: '#9a8058',
+  [TILE.FORD]: '#6f8a7e', [TILE.BUILDING]: '#77766f'
 };
+const SKY = '#9db4c6';
 const SAND_TINT = { desert: '#e3cd95', arctic: '#f5f8fb', island: '#e9d9a4' };
 const ISO_DIR = new Vector3(1, 1.25, 1).normalize();
 const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
@@ -33,6 +42,13 @@ const tmpColor = new Color();
 
 const hash01 = (n) => { let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const lerp = (a, b, t) => a + (b - a) * t;
+// Smooth 2D value noise (for ground colour patches), 0..1.
+const vnoise = (x, z) => {
+  const ix = Math.floor(x); const iz = Math.floor(z); const fx = x - ix; const fz = z - iz;
+  const h = (a, b) => hash01(a * 7919 + b * 104729);
+  const sx = fx * fx * (3 - 2 * fx); const sz = fz * fz * (3 - 2 * fz);
+  return lerp(lerp(h(ix, iz), h(ix + 1, iz), sx), lerp(h(ix, iz + 1), h(ix + 1, iz + 1), sx), sz);
+};
 const lerpAngle256 = (a, b, t) => { const d = ((b - a + 384) % 256) - 128; return a + d * t; };
 
 export class BattleRenderer {
@@ -47,12 +63,17 @@ export class BattleRenderer {
     this.dpr = this.baseDpr;
     this.slowFrames = 0; this.fastFrames = 0;
     this.renderer.setPixelRatio(this.dpr);
+    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
     this.scene = new Scene();
-    this.scene.background = new Color('#0f1a24');
-    this.scene.fog = new Fog('#0f1a24', 90, 170);
+    this.scene.background = new Color(SKY);
+    this.scene.fog = new Fog(SKY, 150, 260);
     this.camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
     this.camera.zoom = 1;
-    this.target = new Vector3(playerSide === 0 ? 16 : this.map.w - 24, 0, this.map.h / 2);
+    // Start looking at your own army's front line.
+    this.target = new Vector3(playerSide === 0 ? (this.map.attackerEdge || 1) + 9 : this.map.keep.x - 9, 0, this.map.h / 2);
     this.raycaster = new Raycaster();
     this.groundPlane = new Plane(new Vector3(0, 1, 0), 0);
     this.disposables = [];
@@ -61,11 +82,19 @@ export class BattleRenderer {
     this.markers = [];
     this.time = 0;
 
-    this.scene.add(new HemisphereLight('#ffffff', '#6b705c', 1.7));
-    // Lit from the camera's side, so the faces the player sees aren't in shadow.
-    const sun = new DirectionalLight('#fff4dc', 1.3);
-    sun.position.set(30, 80, 50);
-    this.scene.add(sun);
+    this.scene.add(new HemisphereLight('#e3eef8', '#5a503f', 1.35));
+    // A low warm sun from the side, casting soft shadows that follow the camera around the field.
+    const small = Math.min(window.innerWidth || 1024, window.innerHeight || 768) < 700;
+    this.sun = new DirectionalLight('#ffe7c2', 2.7);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+    Object.assign(this.sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 120 });
+    this.sun.shadow.bias = -0.0006;
+    this.sun.shadow.normalBias = 0.03;
+    this.scene.add(this.sun);
+    this.scene.add(this.sun.target);
+    this.soldierMaterial = this.track(createSoldierMaterial());
+    this.soldierDepth = this.track(createSoldierDepthMaterial());
 
     this.buildTerrain();
     this.buildProps();
@@ -113,7 +142,7 @@ export class BattleRenderer {
     const { w, h, height, tiles } = this.map;
     const ix = Math.max(0, Math.min(w - 1, Math.floor(x))); const iz = Math.max(0, Math.min(h - 1, Math.floor(z)));
     const t = tiles[iz * w + ix];
-    return t === TILE.WATER ? -0.25 : (height[iz * w + ix] / 256) * 0.55;
+    return t === TILE.WATER ? -0.5 : Math.max(-0.12, (height[iz * w + ix] / 256) * 0.55);
   }
 
   buildTerrain() {
@@ -124,75 +153,186 @@ export class BattleRenderer {
     const pos = geo.attributes.position;
     const colors = new Float32Array(pos.count * 3);
     const base = new Color(GROUND[this.setup.terrain] || GROUND.mixed);
+    const alt = new Color(GROUND_ALT[this.setup.terrain] || GROUND_ALT.mixed);
+    const tileColor = new Color();
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i); const z = pos.getZ(i);
       pos.setY(i, this.heightAt(Math.min(w - 0.01, x), Math.min(h - 0.01, z)));
       const ix = Math.max(0, Math.min(w - 1, Math.floor(x))); const iz = Math.max(0, Math.min(h - 1, Math.floor(z)));
       const t = tiles[iz * w + ix];
-      tmpColor.set(t === TILE.SAND ? (SAND_TINT[this.setup.terrain] || '#d9c690') : (TILE_TINT[t] || base));
-      const shade = 0.93 + hash01(i * 7 + 3) * 0.12 + this.heightAt(x, z) * 0.05;
+      // Grass patches (two tones over big and small noise), then the tile's own ground on top.
+      const patch = vnoise(x / 9, z / 9) * 0.7 + vnoise(x / 2.5, z / 2.5) * 0.3;
+      tmpColor.copy(base).lerp(alt, patch);
+      const own = t === TILE.SAND ? (SAND_TINT[this.setup.terrain] || '#d6c28c') : TILE_TINT[t];
+      if (own) tmpColor.lerp(tileColor.set(own), t === TILE.FOREST ? 0.55 : 0.85);
+      const shade = 0.9 + hash01(i * 7 + 3) * 0.08 + this.heightAt(x, z) * 0.12;
       colors[i * 3] = tmpColor.r * shade; colors[i * 3 + 1] = tmpColor.g * shade; colors[i * 3 + 2] = tmpColor.b * shade;
     }
     geo.setAttribute('color', new Float32BufferAttribute(colors, 3));
     geo.computeVertexNormals();
     const mat = this.track(new MeshLambertMaterial({ vertexColors: true }));
     this.terrain = new Mesh(geo, mat);
+    this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
+    // The land goes on beyond the battlefield (no floating island in a void)…
+    const apronGeo = this.track(new PlaneGeometry(w + 160, h + 160).rotateX(-Math.PI / 2).translate(w / 2, -0.14, h / 2));
+    // Coloured like the field's own average ground, so the edge of the battlefield doesn't show.
+    let ar = 0; let ag = 0; let ab = 0;
+    for (let i = 0; i < pos.count; i++) { ar += colors[i * 3]; ag += colors[i * 3 + 1]; ab += colors[i * 3 + 2]; }
+    const apronColor = new Color(ar / pos.count, ag / pos.count, ab / pos.count).multiplyScalar(0.97);
+    const apron = new Mesh(apronGeo, this.track(new MeshLambertMaterial({ color: apronColor })));
+    apron.receiveShadow = true;
+    this.scene.add(apron);
+    // …and water is a real, glossy surface over the riverbeds, lakes and the landing sea.
+    if (tiles.some((t) => t === TILE.WATER || t === TILE.FORD)) {
+      const water = new Mesh(
+        this.track(new PlaneGeometry(w, h).rotateX(-Math.PI / 2).translate(w / 2, -0.2, h / 2)),
+        this.track(new MeshStandardMaterial({ color: '#2f6a8c', roughness: 0.18, metalness: 0.15, transparent: true, opacity: 0.86 }))
+      );
+      water.receiveShadow = true;
+      this.water = water;
+      this.scene.add(water);
+    }
   }
 
   buildProps() {
     const { w, h, tiles } = this.map;
     const keep = this.map.keep;
-    const trees = []; const rocks = []; const houses = [];
+    const winter = this.setup.terrain === 'arctic';
+    const dry = this.setup.terrain === 'desert';
+    const pines = []; const oaks = []; const rocks = []; const houses = []; const tufts = [];
     for (let z = 0; z < h; z++) {
       for (let x = 0; x < w; x++) {
         const t = tiles[z * w + x];
         const r = hash01(z * w + x);
-        if (t === TILE.FOREST && r < 0.85) trees.push([x + 0.2 + r * 0.6, z + 0.2 + hash01(r * 1e6) * 0.6, 0.8 + r * 0.6]);
-        else if (t === TILE.ROCK && r < 0.7) rocks.push([x + 0.5, z + 0.5, 0.7 + r * 0.8]);
-        else if (t === TILE.BUILDING && Math.abs(x - keep.x) + Math.abs(z - keep.y) > 3) houses.push([x + 0.5, z + 0.5, 0.8 + r * 1.8]);
+        const r2 = hash01((z * w + x) * 3 + 1);
+        if (t === TILE.FOREST && r < 0.9) {
+          (r2 < (winter ? 0.85 : 0.45) ? pines : oaks).push([x + 0.2 + r * 0.6, z + 0.2 + r2 * 0.6, 0.7 + r * 0.4]);
+          if (r > 0.6) (r2 < 0.5 ? oaks : pines).push([x + 0.8 - r2 * 0.5, z + 0.7 - r * 0.4, 0.5 + r2 * 0.3]);
+        } else if (t === TILE.ROCK && r < 0.5) rocks.push([x + 0.3 + r2 * 0.4, z + 0.3 + r * 0.4, 0.4 + r * 0.6]);
+        else if (t === TILE.BUILDING && Math.abs(x - keep.x) + Math.abs(z - keep.y) > 3) houses.push([x + 0.5, z + 0.5, r]);
+        else if ((t === TILE.OPEN || t === TILE.SAND) && !winter && r < (dry ? 0.1 : 0.32)) tufts.push([x + r2, z + hash01(r * 1e6), 0.6 + r2 * 0.5]);
+        else if (t === TILE.OPEN && r > 0.985) rocks.push([x + r2, z + 0.5, 0.25 + r2 * 0.3]); // the odd boulder in a field
       }
     }
-    const place = (list, geo, color, scaleFn) => {
+    const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25 } = {}) => {
       if (!list.length) return;
-      const mesh = new InstancedMesh(this.track(geo), this.track(new MeshLambertMaterial({ color })), list.length);
-      list.forEach(([x, z, s], i) => {
+      const mesh = new InstancedMesh(this.track(geo), this.track(new MeshLambertMaterial({ color, vertexColors: !!geo.attributes.color })), list.length);
+      list.forEach(([x, z, s0], i) => {
         tmp.position.set(x, this.heightAt(x, z), z);
-        tmp.rotation.set(0, hash01(i * 13) * Math.PI * 2, 0);
-        const sc = scaleFn(s); tmp.scale.set(sc[0], sc[1], sc[2]);
+        tmp.rotation.set(0, hash01(i * 13 + 5) * Math.PI * 2, 0);
+        const sc = scaleFn(s0, i); tmp.scale.set(sc[0], sc[1], sc[2]);
         tmp.updateMatrix();
         mesh.setMatrixAt(i, tmp.matrix);
-        tmpColor.set(color).multiplyScalar(0.85 + hash01(i * 31) * 0.3);
+        tmpColor.setRGB(1, 1, 1).multiplyScalar(1 - tint / 2 + hash01(i * 31) * tint);
         mesh.setColorAt(i, tmpColor);
       });
       mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = shadow; mesh.receiveShadow = true;
       this.scene.add(mesh);
     };
-    const winter = this.setup.terrain === 'arctic';
-    place(trees, new ConeGeometry(0.42, 1.4, 6).translate(0, 0.7, 0), winter ? '#6b8a78' : '#3f7d35', (s) => [s, s, s]);
-    place(rocks, new DodecahedronGeometry(0.5, 0).translate(0, 0.25, 0), '#77766c', (s) => [s, s * 0.8, s]);
-    place(houses, new BoxGeometry(0.95, 1, 0.95).translate(0, 0.5, 0), '#9a8f82', (s) => [1, s, 1]);
+    // Vertex-coloured multi-part props, merged: one draw call per kind.
+    const painted = (geo, color) => {
+      const g = geo.index ? geo.toNonIndexed() : geo;
+      const c = new Color(color); const n = g.attributes.position.count; const col = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+      g.setAttribute('color', new Float32BufferAttribute(col, 3)); g.deleteAttribute('uv');
+      return g;
+    };
+    const leaf = winter ? '#5d7d6c' : dry ? '#6f7d3a' : '#3d6e2e';
+    const snow = '#eef3f6';
+    const pine = mergeGeometries([
+      painted(new CylinderGeometry(0.07, 0.1, 0.5, 5).translate(0, 0.25, 0), '#5a3d25'),
+      painted(new ConeGeometry(0.5, 0.8, 7).translate(0, 0.75, 0), leaf),
+      painted(new ConeGeometry(0.4, 0.7, 7).translate(0, 1.15, 0), leaf),
+      painted(new ConeGeometry(0.28, 0.6, 7).translate(0, 1.5, 0), winter ? snow : leaf)
+    ]);
+    const oak = mergeGeometries([
+      painted(new CylinderGeometry(0.08, 0.12, 0.8, 6).translate(0, 0.4, 0), '#5f4128'),
+      painted(new IcosahedronGeometry(0.55, 0).translate(0, 1.05, 0), dry ? '#7a8a3e' : '#4f8a36'),
+      painted(new IcosahedronGeometry(0.4, 0).translate(0.3, 0.85, 0.15), dry ? '#6d7c36' : '#46803a'),
+      painted(new IcosahedronGeometry(0.38, 0).translate(-0.25, 0.9, -0.2), dry ? '#83903f' : '#5a9440')
+    ]);
+    pine.computeVertexNormals(); oak.computeVertexNormals();
+    place(pines, pine, { scaleFn: (s0) => [s0, s0 * (1.1 + (s0 % 0.2)), s0] });
+    place(oaks, oak, { scaleFn: (s0) => [s0 * 1.1, s0, s0 * 1.1] });
+    place(rocks, new DodecahedronGeometry(0.5, 0).translate(0, 0.18, 0), { color: winter ? '#a3a7a8' : '#7d7a70', scaleFn: (s0, i) => [s0, s0 * (0.5 + hash01(i) * 0.4), s0 * (0.8 + hash01(i * 3) * 0.4)] });
+    const tuft = mergeGeometries([
+      painted(new ConeGeometry(0.035, 0.2, 3).rotateZ(0.25).translate(0.04, 0.09, 0), dry ? '#b3aa6a' : '#7da347'),
+      painted(new ConeGeometry(0.035, 0.24, 3).rotateX(-0.2).translate(-0.03, 0.11, 0.02), dry ? '#a19a5c' : '#8cb054'),
+      painted(new ConeGeometry(0.03, 0.17, 3).rotateZ(-0.3).translate(-0.05, 0.08, -0.04), dry ? '#c0b67a' : '#6f9a3f')
+    ]);
+    tuft.computeVertexNormals();
+    place(tufts, tuft, { shadow: false, tint: 0.35 });
+    // Houses: whitewashed or stone walls under a pitched roof, age-appropriate colours.
+    const modern = this.setup.sides[1].ageId === 'modern';
+    const house = mergeGeometries([
+      painted(new BoxGeometry(0.9, 0.7, 0.8).translate(0, 0.35, 0), modern ? '#b9b5ad' : '#d8cdb5'),
+      painted(new ConeGeometry(0.72, 0.5, 4).rotateY(Math.PI / 4).scale(1, 1, 0.9).translate(0, 0.95, 0), modern ? '#5d6166' : '#9a4b32'),
+      painted(new BoxGeometry(0.16, 0.3, 0.02).translate(0, 0.15, 0.41), '#4a3322')
+    ]);
+    house.computeVertexNormals();
+    place(houses, house, { scaleFn: (r) => [0.95, 0.8 + r * 0.9, 0.95] });
   }
 
   buildStructures() {
     this.structureMeshes = new Map();
+    const modern = this.setup.sides[1].ageId === 'modern';
+    const merlons = (g, mat, radius, y, count, size = 0.22) => {
+      for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2;
+        const m = new Mesh(this.track(new BoxGeometry(size, size * 1.1, size).translate(Math.cos(a) * radius, y, Math.sin(a) * radius)), mat);
+        m.castShadow = true; g.add(m);
+      }
+    };
+    const squareMerlons = (g, mat, half, y) => {
+      for (let i = -3; i <= 3; i += 2) {
+        [[i * half / 3.5, -half], [i * half / 3.5, half], [-half, i * half / 3.5], [half, i * half / 3.5]].forEach(([dx, dz]) => {
+          const m = new Mesh(this.track(new BoxGeometry(0.28, 0.3, 0.28).translate(dx, y, dz)), mat); m.castShadow = true; g.add(m);
+        });
+      }
+    };
     this.setup.structures.forEach((s) => {
       // Per-structure materials, so a destroyed tower can turn to rubble on its own.
-      const stone = this.track(new MeshLambertMaterial({ color: '#8d8a80' }));
+      const stone = this.track(new MeshLambertMaterial({ color: modern ? '#8f9194' : '#a39c8c' }));
+      const darkStone = this.track(new MeshLambertMaterial({ color: modern ? '#6c6e72' : '#7d776a' }));
       const roof = this.track(new MeshLambertMaterial({ color: this.setup.sides[1].color }));
+      const wood = this.track(new MeshLambertMaterial({ color: '#5b3d24' }));
       const g = new Group();
+      const add = (geo, mat) => { const m = new Mesh(this.track(geo), mat); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
       const x = s.x / Q; const z = s.y / Q;
       if (s.kind === 'keep') {
-        g.add(new Mesh(this.track(new BoxGeometry(2.6, 1.8, 2.6).translate(0, 0.9, 0)), stone));
-        g.add(new Mesh(this.track(new BoxGeometry(2.9, 0.35, 2.9).translate(0, 1.95, 0)), stone));
-        [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]].forEach(([dx, dz]) => {
-          g.add(new Mesh(this.track(new CylinderGeometry(0.45, 0.5, 2.6, 8).translate(dx, 1.3, dz)), stone));
-          g.add(new Mesh(this.track(new ConeGeometry(0.55, 0.8, 8).translate(dx, 3, dz)), roof));
+        add(new BoxGeometry(2.8, 0.35, 2.8).translate(0, 0.17, 0), darkStone); // plinth
+        add(new BoxGeometry(2.5, 2.0, 2.5).translate(0, 1.2, 0), stone);
+        squareMerlons(g, stone, 1.2, 2.35);
+        add(new BoxGeometry(0.7, 0.9, 0.08).translate(-1.26, 0.6, 0).rotateY(Math.PI / 2), wood); // gate (faces the attacker)
+        [[-1.25, -1.25], [1.25, -1.25], [-1.25, 1.25], [1.25, 1.25]].forEach(([dx, dz]) => {
+          add(new CylinderGeometry(0.46, 0.52, 2.9, 10).translate(dx, 1.45, dz), stone);
+          merlons(g, stone, 0.44, 3.0, 7, 0.16);
+          g.children.slice(-7).forEach((m) => m.position.set(dx, 0, dz));
+          if (!modern) add(new ConeGeometry(0.58, 0.9, 10).translate(dx, 3.5, dz), roof);
         });
-        if (s.walls) g.add(new Mesh(this.track(new RingGeometry(3.4, 3.9, 24).rotateX(-Math.PI / 2).translate(0, 0.35, 0)), stone));
+        add(new CylinderGeometry(0.03, 0.03, 1.4, 5).translate(0, 3.1, 0), wood); // banner pole
+        const flag = add(new PlaneGeometry(0.8, 0.5).translate(0.4, 3.55, 0), this.track(new MeshLambertMaterial({ color: this.setup.sides[1].color, side: DoubleSide })));
+        flag.castShadow = false;
+        g.userData.flag = flag;
+        if (s.walls) {
+          // A curtain wall ring with a crenellated top.
+          const segs = 20;
+          for (let i = 0; i < segs; i++) {
+            const a = (i / segs) * Math.PI * 2;
+            if (Math.abs(Math.cos(a) + 1) < 0.08) continue; // the gateway on the attacker's side
+            const wallSeg = add(new BoxGeometry(1.25, 0.9, 0.3).translate(0, 0.45, 0), stone);
+            wallSeg.position.set(Math.cos(a) * 3.7, 0, Math.sin(a) * 3.7); wallSeg.rotation.y = -a + Math.PI / 2;
+            const cap = add(new BoxGeometry(0.3, 0.25, 0.32).translate(0, 1.0, 0), stone);
+            cap.position.copy(wallSeg.position); cap.rotation.y = wallSeg.rotation.y;
+          }
+        }
       } else {
-        g.add(new Mesh(this.track(new CylinderGeometry(0.5, 0.62, 2.2, 8).translate(0, 1.1, 0)), stone));
-        g.add(new Mesh(this.track(new ConeGeometry(0.62, 0.8, 8).translate(0, 2.6, 0)), roof));
+        add(new CylinderGeometry(0.55, 0.7, 2.4, 10).translate(0, 1.2, 0), stone);
+        add(new CylinderGeometry(0.68, 0.62, 0.25, 10).translate(0, 2.45, 0), darkStone);
+        merlons(g, stone, 0.6, 2.7, 8, 0.18);
+        if (!modern) add(new ConeGeometry(0.72, 0.9, 10).translate(0, 3.25, 0), roof);
       }
       g.position.set(x, this.heightAt(x, z), z);
       this.scene.add(g);
@@ -228,10 +368,16 @@ export class BattleRenderer {
       m.count = 0; m.frustumCulled = false; this.scene.add(m);
       return m;
     };
-    this.discs = mk(new CircleGeometry(1, 20).rotateX(-Math.PI / 2), '#ffffff', 0.35);
-    this.rings = mk(new RingGeometry(1.05, 1.28, 24).rotateX(-Math.PI / 2), '#a3e635', 0.95);
-    this.barBg = mk(new PlaneGeometry(1, 0.14), '#0f172a', 0.85);
-    this.barFill = mk(new PlaneGeometry(1, 0.1).translate(0.5, 0, 0), '#ffffff');
+    // A faint team-coloured ring on the ground under each squad, a bright one when selected.
+    this.discs = mk(new RingGeometry(0.93, 1.0, 32).rotateX(-Math.PI / 2), '#ffffff', 0.5);
+    this.rings = mk(new RingGeometry(1.02, 1.16, 32).rotateX(-Math.PI / 2), '#bef264', 0.95);
+    this.barBg = mk(new PlaneGeometry(1, 0.1), '#0f172a', 0.8);
+    this.barFill = mk(new PlaneGeometry(1, 0.07).translate(0.5, 0, 0), '#ffffff');
+    // Each squad's standard: a pole and a waving flag in the side's colour.
+    const poleMat = this.track(new MeshLambertMaterial({ color: '#4a3524' }));
+    this.bannerPoles = new InstancedMesh(this.track(new CylinderGeometry(0.025, 0.025, 2.1, 5).translate(0, 1.05, 0)), poleMat, MAX);
+    this.bannerFlags = new InstancedMesh(this.track(new PlaneGeometry(0.6, 0.38, 4, 1).translate(0.3, 1.86, 0)), this.track(new MeshLambertMaterial({ color: '#ffffff', side: DoubleSide })), MAX);
+    [this.bannerPoles, this.bannerFlags].forEach((m) => { m.count = 0; m.frustumCulled = false; m.castShadow = true; this.scene.add(m); });
     this.structBarBg = mk(new PlaneGeometry(1, 0.18), '#0f172a', 0.85);
     this.structBarFill = mk(new PlaneGeometry(1, 0.13).translate(0.5, 0, 0), '#ffffff');
     this.tracers = mk(new BoxGeometry(1, 0.05, 0.05).translate(0.5, 0, 0), '#fde68a');
@@ -242,12 +388,19 @@ export class BattleRenderer {
     this.markerRings = mk(new RingGeometry(0.6, 0.8, 20).rotateX(-Math.PI / 2), '#a3e635', 0.9);
   }
 
+  // One instanced, animated mesh per (age, class, side): its own copy of the model geometry with a
+  // per-instance animation attribute (phase, moving, attacking) the rig shader reads.
   soldierLayer(ageId, classId, side) {
     const key = `${ageId}:${classId}:${side}`;
     let layer = this.soldierLayers.get(key);
     if (!layer) {
-      const mat = this.track(new MeshLambertMaterial({ color: '#ffffff', side: DoubleSide }));
-      layer = new InstancedMesh(getUnitTokenGeometry(ageId, classId), mat, 16 * 20);
+      const MAX = 16 * 20;
+      const geo = this.track(getSoldierGeometry(ageId, classId).clone());
+      layer = new InstancedMesh(geo, this.soldierMaterial, MAX);
+      layer.userData.anim = new InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
+      geo.setAttribute('aAnim', layer.userData.anim);
+      layer.customDepthMaterial = this.soldierDepth;
+      layer.castShadow = true; layer.receiveShadow = true;
       layer.count = 0; layer.frustumCulled = false;
       this.scene.add(layer);
       this.soldierLayers.set(key, layer);
@@ -259,7 +412,7 @@ export class BattleRenderer {
     this.width = width; this.height = height;
     this.renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
-    const viewH = aspect < 1 ? 20 : VIEW_TILES;
+    const viewH = aspect < 1 ? 16 : VIEW_TILES;
     this.camera.left = (-viewH * aspect) / 2; this.camera.right = (viewH * aspect) / 2;
     this.camera.top = viewH / 2; this.camera.bottom = -viewH / 2;
     this.camera.updateProjectionMatrix();
@@ -380,8 +533,13 @@ export class BattleRenderer {
 
   render(prev, cur, alpha, ui, dt) {
     this.time += dt;
+    RIG_TIME.value = this.time;
     this.adaptResolution(dt);
-    if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.setRGB(0.06 + this.flash, 0.1 + this.flash, 0.14 + this.flash * 0.9); }
+    // The sun (and its shadow box) follows the camera over the field.
+    this.sun.position.set(this.target.x + 22, 38, this.target.z - 10);
+    this.sun.target.position.copy(this.target);
+    this.sun.target.updateMatrixWorld();
+    if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.set(SKY).lerp(new Color('#ffffff'), this.flash); }
     this.updateCamera();
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
@@ -410,48 +568,65 @@ export class BattleRenderer {
       const stats = getBattleStats(s.classId, s.ageId);
       const n = getSoldierCount(stats, s.strength, s.maxStrength);
       const layer = this.soldierLayer(s.ageId, s.classId, s.side);
+      const anim = layer.userData.anim;
       const a = (facing / 256) * Math.PI * 2;
       const fx = Math.cos(a); const fz = Math.sin(a);
-      const cols = Math.max(1, Math.ceil(Math.sqrt(n * 1.6)));
-      const spacing = stats.flying ? 0.6 : 0.42;
-      const mirror = fx - fz < 0 ? -1 : 1;
-      const scale = stats.flying ? 0.85 : s.classId === 'siege' ? 0.9 : 0.7;
+      const big = s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || stats.flying;
+      const cols = Math.max(1, Math.ceil(Math.sqrt(n * (big ? 1.2 : 1.8))));
+      const spacing = stats.flying ? 1.4 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52;
+      const scale = MODEL_SCALE[s.classId] || 0.62;
+      const heading = Math.atan2(fx, fz);
+      // Fighting when it has a target and is standing its ground (squads closing in are "moving").
+      const fighting = s.target >= 0 && !moving && !s.routed;
       tmpColor.set(this.setup.sides[s.side].color);
       if (s.routed) tmpColor.lerp(new Color('#9ca3af'), 0.6);
       if (s.hidden) tmpColor.lerp(new Color('#e2e8f0'), 0.45); // in ambush
-      if (selected.has(s.idx)) tmpColor.lerp(new Color('#ffffff'), 0.25);
+      if (selected.has(s.idx)) tmpColor.lerp(new Color('#ffffff'), 0.2);
       for (let i = 0; i < n; i++) {
         const col = i % cols; const row = Math.floor(i / cols);
-        const lat = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * 0.08;
-        const back = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * 0.08;
+        const jitter = big ? 0.1 : 0.07;
+        const lat = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * jitter * 2;
+        const back = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
         const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
-        const bob = moving ? Math.abs(Math.sin(this.time * 11 + i * 1.7)) * 0.06 : 0;
         const k = layer.count;
         if (k >= layer.instanceMatrix.count) break;
-        tmp.position.set(px, (stats.flying ? 2.2 + Math.sin(this.time * 2 + i) * 0.15 : this.heightAt(px, pz)) + bob, pz);
-        tmp.rotation.set(0, Math.PI / 4, 0);
-        tmp.scale.set(scale * mirror, scale, scale);
+        tmp.position.set(px, stats.flying ? 2.4 + Math.sin(this.time * 2 + i) * 0.15 : this.heightAt(px, pz), pz);
+        // Routed troops turn and run; everyone else faces the squad's heading (a touch of variety).
+        tmp.rotation.set(stats.flying ? Math.sin(this.time + i) * 0.15 : 0, heading + (s.routed ? Math.PI : 0) + (hash01(s.idx * 7 + i) - 0.5) * 0.18, 0);
+        tmp.scale.set(scale, scale, scale);
         tmp.updateMatrix();
         layer.setMatrixAt(k, tmp.matrix);
         layer.setColorAt(k, tmpColor);
+        anim.setXYZ(k, hash01(s.idx * 131 + i) * 6.283, moving || s.routed ? 1 : 0, fighting ? 1 : 0);
         layer.count += 1;
       }
       counts.set(layer, true);
-      // Team disc, selection ring, strength bar.
-      const r = 0.55 + Math.sqrt(n) * 0.16;
-      tmp.rotation.set(0, 0, 0); tmp.position.set(x, y + 0.04, z); tmp.scale.set(r, 1, r); tmp.updateMatrix();
-      this.discs.setMatrixAt(discN, tmp.matrix); this.discs.setColorAt(discN, tmpColor.set(this.setup.sides[s.side].color)); discN += 1;
-      if (selected.has(s.idx)) { tmp.position.y = y + 0.06; tmp.updateMatrix(); this.rings.setMatrixAt(ringN, tmp.matrix); ringN += 1; }
+      // Ground ring, selection ring, standard-bearer banner, strength bar.
+      const r = 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
+      tmp.rotation.set(0, 0, 0); tmp.position.set(x, y + 0.05, z); tmp.scale.set(r, 1, r); tmp.updateMatrix();
+      this.discs.setMatrixAt(discN, tmp.matrix); this.discs.setColorAt(discN, tmpColor.set(this.setup.sides[s.side].color));
+      if (selected.has(s.idx)) { tmp.position.y = y + 0.07; tmp.updateMatrix(); this.rings.setMatrixAt(ringN, tmp.matrix); ringN += 1; }
+      if (!stats.flying) {
+        const bx = x + fx * 0.25 + (-fz) * (r * 0.55); const bz = z + fz * 0.25 + fx * (r * 0.55);
+        tmp.position.set(bx, this.heightAt(bx, bz), bz); tmp.rotation.set(0, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, 0); tmp.scale.set(1, 1, 1); tmp.updateMatrix();
+        this.bannerPoles.setMatrixAt(discN, tmp.matrix);
+        this.bannerFlags.setMatrixAt(discN, tmp.matrix);
+        this.bannerFlags.setColorAt(discN, tmpColor.set(this.setup.sides[s.side].color));
+      } else {
+        tmp.scale.set(0, 0, 0); tmp.updateMatrix();
+        this.bannerPoles.setMatrixAt(discN, tmp.matrix); this.bannerFlags.setMatrixAt(discN, tmp.matrix);
+      }
+      discN += 1;
       const frac = Math.max(0, s.strength / Math.max(1, s.startStrength));
-      tmp.quaternion.copy(camQuat); tmp.position.set(x, y + (stats.flying ? 3.2 : 1.35), z); tmp.scale.set(1.2, 1, 1); tmp.updateMatrix();
+      tmp.quaternion.copy(camQuat); tmp.position.set(x, y + (stats.flying ? 3.8 : big ? 2.1 : 1.75), z); tmp.scale.set(1.0, 1, 1); tmp.updateMatrix();
       this.barBg.setMatrixAt(barN, tmp.matrix);
-      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -0.6); tmp.scale.set(1.2 * frac, 1, 1); tmp.updateMatrix();
+      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -0.5); tmp.scale.set(1.0 * frac, 1, 1); tmp.updateMatrix();
       this.barFill.setMatrixAt(barN, tmp.matrix);
       this.barFill.setColorAt(barN, tmpColor.setHSL(0.33 * frac, 0.75, 0.5));
       barN += 1;
     });
-    this.soldierLayers.forEach((l) => { l.instanceMatrix.needsUpdate = true; if (l.instanceColor) l.instanceColor.needsUpdate = true; });
-    [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN]].forEach(([m, n]) => {
+    this.soldierLayers.forEach((l) => { l.instanceMatrix.needsUpdate = true; if (l.instanceColor) l.instanceColor.needsUpdate = true; l.userData.anim.needsUpdate = true; });
+    [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, discN], [this.bannerFlags, discN]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
   }
@@ -520,7 +695,7 @@ export class BattleRenderer {
   dispose() {
     this.soldierLayers.forEach((l) => l.dispose());
     this.disposables.forEach((d) => d.dispose?.());
-    disposeTokenCache();
+    disposeSoldierCache();
     this.renderer.dispose();
   }
 }
