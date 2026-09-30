@@ -1,0 +1,69 @@
+// src/battle/worker/battleLoop.js
+// Real-time driver around the pure sim (Tactical Battles plan §12.1), shared by the Web Worker and
+// the main-thread fallback. It turns wall-clock time into fixed 20 Hz ticks (with speed and
+// pause), stamps the player's orders with the tick they take effect on, records them into a log
+// (setup + log = the whole battle), and posts compact render frames, checkpoints and the result.
+import { createWorld } from '../sim/world';
+import { step } from '../sim/step';
+import { toStrategicResult } from '../sim/result';
+import { worldHash } from '../sim/hash';
+import { TICK_HZ } from '../sim/constants';
+import { makeRenderView } from '../render/view';
+
+const TICK_MS = 1000 / TICK_HZ;
+const CHECKPOINT_EVERY = 10 * TICK_HZ;
+
+// Re-simulate a recorded log headlessly up to `untilTick` (resume after the app was closed).
+export const replayTo = (world, log, untilTick) => {
+  const byTick = new Map();
+  log.forEach((o) => { const l = byTick.get(o.tick) || []; l.push(o); byTick.set(o.tick, l); });
+  while (!world.ended && world.tick < untilTick) { step(world, byTick.get(world.tick) || []); world.events.length = 0; }
+  return world;
+};
+
+export const createBattleLoop = ({ setup, resume = null, post }) => {
+  const world = createWorld(setup);
+  const log = resume?.log ? [...resume.log] : [];
+  if (resume?.log) replayTo(world, log, resume.tick ?? Infinity);
+  let pending = [];
+  let seq = log.length;
+  let paused = false;
+  let speed = 1;
+  let acc = 0;
+  let last = null;
+  let finished = false;
+
+  const emitEnd = () => {
+    finished = true;
+    post({ type: 'ended', result: toStrategicResult(world), log, hash: worldHash(world), tick: world.tick });
+  };
+
+  return {
+    world,
+    pushOrders(orders) {
+      // Orders always take effect on the next tick to be simulated — never in the past — which
+      // is exactly how the replay applies them, so live play and replay agree.
+      orders.forEach((o) => { const stamped = { ...o, tick: world.tick, seq: seq++ }; pending.push(stamped); log.push(stamped); });
+      if (paused) post({ type: 'frame', view: makeRenderView(world, pending), alpha: 1, events: [] });
+    },
+    setPaused(p) { paused = p; last = null; },
+    setSpeed(s) { speed = s; },
+    frame(now) {
+      if (finished) return;
+      if (last === null) last = now;
+      const dt = Math.min(250, now - last);
+      last = now;
+      if (!paused) acc += dt * speed;
+      const events = [];
+      while (acc >= TICK_MS && !world.ended) {
+        const orders = pending; pending = [];
+        step(world, orders);
+        events.push(...world.events); world.events.length = 0;
+        acc -= TICK_MS;
+        if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), log: [...log] });
+      }
+      post({ type: 'frame', view: makeRenderView(world, pending), alpha: paused ? 1 : acc / TICK_MS, events });
+      if (world.ended) emitEnd();
+    }
+  };
+};
