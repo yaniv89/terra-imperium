@@ -15,6 +15,7 @@ import { getAgesBehind, getAgesBehindResearchCostMultiplier } from '../../data/a
 import { canAfford } from '../../utils/helpers';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { ActionButton, CollapsibleSection } from '../ui';
+import { withDiffusion, getTechDiffusion } from '../../engine/techDiffusion';
 
 const CATEGORY_LABELS = {
   [TechCategories.MILITARY]: 'Military',
@@ -38,10 +39,13 @@ const TechPanel = () => {
   // Plan §M7: national.researchCost (nothing sources it yet but Scientific Method's own tech
   // effect) and Research Focus's own -15% power discount for the currently-focused line.
   const nationalResearchCostMult = getModifier(state, state.playerNationId, 'national.researchCost').total;
+  // Diffusion (src/engine/techDiffusion.js): the same per-tech factor RESEARCH_TECH charges.
+  const techCostMult = (tech) => withDiffusion(state, state.playerNationId, tech.id, nationalResearchCostMult);
   const getTechCosts = (tech) => {
     const focused = state.researchFocus === tech.category;
-    const power = Math.round(getTechPowerCost(tech, { researchCostMult: nationalResearchCostMult, focused }) * agesBehindMult);
-    const techPoints = Math.round(tech.cost.techPoints * (1 + nationalResearchCostMult) * agesBehindMult);
+    const mult = techCostMult(tech);
+    const power = Math.round(getTechPowerCost(tech, { researchCostMult: mult, focused }) * agesBehindMult);
+    const techPoints = Math.round(tech.cost.techPoints * (1 + mult) * agesBehindMult);
     return { [TECH_RESEARCH_POOL[tech.category]]: power, techPoints };
   };
 
@@ -53,7 +57,7 @@ const TechPanel = () => {
   const defaultOpenCategoryId = state.researchFocus || Object.values(TechCategories).find((categoryId) => (
     (categories[categoryId]?.techs || []).some((tech) => {
       if (state.techTree[tech.id]?.researched) return false;
-      const { can, reason } = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, nationalResearchCostMult, false);
+      const { can, reason } = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, techCostMult(tech), false);
       return can || reason === 'Insufficient tech points' || reason?.startsWith('Need ');
     })
   ));
@@ -144,14 +148,17 @@ const TechPanel = () => {
             {techs.map(tech => {
               const techState = state.techTree[tech.id];
               const focused = state.researchFocus === categoryId;
-              const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, nationalResearchCostMult, focused);
+              const check = canResearchTech(tech.id, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, techCostMult(tech), focused);
               const costs = getTechCosts(tech);
+              const diffusion = techState?.researched ? null : getTechDiffusion(state, state.playerNationId, tech.id);
+              const diffusionNote = !diffusion ? '' : diffusion.pioneer ? ' · first in the world: +20% cost'
+                : diffusion.neighborsWithIt ? ` · known by ${diffusion.neighborsWithIt} neighbour${diffusion.neighborsWithIt > 1 ? 's' : ''}: -${Math.round((1 - diffusion.mult) * 100)}% cost` : '';
               return (
                 <ActionButton
                   key={tech.id}
                   icon={techState?.researched ? Check : check.can ? BookOpen : Lock}
                   label={tech.name}
-                  description={techState?.researched ? 'Researched' : focused ? `${check.reason || 'Available'} (focused: -15% power)` : check.reason || 'Available'}
+                  description={techState?.researched ? 'Researched' : `${check.reason || 'Available'}${focused ? ' (focused: -15% power)' : ''}${diffusionNote}`}
                   costs={techState?.researched ? null : costs}
                   onClick={() => handleResearch(tech)}
                   disabled={techState?.researched || !check.can}

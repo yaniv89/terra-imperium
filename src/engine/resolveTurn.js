@@ -35,6 +35,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { libertyDesireTarget, libertyInputs, nextLibertyDesire } from './vassals';
 import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
 import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
@@ -45,7 +46,6 @@ import {
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
   RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
   CIVIL_WAR_SUCCESSION_CRISIS_CHANCE, ECONOMIC_COLLAPSE_STABILITY_PENALTY,
-  LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN,
   POWER_POOL_CAP
 } from '../data/actionCosts';
 import { processSuccession, processRoyalBirth, getAdvisorSalary } from './succession';
@@ -61,6 +61,7 @@ import {
 import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
 import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
+import { updateDefensivePacts } from './pacts';
 import { hasPerk } from '../data/promotions';
 import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
@@ -670,6 +671,12 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // --- diplomacy (plan §M12): Aggressive Expansion decay (every nation), diplomat tasks and
   // vassal tribute (player-only, matching every other player-only economic action this turn). ---
   Object.assign(nations, decayAggressiveExpansion(nations));
+  // Nations that fear the same conqueror band together in defensive pacts (src/engine/pacts.js).
+  {
+    const pacts = updateDefensivePacts(nations, { playerNationId: state.playerNationId, turnNumber: newTurnNumber });
+    if (pacts.nations !== nations) Object.assign(nations, pacts.nations);
+    logs.push(...pacts.logs.map((l) => ({ year: newYear, ...l })));
+  }
   {
     const player = nations[state.playerNationId];
     (player.diplomatTasks || []).forEach((t) => {
@@ -691,12 +698,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // may declare an independence war") — generic for every vassal, player or AI, the same real-
   // fielded-strength comparison civil war's own pretender sizing uses rather than the abstract
   // militaryStrength number, since that's what an independence war would actually be fought with.
+  // It now drifts toward a target read from the overlord's real weakness: relative strength, how
+  // many wars it's fighting, its war exhaustion and whether it's in debt (src/engine/vassals.js).
+  const fieldedOf = (id) => getFieldedStrength({ units }, id);
+  const isInDebt = (id) => (id === state.playerNationId ? (resources.gold || 0) < 0 : (nations[id]?.economy?.resources?.gold || 0) < 0);
   Object.entries(nations).forEach(([nId, nation]) => {
     if (!nation.vassalOf || !nations[nation.vassalOf]) return;
-    const vassalStrength = getFieldedStrength({ units }, nId);
-    const overlordStrength = getFieldedStrength({ units }, nation.vassalOf);
-    const rising = vassalStrength > overlordStrength;
-    const libertyDesire = clamp((nation.libertyDesire || 0) + (rising ? LIBERTY_DESIRE_RISE_PER_TURN : -LIBERTY_DESIRE_DECAY_PER_TURN), 0, 100);
+    const target = libertyDesireTarget(libertyInputs(nations, state.wars, nId, fieldedOf, isInDebt));
+    const libertyDesire = nextLibertyDesire(nation.libertyDesire, target);
     if (libertyDesire !== nation.libertyDesire) nations[nId] = { ...nation, libertyDesire };
   });
   mark('diplomacy');

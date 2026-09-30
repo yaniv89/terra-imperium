@@ -16,6 +16,7 @@ import { devastateRegion, applyBattleWarExhaustion } from './aftermath';
 import { leansPositive, leansNegative } from '../data/identity';
 import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from './defense';
 import { conquerRegion } from './conquest';
+import { pactAllies } from './pacts';
 
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
 // floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
@@ -153,7 +154,34 @@ export const checkWarGoal = (war, state) => {
 //
 // Every war is its own record with its own score, truce and peace deal, so a nation can be party
 // to several at once. (The full `state.relations`-driven CB matrix is still trimmed — see peace.js.)
-export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => {
+// Declares war and, when the target is in a defensive pact against the aggressor (pacts.js), calls
+// every other pact member to arms: each declares on the aggressor too, unless it's already fighting
+// it, is in a truce with it, or is already fighting the most wars a nation takes on at once.
+export const MAX_PACT_FRONTS = 2;
+export const declareWar = (state, nationId, opts = {}) => {
+  const after = declareWarOnly(state, nationId, opts);
+  if (after === state || opts.noCallToArms) return after;
+  const aggressor = opts.aggressor;
+  let out = after;
+  const joined = [];
+  pactAllies(after.nations, nationId, aggressor).forEach((allyId) => {
+    const fronts = out.wars.filter((w) => w.active && (w.aggressor === allyId || w.enemy === allyId)).length;
+    if (fronts >= MAX_PACT_FRONTS || hasActiveWarBetween(out, allyId, aggressor) || isInTruce(out, allyId, aggressor)) return;
+    const next = declareWarOnly(out, aggressor, { aggressor: allyId });
+    if (next === out) return;
+    const wars = [...next.wars];
+    wars[wars.length - 1] = { ...wars[wars.length - 1], cb: 'defensivePact', pactFor: nationId };
+    out = { ...next, wars };
+    joined.push(allyId);
+  });
+  if (joined.length && Array.isArray(out.logs)) {
+    const names = joined.map((id) => out.nations[id]?.name || id).join(', ');
+    out = { ...out, logs: [...out.logs, { year: state.year, message: `Called to arms by their pact with ${out.nations[nationId]?.name || nationId}, ${names} declare${joined.length === 1 ? 's' : ''} war on ${out.nations[aggressor]?.name || aggressor}!`, type: 'diplomacy' }] };
+  }
+  return out;
+};
+
+const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
   const nation = state.nations[nationId];
   if (!nation || nationId === aggressor || hasActiveWarBetween(state, nationId, aggressor)) return state;
 

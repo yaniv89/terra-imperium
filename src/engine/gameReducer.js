@@ -37,6 +37,7 @@ import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
+import { withDiffusion } from './techDiffusion';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
@@ -1833,7 +1834,8 @@ export const gameReducer = (state, action) => {
       // getTechPowerCost) plus techPoints — gold is gone. national.researchCost and (for the
       // currently-focused line) Research Focus's own -15% power discount both apply.
       const agesBehind = getAgesBehind(state.age, state.techAgeId);
-      const researchCostMult = getModifier(state, state.playerNationId, 'national.researchCost').total;
+      // Cheaper when neighbours already know it, dearer when nobody in the world does yet (techDiffusion.js).
+      const researchCostMult = withDiffusion(state, state.playerNationId, techId, getModifier(state, state.playerNationId, 'national.researchCost').total);
       const focused = state.researchFocus === tech.category;
       if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, researchCostMult, focused).can) return state;
 
