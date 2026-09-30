@@ -89,8 +89,32 @@ export const generateHeir = (nationId, rng, dynasty, turnNumber, claimBonus = 0)
   dip: rollSkill(rng),
   mil: rollSkill(rng),
   traits: rollTraits(rng),
-  claim: Math.min(100, 40 + Math.floor(rng.next() * 61) + claimBonus) // 40-100 base: never a near-certain crisis
+  claim: Math.max(0, Math.min(100, 40 + Math.floor(rng.next() * 61) + claimBonus)) // 40-100 base: never a near-certain crisis
 });
+
+// --- The royal family (player) ---
+// A hereditary ruler needs a consort for an heir to be born. The player marries a noble at court
+// (MARRY_NOBLE) or makes a royal match abroad (PROPOSE_MARRIAGE), and while married without an heir,
+// a child is born with ROYAL_BIRTH_CHANCE each turn. A foreign-born heir carries a stronger claim.
+// AI nations keep the simpler automatic heir: they have no court to act from.
+export const ROYAL_BIRTH_CHANCE = 0.25;
+export const FOREIGN_CONSORT_CLAIM_BONUS = 10;
+export const ADOPTED_HEIR_CLAIM_PENALTY = -30;
+
+export const generateConsort = (fromNationId, rng, { foreign = false } = {}) => ({
+  name: generateGivenName(fromNationId, rng),
+  from: fromNationId,
+  foreign,
+  claimBonus: foreign ? FOREIGN_CONSORT_CLAIM_BONUS : 0
+});
+
+// Called once per turn for the player's nation: returns a newborn heir, or null.
+export const processRoyalBirth = (nation, rng, turnNumber) => {
+  if (getSuccessionStyle(nation.government) !== 'hereditary' || nation.heir || !nation.ruler?.consort) return null;
+  if (rng.next() >= ROYAL_BIRTH_CHANCE) return null;
+  const claimBonus = getGovernmentReformEffectSum(nation, 'heirClaimBonus') + nation.ruler.consort.claimBonus;
+  return generateHeir(nation.id, rng, nation.ruler.dynasty, turnNumber, claimBonus);
+};
 
 // Advisors (plan §M3). A hired advisor's ONLY mechanical effect here is +level to their own power
 // pool (src/engine/modifiers/sources.js) — the plan's own per-advisor flavor bonus table (e.g. "-10%
@@ -124,7 +148,9 @@ export const ADVISOR_REFRESH_TURNS = 5;
 // ends. Returns { ruler, heir } — the caller (resolveTurn.js) is what actually writes these back
 // onto the nation and appends the log line, keeping this module a pure generator with no state
 // dependency beyond what's passed in.
-export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed }) => {
+// `bornHeirsOnly` (the player): the new ruler takes the throne unmarried and without an heir; the
+// next heir has to be born (processRoyalBirth) or adopted. AI nations get one generated right away.
+export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed, bornHeirsOnly = false }) => {
   if (!nation.ruler || turnNumber < nation.ruler.reignEndsTurn) return null;
 
   const style = getSuccessionStyle(nation.government);
@@ -136,7 +162,8 @@ export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed }) =
       ...nation.heir,
       reignStartTurn: turnNumber,
       reignEndsTurn: turnNumber + reignLengthTurns(rng, age, gameSpeed),
-      isRegency: false
+      isRegency: false,
+      consort: null
     };
     // Elective Monarchy (plan §M8.1): "choose the next ruler from three candidates" isn't a real
     // mechanic yet (no UI for a successor pick), but its real, mechanical cost — "-10 legitimacy at
@@ -144,7 +171,7 @@ export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed }) =
     const legitimacyPenalty = getGovernmentReformEffectSum(nation, 'successionLegitimacyPenalty');
     return {
       ruler: newRuler,
-      heir: generateHeir(nation.id, rng, dynasty, turnNumber, claimBonus),
+      heir: bornHeirsOnly ? null : generateHeir(nation.id, rng, dynasty, turnNumber, claimBonus),
       crisis: newRuler.claim < 20,
       legitimacyPenalty
     };
@@ -156,5 +183,5 @@ export const processSuccession = (nation, rng, { turnNumber, age, gameSpeed }) =
   // if this particular heir failed); every other style gets a new dynasty entirely.
   const nextDynasty = style === 'hereditary' ? dynasty : generateDynastyName(nation.id, rng);
   const ruler = generateRuler(nation.id, rng, { dynasty: nextDynasty, turnNumber, age, gameSpeed, style });
-  return { ruler, heir: style === 'hereditary' ? generateHeir(nation.id, rng, nextDynasty, turnNumber, claimBonus) : null, crisis: style === 'hereditary' };
+  return { ruler, heir: style === 'hereditary' && !bornHeirsOnly ? generateHeir(nation.id, rng, nextDynasty, turnNumber, claimBonus) : null, crisis: style === 'hereditary' };
 };

@@ -8,7 +8,7 @@
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
 import React from 'react';
-import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -30,7 +30,7 @@ import {
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
 import { canAfford, formatNumber } from '../../utils/helpers';
-import { getAdvisorHireCost } from '../../engine/succession';
+import { getAdvisorHireCost, getSuccessionStyle, ROYAL_BIRTH_CHANCE } from '../../engine/succession';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
@@ -211,6 +211,21 @@ const DomesticPanel = () => {
 
   const ruler = playerNation?.ruler;
   const heir = playerNation?.heir;
+  const successionStyle = getSuccessionStyle(playerNation?.government);
+  const hereditary = successionStyle === 'hereditary';
+  // How this government picks the next ruler, so "no heir" only reads as a problem when it is one.
+  const SUCCESSION_NOTES = {
+    hereditary: 'Hereditary: the heir inherits the throne. No heir means a succession crisis.',
+    elective: 'Elective: a new leader is elected when this term ends — no heir needed.',
+    theocratic: 'Theocratic: the clergy choose the next leader — no heir needed.',
+    autocratic: 'Autocratic: the strongest commander seizes power next — no heir needed.',
+    tribal: 'Tribal: the strongest claimant takes over. Adopt a Monarchy (Government) to found a dynasty with heirs.'
+  };
+  const handleMarryNoble = () => {
+    triggerEffect('hire_advisor', { region: getNationCapital(state.playerNationId) });
+    dispatch({ type: ActionTypes.MARRY_NOBLE });
+  };
+  const handleAdoptHeir = () => dispatch({ type: ActionTypes.ADOPT_HEIR });
   const advisors = playerNation?.advisors || {};
   const advisorCandidates = state.advisorPool?.[state.playerNationId] || {};
   const nationStability = playerNation?.stability || 0;
@@ -232,14 +247,59 @@ const DomesticPanel = () => {
           <div className="text-[10px] text-slate-500">
             Reign ends turn {ruler.reignEndsTurn}
           </div>
-          {heir && (
-            <div className="text-[10px] text-slate-400 mt-1 border-t border-slate-700 pt-1">
-              Heir: {heir.name} (claim {heir.claim}) · ADM {heir.adm} · DIP {heir.dip} · MIL {heir.mil}
+          <div className="text-[10px] text-slate-400 mt-1 border-t border-slate-700 pt-1" data-testid="succession-style">
+            {SUCCESSION_NOTES[successionStyle]}
+          </div>
+          {hereditary && (
+            <div className="text-[10px] mt-1 flex items-center gap-1 text-slate-300">
+              <Heart size={10} className="text-pink-400 shrink-0" />
+              {ruler.consort
+                ? <span>Consort: {ruler.consort.name}{ruler.consort.foreign ? ` of ${state.nations[ruler.consort.from]?.name || ruler.consort.from}` : ''}</span>
+                : <span className="text-amber-400">Unmarried — no heir can be born</span>}
             </div>
           )}
-          {!heir && (
-            <div className="text-[10px] text-amber-500 mt-1 border-t border-slate-700 pt-1">
-              No heir — succession crisis risk
+          {heir && (
+            <div className="text-[10px] text-slate-300 mt-1 flex items-center gap-1">
+              <Baby size={10} className="text-sky-300 shrink-0" />
+              Heir: {heir.name}{heir.adopted ? ' (adopted)' : ''} (claim {heir.claim}) · ADM {heir.adm} · DIP {heir.dip} · MIL {heir.mil}
+              {heir.claim < 20 && <span className="text-amber-400"> — weak claim, crisis risk</span>}
+            </div>
+          )}
+          {hereditary && !heir && (
+            <div className="text-[10px] text-amber-500 mt-1">
+              No heir — a succession crisis if the reign ends now.
+              {ruler.consort && ` An heir may be born any turn (${Math.round(ROYAL_BIRTH_CHANCE * 100)}% each turn).`}
+            </div>
+          )}
+          {hereditary && (!ruler.consort || !heir) && (
+            <div className="mt-2 space-y-1.5">
+              {!ruler.consort && (
+                <>
+                  <ActionButton
+                    icon={Heart}
+                    label="Marry a noble"
+                    description="A match within the realm: an heir can then be born"
+                    costs={ACTION_COSTS.marryNoble}
+                    onClick={handleMarryNoble}
+                    disabled={!canAfford(state.resources, ACTION_COSTS.marryNoble)}
+                    resources={state.resources}
+                    size="small"
+                  />
+                  <div className="text-[10px] text-slate-500">…or seek a royal match abroad (Diplomacy → Royal Marriage): better relations and a stronger heir claim.</div>
+                </>
+              )}
+              {!heir && (
+                <ActionButton
+                  icon={Baby}
+                  label="Name a relative as heir"
+                  description="Secures the line now, but with a weak claim"
+                  costs={ACTION_COSTS.adoptHeir}
+                  onClick={handleAdoptHeir}
+                  disabled={!canAfford(state.resources, ACTION_COSTS.adoptHeir)}
+                  resources={state.resources}
+                  size="small"
+                />
+              )}
             </div>
           )}
         </div>

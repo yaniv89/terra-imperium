@@ -129,6 +129,9 @@ export const ACTION_COSTS = {
   // sibling — their real cost is the relationship consequence itself, not a resource.
   rivalNation: { dip: 0 },
   proposeMarriage: { gold: 100, dip: 10 },
+  // The royal family (src/engine/succession.js): marry a noble at court, or adopt a relative as heir.
+  marryNoble: { gold: 60 },
+  adoptHeir: { adm: 50 },
   breakAlliance: { dip: 0 },
   insult: { dip: 0 },
   assignDiplomat: { dip: 5 },
