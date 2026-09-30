@@ -27,6 +27,7 @@ import { getBorderingNationIds } from '../data/regions';
 import { declareWar, isInTruce, hasActiveWarBetween } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
+import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 
 const DEFAULT_RNG = { next: () => Math.random() };
@@ -294,9 +295,25 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     if (!nation || nation.isPlayer || draggedIn.has(nationId)) return;
     const fronts = countActiveWars(currentWars, nationId);
     if (fronts >= MAX_AI_WARS) return;
-    // Plan §M12: a vassal "can't declare wars except independence" — no independence-war mechanic
-    // exists yet (deferred), but the self-declaration lockout itself is real and simple.
-    if (nation.vassalOf) return;
+    // Plan §M12: a vassal "can't declare wars except independence". Once its liberty desire is
+    // past the threshold (src/engine/vassals.js reads it from the overlord's real weakness), it may
+    // issue its ultimatum and fight for freedom — more likely the further past it is and the more
+    // wars its overlord is already tangled in. The same war the player's DECLARE_INDEPENDENCE starts.
+    if (nation.vassalOf) {
+      const overlordId = nation.vassalOf;
+      if (fronts > 0 || !currentNations[overlordId] || hasActiveWarBetween({ wars: currentWars }, nationId, overlordId)) return;
+      const chance = independenceChance(nation.libertyDesire, countActiveWars(currentWars, overlordId));
+      if (!chance || rng.next() >= chance) return;
+      const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, overlordId, { aggressor: nationId, goal: { type: 'independence' } });
+      if (result.wars === currentWars) return;
+      const wars = [...result.wars];
+      wars[wars.length - 1] = { ...wars[wars.length - 1], cb: 'independence' };
+      draggedIn.add(overlordId);
+      currentNations = result.nations;
+      currentWars = wars;
+      logs.push({ message: `${nation.name} rises up and declares independence from ${state.nations[overlordId]?.name || overlordId}!`, type: 'diplomacy' });
+      return;
+    }
     if (getNationTier({ ...state, nations: currentNations }, nationId, sortedByMilitary) !== 1) return;
 
     const isCoalitionMember = !!runawayLeaderId && runawayLeaderId !== nationId;

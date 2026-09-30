@@ -37,6 +37,7 @@
 //   the player's income keeps growing (Develop Province) while every AI nation's economic base
 //   stays frozen, which is a real parity gap this closes.
 import { devastationIncomeMult } from './aftermath';
+import { withDiffusion } from './techDiffusion';
 import { UNIT_UPKEEP_GOLD_PER_TURN, ACTION_COSTS, BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
 import { getFieldedStrength, getUnitCount } from '../utils/helpers';
 import { getResearched, getTechAgeId } from './nationState';
@@ -237,11 +238,12 @@ const tryResearchTech = (state, nation) => {
 
   const pool = { ...emptyAIPool(), ...nation.economy };
   for (const tech of candidates) {
-    const check = canResearchTech(tech.id, syntheticTechTree, pool, state.year, TECH_TREE, agesBehind, researchCostMult, false);
+    const techCostMult = withDiffusion(state, nation.id, tech.id, researchCostMult); // techDiffusion.js
+    const check = canResearchTech(tech.id, syntheticTechTree, pool, state.year, TECH_TREE, agesBehind, techCostMult, false);
     if (!check.can) continue;
     const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
-    const powerCost = Math.round(getTechPowerCost(tech, { researchCostMult, focused: false }) * costMult);
-    const techPointsCost = Math.round(tech.cost.techPoints * (1 + researchCostMult) * costMult);
+    const powerCost = Math.round(getTechPowerCost(tech, { researchCostMult: techCostMult, focused: false }) * costMult);
+    const techPointsCost = Math.round(tech.cost.techPoints * (1 + techCostMult) * costMult);
     const poolKey = TECH_RESEARCH_POOL[tech.category];
     const nextResearched = [...researched, tech.id];
     const currentAgeTechIds = getTechsForAge(ageId).map((t) => t.id);
