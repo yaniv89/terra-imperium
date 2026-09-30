@@ -43,6 +43,9 @@ const RNG_VARIANCE = 0.1; // +/-10% swing per damage roll, seeded so it's still 
 const FLANK_BONUS_MULT = 1.3;
 const PURSUIT_EXTRA_LOSS_MULT = 0.5; // routed units lose another 50% of their remaining strength when pursued
 
+// Shared with the tactical sim (src/battle/sim) so both resolution paths use the same constants.
+export { BASE_DAMAGE_RATE, RNG_VARIANCE, MORALE_ROUT_THRESHOLD, FLANK_BONUS_MULT, PURSUIT_EXTRA_LOSS_MULT };
+
 const isRangedClass = (classId) => RANGED_CLASSES.includes(classId);
 const clone = (unit) => ({ ...unit });
 
@@ -55,10 +58,11 @@ const deploy = (units, combatWidth) => {
 // fortification context, and every promotion/general multiplier on both the dealing and receiving
 // unit — the single place all of combat's number-crunching happens, so every phase (ranged, shock,
 // flanking, volley fire, pursuit) stays consistent by construction.
-const dealDamage = (rng, phase, unit, target, { sourceIsInvadingFortification, generals, targetIsDefendingSide, baseMultiplier = 1 }, log) => {
-  if (unit.strength <= 0 || target.strength <= 0) return;
-  const roll = rng.next();
-  const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
+// The full per-hit multiplier for `unit` hitting `target`: class counters, siege's fortification
+// context, and every promotion/general multiplier on both sides. Exported so the real-time tactical
+// sim (src/battle/sim/combat.js) applies exactly the same stack per hit as this engine does per
+// exchange — auto-resolve and commanded battles can never drift apart on "how hard does this hit".
+export const computeHitMultiplier = (unit, target, { phase, sourceIsInvadingFortification, generals = {}, targetIsDefendingSide, baseMultiplier = 1 }) => {
   let multiplier = getCounterMultiplier(unit.classId, target.classId) * baseMultiplier;
   if (unit.classId === 'siege') {
     multiplier *= applySapperToSiegeMultiplier(unit, sourceIsInvadingFortification, getSiegeMultiplier(sourceIsInvadingFortification));
@@ -67,6 +71,14 @@ const dealDamage = (rng, phase, unit, target, { sourceIsInvadingFortification, g
   multiplier *= getGeneralDamageMultiplier(generals[unit.commanderId], phase, unit.classId);
   multiplier *= getPromotionDefenseMultiplier(target, { isDefendingSide: targetIsDefendingSide });
   multiplier *= getGeneralDefenseMultiplier(generals[target.commanderId]);
+  return multiplier;
+};
+
+const dealDamage = (rng, phase, unit, target, ctx, log) => {
+  if (unit.strength <= 0 || target.strength <= 0) return;
+  const roll = rng.next();
+  const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
+  const multiplier = computeHitMultiplier(unit, target, { ...ctx, phase });
   const damage = Math.max(0, Math.round(unit.strength * BASE_DAMAGE_RATE * multiplier * variance));
   if (damage <= 0) return;
   target.strength = Math.max(0, target.strength - damage);
