@@ -35,6 +35,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { getEffectiveAgeId } from '../data/ages';
 import { libertyDesireTarget, libertyInputs, nextLibertyDesire } from './vassals';
 import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
 import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
@@ -74,6 +75,14 @@ const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 // harness is the only caller) fired after each named phase below with how long it took. It costs
 // one optional-chained call per phase when absent, so normal play and every other test pay nothing
 // for it; when present the closure trades one `performance.now()` read per phase for the timing.
+// Bankruptcy's cost to the army: the share of men who desert, the morale every unit loses, and the
+// size below which a unit simply dissolves.
+export const WAR_WEARINESS_FROM = 40;
+export const WAR_WEARINESS_SCALE = 40;
+export const DESERTION_SHARE = 0.15;
+export const DESERTION_MORALE = 20;
+export const DESERTION_DISBAND_BELOW = 50;
+
 export const resolveTurn = (state, { onPhase } = {}) => {
   // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
   // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
@@ -157,7 +166,10 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus')
       + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel)
       + getRegionModifier(state, id, 'local.stabilityBonus').total;
-    const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta);
+    // A long, bloody war wears on the home front: war exhaustion past 40 pushes unrest up in every
+    // province the nation holds, up to +1.5/turn at 100.
+    const warWeariness = Math.max(0, ((owner?.warExhaustion || 0) - WAR_WEARINESS_FROM) / WAR_WEARINESS_SCALE);
+    const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta + warWeariness);
     // Siege recovery (src/engine/siege.js): a region not attacked recently regenerates the control
     // combat ground down — an interrupted siege doesn't bank its damage forever. Also clears the
     // `underInvasion` map/UI flag once the cooldown passes, so a region stops reading as "under
@@ -295,7 +307,10 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     // search per distinct region a unit happens to occupy — the set of in-range regions is the
     // same for every one of this nation's units this turn regardless of how many distinct
     // regions they're spread across.
-    const inSupplyRegions = regionsWithinRange(ownedRegionIds, maxSupplyRange);
+    // Supply lines run through friendly country only: a province an enemy occupies can be reached
+    // but not supplied through, so an army beyond a lost province is cut off.
+    const enemyHeld = (rid) => { const occ = regions[rid]?.occupiedBy; return !!occ && occ !== ownerId; };
+    const inSupplyRegions = regionsWithinRange(ownedRegionIds.filter((rid) => !enemyHeld(rid)), maxSupplyRange, enemyHeld);
     ownerUnits.forEach(u => {
       if (u.embarkedOn) return; // cargo shares its transport's supply state, not its own
       if (inSupplyRegions.has(u.regionId)) return; // in supply
@@ -329,6 +344,10 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // battle.js's dealDamage only ever subtracts morale — nothing anywhere ever added it back).
   const REINFORCEMENT_RATE = 0.10;
   const MORALE_RECOVERY_PER_TURN = 15;
+  // Mechanised warfare runs on oil: modern tanks, aircraft and warships need a stock above zero.
+  const FUEL_BURNING_CLASSES = new Set(['cavalry', 'air', 'naval']);
+  const playerOutOfOil = getEffectiveAgeId(newAge, state.techAgeId) === 'modern' && (resources.oil ?? 0) <= 0;
+  let groundedCount = 0;
   Object.values(units).forEach((u) => {
     if (u.ownerId === REBEL_OWNER_ID || u.embarkedOn) return;
     const nation = state.nations[u.ownerId];
@@ -360,10 +379,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       }
     }
 
-    // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one.
-    const movesLeft = 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
+    // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one. With the oil
+    // stock empty, the player's modern machines (tanks, aircraft, warships) stay where they are.
+    const grounded = isPlayer && playerOutOfOil && FUEL_BURNING_CLASSES.has(u.classId);
+    if (grounded) groundedCount += 1;
+    const movesLeft = grounded ? 0 : 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
     units[u.id] = { ...u, ...patch, movesLeft };
   });
+  if (groundedCount) logs.push({ year: newYear, message: `No oil: ${groundedCount} of your mechanised unit${groundedCount > 1 ? 's are' : ' is'} out of fuel and cannot move this turn. Build Oil Wells or trade for oil.`, type: LogTypes.CRISIS });
   mark('reinforcementAndMorale');
 
   // --- AI nations: passive growth + hostility drift ---
@@ -629,6 +652,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       nations[playerId] = { ...applied.nation, disasters: { ...applied.nation.disasters, economicCollapse: 0 } };
       Object.assign(regions, applied.regions);
       resources.gold = 0;
+      // Unpaid soldiers desert: every unit loses DESERTION_SHARE of its men and its spirit, and a
+      // unit left too small to stand dissolves. (Deserters go home: no casualty scar.)
+      let deserted = 0;
+      Object.values(units).forEach((u) => {
+        if (u.ownerId !== playerId) return;
+        const strength = Math.floor(u.strength * (1 - DESERTION_SHARE));
+        deserted += u.strength - strength;
+        if (strength < DESERTION_DISBAND_BELOW) delete units[u.id];
+        else units[u.id] = { ...u, strength, morale: Math.max(0, (u.morale ?? 100) - DESERTION_MORALE) };
+      });
+      if (deserted > 0) logs.push({ year: newYear, message: `Unpaid, ${Math.round(deserted * 10).toLocaleString()} soldiers desert your army (-${Math.round(DESERTION_SHARE * 100)}% strength, -${DESERTION_MORALE} morale in every unit).`, type: LogTypes.CRISIS });
       logs.push({
         year: newYear,
         message: disasterBankruptcyReady && rawGold >= 0

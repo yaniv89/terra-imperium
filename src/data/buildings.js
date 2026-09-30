@@ -79,13 +79,15 @@ export const BUILDING_CATEGORIES = {
       { age: 'modern', name: 'Research Lab', requiresTech: 'science_computing', effects: { 'local.techPoints': 9 } }
     ]
   },
+  // Industry pays, but crowded workshops and factory towns breed discontent (negative local
+  // stability): pair them with Culture & Order buildings to keep the peace.
   industry: {
     label: 'Industry',
     costMult: 1.2,
     tiers: [
       { age: 'classical', name: 'Workshop', requiresTech: 'science_geometry', effects: { 'local.productionIncome': 0.20, 'local.flatGold': 3 } },
-      { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35, 'local.flatGold': 6 } },
-      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatGold': 10 } }
+      { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35, 'local.flatGold': 6, 'local.stabilityBonus': -0.5 } },
+      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatGold': 10, 'local.stabilityBonus': -0.75 } }
     ]
   },
   culture: {
