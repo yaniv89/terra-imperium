@@ -32,6 +32,8 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     callCost: callCost(q, w),
     order: q.order.type, orderX: q.order.x ?? null, orderY: q.order.y ?? null,
     target: q.target, targetKind: q.targetKind,
+    // Swung or fired within its last attack cycle: in the thick of it, even while being jostled.
+    striking: w.tick - (q.lastStrikeTick ?? -10000) <= q.stats.attackTicks + 4,
     xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,
     abilities: q.side === playerSide ? getSquadAbilities(w, q).map((id) => ({ id, readyIn: Math.max(0, (q.cooldowns?.[id] || 0) - w.tick) })) : []
   })),

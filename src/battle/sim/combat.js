@@ -119,6 +119,7 @@ export const attackSquad = (w, a, t) => {
   const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
   const damage = Math.max(0, Math.round(a.strength * perHitFraction(a.stats) * mult * variance));
   a.movedSinceAttack = 0;
+  a.lastStrikeTick = w.tick;
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc });
   if (damage > 0) { applyDamage(w, a, t, damage); tally(w, phase, a, t, damage); }
   // Siege splash: half damage to every other enemy squad around the impact.
@@ -139,6 +140,7 @@ export const attackStructure = (w, a, s) => {
   const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
   const damage = Math.max(0, Math.round(a.strength * perHitFraction(a.stats) * mult * variance * 3));
   a.engaged = true;
+  a.lastStrikeTick = w.tick;
   a.damageDealt += Math.round(damage / 3); // structure HP is on a bigger scale; count it 1/3 toward XP
   s.hp = Math.max(0, s.hp - damage);
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, structure: s.id, damage });
@@ -156,6 +158,7 @@ export const targetScore = (q, t) => {
   const wounded = 2 - t.strength / t.maxStrength;
   const soft = t.classId === 'siege' || t.classId === 'support' ? 1.3 : 1;
   const d = isqrt(distSq(q.x, q.y, t.x, t.y)) / Q + 1;
+  // Running men are no threat: a squad still standing and fighting is worth far more attention.
   return (counter * wounded * soft * (t.routed ? 0.8 : 1)) / d;
 };
 
@@ -203,7 +206,11 @@ export const resolveAttacks = (w) => {
     if (!canAttack(q) || q.target < 0) return;
     if (q.targetKind === 'squad') {
       const t = w.squads[q.target];
-      if (!validTargetFor(q, t, w)) { q.target = -1; return; }
+      // A target the player picked stays picked while it's still on the field, even if it slips
+      // out of sight for a moment: the squad keeps after it and strikes once it can see it again.
+      const explicit = q.order.type === 'attack';
+      if (!validTargetFor(q, t, explicit ? null : w)) { q.target = -1; return; }
+      if (explicit && !canSeeSquad(w, q.side, t)) return;
       if (!inRangeOfSquad(q, t)) return;
       q.facing = turnToward(q.facing, angleBetween(q.x, q.y, t.x, t.y), 32);
       if (q.cooldown === 0) { attackSquad(w, q, t); q.cooldown = Math.max(1, Math.round(q.stats.attackTicks / attackRateMult(w, q))); }

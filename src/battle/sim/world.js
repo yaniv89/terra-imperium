@@ -46,6 +46,7 @@ const makeSquad = (w, unit, side, ageId, index) => {
     damageDealt: 0,
     cooldown: 0,
     lastHitTick: -10000,
+    lastStrikeTick: -10000,                // last tick it swung or fired (drives the strike animation)
     movedSinceAttack: 0,
     order: { type: 'idle' },
     targetKind: null,                      // 'squad' | 'structure'
