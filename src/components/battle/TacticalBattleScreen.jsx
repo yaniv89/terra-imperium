@@ -92,6 +92,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       }
     });
     clientRef.current = client;
+    if (import.meta.env.DEV) window.__battleOrders = (orders) => client.sendOrders(orders); // console / visual-test driving
 
     let raf; let lastT = performance.now(); let lastHud = 0;
     const loop = (t) => {
@@ -126,7 +127,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const ownSquadAt = useCallback((p) => {
     const r = rendererRef.current; const cur = frames.current.cur;
     if (!r || !cur) return null;
-    const hit = r.pick(p.x, p.y, cur);
+    const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: selectedRef.current.size > 0 });
     return hit?.kind === 'squad' && hit.side === playerSide ? hit.idx : null;
   }, [playerSide]);
 
@@ -144,7 +145,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       return true;
     }
     if (!r || !cur || !sel.length) return false;
-    const hit = r.pick(p.x, p.y, cur);
+    const hit = r.pick(p.x, p.y, cur, 1.1, { enemyFirst: true });
     if (!hit) return false;
     if (hit.kind === 'squad' && hit.side !== playerSide) {
       send([{ type: 'attack', squads: sel, target: { kind: 'squad', index: hit.idx } }]);

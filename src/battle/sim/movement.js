@@ -6,6 +6,7 @@ import { TILE_COST } from '../setup/mapgen';
 import { angleBetween, distSq, isqrt, polarX, polarY, turnToward } from './fixed';
 import { getFlowField, lineClear, nextWaypoint, queryRadius, tileOf } from './pathing';
 import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFighting } from './combat';
+import { canSeeSquad } from './fog';
 import { sideEdgeX } from './world';
 import { speedMult } from './effects';
 import { Q, SQUAD_RADIUS } from './constants';
@@ -68,15 +69,56 @@ export const enterReserves = (w) => {
   });
 };
 
+// How often (ticks) a squad fighting on its own initiative looks around for a better target.
+const RETARGET_EVERY = 10;
+// Past this distance a squad pursuing a routed enemy looks for other work every tick (tiles).
+const PURSUIT_LIMIT = 5 * Q;
+// A fresh enemy this close (tiles) is worth breaking off a pursuit for.
+const ENGAGE_CLOSE = 3 * Q;
+
+const hasValidTarget = (w, q) => q.target >= 0 && (q.targetKind === 'squad'
+  ? isFighting(w.squads[q.target]) && w.squads[q.target].side !== q.side && w.squads[q.target].inside < 0
+  : !!w.structures[q.target]?.alive);
+
+// A fight is over: the squad stands where it is (its new post) instead of walking back to where
+// it was when the order was given.
+const settle = (q) => { q.order = { type: 'idle' }; q.anchorX = q.x; q.anchorY = q.y; q.target = -1; q.targetKind = null; };
+
 // Idle and attack-moving squads pick up enemies they can see; holding squads only what's in reach.
+// A target the player chose (an 'attack' order) is kept until it dies or leaves the field. A target
+// a squad picked for itself is revisited now and then, so it doesn't chase routed men across the
+// map while fresh enemies are hitting it, or keep walking toward a far target past a near one.
 export const acquireTargets = (w) => {
   w.squads.forEach((q) => {
     if (!canAttack(q)) return;
-    const hasValid = q.target >= 0 && (q.targetKind === 'squad' ? isFighting(w.squads[q.target]) && w.squads[q.target].side !== q.side : w.structures[q.target]?.alive);
-    if (hasValid && (q.order.type === 'attack' || q.order.type !== 'hold')) return;
-    if (q.order.type === 'move' || q.order.type === 'retreat') return;
-    if (q.order.type === 'attack' && !hasValid) q.order = { type: 'idle' };
+    if (q.order.type === 'move' || q.order.type === 'retreat' || q.order.type === 'garrison') return;
+    let valid = hasValidTarget(w, q);
+    // Holding squads never step out to reach a target: one that has moved out of reach is let go.
+    if (valid && q.order.type === 'hold' && q.targetKind === 'squad' && !inRangeOfSquad(q, w.squads[q.target])) { q.target = -1; q.targetKind = null; valid = false; }
+    if (q.order.type === 'attack') {
+      if (valid) return;
+      settle(q);
+    }
     const radius = q.order.type === 'hold' ? q.stats.range + SQUAD_RADIUS * 2 : q.stats.sight * Q;
+    if (valid) {
+      if (q.targetKind !== 'squad') { if ((w.tick + q.idx) % RETARGET_EVERY) return; }
+      else {
+        const t = w.squads[q.target];
+        const far = t.routed && distSq(q.x, q.y, t.x, t.y) > PURSUIT_LIMIT * PURSUIT_LIMIT;
+        if (!far && (w.tick + q.idx) % RETARGET_EVERY) return;
+        const found = acquireTarget(w, q, radius);
+        // Nothing better around: keep cutting down the fleeing (pursuit), unless they're out of sight.
+        if (!found) { if (!canSeeSquad(w, q.side, t)) { q.target = -1; q.targetKind = null; } return; }
+        if (found.kind === 'squad' && found.index === q.target) return;
+        const next = found.kind === 'squad' ? w.squads[found.index] : null;
+        const close = next && distSq(q.x, q.y, next.x, next.y) <= ENGAGE_CLOSE * ENGAGE_CLOSE;
+        const better = (t.routed && close && !next.routed) || (far && found.kind === 'structure')
+          || (!inRangeOfSquad(q, t) && next && inRangeOfSquad(q, next));
+        if (!better) return;
+        q.target = found.index; q.targetKind = found.kind;
+        return;
+      }
+    }
     const found = acquireTarget(w, q, radius);
     q.target = found ? found.index : -1;
     q.targetKind = found ? found.kind : null;

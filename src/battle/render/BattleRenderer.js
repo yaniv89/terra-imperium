@@ -82,6 +82,41 @@ export const makeRingDecal = ({ inner = 0.8, outer = 0.97, fill = 0.12, sharp = 
   return tex;
 };
 
+// A splash of blood (or a scorch mark) seen from above: an irregular blob with a few droplets
+// thrown out around it, as an alpha texture. `seed` varies the shape.
+export const makeSplatDecal = ({ seed = 1, size = 64 } = {}) => {
+  const data = new Uint8Array(size * size * 4);
+  const lobes = Array.from({ length: 7 }, (_, k) => ({ a: hash01(seed * 31 + k) * Math.PI * 2, r: 0.12 + hash01(seed * 17 + k) * 0.16 }));
+  const drops = Array.from({ length: 6 }, (_, k) => {
+    const a = hash01(seed * 53 + k) * Math.PI * 2; const d = 0.55 + hash01(seed * 71 + k) * 0.35;
+    return { x: Math.cos(a) * d, y: Math.sin(a) * d, r: 0.05 + hash01(seed * 89 + k) * 0.06 };
+  });
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = ((x + 0.5) / size) * 2 - 1; const v = ((y + 0.5) / size) * 2 - 1;
+      const ang = Math.atan2(v, u); const r = Math.hypot(u, v);
+      let edge = 0.42;
+      lobes.forEach((l) => { const d = Math.cos(ang - l.a); if (d > 0) edge += l.r * d ** 6; });
+      let a = Math.max(0, Math.min(1, (edge - r) / 0.06));
+      drops.forEach((d) => { a = Math.max(a, Math.max(0, Math.min(1, (d.r - Math.hypot(u - d.x, v - d.y)) / 0.03))); });
+      const o = (y * size + x) * 4;
+      data[o] = 255; data[o + 1] = Math.round(a * 235); data[o + 2] = 255; data[o + 3] = 255;
+    }
+  }
+  const tex = new DataTexture(data, size, size, RGBAFormat);
+  tex.magFilter = LinearFilter; tex.minFilter = LinearFilter; tex.needsUpdate = true;
+  return tex;
+};
+
+// Troops bleed; machines (siege engines, aircraft, modern tanks and AA batteries) burn and smoke.
+export const isOrganic = (classId, ageId) => !(classId === 'siege' || classId === 'air' || classId === 'naval'
+  || (ageId === 'modern' && (classId === 'cavalry' || classId === 'support')));
+
+const BLOOD_COLORS = ['#7f1010', '#991b1b', '#5c0a0a'];
+const SPLAT_LIFE = 28;   // seconds a blood pool stays on the ground (it shrinks away over the last few)
+const MAX_SPLATS = 96;
+const MAX_BLOOD = 256;
+
 export class BattleRenderer {
   constructor(canvas, setup, { playerSide = 0 } = {}) {
     this.setup = setup;
@@ -546,8 +581,14 @@ export class BattleRenderer {
     this.discs = decal(2, this.track(makeRingDecal({ inner: 0.8, outer: 0.97, fill: 0.14 })), 0.7);
     this.rings = decal(2.3, this.track(makeRingDecal({ inner: 0.84, outer: 0.95, fill: 0.2, sharp: true })), 1);
     this.rings.material.color.set('#bef264');
-    this.barBg = mk(new PlaneGeometry(1, 0.1), '#0f172a', 0.8);
-    this.barFill = mk(new PlaneGeometry(1, 0.07).translate(0.5, 0, 0), '#ffffff');
+    // Strength bar: a bright green fill on a dark red track, always drawn on top (no depth test, no
+    // haze), so it reads at any zoom and the red shows at a glance how much of the squad is gone.
+    this.barBg = mk(new PlaneGeometry(1.08, 0.16), '#3f0d0d', 0.9);
+    this.barFill = mk(new PlaneGeometry(1, 0.1).translate(0.5, 0, 0), '#ffffff');
+    [[this.barBg, 20], [this.barFill, 21]].forEach(([m, order]) => {
+      Object.assign(m.material, { depthTest: false, depthWrite: false, fog: false, transparent: true });
+      m.renderOrder = order;
+    });
     // Each squad's standard: a pole and a waving flag in the side's colour.
     const poleMat = this.track(new MeshLambertMaterial({ color: '#4a3524' }));
     this.bannerPoles = new InstancedMesh(this.track(new CylinderGeometry(0.025, 0.025, 2.1, 5).translate(0, 1.05, 0)), poleMat, MAX);
@@ -561,6 +602,14 @@ export class BattleRenderer {
     this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
     this.sparks.count = 0; this.sparks.frustumCulled = false; this.scene.add(this.sparks);
     this.markerRings = decal(1.7, this.track(makeRingDecal({ inner: 0.74, outer: 0.96, fill: 0.08 })), 0.9);
+    // Blood: droplets that spray and fall when soldiers go down, and the pools they leave behind
+    // (three splat shapes so the ground doesn't repeat one stamp). Machines leave scorch marks.
+    this.blood = new InstancedMesh(this.track(new DodecahedronGeometry(0.045, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), MAX_BLOOD);
+    this.blood.count = 0; this.blood.frustumCulled = false; this.scene.add(this.blood);
+    this.splatLayers = [1, 2, 3].map((seed) => decal(1, this.track(makeSplatDecal({ seed })), 0.85));
+    this.splatLayers.forEach((m) => { m.material.depthWrite = false; m.renderOrder = 0; });
+    this.splats = [];
+    this.soldierMemo = new Map();
   }
 
   // One soldier layer per (age, class) for BOTH armies — the side's colour is per instance
@@ -667,7 +716,16 @@ export class BattleRenderer {
     const ndc = new Vector2((px / this.width) * 2 - 1, -(py / this.height) * 2 + 1);
     this.raycaster.setFromCamera(ndc, this.camera);
     const hit = new Vector3();
-    return this.raycaster.ray.intersectPlane(this.groundPlane, hit) ? { x: hit.x, z: hit.z } : null;
+    // The ground isn't flat: intersect the plane at the height found under the last guess and
+    // repeat, so a tap on a hillside lands where the finger is, not a few tiles behind it.
+    this.groundPlane.constant = 0;
+    if (!this.raycaster.ray.intersectPlane(this.groundPlane, hit)) return null;
+    for (let i = 0; i < 3; i++) {
+      this.groundPlane.constant = -this.heightAt(hit.x, hit.z);
+      if (!this.raycaster.ray.intersectPlane(this.groundPlane, hit)) break;
+    }
+    this.groundPlane.constant = 0;
+    return { x: hit.x, z: hit.z };
   }
 
   // Ground point (tiles) → screen pixel.
@@ -677,15 +735,26 @@ export class BattleRenderer {
   }
 
   // What's under a screen point: { kind: 'squad', idx } | { kind: 'structure', index } | { kind: 'ground' }.
-  pick(px, py, view, radiusTiles = 1.1) {
+  // Enemies hidden by the fog of war can't be picked (you can't order an attack on what you can't
+  // see). With `enemyFirst` (the player has troops selected), a visible enemy anywhere near the tap
+  // wins over a friendly squad beside it: in a melee the two are inches apart, and a tap meant as
+  // "attack that" must not silently turn into "select this".
+  pick(px, py, view, radiusTiles = 1.1, { enemyFirst = false } = {}) {
     const g = this.screenToGround(px, py);
     if (!g) return null;
-    let best = null; let bestD = radiusTiles * radiusTiles;
+    const enemyRadius = radiusTiles * 1.45;
+    let own = null; let ownD = radiusTiles * radiusTiles;
+    let foe = null; let foeD = enemyRadius * enemyRadius;
     (view?.squads || []).forEach((s) => {
-      if (!s.alive || !s.onField) return;
+      if (!s.alive || !s.onField || s.fled || s.inside >= 0) return;
       const d = (s.x / Q - g.x) ** 2 + (s.y / Q - g.z) ** 2;
-      if (d < bestD) { bestD = d; best = { kind: 'squad', idx: s.idx, side: s.side }; }
+      if (s.side === view.playerSide) { if (d < ownD) { ownD = d; own = { kind: 'squad', idx: s.idx, side: s.side }; } return; }
+      if (s.visible === false) return;
+      if (d < foeD) { foeD = d; foe = { kind: 'squad', idx: s.idx, side: s.side }; }
     });
+    let best = null;
+    if (foe && (enemyFirst || !own || foeD < ownD)) best = foe;
+    else if (own) best = own;
     if (best) return { ...best, ground: g };
     (view?.structures || []).forEach((s, index) => {
       if (!s.alive) return;
@@ -707,6 +776,7 @@ export class BattleRenderer {
       } else if (e.type === 'melee' && e.to !== undefined) {
         const to = view.squads[e.to];
         if (to) for (let k = 0; k < 3; k++) this.fx.push({ kind: 'spark', x: to.x / Q + (hash01(e.t * 7 + k) - 0.5), z: to.y / Q + (hash01(e.t * 13 + k) - 0.5), t: 0, life: 0.35, seed: k });
+        if (to && e.damage > 0 && isOrganic(to.classId, to.ageId)) this.bleed(to.x / Q, to.y / Q, e.t * 19 + e.from * 7);
       } else if (e.type === 'impact') {
         const r = e.radius / Q;
         const n = Math.min(24, 6 + Math.round(r * 3));
@@ -721,7 +791,7 @@ export class BattleRenderer {
         if (s) for (let k = 0; k < 8; k++) this.fx.push({ kind: 'spark', x: s.x / Q + (hash01(k * 3 + e.t) - 0.5) * 1.6, z: s.y / Q + (hash01(k * 5 + e.t) - 0.5) * 1.6, t: 0, life: 0.8, seed: k, big: true });
       }
     });
-    if (this.fx.length > 200) this.fx.splice(0, this.fx.length - 200);
+    if (this.fx.length > 400) this.fx.splice(0, this.fx.length - 400);
   }
 
   adaptResolution(dt) {
@@ -765,14 +835,19 @@ export class BattleRenderer {
     const camQuat = this.camera.quaternion;
     if (cur.fog) this.setFog(cur.fog);
     cur.squads.forEach((s) => {
-      if (!s.alive || !s.onField || s.inside >= 0) return; // garrisoned squads are inside their building
-      if (s.side !== cur.playerSide && s.visible === false) return; // in the fog of war
+      const memo = this.soldierMemo.get(s.idx);
+      // Wiped out on the field: every soldier still standing last frame falls at once.
+      if (!s.alive && memo && !s.fled) this.spillBlood(memo, 0);
+      if (!s.alive || !s.onField || s.inside >= 0 || s.fled) { this.soldierMemo.delete(s.idx); return; } // garrisoned squads are inside their building
+      if (s.side !== cur.playerSide && s.visible === false) { this.soldierMemo.delete(s.idx); return; } // in the fog of war
       const p = prev?.squads?.[s.idx];
       const useP = p && p.onField;
       const x = (useP ? lerp(p.x, s.x, alpha) : s.x) / Q;
       const z = (useP ? lerp(p.y, s.y, alpha) : s.y) / Q;
       const facing = useP ? lerpAngle256(p.facing, s.facing, alpha) : s.facing;
-      const moving = useP && (p.x !== s.x || p.y !== s.y);
+      // Squads in contact get nudged apart a little every tick; that's jostling, not marching.
+      const step = useP ? Math.hypot(p.x - s.x, p.y - s.y) / Q : 0;
+      const moving = step > 0.03 && !s.striking;
       const y = this.heightAt(x, z);
       const stats = getBattleStats(s.classId, s.ageId);
       const n = getSoldierCount(stats, s.strength, s.maxStrength);
@@ -785,8 +860,8 @@ export class BattleRenderer {
       const spacing = stats.flying ? 1.4 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52;
       const scale = MODEL_SCALE[s.classId] || 0.62;
       const heading = Math.atan2(fx, fz);
-      // Fighting when it has a target and is standing its ground (squads closing in are "moving").
-      const fighting = s.target >= 0 && !moving && !s.routed;
+      // Fighting while it's actually swinging or shooting, or standing its ground with a target.
+      const fighting = !s.routed && (s.striking || (s.target >= 0 && !moving));
       tmpColor.set(this.setup.sides[s.side].color);
       if (s.routed) tmpColor.lerp(new Color('#9ca3af'), 0.6);
       if (s.hidden) tmpColor.lerp(new Color('#e2e8f0'), 0.45); // in ambush
@@ -810,6 +885,10 @@ export class BattleRenderer {
         writeSoldierVariant(layer.variant.array, k, s.idx, s.side, i);
         layer.count += 1;
       }
+      // Soldiers lost since last frame go down in a spray of blood where they stood.
+      const nextMemo = { n, x, z, fx, fz, cols, spacing, big, organic: isOrganic(s.classId, s.ageId), idx: s.idx };
+      if (memo && n < memo.n) this.spillBlood({ ...nextMemo, n: memo.n }, n);
+      this.soldierMemo.set(s.idx, nextMemo);
       // Ground ring, selection ring, standard-bearer banner, strength bar.
       const r = 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
       tmp.rotation.set(0, 0, 0); tmp.position.set(x, y + 0.05, z); tmp.scale.set(r, 1, r); tmp.updateMatrix();
@@ -831,7 +910,7 @@ export class BattleRenderer {
       this.barBg.setMatrixAt(barN, tmp.matrix);
       tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -0.5); tmp.scale.set(1.0 * frac, 1, 1); tmp.updateMatrix();
       this.barFill.setMatrixAt(barN, tmp.matrix);
-      this.barFill.setColorAt(barN, tmpColor.setHSL(0.33 * frac, 0.75, 0.5));
+      this.barFill.setColorAt(barN, tmpColor.set(frac > 0.3 ? '#22c55e' : '#84cc16'));
       barN += 1;
     });
     this.soldierLayers.forEach((l) => {
@@ -844,6 +923,38 @@ export class BattleRenderer {
     [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, discN], [this.bannerFlags, discN]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
+  }
+
+  // Soldiers `from`..memo.n-1 of a squad (laid out as in drawSquads) have just fallen: each one
+  // throws a few droplets and leaves a pool on the ground; a machine throws sparks and leaves a
+  // scorch mark instead.
+  spillBlood(memo, from) {
+    const { x, z, fx, fz, cols, spacing, big, organic, idx } = memo;
+    for (let i = from; i < memo.n; i++) {
+      const col = i % cols; const row = Math.floor(i / cols);
+      const lat = (col - (cols - 1) / 2) * spacing; const back = row * spacing;
+      const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
+      const seed = idx * 977 + i * 31 + Math.floor(this.time * 60);
+      if (organic) {
+        for (let k = 0; k < 7; k++) {
+          const a = hash01(seed + k * 3) * Math.PI * 2; const v = 0.6 + hash01(seed + k * 5) * 1.6;
+          this.fx.push({ kind: 'blood', x: px, z: pz, y: 0.55 + hash01(seed + k) * 0.35, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 1 + hash01(seed + k * 7) * 2.2, t: 0, life: 0.7, color: BLOOD_COLORS[k % 3] });
+        }
+      } else {
+        for (let k = 0; k < 4; k++) this.fx.push({ kind: 'spark', x: px + (hash01(seed + k) - 0.5), z: pz + (hash01(seed + k * 3) - 0.5), t: 0, life: 0.9, seed: k, big: true, fire: k % 2 === 0 });
+      }
+      const size = (organic ? 0.45 + hash01(seed + 11) * 0.35 : 0.8) * (big ? 1.6 : 1);
+      this.splats.push({ x: px, z: pz, rot: hash01(seed + 13) * Math.PI * 2, size, t: 0, layer: this.splats.length % 3, color: organic ? '#6b0f0f' : '#1c1917' });
+    }
+    if (this.splats.length > MAX_SPLATS) this.splats.splice(0, this.splats.length - MAX_SPLATS);
+  }
+
+  // A few drops on every melee blow that lands on living troops (death gets the full spray).
+  bleed(x, z, seed) {
+    for (let k = 0; k < 3; k++) {
+      const a = hash01(seed + k * 3) * Math.PI * 2; const v = 0.4 + hash01(seed + k * 5) * 0.9;
+      this.fx.push({ kind: 'blood', x: x + (hash01(seed + k) - 0.5) * 0.8, z: z + (hash01(seed + k * 9) - 0.5) * 0.8, y: 0.6, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 0.8 + hash01(seed + k * 7) * 1.2, t: 0, life: 0.5, color: BLOOD_COLORS[k % 3] });
+    }
   }
 
   drawStructures(cur) {
@@ -897,6 +1008,30 @@ export class BattleRenderer {
         sn += 1;
       }
     });
+    let bn = 0;
+    this.fx.forEach((f) => {
+      if (f.kind !== 'blood' || bn >= MAX_BLOOD) return;
+      const t = f.t;
+      const ground = this.heightAt(f.x, f.z);
+      const px = f.x + f.vx * t * 0.6; const pz = f.z + f.vz * t * 0.6;
+      const py = Math.max(ground + 0.03, ground + f.y + f.vy * t - 4.9 * t * t);
+      tmp.position.set(px, py, pz); tmp.rotation.set(t * 6, t * 4, 0);
+      const sc = 1 - (f.t / f.life) * 0.4; tmp.scale.set(sc, sc * 1.4, sc); tmp.updateMatrix();
+      this.blood.setMatrixAt(bn, tmp.matrix); this.blood.setColorAt(bn, tmpColor.set(f.color)); bn += 1;
+    });
+    this.blood.count = bn; this.blood.instanceMatrix.needsUpdate = true; if (this.blood.instanceColor) this.blood.instanceColor.needsUpdate = true;
+    this.splats = this.splats.filter((sp) => (sp.t += dt) < SPLAT_LIFE);
+    const splatN = [0, 0, 0];
+    this.splats.forEach((sp) => {
+      const m = this.splatLayers[sp.layer]; const k = splatN[sp.layer];
+      if (k >= 64) return;
+      // Spreads out over the first half second, then shrinks away over the last four seconds.
+      const grow = Math.min(1, sp.t / 0.5); const fade = Math.min(1, (SPLAT_LIFE - sp.t) / 4);
+      const sc = sp.size * (0.4 + 0.6 * grow) * fade;
+      tmp.rotation.set(0, sp.rot, 0); tmp.position.set(sp.x, this.heightAt(sp.x, sp.z) + 0.03, sp.z); tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
+      m.setMatrixAt(k, tmp.matrix); m.setColorAt(k, tmpColor.set(sp.color)); splatN[sp.layer] += 1;
+    });
+    this.splatLayers.forEach((m, i) => { m.count = splatN[i]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
     this.markers = this.markers.filter((m) => (m.t += dt) < 0.8);
     this.markers.forEach((m) => {
       if (mn >= 64) return;
