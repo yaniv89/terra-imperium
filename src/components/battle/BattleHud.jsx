@@ -49,7 +49,7 @@ const BattleHud = ({
         </div>
         <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
           <div className="px-3 py-1 rounded-full bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-semibold shadow-lg flex items-center gap-3">
-            <span className="truncate max-w-[40vw]">{title || 'Battle'}</span>
+            <span className="truncate max-w-[40vw] hidden min-[420px]:inline">{title || 'Battle'}</span>
             <span className="font-mono">{fmtTime(timeLeft)}</span>
             <span className="text-amber-300 font-mono" title="Battle Supply">⛁ {Math.floor(supply)}</span>
             <span className="text-orange-300 font-mono" title="Enemy squads left">⚔ {enemyLeft}</span>

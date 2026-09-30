@@ -29,6 +29,7 @@ import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
+import BattleChoiceSheet from '../battle/BattleChoiceSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
 // within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
@@ -66,6 +67,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   useReportInset('region-info', 'bottom', sheetRef, sheetShown);
   const [peeking, cancelPeek] = useAutoPeek(sheetShown);
   const [expanded, setExpanded] = useState(false);
+  const [battleChoiceFrom, setBattleChoiceFrom] = useState(null);
   useEffect(() => { setExpanded(false); }, [regionId]);
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
@@ -154,8 +156,14 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     })
     .sort((a, b) => Number(b.mine) - Number(a.mine) || a.name.localeCompare(b.name));
 
+  // Tactical Battles: a defended region asks how to fight (auto-resolve vs command the battle),
+  // unless the player chose to remember an answer; an undefended one is simply taken.
   const handleInvade = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
+    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land');
+    const mode = state.battleSettings?.defaultMode || 'ask';
+    if (defended && mode === 'ask') { setBattleChoiceFrom(fromRegionId); return; }
+    if (defended && mode === 'command') { dispatch({ type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId, targetRegionId: regionId } }); return; }
     triggerEffect('ground_invasion', { from: fromRegionId, to: regionId });
     dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: regionId } });
   };
@@ -492,6 +500,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           ))}
         </div>
       </Section>
+
+      {battleChoiceFrom && <BattleChoiceSheet fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
 
       {/* Description */}
       {regionData.description && (

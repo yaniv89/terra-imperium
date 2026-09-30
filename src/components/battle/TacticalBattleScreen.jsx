@@ -26,7 +26,7 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
   const speedRef = useRef(1);
   const [hud, setHud] = useState(null);
   const [selected, setSelected] = useState([]);
-  const [paused, setPaused] = useState(!resume);
+  const [paused, setPaused] = useState(true); // always open paused: deployment, or a resumed battle
   const [started, setStarted] = useState(!!resume);
   const [speed, setSpeed] = useState(1);
   const [armed, setArmed] = useState(null);
@@ -55,7 +55,7 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
     ro.observe(wrap);
 
     const client = createBattleClient({
-      setup, resume, paused: !resume,
+      setup, resume, paused: true,
       onMessage: (m) => {
         if (m.type === 'frame') {
           const f = frames.current;
@@ -181,7 +181,7 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
   // --- HUD actions -----------------------------------------------------------------------------
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { setStarted(true); setPaused(false); c.resume(); return; }
+    if (!started) { setStarted(true); setPaused(false); c.resume(); return; } // deployment → battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const changeSpeed = (s) => { speedRef.current = s; setSpeed(s); clientRef.current?.setSpeed(s); };

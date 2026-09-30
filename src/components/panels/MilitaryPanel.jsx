@@ -90,6 +90,23 @@ const MilitaryPanel = () => {
         onHire={handleHireGeneral}
       />
 
+      {/* Tactical Battles: how invasions of a defended region are fought. */}
+      <div className="bg-slate-800/40 rounded-lg p-3 space-y-2">
+        <div className="text-xs font-semibold text-slate-300">Invasion battles</div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {[['ask', 'Ask each time'], ['auto', 'Auto-resolve'], ['command', 'Command']].map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: mode } })}
+              className={`min-h-[40px] px-2 rounded-lg text-[11px] font-semibold border ${(state.battleSettings?.defaultMode || 'ask') === mode ? 'bg-blue-600/30 border-blue-400 text-blue-100' : 'bg-slate-900/60 border-slate-700 text-slate-300'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {state.lastBattleReport && <BattleReport report={state.lastBattleReport} />}
 
       <div className="text-slate-500 text-xs text-center pt-4 border-t border-slate-800">

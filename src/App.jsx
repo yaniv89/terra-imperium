@@ -1,7 +1,7 @@
 // src/App.jsx
 // Main application component - Terra Imperium
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { MapInsetsProvider } from './context/MapInsetsContext';
@@ -10,6 +10,9 @@ import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
 import AdminPage from './components/admin/AdminPage';
+
+// The commanded-battle screen (three.js + the sim worker) only downloads when a battle starts.
+const TacticalBattleHost = lazy(() => import('./components/battle/TacticalBattleHost'));
 import { GameStatus, LogTypes, ActionTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
@@ -234,6 +237,7 @@ const GameLayout = () => {
 
       {/* Cross-device save conflict (plan §M0.5) - blocks play until resolved, since there is no
           silent merge between two diverged games. */}
+      {state.pendingBattle && <Suspense fallback={<div className="fixed inset-0 z-[80] bg-slate-950 flex items-center justify-center text-slate-300 text-sm">Preparing the battlefield…</div>}><TacticalBattleHost /></Suspense>}
       <ConflictChooserModal conflict={cloudSync.conflict} onChoose={cloudSync.resolveConflict} />
 
       {/* Onboarding (Phase H) - once ever, per browser, for a genuinely new player. Sits above
