@@ -40,6 +40,48 @@ const resolveRelativeImport = (fromFile, spec) => {
   return candidates.find((c) => fs.existsSync(c)) || base;
 };
 
+// The tactical-battle simulation (src/battle/sim, setup, data) must be just as pure: it runs in a
+// Web Worker, in tests, and later server-side for replay verification (Tactical Battles plan §3).
+const BATTLE_PURE_DIRS = ['sim', 'setup', 'data'].map((d) => path.join(SRC_ROOT, 'battle', d));
+// Anything non-deterministic or environment-bound breaks exact replays.
+const NONDETERMINISTIC_RE = /\bMath\.random\s*\(|\bDate\.now\s*\(|\bperformance\.now\s*\(|\bnew Date\s*\(|\bwindow\.|\bdocument\./;
+
+const findImportOffenders = (roots) => {
+  const offenders = [];
+  const visited = new Set();
+  const queue = roots.flatMap((dir) => (fs.existsSync(dir) ? collectFiles(dir) : []));
+  while (queue.length) {
+    const file = queue.pop();
+    if (visited.has(file) || !fs.existsSync(file)) continue;
+    visited.add(file);
+    const source = fs.readFileSync(file, 'utf8');
+    let match;
+    IMPORT_RE.lastIndex = 0;
+    while ((match = IMPORT_RE.exec(source))) {
+      const spec = match[1];
+      if (FORBIDDEN_BARE_PACKAGES.includes(spec)) { offenders.push(`${path.relative(SRC_ROOT, file)} imports forbidden package "${spec}"`); continue; }
+      if (!spec.startsWith('.')) continue;
+      const resolved = resolveRelativeImport(file, spec);
+      if (FORBIDDEN_DIRS.some((dir) => resolved.startsWith(dir + path.sep))) { offenders.push(`${path.relative(SRC_ROOT, file)} imports from ${path.relative(SRC_ROOT, resolved)}`); continue; }
+      if (resolved.startsWith(SRC_ROOT) && !visited.has(resolved)) queue.push(resolved);
+    }
+  }
+  return offenders;
+};
+
+describe('tactical battle sim purity guard', () => {
+  it('src/battle/{sim,setup,data} never reach into React, rendering packages or the UI layer', () => {
+    expect(findImportOffenders(BATTLE_PURE_DIRS)).toEqual([]);
+  });
+
+  it('src/battle/{sim,setup,data} use no randomness, clocks or browser globals (replays must be exact)', () => {
+    const offenders = BATTLE_PURE_DIRS.flatMap((dir) => (fs.existsSync(dir) ? collectFiles(dir) : []))
+      .filter((file) => NONDETERMINISTIC_RE.test(fs.readFileSync(file, 'utf8').replace(/\/\/.*$/gm, '')))
+      .map((file) => path.relative(SRC_ROOT, file));
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('engine purity guard', () => {
   it('src/engine/** and everything it transitively imports never reaches into React, a rendering package, or the UI layer', () => {
     const offenders = [];
