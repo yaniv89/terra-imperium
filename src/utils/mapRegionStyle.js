@@ -38,11 +38,28 @@ export const getAtWarNationIds = (wars, playerNationId) => {
   return ids;
 };
 
+// Occupation (plan §M13): a region held by someone else's army keeps its owner until the peace
+// table, but it must LOOK held. Land you occupy turns toward cyan ("yours, until peace"); your own
+// land under enemy occupation turns red; AI-vs-AI occupations blend toward the occupier's colour.
+export const OCCUPIED_BY_PLAYER_COLOR = '#22d3ee';
+const OCCUPIED_FROM_PLAYER_COLOR = '#ef4444';
+const mixHex = (a, b, t) => {
+  const pa = parseInt(a.slice(1), 16); const pb = parseInt(b.slice(1), 16);
+  const ch = (shift) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
+  return `#${((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1)}`;
+};
+
 export const getRegionFillColor = (regions, playerNationId, gameRegionId) => {
   const regionState = regions[gameRegionId];
   if (!regionState) return UNKNOWN_NATION_COLOR;
   const isPlayerOwned = regionState.owner === playerNationId;
-  return fillColorForRegion(regionState, isPlayerOwned);
+  const base = fillColorForRegion(regionState, isPlayerOwned);
+  const occupier = regionState.occupiedBy;
+  if (!occupier || occupier === regionState.owner || !base.startsWith('#') || base.length !== 7) return base;
+  if (occupier === playerNationId) return mixHex(base, OCCUPIED_BY_PLAYER_COLOR, 0.6);
+  if (isPlayerOwned) return mixHex(base, OCCUPIED_FROM_PLAYER_COLOR, 0.6);
+  const occ = getNationColor(occupier);
+  return occ?.startsWith('#') && occ.length === 7 ? mixHex(base, occ, 0.5) : base;
 };
 
 // A region owned by a nation you're at war with gets a red outline instead of black — the war
@@ -52,6 +69,7 @@ export const getRegionFillColor = (regions, playerNationId, gameRegionId) => {
 export const getRegionStrokeColor = (regions, playerNationId, gameRegionId, selectedRegionId, atWarNationIds) => {
   if (gameRegionId === selectedRegionId) return '#2563eb';
   const regionState = regions[gameRegionId];
+  if (regionState?.occupiedBy === playerNationId && regionState.owner !== playerNationId) return OCCUPIED_BY_PLAYER_COLOR;
   if (regionState?.underInvasion) return '#ef4444';
   if (regionState && regionState.owner !== playerNationId && atWarNationIds.has(regionState.owner)) return '#ef4444';
   return '#000000';

@@ -199,7 +199,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
     : state.wars;
 
   const outcomeMessage = captured
-    ? `Your forces occupy ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+    ? `Your forces occupy ${REGIONS_DATA[targetRegionId]?.name}. It stays ${state.nations[targetRegion.owner]?.name || targetRegion.owner}'s land until peace — demand it in a peace deal (Diplomacy) to make it yours.`
     : outcome === 'attacker'
       ? `Your forces broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
       : outcome === 'defender'
@@ -323,7 +323,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
     : state.wars;
 
   const outcomeMessage = captured
-    ? `Your amphibious assault occupies ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+    ? `Your amphibious assault occupies ${REGIONS_DATA[targetRegionId]?.name}. It stays ${state.nations[targetRegion.owner]?.name || targetRegion.owner}'s land until peace — demand it in a peace deal (Diplomacy) to make it yours.`
     : outcome === 'attacker'
       ? `Your landing broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
       : outcome === 'defender'

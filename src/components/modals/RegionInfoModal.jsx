@@ -30,6 +30,7 @@ import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import BattleChoiceSheet from '../battle/BattleChoiceSheet';
+import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
 // within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
@@ -68,7 +69,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const [peeking, cancelPeek] = useAutoPeek(sheetShown);
   const [expanded, setExpanded] = useState(false);
   const [battleChoiceFrom, setBattleChoiceFrom] = useState(null);
-  const [landingChoice, setLandingChoice] = useState(null); // naval unit id of a landing awaiting "auto or command?"
+  const [landingChoice, setLandingChoice] = useState(null);
+  const [peaceOpen, setPeaceOpen] = useState(false); // naval unit id of a landing awaiting "auto or command?"
   useEffect(() => { setExpanded(false); }, [regionId]);
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
@@ -121,6 +123,10 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const navalEngagementSources = (!isPlayerOwned && defendingNavalUnits.length > 0)
     ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age)).map((u) => u.regionId))]
     : [];
+  // The war to settle when this region is held by your army (its owner is the enemy).
+  const occupationWar = regionState.occupiedBy === state.playerNationId
+    ? state.wars.find((w) => w.active && ((w.aggressor === state.playerNationId && w.enemy === regionState.owner) || (w.enemy === state.playerNationId && w.aggressor === regionState.owner)))
+    : null;
   // Attacking needs a war with the owner (plan §M13). At peace, the attack buttons would do nothing,
   // so they're replaced by the decision that actually comes first: declaring war.
   const atWarWithOwner = !!ownerNation && isAtWarWithPlayer(state, ownerNation.id);
@@ -283,6 +289,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
               <AlertTriangle className="w-3 h-3" /><span>Under Invasion!</span>
+            </div>
+          )}
+          {regionState.occupiedBy === state.playerNationId && occupationWar && (
+            <div className="rounded-lg border border-cyan-400/50 bg-cyan-500/10 p-2 text-[11px] text-cyan-100 space-y-1.5" data-testid="occupation-note">
+              <div>Your army holds {regionData.name}, but it stays {ownerNation?.name || 'theirs'}&apos;s land until peace. Demand it in a peace deal to make it yours.</div>
+              <button type="button" onClick={() => setPeaceOpen(true)} className="w-full min-h-[40px] rounded-lg bg-cyan-600/80 border border-cyan-300 font-semibold text-white" data-testid="open-peace-deal">Negotiate peace…</button>
             </div>
           )}
           {regionState.occupiedBy && (
@@ -543,6 +555,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       </Section>
 
       {battleChoiceFrom && <BattleChoiceSheet fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
+      {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} />}
       {landingChoice && <BattleChoiceSheet navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
 
       {/* Description */}

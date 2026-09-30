@@ -320,3 +320,28 @@ describe('T9: commanded amphibious landing', () => {
     w.impacts.forEach((imp) => expect(imp.x).toBeLessThanOrEqual(maxX));
   });
 });
+
+describe('occupation → annexation (reported: "occupied Aqaba but it didn\'t change owner")', () => {
+  it('an occupied region becomes yours when the enemy cedes it in a peace deal', () => {
+    const s0 = withArmies();
+    // Take the undefended region by auto-resolve: occupied, not owned.
+    const s = { ...s0, units: { a1: s0.units.a1 } };
+    const taken = gameReducer(s, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+    expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'be', occupiedBy: 'fr' });
+    expect(taken.logs.at(-1).message).toMatch(/until peace/);
+    // Winning the war enough that they accept, then demanding it at the table.
+    const winning = { ...taken, wars: taken.wars.map((w) => (w.id === 'war_t' ? { ...w, score: 80 } : w)) };
+    const peace = gameReducer(winning, { type: ActionTypes.OFFER_PEACE, payload: { warId: 'war_t', terms: [{ type: 'cede', regionId: BE_REGION }] } });
+    expect(peace.regions[BE_REGION].owner).toBe('fr');
+    expect(peace.regions[BE_REGION].occupiedBy).toBeFalsy();
+    expect(peace.wars.find((w) => w.id === 'war_t').active).toBe(false);
+  });
+
+  it('the map shows occupation: an occupied region is drawn differently from its owner\'s land', async () => {
+    const { getRegionFillColor, getRegionStrokeColor, OCCUPIED_BY_PLAYER_COLOR } = await import('../utils/mapRegionStyle');
+    const s = withArmies();
+    const occupied = { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: 'fr' } };
+    expect(getRegionFillColor(occupied, 'fr', BE_REGION)).not.toBe(getRegionFillColor(s.regions, 'fr', BE_REGION));
+    expect(getRegionStrokeColor(occupied, 'fr', BE_REGION, null, new Set())).toBe(OCCUPIED_BY_PLAYER_COLOR);
+  });
+});
