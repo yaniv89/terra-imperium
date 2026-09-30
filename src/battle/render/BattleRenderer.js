@@ -10,12 +10,14 @@ import {
   MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, Object3D, Vector3, Vector2, Raycaster, Plane,
   ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry,
   Float32BufferAttribute, DoubleSide, Group, Mesh, Fog, DataTexture, RGBAFormat, LinearFilter,
-  ACESFilmicToneMapping, PCFSoftShadowMap, InstancedBufferAttribute, MeshStandardMaterial, IcosahedronGeometry
+  ACESFilmicToneMapping, PCFSoftShadowMap, InstancedBufferAttribute, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount } from '../data/battleStats';
-import { getSoldierGeometry, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
+import { getSoldierGeometry, getImposterGeometry, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
+import { writeSoldierVariant } from './unitVariants';
+import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
 import { Q } from '../sim/constants';
 
 const GROUND = {
@@ -443,23 +445,38 @@ export class BattleRenderer {
     this.markerRings = mk(new RingGeometry(0.6, 0.8, 20).rotateX(-Math.PI / 2), '#a3e635', 0.9);
   }
 
-  // One instanced, animated mesh per (age, class, side): its own copy of the model geometry with a
-  // per-instance animation attribute (phase, moving, attacking) the rig shader reads.
-  soldierLayer(ageId, classId, side) {
-    const key = `${ageId}:${classId}:${side}`;
+  // One soldier layer per (age, class) for BOTH armies — the side's colour is per instance
+  // (instanceColor), so two armies of the same age cost the same draw calls as one. A layer is a
+  // ZoomLOD of two InstancedMeshes, the full model (with shadows) and its ~50-triangle imposter
+  // (no shadow pass), which SHARE every per-instance buffer: matrix, colour, animation (phase,
+  // moving, attacking) and variant (skin tone, emblem cell, cloth jitter). The CPU writes each
+  // soldier once per frame and uploads only the used range; the GPU draws whichever level shows.
+  soldierLayer(ageId, classId) {
+    const key = `${ageId}:${classId}`;
     let layer = this.soldierLayers.get(key);
-    if (!layer) {
-      const MAX = 16 * 20;
-      const geo = this.track(getSoldierGeometry(ageId, classId).clone());
-      layer = new InstancedMesh(geo, this.soldierMaterial, MAX);
-      layer.userData.anim = new InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
-      geo.setAttribute('aAnim', layer.userData.anim);
-      layer.customDepthMaterial = this.soldierDepth;
-      layer.castShadow = true; layer.receiveShadow = true;
-      layer.count = 0; layer.frustumCulled = false;
-      this.scene.add(layer);
-      this.soldierLayers.set(key, layer);
-    }
+    if (layer) return layer;
+    const MAX = 2 * 16 * 20;
+    const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
+    const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
+    const make = (source, shadow) => {
+      const geo = this.track(source.clone());
+      geo.setAttribute('aAnim', anim);
+      geo.setAttribute('aVariant', variant);
+      const mesh = new InstancedMesh(geo, this.soldierMaterial, MAX);
+      mesh.instanceMatrix = matrix; mesh.instanceColor = color;
+      if (shadow) mesh.customDepthMaterial = this.soldierDepth;
+      mesh.castShadow = shadow; mesh.receiveShadow = true;
+      mesh.count = 0; mesh.frustumCulled = false;
+      return mesh;
+    };
+    const high = make(getSoldierGeometry(ageId, classId), true);
+    const low = make(getImposterGeometry(ageId, classId), false);
+    const lod = new ZoomLOD(120);
+    lod.addLevel(high, 0);
+    lod.addLevel(low, IMPOSTER_DISTANCE, 0.06);
+    this.scene.add(lod);
+    layer = { lod, high, low, matrix, color, anim, variant, count: 0, capacity: MAX };
+    this.soldierLayers.set(key, layer);
     return layer;
   }
 
@@ -605,7 +622,6 @@ export class BattleRenderer {
 
   drawSquads(prev, cur, alpha, ui) {
     const selected = ui?.selected || new Set();
-    const counts = new Map();
     this.soldierLayers.forEach((l) => { l.count = 0; });
     let discN = 0; let ringN = 0; let barN = 0;
     const camQuat = this.camera.quaternion;
@@ -622,8 +638,8 @@ export class BattleRenderer {
       const y = this.heightAt(x, z);
       const stats = getBattleStats(s.classId, s.ageId);
       const n = getSoldierCount(stats, s.strength, s.maxStrength);
-      const layer = this.soldierLayer(s.ageId, s.classId, s.side);
-      const anim = layer.userData.anim;
+      const layer = this.soldierLayer(s.ageId, s.classId);
+      const { anim } = layer;
       const a = (facing / 256) * Math.PI * 2;
       const fx = Math.cos(a); const fz = Math.sin(a);
       const big = s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || stats.flying;
@@ -644,18 +660,18 @@ export class BattleRenderer {
         const back = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
         const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
         const k = layer.count;
-        if (k >= layer.instanceMatrix.count) break;
+        if (k >= layer.capacity) break;
         tmp.position.set(px, stats.flying ? 2.4 + Math.sin(this.time * 2 + i) * 0.15 : this.heightAt(px, pz), pz);
         // Routed troops turn and run; everyone else faces the squad's heading (a touch of variety).
         tmp.rotation.set(stats.flying ? Math.sin(this.time + i) * 0.15 : 0, heading + (s.routed ? Math.PI : 0) + (hash01(s.idx * 7 + i) - 0.5) * 0.18, 0);
         tmp.scale.set(scale, scale, scale);
         tmp.updateMatrix();
-        layer.setMatrixAt(k, tmp.matrix);
-        layer.setColorAt(k, tmpColor);
+        layer.high.setMatrixAt(k, tmp.matrix); // shared with layer.low
+        layer.high.setColorAt(k, tmpColor);
         anim.setXYZ(k, hash01(s.idx * 131 + i) * 6.283, moving || s.routed ? 1 : 0, fighting ? 1 : 0);
+        writeSoldierVariant(layer.variant.array, k, s.idx, s.side, i);
         layer.count += 1;
       }
-      counts.set(layer, true);
       // Ground ring, selection ring, standard-bearer banner, strength bar.
       const r = 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
       tmp.rotation.set(0, 0, 0); tmp.position.set(x, y + 0.05, z); tmp.scale.set(r, 1, r); tmp.updateMatrix();
@@ -680,7 +696,13 @@ export class BattleRenderer {
       this.barFill.setColorAt(barN, tmpColor.setHSL(0.33 * frac, 0.75, 0.5));
       barN += 1;
     });
-    this.soldierLayers.forEach((l) => { l.instanceMatrix.needsUpdate = true; if (l.instanceColor) l.instanceColor.needsUpdate = true; l.userData.anim.needsUpdate = true; });
+    this.soldierLayers.forEach((l) => {
+      l.high.count = l.count; l.low.count = l.count;
+      if (!l.count) return;
+      [l.matrix, l.color, l.anim, l.variant].forEach((a) => {
+        a.clearUpdateRanges(); a.addUpdateRange(0, l.count * a.itemSize); a.needsUpdate = true;
+      });
+    });
     [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, discN], [this.bannerFlags, discN]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
@@ -748,7 +770,7 @@ export class BattleRenderer {
   }
 
   dispose() {
-    this.soldierLayers.forEach((l) => l.dispose());
+    this.soldierLayers.forEach((l) => { l.high.dispose(); l.low.dispose(); });
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();
