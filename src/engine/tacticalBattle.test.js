@@ -76,6 +76,19 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     expect(gameReducer(next, { type: ActionTypes.ADVANCE_TURN }).turnNumber).toBe(next.turnNumber + 1);
   });
 
+  it('with the command log, the battle is replayed and a forged result is ignored (server-verified)', () => {
+    const started = begin(withArmies());
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    const log = [{ side: 0, type: 'attackMove', squads: [0, 1, 2], x: 60 * 256, y: 30 * 256, tick: 0, seq: 0 }];
+    const truth = runHeadless(setup, { orders: log });
+    const forged = { outcome: 'attacker', attackerUnits: [], defenderUnits: [], report: { tactical: { decisive: true } } };
+    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: forged, log } });
+    expect(next.lastBattleReport.outcome).toBe(truth.result.outcome);
+    expect(next.lastBattleReport.tactical.verified).toBe(true);
+    expect(next.lastBattleReport.tactical.hash).toBe(truth.hash);
+    truth.result.defenderUnits.forEach((u) => { if (u.strength > 0 && !next.lastBattleReport.captured) expect(next.units[u.id].strength).toBe(u.strength); });
+  });
+
   it('a decisive (keep taken) win captures the region outright', () => {
     const started = begin(withArmies());
     const pb = started.pendingBattle;

@@ -33,7 +33,7 @@ const TacticalBattleHost = () => {
   if (!pb || !setup || resume === undefined) return null;
   const finish = (ended) => {
     clearBattleCheckpoint(pb.id);
-    dispatch({ type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result: ended.result } });
+    dispatch({ type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result: ended.result, log: ended.log } });
   };
   const abandon = () => { clearBattleCheckpoint(pb.id); dispatch({ type: ActionTypes.ABANDON_TACTICAL_BATTLE }); };
   return (

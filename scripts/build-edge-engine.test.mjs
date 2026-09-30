@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url';
 import { buildEdgeEngine } from './build-edge-engine.mjs';
 import { createInitialState as sourceCreateInitialState, gameReducer as sourceGameReducer } from '../src/engine/gameReducer.js';
 import { ActionTypes } from '../src/data/types.js';
+import { recordBattle } from '../src/battle/sim/__fixtures__/recordBattles.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUNDLE_PATH = path.resolve(__dirname, '../supabase/functions/resolve-turn/_engine.bundle.js');
@@ -77,4 +78,16 @@ describe('the Deno-bound engine bundle behaves identically to its source', () =>
     const contents = await readFile(BUNDLE_PATH, 'utf8');
     expect(contents).not.toMatch(/^\s*import\s/m);
   });
+
+  // Tactical Battles T9 exit gate (design/rts-battles-implementation-plan.md §17): the server
+  // replays a commanded battle's log and must get exactly what the client got.
+  it('replays 20 live-recorded battles to the identical result the client reported', () => {
+    for (let i = 0; i < 20; i++) {
+      const { setup, ended } = recordBattle(i);
+      // Through JSON, as it would arrive over the wire.
+      const replay = bundled.replayBattle(JSON.parse(JSON.stringify(setup)), JSON.parse(JSON.stringify(ended.log)));
+      expect(replay.hash, `battle ${i}`).toBe(ended.hash);
+      expect(replay.result, `battle ${i}`).toEqual(ended.result);
+    }
+  }, 180000);
 });
