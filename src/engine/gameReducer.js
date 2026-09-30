@@ -30,7 +30,9 @@ import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, AMPHIBIOUS_PENALTY_MULT, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
-import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+
+const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
@@ -638,16 +640,17 @@ export const gameReducer = (state, action) => {
       // the player's attention — an event becomes active, a war starts or ends, the game ends —
       // or a turn cap is hit, so a single click can't silently skip to the end of the game.
       const MAX_TURNS = 20;
-      const countWars = (s) => Object.values(s.nations).filter(n => n.isAtWar).length;
+      // Which wars are live (a nation can fight several, so count wars, not belligerents).
+      const warKey = (s) => (s.wars || []).filter(w => w.active).map(w => w.id).join('|');
       let current = state;
-      const startingWarCount = countWars(current);
+      const startingWars = warKey(current);
       for (let i = 0; i < MAX_TURNS; i++) {
         const next = resolveTurn(current);
         if (next === current) break; // resolveTurn's own no-op guard (event pending / game over)
         current = next;
         if (current.gameStatus !== GameStatus.ACTIVE) break;
         if (current.activeEventId || current.activeProceduralEvent || current.pendingPeaceOffer || current.pendingDefenses?.length) break;
-        if (countWars(current) !== startingWarCount) break;
+        if (warKey(current) !== startingWars) break;
       }
       return current;
     }
@@ -2167,7 +2170,9 @@ export const gameReducer = (state, action) => {
       const player = state.nations[state.playerNationId];
       // Plan §M12/§M15: "a vassal... can't declare wars except independence" — DECLARE_INDEPENDENCE
       // below is the one exception, and it doesn't go through this case.
-      if (!target || nationId === state.playerNationId || target.isAtWar || player?.vassalOf) return state;
+      // A nation already fighting someone else can still be attacked — only a second war against the
+      // same enemy is refused.
+      if (!target || nationId === state.playerNationId || isAtWarWithPlayer(state, nationId) || player?.vassalOf) return state;
       const justified = hasCasusBelli(state, state.playerNationId, nationId);
       const costs = justified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
       if (!canAfford(state.resources, costs)) return state;
@@ -2273,8 +2278,9 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(applied.resources, costs),
         regions: applied.regions,
-        nations: nextNations,
-        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        // The two sides may still be fighting other wars — isAtWar follows the live wars list.
+        nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
+        wars: endWar(state.wars, war.id),
         logs: [...state.logs, { year: state.year, message: `Signed a peace treaty with ${target.name}.`, type: LogTypes.DIPLOMACY }]
       };
     }
@@ -2305,8 +2311,9 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applied.resources,
         regions: applied.regions,
-        nations: nextNations,
-        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        // The two sides may still be fighting other wars — isAtWar follows the live wars list.
+        nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
+        wars: endWar(state.wars, war.id),
         logs: [...state.logs, { year: state.year, message: `Peace signed with ${recipient.name}.`, type: LogTypes.DIPLOMACY }]
       };
     }
@@ -2332,8 +2339,9 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applied.resources,
         regions: applied.regions,
-        nations: nextNations,
-        wars: state.wars.map(w => (w.id === war.id ? { ...w, active: false, goalAchieved: true } : w)),
+        // The two sides may still be fighting other wars — isAtWar follows the live wars list.
+        nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
+        wars: endWar(state.wars, war.id),
         pendingPeaceOffer: null,
         logs: [...state.logs, { year: state.year, message: `You accept peace with ${nextNations[recipientId]?.name || recipientId}.`, type: LogTypes.DIPLOMACY }]
       };
@@ -2373,7 +2381,7 @@ export const gameReducer = (state, action) => {
       const { nationId } = action.payload;
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.militaryAlliance;
-      if (!target || target.isAtWar || target.hasMilitaryPact) return state;
+      if (!target || isAtWarWithPlayer(state, nationId) || target.hasMilitaryPact) return state;
       // Alliance acceptance (plan §M12: "opinion/4 + prestige/10 ... accept if > 0"), adapted onto
       // this codebase's real axes: hostility stands in for opinion (inverted, since 50 is neutral
       // on a 0-100 hostility scale the way 0 is neutral on a signed opinion scale), and an existing

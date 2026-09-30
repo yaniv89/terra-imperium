@@ -7,7 +7,7 @@ import { RelationStatus, LogTypes, GameStatus } from '../data/types';
 import { REGIONS_DATA } from '../data/regions';
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
 import { RESOURCE_IDS } from '../data/resources';
-import { declareWar, isWarBetween } from './diplomacy';
+import { declareWar, isWarBetween, isAtWarWithPlayer, refreshWarFlags } from './diplomacy';
 import { clampStability, clampLegitimacy, clampPrestige } from './nationalPower';
 import { addNationModifier, addRegionModifier } from './modifiers/timed';
 import { REBEL_OWNER_ID, getRebelSpawnStrength } from '../data/rebellion';
@@ -162,7 +162,8 @@ export const applyEventEffects = (state, event, optionIndex) => {
       invasions = invasions.filter(inv => !(inv.attackerNation === nId && inv.attackerNation !== playerNationId));
       logs.push({ year: next.year, message: `PEACE signed with ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.MILESTONE });
     });
-    next.nations = nations;
+    // Anyone still fighting a different war stays at war.
+    next.nations = refreshWarFlags(nations, wars, [playerNationId, ...ids]);
     next.wars = wars;
     next.invasions = invasions;
   }
@@ -186,7 +187,7 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (effects.warWith) {
     const ids = Array.isArray(effects.warWith) ? effects.warWith : [effects.warWith];
     ids.forEach(nId => {
-      if (!next.nations[nId] || next.nations[nId].isAtWar) return;
+      if (!next.nations[nId] || isAtWarWithPlayer(next, nId)) return;
       next = declareWar(next, nId, { aggressor: playerNationId });
       logs.push({ year: next.year, message: `WAR declared on ${NATIONS_DATA[nId]?.name}!`, type: LogTypes.CRISIS });
     });

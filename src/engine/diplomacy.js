@@ -102,6 +102,26 @@ export const isWarBetween = (war, idA, idB) =>
 export const isAtWarWithPlayer = (state, nationId) =>
   state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, nationId));
 
+// nation.isAtWar mirrors state.wars: true while the nation is party to ANY active war. A nation can
+// fight several wars at once, so ending one war must not clear the flag of a nation that's still
+// fighting another — callers that end wars re-derive the flag for the nations involved (`ids`;
+// omitted = every nation). Returns `nations` itself when nothing changed.
+export const refreshWarFlags = (nations, wars, ids = null) => {
+  const fighting = new Set();
+  (wars || []).forEach((w) => { if (w.active) { fighting.add(w.aggressor); fighting.add(w.enemy); } });
+  let next = null;
+  (ids || Object.keys(nations)).forEach((id) => {
+    const n = nations[id];
+    if (!n || !!n.isAtWar === fighting.has(id)) return;
+    next = next || { ...nations };
+    next[id] = { ...n, isAtWar: fighting.has(id) };
+  });
+  return next || nations;
+};
+
+// Is there a live war between these two nations (either way round)?
+export const hasActiveWarBetween = (state, idA, idB) => (state.wars || []).some((w) => w.active && isWarBetween(w, idA, idB));
+
 // True once a war's goal condition is actually met. Pure and side-effect-free — the caller
 // (resolveWarProgress) decides what to do with a newly-achieved goal; since plan §M13, achieving a
 // goal no longer auto-ends the war (it only feeds war score — see updateTickScore below).
@@ -122,20 +142,19 @@ export const checkWarGoal = (war, state) => {
   return false;
 };
 
-// Declares war on `nationId`. No-op (returns state unchanged) if the nation doesn't exist or is
-// already at war. If the target had a peace treaty, this sets a permanent hostilityFloor — the
+// Declares war on `nationId`. No-op (returns state unchanged) if the nation doesn't exist, is the
+// aggressor itself, or is already at war WITH THE AGGRESSOR — a nation fighting someone else can
+// still be attacked (it's then fighting on two fronts). If the target had a peace treaty, this sets a permanent hostilityFloor — the
 // nation remembers the betrayal and can never fully cool back down, even after a later peace.
 // Marks BOTH sides isAtWar — every isAtWar reader in the codebase (UI war counts, the globe's
 // war-red coloring, resolveTurn.js's war exhaustion accrual, aiLogic.js's "one war per turn" gate)
 // means "this nation is currently a belligerent," not "this nation is currently a war's target."
 //
-// Scope trim (plan §M13): a nation can be party to at most one active war at a time (declareWar
-// refuses an already-isAtWar target/aggressor, same as before M13). The plan's own multi-war
-// support and full `state.relations`-driven CB matrix are NOT built here — see this file's other
-// M13 comments and peace.js's header for what's trimmed and why.
+// Every war is its own record with its own score, truce and peace deal, so a nation can be party
+// to several at once. (The full `state.relations`-driven CB matrix is still trimmed — see peace.js.)
 export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => {
   const nation = state.nations[nationId];
-  if (!nation || nation.isAtWar) return state;
+  if (!nation || nationId === aggressor || hasActiveWarBetween(state, nationId, aggressor)) return state;
 
   const brokePeace = !!nation.hasPeaceTreaty;
   const resolvedGoal = goal || assignDefaultWarGoal(state, nationId, aggressor);
@@ -160,11 +179,16 @@ export const declareWar = (state, nationId, { aggressor, goal = null } = {}) => 
       claims: hadClaim ? aggressorNation.claims.filter((id) => id !== nationId) : aggressorNation.claims
     };
   }
+  // Unique even when two nations declare on the same target in the same year.
+  const baseId = `war_${nationId}_${state.year}`;
+  const taken = new Set(state.wars.map((w) => w.id));
+  let id = baseId;
+  for (let k = 2; taken.has(id); k++) id = `${baseId}_${k}`;
   return {
     ...state,
     nations: nextNations,
     wars: [...state.wars, {
-      id: `war_${nationId}_${state.year}`,
+      id,
       enemy: nationId,
       startYear: state.year,
       startTurn: state.turnNumber,
@@ -502,5 +526,10 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
   });
 
+  // Wars that ended this turn cleared their belligerents' isAtWar; re-derive it for anyone who is
+  // still fighting another war.
+  const ended = new Set();
+  nextWars.forEach((w, i) => { if (wars[i].active && !w.active) { ended.add(w.aggressor); ended.add(w.enemy); } });
+  if (ended.size) nextNations = refreshWarFlags(nextNations, nextWars, [...ended]);
   return { regions: nextRegions, nations: nextNations, resources: nextResources, wars: nextWars, pendingPeaceOffer: nextPendingPeaceOffer, pendingDefenses, logs };
 };

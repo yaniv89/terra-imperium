@@ -230,11 +230,14 @@ const NationCard = ({ nation }) => {
   const isRival = (player.rivals || []).includes(nation.id);
   const isVassalOfPlayer = nation.vassalOf === state.playerNationId;
   const truceActive = !atWarWithPlayer && isInTruce(state, state.playerNationId, nation.id);
-  // `nation.isAtWar` is broad — true if they're fighting ANYONE, not just the player — which is
-  // exactly what gameReducer.js's DECLARE_WAR/PROPOSE_MARRIAGE cases silently gate on (a real
-  // engaged-elsewhere nation can't also be wooed or fought by you). `atWarWithPlayer` above only
-  // covers the narrower "at war with YOU" case the primary action buttons key off of.
+  // `nation.isAtWar` is broad — true if they're fighting ANYONE, not just the player. A nation
+  // busy elsewhere can't be wooed with a marriage (PROPOSE_MARRIAGE gates on it), but it CAN be
+  // attacked or allied with — declaring on it just opens a second front for them.
   const targetEngagedElsewhere = nation.isAtWar && !atWarWithPlayer;
+  const theirOtherEnemies = targetEngagedElsewhere
+    ? state.wars.filter((w) => w.active && (w.aggressor === nation.id || w.enemy === nation.id))
+      .map((w) => state.nations[w.aggressor === nation.id ? w.enemy : w.aggressor]?.name).filter(Boolean)
+    : [];
   const bordersPlayer = getBorderingNationIds(state.regions, state.playerNationId).includes(nation.id);
   const tradePactCapacity = getTradePactCapacity(player);
   const activeTradePactCount = Object.values(state.nations).filter((n) => n.hasTradeAgreement).length;
@@ -380,11 +383,10 @@ const NationCard = ({ nation }) => {
             <IconButton
               icon={Swords}
               label={`${justified ? 'Declare War' : 'Declare War (unjustified)'} (${formatCost(declareWarCosts)})`}
-              title={justified ? 'A casus belli justifies this war' : 'No casus belli — costs more and hurts relations'}
-              disabled={!canAfford(state.resources, declareWarCosts) || targetEngagedElsewhere || !!player.vassalOf}
+              title={`${justified ? 'A casus belli justifies this war' : 'No casus belli — costs more and hurts relations'}${theirOtherEnemies.length ? ` · already fighting ${theirOtherEnemies.join(', ')} — you'd open a second front` : ''}`}
+              disabled={!canAfford(state.resources, declareWarCosts) || !!player.vassalOf}
               onClick={() => {
                 if (player.vassalOf) return addLog("Can't declare war while you're a vassal", 'action');
-                if (targetEngagedElsewhere) return addLog(`${nation.name} is already at war with someone else`, 'action');
                 dispatchIfAffordable(ActionTypes.DECLARE_WAR, declareWarCosts);
               }}
             />
@@ -400,9 +402,8 @@ const NationCard = ({ nation }) => {
                 icon={ShieldCheck}
                 label={`Alliance (${formatCost(ACTION_COSTS.militaryAlliance)})`}
                 title="Acceptance scores hostility, prestige, and any existing trade agreement"
-                disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance) || targetEngagedElsewhere || allianceAcceptanceScore < 0}
+                disabled={!canAfford(state.resources, ACTION_COSTS.militaryAlliance) || allianceAcceptanceScore < 0}
                 onClick={() => {
-                  if (targetEngagedElsewhere) return addLog(`${nation.name} is already at war with someone else`, 'action');
                   if (allianceAcceptanceScore < 0) return addLog(`${nation.name} won't accept an alliance yet — needs lower hostility or more of your prestige`, 'action');
                   dispatchIfAffordable(ActionTypes.MILITARY_ALLIANCE, ACTION_COSTS.militaryAlliance);
                 }}
