@@ -149,6 +149,17 @@ describe('migrateSave', () => {
 
 // M2 (plan §M2): the v1->v2 step converts the old single actionPoints pool (+ the separate
 // diplomacyPoints currency) into the three adm/dip/mil power pools.
+describe('migrateSave: a current save written with the old envelope version 1', () => {
+  // Regression: GameContext wrote `version: 1` on every save, so every reload ran v1→v2 on an
+  // already-current state and reset ADM/DIP/MIL (and their per-turn income) to 0.
+  it('keeps the power pools and their income intact', () => {
+    const fresh = createInitialState({ playerNationId: 'us' });
+    const played = { ...fresh, resources: { ...fresh.resources, adm: 412, dip: 97, mil: 1234, maxAdm: 7, maxDip: 6, maxMil: 8 } };
+    const loaded = migrateSave({ version: 1, state: played });
+    expect(loaded.state.resources).toMatchObject({ adm: 412, dip: 97, mil: 1234, maxAdm: 7, maxDip: 6, maxMil: 8 });
+  });
+});
+
 describe('migrateSave: v1 -> v2 (AP -> ADM/DIP/MIL)', () => {
   it('converts a v1 save\'s actionPoints/diplomacyPoints into adm/dip/mil at the 3/5 ratio, dropping the old keys', () => {
     const v1 = { version: 1, state: { ...createInitialState({ playerNationId: 'fr' }), resources: { gold: 500, hr: 100, actionPoints: 8, maxActionPoints: 5, diplomacyPoints: 20, techPoints: 0 } } };
