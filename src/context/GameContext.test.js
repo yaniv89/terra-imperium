@@ -1114,15 +1114,18 @@ describe('Military tab actions', () => {
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };
     };
 
-    it('occupies (not annexes) an undefended adjacent region and moves surviving units into it', () => {
-      // Plan §M13: capturing a region during a war sets `occupiedBy`; `owner` — and the revolt
-      // system's `formerOwner` — only change at the peace table (see peace.test.js's 'cede' tests).
+    it('conquers an undefended adjacent region and moves surviving units into it', () => {
+      // Conquest by battle (src/engine/conquest.js): a captured region becomes the attacker's at
+      // once, marked with the war it was taken in so a peace deal can still hand it back.
       const state = withAttacker();
       const unitId = Object.keys(state.units)[0];
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-      expect(next.regions[BE_REGION].owner).toBe('be');
-      expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
-      expect(next.regions[BE_REGION].formerOwner).toBeUndefined();
+      expect(next.regions[BE_REGION].owner).toBe('fr');
+      expect(next.regions[BE_REGION].occupiedBy).toBeUndefined();
+      expect(next.regions[BE_REGION].conquest).toMatchObject({ from: 'be' });
+      // Attacking it again is refused — it's already held.
+      const again = gameReducer(next, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+      expect(again.regions).toBe(next.regions);
       expect(next.units[unitId].regionId).toBe(BE_REGION);
       expect(next.resources.mil).toBeLessThan(state.resources.mil);
       expect(next.lastBattleReport.outcome).toBe('attacker');
@@ -1172,9 +1175,11 @@ describe('Military tab actions', () => {
     });
 
     describe('siege (src/engine/siege.js): a defended region no longer falls in one hit', () => {
-      it('grinds down a defended region\'s control without capturing it in a single round', () => {
-        const state = withAttacker(50000); // overwhelming, guarantees an 'attacker' round outcome
-        const attackerId = Object.keys(state.units)[0];
+      it('grinds down a defended region\'s control without capturing it when no melee unit can take it', () => {
+        // Archers alone can break a garrison but can't hold the ground: the win only costs control.
+        const armed = withAttacker(50000);
+        const attackerId = Object.keys(armed.units)[0];
+        const state = { ...armed, units: { ...armed.units, [attackerId]: { ...armed.units[attackerId], classId: 'ranged' } } };
         const defenderUnit = {
           id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
           strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
@@ -1201,8 +1206,7 @@ describe('Military tab actions', () => {
         // the 15 threshold.
         const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit }, regions: { ...state.regions, [BE_REGION]: { ...state.regions[BE_REGION], control: 40 } } };
         const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-        expect(next.regions[BE_REGION].owner).toBe('be'); // occupation, not annexation (plan §M13)
-        expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
+        expect(next.regions[BE_REGION].owner).toBe('fr'); // conquered by battle
         expect(next.regions[BE_REGION].control).toBe(25); // the usual post-capture reset
         expect(next.regions[BE_REGION].underInvasion).toBe(false);
         expect(next.lastBattleReport.captured).toBe(true);
@@ -1498,11 +1502,11 @@ describe('Navies and amphibious invasion actions', () => {
       return { state: withWarAgainst(embarked, 'gb'), navalUnitId, landUnitId };
     };
 
-    it('occupies (not annexes) an undefended coastal region reachable only by sea', () => {
+    it('conquers an undefended coastal region reachable only by sea', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
       const next = gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: GB_TARGET } });
-      expect(next.regions[GB_TARGET].owner).toBe('gb');
-      expect(next.regions[GB_TARGET].occupiedBy).toBe('fr');
+      expect(next.regions[GB_TARGET].owner).toBe('fr');
+      expect(next.regions[GB_TARGET].conquest).toMatchObject({ from: 'gb' });
       expect(next.units[landUnitId].regionId).toBe(GB_TARGET);
       expect(next.units[landUnitId].embarkedOn).toBeNull();
       expect(next.lastBattleReport.outcome).toBe('attacker');
@@ -1523,7 +1527,8 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('grinds a defended landing zone\'s control without capturing it in one wave (src/engine/siege.js)', () => {
       const { state, navalUnitId, landUnitId } = withEmbarkedForce();
-      const overwhelming = { ...state, units: { ...state.units, [landUnitId]: { ...state.units[landUnitId], strength: 50000 } } };
+      // A ranged-only landing wins the beach but can't take the province.
+      const overwhelming = { ...state, units: { ...state.units, [landUnitId]: { ...state.units[landUnitId], strength: 50000, classId: 'ranged' } } };
       const defenderUnit = {
         id: 'gb_garrison', regionId: GB_TARGET, ownerId: 'gb', domain: 'land', classId: 'infantry', ageId: 'bronze',
         strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null

@@ -1,0 +1,22 @@
+{
+  "base": "character-soldier",
+  "teamFrom": "torso",
+  "restClip": "idle",
+  "attach": [
+    {
+      "model": "blaster-repeater",
+      "hand": "right",
+      "at": [
+        0,
+        0,
+        0.04
+      ],
+      "rotation": [
+        -0.15,
+        0,
+        0
+      ],
+      "scale": 0.28
+    }
+  ]
+}

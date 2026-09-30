@@ -1,0 +1,32 @@
+{
+  "base": "character-soldier",
+  "teamFrom": "torso",
+  "restClip": "idle",
+  "attach": [
+    {
+      "model": "weapon-sword",
+      "hand": "right",
+      "at": [
+        0,
+        0,
+        0.02
+      ],
+      "rotation": [
+        -2.1,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    {
+      "prop": "shield",
+      "hand": "left",
+      "at": [
+        0.02,
+        0.02,
+        0.07
+      ],
+      "scale": 0.9
+    }
+  ]
+}

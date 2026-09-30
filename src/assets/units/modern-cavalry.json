@@ -1,0 +1,17 @@
+{
+  "base": "vehicle-truck-green",
+  "teamFrom": "body",
+  "height": 0.85,
+  "attach": [
+    {
+      "prop": "turret",
+      "to": "root",
+      "at": [
+        0,
+        0.5,
+        -0.1
+      ],
+      "scale": 1.1
+    }
+  ]
+}

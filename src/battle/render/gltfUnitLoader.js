@@ -137,12 +137,16 @@ const applyPose = (root, animations, restClip) => {
  * @param {'auto'|false} [opts.segment='auto']  static (unskinned, unnamed) humanoids: split limbs by position
  * @param {object}  [opts.tags]  RegExps over material/node names: { team, skin, emblem }
  * @param {number}  [opts.triangleBudget=3000]
+ * @param {string}  [opts.teamFrom]  a bone/node name (e.g. 'torso'): its dominant colour becomes the
+ *                                   team colour everywhere — for palette-textured models (Kenney) whose
+ *                                   materials carry no name to tag by
+ * @param {boolean} [opts.staticLegs=false]  a seated rider: legs don't march
  * @returns {{ geometry: BufferGeometry, stats: object }}
  */
 export const extractUnitGeometry = (root, opts = {}) => {
   const {
     animations = [], restClip = /idle/i, height = 1, rotateY = 0, quadruped = false, segment = 'auto',
-    triangleBudget = DEFAULT_TRIANGLE_BUDGET
+    triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, staticLegs = false
   } = opts;
   const tags = { ...DEFAULT_TAGS, ...(opts.tags || {}) };
   const limbOpts = { quadruped };
@@ -150,6 +154,9 @@ export const extractUnitGeometry = (root, opts = {}) => {
 
   const pos = []; const col = []; const limb = []; const team = []; const partId = []; const uvs = []; const surf = [];
   const hinge = []; // per vertex: the Object3D (a limb chain's top joint) it pivots about, or null
+  const source = []; // per vertex: the bone / node name it hangs from (for teamFrom)
+  const measured = []; // per vertex: counts toward the model's size (attachments like a long spear don't)
+  const isAttachment = (o) => { for (let a = o; a && a !== root.parent; a = a.parent) if (a.userData?.attachment) return true; return false; };
   const stats = { meshes: 0, skinned: 0, triangles: 0, limbs: {}, namedLimbs: false, warnings: [] };
   const v = new Vector3(); const skinIdx = new Vector4(); const skinW = new Vector4();
   const c = new Color(); const texel = new Color(); const uvA = [0, 0]; const cornerUv = [[0, 0], [0, 0], [0, 0]];
@@ -168,6 +175,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
     // Unskinned meshes: a node name like "Arm_L" rigs the whole mesh.
     const withHinge = (cl) => (cl.node ? { ...cl, hinge: chainRoot(cl.node, cl.limb, limbOpts, root.parent) } : { ...cl, hinge: null });
     const nodeLimb = skinned ? null : withHinge(classify(mesh, limbOpts, root.parent));
+    const attached = isAttachment(mesh);
     const boneLimb = skinned ? mesh.skeleton.bones.map((b) => withHinge(classify(b, limbOpts, root.parent))) : null;
     if (nodeLimb?.node || boneLimb?.some((bl) => bl.node)) stats.namedLimbs = true;
 
@@ -209,6 +217,8 @@ export const extractUnitGeometry = (root, opts = {}) => {
           }
           limb.push(rig ? rig.limb : LIMB.BODY);
           hinge.push(rig?.hinge || null);
+          measured.push(!attached);
+          source.push(skinned ? (mesh.skeleton.bones[skinIdx.getComponent(0)]?.name || '') : (mesh.name || mesh.parent?.name || ''));
           team.push(isTeam ? 1 : 0);
           partId.push(isEmblem ? PART.EMBLEM : isSkin ? PART.SKIN : PART.PLAIN);
           uvs.push(isEmblem ? cornerUv[j][0] : 0, isEmblem ? cornerUv[j][1] : 0);
@@ -221,10 +231,29 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const n = pos.length / 3;
   if (!n) throw new Error('extractUnitGeometry: the model has no triangles');
 
+  // teamFrom: the most common colour on that bone (quantised) is the uniform — every vertex of that
+  // colour, anywhere on the model, wears the side's colour instead.
+  if (teamFrom) {
+    const want = String(teamFrom).toLowerCase();
+    const key = (i) => `${Math.round(col[i * 3] * 24)},${Math.round(col[i * 3 + 1] * 24)},${Math.round(col[i * 3 + 2] * 24)}`;
+    const freq = new Map();
+    for (let i = 0; i < n; i++) if (source[i].toLowerCase().includes(want)) freq.set(key(i), (freq.get(key(i)) || 0) + 1);
+    const top = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (top) {
+      const [tr, tg, tb] = top.split(',').map((x) => Number(x) / 24);
+      for (let i = 0; i < n; i++) {
+        const d = Math.abs(col[i * 3] - tr) + Math.abs(col[i * 3 + 1] - tg) + Math.abs(col[i * 3 + 2] - tb);
+        if (d < 0.09) team[i] = 1;
+      }
+    }
+  }
+  if (staticLegs) for (let i = 0; i < n; i++) if (limb[i] === LIMB.LEG_L || limb[i] === LIMB.LEG_R) { limb[i] = LIMB.BODY; hinge[i] = null; }
+
   // Normalise: yaw to face +Z, feet on the ground, centred, scaled to `height`.
   const norm = new Matrix4().makeRotationY(rotateY);
   const bb = new Box3();
-  for (let i = 0; i < n; i++) bb.expandByPoint(v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).applyMatrix4(norm));
+  const anyMeasured = measured.some(Boolean);
+  for (let i = 0; i < n; i++) if (measured[i] || !anyMeasured) bb.expandByPoint(v.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]).applyMatrix4(norm));
   const s = height / Math.max(1e-6, bb.max.y - bb.min.y);
   norm.premultiply(new Matrix4().makeTranslation(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2)).premultiply(new Matrix4().makeScale(s, s, s));
   for (let i = 0; i < n; i++) {
@@ -310,6 +339,18 @@ const disposeScene = (scene) => scene.traverse((o) => {
   o.geometry?.dispose();
   (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m?.map?.dispose(); m?.dispose(); });
 });
+
+// The raw glTF (scene + clips), loaded once per URL: composed units (unitComposer.js) reuse one
+// archetype for many ages and classes, cloning it (skeletons included) for each.
+const gltfCache = new Map();
+export const loadGltf = (url, opts = {}) => {
+  if (!gltfCache.has(url)) gltfCache.set(url, getLoader(opts).then((loader) => loader.loadAsync(url)).catch((e) => { gltfCache.delete(url); throw e; }));
+  return gltfCache.get(url);
+};
+export const cloneScene = async (scene) => {
+  const { clone } = await import('three/examples/jsm/utils/SkeletonUtils.js');
+  return clone(scene);
+};
 
 /** Load a .glb/.gltf by URL and bake it (see extractUnitGeometry for `opts`). */
 export const loadUnitModel = async (url, opts = {}) => {

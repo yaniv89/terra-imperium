@@ -108,10 +108,36 @@ describe('unit model registry', () => {
     expect(battleModelPairs(setup).map((p) => p.join(':')).sort()).toEqual(['bronze:cavalry', 'bronze:infantry', 'bronze:ranged', 'classical:infantry']);
   });
 
-  it('has nothing to wait for when no model files are shipped', async () => {
-    expect(findUnitModel('bronze', 'infantry')).toBeNull();
-    expect(needsUnitModels(setup)).toBe(false);
-    expect(await preloadUnitModels(setup)).toEqual({ loaded: [], failed: [] });
+  it('resolves every land (age, class) to a shipped CC0 recipe — never the procedural stickman', () => {
+    ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => ['infantry', 'cavalry', 'ranged', 'siege'].forEach((cls) => {
+      const m = findUnitModel(age, cls);
+      expect(m?.recipe?.base, `${age}-${cls}`).toBeTruthy();
+      expect(m.name).toBe(`${age}-${cls}`);
+    }));
+    expect(findUnitModel('bronze', 'naval')).toBeNull();
+  });
+
+  it('composes each recipe once per age, registers it, and keeps the procedural model on failure', async () => {
+    const pairs = battleModelPairs(setup);
+    expect(needsUnitModels(setup)).toBe(true);
+    const calls = [];
+    const compose = async (recipe, { ageId }) => {
+      calls.push(`${recipe.base}@${ageId}`);
+      if (ageId === 'classical') throw new Error('boom');
+      return { geometry: new BoxGeometry(0.4, 1, 0.3).toNonIndexed() };
+    };
+    const warn = console.warn; console.warn = () => {};
+    try {
+      const r = await preloadUnitModels(setup, { compose });
+      expect(r.loaded.sort()).toEqual(['bronze-cavalry', 'bronze-infantry', 'bronze-ranged']);
+      expect(r.failed.map((f) => f.name)).toEqual(['classical-infantry']);
+      expect(calls.length).toBe(pairs.length);
+      expect(needsUnitModels({ sides: [setup.sides[0]] })).toBe(false); // bronze is now baked
+      expect(getSoldierGeometry('classical', 'infantry')).toBe(getProceduralSoldierGeometry('classical', 'infantry'));
+    } finally {
+      console.warn = warn;
+      ['infantry', 'ranged', 'cavalry'].forEach((c) => unregisterSoldierGeometry('bronze', c));
+    }
   });
 });
 
