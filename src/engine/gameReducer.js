@@ -29,6 +29,7 @@ import {
 import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
@@ -1248,146 +1249,17 @@ export const gameReducer = (state, action) => {
     }
 
     case ActionTypes.LAUNCH_INVASION: {
+      // Auto-resolve. The gate, the battle inputs and every consequence live in
+      // src/engine/invasion.js so a commanded (real-time) battle shares them exactly — see
+      // BEGIN_TACTICAL_BATTLE/RESOLVE_TACTICAL_BATTLE.
       const { fromRegionId, targetRegionId } = action.payload;
-      const fromRegion = state.regions[fromRegionId];
-      const targetRegion = state.regions[targetRegionId];
-      const costs = ACTION_COSTS.launchInvasion;
-      if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
-      if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
-      if (!getNeighborIds(fromRegionId).includes(targetRegionId)) return state;
-      // Plan §M13: invasions now require an active war with the target's owner — a real
-      // pre-existing gap (this check never previously existed) that let the player walk into any
-      // neighboring nation's territory with no diplomatic consequence or war-score bookkeeping.
-      const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
-      if (!invasionWar) return state;
-      if (!canAfford(state.resources, costs)) return state;
-
-      const attackerUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land');
-      if (attackerUnits.length === 0) return state;
-      // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still
-      // have its move, same movesLeft counter MOVE_ARMY spends (an all-or-nothing gate on the
-      // WHOLE stack, matching "an army is every unit in one region" rather than letting some units
-      // attack while others that already moved this turn tag along for free).
-      if (!attackerUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
-      const defenderUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'land');
-      // An undefended region is taken in one hit regardless of its control — walking into an empty
-      // city needs no siege. Only a real garrison triggers the multi-turn control-grind below.
-      const isDefended = defenderUnits.length > 0;
-      const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
-      // Plan §M14: each side's roster stats (src/data/unitClasses.js) are looked up live from its
-      // OWNER's current effective age — a unit auto-upgrades with its nation rather than being
-      // frozen at whatever age it was recruited in. The defender has no independent tech age
-      // pre-M16 (AI parity), so it fights at the calendar age, same asymmetry the old ages-behind
-      // malus already assumed.
-      const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
-
+      const v = validateInvasion(state, fromRegionId, targetRegionId);
+      if (!v.ok) return state;
+      const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
       const rng = createRng(state.rngSeed);
-      const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
-        attackerUnits,
-        defenderUnits,
-        terrain,
-        isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
-        rng,
-        generals: state.hiredCommanders,
-        attackerAgeId,
-        defenderAgeId: state.age,
-        // defenseLevel's own damage reduction (a genuine "Walls" bonus, on top of the existing
-        // siege-vs-fortification gate) — see src/engine/siege.js. Plan §M6: the Defense building's
-        // own local.fortLevel stacks on top of the manual defenseLevel (Build Defenses) rather than
-        // replacing it — both are real, player-earned investments in the same region. Plan §M14
-        // folds Zone of Control into the same slot — a fortified neighbor makes a siege harder too.
-        defenderDamageReductionMultiplier: isDefended
-          ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
-          : 1
-      });
-
-      // A defended region's control absorbs the damage instead of an outright flip — see
-      // src/engine/siege.js's file header. `captured` here means the siege is actually over.
-      const { nextControl, captured } = isDefended
-        ? resolveSiegeControlDamage({
-            currentControl: targetRegion.control,
-            outcome,
-            hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0))
-          })
-        : { nextControl: targetRegion.control, captured: outcome === 'attacker' };
-
-      // Only units actually deployed to the front line fought and earn XP; the winning side earns
-      // more than the losing side, a draw splits the difference. A Logistician-commanded unit
-      // earns extra on top (see src/data/generals.js).
-      const XP_WIN = 30;
-      const XP_LOSE = 15;
-      const attackerXpAmount = outcome === 'attacker' ? XP_WIN : outcome === 'defender' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
-      const defenderXpAmount = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
-      const awardBattleXp = (units, deployedIds, xpAmount) => units.map(u => {
-        if (!deployedIds.includes(u.id)) return u;
-        const gained = Math.round(xpAmount * getGeneralXpMultiplier(state.hiredCommanders[u.commanderId]));
-        return awardXp(u, gained);
-      });
-      const xpAttackers = awardBattleXp(resolvedAttackers, report.deployedAttackerIds, attackerXpAmount);
-      const xpDefenders = awardBattleXp(resolvedDefenders, report.deployedDefenderIds, defenderXpAmount);
-
-      const nextUnits = { ...state.units };
-      // Attacker survivors occupy the target region only once it's actually captured; a round that
-      // merely damages a still-defended region's control falls back to origin, same as a loss —
-      // each further round of the grind is a fresh, separately-paid LAUNCH_INVASION. Plan §M14:
-      // spends the whole stack's move (one attack per stack per turn) and marks it as having
-      // fought this turn, so resolveTurn.js's reinforcement/morale-recovery phase skips it.
-      xpAttackers.forEach(u => {
-        if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId, movesLeft: 0, lastBattleTurn: state.turnNumber };
-      });
-      // A captured region's garrison doesn't remain a coherent defending force — on actual capture
-      // the whole defending side is cleared, survivors and routed alike. A round that only damages
-      // control (siege continues) persists surviving defenders exactly like a repelled attack does.
-      xpDefenders.forEach(u => {
-        if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
-        nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
-      });
-
-      const nextRegions = { ...state.regions };
-      if (captured) {
-        // Occupation (plan §M13), not annexation: `owner` stays put, `occupiedBy` marks who holds
-        // it militarily. Ownership only changes at the peace table (OFFER_PEACE/ACCEPT_PENDING_
-        // PEACE's 'cede' term, src/engine/peace.js) — which is also where Aggressive Expansion now
-        // fires, since land hasn't actually changed hands yet.
-        nextRegions[targetRegionId] = {
-          ...targetRegion,
-          occupiedBy: state.playerNationId,
-          control: 25,
-          unrest: Math.max(targetRegion.unrest || 0, 50),
-          lastAttackedTurn: state.turnNumber,
-          underInvasion: false
-        };
-      } else if (isDefended) {
-        nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
-      }
-
-      // War score (plan §M13): this invasion counts as a battle in `invasionWar` regardless of
-      // which side of it the player is on, feeding the same score the AI's own peace decisions read.
-      const invasionLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
-      const invasionWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
-      const nextWars = invasionWinnerId
-        ? state.wars.map(w => (w.id === invasionWar.id ? { ...w, battleScore: recordBattle(w, invasionWinnerId, invasionLossShare) } : w))
-        : state.wars;
-
-      const outcomeMessage = captured
-        ? `Your forces occupy ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
-        : outcome === 'attacker'
-          ? `Your forces broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
-          : outcome === 'defender'
-            ? `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
-            : `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
-
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        regions: nextRegions,
-        units: nextUnits,
-        wars: nextWars,
-        rngSeed: rng.getSeed(),
-        lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
-        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
-      };
+      const battle = resolveBattle({ ...getResolveBattleArgs(v, ctx), rng });
+      const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
+      return applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed() });
     }
 
     case ActionTypes.AMPHIBIOUS_ASSAULT: {
