@@ -27,6 +27,16 @@ const DEFAULT_TAGS = {
   emblem: /emblem|shield_?face|heraldry|crest|insignia|decal/i
 };
 
+// A colour (linear 0..1) that reads as human skin, any tone: warm (r ≥ g ≥ b), not grey, not
+// saturated like paint. Shared with scripts/import-models.js, which tags materials the same way.
+export const isSkinLike = (r, g, b) => {
+  const toS = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055);
+  const R = toS(r); const G = toS(g); const B = toS(b);
+  if (!(R >= G && G >= B) || R < 0.2) return false;
+  const chroma = R - B;
+  return chroma > 0.08 && chroma < 0.5 && G / R > 0.5 && G / R < 0.92;
+};
+
 // ---- naming → rig limbs ------------------------------------------------------------------------
 
 const tokens = (name = '') => name.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
@@ -115,7 +125,12 @@ const readerFor = (tex) => {
 const applyPose = (root, animations, restClip) => {
   root.traverse((o) => { if (o.isSkinnedMesh && o.skeleton && restClip === 'bind') o.skeleton.pose(); });
   if (restClip && restClip !== 'bind' && animations?.length) {
-    const clip = animations.find((a) => (restClip instanceof RegExp ? restClip.test(a.name) : a.name === restClip));
+    // A name, a RegExp, or a list of them in order of preference.
+    let clip = null;
+    for (const want of (Array.isArray(restClip) ? restClip : [restClip])) {
+      clip = animations.find((a) => (want instanceof RegExp ? want.test(a.name) : a.name === want));
+      if (clip) break;
+    }
     if (clip) {
       const mixer = new AnimationMixer(root);
       mixer.clipAction(clip).play();
@@ -130,7 +145,8 @@ const applyPose = (root, animations, restClip) => {
  * @param {Object3D} root            gltf.scene (or any Object3D)
  * @param {object}  [opts]
  * @param {AnimationClip[]} [opts.animations]  gltf.animations, for `restClip`
- * @param {RegExp|string|'bind'} [opts.restClip=/idle/i]  pose to bake: a clip's first frame, or 'bind'
+ * @param {RegExp|string|Array|'bind'} [opts.restClip=/idle/i]  pose to bake: a clip's first frame (the
+ *                                   first of a list that exists), or 'bind'
  * @param {number}  [opts.height=1]  target height (world units; a person in the procedural set ≈ 1)
  * @param {number}  [opts.rotateY=0]  extra yaw so the model faces +Z
  * @param {boolean} [opts.quadruped=false]  a mount: front/hind legs drive the horse bones
@@ -140,13 +156,15 @@ const applyPose = (root, animations, restClip) => {
  * @param {string}  [opts.teamFrom]  a bone/node name (e.g. 'torso'): its dominant colour becomes the
  *                                   team colour everywhere — for palette-textured models (Kenney) whose
  *                                   materials carry no name to tag by
+ * @param {string}  [opts.skinFrom]  a bone/node name (e.g. 'head'): its dominant skin-like colour is
+ *                                   the skin (tinted per soldier) everywhere — the same trick for skin
  * @param {boolean} [opts.staticLegs=false]  a seated rider: legs don't march
  * @returns {{ geometry: BufferGeometry, stats: object }}
  */
 export const extractUnitGeometry = (root, opts = {}) => {
   const {
     animations = [], restClip = /idle/i, height = 1, rotateY = 0, quadruped = false, segment = 'auto',
-    triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, staticLegs = false
+    triangleBudget = DEFAULT_TRIANGLE_BUDGET, teamFrom = null, skinFrom = null, staticLegs = false
   } = opts;
   const tags = { ...DEFAULT_TAGS, ...(opts.tags || {}) };
   const limbOpts = { quadruped };
@@ -244,6 +262,25 @@ export const extractUnitGeometry = (root, opts = {}) => {
       for (let i = 0; i < n; i++) {
         const d = Math.abs(col[i * 3] - tr) + Math.abs(col[i * 3 + 1] - tg) + Math.abs(col[i * 3 + 2] - tb);
         if (d < 0.09) team[i] = 1;
+      }
+    }
+  }
+  // skinFrom: the most common skin-like colour on that bone (the face, the hands) is the skin.
+  if (skinFrom) {
+    const want = String(skinFrom).toLowerCase();
+    const key = (i) => `${Math.round(col[i * 3] * 24)},${Math.round(col[i * 3 + 1] * 24)},${Math.round(col[i * 3 + 2] * 24)}`;
+    const freq = new Map();
+    for (let i = 0; i < n; i++) {
+      if (!source[i].toLowerCase().includes(want) || team[i]) continue;
+      if (isSkinLike(col[i * 3], col[i * 3 + 1], col[i * 3 + 2])) freq.set(key(i), (freq.get(key(i)) || 0) + 1);
+    }
+    const top = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (top) {
+      const [sr, sg, sb] = top.split(',').map((x) => Number(x) / 24);
+      for (let i = 0; i < n; i++) {
+        if (team[i]) continue;
+        const d = Math.abs(col[i * 3] - sr) + Math.abs(col[i * 3 + 1] - sg) + Math.abs(col[i * 3 + 2] - sb);
+        if (d < 0.09) partId[i] = PART.SKIN;
       }
     }
   }

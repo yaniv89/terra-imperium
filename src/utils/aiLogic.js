@@ -24,7 +24,7 @@
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds } from '../data/regions';
-import { declareWar, isInTruce } from '../engine/diplomacy';
+import { declareWar, isInTruce, hasActiveWarBetween } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
@@ -69,6 +69,13 @@ const TOP_MILITARY_TIER_1_COUNT = 20;
 // warRollMult, the difficulty's aiAggressionMult, any coalition bonus, and its own hostility scale
 // it up or down.
 const BASE_WAR_ROLL_CHANCE = 0.02;
+// Nations fight on several fronts at once. An AI opens at most MAX_AI_WARS wars of its own
+// accord (a second front is a rarer, riskier roll), and piles onto a target only while that
+// target is fighting fewer than MAX_TARGET_WARS wars — a nation busy elsewhere is an opportunity.
+export const MAX_AI_WARS = 2;
+export const MAX_TARGET_WARS = 3;
+const SECOND_FRONT_ROLL_MULT = 0.35;
+export const countActiveWars = (wars, nationId) => (wars || []).filter((w) => w.active && (w.aggressor === nationId || w.enemy === nationId)).length;
 
 // A nation (AI or the player) commanding this share of the world's total military strength is a
 // runaway leader — real numbers are tiny at game start (the largest starting nation is well under
@@ -241,21 +248,22 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
   return { units: nextUnits, nations: nextNations, logs };
 };
 
-// Among a nation's bordering nations (including the player) not already at war, the weakest one
-// — "attacks the weakest valuable region reachable", not the nearest pixel, per the plan. A
+// Among a nation's bordering nations (including the player) it isn't already fighting, the weakest
+// one — "attacks the weakest valuable region reachable", not the nearest pixel, per the plan. A
+// neighbour already at war elsewhere counts as weaker (its army is split between fronts). A
 // coalition member with a valid shot at the runaway leader ignores that and goes straight for the
 // leader instead, regardless of how it compares to other neighbors — that's the whole point of
 // ganging up on it.
 const pickWarTarget = (state, nationId, preferredTargetId = null) => {
   // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
-  // truce-active neighbor is filtered out of consideration entirely, the same way an already-
-  // isAtWar one is.
+  // truce-active neighbor is filtered out of consideration entirely.
   const candidates = getBorderingNationIds(state.regions, nationId)
-    .filter(id => state.nations[id] && !state.nations[id].isAtWar && !isInTruce(state, nationId, id));
+    .filter(id => state.nations[id] && !state.nations[id].isEliminated && !isInTruce(state, nationId, id)
+      && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
-  return candidates.reduce((weakest, id) =>
-    (state.nations[id].militaryStrength < state.nations[weakest].militaryStrength ? id : weakest), candidates[0]);
+  const effective = (id) => state.nations[id].militaryStrength / (1 + countActiveWars(state.wars, id));
+  return candidates.reduce((weakest, id) => (effective(id) < effective(weakest) ? id : weakest), candidates[0]);
 };
 
 const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1) => {
@@ -265,7 +273,7 @@ const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1) =>
   return rng.next() < chance;
 };
 
-// Tier 1 nations may each declare one war this turn, biased by their own doctrine, hostility, the
+// Tier 1 nations may each declare one war this turn (a second front only rarely, never a third), biased by their own doctrine, hostility, the
 // game's difficulty (state.difficultyMultiplier), and any active coalition against a runaway
 // leader. Pure: takes the in-progress `nations`/`wars` resolveTurn.js has built so far this turn
 // and returns updated versions, threading src/engine/diplomacy.js's declareWar so a war an AI
@@ -276,13 +284,16 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
   const logs = [];
   const aggressionMult = state.difficultyMultiplier || 1;
   const runawayLeaderId = findRunawayLeader(nations);
+  const draggedIn = new Set(); // nations declared on this pass — they don't also declare this turn
 
   Object.keys(nations).forEach(nationId => {
     // Re-read from currentNations, not the original `nations` snapshot — a nation earlier in this
     // same pass may just have been dragged into a war as someone's target, and a freshly-invaded
     // nation shouldn't also get to fire off its own declaration this turn.
     const nation = currentNations[nationId];
-    if (!nation || nation.isPlayer || nation.isAtWar) return;
+    if (!nation || nation.isPlayer || draggedIn.has(nationId)) return;
+    const fronts = countActiveWars(currentWars, nationId);
+    if (fronts >= MAX_AI_WARS) return;
     // Plan §M12: a vassal "can't declare wars except independence" — no independence-war mechanic
     // exists yet (deferred), but the self-declaration lockout itself is real and simple.
     if (nation.vassalOf) return;
@@ -297,7 +308,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     }
     const activeNation = currentNations[nationId];
     const leader = isCoalitionMember ? currentNations[runawayLeaderId] : null;
-    const canStrikeLeader = !!leader && !leader.isAtWar
+    const canStrikeLeader = !!leader && !hasActiveWarBetween({ wars: currentWars }, nationId, runawayLeaderId)
       && getBorderingNationIds(state.regions, nationId).includes(runawayLeaderId)
       && !isInTruce({ ...state, nations: currentNations }, nationId, runawayLeaderId);
     // Plan §M12: real Aggressive Expansion (this nation's own accrued AE against the leader,
@@ -313,11 +324,12 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence) * aeScale * doctrine.bandwagonMult
       : 1;
 
-    if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult)) return;
-    const targetId = pickWarTarget({ ...state, nations: currentNations }, nationId, canStrikeLeader ? runawayLeaderId : null);
+    if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1))) return;
+    const targetId = pickWarTarget({ ...state, nations: currentNations, wars: currentWars }, nationId, canStrikeLeader ? runawayLeaderId : null);
     if (!targetId) return;
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
-    if (result.wars === currentWars) return; // no-op (shouldn't happen given the isAtWar filter above, but stay defensive)
+    if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
+    draggedIn.add(targetId);
     currentNations = result.nations;
     currentWars = result.wars;
     const targetName = state.nations[targetId]?.name || targetId;

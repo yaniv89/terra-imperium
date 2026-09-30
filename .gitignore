@@ -19,3 +19,9 @@ blob-report
 # Phase F server-authoritative resolution (plan §10): the Supabase Edge Function's bundled engine,
 # regenerable via `npm run build:edge` (scripts/build-edge-engine.mjs) — never hand-edited.
 supabase/functions/resolve-turn/_engine.bundle.js
+
+# Downloaded CC0 model packs (src/assets/raw-models/README.md): large, and fully regenerable into
+# src/assets/units/ by `npm run import:models`. Only the README and the optional manifest are kept.
+src/assets/raw-models/*
+!src/assets/raw-models/README.md
+!src/assets/raw-models/units.manifest.example.json

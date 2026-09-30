@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   processAINationTurn, processAllAINations, getRelationFromHostility,
   getNationTier, getSortedByMilitary, processAIWarDecisions, findRunawayLeader,
-  chooseAIRecruitClass, processAIRecruitment
+  chooseAIRecruitClass, processAIRecruitment,
+  MAX_AI_WARS
 } from './aiLogic';
 import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
@@ -247,10 +248,29 @@ describe('processAIWarDecisions', () => {
     expect(result.wars).toHaveLength(0);
   });
 
-  it('skips a nation already at war', () => {
-    const state = warState({ de: { isAtWar: true } });
+  it('never opens more than MAX_AI_WARS fronts', () => {
+    const base = warState({ de: { isAtWar: true } });
+    const wars = Array.from({ length: MAX_AI_WARS }, (_, i) => ({ id: `w${i}`, aggressor: 'de', enemy: `x${i}`, active: true }));
+    const state = { ...base, wars };
     const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], hawkishRng);
-    expect(result.wars).toHaveLength(0);
+    expect(result.wars).toHaveLength(MAX_AI_WARS);
+  });
+
+  it('can open a second front while already at war, and never re-declares on its current enemy', () => {
+    const base = warState({ de: { isAtWar: true } });
+    const state = { ...base, wars: [{ id: 'w0', aggressor: 'de', enemy: 'zz', active: true }] };
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], hawkishRng);
+    const mine = result.wars.filter((w) => w.active && w.aggressor === 'de');
+    expect(mine).toHaveLength(2);
+    expect(new Set(mine.map((w) => w.enemy)).size).toBe(2);
+  });
+
+  it('may pile onto a neighbour that is already fighting someone else', () => {
+    // France is the weakest neighbour and already at war with someone else: it's still a target.
+    const base = warState({ fr: { isAtWar: true, militaryStrength: 400 } });
+    const state = { ...base, wars: [{ id: 'w0', aggressor: 'qq', enemy: 'fr', active: true }] };
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], hawkishRng);
+    expect(result.wars.some((w) => w.aggressor === 'de' && w.enemy === 'fr')).toBe(true);
   });
 
   it('never lets a nation with a non-positive war-roll doctrine declare war', () => {

@@ -174,23 +174,16 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     })
     .sort((a, b) => Number(b.mine) - Number(a.mine) || a.name.localeCompare(b.name));
 
-  // Tactical Battles: a defended region asks how to fight (manual / auto-resolve / call off);
-  // an undefended one is simply taken.
+  // Every attack stops at the pre-battle modal first (manual / auto-resolve / call off) — even an
+  // undefended province: without intel you can't know it's empty, and nothing should be launched
+  // behind your back. No setting skips it.
   const handleInvade = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
-    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
-    // A defended province always stops at the pre-battle modal — never skipped by a setting.
-    if (defended) { setBattleChoiceFrom(fromRegionId); return; }
-    triggerEffect('ground_invasion', { from: fromRegionId, to: regionId });
-    dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: regionId } });
+    setBattleChoiceFrom(fromRegionId);
   };
   const handleAmphibiousAssault = (navalUnitId) => {
     if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
-    // Tactical Battles T9: a defended beach can be stormed in command mode too.
-    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
-    if (defended) { setLandingChoice(navalUnitId); return; }
-    triggerEffect('amphibious_assault', { from: state.units[navalUnitId]?.regionId, to: regionId });
-    dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: regionId } });
+    setLandingChoice(navalUnitId);
   };
   const handleNavalEngagement = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
