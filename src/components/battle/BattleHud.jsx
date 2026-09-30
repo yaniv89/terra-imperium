@@ -48,7 +48,7 @@ const BattleHud = ({
       <div className="absolute top-0 inset-x-0 p-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-start gap-2 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1.5">
           <HudButton icon={paused ? Play : Pause} label={!started ? 'Start' : paused ? 'Play' : 'Pause'} onClick={onTogglePause} active={!started} testId="battle-pause" />
-          <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 0.5 : 1)} className="min-w-[48px] h-12 rounded-xl bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-bold shadow-lg">{speed}×</button>
+          <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} className="min-w-[48px] h-12 rounded-xl bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-bold shadow-lg">{speed}×</button>
         </div>
         <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
           <div className="px-3 py-1 rounded-full bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-semibold shadow-lg flex items-center gap-3">

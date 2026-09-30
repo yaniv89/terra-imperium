@@ -9,7 +9,7 @@
 // own side (a client can't command the AI's troops); only known order types, integer ticks inside
 // the battle and finite numbers survive; and the log length is capped.
 import { runHeadless } from './headless';
-import { BATTLE_LIMIT_TICKS } from './constants';
+import { MAX_BATTLE_TICKS } from './constants';
 
 export const MAX_LOG_ORDERS = 20000;
 const MAX_SQUADS_PER_ORDER = 64;
@@ -20,7 +20,7 @@ const num = (v) => (Number.isFinite(v) ? v : 0);
 
 const cleanOrder = (o, playerSide) => {
   if (!o || typeof o !== 'object' || !ORDER_TYPES.has(o.type)) return null;
-  if (!Number.isInteger(o.tick) || o.tick < 0 || o.tick > BATTLE_LIMIT_TICKS + 20) return null;
+  if (!Number.isInteger(o.tick) || o.tick < 0 || o.tick > MAX_BATTLE_TICKS + 20) return null;
   const out = { type: o.type, side: playerSide, tick: o.tick, seq: int(o.seq) };
   if (Array.isArray(o.squads)) out.squads = o.squads.filter((i) => Number.isInteger(i) && i >= 0).slice(0, MAX_SQUADS_PER_ORDER);
   ['x', 'y', 'x2', 'y2'].forEach((k) => { if (k in o) out[k] = num(o[k]); });

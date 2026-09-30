@@ -11,10 +11,25 @@ import { sideEdgeX } from './world';
 import { Q, secondsToTicks } from './constants';
 
 export const RALLY_MORALE = 35;
+export { RTS_MORALE_PER_PERCENT, moraleFromLosses } from './moraleMath';
+// Seeing a neighbour break or die shakes the squads around it (a local, cascading morale shock).
+export const SHOCK_RADIUS = 5 * Q;
+export const SHOCK_MORALE = 5;
 const RALLY_QUIET_TICKS = secondsToTicks(6);
 const REGEN_QUIET_TICKS = secondsToTicks(3);
+export const ROUTED_REGEN_PER_SEC = 3;
 
 export const updateMorale = (w) => {
+  // Squads that broke or fell this tick shake their neighbours (applied before rout checks, so a
+  // collapse can cascade along a line over the following ticks).
+  const shocks = w.events.filter((e) => e.t === w.tick && (e.type === 'destroyed' || e.type === 'routed')).map((e) => w.squads[e.id]).filter(Boolean);
+  shocks.forEach((src) => {
+    w.squads.forEach((q) => {
+      if (q === src || q.side !== src.side || !isFighting(q) || q.routed || q.inside >= 0) return;
+      const dx = q.x - src.x; const dy = q.y - src.y;
+      if (dx * dx + dy * dy <= SHOCK_RADIUS * SHOCK_RADIUS) q.morale = Math.max(0, q.morale - SHOCK_MORALE);
+    });
+  });
   w.squads.forEach((q) => {
     if (!isFighting(q) || q.inside >= 0) return; // sheltered by its walls
     if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0) {
@@ -27,7 +42,9 @@ export const updateMorale = (w) => {
       }
     }
     const quiet = w.tick - q.lastHitTick;
-    if (quiet > REGEN_QUIET_TICKS && w.tick % 20 === 0 && q.morale < 100) q.morale += 1;
+    // Morale comes back once nobody is shooting at you — faster for a routed squad that got clear
+    // (it can rally and return to the fight before it runs off the field, as in Total War).
+    if (quiet > REGEN_QUIET_TICKS && w.tick % 20 === 0 && q.morale < 100) q.morale = Math.min(100, q.morale + (q.routed ? ROUTED_REGEN_PER_SEC : 1));
     if (q.routed && quiet > RALLY_QUIET_TICKS && q.morale >= RALLY_MORALE) {
       q.routed = false; q.anchorX = q.x; q.anchorY = q.y;
       w.events.push({ t: w.tick, type: 'rallied', id: q.idx });

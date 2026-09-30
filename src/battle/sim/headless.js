@@ -5,9 +5,9 @@ import { createWorld } from './world';
 import { step } from './step';
 import { toStrategicResult } from './result';
 import { worldHash } from './hash';
-import { BATTLE_LIMIT_TICKS } from './constants';
+import { battleLimitTicks } from './constants';
 
-export const runHeadless = (setup, { orders = [], maxTicks = BATTLE_LIMIT_TICKS + 20, checkpointEvery = 0 } = {}) => {
+export const runHeadless = (setup, { orders = [], maxTicks = battleLimitTicks(setup) + 20, checkpointEvery = 0 } = {}) => {
   const w = createWorld(setup);
   const byTick = new Map();
   orders.forEach((o) => { const list = byTick.get(o.tick) || []; list.push(o); byTick.set(o.tick, list); });

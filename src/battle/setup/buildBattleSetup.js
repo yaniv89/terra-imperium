@@ -15,7 +15,7 @@ import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense'
 import { generateMap, TILE } from './mapgen';
 import { BUILDING_CATEGORIES, getCategoryTierName } from '../../data/buildings';
 import { polarX, polarY } from '../sim/fixed';
-import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
+import { Q, SIDE_ATTACKER, secondsToTicks, FIELD_BATTLE_TICKS, SIEGE_BATTLE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield).
@@ -97,6 +97,8 @@ export const buildSetupFromArmies = ({
     regionId,
     terrain,
     combatWidth,
+    // Adaptive clock: open-field battles are fast and decisive; sieges give the engines time.
+    limitTicks: fortLevel > 0 ? SIEGE_BATTLE_TICKS : FIELD_BATTLE_TICKS,
     map,
     structures: [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings)],
     points,

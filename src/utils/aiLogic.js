@@ -165,20 +165,33 @@ const getDominantClass = (counts) => {
 // nothing explicitly does (e.g. classId itself has no natural predator in the closed triangle).
 const getCounterClassFor = (classId) => UNIT_CLASS_IDS.find(id => UNIT_CLASSES[id].beats.includes(classId)) || null;
 
-// Which class a Tier 1 nation recruits next (plan §8.5's counter-building): the counter to its
-// rival's dominant class, if one exists, is recruitable by AI nations at all, and is available
-// this age — otherwise infantry, the cheap default backbone, or whatever's first available if even
-// that isn't unlocked yet.
+// Which class a Tier 1 nation recruits next. A combined-arms doctrine (roughly half infantry, the rest
+// ranged, cavalry and a few engines — whatever this age can field) with plan §8.5's counter-building
+// on top: the counter to its rival's dominant class gets a bigger share. Each recruit fills the
+// biggest gap between the army it has and that target mix. (It used to pick the counter — or
+// infantry — every single time, so AI armies were >80% one class: single-unit spam.)
+export const AI_DOCTRINE_MIX = { infantry: 0.45, ranged: 0.25, cavalry: 0.2, siege: 0.1 };
+export const AI_COUNTER_BONUS = 0.3;
 export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
   const available = getAvailableClasses(ageId).filter(id => AI_RECRUITABLE_CLASSES.includes(id));
   if (available.length === 0) return null;
+  const target = {};
+  available.forEach((c) => { target[c] = AI_DOCTRINE_MIX[c] ?? 0.05; });
   const rivalId = getRivalId(state, nationId);
   if (rivalId) {
     const dominant = getDominantClass(countUnitsByClass(units, rivalId));
     const counter = dominant ? getCounterClassFor(dominant) : null;
-    if (counter && available.includes(counter)) return counter;
+    if (counter && available.includes(counter)) target[counter] += AI_COUNTER_BONUS;
   }
-  return available.includes('infantry') ? 'infantry' : available[0];
+  const sum = Object.values(target).reduce((a, b) => a + b, 0);
+  const mine = countUnitsByClass(units, nationId);
+  const total = Object.values(mine).reduce((a, b) => a + b, 0) + 1; // the army after this recruit
+  let best = available[0]; let bestGap = -Infinity;
+  available.forEach((c) => {
+    const gap = (target[c] / sum) * total - (mine[c] || 0);
+    if (gap > bestGap + 1e-9) { best = c; bestGap = gap; }
+  });
+  return best;
 };
 
 // Tier 1 nations may each recruit one real land unit this turn (AI_RECRUIT_CHANCE), placed in

@@ -561,3 +561,19 @@ describe('processAIRecruitment', () => {
     expect(a).toEqual(b);
   });
 });
+
+// Phase 2 audit: AI armies were >80% one class (it recruited the counter, or infantry, every time).
+describe('chooseAIRecruitClass builds a combined-arms army', () => {
+  it('recruiting 20 units in a row gives a mix, with no class above 60%', () => {
+    let units = {};
+    for (let i = 0; i < 20; i++) {
+      const s = { playerNationId: 'us', wars: [], nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } }, regions: { 'de-rp': { owner: 'de' }, 'fr-57': { owner: 'fr' } } };
+      const classId = chooseAIRecruitClass(s, units, 'de', 'kingdoms');
+      units = { ...units, [`u${i}`]: { id: `u${i}`, ownerId: 'de', classId, domain: 'land' } };
+    }
+    const counts = {};
+    Object.values(units).forEach((u) => { counts[u.classId] = (counts[u.classId] || 0) + 1; });
+    expect(Object.keys(counts).length).toBeGreaterThanOrEqual(3);
+    expect(Math.max(...Object.values(counts)) / 20).toBeLessThanOrEqual(0.6);
+  });
+});

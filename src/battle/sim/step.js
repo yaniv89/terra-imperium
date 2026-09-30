@@ -13,7 +13,7 @@ import { updateFog } from './fog';
 import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
-import { BATTLE_LIMIT_TICKS, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
 const lastStand = (w, side) => {
@@ -39,7 +39,7 @@ const checkEnd = (w) => {
   if (attackerBroken && defenderBroken) w.ended = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
   else if (defenderBroken) w.ended = { outcome: 'attacker', reason: 'defendersBroken', decisive: false, tick: w.tick };
   else if (attackerBroken) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : 'attackersBroken', tick: w.tick };
-  else if (w.tick >= BATTLE_LIMIT_TICKS) w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
+  else if (w.tick >= battleLimitTicks(w.setup)) w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
   if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
 };
 
