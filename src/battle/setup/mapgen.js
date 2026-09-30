@@ -101,7 +101,10 @@ export const reachable = (tiles, w, h, fromX, fromY, toX, toY) => {
 
 // regionId drives the whole layout; terrain/combatWidth pick the template and size; `features`
 // (deposit capture points, road count, keep radius) come from the region's real strategic data.
-export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1 }) => {
+// `landing`: an amphibious assault (T9). The attacker's (west) edge becomes open sea with a sand
+// beach in front of it; the invaders deploy on the sand and fall back to their boats.
+export const LANDING_SEA_COLS = 5;
+export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false }) => {
   const { w, h } = getMapSize(combatWidth);
   const tpl = TEMPLATES[terrain] || TEMPLATES.mixed;
   const rng = createRng(hashString(`map:${regionId}`));
@@ -201,7 +204,16 @@ export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, ro
     if (!reachable(tiles, w, h, 6, midY, pt.x, pt.y)) carveLine(tiles, w, h, 6, midY, pt.x, pt.y, 1, TILE.OPEN, { onlyImpassable: true });
   });
 
+  if (landing) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < LANDING_SEA_COLS; x++) tiles[y * w + x] = TILE.WATER;
+      for (let x = LANDING_SEA_COLS; x < LANDING_SEA_COLS + 3; x++) tiles[y * w + x] = TILE.SAND;
+    }
+  }
+
   const height = new Int16Array(w * h);
   for (let i = 0; i < w * h; i++) height[i] = Math.floor(((heightNoise[i] - 512) * tpl.heightAmp) / 8);
-  return { w, h, tiles, height, keep, points, attackerZone: { x0: 1, y0: 2, x1: 11, y1: h - 3 } };
+  if (landing) for (let y = 0; y < h; y++) for (let x = 0; x < LANDING_SEA_COLS + 3; x++) height[y * w + x] = Math.min(0, height[y * w + x]);
+  const attackerEdge = landing ? LANDING_SEA_COLS : 1; // the tile x the attacker enters on and falls back to
+  return { w, h, tiles, height, keep, points, landing, attackerEdge, attackerZone: { x0: attackerEdge, y0: 2, x1: 11, y1: h - 3 } };
 };

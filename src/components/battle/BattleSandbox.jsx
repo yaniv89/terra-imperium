@@ -45,7 +45,8 @@ const BattleSandbox = () => {
     fortLevel: Number(params.get('fort') || 2),
     seed: Number(params.get('seed') || 7),
     spectate: params.has('spectate'),
-    fog: params.has('fog')
+    fog: params.has('fog'),
+    landing: params.has('landing')
   });
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
@@ -58,9 +59,10 @@ const BattleSandbox = () => {
     attackerUnits: buildArmy('a', config.attacker, config.ageId, 1000, 'g_att'),
     defenderUnits: buildArmy('d', config.defender, config.ageId, 900, 'g_def'),
     generals: GENERALS,
-    powers: [sandboxPowers(config.ageId, buildArmy('a', config.attacker, config.ageId, 1000)), sandboxPowers(config.ageId, buildArmy('d', config.defender, config.ageId, 900)).filter((p) => p.id !== 'nuclearStrike')],
+    powers: [[...sandboxPowers(config.ageId, buildArmy('a', config.attacker, config.ageId, 1000)), ...(config.landing ? [{ id: 'navalBombardment', uses: 2 }] : [])], sandboxPowers(config.ageId, buildArmy('d', config.defender, config.ageId, 900)).filter((p) => p.id !== 'nuclearStrike')],
+    landing: config.landing,
     reinforcements: [
-      [{ regionId: 'north', name: 'Northern March', edge: 'N', units: buildArmy('r', 'small', config.ageId, 800) }],
+      config.landing ? [] : [{ regionId: 'north', name: 'Northern March', edge: 'N', units: buildArmy('r', 'small', config.ageId, 800) }],
       [{ regionId: 'east', name: 'Eastern Garrison', edge: 'S', units: buildArmy('s', 'small', config.ageId, 700) }]
     ],
     intel: { attackerSeesDefender: !config.fog },

@@ -121,6 +121,8 @@ export const POWERS = {
   satelliteSweep: { label: 'Satellite Sweep', cost: 0, cooldown: S(60) },
   missileTactical: { label: 'Tactical Missile', cost: 0, cooldown: S(5), tier: 'tactical', impacts: 1, radius: 3 * Q, damage: 380, structureMult: 4, delay: S(3), friendly: true },
   missileTheatre: { label: 'Theatre Missile', cost: 0, cooldown: S(5), tier: 'theatre', impacts: 1, radius: 4 * Q, damage: 650, structureMult: 4, delay: S(3), friendly: true },
+  // The invasion fleet's guns (amphibious landings): they only reach the shore half of the field.
+  navalBombardment: { label: 'Naval Bombardment', cost: 0, cooldown: S(40), impacts: 6, spread: 3 * Q, every: 8, radius: Math.round(1.6 * Q), damage: 100, structureMult: 2.5, delay: 30, reachFrac: 0.5 },
   nuclearStrike: { label: 'Nuclear Strike', cost: 0, cooldown: S(5), tier: 'nuclear', impacts: 1, radius: 14 * Q, damage: 1000000, structureMult: 1000, delay: S(4), friendly: true }
 };
 
@@ -153,7 +155,8 @@ export const firePower = (w, side, id, x, y) => {
     return true;
   }
   if (id === 'satelliteSweep') { w.revealUntil[side] = w.tick + S(10); return true; }
-  const cx = Math.max(0, Math.min(w.map.w * Q - 1, Math.round(x))); const cy = Math.max(0, Math.min(w.map.h * Q - 1, Math.round(y)));
+  const maxX = p.reachFrac ? Math.floor(w.map.w * p.reachFrac) * Q : w.map.w * Q - 1;
+  const cx = Math.max(0, Math.min(maxX, Math.round(x))); const cy = Math.max(0, Math.min(w.map.h * Q - 1, Math.round(y)));
   for (let i = 0; i < p.impacts; i++) {
     let ix = cx; let iy = cy;
     if (p.line) { ix = cx + (i - (p.impacts - 1) / 2) * Math.round(1.2 * Q); }

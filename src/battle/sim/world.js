@@ -93,8 +93,9 @@ const spawnSides = (w) => {
     const squads = front.map((u) => makeSquad(w, u, side, s.ageId, 0));
     const melee = squads.filter((q) => !isBackLine(q.stats));
     const back = squads.filter((q) => isBackLine(q.stats));
-    const frontX = side === SIDE_ATTACKER ? 8 : map.keep.x - 10;
-    const backX = side === SIDE_ATTACKER ? 4 : map.keep.x - 6;
+    const edge = map.attackerEdge || 1; // a landing deploys on the beach, not in the sea
+    const frontX = side === SIDE_ATTACKER ? edge + 7 : map.keep.x - 10;
+    const backX = side === SIDE_ATTACKER ? edge + 3 : map.keep.x - 6;
     [[melee, frontX], [back, backX]].forEach(([line, x]) => {
       line.forEach((q, i) => {
         const offset = Math.round((i - (line.length - 1) / 2) * 3);
@@ -118,7 +119,8 @@ const spawnSides = (w) => {
 };
 
 // The tile x a side enters the field on (and flees toward).
-export const sideEdgeX = (w, side) => (side === SIDE_ATTACKER ? Q : (w.map.w - 1) * Q);
+// (For an amphibious landing the attacker's edge is the waterline: its troops fall back to the boats.)
+export const sideEdgeX = (w, side) => (side === SIDE_ATTACKER ? (w.map.attackerEdge || 1) * Q : (w.map.w - 1) * Q);
 
 export const fieldCount = (w, side) => w.squads.filter((q) => q.side === side && q.alive && !q.fled && (q.onField || q.enterTick >= 0)).length;
 export const fieldCap = (w) => w.setup.combatWidth + 2;

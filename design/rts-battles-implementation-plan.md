@@ -1391,6 +1391,32 @@ if (isPlayerTarget && isDefended) {
 - `battleSettings.defaultMode === 'auto'` resolves defenses inside `resolveTurn`. The headless
   harnesses (`scripts/simulate.mjs`, the long-run tests) set it so they never stall.
 
+**T9 as built:**
+- **Server verification**:
+  - `RESOLVE_TACTICAL_BATTLE` takes the command log and re-simulates the battle from the
+    authoritative game state (`src/battle/sim/replay.js`). The client's reported result is ignored.
+  - The log is sanitized first: every order is forced onto the player's side, junk is dropped and
+    the length is capped.
+  - Exit gate: 20 live-recorded battles replay to the identical result and hash, both from source
+    and from the Deno edge bundle (`scripts/build-edge-engine.test.mjs`).
+- **Garrisons (§8.10)**:
+  - Only fortified buildings can be manned: a keep with real defenses, or a tower. Unwalled towns
+    can't, which keeps unfortified battles in parity with auto-resolve.
+  - A walled keep is entered from just outside its wall ring.
+  - Prince+ AI defenders man their buildings with ranged squads first, keeping half the army in the field.
+- **Amphibious landings**:
+  - `BEGIN_AMPHIBIOUS_BATTLE` handles the landing. If an enemy fleet guards the coast, or the beach
+    is empty, it falls back to the auto `AMPHIBIOUS_ASSAULT`.
+  - The map's west edge becomes sea plus a sand beach, and the attacker's fallback line is the waterline.
+  - The fleet brings a `navalBombardment` power: 2 salvos, reaching only the shore half of the field.
+  - The attacker gets no reinforcements; the auto and command paths share `applyAmphibiousLanding`.
+- **Audio, haptics and resolution**:
+  - Audio is synthesized with WebAudio, so there are no asset files.
+  - Haptics use Capacitor Haptics or `navigator.vibrate`.
+  - One HUD toggle controls both sound and haptics.
+  - Dynamic resolution runs DPR 2 → 1.25 → 1.
+- Urban maps were already covered by the `urban` mapgen template (street grid of building blocks).
+
 ---
 
 ## 17. Milestones: build order, exit gates, sizes

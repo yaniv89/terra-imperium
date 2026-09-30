@@ -9,6 +9,9 @@ import { ActionTypes } from '../data/types';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
 import { estimateInvasionOdds } from './battleOdds';
+import { getNationCapital } from '../data/regions';
+import { createWorld, sideEdgeX } from '../battle/sim/world';
+import { firePower } from '../battle/sim/effects';
 
 const FR_BORDER = 'fr-59';
 const BE_REGION = 'be-vwv';
@@ -225,5 +228,80 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
     const ids = setup.powers[0].map((p) => p.id);
     expect(ids).toEqual(expect.arrayContaining(['rallyCry', 'missileTactical', 'nuclearStrike']));
     expect(setup.powers[1].some((p) => p.id === 'nuclearStrike')).toBe(false); // the AI never gets a nuke
+  });
+});
+
+describe('T9: commanded amphibious landing', () => {
+  const GB_TARGET = 'gb-ios';
+  const landingState = () => {
+    const s = createInitialState({ playerNationId: 'fr' });
+    const port = getNationCapital('fr');
+    const units = {
+      fleet: { id: 'fleet', regionId: port, ownerId: 'fr', domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1, transportCapacity: 2, embarkedOn: null },
+      m1: { ...unit('m1', port, 'fr'), embarkedOn: 'fleet' },
+      m2: { ...unit('m2', port, 'fr', 'ranged'), embarkedOn: 'fleet' },
+      gb1: unit('gb1', GB_TARGET, 'gb')
+    };
+    return {
+      ...s,
+      units,
+      resources: { ...s.resources, gold: 100000, hr: 100000, mil: 500, adm: 500, dip: 500 },
+      wars: [...s.wars, { id: 'war_gb', aggressor: 'fr', enemy: 'gb', active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
+    };
+  };
+  const beginLanding = (s) => gameReducer(s, { type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId: 'fleet', targetRegionId: GB_TARGET } });
+
+  it('BEGIN pays once, locks the fleet and its troops, and builds a beach landing with naval guns', () => {
+    const s = landingState();
+    const started = beginLanding(s);
+    expect(started.pendingBattle).toMatchObject({ kind: 'amphibious', navalUnitId: 'fleet', attackerUnitIds: ['m1', 'm2'], defenderUnitIds: ['gb1'] });
+    expect(started.resources.mil).toBe(s.resources.mil - 3);
+    expect(gameReducer(started, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId: 'fleet', targetRegionId: GB_TARGET } }).units).toEqual(started.units);
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    expect(setup.map.landing).toBe(true);
+    expect(setup.powers[0].some((p) => p.id === 'navalBombardment' && p.uses === 2)).toBe(true);
+    const world = createWorld(setup);
+    world.squads.filter((q) => q.side === 0 && q.onField).forEach((q) => expect(q.x).toBeGreaterThanOrEqual(setup.map.attackerEdge * 256));
+    expect(sideEdgeX(world, 0)).toBe(setup.map.attackerEdge * 256);
+  });
+
+  it('a real headless landing resolves through the amphibious consequences', () => {
+    const started = beginLanding(landingState());
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result } });
+    expect(next.pendingBattle).toBeNull();
+    expect(next.lastBattleReport.kind).toBe('amphibious');
+    expect(next.units.fleet.movesLeft).toBe(0);
+    ['m1', 'm2'].forEach((id) => {
+      const u = next.units[id];
+      if (!u) return;
+      if (next.lastBattleReport.captured) expect(u).toMatchObject({ regionId: GB_TARGET, embarkedOn: null });
+      else expect(u.embarkedOn).toBe('fleet');
+    });
+  });
+
+  it('ABANDON auto-resolves the same landing; an enemy fleet or an empty beach means no command battle', () => {
+    const started = beginLanding(landingState());
+    const abandoned = gameReducer(started, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
+    expect(abandoned.pendingBattle).toBeNull();
+    expect(abandoned.lastBattleReport.kind).toBe('amphibious');
+    expect(abandoned.resources.mil).toBe(started.resources.mil);
+    const s = landingState();
+    const withFleet = { ...s, units: { ...s.units, gbNavy: { id: 'gbNavy', regionId: GB_TARGET, ownerId: 'gb', domain: 'naval', classId: 'naval', strength: 50000, maxStrength: 50000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null } } };
+    expect(beginLanding(withFleet).pendingBattle).toBeNull();
+    const { gb1, ...rest } = s.units; // eslint-disable-line no-unused-vars
+    const empty = beginLanding({ ...s, units: rest });
+    expect(empty.pendingBattle).toBeNull();
+    expect(empty.regions[GB_TARGET].occupiedBy).toBe('fr');
+  });
+
+  it('the fleet\'s guns only reach the shore half of the field', () => {
+    const started = beginLanding(landingState());
+    const w = createWorld(buildInvasionSetup(started, started.pendingBattle));
+    w.supply[0] = 1000;
+    firePower(w, 0, 'navalBombardment', (w.map.w - 2) * 256, 20 * 256);
+    const maxX = Math.floor(w.map.w * 0.5) * 256 + 3 * 256;
+    w.impacts.forEach((imp) => expect(imp.x).toBeLessThanOrEqual(maxX));
   });
 });

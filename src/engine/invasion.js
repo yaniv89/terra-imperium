@@ -19,6 +19,7 @@ import { canAfford } from '../utils/helpers';
 import { isWarBetween, recordBattle } from './diplomacy';
 import { getRegionModifier } from './modifiers/sheet';
 import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier } from './siege';
+import { isCoastal, isReachableBySea } from '../data/navalReach';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -27,6 +28,7 @@ export const isUnitInBattle = (state, unitId) => {
   if ((state.pendingDefenses || []).some((d) => d.defenderUnitIds.includes(unitId))) return true;
   const pb = state.pendingBattle;
   if (!pb) return false;
+  if (pb.navalUnitId === unitId) return true; // the fleet carrying a commanded landing
   if ((pb.attackerUnitIds || []).includes(unitId) || (pb.defenderUnitIds || []).includes(unitId)) return true;
   // Troops standing by in neighbouring provinces as possible reinforcements are committed too.
   return [...(pb.attackerReinforcements || []), ...(pb.defenderReinforcements || [])].some((src) => src.unitIds.includes(unitId));
@@ -211,6 +213,130 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
     wars: nextWars,
     rngSeed,
     lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+    logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+  };
+};
+
+// ---- Amphibious landings (AMPHIBIOUS_ASSAULT, and the commanded landing of Tactical Battles T9) ----
+
+// No foothold next to the target: the landing itself fights at a malus.
+export const AMPHIBIOUS_PENALTY_MULT = 0.75;
+
+// May this fleet land its troops on `targetRegionId` right now? Mirrors AMPHIBIOUS_ASSAULT's gate.
+export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreCost = false, ignoreBattleLocks = false } = {}) => {
+  const navalUnit = state.units[navalUnitId];
+  const targetRegion = state.regions[targetRegionId];
+  if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return { ok: false, reason: 'bad_fleet' };
+  if (!targetRegion || targetRegion.owner === state.playerNationId) return { ok: false, reason: 'bad_target' };
+  if (!isCoastal(targetRegionId)) return { ok: false, reason: 'not_coastal' };
+  if (!getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, state.age)) return { ok: false, reason: 'out_of_reach' };
+  const embarkedLandUnits = Object.values(state.units).filter((u) => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
+  if (embarkedLandUnits.length === 0) return { ok: false, reason: 'no_units' };
+  const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
+  if (!war) return { ok: false, reason: 'no_war' };
+  if (!ignoreBattleLocks && ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every((u) => (u.movesLeft ?? 1) > 0))) return { ok: false, reason: 'no_moves' };
+  if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return { ok: false, reason: 'cost' };
+  const defenderNavalUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+  const defenderLandUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land');
+  const hasBeachhead = getNeighborIds(targetRegionId).some((nId) => state.regions[nId]?.owner === state.playerNationId);
+  return { ok: true, navalUnit, targetRegionId, targetRegion, war, embarkedLandUnits, defenderNavalUnits, defenderLandUnits, hasBeachhead };
+};
+
+// The resolveBattle options for a landing's land battle (everything but the armies and the rng),
+// exactly as AMPHIBIOUS_ASSAULT computes them.
+export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
+  const isDefended = defenderLandUnits.length > 0;
+  return {
+    terrain: getRegionTerrain(v.targetRegionId, REGIONS_DATA),
+    isAttackingFortification: (v.targetRegion.defenseLevel || 0) > 0,
+    generals: state.hiredCommanders,
+    attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
+    defenderAgeId: state.age,
+    attackerPenaltyMultiplier: v.hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT,
+    defenderDamageReductionMultiplier: isDefended
+      ? getDefenseLevelDamageReductionMultiplier((v.targetRegion.defenseLevel || 0) + getRegionModifier(state, v.targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, v.targetRegionId, v.targetRegion.owner)
+      : 1
+  };
+};
+
+// Everything that follows the land battle of a landing. `state.units` already reflects any naval
+// interception. Survivors go ashore only once the region is taken; otherwise they're back aboard.
+export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targetRegionId, war, targetRegion, isDefended }, battle, { rngSeed, decisive = false, xpBonusById = null } = {}) => {
+  const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = battle;
+  const nextUnits = { ...state.units };
+  // See src/engine/siege.js — a defended region's control absorbs the damage instead of an
+  // outright flip; undefended coastline is still taken in one landing.
+  const siege = isDefended
+    ? resolveSiegeControlDamage({
+        currentControl: targetRegion.control,
+        outcome,
+        hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0))
+      })
+    : { nextControl: targetRegion.control, captured: outcome === 'attacker' };
+  const nextControl = siege.nextControl;
+  const captured = siege.captured || (decisive && outcome === 'attacker');
+
+  const attackerXpAmount = outcome === 'attacker' ? XP_WIN : outcome === 'defender' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
+  const defenderXpAmount = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
+  const awardBattleXp = (units, deployedIds, xpAmount) => units.map(u => {
+    if (!deployedIds.includes(u.id)) return u;
+    const gained = Math.round(xpAmount * getGeneralXpMultiplier(state.hiredCommanders[u.commanderId])) + (xpBonusById?.[u.id] || 0);
+    return awardXp(u, gained);
+  });
+  const xpAttackers = awardBattleXp(resolvedAttackers, report.deployedAttackerIds, attackerXpAmount);
+  const xpDefenders = awardBattleXp(resolvedDefenders, report.deployedDefenderIds, defenderXpAmount);
+
+  // Survivors disembark onto the beach only once it's actually captured; a round that merely
+  // damages a still-defended region's control falls back aboard the transport, still embarked,
+  // for another attempt — matching how a land LAUNCH_INVASION falls back to origin.
+  xpAttackers.forEach(u => {
+    if (u.strength <= 0) { delete nextUnits[u.id]; return; }
+    nextUnits[u.id] = captured
+      ? { ...u, regionId: targetRegionId, embarkedOn: null, movesLeft: 0, lastBattleTurn: state.turnNumber }
+      : { ...u, regionId: fromRegionId, embarkedOn: navalUnitId, movesLeft: 0, lastBattleTurn: state.turnNumber };
+  });
+  xpDefenders.forEach(u => {
+    if (captured || u.strength <= 0) { delete nextUnits[u.id]; return; }
+    nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
+  });
+  if (nextUnits[navalUnitId]) nextUnits[navalUnitId] = { ...nextUnits[navalUnitId], movesLeft: 0, lastBattleTurn: state.turnNumber };
+
+  const nextRegions = { ...state.regions };
+  if (captured) {
+    // Occupation, not annexation — see LAUNCH_INVASION's own comment on this (plan §M13).
+    nextRegions[targetRegionId] = {
+      ...targetRegion,
+      occupiedBy: state.playerNationId,
+      control: 25,
+      unrest: Math.max(targetRegion.unrest || 0, 50),
+      lastAttackedTurn: state.turnNumber,
+      underInvasion: false
+    };
+  } else if (isDefended) {
+    nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
+  }
+
+  const assaultLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
+  const assaultWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
+  const nextWars = assaultWinnerId
+    ? state.wars.map(w => (w.id === war.id ? { ...w, battleScore: recordBattle(w, assaultWinnerId, assaultLossShare) } : w))
+    : state.wars;
+
+  const outcomeMessage = captured
+    ? `Your amphibious assault occupies ${REGIONS_DATA[targetRegionId]?.name}, taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}.`
+    : outcome === 'attacker'
+      ? `Your landing broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
+      : outcome === 'defender'
+        ? `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
+        : `Your amphibious assault on ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
+
+  return {
+    ...state,
+    regions: nextRegions,
+    units: nextUnits,
+    wars: nextWars,
+    rngSeed,
+    lastBattleReport: { ...report, captured, kind: 'amphibious', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
     logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
   };
 };
