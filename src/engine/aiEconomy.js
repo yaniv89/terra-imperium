@@ -122,6 +122,9 @@ export const calcAllNationIncomes = (state) => {
     const entry = incomes[region.owner] || { gold: 0, hr: 0, techPoints: 0 };
     entry.gold += (dev.tax * (1 + localTax) + dev.production * (1 + localProduction)) * controlMult * infraMult * popFactor;
     entry.hr += dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
+    // The income buildings' flat yields, exactly as the player's calcIncome counts them.
+    entry.gold += getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
+    entry.hr += getRegionModifier(state, region.id, 'local.flatManpower').total * controlMult;
     if (localTechPoints) entry.techPoints += localTechPoints * controlMult * infraMult;
     incomes[region.owner] = entry;
   });

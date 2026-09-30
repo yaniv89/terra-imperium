@@ -29,6 +29,9 @@ export const MODIFIER_KEYS = {
   'local.taxIncome': { scope: 'region', unit: 'pct', label: 'Local Tax Income' },
   'local.productionIncome': { scope: 'region', unit: 'pct', label: 'Local Production Income' },
   'local.manpower': { scope: 'region', unit: 'pct', label: 'Local Manpower' },
+  // Flat per-turn yields of the income buildings (see src/data/buildings.js's economy header).
+  'local.flatGold': { scope: 'region', unit: 'flat', label: 'Gold per turn' },
+  'local.flatManpower': { scope: 'region', unit: 'flat', label: 'Manpower per turn' },
   // Plan §M6: building-tier effects for the categories that don't feed the three income keys
   // above. techPoints/tradeIncome/supplyRange are flat; fortLevel and stabilityBonus follow their
   // national namesakes' own sign convention (stabilityBonus: positive reduces unrest).

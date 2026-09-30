@@ -36,24 +36,27 @@ export const BUILDING_CATEGORIES = {
       { age: 'modern', name: 'Mechanized Farm', requiresTech: 'science_genomics' }
     ]
   },
+  // The income lines pay a flat yield on top of their percentage: most provinces start with a
+  // development of 1-3, where a percentage alone rounds to nothing — every Market, Workshop and
+  // Barracks now pays a visible amount from the turn it's built, and still scales with growth.
   economy: {
     label: 'Economy',
     costMult: 1.1,
     tiers: [
-      { age: 'classical', name: 'Market', requiresTech: 'economy_minted_coinage', effects: { 'local.taxIncome': 0.15 } },
-      { age: 'kingdoms', name: 'Bazaar', requiresTech: 'economy_guild_charters', effects: { 'local.taxIncome': 0.25 } },
-      { age: 'gunpowder', name: 'Bank', requiresTech: 'economy_joint_stock_companies', effects: { 'local.taxIncome': 0.35 } },
-      { age: 'modern', name: 'Stock Exchange', requiresTech: 'economy_global_markets', effects: { 'local.taxIncome': 0.50 } }
+      { age: 'classical', name: 'Market', requiresTech: 'economy_minted_coinage', effects: { 'local.taxIncome': 0.15, 'local.flatGold': 3 } },
+      { age: 'kingdoms', name: 'Bazaar', requiresTech: 'economy_guild_charters', effects: { 'local.taxIncome': 0.25, 'local.flatGold': 5 } },
+      { age: 'gunpowder', name: 'Bank', requiresTech: 'economy_joint_stock_companies', effects: { 'local.taxIncome': 0.35, 'local.flatGold': 8 } },
+      { age: 'modern', name: 'Stock Exchange', requiresTech: 'economy_global_markets', effects: { 'local.taxIncome': 0.50, 'local.flatGold': 12 } }
     ]
   },
   military: {
     label: 'Military',
     costMult: 1.0,
     tiers: [
-      { age: 'bronze', name: 'Barracks', requiresTech: null, effects: { 'local.manpower': 0.20 } },
-      { age: 'classical', name: 'Drill Yard', requiresTech: 'military_iron_weapons', effects: { 'local.manpower': 0.35 } },
-      { age: 'gunpowder', name: 'Military Academy', requiresTech: 'military_standing_armies', effects: { 'local.manpower': 0.50 } },
-      { age: 'modern', name: 'War College', requiresTech: 'military_mechanized_warfare', effects: { 'local.manpower': 0.65 } }
+      { age: 'bronze', name: 'Barracks', requiresTech: null, effects: { 'local.manpower': 0.20, 'local.flatManpower': 3 } },
+      { age: 'classical', name: 'Drill Yard', requiresTech: 'military_iron_weapons', effects: { 'local.manpower': 0.35, 'local.flatManpower': 5 } },
+      { age: 'gunpowder', name: 'Military Academy', requiresTech: 'military_standing_armies', effects: { 'local.manpower': 0.50, 'local.flatManpower': 8 } },
+      { age: 'modern', name: 'War College', requiresTech: 'military_mechanized_warfare', effects: { 'local.manpower': 0.65, 'local.flatManpower': 12 } }
     ]
   },
   defense: {
@@ -80,9 +83,9 @@ export const BUILDING_CATEGORIES = {
     label: 'Industry',
     costMult: 1.2,
     tiers: [
-      { age: 'classical', name: 'Workshop', requiresTech: 'science_geometry', effects: { 'local.productionIncome': 0.20 } },
-      { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35 } },
-      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50 } }
+      { age: 'classical', name: 'Workshop', requiresTech: 'science_geometry', effects: { 'local.productionIncome': 0.20, 'local.flatGold': 3 } },
+      { age: 'gunpowder', name: 'Manufactory', requiresTech: 'science_calculus', effects: { 'local.productionIncome': 0.35, 'local.flatGold': 6 } },
+      { age: 'modern', name: 'Factory', requiresTech: 'economy_industrial_capital', effects: { 'local.productionIncome': 0.50, 'local.flatGold': 10 } }
     ]
   },
   culture: {
@@ -194,3 +197,22 @@ export const createEmptyRegionBuildings = () => ({
   categories: Object.fromEntries(BUILDING_CATEGORY_IDS.map(id => [id, -1])),
   extraction: { copper: false, iron: false, oil: false }
 });
+
+// What a building tier actually does, in plain words, for the build buttons (e.g. "+3 gold/turn,
+// +15% tax"). Food's growth bonus isn't a modifier line, so the caller adds it.
+const EFFECT_WORDS = {
+  'local.flatGold': (v) => `+${v} gold/turn`,
+  'local.flatManpower': (v) => `+${v} manpower/turn`,
+  'local.taxIncome': (v) => `+${Math.round(v * 100)}% tax`,
+  'local.productionIncome': (v) => `+${Math.round(v * 100)}% production`,
+  'local.manpower': (v) => `+${Math.round(v * 100)}% manpower`,
+  'local.techPoints': (v) => `+${v} research/turn`,
+  'local.tradeIncome': (v) => `+${v} trade gold/turn`,
+  'local.supplyRange': (v) => `+${v} supply range`,
+  'local.fortLevel': (v) => `fort level ${v} (tougher sieges; the keep fires back in battle)`,
+  'local.stabilityBonus': (v) => `-${v} unrest/turn`
+};
+export const describeTierEffects = (categoryId, tierIndex) => {
+  const effects = BUILDING_CATEGORIES[categoryId]?.tiers[tierIndex]?.effects || {};
+  return Object.entries(effects).map(([key, value]) => (EFFECT_WORDS[key] ? EFFECT_WORDS[key](value) : null)).filter(Boolean).join(', ');
+};
