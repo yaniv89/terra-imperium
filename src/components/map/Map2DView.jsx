@@ -301,6 +301,28 @@ const Map2DView = ({
     );
   }, [pathsById, state.regions, state.playerNationId, interactive, selectedRegion, atWarNationIds, handleClick, zoomK]);
 
+  // War borders, the flat-map twin of the globe's red outline: every province of a nation you're at
+  // war with gets a thick red stroke, then its fill is painted again on top. Between two enemy
+  // provinces both halves of the stroke are covered, so only the nation's OUTER border stays red —
+  // a band just outside it that a neighbour's black edge can't paint over (a hairline red stroke in
+  // the base pass was drawn under the next province's black one, so it barely showed). Pure
+  // decoration: pointer-events none, so taps still reach the provinces underneath.
+  const warBorderElements = useMemo(() => {
+    if (!pathsById || !atWarNationIds.size) return null;
+    const enemy = [...pathsById.entries()].filter(([id, d]) => d && atWarNationIds.has(state.regions[id]?.owner));
+    if (!enemy.length) return null;
+    const band = 3.4 / zoomK; // half of it shows: ~1.7px outside the border
+    const hair = 0.4 / zoomK;
+    return (
+      <g pointerEvents="none" data-testid="war-borders">
+        {enemy.map(([id, d]) => <path key={`wb-${id}`} d={d} fill="none" stroke="#ef4444" strokeWidth={band} strokeLinejoin="round" />)}
+        {enemy.map(([id, d]) => (
+          <path key={`wf-${id}`} d={d} fill={getRegionFillColor(state.regions, state.playerNationId, id)} stroke={id === selectedRegion ? '#2563eb' : 'rgba(127,29,29,0.55)'} strokeWidth={id === selectedRegion ? 1.5 / zoomK : hair} />
+        ))}
+      </g>
+    );
+  }, [pathsById, atWarNationIds, state.regions, state.playerNationId, selectedRegion, zoomK]);
+
   if (!pathsById) {
     return (
       <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm" style={{ background: OCEAN_COLOR }}>
@@ -319,6 +341,7 @@ const Map2DView = ({
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
         {pathElements}
+        {warBorderElements}
       </g>
     </svg>
   );
