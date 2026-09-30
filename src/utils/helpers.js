@@ -13,6 +13,7 @@ import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
 import { getPopFactor, seedDevelopment } from '../engine/development';
+import { devastationIncomeMult } from '../engine/aftermath';
 import { BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
 // Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
 // keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
@@ -221,7 +222,7 @@ export const calcIncome = (state) => {
     // was before M2 gave it a reader.
     if (income.gold !== undefined && income.hr !== undefined) {
       const dev = region.dev || seedDevelopment(region.id);
-      const popFactor = getPopFactor(region, regData);
+      const popFactor = getPopFactor(region, regData) * devastationIncomeMult(region); // a battlefield earns less while it recovers
       const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
       const localProduction = getRegionModifier(state, region.id, 'local.productionIncome').total;
       const localManpower = getRegionModifier(state, region.id, 'local.manpower').total;

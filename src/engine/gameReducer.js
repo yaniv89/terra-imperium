@@ -36,6 +36,7 @@ const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: fals
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
+import { levyUnit } from './aftermath';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
 import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
@@ -1285,6 +1286,7 @@ export const gameReducer = (state, action) => {
       const newUnit = {
         id: unitId,
         regionId,
+        homeRegionId: regionId, // where its men come from: levy and casualty scars (aftermath.js)
         ownerId: state.playerNationId,
         domain: isNaval ? 'naval' : 'land',
         classId,
@@ -1314,6 +1316,8 @@ export const gameReducer = (state, action) => {
         ...state,
         resources: applyCosts(state.resources, costs),
         units: { ...state.units, [unitId]: newUnit },
+        // Its men leave the fields and workshops of the province they're raised in.
+        regions: isNaval ? state.regions : levyUnit(state.regions, newUnit),
         nations: {
           ...state.nations,
           // Every other reader of militaryStrength (AI tiering, coalition thresholds, a

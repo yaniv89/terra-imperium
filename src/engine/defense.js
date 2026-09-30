@@ -11,6 +11,7 @@
 // they're stored on the defense record, never in state.units, and their losses come out of
 // militaryStrength afterwards.
 import { conquerRegion } from './conquest';
+import { applyBattleAftermath } from './aftermath';
 import { LogTypes } from '../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
@@ -254,14 +255,25 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
       ? `${enemy} presses the siege of ${name} (control now ${siege.nextControl}%). Your garrison holds on.`
       : `Your garrison repels ${enemy}'s assault on ${name}!`;
 
+  // The battle's cost to the land and people (src/engine/aftermath.js).
+  const startOf = (u) => state.units[u.id] || (def.synthetic || []).find((sy) => sy.id === u.id) || { ...u, strength: u.maxStrength || u.strength };
+  const outcomeForAftermath = pressure === null ? outcome : aggressorWon ? 'attacker' : playerWon ? 'defender' : 'draw';
+  const aftermath = applyBattleAftermath({ ...state, regions, nations }, {
+    regionId: def.regionId,
+    beforeA: attackerUnits.map(startOf), afterA: attackerUnits,
+    beforeD: defenderUnits.map(startOf), afterD: defenderUnits,
+    attackerId: def.aggressorId, defenderId: state.playerNationId, outcome: outcomeForAftermath
+  });
+
   return {
     ...cleared,
     units,
-    nations,
-    regions,
+    nations: aftermath.nations,
+    regions: aftermath.regions,
+    hiredCommanders: aftermath.hiredCommanders,
     wars,
     lastBattleReport: { ...report, captured, defense: true, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, attackerNationId: def.aggressorId, defenderNationId: state.playerNationId },
-    logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }]
+    logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }, ...aftermath.logs]
   };
 };
 

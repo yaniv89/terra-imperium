@@ -35,6 +35,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
 import { expireNationModifiers, expireRegionModifiers } from './modifiers/timed';
 import { TAX_RATES } from '../data/taxRates';
 import { getSatelliteEffectTotal, MAX_ORBITAL_DEBRIS } from '../data/satellites';
@@ -168,12 +169,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     // region actively under invasion this turn loses population instead of growing (src/engine/
     // population.js has the full breakdown).
     const modernBaseline = REGIONS_DATA[id]?.population || 0;
+    // A devastated province (aftermath.js) grows more slowly while it recovers.
     const growthRate = getPopulationGrowthRate({
       foodTier: region.buildings?.categories?.food ?? -1,
       infrastructure: region.currentInfrastructure || 0,
       popGrowthBonus: getNationBonusTotal(owner, 'popGrowthBonus'),
       unrest
-    });
+    }) - devastationGrowthPenalty(region);
+    const devastation = decayDevastation(region.devastation);
     const currentPopulation = nextRegionPopulation({
       currentPopulation: region.currentPopulation || modernBaseline,
       modernBaseline,
@@ -181,8 +184,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       underInvasion: region.underInvasion
     });
 
-    if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown) || currentPopulation !== region.currentPopulation) {
-      regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation };
+    if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown) || currentPopulation !== region.currentPopulation || devastation !== (region.devastation || 0)) {
+      regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation, ...(region.devastation != null || devastation ? { devastation } : {}) };
     }
   });
   mark('regionUnrestAndPopulation');
@@ -742,6 +745,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // whatever class beats their most relevant rival's dominant class. Uses the calendar age, not a
   // per-nation tech age (AI nations don't track one independently). ---
   const recruitment = processAIRecruitment({ ...state, nations }, units, nations, regions, sortedByMilitary, newAge, rng);
+  // Every unit raised this turn draws its men from its home province (aftermath.js).
+  // (`regions` is this turn's own working copy, so each levy updates just its one province in place.)
+  Object.values(recruitment.units).forEach((u) => {
+    if (units[u.id] || u.domain === 'naval') return;
+    const home = u.homeRegionId || u.regionId;
+    const next = levyUnit({ [home]: regions[home] }, u)[home];
+    if (next) regions[home] = next;
+  });
   Object.assign(units, recruitment.units);
   Object.assign(nations, recruitment.nations);
   logs.push(...recruitment.logs.map(l => ({ year: newYear, ...l })));

@@ -818,7 +818,9 @@ describe('resolveTurn AI war declarations', () => {
     // zealot + hostility 100 gives it the highest available per-turn roll chance; run enough
     // turns that failing to ever roll it is astronomically unlikely (this is an integration test
     // of the real wiring, not a probability estimate — aiLogic.test.js covers the exact odds).
-    const base = createInitialState({ playerNationId: 'fr' });
+    // Waits for a war DE itself declared: with multi-front wars another nation may declare on DE
+    // first, which makes it isAtWar without it having declared anything. Fixed seed: reproducible.
+    const base = createInitialState({ playerNationId: 'fr', rngSeed: 2024 });
     let state = withAllEventsFired({
       ...base,
       nations: { ...base.nations, de: { ...base.nations.de, doctrine: 'zealot', hostility: 100 } }
@@ -826,10 +828,10 @@ describe('resolveTurn AI war declarations', () => {
     let warDeclared = false;
     for (let i = 0; i < 300 && !warDeclared; i++) {
       state = resolveTurn(state);
-      if (state.nations.de.isAtWar) warDeclared = true;
+      if (state.wars.some(w => w.aggressor === 'de')) warDeclared = true;
     }
     expect(warDeclared).toBe(true);
-    expect(state.wars.some(w => w.aggressor === 'de')).toBe(true);
+    expect(state.nations.de.isAtWar).toBe(true);
   });
 });
 

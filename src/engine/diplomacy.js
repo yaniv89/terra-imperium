@@ -12,6 +12,7 @@ import { resolveSiegeControlDamage } from './siege';
 import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY, INDEPENDENCE_WAR_WIN_SCORE } from '../data/actionCosts';
 import { getNationTotalDev, getTotalDev } from './development';
 import { applyPeace, buildAITerms, getPeaceAcceptance } from './peace';
+import { devastateRegion, applyBattleWarExhaustion } from './aftermath';
 import { leansPositive, leansNegative } from '../data/identity';
 import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from './defense';
 import { conquerRegion } from './conquest';
@@ -442,6 +443,9 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
               nextRegions = { ...nextRegions, [currentWar.goal.regionId]: { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true } };
             }
             currentWar = { ...currentWar, battleScore: recordBattle(currentWar, currentWar.aggressor, captured ? 0.3 : 0.15) };
+            // The fighting devastates the province and wears the losing defender down (aftermath.js).
+            nextRegions = devastateRegion(nextRegions, currentWar.goal.regionId, captured ? 0.3 : 0.15);
+            nextNations = applyBattleWarExhaustion(nextNations, currentWar.aggressor, currentWar.enemy, captured ? 0.3 : 0.15);
             logs.push(captured
               ? { message: `${updatedAggressor.name} conquers ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}, taken from ${updatedDefender.name}!`, type: 'combat' }
               : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });

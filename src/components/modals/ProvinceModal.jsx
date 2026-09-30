@@ -55,6 +55,7 @@ import { GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, canStartGreatPr
 import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
+import { DEVASTATION_DECAY } from '../../engine/aftermath';
 import { getRecruitUnitCost } from '../../engine/economy';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk } from '../../data/promotions';
@@ -307,6 +308,13 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
                   <div className="text-slate-400">Stability</div>
                   <div className="text-white font-semibold">{getStability(regionState)}%</div>
                 </div>
+                {(regionState.devastation || 0) > 0 && (
+                  // A battlefield (src/engine/aftermath.js): less income and growth until it recovers.
+                  <div className="col-span-2 bg-red-950/50 border border-red-800/60 rounded-lg p-3" data-testid="province-devastation">
+                    <div className="text-red-300">Devastated by war: {Math.round(regionState.devastation)}%</div>
+                    <div className="text-[11px] text-red-200/80">Income −{Math.round(regionState.devastation / 2)}% and slower growth; recovers about {DEVASTATION_DECAY}% a turn without further fighting.</div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
