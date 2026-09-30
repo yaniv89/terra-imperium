@@ -1,16 +1,19 @@
 // Composed units: a recipe dresses one rigged archetype (weapon in hand, seated on a mount, crewing an
 // engine) and bakes it into a single instancing-ready geometry; the fetch script's recipes cover the
 // whole {age}-{class} matrix and its GLB texture embedding produces a valid self-contained binary.
-import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   Bone, Skeleton, SkinnedMesh, Mesh, Group, BoxGeometry, MeshStandardMaterial, Uint16BufferAttribute, Float32BufferAttribute
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { composeUnitModel, findHand } from './unitComposer';
+import { composeUnitModel, findHand, findSaddle } from './unitComposer';
+import { isSkinLike as loaderSkinLike } from './gltfUnitLoader';
 import { LIMB, RIG_ATTRIBUTES } from './soldierFactory';
-import { embedGlbImages, checkMatrix, RECIPES, ARCHETYPES } from '../../../scripts/fetch-models.js';
+import {
+  SLOTS, packGltf, readGlb, writeGlb, describe as describeModel, scoreModel, planRoster, tagSurfaces, facingYaw, normalise,
+  isSkinLike, checkRoster
+} from '../../../scripts/import-models.js';
 
 const at = (geo, x, y, z) => geo.translate(x, y, z);
 const skinTo = (geo, boneIndex) => {
@@ -53,7 +56,23 @@ const buildSpear = () => {
   return g;
 };
 
-const LIBRARY = { soldier: buildSoldier, spear: buildSpear };
+// A four-legged animal: a long body up on four legs, head at the front (+Z).
+const buildHorse = () => {
+  const g = new Group();
+  const m = (geo, name) => g.add(new Mesh(geo, Object.assign(new MeshStandardMaterial({ color: '#7a5230' }), { name })));
+  m(at(new BoxGeometry(0.5, 0.5, 1.6), 0, 1.3, 0), 'Body');
+  m(at(new BoxGeometry(0.3, 0.6, 0.4), 0, 1.9, 0.9), 'Head');
+  [[-0.2, 0.6], [0.2, 0.6], [-0.2, -0.6], [0.2, -0.6]].forEach(([x, z]) => m(at(new BoxGeometry(0.12, 1.05, 0.12), x, 0.52, z), 'Leg'));
+  return g;
+};
+const buildCatapult = () => {
+  const g = new Group();
+  g.add(new Mesh(at(new BoxGeometry(1, 0.4, 1.8), 0, 0.2, 0), Object.assign(new MeshStandardMaterial({ color: '#6b4a2e' }), { name: 'Wood' })));
+  g.add(new Mesh(at(new BoxGeometry(0.1, 1.2, 0.1), 0, 1, -0.3), Object.assign(new MeshStandardMaterial({ color: '#6b4a2e' }), { name: 'Arm' })));
+  return g;
+};
+
+const LIBRARY = { soldier: buildSoldier, spear: buildSpear, horse: buildHorse, catapult: buildCatapult };
 const opts = {
   resolve: (name) => (LIBRARY[name] ? `mem://${name}` : null),
   load: async (url) => ({ scene: LIBRARY[url.slice(6)](), animations: [] })
@@ -100,56 +119,174 @@ describe('composeUnitModel', () => {
     expect(engine.geometry.attributes.position.count).toBeGreaterThan(soldier.geometry.attributes.position.count * 3);
   });
 
+  it('seats a rider on the saddle of a mount MODEL (the top of its back, not its head)', async () => {
+    const r = await composeUnitModel({ base: 'soldier', mount: { model: 'horse', height: 1.25 } }, opts);
+    expect(r.stats.composed).toBe('mount');
+    const horse = buildHorse();
+    // The horse model alone, baked to the same height, to find where its back is.
+    const { extractUnitGeometry } = await import('./gltfUnitLoader');
+    const alone = extractUnitGeometry(horse, { quadruped: true, height: 1.25, segment: false }).geometry;
+    const [, backY] = findSaddle(alone);
+    alone.computeBoundingBox();
+    expect(backY).toBeLessThan(alone.boundingBox.max.y - 0.05); // the head is higher than the back
+    r.geometry.computeBoundingBox();
+    expect(r.geometry.boundingBox.max.y).toBeGreaterThan(alone.boundingBox.max.y); // the rider sits up top
+  });
+
+  it('crews an engine MODEL behind it, or puts one driver aboard', async () => {
+    const soldier = await composeUnitModel({ base: 'soldier' }, opts);
+    const n = soldier.geometry.attributes.position.count;
+    const crewed = await composeUnitModel({ base: 'soldier', engine: { model: 'catapult', height: 1.3 } }, opts);
+    const aboard = await composeUnitModel({ base: 'soldier', engine: { model: 'catapult', height: 1.3 }, crew: 'aboard' }, opts);
+    expect(crewed.stats.composed).toBe('engine');
+    expect(crewed.geometry.attributes.position.count - aboard.geometry.attributes.position.count).toBeGreaterThan(n * 0.5);
+  });
+
   it('refuses a recipe whose base is missing', async () => {
     await expect(composeUnitModel({ base: 'nobody' }, opts)).rejects.toThrow(/not available/);
   });
 });
 
-describe('fetch-models recipes', () => {
-  const UNITS = path.resolve(__dirname, '../../assets/units');
-  const AGES = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
-  const CLASSES = ['infantry', 'cavalry', 'ranged', 'siege'];
 
-  it('cover the whole {age}-{class} matrix, and every slot resolves from the shipped archetypes', () => {
-    AGES.forEach((a) => CLASSES.forEach((c) => expect(RECIPES[`${a}-${c}`], `${a}-${c}`).toBeTruthy()));
-    const shipped = new Set(fs.readdirSync(path.join(UNITS, '_src')).filter((f) => f.endsWith('.glb')).map((f) => f.slice(0, -4)));
-    ARCHETYPES.forEach((a) => expect(shipped.has(a.name), a.name).toBe(true));
-    checkMatrix(shipped).forEach((s) => expect(s.missing, s.slot).toEqual([]));
-    Object.keys(RECIPES).forEach((slot) => expect(JSON.parse(fs.readFileSync(path.join(UNITS, `${slot}.json`), 'utf8'))).toEqual(RECIPES[slot]));
+// ---- scripts/import-models.js ----------------------------------------------------------------
+
+// A tiny glTF: one triangle mesh per material, optional skin joints, as JSON + binary.
+const makeGltf = ({ materials = [], nodes = [], skins, images } = {}) => {
+  const pos = new Float32Array([0, 0, 0, 1, 0, 0, 0, 2, 0]);
+  const bin = Buffer.from(pos.buffer);
+  const json = {
+    asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }],
+    nodes: [{ name: 'Root', mesh: 0 }, ...nodes],
+    meshes: [{ primitives: materials.map((_, i) => ({ attributes: { POSITION: 0 }, material: i })) }],
+    materials,
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 2, 0] }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: bin.length }],
+    buffers: [{ byteLength: bin.length, uri: 'mesh.bin' }]
+  };
+  if (skins) json.skins = skins;
+  if (images) json.images = images;
+  return { json, bin };
+};
+const colour = (hex) => { const n = parseInt(hex.slice(1), 16); const lin = (c) => ((c / 255) <= 0.04045 ? c / 255 / 12.92 : (((c / 255) + 0.055) / 1.055) ** 2.4); return [lin(n >> 16), lin((n >> 8) & 255), lin(n & 255), 1]; };
+
+describe('import-models: containers', () => {
+  it('packs a .gltf with an external buffer and texture into one self-contained GLB', async () => {
+    const { json, bin } = makeGltf({ materials: [{ name: 'A' }], images: [{ uri: 'Textures/colormap.png' }] });
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+    const files = { 'mesh.bin': bin, 'Textures/colormap.png': png };
+    const packed = await packGltf({ json }, async (uri) => files[uri]);
+    const glb = writeGlb(packed.json, packed.bin);
+    const back = readGlb(glb);
+    expect(back.json.buffers).toEqual([{ byteLength: back.bin.length }]);
+    expect(back.json.images[0].uri).toBeUndefined();
+    const view = back.json.bufferViews[back.json.images[0].bufferView];
+    expect(Buffer.compare(back.bin.subarray(view.byteOffset, view.byteOffset + view.byteLength), png)).toBe(0);
+    expect(Buffer.compare(back.bin.subarray(0, bin.length), bin)).toBe(0);
+    expect(glb.readUInt32LE(8)).toBe(glb.length);
+  });
+});
+
+describe('import-models: matching', () => {
+  const person = (rel) => ({ ...describeModel(rel, makeGltf({ skins: [{ joints: [1] }], nodes: [{ name: 'LeftArm' }] }).json), humanoid: true, skinned: true });
+  const machine = (rel) => describeModel(rel, makeGltf().json);
+  const horse = (rel) => ({ ...describeModel(rel, makeGltf().json), quadruped: true, skinned: true });
+
+  it('scores period keywords, file name first', () => {
+    expect(scoreModel(person('packs/ancient/Hoplite.glb'), SLOTS['classical-infantry'].want)).toBeGreaterThan(scoreModel(person('packs/ancient/Knight.glb'), SLOTS['classical-infantry'].want));
+    expect(scoreModel(person('packs/misc/Chef.glb'), SLOTS['modern-infantry'].want)).toBe(0);
   });
 
-  it('reports a slot whose archetype is missing', () => {
-    const bad = checkMatrix(new Set());
-    expect(bad.every((s) => !s.ok && s.missing.length > 0)).toBe(true);
+  it('gives every era its own period model and reports what is missing — never a stand-in', () => {
+    const models = [
+      person('q/Egyptian_Spearman.glb'), person('q/Egyptian_Archer.glb'), machine('k/chariot.glb'), machine('k/siege-ram.glb'),
+      person('q/Hoplite.glb'), person('q/Greek_Archer.glb'), machine('k/siege-ballista.glb'),
+      person('q/Knight.glb'), person('q/Crossbowman.glb'), machine('k/siege-trebuchet.glb'),
+      person('q/Musketeer.glb'), person('q/Rifleman.glb'), person('q/Hussar.glb'), machine('k/cannon.glb'),
+      person('q/Soldier.glb'), person('q/Sniper.glb'), machine('m/Tank.glb'), machine('m/Howitzer.glb'), machine('m/APC.glb'),
+      horse('q/Horse.glb')
+    ];
+    const { plan, missing } = planRoster(models);
+    expect(missing).toEqual([]);
+    expect(plan['classical-infantry'].model.rel).toBe('q/Hoplite.glb');
+    expect(plan['kingdoms-infantry'].model.rel).toBe('q/Knight.glb');
+    expect(plan['gunpowder-infantry'].model.rel).toBe('q/Musketeer.glb');
+    expect(plan['modern-cavalry'].model.rel).toBe('m/Tank.glb');
+    expect(plan['gunpowder-cavalry']).toMatchObject({ kind: 'mounted', rider: { rel: 'q/Hussar.glb' }, mount: { rel: 'q/Horse.glb' } });
+    expect(plan['classical-siege']).toMatchObject({ kind: 'engine', model: { rel: 'k/siege-ballista.glb' }, crew: { rel: 'q/Hoplite.glb' } });
+    expect(plan['bronze-cavalry'].kind).toBe('chariot');
+    // Without the horse and the tank, those slots are missing (not faked).
+    const { missing: gaps } = planRoster(models.filter((d) => !/Horse|Tank/.test(d.rel)));
+    expect(gaps).toEqual(expect.arrayContaining(['classical-cavalry', 'kingdoms-cavalry', 'gunpowder-cavalry', 'modern-cavalry']));
   });
 
-  it('embeds external textures into a valid GLB binary chunk', async () => {
-    const json = { asset: { version: '2.0' }, images: [{ uri: 'Textures/colormap.png' }], buffers: [{ byteLength: 4 }], bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 4 }] };
-    const pad = (b, f) => (b.length % 4 ? Buffer.concat([b, Buffer.alloc(4 - (b.length % 4), f)]) : b);
-    const jsonBuf = pad(Buffer.from(JSON.stringify(json)), 0x20);
-    const bin = Buffer.from([1, 2, 3, 4]);
-    const chunk = (b, t) => { const h = Buffer.alloc(8); h.writeUInt32LE(b.length, 0); h.write(t, 4, 'latin1'); return Buffer.concat([h, b]); };
-    const head = Buffer.alloc(12); head.write('glTF', 0, 'latin1'); head.writeUInt32LE(2, 4);
-    const glb = Buffer.concat([head, chunk(jsonBuf, 'JSON'), chunk(bin, 'BIN\0')]); glb.writeUInt32LE(glb.length, 8);
+  it('honours a manifest pin', () => {
+    const models = [person('q/Hoplite.glb'), person('q/Spartan_Hero.glb')];
+    const { plan } = planRoster(models, { 'classical-infantry': { file: 'q/Spartan_Hero.glb' } });
+    expect(plan['classical-infantry'].model.rel).toBe('q/Spartan_Hero.glb');
+  });
+});
 
-    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 9, 9, 9]);
-    const asked = [];
-    const out = await embedGlbImages(glb, async (uri) => { asked.push(uri); return png; });
-    expect(asked).toEqual(['Textures/colormap.png']);
-    expect(out.toString('latin1', 0, 4)).toBe('glTF');
-    expect(out.readUInt32LE(8)).toBe(out.length);
-    const jl = out.readUInt32LE(12);
-    const parsed = JSON.parse(out.subarray(20, 20 + jl).toString('utf8'));
-    const img = parsed.images[0];
-    expect(img.uri).toBeUndefined();
-    expect(img.mimeType).toBe('image/png');
-    const binLen = out.readUInt32LE(20 + jl);
-    expect(parsed.buffers[0].byteLength).toBe(binLen);
-    const binData = out.subarray(28 + jl, 28 + jl + binLen);
-    expect(Array.from(binData.subarray(0, 4))).toEqual([1, 2, 3, 4]);
-    const view = parsed.bufferViews[img.bufferView];
-    expect(Buffer.compare(binData.subarray(view.byteOffset, view.byteOffset + view.byteLength), png)).toBe(0);
-    // Already self-contained: untouched.
-    expect(await embedGlbImages(out, async () => { throw new Error('no fetch'); })).toBe(out);
+describe('import-models: tagging, scale and facing', () => {
+  it('renames the uniform to TeamColor and the skin to Skin', () => {
+    const { json } = makeGltf({ materials: [{ name: 'Tunic_Red' }, { name: 'Skin_Light' }, { name: 'Steel', pbrMetallicRoughness: { metallicFactor: 1 } }] });
+    const t = tagSurfaces(json, { people: true });
+    expect(json.materials.map((m) => m.name)).toEqual(['TeamColor_0', 'Skin_1', 'Steel']);
+    expect(json.materials[0].extras.sourceName).toBe('Tunic_Red');
+    expect(t.options).toEqual({});
+  });
+
+  it('finds skin by colour and gives the biggest plain surface the team colour when nothing is named', () => {
+    const { json } = makeGltf({ materials: [{ name: 'mat_a', pbrMetallicRoughness: { baseColorFactor: colour('#e0ac82'), metallicFactor: 0 } }, { name: 'mat_b', pbrMetallicRoughness: { baseColorFactor: colour('#3050a0'), metallicFactor: 0 } }] });
+    tagSurfaces(json, { people: true });
+    expect(json.materials.map((m) => m.name)).toEqual(['Skin_0', 'TeamColor_1']);
+  });
+
+  it('falls back to per-vertex tagging (teamFrom / skinFrom) for a single palette texture', () => {
+    const { json } = makeGltf({
+      materials: [{ name: 'colormap', pbrMetallicRoughness: { baseColorTexture: { index: 0 } } }],
+      nodes: [{ name: 'Hips' }, { name: 'Spine1' }, { name: 'Head' }, { name: 'HeadTop_End' }],
+      skins: [{ joints: [1, 2, 3, 4] }]
+    });
+    expect(tagSurfaces(json, { people: true }).options).toEqual({ teamFrom: 'Spine1', skinFrom: 'Head' });
+  });
+
+  it('agrees with the game loader on what skin looks like', () => {
+    ['#e0ac82', '#8d5524', '#c68642', '#f1c27d', '#3050a0', '#808080', '#20a040', '#ffffff'].forEach((hex) => {
+      const [r, g, b] = colour(hex);
+      expect(isSkinLike(r, g, b), hex).toBe(loaderSkinLike(r, g, b));
+    });
+    expect(isSkinLike(...colour('#e0ac82').slice(0, 3))).toBe(true);
+    expect(isSkinLike(...colour('#3050a0').slice(0, 3))).toBe(false);
+  });
+
+  it('turns guns barrel-first and long machines lengthwise; people keep the +Z convention', () => {
+    // A gun lying along X, its heavy breech at -X (centroid there), so the barrel points +X.
+    expect(facingYaw({ min: [-2, 0, -0.5], max: [2, 1, 0.5], centroid: [-0.6, 0.4, 0] }, { barrel: true })).toBeCloseTo(-Math.PI / 2);
+    expect(facingYaw({ min: [-2, 0, -0.5], max: [2, 1, 0.5], centroid: [0.6, 0.4, 0] }, { barrel: true })).toBeCloseTo(Math.PI / 2);
+    expect(facingYaw({ min: [-0.5, 0, -2], max: [0.5, 1, 2], centroid: [0, 0.4, 0.7] }, { barrel: true })).toBeCloseTo(Math.PI);
+    expect(facingYaw({ min: [-0.3, 0, -0.2], max: [0.3, 1.8, 0.2], centroid: [0, 0.9, 0] }, { lengthwise: false })).toBe(0);
+    expect(facingYaw({ min: [-2, 0, -0.5], max: [2, 1, 0.5], centroid: [0, 0, 0] }, { pinDegrees: 180 })).toBeCloseTo(Math.PI);
+  });
+
+  it('stands the model on the ground, centred, at its real height', () => {
+    const { json } = makeGltf({ materials: [{ name: 'A' }] });
+    normalise(json, { min: [2, 1, -1], max: [4, 101, 1] }, { meters: 1.8, yaw: -Math.PI / 2 });
+    const root = json.nodes[json.scenes[0].nodes[0]];
+    expect(root.name).toBe('UnitRoot');
+    expect(root.children).toEqual([0]);
+    const m = root.matrix;
+    const apply = ([x, y, z]) => [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+    const foot = apply([3, 1, 0]); const top = apply([3, 101, 0]); const front = apply([4, 1, 0]);
+    expect(foot.map((v) => Math.round(v * 1000) / 1000)).toEqual([0, 0, 0]);
+    expect(top[1]).toBeCloseTo(1.8);
+    expect(front[2]).toBeGreaterThan(0); // +X (the front) now points +Z
+  });
+});
+
+describe('import-models: the shipped roster', () => {
+  it('resolves every one of the 21 slots', () => {
+    const res = checkRoster(path.resolve(__dirname, '../../assets/units'));
+    expect(res).toHaveLength(Object.keys(SLOTS).length);
+    res.forEach((r) => expect(r.missing, r.slot).toEqual([]));
   });
 });

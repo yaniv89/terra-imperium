@@ -1,0 +1,6 @@
+{
+  "classical-infantry": { "file": "sketchfab/hoplite-by-author/scene.gltf", "teamMaterial": "Cloak" },
+  "kingdoms-cavalry": { "rider": "quaternius/ultimate-animated-characters/glTF/Knight_Male.gltf", "mount": "quaternius/animated-animals/glTF/Horse.gltf" },
+  "gunpowder-siege": { "file": "kenney/pirate-kit/Models/GLB format/cannon-mobile.glb", "rotateY": 180 },
+  "modern-cavalry": { "file": "sketchfab/tank-by-author/scene.gltf", "meters": 2.4 }
+}

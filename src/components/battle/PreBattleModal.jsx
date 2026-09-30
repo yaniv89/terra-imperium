@@ -1,6 +1,6 @@
 // src/components/battle/PreBattleModal.jsx
-// The pre-battle interception (Tactical Battles plan §2, §10.2). EVERY attack you launch on a
-// defended province stops here first — it is never skipped by a remembered setting (that used to
+// The pre-battle interception (Tactical Battles plan §2, §10.2). EVERY attack you launch — on a
+// garrisoned province or an empty one — stops here first — it is never skipped by a remembered setting (that used to
 // happen: one shared "auto" switch silently auto-resolved everything, so the manual battle seemed
 // to vanish). It shows both armies, their commanders, the ground and the walls, the real
 // auto-resolve odds and why, and asks how to fight:
@@ -79,6 +79,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
   const mine = summarizeArmy(v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [], state.hiredCommanders);
   const theirs = summarizeArmy(v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [], state.hiredCommanders);
   const enemyName = state.nations[region?.owner]?.name || 'the enemy';
+  // Known to be empty (you have intel): there's no battle to fight, the army just marches in.
+  const knownEmpty = hasIntel && v?.ok && (landing ? v.defenderLandUnits : v.defenderUnits).length === 0;
 
   const remember = (mode) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: mode } }); };
   const auto = () => {
@@ -153,18 +155,22 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
           <div className="text-[11px] text-slate-400 rounded-lg bg-slate-800/60 px-3 py-2">An enemy fleet guards the coast: it has to be fought at sea first, so this landing can only be auto-resolved.</div>
         )}
 
-        <button type="button" onClick={command} disabled={!affordable || blockedAtSea} className={`w-full min-h-[64px] p-3 rounded-xl bg-blue-600/90 border border-blue-400 flex items-center gap-3 text-left disabled:opacity-50${ring('command')}`} data-testid="battle-choice-command">
+        {knownEmpty && (
+          <div className="text-[11px] text-emerald-200 rounded-lg bg-emerald-900/30 border border-emerald-700/40 px-3 py-2" data-testid="pre-battle-undefended">No garrison: the province falls as soon as your army marches in.</div>
+        )}
+
+        {!knownEmpty && <button type="button" onClick={command} disabled={!affordable || blockedAtSea} className={`w-full min-h-[64px] p-3 rounded-xl bg-blue-600/90 border border-blue-400 flex items-center gap-3 text-left disabled:opacity-50${ring('command')}`} data-testid="battle-choice-command">
           <Swords className="w-6 h-6 text-white shrink-0" />
           <span>
             <span className="block font-semibold text-white">Fight manually {preferred === 'command' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
             <span className="block text-xs text-blue-100">Command it in real time with exactly these armies, this ground and these walls.</span>
           </span>
-        </button>
+        </button>}
         <button type="button" onClick={auto} disabled={!affordable} className={`w-full min-h-[64px] p-3 rounded-xl bg-slate-800 border border-slate-600 flex items-center gap-3 text-left disabled:opacity-50${ring('auto')}`} data-testid="battle-choice-auto">
           <Zap className="w-6 h-6 text-amber-300 shrink-0" />
           <span>
-            <span className="block font-semibold text-white">Auto-resolve {preferred === 'auto' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
-            <span className="block text-xs text-slate-400">{odds && !odds.undefended && hasIntel ? 'Instant, by the odds above.' : 'Instant, by the same rules (no odds without intelligence).'} Break their whole garrison and the region is yours.</span>
+            <span className="block font-semibold text-white">{knownEmpty ? 'March in' : 'Auto-resolve'} {!knownEmpty && preferred === 'auto' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
+            <span className="block text-xs text-slate-400">{knownEmpty ? 'Take the province now.' : `${odds && !odds.undefended && hasIntel ? 'Instant, by the odds above.' : 'Instant, by the same rules (no odds without intelligence).'} Break their whole garrison and the region is yours.`}</span>
           </span>
         </button>
         <button type="button" onClick={onClose} className="w-full min-h-[48px] p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left" data-testid="battle-choice-calloff">
@@ -175,9 +181,9 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
           </span>
         </button>
 
-        <label className="flex items-center gap-2 text-xs text-slate-400">
+        {!knownEmpty && <label className="flex items-center gap-2 text-xs text-slate-400">
           <input type="checkbox" checked={prefer} onChange={(e) => setPrefer(e.target.checked)} /> Highlight my choice next time (you&apos;ll still be asked)
-        </label>
+        </label>}
       </div>
     </div>
   );
