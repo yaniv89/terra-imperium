@@ -30,7 +30,7 @@ import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, AMPHIBIOUS_PENALTY_MULT, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
-import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
@@ -470,6 +470,26 @@ const reject = (state, message) => ({
   ...state,
   logs: [...state.logs, { year: state.year, message, type: LogTypes.ACTION }]
 });
+
+// Why an attack was refused, in the player's words, so a click never silently does nothing.
+const ATTACK_REFUSALS = {
+  not_your_region: 'You can only attack from a province you hold.',
+  bad_target: "That region can't be attacked.",
+  not_adjacent: "That region isn't next to your army.",
+  cost: 'Not enough resources to attack.',
+  no_units: 'There are no troops there to attack with.',
+  no_moves: 'That army has already moved or fought this turn.',
+  bad_fleet: "That fleet can't carry out a landing.",
+  not_coastal: 'That region has no coast to land on.',
+  out_of_reach: "Your fleet can't reach that coast yet."
+};
+const refuseAttack = (state, reason, targetRegionId) => {
+  if (reason === 'no_war') {
+    const owner = state.nations[state.regions[targetRegionId]?.owner];
+    return reject(state, `You're at peace with ${owner?.name || 'them'} — declare war before attacking ${REGIONS_DATA[targetRegionId]?.name || 'that region'}.`);
+  }
+  return reject(state, ATTACK_REFUSALS[reason] || "That attack isn't possible right now.");
+};
 
 // ============ REDUCER ============
 // Exported for direct unit testing (see GameContext.test.js) — the reducer is the authoritative
@@ -1375,7 +1395,7 @@ export const gameReducer = (state, action) => {
       // BEGIN_TACTICAL_BATTLE/RESOLVE_TACTICAL_BATTLE.
       const { fromRegionId, targetRegionId } = action.payload;
       const v = validateInvasion(state, fromRegionId, targetRegionId);
-      if (!v.ok) return state;
+      if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
       const rng = createRng(state.rngSeed);
       const battle = resolveBattle({ ...getResolveBattleArgs(v, ctx), rng });
@@ -1389,7 +1409,7 @@ export const gameReducer = (state, action) => {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
       const { fromRegionId, targetRegionId } = action.payload;
       const v = validateInvasion(state, fromRegionId, targetRegionId);
-      if (!v.ok) return state;
+      if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       // Nothing to fight: an undefended region is simply taken, exactly as auto-resolve does.
       if (v.defenderUnits.length === 0) return gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
       const rng = createRng(state.rngSeed);
@@ -1499,7 +1519,7 @@ export const gameReducer = (state, action) => {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
       const { navalUnitId, targetRegionId } = action.payload || {};
       const v = validateAmphibious(state, navalUnitId, targetRegionId);
-      if (!v.ok) return state;
+      if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       // An enemy fleet has to be fought at sea first, and an empty beach needs no battle: both go
       // through the auto-resolved assault exactly as before.
       if (v.defenderNavalUnits.length || !v.defenderLandUnits.length) return gameReducer(state, { type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } });
@@ -1588,24 +1608,12 @@ export const gameReducer = (state, action) => {
 
     case ActionTypes.AMPHIBIOUS_ASSAULT: {
       const { navalUnitId, targetRegionId } = action.payload;
-      const navalUnit = state.units[navalUnitId];
-      const targetRegion = state.regions[targetRegionId];
       const costs = ACTION_COSTS.amphibiousAssault;
-      if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return state;
-      if (!targetRegion || targetRegion.owner === state.playerNationId) return state;
-      if (!isCoastal(targetRegionId)) return state;
-      const isLandAdjacent = getNeighborIds(navalUnit.regionId).includes(targetRegionId);
-      const isSeaLaneReachable = isReachableBySea(navalUnit.regionId, targetRegionId, state.age);
-      if (!isLandAdjacent && !isSeaLaneReachable) return state;
-      const embarkedLandUnits = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
-      if (embarkedLandUnits.length === 0) return state;
-      // Plan §M13: an amphibious assault requires an active war with the target's owner, same as a
-      // land LAUNCH_INVASION (see that case's own comment for why this check is new).
-      const invasionWar = state.wars.find(w => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
-      if (!invasionWar) return state;
-      // Plan §M14: one attack per stack per turn — the transport and its whole embarked cargo.
-      if ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
-      if (!canAfford(state.resources, costs)) return state;
+      // The shared gate (src/engine/invasion.js): a player fleet with troops aboard, a reachable
+      // enemy coast, an active war with its owner (plan §M13), moves left (§M14), and the cost.
+      const gate = validateAmphibious(state, navalUnitId, targetRegionId);
+      if (!gate.ok) return refuseAttack(state, gate.reason, targetRegionId);
+      const { navalUnit, targetRegion, embarkedLandUnits, war: invasionWar } = gate;
 
       const rng = createRng(state.rngSeed);
       const nextUnits = { ...state.units };
@@ -1680,8 +1688,11 @@ export const gameReducer = (state, action) => {
       if (attackerNavalUnits.length === 0) return state;
       // Plan §M14: one attack per stack per turn.
       if (!attackerNavalUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
-      const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
-      if (defenderNavalUnits.length === 0) return state;
+      // Only fleets of nations you're at war with can be engaged (plan §M13, as for invasions).
+      const presentNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
+      const defenderNavalUnits = presentNavalUnits.filter(u => isAtWarWithPlayer(state, u.ownerId));
+      if (presentNavalUnits.length === 0) return state;
+      if (defenderNavalUnits.length === 0) return reject(state, `You're at peace with ${state.nations[presentNavalUnits[0].ownerId]?.name || 'that fleet\'s nation'} — declare war before engaging their fleet.`);
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);

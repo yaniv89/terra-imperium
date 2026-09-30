@@ -23,7 +23,10 @@ const cap = getNationCapital;
 const withAllEventsFired = (state) => ({
   ...state,
   firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-  proceduralEventCooldown: 999999
+  proceduralEventCooldown: 999999,
+  // A queued defense battle pauses resolveTurn until the player fights it; these passive-player
+  // loops let them auto-resolve instead (as the long-run harnesses do).
+  battleSettings: { defaultMode: 'auto' }
 });
 
 describe('resolveTurn determinism', () => {

@@ -9,11 +9,11 @@ import {
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getCapital } from '../../data/regions';
+import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, getCapital, getNationCapital } from '../../data/regions';
 import { canSeeRegionDetails, getIntelTurnsLeft } from '../../engine/intel';
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS } from '../../data/actionCosts';
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
-import { isAtWarWithPlayer } from '../../engine/diplomacy';
+import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplomacy';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
@@ -121,6 +121,17 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const navalEngagementSources = (!isPlayerOwned && defendingNavalUnits.length > 0)
     ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age)).map((u) => u.regionId))]
     : [];
+  // Attacking needs a war with the owner (plan §M13). At peace, the attack buttons would do nothing,
+  // so they're replaced by the decision that actually comes first: declaring war.
+  const atWarWithOwner = !!ownerNation && isAtWarWithPlayer(state, ownerNation.id);
+  const hasMilitaryOption = invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
+  const warJustified = !!ownerNation && hasCasusBelli(state, state.playerNationId, ownerNation.id);
+  const declareWarCosts = warJustified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
+  const breaksTruce = !!ownerNation && !atWarWithOwner && isInTruce(state, state.playerNationId, ownerNation.id);
+  const warBlockedReason = !ownerNation || atWarWithOwner ? null
+    : state.nations[state.playerNationId]?.vassalOf ? "You can't declare war while you're a vassal."
+      : ownerNation.isAtWar ? `${ownerNation.name} is already at war with someone else.`
+        : null;
   // Mirrors SETTLE_COLONIZE: only rebel-held land, or a wiped-out nation's remnant, can be settled.
   const regionOwner = state.nations[regionState.owner];
   const isRebelHeld = Object.values(state.units).some((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID);
@@ -182,6 +193,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     if (!canAfford(state.resources, ACTION_COSTS.navalEngagement)) return addLog('Not enough resources', 'action');
     triggerEffect('naval_engagement', { from: fromRegionId, to: regionId });
     dispatch({ type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId, targetRegionId: regionId } });
+  };
+  const handleDeclareWar = () => {
+    if (warBlockedReason) return addLog(warBlockedReason, 'action');
+    if (!canAfford(state.resources, declareWarCosts)) return addLog('Not enough resources to declare war', 'action');
+    triggerEffect('declare_war', { from: getNationCapital(state.playerNationId), to: getNationCapital(ownerNation.id) });
+    dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: ownerNation.id } });
   };
   const handleGatherIntel = () => {
     if (!canAfford(state.resources, ACTION_COSTS.espionage)) return addLog('Not enough resources', 'action');
@@ -307,7 +324,25 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && !canSettle && (
             <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
           )}
-          {invasionSources.map(({ regionId: srcId, unitCount }) => (
+          {!atWarWithOwner && hasMilitaryOption && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5" data-testid="peace-gate">
+              <div className="text-[11px] text-amber-200">
+                You&apos;re at peace with {ownerNation.name}. Invading means war — declare it first, then attack.
+                {breaksTruce && <span className="block text-red-300 mt-0.5">This breaks your truce: stability, prestige and your neighbours&apos; trust will suffer.</span>}
+              </div>
+              <ActionButton
+                icon={Swords}
+                label={`Declare war on ${ownerNation.name}${warJustified ? '' : ' (unjustified)'}`}
+                description={warBlockedReason || (warJustified ? 'You have a casus belli' : 'No casus belli — costs more and angers the world')}
+                costs={declareWarCosts}
+                onClick={handleDeclareWar}
+                disabled={!!warBlockedReason || !canAfford(state.resources, declareWarCosts)}
+                variant="danger"
+                size="small"
+              />
+            </div>
+          )}
+          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount }) => (
             <ActionButton
               key={srcId}
               icon={Flag}
@@ -320,7 +355,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               size="small"
             />
           ))}
-          {amphibiousSources.map(({ unit, cargoCount }) => (
+          {atWarWithOwner && amphibiousSources.map(({ unit, cargoCount }) => (
             <ActionButton
               key={unit.id}
               icon={Anchor}
@@ -333,7 +368,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               size="small"
             />
           ))}
-          {navalEngagementSources.map((srcId) => (
+          {atWarWithOwner && navalEngagementSources.map((srcId) => (
             <ActionButton
               key={srcId}
               icon={Ship}
