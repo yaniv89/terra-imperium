@@ -159,12 +159,26 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // nation's own territory is subject to) ---
   const regions = { ...state.regions };
   const satellites = state.satellites || {};
+  // A nation's whole stability picture, once per owner: its static sources (government, policies,
+  // wonders, identity) plus the state-dependent ones (its stability level, low legitimacy, and for
+  // the player also overextension, crown land and researched techs like Constitutional Law). The
+  // static-only total used before silently dropped all of those from province unrest. AI nations
+  // skip the O(regions) overextension scan (the same trade-off supply attrition makes below).
+  const stabilityCache = new Map();
+  const nationalStabilityOf = (ownerId, owner) => {
+    if (stabilityCache.has(ownerId)) return stabilityCache.get(ownerId);
+    const value = ownerId === state.playerNationId
+      ? getModifier(state, ownerId, 'national.stabilityBonus').total
+      : getNationBonusTotal(owner, 'stabilityBonus') + (owner?.stability || 0) + ((owner?.legitimacy ?? 50) < 50 && owner?.ruler ? -1 : 0);
+    stabilityCache.set(ownerId, value);
+    return value;
+  };
   Object.entries(regions).forEach(([id, region]) => {
     const owner = modifierExpiredNations[region.owner];
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
     // Plan §M6: the Culture & Order building line's local.stabilityBonus shaves this region's own
     // unrest, on top of the nation-wide sources (government/policy/traits/stability/overextension).
-    const stabilityBonus = getNationBonusTotal(owner, 'stabilityBonus')
+    const stabilityBonus = nationalStabilityOf(region.owner, owner)
       + getSatelliteEffectTotal(satellites, region.owner, 'stabilityBonus', state.orbitalDebrisLevel)
       + getRegionModifier(state, id, 'local.stabilityBonus').total;
     // A long, bloody war wears on the home front: war exhaustion past 40 pushes unrest up in every
