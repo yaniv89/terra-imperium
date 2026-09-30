@@ -794,16 +794,11 @@ describe('resolveTurn AI nations', () => {
 
 describe('resolveTurn AI war declarations', () => {
   it('carries an existing war forward across a turn (wars is part of the resolved state)', () => {
-    // Every non-player nation already isAtWar: true — aiLogic.js's processAIWarDecisions skips any
-    // nation that's already at war (`if (nation.isPlayer || nation.isAtWar) return;`), so this
-    // deterministically guarantees no OTHER nation can spontaneously start a new war of its own
-    // this turn. (difficultyMultiplier: 0 does NOT work for this: `state.difficultyMultiplier || 1`
-    // treats 0 as falsy and silently falls back to 1, the normal aggression level.) This test is
-    // about wars[] surviving the turn, not about AI war-declaration odds.
-    const fresh = createInitialState({ playerNationId: 'fr' });
-    const nations = { ...fresh.nations };
-    Object.keys(nations).forEach(id => { if (id !== 'fr') nations[id] = { ...nations[id], isAtWar: true }; });
-    const base = { ...fresh, nations };
+    // This test is about wars[] surviving the turn, not about AI war-declaration odds. AI nations
+    // may now fight up to MAX_AI_WARS wars at once, so other nations can still declare their own
+    // wars this turn: the assertion looks at this war only. A fixed seed keeps the run
+    // reproducible (a fresh game otherwise gets a random seed).
+    const base = createInitialState({ playerNationId: 'fr', rngSeed: 12345 });
     // Plan §M13: score bookkeeping (battleScore/tickScore/score) runs for every active war every
     // turn, including one the player started — pre-seeded at their post-bookkeeping values (all 0,
     // since nothing here moves them) so this stays an exact-shape assertion of "wars[] survives".
@@ -814,7 +809,8 @@ describe('resolveTurn AI war declarations', () => {
     };
     const state = { ...base, wars: [existingWar] };
     const next = resolveTurn(state);
-    expect(next.wars).toEqual([existingWar]);
+    expect(next.wars[0]).toEqual(existingWar);
+    expect(resolveTurn(state).wars).toEqual(next.wars); // same state in, same wars out
   });
 
   it('an aggressive, hostile Tier 1 neighbor eventually declares war on its own, wired end-to-end through resolveTurn', () => {
