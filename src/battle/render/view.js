@@ -6,6 +6,7 @@
 import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
 import { callCost } from '../sim/orders';
+import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
 
 export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog = true) => ({
   tick: w.tick,
@@ -24,7 +25,7 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     x: q.x, y: q.y, facing: q.facing,
     strength: q.strength, maxStrength: q.maxStrength, startStrength: q.startStrength, morale: q.morale,
     alive: q.alive, onField: q.onField, fled: q.fled, routed: q.routed, retreating: q.retreating,
-    reserve: q.reserve, enterTick: q.enterTick,
+    reserve: q.reserve, enterTick: q.enterTick, inside: q.inside ?? -1,
     visible: canSeeSquad(w, playerSide, q),
     hidden: (q.hiddenUntil || -1) > w.tick,
     reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
@@ -34,6 +35,11 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,
     abilities: q.side === playerSide ? getSquadAbilities(w, q).map((id) => ({ id, readyIn: Math.max(0, (q.cooldowns?.[id] || 0) - w.tick) })) : []
   })),
-  structures: w.structures.map((s) => ({ id: s.id, kind: s.kind, x: s.x, y: s.y, hp: s.hp, maxHp: s.maxHp, alive: s.alive, radius: s.radius })),
+  // The garrison is only shown to its own side (the enemy just sees a building shooting harder).
+  structures: w.structures.map((s, si) => ({
+    id: s.id, kind: s.kind, x: s.x, y: s.y, hp: s.hp, maxHp: s.maxHp, alive: s.alive, radius: s.radius,
+    garrison: playerSide === 1 ? garrisonOf(w, si).length : 0,
+    garrisonSlots: playerSide === 1 && garrisonRoom(w, si) + garrisonOf(w, si).length > 0 ? GARRISON_SLOTS[s.kind] || 0 : 0
+  })),
   points: w.points.map((p) => ({ id: p.id, resId: p.resId, x: p.x, y: p.y, owner: p.owner, progress: p.progress, capturingSide: p.capturingSide }))
 });

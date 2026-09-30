@@ -175,7 +175,7 @@ export const processImpacts = (w) => {
   due.forEach((imp) => {
     w.events.push({ t: w.tick, type: 'impact', x: imp.x, y: imp.y, radius: imp.radius, power: imp.power });
     w.squads.forEach((q) => {
-      if (!isFighting(q) || (!imp.friendly && q.side === imp.side)) return;
+      if (!isFighting(q) || q.inside >= 0 || (!imp.friendly && q.side === imp.side)) return; // walls shelter a garrison
       if (distSq(q.x, q.y, imp.x, imp.y) > imp.radius * imp.radius) return;
       const damage = Math.min(q.strength, Math.round(imp.damage * (0.9 + nextRandom(w) * 0.2)));
       q.strength -= damage;

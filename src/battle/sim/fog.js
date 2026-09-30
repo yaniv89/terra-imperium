@@ -72,6 +72,7 @@ export const isAmbushHidden = (w, q, side) => {
 // Can `side` see squad `q` right now?
 export const canSeeSquad = (w, side, q) => {
   if (q.side === side) return true;
+  if (q.inside >= 0) return false; // garrisoned: out of sight inside its building
   if ((q.revealedUntil || -1) > w.tick) return true; // it just shot at us
   if (isAmbushHidden(w, q, side)) return false;
   return isTileVisibleTo(w, side, q.x, q.y);

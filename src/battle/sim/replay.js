@@ -13,7 +13,7 @@ import { BATTLE_LIMIT_TICKS } from './constants';
 
 export const MAX_LOG_ORDERS = 20000;
 const MAX_SQUADS_PER_ORDER = 64;
-const ORDER_TYPES = new Set(['move', 'attackMove', 'formationLine', 'attack', 'stop', 'hold', 'retreat', 'retreatAll', 'callReserve', 'ability', 'power']);
+const ORDER_TYPES = new Set(['move', 'attackMove', 'formationLine', 'attack', 'stop', 'hold', 'retreat', 'retreatAll', 'callReserve', 'ability', 'power', 'garrison']);
 const int = (v) => (Number.isFinite(v) ? Math.trunc(v) : 0);
 // Coordinates stay exactly as recorded (the live battle used them as-is); only non-numbers go.
 const num = (v) => (Number.isFinite(v) ? v : 0);
@@ -27,6 +27,7 @@ const cleanOrder = (o, playerSide) => {
   if (typeof o.formation === 'string') out.formation = o.formation.slice(0, 16);
   if (typeof o.ability === 'string') out.ability = o.ability.slice(0, 32);
   if (typeof o.power === 'string') out.power = o.power.slice(0, 32);
+  if (Number.isInteger(o.structure) && o.structure >= 0) out.structure = o.structure;
   if (o.target && typeof o.target === 'object' && (o.target.kind === 'squad' || o.target.kind === 'structure') && Number.isInteger(o.target.index) && o.target.index >= 0) {
     out.target = { kind: o.target.kind, index: o.target.index };
   }

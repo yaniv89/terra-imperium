@@ -12,10 +12,12 @@
 //   { side, type: 'retreatAll' }
 //   { side, type: 'ability', squads: [idx], ability }   // general / perk ability (effects.js)
 //   { side, type: 'power', power, x, y }                // commander power (effects.js)
+//   { side, type: 'garrison', squads, structure }       // man the keep or a tower (objectives.js)
 import { angleBetween, polarX, polarY } from './fixed';
 import { fieldCap, fieldCount } from './world';
 import { Q, SIDE_ATTACKER, secondsToTicks } from './constants';
 import { activateAbility, firePower } from './effects';
+import { canGarrison, garrisonRoom, leaveGarrison } from './objectives';
 
 export const RESERVE_COST = 60;
 export const RESERVE_ENTRY_TICKS = secondsToTicks(8);
@@ -83,10 +85,29 @@ const setMoveOrder = (q, type, slot, groupSpeed) => {
   if (type === 'move') { q.target = -1; q.targetKind = null; }
 };
 
+// Orders that send a squad somewhere bring it out of its building first.
+const LEAVES_GARRISON = new Set(['move', 'attackMove', 'formationLine', 'attack', 'retreat']);
+
 export const applyOrder = (w, o) => {
   const side = o.side;
   const ids = (o.squads || []).filter((i) => commandable(w, side, i));
+  if (LEAVES_GARRISON.has(o.type)) ids.forEach((i) => leaveGarrison(w, w.squads[i]));
   switch (o.type) {
+    case 'garrison': {
+      // { structure } — march into the keep or a tower (defenders' infantry/ranged, while there's room).
+      const si = o.structure;
+      const s = w.structures[si];
+      if (!s) return;
+      let room = garrisonRoom(w, si) - w.squads.filter((q) => q.order.type === 'garrison' && q.order.structure === si && q.inside < 0).length;
+      ids.forEach((i) => {
+        const q = w.squads[i];
+        if (room <= 0 || !canGarrison(q) || q.inside >= 0) return;
+        q.order = { type: 'garrison', structure: si, x: s.x, y: s.y };
+        q.target = -1; q.targetKind = null; q.groupSpeed = 0; q.retreating = false;
+        room -= 1;
+      });
+      return;
+    }
     case 'move':
     case 'attackMove': {
       const squads = ids.map((i) => w.squads[i]);
@@ -124,7 +145,7 @@ export const applyOrder = (w, o) => {
       ids.forEach((i) => { const q = w.squads[i]; q.retreating = true; q.target = -1; q.targetKind = null; q.order = { type: 'retreat' }; });
       return;
     case 'retreatAll':
-      w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled) { if (q.onField) { q.retreating = true; q.target = -1; q.order = { type: 'retreat' }; } q.reserve = false; q.enterTick = -1; } });
+      w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled) { leaveGarrison(w, q); if (q.onField) { q.retreating = true; q.target = -1; q.order = { type: 'retreat' }; } q.reserve = false; q.enterTick = -1; } });
       w.retreatOrdered = w.retreatOrdered || [false, false];
       w.retreatOrdered[side] = true;
       return;

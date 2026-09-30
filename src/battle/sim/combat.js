@@ -27,7 +27,8 @@ const WALLS_MULT = 0.6;                       // keep with intact walls (fortLev
 export const perHitFraction = (stats) => (BASE_DAMAGE_RATE * (stats.attackTicks / TICK_HZ)) / EXCHANGE_SECONDS;
 
 export const isFighting = (q) => q.alive && q.onField && !q.fled;
-export const canAttack = (q) => isFighting(q) && !q.routed && !q.retreating && q.stats.attackTicks > 0;
+// A garrisoned squad doesn't fight on its own: its building shoots for it (objectives.js).
+export const canAttack = (q) => isFighting(q) && !q.routed && !q.retreating && q.stats.attackTicks > 0 && !(q.inside >= 0);
 
 // Plain unit view for battle.js's multiplier functions.
 const view = (q) => ({ id: q.unitId, classId: q.classId, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId });
@@ -121,7 +122,7 @@ export const attackSquad = (w, a, t) => {
   if (a.stats.splash) {
     queryRadius(w, t.x, t.y, a.stats.splash).forEach((j) => {
       const other = w.squads[j];
-      if (j === t.idx || other.side === a.side || !isFighting(other)) return;
+      if (j === t.idx || other.side === a.side || !isFighting(other) || other.inside >= 0) return;
       const splash = Math.round(damage / 2);
       if (splash > 0) applyDamage(w, a, other, splash);
     });
@@ -155,7 +156,7 @@ export const targetScore = (q, t) => {
 };
 
 const validTargetFor = (q, t, w = null) => {
-  if (!isFighting(t) || t.side === q.side) return false;
+  if (!isFighting(t) || t.side === q.side || t.inside >= 0) return false;
   if (q.stats.airOnly && !t.stats.flying) return false;
   if (w && !canSeeSquad(w, q.side, t)) return false; // can't shoot what you can't see
   return true;

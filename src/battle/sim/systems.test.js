@@ -11,6 +11,8 @@ import { updateFog, canSeeSquad } from './fog';
 import { applySupplyAndAttrition } from './support';
 import { activateAbility, effectMult, firePower, processImpacts } from './effects';
 import { applyOrder } from './orders';
+import { garrisonRoom, resolveStructureFire, updateGarrisons } from './objectives';
+import { buildSpatialHash } from './pathing';
 import { enterReserves } from './movement';
 import { Q } from './constants';
 import { resolveBattle } from '../../engine/battle';
@@ -225,5 +227,76 @@ describe('determinism holds with every system active', () => {
     const w = createWorld(setup({ terrain: 'hills', fortLevel: 4, deposits: ['iron', 'copper'] }));
     for (let i = 0; i < 3000 && !w.ended; i++) step(w);
     expect(w.squads.every((q) => Number.isInteger(q.strength) && q.strength >= 0)).toBe(true);
+  });
+});
+
+describe('garrisons (plan §8.10)', () => {
+  const fortified = (over = {}) => createWorld(setup({ fortLevel: 2, controllers: ['player', 'player'], ...over }));
+  const walkIn = (w, idx, si = 0) => {
+    applyOrder(w, { side: 1, type: 'garrison', squads: [idx], structure: si });
+    for (let i = 0; i < 400 && w.squads[idx].inside < 0; i++) step(w, []);
+    return w.squads[idx];
+  };
+
+  it('a defender squad walks into the fortified keep, vanishes from the enemy and can\'t be hit', () => {
+    const w = fortified();
+    const d = w.squads.find((q) => q.side === 1 && q.classId === 'ranged');
+    walkIn(w, d.idx);
+    expect(d.inside).toBe(0);
+    expect(canSeeSquad(w, 0, d)).toBe(false);
+    const hp = d.strength;
+    firePower(w, 0, 'rallyCry', 0, 0); // harmless; now bombard the keep itself
+    w.impacts = [{ at: w.tick, x: d.x, y: d.y, radius: 4 * Q, damage: 0.5, side: 0, power: 'arrowStorm' }];
+    processImpacts(w);
+    expect(d.strength).toBe(hp);
+  });
+
+  it('the garrison adds its firepower to the building\'s shots', () => {
+    const shotDamage = (garrison) => {
+      const w = fortified();
+      const d = w.squads.find((q) => q.side === 1 && q.classId === 'ranged');
+      if (garrison) walkIn(w, d.idx);
+      const a = w.squads.find((q) => q.side === 0);
+      const keep = w.structures[0];
+      place(a, Math.floor(keep.x / Q) - 4, Math.floor(keep.y / Q));
+      a.onField = true; keep.cooldown = 0;
+      w.squads.forEach((q) => { if (q !== a && q.side === 0) q.onField = false; });
+      buildSpatialHash(w);
+      const before = a.strength;
+      resolveStructureFire(w);
+      return before - a.strength;
+    };
+    expect(shotDamage(true)).toBeGreaterThan(shotDamage(false) * 1.5);
+  });
+
+  it('a failing building throws its garrison out with -20 morale; a move order walks out freely', () => {
+    const w = fortified();
+    const [d1, d2] = w.squads.filter((q) => q.side === 1);
+    walkIn(w, d1.idx); walkIn(w, d2.idx);
+    expect([d1.inside, d2.inside]).toEqual([0, 0]);
+    applyOrder(w, { side: 1, type: 'move', squads: [d2.idx], x: d2.x - 3 * Q, y: d2.y });
+    expect(d2.inside).toBe(-1);
+    const morale = d1.morale;
+    w.structures[0].hp = Math.floor(w.structures[0].maxHp * 0.2);
+    updateGarrisons(w);
+    expect(d1.inside).toBe(-1);
+    expect(d1.morale).toBe(morale - 20);
+  });
+
+  it('no garrisons in an unwalled town, and never for the attacker', () => {
+    const open = createWorld(setup({ fortLevel: 0, controllers: ['player', 'player'] }));
+    expect(garrisonRoom(open, 0)).toBe(0);
+    const w = fortified();
+    const a = w.squads.find((q) => q.side === 0);
+    applyOrder(w, { side: 0, type: 'garrison', squads: [a.idx], structure: 0 });
+    expect(a.order.type).not.toBe('garrison');
+  });
+
+  it('a prince+ AI defender mans its keep with a ranged squad', () => {
+    const w = createWorld(setup({ fortLevel: 2, difficultyId: 'king', defenderUnits: mk('d', ['infantry', 'infantry', 'ranged', 'ranged']) }));
+    for (let i = 0; i < 600; i++) step(w, []);
+    const inside = w.squads.filter((q) => q.side === 1 && q.inside >= 0);
+    expect(inside.length).toBeGreaterThan(0);
+    expect(inside.length).toBeLessThanOrEqual(2); // at least half stay in the field
   });
 });

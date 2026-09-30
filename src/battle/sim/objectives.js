@@ -7,9 +7,9 @@ import { OCCUPATION_CAPABLE_CLASSES } from '../../engine/siege';
 import { RNG_VARIANCE } from '../../engine/battle';
 import { getPromotionMoraleLossMultiplier } from '../../data/promotions';
 import { nextRandom } from './rng';
-import { distSq } from './fixed';
+import { distSq, polarX, polarY } from './fixed';
 import { queryRadius } from './pathing';
-import { isFighting } from './combat';
+import { isFighting, perHitFraction } from './combat';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
 
 export const ASSIMILATION_TICKS = secondsToTicks(30);
@@ -19,10 +19,63 @@ export const CAPTURE_RADIUS = Math.round(1.5 * Q);
 export const SUPPLY_BASE_PER_SEC = 1;
 export const SUPPLY_PER_POINT_PER_SEC = 2;
 
+// --- Garrisons (plan §8.10) ---
+// The defender's infantry and ranged squads can man the keep (3) or a tower (1). Inside they're
+// hidden and can't be hurt, and the building fires with their firepower (×0.8) on top of its own.
+// Only fortified buildings take a garrison. When the building drops below 25% HP (or falls), the
+// garrison is thrown out with −20 morale.
+export const GARRISON_SLOTS = { keep: 3, tower: 1 };
+export const GARRISON_EJECT_HP = 0.25;
+const GARRISON_FIRE_MULT = 0.8;
+const EJECT_MORALE = 20;
+
+export const canGarrison = (q) => q.side === SIDE_DEFENDER && (q.classId === 'infantry' || q.classId === 'ranged');
+export const garrisonOf = (w, structureIndex) => w.squads.filter((q) => q.inside === structureIndex && q.alive);
+const holdsGarrison = (s) => s.alive && s.hp >= s.maxHp * GARRISON_EJECT_HP;
+export const garrisonRoom = (w, structureIndex) => {
+  const s = w.structures[structureIndex];
+  // Only real fortifications can be manned: an unwalled town's "keep" (no defenses, no fire of its
+  // own) has nothing to hold.
+  if (!s || !holdsGarrison(s) || (s.kind === 'keep' && !s.damage)) return 0;
+  return (GARRISON_SLOTS[s.kind] || 0) - garrisonOf(w, structureIndex).length;
+};
+
+export const leaveGarrison = (w, q, penalty = false) => {
+  if (!(q.inside >= 0)) return;
+  const s = w.structures[q.inside];
+  const angle = (128 + q.idx * 37) & 255; // spill out on the side facing the attacker's approach
+  q.x = s.x + polarX(angle, s.radius + Q); q.y = s.y + polarY(angle, s.radius + Q);
+  q.inside = -1;
+  q.anchorX = q.x; q.anchorY = q.y;
+  if (penalty) q.morale = Math.max(0, q.morale - EJECT_MORALE);
+  w.events.push({ t: w.tick, type: 'ejected', id: q.idx, forced: penalty });
+};
+
+export const updateGarrisons = (w) => {
+  w.structures.forEach((s, si) => { if (!holdsGarrison(s)) garrisonOf(w, si).forEach((q) => { leaveGarrison(w, q, true); q.order = { type: 'idle' }; }); });
+  w.squads.forEach((q) => {
+    if (q.order.type !== 'garrison' || q.inside >= 0) return;
+    const si = q.order.structure;
+    const s = w.structures[si];
+    if (!isFighting(q) || q.routed || !canGarrison(q) || garrisonRoom(w, si) <= 0) { q.order = { type: 'idle' }; return; }
+    // A walled keep is entered through its gate, from just outside the wall ring.
+    const reach = s.radius + (s.walls ? 5 * Q : Q + (Q >> 1));
+    if (distSq(q.x, q.y, s.x, s.y) > reach * reach) return; // still walking there (movement.js)
+    q.inside = si; q.x = s.x; q.y = s.y;
+    q.target = -1; q.targetKind = null; q.order = { type: 'idle' }; q.anchorX = s.x; q.anchorY = s.y;
+    w.events.push({ t: w.tick, type: 'garrisoned', id: q.idx, structure: s.id });
+  });
+};
+
+// Extra damage per shot from a building's garrison.
+const garrisonFire = (w, si, s) => garrisonOf(w, si).reduce((sum, q) => sum + q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT, 0);
+
 // Towers and the (unbreached) keep fire at the nearest attacking squad in range.
 export const resolveStructureFire = (w) => {
-  w.structures.forEach((s) => {
-    if (!s.alive || !s.damage) return;
+  w.structures.forEach((s, si) => {
+    if (!s.alive) return;
+    const bonus = garrisonFire(w, si, s);
+    if (!s.damage && !bonus) return;
     if (s.cooldown > 0) { s.cooldown -= 1; return; }
     let target = null; let bestD = Infinity;
     queryRadius(w, s.x, s.y, s.range).forEach((j) => {
@@ -33,7 +86,9 @@ export const resolveStructureFire = (w) => {
     });
     if (!target) return;
     const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
-    const damage = Math.max(1, Math.round(s.damage * variance));
+    const damage = Math.max(1, Math.round((s.damage + bonus) * variance));
+    // The garrison shares the credit (battle XP goes to squads that fought).
+    if (bonus) garrisonOf(w, si).forEach((q) => { q.engaged = true; q.damageDealt += Math.round((damage * (q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT)) / (s.damage + bonus)); });
     target.strength = Math.max(0, target.strength - damage);
     target.morale = Math.max(0, target.morale - Math.round((damage / 25) * getPromotionMoraleLossMultiplier({ promotions: target.promotions })));
     target.lastHitTick = w.tick;
@@ -49,7 +104,7 @@ const presence = (w, x, y, radius) => {
   const count = [0, 0];
   queryRadius(w, x, y, radius).forEach((j) => {
     const q = w.squads[j];
-    if (isFighting(q) && !q.routed && !q.stats.flying) count[q.side] += 1;
+    if (isFighting(q) && !q.routed && !q.stats.flying && !(q.inside >= 0)) count[q.side] += 1;
   });
   return count;
 };

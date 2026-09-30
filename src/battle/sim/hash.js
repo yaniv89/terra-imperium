@@ -11,7 +11,7 @@ export const worldHash = (w) => {
   w.squads.forEach((q) => {
     h = mix(h, q.x); h = mix(h, q.y); h = mix(h, q.facing); h = mix(h, q.strength); h = mix(h, q.morale);
     h = mix(h, (q.alive ? 1 : 0) | (q.onField ? 2 : 0) | (q.fled ? 4 : 0) | (q.routed ? 8 : 0) | (q.retreating ? 16 : 0));
-    h = mix(h, q.target); h = mix(h, q.cooldown); h = mix(h, q.enterTick);
+    h = mix(h, q.target); h = mix(h, q.cooldown); h = mix(h, q.enterTick); h = mix(h, (q.inside ?? -1) + 1);
   });
   w.structures.forEach((s) => { h = mix(h, s.hp); h = mix(h, s.cooldown || 0); });
   w.points.forEach((p) => { h = mix(h, p.owner); h = mix(h, p.progress); });

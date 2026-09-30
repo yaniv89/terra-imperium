@@ -85,7 +85,7 @@ export const acquireTargets = (w) => {
 
 export const moveSquads = (w) => {
   w.squads.forEach((q) => {
-    if (!isFighting(q)) return;
+    if (!isFighting(q) || q.inside >= 0) return;
     if (q.routed || q.retreating) { stepToward(w, q, sideEdgeX(w, q.side), q.y); return; }
     if (q.order.type === 'hold') return;
     // Chase / close with the current target unless it's already in reach.
@@ -103,6 +103,7 @@ export const moveSquads = (w) => {
         return;
       }
     }
+    if (q.order.type === 'garrison') { stepToward(w, q, q.order.x, q.order.y); return; } // objectives.js lets it in
     if (q.order.type === 'move' || q.order.type === 'attackMove') {
       if (stepToward(w, q, q.order.x, q.order.y)) {
         if (q.order.facing !== undefined) q.facing = q.order.facing;
@@ -119,11 +120,11 @@ export const moveSquads = (w) => {
 export const separateSquads = (w) => {
   const minD = SQUAD_RADIUS * 2;
   w.squads.forEach((q) => {
-    if (!isFighting(q)) return;
+    if (!isFighting(q) || q.inside >= 0) return;
     queryRadius(w, q.x, q.y, minD).forEach((j) => {
       if (j <= q.idx) return;
       const o = w.squads[j];
-      if (!isFighting(o) || !!o.stats.flying !== !!q.stats.flying) return;
+      if (!isFighting(o) || o.inside >= 0 || !!o.stats.flying !== !!q.stats.flying) return;
       const d = isqrt(distSq(q.x, q.y, o.x, o.y));
       if (d >= minD) return;
       const push = Math.ceil((minD - d) / 2);
