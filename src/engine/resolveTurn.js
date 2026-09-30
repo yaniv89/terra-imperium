@@ -47,7 +47,7 @@ import {
   LIBERTY_DESIRE_RISE_PER_TURN, LIBERTY_DESIRE_DECAY_PER_TURN,
   POWER_POOL_CAP
 } from '../data/actionCosts';
-import { processSuccession, getAdvisorSalary } from './succession';
+import { processSuccession, processRoyalBirth, getAdvisorSalary } from './succession';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
@@ -430,7 +430,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // AI nations still get a real ruler/heir update even though nothing reads an AI ruler's stats
   // mechanically yet (M16), so this doesn't need touching again once AI parity lands.
   Object.entries(nations).forEach(([nId, nation]) => {
-    const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed });
+    const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed, bornHeirsOnly: nId === state.playerNationId });
     if (!result) return;
     // Plan §M4: "heirless succession: -1 stability" is the one lower-stability trigger from the
     // plan's own table that's mechanically real today — a heirless OR low-claim succession is
@@ -464,6 +464,13 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       }
     }
   });
+  // The player's royal family: a married monarch without an heir may have one this turn.
+  const playerForBirth = nations[state.playerNationId];
+  const newborn = playerForBirth ? processRoyalBirth(playerForBirth, rng, newTurnNumber) : null;
+  if (newborn) {
+    nations[state.playerNationId] = { ...playerForBirth, heir: newborn };
+    logs.push({ year: newYear, message: `An heir is born to ${playerForBirth.ruler.name} and ${playerForBirth.ruler.consort.name}: ${newborn.name} of House ${newborn.dynasty} (claim ${newborn.claim}).`, type: LogTypes.MILESTONE });
+  }
   mark('succession');
 
   // --- national power: stability decay, legitimacy/tradition/devotion, prestige (plan §M4) ---

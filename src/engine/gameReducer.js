@@ -79,7 +79,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle, generateHeir } from './succession';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle, generateHeir, generateConsort, ADOPTED_HEIR_CLAIM_PENALTY } from './succession';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -1872,6 +1872,8 @@ export const gameReducer = (state, action) => {
       const rng = createRng(state.rngSeed);
       const needsHeir = getSuccessionStyle({ type: typeId }) === 'hereditary' && !nation.heir;
       const heir = needsHeir ? generateHeir(state.playerNationId, rng, nation.ruler?.dynasty, state.turnNumber) : nation.heir;
+      // The heir apparent has a parent: a new monarchy's ruler comes married (to a noble).
+      const ruler = needsHeir && nation.ruler && !nation.ruler.consort ? { ...nation.ruler, consort: generateConsort(state.playerNationId, rng) } : nation.ruler;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
@@ -1881,7 +1883,8 @@ export const gameReducer = (state, action) => {
             ...nation,
             government: { type: typeId, reforms: resetReformsForType(typeId, state.age) },
             stability: clampStability((nation.stability || 0) - 2),
-            heir
+            heir,
+            ruler
           }
         },
         rngSeed: rng.getSeed(),
@@ -2484,16 +2487,60 @@ export const gameReducer = (state, action) => {
       if ((player.marriageWith || []).includes(nationId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextTarget = { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - MARRIAGE_HOSTILITY_REDUCTION) };
+      // An unmarried ruler weds a royal of that house themself: a consort, so an heir can be born
+      // (src/engine/succession.js's processRoyalBirth), with the stronger claim of a royal match.
+      const rng = createRng(state.rngSeed);
+      const consort = player.ruler && !player.ruler.consort ? generateConsort(nationId, rng, { foreign: true }) : null;
       const nextPlayer = {
         ...player,
         marriageWith: [...(player.marriageWith || []), nationId],
+        ruler: consort ? { ...player.ruler, consort } : player.ruler,
         heir: player.heir ? { ...player.heir, claim: Math.min(100, player.heir.claim + MARRIAGE_HEIR_CLAIM_BONUS) } : player.heir
       };
+      const message = consort
+        ? `${player.ruler.name} weds ${consort.name} of ${target.name} — a royal match that binds the two houses.`
+        : `A royal marriage was arranged with ${target.name}.${player.heir ? ` (+${MARRIAGE_HEIR_CLAIM_BONUS} heir claim)` : ''}`;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
+        rngSeed: consort ? rng.getSeed() : state.rngSeed,
         nations: { ...state.nations, [state.playerNationId]: nextPlayer, [nationId]: nextTarget },
-        logs: [...state.logs, { year: state.year, message: `A royal marriage was arranged with ${target.name}.${player.heir ? ` (+${MARRIAGE_HEIR_CLAIM_BONUS} heir claim)` : ''}`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, message, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    // ---- The royal family (src/engine/succession.js) ----
+
+    case ActionTypes.MARRY_NOBLE: {
+      const player = state.nations[state.playerNationId];
+      if (getSuccessionStyle(player.government) !== 'hereditary') return reject(state, 'Only a monarchy needs a royal marriage — your government chooses its successor another way.');
+      if (!player.ruler || player.ruler.consort) return reject(state, 'Your ruler is already married.');
+      if (!canAfford(state.resources, ACTION_COSTS.marryNoble)) return reject(state, 'Not enough gold for the wedding.');
+      const rng = createRng(state.rngSeed);
+      const consort = generateConsort(state.playerNationId, rng);
+      return {
+        ...state,
+        resources: applyCosts(state.resources, ACTION_COSTS.marryNoble),
+        rngSeed: rng.getSeed(),
+        nations: { ...state.nations, [state.playerNationId]: { ...player, ruler: { ...player.ruler, consort } } },
+        logs: [...state.logs, { year: state.year, message: `${player.ruler.name} marries ${consort.name}, of a noble house of the realm.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.ADOPT_HEIR: {
+      // The fallback when no child comes: name a relative heir. Their claim is weak.
+      const player = state.nations[state.playerNationId];
+      if (getSuccessionStyle(player.government) !== 'hereditary') return reject(state, 'Only a monarchy names an heir.');
+      if (player.heir) return reject(state, 'You already have an heir.');
+      if (!canAfford(state.resources, ACTION_COSTS.adoptHeir)) return reject(state, 'Not enough ADM to legitimize a relative.');
+      const rng = createRng(state.rngSeed);
+      const heir = generateHeir(state.playerNationId, rng, player.ruler?.dynasty, state.turnNumber, ADOPTED_HEIR_CLAIM_PENALTY);
+      return {
+        ...state,
+        resources: applyCosts(state.resources, ACTION_COSTS.adoptHeir),
+        rngSeed: rng.getSeed(),
+        nations: { ...state.nations, [state.playerNationId]: { ...player, heir: { ...heir, adopted: true } } },
+        logs: [...state.logs, { year: state.year, message: `${heir.name}, a relative of House ${heir.dynasty}, is named heir (claim ${heir.claim}).`, type: LogTypes.DIPLOMACY }]
       };
     }
 

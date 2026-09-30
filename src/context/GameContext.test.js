@@ -2800,3 +2800,37 @@ describe('default case', () => {
     expect(gameReducer(state, { type: 'NOT_A_REAL_ACTION' })).toBe(state);
   });
 });
+
+describe('royal family actions', () => {
+  const asMonarchy = () => {
+    const s = createInitialState({ playerNationId: 'fr' });
+    const fr = s.nations.fr;
+    return { ...s, resources: { ...s.resources, gold: 5000, adm: 500, dip: 500 }, nations: { ...s.nations, fr: { ...fr, government: { type: 'monarchy', reforms: [] }, ruler: { ...fr.ruler, consort: null }, heir: null } } };
+  };
+
+  it('MARRY_NOBLE gives the ruler a consort, once, and only in a monarchy', () => {
+    const s = asMonarchy();
+    const wed = gameReducer(s, { type: ActionTypes.MARRY_NOBLE });
+    expect(wed.nations.fr.ruler.consort).toMatchObject({ foreign: false });
+    expect(wed.resources.gold).toBe(s.resources.gold - 60);
+    expectRefused(gameReducer(wed, { type: ActionTypes.MARRY_NOBLE }), wed);
+    const tribal = { ...s, nations: { ...s.nations, fr: { ...s.nations.fr, government: null } } };
+    expectRefused(gameReducer(tribal, { type: ActionTypes.MARRY_NOBLE }), tribal);
+  });
+
+  it('a royal match abroad also gives an unmarried ruler a foreign consort', () => {
+    const s = asMonarchy();
+    const target = Object.keys(s.nations).find((id) => id !== 'fr' && !s.nations[id].isAtWar);
+    const withTarget = { ...s, nations: { ...s.nations, [target]: { ...s.nations[target], government: { type: 'monarchy', reforms: [] } } } };
+    const next = gameReducer(withTarget, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: target } });
+    expect(next.nations.fr.ruler.consort).toMatchObject({ from: target, foreign: true });
+  });
+
+  it('ADOPT_HEIR names a weak-claim relative when no child comes', () => {
+    const s = asMonarchy();
+    const next = gameReducer(s, { type: ActionTypes.ADOPT_HEIR });
+    expect(next.nations.fr.heir).toMatchObject({ adopted: true });
+    expect(next.nations.fr.heir.claim).toBeLessThanOrEqual(70);
+    expectRefused(gameReducer(next, { type: ActionTypes.ADOPT_HEIR }), next);
+  });
+});

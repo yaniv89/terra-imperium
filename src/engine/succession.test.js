@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRng } from '../utils/rng';
 import {
   getSuccessionStyle, reignLengthTurns, generateRuler, generateHeir,
-  getAdvisorHireCost, getAdvisorSalary, generateAdvisorCandidates, processSuccession
+  getAdvisorHireCost, getAdvisorSalary, generateAdvisorCandidates, processSuccession, processRoyalBirth, generateConsort
 } from './succession';
 
 describe('getSuccessionStyle', () => {
@@ -242,5 +242,40 @@ describe('processSuccession', () => {
     const result = processSuccession(nation, createRng(1), ctx);
     expect(result.heir).toBeNull();
     expect(result.crisis).toBe(false);
+  });
+});
+
+describe('the royal family (player)', () => {
+  const monarchy = (over = {}) => ({
+    id: 'fr', government: { type: 'monarchy', reforms: [] },
+    ruler: { name: 'Louis', dynasty: 'Capet', adm: 3, dip: 3, mil: 3, traits: [], reignStartTurn: 1, reignEndsTurn: 10, consort: null },
+    heir: null, ...over
+  });
+  const always = { next: () => 0 };
+  const never = { next: () => 0.99 };
+
+  it('no consort, no birth; a married monarch without an heir can have one', () => {
+    expect(processRoyalBirth(monarchy(), always, 5)).toBeNull();
+    const married = monarchy({ ruler: { ...monarchy().ruler, consort: generateConsort('gb', always, { foreign: true }) } });
+    expect(processRoyalBirth(married, never, 5)).toBeNull();
+    const heir = processRoyalBirth(married, always, 5);
+    expect(heir).toMatchObject({ dynasty: 'Capet' });
+    expect(processRoyalBirth({ ...married, heir }, always, 6)).toBeNull();
+  });
+
+  it('a non-hereditary government never has births', () => {
+    const republic = monarchy({ government: { type: 'republic', reforms: [] }, ruler: { ...monarchy().ruler, consort: { name: 'X', claimBonus: 0 } } });
+    expect(processRoyalBirth(republic, always, 5)).toBeNull();
+  });
+
+  it('for the player the heir takes the throne unmarried and without a new heir', () => {
+    const rng = createRng(3);
+    const n = monarchy({ heir: { name: 'Philip', dynasty: 'Capet', adm: 2, dip: 2, mil: 2, traits: [], claim: 80 }, ruler: { ...monarchy().ruler, consort: { name: 'Anne', claimBonus: 0 } } });
+    const player = processSuccession(n, rng, { turnNumber: 10, age: 'kingdoms', gameSpeed: 'normal', bornHeirsOnly: true });
+    expect(player.ruler.name).toBe('Philip');
+    expect(player.ruler.consort).toBeNull();
+    expect(player.heir).toBeNull();
+    const ai = processSuccession(n, createRng(3), { turnNumber: 10, age: 'kingdoms', gameSpeed: 'normal' });
+    expect(ai.heir).not.toBeNull();
   });
 });
