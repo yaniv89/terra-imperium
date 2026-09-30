@@ -1,0 +1,25 @@
+{
+  "base": "character-soldier",
+  "teamFrom": "torso",
+  "restClip": "idle",
+  "mount": {
+    "kind": "chariot"
+  },
+  "attach": [
+    {
+      "model": "weapon-spear",
+      "hand": "right",
+      "at": [
+        0,
+        -0.26,
+        0.02
+      ],
+      "rotation": [
+        0.12,
+        0,
+        0
+      ],
+      "scale": 1.3
+    }
+  ]
+}

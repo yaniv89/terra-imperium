@@ -533,3 +533,77 @@ export const createSoldierDepthMaterial = () => {
   mat.customProgramCacheKey = () => 'soldier-rig-depth';
   return mat;
 };
+
+// ---- parts for composed units (unitComposer.js) ---------------------------------------------
+// Procedural props and mounts that a GLB soldier can be combined with, all carrying the rig's
+// attributes. Props are modelled at their grip (origin), upright along +Y, facing +Z.
+
+const PROPS = {
+  bow: () => [
+    part(new TorusGeometry(0.28, 0.014, 4, 10, Math.PI * 0.9), C.darkWood, { rot: [0, Math.PI / 2, Math.PI / 2 - Math.PI * 0.45] }),
+    part(box(0.004, 0.5, 0.004), C.cloth, { at: [0, 0, 0.04] })
+  ],
+  quiver: () => [part(cyl(0.05, 0.04, 0.34, 6), C.leather, { rot: [0.3, 0, 0.2] })],
+  shield: () => [part(cyl(0.17, 0.17, 0.03, 10), '#ffffff', { rot: [Math.PI / 2, 0, 0], emblem: true }), part(ball(0.035, 5, 4), C.bronze, { at: [0, 0, 0.02] })],
+  musket: () => [part(box(0.04, 0.05, 0.62), C.darkWood, { at: [0, 0, 0.2] }), part(cyl(0.012, 0.012, 0.34, 5), C.darkSteel, { at: [0, 0.03, 0.5], rot: [Math.PI / 2, 0, 0] })],
+  rifle: () => [part(box(0.045, 0.06, 0.5), C.black, { at: [0, 0, 0.16] }), part(box(0.03, 0.08, 0.05), C.black, { at: [0, -0.06, 0.12] })],
+  launcher: () => [part(cyl(0.055, 0.055, 0.8, 7), C.darkOlive, { rot: [Math.PI / 2, 0, 0] })],
+  turret: () => [
+    part(box(0.34, 0.16, 0.4), C.olive, { limb: LIMB.TURRET }),
+    part(cyl(0.035, 0.035, 0.7, 7), C.darkOlive, { at: [0, 0.02, 0.45], rot: [Math.PI / 2, 0, 0], limb: LIMB.TURRET }),
+    part(box(0.2, 0.03, 0.2), '#ffffff', { at: [0, 0.1, -0.05], team: 1, limb: LIMB.TURRET })
+  ]
+};
+export const PROP_KINDS = Object.keys(PROPS);
+export const getPropGeometry = (kind) => {
+  const build = PROPS[kind];
+  if (!build) throw new Error(`unknown prop "${kind}"`);
+  const geo = mergeGeometries(build());
+  geo.computeVertexNormals();
+  return geo;
+};
+
+// Mounts for a seated GLB rider; `saddle` is where the rider's seat goes.
+const MOUNTS = {
+  horse: { build: () => horse(C.horse, false), saddle: [0, 0.97, -0.02] },
+  darkhorse: { build: () => horse(C.horseDark, false), saddle: [0, 0.97, -0.02] },
+  warhorse: { build: () => horse('#cfc7b8', true), saddle: [0, 0.97, -0.02] },
+  chariot: {
+    build: () => [
+      ...shift(horse(), -0.24, 0, 0.55), ...shift(horse(C.horseDark), 0.24, 0, 0.55),
+      part(box(0.7, 0.34, 0.55), C.wood, { at: [0, 0.62, -0.35] }), part(box(0.72, 0.1, 0.02), '#ffffff', { at: [0, 0.75, -0.07], team: 1 }),
+      wheel(0.3, -0.4, 0.3, -0.35), wheel(0.3, 0.4, 0.3, -0.35)
+    ],
+    saddle: [0, 0.45, -0.38],
+    standing: true
+  }
+};
+export const MOUNT_KINDS = Object.keys(MOUNTS);
+export const getMount = (kind) => {
+  const m = MOUNTS[kind];
+  if (!m) throw new Error(`unknown mount "${kind}"`);
+  const geo = mergeGeometries(m.build());
+  geo.computeVertexNormals();
+  return { geometry: geo, saddle: m.saddle, standing: !!m.standing };
+};
+
+// Move a rigged geometry (and its bones' hinges) — the composer's placement step.
+export const offsetRig = (geo, dx, dy, dz) => {
+  geo.translate(dx, dy, dz);
+  const piv = geo.attributes.aPivot;
+  if (piv) for (let i = 0; i < piv.count; i++) piv.setXY(i, piv.getX(i) + dy, piv.getY(i) + dz);
+  return geo;
+};
+
+// Merge rigged pieces into one soldier geometry (one draw call), normalising their attributes.
+export const mergeRigged = (geos) => {
+  const ready = geos.map((g) => {
+    const x = g.index ? g.toNonIndexed() : g;
+    ensureRigAttributes(x);
+    Object.keys(x.attributes).forEach((k) => { if (!(k in RIG_ATTRIBUTES) && k !== 'position' && k !== 'normal') x.deleteAttribute(k); });
+    return x;
+  });
+  const geo = mergeGeometries(ready);
+  geo.computeBoundingBox(); geo.computeBoundingSphere();
+  return geo;
+};
