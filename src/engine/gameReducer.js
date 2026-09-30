@@ -68,7 +68,7 @@ import { replayBattle } from '../battle/sim/replay';
 // Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
 // on its own, too.
 export { replayBattle };
-import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDefensesAuto } from './defense';
+import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDefensesAuto, applyDefenseWithdrawal } from './defense';
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
@@ -349,7 +349,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // unique battle ids, and how the player likes to fight ('ask' | 'auto' | 'command').
     pendingBattle: null,
     battleCounter: 0,
-    battleSettings: { defaultMode: 'ask' },
+    battleSettings: { defaultMode: 'ask', autoDefend: false },
     // AI assaults on the player's garrisons, fought before the turn can end (src/engine/defense.js).
     pendingDefenses: [],
     gameStatus: GameStatus.ACTIVE,
@@ -1590,6 +1590,12 @@ export const gameReducer = (state, action) => {
       return { ...done, pendingDefenses: [...commanded, ...(done.pendingDefenses || [])] };
     }
 
+    case ActionTypes.WITHDRAW_FROM_DEFENSE: {
+      if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
+      const w = applyDefenseWithdrawal(state, action.payload?.defenseId);
+      return w.ok ? w.state : reject(state, w.reason === 'nowhere' ? 'Your garrison has nowhere to fall back to — it has to fight.' : 'That assault is already over.');
+    }
+
     case ActionTypes.BEGIN_DEFENSE_BATTLE: {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
       const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
@@ -1623,9 +1629,12 @@ export const gameReducer = (state, action) => {
       };
     }
 
+    // battleSettings: `defaultMode` only PRE-SELECTS a choice in the pre-battle modal (your own
+    // attacks always ask); `autoDefend` is the one explicit opt-in to auto-resolve enemy assaults.
     case ActionTypes.SET_BATTLE_SETTINGS: {
       const next = { ...(state.battleSettings || {}), ...(action.payload || {}) };
       if (!['ask', 'auto', 'command'].includes(next.defaultMode)) next.defaultMode = 'ask';
+      next.autoDefend = next.autoDefend === true;
       return { ...state, battleSettings: next };
     }
 

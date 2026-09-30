@@ -89,8 +89,8 @@ describe('turn flow', () => {
     expect(gameReducer(next, { type: ActionTypes.ADVANCE_TURN }).turnNumber).toBe(s.turnNumber + 1);
   });
 
-  it('with battleSettings.defaultMode = auto, resolveTurn fights defenses without interrupting', () => {
-    let s = { ...baseState(), battleSettings: { defaultMode: 'auto' } };
+  it('with battleSettings.autoDefend, resolveTurn fights defenses without interrupting', () => {
+    let s = { ...baseState(), battleSettings: { autoDefend: true } };
     for (let i = 0; i < 40; i++) {
       s = resolveTurn(s);
       expect(s.pendingDefenses || []).toHaveLength(0);
@@ -196,5 +196,32 @@ describe('calibration harness', () => {
     expect(getAssaultPressure({ outcome: 'attacker', attackerUnits: [], defenderUnits: [], report: {} }, { attacker: 1, defender: 1 })).toBe(1);
     expect(getAssaultPressure({ outcome: 'defender', attackerUnits: [u('a', 400, true)], defenderUnits: [u('d', 900)], report: { deployedAttackerIds: ['a'] } }, { attacker: 1000, defender: 1000 })).toBe(0);
     expect(getAssaultPressure({ outcome: 'defender', attackerUnits: [u('a', 800)], defenderUnits: [u('d', 800)], report: { deployedAttackerIds: ['a'] } }, { attacker: 1000, defender: 1000 })).toBeCloseTo(0.5);
+  });
+});
+
+// Reported: "the manual battle option disappeared and engagements bypass to auto-resolve".
+describe('pre-battle choice is never skipped by accident', () => {
+  it('the old shared "auto" mode no longer auto-resolves enemy assaults — only autoDefend does', () => {
+    // Play turns in the legacy mode until the enemy assaults: the assault must wait for the player.
+    let s = { ...baseState(), battleSettings: { defaultMode: 'auto' } };
+    let asked = false;
+    for (let i = 0; i < 40 && !asked; i++) {
+      s = resolveTurn(s);
+      asked = (s.pendingDefenses || []).length > 0;
+      if (s.activeEventId || s.activeProceduralEvent || s.pendingPeaceOffer) s = { ...s, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null };
+    }
+    expect(asked).toBe(true);
+  }, 60000);
+
+  it('a garrison can withdraw instead of fighting: it falls back, shaken, and the enemy takes the province', () => {
+    const s = withDefense(baseState({ g1: unit('g1', FR_BORDER, 'fr'), g2: unit('g2', FR_BORDER, 'fr', 'ranged') }));
+    const def = s.pendingDefenses[0];
+    const next = gameReducer(s, { type: ActionTypes.WITHDRAW_FROM_DEFENSE, payload: { defenseId: def.id } });
+    expect(next.pendingDefenses).toHaveLength(0);
+    expect(next.regions[FR_BORDER].owner).toBe('be');
+    expect(next.units.g1.regionId).not.toBe(FR_BORDER);
+    expect(next.regions[next.units.g1.regionId].owner).toBe('fr');
+    expect(next.units.g1.morale).toBeLessThan(s.units.g1.morale ?? 100);
+    expect(next.units.g1.strength).toBeLessThan(s.units.g1.strength);
   });
 });

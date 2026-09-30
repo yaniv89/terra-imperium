@@ -29,7 +29,7 @@ import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
-import BattleChoiceSheet from '../battle/BattleChoiceSheet';
+import PreBattleModal from '../battle/PreBattleModal';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -175,14 +175,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     })
     .sort((a, b) => Number(b.mine) - Number(a.mine) || a.name.localeCompare(b.name));
 
-  // Tactical Battles: a defended region asks how to fight (auto-resolve vs command the battle),
-  // unless the player chose to remember an answer; an undefended one is simply taken.
+  // Tactical Battles: a defended region asks how to fight (manual / auto-resolve / call off);
+  // an undefended one is simply taken.
   const handleInvade = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
     const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
-    const mode = state.battleSettings?.defaultMode || 'ask';
-    if (defended && mode === 'ask') { setBattleChoiceFrom(fromRegionId); return; }
-    if (defended && mode === 'command') { dispatch({ type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId, targetRegionId: regionId } }); return; }
+    // A defended province always stops at the pre-battle modal — never skipped by a setting.
+    if (defended) { setBattleChoiceFrom(fromRegionId); return; }
     triggerEffect('ground_invasion', { from: fromRegionId, to: regionId });
     dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId: regionId } });
   };
@@ -190,9 +189,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
     // Tactical Battles T9: a defended beach can be stormed in command mode too.
     const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
-    const mode = state.battleSettings?.defaultMode || 'ask';
-    if (defended && mode === 'ask') { setLandingChoice(navalUnitId); return; }
-    if (defended && mode === 'command') { dispatch({ type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId: regionId } }); return; }
+    if (defended) { setLandingChoice(navalUnitId); return; }
     triggerEffect('amphibious_assault', { from: state.units[navalUnitId]?.regionId, to: regionId });
     dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: regionId } });
   };
@@ -555,9 +552,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       </Section>
 
-      {battleChoiceFrom && <BattleChoiceSheet fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
+      {battleChoiceFrom && <PreBattleModal fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
       {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} />}
-      {landingChoice && <BattleChoiceSheet navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
+      {landingChoice && <PreBattleModal navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
 
       {/* Description */}
       {regionData.description && (

@@ -90,21 +90,14 @@ const MilitaryPanel = () => {
         onHire={handleHireGeneral}
       />
 
-      {/* Tactical Battles: how invasions of a defended region are fought. */}
-      <div className="bg-slate-800/40 rounded-lg p-3 space-y-2">
-        <div className="text-xs font-semibold text-slate-300">Invasion battles</div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {[['ask', 'Ask each time'], ['auto', 'Auto-resolve'], ['command', 'Command']].map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: mode } })}
-              className={`min-h-[40px] px-2 rounded-lg text-[11px] font-semibold border ${(state.battleSettings?.defaultMode || 'ask') === mode ? 'bg-blue-600/30 border-blue-400 text-blue-100' : 'bg-slate-900/60 border-slate-700 text-slate-300'}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      {/* Tactical Battles: your own attacks always ask (pre-battle modal); enemy assaults can opt out. */}
+      <div className="bg-slate-800/40 rounded-lg p-3 space-y-2" data-testid="battle-settings">
+        <div className="text-xs font-semibold text-slate-300">Battles</div>
+        <div className="text-[11px] text-slate-400">Your attacks on a defended province always ask how to fight: manually, auto-resolve, or call it off.</div>
+        <label className="flex items-center justify-between gap-2 text-[12px] text-slate-200 min-h-[40px]">
+          <span>Auto-resolve enemy assaults on my provinces</span>
+          <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.autoDefend === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { autoDefend: e.target.checked } })} data-testid="auto-defend" />
+        </label>
       </div>
 
       {state.lastBattleReport && <BattleReport report={state.lastBattleReport} />}
