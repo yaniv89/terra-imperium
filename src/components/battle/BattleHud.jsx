@@ -7,6 +7,7 @@ import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, User
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
+import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { getRankForXp } from '../../data/promotions';
 
 const CLASS_LABEL = { infantry: 'Inf', cavalry: 'Cav', ranged: 'Rng', siege: 'Sge', air: 'Air', support: 'Sup' };
@@ -90,6 +91,12 @@ const BattleHud = ({
           <div className="max-w-md text-center px-3 py-2 rounded-2xl bg-slate-900/85 border border-slate-600 text-slate-200 text-xs shadow-xl">
             <div className="font-bold text-sm text-white mb-1">Deploy your army</div>
             Tap a squad (or a class chip) to select it, tap the ground to move, tap an enemy to attack, drag from a selected squad to draw a battle line. Orders given now start when you press <b>Start</b>.
+            {setup.structures.some((st) => st.kind === 'building') && (
+              <div className="mt-1.5 text-sky-200" data-testid="battle-buildings">
+                {playerSide === 1 ? 'Your buildings here help you while they stand: ' : "The enemy's buildings help them — raze them for plunder: "}
+                {setup.structures.filter((st) => st.kind === 'building').map((st) => `${st.name} (${BUILDING_EFFECTS[st.category] || 'landmark'})`).join(' · ')}
+              </div>
+            )}
             <div className="mt-1.5 text-amber-200">
               ⏱ {fmtTime(timeLeft)} on the clock — {playerSide === 1
                 ? 'hold out until it runs out and the defense is yours.'

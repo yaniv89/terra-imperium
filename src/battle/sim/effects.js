@@ -6,6 +6,7 @@
 // Area strikes (arrow storms, barrages, air strikes, missiles) are scheduled "impacts" that land on
 // later ticks — the renderer draws them from the same events. Everything is deterministic.
 import { hasPerk } from '../../data/promotions';
+import { powerCooldownMult } from './buildings';
 import { nextRandom } from './rng';
 import { distSq, polarX, polarY } from './fixed';
 import { isFighting } from './combat';
@@ -142,7 +143,7 @@ export const firePower = (w, side, id, x, y) => {
   const st = powerState(w, side, id);
   if (!p || !st.available || st.usesLeft <= 0 || st.readyAt > w.tick || w.supply[side] < p.cost) return false;
   w.supply[side] -= p.cost;
-  w.powerCooldowns[side][id] = w.tick + p.cooldown;
+  w.powerCooldowns[side][id] = w.tick + Math.round(p.cooldown * powerCooldownMult(w, side));
   w.powersUsed[side][id] = (w.powersUsed[side][id] || 0) + 1;
   w.events.push({ t: w.tick, type: 'power', side, power: id, x, y });
   if (id === 'rallyCry') {

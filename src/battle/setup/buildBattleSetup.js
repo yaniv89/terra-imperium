@@ -12,13 +12,14 @@ import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
-import { generateMap } from './mapgen';
+import { generateMap, TILE } from './mapgen';
+import { BUILDING_CATEGORIES, getCategoryTierName } from '../../data/buildings';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
-// under different rules (v2: garrisons).
-export const SETUP_VERSION = 2;
+// under different rules (v2: garrisons, v3: the region's buildings on the battlefield).
+export const SETUP_VERSION = 3;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -45,6 +46,36 @@ export const buildStructures = ({ keepTile, fortLevel, isCapital }) => {
   return [keep, ...towers];
 };
 
+// The province's built buildings (other than its fortifications, which are the keep and towers),
+// as a list of { category, tier, name } for the battlefield.
+export const getRegionBattleBuildings = (region) => Object.entries(region?.buildings?.categories || {})
+  .filter(([category, tier]) => tier >= 0 && category !== 'defense' && BUILDING_CATEGORIES[category])
+  .map(([category, tier]) => ({ category, tier, name: getCategoryTierName(category, tier) || BUILDING_CATEGORIES[category].label }));
+
+// Stands each building on open ground around the keep, mostly on the defender's side of it, and
+// turns its tile into a building so troops walk around it.
+const placeBuildings = (map, list) => {
+  if (!list.length) return [];
+  const { w, h, tiles, keep } = map;
+  const out = [];
+  const taken = new Set();
+  list.forEach((b, i) => {
+    for (let tryN = 0; tryN < 48; tryN++) {
+      const angle = ((i * 0.9 + tryN * 0.37) % (Math.PI * 1.6)) - Math.PI * 0.8; // east, north and south of the keep
+      const r = 6 + (tryN % 4);
+      const tx = Math.round(keep.x + Math.cos(angle) * r); const ty = Math.round(keep.y + Math.sin(angle) * r);
+      if (tx < 2 || ty < 2 || tx >= w - 2 || ty >= h - 2) continue;
+      const k = ty * w + tx;
+      if (tiles[k] !== TILE.OPEN || taken.has(k)) continue;
+      taken.add(k); tiles[k] = TILE.BUILDING;
+      const hp = 600 + 150 * b.tier;
+      out.push({ id: `b_${b.category}`, kind: 'building', category: b.category, name: b.name, tier: b.tier, x: centre(tx), y: centre(ty), radius: Math.round(0.9 * Q), maxHp: hp, hp, range: 0, attackTicks: secondsToTicks(1.5), damage: 0, cooldown: 0, alive: true });
+      return;
+    }
+  });
+  return out;
+};
+
 // Pure: works from plain inputs, so tests, the sandbox and the parity harness can build battles
 // without a whole game state.
 export const buildSetupFromArmies = ({
@@ -55,7 +86,7 @@ export const buildSetupFromArmies = ({
   attackerNationId = 'attacker', defenderNationId = 'defender',
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
-  landing = false
+  landing = false, regionBuildings = []
 }) => {
   const combatWidth = getCombatWidth(terrain);
   const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0), landing });
@@ -67,7 +98,7 @@ export const buildSetupFromArmies = ({
     terrain,
     combatWidth,
     map,
-    structures: buildStructures({ keepTile: map.keep, fortLevel, isCapital }),
+    structures: [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings)],
     points,
     territoryRadius: TERRITORY_RADIUS,
     supplyCap: 200 + 30 * Math.max(0, infrastructure),
@@ -155,7 +186,8 @@ const buildDefenseSetup = (state, pb) => {
     ],
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
     // The AI does no espionage; the defender sees its own land regardless.
-    intel: { attackerSeesDefender: false }
+    intel: { attackerSeesDefender: false },
+    regionBuildings: getRegionBattleBuildings(region)
   });
 };
 
@@ -197,7 +229,8 @@ const buildAmphibiousSetup = (state, pb) => {
     ],
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
     intel: { attackerSeesDefender: canSeeRegionDetails(state, pb.targetRegionId) },
-    landing: true
+    landing: true,
+    regionBuildings: getRegionBattleBuildings(v.targetRegion)
   });
 };
 
@@ -241,7 +274,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
       toReinforcements(state, pendingBattle, pendingBattle.attackerReinforcements, 0),
       toReinforcements(state, pendingBattle, pendingBattle.defenderReinforcements, 1)
     ],
-    intel: { attackerSeesDefender: canSeeRegionDetails(state, targetRegionId) }
+    intel: { attackerSeesDefender: canSeeRegionDetails(state, targetRegionId) },
+    regionBuildings: getRegionBattleBuildings(v.targetRegion)
   });
 };
 

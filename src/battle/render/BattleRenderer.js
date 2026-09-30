@@ -201,6 +201,8 @@ export class BattleRenderer {
     const winter = this.setup.terrain === 'arctic';
     const dry = this.setup.terrain === 'desert';
     const pines = []; const oaks = []; const rocks = []; const houses = []; const tufts = [];
+    // Tiles taken by the province's own buildings get their own models (buildStructures).
+    const landmarkTiles = new Set(this.setup.structures.filter((st) => st.kind === 'building').map((st) => Math.floor(st.y / Q) * w + Math.floor(st.x / Q)));
     for (let z = 0; z < h; z++) {
       for (let x = 0; x < w; x++) {
         const t = tiles[z * w + x];
@@ -210,7 +212,7 @@ export class BattleRenderer {
           (r2 < (winter ? 0.85 : 0.45) ? pines : oaks).push([x + 0.2 + r * 0.6, z + 0.2 + r2 * 0.6, 0.7 + r * 0.4]);
           if (r > 0.6) (r2 < 0.5 ? oaks : pines).push([x + 0.8 - r2 * 0.5, z + 0.7 - r * 0.4, 0.5 + r2 * 0.3]);
         } else if (t === TILE.ROCK && r < 0.5) rocks.push([x + 0.3 + r2 * 0.4, z + 0.3 + r * 0.4, 0.4 + r * 0.6]);
-        else if (t === TILE.BUILDING && Math.abs(x - keep.x) + Math.abs(z - keep.y) > 3) houses.push([x + 0.5, z + 0.5, r]);
+        else if (t === TILE.BUILDING && Math.abs(x - keep.x) + Math.abs(z - keep.y) > 3 && !landmarkTiles.has(z * w + x)) houses.push([x + 0.5, z + 0.5, r]);
         else if ((t === TILE.OPEN || t === TILE.SAND) && !winter && r < (dry ? 0.1 : 0.32)) tufts.push([x + r2, z + hash01(r * 1e6), 0.6 + r2 * 0.5]);
         else if (t === TILE.OPEN && r > 0.985) rocks.push([x + r2, z + 0.5, 0.25 + r2 * 0.3]); // the odd boulder in a field
       }
@@ -301,7 +303,9 @@ export class BattleRenderer {
       const g = new Group();
       const add = (geo, mat) => { const m = new Mesh(this.track(geo), mat); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
       const x = s.x / Q; const z = s.y / Q;
-      if (s.kind === 'keep') {
+      if (s.kind === 'building') {
+        this.buildLandmark(add, s.category, { stone, darkStone, roof, wood, modern });
+      } else if (s.kind === 'keep') {
         add(new BoxGeometry(2.8, 0.35, 2.8).translate(0, 0.17, 0), darkStone); // plinth
         add(new BoxGeometry(2.5, 2.0, 2.5).translate(0, 1.2, 0), stone);
         squareMerlons(g, stone, 1.2, 2.35);
@@ -338,6 +342,57 @@ export class BattleRenderer {
       this.scene.add(g);
       this.structureMeshes.set(s.id, g);
     });
+  }
+
+  // The province's own buildings (src/battle/sim/buildings.js), one recognisable model each.
+  buildLandmark(add, category, { stone, darkStone, roof, wood, modern }) {
+    const plaster = this.track(new MeshLambertMaterial({ color: modern ? '#b7b3ab' : '#d9ccb0' }));
+    const tile = this.track(new MeshLambertMaterial({ color: modern ? '#565a60' : '#9a4b32' }));
+    const cloth = this.track(new MeshLambertMaterial({ color: '#efe6d2', side: DoubleSide }));
+    const hipRoof = (wdt, dpt, y, mat, hgt = 0.55) => add(new ConeGeometry(Math.max(wdt, dpt) * 0.72, hgt, 4).rotateY(Math.PI / 4).scale(wdt / Math.max(wdt, dpt), 1, dpt / Math.max(wdt, dpt)).translate(0, y + hgt / 2, 0), mat);
+    switch (category) {
+      case 'military': // barracks: a long hall with a banner
+        add(new BoxGeometry(1.7, 0.7, 1.0).translate(0, 0.35, 0), plaster); hipRoof(1.8, 1.1, 0.7, tile);
+        add(new CylinderGeometry(0.03, 0.03, 1.8, 5).translate(0.95, 0.9, 0.55), wood);
+        add(new PlaneGeometry(0.6, 0.38).translate(1.25, 1.6, 0.55), roof);
+        break;
+      case 'economy': // market: stalls under striped awnings
+        [[-0.55, -0.3], [0.55, -0.3], [0, 0.45]].forEach(([dx, dz], i) => {
+          add(new BoxGeometry(0.7, 0.35, 0.5).translate(dx, 0.18, dz), wood);
+          add(new BoxGeometry(0.8, 0.04, 0.62).rotateX(-0.25).translate(dx, 0.62, dz), i % 2 ? roof : cloth);
+          [-0.35, 0.35].forEach((px) => add(new CylinderGeometry(0.025, 0.025, 0.6, 4).translate(dx + px, 0.3, dz + 0.24), wood));
+        });
+        break;
+      case 'industry': // workshop with a tall chimney
+        add(new BoxGeometry(1.4, 0.8, 1.1).translate(0, 0.4, 0), modern ? darkStone : stone); hipRoof(1.5, 1.2, 0.8, tile, 0.4);
+        add(new CylinderGeometry(0.13, 0.17, 1.9, 8).translate(0.45, 0.95, -0.3), darkStone);
+        break;
+      case 'culture': // temple: columns under a pediment (or a dome)
+        add(new BoxGeometry(1.7, 0.18, 1.2).translate(0, 0.09, 0), stone);
+        for (let i = -2; i <= 2; i++) { add(new CylinderGeometry(0.07, 0.08, 0.9, 7).translate(i * 0.36, 0.63, 0.45), plaster); add(new CylinderGeometry(0.07, 0.08, 0.9, 7).translate(i * 0.36, 0.63, -0.45), plaster); }
+        add(new BoxGeometry(1.7, 0.12, 1.15).translate(0, 1.14, 0), stone);
+        hipRoof(1.7, 1.2, 1.2, roof, 0.4);
+        break;
+      case 'food': // granary silos
+        [[-0.4, 0], [0.4, 0.1]].forEach(([dx, dz]) => { add(new CylinderGeometry(0.36, 0.38, 1.0, 10).translate(dx, 0.5, dz), plaster); add(new ConeGeometry(0.42, 0.4, 10).translate(dx, 1.2, dz), tile); });
+        break;
+      case 'science': // library / academy under a dome
+        add(new BoxGeometry(1.3, 0.75, 1.1).translate(0, 0.38, 0), plaster);
+        add(new CylinderGeometry(0.42, 0.45, 0.2, 12).translate(0, 0.85, 0), stone);
+        add(new IcosahedronGeometry(0.42, 1).scale(1, 0.8, 1).translate(0, 0.95, 0), roof);
+        break;
+      case 'naval': // harbour warehouse with a crane
+        add(new BoxGeometry(1.8, 0.7, 0.9).translate(0, 0.35, 0), wood); hipRoof(1.9, 1.0, 0.7, tile, 0.35);
+        add(new BoxGeometry(0.1, 1.6, 0.1).translate(-0.85, 0.8, 0.6), wood); add(new BoxGeometry(0.9, 0.08, 0.08).translate(-0.45, 1.55, 0.6), wood);
+        break;
+      case 'logistics': // road post: a waystation, a cart and a signpost
+        add(new BoxGeometry(0.8, 0.6, 0.7).translate(-0.3, 0.3, 0), plaster); hipRoof(0.9, 0.8, 0.6, tile, 0.4);
+        add(new BoxGeometry(0.5, 0.25, 0.8).translate(0.55, 0.3, 0.1), wood);
+        add(new CylinderGeometry(0.03, 0.03, 1.1, 5).translate(0.3, 0.55, -0.5), wood); add(new BoxGeometry(0.4, 0.12, 0.04).translate(0.45, 0.95, -0.5), wood);
+        break;
+      default:
+        add(new BoxGeometry(1.2, 0.8, 1.0).translate(0, 0.4, 0), plaster); hipRoof(1.3, 1.1, 0.8, tile);
+    }
   }
 
   buildPoints() {
@@ -642,7 +697,7 @@ export class BattleRenderer {
       g.children.forEach((c) => { if (c.material?.color && !s.alive) c.material.color.set('#57534e'); });
       if (!s.alive) return;
       const x = s.x / Q; const z = s.y / Q;
-      tmp.quaternion.copy(camQuat); tmp.position.set(x, this.heightAt(x, z) + (s.kind === 'keep' ? 4 : 3.3), z); tmp.scale.set(s.kind === 'keep' ? 2.4 : 1.4, 1, 1); tmp.updateMatrix();
+      tmp.quaternion.copy(camQuat); tmp.position.set(x, this.heightAt(x, z) + (s.kind === 'keep' ? 4 : s.kind === 'building' ? 2.1 : 3.3), z); tmp.scale.set(s.kind === 'keep' ? 2.4 : 1.4, 1, 1); tmp.updateMatrix();
       this.structBarBg.setMatrixAt(n, tmp.matrix);
       tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -(s.kind === 'keep' ? 1.2 : 0.7)); tmp.scale.set((s.kind === 'keep' ? 2.4 : 1.4) * frac, 1, 1); tmp.updateMatrix();
       this.structBarFill.setMatrixAt(n, tmp.matrix);

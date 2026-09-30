@@ -18,12 +18,14 @@ import { fieldCap, fieldCount } from './world';
 import { Q, SIDE_ATTACKER, secondsToTicks } from './constants';
 import { activateAbility, firePower } from './effects';
 import { canGarrison, garrisonRoom, leaveGarrison } from './objectives';
+import { reserveCostMult, reserveEntryMult } from './buildings';
 
 export const RESERVE_COST = 60;
 export const RESERVE_ENTRY_TICKS = secondsToTicks(8);
 export const REINFORCEMENT_COST = 120;
 export const REINFORCEMENT_ENTRY_TICKS = secondsToTicks(25);
-export const callCost = (q) => (q.reinforcement ? REINFORCEMENT_COST : RESERVE_COST);
+// A standing Barracks (src/battle/sim/buildings.js) makes the defender's reserves cheaper and faster.
+export const callCost = (q, w = null) => Math.round((q.reinforcement ? REINFORCEMENT_COST : RESERVE_COST) * reserveCostMult(w, q.side));
 const SLOT_SPACING = Math.round(2.5 * Q);
 
 const commandable = (w, side, idx) => {
@@ -153,10 +155,10 @@ export const applyOrder = (w, o) => {
       (o.squads || []).forEach((i) => {
         const q = w.squads[i];
         if (!q || q.side !== side || !q.reserve || !q.alive || q.enterTick >= 0) return;
-        const cost = callCost(q);
+        const cost = callCost(q, w);
         if (w.supply[side] < cost || fieldCount(w, side) >= fieldCap(w)) return;
         w.supply[side] -= cost;
-        q.enterTick = w.tick + (q.reinforcement ? REINFORCEMENT_ENTRY_TICKS : RESERVE_ENTRY_TICKS);
+        q.enterTick = w.tick + Math.round((q.reinforcement ? REINFORCEMENT_ENTRY_TICKS : RESERVE_ENTRY_TICKS) * reserveEntryMult(w, side));
         w.stats.reservesCalled[side] += 1;
         w.events.push({ t: w.tick, type: 'reserveCalled', id: q.idx, side });
       });

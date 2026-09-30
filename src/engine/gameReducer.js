@@ -563,6 +563,22 @@ const applyBattleMissiles = (state, pb, powersUsed) => {
   return { ...state, nations, regions, logs: [...state.logs, ...logs] };
 };
 
+// Buildings razed in a commanded battle (src/battle/sim/buildings.js) each lose a tier in the
+// province where it was fought.
+const applyRazedBuildings = (state, regionId, razed) => {
+  const region = state.regions[regionId];
+  const lost = [...new Set(razed || [])].filter((c) => (region?.buildings?.categories?.[c] ?? -1) >= 0);
+  if (!lost.length) return state;
+  const categories = { ...region.buildings.categories };
+  lost.forEach((c) => { categories[c] -= 1; });
+  const names = lost.map((c) => BUILDING_CATEGORIES[c]?.label || c).join(', ');
+  return {
+    ...state,
+    regions: { ...state.regions, [regionId]: { ...region, buildings: { ...region.buildings, categories } } },
+    logs: [...state.logs, { year: state.year, message: `The fighting left buildings in ${REGIONS_DATA[regionId]?.name || regionId} in ruins (${names}: one tier lost).`, type: LogTypes.COMBAT }]
+  };
+};
+
 export const sanitizeTacticalResult = (state, pb, result) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
   // Synthetic expeditionary troops (defense battles) live on the battle record, not in state.units.
@@ -597,7 +613,13 @@ export const sanitizeTacticalResult = (state, pb, result) => {
       log: Array.isArray(report.log) ? report.log.slice(0, 60) : [],
       deployedAttackerIds: onlyIds(report.deployedAttackerIds, attackerIds),
       deployedDefenderIds: onlyIds(report.deployedDefenderIds, defenderIds),
-      tactical: { ...(report.tactical || {}), decisive: !!report.tactical?.decisive, xpBonusById: bonus, powersUsed: sanitizePowersUsed(report.tactical?.powersUsed) }
+      tactical: {
+        ...(report.tactical || {}),
+        decisive: !!report.tactical?.decisive,
+        xpBonusById: bonus,
+        powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
+        razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : []
+      }
     }
   };
 };
@@ -1464,25 +1486,25 @@ export const gameReducer = (state, action) => {
         if (!def) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
         const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
-        return applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById });
+        return applyRazedBuildings(applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical.razed);
       }
       if (!war || !targetRegion) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
       const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
       if (pb.kind === 'amphibious') {
-        return applyAmphibiousLanding(
+        return applyRazedBuildings(applyAmphibiousLanding(
           afterMissiles,
           { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
           safe,
           { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-        );
+        ), pb.targetRegionId, safe.report.tactical.razed);
       }
-      return applyInvasionResult(
+      return applyRazedBuildings(applyInvasionResult(
         afterMissiles,
         { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
         safe,
         { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-      );
+      ), pb.targetRegionId, safe.report.tactical.razed);
     }
 
     case ActionTypes.ABANDON_TACTICAL_BATTLE: {

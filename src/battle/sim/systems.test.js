@@ -11,10 +11,15 @@ import { updateFog, canSeeSquad } from './fog';
 import { applySupplyAndAttrition } from './support';
 import { activateAbility, effectMult, firePower, processImpacts } from './effects';
 import { applyOrder } from './orders';
-import { garrisonRoom, resolveStructureFire, updateGarrisons } from './objectives';
+import { garrisonRoom, resolveStructureFire, updateGarrisons, updateSupply } from './objectives';
+import { attackStructure } from './combat';
+import { callCost } from './orders';
+import { updateBuildings } from './buildings';
+import { toStrategicResult } from './result';
 import { buildSpatialHash } from './pathing';
 import { enterReserves } from './movement';
 import { Q } from './constants';
+import { TILE } from '../setup/mapgen';
 import { resolveBattle } from '../../engine/battle';
 import { createRng } from '../../utils/rng';
 
@@ -298,5 +303,47 @@ describe('garrisons (plan §8.10)', () => {
     const inside = w.squads.filter((q) => q.side === 1 && q.inside >= 0);
     expect(inside.length).toBeGreaterThan(0);
     expect(inside.length).toBeLessThanOrEqual(2); // at least half stay in the field
+  });
+});
+
+describe('the region\'s buildings on the battlefield', () => {
+  const withBuildings = (list, over = {}) => createWorld(setup({ controllers: ['player', 'player'], regionBuildings: list, ...over }));
+  const B = (category, tier = 0) => ({ category, tier, name: category });
+
+  it('every built category stands on the map as a structure, on a blocked tile', () => {
+    const w = withBuildings([B('military'), B('economy'), B('culture')]);
+    const bs = w.structures.filter((s) => s.kind === 'building');
+    expect(bs.map((s) => s.category).sort()).toEqual(['culture', 'economy', 'military']);
+    bs.forEach((s) => expect(w.map.tiles[Math.floor(s.y / Q) * w.map.w + Math.floor(s.x / Q)]).toBe(TILE.BUILDING));
+    expect(w.structures[0].kind).toBe('keep');
+  });
+
+  it('a Market adds Battle Supply to the defender; razing it plunders the attacker', () => {
+    const plain = withBuildings([]); const market = withBuildings([B('economy')]);
+    plain.supply = [0, 0]; market.supply = [0, 0];
+    plain.tick = 20; market.tick = 20;
+    updateSupply(plain); updateSupply(market);
+    expect(market.supply[1]).toBe(plain.supply[1] + 1);
+    const b = market.structures.find((s) => s.kind === 'building');
+    const before = market.supply[0];
+    const a = market.squads.find((q) => q.side === 0);
+    b.hp = 1; a.strength = 1000;
+    attackStructure(market, a, b);
+    expect(b.alive).toBe(false);
+    expect(market.supply[0]).toBe(before + 60);
+    expect(toStrategicResult(market).report.tactical.razed).toEqual(['economy']);
+  });
+
+  it('a Barracks makes the defender\'s reserves cheaper; a Library speeds its powers; a Workshop repairs the keep', () => {
+    const w = withBuildings([B('military'), B('science'), B('industry')], { powers: [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]] });
+    const reserve = w.squads.find((q) => q.side === 1) || { side: 1, reinforcement: null };
+    expect(callCost({ ...reserve, side: 1, reinforcement: null }, w)).toBeLessThan(callCost({ ...reserve, side: 1, reinforcement: null }));
+    w.supply[1] = 500;
+    firePower(w, 1, 'rallyCry', 0, 0);
+    const plain = withBuildings([]); plain.supply[1] = 500; firePower(plain, 1, 'rallyCry', 0, 0);
+    expect(w.powerCooldowns[1].rallyCry).toBeLessThan(plain.powerCooldowns[1].rallyCry);
+    const keep = w.structures[0]; keep.hp = keep.maxHp - 50; w.tick = 20;
+    updateBuildings(w);
+    expect(keep.hp).toBeGreaterThan(keep.maxHp - 50);
   });
 });

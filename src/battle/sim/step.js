@@ -12,6 +12,7 @@ import { updateMorale } from './morale';
 import { updateFog } from './fog';
 import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
+import { updateBuildings } from './buildings';
 import { BATTLE_LIMIT_TICKS, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
@@ -61,6 +62,7 @@ export const step = (w, orders = []) => {
   resolveStructureFire(w);
   updateGarrisons(w); // squads that reached their building go in; failing buildings throw theirs out
   applySupplyAndAttrition(w);
+  updateBuildings(w);
   updateMorale(w);
   updateCapturePoints(w);
   updateAssimilation(w);
