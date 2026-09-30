@@ -13,6 +13,7 @@ import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY, INDEPENDENCE_WAR_WIN_SC
 import { getNationTotalDev, getTotalDev } from './development';
 import { applyPeace, buildAITerms, getPeaceAcceptance } from './peace';
 import { leansPositive, leansNegative } from '../data/identity';
+import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from './defense';
 
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
 // floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
@@ -311,6 +312,9 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
   let nextResources = state.resources;
   let nextPendingPeaceOffer = state.pendingPeaceOffer || null;
   const logs = [];
+  // Assaults on garrisoned player regions, fought at the start of the player's turn (defense.js).
+  const pendingDefenses = [];
+  const committedAssaultUnits = new Set();
   // One shared O(regions) pass for every active war's score this turn (see buildOccupationIndexes's
   // own header) — skipped entirely when nothing is at war, the common case for most of the game.
   const occupationIndexes = wars.some(w => w.active) ? buildOccupationIndexes(regions, nations) : null;
@@ -372,8 +376,19 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
           const updatedAggressor = nextNations[currentWar.aggressor];
           const updatedDefender = nextNations[currentWar.enemy];
           const totalStrength = updatedAggressor.militaryStrength + updatedDefender.militaryStrength;
-          const chance = AI_CAPTURE_BASE_CHANCE * (updatedAggressor.militaryStrength / totalStrength) * (state.difficultyMultiplier || 1);
-          if (rng.next() < chance) {
+          const aggressorShare = updatedAggressor.militaryStrength / totalStrength;
+          // A garrisoned player region is decided by a real battle instead (Tactical Battles plan
+          // §16). The garrison can now win, so the roll fires more often to keep expected losses
+          // where they were (PLAYER_DEFENDED_CAPTURE_MULT, calibrated in defense.test.js).
+          const playerGarrisoned = targetRegion.owner === state.playerNationId && getGarrison(state, currentWar.goal.regionId).length > 0;
+          const chance = AI_CAPTURE_BASE_CHANCE * aggressorShare * (state.difficultyMultiplier || 1) * (playerGarrisoned ? PLAYER_DEFENDED_CAPTURE_MULT : 1);
+          if (playerGarrisoned && rng.next() < chance) {
+            const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
+            pendingDefenses.push(createDefenseRecord({ ...state, regions: nextRegions, nations: nextNations }, {
+              war: currentWar, regionId: currentWar.goal.regionId, aggressorShare, seed, index: pendingDefenses.length + 1, committed: committedAssaultUnits
+            }));
+            logs.push({ message: `${updatedAggressor.name} marches on ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}! Your garrison must defend it.`, type: 'combat' });
+          } else if (!playerGarrisoned && rng.next() < chance) {
             // Same control-as-defense-HP grind as the player's own LAUNCH_INVASION (src/engine/
             // siege.js) — a successful roll damages the region's control instead of instantly
             // flipping it, unless the region is genuinely undefended.
@@ -477,5 +492,5 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
   });
 
-  return { regions: nextRegions, nations: nextNations, resources: nextResources, wars: nextWars, pendingPeaceOffer: nextPendingPeaceOffer, logs };
+  return { regions: nextRegions, nations: nextNations, resources: nextResources, wars: nextWars, pendingPeaceOffer: nextPendingPeaceOffer, pendingDefenses, logs };
 };

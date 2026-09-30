@@ -19,7 +19,9 @@ const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc
 const freshWorld = (playerNationId = 'fr') => ({
   ...createInitialState({ playerNationId }),
   firedEvents,
-  proceduralEventCooldown: 999999
+  proceduralEventCooldown: 999999,
+  // A queued defense battle also pauses resolveTurn; a passive player lets them auto-resolve.
+  battleSettings: { defaultMode: 'auto' }
 });
 
 const advance = (state) => {

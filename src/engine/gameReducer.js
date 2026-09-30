@@ -62,6 +62,7 @@ import {
   ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
+import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDefensesAuto } from './defense';
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
 import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier } from './siege';
@@ -347,6 +348,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     pendingBattle: null,
     battleCounter: 0,
     battleSettings: { defaultMode: 'ask' },
+    // AI assaults on the player's garrisons, fought before the turn can end (src/engine/defense.js).
+    pendingDefenses: [],
     gameStatus: GameStatus.ACTIVE,
     // Which VICTORY_CONDITIONS entry ended the game, if any.
     victoryConditionId: null,
@@ -481,8 +484,11 @@ const UNIT_ACTION_IDS = {
   [ActionTypes.DISEMBARK_UNIT]: (p) => [p.landUnitId]
 };
 const guardPendingBattle = (state, action) => {
-  if (!state.pendingBattle) return null;
-  if (TURN_ACTIONS.has(action.type)) return reject(state, 'Finish your battle (or auto-resolve it) before ending the turn.');
+  const defenses = state.pendingDefenses?.length > 0;
+  if (!state.pendingBattle && !defenses) return null;
+  if (TURN_ACTIONS.has(action.type)) {
+    return reject(state, state.pendingBattle ? 'Finish your battle (or auto-resolve it) before ending the turn.' : 'Your regions are under attack — fight (or auto-resolve) the assaults before ending the turn.');
+  }
   const ids = UNIT_ACTION_IDS[action.type]?.(action.payload || {}) || [];
   if (ids.some((id) => id && isUnitInBattle(state, id))) return reject(state, 'That unit is fighting a battle right now.');
   return null;
@@ -536,8 +542,9 @@ const applyBattleMissiles = (state, pb, powersUsed) => {
 
 export const sanitizeTacticalResult = (state, pb, result) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
+  // Synthetic expeditionary troops (defense battles) live on the battle record, not in state.units.
   const clampUnits = (ids, reported) => ids.map((id) => {
-    const real = state.units[id];
+    const real = state.units[id] || (pb.synthetic || []).find((u) => u.id === id);
     if (!real) return null;
     const r = (reported || []).find((u) => u && u.id === id) || {};
     const strength = Number.isFinite(r.strength) ? Math.max(0, Math.min(real.strength, Math.round(r.strength))) : real.strength;
@@ -548,7 +555,7 @@ export const sanitizeTacticalResult = (state, pb, result) => {
   // standing by for this battle).
   const joined = Array.isArray(result?.report?.tactical?.joinedReinforcements) ? result.report.tactical.joinedReinforcements : [];
   const standby = (sources) => (sources || []).flatMap((src) => src.unitIds);
-  const attackerIds = [...pb.attackerUnitIds, ...standby(pb.attackerReinforcements).filter((id) => joined.includes(id))];
+  const attackerIds = [...pb.attackerUnitIds, ...(pb.synthetic || []).map((u) => u.id), ...standby(pb.attackerReinforcements).filter((id) => joined.includes(id))];
   const defenderIds = [...pb.defenderUnitIds, ...standby(pb.defenderReinforcements).filter((id) => joined.includes(id))];
   const attackerUnits = clampUnits(attackerIds, result?.attackerUnits);
   const defenderUnits = clampUnits(defenderIds, result?.defenderUnits);
@@ -593,7 +600,7 @@ export const gameReducer = (state, action) => {
         if (next === current) break; // resolveTurn's own no-op guard (event pending / game over)
         current = next;
         if (current.gameStatus !== GameStatus.ACTIVE) break;
-        if (current.activeEventId || current.activeProceduralEvent || current.pendingPeaceOffer) break;
+        if (current.activeEventId || current.activeProceduralEvent || current.pendingPeaceOffer || current.pendingDefenses?.length) break;
         if (countWars(current) !== startingWarCount) break;
       }
       return current;
@@ -1418,6 +1425,13 @@ export const gameReducer = (state, action) => {
       // If peace was signed while the battle was being fought, the battle has no consequences.
       const war = state.wars.find((w) => w.id === pb.warId && w.active);
       const cleared = { ...state, pendingBattle: null };
+      if (pb.kind === 'defense') {
+        const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+        if (!def) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
+        return applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById });
+      }
       if (!war || !targetRegion) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
       const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
@@ -1435,6 +1449,7 @@ export const gameReducer = (state, action) => {
       const pb = state.pendingBattle;
       if (!pb) return state;
       const cleared = { ...state, pendingBattle: null };
+      if (pb.kind === 'defense') return resolveDefenseAuto(cleared, pb.defenseId);
       const v = validateInvasion(cleared, pb.fromRegionId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
       if (!v.ok) return cleared;
       const attackers = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
@@ -1444,6 +1459,53 @@ export const gameReducer = (state, action) => {
       const ctx = getInvasionBattleContext(cleared, { targetRegionId: pb.targetRegionId, targetRegion: v.targetRegion, defenderUnits: defenders });
       const battle = resolveBattle({ ...getResolveBattleArgs(vv, ctx), rng: createRng(pb.seed) });
       return applyInvasionResult(cleared, { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: state.rngSeed });
+    }
+
+    // ---- Defense battles (plan §16): assaults queued by the AI's war rolls ----
+
+    case ActionTypes.RESOLVE_DEFENSE_AUTO:
+      if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
+      return resolveDefenseAuto(state, action.payload?.defenseId);
+
+    case ActionTypes.RESOLVE_ALL_DEFENSES_AUTO: {
+      // A defense already being commanded is left alone; everything else is fought now.
+      const commanded = (state.pendingDefenses || []).filter((d) => d.id === state.pendingBattle?.defenseId);
+      const rest = { ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => !commanded.includes(d)) };
+      const done = resolveAllDefensesAuto(rest);
+      return { ...done, pendingDefenses: [...commanded, ...(done.pendingDefenses || [])] };
+    }
+
+    case ActionTypes.BEGIN_DEFENSE_BATTLE: {
+      if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
+      const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
+      if (!def) return state;
+      const armies = getDefenseArmies(state, def);
+      // Nothing left to command (the garrison or the attackers are gone): settle it as auto does.
+      if (!armies.defenderUnits.length || !armies.attackerUnits.length) return resolveDefenseAuto(state, def.id);
+      const counter = (state.battleCounter || 0) + 1;
+      return {
+        ...state,
+        battleCounter: counter,
+        pendingBattle: {
+          id: `b_${state.turnNumber}_${counter}`,
+          kind: 'defense',
+          defenseId: def.id,
+          fromRegionId: def.fromRegionId,
+          targetRegionId: def.regionId,
+          warId: def.warId,
+          attackerNationId: def.aggressorId,
+          defenderNationId: state.playerNationId,
+          seed: def.seed,
+          startedTurn: state.turnNumber,
+          playerSide: 'defender',
+          attackerUnitIds: armies.attackerUnits.filter((u) => !u.synthetic).map((u) => u.id),
+          synthetic: def.synthetic || [],
+          defenderUnitIds: armies.defenderUnits.map((u) => u.id),
+          attackerReinforcements: [],
+          defenderReinforcements: getReinforcementSources(state, def.regionId, state.playerNationId)
+        },
+        logs: [...state.logs, { year: state.year, message: `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name}.`, type: LogTypes.COMBAT }]
+      };
     }
 
     case ActionTypes.SET_BATTLE_SETTINGS: {

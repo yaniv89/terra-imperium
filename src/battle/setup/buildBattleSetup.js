@@ -11,6 +11,7 @@ import { getRosterCombatMultiplier } from '../../data/unitClasses';
 import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers } from '../../engine/invasion';
+import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap } from './mapgen';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
@@ -116,7 +117,47 @@ const toReinforcements = (state, pb, sources, side) => (sources || []).map((src)
 
 // The battle for a pending invasion, rebuilt purely from game state + the pending record — so a
 // battle interrupted by an app restart rebuilds the identical setup and resumes.
+// An AI assault on one of the player's garrisons (src/engine/defense.js): the same battlefield,
+// with the player commanding the defenders and the AI's real and synthetic troops attacking.
+const buildDefenseSetup = (state, pb) => {
+  const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+  const region = state.regions[pb.targetRegionId];
+  if (!def || !region) return null;
+  const armies = getDefenseArmies(state, { ...def, attackerUnitIds: pb.attackerUnitIds, synthetic: pb.synthetic, defenderUnitIds: pb.defenderUnitIds });
+  if (!armies.attackerUnits.length || !armies.defenderUnits.length) return null;
+  const ctx = getDefenseBattleContext(state, def);
+  const regionData = REGIONS_DATA[pb.targetRegionId] || {};
+  return buildSetupFromArmies({
+    regionId: pb.targetRegionId,
+    terrain: ctx.terrain,
+    seed: pb.seed,
+    attackerUnits: armies.attackerUnits,
+    defenderUnits: armies.defenderUnits,
+    attackerAgeId: ctx.attackerAgeId,
+    defenderAgeId: ctx.defenderAgeId,
+    generals: ctx.generals,
+    fortLevel: Math.max(0, Math.round(ctx.fortLevel)),
+    isCapital: !!regionData.isCapital,
+    infrastructure: region.currentInfrastructure || 0,
+    deposits: getDepositsFor(regionData.startOwner),
+    defenseReduction: ctx.defenderDamageReductionMultiplier,
+    isAttackingFortification: ctx.isAttackingFortification,
+    attackerNationId: pb.attackerNationId,
+    defenderNationId: state.playerNationId,
+    controllers: ['ai', 'player'],
+    difficultyId: state.difficultyId || 'prince',
+    powers: [
+      getBattlePowers(state, pb.attackerNationId, ctx.attackerAgeId, armies.attackerUnits, { allowNuclear: false }),
+      getBattlePowers(state, state.playerNationId, ctx.defenderAgeId, armies.defenderUnits, { allowNuclear: true })
+    ],
+    reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
+    // The AI does no espionage; the defender sees its own land regardless.
+    intel: { attackerSeesDefender: false }
+  });
+};
+
 export const buildInvasionSetup = (state, pendingBattle) => {
+  if (pendingBattle?.kind === 'defense') return buildDefenseSetup(state, pendingBattle);
   const { fromRegionId, targetRegionId, seed, playerSide = 'attacker' } = pendingBattle;
   const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;
