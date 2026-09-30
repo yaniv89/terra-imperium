@@ -29,7 +29,7 @@ import {
 import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
@@ -341,6 +341,12 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     turnNumber: 1,
     // Player intel on foreign nations: { [nationId]: lastTurnWithIntel } — src/engine/intel.js.
     intel: {},
+    // Tactical Battles (design/rts-battles-implementation-plan.md §4.1): the one commanded battle
+    // in progress (its units are locked and the turn can't end until it resolves), a counter for
+    // unique battle ids, and how the player likes to fight ('ask' | 'auto' | 'command').
+    pendingBattle: null,
+    battleCounter: 0,
+    battleSettings: { defaultMode: 'ask' },
     gameStatus: GameStatus.ACTIVE,
     // Which VICTORY_CONDITIONS entry ended the game, if any.
     victoryConditionId: null,
@@ -463,7 +469,63 @@ const reject = (state, message) => ({
 // ============ REDUCER ============
 // Exported for direct unit testing (see GameContext.test.js) — the reducer is the authoritative
 // validation point for every player action, so it should be testable without mounting React.
+// While a commanded battle is in progress: the turn can't end, and the units fighting it can't be
+// moved, disbanded, embarked or promoted until it resolves.
+const TURN_ACTIONS = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD]);
+const UNIT_ACTION_IDS = {
+  [ActionTypes.MOVE_ARMY]: (p) => [p.unitId],
+  [ActionTypes.DISBAND_UNIT]: (p) => [p.unitId],
+  [ActionTypes.PROMOTE_UNIT]: (p) => [p.unitId],
+  [ActionTypes.APPOINT_GENERAL]: (p) => [p.unitId],
+  [ActionTypes.EMBARK_UNIT]: (p) => [p.landUnitId, p.navalUnitId],
+  [ActionTypes.DISEMBARK_UNIT]: (p) => [p.landUnitId]
+};
+const guardPendingBattle = (state, action) => {
+  if (!state.pendingBattle) return null;
+  if (TURN_ACTIONS.has(action.type)) return reject(state, 'Finish your battle (or auto-resolve it) before ending the turn.');
+  const ids = UNIT_ACTION_IDS[action.type]?.(action.payload || {}) || [];
+  if (ids.some((id) => id && isUnitInBattle(state, id))) return reject(state, 'That unit is fighting a battle right now.');
+  return null;
+};
+
+// Rebuilds a commanded battle's result from the REAL units in state, so a tampered or buggy result
+// can never mint soldiers: only the locked units, strength can only go down, morale stays in range,
+// ids and outcome are validated, and the command-mode XP bonus stays capped.
+export const sanitizeTacticalResult = (state, pb, result) => {
+  const OUTCOMES = ['attacker', 'defender', 'stalemate'];
+  const clampUnits = (ids, reported) => ids.map((id) => {
+    const real = state.units[id];
+    if (!real) return null;
+    const r = (reported || []).find((u) => u && u.id === id) || {};
+    const strength = Number.isFinite(r.strength) ? Math.max(0, Math.min(real.strength, Math.round(r.strength))) : real.strength;
+    const morale = Number.isFinite(r.morale) ? Math.max(0, Math.min(100, Math.round(r.morale))) : real.morale;
+    return { ...real, strength, morale, routed: !!r.routed };
+  }).filter(Boolean);
+  const attackerUnits = clampUnits(pb.attackerUnitIds, result?.attackerUnits);
+  const defenderUnits = clampUnits(pb.defenderUnitIds, result?.defenderUnits);
+  const report = result?.report || {};
+  const onlyIds = (list, allowed) => (Array.isArray(list) ? list.filter((id) => allowed.includes(id)) : []);
+  const bonus = {};
+  Object.entries(report.tactical?.xpBonusById || {}).forEach(([id, v]) => {
+    if ([...pb.attackerUnitIds, ...pb.defenderUnitIds].includes(id) && Number.isFinite(v)) bonus[id] = Math.max(0, Math.min(20, Math.round(v)));
+  });
+  return {
+    outcome: OUTCOMES.includes(result?.outcome) ? result.outcome : 'defender',
+    attackerUnits,
+    defenderUnits,
+    report: {
+      ...report,
+      log: Array.isArray(report.log) ? report.log.slice(0, 60) : [],
+      deployedAttackerIds: onlyIds(report.deployedAttackerIds, pb.attackerUnitIds),
+      deployedDefenderIds: onlyIds(report.deployedDefenderIds, pb.defenderUnitIds),
+      tactical: { ...(report.tactical || {}), decisive: !!report.tactical?.decisive, xpBonusById: bonus }
+    }
+  };
+};
+
 export const gameReducer = (state, action) => {
+  const blocked = guardPendingBattle(state, action);
+  if (blocked) return blocked;
   switch (action.type) {
     case ActionTypes.ADVANCE_TURN:
       return resolveTurn(state);
@@ -1260,6 +1322,82 @@ export const gameReducer = (state, action) => {
       const battle = resolveBattle({ ...getResolveBattleArgs(v, ctx), rng });
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
       return applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed() });
+    }
+
+    // ---- Tactical Battles (design/rts-battles-implementation-plan.md §10.1) ----
+
+    case ActionTypes.BEGIN_TACTICAL_BATTLE: {
+      if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
+      const { fromRegionId, targetRegionId } = action.payload;
+      const v = validateInvasion(state, fromRegionId, targetRegionId);
+      if (!v.ok) return state;
+      // Nothing to fight: an undefended region is simply taken, exactly as auto-resolve does.
+      if (v.defenderUnits.length === 0) return gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
+      const rng = createRng(state.rngSeed);
+      const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
+      const counter = (state.battleCounter || 0) + 1;
+      return {
+        ...state,
+        resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion), // paid once, when the battle begins
+        rngSeed: rng.getSeed(),
+        battleCounter: counter,
+        pendingBattle: {
+          id: `b_${state.turnNumber}_${counter}`,
+          kind: 'invasion',
+          fromRegionId,
+          targetRegionId,
+          warId: v.war.id,
+          attackerNationId: state.playerNationId,
+          defenderNationId: v.targetRegion.owner,
+          seed,
+          startedTurn: state.turnNumber,
+          playerSide: 'attacker',
+          attackerUnitIds: v.attackerUnits.map((u) => u.id),
+          defenderUnitIds: v.defenderUnits.map((u) => u.id)
+        },
+        logs: [...state.logs, { year: state.year, message: `Your army marches on ${REGIONS_DATA[targetRegionId]?.name} — you take command of the battle.`, type: LogTypes.COMBAT }]
+      };
+    }
+
+    case ActionTypes.RESOLVE_TACTICAL_BATTLE: {
+      const pb = state.pendingBattle;
+      const { battleId, result } = action.payload || {};
+      if (!pb || pb.id !== battleId) return state;
+      const targetRegion = state.regions[pb.targetRegionId];
+      // If peace was signed while the battle was being fought, the battle has no consequences.
+      const war = state.wars.find((w) => w.id === pb.warId && w.active);
+      const cleared = { ...state, pendingBattle: null };
+      if (!war || !targetRegion) return cleared;
+      const safe = sanitizeTacticalResult(state, pb, result);
+      return applyInvasionResult(
+        cleared,
+        { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion, isDefended: pb.defenderUnitIds.length > 0 },
+        safe,
+        { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
+      );
+    }
+
+    case ActionTypes.ABANDON_TACTICAL_BATTLE: {
+      // "Auto-resolve instead": the same battle through resolveBattle, with the original units and
+      // the battle's own seed — the cost was already paid when it began, so it isn't charged again.
+      const pb = state.pendingBattle;
+      if (!pb) return state;
+      const cleared = { ...state, pendingBattle: null };
+      const v = validateInvasion(cleared, pb.fromRegionId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
+      if (!v.ok) return cleared;
+      const attackers = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
+      const defenders = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
+      if (!attackers.length) return cleared;
+      const vv = { ...v, attackerUnits: attackers, defenderUnits: defenders };
+      const ctx = getInvasionBattleContext(cleared, { targetRegionId: pb.targetRegionId, targetRegion: v.targetRegion, defenderUnits: defenders });
+      const battle = resolveBattle({ ...getResolveBattleArgs(vv, ctx), rng: createRng(pb.seed) });
+      return applyInvasionResult(cleared, { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: state.rngSeed });
+    }
+
+    case ActionTypes.SET_BATTLE_SETTINGS: {
+      const next = { ...(state.battleSettings || {}), ...(action.payload || {}) };
+      if (!['ask', 'auto', 'command'].includes(next.defaultMode)) next.defaultMode = 'ask';
+      return { ...state, battleSettings: next };
     }
 
     case ActionTypes.AMPHIBIOUS_ASSAULT: {

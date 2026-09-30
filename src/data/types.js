@@ -49,6 +49,12 @@ export const ActionTypes = {
   DISBAND_UNIT: 'DISBAND_UNIT',
   MOVE_ARMY: 'MOVE_ARMY',
   LAUNCH_INVASION: 'LAUNCH_INVASION',
+  // Tactical Battles (design/rts-battles-implementation-plan.md §10): a commanded, real-time
+  // alternative to LAUNCH_INVASION's auto-resolve, sharing its gate and consequences.
+  BEGIN_TACTICAL_BATTLE: 'BEGIN_TACTICAL_BATTLE',
+  RESOLVE_TACTICAL_BATTLE: 'RESOLVE_TACTICAL_BATTLE',
+  ABANDON_TACTICAL_BATTLE: 'ABANDON_TACTICAL_BATTLE',
+  SET_BATTLE_SETTINGS: 'SET_BATTLE_SETTINGS',
   PROMOTE_UNIT: 'PROMOTE_UNIT',
   HIRE_GENERAL: 'HIRE_GENERAL',
   APPOINT_GENERAL: 'APPOINT_GENERAL',
