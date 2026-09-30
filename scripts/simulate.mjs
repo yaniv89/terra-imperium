@@ -72,7 +72,9 @@ const runGame = (engine, playerNationId, seed, turns) => {
   let state = {
     ...engine.createInitialState({ playerNationId, rngSeed: seed }),
     firedEvents,
-    proceduralEventCooldown: 999999
+    proceduralEventCooldown: 999999,
+    // Nobody is at the controls: defense battles auto-resolve instead of waiting for the player.
+    battleSettings: { defaultMode: 'auto' }
   };
 
   const seenWarIds = new Set();

@@ -224,6 +224,9 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
           {/* Always labeled — this is the single most-repeated action in the game and must never
               degrade to an unlabeled color block on a narrow screen. */}
           <span className="whitespace-nowrap">End Turn</span>
+          {state.pendingDefenses?.length > 0 && (
+            <span className="ml-0.5 px-1.5 rounded-full bg-red-500 text-[10px] leading-4" title="Your regions are under attack — fight the assaults first">{state.pendingDefenses.length}</span>
+          )}
         </button>
 
         {/* Fast Forward — resolves turns until an event, a war starting/ending, or the game

@@ -24,6 +24,7 @@ import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSo
 import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
 import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress } from './diplomacy';
+import { resolveAllDefensesAuto } from './defense';
 import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
@@ -77,6 +78,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent || state.pendingPeaceOffer) {
     return state;
   }
+  // Tactical Battles plan §16: assaults on the player's garrisons are fought before the turn ends.
+  if (state.pendingDefenses?.length) return state;
 
   let phaseStart = onPhase ? performance.now() : 0;
   const mark = (name) => {
@@ -886,6 +889,9 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     units,
     wars,
     pendingPeaceOffer,
+    // Assaults on the player's garrisons (src/engine/defense.js), fought before the next turn —
+    // dropped if their war ended this same turn.
+    pendingDefenses: (warProgress.pendingDefenses || []).filter((d) => wars.some((w) => w.id === d.warId && w.active)),
     regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,
@@ -900,6 +906,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
+  // Players who chose auto-resolve are never interrupted: their defenses are fought right away.
+  if (next.pendingDefenses.length && state.battleSettings?.defaultMode === 'auto') next = resolveAllDefensesAuto(next);
   mark('assembleNextState');
 
   // --- defeat (plan §M15, checked against THIS turn's resolved state) --- "GameStatus.DEFEAT is set

@@ -1372,6 +1372,25 @@ if (isPlayerTarget && isDefended) {
   **expected** territory loss under auto-resolve stays where it is today.
 - END_TURN is blocked while `pendingDefenses.length > 0` (a banner offers "Auto-resolve all").
 
+**As built (T8), where it differs from the sketch above:**
+- Code lives in `src/engine/defense.js`. The assault force is the aggressor's real land units in
+  adjacent provinces, **topped up** with synthetic troops to `round(2 × garrison × aggressorShare)`
+  units (capped at 12). Synthetic troops stay on the defense record, never in `state.units`, and
+  their losses come out of `militaryStrength`.
+- Auto-resolve is one exchange per turn, and a single exchange almost never breaks a garrison
+  (0 of 2,880 sampled fresh assaults did, even at 4:1). So a binary win/loss can't be calibrated.
+  An auto-resolved defense instead does siege damage scaled by **pressure**:
+  - 1 when the garrison breaks;
+  - 0 when the assaulting line breaks;
+  - otherwise the defender's share of casualties (the same exchange-rate metric as the parity harness).
+  A commanded defense is fought to the finish, so its outcome decides the siege directly.
+- `PLAYER_DEFENDED_CAPTURE_MULT = 1.85`, calibrated by the harness in `defense.test.js`: expected
+  control damage, weighted by roll frequency, stays within ±10% of the old roll.
+- A region that falls sends the garrison's survivors back to a neighbouring province the player
+  still holds; they are only lost if none exists. Defending is free: no action cost.
+- `battleSettings.defaultMode === 'auto'` resolves defenses inside `resolveTurn`. The headless
+  harnesses (`scripts/simulate.mjs`, the long-run tests) set it so they never stall.
+
 ---
 
 ## 17. Milestones: build order, exit gates, sizes

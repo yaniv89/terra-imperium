@@ -23,6 +23,8 @@ import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolve
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
 export const isUnitInBattle = (state, unitId) => {
+  // A garrison with an assault queued against it (src/engine/defense.js) is committed too.
+  if ((state.pendingDefenses || []).some((d) => d.defenderUnitIds.includes(unitId))) return true;
   const pb = state.pendingBattle;
   if (!pb) return false;
   if ((pb.attackerUnitIds || []).includes(unitId) || (pb.defenderUnitIds || []).includes(unitId)) return true;
@@ -117,8 +119,8 @@ export const getResolveBattleArgs = (v, ctx) => ({
   defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier
 });
 
-const XP_WIN = 30;
-const XP_LOSE = 15;
+export const XP_WIN = 30;
+export const XP_LOSE = 15;
 
 // Everything that follows the battle. `battle` is resolveBattle's own shape ({ outcome,
 // attackerUnits, defenderUnits, report }). `decisive` (commanded battles only: the keep was taken

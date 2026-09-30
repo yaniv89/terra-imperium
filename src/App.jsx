@@ -18,6 +18,7 @@ import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 import { AGES } from './data/ages';
 import { getNationCapital } from './data/regions';
+import DefenseSheet from './components/battle/DefenseSheet';
 import { useCloudSync } from './hooks/useCloudSync';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
@@ -237,6 +238,8 @@ const GameLayout = () => {
 
       {/* Cross-device save conflict (plan §M0.5) - blocks play until resolved, since there is no
           silent merge between two diverged games. */}
+      {/* Under attack (Tactical Battles plan §16) - assaults on your garrisons to fight before the turn ends */}
+      <DefenseSheet />
       {state.pendingBattle && <Suspense fallback={<div className="fixed inset-0 z-[80] bg-slate-950 flex items-center justify-center text-slate-300 text-sm">Preparing the battlefield…</div>}><TacticalBattleHost /></Suspense>}
       <ConflictChooserModal conflict={cloudSync.conflict} onChoose={cloudSync.resolveConflict} />
 
