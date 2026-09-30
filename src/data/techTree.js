@@ -79,8 +79,10 @@ const TECH_EFFECTS = {
   'Minted Coinage': { goldMult: 0.05 },
   'Guild Charters': { goldMult: 0.10 },
   'Joint-Stock Companies': { goldMult: 0.10 },
-  'Industrial Capital': { goldMult: 0.15 },
-  'Global Markets': { goldMult: 0.15 },
+  // Disruptive breakthroughs pay, but shake society: factory towns and labour unrest,
+  // globalisation's winners and losers (negative stabilityBonus = more unrest everywhere).
+  'Industrial Capital': { goldMult: 0.15, stabilityBonus: -0.5 },
+  'Global Markets': { goldMult: 0.15, stabilityBonus: -0.5 },
   // Infrastructure
   'Mudbrick Roads': { supplyRange: 1 },
   'Paved Roads': { supplyRange: 1, attrition: -0.10 },

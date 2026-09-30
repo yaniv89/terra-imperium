@@ -77,4 +77,16 @@ describe('home-front unrest', () => {
     const sum = (st) => own.reduce((a, id) => a + (st.regions[id].unrest || 0), 0);
     expect(sum(weary)).toBeGreaterThan(sum(calm));
   });
+  it('national stability, legitimacy and techs now reach province unrest', () => {
+    const s = fresh();
+    const own = Object.keys(s.regions).filter((id) => s.regions[id].owner === 'fr');
+    const sum = (st) => own.reduce((a, id) => a + (st.regions[id].unrest || 0), 0);
+    const seeded = { ...s, regions: { ...s.regions } };
+    own.forEach((id) => { seeded.regions[id] = { ...seeded.regions[id], unrest: 30, control: 100 }; });
+    const stable = resolveTurn({ ...seeded, nations: { ...s.nations, fr: { ...s.nations.fr, stability: 2 } } });
+    const shaky = resolveTurn({ ...seeded, nations: { ...s.nations, fr: { ...s.nations.fr, stability: -2 } } });
+    expect(sum(shaky)).toBeGreaterThan(sum(stable));
+    const industrial = resolveTurn({ ...seeded, techTree: { ...s.techTree, economy_industrial_capital: { researched: true } } });
+    expect(sum(industrial)).toBeGreaterThan(sum(resolveTurn(seeded)));
+  });
 });
