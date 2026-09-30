@@ -15,7 +15,7 @@
 //   5. tag team-colour, skin and emblem surfaces by material/node name
 //   6. normalise: feet on y = 0, centred, facing +Z, scaled to a target height
 // The result carries exactly soldierFactory's attributes (position, normal, color, aLimb, aPivot,
-// aTeam, aPart, aUv) and is registered with registerSoldierGeometry().
+// aTeam, aPart, aUv, aSurface) and is registered with registerSoldierGeometry().
 import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
 
@@ -148,7 +148,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
   const limbOpts = { quadruped };
   applyPose(root, animations, restClip);
 
-  const pos = []; const col = []; const limb = []; const team = []; const partId = []; const uvs = [];
+  const pos = []; const col = []; const limb = []; const team = []; const partId = []; const uvs = []; const surf = [];
   const hinge = []; // per vertex: the Object3D (a limb chain's top joint) it pivots about, or null
   const stats = { meshes: 0, skinned: 0, triangles: 0, limbs: {}, namedLimbs: false, warnings: [] };
   const v = new Vector3(); const skinIdx = new Vector4(); const skinW = new Vector4();
@@ -178,6 +178,8 @@ export const extractUnitGeometry = (root, opts = {}) => {
       const isTeam = isEmblem || tags.team.test(label);
       const isSkin = !isTeam && tags.skin.test(label);
       const base = mat?.color ? mat.color : new Color(1, 1, 1);
+      // PBR surface straight from the artist's material (glTF metallic-roughness).
+      const metal = Math.max(0, Math.min(1, mat?.metalness ?? 0)); const rough = Math.max(0.05, Math.min(1, mat?.roughness ?? 0.85));
       const reader = uvAttr && mat?.map ? readerFor(mat.map) : null;
       const end = Math.min(count, grp.start + grp.count);
       for (let k = grp.start; k + 2 < end; k += 3) {
@@ -210,6 +212,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
           team.push(isTeam ? 1 : 0);
           partId.push(isEmblem ? PART.EMBLEM : isSkin ? PART.SKIN : PART.PLAIN);
           uvs.push(isEmblem ? cornerUv[j][0] : 0, isEmblem ? cornerUv[j][1] : 0);
+          surf.push(metal, rough);
         }
       }
     });
@@ -268,6 +271,7 @@ export const extractUnitGeometry = (root, opts = {}) => {
   geometry.setAttribute('aTeam', new Float32BufferAttribute(team, 1));
   geometry.setAttribute('aPart', new Float32BufferAttribute(partId, 1));
   geometry.setAttribute('aUv', new Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute('aSurface', new Float32BufferAttribute(surf, 2));
   geometry.computeVertexNormals(); // non-indexed → one flat normal per face
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
   stats.triangles = n / 3;

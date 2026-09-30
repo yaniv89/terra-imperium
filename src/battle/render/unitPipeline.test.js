@@ -114,3 +114,16 @@ describe('unit model registry', () => {
     expect(await preloadUnitModels(setup)).toEqual({ loaded: [], failed: [] });
   });
 });
+
+describe('GPU attribute budget', () => {
+  it('a soldier layer stays within WebGL\'s 16 vertex attributes (instanceMatrix counts 4)', async () => {
+    const { packForGPU } = await import('./soldierFactory');
+    ['infantry', 'cavalry', 'siege'].forEach((c) => {
+      const gpu = packForGPU(getSoldierGeometry('kingdoms', c).clone());
+      const perVertex = Object.keys(gpu.attributes).length + 2; // + aAnim, aVariant added per layer
+      expect(perVertex + 4 + 1).toBeLessThanOrEqual(16); // + instanceMatrix (4) + instanceColor
+      expect(gpu.attributes.aLook.itemSize).toBe(4);
+      expect(gpu.attributes.aTeam).toBeUndefined();
+    });
+  });
+});

@@ -25,7 +25,11 @@ import { SKIN_UNIFORM, SKIN_TONES, EMBLEM_GRID, EMBLEM_INSET, getEmblemAtlas } f
 export const LIMB = { BODY: 0, LEG_L: 1, LEG_R: 2, ARM_L: 3, ARM_R: 4, HORSE_FRONT: 5, HORSE_BACK: 6, TURRET: 7 };
 export const PART = { PLAIN: 0, SKIN: 1, EMBLEM: 2 };
 // Every soldier geometry carries exactly these attributes (merging needs them to match).
-export const RIG_ATTRIBUTES = { color: 3, aLimb: 1, aPivot: 2, aTeam: 1, aPart: 1, aUv: 2 };
+export const RIG_ATTRIBUTES = { color: 3, aLimb: 1, aPivot: 2, aTeam: 1, aPart: 1, aUv: 2, aSurface: 2 };
+// aSurface = (metalness, roughness) per vertex, for the PBR soldier material: armour, blades and
+// helmets catch the light, cloth, leather, skin and wood stay matte.
+export const MATTE = [0, 0.85];
+const METAL = [0.75, 0.32];
 
 const C = {
   skin: ['#e0ac82', '#c68b5f', '#8d5a3b', '#f0c9a4'],
@@ -39,7 +43,8 @@ const tmpM = new Matrix4(); const tmpQ = new Quaternion(); const tmpE = new Eule
 // One solid, transformed and tagged. `at` = [x, y, z], `rot` = [rx, ry, rz], `scale` = [sx, sy, sz].
 // `skin` parts take the soldier's skin tone; `emblem` parts (always team-coloured) print the
 // squad's device, mapped by the solid's own UVs.
-const part = (geo, color, { at = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1], limb = LIMB.BODY, pivot = [0, 0], team = 0, skin = false, emblem = false } = {}) => {
+const METAL_COLORS = new Set([C.steel, C.darkSteel, C.bronze, C.gold]);
+const part = (geo, color, { at = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1], limb = LIMB.BODY, pivot = [0, 0], team = 0, skin = false, emblem = false, surface = METAL_COLORS.has(color) ? METAL : MATTE } = {}) => {
   let g = geo.index ? geo.toNonIndexed() : geo;
   if (g !== geo) geo.dispose();
   tmpE.set(rot[0], rot[1], rot[2]);
@@ -50,11 +55,12 @@ const part = (geo, color, { at = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1], 
   if (emblem && g.attributes.uv) uv.set(g.attributes.uv.array.subarray(0, n * 2));
   g.deleteAttribute('uv');
   const c = new Color(color);
-  const col = new Float32Array(n * 3); const lim = new Float32Array(n); const piv = new Float32Array(n * 2); const tm = new Float32Array(n); const pt = new Float32Array(n);
+  const col = new Float32Array(n * 3); const lim = new Float32Array(n); const piv = new Float32Array(n * 2); const tm = new Float32Array(n); const pt = new Float32Array(n); const sf = new Float32Array(n * 2);
   const partId = emblem ? PART.EMBLEM : skin ? PART.SKIN : PART.PLAIN;
   for (let i = 0; i < n; i++) {
     col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     lim[i] = limb; piv[i * 2] = pivot[0]; piv[i * 2 + 1] = pivot[1]; tm[i] = emblem ? 1 : team; pt[i] = partId;
+    sf[i * 2] = surface[0]; sf[i * 2 + 1] = surface[1];
   }
   g.setAttribute('color', new Float32BufferAttribute(col, 3));
   g.setAttribute('aLimb', new Float32BufferAttribute(lim, 1));
@@ -62,6 +68,7 @@ const part = (geo, color, { at = [0, 0, 0], rot = [0, 0, 0], scale = [1, 1, 1], 
   g.setAttribute('aTeam', new Float32BufferAttribute(tm, 1));
   g.setAttribute('aPart', new Float32BufferAttribute(pt, 1));
   g.setAttribute('aUv', new Float32BufferAttribute(uv, 2));
+  g.setAttribute('aSurface', new Float32BufferAttribute(sf, 2));
   return g;
 };
 // Moves already-built parts (and their bones' hinges) — e.g. horses harnessed ahead of a chariot.
@@ -296,6 +303,7 @@ export const ensureRigAttributes = (geo) => {
     if (geo.attributes[name]) return;
     const arr = new Float32Array(n * size);
     if (name === 'color') arr.fill(1);
+    if (name === 'aSurface') for (let i = 0; i < n; i++) { arr[i * 2] = MATTE[0]; arr[i * 2 + 1] = MATTE[1]; }
     geo.setAttribute(name, new Float32BufferAttribute(arr, size));
   });
   if (!geo.attributes.normal) geo.computeVertexNormals();
@@ -387,7 +395,6 @@ export const MODEL_SCALE = { infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege:
 const RIG_GLSL = /* glsl */`
 attribute float aLimb;
 attribute vec2 aPivot;
-attribute float aTeam;
 attribute vec3 aAnim;   // x: phase, y: moving 0..1, z: attacking 0..1
 uniform float uTime;
 float rigAngle() {
@@ -422,8 +429,13 @@ vec3 turret(vec3 p) {
 const SKIN_N = SKIN_TONES.length;
 const f = (x) => x.toFixed(4);
 const VARIANT_VERT = /* glsl */`
-attribute float aPart;
+// Packed per-vertex look (see packForGPU): x team, y part, z metalness, w roughness.
+attribute vec4 aLook;
+#define aTeam aLook.x
+#define aPart aLook.y
+#define aSurface aLook.zw
 attribute vec2 aUv;
+varying vec2 vSurface;
 attribute vec4 aVariant; // x: skin tone, y: emblem cell, z: cloth jitter
 uniform vec3 uSkin[${SKIN_N}];
 varying vec3 vEmblem;    // xy: atlas uv, z: 1 on emblem parts
@@ -431,6 +443,7 @@ varying vec3 vEmblem;    // xy: atlas uv, z: 1 on emblem parts
 const VARIANT_FRAG = /* glsl */`
 uniform sampler2D uEmblems;
 varying vec3 vEmblem;
+varying vec2 vSurface;
 `;
 
 const patchRig = (shader, withColor) => {
@@ -460,12 +473,42 @@ const patchRig = (shader, withColor) => {
       #endif
       float cell = clamp(floor(aVariant.y + 0.5), 0.0, ${f(EMBLEM_GRID * EMBLEM_GRID - 1)});
       vec2 cellXY = vec2(mod(cell, ${f(EMBLEM_GRID)}), floor(cell / ${f(EMBLEM_GRID)}));
+      vSurface = aSurface;
       vEmblem = vec3((clamp(aUv, 0.0, 1.0) * ${f(1 - 2 * EMBLEM_INSET)} + ${f(EMBLEM_INSET)} + cellXY) / ${f(EMBLEM_GRID)}, step(1.5, aPart));`);
   shader.fragmentShader = VARIANT_FRAG + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
       if (vEmblem.z > 0.5) {
         vec4 device = texture2D(uEmblems, vEmblem.xy);
         diffuseColor.rgb = mix(diffuseColor.rgb, device.rgb, device.a);
       }`);
+  // PBR: every vertex carries its own metalness and roughness (armour shines, cloth stays matte).
+  // The rig already rotates objectNormal in beginnormal_vertex, so the lit normal (vNormal) follows
+  // every swinging arm and leg; there are no normal maps, so no tangents are needed.
+  if (withColor.standard) {
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+      roughnessFactor = vSurface.y;`)
+      .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>
+      metalnessFactor = vSurface.x;`);
+  }
+};
+
+// WebGL guarantees only 16 vertex attributes (and many phones stop there). A soldier layer uses
+// position, normal, color, aLimb, aPivot, aUv, aLook, aAnim, aVariant + instanceMatrix (4 slots)
+// + instanceColor = 14. Unpacked, team/part/surface would take 17, which fails to link. So the GPU
+// copy of a soldier geometry carries them as one vec4; the cached CPU geometry keeps them readable.
+export const packForGPU = (geo) => {
+  const n = geo.attributes.position.count;
+  const team = geo.attributes.aTeam; const pt = geo.attributes.aPart; const sf = geo.attributes.aSurface;
+  const look = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    look[i * 4] = team ? team.getX(i) : 0;
+    look[i * 4 + 1] = pt ? pt.getX(i) : 0;
+    look[i * 4 + 2] = sf ? sf.getX(i) : MATTE[0];
+    look[i * 4 + 3] = sf ? sf.getY(i) : MATTE[1];
+  }
+  geo.setAttribute('aLook', new Float32BufferAttribute(look, 4));
+  ['aTeam', 'aPart', 'aSurface'].forEach((a) => geo.deleteAttribute(a));
+  return geo;
 };
 
 // One clock shared by every soldier material.
@@ -479,7 +522,7 @@ export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtl
   const mat = standard
     ? new MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.05 })
     : new MeshLambertMaterial({ vertexColors: true });
-  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems });
+  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard });
   mat.customProgramCacheKey = () => (standard ? 'soldier-rig-std' : 'soldier-rig');
   return mat;
 };
