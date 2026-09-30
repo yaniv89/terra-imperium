@@ -92,6 +92,21 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     truth.result.defenderUnits.forEach((u) => { if (u.strength > 0 && !next.lastBattleReport.captured) expect(next.units[u.id].strength).toBe(u.strength); });
   });
 
+  it('the target province\'s buildings stand on the battlefield, and the ones razed lose a tier', () => {
+    const s0 = withArmies();
+    const r = s0.regions[BE_REGION];
+    const s = { ...s0, regions: { ...s0.regions, [BE_REGION]: { ...r, buildings: { ...r.buildings, categories: { ...r.buildings.categories, military: 1, economy: 0 } } } } };
+    const started = begin(s);
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    expect(setup.structures.filter((st) => st.kind === 'building').map((st) => st.category).sort()).toEqual(['economy', 'military']);
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, razed: ['military', 'defense', 'bogus'] } } };
+    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: forged } });
+    expect(next.regions[BE_REGION].buildings.categories.military).toBe(0);
+    expect(next.regions[BE_REGION].buildings.categories.economy).toBe(0);
+    expect(next.regions[BE_REGION].buildings.categories.defense).toBe(s.regions[BE_REGION].buildings.categories.defense);
+  });
+
   it('a decisive (keep taken) win captures the region outright', () => {
     const started = begin(withArmies());
     const pb = started.pendingBattle;

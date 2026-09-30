@@ -12,6 +12,7 @@ import { angleBetween, angleDiff, distSq, isqrt, turnToward } from './fixed';
 import { queryRadius } from './pathing';
 import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './constants';
 import { canSeeSquad } from './fog';
+import { razeBuilding } from './buildings';
 import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
 
 const REVEAL_ON_ATTACK_TICKS = secondsToTicks(3);
@@ -141,7 +142,8 @@ export const attackStructure = (w, a, s) => {
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, structure: s.id, damage });
   if (s.hp === 0) {
     s.alive = false;
-    w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id });
+    if (s.kind === 'building') razeBuilding(w, s, a.side);
+    else w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id });
   }
 };
 

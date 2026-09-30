@@ -29,7 +29,7 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     visible: canSeeSquad(w, playerSide, q),
     hidden: (q.hiddenUntil || -1) > w.tick,
     reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
-    callCost: callCost(q),
+    callCost: callCost(q, w),
     order: q.order.type, orderX: q.order.x ?? null, orderY: q.order.y ?? null,
     target: q.target, targetKind: q.targetKind,
     xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,

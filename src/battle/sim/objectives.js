@@ -10,6 +10,7 @@ import { nextRandom } from './rng';
 import { distSq, polarX, polarY } from './fixed';
 import { queryRadius } from './pathing';
 import { isFighting, perHitFraction } from './combat';
+import { buildingSupplyPerSec } from './buildings';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
 
 export const ASSIMILATION_TICKS = secondsToTicks(30);
@@ -128,7 +129,7 @@ export const updateSupply = (w) => {
   const cap = w.setup.supplyCap;
   [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
     const held = w.points.filter((p) => p.owner === side).length;
-    w.supply[side] = Math.min(cap, w.supply[side] + SUPPLY_BASE_PER_SEC + SUPPLY_PER_POINT_PER_SEC * held);
+    w.supply[side] = Math.min(cap, w.supply[side] + SUPPLY_BASE_PER_SEC + SUPPLY_PER_POINT_PER_SEC * held + buildingSupplyPerSec(w, side));
   });
 };
 

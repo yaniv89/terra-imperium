@@ -55,7 +55,9 @@ export const toStrategicResult = (w) => {
         reservesCalled: [...w.stats.reservesCalled],
         joinedReinforcements: w.squads.filter((q) => q.reinforcement && q.joined).map((q) => q.unitId),
         powersUsed: [{ ...w.powersUsed[0] }, { ...w.powersUsed[1] }],
-        xpBonusById
+        xpBonusById,
+        // The region's buildings the attacker burned (each loses a tier in the campaign).
+        razed: [...(w.razed || [])]
       }
     }
   };

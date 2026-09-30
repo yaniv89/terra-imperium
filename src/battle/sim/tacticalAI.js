@@ -40,7 +40,7 @@ const callReinforcementsAndReserves = (w, side, orders) => {
     .filter((q) => q.side === side && q.reserve && q.alive && q.enterTick < 0 && !q.fled)
     .sort((a, b) => (a.reinforcement ? 1 : 0) - (b.reinforcement ? 1 : 0) || b.strength - a.strength)
     .forEach((q) => {
-      const cost = callCost(q);
+      const cost = callCost(q, w);
       if (slots <= 0 || supply < cost) return;
       orders.push({ side, type: 'callReserve', squads: [q.idx] });
       slots -= 1; supply -= cost;
