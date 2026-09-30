@@ -62,6 +62,12 @@ import {
   ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
 } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
+import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
+import { replayBattle } from '../battle/sim/replay';
+
+// Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
+// on its own, too.
+export { replayBattle };
 import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDefensesAuto } from './defense';
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
@@ -1419,8 +1425,19 @@ export const gameReducer = (state, action) => {
 
     case ActionTypes.RESOLVE_TACTICAL_BATTLE: {
       const pb = state.pendingBattle;
-      const { battleId, result } = action.payload || {};
+      const { battleId, log } = action.payload || {};
       if (!pb || pb.id !== battleId) return state;
+      // With the command log, the battle is re-simulated here from the authoritative game state
+      // (src/battle/sim/replay.js), and the client's reported result is ignored. This is what the
+      // edge function runs too. Without a log (older clients) the reported result is sanitized.
+      let result = action.payload.result;
+      if (Array.isArray(log)) {
+        const setup = buildInvasionSetup(state, pb);
+        if (setup) {
+          const replay = replayBattle(setup, log);
+          result = { ...replay.result, report: { ...replay.result.report, tactical: { ...replay.result.report?.tactical, verified: true, hash: replay.hash } } };
+        }
+      }
       const targetRegion = state.regions[pb.targetRegionId];
       // If peace was signed while the battle was being fought, the battle has no consequences.
       const war = state.wars.find((w) => w.id === pb.warId && w.active);
