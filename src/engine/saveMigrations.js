@@ -131,7 +131,11 @@ const migrate4to5 = (state) => {
     if (!war || !nations[taker]) return;
     ({ regions, nations } = conquerRegion({ regions, nations, turnNumber: state.turnNumber }, region.id, taker, war));
   });
-  return { ...state, regions, nations };
+  // Battle settings split in v5: the old single `defaultMode: 'auto'` also silently skipped the
+  // choice for the player's OWN attacks (the "manual battle disappeared" report). Everyone starts
+  // v5 being asked; auto-resolving enemy assaults is now its own explicit `autoDefend` opt-in.
+  const battleSettings = { defaultMode: 'ask', autoDefend: false };
+  return { ...state, regions, nations, battleSettings };
 };
 
 const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5 };

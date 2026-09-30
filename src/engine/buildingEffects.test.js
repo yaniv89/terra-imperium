@@ -21,7 +21,7 @@ const base = () => {
     ...s,
     firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
     proceduralEventCooldown: 999999,
-    battleSettings: { defaultMode: 'auto' }
+    battleSettings: { autoDefend: true }
   };
 };
 // The first tier of a line that has effects (a few lines start one age later).

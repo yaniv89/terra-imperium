@@ -21,7 +21,7 @@ const freshWorld = (playerNationId = 'fr') => ({
   firedEvents,
   proceduralEventCooldown: 999999,
   // A queued defense battle also pauses resolveTurn; a passive player lets them auto-resolve.
-  battleSettings: { defaultMode: 'auto' }
+  battleSettings: { autoDefend: true }
 });
 
 const advance = (state) => {

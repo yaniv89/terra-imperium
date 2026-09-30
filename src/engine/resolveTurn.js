@@ -913,8 +913,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
-  // Players who chose auto-resolve are never interrupted: their defenses are fought right away.
-  if (next.pendingDefenses.length && state.battleSettings?.defaultMode === 'auto') next = resolveAllDefensesAuto(next);
+  // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
+  if (next.pendingDefenses.length && state.battleSettings?.autoDefend === true) next = resolveAllDefensesAuto(next);
   mark('assembleNextState');
 
   // --- defeat (plan §M15, checked against THIS turn's resolved state) --- "GameStatus.DEFEAT is set

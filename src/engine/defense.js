@@ -304,3 +304,53 @@ export const estimateDefenseOdds = (state, def, samples = 40) => {
   }
   return { undefended: false, holdChance: held / samples, avgDamage: Math.round(damage / samples) };
 };
+
+// ---- Withdrawing instead of fighting -----------------------------------------------------------
+
+export const WITHDRAW_MORALE_LOSS = 25;
+export const WITHDRAW_STRENGTH_LOSS = 0.05; // stragglers and abandoned baggage
+
+// Where a garrison can fall back to: a neighbouring province the player owns and holds.
+export const getWithdrawalTarget = (state, regionId) =>
+  getNeighborIds(regionId).find((rid) => state.regions[rid]?.owner === state.playerNationId && !state.regions[rid]?.occupiedBy) || null;
+
+// The garrison gives up the province without a fight: it falls back to a neighbouring province
+// (losing morale and some men on the way) and the enemy takes the province unopposed — a small
+// war-score win for them, but no battle casualties. Refused when there's nowhere to fall back to.
+export const applyDefenseWithdrawal = (state, defId) => {
+  const def = (state.pendingDefenses || []).find((d) => d.id === defId);
+  if (!def) return { ok: false, reason: 'no_defense', state };
+  const war = state.wars.find((w) => w.id === def.warId && w.active);
+  const region = state.regions[def.regionId];
+  const cleared = removeDefense(state, def.id);
+  if (!war || !region || region.owner !== state.playerNationId || region.occupiedBy) return { ok: true, state: cleared };
+  const fallback = getWithdrawalTarget(state, def.regionId);
+  if (!fallback) return { ok: false, reason: 'nowhere', state };
+  const units = { ...state.units };
+  def.defenderUnitIds.forEach((id) => {
+    const u = units[id];
+    if (!u) return;
+    units[id] = {
+      ...u,
+      regionId: fallback,
+      strength: Math.max(1, Math.round(u.strength * (1 - WITHDRAW_STRENGTH_LOSS))),
+      morale: Math.max(0, (u.morale ?? 100) - WITHDRAW_MORALE_LOSS),
+      movesLeft: 0
+    };
+  });
+  const { regions, nations } = conquerRegion({ regions: state.regions, nations: state.nations, turnNumber: state.turnNumber }, def.regionId, def.aggressorId, war);
+  const wars = state.wars.map((w) => (w.id === war.id ? { ...w, battleScore: recordBattle(w, def.aggressorId, 0.1) } : w));
+  const name = REGIONS_DATA[def.regionId]?.name || def.regionId;
+  const enemy = state.nations[def.aggressorId]?.name || def.aggressorId;
+  return {
+    ok: true,
+    state: {
+      ...cleared,
+      units,
+      regions,
+      nations,
+      wars,
+      logs: [...state.logs, { year: state.year, message: `Your garrison abandons ${name} to ${enemy} and falls back to ${REGIONS_DATA[fallback]?.name || fallback}.`, type: LogTypes.COMBAT }]
+    }
+  };
+};

@@ -6,7 +6,7 @@
 // — so the calculation isn't a black box. Pure and fast (~a few ms for 200 samples).
 import { resolveBattle } from './battle';
 import { createRng } from '../utils/rng';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs } from './invasion';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
 import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } from './siege';
 import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
@@ -36,12 +36,9 @@ export const explainInvasion = (v, ctx) => {
   return lines.map((l) => ({ ...l, value: Math.round(l.value * 100) / 100 }));
 };
 
-export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, samples = 200) => {
-  const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true });
-  if (!v.ok) return null;
-  if (v.defenderUnits.length === 0) return { attacker: 1, defender: 0, stalemate: 0, capture: 1, undefended: true, attackerLossShare: 0, defenderLossShare: 0, factors: [] };
-  const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
-  const args = getResolveBattleArgs(v, ctx);
+// Runs the real auto-resolve + siege rule `samples` times for an attack described by `v`
+// ({ attackerUnits, defenderUnits, targetRegion }) with resolveBattle `args` and context `ctx`.
+const simulate = (v, args, ctx, samples) => {
   const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(v.defenderUnits);
   const tally = { attacker: 0, defender: 0, stalemate: 0 };
   let attLoss = 0; let defLoss = 0; let captures = 0; let controlLeft = 0;
@@ -73,4 +70,25 @@ export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, sample
     defenderStrength: defStart,
     factors: explainInvasion(v, ctx)
   };
+};
+
+const UNDEFENDED = { attacker: 1, defender: 0, stalemate: 0, capture: 1, undefended: true, attackerLossShare: 0, defenderLossShare: 0, factors: [] };
+
+export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, samples = 200) => {
+  const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true });
+  if (!v.ok) return null;
+  if (v.defenderUnits.length === 0) return UNDEFENDED;
+  const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
+  return simulate(v, getResolveBattleArgs(v, ctx), ctx, samples);
+};
+
+// The land battle of an amphibious landing (the naval interception, if any, is fought first and
+// isn't part of these odds).
+export const estimateLandingOdds = (state, navalUnitId, targetRegionId, samples = 200) => {
+  const v = validateAmphibious(state, navalUnitId, targetRegionId, { ignoreCost: true });
+  if (!v.ok) return null;
+  if (v.defenderLandUnits.length === 0) return UNDEFENDED;
+  const ctx = getAmphibiousBattleContext(state, v, v.defenderLandUnits);
+  const battle = { attackerUnits: v.embarkedLandUnits, defenderUnits: v.defenderLandUnits, targetRegion: v.targetRegion };
+  return simulate(battle, { ...ctx, attackerUnits: battle.attackerUnits, defenderUnits: battle.defenderUnits }, ctx, samples);
 };

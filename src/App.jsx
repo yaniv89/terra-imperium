@@ -162,6 +162,12 @@ const GameLayout = () => {
   const handleSelectRegion = useCallback((regionId) => {
     setSelectedRegion(regionId);
   }, []);
+  // Dev builds only: open a province from the console / browser tests (the globe is hard to click).
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    window.__selectRegion = handleSelectRegion;
+    return () => { delete window.__selectRegion; };
+  }, [handleSelectRegion]);
 
   if (showStartScreen) {
     return <StartScreen onStart={handleStart} />;
