@@ -75,6 +75,12 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
         if (m.type === 'frame') {
           const f = frames.current;
           if (!f.cur || m.view.tick !== f.cur.tick) { f.prev = f.cur; f.cur = m.view; f.arrival = performance.now(); } else f.cur = m.view;
+          // First frame: look straight at your own army.
+          if (!f.centered) {
+            const own = m.view.squads.filter((q) => q.side === playerSide && q.alive && q.onField);
+            if (own.length) renderer.centerOn(own.reduce((a, q) => a + q.x, 0) / own.length / Q, own.reduce((a, q) => a + q.y, 0) / own.length / Q);
+            f.centered = true;
+          }
           if (m.events?.length) {
             renderer.pushEvents(m.events, m.view);
             audio.events(m.events, m.view, (x, y) => renderer.screenPan(x, y));
