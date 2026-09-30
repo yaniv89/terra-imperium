@@ -70,9 +70,25 @@ const sideCtx = (w, attacker, target) => {
   return { sourceIsInvadingFortification: false, targetIsDefendingSide: false, baseMultiplier: m.defenderBase, generals: w.setup.generals };
 };
 
-const applyDamage = (w, attacker, target, damage) => {
+// Blows from the flank or behind do more than kill: they panic (a decisive flank charge breaks a
+// line that could have taken the same losses head-on).
+export const ARC_MORALE_MULT = [1, 1.15, 1.3];
+
+// Higher ground: striking down on an enemy adds up to +10% damage, striking up at one costs up to
+// 10% (map.height is a signed per-tile elevation from setup/mapgen.js).
+export const ELEVATION_MAX_BONUS = 0.1;
+const ELEVATION_SCALE = 0.3; // per 256 height units (plains vary about ±64, hills ±256, mountains ±384)
+export const elevationMult = (w, a, t) => {
+  const h = w.map.height;
+  if (!h) return 1;
+  const at = (q) => h[Math.max(0, Math.min(w.map.h - 1, Math.floor(q.y / Q))) * w.map.w + Math.max(0, Math.min(w.map.w - 1, Math.floor(q.x / Q)))] || 0;
+  const diff = ((at(a) - at(t)) / 256) * ELEVATION_SCALE;
+  return 1 + Math.max(-ELEVATION_MAX_BONUS, Math.min(ELEVATION_MAX_BONUS, diff));
+};
+
+const applyDamage = (w, attacker, target, damage, arc = 0) => {
   target.strength = Math.max(0, target.strength - damage);
-  const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target));
+  const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target) * ARC_MORALE_MULT[arc]);
   target.morale = Math.max(0, target.morale - moraleLoss);
   target.lastHitTick = w.tick;
   target.engaged = true;
@@ -112,6 +128,7 @@ export const attackSquad = (w, a, t) => {
   if (a.stats.charge && a.movedSinceAttack >= CHARGE_DISTANCE) mult *= CHARGE_BONUS_MULT;
   if (t.routed) mult *= 1 + PURSUIT_EXTRA_LOSS_MULT;
   mult *= damageDealtMult(w, a) * damageTakenMult(w, t, arc);
+  if (!a.stats.flying && !t.stats.flying) mult *= elevationMult(w, a, t);
   // Shooting gives your position away (and breaks an ambush).
   a.hiddenUntil = 0;
   a.revealedUntil = w.tick + REVEAL_ON_ATTACK_TICKS;
@@ -121,7 +138,7 @@ export const attackSquad = (w, a, t) => {
   a.movedSinceAttack = 0;
   a.lastStrikeTick = w.tick;
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, to: t.idx, damage, arc });
-  if (damage > 0) { applyDamage(w, a, t, damage); tally(w, phase, a, t, damage); }
+  if (damage > 0) { applyDamage(w, a, t, damage, arc); tally(w, phase, a, t, damage); }
   // Siege splash: half damage to every other enemy squad around the impact.
   if (a.stats.splash) {
     queryRadius(w, t.x, t.y, a.stats.splash).forEach((j) => {

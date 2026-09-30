@@ -77,3 +77,32 @@ describe('player orders', () => {
     expect(seen).toBe(true);
   });
 });
+
+describe('ground and nerve', () => {
+  it('striking down from higher ground hits harder, striking uphill softer, capped at 10%', async () => {
+    const { elevationMult, ELEVATION_MAX_BONUS } = await import('./combat');
+    const w = world();
+    const a = w.squads.find((q) => q.side === 0 && q.onField);
+    const t = w.squads.find((q) => q.side === 1 && q.onField);
+    const h = new Int16Array(w.map.w * w.map.h);
+    const idx = (q) => Math.floor(q.y / Q) * w.map.w + Math.floor(q.x / Q);
+    w.map = { ...w.map, height: h };
+    expect(elevationMult(w, a, t)).toBe(1);
+    h[idx(a)] = 200;
+    expect(elevationMult(w, a, t)).toBeGreaterThan(1);
+    expect(elevationMult(w, t, a)).toBeLessThan(1);
+    h[idx(a)] = 5000;
+    expect(elevationMult(w, a, t)).toBeCloseTo(1 + ELEVATION_MAX_BONUS);
+  });
+
+  it('a squad takes at most the capped shock however many neighbours break at once', async () => {
+    const { updateMorale, SHOCK_CAP_PER_TICK } = await import('./morale');
+    const w = world();
+    const mine = w.squads.filter((q) => q.side === 0 && q.onField);
+    const [victim, ...others] = mine;
+    others.forEach((o) => { o.x = victim.x + Q; o.y = victim.y; w.events.push({ t: w.tick, type: 'destroyed', id: o.idx }); });
+    victim.morale = 100;
+    updateMorale(w);
+    expect(100 - victim.morale).toBeLessThanOrEqual(SHOCK_CAP_PER_TICK);
+  });
+});
