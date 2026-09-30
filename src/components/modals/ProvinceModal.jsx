@@ -43,7 +43,7 @@ import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds, getCapital } from '../../data/regions';
 import { ACTION_COSTS, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
 import {
-  BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, EXTRACTION_BUILDINGS, canBuildExtraction,
+  BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getCategoryTierName, describeTierEffects, EXTRACTION_BUILDINGS, canBuildExtraction,
   getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
 } from '../../data/buildings';
 import { TECH_TREE } from '../../data/techTree';
@@ -422,11 +422,13 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
                     const foodEffect = categoryId === 'food' && nextName
                       ? `, +${((nextTier + 1) * FOOD_TIER_GROWTH_BONUS * 100).toFixed(2)}%/turn population growth`
                       : '';
+                    const nextEffects = nextName ? describeTierEffects(categoryId, nextTier) : '';
+                    const currentEffects = currentTier >= 0 ? describeTierEffects(categoryId, currentTier) : '';
                     const reason = notCoastal ? 'Coastal region only'
                       : techGated ? `Requires ${requiresTechName || 'a tech not yet researched'}`
                       : noFreeSlot ? 'No free building slot'
-                      : nextName ? `Build ${nextName}${foodEffect}`
-                      : 'Fully developed';
+                      : nextName ? `Build ${nextName}: ${nextEffects}${foodEffect}`.replace(': ,', ':').replace(/: $/, '')
+                      : `Fully developed${currentEffects ? ` — ${currentEffects}` : ''}`;
                     return (
                       <ActionButton
                         key={categoryId}

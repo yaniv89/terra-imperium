@@ -228,8 +228,8 @@ export const calcIncome = (state) => {
       const taxIncome = dev.tax * (1 + localTax) * controlMult * infraMult * popFactor;
       const productionIncome = dev.production * (1 + localProduction) * controlMult * infraMult * popFactor;
       const manpowerIncome = dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
-      income.gold += taxIncome + productionIncome;
-      income.hr += manpowerIncome;
+      income.gold += taxIncome + productionIncome + getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
+      income.hr += manpowerIncome + getRegionModifier(state, region.id, 'local.flatManpower').total * controlMult;
       // Naval building line (plan §M6): a flat trade-income trickle per tier, coastal-only by
       // construction (BUILDING_CATEGORIES.naval.coastalOnly gates the building itself).
       income.gold += getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
