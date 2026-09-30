@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress,
-  isInTruce, setTruce, getTradePactCapacity, recordBattle, getOccupationScore, updateTickScore, computeWarScore
+  isInTruce, setTruce, getTradePactCapacity, recordBattle, getOccupationScore, updateTickScore, computeWarScore, refreshWarFlags
 } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
@@ -115,6 +115,23 @@ describe('declareWar', () => {
     const state = usState();
     const atWar = declareWar(state, 'ca', { aggressor: 'us' });
     expect(declareWar(atWar, 'ca', { aggressor: 'us' })).toBe(atWar);
+  });
+
+  it('lets a nation already fighting someone else be attacked — a second front, with its own war record', () => {
+    const state = usState();
+    const busy = declareWar(state, 'ca', { aggressor: 'mx' });
+    expect(busy.nations.ca.isAtWar).toBe(true);
+    const next = declareWar(busy, 'ca', { aggressor: 'us' });
+    expect(next).not.toBe(busy);
+    const live = next.wars.filter((w) => w.active && w.enemy === 'ca');
+    expect(live.map((w) => w.aggressor).sort()).toEqual(['mx', 'us']);
+    expect(new Set(live.map((w) => w.id)).size).toBe(2); // same target, same year — distinct ids
+    expect(isAtWarWithPlayer(next, 'ca')).toBe(true);
+  });
+
+  it('refuses a nation declaring war on itself', () => {
+    const state = usState();
+    expect(declareWar(state, 'us', { aggressor: 'us' })).toBe(state);
   });
 
   it('consumes a fabricated claim the aggressor holds against the target', () => {
@@ -565,5 +582,24 @@ describe('nation ids survive turn resolution (regression)', () => {
     const rich = { ...state, resources: { ...state.resources, gold: 10000, dip: 100 } };
     const next = gameReducer(rich, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: target.id } });
     expect(next.nations[state.playerNationId].claims).toContain(target.id);
+  });
+});
+
+describe('refreshWarFlags', () => {
+  it('keeps a nation at war while any of its wars is still live, and clears it once none are', () => {
+    const nations = { a: { isAtWar: false }, b: { isAtWar: false }, c: { isAtWar: true }, d: { isAtWar: true } };
+    const wars = [
+      { id: 'w1', aggressor: 'a', enemy: 'b', active: false },
+      { id: 'w2', aggressor: 'c', enemy: 'b', active: true }
+    ];
+    const next = refreshWarFlags(nations, wars);
+    expect(next.a.isAtWar).toBe(false);
+    expect(next.b.isAtWar).toBe(true);
+    expect(next.c.isAtWar).toBe(true);
+    expect(next.d.isAtWar).toBe(false);
+    expect(next.c).toBe(nations.c); // untouched records keep their identity
+    expect(refreshWarFlags(next, wars)).toBe(next);
+    // Restricted to the named nations.
+    expect(refreshWarFlags(nations, wars, ['a']).d.isAtWar).toBe(true);
   });
 });

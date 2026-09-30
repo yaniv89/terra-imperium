@@ -137,8 +137,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const breaksTruce = !!ownerNation && !atWarWithOwner && isInTruce(state, state.playerNationId, ownerNation.id);
   const warBlockedReason = !ownerNation || atWarWithOwner ? null
     : state.nations[state.playerNationId]?.vassalOf ? "You can't declare war while you're a vassal."
-      : ownerNation.isAtWar ? `${ownerNation.name} is already at war with someone else.`
-        : null;
+      : null;
   // Mirrors SETTLE_COLONIZE: only rebel-held land, or a wiped-out nation's remnant, can be settled.
   const regionOwner = state.nations[regionState.owner];
   const isRebelHeld = Object.values(state.units).some((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID);

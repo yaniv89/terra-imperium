@@ -2171,6 +2171,19 @@ describe('Diplomacy tab actions', () => {
       expect(gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'fr' } })).toBe(state);
     });
 
+    it('can attack a nation that is already at war with someone else', () => {
+      const base = richState();
+      const busy = { ...base, nations: { ...base.nations, de: { ...base.nations.de, isAtWar: true } },
+        wars: [...base.wars, { id: 'war_de_ai', aggressor: 'at', enemy: 'de', active: true, score: 0, battleScore: 0, tickScore: 0, goalAchieved: false, goal: { type: 'destroy_military', threshold: 1 } }] };
+      const next = gameReducer(busy, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
+      expect(next.wars.some(w => w.active && w.aggressor === 'fr' && w.enemy === 'de')).toBe(true);
+      // Making peace with the player leaves de still fighting Austria.
+      const peace = gameReducer(next, { type: ActionTypes.SUE_FOR_PEACE, payload: { nationId: 'de' } });
+      expect(peace.wars.find(w => w.aggressor === 'fr' && w.enemy === 'de').active).toBe(false);
+      expect(peace.nations.de.isAtWar).toBe(true);
+      expect(peace.nations.fr.isAtWar).toBe(false);
+    });
+
     it('is a no-op if already at war', () => {
       const state = richState();
       const atWar = gameReducer(state, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
