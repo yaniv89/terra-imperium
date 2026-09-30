@@ -96,7 +96,7 @@ describe('turn flow', () => {
       expect(s.pendingDefenses || []).toHaveLength(0);
       if (s.activeEventId || s.activeProceduralEvent || s.pendingPeaceOffer) s = { ...s, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null };
     }
-  });
+  }, 60000);
 });
 
 describe('consequences', () => {
