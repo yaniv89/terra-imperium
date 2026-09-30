@@ -2343,7 +2343,7 @@ export const gameReducer = (state, action) => {
         nations: refreshWarFlags(nextNations, endWar(state.wars, war.id), [war.aggressor, war.enemy]),
         wars: endWar(state.wars, war.id),
         pendingPeaceOffer: null,
-        logs: [...state.logs, { year: state.year, message: `You accept peace with ${nextNations[recipientId]?.name || recipientId}.`, type: LogTypes.DIPLOMACY }]
+        logs: [...state.logs, { year: state.year, message: `You accept peace with ${nextNations[offer.from]?.name || offer.from}.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

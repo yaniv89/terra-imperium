@@ -434,6 +434,22 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
       expect(result.nations.mx.truces.ca).toBe(state.turnNumber + 10);
     });
 
+    it('never signs the player up to a white peace: an exhausted AI enemy offers it instead', () => {
+      const state = usState();
+      const war = {
+        id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, startTurn: state.turnNumber,
+        cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 }
+      };
+      const exhausted = { ...state, wars: [war], nations: { ...state.nations, us: { ...state.nations.us, warExhaustion: 90 }, ca: { ...state.nations.ca, warExhaustion: 90 } } };
+      const result = resolveWarProgress(exhausted, exhausted.regions, exhausted.nations, exhausted.wars, neverRolls);
+      expect(result.wars[0].active).toBe(true);
+      expect(result.pendingPeaceOffer).toEqual({ warId: 'war_1', from: 'ca', terms: [], reason: 'exhaustion' });
+      // after the player rejects, the offer doesn't come straight back
+      const again = resolveWarProgress({ ...exhausted, wars: result.wars }, exhausted.regions, exhausted.nations, result.wars, neverRolls);
+      expect(again.pendingPeaceOffer).toBeNull();
+      expect(again.wars[0].active).toBe(true);
+    });
+
     it('concludes an AI-vs-AI war once the leading side is winning by enough and the loser\'s ledger accepts', () => {
       const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 1 }, battleScore: 95, goalAchieved: true });
       const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);

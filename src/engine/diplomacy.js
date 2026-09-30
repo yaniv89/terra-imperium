@@ -491,9 +491,17 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     const involvesPlayer = currentWar.aggressor === state.playerNationId || currentWar.enemy === state.playerNationId;
 
     // Forced-peace backstop (plan §M13): neither side can grind the other down further, so the war
-    // ends white regardless of score. Checked before either peace path below, for AI and player
-    // wars alike.
-    if (bothExhausted) return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
+    // ends white regardless of score. Checked before either peace path below. Between AI nations
+    // it simply happens; the player is never signed up to a peace behind their back, so the
+    // exhausted AI side OFFERS the white peace instead and the player decides (the turn waits).
+    if (bothExhausted && !involvesPlayer) return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
+    if (bothExhausted) {
+      if (nextPendingPeaceOffer || state.turnNumber < (currentWar.peaceOfferCooldownTurn || 0)) return currentWar;
+      const aiSide = currentWar.aggressor === state.playerNationId ? currentWar.enemy : currentWar.aggressor;
+      nextPendingPeaceOffer = { warId: currentWar.id, from: aiSide, terms: [], reason: 'exhaustion' };
+      logs.push({ message: `${nextNations[aiSide]?.name || aiSide}, as worn out by the war as you are, offers a white peace.`, type: 'diplomacy' });
+      return { ...currentWar, peaceOfferCooldownTurn: state.turnNumber + PEACE_OFFER_COOLDOWN_TURNS };
+    }
 
     if (!involvesPlayer) {
       const leaderId = currentWar.score >= 0 ? currentWar.aggressor : currentWar.enemy;
