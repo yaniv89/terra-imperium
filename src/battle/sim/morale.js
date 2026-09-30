@@ -15,6 +15,10 @@ export { RTS_MORALE_PER_PERCENT, moraleFromLosses } from './moraleMath';
 // Seeing a neighbour break or die shakes the squads around it (a local, cascading morale shock).
 export const SHOCK_RADIUS = 5 * Q;
 export const SHOCK_MORALE = 5;
+// However many neighbours break around it in one tick, a squad loses at most this much morale from
+// the shock: a collapse spreads along a line over several ticks (time to react) instead of one
+// broken squad instantly toppling a whole army.
+export const SHOCK_CAP_PER_TICK = 10;
 const RALLY_QUIET_TICKS = secondsToTicks(6);
 const REGEN_QUIET_TICKS = secondsToTicks(3);
 export const ROUTED_REGEN_PER_SEC = 3;
@@ -23,13 +27,20 @@ export const updateMorale = (w) => {
   // Squads that broke or fell this tick shake their neighbours (applied before rout checks, so a
   // collapse can cascade along a line over the following ticks).
   const shocks = w.events.filter((e) => e.t === w.tick && (e.type === 'destroyed' || e.type === 'routed')).map((e) => w.squads[e.id]).filter(Boolean);
-  shocks.forEach((src) => {
-    w.squads.forEach((q) => {
-      if (q === src || q.side !== src.side || !isFighting(q) || q.routed || q.inside >= 0) return;
-      const dx = q.x - src.x; const dy = q.y - src.y;
-      if (dx * dx + dy * dy <= SHOCK_RADIUS * SHOCK_RADIUS) q.morale = Math.max(0, q.morale - SHOCK_MORALE);
+  if (shocks.length) {
+    const taken = new Map();
+    shocks.forEach((src) => {
+      w.squads.forEach((q) => {
+        if (q === src || q.side !== src.side || !isFighting(q) || q.routed || q.inside >= 0) return;
+        const dx = q.x - src.x; const dy = q.y - src.y;
+        if (dx * dx + dy * dy > SHOCK_RADIUS * SHOCK_RADIUS) return;
+        const loss = Math.min(SHOCK_MORALE, SHOCK_CAP_PER_TICK - (taken.get(q.idx) || 0));
+        if (loss <= 0) return;
+        taken.set(q.idx, (taken.get(q.idx) || 0) + loss);
+        q.morale = Math.max(0, q.morale - loss);
+      });
     });
-  });
+  }
   w.squads.forEach((q) => {
     if (!isFighting(q) || q.inside >= 0) return; // sheltered by its walls
     if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0) {

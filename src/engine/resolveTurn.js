@@ -71,18 +71,19 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const WAR_EXHAUSTION_RISE_PER_TURN = 5;
 const WAR_EXHAUSTION_DECAY_PER_TURN = 3;
 
-// `onPhase(name, ms)` is an optional perf hook (src/engine/aiQualityBenchmark.test.js's M0.4 perf
-// harness is the only caller) fired after each named phase below with how long it took. It costs
-// one optional-chained call per phase when absent, so normal play and every other test pay nothing
-// for it; when present the closure trades one `performance.now()` read per phase for the timing.
-// Bankruptcy's cost to the army: the share of men who desert, the morale every unit loses, and the
-// size below which a unit simply dissolves.
+// War exhaustion past WAR_WEARINESS_FROM adds (WE - FROM) / SCALE unrest per turn in every province.
 export const WAR_WEARINESS_FROM = 40;
 export const WAR_WEARINESS_SCALE = 40;
+// Bankruptcy's cost to the army: the share of men who desert, the morale every unit loses, and the
+// size below which a unit simply dissolves.
 export const DESERTION_SHARE = 0.15;
 export const DESERTION_MORALE = 20;
 export const DESERTION_DISBAND_BELOW = 50;
 
+// `onPhase(name, ms)` is an optional perf hook (src/engine/aiQualityBenchmark.test.js's M0.4 perf
+// harness is the only caller) fired after each named phase below with how long it took. It costs
+// one optional-chained call per phase when absent, so normal play and every other test pay nothing
+// for it; when present the closure trades one `performance.now()` read per phase for the timing.
 export const resolveTurn = (state, { onPhase } = {}) => {
   // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
   // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
