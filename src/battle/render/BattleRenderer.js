@@ -10,12 +10,13 @@ import {
   MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, Object3D, Vector3, Vector2, Raycaster, Plane,
   ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry,
   Float32BufferAttribute, DoubleSide, Group, Mesh, FogExp2, DataTexture, RGBAFormat, LinearFilter,
-  ACESFilmicToneMapping, PCFShadowMap, InstancedBufferAttribute, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage
+  ACESFilmicToneMapping, PCFShadowMap, InstancedBufferAttribute, PMREMGenerator, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount } from '../data/battleStats';
-import { getSoldierGeometry, getImposterGeometry, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
+import { getSoldierGeometry, getImposterGeometry, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant } from './unitVariants';
 import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
@@ -60,6 +61,26 @@ const vnoise = (x, z) => {
   return lerp(lerp(h(ix, iz), h(ix + 1, iz), sx), lerp(h(ix, iz + 1), h(ix + 1, iz + 1), sx), sz);
 };
 const lerpAngle256 = (a, b, t) => { const d = ((b - a + 384) % 256) - 128; return a + d * t; };
+
+// A soft ring decal as an alpha texture (green channel): transparent centre with a faint fill, a
+// ring that fades in and out smoothly between `inner` and `outer` (radius 1 = the quad's edge).
+export const makeRingDecal = ({ inner = 0.8, outer = 0.97, fill = 0.12, sharp = false, size = 128 } = {}) => {
+  const data = new Uint8Array(size * size * 4);
+  const soft = sharp ? 0.03 : 0.07;
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const r = Math.hypot((x + 0.5) / size * 2 - 1, (y + 0.5) / size * 2 - 1);
+      const ring = smooth(inner - soft, inner, r) * (1 - smooth(outer - soft, outer, r));
+      const a = Math.max(ring, fill * (1 - smooth(inner - soft, inner, r)));
+      const o = (y * size + x) * 4;
+      data[o] = 255; data[o + 1] = Math.round(a * 255); data[o + 2] = 255; data[o + 3] = 255;
+    }
+  }
+  const tex = new DataTexture(data, size, size, RGBAFormat);
+  tex.magFilter = LinearFilter; tex.minFilter = LinearFilter; tex.needsUpdate = true;
+  return tex;
+};
 
 export class BattleRenderer {
   constructor(canvas, setup, { playerSide = 0 } = {}) {
@@ -113,7 +134,16 @@ export class BattleRenderer {
     this.lightUp = lightZ.clone().cross(this.lightRight).normalize();
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
-    this.soldierMaterial = this.track(createSoldierMaterial());
+    // PBR soldiers (Cook-Torrance): per-vertex metalness/roughness, so armour catches the sun. A
+    // one-time, tiny prefiltered room environment gives metal something to reflect (without one,
+    // metallic surfaces render nearly black); it lights only the Standard materials (troops, water)
+    // and costs one ~256px PMREM texture, generated once per battle.
+    this.soldierMaterial = this.track(createSoldierMaterial({ standard: true }));
+    const pmrem = new PMREMGenerator(this.renderer);
+    this.envMap = this.track(pmrem.fromScene(new RoomEnvironment(), 0.04).texture);
+    pmrem.dispose();
+    this.scene.environment = this.envMap;
+    this.scene.environmentIntensity = 0.45;
     this.soldierDepth = this.track(createSoldierDepthMaterial());
 
     this.buildTerrain();
@@ -505,8 +535,17 @@ export class BattleRenderer {
       return m;
     };
     // A faint team-coloured ring on the ground under each squad, a bright one when selected.
-    this.discs = mk(new RingGeometry(0.93, 1.0, 32).rotateX(-Math.PI / 2), '#ffffff', 0.5);
-    this.rings = mk(new RingGeometry(1.02, 1.16, 32).rotateX(-Math.PI / 2), '#bef264', 0.95);
+    // Squad markers as ground decals: one quad each with a soft-edged ring (and a faint fill)
+    // painted by an alpha texture — no hard line loops, and still one draw call for every squad.
+    const decal = (size, map, opacity) => {
+      const mat = this.track(new MeshBasicMaterial({ color: '#ffffff', alphaMap: map, transparent: true, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+      const m = new InstancedMesh(this.track(new PlaneGeometry(size, size).rotateX(-Math.PI / 2)), mat, MAX);
+      m.count = 0; m.frustumCulled = false; m.renderOrder = 1; this.scene.add(m);
+      return m;
+    };
+    this.discs = decal(2, this.track(makeRingDecal({ inner: 0.8, outer: 0.97, fill: 0.14 })), 0.7);
+    this.rings = decal(2.3, this.track(makeRingDecal({ inner: 0.84, outer: 0.95, fill: 0.2, sharp: true })), 1);
+    this.rings.material.color.set('#bef264');
     this.barBg = mk(new PlaneGeometry(1, 0.1), '#0f172a', 0.8);
     this.barFill = mk(new PlaneGeometry(1, 0.07).translate(0.5, 0, 0), '#ffffff');
     // Each squad's standard: a pole and a waving flag in the side's colour.
@@ -521,7 +560,7 @@ export class BattleRenderer {
     this.sparks.dispose(); this.scene.remove(this.sparks);
     this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
     this.sparks.count = 0; this.sparks.frustumCulled = false; this.scene.add(this.sparks);
-    this.markerRings = mk(new RingGeometry(0.6, 0.8, 20).rotateX(-Math.PI / 2), '#a3e635', 0.9);
+    this.markerRings = decal(1.7, this.track(makeRingDecal({ inner: 0.74, outer: 0.96, fill: 0.08 })), 0.9);
   }
 
   // One soldier layer per (age, class) for BOTH armies — the side's colour is per instance
@@ -538,7 +577,7 @@ export class BattleRenderer {
     const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
     const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
     const make = (source, shadow) => {
-      const geo = this.track(source.clone());
+      const geo = this.track(packForGPU(source.clone()));
       geo.setAttribute('aAnim', anim);
       geo.setAttribute('aVariant', variant);
       const mesh = new InstancedMesh(geo, this.soldierMaterial, MAX);
