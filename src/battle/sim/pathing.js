@@ -49,7 +49,31 @@ export const buildFlowField = (map, goalIdx) => {
   return cost;
 };
 
-export const getFlowField = (w, goalIdx) => {
+// A destination inside an impassable tile (the keep's footprint, a building block) is replaced by
+// the nearest walkable tile — otherwise the flow field could never leave the obstacle and every
+// squad ordered there would just stand still.
+export const walkableGoal = (map, goalIdx) => {
+  if (TILE_COST[map.tiles[goalIdx]]) return goalIdx;
+  const gx = goalIdx % map.w; const gy = (goalIdx - gx) / map.w;
+  for (let r = 1; r <= 6; r++) {
+    let best = -1; let bestD = Infinity;
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = gx + dx; const y = gy + dy;
+        if (x < 0 || y < 0 || x >= map.w || y >= map.h) continue;
+        const i = y * map.w + x;
+        const d = dx * dx + dy * dy;
+        if (TILE_COST[map.tiles[i]] && (d < bestD || (d === bestD && i < best))) { best = i; bestD = d; }
+      }
+    }
+    if (best >= 0) return best;
+  }
+  return goalIdx;
+};
+
+export const getFlowField = (w, rawGoalIdx) => {
+  const goalIdx = walkableGoal(w.map, rawGoalIdx);
   if (!w.flowCache) w.flowCache = new Map();
   const cached = w.flowCache.get(goalIdx);
   if (cached) return cached;

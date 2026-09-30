@@ -147,3 +147,70 @@ describe('battle odds preview', () => {
     expect(estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION).undefended).toBe(true);
   });
 });
+
+describe('T7: reinforcements, missiles and powers in the campaign', () => {
+  const withNeighbourTroops = () => {
+    const s = withArmies();
+    // fr-62 (Pas-de-Calais) borders West Flanders? use any French neighbour of the target that isn't the origin
+    const neighbour = ['fr-62', 'fr-80', 'fr-02'].find((id) => s.regions[id]?.owner === 'fr');
+    return { s: { ...s, units: { ...s.units, r1: unit('r1', neighbour, 'fr', 'cavalry') } }, neighbour };
+  };
+
+  it('BEGIN records standby reinforcements from neighbouring provinces and locks them', () => {
+    const s = withArmies();
+    const neighbours = ['fr-62', 'fr-80', 'fr-02', 'fr-59'];
+    const next = begin(s);
+    expect(Array.isArray(next.pendingBattle.attackerReinforcements)).toBe(true);
+    // the origin province is never a "reinforcement" source
+    expect(next.pendingBattle.attackerReinforcements.some((r) => r.regionId === FR_BORDER)).toBe(false);
+    expect(neighbours.length).toBeGreaterThan(0);
+  });
+
+  it('a reinforcement only counts if the battle says it joined', () => {
+    const { s } = withNeighbourTroops();
+    const started = begin(s);
+    const pb = { ...started.pendingBattle, attackerReinforcements: [{ regionId: 'fr-62', unitIds: ['r1'] }] };
+    const withPb = { ...started, pendingBattle: pb };
+    const base = { outcome: 'defender', attackerUnits: [{ ...s.units.a1, strength: 900 }, { ...s.units.r1, strength: 500 }], defenderUnits: [], report: { tactical: {} } };
+    expect(sanitizeTacticalResult(withPb, pb, base).attackerUnits.some((u) => u.id === 'r1')).toBe(false);
+    const joined = sanitizeTacticalResult(withPb, pb, { ...base, report: { tactical: { joinedReinforcements: ['r1'] } } });
+    expect(joined.attackerUnits.find((u) => u.id === 'r1').strength).toBe(500);
+    // locked while the battle runs
+    expect(gameReducer(withPb, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'r1', toRegionId: FR_BORDER } }).units.r1.regionId).toBe(s.units.r1.regionId);
+  });
+
+  it('missiles fired in battle come out of the real stockpile, capped at what the nation had', () => {
+    const s0 = withArmies();
+    const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 2, theatre: 0, icbm: 0, nuclear: 0 } } } };
+    const started = begin(s);
+    const pb = started.pendingBattle;
+    const result = { outcome: 'defender', attackerUnits: pb.attackerUnitIds.map((id) => started.units[id]), defenderUnits: pb.defenderUnitIds.map((id) => started.units[id]), report: { tactical: { powersUsed: [{ missileTactical: 5, rallyCry: 1 }, {}] } } };
+    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
+    expect(next.nations.fr.missiles.tactical).toBe(0);
+  });
+
+  it('a nuclear strike in battle brings world condemnation and a scarred region', () => {
+    const s0 = withArmies();
+    const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 1 } } } };
+    const started = begin(s);
+    const pb = started.pendingBattle;
+    const before = started.nations.de.hostility;
+    const result = { outcome: 'stalemate', attackerUnits: pb.attackerUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), defenderUnits: pb.defenderUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), report: { tactical: { powersUsed: [{ nuclearStrike: 1 }, {}] } } };
+    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
+    expect(next.nations.fr.missiles.nuclear).toBe(0);
+    expect(next.nations.be.hostility).toBe(100);
+    expect(next.nations.de.hostility).toBeGreaterThan(before);
+    expect(next.regions[BE_REGION].nuclearScarred).toBe(true);
+    expect(next.nations.fr.prestige).toBeLessThan(started.nations.fr.prestige || 0.0001);
+  });
+
+  it('the battle setup brings the nation\'s real powers', () => {
+    const s0 = withArmies();
+    const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 1, theatre: 0, icbm: 0, nuclear: 1 } } } };
+    const started = begin(s);
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    const ids = setup.powers[0].map((p) => p.id);
+    expect(ids).toEqual(expect.arrayContaining(['rallyCry', 'missileTactical', 'nuclearStrike']));
+    expect(setup.powers[1].some((p) => p.id === 'nuclearStrike')).toBe(false); // the AI never gets a nuke
+  });
+});

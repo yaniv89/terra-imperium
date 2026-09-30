@@ -10,7 +10,11 @@ import { getPromotionMoraleLossMultiplier, applySapperToSiegeMultiplier } from '
 import { nextRandom } from './rng';
 import { angleBetween, angleDiff, distSq, isqrt, turnToward } from './fixed';
 import { queryRadius } from './pathing';
-import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ } from './constants';
+import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './constants';
+import { canSeeSquad } from './fog';
+import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
+
+const REVEAL_ON_ATTACK_TICKS = secondsToTicks(3);
 
 // Seconds of continuous contact that equal one auto-resolve exchange; tuned by the parity harness.
 export const EXCHANGE_SECONDS = 6;
@@ -64,15 +68,17 @@ const sideCtx = (w, attacker, target) => {
 
 const applyDamage = (w, attacker, target, damage) => {
   target.strength = Math.max(0, target.strength - damage);
-  const moraleLoss = Math.round((damage / 25) * getPromotionMoraleLossMultiplier(view(target)));
+  const moraleLoss = Math.round((damage / 25) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target));
   target.morale = Math.max(0, target.morale - moraleLoss);
   target.lastHitTick = w.tick;
   target.engaged = true;
   attacker.engaged = true;
   // Retaliation (standard RTS behaviour): a squad that isn't under a specific order fights back
   // against whoever is hitting it, even from beyond its own sight range.
-  const free = target.order.type === 'idle' || target.order.type === 'attackMove';
+  // A squad battering a wall turns on whoever attacks it, too.
+  const free = target.order.type === 'idle' || target.order.type === 'attackMove' || (target.order.type === 'attack' && target.targetKind === 'structure');
   const hasTarget = target.target >= 0 && target.targetKind === 'squad' && isFighting(w.squads[target.target]);
+  if (target.order.type === 'attack' && target.targetKind === 'structure' && !hasTarget) target.order = { type: 'idle' };
   if (free && !hasTarget && !target.routed && !target.retreating && target.stats.attackTicks > 0 && validTargetFor(target, attacker)) {
     target.targetKind = 'squad'; target.target = attacker.idx;
     target.anchorX = attacker.x; target.anchorY = attacker.y; // chasing its attacker is not "leaving its post"
@@ -101,6 +107,10 @@ export const attackSquad = (w, a, t) => {
   else if (arc === 2) mult *= REAR_BONUS_MULT;
   if (a.stats.charge && a.movedSinceAttack >= CHARGE_DISTANCE) mult *= CHARGE_BONUS_MULT;
   if (t.routed) mult *= 1 + PURSUIT_EXTRA_LOSS_MULT;
+  mult *= damageDealtMult(w, a) * damageTakenMult(w, t, arc);
+  // Shooting gives your position away (and breaks an ambush).
+  a.hiddenUntil = 0;
+  a.revealedUntil = w.tick + REVEAL_ON_ATTACK_TICKS;
   const roll = nextRandom(w);
   const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
   const damage = Math.max(0, Math.round(a.strength * perHitFraction(a.stats) * mult * variance));
@@ -144,9 +154,10 @@ export const targetScore = (q, t) => {
   return (counter * wounded * soft * (t.routed ? 0.8 : 1)) / d;
 };
 
-const validTargetFor = (q, t) => {
+const validTargetFor = (q, t, w = null) => {
   if (!isFighting(t) || t.side === q.side) return false;
   if (q.stats.airOnly && !t.stats.flying) return false;
+  if (w && !canSeeSquad(w, q.side, t)) return false; // can't shoot what you can't see
   return true;
 };
 
@@ -155,7 +166,7 @@ export const acquireTarget = (w, q, radius) => {
   let best = -1; let bestScore = 0;
   queryRadius(w, q.x, q.y, radius).forEach((j) => {
     const t = w.squads[j];
-    if (!validTargetFor(q, t)) return;
+    if (!validTargetFor(q, t, w)) return;
     if (q.stats.minRange && distSq(q.x, q.y, t.x, t.y) < q.stats.minRange * q.stats.minRange) return;
     const score = targetScore(q, t);
     if (score > bestScore) { bestScore = score; best = j; }
@@ -187,16 +198,16 @@ export const resolveAttacks = (w) => {
     if (!canAttack(q) || q.target < 0) return;
     if (q.targetKind === 'squad') {
       const t = w.squads[q.target];
-      if (!validTargetFor(q, t)) { q.target = -1; return; }
+      if (!validTargetFor(q, t, w)) { q.target = -1; return; }
       if (!inRangeOfSquad(q, t)) return;
       q.facing = turnToward(q.facing, angleBetween(q.x, q.y, t.x, t.y), 32);
-      if (q.cooldown === 0) { attackSquad(w, q, t); q.cooldown = q.stats.attackTicks; }
+      if (q.cooldown === 0) { attackSquad(w, q, t); q.cooldown = Math.max(1, Math.round(q.stats.attackTicks / attackRateMult(w, q))); }
     } else if (q.targetKind === 'structure') {
       const s = w.structures[q.target];
       if (!s || !s.alive) { q.target = -1; return; }
       if (!inRangeOfStructure(q, s)) return;
       q.facing = turnToward(q.facing, angleBetween(q.x, q.y, s.x, s.y), 32);
-      if (q.cooldown === 0) { attackStructure(w, q, s); q.cooldown = q.stats.attackTicks; }
+      if (q.cooldown === 0) { attackStructure(w, q, s); q.cooldown = Math.max(1, Math.round(q.stats.attackTicks / attackRateMult(w, q))); }
     }
   });
 };

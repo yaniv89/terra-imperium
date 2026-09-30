@@ -7,6 +7,7 @@ import { angleBetween, distSq, isqrt, polarX, polarY, turnToward } from './fixed
 import { getFlowField, lineClear, nextWaypoint, queryRadius, tileOf } from './pathing';
 import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFighting } from './combat';
 import { sideEdgeX } from './world';
+import { speedMult } from './effects';
 import { Q, SQUAD_RADIUS } from './constants';
 
 const ARRIVE = Math.round(0.3 * Q);
@@ -23,6 +24,7 @@ const stepToward = (w, q, gx, gy) => {
   const remaining = isqrt(distSq(q.x, q.y, gx, gy));
   if (remaining <= ARRIVE) return true;
   let speed = q.groupSpeed && (q.order.type === 'move' || q.order.type === 'attackMove') && remaining > 4 * Q ? q.groupSpeed : q.stats.speed;
+  speed = Math.max(1, Math.round(speed * speedMult(w, q)));
   let wx = gx; let wy = gy;
   if (!q.stats.flying) {
     speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8)));
@@ -50,7 +52,15 @@ export const enterReserves = (w) => {
     const lane = (q.idx * 5) % Math.max(1, w.map.h - 8);
     q.x = sideEdgeX(w, q.side);
     q.y = (4 + lane) * Q + (Q >> 1);
-    q.onField = true; q.reserve = false; q.enterTick = -1;
+    const edge = q.reinforcement?.edge;
+    if (edge === 'N' || edge === 'S') {
+      // Enter on the half of the north/south edge that belongs to this side.
+      const span = Math.max(1, Math.floor(w.map.w / 2) - 6);
+      const tx = q.side === 0 ? 4 + ((q.idx * 7) % span) : w.map.w - 5 - ((q.idx * 7) % span);
+      q.x = tx * Q + (Q >> 1);
+      q.y = edge === 'N' ? Q : (w.map.h - 2) * Q;
+    }
+    q.onField = true; q.reserve = false; q.enterTick = -1; q.joined = true;
     q.facing = q.side === 0 ? 0 : 128;
     q.anchorX = q.x; q.anchorY = q.y;
     q.order = { type: 'idle' };

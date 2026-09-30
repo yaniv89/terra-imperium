@@ -29,7 +29,7 @@ import {
 import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle } from './invasion';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isInTruce, getTradePactCapacity, recordBattle, setTruce, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
@@ -491,6 +491,49 @@ const guardPendingBattle = (state, action) => {
 // Rebuilds a commanded battle's result from the REAL units in state, so a tampered or buggy result
 // can never mint soldiers: only the locked units, strength can only go down, morale stays in range,
 // ids and outcome are validated, and the command-mode XP bonus stays capped.
+const sanitizePowersUsed = (used) => [0, 1].map((side) => {
+  const out = {};
+  Object.entries((Array.isArray(used) && used[side]) || {}).forEach(([id, n]) => { if (MISSILE_POWER_TIERS[id] && Number.isFinite(n) && n > 0) out[id] = Math.floor(n); });
+  return out;
+});
+
+// Missiles fired inside a battle come out of the real stockpile; a nuclear strike brings the same
+// world condemnation, prestige loss and pariah status as one launched from the map.
+const applyBattleMissiles = (state, pb, powersUsed) => {
+  let nations = state.nations;
+  let regions = state.regions;
+  const logs = [];
+  [pb.attackerNationId, pb.defenderNationId].forEach((nationId, side) => {
+    const used = powersUsed?.[side] || {};
+    const nation = nations[nationId];
+    if (!nation || !Object.keys(used).length) return;
+    const missiles = { ...(nation.missiles || {}) };
+    let nukes = 0;
+    Object.entries(used).forEach(([id, n]) => {
+      const tier = MISSILE_POWER_TIERS[id];
+      const fired = Math.min(n, missiles[tier] || 0);
+      missiles[tier] = (missiles[tier] || 0) - fired;
+      if (tier === 'nuclear') nukes += fired;
+    });
+    nations = { ...nations, [nationId]: { ...nation, missiles } };
+    if (nukes > 0) {
+      const victimId = side === 0 ? pb.defenderNationId : pb.attackerNationId;
+      Object.keys(nations).forEach((id) => {
+        if (id === nationId) return;
+        nations[id] = { ...nations[id], hostility: id === victimId ? 100 : Math.min(100, (nations[id].hostility || 0) + NUCLEAR_GLOBAL_HOSTILITY) };
+      });
+      const striker = nations[nationId];
+      nations[nationId] = addNationModifier(
+        { ...striker, prestige: clampPrestige((striker.prestige || 0) - NUCLEAR_PRESTIGE_PENALTY) },
+        { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
+      );
+      regions = { ...regions, [pb.targetRegionId]: { ...regions[pb.targetRegionId], nuclearScarred: true } };
+      logs.push({ year: state.year, message: `A nuclear strike devastates the battlefield at ${REGIONS_DATA[pb.targetRegionId]?.name}. The world condemns the attack.`, type: LogTypes.COMBAT });
+    }
+  });
+  return { ...state, nations, regions, logs: [...state.logs, ...logs] };
+};
+
 export const sanitizeTacticalResult = (state, pb, result) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
   const clampUnits = (ids, reported) => ids.map((id) => {
@@ -501,13 +544,19 @@ export const sanitizeTacticalResult = (state, pb, result) => {
     const morale = Number.isFinite(r.morale) ? Math.max(0, Math.min(100, Math.round(r.morale))) : real.morale;
     return { ...real, strength, morale, routed: !!r.routed };
   }).filter(Boolean);
-  const attackerUnits = clampUnits(pb.attackerUnitIds, result?.attackerUnits);
-  const defenderUnits = clampUnits(pb.defenderUnitIds, result?.defenderUnits);
+  // Reinforcements count only if the battle says they actually marched in (and they were really
+  // standing by for this battle).
+  const joined = Array.isArray(result?.report?.tactical?.joinedReinforcements) ? result.report.tactical.joinedReinforcements : [];
+  const standby = (sources) => (sources || []).flatMap((src) => src.unitIds);
+  const attackerIds = [...pb.attackerUnitIds, ...standby(pb.attackerReinforcements).filter((id) => joined.includes(id))];
+  const defenderIds = [...pb.defenderUnitIds, ...standby(pb.defenderReinforcements).filter((id) => joined.includes(id))];
+  const attackerUnits = clampUnits(attackerIds, result?.attackerUnits);
+  const defenderUnits = clampUnits(defenderIds, result?.defenderUnits);
   const report = result?.report || {};
   const onlyIds = (list, allowed) => (Array.isArray(list) ? list.filter((id) => allowed.includes(id)) : []);
   const bonus = {};
   Object.entries(report.tactical?.xpBonusById || {}).forEach(([id, v]) => {
-    if ([...pb.attackerUnitIds, ...pb.defenderUnitIds].includes(id) && Number.isFinite(v)) bonus[id] = Math.max(0, Math.min(20, Math.round(v)));
+    if ([...attackerIds, ...defenderIds].includes(id) && Number.isFinite(v)) bonus[id] = Math.max(0, Math.min(20, Math.round(v)));
   });
   return {
     outcome: OUTCOMES.includes(result?.outcome) ? result.outcome : 'defender',
@@ -516,9 +565,9 @@ export const sanitizeTacticalResult = (state, pb, result) => {
     report: {
       ...report,
       log: Array.isArray(report.log) ? report.log.slice(0, 60) : [],
-      deployedAttackerIds: onlyIds(report.deployedAttackerIds, pb.attackerUnitIds),
-      deployedDefenderIds: onlyIds(report.deployedDefenderIds, pb.defenderUnitIds),
-      tactical: { ...(report.tactical || {}), decisive: !!report.tactical?.decisive, xpBonusById: bonus }
+      deployedAttackerIds: onlyIds(report.deployedAttackerIds, attackerIds),
+      deployedDefenderIds: onlyIds(report.deployedDefenderIds, defenderIds),
+      tactical: { ...(report.tactical || {}), decisive: !!report.tactical?.decisive, xpBonusById: bonus, powersUsed: sanitizePowersUsed(report.tactical?.powersUsed) }
     }
   };
 };
@@ -1353,7 +1402,9 @@ export const gameReducer = (state, action) => {
           startedTurn: state.turnNumber,
           playerSide: 'attacker',
           attackerUnitIds: v.attackerUnits.map((u) => u.id),
-          defenderUnitIds: v.defenderUnits.map((u) => u.id)
+          defenderUnitIds: v.defenderUnits.map((u) => u.id),
+          attackerReinforcements: getReinforcementSources(state, targetRegionId, state.playerNationId, [fromRegionId]),
+          defenderReinforcements: getReinforcementSources(state, targetRegionId, v.targetRegion.owner)
         },
         logs: [...state.logs, { year: state.year, message: `Your army marches on ${REGIONS_DATA[targetRegionId]?.name} — you take command of the battle.`, type: LogTypes.COMBAT }]
       };
@@ -1369,9 +1420,10 @@ export const gameReducer = (state, action) => {
       const cleared = { ...state, pendingBattle: null };
       if (!war || !targetRegion) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
+      const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
       return applyInvasionResult(
-        cleared,
-        { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion, isDefended: pb.defenderUnitIds.length > 0 },
+        afterMissiles,
+        { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
         safe,
         { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
       );

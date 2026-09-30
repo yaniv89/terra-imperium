@@ -9,6 +9,9 @@ import { acquireTargets, enterReserves, moveSquads, separateSquads } from './mov
 import { isFighting, resolveAttacks } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, ASSIMILATION_TICKS } from './objectives';
 import { updateMorale } from './morale';
+import { updateFog } from './fog';
+import { updateEffects, processImpacts } from './effects';
+import { applySupplyAndAttrition } from './support';
 import { BATTLE_LIMIT_TICKS, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
@@ -41,9 +44,12 @@ const checkEnd = (w) => {
 
 export const step = (w, orders = []) => {
   if (w.ended) return w;
+  updateFog(w); // before anyone decides anything, so the AI never acts on a stale picture
   const all = [...orders];
   (w.setup.controllers || []).forEach((c, side) => { if (c === 'ai') thinkAI(w, side, all); });
   applyOrders(w, all);
+  updateEffects(w);
+  processImpacts(w);
   updateSupply(w);
   enterReserves(w);
   buildSpatialHash(w);
@@ -53,6 +59,7 @@ export const step = (w, orders = []) => {
   separateSquads(w);
   resolveAttacks(w);
   resolveStructureFire(w);
+  applySupplyAndAttrition(w);
   updateMorale(w);
   updateCapturePoints(w);
   updateAssimilation(w);

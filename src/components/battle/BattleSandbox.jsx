@@ -16,9 +16,23 @@ const PRESETS = {
   small: ['infantry', 'ranged']
 };
 
-const buildArmy = (prefix, preset, ageId, strength) => PRESETS[preset]
+const buildArmy = (prefix, preset, ageId, strength, generalId = null) => PRESETS[preset]
   .filter((c) => getAvailableClasses(ageId).includes(c))
-  .map((classId, i) => ({ id: `${prefix}${i}`, classId, strength, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land', xp: 0 }));
+  .map((classId, i) => ({ id: `${prefix}${i}`, classId, strength, maxStrength: 1000, morale: 100, promotions: classId === 'ranged' && i === 3 ? ['volleyFire'] : [], commanderId: i === 0 ? generalId : null, domain: 'land', xp: 0 }));
+
+const GENERALS = {
+  g_att: { id: 'g_att', name: 'Your general', personality: 'reckless', martial: 4, shock: 4, fire: 3, maneuver: 3 },
+  g_def: { id: 'g_def', name: 'Enemy general', personality: 'cautious', martial: 3, shock: 3, fire: 3, maneuver: 3 }
+};
+
+// The powers a sandbox army of that age would bring (the campaign derives these from real assets).
+const sandboxPowers = (ageId, units) => {
+  const out = [{ id: 'rallyCry' }];
+  if (['bronze', 'classical', 'kingdoms'].includes(ageId)) out.push({ id: 'arrowStorm' });
+  if (['gunpowder', 'modern'].includes(ageId) && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
+  if (ageId === 'modern') out.push({ id: 'satelliteSweep' }, { id: 'missileTactical', uses: 2 }, { id: 'nuclearStrike', uses: 1 });
+  return out;
+};
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
 
@@ -30,7 +44,8 @@ const BattleSandbox = () => {
     defender: params.get('defender') || 'balanced',
     fortLevel: Number(params.get('fort') || 2),
     seed: Number(params.get('seed') || 7),
-    spectate: params.has('spectate')
+    spectate: params.has('spectate'),
+    fog: params.has('fog')
   });
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
@@ -40,8 +55,15 @@ const BattleSandbox = () => {
     regionId: `sandbox-${config.terrain}-${config.seed}`,
     terrain: config.terrain,
     seed: config.seed + runId,
-    attackerUnits: buildArmy('a', config.attacker, config.ageId, 1000),
-    defenderUnits: buildArmy('d', config.defender, config.ageId, 900),
+    attackerUnits: buildArmy('a', config.attacker, config.ageId, 1000, 'g_att'),
+    defenderUnits: buildArmy('d', config.defender, config.ageId, 900, 'g_def'),
+    generals: GENERALS,
+    powers: [sandboxPowers(config.ageId, buildArmy('a', config.attacker, config.ageId, 1000)), sandboxPowers(config.ageId, buildArmy('d', config.defender, config.ageId, 900)).filter((p) => p.id !== 'nuclearStrike')],
+    reinforcements: [
+      [{ regionId: 'north', name: 'Northern March', edge: 'N', units: buildArmy('r', 'small', config.ageId, 800) }],
+      [{ regionId: 'east', name: 'Eastern Garrison', edge: 'S', units: buildArmy('s', 'small', config.ageId, 700) }]
+    ],
+    intel: { attackerSeesDefender: !config.fog },
     attackerAgeId: config.ageId,
     defenderAgeId: config.ageId,
     fortLevel: config.fortLevel,
@@ -84,6 +106,7 @@ const BattleSandbox = () => {
           {field('Enemy army', 'defender', Object.keys(PRESETS))}
           {field('Fortifications', 'fortLevel', [0, 1, 2, 3, 4, 6])}
         </div>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.fog} onChange={(e) => setConfig((c) => ({ ...c, fog: e.target.checked }))} /> No intelligence (start blind in the fog)</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> Spectate (AI vs AI)</label>
         <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold">Fight</button>
         {lastResult && (

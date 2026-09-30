@@ -10,7 +10,10 @@ export const COMMAND_XP_BONUS_CAP = 20;
 const xpBonusFor = (q) => Math.min(COMMAND_XP_BONUS_CAP, Math.floor(q.damageDealt / 150));
 
 export const toStrategicResult = (w) => {
-  const bySide = (side) => w.squads.filter((q) => q.side === side).map((q) => ({
+  // Reinforcements that were never called into the battle took no part in it: they're left out
+  // entirely (the campaign keeps them exactly as they were).
+  const tookPart = (q) => !q.reinforcement || q.joined;
+  const bySide = (side) => w.squads.filter((q) => q.side === side && tookPart(q)).map((q) => ({
     ...q.original,
     strength: Math.max(0, Math.min(q.startStrength, q.strength)),
     morale: Math.max(0, Math.min(100, q.morale)),
@@ -50,6 +53,8 @@ export const toStrategicResult = (w) => {
         decisive: !!w.ended?.decisive,
         reason: w.ended?.reason || null,
         reservesCalled: [...w.stats.reservesCalled],
+        joinedReinforcements: w.squads.filter((q) => q.reinforcement && q.joined).map((q) => q.unitId),
+        powersUsed: [{ ...w.powersUsed[0] }, { ...w.powersUsed[1] }],
         xpBonusById
       }
     }

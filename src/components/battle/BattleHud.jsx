@@ -3,9 +3,9 @@
 // clock, supply, keep status), class chips bottom-left (tap = select that class), the command bar
 // bottom-right, and a reserves drawer. Every control is ≥ 44 px; nothing needs precision.
 import React, { useState } from 'react';
-import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X } from 'lucide-react';
+import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles } from 'lucide-react';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
-import { RESERVE_COST } from '../../battle/sim/orders';
+
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { getRankForXp } from '../../data/promotions';
 
@@ -25,9 +25,11 @@ const HudButton = ({ icon: Icon, label, onClick, active, danger, disabled, testI
 
 const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
-  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon
+  onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
+  onPower, onOpenAbilities, hasAbilities
 }) => {
   const [showReserves, setShowReserves] = useState(false);
+  const [confirmNuke, setConfirmNuke] = useState(null);
   const [confirmRetreat, setConfirmRetreat] = useState(false);
   if (!hud) return null;
   const mine = hud.squads.filter((q) => q.side === playerSide && q.alive && !q.fled);
@@ -77,6 +79,32 @@ const BattleHud = ({
         </div>
       )}
 
+      {/* Commander powers (left thumb): cooldown / uses / cost on each */}
+      {hud.powers?.length > 0 && (
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 pointer-events-auto" data-testid="battle-powers">
+          {hud.powers.map((pw) => {
+            const armedHere = armed?.type === 'power' && armed.id === pw.id;
+            const disabled = pw.usesLeft <= 0 || pw.readyIn > 0 || supply < pw.cost;
+            return (
+              <button key={pw.id} type="button" disabled={disabled}
+                onClick={() => (pw.id === 'nuclearStrike' && !armedHere ? setConfirmNuke(pw) : onPower(pw))}
+                className={`w-[76px] min-h-[48px] px-1.5 py-1 rounded-xl border text-[10px] font-semibold leading-tight shadow-lg disabled:opacity-40 ${armedHere ? 'bg-orange-500/30 border-orange-300 text-orange-100' : pw.id === 'nuclearStrike' ? 'bg-red-950/85 border-red-500/70 text-red-100' : 'bg-slate-900/85 border-slate-600/70 text-slate-100'}`}>
+                <Zap className="w-3.5 h-3.5 mx-auto mb-0.5" />
+                {pw.label}
+                <span className="block text-[9px] text-slate-400 font-normal">
+                  {pw.readyIn > 0 ? `${Math.ceil(pw.readyIn / 20)}s` : pw.cost ? `⛁ ${pw.cost}` : 'ready'}{Number.isFinite(pw.usesLeft) ? ` · ${pw.usesLeft} left` : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {armed?.type === 'power' && (
+        <div className="absolute top-28 inset-x-0 flex justify-center pointer-events-none">
+          <div className="px-3 py-1.5 rounded-full bg-orange-600/90 text-white text-xs font-semibold shadow-xl">Tap the battlefield to strike — {armed.label}</div>
+        </div>
+      )}
+
       {/* Selected squads */}
       {selectedSquads.length > 0 && (
         <div className="absolute left-2 top-[calc(7rem+env(safe-area-inset-top))] max-w-[70vw] px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-600 text-slate-200 text-[11px] shadow-xl pointer-events-none">
@@ -102,6 +130,7 @@ const BattleHud = ({
           <HudButton icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} disabled={!reserves.length} testId="battle-reserves" />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5">
+          {hasAbilities && <HudButton icon={Sparkles} label="Abilities" onClick={onOpenAbilities} testId="battle-abilities" />}
           <HudButton icon={Crosshair} label="Atk-move" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} disabled={!selectedSquads.length} testId="battle-attack-move" />
           <HudButton icon={Hand} label="Hold" onClick={() => onCommand('hold')} disabled={!selectedSquads.length} />
           <HudButton icon={Square} label="Stop" onClick={() => onCommand('stop')} disabled={!selectedSquads.length} />
@@ -112,15 +141,31 @@ const BattleHud = ({
 
       {showReserves && (
         <div className="absolute left-2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-64 max-w-[calc(100vw-1rem)] p-2 rounded-xl bg-slate-900/95 border border-slate-600 shadow-2xl text-xs text-slate-200 space-y-1.5">
-          <div className="flex items-center justify-between font-semibold text-white"><span>Reserves (⛁ {RESERVE_COST} each)</span><button onClick={() => setShowReserves(false)} className="p-1"><X className="w-4 h-4" /></button></div>
+          <div className="flex items-center justify-between font-semibold text-white"><span>Reserves & reinforcements</span><button onClick={() => setShowReserves(false)} className="p-1"><X className="w-4 h-4" /></button></div>
           {reserves.map((q) => (
-            <button key={q.idx} type="button" disabled={q.enterTick >= 0 || supply < RESERVE_COST}
+            <button key={q.idx} type="button" disabled={q.enterTick >= 0 || supply < q.callCost}
               onClick={() => onCallReserve(q.idx)}
-              className="w-full h-11 px-2 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-between disabled:opacity-50">
-              <span>{getSquadDisplayName(q.classId, ageId)} · {q.strength}</span>
-              <span className="text-amber-300">{q.enterTick >= 0 ? 'Marching…' : 'Call in'}</span>
+              className="w-full min-h-[44px] px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-between gap-2 text-left disabled:opacity-50">
+              <span className="min-w-0">
+                <span className="block truncate">{getSquadDisplayName(q.classId, ageId)} · {q.strength}</span>
+                {q.reinforcement && <span className="block text-[10px] text-sky-300 truncate">from {q.reinforcement.name}</span>}
+              </span>
+              <span className="text-amber-300 shrink-0">{q.enterTick >= 0 ? 'Marching…' : `⛁ ${q.callCost}`}</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {confirmNuke && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-red-500/60 p-4 text-slate-200 text-sm space-y-3">
+            <div className="font-bold text-red-300">Launch a nuclear strike?</div>
+            <p className="text-xs text-slate-400">Everything within the blast — your own troops included — is destroyed. It uses one of your real nuclear missiles, and the whole world will condemn you: hostility from every nation, lost prestige, and pariah status.</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setConfirmNuke(null)} className="h-11 rounded-lg bg-slate-700 text-white font-semibold">Cancel</button>
+              <button type="button" onClick={() => { onPower(confirmNuke); setConfirmNuke(null); }} className="h-11 rounded-lg bg-red-700 text-white font-semibold">Choose target</button>
+            </div>
+          </div>
         </div>
       )}
 

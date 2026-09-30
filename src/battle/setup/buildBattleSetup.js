@@ -4,11 +4,13 @@
 // armies, and the exact multipliers auto-resolve would have used), which is also what makes it
 // replayable anywhere — worker, test, or server.
 import { REGIONS_DATA } from '../../data/regions';
-import { getCombatWidth, getTerrainCombatModifier } from '../../data/terrain';
+import { getCombatWidth, getTerrainCombatModifier, TERRAIN_COMBAT_MODIFIERS } from '../../data/terrain';
+import { REGION_COORDINATES } from '../../data/regionCoordinates';
+import { canSeeRegionDetails } from '../../engine/intel';
 import { getRosterCombatMultiplier } from '../../data/unitClasses';
 import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
-import { validateInvasion, getInvasionBattleContext } from '../../engine/invasion';
+import { validateInvasion, getInvasionBattleContext, getBattlePowers } from '../../engine/invasion';
 import { generateMap } from './mapgen';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
@@ -20,10 +22,11 @@ const TERRITORY_RADIUS = 14 * Q;
 const centre = (t) => t * Q + (Q >> 1);
 
 export const buildStructures = ({ keepTile, fortLevel, isCapital }) => {
+  // An unfortified region's "keep" is just its town: it only shoots back once it has real defenses.
   const keep = {
     id: 'keep', kind: 'keep', x: centre(keepTile.x), y: centre(keepTile.y), radius: Math.round(1.5 * Q),
     maxHp: Math.round((1500 + 750 * fortLevel) * (isCapital ? 1.5 : 1)), walls: fortLevel >= 2,
-    range: 8 * Q, attackTicks: secondsToTicks(1.5), damage: 14 + 6 * fortLevel, cooldown: 0, alive: true
+    range: 8 * Q, attackTicks: secondsToTicks(1.5), damage: fortLevel > 0 ? 8 + 6 * fortLevel : 0, cooldown: 0, alive: true
   };
   keep.hp = keep.maxHp;
   const towerCount = Math.min(6, Math.floor(fortLevel / 2) + (isCapital ? Math.max(0, 2 - Math.floor(fortLevel / 2)) : 0));
@@ -47,7 +50,8 @@ export const buildSetupFromArmies = ({
   fortLevel = 0, isCapital = false, infrastructure = 0, deposits = [],
   defenseReduction = 1, isAttackingFortification = fortLevel > 0, attackerPenaltyMultiplier = 1,
   attackerNationId = 'attacker', defenderNationId = 'defender',
-  controllers = ['player', 'ai'], difficultyId = 'prince'
+  controllers = ['player', 'ai'], difficultyId = 'prince',
+  powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true }
 }) => {
   const combatWidth = getCombatWidth(terrain);
   const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) });
@@ -65,9 +69,13 @@ export const buildSetupFromArmies = ({
     supplyCap: 200 + 30 * Math.max(0, infrastructure),
     startSupply: [100, 100 + (points.length ? 50 : 0)],
     sides: [
-      { nationId: attackerNationId, ageId: attackerAgeId, color: SIDE_COLORS[0], units: attackerUnits.map((u) => ({ ...u })) },
-      { nationId: defenderNationId, ageId: defenderAgeId, color: SIDE_COLORS[1], units: defenderUnits.map((u) => ({ ...u })) }
+      { nationId: attackerNationId, ageId: attackerAgeId, color: SIDE_COLORS[0], units: attackerUnits.map((u) => ({ ...u })), reinforcements: reinforcements[0] || [] },
+      { nationId: defenderNationId, ageId: defenderAgeId, color: SIDE_COLORS[1], units: defenderUnits.map((u) => ({ ...u })), reinforcements: reinforcements[1] || [] }
     ],
+    // RoN attrition inside the defender's territory: terrain's own attrition factor, raised by
+    // fortifications (towers' "patriotism").
+    attritionPerMinute: 0.006 * (TERRAIN_COMBAT_MODIFIERS[terrain]?.attritionMult || 1) * (1 + 0.1 * fortLevel),
+    powers,
     modifiers: {
       // The same numbers resolveBattle folds into each side's baseMultiplier, minus the walls
       // reduction — applied in the sim only to defenders actually fighting from inside their
@@ -75,13 +83,36 @@ export const buildSetupFromArmies = ({
       attackerBase: attackerPenaltyMultiplier * getRosterCombatMultiplier(attackerAgeId, defenderAgeId) * getTerrainCombatModifier(terrain).attackerMult,
       defenderBase: getRosterCombatMultiplier(defenderAgeId, attackerAgeId),
       defenseReduction,
-      isAttackingFortification
+      isAttackingFortification,
+      intel
     },
     generals,
     controllers,
     difficultyId
   };
 };
+
+// Which map edge a neighbouring province's troops enter from. The battlefield is laid out with
+// the attacker's own origin to the WEST; every other neighbour keeps its real bearing relative to
+// that (rotation only, never mirrored), then is snapped to the side's own edges.
+export const reinforcementEdge = (targetRegionId, fromRegionId, neighbourRegionId, side) => {
+  const t = REGION_COORDINATES[targetRegionId]; const f = REGION_COORDINATES[fromRegionId]; const n = REGION_COORDINATES[neighbourRegionId];
+  if (!t || !f || !n) return side === SIDE_ATTACKER ? 'W' : 'E';
+  const bearing = (c) => Math.atan2(c.lat - t.lat, (c.lng - t.lng) * Math.cos((t.lat * Math.PI) / 180)) * 180 / Math.PI;
+  let m = bearing(n) + (180 - bearing(f));
+  m = ((m % 360) + 540) % 360 - 180; // -180..180, 180/-180 = west, 0 = east, 90 = north
+  const edge = Math.abs(m) >= 135 ? 'W' : Math.abs(m) <= 45 ? 'E' : m > 0 ? 'N' : 'S';
+  if (side === SIDE_ATTACKER && edge === 'E') return m >= 0 ? 'N' : 'S';
+  if (side !== SIDE_ATTACKER && edge === 'W') return m >= 0 ? 'N' : 'S';
+  return edge;
+};
+
+const toReinforcements = (state, pb, sources, side) => (sources || []).map((src) => ({
+  regionId: src.regionId,
+  name: REGIONS_DATA[src.regionId]?.name || src.regionId,
+  edge: reinforcementEdge(pb.targetRegionId, pb.fromRegionId, src.regionId, side),
+  units: src.unitIds.map((id) => state.units[id]).filter(Boolean).map((u) => ({ ...u }))
+})).filter((r) => r.units.length);
 
 // The battle for a pending invasion, rebuilt purely from game state + the pending record — so a
 // battle interrupted by an app restart rebuilds the identical setup and resumes.
@@ -114,7 +145,16 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     attackerNationId: state.playerNationId,
     defenderNationId: v.targetRegion.owner,
     controllers: playerSide === 'attacker' ? ['player', 'ai'] : ['ai', 'player'],
-    difficultyId: state.difficultyId || 'prince'
+    difficultyId: state.difficultyId || 'prince',
+    powers: [
+      getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }),
+      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })
+    ],
+    reinforcements: [
+      toReinforcements(state, pendingBattle, pendingBattle.attackerReinforcements, 0),
+      toReinforcements(state, pendingBattle, pendingBattle.defenderReinforcements, 1)
+    ],
+    intel: { attackerSeesDefender: canSeeRegionDetails(state, targetRegionId) }
   });
 };
 
