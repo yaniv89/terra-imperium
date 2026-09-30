@@ -63,6 +63,7 @@ import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseD
 import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
 import { updateDefensivePacts } from './pacts';
+import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
 import { hasPerk } from '../data/promotions';
 import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
@@ -128,6 +129,11 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   const resources = { ...createEmptyResourcePool(newAge), ...state.resources };
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
+  // Army supplies (src/engine/supplies.js): foraged and manufactured from metal, eaten on campaign.
+  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources });
+  resources[supplyFlow.metalId] = (resources[supplyFlow.metalId] || 0) - supplyFlow.metalUsed;
+  resources.supplies = supplyFlow.supplies;
+  if (supplyFlow.hungry) logs.push({ year: newYear, message: `Out of supplies: your ${supplyFlow.campaigning} unit${supplyFlow.campaigning > 1 ? 's' : ''} on campaign go hungry (-${HUNGER_MORALE} morale, no reinforcement). Build Industry, stockpile metal or bring them home.`, type: LogTypes.CRISIS });
   mark('income');
 
   // Army/navy/fort upkeep, advisor salaries, and loan interest are all deducted together in the
@@ -374,14 +380,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     const reinforceSpeedBonus = isPlayer ? getModifier(state, u.ownerId, 'national.reinforceSpeed').total : 0;
     const moraleRecoveryBonus = isPlayer ? getModifier(state, u.ownerId, 'national.moraleRecovery').total : 0;
     let patch = null;
+    // Hungry armies on campaign (supplies.js) neither recover nor reinforce, and lose heart.
+    const hungry = isPlayer && supplyFlow.hungry && isCampaigning(u, regions);
+    if (hungry) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) };
 
-    if (!foughtThisTurn && u.morale < 100) {
+    if (!hungry && !foughtThisTurn && u.morale < 100) {
       patch = { ...patch, morale: Math.min(100, u.morale + Math.round(MORALE_RECOVERY_PER_TURN * (1 + moraleRecoveryBonus) * maintenanceFactor)) };
     }
 
     const region = regions[u.regionId];
     const isSuppliedHomeTerritory = region && region.owner === u.ownerId && !region.occupiedBy;
-    if (!foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
+    if (!hungry && !foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
       const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
       const gain = Math.min(u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
       if (gain > 0) {

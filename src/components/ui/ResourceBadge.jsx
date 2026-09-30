@@ -2,7 +2,7 @@
 // Individual resource badge component with expand/collapse functionality
 
 import React from 'react';
-import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, Atom, ScrollText, Landmark } from 'lucide-react';
+import { Coins, Users, Beaker, Swords, Hammer, Flame, Fuel, Gem, Atom, ScrollText, Landmark, Package } from 'lucide-react';
 import { formatNumber } from '../../utils/helpers';
 import Tooltip from './Tooltip';
 
@@ -19,6 +19,13 @@ const RESOURCE_CONFIG = {
     bgColor: 'bg-green-500/20',
     label: 'HR',
     description: 'HR (Manpower)'
+  },
+  supplies: {
+    icon: Package,
+    color: 'text-lime-300',
+    bgColor: 'bg-lime-500/20',
+    label: 'Supplies',
+    description: 'Supplies: foraged by your provinces, made by Industry from metal, eaten by armies campaigning abroad'
   },
   copper: {
     icon: Hammer,
