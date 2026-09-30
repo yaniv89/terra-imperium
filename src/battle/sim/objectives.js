@@ -12,6 +12,7 @@ import { queryRadius } from './pathing';
 import { isFighting, perHitFraction } from './combat';
 import { buildingSupplyPerSec } from './buildings';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER, secondsToTicks } from './constants';
+import { moraleFromLosses } from './moraleMath';
 
 export const ASSIMILATION_TICKS = secondsToTicks(30);
 export const ASSIMILATION_RADIUS = 6 * Q;
@@ -91,7 +92,7 @@ export const resolveStructureFire = (w) => {
     // The garrison shares the credit (battle XP goes to squads that fought).
     if (bonus) garrisonOf(w, si).forEach((q) => { q.engaged = true; q.damageDealt += Math.round((damage * (q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT)) / (s.damage + bonus)); });
     target.strength = Math.max(0, target.strength - damage);
-    target.morale = Math.max(0, target.morale - Math.round((damage / 25) * getPromotionMoraleLossMultiplier({ promotions: target.promotions })));
+    target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier({ promotions: target.promotions })));
     target.lastHitTick = w.tick;
     target.engaged = true;
     if (target.strength === 0) { target.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: target.idx }); }

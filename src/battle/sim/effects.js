@@ -11,6 +11,7 @@ import { nextRandom } from './rng';
 import { distSq, polarX, polarY } from './fixed';
 import { isFighting } from './combat';
 import { Q, SIDE_DEFENDER, secondsToTicks as S } from './constants';
+import { moraleFromLosses } from './moraleMath';
 
 // ---- general & perk abilities ----------------------------------------------------------------
 export const ABILITIES = {
@@ -183,7 +184,7 @@ export const processImpacts = (w) => {
       if (distSq(q.x, q.y, imp.x, imp.y) > imp.radius * imp.radius) return;
       const damage = Math.min(q.strength, Math.round(imp.damage * (0.9 + nextRandom(w) * 0.2)));
       q.strength -= damage;
-      q.morale = Math.max(0, q.morale - Math.round(damage / 20));
+      q.morale = Math.max(0, q.morale - Math.round(moraleFromLosses(q, damage) * 1.25)); // bombardment terrifies
       q.lastHitTick = w.tick; q.engaged = true;
       if (q.strength <= 0) { q.strength = 0; q.alive = false; w.events.push({ t: w.tick, type: 'destroyed', id: q.idx }); }
     });

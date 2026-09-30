@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer } from '../../battle/input/gestures';
-import { Q, TICK_HZ, BATTLE_LIMIT_TICKS } from '../../battle/sim/constants';
+import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
 import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
@@ -261,7 +261,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const retreatAll = () => send([{ type: 'retreatAll' }]);
   const focusKeep = () => { const k = setup.structures[0]; rendererRef.current?.centerOn(k.x / Q, k.y / Q); };
 
-  const timeLeft = hud ? Math.max(0, Math.ceil((BATTLE_LIMIT_TICKS - hud.tick) / TICK_HZ)) : 0;
+  const timeLeft = hud ? Math.max(0, Math.ceil((battleLimitTicks(setup) - hud.tick) / TICK_HZ)) : 0;
   const selectedSquads = useMemo(() => (hud ? selected.map((i) => hud.squads[i]).filter((q) => q && q.alive) : []), [hud, selected]);
   // Abilities the selection can use (a general's, or legendary archers' Volley), best cooldown first.
   const selectedAbilities = useMemo(() => {

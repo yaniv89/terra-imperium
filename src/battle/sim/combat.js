@@ -14,6 +14,7 @@ import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './const
 import { canSeeSquad } from './fog';
 import { razeBuilding } from './buildings';
 import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
+import { moraleFromLosses } from './moraleMath';
 
 const REVEAL_ON_ATTACK_TICKS = secondsToTicks(3);
 
@@ -34,11 +35,12 @@ export const canAttack = (q) => isFighting(q) && !q.routed && !q.retreating && q
 // Plain unit view for battle.js's multiplier functions.
 const view = (q) => ({ id: q.unitId, classId: q.classId, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId });
 
-// 0 front (±60°), 1 flank (±60–135°), 2 rear.
+// 0 front (±60°: a 120° arc), 1 flank (60–120° either side), 2 rear (±60° behind: 120°).
+// Angles are 256 to the turn, so 60° ≈ 43 and 120° ≈ 85.
 export const hitArc = (attacker, target) => {
   const from = angleBetween(target.x, target.y, attacker.x, attacker.y);
   const d = Math.abs(angleDiff(from, target.facing));
-  return d <= 43 ? 0 : d <= 96 ? 1 : 2;
+  return d <= 43 ? 0 : d <= 85 ? 1 : 2;
 };
 
 // Reach from centre to centre: melee needs the two squads touching; shooters measure to the edge.
@@ -70,7 +72,7 @@ const sideCtx = (w, attacker, target) => {
 
 const applyDamage = (w, attacker, target, damage) => {
   target.strength = Math.max(0, target.strength - damage);
-  const moraleLoss = Math.round((damage / 25) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target));
+  const moraleLoss = Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier(view(target)) * moraleLossMult(w, target));
   target.morale = Math.max(0, target.morale - moraleLoss);
   target.lastHitTick = w.tick;
   target.engaged = true;

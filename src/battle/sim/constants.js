@@ -4,7 +4,13 @@
 //   accumulates floating-point drift between devices; time is integer ticks at TICK_HZ.
 export const TICK_HZ = 20;
 export const Q = 256;                               // units per tile
-export const BATTLE_LIMIT_TICKS = 6 * 60 * TICK_HZ; // 6 minutes; the defender holds if it runs out
+export const BATTLE_LIMIT_TICKS = 6 * 60 * TICK_HZ; // the default clock (older setups); the defender holds if it runs out
+// Adaptive clocks (setup.limitTicks): a field battle is a fast, decisive 5:00; a fortified siege gets
+// 7:30 so siege engines have time to breach. The longest possible battle, for replay validation:
+export const FIELD_BATTLE_TICKS = 5 * 60 * TICK_HZ;
+export const SIEGE_BATTLE_TICKS = 7.5 * 60 * TICK_HZ;
+export const MAX_BATTLE_TICKS = SIEGE_BATTLE_TICKS;
+export const battleLimitTicks = (setup) => setup?.limitTicks || BATTLE_LIMIT_TICKS;
 export const SQUAD_RADIUS = 154;                    // ~0.6 tile
 export const SIDE_ATTACKER = 0;
 export const SIDE_DEFENDER = 1;
