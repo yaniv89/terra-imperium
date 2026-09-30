@@ -120,9 +120,11 @@ export const distanceFromAnchor = (anchorRegionIds, targetRegionId, maxDistance 
 // needs exactly this ("is this unit's region in range of any of my regions") for potentially many
 // units spread across many distinct regions each turn; computing it once per nation instead of
 // once per distinct occupied region is what keeps that check affordable at 4,482 regions.
-export const regionsWithinRange = (anchorRegionIds, maxDistance) => {
+// `blocks(regionId)` (optional): a region supply can reach but not pass through — e.g. one held by
+// an enemy army. It is still counted as reached; the search just doesn't continue beyond it.
+export const regionsWithinRange = (anchorRegionIds, maxDistance, blocks = null) => {
   const visited = new Set(anchorRegionIds);
-  let frontier = anchorRegionIds;
+  let frontier = blocks ? anchorRegionIds.filter((id) => !blocks(id)) : anchorRegionIds;
   let dist = 0;
   while (frontier.length > 0 && dist < maxDistance) {
     dist += 1;
@@ -131,7 +133,7 @@ export const regionsWithinRange = (anchorRegionIds, maxDistance) => {
       for (const nId of getNeighborIds(rid)) {
         if (!visited.has(nId)) {
           visited.add(nId);
-          next.push(nId);
+          if (!blocks || !blocks(nId)) next.push(nId);
         }
       }
     }
