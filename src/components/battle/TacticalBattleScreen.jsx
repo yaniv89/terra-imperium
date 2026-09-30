@@ -13,12 +13,13 @@ import BattleHud from './BattleHud';
 import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
+import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
 
-const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon }) => {
+const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon }) => {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -304,6 +305,27 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} onContinue={() => onFinish?.(ended)} />}
     </div>
   );
+};
+
+// Artist unit models (src/assets/units/*.glb) are fetched and baked before the battlefield mounts,
+// so the renderer builds its instanced layers from the final geometry. With no model files (the
+// default) there is nothing to wait for and the battle opens immediately.
+const TacticalBattleScreen = (props) => {
+  const [ready, setReady] = useState(() => !needsUnitModels(props.setup));
+  useEffect(() => {
+    if (ready) return undefined;
+    let live = true;
+    preloadUnitModels(props.setup).then(() => { if (live) setReady(true); });
+    return () => { live = false; };
+  }, [ready, props.setup]);
+  if (!ready) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center text-slate-300 text-sm" data-testid="battle-loading">
+        Mustering the troops…
+      </div>
+    );
+  }
+  return <TacticalBattleView {...props} />;
 };
 
 export default TacticalBattleScreen;
