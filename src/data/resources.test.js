@@ -43,9 +43,9 @@ describe('resource unlock ages', () => {
 });
 
 describe('getUnlockedResourceIds / createEmptyResourcePool', () => {
-  it('Bronze Age only exposes gold, hr and copper', () => {
+  it('Bronze Age only exposes gold, hr, supplies and copper', () => {
     const unlocked = getUnlockedResourceIds('bronze');
-    expect(unlocked.sort()).toEqual(['copper', 'gold', 'hr'].sort());
+    expect(unlocked.sort()).toEqual(['copper', 'gold', 'hr', 'supplies'].sort());
   });
 
   it('Modern Age exposes every defined resource', () => {
@@ -55,7 +55,7 @@ describe('getUnlockedResourceIds / createEmptyResourcePool', () => {
 
   it('createEmptyResourcePool zero-initializes exactly the unlocked set', () => {
     const pool = createEmptyResourcePool('classical');
-    expect(Object.keys(pool).sort()).toEqual(['copper', 'gold', 'hr', 'iron'].sort());
+    expect(Object.keys(pool).sort()).toEqual(['copper', 'gold', 'hr', 'iron', 'supplies'].sort());
     Object.values(pool).forEach(v => expect(v).toBe(0));
   });
 });

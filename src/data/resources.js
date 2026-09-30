@@ -23,6 +23,12 @@ export const RESOURCES = {
     unlockAge: null, // always available
     description: 'Recruitable manpower. Regenerates from population; wars drain it.'
   },
+  supplies: {
+    id: 'supplies',
+    name: 'Supplies',
+    unlockAge: null, // always available
+    description: 'Provisions and munitions. Foraged from your provinces and made by Industry from metal; armies campaigning abroad eat them.'
+  },
   copper: {
     id: 'copper',
     name: 'Copper',
