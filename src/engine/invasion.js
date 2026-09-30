@@ -25,8 +25,43 @@ import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolve
 export const isUnitInBattle = (state, unitId) => {
   const pb = state.pendingBattle;
   if (!pb) return false;
-  return (pb.attackerUnitIds || []).includes(unitId) || (pb.defenderUnitIds || []).includes(unitId);
+  if ((pb.attackerUnitIds || []).includes(unitId) || (pb.defenderUnitIds || []).includes(unitId)) return true;
+  // Troops standing by in neighbouring provinces as possible reinforcements are committed too.
+  return [...(pb.attackerReinforcements || []), ...(pb.defenderReinforcements || [])].some((src) => src.unitIds.includes(unitId));
 };
+
+// Idle land troops in provinces next to the battle that a side could call in as reinforcements
+// (RoN Conquer the World): owned by that nation, in land it owns and actually holds, with their
+// move still available, not already in the battle and not aboard a ship.
+export const getReinforcementSources = (state, targetRegionId, nationId, excludeRegionIds = []) => getNeighborIds(targetRegionId)
+  .filter((rid) => !excludeRegionIds.includes(rid))
+  .filter((rid) => state.regions[rid]?.owner === nationId && !state.regions[rid]?.occupiedBy)
+  .map((rid) => ({
+    regionId: rid,
+    unitIds: Object.values(state.units)
+      .filter((u) => u.regionId === rid && u.ownerId === nationId && u.domain === 'land' && !u.embarkedOn && (u.movesLeft ?? 1) > 0 && u.strength > 0)
+      .map((u) => u.id)
+  }))
+  .filter((src) => src.unitIds.length > 0);
+
+// The commander powers a nation brings into a battle, from what it really has (Tactical Battles
+// plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
+// siege unit in the fight; an air strike needs aircraft; a recon satellite gives a sweep; missiles
+// come out of the real stockpile (one use per missile); only the player may use a nuclear strike.
+export const getBattlePowers = (state, nationId, ageId, units = [], { allowNuclear = false } = {}) => {
+  const out = [{ id: 'rallyCry' }];
+  if (['bronze', 'classical', 'kingdoms'].includes(ageId)) out.push({ id: 'arrowStorm' });
+  if (['gunpowder', 'modern'].includes(ageId) && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
+  if (ageId === 'modern' && units.some((u) => u.classId === 'air')) out.push({ id: 'airStrike' });
+  if (Object.values(state.satellites || {}).some((sat) => sat.ownerId === nationId && sat.typeId === 'recon')) out.push({ id: 'satelliteSweep' });
+  const missiles = state.nations?.[nationId]?.missiles || {};
+  if (missiles.tactical > 0) out.push({ id: 'missileTactical', uses: missiles.tactical });
+  if (missiles.theatre > 0) out.push({ id: 'missileTheatre', uses: missiles.theatre });
+  if (allowNuclear && missiles.nuclear > 0) out.push({ id: 'nuclearStrike', uses: missiles.nuclear });
+  return out;
+};
+
+export const MISSILE_POWER_TIERS = { missileTactical: 'tactical', missileTheatre: 'theatre', nuclearStrike: 'nuclear' };
 
 export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCost = false, ignoreBattleLocks = false } = {}) => {
   const fromRegion = state.regions[fromRegionId];

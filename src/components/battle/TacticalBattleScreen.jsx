@@ -11,6 +11,9 @@ import { createGestureRecognizer } from '../../battle/input/gestures';
 import { Q, TICK_HZ, BATTLE_LIMIT_TICKS } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
 import BattleResultScreen from './BattleResultScreen';
+import { ABILITIES } from '../../battle/sim/effects';
+
+const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
 
@@ -104,6 +107,16 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
   const issueAt = useCallback((p, forceAttackMove = false) => {
     const r = rendererRef.current; const cur = frames.current.cur;
     const sel = [...selectedRef.current];
+    // A targeted commander power is armed: this tap is where it lands (no selection needed).
+    if (r && cur && armedRef.current?.type === 'power') {
+      const g = r.screenToGround(p.x, p.y);
+      if (g) {
+        send([{ type: 'power', power: armedRef.current.id, x: Math.round(g.x * Q), y: Math.round(g.z * Q) }]);
+        r.addMarker(g.x, g.z, '#f97316');
+      }
+      armedRef.current = null; setArmed(null);
+      return true;
+    }
     if (!r || !cur || !sel.length) return false;
     const hit = r.pick(p.x, p.y, cur);
     if (!hit) return false;
@@ -130,6 +143,7 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
         setRadial(null);
         const own = ownSquadAt(p);
         if (own !== null && !armedRef.current) { updateSelection([own]); return; }
+        if (armedRef.current?.type === 'power') { issueAt(p); return; }
         if (!issueAt(p)) updateSelection([]);
       },
       order: (p) => { setRadial(null); issueAt(p); },
@@ -186,6 +200,19 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
   };
   const changeSpeed = (s) => { speedRef.current = s; setSpeed(s); clientRef.current?.setSpeed(s); };
   const arm = (mode) => { armedRef.current = armedRef.current === mode ? null : mode; setArmed(armedRef.current); };
+  // Commander powers: instant ones fire now; targeted ones arm a crosshair for the next tap.
+  const firePower = (power) => {
+    if (!power.targeted) { send([{ type: 'power', power: power.id, x: 0, y: 0 }]); return; }
+    const same = armedRef.current?.type === 'power' && armedRef.current.id === power.id;
+    armedRef.current = same ? null : { type: 'power', id: power.id, label: power.label };
+    setArmed(armedRef.current);
+  };
+  const triggerSquadAbility = (abilityId) => {
+    const cur = frames.current.cur; if (!cur) return;
+    const squads = [...selectedRef.current].filter((i) => cur.squads[i]?.abilities?.some((a) => a.id === abilityId && a.readyIn === 0));
+    if (squads.length) send([{ type: 'ability', squads, ability: abilityId }]);
+    setRadial(null);
+  };
   const cycleFormation = () => { const next = formationRef.current === 'line' ? 'column' : 'line'; formationRef.current = next; setFormation(next); };
   // Selecting by class also brings those squads into view — on a phone, finding your army after
   // panning away should never take more than one tap.
@@ -202,6 +229,12 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
 
   const timeLeft = hud ? Math.max(0, Math.ceil((BATTLE_LIMIT_TICKS - hud.tick) / TICK_HZ)) : 0;
   const selectedSquads = useMemo(() => (hud ? selected.map((i) => hud.squads[i]).filter((q) => q && q.alive) : []), [hud, selected]);
+  // Abilities the selection can use (a general's, or legendary archers' Volley), best cooldown first.
+  const selectedAbilities = useMemo(() => {
+    const byId = new Map();
+    selectedSquads.forEach((q) => (q.abilities || []).forEach((a) => { const cur = byId.get(a.id); if (!cur || a.readyIn < cur.readyIn) byId.set(a.id, a); }));
+    return [...byId.values()];
+  }, [selectedSquads]);
 
   return (
     <div ref={wrapRef} className="fixed inset-0 z-[80] bg-slate-950 select-none" style={{ touchAction: 'none' }} data-testid="tactical-battle">
@@ -213,7 +246,13 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
       )}
       {lasso && <div className="absolute pointer-events-none border-2 border-lime-400 bg-lime-400/10 rounded" style={{ left: lasso.x0, top: lasso.y0, width: lasso.x1 - lasso.x0, height: lasso.y1 - lasso.y0 }} />}
       {radial && (
-        <div className="absolute z-10 flex gap-2 -translate-x-1/2 -translate-y-[130%]" style={{ left: radial.x, top: radial.y }}>
+        <div className="absolute z-10 flex flex-wrap justify-center gap-2 max-w-[92vw] -translate-x-1/2 -translate-y-[130%]" style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radial.y }} data-testid="battle-radial">
+          {selectedAbilities.map((a) => (
+            <button key={a.id} onClick={() => triggerSquadAbility(a.id)} disabled={a.readyIn > 0}
+              className="min-w-[64px] h-12 px-3 rounded-full bg-purple-900/95 border border-purple-400 text-purple-100 text-xs font-semibold shadow-xl disabled:opacity-40">
+              {ABILITY_LABELS[a.id] || a.id}{a.readyIn > 0 ? ` ${Math.ceil(a.readyIn / TICK_HZ)}s` : ''}
+            </button>
+          ))}
           {[['hold', 'Hold'], ['stop', 'Stop'], ['retreat', 'Retreat']].map(([t, label]) => (
             <button key={t} onClick={() => commandSelected(t)} className="min-w-[64px] h-12 px-3 rounded-full bg-slate-900/95 border border-slate-600 text-slate-100 text-sm font-semibold shadow-xl">{label}</button>
           ))}
@@ -226,6 +265,8 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
         onTogglePause={togglePause} onSpeed={changeSpeed} onArm={arm} onFormation={cycleFormation}
         onSelectClass={selectClass} onCallReserve={callReserve} onCommand={commandSelected}
         onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon}
+        onPower={firePower} onOpenAbilities={() => { const w0 = wrapRef.current; setRadial({ x: (w0?.clientWidth || 400) / 2, y: (w0?.clientHeight || 800) - 150 }); }}
+        hasAbilities={selectedAbilities.length > 0}
       />
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} onContinue={() => onFinish?.(ended)} />}
     </div>

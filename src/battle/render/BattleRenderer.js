@@ -8,7 +8,7 @@ import {
   WebGLRenderer, Scene, OrthographicCamera, Color, HemisphereLight, DirectionalLight, PlaneGeometry,
   MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, Object3D, Vector3, Vector2, Raycaster, Plane,
   ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry, CircleGeometry,
-  Float32BufferAttribute, DoubleSide, Group, Mesh, Fog
+  Float32BufferAttribute, DoubleSide, Group, Mesh, Fog, DataTexture, RGBAFormat, LinearFilter
 } from 'three';
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount } from '../data/battleStats';
@@ -67,6 +67,39 @@ export class BattleRenderer {
     this.buildStructures();
     this.buildPoints();
     this.buildOverlays();
+    this.buildFogOverlay();
+  }
+
+  // Fog of war: a black sheet over the terrain whose alpha comes from the player's fog grid —
+  // opaque where never seen, dimmed where explored, clear where visible right now.
+  buildFogOverlay() {
+    const { w, h } = this.map;
+    this.fogData = new Uint8Array(w * h * 4);
+    this.fogTexture = this.track(new DataTexture(this.fogData, w, h, RGBAFormat));
+    this.fogTexture.magFilter = LinearFilter; this.fogTexture.minFilter = LinearFilter;
+    const geo = this.terrain.geometry.clone();
+    geo.translate(0, 0.12, 0);
+    this.track(geo);
+    const mat = this.track(new MeshBasicMaterial({ color: '#05080d', transparent: true, alphaMap: this.fogTexture, depthWrite: false }));
+    this.fogMesh = new Mesh(geo, mat);
+    this.fogMesh.renderOrder = 2;
+    this.scene.add(this.fogMesh);
+    this.setFog(null);
+  }
+
+  setFog(grid) {
+    const { w, h } = this.map;
+    for (let row = 0; row < h; row++) {
+      // Texture row 0 is the bottom of the plane (large z); map row 0 is the top (small z).
+      const iz = h - 1 - row;
+      for (let ix = 0; ix < w; ix++) {
+        const v = grid ? grid[iz * w + ix] : 2;
+        const a = v === 2 ? 0 : v === 1 ? 110 : 235;
+        const o = (row * w + ix) * 4;
+        this.fogData[o] = a; this.fogData[o + 1] = a; this.fogData[o + 2] = a; this.fogData[o + 3] = 255;
+      }
+    }
+    this.fogTexture.needsUpdate = true;
   }
 
   track(obj) { this.disposables.push(obj); return obj; }
@@ -198,6 +231,9 @@ export class BattleRenderer {
     this.structBarFill = mk(new PlaneGeometry(1, 0.13).translate(0.5, 0, 0), '#ffffff');
     this.tracers = mk(new BoxGeometry(1, 0.05, 0.05).translate(0.5, 0, 0), '#fde68a');
     this.sparks = mk(new DodecahedronGeometry(0.12, 0), '#fbbf24');
+    this.sparks.dispose(); this.scene.remove(this.sparks);
+    this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
+    this.sparks.count = 0; this.sparks.frustumCulled = false; this.scene.add(this.sparks);
     this.markerRings = mk(new RingGeometry(0.6, 0.8, 20).rotateX(-Math.PI / 2), '#a3e635', 0.9);
   }
 
@@ -300,6 +336,15 @@ export class BattleRenderer {
       } else if (e.type === 'melee' && e.to !== undefined) {
         const to = view.squads[e.to];
         if (to) for (let k = 0; k < 3; k++) this.fx.push({ kind: 'spark', x: to.x / Q + (hash01(e.t * 7 + k) - 0.5), z: to.y / Q + (hash01(e.t * 13 + k) - 0.5), t: 0, life: 0.35, seed: k });
+      } else if (e.type === 'impact') {
+        const r = e.radius / Q;
+        const n = Math.min(24, 6 + Math.round(r * 3));
+        for (let k = 0; k < n; k++) this.fx.push({ kind: 'spark', x: e.x / Q + (hash01(e.t * 11 + k) - 0.5) * r * 1.6, z: e.y / Q + (hash01(e.t * 17 + k) - 0.5) * r * 1.6, t: 0, life: 0.9, seed: k, big: true, fire: true });
+        this.addMarker(e.x / Q, e.y / Q, '#f97316');
+        if (r > 6) this.flash = 1; // a nuclear flash
+      } else if (e.type === 'ability') {
+        const src = view.squads[e.id];
+        if (src) this.addMarker(src.x / Q, src.y / Q, '#c084fc');
       } else if (e.type === 'destroyed' || e.type === 'keepBreached' || e.type === 'structureDestroyed') {
         const s = e.id !== undefined ? view.squads[e.id] : view.structures.find((st) => st.id === e.structure);
         if (s) for (let k = 0; k < 8; k++) this.fx.push({ kind: 'spark', x: s.x / Q + (hash01(k * 3 + e.t) - 0.5) * 1.6, z: s.y / Q + (hash01(k * 5 + e.t) - 0.5) * 1.6, t: 0, life: 0.8, seed: k, big: true });
@@ -310,6 +355,7 @@ export class BattleRenderer {
 
   render(prev, cur, alpha, ui, dt) {
     this.time += dt;
+    if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.setRGB(0.06 + this.flash, 0.1 + this.flash, 0.14 + this.flash * 0.9); }
     this.updateCamera();
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
@@ -324,8 +370,10 @@ export class BattleRenderer {
     this.soldierLayers.forEach((l) => { l.count = 0; });
     let discN = 0; let ringN = 0; let barN = 0;
     const camQuat = this.camera.quaternion;
+    if (cur.fog) this.setFog(cur.fog);
     cur.squads.forEach((s) => {
       if (!s.alive || !s.onField) return;
+      if (s.side !== cur.playerSide && s.visible === false) return; // in the fog of war
       const p = prev?.squads?.[s.idx];
       const useP = p && p.onField;
       const x = (useP ? lerp(p.x, s.x, alpha) : s.x) / Q;
@@ -344,6 +392,7 @@ export class BattleRenderer {
       const scale = stats.flying ? 0.85 : s.classId === 'siege' ? 0.9 : 0.7;
       tmpColor.set(this.setup.sides[s.side].color);
       if (s.routed) tmpColor.lerp(new Color('#9ca3af'), 0.6);
+      if (s.hidden) tmpColor.lerp(new Color('#e2e8f0'), 0.45); // in ambush
       if (selected.has(s.idx)) tmpColor.lerp(new Color('#ffffff'), 0.25);
       for (let i = 0; i < n; i++) {
         const col = i % cols; const row = Math.floor(i / cols);
@@ -423,12 +472,12 @@ export class BattleRenderer {
         tmp.position.set(hx, this.heightAt(hx, hz) + 0.8 + arc, hz);
         tmp.rotation.set(0, -Math.atan2(dz, dx), 0); tmp.scale.set(0.6, 1, 1); tmp.updateMatrix();
         this.tracers.setMatrixAt(tn, tmp.matrix); tn += 1;
-      } else if (f.kind === 'spark' && sn < 64) {
+      } else if (f.kind === 'spark' && sn < 128) {
         const rise = f.big ? k * 1.4 : k * 0.6;
         tmp.position.set(f.x, this.heightAt(f.x, f.z) + 0.4 + rise, f.z);
         tmp.rotation.set(k * 4, k * 5, 0); const sc = (f.big ? 2.2 : 1) * (1 - k); tmp.scale.set(sc, sc, sc); tmp.updateMatrix();
         this.sparks.setMatrixAt(sn, tmp.matrix);
-        this.sparks.setColorAt(sn, tmpColor.set(f.big ? '#a8a29e' : '#fbbf24'));
+        this.sparks.setColorAt(sn, tmpColor.set(f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24'));
         sn += 1;
       }
     });

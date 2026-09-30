@@ -4,6 +4,7 @@
 // including the RNG state — so a structuredClone of it is a complete, replayable checkpoint.
 import { getBattleStats } from '../data/battleStats';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { initFog } from './fog';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
@@ -66,6 +67,10 @@ export const createWorld = (setup) => {
     points: setup.points.map((p) => ({ ...p })),
     supply: [setup.startSupply?.[0] ?? 100, setup.startSupply?.[1] ?? 100],
     lastStandUsed: [false, false],
+    effects: [],
+    impacts: [],
+    powersUsed: [{}, {}],
+    powerCooldowns: [{}, {}],
     assimilation: 0,
     events: [],
     tally: {},
@@ -73,6 +78,7 @@ export const createWorld = (setup) => {
     stats: { reservesCalled: [0, 0] }
   };
   spawnSides(w);
+  initFog(w);
   return w;
 };
 
@@ -98,6 +104,14 @@ const spawnSides = (w) => {
       });
     });
     reserve.forEach((u) => { const q = makeSquad(w, u, side, s.ageId, 0); q.reserve = true; squads.push(q); });
+    // Reinforcements waiting in neighbouring provinces (RoN Conquer the World): callable with
+    // Battle Supply, they march in from the edge facing the province they come from.
+    (s.reinforcements || []).forEach((src) => src.units.filter((u) => u.strength > 0).forEach((u) => {
+      const q = makeSquad(w, u, side, s.ageId, 0);
+      q.reserve = true;
+      q.reinforcement = { regionId: src.regionId, name: src.name, edge: src.edge };
+      squads.push(q);
+    }));
     squads.forEach((q) => { q.idx = w.squads.length; w.squads.push(q); });
   });
 };

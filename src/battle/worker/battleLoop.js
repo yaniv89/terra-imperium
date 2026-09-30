@@ -32,6 +32,9 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
   let acc = 0;
   let last = null;
   let finished = false;
+  // Everything the UI is shown is seen from the player's side (fog of war); spectating = side 0.
+  const playerSide = Math.max(0, (setup.controllers || []).indexOf('player'));
+  let lastFogTick = -100; // the fog grid rides along only when it can have changed (every 5 ticks)
 
   const emitEnd = () => {
     finished = true;
@@ -44,7 +47,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       // Orders always take effect on the next tick to be simulated — never in the past — which
       // is exactly how the replay applies them, so live play and replay agree.
       orders.forEach((o) => { const stamped = { ...o, tick: world.tick, seq: seq++ }; pending.push(stamped); log.push(stamped); });
-      if (paused) post({ type: 'frame', view: makeRenderView(world, pending), alpha: 1, events: [] });
+      if (paused) post({ type: 'frame', view: makeRenderView(world, pending, playerSide, false), alpha: 1, events: [] });
     },
     setPaused(p) { paused = p; last = null; },
     setSpeed(s) { speed = s; },
@@ -62,7 +65,9 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
         acc -= TICK_MS;
         if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), log: [...log] });
       }
-      post({ type: 'frame', view: makeRenderView(world, pending), alpha: paused ? 1 : acc / TICK_MS, events });
+      const sendFog = world.tick - lastFogTick >= 5;
+      if (sendFog) lastFogTick = world.tick;
+      post({ type: 'frame', view: makeRenderView(world, pending, playerSide, sendFog), alpha: paused ? 1 : acc / TICK_MS, events });
       if (world.ended) emitEnd();
     }
   };
