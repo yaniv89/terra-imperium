@@ -3,7 +3,7 @@
 // clock, supply, keep status), class chips bottom-left (tap = select that class), the command bar
 // bottom-right, and a reserves drawer. Every control is ≥ 44 px; nothing needs precision.
 import React, { useState } from 'react';
-import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX, Timer } from 'lucide-react';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -52,7 +52,13 @@ const BattleHud = ({
         <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
           <div className="px-3 py-1 rounded-full bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-semibold shadow-lg flex items-center gap-3">
             <span className="truncate max-w-[40vw] hidden min-[420px]:inline">{title || 'Battle'}</span>
-            <span className="font-mono">{fmtTime(timeLeft)}</span>
+            <span
+              data-testid="battle-clock"
+              title={playerSide === 1 ? 'Hold out until the clock runs out and the battle is yours' : 'Take the keep or break the defenders before time runs out — or the defender holds'}
+              className={`font-mono flex items-center gap-1 ${timeLeft <= 30 ? 'text-red-400 animate-pulse font-bold' : timeLeft <= 60 ? 'text-amber-300 font-bold' : ''}`}
+            >
+              <Timer className="w-3 h-3" />{fmtTime(timeLeft)}
+            </span>
             <span className="text-amber-300 font-mono" title="Battle Supply">⛁ {Math.floor(supply)}</span>
             <span className="text-orange-300 font-mono" title="Enemy squads left">⚔ {enemyLeft}</span>
           </div>
@@ -72,11 +78,23 @@ const BattleHud = ({
         </div>
       </div>
 
+      {started && timeLeft > 0 && timeLeft <= 60 && timeLeft > 55 && (
+        <div className="absolute top-28 inset-x-0 flex justify-center pointer-events-none px-4">
+          <div className="px-3 py-1.5 rounded-full bg-amber-500/90 text-slate-950 text-xs font-bold shadow-xl">
+            One minute left{playerSide === 1 ? ' — hold on!' : ' — take the keep now!'}
+          </div>
+        </div>
+      )}
       {!started && (
         <div className="absolute top-24 inset-x-0 flex justify-center pointer-events-none px-4">
           <div className="max-w-md text-center px-3 py-2 rounded-2xl bg-slate-900/85 border border-slate-600 text-slate-200 text-xs shadow-xl">
             <div className="font-bold text-sm text-white mb-1">Deploy your army</div>
             Tap a squad (or a class chip) to select it, tap the ground to move, tap an enemy to attack, drag from a selected squad to draw a battle line. Orders given now start when you press <b>Start</b>.
+            <div className="mt-1.5 text-amber-200">
+              ⏱ {fmtTime(timeLeft)} on the clock — {playerSide === 1
+                ? 'hold out until it runs out and the defense is yours.'
+                : 'take the keep or break the defenders before it runs out, or the defender holds.'}
+            </div>
           </div>
         </div>
       )}
