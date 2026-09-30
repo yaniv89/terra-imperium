@@ -10,7 +10,7 @@ import { canSeeRegionDetails } from '../../engine/intel';
 import { getRosterCombatMultiplier } from '../../data/unitClasses';
 import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
-import { validateInvasion, getInvasionBattleContext, getBattlePowers } from '../../engine/invasion';
+import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap } from './mapgen';
 import { polarX, polarY } from '../sim/fixed';
@@ -54,10 +54,11 @@ export const buildSetupFromArmies = ({
   defenseReduction = 1, isAttackingFortification = fortLevel > 0, attackerPenaltyMultiplier = 1,
   attackerNationId = 'attacker', defenderNationId = 'defender',
   controllers = ['player', 'ai'], difficultyId = 'prince',
-  powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true }
+  powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
+  landing = false
 }) => {
   const combatWidth = getCombatWidth(terrain);
-  const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) });
+  const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0), landing });
   const points = map.points.map((p, i) => ({ id: `p_${deposits[i]}`, kind: 'deposit', resId: deposits[i], x: centre(p.x), y: centre(p.y), owner: 1, progress: 0, capturingSide: -1 }));
   return {
     version: SETUP_VERSION,
@@ -158,8 +159,51 @@ const buildDefenseSetup = (state, pb) => {
   });
 };
 
+// A commanded amphibious landing (T9): the invaders come ashore on a beach at the west edge, with
+// their fleet's guns (two Naval Bombardment salvos) covering the shore half of the field. Their
+// own reinforcements can't follow by sea; the defender's neighbours can still march in.
+const buildAmphibiousSetup = (state, pb) => {
+  const v = validateAmphibious(state, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
+  if (!v.ok) return null;
+  const attackerUnits = v.embarkedLandUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
+  const defenderUnits = v.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
+  if (!attackerUnits.length || !defenderUnits.length) return null;
+  const ctx = getAmphibiousBattleContext(state, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
+  const regionData = REGIONS_DATA[pb.targetRegionId] || {};
+  const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, pb.targetRegionId, 'local.fortLevel').total;
+  return buildSetupFromArmies({
+    regionId: pb.targetRegionId,
+    terrain: ctx.terrain,
+    seed: pb.seed,
+    attackerUnits,
+    defenderUnits,
+    attackerAgeId: ctx.attackerAgeId,
+    defenderAgeId: ctx.defenderAgeId,
+    generals: ctx.generals || {},
+    fortLevel: Math.max(0, Math.round(fortLevel)),
+    isCapital: !!regionData.isCapital,
+    infrastructure: v.targetRegion.currentInfrastructure || 0,
+    deposits: getDepositsFor(regionData.startOwner),
+    defenseReduction: ctx.defenderDamageReductionMultiplier,
+    isAttackingFortification: ctx.isAttackingFortification,
+    attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
+    attackerNationId: state.playerNationId,
+    defenderNationId: v.targetRegion.owner,
+    controllers: ['player', 'ai'],
+    difficultyId: state.difficultyId || 'prince',
+    powers: [
+      [...getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), { id: 'navalBombardment', uses: 2 }],
+      getBattlePowers(state, v.targetRegion.owner, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })
+    ],
+    reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
+    intel: { attackerSeesDefender: canSeeRegionDetails(state, pb.targetRegionId) },
+    landing: true
+  });
+};
+
 export const buildInvasionSetup = (state, pendingBattle) => {
   if (pendingBattle?.kind === 'defense') return buildDefenseSetup(state, pendingBattle);
+  if (pendingBattle?.kind === 'amphibious') return buildAmphibiousSetup(state, pendingBattle);
   const { fromRegionId, targetRegionId, seed, playerSide = 'attacker' } = pendingBattle;
   const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;

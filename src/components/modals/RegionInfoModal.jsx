@@ -68,6 +68,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const [peeking, cancelPeek] = useAutoPeek(sheetShown);
   const [expanded, setExpanded] = useState(false);
   const [battleChoiceFrom, setBattleChoiceFrom] = useState(null);
+  const [landingChoice, setLandingChoice] = useState(null); // naval unit id of a landing awaiting "auto or command?"
   useEffect(() => { setExpanded(false); }, [regionId]);
 
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
@@ -169,6 +170,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   };
   const handleAmphibiousAssault = (navalUnitId) => {
     if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
+    // Tactical Battles T9: a defended beach can be stormed in command mode too.
+    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land');
+    const mode = state.battleSettings?.defaultMode || 'ask';
+    if (defended && mode === 'ask') { setLandingChoice(navalUnitId); return; }
+    if (defended && mode === 'command') { dispatch({ type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId: regionId } }); return; }
     triggerEffect('amphibious_assault', { from: state.units[navalUnitId]?.regionId, to: regionId });
     dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId: regionId } });
   };
@@ -502,6 +508,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       </Section>
 
       {battleChoiceFrom && <BattleChoiceSheet fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
+      {landingChoice && <BattleChoiceSheet navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
 
       {/* Description */}
       {regionData.description && (
