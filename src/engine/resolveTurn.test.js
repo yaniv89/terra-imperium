@@ -324,7 +324,9 @@ describe('resolveTurn economy (plan §M11)', () => {
 
 describe('resolveTurn unrest drift', () => {
   it('settles unrest toward 0 when every region is at full control', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), regions: { ...createInitialState({ playerNationId: 'fr' }).regions, [cap('fr')]: { ...createInitialState({ playerNationId: 'fr' }).regions[cap('fr')], unrest: 10 } } };
+    // Fixed seed: a random ruler's traits could otherwise push unrest up on their own (a flake).
+    const base = createInitialState({ playerNationId: 'fr', rngSeed: 12345 });
+    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, ruler: { ...base.nations.fr.ruler, traits: [] } } }, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], unrest: 10 } } };
     const next = resolveTurn(state);
     expect(next.regions[cap('fr')].unrest).toBeLessThan(10);
   });
@@ -863,12 +865,12 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
     };
   };
 
-  it('lets one AI nation actually occupy territory from another (plan §M13: occupation, not annexation)', () => {
+  it('lets one AI nation actually conquer territory from another', () => {
     const state = withCertainCapture('mx', 'ca', cap('ca'));
     const next = resolveTurn(state);
-    expect(next.regions[cap('ca')].owner).toBe('ca');
-    expect(next.regions[cap('ca')].occupiedBy).toBe('mx');
-    expect(next.regions[cap('ca')].formerOwner).toBeUndefined();
+    expect(next.regions[cap('ca')].owner).toBe('mx'); // conquered in battle
+    expect(next.regions[cap('ca')].conquest?.from).toBe('ca');
+    expect(next.regions[cap('ca')].formerOwner).toBe('ca'); // remembered, so it can revolt back
   });
 
   it('grinds a defended region\'s control instead of instantly capturing it in one turn (src/engine/siege.js)', () => {
@@ -884,11 +886,11 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
     expect(next.wars.find(w => w.id === 'war_1').active).toBe(true); // war goal not yet achieved
   });
 
-  it('lets an AI nation occupy territory from the PLAYER — every nation must be conquerable by anyone', () => {
+  it('lets an AI nation conquer territory from the PLAYER — every nation must be conquerable by anyone', () => {
     const state = withCertainCapture('de', 'fr', cap('fr'));
     const next = resolveTurn(state);
-    expect(next.regions[cap('fr')].owner).toBe('fr');
-    expect(next.regions[cap('fr')].occupiedBy).toBe('de');
+    expect(next.regions[cap('fr')].owner).toBe('de'); // conquered in battle
+    expect(next.regions[cap('fr')].conquest?.from).toBe('fr');
   });
 
   it('leaves a war the player started to be resolved by the player\'s own invasion actions, not synthetically', () => {

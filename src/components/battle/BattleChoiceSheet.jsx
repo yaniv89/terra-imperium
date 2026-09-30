@@ -70,14 +70,24 @@ const BattleChoiceSheet = ({ fromRegionId, targetRegionId, navalUnitId = null, o
           </div>
         )}
         {odds && !odds.undefended && hasIntel && (
-          <div className="space-y-1">
-            <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-800">
+          <div className="space-y-2 rounded-lg bg-slate-800/60 p-3" data-testid="battle-odds">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div><div className="text-lg font-bold text-blue-300">{pct(odds.attacker)}</div><div className="text-[10px] text-slate-400">you win</div></div>
+              <div><div className="text-lg font-bold text-emerald-300" data-testid="battle-odds-capture">{pct(odds.capture)}</div><div className="text-[10px] text-slate-400">take the region</div></div>
+              <div><div className="text-lg font-bold text-orange-300">{pct(odds.defender)}</div><div className="text-[10px] text-slate-400">they hold</div></div>
+            </div>
+            <div className="flex h-2 rounded-full overflow-hidden bg-slate-900">
               <div className="bg-blue-500" style={{ width: pct(odds.attacker) }} />
               <div className="bg-slate-500" style={{ width: pct(odds.stalemate) }} />
               <div className="bg-orange-500" style={{ width: pct(odds.defender) }} />
             </div>
-            <div className="text-[11px] text-slate-400">
-              Auto-resolve breaks through {pct(odds.attacker)} of the time · your {odds.attackerStrength} vs their {odds.defenderStrength} strength · expected losses {pct(odds.attackerLossShare)} vs {pct(odds.defenderLossShare)}
+            <div className="text-[11px] text-slate-400">Expected losses: yours {pct(odds.attackerLossShare)} · theirs {pct(odds.defenderLossShare)}{!odds.hasMelee ? ' · you need infantry or cavalry to take the region' : ''}</div>
+            <div className="flex flex-wrap gap-1" data-testid="battle-odds-factors">
+              {odds.factors.filter((f) => Math.abs(f.value - 1) >= 0.02).map((f) => (
+                <span key={f.id} className={`px-1.5 py-0.5 rounded text-[10px] border ${f.value > 1 ? 'border-emerald-500/50 text-emerald-300' : 'border-red-500/50 text-red-300'}`} title={f.detail || ''}>
+                  {f.label} ×{f.value.toFixed(2)}
+                </span>
+              ))}
             </div>
           </div>
         )}
@@ -86,7 +96,7 @@ const BattleChoiceSheet = ({ fromRegionId, targetRegionId, navalUnitId = null, o
           <Zap className="w-6 h-6 text-amber-300 shrink-0" />
           <span>
             <span className="block font-semibold text-white">Auto-resolve</span>
-            <span className="block text-xs text-slate-400">Instant. One round of fighting; the siege grinds on turn by turn.</span>
+            <span className="block text-xs text-slate-400">Instant. Fought in rounds until a line breaks — break their whole garrison and the region is yours.</span>
           </span>
         </button>
         {landing && (

@@ -474,7 +474,8 @@ const reject = (state, message) => ({
 // Why an attack was refused, in the player's words, so a click never silently does nothing.
 const ATTACK_REFUSALS = {
   not_your_region: 'You can only attack from a province you hold.',
-  bad_target: "That region can't be attacked.",
+  bad_target: "That region can't be attacked — it's already yours.",
+  already_held: 'Your army already holds that region — there is nothing left to fight for there.',
   not_adjacent: "That region isn't next to your army.",
   cost: 'Not enough resources to attack.',
   no_units: 'There are no troops there to attack with.',

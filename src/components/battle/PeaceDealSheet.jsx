@@ -1,9 +1,9 @@
 // src/components/battle/PeaceDealSheet.jsx
-// Negotiate a peace with real terms (plan §M13's OFFER_PEACE — until now the engine supported it
-// but nothing in the UI could send one, so conquered land could never actually become yours).
-// Occupation is not ownership: the regions your army holds are listed here, pre-selected as far as
-// the enemy would accept, and ceding them at the table is what makes them yours. Their acceptance
-// is shown live, line by line, from the same ledger the engine decides with (getPeaceAcceptance).
+// Negotiate a peace with real terms (plan §M13's OFFER_PEACE). Land you win in battle is already
+// yours (src/engine/conquest.js); the table is for what battle didn't settle: land they took from
+// you in this war (demand it back), anything your army merely occupies (older saves), gold,
+// reparations, humiliation. Pre-selected as far as the enemy would accept; their acceptance is shown
+// live, line by line, from the same ledger the engine decides with (getPeaceAcceptance).
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { HeartHandshake as Handshake, X, Check } from 'lucide-react';
@@ -21,9 +21,9 @@ const PeaceDealSheet = ({ warId, onClose }) => {
   const enemyId = war ? (war.aggressor === me ? war.enemy : war.aggressor) : null;
   const enemy = state.nations[enemyId];
 
-  // Their land your army holds, cheapest to demand first.
+  // Their land your army holds, or land they conquered from you in this war — cheapest first.
   const occupied = useMemo(() => (war ? Object.values(state.regions)
-    .filter((r) => r.owner === enemyId && r.occupiedBy === me)
+    .filter((r) => r.owner === enemyId && (r.occupiedBy === me || (r.conquest?.warId === war.id && r.conquest.from === me)))
     .map((r) => ({ id: r.id, name: REGIONS_DATA[r.id]?.name || r.id, cost: getTermCost(state, war, me, { type: 'cede', regionId: r.id }) }))
     .sort((a, b) => a.cost - b.cost) : []), [state, war, enemyId, me]);
 
@@ -59,15 +59,15 @@ const PeaceDealSheet = ({ warId, onClose }) => {
         <div className="p-4 pb-2 flex items-start justify-between">
           <div>
             <div className="text-base font-bold text-white flex items-center gap-2"><Handshake className="w-5 h-5 text-emerald-400" /> Peace with {enemy.name}</div>
-            <div className="text-xs text-slate-400">Land you occupy becomes yours only when they cede it here.</div>
+            <div className="text-xs text-slate-400">What you conquer in battle is already yours — here you can demand back what they took.</div>
           </div>
           <button type="button" onClick={onClose} className="p-2 -m-2 text-slate-400" aria-label="Close"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="px-4 space-y-3 overflow-y-auto">
           <div>
-            <div className="text-xs font-semibold text-slate-300 mb-1">Cede territory ({occupied.length} occupied)</div>
-            {occupied.length === 0 && <div className="text-[11px] text-slate-500">Your army holds none of their land yet — occupy regions first to demand them.</div>}
+            <div className="text-xs font-semibold text-slate-300 mb-1">Territory to demand ({occupied.length})</div>
+            {occupied.length === 0 && <div className="text-[11px] text-slate-500">Nothing to demand — they hold none of your land, and anything you win in battle is yours already.</div>}
             <div className="space-y-1">
               {occupied.map((r) => (
                 <button key={r.id} type="button" onClick={() => toggle(r.id)} className={`w-full min-h-[40px] px-3 rounded-lg border flex items-center justify-between text-sm ${ceded.has(r.id) ? 'bg-cyan-500/15 border-cyan-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`} data-testid="peace-cede">

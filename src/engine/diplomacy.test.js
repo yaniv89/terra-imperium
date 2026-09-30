@@ -332,15 +332,20 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
     expect(result.nations.ca.militaryStrength).toBeLessThan(before.ca);
   });
 
-  it('occupies (not annexes) the goal region when the capture roll succeeds (AI vs AI)', () => {
+  it('conquers the goal region outright when the capture roll succeeds (AI vs AI)', () => {
     const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
-    expect(result.regions[cap('ca')].owner).toBe('ca'); // unchanged — occupation, not annexation
-    expect(result.regions[cap('ca')].occupiedBy).toBe('mx');
-    expect(result.regions[cap('ca')].formerOwner).toBeUndefined();
+    const r = result.regions[cap('ca')];
+    expect(r.owner).toBe('mx'); // conquest: the land changes hands in battle
+    expect(r.occupiedBy).toBeUndefined();
+    expect(r.conquest).toMatchObject({ warId: 'war_1', from: 'ca', capital: true });
+    expect(r.control).toBe(25);
+    // Their capital fell, so it moved to their richest remaining province.
+    expect(result.nations.ca.capitalRegionId).not.toBe(cap('ca'));
+    expect(result.regions[result.nations.ca.capitalRegionId].owner).toBe('ca');
   });
 
-  it('an AI can occupy the PLAYER\'S region, exactly like any other nation', () => {
+  it('an AI can conquer the PLAYER\'S region, exactly like any other nation', () => {
     const state = usState();
     const war = {
       id: 'war_1', aggressor: 'ca', enemy: 'us', active: true, goalAchieved: false, startYear: state.year, startTurn: state.turnNumber,
@@ -348,8 +353,8 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
     };
     const withWar = { ...state, wars: [war] };
     const result = resolveWarProgress(withWar, withWar.regions, withWar.nations, withWar.wars, alwaysRolls);
-    expect(result.regions[cap('us')].owner).toBe('us');
-    expect(result.regions[cap('us')].occupiedBy).toBe('ca');
+    expect(result.regions[cap('us')].owner).toBe('ca');
+    expect(result.regions[cap('us')].conquest?.from).toBe('us');
   });
 
   it('records the capture as a battle, moving battleScore toward the taker', () => {
@@ -361,7 +366,7 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
   it('does not occupy the region when the roll fails, and the war stays active', () => {
     const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, neverRolls);
-    expect(result.regions[cap('ca')].occupiedBy).toBeUndefined();
+    expect(result.regions[cap('ca')].owner).toBe('ca');
     expect(result.wars[0].active).toBe(true);
   });
 
@@ -386,10 +391,18 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
     expect(result.wars[0].battleScore).toBe(40); // a crushed military counts as a maximally decisive battle
   });
 
-  it('does not accrue Aggressive Expansion merely from occupying a region — only from land actually changing hands at peace (see peace.test.js)', () => {
+  it('accrues Aggressive Expansion when land is conquered, just as when it is ceded at peace', () => {
     const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
     const result = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
-    expect(result.nations.ca.ae?.mx || 0).toBe(0);
+    expect(result.nations.ca.ae?.mx || 0).toBeGreaterThan(0);
+  });
+
+  it('keeps scoring land conquered in a war until the peace, then stops', () => {
+    const { state } = aiWarState({ goal: { type: 'capture_region', regionId: cap('ca') } });
+    const conquered = resolveWarProgress(state, state.regions, state.nations, state.wars, alwaysRolls);
+    const later = { ...state, regions: conquered.regions, nations: conquered.nations, wars: conquered.wars };
+    expect(getOccupationScore(later, conquered.wars[0])).toBeGreaterThan(0);
+    expect(getOccupationScore(later, { ...conquered.wars[0], id: 'another_war' })).toBe(0);
   });
 
   describe('the peace machinery (plan §M13)', () => {

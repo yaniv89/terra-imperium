@@ -10,6 +10,7 @@
 // aggressor's militaryStrength to make up the gap. Synthetic troops exist only for this battle:
 // they're stored on the defense record, never in state.units, and their losses come out of
 // militaryStrength afterwards.
+import { conquerRegion } from './conquest';
 import { LogTypes } from '../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
@@ -23,7 +24,7 @@ import { recordBattle } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { getRegionModifier } from './modifiers/sheet';
 import { XP_WIN, XP_LOSE } from './invasion';
-import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD } from './siege';
+import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD, isGarrisonBroken } from './siege';
 
 // Before this system, a successful capture roll against a garrisoned player region always did
 // full siege damage. Now the garrison fights back (getAssaultPressure averages about half), so the
@@ -187,8 +188,9 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
 
   const { outcome, attackerUnits, defenderUnits, report } = battle;
   const hasMeleeUnit = hasMeleeUnitDeployed(attackerUnits.filter((u) => u.strength > 0 && !u.routed));
-  const siege = pressure === null
-    ? resolveSiegeControlDamage({ currentControl: region.control, outcome, hasMeleeUnit })
+  const garrisonBroken = isGarrisonBroken(defenderUnits);
+  const siege = pressure === null || (outcome === 'attacker' && garrisonBroken)
+    ? resolveSiegeControlDamage({ currentControl: region.control, outcome, hasMeleeUnit, garrisonBroken })
     : siegeFromPressure(region.control, pressure, hasMeleeUnit);
   const captured = siege.captured || (decisive && outcome === 'attacker');
   const damaged = siege.nextControl < (region.control || 0);
@@ -226,16 +228,18 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
     else units[u.id] = { ...units[u.id], strength: u.strength, morale: u.morale, movesLeft: 0, lastBattleTurn: state.turnNumber };
   });
   const aggressor = state.nations[def.aggressorId];
-  const nations = aggressor && syntheticLoss > 0
+  let nations = aggressor && syntheticLoss > 0
     ? { ...state.nations, [def.aggressorId]: { ...aggressor, militaryStrength: Math.max(100, (aggressor.militaryStrength || 0) - syntheticLoss) } }
     : state.nations;
 
-  const regions = {
-    ...state.regions,
-    [def.regionId]: captured
-      ? { ...region, occupiedBy: def.aggressorId, control: 25, unrest: Math.max(region.unrest || 0, 50), lastAttackedTurn: state.turnNumber, underInvasion: false }
-      : { ...region, control: siege.nextControl, lastAttackedTurn: state.turnNumber, underInvasion: damaged }
-  };
+  // A province that falls is conquered outright (src/engine/conquest.js) — the same rule as the
+  // player's own invasions; win it back by invading it.
+  let regions;
+  if (captured) {
+    ({ regions, nations } = conquerRegion({ regions: state.regions, nations, turnNumber: state.turnNumber }, def.regionId, def.aggressorId, war));
+  } else {
+    regions = { ...state.regions, [def.regionId]: { ...region, control: siege.nextControl, lastAttackedTurn: state.turnNumber, underInvasion: damaged } };
+  }
 
   const winnerId = aggressorWon ? def.aggressorId : playerWon ? state.playerNationId : null;
   const wars = winnerId
@@ -245,7 +249,7 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
   const name = REGIONS_DATA[def.regionId]?.name || def.regionId;
   const enemy = aggressor?.name || def.aggressorId;
   const message = captured
-    ? `${enemy} storms ${name} and occupies it!${fallback ? ` Your survivors fall back to ${REGIONS_DATA[fallback]?.name || fallback}.` : ''}`
+    ? `${enemy} storms ${name} and conquers it!${fallback ? ` Your survivors fall back to ${REGIONS_DATA[fallback]?.name || fallback}.` : ''}`
     : damaged
       ? `${enemy} presses the siege of ${name} (control now ${siege.nextControl}%). Your garrison holds on.`
       : `Your garrison repels ${enemy}'s assault on ${name}!`;

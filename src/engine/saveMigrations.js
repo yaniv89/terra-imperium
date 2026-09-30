@@ -15,11 +15,12 @@
 //   (no migration needed yet) still gets any new field for free.
 import { createInitialState } from './gameReducer';
 import { getNationCapital } from '../data/regions';
+import { conquerRegion } from './conquest';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-export const CURRENT_SAVE_VERSION = 4;
+export const CURRENT_SAVE_VERSION = 5;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
@@ -115,7 +116,25 @@ const migrate3to4 = (state) => {
   return { ...restState, nations, greatProjects };
 };
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4 };
+// v5: land is taken by force now (src/engine/conquest.js) — a region won in battle changes owner on
+// the spot instead of sitting "occupied" until a peace deal. An occupation in a war that is still
+// running becomes the conquest it would have been; anything else (a civil war's pretender, a stale
+// marker from a war that already ended) is left alone.
+const migrate4to5 = (state) => {
+  let regions = state.regions;
+  let nations = state.nations;
+  const liveWars = (state.wars || []).filter((w) => w.active);
+  Object.values(state.regions).forEach((region) => {
+    const taker = region.occupiedBy;
+    if (!taker || taker === region.owner) return;
+    const war = liveWars.find((w) => (w.aggressor === taker && w.enemy === region.owner) || (w.enemy === taker && w.aggressor === region.owner));
+    if (!war || !nations[taker]) return;
+    ({ regions, nations } = conquerRegion({ regions, nations, turnNumber: state.turnNumber }, region.id, taker, war));
+  });
+  return { ...state, regions, nations };
+};
+
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

@@ -4,12 +4,18 @@
 // imports — so combat replays identically from a seed, which is what the multiplayer story (plan
 // §10, server-authoritative replay) depends on.
 //
-// One call resolves one engagement: the units each side actually deploys (bounded by combat
-// width) fight a single round of ranged fire, melee, and flanking, then morale checks decide who
-// routs and pursuit converts a broken loser's routs into real casualties. A side only loses the
-// engagement if its deployed line is entirely destroyed or routed — an inconclusive exchange counts
-// as the defender holding, matching how an attacker that fails to break the defense has failed to
-// take the ground.
+// One call resolves one engagement, fought in ROUNDS until a line breaks (at most MAX_BATTLE_ROUNDS):
+// the units each side deploys (bounded by combat width) trade ranged fire and melee, cavalry held
+// in reserve wraps the flank on the first round, and after every round morale is checked — a unit
+// routs once it has lost enough of itself (morale falls with the SHARE of the unit lost, so a big
+// regiment and a small one break at the same casualty rate). Dead and routed units leave the line
+// and fresh ones step in from reserve. A side loses when it has no unbroken unit left to put in
+// the line; pursuit then converts the loser's routs into real casualties. Both sides strike at the
+// same instant each phase (no first-strike bias), so on open ground equal armies are a coin flip —
+// terrain, walls, age, counters, promotions and generals are what tilt it. A battle still
+// undecided after the last round counts as the defender holding: the attacker failed to take the
+// ground. (Before, a battle was a single exchange whose morale damage could never break anyone,
+// so every auto-resolved attack on a garrison ended as a "defender" win.)
 //
 // Promotions (src/data/promotions.js) and generals (src/data/generals.js) both bias combat through
 // the same per-hit multiplier stack in dealDamage — every phase stays consistent by construction.
@@ -42,6 +48,10 @@ const BASE_DAMAGE_RATE = 0.1; // fraction of an attacking unit's strength dealt 
 const RNG_VARIANCE = 0.1; // +/-10% swing per damage roll, seeded so it's still reproducible
 const FLANK_BONUS_MULT = 1.3;
 const PURSUIT_EXTRA_LOSS_MULT = 0.5; // routed units lose another 50% of their remaining strength when pursued
+export const MAX_BATTLE_ROUNDS = 8;
+export const BATTLE_FORTUNE = 0.3; // ± per side, per battle
+// Morale lost per 1% of a unit's own (battle-start) strength lost: ~27% casualties breaks a fresh unit.
+export const MORALE_LOSS_PER_PERCENT = 3;
 
 // Shared with the tactical sim (src/battle/sim) so both resolution paths use the same constants.
 export { BASE_DAMAGE_RATE, RNG_VARIANCE, MORALE_ROUT_THRESHOLD, FLANK_BONUS_MULT, PURSUIT_EXTRA_LOSS_MULT };
@@ -74,64 +84,89 @@ export const computeHitMultiplier = (unit, target, { phase, sourceIsInvadingFort
   return multiplier;
 };
 
-const dealDamage = (rng, phase, unit, target, ctx, log) => {
-  if (unit.strength <= 0 || target.strength <= 0) return;
+// One hit, computed from the dealer's strength NOW but applied later (applyHits), so both sides of
+// a phase strike simultaneously.
+const rollHit = (rng, phase, unit, target, ctx, log, round, share = 1) => {
+  if (unit.strength <= 0 || target.strength <= 0) return null;
   const roll = rng.next();
   const variance = 1 + (roll * 2 - 1) * RNG_VARIANCE;
   const multiplier = computeHitMultiplier(unit, target, { ...ctx, phase });
-  const damage = Math.max(0, Math.round(unit.strength * BASE_DAMAGE_RATE * multiplier * variance));
-  if (damage <= 0) return;
-  target.strength = Math.max(0, target.strength - damage);
-  const moraleLoss = Math.round((damage / 25) * getPromotionMoraleLossMultiplier(target));
-  target.morale = Math.max(0, target.morale - moraleLoss);
+  const damage = Math.max(0, Math.round(unit.strength * BASE_DAMAGE_RATE * multiplier * variance * share));
+  if (damage <= 0) return null;
   // `roll` (plan §M14: "the battle report shows the dice for each phase") is the raw 0-1 draw behind
   // this hit's variance swing, exposed alongside the multiplier it already logged — a UI battle
   // report can render either as a literal die without re-deriving anything from `damage`.
-  log.push({ phase, attackerId: unit.id, attackerClass: unit.classId, defenderId: target.id, defenderClass: target.classId, damage, multiplier: Math.round(multiplier * 100) / 100, roll: Math.round(roll * 100) / 100 });
+  log.push({ round, phase, attackerId: unit.id, attackerClass: unit.classId, defenderId: target.id, defenderClass: target.classId, damage, multiplier: Math.round(multiplier * 100) / 100, roll: Math.round(roll * 100) / 100 });
+  return { target, damage };
 };
 
-// One side's units deal damage to the other side's front line, index-paired (wrapping if uneven).
+// Casualties cost morale in proportion to the share of the unit lost this battle.
+const applyHits = (hits) => hits.forEach((h) => {
+  if (!h) return;
+  const { target, damage } = h;
+  const dealt = Math.min(target.strength, damage);
+  target.strength = Math.max(0, target.strength - damage);
+  const pct = (100 * dealt) / Math.max(1, target._start);
+  target.morale = Math.max(0, target.morale - Math.round(pct * MORALE_LOSS_PER_PERCENT * getPromotionMoraleLossMultiplier(target)));
+});
+
+// One side's units hit the other side's front line, index-paired. A side with more units in the
+// line than the enemy has overlaps it: the surplus units spread their blows across the whole enemy
+// line (an overlapping wing presses everywhere) rather than piling onto one unit, which used to
+// rout it at once and snowball a small numbers edge into a certain win.
 // `classFilter` scopes this to just the ranged or just the melee units for that phase.
-const exchangeDamage = (rng, phase, sourceUnits, targetUnits, ctx, log) => {
+const collectHits = (rng, phase, sourceUnits, targetUnits, ctx, log, round) => {
+  const hits = [];
+  const n = targetUnits.length;
+  if (n === 0) return hits;
   sourceUnits.forEach((unit, i) => {
     if (unit.strength <= 0) return;
     if (ctx.classFilter && !ctx.classFilter(unit.classId)) return;
-    if (targetUnits.length === 0) return;
-    dealDamage(rng, phase, unit, targetUnits[i % targetUnits.length], ctx, log);
+    if (i < n) { hits.push(rollHit(rng, phase, unit, targetUnits[i], ctx, log, round)); return; }
+    targetUnits.forEach((target) => hits.push(rollHit(rng, phase, unit, target, ctx, log, round, 1 / n)));
   });
+  return hits;
 };
 
 // Volley Fire's capstone: a ranged unit that already fired gets a second shot, aimed independently
 // at whichever enemy on the front line is currently weakest rather than its original index-paired
 // target (which may already be dead).
-const volleyFirePhase = (rng, sourceFront, targetFront, ctx, log) => {
-  const volleyUnits = sourceFront.filter((u) => u.classId === 'ranged' && hasPerk(u, 'volleyFire') && u.strength > 0);
-  volleyUnits.forEach((unit) => {
+const volleyHits = (rng, sourceFront, targetFront, ctx, log, round) => sourceFront
+  .filter((u) => u.classId === 'ranged' && hasPerk(u, 'volleyFire') && u.strength > 0)
+  .map((unit) => {
     const target = [...targetFront].filter((t) => t.strength > 0).sort((a, b) => a.strength - b.strength)[0];
-    if (!target) return;
-    dealDamage(rng, 'ranged', unit, target, ctx, log);
+    return target ? rollHit(rng, 'ranged', unit, target, ctx, log, round) : null;
   });
-};
 
 // Cavalry held in reserve (beyond combat width) wraps the flank instead of joining the front line —
 // it hits the enemy front for a bonus and, since it was never deployed, takes no return damage.
-const flankingPhase = (rng, sourceReserve, targetFront, ctx, log) => {
-  const flankers = sourceReserve.filter((u) => u.classId === 'cavalry' && u.strength > 0);
-  flankers.forEach((unit, i) => {
-    if (targetFront.length === 0) return;
-    dealDamage(rng, 'flanking', unit, targetFront[i % targetFront.length], { ...ctx, baseMultiplier: (ctx.baseMultiplier ?? 1) * FLANK_BONUS_MULT }, log);
-  });
-};
+const flankHits = (rng, sourceReserve, targetFront, ctx, log, round) => sourceReserve
+  .filter((u) => u.classId === 'cavalry' && u.strength > 0)
+  .map((unit, i) => (targetFront.length
+    ? rollHit(rng, 'flanking', unit, targetFront[i % targetFront.length], { ...ctx, baseMultiplier: (ctx.baseMultiplier ?? 1) * FLANK_BONUS_MULT }, log, round)
+    : null));
 
 // Unbreakable's capstone: the first time a unit's morale would break it this battle, it shrugs the
-// rout off instead — a fresh immunity every engagement, not a permanently-spent charge.
-const markRouted = (units) => units.map((u) => {
+// rout off instead — once per engagement, a fresh immunity every battle.
+const markRouted = (units) => units.forEach((u) => {
   const wouldRout = u.strength > 0 && u.morale <= MORALE_ROUT_THRESHOLD;
-  if (wouldRout && hasPerk(u, 'unbreakable')) return { ...u, morale: MORALE_ROUT_THRESHOLD + 1, routed: false };
-  return { ...u, routed: wouldRout };
+  if (wouldRout && hasPerk(u, 'unbreakable') && !u._shrugged) { u.morale = MORALE_ROUT_THRESHOLD + 1; u.routed = false; u._shrugged = true; return; }
+  u.routed = wouldRout;
 });
 
-const isBroken = (frontLine) => frontLine.length === 0 || frontLine.every((u) => u.strength <= 0 || u.routed);
+const canFight = (u) => u.strength > 0 && !u.routed;
+
+// Between rounds: the dead and routed leave the line; fresh units step in from reserve.
+const refillLine = (front, reserve, combatWidth, fought) => {
+  const standing = front.filter(canFight);
+  const fresh = reserve.filter(canFight).sort((a, b) => b.strength - a.strength);
+  while (standing.length < combatWidth && fresh.length) {
+    const u = fresh.shift();
+    standing.push(u);
+    fought.add(u.id);
+  }
+  return standing;
+};
 
 // The winning side's strongest surviving cavalry runs down the loser's routed units for extra
 // casualties — Overrun and Relentless (both pursuit-phase promotion/capstone perks) apply here via
@@ -182,60 +217,104 @@ export const resolveBattle = ({
   const terrainMod = getTerrainCombatModifier(terrain);
   const log = [];
 
-  const { front: attFront, reserve: attReserve } = deploy(attackerUnits, combatWidth);
-  const { front: defFront, reserve: defReserve } = deploy(defenderUnits, combatWidth);
+  // Every unit's battle-start strength is the yardstick its morale losses are measured against.
+  const prep = (units) => units.map((u) => ({ ...clone(u), _start: Math.max(1, u.strength), routed: false }));
+  const attAll = prep(attackerUnits);
+  const defAll = prep(defenderUnits);
+  const { front: attDeployed, reserve: attReserveStart } = deploy(attAll, combatWidth);
+  const { front: defDeployed, reserve: defReserveStart } = deploy(defAll, combatWidth);
+  // deploy() clones; keep working on the same objects as attAll/defAll.
+  const byId = (all) => new Map(all.map((u) => [u.id, u]));
+  const attMap = byId(attAll); const defMap = byId(defAll);
+  let attFront = attDeployed.map((u) => attMap.get(u.id));
+  let defFront = defDeployed.map((u) => defMap.get(u.id));
+  const attReserve = attReserveStart.map((u) => attMap.get(u.id));
+  const defReserve = defReserveStart.map((u) => defMap.get(u.id));
+  const attFought = new Set(attFront.map((u) => u.id));
+  const defFought = new Set(defFront.map((u) => u.id));
 
   const attackerRosterMult = getRosterCombatMultiplier(attackerAgeId, defenderAgeId);
   const defenderRosterMult = getRosterCombatMultiplier(defenderAgeId, attackerAgeId);
 
   // Terrain favors the DEFENDER (plan §M14's own table: hills/forest/mountains all reduce the
   // attacker's output, none reduce the defender's) — folded only into the attacker's own multiplier.
-  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult };
-  const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false, baseMultiplier: defenderRosterMult };
-
-  // Ranged phase: archers/artillery on both sides fire before contact, no return fire this phase.
-  exchangeDamage(rng, 'ranged', attFront, defFront, attackerCtx, log);
-  exchangeDamage(rng, 'ranged', defFront, attFront, defenderCtx, log);
-  volleyFirePhase(rng, attFront, defFront, attackerCtx, log);
-  volleyFirePhase(rng, defFront, attFront, defenderCtx, log);
-
-  // Shock phase: everyone else (infantry, cavalry, air, support) trades blows.
+  // The fortunes of war: one battle-wide roll per side (weather, a general's good day, the ground
+  // underfoot), so the stronger side is favoured but an underdog can still carry the day.
+  const attackerFortune = 1 + (rng.next() * 2 - 1) * BATTLE_FORTUNE;
+  const defenderFortune = 1 + (rng.next() * 2 - 1) * BATTLE_FORTUNE;
+  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult * attackerFortune };
+  const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false, baseMultiplier: defenderRosterMult * defenderFortune };
   const isMelee = (classId) => !isRangedClass(classId);
-  exchangeDamage(rng, 'shock', attFront, defFront, { ...attackerCtx, classFilter: isMelee }, log);
-  exchangeDamage(rng, 'shock', defFront, attFront, { ...defenderCtx, classFilter: isMelee }, log);
 
-  // Flanking: reserve cavalry on both sides wraps the opposing front line.
-  flankingPhase(rng, attReserve, defFront, attackerCtx, log);
-  flankingPhase(rng, defReserve, attFront, defenderCtx, log);
+  let attackerBroken = attFront.length === 0;
+  let defenderBroken = defFront.length === 0;
+  let rounds = 0;
+  while (!attackerBroken && !defenderBroken && rounds < MAX_BATTLE_ROUNDS) {
+    rounds += 1;
+    // Ranged phase: archers/artillery on both sides fire (every round — they keep shooting).
+    applyHits([
+      ...collectHits(rng, 'ranged', attFront, defFront, attackerCtx, log, rounds),
+      ...collectHits(rng, 'ranged', defFront, attFront, defenderCtx, log, rounds),
+      ...volleyHits(rng, attFront, defFront, attackerCtx, log, rounds),
+      ...volleyHits(rng, defFront, attFront, defenderCtx, log, rounds)
+    ]);
+    // Shock phase: everyone else (infantry, cavalry, air, support) trades blows.
+    applyHits([
+      ...collectHits(rng, 'shock', attFront, defFront, { ...attackerCtx, classFilter: isMelee }, log, rounds),
+      ...collectHits(rng, 'shock', defFront, attFront, { ...defenderCtx, classFilter: isMelee }, log, rounds)
+    ]);
+    // Flanking: on the opening round, reserve cavalry on both sides wraps the opposing line.
+    if (rounds === 1) {
+      applyHits([
+        ...flankHits(rng, attReserve, attFront.length ? defFront : [], attackerCtx, log, rounds),
+        ...flankHits(rng, defReserve, attFront, defenderCtx, log, rounds)
+      ]);
+    }
+    markRouted(attFront); markRouted(defFront);
+    attFront = refillLine(attFront, attReserve, combatWidth, attFought);
+    defFront = refillLine(defFront, defReserve, combatWidth, defFought);
+    attackerBroken = attFront.length === 0;
+    defenderBroken = defFront.length === 0;
+  }
 
-  const attFrontResolved = markRouted(attFront);
-  const defFrontResolved = markRouted(defFront);
+  // Both lines broke in the same round: whoever still has clearly more men on the field holds it.
+  const standing = (all) => all.reduce((sum, u) => sum + Math.max(0, u.strength), 0);
+  const mutual = attackerBroken && defenderBroken
+    ? (standing(attAll) > standing(defAll) * 1.1 ? 'attacker' : standing(defAll) > standing(attAll) * 1.1 ? 'defender' : 'stalemate')
+    : null;
+  // Undecided after the last round: the defender holds — the attacker failed to take the ground.
+  const outcome = mutual || (defenderBroken ? 'attacker' : 'defender');
 
-  const attackerBroken = isBroken(attFrontResolved);
-  const defenderBroken = isBroken(defFrontResolved);
-
-  // An inconclusive exchange (neither line breaks) counts as the defender holding — the attacker
-  // failed to take the ground, same as real warfare.
-  const outcome = defenderBroken ? (attackerBroken ? 'stalemate' : 'attacker') : 'defender';
-
-  if (outcome === 'attacker') pursuitPhase([...attFrontResolved, ...attReserve], defFrontResolved, generals, log);
-  if (outcome === 'defender') pursuitPhase([...defFrontResolved, ...defReserve], attFrontResolved, generals, log);
+  const finish = (all) => all.map((u) => {
+    // eslint-disable-next-line no-unused-vars -- battle-internal bookkeeping, not unit state
+    const { _start, _shrugged, ...rest } = u;
+    return { ...rest, routed: !!rest.routed && rest.strength > 0 };
+  });
+  if (outcome === 'attacker') pursuitPhase(attAll, defAll, generals, log);
+  if (outcome === 'defender' && attackerBroken) pursuitPhase(defAll, attAll, generals, log);
+  // (a mutual collapse won on numbers still leaves the winner's own routed men to rally — no pursuit
+  // of the winner; pursuit only ever runs the loser down.)
+  const attOut = finish(attAll);
+  const defOut = finish(defAll);
 
   return {
     outcome,
-    attackerUnits: [...attFrontResolved, ...attReserve],
-    defenderUnits: [...defFrontResolved, ...defReserve],
+    attackerUnits: attOut,
+    defenderUnits: defOut,
     report: {
       combatWidth,
       terrain,
       isAttackingFortification,
-      deployedAttackers: attFront.length,
-      deployedDefenders: defFront.length,
-      reserveAttackers: attReserve.length,
-      reserveDefenders: defReserve.length,
-      // Only deployed units actually fought — this is what the caller should award battle XP to.
-      deployedAttackerIds: attFront.map((u) => u.id),
-      deployedDefenderIds: defFront.map((u) => u.id),
+      rounds,
+      fortune: { attacker: Math.round(attackerFortune * 100) / 100, defender: Math.round(defenderFortune * 100) / 100 },
+      deployedAttackers: attFought.size,
+      deployedDefenders: defFought.size,
+      reserveAttackers: attAll.length - attFought.size,
+      reserveDefenders: defAll.length - defFought.size,
+      // Only units that actually stood in the line fought — this is what the caller should award
+      // battle XP to (reserves that stepped in as the line thinned count).
+      deployedAttackerIds: [...attFought],
+      deployedDefenderIds: [...defFought],
       outcome,
       log
     }

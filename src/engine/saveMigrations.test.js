@@ -188,4 +188,19 @@ describe('migrateSave: v1 -> v2 (AP -> ADM/DIP/MIL)', () => {
     expect(result.state.resources.adm).toBe(0);
     expect(result.state.resources.dip).toBe(0);
   });
+
+  it('v4 → v5: an occupation in a war still being fought becomes a conquest; others are left alone', () => {
+    const s = createInitialState({ playerNationId: 'fr' });
+    const beRegion = Object.keys(s.regions).find((id) => s.regions[id].owner === 'be');
+    const deRegion = Object.keys(s.regions).find((id) => s.regions[id].owner === 'de');
+    const old = {
+      ...s,
+      wars: [{ id: 'w1', aggressor: 'fr', enemy: 'be', active: true, battleScore: 0, tickScore: 0, score: 0 }],
+      regions: { ...s.regions, [beRegion]: { ...s.regions[beRegion], occupiedBy: 'fr' }, [deRegion]: { ...s.regions[deRegion], occupiedBy: 'fr' } }
+    };
+    const out = migrateSave({ version: 4, state: old }).state;
+    expect(out.regions[beRegion]).toMatchObject({ owner: 'fr', conquest: { warId: 'w1', from: 'be' } });
+    expect(out.regions[beRegion].occupiedBy).toBeUndefined();
+    expect(out.regions[deRegion]).toMatchObject({ owner: 'de', occupiedBy: 'fr' }); // no war with de: untouched
+  });
 });

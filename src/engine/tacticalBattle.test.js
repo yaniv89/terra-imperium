@@ -54,7 +54,7 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     const s = baseState();
     const next = begin({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } });
     expect(next.pendingBattle).toBeNull();
-    expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
+    expect(next.regions[BE_REGION].owner).toBe('fr');
   });
 
   it('refuses without a war, like LAUNCH_INVASION', () => {
@@ -117,7 +117,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
       report: { deployedAttackerIds: pb.attackerUnitIds, deployedDefenderIds: pb.defenderUnitIds, log: [], tactical: { decisive: true } }
     };
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
-    expect(next.regions[BE_REGION].occupiedBy).toBe('fr');
+    expect(next.regions[BE_REGION].owner).toBe('fr');
     expect(next.units.a1.regionId).toBe(BE_REGION);
   });
 
@@ -308,7 +308,7 @@ describe('T9: commanded amphibious landing', () => {
     const { gb1, ...rest } = s.units; // eslint-disable-line no-unused-vars
     const empty = beginLanding({ ...s, units: rest });
     expect(empty.pendingBattle).toBeNull();
-    expect(empty.regions[GB_TARGET].occupiedBy).toBe('fr');
+    expect(empty.regions[GB_TARGET].owner).toBe('fr');
   });
 
   it('the fleet\'s guns only reach the shore half of the field', () => {
@@ -321,20 +321,43 @@ describe('T9: commanded amphibious landing', () => {
   });
 });
 
-describe('occupation → annexation (reported: "occupied Aqaba but it didn\'t change owner")', () => {
-  it('an occupied region becomes yours when the enemy cedes it in a peace deal', () => {
+describe('conquest by battle (reported: "I won but the region didn\'t become mine / I could attack it forever")', () => {
+  it('a won invasion makes the region yours on the spot, and it can\'t be attacked again', () => {
     const s0 = withArmies();
-    // Take the undefended region by auto-resolve: occupied, not owned.
     const s = { ...s0, units: { a1: s0.units.a1 } };
     const taken = gameReducer(s, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-    expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'be', occupiedBy: 'fr' });
-    expect(taken.logs.at(-1).message).toMatch(/until peace/);
-    // Winning the war enough that they accept, then demanding it at the table.
-    const winning = { ...taken, wars: taken.wars.map((w) => (w.id === 'war_t' ? { ...w, score: 80 } : w)) };
-    const peace = gameReducer(winning, { type: ActionTypes.OFFER_PEACE, payload: { warId: 'war_t', terms: [{ type: 'cede', regionId: BE_REGION }] } });
-    expect(peace.regions[BE_REGION].owner).toBe('fr');
-    expect(peace.regions[BE_REGION].occupiedBy).toBeFalsy();
-    expect(peace.wars.find((w) => w.id === 'war_t').active).toBe(false);
+    expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'fr', control: 25, formerOwner: 'be' });
+    expect(taken.regions[BE_REGION].occupiedBy).toBeUndefined();
+    expect(taken.regions[BE_REGION].conquest).toMatchObject({ warId: 'war_t', from: 'be' });
+    expect(taken.logs.at(-1).message).toMatch(/conquered/);
+    expect(taken.units.a1.regionId).toBe(BE_REGION);
+    // Attacking it again is refused (it's your own land now), nothing is spent.
+    const again = gameReducer({ ...taken, units: { ...taken.units, a2: { ...s0.units.a1, id: 'a2', movesLeft: 1 } } }, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+    expect(again.regions).toEqual(taken.regions);
+    expect(again.resources).toEqual(taken.resources);
+  });
+
+  it('an occupation from an older save can\'t be invaded over and over either', async () => {
+    const { validateInvasion } = await import('./invasion');
+    const s = withArmies();
+    const held = { ...s, regions: { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: 'fr' } } };
+    expect(validateInvasion(held, FR_BORDER, BE_REGION).reason).toBe('already_held');
+  });
+
+  it('your own troops standing in the target are never counted as its garrison', async () => {
+    const { validateInvasion } = await import('./invasion');
+    const s = withArmies();
+    const mixed = { ...s, units: { ...s.units, mine: { ...s.units.a1, id: 'mine', regionId: BE_REGION } } };
+    const v = validateInvasion(mixed, FR_BORDER, BE_REGION);
+    expect(v.defenderUnits.every((u) => u.ownerId !== 'fr')).toBe(true);
+  });
+
+  it('the enemy can demand conquered land back at the peace table', async () => {
+    const { buildAITerms } = await import('./peace');
+    const s0 = withArmies();
+    const taken = gameReducer({ ...s0, units: { a1: s0.units.a1 } }, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
+    const war = { ...taken.wars.find((w) => w.id === 'war_t'), score: -60 };
+    expect(buildAITerms(taken, war, 'be')).toContainEqual({ type: 'cede', regionId: BE_REGION });
   });
 
   it('the map shows occupation: an occupied region is drawn differently from its owner\'s land', async () => {
@@ -343,5 +366,22 @@ describe('occupation → annexation (reported: "occupied Aqaba but it didn\'t ch
     const occupied = { ...s.regions, [BE_REGION]: { ...s.regions[BE_REGION], occupiedBy: 'fr' } };
     expect(getRegionFillColor(occupied, 'fr', BE_REGION)).not.toBe(getRegionFillColor(s.regions, 'fr', BE_REGION));
     expect(getRegionStrokeColor(occupied, 'fr', BE_REGION, null, new Set())).toBe(OCCUPIED_BY_PLAYER_COLOR);
+  });
+});
+
+describe('auto-resolve is fair and explains itself (reported: "check the auto battle is fair")', () => {
+  it('a stronger army usually wins and takes the region; a weaker one usually fails; the odds say why', async () => {
+    const { estimateInvasionOdds } = await import('./battleOdds');
+    const s = withArmies();
+    const garrison = Object.values(s.units).filter((u) => u.regionId === BE_REGION);
+    expect(garrison.length).toBeGreaterThan(0);
+    const mine = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`x${i}`, { ...garrison[0], id: `x${i}`, ownerId: 'fr', regionId: FR_BORDER, classId: 'infantry', movesLeft: 1, strength: garrison[0].strength }]));
+    const others = Object.fromEntries(Object.entries(s.units).filter(([, u]) => u.regionId !== FR_BORDER));
+    const strong = estimateInvasionOdds({ ...s, units: { ...others, ...mine(garrison.length * 3) } }, FR_BORDER, BE_REGION, 120);
+    const weak = estimateInvasionOdds({ ...s, units: { ...others, ...mine(1) } }, FR_BORDER, BE_REGION, 120);
+    expect(strong.attacker).toBeGreaterThan(0.7);
+    expect(strong.capture).toBeGreaterThan(0.6);
+    expect(weak.attacker).toBeLessThan(strong.attacker);
+    expect(strong.factors.find((f) => f.id === 'numbers').value).toBeGreaterThan(1);
   });
 });
