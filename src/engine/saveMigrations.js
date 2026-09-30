@@ -30,6 +30,12 @@ export const CURRENT_SAVE_VERSION = 4;
 // base. diplomacyPoints folds into dip on top, 1:1, matching how the two currencies now share one
 // pool going forward.
 const migrate1to2 = (state) => {
+  // Bug fix: saves were written with an envelope version of 1 long after the state moved to the
+  // power pools, so this migration ran on EVERY load of a current save and zeroed ADM/DIP/MIL (and
+  // their per-turn income). A state that already has the pools and no actionPoints is not a v1
+  // save, whatever its envelope says — pass it through untouched.
+  const r = state.resources || {};
+  if (r.actionPoints === undefined && Number.isFinite(r.adm) && Number.isFinite(r.dip) && Number.isFinite(r.mil)) return state;
   // eslint-disable-next-line no-unused-vars -- destructured only to omit it from restResources; the new maxAdm/maxDip/maxMil below replace it
   const { actionPoints, maxActionPoints, diplomacyPoints, ...restResources } = state.resources || {};
   const perPool = Math.max(0, Math.round((actionPoints || 0) * 3 / 5));
