@@ -11,6 +11,7 @@ import { callCost } from './orders';
 import { isFighting } from './combat';
 import { canSeeSquad } from './fog';
 import { getSquadAbilities, powerState, POWERS } from './effects';
+import { canGarrison, garrisonRoom } from './objectives';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 
 export const AI_DIFFICULTY = {
@@ -22,7 +23,8 @@ export const AI_DIFFICULTY = {
 };
 const DEFENSE_RADIUS = 24 * Q;
 
-const own = (w, side) => w.squads.filter((q) => q.side === side && isFighting(q) && !q.routed && !q.retreating);
+// Squads out in the open (a garrison stays put; its building does the fighting).
+const own = (w, side) => w.squads.filter((q) => q.side === side && isFighting(q) && !q.routed && !q.retreating && !(q.inside >= 0));
 const visibleEnemies = (w, side) => w.squads.filter((q) => q.side !== side && isFighting(q) && !q.routed && canSeeSquad(w, side, q));
 const nearest = (list, x, y, maxD = Infinity) => {
   let best = null; let bestD = maxD * maxD;
@@ -126,8 +128,30 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   orders.push({ side, type: 'attackMove', squads: group, x: cx + Math.trunc((dx * hop) / d), y: cy + Math.trunc((dy * hop) / d), formation: 'line' });
 };
 
+// Prince+: man the keep and towers — ranged first — while keeping at least half the army outside.
+const GARRISON_REACH = 16 * Q;
+const garrisonBuildings = (w, side, mine, orders) => {
+  const army = w.squads.filter((q) => q.side === side && isFighting(q) && !q.routed);
+  const inside = army.filter((q) => q.inside >= 0 || q.order.type === 'garrison').length;
+  let budget = Math.floor(army.length / 2) - inside;
+  if (budget <= 0 || mine.length < 2) return mine;
+  const sent = new Set();
+  w.structures.forEach((s, si) => {
+    let room = garrisonRoom(w, si) - w.squads.filter((q) => q.order.type === 'garrison' && q.order.structure === si).length;
+    while (room > 0 && budget > 0) {
+      const candidates = mine.filter((q) => !sent.has(q.idx) && canGarrison(q) && q.order.type !== 'garrison' && q.target < 0 && distSq(q.x, q.y, s.x, s.y) <= GARRISON_REACH * GARRISON_REACH);
+      const pick = nearest(candidates.filter((q) => q.classId === 'ranged'), s.x, s.y) || nearest(candidates, s.x, s.y);
+      if (!pick) break;
+      orders.push({ side, type: 'garrison', squads: [pick.idx], structure: si });
+      sent.add(pick.idx); room -= 1; budget -= 1;
+    }
+  });
+  return mine.filter((q) => !sent.has(q.idx));
+};
+
 const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   const keep = w.structures[0];
+  if (cfg.abilities && w.assimilation === 0) mine = garrisonBuildings(w, side, mine, orders);
   const threat = nearest(enemies, keep.x, keep.y, DEFENSE_RADIUS);
   // The keep being taken beats everything else: everyone back to it.
   if (w.assimilation > 0) {
@@ -142,7 +166,7 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
         return;
       }
     }
-    if (q.target >= 0 || q.order.type === 'attackMove') return;
+    if (q.target >= 0 || q.order.type === 'attackMove' || q.order.type === 'garrison') return;
     if (threat) orders.push({ side, type: 'attackMove', squads: [q.idx], x: threat.x, y: threat.y });
   });
 };

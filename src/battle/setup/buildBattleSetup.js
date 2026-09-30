@@ -16,7 +16,9 @@ import { generateMap } from './mapgen';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
 
-export const SETUP_VERSION = 1;
+// Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
+// under different rules (v2: garrisons).
+export const SETUP_VERSION = 2;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

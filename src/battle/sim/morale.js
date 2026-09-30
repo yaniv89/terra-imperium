@@ -16,7 +16,7 @@ const REGEN_QUIET_TICKS = secondsToTicks(3);
 
 export const updateMorale = (w) => {
   w.squads.forEach((q) => {
-    if (!isFighting(q)) return;
+    if (!isFighting(q) || q.inside >= 0) return; // sheltered by its walls
     if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0) {
       if (hasPerk(q, 'unbreakable') && !q.routImmunityUsed) {
         q.routImmunityUsed = true;

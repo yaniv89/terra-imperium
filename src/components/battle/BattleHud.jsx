@@ -3,7 +3,7 @@
 // clock, supply, keep status), class chips bottom-left (tap = select that class), the command bar
 // bottom-right, and a reserves drawer. Every control is ≥ 44 px; nothing needs precision.
 import React, { useState } from 'react';
-import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles } from 'lucide-react';
+import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -26,7 +26,7 @@ const HudButton = ({ icon: Icon, label, onClick, active, danger, disabled, testI
 const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
-  onPower, onOpenAbilities, hasAbilities
+  onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound
 }) => {
   const [showReserves, setShowReserves] = useState(false);
   const [confirmNuke, setConfirmNuke] = useState(null);
@@ -62,10 +62,12 @@ const BattleHud = ({
               {keep.alive
                 ? <span className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden"><span className="block h-full bg-orange-400" style={{ width: `${(keep.hp / keep.maxHp) * 100}%` }} /></span>
                 : <span className="text-lime-300">Breached{hud.assimilation > 0 ? ` · taking ${Math.round((hud.assimilation / ASSIMILATION_TICKS) * 100)}%` : ''}</span>}
+              {keep.alive && keep.garrisonSlots > 0 && <span className="text-sky-300" title="Garrison: tap the keep with infantry or ranged selected">⛨ {keep.garrison}/{keep.garrisonSlots}</span>}
             </button>
           )}
         </div>
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto flex gap-2">
+          {onToggleSound && <HudButton icon={soundOn ? Volume2 : VolumeX} label={soundOn ? 'Sound' : 'Muted'} onClick={onToggleSound} testId="battle-sound" />}
           <HudButton icon={LogOut} label="Leave" onClick={() => setConfirmRetreat(true)} danger testId="battle-leave" />
         </div>
       </div>

@@ -12,6 +12,7 @@ import { Q, TICK_HZ, BATTLE_LIMIT_TICKS } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
 import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
+import { createBattleAudio } from '../../battle/audio/battleAudio';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
@@ -22,6 +23,8 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const clientRef = useRef(null);
+  const audioRef = useRef(null);
+  const [soundOn, setSoundOn] = useState(true);
   const frames = useRef({ prev: null, cur: null, arrival: 0 });
   const selectedRef = useRef(new Set());
   const armedRef = useRef(null); // 'attackMove' — the next ground order becomes an attack-move
@@ -44,7 +47,10 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
     setSelected([...selectedRef.current]);
   }, []);
 
-  const send = useCallback((orders) => clientRef.current?.sendOrders(orders.map((o) => ({ side: playerSide, ...o }))), [playerSide]);
+  const send = useCallback((orders) => {
+    audioRef.current?.orderConfirmed();
+    clientRef.current?.sendOrders(orders.map((o) => ({ side: playerSide, ...o })));
+  }, [playerSide]);
 
   // --- mount: renderer + sim client + render loop ------------------------------------------
   useEffect(() => {
@@ -52,6 +58,12 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
     const wrap = wrapRef.current;
     const renderer = new BattleRenderer(canvas, setup, { playerSide });
     rendererRef.current = renderer;
+    const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
+    audioRef.current = audio;
+    setSoundOn(audio.isEnabled());
+    // Browsers only start audio from a user gesture: the first touch anywhere unlocks it.
+    const unlock = () => audio.unlock();
+    wrap.addEventListener('pointerdown', unlock, { once: true });
     const resize = () => renderer.resize(wrap.clientWidth, wrap.clientHeight);
     resize();
     const ro = new ResizeObserver(resize);
@@ -63,7 +75,10 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
         if (m.type === 'frame') {
           const f = frames.current;
           if (!f.cur || m.view.tick !== f.cur.tick) { f.prev = f.cur; f.cur = m.view; f.arrival = performance.now(); } else f.cur = m.view;
-          if (m.events?.length) renderer.pushEvents(m.events, m.view);
+          if (m.events?.length) {
+            renderer.pushEvents(m.events, m.view);
+            audio.events(m.events, m.view, (x, y) => renderer.screenPan(x, y));
+          }
         } else if (m.type === 'checkpoint') onCheckpoint?.(m);
         else if (m.type === 'ended') setEnded(m);
       }
@@ -90,6 +105,9 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
       ro.disconnect();
       client.destroy();
       renderer.dispose();
+      wrap.removeEventListener('pointerdown', unlock);
+      audio.dispose();
+      audioRef.current = null;
       rendererRef.current = null; clientRef.current = null;
     };
     // setup/resume are fixed for the life of a battle screen.
@@ -123,6 +141,13 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
     if (hit.kind === 'squad' && hit.side !== playerSide) {
       send([{ type: 'attack', squads: sel, target: { kind: 'squad', index: hit.idx } }]);
       r.addMarker(hit.ground.x, hit.ground.z, '#f87171');
+    } else if (hit.kind === 'structure' && playerSide === 1) {
+      // Defending: tap your keep or a tower to man it (infantry and ranged; fortified buildings only).
+      const eligible = sel.filter((i) => ['infantry', 'ranged'].includes(cur.squads[i]?.classId));
+      if (eligible.length) {
+        send([{ type: 'garrison', squads: eligible, structure: hit.index }]);
+        r.addMarker(hit.ground.x, hit.ground.z, '#60a5fa');
+      }
     } else if (hit.kind === 'structure' && playerSide === 0) {
       send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
       r.addMarker(hit.ground.x, hit.ground.z, '#f87171');
@@ -198,6 +223,7 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
     if (!started) { setStarted(true); setPaused(false); c.resume(); return; } // deployment → battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
+  const toggleSound = () => { const on = !soundOn; audioRef.current?.setEnabled(on); setSoundOn(on); };
   const changeSpeed = (s) => { speedRef.current = s; setSpeed(s); clientRef.current?.setSpeed(s); };
   const arm = (mode) => { armedRef.current = armedRef.current === mode ? null : mode; setArmed(armedRef.current); };
   // Commander powers: instant ones fire now; targeted ones arm a crosshair for the next tap.
@@ -267,6 +293,7 @@ const TacticalBattleScreen = ({ setup, playerSide = 0, title, resume = null, onC
         onRetreatAll={retreatAll} onFocusKeep={focusKeep} onAbandon={onAbandon}
         onPower={firePower} onOpenAbilities={() => { const w0 = wrapRef.current; setRadial({ x: (w0?.clientWidth || 400) / 2, y: (w0?.clientHeight || 800) - 150 }); }}
         hasAbilities={selectedAbilities.length > 0}
+        soundOn={soundOn} onToggleSound={toggleSound}
       />
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} onContinue={() => onFinish?.(ended)} />}
     </div>

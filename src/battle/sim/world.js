@@ -51,7 +51,8 @@ const makeSquad = (w, unit, side, ageId, index) => {
     targetKind: null,                      // 'squad' | 'structure'
     target: -1,                            // squad idx or structure index
     groupSpeed: 0,                         // formation speed-matching (0 = own speed)
-    anchorX: 0, anchorY: 0                 // where an idle defender returns to
+    anchorX: 0, anchorY: 0,                // where an idle defender returns to
+    inside: -1                             // structure index it's garrisoned in (§8.10), -1 = in the open
   };
 };
 

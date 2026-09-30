@@ -41,7 +41,12 @@ export class BattleRenderer {
     this.map = setup.map;
     this.playerSide = playerSide;
     this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // Dynamic resolution (plan §15): start at the screen's DPR (max 2); 3 slow frames in a row
+    // (> 20 ms) drop it a step (1.25, then 1), and a long run of fast frames earns it back.
+    this.baseDpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = this.baseDpr;
+    this.slowFrames = 0; this.fastFrames = 0;
+    this.renderer.setPixelRatio(this.dpr);
     this.scene = new Scene();
     this.scene.background = new Color('#0f1a24');
     this.scene.fog = new Fog('#0f1a24', 90, 170);
@@ -353,8 +358,29 @@ export class BattleRenderer {
     if (this.fx.length > 200) this.fx.splice(0, this.fx.length - 200);
   }
 
+  adaptResolution(dt) {
+    if (dt > 0.02) { this.slowFrames += 1; this.fastFrames = 0; } else if (dt < 0.012) { this.fastFrames += 1; this.slowFrames = 0; } else { this.slowFrames = 0; this.fastFrames = 0; }
+    let next = this.dpr;
+    if (this.slowFrames >= 3 && this.dpr > 1) { next = this.dpr > 1.25 ? 1.25 : 1; this.slowFrames = -30; } // give the new size a moment
+    else if (this.fastFrames >= 240 && this.dpr < this.baseDpr) { next = this.dpr < 1.25 ? Math.min(1.25, this.baseDpr) : this.baseDpr; this.fastFrames = 0; }
+    if (next !== this.dpr) {
+      this.dpr = next;
+      this.renderer.setPixelRatio(next);
+      if (this.width) this.renderer.setSize(this.width, this.height, false);
+    }
+  }
+
+  // Where a world point (Q units) sits across the screen, -1 (left) to 1 (right): the stereo pan
+  // for battle sounds.
+  screenPan(x, y) {
+    this.tmpPan = this.tmpPan || new Vector3();
+    this.tmpPan.set(x / Q, 0, y / Q).project(this.camera);
+    return Math.max(-1, Math.min(1, this.tmpPan.x));
+  }
+
   render(prev, cur, alpha, ui, dt) {
     this.time += dt;
+    this.adaptResolution(dt);
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.setRGB(0.06 + this.flash, 0.1 + this.flash, 0.14 + this.flash * 0.9); }
     this.updateCamera();
     if (cur) this.drawSquads(prev, cur, alpha, ui);
@@ -372,7 +398,7 @@ export class BattleRenderer {
     const camQuat = this.camera.quaternion;
     if (cur.fog) this.setFog(cur.fog);
     cur.squads.forEach((s) => {
-      if (!s.alive || !s.onField) return;
+      if (!s.alive || !s.onField || s.inside >= 0) return; // garrisoned squads are inside their building
       if (s.side !== cur.playerSide && s.visible === false) return; // in the fog of war
       const p = prev?.squads?.[s.idx];
       const useP = p && p.onField;
