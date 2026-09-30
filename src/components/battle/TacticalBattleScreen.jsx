@@ -59,6 +59,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const wrap = wrapRef.current;
     const renderer = new BattleRenderer(canvas, setup, { playerSide });
     rendererRef.current = renderer;
+    if (import.meta.env.DEV) window.__battleRenderer = renderer; // for debugging in the console
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
     setSoundOn(audio.isEnabled());

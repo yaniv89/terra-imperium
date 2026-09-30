@@ -6,11 +6,11 @@
 // (src/battle/render/soldierFactory.js: they walk, strike and gallop, rigged in the shader). It only ever READS render views from the sim and interpolates
 // between the last two (20 Hz sim → smooth 60 fps), plus short-lived effects driven by sim events.
 import {
-  WebGLRenderer, Scene, OrthographicCamera, Color, HemisphereLight, DirectionalLight, PlaneGeometry,
+  WebGLRenderer, Scene, OrthographicCamera, ClampToEdgeWrapping, Color, HemisphereLight, DirectionalLight, PlaneGeometry,
   MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, Object3D, Vector3, Vector2, Raycaster, Plane,
   ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry,
-  Float32BufferAttribute, DoubleSide, Group, Mesh, Fog, DataTexture, RGBAFormat, LinearFilter,
-  ACESFilmicToneMapping, PCFSoftShadowMap, InstancedBufferAttribute, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage
+  Float32BufferAttribute, DoubleSide, Group, Mesh, FogExp2, DataTexture, RGBAFormat, LinearFilter,
+  ACESFilmicToneMapping, PCFShadowMap, InstancedBufferAttribute, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { TILE } from '../setup/mapgen';
@@ -18,6 +18,7 @@ import { getBattleStats, getSoldierCount } from '../data/battleStats';
 import { getSoldierGeometry, getImposterGeometry, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant } from './unitVariants';
 import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
+import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
 import { Q } from '../sim/constants';
 
 const GROUND = {
@@ -33,7 +34,14 @@ const TILE_TINT = {
   [TILE.FOREST]: '#3d5f29', [TILE.WATER]: '#3a5f63', [TILE.ROCK]: '#6f6d63', [TILE.ROAD]: '#9a8058',
   [TILE.FORD]: '#6f8a7e', [TILE.BUILDING]: '#77766f'
 };
-const SKY = '#9db4c6';
+// The sky and the haze the far land melts into, by terrain (FogExp2 uses the same colour, so the
+// horizon has no edge).
+const HAZE = {
+  plains: '#b8cad6', mixed: '#b5c7d3', hills: '#b3c3ce', forest: '#aebfc5', mountains: '#bcc8d3',
+  desert: '#dccfb5', arctic: '#dde6ec', urban: '#b9bec3', island: '#b1cad8'
+};
+const FOG_DENSITY = 0.0034;
+const SUN_OFFSET = new Vector3(22, 38, -10);
 const SAND_TINT = { desert: '#e3cd95', arctic: '#f5f8fb', island: '#e9d9a4' };
 const ISO_DIR = new Vector3(1, 1.25, 1).normalize();
 const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
@@ -68,10 +76,13 @@ export class BattleRenderer {
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    // three r186 folded PCFSoftShadowMap into PCFShadowMap (now soft: Vogel-disk filtering sized by
+    // shadow.radius); asking for PCFSoft only logs a deprecation warning.
+    this.renderer.shadowMap.type = PCFShadowMap;
     this.scene = new Scene();
-    this.scene.background = new Color(SKY);
-    this.scene.fog = new Fog(SKY, 150, 260);
+    this.skyColor = new Color(HAZE[setup.terrain] || HAZE.mixed);
+    this.scene.background = this.skyColor.clone();
+    this.scene.fog = new FogExp2(this.skyColor.getHex(), FOG_DENSITY);
     this.camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
     this.camera.zoom = 1;
     // Start looking at your own army's front line.
@@ -84,15 +95,22 @@ export class BattleRenderer {
     this.markers = [];
     this.time = 0;
 
-    this.scene.add(new HemisphereLight('#e3eef8', '#5a503f', 1.35));
+    // Less flat fill than before, a stronger sun: shadows read as shadows and ground the troops.
+    this.scene.add(new HemisphereLight('#e3eef8', '#5a503f', 0.95));
     // A low warm sun from the side, casting soft shadows that follow the camera around the field.
     const small = Math.min(window.innerWidth || 1024, window.innerHeight || 768) < 700;
-    this.sun = new DirectionalLight('#ffe7c2', 2.7);
+    this.sun = new DirectionalLight('#ffe7c2', 3.1);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
     Object.assign(this.sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 120 });
-    this.sun.shadow.bias = -0.0006;
-    this.sun.shadow.normalBias = 0.03;
+    this.sun.shadow.bias = -0.0005;
+    this.sun.shadow.normalBias = 0.025;
+    this.sun.shadow.radius = 2.5;
+    // The light's own right/up axes, for snapping the shadow box to whole texels (fitShadows).
+    const lightZ = SUN_OFFSET.clone().normalize();
+    this.sunDir = lightZ;
+    this.lightRight = new Vector3(0, 1, 0).cross(lightZ).normalize();
+    this.lightUp = lightZ.clone().cross(this.lightRight).normalize();
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
     this.soldierMaterial = this.track(createSoldierMaterial());
@@ -113,6 +131,7 @@ export class BattleRenderer {
     this.fogData = new Uint8Array(w * h * 4);
     this.fogTexture = this.track(new DataTexture(this.fogData, w, h, RGBAFormat));
     this.fogTexture.magFilter = LinearFilter; this.fogTexture.minFilter = LinearFilter;
+    this.fogTexture.wrapS = ClampToEdgeWrapping; this.fogTexture.wrapT = ClampToEdgeWrapping;
     const geo = this.terrain.geometry.clone();
     geo.translate(0, 0.12, 0);
     this.track(geo);
@@ -120,6 +139,13 @@ export class BattleRenderer {
     this.fogMesh = new Mesh(geo, mat);
     this.fogMesh.renderOrder = 2;
     this.scene.add(this.fogMesh);
+    // The veil carries on over the skirt (its UVs clamp to the map's edge texels), so unexplored
+    // borders fade out into the unknown land beyond instead of ending in a dark slab edge.
+    const skirtVeil = this.track(this.skirt.geometry.clone());
+    skirtVeil.translate(0, 0.12, 0);
+    this.skirtFogMesh = new Mesh(skirtVeil, mat);
+    this.skirtFogMesh.renderOrder = 2;
+    this.scene.add(this.skirtFogMesh);
     this.setFog(null);
   }
 
@@ -140,11 +166,22 @@ export class BattleRenderer {
 
   track(obj) { this.disposables.push(obj); return obj; }
 
-  heightAt(x, z) {
+  // One tile's own ground level (riverbeds sit low).
+  tileHeight(ix, iz) {
     const { w, h, height, tiles } = this.map;
-    const ix = Math.max(0, Math.min(w - 1, Math.floor(x))); const iz = Math.max(0, Math.min(h - 1, Math.floor(z)));
-    const t = tiles[iz * w + ix];
-    return t === TILE.WATER ? -0.5 : Math.max(-0.12, (height[iz * w + ix] / 256) * 0.55);
+    const cx = Math.max(0, Math.min(w - 1, ix)); const cz = Math.max(0, Math.min(h - 1, iz));
+    return tiles[cz * w + cx] === TILE.WATER ? -0.5 : Math.max(-0.12, (height[cz * w + cx] / 256) * 0.55);
+  }
+
+  // The ground's height anywhere: bilinear between tile centres, so riverbanks and slopes are smooth
+  // (a mesh vertex at a tile corner averages its four tiles) instead of stepping tile by tile.
+  heightAt(x, z) {
+    const fx = x - 0.5; const fz = z - 0.5;
+    const ix = Math.floor(fx); const iz = Math.floor(fz);
+    const tx = fx - ix; const tz = fz - iz;
+    const top = lerp(this.tileHeight(ix, iz), this.tileHeight(ix + 1, iz), tx);
+    const bottom = lerp(this.tileHeight(ix, iz + 1), this.tileHeight(ix + 1, iz + 1), tx);
+    return lerp(top, bottom, tz);
   }
 
   buildTerrain() {
@@ -157,38 +194,67 @@ export class BattleRenderer {
     const base = new Color(GROUND[this.setup.terrain] || GROUND.mixed);
     const alt = new Color(GROUND_ALT[this.setup.terrain] || GROUND_ALT.mixed);
     const tileColor = new Color();
+    // The grass itself (two tones over big and small noise, lit a touch by height) is per vertex;
+    // roads, sand, rock and forest floor are painted per pixel by the ground shader
+    // (terrainSurface.js) so their edges feather instead of stair-stepping.
+    const grass = (x, z, y, i) => {
+      const patch = vnoise(x / 9, z / 9) * 0.7 + vnoise(x / 2.5, z / 2.5) * 0.3;
+      const shade = 0.9 + hash01(i * 7 + 3) * 0.08 + y * 0.12;
+      return tmpColor.copy(base).lerp(alt, patch).multiplyScalar(shade);
+    };
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i); const z = pos.getZ(i);
-      pos.setY(i, this.heightAt(Math.min(w - 0.01, x), Math.min(h - 0.01, z)));
+      const y = this.heightAt(Math.min(w - 0.01, x), Math.min(h - 0.01, z));
+      pos.setY(i, y);
       const ix = Math.max(0, Math.min(w - 1, Math.floor(x))); const iz = Math.max(0, Math.min(h - 1, Math.floor(z)));
       const t = tiles[iz * w + ix];
-      // Grass patches (two tones over big and small noise), then the tile's own ground on top.
-      const patch = vnoise(x / 9, z / 9) * 0.7 + vnoise(x / 2.5, z / 2.5) * 0.3;
-      tmpColor.copy(base).lerp(alt, patch);
-      const own = t === TILE.SAND ? (SAND_TINT[this.setup.terrain] || '#d6c28c') : TILE_TINT[t];
-      if (own) tmpColor.lerp(tileColor.set(own), t === TILE.FOREST ? 0.55 : 0.85);
-      const shade = 0.9 + hash01(i * 7 + 3) * 0.08 + this.heightAt(x, z) * 0.12;
-      colors[i * 3] = tmpColor.r * shade; colors[i * 3 + 1] = tmpColor.g * shade; colors[i * 3 + 2] = tmpColor.b * shade;
+      grass(x, z, y, i);
+      if (t === TILE.WATER || t === TILE.FORD) tmpColor.lerp(tileColor.set(TILE_TINT[t]), 0.85);
+      colors[i * 3] = tmpColor.r; colors[i * 3 + 1] = tmpColor.g; colors[i * 3 + 2] = tmpColor.b;
     }
     geo.setAttribute('color', new Float32BufferAttribute(colors, 3));
     geo.computeVertexNormals();
-    const mat = this.track(new MeshLambertMaterial({ vertexColors: true }));
+    this.tileMask = this.track(buildTileMask(this.map));
+    const mat = this.track(patchGroundMaterial(new MeshLambertMaterial({ vertexColors: true }), {
+      mask: this.tileMask, mapW: w, mapH: h,
+      road: TILE_TINT[TILE.ROAD], sand: SAND_TINT[this.setup.terrain] || '#d6c28c', rock: TILE_TINT[TILE.ROCK], forest: TILE_TINT[TILE.FOREST]
+    }));
     this.terrain = new Mesh(geo, mat);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
-    // The land goes on beyond the battlefield (no floating island in a void)…
-    const apronGeo = this.track(new PlaneGeometry(w + 160, h + 160).rotateX(-Math.PI / 2).translate(w / 2, -0.14, h / 2));
-    // Coloured like the field's own average ground, so the edge of the battlefield doesn't show.
-    let ar = 0; let ag = 0; let ab = 0;
-    for (let i = 0; i < pos.count; i++) { ar += colors[i * 3]; ag += colors[i * 3 + 1]; ab += colors[i * 3 + 2]; }
-    const apronColor = new Color(ar / pos.count, ag / pos.count, ab / pos.count).multiplyScalar(0.97);
-    const apron = new Mesh(apronGeo, this.track(new MeshLambertMaterial({ color: apronColor })));
-    apron.receiveShadow = true;
-    this.scene.add(apron);
-    // …and water is a real, glossy surface over the riverbeds, lakes and the landing sea.
+
+    // The land goes on beyond the battlefield: a skirt of rolling country stitched to the map's own
+    // edge vertices (no cliff, no seam), the same palette and ground shader, fading into the haze.
+    this.skirtHeight = makeSkirtHeight(this.map, (x, z) => this.heightAt(x, z));
+    const far = new Color().copy(base).lerp(alt, 0.5);
+    let n = 0;
+    const skirtGeo = this.track(buildSkirtGeometry(this.map, this.skirtHeight, (x, z, y) => {
+      const d = Math.hypot(x - Math.max(0, Math.min(w, x)), z - Math.max(0, Math.min(h, z)));
+      grass(x, z, Math.max(0, y), n++);
+      if (y < -0.3) tmpColor.lerp(tileColor.set(TILE_TINT[TILE.WATER]), 0.85);
+      return tmpColor.lerp(far, Math.min(0.35, d / 90));
+    }));
+    this.skirt = new Mesh(skirtGeo, mat);
+    this.skirt.receiveShadow = true;
+    this.scene.add(this.skirt);
+    // And past the skirt, a plain far plane at the skirt's outer level, lost in the haze.
+    const coast = hasCoast(this.map);
+    // A frame around the skirt's rim — never under the map, where it would hide riverbeds.
+    const E = 450; const X0 = -SKIRT; const X1 = w + SKIRT; const Z0 = -SKIRT; const Z1 = h + SKIRT; const hy = horizonLevel(coast);
+    const band = (x0, x1, z0, z1) => new PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2).translate((x0 + x1) / 2, hy, (z0 + z1) / 2);
+    const horizon = new Mesh(
+      this.track(mergeGeometries([band(X0 - E, X1 + E, Z0 - E, Z0), band(X0 - E, X1 + E, Z1, Z1 + E), band(X0 - E, X0, Z0, Z1), band(X1, X1 + E, Z0, Z1)])),
+      this.track(new MeshLambertMaterial({ color: coast ? new Color(TILE_TINT[TILE.WATER]) : far.clone().multiplyScalar(0.95) }))
+    );
+    horizon.renderOrder = -1;
+    this.scene.add(horizon);
+    // Water is a real, glossy surface over the riverbeds, lakes and the landing sea — and on a
+    // coast it carries on to the horizon.
     if (tiles.some((t) => t === TILE.WATER || t === TILE.FORD)) {
+      // A coast's sea runs to the horizon; a river runs on through the skirt and fades at its rim.
+      const size = coast ? [w + SKIRT * 2 + 900, h + SKIRT * 2 + 900] : [w + SKIRT * 2, h + SKIRT * 2];
       const water = new Mesh(
-        this.track(new PlaneGeometry(w, h).rotateX(-Math.PI / 2).translate(w / 2, -0.2, h / 2)),
+        this.track(new PlaneGeometry(size[0], size[1]).rotateX(-Math.PI / 2).translate(w / 2, -0.2, h / 2)),
         this.track(new MeshStandardMaterial({ color: '#2f6a8c', roughness: 0.18, metalness: 0.15, transparent: true, opacity: 0.86 }))
       );
       water.receiveShadow = true;
@@ -219,11 +285,24 @@ export class BattleRenderer {
         else if (t === TILE.OPEN && r > 0.985) rocks.push([x + r2, z + 0.5, 0.25 + r2 * 0.3]); // the odd boulder in a field
       }
     }
+    // Woods and the odd boulder out in the skirt too, so the land beyond isn't a bare lawn.
+    for (let z = -SKIRT + 1; z < h + SKIRT; z += 1.4) {
+      for (let x = -SKIRT + 1; x < w + SKIRT; x += 1.4) {
+        const outside = Math.max(-x, x - w, -z, z - h);
+        if (outside < 1.5) continue;
+        const r = hash01(Math.floor(x * 7.1) * 7919 + Math.floor(z * 7.1));
+        const wood = vnoise(x / 11, z / 11);
+        if (this.skirtHeight(x, z) < -0.15) continue; // the sea
+        if (wood > 0.6 && r < 0.75) (r < (winter ? 0.85 : 0.5) ? pines : oaks).push([x + r * 0.6, z + (1 - r) * 0.6, 0.75 + r * 0.45]);
+        else if (r > 0.992) rocks.push([x, z, 0.4 + r * 0.4]);
+      }
+    }
+    const ground = (x, z) => (x < 0 || z < 0 || x > w || z > h ? this.skirtHeight(x, z) : this.heightAt(x, z));
     const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25 } = {}) => {
       if (!list.length) return;
       const mesh = new InstancedMesh(this.track(geo), this.track(new MeshLambertMaterial({ color, vertexColors: !!geo.attributes.color })), list.length);
       list.forEach(([x, z, s0], i) => {
-        tmp.position.set(x, this.heightAt(x, z), z);
+        tmp.position.set(x, ground(x, z), z);
         tmp.rotation.set(0, hash01(i * 13 + 5) * Math.PI * 2, 0);
         const sc = scaleFn(s0, i); tmp.scale.set(sc[0], sc[1], sc[2]);
         tmp.updateMatrix();
@@ -521,6 +600,29 @@ export class BattleRenderer {
     this.camera.updateMatrixWorld();
   }
 
+  // The sun's shadow box follows the camera and is sized to exactly what's on screen (zoomed in:
+  // small box, crisp shadows; zoomed out: a bigger, softer one), snapped to whole shadow texels in
+  // the light's frame so shadows stay still as the view pans.
+  fitShadows() {
+    this.updateCamera();
+    const corners = this.width ? [[0, 0], [this.width, 0], [0, this.height], [this.width, this.height]].map(([px, py]) => this.screenToGround(px, py)) : [];
+    const { center, radius, texel } = fitShadowBox(corners, this.target, { mapSize: this.sun.shadow.mapSize.x, right: this.lightRight, up: this.lightUp });
+    // The light stands back far enough that every ground point of the box is inside its depth range.
+    const dist = radius + 40;
+    if (radius !== this.shadowRadius) {
+      this.shadowRadius = radius;
+      Object.assign(this.sun.shadow.camera, { left: -radius, right: radius, top: radius, bottom: -radius, near: 1, far: dist * 2 + 20 });
+      this.sun.shadow.camera.updateProjectionMatrix();
+      // Bigger box → bigger texels: the soft-shadow filter samples ~2.5 texels around each point, so
+      // the receiver offset has to grow with the texel or the tilted ground shadows itself (acne).
+      this.sun.shadow.normalBias = Math.max(0.02, texel * 4);
+      this.sun.shadow.bias = -0.0002;
+    }
+    this.sun.target.position.set(center.x, center.y, center.z);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(this.sunDir, dist);
+    this.sun.target.updateMatrixWorld();
+  }
+
   // Screen pixel → ground point (tiles), or null.
   screenToGround(px, py) {
     const ndc = new Vector2((px / this.width) * 2 - 1, -(py / this.height) * 2 + 1);
@@ -607,11 +709,8 @@ export class BattleRenderer {
     this.time += dt;
     RIG_TIME.value = this.time;
     this.adaptResolution(dt);
-    // The sun (and its shadow box) follows the camera over the field.
-    this.sun.position.set(this.target.x + 22, 38, this.target.z - 10);
-    this.sun.target.position.copy(this.target);
-    this.sun.target.updateMatrixWorld();
-    if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.set(SKY).lerp(new Color('#ffffff'), this.flash); }
+    this.fitShadows();
+    if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.copy(this.skyColor).lerp(new Color('#ffffff'), this.flash); }
     this.updateCamera();
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
