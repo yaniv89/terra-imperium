@@ -12,17 +12,17 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 // they're importable, unmodified, from a server-authoritative context too — re-exported here so
 // every existing `from '../context/GameContext'` import site keeps working unchanged.
 import { createInitialState, gameReducer } from '../engine/gameReducer';
-import { migrateSave } from '../engine/saveMigrations';
+import { migrateSave, CURRENT_SAVE_VERSION } from '../engine/saveMigrations';
 
 export { createInitialState, gameReducer };
 
 // ============ PERSISTENCE ============
 const STORAGE_KEY = 'terra-imperium-save-v1';
-// The real version now lives inside the payload (saveMigrations.js's CURRENT_SAVE_VERSION) — this
-// is just the storage key's own namespace, kept stable so existing local saves and cloud rows
-// aren't orphaned by a key rename. What used to be written here (SAVE_VERSION) is still written on
-// every save, but reading it is now migrateSave's job, not a strict equality check.
-const SAVE_VERSION = 1;
+// The storage key is just a stable namespace (kept so existing local saves and cloud rows aren't
+// orphaned by a rename). The envelope's `version` MUST be the real state shape version
+// (saveMigrations.js's CURRENT_SAVE_VERSION): it used to be a hard-coded 1, which made every load
+// re-run the v1→v2 migration and wipe the ADM/DIP/MIL pools.
+const SAVE_VERSION = CURRENT_SAVE_VERSION;
 
 // Lazily load a saved game, falling back to a fresh one. migrateSave handles version upgrades and
 // backfills any field a newer build added that this save predates; a save it can't read at all
