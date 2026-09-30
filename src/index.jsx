@@ -2,12 +2,14 @@
 // Application entry point. `?battleSandbox` opens the tactical battle sandbox instead of the game
 // (lazy-loaded, so the normal game never downloads it).
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { lazyWithReload, installStaleChunkReload } from './utils/lazyWithReload';
 
-const BattleSandbox = lazy(() => import('./components/battle/BattleSandbox'));
+installStaleChunkReload();
+const BattleSandbox = lazyWithReload(() => import('./components/battle/BattleSandbox'));
 const isSandbox = new URLSearchParams(window.location.search).has('battleSandbox');
 
 // Create root and render app

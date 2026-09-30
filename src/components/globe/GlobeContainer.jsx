@@ -3,9 +3,10 @@
 // pixel width/height (unlike a flat SVG's viewBox, which scales itself) — a ResizeObserver keeps
 // it in sync with its flex-layout container. The three.js-based renderer (~1MB+) is fetched once
 // this mounts.
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { lazyWithReload } from '../../utils/lazyWithReload';
 
-const GlobeView = lazy(() => import('./GlobeView'));
+const GlobeView = lazyWithReload(() => import('./GlobeView'));
 
 const GlobeContainer = ({
   selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null

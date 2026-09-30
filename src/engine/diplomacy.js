@@ -14,6 +14,7 @@ import { getNationTotalDev, getTotalDev } from './development';
 import { applyPeace, buildAITerms, getPeaceAcceptance } from './peace';
 import { leansPositive, leansNegative } from '../data/identity';
 import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from './defense';
+import { conquerRegion } from './conquest';
 
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
 // floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
@@ -109,9 +110,8 @@ export const checkWarGoal = (war, state) => {
 
   if (war.goal.type === 'capture_region') {
     const region = state.regions[war.goal.regionId];
-    // Occupation (plan §M13), not ownership: capturing a region during a war sets `occupiedBy`
-    // and leaves `owner` unchanged until a peace deal formally cedes it (see peace.js).
-    return !!region && region.occupiedBy === war.aggressor;
+    // Held by force: conquered outright (src/engine/conquest.js), or occupied (older saves).
+    return !!region && (region.owner === war.aggressor || region.occupiedBy === war.aggressor);
   }
 
   if (war.goal.type === 'destroy_military') {
@@ -215,6 +215,15 @@ export const recordBattle = (war, winnerId, lossShare) => {
   return Math.max(-BATTLE_SCORE_CLAMP, Math.min(BATTLE_SCORE_CLAMP, (war.battleScore || 0) + signedDelta));
 };
 
+// Who holds a province by force from whom: an occupation (occupiedBy, older saves and civil wars
+// aside), or land conquered in a war that is still running (conquest.js — the war keeps scoring it
+// until peace). `isLiveWar(warId)` says whether that war is still on.
+const heldPair = (region, isLiveWar) => {
+  if (region.occupiedBy && region.occupiedBy !== region.owner && region.owner) return { taker: region.occupiedBy, loser: region.owner };
+  if (region.conquest && region.conquest.from !== region.owner && isLiveWar(region.conquest.warId)) return { taker: region.owner, loser: region.conquest.from };
+  return null;
+};
+
 // Computed fresh every turn from live region state, NOT stored — avoids the redundant-state-drift
 // risk the rest of the codebase's "ownership by derivation" pattern (getGreatProjectOwner, etc.)
 // warns about. Each side's occupation is scored as a % of the OTHER side's total development, so
@@ -225,12 +234,14 @@ export const getOccupationScore = (state, war) => {
   let occupiedByAggressor = 0;
   let occupiedByEnemy = 0;
   Object.values(state.regions).forEach((region) => {
-    if (!region.occupiedBy) return;
+    const held = heldPair(region, (warId) => warId === war.id);
+    if (!held) return;
     const dev = getTotalDev(region);
-    if (region.occupiedBy === war.aggressor && region.owner === war.enemy) {
-      occupiedByAggressor += dev * (region.id === enemyCapital ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1);
-    } else if (region.occupiedBy === war.enemy && region.owner === war.aggressor) {
-      occupiedByEnemy += dev * (region.id === aggressorCapital ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1);
+    const wasCapital = (id) => region.id === id || region.conquest?.capital === true;
+    if (held.taker === war.aggressor && held.loser === war.enemy) {
+      occupiedByAggressor += dev * (wasCapital(enemyCapital) ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1);
+    } else if (held.taker === war.enemy && held.loser === war.aggressor) {
+      occupiedByEnemy += dev * (wasCapital(aggressorCapital) ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1);
     }
   });
   const enemyTotalDev = getNationTotalDev(state, war.enemy) || 1;
@@ -244,7 +255,7 @@ export const getOccupationScore = (state, war) => {
 export const updateTickScore = (war, state) => {
   if (war.goal?.type !== 'capture_region') return war.tickScore || 0;
   const region = state.regions[war.goal.regionId];
-  const holdsGoal = !!region && region.occupiedBy === war.aggressor;
+  const holdsGoal = !!region && (region.owner === war.aggressor || region.occupiedBy === war.aggressor);
   const turnsSinceStart = (state.turnNumber || 0) - (war.startTurn ?? state.turnNumber ?? 0);
   const delta = holdsGoal ? 1 : (turnsSinceStart >= TICK_SCORE_GRACE_TURNS ? -1 : 0);
   return Math.max(-TICK_SCORE_CLAMP, Math.min(TICK_SCORE_CLAMP, (war.tickScore || 0) + delta));
@@ -263,7 +274,8 @@ export const computeWarScore = (war, state) =>
 // STARTING regions, before any of this turn's own captures/peace deals — a capture that happens
 // this same turn shows up in occupation score starting next turn, a deliberate one-turn lag traded
 // for turning O(wars x regions) into O(regions + wars) at up to 240 nations' worth of active wars.
-const buildOccupationIndexes = (regions, nations) => {
+const buildOccupationIndexes = (regions, nations, wars = []) => {
+  const liveWarIds = new Set(wars.filter((w) => w.active).map((w) => w.id));
   const capitalIds = new Set();
   Object.keys(nations).forEach((id) => { const capitalId = getCapital({ nations }, id); if (capitalId) capitalIds.add(capitalId); });
   const devByNation = {};
@@ -271,9 +283,10 @@ const buildOccupationIndexes = (regions, nations) => {
   Object.values(regions).forEach((region) => {
     if (!region.owner) return;
     devByNation[region.owner] = (devByNation[region.owner] || 0) + getTotalDev(region);
-    if (region.occupiedBy && region.occupiedBy !== region.owner) {
-      const key = `${region.occupiedBy}|${region.owner}`;
-      const weight = capitalIds.has(region.id) ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1;
+    const held = heldPair(region, (warId) => liveWarIds.has(warId));
+    if (held) {
+      const key = `${held.taker}|${held.loser}`;
+      const weight = capitalIds.has(region.id) || region.conquest?.capital ? CAPITAL_OCCUPATION_SCORE_WEIGHT : 1;
       occupiedDev[key] = (occupiedDev[key] || 0) + getTotalDev(region) * weight;
     }
   });
@@ -317,7 +330,7 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
   const committedAssaultUnits = new Set();
   // One shared O(regions) pass for every active war's score this turn (see buildOccupationIndexes's
   // own header) — skipped entirely when nothing is at war, the common case for most of the game.
-  const occupationIndexes = wars.some(w => w.active) ? buildOccupationIndexes(regions, nations) : null;
+  const occupationIndexes = wars.some(w => w.active) ? buildOccupationIndexes(regions, nations, wars) : null;
 
   // Ends a war right now: applies `terms` (may be [] for a white peace), marks both belligerents
   // at peace, and starts a truce. Reads/writes the outer next* closures directly since every call
@@ -397,19 +410,16 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
               ? resolveSiegeControlDamage({ currentControl: targetRegion.control, outcome: 'attacker', hasMeleeUnit: true })
               : { nextControl: targetRegion.control, captured: true };
 
-            // Occupation (plan §M13), not annexation: `owner` stays put, `occupiedBy` marks who
-            // holds it militarily. Ownership only changes at the peace table (see peace.js) — so,
-            // unlike the pre-M13 version of this function, no Aggressive Expansion fires here; it
-            // fires when land actually changes hands (applyPeace's 'cede' term).
-            nextRegions = {
-              ...nextRegions,
-              [currentWar.goal.regionId]: captured
-                ? { ...targetRegion, occupiedBy: currentWar.aggressor, control: 25, unrest: Math.max(targetRegion.unrest || 0, 50), lastAttackedTurn: state.turnNumber, underInvasion: false }
-                : { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true }
-            };
+            // Conquest (src/engine/conquest.js): a province taken in battle changes hands on
+            // the spot — the same rule the player's own invasions follow.
+            if (captured) {
+              ({ regions: nextRegions, nations: nextNations } = conquerRegion({ regions: nextRegions, nations: nextNations, turnNumber: state.turnNumber }, currentWar.goal.regionId, currentWar.aggressor, currentWar));
+            } else {
+              nextRegions = { ...nextRegions, [currentWar.goal.regionId]: { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true } };
+            }
             currentWar = { ...currentWar, battleScore: recordBattle(currentWar, currentWar.aggressor, captured ? 0.3 : 0.15) };
             logs.push(captured
-              ? { message: `${updatedAggressor.name} occupies ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}, taken from ${updatedDefender.name}!`, type: 'combat' }
+              ? { message: `${updatedAggressor.name} conquers ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId}, taken from ${updatedDefender.name}!`, type: 'combat' }
               : { message: `${updatedAggressor.name} breaks through at ${REGIONS_DATA[currentWar.goal.regionId]?.name || currentWar.goal.regionId} (control now ${nextControl}%).`, type: 'combat' });
           }
         }

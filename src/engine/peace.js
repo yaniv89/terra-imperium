@@ -126,6 +126,13 @@ export const applyPeace = (state, war, offererId, terms) => {
     // eslint-disable-next-line no-unused-vars -- destructured only to omit it from rest
     const { occupiedBy, ...rest } = region;
     return [id, rest];
+  }).map(([id, region]) => {
+    // Land conquered in this war stays with its conqueror (unless a term below gives it back);
+    // the peace just ends the war's claim on it — it no longer scores for anything.
+    if (region.conquest?.warId !== war.id) return [id, region];
+    // eslint-disable-next-line no-unused-vars -- destructured only to omit it from rest
+    const { conquest, ...rest } = region;
+    return [id, rest];
   }));
   let nextNations = state.nations;
   let nextResources = state.resources;
@@ -253,6 +260,12 @@ export const buildAITerms = (state, war, offererId) => {
     const goalRegion = state.regions[war.goal.regionId];
     if (goalRegion && goalRegion.owner === recipientId && goalRegion.occupiedBy === offererId) tryAdd({ type: 'cede', regionId: war.goal.regionId });
   }
+
+  // Land the recipient conquered from the offerer in this war: the offerer wants it back.
+  Object.values(state.regions)
+    .filter((r) => r.owner === recipientId && r.conquest?.warId === war.id && r.conquest.from === offererId)
+    .sort((a, b) => getTotalDev(a) - getTotalDev(b))
+    .forEach((region) => tryAdd({ type: 'cede', regionId: region.id }));
 
   Object.values(state.regions)
     .filter((r) => r.owner === recipientId && r.occupiedBy === offererId && r.id !== war.goal?.regionId)

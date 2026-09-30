@@ -4,7 +4,7 @@
 // (src/battle/) — share EXACTLY the same entry gate and the same consequences:
 //   validateInvasion        — may this invasion happen right now, and with which units?
 //   getInvasionBattleContext — every number resolveBattle needs beyond the unit lists
-//   applyInvasionResult     — everything that follows a battle: siege control damage, occupation,
+//   applyInvasionResult     — everything that follows a battle: siege control damage, conquest,
 //                             XP for units that fought, stack movement, war score, log, report
 // LAUNCH_INVASION (gameReducer.js) is now just these three around one resolveBattle call; the
 // tactical path swaps only the middle step for a simulated battle producing the same result shape.
@@ -18,8 +18,9 @@ import { getGeneralXpMultiplier } from '../data/generals';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween, recordBattle } from './diplomacy';
 import { getRegionModifier } from './modifiers/sheet';
-import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier } from './siege';
+import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier, isGarrisonBroken } from './siege';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
+import { conquerRegion } from './conquest';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -72,6 +73,8 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   const targetRegion = state.regions[targetRegionId];
   if (!fromRegion || fromRegion.owner !== state.playerNationId) return { ok: false, reason: 'not_your_region' };
   if (!targetRegion || targetRegion.owner === state.playerNationId) return { ok: false, reason: 'bad_target' };
+  // Already held by your army (an occupation from an older save): there is nothing left to fight.
+  if (targetRegion.occupiedBy === state.playerNationId) return { ok: false, reason: 'already_held' };
   if (!getNeighborIds(fromRegionId).includes(targetRegionId)) return { ok: false, reason: 'not_adjacent' };
   // Plan §M13: invasions require an active war with the target's owner.
   const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
@@ -83,7 +86,8 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still have
   // its move (all-or-nothing on the whole stack, matching "an army is every unit in one region").
   if (!ignoreBattleLocks && !attackerUnits.every((u) => (u.movesLeft ?? 1) > 0)) return { ok: false, reason: 'no_moves' };
-  const defenderUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land');
+  // The garrison is whoever else stands there — never the player's own troops.
+  const defenderUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
   return { ok: true, war, fromRegion, targetRegion, attackerUnits, defenderUnits };
 };
 
@@ -137,7 +141,8 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
     ? resolveSiegeControlDamage({
         currentControl: targetRegion.control,
         outcome,
-        hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0))
+        hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0 && !u.routed)),
+        garrisonBroken: isGarrisonBroken(resolvedDefenders)
       })
     : { nextControl: targetRegion.control, captured: outcome === 'attacker' };
   const nextControl = siege.nextControl;
@@ -174,18 +179,12 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
     nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber };
   });
 
-  const nextRegions = { ...state.regions };
+  // Conquest: the province is yours the moment it falls (src/engine/conquest.js).
+  let nextRegions = { ...state.regions };
+  let nextNations = state.nations;
+  let capitalTaken = false;
   if (captured) {
-    // Occupation (plan §M13), not annexation: `owner` stays put, `occupiedBy` marks who holds it
-    // militarily. Ownership only changes at the peace table (src/engine/peace.js).
-    nextRegions[targetRegionId] = {
-      ...targetRegion,
-      occupiedBy: state.playerNationId,
-      control: 25,
-      unrest: Math.max(targetRegion.unrest || 0, 50),
-      lastAttackedTurn: state.turnNumber,
-      underInvasion: false
-    };
+    ({ regions: nextRegions, nations: nextNations, capitalTaken } = conquerRegion({ regions: nextRegions, nations: state.nations, turnNumber: state.turnNumber }, targetRegionId, state.playerNationId, war));
   } else if (isDefended) {
     nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
   }
@@ -199,7 +198,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
     : state.wars;
 
   const outcomeMessage = captured
-    ? `Your forces occupy ${REGIONS_DATA[targetRegionId]?.name}. It stays ${state.nations[targetRegion.owner]?.name || targetRegion.owner}'s land until peace — demand it in a peace deal (Diplomacy) to make it yours.`
+    ? `${REGIONS_DATA[targetRegionId]?.name} is conquered — taken from ${state.nations[targetRegion.owner]?.name || targetRegion.owner}, it is now yours${capitalTaken ? ' (their capital has fallen!)' : ''}. Hold it: it starts restless (control 25%).`
     : outcome === 'attacker'
       ? `Your forces broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
       : outcome === 'defender'
@@ -209,6 +208,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
   return {
     ...state,
     regions: nextRegions,
+    nations: nextNations,
     units: nextUnits,
     wars: nextWars,
     rngSeed,
@@ -228,6 +228,7 @@ export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreC
   const targetRegion = state.regions[targetRegionId];
   if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return { ok: false, reason: 'bad_fleet' };
   if (!targetRegion || targetRegion.owner === state.playerNationId) return { ok: false, reason: 'bad_target' };
+  if (targetRegion.occupiedBy === state.playerNationId) return { ok: false, reason: 'already_held' };
   if (!isCoastal(targetRegionId)) return { ok: false, reason: 'not_coastal' };
   if (!getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, state.age)) return { ok: false, reason: 'out_of_reach' };
   const embarkedLandUnits = Object.values(state.units).filter((u) => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
@@ -237,7 +238,7 @@ export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreC
   if (!ignoreBattleLocks && ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every((u) => (u.movesLeft ?? 1) > 0))) return { ok: false, reason: 'no_moves' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return { ok: false, reason: 'cost' };
   const defenderNavalUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
-  const defenderLandUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land');
+  const defenderLandUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
   const hasBeachhead = getNeighborIds(targetRegionId).some((nId) => state.regions[nId]?.owner === state.playerNationId);
   return { ok: true, navalUnit, targetRegionId, targetRegion, war, embarkedLandUnits, defenderNavalUnits, defenderLandUnits, hasBeachhead };
 };
@@ -270,7 +271,8 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
     ? resolveSiegeControlDamage({
         currentControl: targetRegion.control,
         outcome,
-        hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0))
+        hasMeleeUnit: hasMeleeUnitDeployed(resolvedAttackers.filter(u => u.strength > 0 && !u.routed)),
+        garrisonBroken: isGarrisonBroken(resolvedDefenders)
       })
     : { nextControl: targetRegion.control, captured: outcome === 'attacker' };
   const nextControl = siege.nextControl;
@@ -301,17 +303,11 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
   });
   if (nextUnits[navalUnitId]) nextUnits[navalUnitId] = { ...nextUnits[navalUnitId], movesLeft: 0, lastBattleTurn: state.turnNumber };
 
-  const nextRegions = { ...state.regions };
+  let nextRegions = { ...state.regions };
+  let nextNations = state.nations;
+  let capitalTaken = false;
   if (captured) {
-    // Occupation, not annexation — see LAUNCH_INVASION's own comment on this (plan §M13).
-    nextRegions[targetRegionId] = {
-      ...targetRegion,
-      occupiedBy: state.playerNationId,
-      control: 25,
-      unrest: Math.max(targetRegion.unrest || 0, 50),
-      lastAttackedTurn: state.turnNumber,
-      underInvasion: false
-    };
+    ({ regions: nextRegions, nations: nextNations, capitalTaken } = conquerRegion({ regions: nextRegions, nations: state.nations, turnNumber: state.turnNumber }, targetRegionId, state.playerNationId, war));
   } else if (isDefended) {
     nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
   }
@@ -323,7 +319,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
     : state.wars;
 
   const outcomeMessage = captured
-    ? `Your amphibious assault occupies ${REGIONS_DATA[targetRegionId]?.name}. It stays ${state.nations[targetRegion.owner]?.name || targetRegion.owner}'s land until peace — demand it in a peace deal (Diplomacy) to make it yours.`
+    ? `Your amphibious assault conquers ${REGIONS_DATA[targetRegionId]?.name} from ${state.nations[targetRegion.owner]?.name || targetRegion.owner} — it is now yours${capitalTaken ? ' (their capital has fallen!)' : ''}.`
     : outcome === 'attacker'
       ? `Your landing broke through at ${REGIONS_DATA[targetRegionId]?.name} (control now ${nextControl}%), but could not yet secure it.`
       : outcome === 'defender'
@@ -333,6 +329,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
   return {
     ...state,
     regions: nextRegions,
+    nations: nextNations,
     units: nextUnits,
     wars: nextWars,
     rngSeed,

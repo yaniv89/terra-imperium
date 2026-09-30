@@ -49,7 +49,7 @@ describe('queueing defenses', () => {
     const s = baseState({});
     const out = queue(s);
     expect(out.pendingDefenses).toHaveLength(0);
-    expect(out.regions[FR_BORDER].occupiedBy).toBe('be');
+    expect(out.regions[FR_BORDER].owner).toBe('be'); // conquered
   });
 
   it('prefers the aggressor\'s real neighbouring troops over synthetic ones', () => {
@@ -111,12 +111,13 @@ describe('consequences', () => {
     expect(next.nations.be.militaryStrength).toBeLessThan(st.nations.be.militaryStrength);
   });
 
-  it('a garrison that is overrun at low control falls back to a neighbouring province and the region is occupied', () => {
+  it('a garrison that is overrun at low control falls back to a neighbouring province and the region is conquered', () => {
     const s0 = withDefense(baseState({ g1: unit('g1', FR_BORDER, 'fr', 'ranged', 120) }));
     const s = { ...s0, regions: { ...s0.regions, [FR_BORDER]: { ...s0.regions[FR_BORDER], control: 20 } } };
     const def = { ...s.pendingDefenses[0], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: 'be', ageId: s.age, count: 8, seed: 3 }) };
     const next = gameReducer({ ...s, pendingDefenses: [def] }, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
-    expect(next.regions[FR_BORDER].occupiedBy).toBe('be');
+    expect(next.regions[FR_BORDER].owner).toBe('be');
+    expect(next.regions[FR_BORDER].conquest?.from).toBe('fr');
     if (next.units.g1) expect(next.units.g1.regionId).not.toBe(FR_BORDER);
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveBattle } from './battle';
+import { MAX_BATTLE_ROUNDS, resolveBattle } from './battle';
 import { createRng } from '../utils/rng';
 
 const makeUnit = (id, classId, strength, morale = 100, extra = {}) => ({
@@ -47,13 +47,21 @@ describe('resolveBattle: outcomes', () => {
     expect(outcome).toBe('defender');
   });
 
-  it('neither side breaking counts as the defender holding, not a phantom attacker win', () => {
-    // Small, evenly matched units: one exchange barely dents strength and doesn't move morale
-    // at all (damage/25 rounds to 0), so neither line can possibly break this round.
-    const attackerUnits = [makeUnit('a0', 'infantry', 100, 100)];
-    const defenderUnits = [makeUnit('d0', 'infantry', 100, 100)];
-    const { outcome } = run({ attackerUnits, defenderUnits });
+  it('neither side breaking by the last round counts as the defender holding, not a phantom attacker win', () => {
+    // Tiny units whose hits round to zero: nothing ever breaks, the battle runs out its rounds.
+    const attackerUnits = [makeUnit('a0', 'infantry', 4, 100)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 4, 100)];
+    const { outcome, report } = run({ attackerUnits, defenderUnits });
+    expect(report.rounds).toBe(MAX_BATTLE_ROUNDS);
     expect(outcome).toBe('defender');
+  });
+
+  it('is fought over several rounds until a line breaks, both sides striking at once', () => {
+    const attackerUnits = [makeUnit('a0', 'infantry', 1000), makeUnit('a1', 'infantry', 1000)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 1000), makeUnit('d1', 'infantry', 1000)];
+    const { report } = run({ attackerUnits, defenderUnits }, 9);
+    expect(report.rounds).toBeGreaterThan(1);
+    expect(new Set(report.log.map((e) => e.round)).size).toBe(report.rounds);
   });
 });
 
@@ -104,15 +112,15 @@ describe('resolveBattle: flanking and pursuit', () => {
       ...Array.from({ length: 4 }, (_, i) => makeUnit(`inf${i}`, 'infantry', 5000)),
       makeUnit('cav', 'cavalry', 5000)
     ];
-    const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+    const defenderUnits = [makeUnit('d0', 'infantry', 5000, 100)];
     const { outcome, report, defenderUnits: resultDefenders } = run({ attackerUnits, defenderUnits }, 5);
     expect(outcome).toBe('attacker');
-    expect(report.log.some((e) => e.phase === 'pursuit')).toBe(true);
+    const pursuit = report.log.filter((e) => e.phase === 'pursuit');
+    expect(pursuit.length).toBeGreaterThan(0);
     const d0 = resultDefenders.find((u) => u.id === 'd0');
-    expect(d0.routed).toBe(true);
-    // Combat alone (5 attackers vs 1 defender, one shock exchange) only dents a 100k-strength
-    // unit by a few thousand; ending well below that is only explainable by pursuit's 50% cut.
-    expect(d0.strength).toBeLessThan(60000);
+    expect(d0.routed || d0.strength === 0).toBe(true);
+    const combat = report.log.filter((e) => e.defenderId === 'd0' && e.phase !== 'pursuit').reduce((sum, e) => sum + e.damage, 0);
+    expect(5000 - d0.strength).toBeGreaterThan(Math.min(5000, combat)); // pursuit took more on top
   });
 });
 
@@ -146,11 +154,11 @@ describe('resolveBattle: promotion perks wired into combat', () => {
   });
 
   it('Unbreakable shrugs off the first rout of the battle', () => {
-    const attackerUnits = [makeUnit('a0', 'infantry', 1000, 21, { promotions: ['unbreakable'] })];
-    const defenderUnits = [makeUnit('d0', 'infantry', 1000, 100)];
-    const { attackerUnits: result } = run({ attackerUnits, defenderUnits }, 3);
-    const a0 = result.find((u) => u.id === 'a0');
-    expect(a0.routed).toBe(false);
+    // Shaky (morale 21) against a fresh unit: without the perk it breaks on the first round; with
+    // it, it shrugs that first rout off and fights on.
+    const battle = (promotions) => run({ attackerUnits: [makeUnit('a0', 'infantry', 1000, 21, { promotions })], defenderUnits: [makeUnit('d0', 'infantry', 1000, 100)] }, 3);
+    expect(battle([]).report.rounds).toBe(1);
+    expect(battle(['unbreakable']).report.rounds).toBeGreaterThan(1);
   });
 
   it('Sapper deals more damage than a plain siege unit in the open field', () => {
@@ -169,7 +177,7 @@ describe('resolveBattle: promotion perks wired into combat', () => {
         ...Array.from({ length: 4 }, (_, i) => makeUnit(`inf${i}`, 'infantry', 5000)),
         makeUnit('cav', 'cavalry', 5000, 100, { promotions: cavPromotions })
       ];
-      const defenderUnits = [makeUnit('d0', 'infantry', 100000, 100)];
+      const defenderUnits = [makeUnit('d0', 'infantry', 5000, 100)];
       const { report } = run({ attackerUnits, defenderUnits }, 5);
       return report.log.filter((e) => e.phase === 'pursuit').reduce((sum, e) => sum + e.damage, 0);
     };
@@ -269,5 +277,37 @@ describe('resolveBattle: defenseLevel damage reduction (src/engine/siege.js)', (
     const { report: reportNoReduction } = run({ attackerUnits, defenderUnits, defenderDamageReductionMultiplier: 1 }, 8);
     const defenderDamageNoReduction = reportNoReduction.log.filter((e) => e.attackerId === 'd0').reduce((sum, e) => sum + e.damage, 0);
     expect(defenderDamage).toBe(defenderDamageNoReduction);
+  });
+});
+
+// Reported: "check that the auto battle is fair". Before, one exchange never broke anyone, so an
+// attacker could not win an auto-resolved battle at any odds. These pin the fairness properties.
+describe('resolveBattle: fairness', () => {
+  const mix = ['infantry', 'infantry', 'cavalry', 'ranged'];
+  const army = (p, n, strength = 1000) => Array.from({ length: n }, (_, i) => makeUnit(`${p}${i}`, mix[i % mix.length], strength));
+  const rates = (a, d, extra = {}, n = 200) => {
+    const t = { attacker: 0, defender: 0, stalemate: 0 };
+    for (let i = 1; i <= n; i++) t[run({ attackerUnits: a, defenderUnits: d, terrain: 'plains', ...extra }, i * 7919).outcome] += 1;
+    return { attacker: t.attacker / n, defender: t.defender / n };
+  };
+
+  it('equal armies on open ground are close to a coin flip', () => {
+    const r = rates(army('a', 4), army('d', 4));
+    expect(r.attacker).toBeGreaterThan(0.2);
+    expect(r.defender).toBeGreaterThan(0.2);
+    expect(Math.abs(r.attacker - r.defender)).toBeLessThan(0.2);
+  });
+
+  it('a bigger army usually wins, but a modest edge is not a certainty', () => {
+    expect(rates(army('a', 8), army('d', 2)).attacker).toBeGreaterThan(0.95);
+    const edge = rates(army('a', 5), army('d', 4));
+    expect(edge.attacker).toBeGreaterThan(0.7);
+    expect(edge.attacker).toBeLessThan(1);
+  });
+
+  it('hills and walls favour the defender', () => {
+    const open = rates(army('a', 4), army('d', 4));
+    expect(rates(army('a', 4), army('d', 4), { terrain: 'hills' }).attacker).toBeLessThan(open.attacker);
+    expect(rates(army('a', 4), army('d', 4), { defenderDamageReductionMultiplier: 0.75 }).attacker).toBeLessThan(open.attacker);
   });
 });

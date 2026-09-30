@@ -1,7 +1,7 @@
 // src/App.jsx
 // Main application component - Terra Imperium
 
-import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
 import { GameProvider, useGame, hasExistingSave } from './context/GameContext';
 import { EffectsProvider, useEffects } from './context/EffectsContext';
 import { MapInsetsProvider } from './context/MapInsetsContext';
@@ -12,7 +12,7 @@ import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictCh
 import AdminPage from './components/admin/AdminPage';
 
 // The commanded-battle screen (three.js + the sim worker) only downloads when a battle starts.
-const TacticalBattleHost = lazy(() => import('./components/battle/TacticalBattleHost'));
+const TacticalBattleHost = lazyWithReload(() => import('./components/battle/TacticalBattleHost'));
 import { GameStatus, LogTypes, ActionTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
@@ -22,6 +22,7 @@ import DefenseSheet from './components/battle/DefenseSheet';
 import { useCloudSync } from './hooks/useCloudSync';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
+import { lazyWithReload } from './utils/lazyWithReload';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 

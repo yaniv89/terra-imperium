@@ -7,7 +7,7 @@
 
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
-import { REGIONS_DATA, getCapital } from './regions';
+import { REGIONS_DATA, getCapital, getNationCapital } from './regions';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
 // Domination: a real share of the world's regions (real admin-1 provinces — see regions.js) held
@@ -71,10 +71,10 @@ export const VICTORY_CONDITIONS = {
     check: (state) => {
       const others = Object.values(state.nations).filter(n => !n.isPlayer);
       if (others.length === 0) return false;
-      const capitalsHeld = others.filter(n => {
-        const capitalId = getCapital(state, n.id);
-        return capitalId && state.regions[capitalId]?.owner === state.playerNationId;
-      }).length;
+      // Their historic capital or wherever they moved it after losing it — conquering the capital
+      // relocates it (src/engine/conquest.js), and taking it should still count.
+      const held = (id) => !!id && state.regions[id]?.owner === state.playerNationId;
+      const capitalsHeld = others.filter(n => held(getCapital(state, n.id)) || held(getNationCapital(n.id))).length;
       return capitalsHeld / others.length >= CONQUEROR_CAPITAL_SHARE;
     }
   },

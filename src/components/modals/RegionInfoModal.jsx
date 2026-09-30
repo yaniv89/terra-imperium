@@ -129,7 +129,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     : null;
   // Attacking needs a war with the owner (plan §M13). At peace, the attack buttons would do nothing,
   // so they're replaced by the decision that actually comes first: declaring war.
-  const atWarWithOwner = !!ownerNation && isAtWarWithPlayer(state, ownerNation.id);
+  // Already held by your army (an occupation from an older save): no attack left to make there.
+  const atWarWithOwner = !!ownerNation && isAtWarWithPlayer(state, ownerNation.id) && regionState.occupiedBy !== state.playerNationId;
   const hasMilitaryOption = invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
   const warJustified = !!ownerNation && hasCasusBelli(state, state.playerNationId, ownerNation.id);
   const declareWarCosts = warJustified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
@@ -178,7 +179,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // unless the player chose to remember an answer; an undefended one is simply taken.
   const handleInvade = (fromRegionId) => {
     if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
-    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land');
+    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
     const mode = state.battleSettings?.defaultMode || 'ask';
     if (defended && mode === 'ask') { setBattleChoiceFrom(fromRegionId); return; }
     if (defended && mode === 'command') { dispatch({ type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId, targetRegionId: regionId } }); return; }
@@ -188,7 +189,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const handleAmphibiousAssault = (navalUnitId) => {
     if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
     // Tactical Battles T9: a defended beach can be stormed in command mode too.
-    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land');
+    const defended = Object.values(state.units).some((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
     const mode = state.battleSettings?.defaultMode || 'ask';
     if (defended && mode === 'ask') { setLandingChoice(navalUnitId); return; }
     if (defended && mode === 'command') { dispatch({ type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId: regionId } }); return; }

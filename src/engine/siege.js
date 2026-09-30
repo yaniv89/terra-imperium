@@ -47,7 +47,12 @@ export const hasMeleeUnitDeployed = (units) =>
 // occupied" stays exactly at the threshold), so there's no way to bank damage for a free finisher —
 // the very next attacker-favorable round WITH melee present captures immediately, since control is
 // already at/under the threshold.
-export const resolveSiegeControlDamage = ({ currentControl, outcome, hasMeleeUnit }) => {
+// `garrisonBroken`: the defenders were all routed or destroyed — nobody is left to hold the walls,
+// so a won battle takes the province outright (with melee troops to occupy it). The control grind
+// is for battles that leave a garrison standing.
+export const isGarrisonBroken = (defenders) => defenders.length > 0 && defenders.every((u) => u.strength <= 0 || u.routed);
+export const resolveSiegeControlDamage = ({ currentControl, outcome, hasMeleeUnit, garrisonBroken = false }) => {
+  if (outcome === 'attacker' && garrisonBroken && hasMeleeUnit) return { nextControl: Math.min(currentControl || 0, SIEGE_CAPTURE_CONTROL_THRESHOLD), captured: true };
   const damaged = Math.max(0, (currentControl || 0) - (SIEGE_CONTROL_DAMAGE[outcome] ?? 0));
   const crossedThreshold = outcome === 'attacker' && damaged <= SIEGE_CAPTURE_CONTROL_THRESHOLD;
   if (!crossedThreshold) return { nextControl: damaged, captured: false };
