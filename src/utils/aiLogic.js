@@ -235,7 +235,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 
     const unitId = `unit_ai_${nationId}_${state.turnNumber}`;
     nextUnits[unitId] = {
-      id: unitId, regionId, ownerId: nationId, domain: 'land', classId,
+      id: unitId, regionId, homeRegionId: regionId, ownerId: nationId, domain: 'land', classId,
       strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1,
       xp: 0, rank: 'recruit', promotions: [], commanderId: null,
       transportCapacity: null, embarkedOn: null

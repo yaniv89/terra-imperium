@@ -21,6 +21,7 @@ import { getRegionModifier } from './modifiers/sheet';
 import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier, isGarrisonBroken } from './siege';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { conquerRegion } from './conquest';
+import { applyBattleAftermath } from './aftermath';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -205,15 +206,26 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
         ? `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} was repelled.`
         : `Your invasion of ${REGIONS_DATA[targetRegionId]?.name} ended in a mutual withdrawal.`;
 
+  // The battle's cost to the land and people (src/engine/aftermath.js): casualty scars on the
+  // troops' home provinces, devastation where it was fought, war exhaustion, fallen commanders.
+  const startOf = (u) => state.units[u.id] || { ...u, strength: u.maxStrength || u.strength };
+  const aftermath = applyBattleAftermath({ ...state, regions: nextRegions, nations: nextNations }, {
+    regionId: targetRegionId,
+    beforeA: resolvedAttackers.map(startOf), afterA: resolvedAttackers,
+    beforeD: resolvedDefenders.map(startOf), afterD: resolvedDefenders,
+    attackerId: state.playerNationId, defenderId: targetRegion.owner, outcome
+  });
+
   return {
     ...state,
-    regions: nextRegions,
-    nations: nextNations,
+    regions: aftermath.regions,
+    nations: aftermath.nations,
+    hiredCommanders: aftermath.hiredCommanders,
     units: nextUnits,
     wars: nextWars,
     rngSeed,
     lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
-    logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
+    logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }, ...aftermath.logs]
   };
 };
 

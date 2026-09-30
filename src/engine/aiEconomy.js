@@ -36,6 +36,7 @@
 //   development numbers would never move past their seeded starting value for the entire game —
 //   the player's income keeps growing (Develop Province) while every AI nation's economic base
 //   stays frozen, which is a real parity gap this closes.
+import { devastationIncomeMult } from './aftermath';
 import { UNIT_UPKEEP_GOLD_PER_TURN, ACTION_COSTS, BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
 import { getFieldedStrength, getUnitCount } from '../utils/helpers';
 import { getResearched, getTechAgeId } from './nationState';
@@ -114,7 +115,7 @@ export const calcAllNationIncomes = (state) => {
     const dev = region.dev || seedDevelopment(region.id);
     const controlMult = region.control / 100;
     const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
-    const popFactor = getPopFactor(region, regData);
+    const popFactor = getPopFactor(region, regData) * devastationIncomeMult(region); // a battlefield earns less while it recovers
     const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
     const localProduction = getRegionModifier(state, region.id, 'local.productionIncome').total;
     const localManpower = getRegionModifier(state, region.id, 'local.manpower').total;
