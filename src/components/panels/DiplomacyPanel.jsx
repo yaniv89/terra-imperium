@@ -14,6 +14,7 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles, Heart, Users, Crown, Unlock, Ban, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { ActionTypes } from '../../data/types';
@@ -206,6 +207,7 @@ const NationCard = ({ nation }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const [expanded, setExpanded] = useState(false);
+  const [peaceOpen, setPeaceOpen] = useState(false);
 
   const dispatchIfAffordable = (type, costs) => {
     if (!canAfford(state.resources, costs)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, costs)}`, 'action');
@@ -356,13 +358,22 @@ const NationCard = ({ nation }) => {
             <IconButton icon={Unlock} label="Release" onClick={() => dispatch({ type: ActionTypes.RELEASE_VASSAL, payload: { nationId: nation.id } })} />
           </>
         ) : atWarWithPlayer ? (
-          <IconButton
-            icon={Flag}
-            label={`Sue for Peace (${sueForPeaceCosts.gold}g)`}
-            title="End the war — cheaper the more war-exhausted they are"
-            disabled={!canAfford(state.resources, sueForPeaceCosts)}
-            onClick={() => dispatchIfAffordable(ActionTypes.SUE_FOR_PEACE, sueForPeaceCosts)}
-          />
+          <>
+            <IconButton
+              icon={HeartHandshake}
+              label="Peace deal"
+              title="Negotiate terms — demand the land you occupy to make it yours"
+              onClick={() => setPeaceOpen(true)}
+            />
+            <IconButton
+              icon={Flag}
+              label={`Sue for Peace (${sueForPeaceCosts.gold}g)`}
+              title="End the war with a white peace — you give up any land you occupy"
+              disabled={!canAfford(state.resources, sueForPeaceCosts)}
+              onClick={() => dispatchIfAffordable(ActionTypes.SUE_FOR_PEACE, sueForPeaceCosts)}
+            />
+            {peaceOpen && activeWar && <PeaceDealSheet warId={activeWar.id} onClose={() => setPeaceOpen(false)} />}
+          </>
         ) : (
           <>
             {/* Primary actions — always visible */}

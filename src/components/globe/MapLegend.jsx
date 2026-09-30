@@ -66,6 +66,10 @@ const MapLegend = ({ collapsed = false }) => {
         <div className="w-3 h-3 rounded border-2 border-red-500 bg-slate-700" />
         <span className="text-slate-300">At War (red outline)</span>
       </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded border-2 border-cyan-400 bg-cyan-400/60" />
+        <span className="text-slate-300">Occupied by you (yours at the peace table)</span>
+      </div>
     </div>
   );
 };
