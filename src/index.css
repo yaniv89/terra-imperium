@@ -313,3 +313,24 @@ svg path {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Phone held sideways (src/hooks/useLayoutMode.js): bottom sheets become full-height side sheets on
+   the right, so a 390 px tall screen never loses most of its map to a sheet. A sheet's backdrop
+   gets .sheet-backdrop and its panel .sheet-panel; these rules beat the Tailwind classes on the
+   same elements (attribute + class outranks a single utility class). */
+[data-layout="phone-landscape"] .sheet-backdrop {
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0;
+}
+[data-layout="phone-landscape"] .sheet-panel {
+  width: min(440px, 56vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  /* Clear of a notch on the right; the strip under it shows the backdrop. */
+  margin-right: env(safe-area-inset-right);
+}

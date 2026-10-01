@@ -20,26 +20,27 @@ export const TABS = [
   { id: 'legacy', label: 'Legacy', icon: Trophy }
 ];
 
+// The red count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
+export const getTabBadge = (state, tabId) => {
+  switch (tabId) {
+    case 'military': {
+      // Show number of active invasions
+      const invasions = state.invasions.filter(i => i.active && !i.isPlayerAttacker).length;
+      return invasions > 0 ? invasions : null;
+    }
+    case 'diplomacy': {
+      // Show number of nations at war WITH THE PLAYER — n.isAtWar alone is "in a war with
+      // anyone", which would badge this tab for wars the player has nothing to do with.
+      const wars = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id)).length;
+      return wars > 0 ? wars : null;
+    }
+    default:
+      return null;
+  }
+};
+
 const ActionPanelTabs = ({ activeTab, onTabChange }) => {
   const { state } = useGame();
-
-  const getTabBadge = (tabId) => {
-    switch (tabId) {
-      case 'military': {
-        // Show number of active invasions
-        const invasions = state.invasions.filter(i => i.active && !i.isPlayerAttacker).length;
-        return invasions > 0 ? invasions : null;
-      }
-      case 'diplomacy': {
-        // Show number of nations at war WITH THE PLAYER — n.isAtWar alone is "in a war with
-        // anyone", which would badge this tab for wars the player has nothing to do with.
-        const wars = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id)).length;
-        return wars > 0 ? wars : null;
-      }
-      default:
-        return null;
-    }
-  };
 
   return (
     <div className="flex border-b border-slate-700 bg-slate-800/50">
@@ -50,7 +51,7 @@ const ActionPanelTabs = ({ activeTab, onTabChange }) => {
           label={tab.label}
           isActive={activeTab === tab.id}
           onClick={() => onTabChange(tab.id)}
-          badge={getTabBadge(tab.id)}
+          badge={getTabBadge(state, tab.id)}
         />
       ))}
     </div>

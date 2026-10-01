@@ -6,7 +6,7 @@ The live site is GitHub Pages, built into `docs/`.
 
 ## Working rules (from the user)
 - Big features on a side branch. Merge to `main` only when the user asks; then rebuild `docs/`.
-- Mobile-friendly always: phone width first.
+- Mobile-friendly always: phones play in landscape (844x390 is the reference screen).
 - Automate rather than hand the user manual work.
 - Plain English in messages to the user, no em dashes.
 
@@ -31,6 +31,10 @@ The live site is GitHub Pages, built into `docs/`.
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.
 - `src/components/`: React UI (panels, modals, globe, map, battle screens).
+- Layout: `src/hooks/useLayoutMode.js` picks desktop / tablet / phone-landscape / phone-portrait and
+  sets `<html data-layout>`. Phones play landscape (slim top bar, tab rail on the right, side
+  sheets); portrait shows a rotate screen. CSS follows it with the `pl:` Tailwind variant and the
+  `.sheet-backdrop` / `.sheet-panel` classes (index.css). `useIsMobile` = the bottom-bar layout only.
 
 ## Commands
 - `npm run lint` (zero warnings allowed), `npx vitest run`, `npm run build` (writes docs/).

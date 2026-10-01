@@ -16,13 +16,14 @@
 import React from 'react';
 import { ScrollText } from 'lucide-react';
 
+// Hidden on a phone held sideways: the log opens from the tab rail there (PanelDrawer.jsx).
 const LogTrigger = ({ onClick, unreadCount = 0 }) => (
   <button
     onClick={onClick}
     className="fixed z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 backdrop-blur-md
                border border-slate-700 shadow-xl text-slate-300 hover:bg-slate-800 transition-colors
                left-3 top-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem)+0.5rem)]
-               lg:left-1/2 lg:-translate-x-1/2"
+               lg:left-1/2 lg:-translate-x-1/2 pl:hidden"
     aria-label="Open event log"
   >
     <ScrollText className="w-4 h-4 text-slate-400 shrink-0" />

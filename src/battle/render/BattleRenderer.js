@@ -48,6 +48,7 @@ const SAND_TINT = { desert: '#e3cd95', arctic: '#f5f8fb', island: '#e9d9a4' };
 const ISO_DIR = new Vector3(1, 1.25, 1).normalize();
 const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
 const SCREEN_UP_GROUND = new Vector3(-1, 0, -1).normalize();
+export const PHONE_MAX_ZOOM = 5;
 const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (see resize)
 const tmp = new Object3D();
 const tmpColor = new Color();
@@ -653,6 +654,9 @@ export class BattleRenderer {
     this.renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
     const viewH = aspect < 1 ? 16 : VIEW_TILES;
+    // Phones (short side <= 500 css px) may zoom closer: at 3x a soldier is still only about 29 css
+    // px tall on a 390 px tall landscape screen, too small to see the unit art.
+    this.maxZoom = Math.min(width, height) <= 500 ? PHONE_MAX_ZOOM : 3;
     this.camera.left = (-viewH * aspect) / 2; this.camera.right = (viewH * aspect) / 2;
     this.camera.top = viewH / 2; this.camera.bottom = -viewH / 2;
     this.camera.updateProjectionMatrix();
@@ -674,7 +678,7 @@ export class BattleRenderer {
 
   zoomBy(factor, px = this.width / 2, py = this.height / 2) {
     const before = this.screenToGround(px, py);
-    this.camera.zoom = Math.max(0.45, Math.min(3, this.camera.zoom * factor));
+    this.camera.zoom = Math.max(0.45, Math.min(this.maxZoom || 3, this.camera.zoom * factor));
     this.camera.updateProjectionMatrix();
     this.updateCamera();
     const after = this.screenToGround(px, py);

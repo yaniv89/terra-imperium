@@ -1,23 +1,13 @@
 // src/hooks/useIsMobile.js
-// Tracks whether the viewport is below the `lg` breakpoint (1024px) — the same breakpoint
-// App.jsx's GameLayout already uses to switch from the side-by-side desktop layout to a stacked
-// mobile one. CSS alone (Tailwind's `lg:` classes) handles most of that switch, but a few things
-// need to change their DEFAULT STATE rather than just their size/visibility (e.g. the event log
-// starting collapsed on a phone) — this hook is for exactly those cases.
-import { useState, useEffect } from 'react';
-
-const QUERY = '(max-width: 1023px)';
+// "Use the phone/tablet layout": true for the bottom-tab-bar layout ('tablet', which also covers a
+// phone in portrait when the player chose to play that way), false for desktop AND for a phone in
+// landscape. Landscape phones use the desktop-style side panels (see useLayoutMode.js), because a
+// bottom sheet on a 390 px tall screen would cover most of the map. CSS alone (Tailwind's `lg:`
+// classes) handles most size changes; this hook is for components whose DEFAULT STATE or structure
+// changes (e.g. a bottom sheet instead of a side panel).
+import { useLayoutMode } from './useLayoutMode';
 
 export const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(QUERY).matches : false);
-
-  useEffect(() => {
-    const mql = window.matchMedia(QUERY);
-    const onChange = (e) => setIsMobile(e.matches);
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
-  }, []);
-
-  return isMobile;
+  const mode = useLayoutMode();
+  return mode === 'tablet' || mode === 'phone-portrait';
 };

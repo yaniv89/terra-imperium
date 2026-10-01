@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -33,5 +35,8 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    // `pl:` = phone held sideways (src/hooks/useLayoutMode.js sets <html data-layout>).
+    plugin(({ addVariant }) => { addVariant('pl', '[data-layout="phone-landscape"] &'); })
+  ],
 }

@@ -54,8 +54,8 @@ const PeaceDealSheet = ({ warId, onClose }) => {
   // Portalled to <body>: opened from inside the side panel, whose transformed container would
   // otherwise trap this "fixed" sheet under the mobile tab bar.
   return createPortal((
-    <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose} data-testid="peace-deal">
-      <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md max-h-[88vh] flex flex-col bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl text-slate-200 shadow-2xl">
+    <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" onClick={onClose} data-testid="peace-deal">
+      <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[88vh] flex flex-col bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl text-slate-200 shadow-2xl">
         <div className="p-4 pb-2 flex items-start justify-between">
           <div>
             <div className="text-base font-bold text-white flex items-center gap-2"><Handshake className="w-5 h-5 text-emerald-400" /> Peace with {enemy.name}</div>
