@@ -38,6 +38,7 @@ import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
+import { useExclusivePanel } from '../../hooks/useExclusivePanel';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds, getCapital } from '../../data/regions';
@@ -92,6 +93,8 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   const isShown = open && !!regionId;
   useReportInset('province-panel', isMobile ? 'bottom' : 'left', sheetRef, isShown);
   const [peeking, cancelPeek] = useAutoPeek(isShown && isMobile);
+  // Opening the tab panel beside it closes this one when both wouldn't leave room for the map.
+  useExclusivePanel('province', isShown && !isMobile, (tucked) => { if (tucked) onClose(); });
 
   useEffect(() => { setTab('overview'); }, [regionId]);
 

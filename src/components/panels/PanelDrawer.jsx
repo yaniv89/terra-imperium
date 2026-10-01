@@ -20,6 +20,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronRight, ScrollText, X } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useExclusivePanel } from '../../hooks/useExclusivePanel';
 import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
@@ -75,6 +76,13 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
   // The rail plus the open dock, measured as one block on the right edge.
   useReportInset('panel-rail', 'right', landscapeRef, isLandscapePhone);
   const [peeking, cancelPeek] = useAutoPeek(isMobile && mobileSheetOpen);
+
+  // Opening a province tucks this panel away when both wouldn't leave room for the map, and closing
+  // the province brings it back (useExclusivePanel.js). Not persisted: the player's own choice stays.
+  useExclusivePanel('tabs', isLandscapePhone ? dockOpen : !isMobile && !collapsed, (tucked) => {
+    if (isLandscapePhone) setDockOpen(!tucked);
+    else setCollapsed(tucked);
+  });
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
