@@ -23,7 +23,7 @@
 
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
-import { getBorderingNationIds } from '../data/regions';
+import { getBorderingNationIds, getNeighborIds } from '../data/regions';
 import { declareWar, isInTruce, hasActiveWarBetween } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
@@ -104,7 +104,7 @@ const COALITION_HOSTILITY_RISE_PER_TURN = 3;
 // coalition threshold — otherwise null. Pure and cheap: one pass over the nations already in
 // hand, no new state.
 export const findRunawayLeader = (nations) => {
-  const entries = Object.values(nations);
+  const entries = Object.values(nations).filter(n => !n.isEliminated);
   const total = entries.reduce((sum, n) => sum + (n.militaryStrength || 0), 0);
   if (total <= 0) return null;
   const leader = entries.reduce((max, n) => (n.militaryStrength > (max?.militaryStrength || 0) ? n : max), null);
@@ -120,7 +120,7 @@ export const findRunawayLeader = (nations) => {
 // across 240 nations.
 export const getNationTier = (state, nationId, sortedByMilitary) => {
   const nation = state.nations[nationId];
-  if (!nation || nation.isPlayer) return null;
+  if (!nation || nation.isPlayer || nation.isEliminated) return null;
   if (nation.isAtWar) return 1;
   if (getBorderingNationIds(state.regions, nationId).includes(state.playerNationId)) return 1;
   const rank = sortedByMilitary.indexOf(nationId);
@@ -138,7 +138,7 @@ export const getNationTier = (state, nationId, sortedByMilitary) => {
 // the plan calls out keeps this a safe, well-scoped step rather than a blanket rip-and-replace.
 export const getSortedByMilitary = (state) =>
   Object.values(state.nations)
-    .filter(n => !n.isPlayer)
+    .filter(n => !n.isPlayer && !n.isEliminated)
     .sort((a, b) => getEffectiveMilitaryPower(state, b.id) - getEffectiveMilitaryPower(state, a.id))
     .map(n => n.id);
 
@@ -202,9 +202,30 @@ export const chooseAIRecruitClass = (state, units, nationId, ageId) => {
   return best;
 };
 
-// Tier 1 nations may each recruit one real land unit this turn (AI_RECRUIT_CHANCE), placed in
-// whichever of their own regions has the largest population — a reasonable stand-in for "capital"
-// since nations don't have one tracked explicitly. Spends AI_RECRUIT_MILITARY_STRENGTH_COST off
+// Recruit into controlled provinces, prioritizing threatened war goals and enemy borders.
+// Population breaks ties; peace-time recruitment still favors population centers.
+export const chooseAIRecruitRegion = (state, regions, nationId) => {
+  const enemies = new Set();
+  const goals = new Set();
+  (state.wars || []).forEach(w => {
+    if (!w.active || (w.aggressor !== nationId && w.enemy !== nationId)) return;
+    enemies.add(w.aggressor === nationId ? w.enemy : w.aggressor);
+    if (w.goal?.type === 'capture_region') goals.add(w.goal.regionId);
+  });
+  let best = null; let bestThreat = -1;
+  Object.entries(regions).forEach(([id, r]) => {
+    if (r.owner !== nationId || (r.occupiedBy && r.occupiedBy !== nationId)) return;
+    const threatened = getNeighborIds(id).some(n => enemies.has(regions[n]?.occupiedBy || regions[n]?.owner));
+    const threat = (r.underInvasion ? 4 : 0) + (goals.has(id) ? 2 : 0) + (threatened ? 1 : 0);
+    if (threat > bestThreat || (threat === bestThreat && (r.currentPopulation || 0) > (regions[best]?.currentPopulation || 0))) {
+      best = id; bestThreat = threat;
+    }
+  });
+  return best;
+};
+
+// Tier 1 nations may each recruit one real land unit this turn (AI_RECRUIT_CHANCE).
+// Spends AI_RECRUIT_MILITARY_STRENGTH_COST off
 // the nation's militaryStrength (already grown this turn by processAllAINations) and stops once a
 // nation holds its age's standing-unit cap (getAIMaxStandingUnits). Pure: returns new
 // `units`/`nations` maps rather than mutating the ones passed in, exactly like processAIWarDecisions.
@@ -215,7 +236,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 
   Object.keys(nations).forEach(nationId => {
     const nation = nextNations[nationId];
-    if (!nation || nation.isPlayer) return;
+    if (!nation || nation.isPlayer || nation.isEliminated) return;
     if (getNationTier({ ...state, nations: nextNations }, nationId, sortedByMilitary) !== 1) return;
     // Plan §M16: "Tier 1 recruits from treasury and manpower with the same costs" once a nation has
     // a real economy (src/engine/aiEconomy.js, populated every turn by resolveTurn.js's own AI-
@@ -229,10 +250,8 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 
     const classId = chooseAIRecruitClass({ ...state, nations: nextNations }, nextUnits, nationId, ageId);
     if (!classId) return;
-    const ownedRegionIds = Object.entries(regions).filter(([, r]) => r.owner === nationId).map(([id]) => id);
-    if (ownedRegionIds.length === 0) return;
-    const regionId = ownedRegionIds.reduce((best, id) =>
-      ((regions[id].currentPopulation || 0) > (regions[best].currentPopulation || 0) ? id : best), ownedRegionIds[0]);
+    const regionId = chooseAIRecruitRegion(state, regions, nationId);
+    if (!regionId) return;
 
     const unitId = `unit_ai_${nationId}_${state.turnNumber}`;
     nextUnits[unitId] = {
@@ -292,7 +311,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // same pass may just have been dragged into a war as someone's target, and a freshly-invaded
     // nation shouldn't also get to fire off its own declaration this turn.
     const nation = currentNations[nationId];
-    if (!nation || nation.isPlayer || draggedIn.has(nationId)) return;
+    if (!nation || nation.isPlayer || nation.isEliminated || draggedIn.has(nationId)) return;
     const fronts = countActiveWars(currentWars, nationId);
     if (fronts >= MAX_AI_WARS) return;
     // Plan §M12: a vassal "can't declare wars except independence". Once its liberty desire is
@@ -364,7 +383,7 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
 // (see src/utils/rng.js) so turn resolution stays deterministic and replayable.
 export const processAINationTurn = (nation, state, year, rng = DEFAULT_RNG) => {
   const updates = { militaryStrengthChange: 0, hostilityChange: 0, logs: [] };
-  if (nation.isPlayer) return updates;
+  if (nation.isPlayer || nation.isEliminated) return updates;
 
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
 
@@ -398,7 +417,7 @@ export const processAllAINations = (state, year, rng = DEFAULT_RNG) => {
   const allUpdates = { nationUpdates: {}, logs: [] };
 
   Object.values(state.nations).forEach(nation => {
-    if (nation.isPlayer) return;
+    if (nation.isPlayer || nation.isEliminated) return;
     const updates = processAINationTurn(nation, state, year, rng);
     allUpdates.nationUpdates[nation.id] = {
       militaryStrengthChange: updates.militaryStrengthChange,

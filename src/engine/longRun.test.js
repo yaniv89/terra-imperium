@@ -13,6 +13,7 @@ import { ActionTypes, GameStatus } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { REGIONS_DATA } from '../data/regions';
 import { POPULATION_FLOOR_RATIO } from './population';
+import { assertGameState } from './stateAudit';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 const world = (seed) => ({
@@ -59,6 +60,7 @@ describe('whole-world long runs', () => {
     const prints = [];
     for (let t = 0; t < TURNS && a.gameStatus === GameStatus.ACTIVE; t++) {
       a = advance(a); b = advance(b);
+      assertGameState(a);
       const pa = fingerprint(a);
       expect(fingerprint(b), `diverged at turn ${a.turnNumber}`).toBe(pa);
       if (t === 49 || t === TURNS - 1) {

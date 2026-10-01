@@ -40,6 +40,7 @@ describe('getTermCost', () => {
 
   it('gold: divides the amount by a flat divisor, capped', () => {
     const state = usState();
+    state.nations.ca.economy.gold = 50000;
     const war = warWithOccupiedCapital(state);
     expect(getTermCost(state, war, 'us', { type: 'gold', amount: 500 })).toBe(1);
     expect(getTermCost(state, war, 'us', { type: 'gold', amount: 50000 })).toBe(30); // capped
@@ -145,12 +146,13 @@ describe('applyPeace', () => {
 
   it('gold: only moves state.resources when the player is a party to the deal', () => {
     const state = { ...usState(), resources: { ...usState().resources, gold: 1000 } };
+    state.nations.ca.economy.gold = 300;
     const war = warWithOccupiedCapital(state);
     const result = applyPeace(state, war, 'us', [{ type: 'gold', amount: 300 }]);
     expect(result.resources.gold).toBe(1300);
   });
 
-  it('gold: is a cosmetic no-op between two AI nations (no simulated AI treasury pre-M16)', () => {
+  it('gold: leaves the player treasury untouched between two AI nations', () => {
     const state = usState();
     const aiWar = { ...warWithOccupiedCapital(state), aggressor: 'mx', enemy: 'ca' };
     const result = applyPeace(state, aiWar, 'mx', [{ type: 'gold', amount: 300 }]);
