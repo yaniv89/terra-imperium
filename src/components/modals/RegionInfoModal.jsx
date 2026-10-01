@@ -256,6 +256,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               {coastal && <span>· Coastal</span>}
               {regionData.isCapital && <span className="text-purple-400">· Capital</span>}
             </div>
+            {/* A balanced region (scripts/geo/build-balanced-regions.mjs) names the real provinces in it. */}
+            {regionData.includes?.length > 0 && (
+              <div className="text-slate-500 text-[10px] truncate" title={`Includes ${regionData.includes.join(', ')}`}>
+                Includes {regionData.includes.slice(0, 3).join(', ')}{regionData.includes.length > 3 ? ` and ${regionData.includes.length - 3} more` : ''}
+              </div>
+            )}
           </div>
         </div>
         <button

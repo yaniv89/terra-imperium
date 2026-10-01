@@ -130,7 +130,7 @@ describe('getNationTier', () => {
       'us-mt': { owner: 'us' },
       'ca-ab': { owner: 'ca' },
       'de-sn': { owner: 'de' },
-      'cz-ka': { owner: 'cz' },
+      'cz-kr': { owner: 'cz' },
       'au-tas': { owner: 'au' }
     }
   });
@@ -452,7 +452,7 @@ describe('chooseAIRecruitClass', () => {
     playerNationId: 'us',
     wars: [],
     nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } },
-    regions: { 'de-rp': { owner: 'de' }, 'fr-57': { owner: 'fr' } },
+    regions: { 'de-rp': { owner: 'de' }, 'fr-52': { owner: 'fr' } },
     ...overrides
   });
 
@@ -587,7 +587,7 @@ describe('chooseAIRecruitClass builds a combined-arms army', () => {
   it('recruiting 20 units in a row gives a mix, with no class above 60%', () => {
     let units = {};
     for (let i = 0; i < 20; i++) {
-      const s = { playerNationId: 'us', wars: [], nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } }, regions: { 'de-rp': { owner: 'de' }, 'fr-57': { owner: 'fr' } } };
+      const s = { playerNationId: 'us', wars: [], nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } }, regions: { 'de-rp': { owner: 'de' }, 'fr-52': { owner: 'fr' } } };
       const classId = chooseAIRecruitClass(s, units, 'de', 'kingdoms');
       units = { ...units, [`u${i}`]: { id: `u${i}`, ownerId: 'de', classId, domain: 'land' } };
     }

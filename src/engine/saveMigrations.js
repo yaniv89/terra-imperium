@@ -14,13 +14,14 @@
 //   load, after any numbered migrations, so a save from a build that's only a few commits behind
 //   (no migration needed yet) still gets any new field for free.
 import { createInitialState } from './gameReducer';
-import { getNationCapital } from '../data/regions';
+import { getNationCapital, REGIONS_DATA } from '../data/regions';
+import REGION_MERGE from '../data/geo/regionMerge.json';
 import { conquerRegion } from './conquest';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-export const CURRENT_SAVE_VERSION = 5;
+export const CURRENT_SAVE_VERSION = 6;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
@@ -138,7 +139,91 @@ const migrate4to5 = (state) => {
   return { ...state, regions, nations, battleSettings };
 };
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5 };
+// v6: the balanced map (scripts/geo/build-balanced-regions.mjs). 2,454 of the 4,482 admin-1
+// provinces were merged into larger regions of the same country (REGION_MERGE: old id -> new id).
+// Each new region is combined from its old members: the owner and other single values from the
+// most populous member, population and development summed, control/unrest/devastation weighted
+// by population, built levels and buildings at the best member's tier, flags OR-ed. Every other
+// mention of an old id anywhere in the save (units, wars, battles, capitals, reports) is renamed,
+// and each nation's starting province count (the overextension reference) shrinks in proportion.
+const SUMMED = new Set(['currentPopulation']);
+const WEIGHTED = new Set(['control', 'unrest', 'devastation']);
+const MAXED = new Set(['currentInfrastructure', 'defenseLevel', 'climateResilience', 'lastAttackedTurn', 'integratingUntil', 'lastBattleTurn']);
+const ORED = new Set(['underInvasion']);
+
+export const combineRegions = (newId, members) => {
+  if (members.length === 1) return { ...members[0], id: newId };
+  const pop = (r) => Math.max(0, r.currentPopulation || 0);
+  const dominant = [...members].sort((a, b) => pop(b) - pop(a) || (a.id < b.id ? -1 : 1))[0];
+  const totalPop = members.reduce((sum, r) => sum + pop(r), 0);
+  const out = { ...dominant, id: newId };
+  Object.keys(dominant).forEach((key) => {
+    const values = members.map((r) => r[key]).filter((v) => v !== undefined && v !== null);
+    if (SUMMED.has(key)) out[key] = values.reduce((a, b) => a + b, 0);
+    else if (WEIGHTED.has(key)) out[key] = totalPop > 0 ? members.reduce((sum, r) => sum + (r[key] || 0) * pop(r), 0) / totalPop : values.reduce((a, b) => a + b, 0) / Math.max(1, values.length);
+    else if (MAXED.has(key)) out[key] = Math.max(...values);
+    else if (ORED.has(key)) out[key] = values.some(Boolean);
+  });
+  if (dominant.dev) {
+    out.dev = {};
+    members.forEach((r) => Object.entries(r.dev || {}).forEach(([k, v]) => { out.dev[k] = (out.dev[k] || 0) + (v || 0); }));
+  }
+  if (dominant.buildings) {
+    const categories = {};
+    const extraction = {};
+    members.forEach((r) => {
+      Object.entries(r.buildings?.categories || {}).forEach(([k, tier]) => { categories[k] = Math.max(categories[k] ?? -1, tier); });
+      Object.entries(r.buildings?.extraction || {}).forEach(([k, on]) => { extraction[k] = !!(extraction[k] || on); });
+    });
+    out.buildings = { ...dominant.buildings, categories, extraction };
+  }
+  return out;
+};
+
+const renameIds = (value, map) => {
+  if (typeof value === 'string') return map[value] || value;
+  if (Array.isArray(value)) return value.map((v) => renameIds(v, map));
+  if (isPlainObject(value)) {
+    const out = {};
+    Object.entries(value).forEach(([k, v]) => {
+      const key = map[k] || k;
+      if (key in out) return; // two old ids now one: keep the first entry
+      out[key] = renameIds(v, map);
+    });
+    return out;
+  }
+  return value;
+};
+
+const migrate5to6 = (state) => {
+  const map = REGION_MERGE;
+  const groups = {};
+  Object.entries(state.regions || {}).forEach(([oldId, region]) => {
+    (groups[map[oldId] || oldId] ||= []).push({ ...region, id: region.id || oldId });
+  });
+  const regions = {};
+  let splitOwners = 0;
+  Object.entries(groups).forEach(([newId, members]) => {
+    if (new Set(members.map((m) => m.owner)).size > 1) splitOwners += 1;
+    regions[newId] = combineRegions(newId, members);
+  });
+  // Starting province counts: new count / old count per start owner.
+  const newCount = {}; const mergedAway = {};
+  Object.values(REGIONS_DATA).forEach((r) => { newCount[r.startOwner] = (newCount[r.startOwner] || 0) + 1; });
+  Object.values(map).forEach((newId) => { const o = REGIONS_DATA[newId]?.startOwner; if (o) mergedAway[o] = (mergedAway[o] || 0) + 1; });
+  const { regions: _old, logs = [], ...rest } = state; // eslint-disable-line no-unused-vars
+  const renamed = renameIds(rest, map);
+  const nations = {};
+  Object.entries(renamed.nations || {}).forEach(([id, n]) => {
+    const before = (newCount[id] || 0) + (mergedAway[id] || 0);
+    const ratio = before > 0 ? (newCount[id] || 0) / before : 1;
+    nations[id] = typeof n.startRegionCount === 'number' && ratio < 1 ? { ...n, startRegionCount: Math.max(1, Math.round(n.startRegionCount * ratio)) } : n;
+  });
+  const note = { year: state.year, type: 'event', message: `The map was simplified: small provinces were merged into larger regions (${Object.keys(state.regions || {}).length} provinces became ${Object.keys(regions).length} regions).${splitOwners ? ` ${splitOwners} merged regions had more than one owner and went to the one holding most of their people.` : ''}` };
+  return { ...renamed, nations, regions, logs: [...logs, note] };
+};
+
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

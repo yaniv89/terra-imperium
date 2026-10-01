@@ -17,8 +17,8 @@ import {
   buildSyntheticForce, getAssaultSize, getAssaultPressure, createDefenseRecord, PLAYER_DEFENDED_CAPTURE_MULT
 } from './defense';
 
-const FR_BORDER = 'fr-59';
-const BE_REGION = 'be-vwv';
+const FR_BORDER = 'fr-80';
+const BE_REGION = 'be-wht';
 
 const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000) => ({
   id, regionId, ownerId, domain: 'land', classId, strength, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1
@@ -79,7 +79,7 @@ describe('turn flow', () => {
     const s = withDefense();
     expect(gameReducer(s, { type: ActionTypes.ADVANCE_TURN }).turnNumber).toBe(s.turnNumber);
     expect(gameReducer(s, { type: ActionTypes.FAST_FORWARD }).turnNumber).toBe(s.turnNumber);
-    const moved = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'g1', toRegionId: 'fr-62' } });
+    const moved = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'g1', toRegionId: 'fr-80' } });
     expect(moved.units.g1.regionId).toBe(FR_BORDER);
   });
 

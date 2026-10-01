@@ -21,6 +21,8 @@ import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
+// Above this camera altitude (globe radii) the globe shows nations, not provinces.
+const FAR_VIEW_ALTITUDE = 1.1;
 const OCEAN_COLOR = '#0f172a'; // slate-900
 
 const prefersReducedMotion = () =>
@@ -207,9 +209,24 @@ const GlobeView = ({
   // gets a red outline instead of black — the war signal lives on the stroke, not the fill, so a
   // hostile nation's own color identity (capColor above) stays visible the whole time you're
   // fighting it, not just before or after.
+  // Far out (plan §3b, the CK3 look) province outlines take their province's own colour, so lines
+  // inside a nation disappear and only the change of colour between nations shows. Selection and
+  // war outlines stay. Checked on a light poll: a threshold flip, not a per-frame value.
+  const [farView, setFarView] = useState(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const alt = globeRef.current?.pointOfView?.()?.altitude;
+      if (alt != null) setFarView((prev) => (prev ? alt > FAR_VIEW_ALTITUDE * 0.9 : alt > FAR_VIEW_ALTITUDE));
+    }, 300);
+    return () => clearInterval(interval);
+  }, []);
   const strokeColor = useCallback(
-    (feature) => getRegionStrokeColor(state.regions, state.playerNationId, feature.properties?.gameRegionId, selectedRegion, atWarNationIds),
-    [selectedRegion, state.regions, state.playerNationId, atWarNationIds]
+    (feature) => {
+      const id = feature.properties?.gameRegionId;
+      if (farView && id !== selectedRegion && !atWarNationIds.has(state.regions[id]?.owner)) return getRegionFillColor(state.regions, state.playerNationId, id);
+      return getRegionStrokeColor(state.regions, state.playerNationId, id, selectedRegion, atWarNationIds);
+    },
+    [selectedRegion, state.regions, state.playerNationId, atWarNationIds, farView]
   );
 
   const label = useCallback((feature) => {

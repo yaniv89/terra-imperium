@@ -22,6 +22,8 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
+import { loadSubregionTopology } from '../../data/geo/loadWorldFeatures';
+import { mesh } from 'topojson-client';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
@@ -92,6 +94,23 @@ const Map2DView = ({
     if (!polygons || width <= 0 || height <= 0) return null;
     return geoEquirectangular().fitSize([width, height], { type: 'FeatureCollection', features: polygons });
   }, [polygons, width, height]);
+
+  // Nation borders (plan §3b, the CK3 look): one line wherever two different owners meet, drawn
+  // over the provinces. Zoomed out, province outlines fade away and only these remain; from about
+  // 3x the province outlines come back. Rebuilt only when land changes hands.
+  const [topology, setTopology] = useState(null);
+  useEffect(() => {
+    if (!interactive) return undefined;
+    let cancelled = false;
+    loadSubregionTopology().then((t) => { if (!cancelled) setTopology(t); });
+    return () => { cancelled = true; };
+  }, [interactive]);
+  const nationBorderPath = useMemo(() => {
+    if (!topology || !projection) return null;
+    const object = topology.objects[Object.keys(topology.objects)[0]];
+    const ownerOf = (g) => state.regions[g.id]?.owner ?? null;
+    return geoPath(projection)(mesh(topology, object, (a, b) => a !== b && ownerOf(a) !== ownerOf(b)));
+  }, [topology, projection, state.regions]);
 
   const pathsById = useMemo(() => {
     if (!projection || !polygons) return null;
@@ -284,12 +303,16 @@ const Map2DView = ({
         // Divided by the current zoom scale so the stroke's SCREEN width stays constant as the
         // map zooms in — without this, an 8x zoom would render a "thin" 0.4 stroke 3.2px wide.
         const strokeWidth = (gameRegionId === selectedRegion ? 1.5 : 0.4) / zoomK;
+        // Below 2.5x the province outline takes the province's own colour (nation borders carry the
+        // map there): an invisible stroke rather than none, so no hairline gap of sea shows
+        // between two provinces of the same nation.
+        const blendOutline = interactive && zoomK < 2.5 && gameRegionId !== selectedRegion && stroke !== '#ef4444';
         return (
           <path
             key={gameRegionId}
             d={d}
             fill={fill}
-            stroke={stroke}
+            stroke={blendOutline ? fill : stroke}
             strokeWidth={strokeWidth}
             pointerEvents="fill"
             data-region-id={gameRegionId}
@@ -354,6 +377,7 @@ const Map2DView = ({
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
         {pathElements}
+        {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" pointerEvents="none" data-testid="nation-borders" />}
         {warBorderElements}
       </g>
     </svg>

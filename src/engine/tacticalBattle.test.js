@@ -3,6 +3,7 @@
 // and locks the units; the turn can't end mid-battle; RESOLVE applies exactly the invasion's own
 // consequences from a sanitized result (no minting soldiers); ABANDON is auto-resolve with the same
 // seed; and a real headless battle's result flows through RESOLVE end to end.
+import { REGIONS_DATA } from '../data/regions';
 import { describe, it, expect } from 'vitest';
 import { gameReducer, createInitialState, sanitizeTacticalResult } from './gameReducer';
 import { ActionTypes } from '../data/types';
@@ -13,8 +14,8 @@ import { getNationCapital } from '../data/regions';
 import { createWorld, sideEdgeX } from '../battle/sim/world';
 import { firePower } from '../battle/sim/effects';
 
-const FR_BORDER = 'fr-59';
-const BE_REGION = 'be-vwv';
+const FR_BORDER = 'fr-80';
+const BE_REGION = 'be-wht';
 
 const baseState = () => {
   const s = createInitialState({ playerNationId: 'fr' });
@@ -43,7 +44,7 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     expect(next.pendingBattle).toMatchObject({ fromRegionId: FR_BORDER, targetRegionId: BE_REGION, attackerUnitIds: ['a1', 'a2', 'a3'], defenderUnitIds: ['d1', 'd2'], playerSide: 'attacker' });
     expect(next.resources.mil).toBeLessThan(s.resources.mil);
     // locked: can't move, can't end the turn, can't start a second battle
-    const moved = gameReducer(next, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a1', toRegionId: 'fr-62' } });
+    const moved = gameReducer(next, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a1', toRegionId: 'fr-80' } });
     expect(moved.units.a1.regionId).toBe(FR_BORDER);
     const turn = gameReducer(next, { type: ActionTypes.ADVANCE_TURN });
     expect(turn.turnNumber).toBe(next.turnNumber);
@@ -182,14 +183,14 @@ describe('battle odds preview', () => {
 describe('T7: reinforcements, missiles and powers in the campaign', () => {
   const withNeighbourTroops = () => {
     const s = withArmies();
-    // fr-62 (Pas-de-Calais) borders West Flanders? use any French neighbour of the target that isn't the origin
-    const neighbour = ['fr-62', 'fr-80', 'fr-02'].find((id) => s.regions[id]?.owner === 'fr');
+    // Any French neighbour of the target that isn't the origin.
+    const neighbour = REGIONS_DATA[BE_REGION].neighbors.find((id) => id !== FR_BORDER && s.regions[id]?.owner === 'fr');
     return { s: { ...s, units: { ...s.units, r1: unit('r1', neighbour, 'fr', 'cavalry') } }, neighbour };
   };
 
   it('BEGIN records standby reinforcements from neighbouring provinces and locks them', () => {
     const s = withArmies();
-    const neighbours = ['fr-62', 'fr-80', 'fr-02', 'fr-59'];
+    const neighbours = ['fr-80', 'fr-80', 'fr-51', 'fr-80'];
     const next = begin(s);
     expect(Array.isArray(next.pendingBattle.attackerReinforcements)).toBe(true);
     // the origin province is never a "reinforcement" source
@@ -198,9 +199,9 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
   });
 
   it('a reinforcement only counts if the battle says it joined', () => {
-    const { s } = withNeighbourTroops();
+    const { s, neighbour } = withNeighbourTroops();
     const started = begin(s);
-    const pb = { ...started.pendingBattle, attackerReinforcements: [{ regionId: 'fr-62', unitIds: ['r1'] }] };
+    const pb = { ...started.pendingBattle, attackerReinforcements: [{ regionId: neighbour, unitIds: ['r1'] }] };
     const withPb = { ...started, pendingBattle: pb };
     const base = { outcome: 'defender', attackerUnits: [{ ...s.units.a1, strength: 900 }, { ...s.units.r1, strength: 500 }], defenderUnits: [], report: { tactical: {} } };
     expect(sanitizeTacticalResult(withPb, pb, base).attackerUnits.some((u) => u.id === 'r1')).toBe(false);

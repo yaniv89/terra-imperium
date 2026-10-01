@@ -243,6 +243,13 @@ is the real complaint today. That trade is right.
 
 ## 3b. A lighter map: fewer, evenly sized regions (the CK3 approach)
 
+**Status: built (workstream 3).** 4,482 to 2,028 regions exactly as the dry run said; all 240
+capitals kept; the v6 save migration converts old saves; turns are about 25 to 40% faster.
+Supplies count the original provinces inside each region (so foraging is unchanged); gold is
+lower for over-split countries because the per-province minimum development no longer
+multiplies across hundreds of tiny provinces (France about -10 to -20%). Zoomed out, the flat
+map draws nation borders only and the globe hides lines inside a nation.
+
 ### The problem, measured
 - The map has **4,482 regions**, one per real admin-1 province, and they are wildly uneven.
 - **Provinces per country.** The UK has 232, Slovenia 192, Latvia 114, Uganda 111, Italy 110,
@@ -1437,7 +1444,7 @@ after, and `compare.sh` for speed.
 |---|---|---|---|
 | 1 | Landscape shell, rotate overlay, native lock, side sheets | L | **done** |
 | 2 | Battle odds band, animated auto-resolve, battle report history | M | **done** |
-| 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | none |
+| 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | **done** |
 | 4 | Research engine, calibration, choice popup, research tab | L | 3 (calibrate on the final map) |
 | 5 | Tap disambiguation, more zoom | S | 3 |
 | 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | 3, 5 |
