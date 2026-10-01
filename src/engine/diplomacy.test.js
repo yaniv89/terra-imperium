@@ -15,7 +15,9 @@ const alwaysRolls = { next: () => 0 };       // guarantees any probability check
 const neverRolls = { next: () => 0.999999 }; // guarantees any realistic probability check fails
 
 // Player is the US; Canada ('ca') and Mexico ('mx') are its real bordering nations.
-const usState = () => createInitialState({ playerNationId: 'us' });
+// These tests exercise the compatibility policy for saves predating real AI economies.
+// Current campaigns use real armies, covered by aiOperations and campaignAudit.
+const usState = () => {const s=createInitialState({ playerNationId: 'us' });for(const n of Object.values(s.nations))if(!n.isPlayer)n.economy=undefined;return s;};
 
 describe('assignDefaultWarGoal', () => {
   it('gives the player a capture_region goal against a nation with a bordering region', () => {

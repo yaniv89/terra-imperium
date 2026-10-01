@@ -1,3 +1,11 @@
+import { ESTATE_PRIVILEGES, CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY, ESTATE_INTERACTION_COOLDOWN_TURNS } from '../data/estates';
+import { canDoEstateInteraction } from './estates';
+import { LAW_CATEGORIES, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
+import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from './succession';
+import { getNeighborIds } from '../data/regions';
+import { getRecruitUnitCost, calcNationBalance, getLoanCapacity, getLoanInterestRate, applyBankruptcy } from './economy';
+import { canAfford, applyCosts, EXTRACTION_BASE_YIELD } from '../utils/helpers';
+import { hasDeposit } from '../data/deposits';
 // src/engine/aiEconomy.js
 // Plan §M16: AI parity. Gives AI nations a real, spendable economy — gold/hr/techPoints/adm/dip/mil
 // on their own `nation.economy` (src/engine/nationState.js's own long-scaffolded accessor layer,
@@ -7,39 +15,13 @@
 // the existing, now-upgraded, processAIRecruitment pass in aiLogic.js) instead of only ever growing
 // an abstract militaryStrength number.
 //
-// Scope trims (documented once, here, rather than at each item):
-// - Laws, estate privilege grants/interactions, national identity shifts, advisor hiring, and
-//   diplomat task assignment get NO AI decision here. Every nation still carries these fields
-//   generically (laws default, estates track real loyalty/influence already since M9), but only the
-//   player acts on them — the same "generic reader, player-only writer" pattern M8/M9/M12 already
-//   established, just narrower than before this milestone rather than eliminated by it.
-// - Loans/bankruptcy stay player-only. An AI nation whose upkeep exceeds its income simply can't pay
-//   the shortfall beyond what it has (gold floors at 0 — no loan, no bankruptcy penalty): a real,
-//   visible consequence (a cash-strapped AI builds/recruits less) without the more dramatic modifier/
-//   prestige/estate-loyalty machinery that makes far more sense as a player-facing crisis than a
-//   background simulation detail for up to 240 nations every turn.
-// - AI doesn't track copper/iron/oil — recruitment (aiLogic.js) and buildings never gate on a
-//   strategic resource for AI, only gold/manpower/power, unlike the player's own
-//   RECRUIT_STRATEGIC_RESOURCE_BY_AGE penalty/discount.
-// - Satellites and space missions are player-exclusive systems (no AI participation until M19); the
-//   income pass below deliberately leaves them out rather than half-wiring a system AI can't use yet.
-// - Exactly ONE spending decision happens per "think" (government, then a building, then a tech,
-//   then — only once nothing else fired — developing a province), not the plan's own "up to
-//   1 + floor(period/2) actions" — a bounded, simpler model that still turns a nation's accumulated
-//   treasury into one real, visible decision instead of none. Gold/manpower/techPoints/power
-//   themselves accrue EVERY turn regardless of whether a nation "thinks" that turn (the same
-//   continuous accrual the player's own resources use), so a nation that thinks less often simply
-//   arrives with more banked up, not less spending power.
-// - Province development (dev.tax/production/manpower) sits LAST in that chain rather than
-//   alongside building/tech: it's the "always something useful to spend ADM/DIP/MIL on" catch-all,
-//   not a decision worth pre-empting a building or a tech for. Without it at all, an AI nation's own
-//   development numbers would never move past their seeded starting value for the entire game —
-//   the player's income keeps growing (Develop Province) while every AI nation's economic base
-//   stays frozen, which is a real parity gap this closes.
+// AI uses real strategic stocks, shared recruitment costs, per-turn upkeep, loans and bankruptcy.
+// Spending follows a bounded cadence with stability, frontier reserves, laws and advisors ahead
+// of long-term investment. Space missions remain a player victory objective.
 import { devastationIncomeMult } from './aftermath';
 import { withDiffusion } from './techDiffusion';
-import { UNIT_UPKEEP_GOLD_PER_TURN, ACTION_COSTS, BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
-import { getFieldedStrength, getUnitCount } from '../utils/helpers';
+import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
+import { getFieldedStrength } from '../utils/helpers';
 import { getResearched, getTechAgeId } from './nationState';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import {
@@ -128,12 +110,17 @@ export const calcAllNationIncomes = (state) => {
     entry.gold += getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
     entry.hr += getRegionModifier(state, region.id, 'local.flatManpower').total * controlMult;
     if (localTechPoints) entry.techPoints += localTechPoints * controlMult * infraMult;
+    Object.entries(region.buildings?.extraction || {}).forEach(([key, built]) => {
+      if (built && hasDeposit(regData.startOwner, key)) entry[key] = (entry[key] || 0) + EXTRACTION_BASE_YIELD * controlMult * infraMult;
+    });
+    entry.gold += getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
     incomes[region.owner] = entry;
   });
   Object.keys(incomes).forEach((nationId) => {
     const goldMult = 1 + getModifier(state, nationId, 'national.goldMult').total;
     const hrMult = 1 + getModifier(state, nationId, 'national.hrMult').total;
     incomes[nationId] = {
+      ...incomes[nationId],
       gold: Math.round(incomes[nationId].gold * goldMult),
       hr: Math.round(incomes[nationId].hr * hrMult),
       techPoints: Math.round(incomes[nationId].techPoints) + BASE_TECHPOINTS_PER_TURN
@@ -303,15 +290,39 @@ const tryDevelopProvince = (state, nation, regions) => {
 // a `{ ...regions, [id]: ... }` copy of the whole 4,482-entry map back through the caller.
 export const processAIEconomyTurn = (state, regions, nationId) => {
   const nation = { ...state.nations[nationId], id: nationId };
-  const ownUnitCount = getUnitCount(state, nationId);
   const pool = { ...emptyAIPool(), ...nation.economy };
-  pool.gold = Math.max(0, pool.gold - ownUnitCount * UNIT_UPKEEP_GOLD_PER_TURN);
+  // Upkeep is settled each turn before the decision cadence.
   let nextNation = { ...nation, economy: pool };
+
 
   // A nation on the brink of civil war (see this function's own AI_STABILITY_RAISE_THRESHOLD
   // comment) gets first call on its ADM, ahead of government/building/research — those can all
   // wait a think; losing regions to a pretender army cannot.
   const stabilityResult = tryIncreaseStability(state, nextNation);
+  if(stabilityResult)return {nation:stabilityResult};
+  if(state.scenario?.mode==='emergent' && getOwnedRegionIds(regions,nationId).some(id=>getNeighborIds(id).some(n=>regions[n]?.owner===null))) return {nation:nextNation};
+  const estateEntries=Object.entries(nextNation.estates || {});
+  if((nextNation.crownLand ?? 50)<50 && estateEntries.length && estateEntries.every(([,e])=>e.loyalty>=70) && canDoEstateInteraction(nextNation,'seizeLand',state.turnNumber) && canAfford(pool,ACTION_COSTS.seizeLand)){
+    return {nation:{...nextNation,economy:applyCosts(pool,ACTION_COSTS.seizeLand),crownLand:Math.min(100,nextNation.crownLand+CROWN_LAND_SEIZE_AMOUNT),estates:Object.fromEntries(estateEntries.map(([id,e])=>[id,{...e,loyalty:e.loyalty-CROWN_LAND_SEIZE_LOYALTY_PENALTY}])),estateInteractionCooldowns:{...nextNation.estateInteractionCooldowns,seizeLand:state.turnNumber+ESTATE_INTERACTION_COOLDOWN_TURNS}}};
+  }
+  for(const [id,e] of estateEntries){
+    const privilege=(ESTATE_PRIVILEGES[id] || []).find(p=>p.loyaltyBonus>0 && e.loyalty<30 && !e.privileges.includes(p.id) && e.influence+(p.influenceBonus || 0)<80);
+    if(privilege && canAfford(pool,ACTION_COSTS.grantEstatePrivilege))return {nation:{...nextNation,economy:applyCosts(pool,ACTION_COSTS.grantEstatePrivilege),estates:{...nextNation.estates,[id]:{...e,privileges:[...e.privileges,privilege.id]}}}};
+  }
+  // Keep power and cash for movement, recruitment and the next upkeep bill during wars.
+  if(nextNation.isAtWar && ((pool.gold || 0)<Math.max(200,-(nextNation.lastNetIncome || 0)*3) || (pool.mil || 0)<10))return {nation:nextNation};
+  if(!stabilityResult && (nextNation.stability || 0)>=0){
+    for(const category of ['taxation','religion','land','trade']){
+      const choices=[...LAW_CATEGORIES[category]].filter(l=>l.requiresTech && canEnactLaw(state,nationId,category,l.id) && (l.effects.stabilityBonus || 0)>=0).reverse();
+      const law=choices.find(l=>(pool.adm || 0)>=getLawChangeCost(state,nationId,category,l.id)+50);
+      if(law)return {nation:{...nextNation,economy:{...pool,adm:pool.adm-getLawChangeCost(state,nationId,category,law.id)},laws:{...nextNation.laws,[category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS}}};
+    }
+    const advisorPool=nextNation.isAtWar?'mil':'adm';
+    if(!nextNation.advisors?.[advisorPool] && (pool.gold || 0)>500 && (nextNation.lastNetIncome || 0)>20){
+      const advisor=generateAdvisorCandidates(nationId,createRng(fnv1a(nationId+state.turnNumber)))[advisorPool].sort((a,b)=>a.level-b.level)[0];
+      if(nextNation.lastNetIncome>getAdvisorSalary(advisor.level)*3)return {nation:{...nextNation,advisors:{...nextNation.advisors,[advisorPool]:advisor},economy:{...pool,gold:pool.gold-getAdvisorHireCost(advisor.level)}}};
+    }
+  }
   if (stabilityResult) {
     nextNation = stabilityResult;
   } else {
@@ -348,13 +359,30 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
 // Real recruitment cost for an AI nation once it has a real economy (plan §M16: "Tier 1 recruits
 // from treasury and manpower with the same costs"), used by aiLogic.js's processAIRecruitment in
 // place of the old flat abstract-militaryStrength debit once a nation's economy pool exists.
-export const canAffordAIRecruit = (nation) => {
-  const costs = ACTION_COSTS.recruitUnit;
+export const canAffordAIRecruit = (nation, state, ageId) => {
+  const costs = state ? getRecruitUnitCost(state, ageId, nation.id) : ACTION_COSTS.recruitUnit;
   const pool = nation.economy;
-  return !!pool && (pool.gold || 0) >= costs.gold && (pool.hr || 0) >= costs.hr && (pool.mil || 0) >= costs.mil;
+  const reserve=Math.max(0,-(nation.lastNetIncome || 0)*3);
+  return !!pool && canAfford(pool, costs) && (pool.gold || 0)-(costs.gold || 0)>=reserve;
 };
-export const applyAIRecruitCost = (nation) => {
-  const costs = ACTION_COSTS.recruitUnit;
+export const applyAIRecruitCost = (nation, state, ageId) => {
+  const costs = state ? getRecruitUnitCost(state, ageId, nation.id) : ACTION_COSTS.recruitUnit;
   const pool = nation.economy;
-  return { ...nation, economy: { ...pool, gold: pool.gold - costs.gold, hr: pool.hr - costs.hr, mil: pool.mil - costs.mil } };
+  return { ...nation, economy: applyCosts(pool, costs) };
+};
+
+export const settleAIUpkeep = (state, nationId, income) => {
+  const nation = state.nations[nationId];
+  const balance = calcNationBalance(state, nationId, income);
+  const expenses = Object.values(balance.expenses).reduce((a,b)=>a+b,0);
+  const gold = (nation.economy.gold || 0) - expenses;
+  if (gold >= 0) return { ...nation, economy: { ...nation.economy, gold }, lastNetIncome: balance.net };
+  const loans = nation.loans || [];
+  if (loans.length < getLoanCapacity(state, nationId)) {
+    const principal = Math.max(200, -gold);
+    return { ...nation, economy: { ...nation.economy, gold: gold + principal }, loans: [...loans, { id: 'ai_loan_' + nationId + '_' + state.turnNumber, principal, interestRate: getLoanInterestRate(state, nationId), takenTurn: state.turnNumber }], lastNetIncome: balance.net };
+  }
+  const bankrupt = applyBankruptcy(nation, state.regions, nationId, state.turnNumber);
+  Object.assign(state.regions, bankrupt.regions);
+  return { ...bankrupt.nation, economy: { ...nation.economy, gold: 0 }, lastNetIncome: balance.net };
 };

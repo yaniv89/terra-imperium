@@ -1,3 +1,4 @@
+import { engineSources } from './engineSources.mjs';
 // scripts/build-edge-engine.mjs
 // Bundles src/engine/gameReducer.js (and everything it pulls in from src/data and src/utils) into
 // a single, self-contained ESM file the Supabase Edge Function in supabase/functions/resolve-turn
@@ -11,7 +12,7 @@
 // GRAPH itself never touches React/DOM/a rendering package); bundling is what bridges the two
 // conventions without hand-rewriting every import in src/ just for one deploy target.
 import { build } from 'esbuild';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,8 +21,10 @@ const OUTFILE = path.resolve(__dirname, '../supabase/functions/resolve-turn/_eng
 
 export const buildEdgeEngine = () => build({
   entryPoints: [ENTRY],
+  plugins: [engineSources(path.resolve(__dirname, '..'))],
   outfile: OUTFILE,
   bundle: true,
+  tsconfigRaw: {},
   format: 'esm',
   // 'neutral' rather than 'browser'/'node': the engine touches neither DOM nor Node built-ins
   // (that's the whole enginePurity guarantee), so no platform-specific shims should be injected —
@@ -34,7 +37,7 @@ export const buildEdgeEngine = () => build({
 
 // Run directly (npm run build:edge) as well as importable (the parity test below imports
 // buildEdgeEngine to produce a fresh bundle rather than trusting a possibly-stale checked-in one).
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   buildEdgeEngine()
     .then(() => console.log(`Built ${path.relative(process.cwd(), OUTFILE)}`))
     .catch((err) => { console.error(err); process.exit(1); });

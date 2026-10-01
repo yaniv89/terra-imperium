@@ -1,11 +1,18 @@
 # Battle unit models (optional)
 
+The bundled 21 prototype recipes are disabled with `enabled: false`: their blocky
+characters and vehicle substitutions no longer match the intended presentation.
+The default roster now uses smooth procedural bodies, period equipment, rounded
+horses, tracked tanks and swept-wing aircraft. Reduced detail meshes preserve the
+same silhouette and equipment. An approved replacement can opt in by removing the
+flag; model imports still require a visual and licensing review.
+
 Any `.glb` placed here replaces the built-in procedural soldier for that unit, with no code
 changes needed.
 
 | File name | Replaces |
 |---|---|
-| `bronze-infantry.glb` | Bronze Age infantry, e.g. a hoplite |
+| `bronze-infantry.glb` | Bronze Age infantry, e.g. a bronze spear bearer |
 | `modern-infantry.glb` | Modern infantry, e.g. a rifleman |
 | `cavalry.glb` | Cavalry of every age that has no `{age}-cavalry.glb` |
 

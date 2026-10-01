@@ -21,6 +21,7 @@ const groupByKey = (lines) => {
 };
 
 const staticSheet = (nation) => {
+  if (!nation) return new Map();
   let grouped = staticCache.get(nation);
   if (!grouped) {
     grouped = groupByKey(staticSources(nation));

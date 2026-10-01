@@ -291,6 +291,8 @@ const Map2DView = ({
             fill={fill}
             stroke={stroke}
             strokeWidth={strokeWidth}
+            pointerEvents="fill"
+            data-region-id={gameRegionId}
             onClick={interactive ? () => handleClick(gameRegionId) : undefined}
             style={interactive ? { cursor: 'pointer' } : undefined}
           >
@@ -323,6 +325,16 @@ const Map2DView = ({
     );
   }, [pathsById, atWarNationIds, state.regions, state.playerNationId, selectedRegion, zoomK]);
 
+  useEffect(()=>{
+    if(!interactive || !hudOffset || !polygons || !projection || window.__E2E_MAP_TEST__!==true)return undefined;
+    window.__map2DTest={
+      features:polygons,selected:selectedRegion,
+      focus:(lat,lng,k)=>focusOnLatLng(lat,lng,k,false),
+      project:(lat,lng)=>{const [x,y]=projection([lng,lat]);return {x:transform.applyX(x),y:transform.applyY(y)};}
+    };
+    return ()=>{delete window.__map2DTest;};
+  },[interactive,hudOffset,polygons,projection,selectedRegion,focusOnLatLng,transform]);
+
   if (!pathsById) {
     return (
       <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm" style={{ background: OCEAN_COLOR }}>
@@ -334,6 +346,7 @@ const Map2DView = ({
   const map = (
     <svg
       ref={svgRef}
+      data-testid={interactive && hudOffset ? 'flat-map' : undefined}
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
@@ -352,7 +365,7 @@ const Map2DView = ({
     <div className="relative w-full h-full">
       {map}
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
-      <div className={`absolute right-2 z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
+      <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
           onClick={() => zoomBy(ZOOM_STEP_SCALE)}
           disabled={transform.k >= ZOOM_EXTENT[1]}

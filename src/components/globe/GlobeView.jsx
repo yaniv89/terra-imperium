@@ -10,12 +10,12 @@
 // "decorative backdrop" tier anymore, the whole world is the same one system.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
-import { MeshBasicMaterial, Color } from 'three';
+import { MeshBasicMaterial, Color, Raycaster, Sphere, Vector2, Vector3 } from 'three';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { resolveClickedRegionId } from '../../utils/regionClickAssist';
+import { findRegionAtCoordinates } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
@@ -229,19 +229,64 @@ const GlobeView = ({
     `;
   }, [state.regions, state.nations, state.playerNationId]);
 
-  // Province caps share a low, uniform altitude so raised sidewalls cannot obscure neighbors.
-  // Preserve the actual polygon hit. Nearby centroids must never steal a valid click.
-  const handleClick = useCallback((feature) => {
-    const gameRegionId = resolveClickedRegionId(feature.properties?.gameRegionId);
-    if (!gameRegionId) return;
-    onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
-  }, [selectedRegion, onSelectRegion]);
+  // Pick from the pointer ray rather than the library's cached hover object. On touch
+  // and low frame rates that object can belong to an earlier pointer position or be null.
+  const handlePointerPick = useCallback(event => {
+    const g=globeRef.current;
+    if(!g)return;
+    const bounds=g.renderer().domElement.getBoundingClientRect();
+    if(!bounds.width || !bounds.height)return;
+    const ray=new Raycaster();
+    ray.setFromCamera(new Vector2((event.clientX-bounds.left)/bounds.width*2-1,-((event.clientY-bounds.top)/bounds.height)*2+1),g.camera());
+    const point=ray.ray.intersectSphere(new Sphere(new Vector3(),g.getGlobeRadius()*1.002),new Vector3());
+    if(!point)return;
+    const coords=g.toGeoCoords(point);
+    const gameRegionId=findRegionAtCoordinates(geo?.gameRegionFeatures,coords.lat,coords.lng);
+    if(window.__E2E_MAP_TEST__)window.__mapLastClick={coords,gameRegionId};
+    if(gameRegionId)onSelectRegion(gameRegionId===selectedRegion?null:gameRegionId);
+  },[geo,selectedRegion,onSelectRegion]);
+
+  useEffect(()=>{
+    const canvas=globeRef.current?.renderer().domElement;
+    if(!canvas || !geo)return undefined;
+    let start=null;
+    const pointers=new Set();
+    const down=e=>{
+      pointers.add(e.pointerId);
+      start=pointers.size===1 && e.button===0 ? {id:e.pointerId,x:e.clientX,y:e.clientY}:null;
+    };
+    const up=e=>{
+      pointers.delete(e.pointerId);
+      const tap=start;start=null;
+      if(tap?.id===e.pointerId && Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<=6)handlePointerPick(e);
+    };
+    const cancel=e=>{pointers.delete(e.pointerId);start=null;};
+    canvas.addEventListener('pointerdown',down);
+    canvas.addEventListener('pointerup',up,true);
+    canvas.addEventListener('pointercancel',cancel);
+    return ()=>{
+      canvas.removeEventListener('pointerdown',down);
+      canvas.removeEventListener('pointerup',up,true);
+      canvas.removeEventListener('pointercancel',cancel);
+    };
+  },[geo,handlePointerPick]);
 
   // Memoized so polygonsData keeps a STABLE reference across re-renders that don't actually
   // change the underlying geometry (e.g. a GameContext update from an unrelated action) — a new
   // array identity every render would make react-globe.gl treat it as entirely new data and
   // rebuild every polygon mesh on every render instead of just once.
   const polygons = useMemo(() => geo?.gameRegionFeatures || null, [geo]);
+
+  useEffect(() => {
+    if(window.__E2E_MAP_TEST__ !== true || !globeRef.current || !geo)return undefined;
+    window.__mapTest={
+      features:geo.gameRegionFeatures,
+      selected:selectedRegion,
+      focus:(lat,lng,altitude)=>{const g=globeRef.current;g.controls().autoRotate=false;g.pointOfView({lat,lng,altitude},0);g.controls().update();g.camera().updateMatrixWorld();},
+      project:(lat,lng)=>globeRef.current.getScreenCoords(lat,lng,0.002)
+    };
+    return ()=>{delete window.__mapTest;};
+  },[geo,selectedRegion]);
 
   if (!geo) {
     return (
@@ -290,7 +335,6 @@ const GlobeView = ({
         polygonCapCurvatureResolution={12}
         polygonsTransitionDuration={200}
         polygonLabel={label}
-        onPolygonClick={handleClick}
       />
       {!prefersReducedMotion() && (
         <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} ageId={state.age} />

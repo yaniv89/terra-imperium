@@ -148,6 +148,7 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
 // default for e.g. a `neighbors` array or a `promotions` list.
 const deepFillMissing = (target, template) => {
   if (!isPlainObject(template)) return target === undefined ? template : target;
+  if (target !== undefined && !isPlainObject(target)) return target;
   const out = { ...(isPlainObject(target) ? target : {}) };
   Object.keys(template).forEach((key) => {
     if (out[key] === undefined) out[key] = template[key];
@@ -171,10 +172,12 @@ const NATION_IDENTITY_KEYS = ['id', 'name', 'color', 'isPlayer'];
 // The final step on every load, run after any numbered migrations. Idempotent — migrating an
 // already-current save changes nothing, since every key it would fill is already present.
 export const backfillDefaults = (state) => {
-  const fresh = createInitialState({ playerNationId: state.playerNationId, gameSpeed: state.gameSpeed });
+  const fresh = createInitialState({ playerNationId: state.playerNationId, gameSpeed: state.gameSpeed, scenario: state.scenario, rngSeed: state.scenario?.seed });
   const { regions: freshRegions, nations: freshNations, techTree: freshTechTree, ...freshTop } = fresh;
 
-  let out = deepFillMissing(state, freshTop);
+  // Units are a live collection: a missing starting army may have died or been
+  // disbanded. Fresh-game entries must never resurrect it during a reload.
+  let out = deepFillMissing(state, { ...freshTop, units: {} });
 
   // `id` is excluded from both identity-key strip lists above on purpose (see NATION_IDENTITY_KEYS/
   // REGION_IDENTITY_KEYS): it's a real, confirmed bug this diagnosed on a live save — a record's

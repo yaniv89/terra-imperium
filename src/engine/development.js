@@ -1,3 +1,4 @@
+import { getOwnedRegionIds } from '../data/regions';
 // src/engine/development.js
 // Plan §M5: province development (region.dev.tax/production/manpower) as the LIVE economic base,
 // replacing calcIncome's old direct reads of REGIONS_DATA's static per-region resources.gold/hr.
@@ -35,7 +36,7 @@ export const getTotalDev = (region) => {
 // inlined their own reduce; this is the first shared helper, used by war-score/peace-cost math
 // (M13) on top of those two.
 export const getNationTotalDev = (state, nationId) =>
-  Object.values(state.regions || {}).reduce((sum, r) => sum + (r.owner === nationId ? getTotalDev(r) : 0), 0);
+  getOwnedRegionIds(state.regions || {},nationId).reduce((sum,id)=>sum+getTotalDev(state.regions[id]),0);
 
 // Population and development both compounding without limit would let a heavily-grown, heavily-
 // developed region's income spiral (the plan's own concern, §M5's "clamped" note) — this replaces

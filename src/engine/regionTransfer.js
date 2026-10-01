@@ -13,7 +13,7 @@ import { getFormerOwnerOnConquest } from '../data/rebellion';
 
 export const transferRegion = (region, newOwnerId, nations, overrides = {}) => {
   // eslint-disable-next-line no-unused-vars -- destructured only to drop any occupation marker
-  const { occupiedBy, ...rest } = region;
+  const { occupiedBy, conquest, ...rest } = region;
   const nextRegion = {
     ...rest,
     owner: newOwnerId,

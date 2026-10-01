@@ -1,3 +1,4 @@
+import { getTradeRoute } from '../tradeRoutes';
 // src/engine/modifiers/sources.js
 // Plan §M1: each function returns modifier LINES (never a summed total) so src/engine/modifiers/
 // sheet.js can group and total them generically. `staticSources` depends only on the nation object
@@ -126,7 +127,7 @@ export const contextSources = (state, nationId) => {
   // are inherently player-centric today (hasTradeAgreement lives on the OTHER nation's own record,
   // and AI nations never form pacts with each other), so this only ever applies to the player.
   if (nationId === state.playerNationId) {
-    const activePactCount = Object.values(state.nations || {}).filter((n) => n.hasTradeAgreement).length;
+    const activePactCount = Object.values(state.nations || {}).filter((n) => n.hasTradeAgreement && (!state.scenario || getTradeRoute(state,n.id).ok)).length;
     if (activePactCount > 0) {
       lines.push({ key: 'national.goldMult', value: activePactCount * TRADE_PACT_GOLD_MULT_PER_PACT, sourceType: 'tradePact', sourceId: 'trade_pacts', label: 'Trade Pacts' });
     }
