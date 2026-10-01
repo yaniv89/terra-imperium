@@ -33,6 +33,7 @@
 import React, { useState } from 'react';
 import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
+import RegionChooser from './RegionChooser';
 import MapModeToggle from './MapModeToggle';
 import MiniMap from './MiniMap';
 import MapModal from './MapModal';
@@ -60,6 +61,8 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   const isMobile = useIsMobile();
   const [viewportBounds, setViewportBounds] = useState(null);
   const [navigateTarget, setNavigateTarget] = useState(null);
+  // A touch tap that covered several provinces: which one did the player mean? (RegionChooser)
+  const [tapChoice, setTapChoice] = useState(null);
   const playerCapitalId = getNationCapital(state.playerNationId);
   const focusRegionId = manageOpen ? selectedRegion : null;
   const handleMiniMapNavigate = (lat, lng) => setNavigateTarget({ lat, lng });
@@ -76,6 +79,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
           <GlobeContainer
             selectedRegion={selectedRegion}
             onSelectRegion={onSelectRegion}
+            onAmbiguousTap={setTapChoice}
             focusRegionId={focusRegionId}
             navigateTarget={navigateTarget}
             onViewportChange={setViewportBounds}
@@ -85,6 +89,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
           <Map2DContainer
             selectedRegion={selectedRegion}
             onSelectRegion={onSelectRegion}
+            onAmbiguousTap={setTapChoice}
             hudOffset
             initialFocusRegionId={playerCapitalId}
             focusRegionId={focusRegionId}
@@ -109,6 +114,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
         <MapLegend />
       </div>
       <MapModeToggle mode={mode} onChange={handleModeChange} />
+      <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />
 
       <MapModal
         open={modalOpen}

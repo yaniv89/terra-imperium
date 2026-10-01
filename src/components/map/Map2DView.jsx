@@ -28,6 +28,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
+import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
@@ -36,6 +37,9 @@ const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundCo
 // already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
 // other change is needed for click accuracy at high zoom.
 const ZOOM_EXTENT = [1, 40];
+// Phones and tablets may zoom twice as far (plan §3): small provinces need it under a fingertip.
+const TOUCH_ZOOM_EXTENT = [1, 80];
+const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 const ZOOM_STEP_SCALE = 1.6;
 // Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
 // space above/below the map on a tall/narrow (mobile) viewport, since the world's ~2:1 aspect
@@ -67,7 +71,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 // halfHeightDeg}`) so MiniMap.jsx can draw a real "you are here" rectangle — see MiniMap.jsx's own
 // header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
-  width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
+  onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null
 }) => {
   const { state } = useGame();
@@ -146,7 +150,7 @@ const Map2DView = ({
       // effect and on a sheet peeking can interrupt each other, and an interrupted smooth zoom
       // left the map stuck zoomed out exactly while the animation was playing.
       .interpolate(linearViewInterpolate)
-      .scaleExtent(ZOOM_EXTENT)
+      .scaleExtent(isTouchDevice() ? TOUCH_ZOOM_EXTENT : ZOOM_EXTENT)
       .translateExtent([[0, 0], [width, height]])
       .on('zoom', (event) => setTransform(event.transform));
     zoomBehaviorRef.current = behavior;
@@ -280,10 +284,17 @@ const Map2DView = ({
 
   const atWarNationIds = useMemo(() => getAtWarNationIds(state.wars, state.playerNationId), [state.wars, state.playerNationId]);
 
-  const handleClick = useCallback((gameRegionId) => {
+  const handleClick = useCallback((gameRegionId, event) => {
     if (!interactive) return;
+    // A fingertip covers several small provinces: ask which one (plan §3, RegionChooser).
+    if (event?.nativeEvent?.pointerType === 'touch' && onAmbiguousTap && typeof document.elementsFromPoint === 'function') {
+      const { clientX: x, clientY: y } = event;
+      const hits = tapRingPoints(x, y).map(([px, py]) => document.elementsFromPoint(px, py).find((el) => el.dataset?.regionId)?.dataset.regionId);
+      const ids = tapCandidates(hits);
+      if (ids.length > 1) { onAmbiguousTap({ x, y, ids }); return; }
+    }
     onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
-  }, [interactive, onSelectRegion, selectedRegion]);
+  }, [interactive, onSelectRegion, selectedRegion, onAmbiguousTap]);
 
   // The ~4,482 province <path>s are memoized on everything EXCEPT the pan offset: a pan (drag, the
   // minimap, or the smooth re-centring on an effect/sheet change) only moves the parent <g>'s
@@ -316,7 +327,7 @@ const Map2DView = ({
             strokeWidth={strokeWidth}
             pointerEvents="fill"
             data-region-id={gameRegionId}
-            onClick={interactive ? () => handleClick(gameRegionId) : undefined}
+            onClick={interactive ? (e) => handleClick(gameRegionId, e) : undefined}
             style={interactive ? { cursor: 'pointer' } : undefined}
           >
             {interactive && <title>{REGIONS_DATA[gameRegionId]?.name || gameRegionId}</title>}
@@ -392,7 +403,7 @@ const Map2DView = ({
       <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
           onClick={() => zoomBy(ZOOM_STEP_SCALE)}
-          disabled={transform.k >= ZOOM_EXTENT[1]}
+          disabled={transform.k >= (isTouchDevice() ? TOUCH_ZOOM_EXTENT : ZOOM_EXTENT)[1]}
           className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
           title="Zoom in"
         >

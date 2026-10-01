@@ -130,3 +130,19 @@ describe('geographic province selection',()=>{
     expect(findRegionAtCoordinates([f],0,179.5)).toBe('island');expect(findRegionAtCoordinates([f],0,-179.5)).toBe('island');expect(findRegionAtCoordinates([f],0,178)).toBeNull();expect(findRegionAtCoordinates([f],0,0)).toBeNull();
   });
 });
+
+import { tapRingPoints, tapCandidates, TAP_CHOICES_MAX } from './regionClickAssist';
+describe('tap disambiguation', () => {
+  it('samples the centre and a ring around it', () => {
+    const pts = tapRingPoints(100, 100, 10, 4);
+    expect(pts[0]).toEqual([100, 100]);
+    expect(pts).toHaveLength(5);
+    pts.slice(1).forEach(([x, y]) => expect(Math.hypot(x - 100, y - 100)).toBeCloseTo(10, 5));
+  });
+  it('lists the centre province first, then by how much of the fingertip each covers', () => {
+    expect(tapCandidates(['a', 'b', 'b', 'c', null, 'b', 'c', 'a', null])).toEqual(['a', 'b', 'c']);
+    expect(tapCandidates(['a', 'a', 'a'])).toEqual(['a']);
+    expect(tapCandidates([null, 'b', 'c'])).toEqual(['b', 'c']);
+    expect(tapCandidates(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toHaveLength(TAP_CHOICES_MAX);
+  });
+});

@@ -15,7 +15,7 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { findRegionAtCoordinates } from '../../utils/regionClickAssist';
+import { findRegionAtCoordinates, tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
@@ -58,7 +58,7 @@ let userDismissedAutoRotate = false;
 // a small minimap indicator, and it's the same approach Civ/Paradox minimaps use for a 3D camera.
 const visibleHalfAngleDeg = (altitude) => (Math.acos(1 / (1 + Math.max(altitude, 0.01))) * 180) / Math.PI;
 
-const GlobeView = ({
+const GlobeView = ({ onAmbiguousTap = null,
   width, height, selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null
 }) => {
   const { state } = useGame();
@@ -248,20 +248,32 @@ const GlobeView = ({
 
   // Pick from the pointer ray rather than the library's cached hover object. On touch
   // and low frame rates that object can belong to an earlier pointer position or be null.
-  const handlePointerPick = useCallback(event => {
+  // The province under a screen point (null off the globe).
+  const regionAtClient = useCallback((clientX, clientY) => {
     const g=globeRef.current;
-    if(!g)return;
+    if(!g)return null;
     const bounds=g.renderer().domElement.getBoundingClientRect();
-    if(!bounds.width || !bounds.height)return;
+    if(!bounds.width || !bounds.height)return null;
     const ray=new Raycaster();
-    ray.setFromCamera(new Vector2((event.clientX-bounds.left)/bounds.width*2-1,-((event.clientY-bounds.top)/bounds.height)*2+1),g.camera());
+    ray.setFromCamera(new Vector2((clientX-bounds.left)/bounds.width*2-1,-((clientY-bounds.top)/bounds.height)*2+1),g.camera());
     const point=ray.ray.intersectSphere(new Sphere(new Vector3(),g.getGlobeRadius()*1.002),new Vector3());
-    if(!point)return;
+    if(!point)return null;
     const coords=g.toGeoCoords(point);
-    const gameRegionId=findRegionAtCoordinates(geo?.gameRegionFeatures,coords.lat,coords.lng);
-    if(window.__E2E_MAP_TEST__)window.__mapLastClick={coords,gameRegionId};
+    return { coords, id: findRegionAtCoordinates(geo?.gameRegionFeatures,coords.lat,coords.lng) };
+  },[geo]);
+
+  const handlePointerPick = useCallback(event => {
+    const hit=regionAtClient(event.clientX,event.clientY);
+    if(!hit)return;
+    const gameRegionId=hit.id;
+    if(window.__E2E_MAP_TEST__)window.__mapLastClick={coords:hit.coords,gameRegionId};
+    // A fingertip covers several small provinces: ask which one (plan §3, RegionChooser).
+    if(event.pointerType==='touch' && onAmbiguousTap){
+      const ids=tapCandidates(tapRingPoints(event.clientX,event.clientY).map(([x,y])=>regionAtClient(x,y)?.id));
+      if(ids.length>1){onAmbiguousTap({x:event.clientX,y:event.clientY,ids});return;}
+    }
     if(gameRegionId)onSelectRegion(gameRegionId===selectedRegion?null:gameRegionId);
-  },[geo,selectedRegion,onSelectRegion]);
+  },[regionAtClient,selectedRegion,onSelectRegion,onAmbiguousTap]);
 
   useEffect(()=>{
     const canvas=globeRef.current?.renderer().domElement;

@@ -52,3 +52,19 @@ export const findRegionAtCoordinates = (features, lat, lng) => {
   }
   return null;
 };
+
+// Tap disambiguation (plan §3): a fingertip covers about 44 px, so on touch the map samples a ring
+// of points around the tap. If they land in two or more provinces, the player picks from a short
+// list instead of getting whichever one was under the exact centre.
+export const TAP_RING_RADIUS_PX = 18;
+export const TAP_CHOICES_MAX = 5;
+export const tapRingPoints = (x, y, radius = TAP_RING_RADIUS_PX, count = 8) => [
+  [x, y],
+  ...Array.from({ length: count }, (_, i) => [x + Math.cos((i / count) * Math.PI * 2) * radius, y + Math.sin((i / count) * Math.PI * 2) * radius])
+];
+// The provinces those points hit: the centre one first, then in order of how many points hit them.
+export const tapCandidates = (hits, max = TAP_CHOICES_MAX) => {
+  const counts = new Map();
+  hits.forEach((id, i) => { if (id) counts.set(id, (counts.get(id) || 0) + (i === 0 ? 100 : 1)); });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id).slice(0, max);
+};

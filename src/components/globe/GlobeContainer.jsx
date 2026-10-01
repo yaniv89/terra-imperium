@@ -9,7 +9,7 @@ import { lazyWithReload } from '../../utils/lazyWithReload';
 const GlobeView = lazyWithReload(() => import('./GlobeView'));
 
 const GlobeContainer = ({
-  selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null
+  selectedRegion, onSelectRegion, onAmbiguousTap = null, focusRegionId = null, navigateTarget = null, onViewportChange = null
 }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -38,6 +38,7 @@ const GlobeContainer = ({
             height={size.height}
             selectedRegion={selectedRegion}
             onSelectRegion={onSelectRegion}
+            onAmbiguousTap={onAmbiguousTap}
             focusRegionId={focusRegionId}
             navigateTarget={navigateTarget}
             onViewportChange={onViewportChange}
