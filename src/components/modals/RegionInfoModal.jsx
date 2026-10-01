@@ -142,7 +142,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // so they're replaced by the decision that actually comes first: declaring war.
   // Already held by your army (an occupation from an older save): no attack left to make there.
   const atWarWithOwner = !!ownerNation && isAtWarWithPlayer(state, ownerNation.id) && regionState.occupiedBy !== state.playerNationId;
-  const hasMilitaryOption = invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
+  // Land nobody owns (an emergent world's frontier) has no war to declare and no one to invade.
+  const hasMilitaryOption = !!ownerNation && invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
   const warJustified = !!ownerNation && hasCasusBelli(state, state.playerNationId, ownerNation.id);
   const declareWarCosts = warJustified ? ACTION_COSTS.declareWarJustified : ACTION_COSTS.declareWarUnjustified;
   const breaksTruce = !!ownerNation && !atWarWithOwner && isInTruce(state, state.playerNationId, ownerNation.id);
@@ -333,10 +334,12 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       )}
 
-      {/* Attack / settle options — the foreign-region equivalent of "Manage Region" above. */}
-      {!isPlayerOwned && ownerNation && (
+      {/* Attack / settle options — the foreign-region equivalent of "Manage Region" above. Also shown
+          for land with no owner at all: a frontier region's only action, the expedition, lives here
+          (it used to be hidden behind the owner check, so frontier land could never be claimed). */}
+      {!isPlayerOwned && (ownerNation || isNeutralFrontier || canSettle) && (
         <div className="mb-2 pt-2 border-t border-slate-700 space-y-1.5">
-          {invasionSources.length === 0 && amphibiousSources.length === 0 && navalEngagementSources.length === 0 && !canSettle && (
+          {!hasMilitaryOption && !isNeutralFrontier && !canSettle && (
             <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
           )}
           {!atWarWithOwner && hasMilitaryOption && (

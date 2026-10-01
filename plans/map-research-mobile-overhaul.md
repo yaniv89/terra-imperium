@@ -440,6 +440,11 @@ province where it is), not in a sheet or a modal. A mockup on the real map at ph
 
 ### 4e. Settling land you can actually find
 
+**Status:** the real cause was a bug, now fixed. The region card only showed its actions for land
+with an owner nation, so frontier land (no owner) never showed "Frontier expedition", even with
+an army next to it. Covered by `src/components/modals/frontierSettle.test.js`. The striped map
+overlay (item 1 below) is **dropped** at the user's request; the rest stays optional.
+
 **How it works today** (why it was hard to find):
 - **"Full world" scenario: there is no empty land.** "Settle / Colonize" only works on land
   nobody governs any more: a province held by rebels, or what is left of a nation that has been
