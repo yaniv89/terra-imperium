@@ -24,14 +24,14 @@
 // scripts/build-edge-engine.mjs's own reason for bundling at all) rather than trying to run src/
 // files directly under plain Node ESM.
 import { build } from 'esbuild';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const parseArgs = (argv) => {
+export const parseArgs = (argv) => {
   const args = { games: 5, turns: 150, seed: 1 };
   for (let i = 0; i < argv.length; i++) {
     const [flag, inlineValue] = argv[i].split('=');
@@ -41,6 +41,9 @@ const parseArgs = (argv) => {
       args[key] = Number(value);
       if (inlineValue === undefined) i++;
     }
+  }
+  for (const [key, value] of Object.entries(args)) {
+    if (!Number.isSafeInteger(value) || value < (key === 'seed' ? 0 : 1)) throw new Error(`Invalid --${key}: expected ${key === 'seed' ? 'a nonnegative' : 'a positive'} integer`);
   }
   return args;
 };
@@ -52,6 +55,9 @@ const buildSimEngine = async () => {
       contents: [
         "export { resolveTurn } from '../src/engine/resolveTurn.js';",
         "export { createInitialState } from '../src/engine/gameReducer.js';",
+        "export { gameReducer } from '../src/engine/gameReducer.js';",
+        "export { ActionTypes } from '../src/data/types.js';",
+        "export { assertGameState } from '../src/engine/stateAudit.js';",
         "export { HISTORICAL_EVENTS } from '../src/data/events.js';",
         "export { WORLD_NATIONS } from '../src/data/worldNations.js';"
       ].join('\n'),
@@ -67,6 +73,25 @@ const buildSimEngine = async () => {
   return outfile;
 };
 
+// Explicit policy for the passive benchmark: reject demands, accept white peace, auto-defend.
+// A blocked loop must fail instead of reporting many iterations over an unchanged world.
+export const advanceCampaign = (engine, state) => {
+  let ready = state;
+  if (ready.pendingPeaceOffer) {
+    ready = engine.gameReducer(ready, { type: ready.pendingPeaceOffer.terms?.length
+      ? engine.ActionTypes.REJECT_PENDING_PEACE : engine.ActionTypes.ACCEPT_PENDING_PEACE });
+  }
+  if (ready.pendingDefenses?.length) ready = engine.gameReducer(ready, { type: engine.ActionTypes.RESOLVE_ALL_DEFENSES_AUTO });
+  if (ready.gameStatus !== 'ACTIVE') return ready;
+  let next = engine.resolveTurn(ready);
+  if (next.activeProceduralEvent) next = { ...next, activeProceduralEvent: null };
+  if (next.gameStatus === 'ACTIVE' && next.turnNumber !== ready.turnNumber + 1) {
+    throw new Error(`Campaign stalled at turn ${ready.turnNumber}`);
+  }
+  engine.assertGameState(next);
+  return next;
+};
+
 const runGame = (engine, playerNationId, seed, turns) => {
   const firedEvents = Object.keys(engine.HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
   let state = {
@@ -74,7 +99,7 @@ const runGame = (engine, playerNationId, seed, turns) => {
     firedEvents,
     proceduralEventCooldown: 999999,
     // Nobody is at the controls: defense battles auto-resolve instead of waiting for the player.
-    battleSettings: { defaultMode: 'auto' }
+    battleSettings: { defaultMode: 'auto', autoDefend: true }
   };
 
   const seenWarIds = new Set();
@@ -84,14 +109,15 @@ const runGame = (engine, playerNationId, seed, turns) => {
   let peacesConcluded = 0;
   let regionOwnershipChanges = 0;
   let turnTimeMsTotal = 0;
+  let completedTurns = 0;
   let lastOwnerById = {};
   Object.values(state.regions).forEach((r) => { lastOwnerById[r.id] = r.owner; });
 
   for (let t = 0; t < turns; t++) {
     const startedAt = performance.now();
-    let next = engine.resolveTurn(state);
+    const next = advanceCampaign(engine, state);
     turnTimeMsTotal += performance.now() - startedAt;
-    if (next.activeProceduralEvent) next = { ...next, activeProceduralEvent: null };
+    completedTurns += next.turnNumber - state.turnNumber;
 
     (next.wars || []).forEach((w) => {
       if (!seenWarIds.has(w.id)) {
@@ -120,6 +146,7 @@ const runGame = (engine, playerNationId, seed, turns) => {
 
   return {
     finalTurn: state.turnNumber,
+    completedTurns,
     finalYear: state.year,
     finalStatus: state.gameStatus,
     warsDeclared,
@@ -127,7 +154,7 @@ const runGame = (engine, playerNationId, seed, turns) => {
     bankruptcies: seenBankruptNations.size,
     civilWars: seenCivilWarNations.size,
     regionOwnershipChanges,
-    meanTurnMs: turnTimeMsTotal / Math.max(1, state.turnNumber || turns),
+    meanTurnMs: turnTimeMsTotal / Math.max(1, completedTurns),
     finalGoldByNation: Object.fromEntries(
       Object.entries(state.nations).map(([id, n]) => [id, Math.round(n.economy?.gold ?? (id === playerNationId ? state.resources.gold : 0))])
     )
@@ -139,7 +166,7 @@ const main = async () => {
   console.log(`Balance simulation: ${games} game(s) x up to ${turns} turns each (seed base ${seed})`);
 
   const enginePath = await buildSimEngine();
-  const engine = await import(`file://${enginePath}`);
+  const engine = await import(pathToFileURL(enginePath).href);
   fs.rmSync(enginePath, { force: true });
 
   const nationIds = Object.keys(engine.WORLD_NATIONS);
@@ -174,7 +201,7 @@ const main = async () => {
   }
 };
 
-main().catch((err) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

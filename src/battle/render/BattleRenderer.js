@@ -795,7 +795,9 @@ export class BattleRenderer {
   }
 
   adaptResolution(dt) {
-    if (dt > 0.02) { this.slowFrames += 1; this.fastFrames = 0; } else if (dt < 0.012) { this.fastFrames += 1; this.slowFrames = 0; } else { this.slowFrames = 0; this.fastFrames = 0; }
+    // A stable 60 Hz display delivers ~16.7 ms frames even with GPU headroom. Requiring
+    // <12 ms permanently trapped those displays at reduced resolution after a slowdown.
+    if (dt > 0.02) { this.slowFrames += 1; this.fastFrames = 0; } else if (dt < 0.018) { this.fastFrames += 1; this.slowFrames = 0; } else { this.slowFrames = 0; this.fastFrames = 0; }
     let next = this.dpr;
     if (this.slowFrames >= 3 && this.dpr > 1) { next = this.dpr > 1.25 ? 1.25 : 1; this.slowFrames = -30; } // give the new size a moment
     else if (this.fastFrames >= 240 && this.dpr < this.baseDpr) { next = this.dpr < 1.25 ? Math.min(1.25, this.baseDpr) : this.baseDpr; this.fastFrames = 0; }

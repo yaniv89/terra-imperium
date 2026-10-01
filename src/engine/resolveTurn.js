@@ -23,7 +23,7 @@ import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPl
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
 import { processAIAbmDefense } from './aiMissiles';
-import { resolveWarProgress } from './diplomacy';
+import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { resolveAllDefensesAuto } from './defense';
 import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
@@ -417,7 +417,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   const aiUpdates = processAllAINations(state, newYear, rng);
   const nations = { ...modifierExpiredNations, ...revivedNations };
   Object.entries(nations).forEach(([nId, nation]) => {
-    if (nation.isPlayer) return;
+    if (nation.isPlayer || nation.isEliminated) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
     const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0));
     const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
@@ -455,6 +455,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.keys(nations).forEach((nId) => {
     if (nId === state.playerNationId) return;
     const nation = nations[nId];
+    if (nation.isEliminated) return;
     if (!nation.economy) return; // a legacy/test fixture with no seeded economy stays on the old abstract-only path
     const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
     const powerIncome = getPowerIncome(aiEconState, nId);
@@ -811,7 +812,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // abstract militaryStrength growth into real, counterable units in state.units — recruiting
   // whatever class beats their most relevant rival's dominant class. Uses the calendar age, not a
   // per-nation tech age (AI nations don't track one independently). ---
-  const recruitment = processAIRecruitment({ ...state, nations }, units, nations, regions, sortedByMilitary, newAge, rng);
+  const recruitment = processAIRecruitment({ ...state, nations, regions, units }, units, nations, regions, sortedByMilitary, newAge, rng);
   // Every unit raised this turn draws its men from its home province (aftermath.js).
   // (`regions` is this turn's own working copy, so each levy updates just its one province in place.)
   Object.values(recruitment.units).forEach((u) => {
@@ -828,7 +829,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
   // player, or a top-20 military power) may each declare one war this turn against a weaker
   // neighbor, biased by doctrine and hostility. ---
-  const warDecisions = processAIWarDecisions({ ...state, nations }, nations, state.wars, sortedByMilitary, rng);
+  const warDecisions = processAIWarDecisions({ ...state, nations, regions, units }, nations, state.wars, sortedByMilitary, rng);
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
@@ -844,7 +845,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // attrition, and ending a war outright once its goal is met — this is what makes every one of
   // the 240 nations conquerable by ANY nation, not just the player. A war the player started is
   // untouched here; that's resolved by the player's own invasion actions instead.
-  const warProgress = resolveWarProgress({ ...state, regions, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
+  const warProgress = resolveWarProgress({ ...state, regions, units, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
   Object.assign(regions, warProgress.regions);
   nationsAfterWars = warProgress.nations;
   wars = warProgress.wars;
@@ -864,10 +865,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // transient, one-turn signal (App.jsx diffs it to show a one-shot reward popup); it's not
   // persisted anywhere else on state. ---
   let playerEliminatedNationId = null;
+  const eliminationWarParticipants = new Set();
   Object.keys(nationsAfterWars).forEach((nId) => {
     const eliminated = checkNationElimination(nationsAfterWars, regions, nId);
     if (!eliminated) return;
     nationsAfterWars = { ...nationsAfterWars, [nId]: eliminated };
+    wars.forEach(w => {
+      if (w.aggressor === nId || w.enemy === nId) {
+        eliminationWarParticipants.add(w.aggressor);
+        eliminationWarParticipants.add(w.enemy);
+      }
+    });
     wars = closeWarsForEliminatedNation(wars, nId);
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
     // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
@@ -889,6 +897,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       });
     }
   });
+  // Elimination also closes wars; surviving opponents must stop paying war exhaustion.
+  nationsAfterWars = refreshWarFlags(nationsAfterWars, wars, [...eliminationWarParticipants]);
   mark('elimination');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,

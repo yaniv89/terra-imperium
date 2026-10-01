@@ -865,6 +865,9 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
 
   it('lets one AI nation actually conquer territory from another', () => {
     const state = withCertainCapture('mx', 'ca', cap('ca'));
+    // Same-turn recruits now defend. Keep this conquest fixture below one siege hit
+    // so its result does not depend on whether Canada rolls a recruit this turn.
+    state.regions = { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], control: 20 } };
     const next = resolveTurn(state);
     expect(next.regions[cap('ca')].owner).toBe('mx'); // conquered in battle
     expect(next.regions[cap('ca')].conquest?.from).toBe('ca');
