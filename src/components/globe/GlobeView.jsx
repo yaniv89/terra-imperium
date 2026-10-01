@@ -10,12 +10,12 @@
 // "decorative backdrop" tier anymore, the whole world is the same one system.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
-import { MeshBasicMaterial, Color } from 'three';
+import { MeshBasicMaterial, Color, Raycaster, Sphere, Vector2, Vector3 } from 'three';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { resolveClickedRegionId } from '../../utils/regionClickAssist';
+import { findRegionAtCoordinates } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
@@ -212,14 +212,6 @@ const GlobeView = ({
     [selectedRegion, state.regions, state.playerNationId, atWarNationIds]
   );
 
-  const altitude = useCallback((feature) => {
-    const gameRegionId = feature.properties?.gameRegionId;
-    if (gameRegionId === selectedRegion) return 0.03;
-    if (state.regions[gameRegionId]?.underInvasion) return 0.02;
-    if (state.regions[gameRegionId]?.owner === state.playerNationId) return 0.018;
-    return 0.012;
-  }, [selectedRegion, state.regions, state.playerNationId]);
-
   const label = useCallback((feature) => {
     const gameRegionId = feature.properties?.gameRegionId;
     const regionData = REGIONS_DATA[gameRegionId];
@@ -237,56 +229,64 @@ const GlobeView = ({
     `;
   }, [state.regions, state.nations, state.playerNationId]);
 
-  // lat/lng -> on-screen pixel + horizon-visibility, for the click-assist below. The visibility
-  // check is the same P·C >= R² horizon test GlobeEffectsOverlay.jsx already uses for its own
-  // screen-space projections (a point at world position P is hidden behind the globe's limb
-  // exactly when P·C < R², C = camera position, R = globe radius) — getCoords already returns P at
-  // its true radius-scaled magnitude, so no separate normalization step is needed here.
-  const projectToScreen = useCallback((lat, lng) => {
-    const globe = globeRef.current;
-    if (!globe) return null;
-    const camera = globe.camera?.();
-    const camPos = camera?.position;
-    const radius = globe.getGlobeRadius?.() || 100;
-    const camDist = camPos ? Math.hypot(camPos.x, camPos.y, camPos.z) : 0;
-    const p = globe.getCoords(lat, lng, 0);
-    const visible = !camPos || camDist <= radius || (p.x * camPos.x + p.y * camPos.y + p.z * camPos.z) >= radius * radius;
-    const { x, y } = globe.getScreenCoords(lat, lng, 0);
-    return { x, y, visible };
-  }, []);
+  // Pick from the pointer ray rather than the library's cached hover object. On touch
+  // and low frame rates that object can belong to an earlier pointer position or be null.
+  const handlePointerPick = useCallback(event => {
+    const g=globeRef.current;
+    if(!g)return;
+    const bounds=g.renderer().domElement.getBoundingClientRect();
+    if(!bounds.width || !bounds.height)return;
+    const ray=new Raycaster();
+    ray.setFromCamera(new Vector2((event.clientX-bounds.left)/bounds.width*2-1,-((event.clientY-bounds.top)/bounds.height)*2+1),g.camera());
+    const point=ray.ray.intersectSphere(new Sphere(new Vector3(),g.getGlobeRadius()*1.002),new Vector3());
+    if(!point)return;
+    const coords=g.toGeoCoords(point);
+    const gameRegionId=findRegionAtCoordinates(geo?.gameRegionFeatures,coords.lat,coords.lng);
+    if(window.__E2E_MAP_TEST__)window.__mapLastClick={coords,gameRegionId};
+    if(gameRegionId)onSelectRegion(gameRegionId===selectedRegion?null:gameRegionId);
+  },[geo,selectedRegion,onSelectRegion]);
 
-  // Small regions are genuinely hard to hit exactly (a real, reported problem — tapping one kept
-  // selecting a larger neighbor instead), so a click first checks whether some region's centroid
-  // projects closer to the actual click point than a normal click needs to land, and prefers that
-  // over react-globe.gl's own raw polygon hit when one exists. offsetX/offsetY are relative to the
-  // canvas itself (the click's event.target), which is exactly the coordinate space
-  // getScreenCoords uses. Utterly inert for an ordinary click deep inside a normal-sized region:
-  // no other region's centroid will be anywhere near it, so the raw hit always wins.
-  //
-  // Bug fix (plan feedback: "still can't pick Tel Aviv"): the assist used to search ALL regions for
-  // the closest centroid within a flat 24px tolerance, with no regard for how good the RAW hit
-  // already was. Tel Aviv is a tiny sliver whose own label point isn't always the very closest
-  // thing on screen to every click that lands validly inside it — HaMerkaz (the much bigger
-  // district it sits inside) has its own label point nearby, and it sometimes won that "closest
-  // centroid" contest even when the click had already landed precisely on Tel Aviv's own polygon,
-  // silently overriding a correct pick with the wrong, bigger neighbor. resolveClickedRegionId
-  // (regionClickAssist.js) fixes this: the assist may now only replace the raw hit with a candidate
-  // SMALLER (by on-screen `extent`) than whatever region was actually hit — it can still rescue a
-  // genuine miss (click landed on a big neighbor, but a small region's label is nearer), it just
-  // can never redirect away from a region that's already the smallest thing under the cursor. See
-  // regionClickAssist.js's own header for why comparing label distance alone wasn't sufficient.
-  const handleClick = useCallback((feature, event) => {
-    const rawId = feature.properties?.gameRegionId;
-    if (!rawId) return;
-    const gameRegionId = event ? resolveClickedRegionId(rawId, REGION_COORDINATES, projectToScreen, event.offsetX, event.offsetY) : rawId;
-    onSelectRegion(gameRegionId === selectedRegion ? null : gameRegionId);
-  }, [selectedRegion, onSelectRegion, projectToScreen]);
+  useEffect(()=>{
+    const canvas=globeRef.current?.renderer().domElement;
+    if(!canvas || !geo)return undefined;
+    let start=null;
+    const pointers=new Set();
+    const down=e=>{
+      pointers.add(e.pointerId);
+      start=pointers.size===1 && e.button===0 ? {id:e.pointerId,x:e.clientX,y:e.clientY}:null;
+    };
+    const up=e=>{
+      pointers.delete(e.pointerId);
+      const tap=start;start=null;
+      if(tap?.id===e.pointerId && Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<=6)handlePointerPick(e);
+    };
+    const cancel=e=>{pointers.delete(e.pointerId);start=null;};
+    canvas.addEventListener('pointerdown',down);
+    canvas.addEventListener('pointerup',up,true);
+    canvas.addEventListener('pointercancel',cancel);
+    return ()=>{
+      canvas.removeEventListener('pointerdown',down);
+      canvas.removeEventListener('pointerup',up,true);
+      canvas.removeEventListener('pointercancel',cancel);
+    };
+  },[geo,handlePointerPick]);
 
   // Memoized so polygonsData keeps a STABLE reference across re-renders that don't actually
   // change the underlying geometry (e.g. a GameContext update from an unrelated action) — a new
   // array identity every render would make react-globe.gl treat it as entirely new data and
   // rebuild every polygon mesh on every render instead of just once.
   const polygons = useMemo(() => geo?.gameRegionFeatures || null, [geo]);
+
+  useEffect(() => {
+    if(window.__E2E_MAP_TEST__ !== true || !globeRef.current || !geo)return undefined;
+    window.__mapTest={
+      features:geo.gameRegionFeatures,
+      selected:selectedRegion,
+      focus:(lat,lng,altitude)=>{const g=globeRef.current;g.controls().autoRotate=false;g.pointOfView({lat,lng,altitude},0);g.controls().update();g.camera().updateMatrixWorld();},
+      project:(lat,lng)=>globeRef.current.getScreenCoords(lat,lng,0.002)
+    };
+    return ()=>{delete window.__mapTest;};
+  },[geo,selectedRegion]);
 
   if (!geo) {
     return (
@@ -331,11 +331,10 @@ const GlobeView = ({
         polygonCapColor={capColor}
         polygonSideColor={() => 'rgba(15, 23, 42, 0.6)'}
         polygonStrokeColor={strokeColor}
-        polygonAltitude={altitude}
+        polygonAltitude={0.002}
         polygonCapCurvatureResolution={12}
         polygonsTransitionDuration={200}
         polygonLabel={label}
-        onPolygonClick={handleClick}
       />
       {!prefersReducedMotion() && (
         <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} ageId={state.age} />

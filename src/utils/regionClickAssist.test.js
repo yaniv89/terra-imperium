@@ -63,14 +63,8 @@ describe('findClickAssistRegionId', () => {
   });
 });
 
-// Bug fix (plan feedback: "still can't pick Tel Aviv") — reproduces the exact bug shape: a tiny
-// enclave (tiny_a, e.g. Tel Aviv) sits inside a much bigger neighbor (big_c, e.g. HaMerkaz) whose own
-// label point can legitimately project closer to some pixels that still land, correctly, inside
-// tiny_a's own polygon (that's what made it the raw hit in the first place) than tiny_a's own label
-// does. Comparing raw-hit distance alone isn't enough to rule this out (the bigger neighbor's label
-// really can be nominally closer even to a valid click) — only comparing SIZE (`extent`) does:
-// a candidate the assist can redirect to must be smaller than whatever was actually hit.
-describe('resolveClickedRegionId (plan feedback: never redirect away from the smallest thing already hit)', () => {
+// Nearby centroids must never override a valid polygon intersection.
+describe('resolveClickedRegionId: exact polygon hits always win', () => {
   it('keeps the raw hit when the only nearby candidate is BIGGER, no matter how close its label is', () => {
     const project = projectAt({
       '1,1': { x: 100, y: 100, visible: true }, // tiny_a's own label — 9px from the click
@@ -82,14 +76,24 @@ describe('resolveClickedRegionId (plan feedback: never redirect away from the sm
     expect(resolveClickedRegionId('tiny_a', REGIONS, project, 109, 100)).toBe('tiny_a');
   });
 
-  it('still rescues a genuine miss: the raw hit is the big region, but a smaller region\'s label is nearby', () => {
+  it('keeps a valid large-region hit even beside a smaller region\'s label', () => {
     const project = projectAt({
       '1,1': { x: 100, y: 100, visible: true }, // tiny_a's label sits right next to the click
       '3,3': { x: 500, y: 500, visible: true } // big_c's own label is far from the click
     });
-    // The click landed inside big_c's polygon (a real miss of the small region tucked inside it) —
-    // tiny_a is smaller than big_c, so it's a valid replacement candidate.
-    expect(resolveClickedRegionId('big_c', REGIONS, project, 102, 100)).toBe('tiny_a');
+    // A nearby label cannot tell us the player intended a different province.
+    expect(resolveClickedRegionId('big_c', REGIONS, project, 102, 100)).toBe('big_c');
+  });
+
+  it('does not scan centroids when there is a polygon hit', () => {
+    const project = () => { throw new Error('Exact hits do not need proximity assistance'); };
+    expect(resolveClickedRegionId('big_c', REGIONS, project, 100, 100)).toBe('big_c');
+  });
+
+  it('offers a nearby candidate only when there was no polygon hit', () => {
+    const project = projectAt({ '1,1': { x: 100, y: 100, visible: true } });
+    expect(resolveClickedRegionId(null, REGIONS, project, 102, 100)).toBe('tiny_a');
+    expect(resolveClickedRegionId(null)).toBeNull();
   });
 
   it('never redirects toward a same-size or bigger candidate, even one right on top of the click', () => {
@@ -108,5 +112,21 @@ describe('resolveClickedRegionId (plan feedback: never redirect away from the sm
   it('falls back to the raw hit when no smaller candidate is within tolerance', () => {
     const project = projectAt({ '1,1': { x: 100, y: 100, visible: true } });
     expect(resolveClickedRegionId('tiny_a', REGIONS, project, 100, 100)).toBe('tiny_a');
+  });
+});
+
+
+describe('geographic province selection',()=>{
+  const feature=(id,rings)=>({properties:{gameRegionId:id},geometry:{type:'Polygon',coordinates:rings}});
+  it('preserves narrow provinces and rejects polygon holes',async()=>{
+    const {findRegionAtCoordinates}=await import('./regionClickAssist');
+    const ring=[[0,0],[1,0],[1,10],[0,10],[0,0]],hole=[[.2,2],[.8,2],[.8,3],[.2,3],[.2,2]];
+    expect(findRegionAtCoordinates([feature('narrow',[ring,hole])],8,.5)).toBe('narrow');
+    expect(findRegionAtCoordinates([feature('narrow',[ring,hole])],2.5,.5)).toBeNull();
+  });
+  it('handles both sides of the antimeridian without covering the rest of Earth',async()=>{
+    const {findRegionAtCoordinates}=await import('./regionClickAssist');
+    const f=feature('island',[[[179,-1],[-179,-1],[-179,1],[179,1],[179,-1]]]);
+    expect(findRegionAtCoordinates([f],0,179.5)).toBe('island');expect(findRegionAtCoordinates([f],0,-179.5)).toBe('island');expect(findRegionAtCoordinates([f],0,178)).toBeNull();expect(findRegionAtCoordinates([f],0,0)).toBeNull();
   });
 });

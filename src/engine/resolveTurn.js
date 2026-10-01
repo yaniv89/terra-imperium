@@ -1,3 +1,9 @@
+import { applyArmyDesertion, DESERTION_SHARE, DESERTION_MORALE } from './armyDesertion';
+export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
+import { processEmergence } from './emergence';
+import { processAIOperations } from './aiOperations';
+import { reconcileTerritory } from './worldLifecycle';
+import { invalidateRegionsCache } from '../data/regions';
 // src/engine/resolveTurn.js
 // Pure turn-resolution engine. Takes one state snapshot and returns the fully resolved next
 // state, using the RNG seed carried on state (never Math.random() directly) so replays and
@@ -21,9 +27,9 @@ import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
 import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
-import { calcAllNationIncomes, processAIEconomyTurn, thinksThisTurn } from './aiEconomy';
+import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
 import { processAIAbmDefense } from './aiMissiles';
-import { resolveWarProgress } from './diplomacy';
+import { resolveWarProgress, refreshWarFlags } from './diplomacy';
 import { resolveAllDefensesAuto } from './defense';
 import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
@@ -77,9 +83,6 @@ export const WAR_WEARINESS_FROM = 40;
 export const WAR_WEARINESS_SCALE = 40;
 // Bankruptcy's cost to the army: the share of men who desert, the morale every unit loses, and the
 // size below which a unit simply dissolves.
-export const DESERTION_SHARE = 0.15;
-export const DESERTION_MORALE = 20;
-export const DESERTION_DISBAND_BELOW = 50;
 
 // `onPhase(name, ms)` is an optional perf hook (src/engine/aiQualityBenchmark.test.js's M0.4 perf
 // harness is the only caller) fired after each named phase below with how long it took. It costs
@@ -94,15 +97,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // Tactical Battles plan §16: assaults on the player's garrisons are fought before the turn ends.
   if (state.pendingDefenses?.length) return state;
 
+  let regionDraft = null;
   let phaseStart = onPhase ? performance.now() : 0;
   const mark = (name) => {
+    if (regionDraft) invalidateRegionsCache(regionDraft);
     if (!onPhase) return;
     const now = performance.now();
     onPhase(name, now - phaseStart);
     phaseStart = now;
   };
 
-  const rng = createRng(state.rngSeed);
+  let rng = createRng(state.rngSeed);
   const logs = [];
   // --- time ---
   const newYear = state.year + getYearsPerTurn(state.age, state.gameSpeed);
@@ -120,7 +125,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // this turn no longer affects this turn's income/unrest/etc below. Nothing pushes an entry into
   // nation.modifiers[] or state.regionModifiers yet (a later milestone's event/law/disaster effect
   // will be the first real writer), so both calls are a same-reference no-op today.
-  const modifierExpiredNations = expireNationModifiers(state.nations, newTurnNumber);
+  const modifierExpiredNations = { ...expireNationModifiers(state.nations, newTurnNumber) };
   const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
   mark('time');
 
@@ -164,6 +169,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // --- unrest drift (every region, not just the player's — this is a generic mechanic every
   // nation's own territory is subject to) ---
   const regions = { ...state.regions };
+  regionDraft = regions;
   const satellites = state.satellites || {};
   // A nation's whole stability picture, once per owner: its static sources (government, policies,
   // wonders, identity) plus the state-dependent ones (its stability level, low legitimacy, and for
@@ -180,6 +186,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     return value;
   };
   Object.entries(regions).forEach(([id, region]) => {
+    if (region.owner === null) return;
     const owner = modifierExpiredNations[region.owner];
     const taxUnrestDelta = TAX_RATES[owner?.taxRate]?.unrestDeltaPerTurn || 0;
     // Plan §M6: the Culture & Order building line's local.stabilityBonus shaves this region's own
@@ -190,12 +197,13 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     // A long, bloody war wears on the home front: war exhaustion past 40 pushes unrest up in every
     // province the nation holds, up to +1.5/turn at 100.
     const warWeariness = Math.max(0, ((owner?.warExhaustion || 0) - WAR_WEARINESS_FROM) / WAR_WEARINESS_SCALE);
-    const unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta + warWeariness);
+    let unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta + warWeariness);
     // Siege recovery (src/engine/siege.js): a region not attacked recently regenerates the control
     // combat ground down — an interrupted siege doesn't bank its damage forever. Also clears the
     // `underInvasion` map/UI flag once the cooldown passes, so a region stops reading as "under
     // attack" once it genuinely no longer is.
-    const control = region.lastAttackedTurn != null ? nextSiegeControlRegen(region, newTurnNumber) : region.control;
+    let control = region.lastAttackedTurn != null ? nextSiegeControlRegen(region, newTurnNumber) : region.control;
+    if(region.integratingUntil != null){control=Math.min(100,control+13);unrest=Math.max(0,unrest-7);}
     const stillUnderCooldown = region.lastAttackedTurn != null && (newTurnNumber - region.lastAttackedTurn) < SIEGE_REGEN_COOLDOWN_TURNS;
 
     // Population (plan item 3): driven by the Food & Growth building tier, infrastructure,
@@ -219,7 +227,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     });
 
     if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown) || currentPopulation !== region.currentPopulation || devastation !== (region.devastation || 0)) {
-      regions[id] = { ...region, unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation, ...(region.devastation != null || devastation ? { devastation } : {}) };
+      regions[id] = { ...region, ...(region.integratingUntil != null && newTurnNumber>=region.integratingUntil ? {integratingUntil:null}:{}), unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation, ...(region.devastation != null || devastation ? { devastation } : {}) };
     }
   });
   mark('regionUnrestAndPopulation');
@@ -318,11 +326,10 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     // tech-effects source itself already is. Calling getModifier for every AI-owned nation here
     // would otherwise force contextSources' O(regions) getOverextension scan up to ~240 times a
     // turn for a value that's unconditionally 0 for every one of them anyway.
-    const isPlayer = ownerId === state.playerNationId;
-    const attritionMult = isPlayer ? Math.max(0, 1 + getModifier(state, ownerId, 'national.attrition').total) : 1;
+    const attritionMult = Math.max(0, 1 + getModifier(state, ownerId, 'national.attrition').total);
     // Plan §M6: the Logistics building line's local.supplyRange extends how far THAT region can
     // supply from, on top of infrastructure's own existing contribution.
-    const nationalSupplyRange = isPlayer ? getModifier(state, ownerId, 'national.supplyRange').total : 0;
+    const nationalSupplyRange = getModifier(state, ownerId, 'national.supplyRange').total;
     const maxSupplyRange = nationalSupplyRange + Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure) + getRegionModifier(state, id, 'local.supplyRange').total));
     // One bounded multi-source BFS covers every in-range region at once, rather than a fresh
     // search per distinct region a unit happens to occupy — the set of in-range regions is the
@@ -369,6 +376,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   const FUEL_BURNING_CLASSES = new Set(['cavalry', 'air', 'naval']);
   const playerOutOfOil = getEffectiveAgeId(newAge, state.techAgeId) === 'modern' && (resources.oil ?? 0) <= 0;
   let groundedCount = 0;
+  const ownerSupplyFlows = new Map();
   Object.values(units).forEach((u) => {
     if (u.ownerId === REBEL_OWNER_ID || u.embarkedOn) return;
     const nation = state.nations[u.ownerId];
@@ -377,11 +385,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     const isPlayer = u.ownerId === state.playerNationId;
     const maintenanceLevel = clampMaintenance(nation[u.domain === 'naval' ? 'navyMaintenance' : 'armyMaintenance'] ?? ARMY_MAINTENANCE_DEFAULT);
     const maintenanceFactor = Math.max(0, (maintenanceLevel - 50) / 50); // 50% maintenance = no recovery at all
-    const reinforceSpeedBonus = isPlayer ? getModifier(state, u.ownerId, 'national.reinforceSpeed').total : 0;
-    const moraleRecoveryBonus = isPlayer ? getModifier(state, u.ownerId, 'national.moraleRecovery').total : 0;
+    const reinforceSpeedBonus = getModifier(state, u.ownerId, 'national.reinforceSpeed').total;
+    const moraleRecoveryBonus = getModifier(state, u.ownerId, 'national.moraleRecovery').total;
     let patch = null;
     // Hungry armies on campaign (supplies.js) neither recover nor reinforce, and lose heart.
-    const hungry = isPlayer && supplyFlow.hungry && isCampaigning(u, regions);
+    const ownerPool = isPlayer ? resources : (modifierExpiredNations[u.ownerId].economy || {});
+    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool}));
+    const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
+    const hungry = ownerSupply.hungry && isCampaigning(u, regions);
     if (hungry) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) };
 
     if (!hungry && !foughtThisTurn && u.morale < 100) {
@@ -392,21 +403,23 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     const isSuppliedHomeTerritory = region && region.owner === u.ownerId && !region.occupiedBy;
     if (!hungry && !foughtThisTurn && isSuppliedHomeTerritory && u.strength < u.maxStrength) {
       const cadreMult = hasPerk(u, 'cadre') ? 2 : 1;
-      const gain = Math.min(u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
+      const gain = Math.min(Math.floor((ownerPool.hr || 0) * 10), u.maxStrength - u.strength, Math.round(u.maxStrength * REINFORCEMENT_RATE * (1 + reinforceSpeedBonus) * maintenanceFactor * cadreMult));
       if (gain > 0) {
         // Manpower is a real, spendable resource only for the player pre-M16 (economy.js's own
         // "player-only real computation" pattern) — an AI unit's strength still regrows (so the AI
         // isn't permanently crippled by a single lost battle), it just doesn't draw down a manpower
         // pool that doesn't meaningfully exist for it yet.
-        if (isPlayer) resources.hr = Math.max(0, (resources.hr || 0) - Math.round(gain / 10));
+        if (isPlayer) resources.hr = Math.max(0, (resources.hr || 0) - Math.ceil(gain / 10));
+        else modifierExpiredNations[u.ownerId] = {...modifierExpiredNations[u.ownerId],economy:{...ownerPool,hr:Math.max(0,(ownerPool.hr || 0)-Math.ceil(gain/10))}};
         patch = { ...patch, strength: u.strength + gain };
       }
     }
 
     // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one. With the oil
     // stock empty, the player's modern machines (tanks, aircraft, warships) stay where they are.
-    const grounded = isPlayer && playerOutOfOil && FUEL_BURNING_CLASSES.has(u.classId);
-    if (grounded) groundedCount += 1;
+    const outOfOil = isPlayer ? playerOutOfOil : getEffectiveAgeId(newAge, nation.tech?.ageId) === 'modern' && (nation.economy?.oil || 0) <= 0;
+    const grounded = outOfOil && FUEL_BURNING_CLASSES.has(u.classId);
+    if (grounded && isPlayer) groundedCount += 1;
     const movesLeft = grounded ? 0 : 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
     units[u.id] = { ...u, ...patch, movesLeft };
   });
@@ -417,7 +430,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   const aiUpdates = processAllAINations(state, newYear, rng);
   const nations = { ...modifierExpiredNations, ...revivedNations };
   Object.entries(nations).forEach(([nId, nation]) => {
-    if (nation.isPlayer) return;
+    if (nation.isPlayer || nation.isEliminated) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
     const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0));
     const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
@@ -455,6 +468,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.keys(nations).forEach((nId) => {
     if (nId === state.playerNationId) return;
     const nation = nations[nId];
+    if (nation.isEliminated) return;
     if (!nation.economy) return; // a legacy/test fixture with no seeded economy stays on the old abstract-only path
     const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
     const powerIncome = getPowerIncome(aiEconState, nId);
@@ -462,11 +476,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     pool.gold += income.gold;
     pool.hr += income.hr;
     pool.techPoints += income.techPoints;
+    const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool});
+    pool.supplies=aiSupply.supplies;
+    pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
+    ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
     // Same flat POWER_POOL_CAP bank the player's own pools use (the maintenanceAndPower phase
     // above) — the old 2x-income cap here kept every AI pool below the cheapest tech's 40 power,
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool };
+    nations[nId] = settleAIUpkeep({ ...aiEconState, units, turnNumber: newTurnNumber }, nId, income);
+    if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
@@ -678,14 +698,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       resources.gold = 0;
       // Unpaid soldiers desert: every unit loses DESERTION_SHARE of its men and its spirit, and a
       // unit left too small to stand dissolves. (Deserters go home: no casualty scar.)
-      let deserted = 0;
-      Object.values(units).forEach((u) => {
-        if (u.ownerId !== playerId) return;
-        const strength = Math.floor(u.strength * (1 - DESERTION_SHARE));
-        deserted += u.strength - strength;
-        if (strength < DESERTION_DISBAND_BELOW) delete units[u.id];
-        else units[u.id] = { ...u, strength, morale: Math.max(0, (u.morale ?? 100) - DESERTION_MORALE) };
-      });
+      const deserted = applyArmyDesertion(units, playerId);
       if (deserted > 0) logs.push({ year: newYear, message: `Unpaid, ${Math.round(deserted * 10).toLocaleString()} soldiers desert your army (-${Math.round(DESERTION_SHARE * 100)}% strength, -${DESERTION_MORALE} morale in every unit).`, type: LogTypes.CRISIS });
       logs.push({
         year: newYear,
@@ -759,7 +772,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // It now drifts toward a target read from the overlord's real weakness: relative strength, how
   // many wars it's fighting, its war exhaustion and whether it's in debt (src/engine/vassals.js).
   const fieldedOf = (id) => getFieldedStrength({ units }, id);
-  const isInDebt = (id) => (id === state.playerNationId ? (resources.gold || 0) < 0 : (nations[id]?.economy?.resources?.gold || 0) < 0);
+  const isInDebt = (id) => (id === state.playerNationId ? (resources.gold || 0) < 0 : (nations[id]?.economy?.gold || 0) < 0);
   Object.entries(nations).forEach(([nId, nation]) => {
     if (!nation.vassalOf || !nations[nation.vassalOf]) return;
     const target = libertyDesireTarget(libertyInputs(nations, state.wars, nId, fieldedOf, isInDebt));
@@ -811,7 +824,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // abstract militaryStrength growth into real, counterable units in state.units — recruiting
   // whatever class beats their most relevant rival's dominant class. Uses the calendar age, not a
   // per-nation tech age (AI nations don't track one independently). ---
-  const recruitment = processAIRecruitment({ ...state, nations }, units, nations, regions, sortedByMilitary, newAge, rng);
+  const recruitment = processAIRecruitment({ ...state, nations, regions, units }, units, nations, regions, sortedByMilitary, newAge, rng);
   // Every unit raised this turn draws its men from its home province (aftermath.js).
   // (`regions` is this turn's own working copy, so each levy updates just its one province in place.)
   Object.values(recruitment.units).forEach((u) => {
@@ -828,7 +841,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // --- AI war declarations (plan §8.5's tiered AI): Tier 1 nations (at war, bordering the
   // player, or a top-20 military power) may each declare one war this turn against a weaker
   // neighbor, biased by doctrine and hostility. ---
-  const warDecisions = processAIWarDecisions({ ...state, nations }, nations, state.wars, sortedByMilitary, rng);
+  const warDecisions = processAIWarDecisions({ ...state, nations, regions, units }, nations, state.wars, sortedByMilitary, rng);
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
@@ -844,7 +857,16 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // attrition, and ending a war outright once its goal is met — this is what makes every one of
   // the 240 nations conquerable by ANY nation, not just the player. A war the player started is
   // untouched here; that's resolved by the player's own invasion actions instead.
-  const warProgress = resolveWarProgress({ ...state, regions, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
+  const operations = processAIOperations({ ...state, turnNumber: newTurnNumber, regions, units, nations: nationsAfterWars, wars, logs: [] }, rng);
+  rng = createRng(operations.rngSeed);
+  Object.keys(units).forEach(id => { if (!operations.units[id]) delete units[id]; });
+  Object.assign(units, operations.units);
+  Object.assign(regions, operations.regions);
+  nationsAfterWars = operations.nations;
+  wars = operations.wars;
+  logs.push(...operations.logs);
+  invalidateRegionsCache(regions);
+  const warProgress = resolveWarProgress({ ...state, regions, units, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
   Object.assign(regions, warProgress.regions);
   nationsAfterWars = warProgress.nations;
   wars = warProgress.wars;
@@ -864,10 +886,17 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   // transient, one-turn signal (App.jsx diffs it to show a one-shot reward popup); it's not
   // persisted anywhere else on state. ---
   let playerEliminatedNationId = null;
+  const eliminationWarParticipants = new Set();
   Object.keys(nationsAfterWars).forEach((nId) => {
     const eliminated = checkNationElimination(nationsAfterWars, regions, nId);
     if (!eliminated) return;
     nationsAfterWars = { ...nationsAfterWars, [nId]: eliminated };
+    wars.forEach(w => {
+      if (w.aggressor === nId || w.enemy === nId) {
+        eliminationWarParticipants.add(w.aggressor);
+        eliminationWarParticipants.add(w.enemy);
+      }
+    });
     wars = closeWarsForEliminatedNation(wars, nId);
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
     // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
@@ -889,6 +918,8 @@ export const resolveTurn = (state, { onPhase } = {}) => {
       });
     }
   });
+  // Elimination also closes wars; surviving opponents must stop paying war exhaustion.
+  nationsAfterWars = refreshWarFlags(nationsAfterWars, wars, [...eliminationWarParticipants]);
   mark('elimination');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
@@ -976,7 +1007,9 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     pendingPeaceOffer,
     // Assaults on the player's garrisons (src/engine/defense.js), fought before the next turn —
     // dropped if their war ended this same turn.
-    pendingDefenses: (warProgress.pendingDefenses || []).filter((d) => wars.some((w) => w.id === d.warId && w.active)),
+    nextUnitSeq: operations.nextUnitSeq,
+    aiOperations: operations.aiOperations,
+    pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || [])].filter((d) => wars.some((w) => w.id === d.warId && w.active)),
     regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,
@@ -1034,5 +1067,5 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   }
   mark('victory');
 
-  return next;
+  return reconcileTerritory(processEmergence(next));
 };

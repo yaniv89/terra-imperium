@@ -15,6 +15,8 @@ import { UNIT_CLASSES } from '../../data/unitClasses';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { useEffects } from '../../context/EffectsContext';
+import { computeSupplyFlow } from '../../engine/supplies';
+import { getEffectiveAgeId } from '../../data/ages';
 import { getNationCapital } from '../../data/regions';
 
 const MilitaryPanel = () => {
@@ -34,6 +36,8 @@ const MilitaryPanel = () => {
   };
 
   const generals = Object.entries(state.hiredCommanders);
+  const supply=computeSupplyFlow({regions:state.regions,units:state.units,nationId:state.playerNationId,ageId:getEffectiveAgeId(state.age,state.techAgeId),resources:state.resources});
+  const reserves=Object.values(state.units).filter(u=>u.ownerId===state.playerNationId&&u.domain==='land'&&!u.embarkedOn&&state.regions[u.regionId]?.owner===state.playerNationId&&!state.regions[u.regionId]?.underInvasion).length;
 
   return (
     <div className="space-y-4">
@@ -46,6 +50,12 @@ const MilitaryPanel = () => {
         <div className="text-white font-semibold text-xl">{formatNumber(getFieldedStrength(state, state.playerNationId))}</div>
       </div>
 
+      <div className="bg-slate-800/60 rounded-lg p-3 text-sm space-y-1">
+        <div className="text-slate-400">Campaign supplies and reserve</div>
+        <div className="text-white">Stock: {Math.round(state.resources.supplies || 0)} · Next turn: +{supply.produced} / −{supply.consumed}</div>
+        <div className="text-slate-300">{supply.campaigning} armies campaigning · {reserves} armies at home</div>
+        <p className={supply.hungry?'text-amber-300':'text-slate-400'}>{supply.hungry?'Supply shortage: bring armies home or build Industry and stockpile '+supply.metalId+'. Campaign armies lose morale and cannot reinforce.':'Keep a reserve at home to reinforce from manpower. Industry converts '+supply.metalId+' into supplies for distant campaigns.'}</p>
+      </div>
       {/* Military maintenance slider (plan §M11): free, adjustable any time — scales army/navy
           upkeep only (see economy.js's header on the morale-recovery/reinforcement scope trim). */}
       <div className="bg-slate-800/60 rounded-lg p-3 text-sm space-y-2">

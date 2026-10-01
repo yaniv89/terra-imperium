@@ -14,9 +14,9 @@
 // Models face +Z, stand on y = 0, and a person is about 1 unit tall.
 // Any (age, class) can instead use an artist's low-poly GLB (gltfUnitLoader.js → unitModels.js →
 // registerSoldierGeometry): it arrives baked into exactly these attributes, so the same material,
-// rig and instancing drive it. Each model also has a ~50-triangle imposter for far zoom levels.
+// rig and instancing drive it. Each model has a matching reduced-tessellation mesh for far zoom levels.
 import {
-  BoxGeometry, CylinderGeometry, SphereGeometry, ConeGeometry, TorusGeometry, Float32BufferAttribute,
+  BoxGeometry, CylinderGeometry, SphereGeometry, ConeGeometry, TorusGeometry, ExtrudeGeometry, Shape, Float32BufferAttribute,
   Matrix4, Euler, Quaternion, Vector3, Color, MeshLambertMaterial, MeshStandardMaterial, MeshDepthMaterial, RGBADepthPacking
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -79,9 +79,12 @@ const shift = (parts, dx, dy, dz) => parts.map((g) => {
   return g;
 });
 const box = (w, h, d) => new BoxGeometry(w, h, d);
-const cyl = (rt, rb, h, seg = 7) => new CylinderGeometry(rt, rb, h, seg);
-const ball = (r, w = 7, h = 5) => new SphereGeometry(r, w, h);
+let reducedDetail = false;
+const cyl = (rt, rb, h, seg = 12) => new CylinderGeometry(rt, rb, h, reducedDetail ? Math.min(seg, 6) : seg);
+const ball = (r, w = 12, h = 8) => new SphereGeometry(r, reducedDetail ? Math.min(w, 6) : w, reducedDetail ? Math.min(h, 4) : h);
 const cone = (r, h, seg = 7) => new ConeGeometry(r, h, seg);
+const oval = (w, h, d) => ball(1, 10, 6).scale(w / 2, h / 2, d / 2);
+const dome = (r) => new SphereGeometry(r, reducedDetail ? 8 : 14, reducedDetail ? 3 : 6, 0, Math.PI * 2, 0, Math.PI / 2);
 
 // ---- people ----------------------------------------------------------------------------------
 
@@ -91,11 +94,11 @@ const ARM_L = { limb: LIMB.ARM_L, pivot: [SHOULDER, 0] };
 const ARM_R = { limb: LIMB.ARM_R, pivot: [SHOULDER, 0] };
 
 const HELMETS = {
-  bronze: (y) => [part(cone(0.12, 0.2), C.bronze, { at: [0, y + 0.1, 0] })],
-  classical: (y) => [part(ball(0.12, 7, 4), C.bronze, { at: [0, y + 0.02, 0], scale: [1, 0.85, 1] }), part(box(0.035, 0.1, 0.24), '#b3261e', { at: [0, y + 0.11, -0.01] })],
-  kingdoms: (y) => [part(cyl(0.115, 0.12, 0.17), C.steel, { at: [0, y + 0.03, 0] }), part(box(0.18, 0.025, 0.02), C.black, { at: [0, y + 0.02, 0.115] })],
+  bronze: (y) => [part(dome(0.102), C.bronze, { at: [0, y, 0], scale: [1, 1.1, 1.1] })],
+  classical: (y) => [part(dome(0.106), C.bronze, { at: [0, y, 0], scale: [1, 1, 1.1] }), part(oval(0.03, 0.11, 0.23), '#b3261e', { at: [0, y + 0.11, -0.01] }), ...[-1, 1].map(s => part(oval(0.025, 0.09, 0.07), C.bronze, { at: [s * 0.09, y - 0.04, 0.02] }))],
+  kingdoms: (y) => [part(dome(0.106), C.steel, { at: [0, y, 0], scale: [1, 1.2, 1.1] }), part(box(0.018, 0.1, 0.015), C.steel, { at: [0, y - 0.04, 0.108] })],
   gunpowder: (y) => [part(cyl(0.1, 0.11, 0.2), C.black, { at: [0, y + 0.1, 0] }), part(cyl(0.13, 0.13, 0.02, 8), C.black, { at: [0, y + 0.0, 0.02] }), part(ball(0.025, 4, 3), C.gold, { at: [0, y + 0.13, 0.1] })],
-  modern: (y) => [part(ball(0.13, 8, 5), C.darkOlive, { at: [0, y + 0.02, 0], scale: [1, 0.72, 1.05] })]
+  modern: (y) => [part(dome(0.114), C.darkOlive, { at: [0, y - 0.005, 0], scale: [1, 0.8, 1.1] })]
 };
 const BODY_CLOTH = { bronze: C.cloth, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
 const LEG_CLOTH = { bronze: C.leather, classical: C.leather, kingdoms: C.darkSteel, gunpowder: C.cloth, modern: C.olive };
@@ -108,22 +111,27 @@ const person = (ageId, { skin = 0, seat = 0, legs = true } = {}) => {
   if (legs) {
     [-1, 1].forEach((s) => {
       const bone = { ...LEG, limb: s < 0 ? LIMB.LEG_L : LIMB.LEG_R, pivot: [HIP + y0, 0] };
-      parts.push(part(box(0.11, 0.42, 0.13), LEG_CLOTH[ageId], { at: [s * 0.075, 0.27 + y0, 0], ...bone }));
-      parts.push(part(box(0.12, 0.07, 0.17), C.darkLeather, { at: [s * 0.075, 0.035 + y0, 0.02], ...bone }));
+      parts.push(part(oval(0.105, 0.25, 0.125), LEG_CLOTH[ageId], { at: [s * 0.064, 0.36 + y0, 0], ...bone }));
+      parts.push(part(cyl(0.045, 0.031, 0.21), LEG_CLOTH[ageId], { at: [s * 0.064, 0.155 + y0, 0], ...bone }));
+      parts.push(part(oval(0.095, 0.075, 0.17), C.darkLeather, { at: [s * 0.064, 0.04 + y0, 0.035], ...bone }));
     });
   } else {
-    [-1, 1].forEach((s) => parts.push(part(box(0.11, 0.3, 0.13), LEG_CLOTH[ageId], { at: [s * 0.13, y0 + 0.4, 0.08], rot: [-1.3, 0, s * 0.3] })));
+    [-1, 1].forEach((s) => parts.push(part(oval(0.11, 0.3, 0.13), LEG_CLOTH[ageId], { at: [s * 0.13, y0 + 0.4, 0.08], rot: [-1.0, 0, s * 0.3] })));
   }
-  parts.push(part(box(0.3, 0.36, 0.19), BODY_CLOTH[ageId], { at: [0, 0.64 + y0, 0], scale: [1, 1, 1] }));
+  parts.push(part(oval(0.265, 0.37, 0.18), BODY_CLOTH[ageId], { at: [0, 0.645 + y0, 0] }));
   // Tabard/tunic front in the side's colour.
-  parts.push(part(box(0.26, 0.3, 0.02), '#ffffff', { at: [0, 0.63 + y0, 0.1], team: 1, emblem: true }));
-  parts.push(part(box(0.31, 0.05, 0.2), C.darkLeather, { at: [0, 0.5 + y0, 0] }));
-  parts.push(part(ball(0.1, 7, 5), C.skin[skin % 4], { at: [0, 0.9 + y0, 0.01], skin: true }));
-  parts.push(...HELMETS[ageId](0.92 + y0));
+  parts.push(part(oval(0.24, 0.3, 0.035), '#ffffff', { at: [0, 0.64 + y0, 0.075], team: 1, emblem: true }));
+  parts.push(part(cyl(0.114, 0.11, 0.034), C.darkLeather, { at: [0, 0.505 + y0, 0], scale: [1, 1, 0.78] }));
+  parts.push(part(cyl(0.033, 0.04, 0.06), C.skin[skin % 4], { at: [0, 0.83 + y0, 0], skin: true }));
+  parts.push(part(oval(0.17, 0.19, 0.17), C.skin[skin % 4], { at: [0, 0.92 + y0, 0.01], skin: true }));
+  parts.push(part(oval(0.025, 0.043, 0.035), C.skin[skin % 4], { at: [0, 0.922 + y0, 0.096], skin: true }));
+  [-1, 1].forEach(s => parts.push(part(ball(0.009, 6, 4), C.black, { at: [s * 0.033, 0.947 + y0, 0.083] })));
+  parts.push(...HELMETS[ageId](0.962 + y0));
   [-1, 1].forEach((s) => {
     const bone = s < 0 ? { ...ARM_L, pivot: [SHOULDER + y0, 0] } : { ...ARM_R, pivot: [SHOULDER + y0, 0] };
-    parts.push(part(box(0.085, 0.3, 0.09), BODY_CLOTH[ageId], { at: [s * 0.2, 0.66 + y0, 0], ...bone }));
-    parts.push(part(ball(0.045, 5, 4), C.skin[skin % 4], { at: [s * 0.2, 0.49 + y0, 0.01], skin: true, ...bone }));
+    parts.push(part(oval(0.095, 0.19, 0.1), BODY_CLOTH[ageId], { at: [s * 0.17, 0.733 + y0, 0], ...bone }));
+    parts.push(part(cyl(0.038, 0.027, 0.16), BODY_CLOTH[ageId], { at: [s * 0.19, 0.575 + y0, 0.015], rot: [-0.18, 0, 0], ...bone }));
+    parts.push(part(oval(0.052, 0.075, 0.055), C.skin[skin % 4], { at: [s * 0.2, 0.48 + y0, 0.03], skin: true, ...bone }));
   });
   return parts;
 };
@@ -165,30 +173,47 @@ const pack = (color = C.leather) => [part(box(0.22, 0.26, 0.12), color, { at: [0
 
 const horse = (coat = C.horse, barding = false) => {
   const parts = [
-    part(box(0.34, 0.36, 0.95), coat, { at: [0, 0.78, 0] }),
-    part(box(0.2, 0.42, 0.24), coat, { at: [0, 1.02, 0.52], rot: [0.55, 0, 0] }),
-    part(box(0.16, 0.18, 0.36), coat, { at: [0, 1.2, 0.72], rot: [0.2, 0, 0] }),
-    part(box(0.05, 0.3, 0.08), C.horseDark, { at: [0, 1.12, 0.36], rot: [0.55, 0, 0] }), // mane
-    part(box(0.07, 0.34, 0.07), C.horseDark, { at: [0, 0.74, -0.52], rot: [-0.5, 0, 0] }) // tail
+    part(oval(0.36, 0.43, 0.99), coat, { at: [0, 0.79, 0] }),
+    part(oval(0.24, 0.55, 0.29), coat, { at: [0, 1.03, 0.4], rot: [0.48, 0, 0] }),
+    part(oval(0.19, 0.23, 0.4), coat, { at: [0, 1.23, 0.63], rot: [0.36, 0, 0] }),
+    part(oval(0.16, 0.15, 0.18), C.horseDark, { at: [0, 1.16, 0.81] }),
+    part(oval(0.055, 0.39, 0.13), C.horseDark, { at: [0, 1.11, 0.31], rot: [0.48, 0, 0] }),
+    part(oval(0.075, 0.42, 0.08), C.horseDark, { at: [0, 0.7, -0.51], rot: [-0.45, 0, 0] })
   ];
+  [-1, 1].forEach(s => {
+    parts.push(part(cone(0.042, 0.135, 10), coat, { at: [s * 0.065, 1.39, 0.58], scale: [0.6, 1, 1] }));
+    parts.push(part(ball(0.014, 6, 4), C.black, { at: [s * 0.093, 1.27, 0.68] }));
+  });
   [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => {
     // Diagonal pairs move together (a trot): front-left with back-right, front-right with back-left.
     const bone = { limb: sx * sz > 0 ? LIMB.HORSE_FRONT : LIMB.HORSE_BACK, pivot: [0.66, sz * 0.36] };
-    parts.push(part(box(0.09, 0.62, 0.1), coat, { at: [sx * 0.12, 0.35, sz * 0.36], ...bone }));
-    parts.push(part(box(0.1, 0.06, 0.12), C.black, { at: [sx * 0.12, 0.03, sz * 0.36], ...bone }));
+    parts.push(part(oval(0.1, 0.33, 0.14), coat, { at: [sx * 0.12, 0.51, sz * 0.36], ...bone }));
+    parts.push(part(cyl(0.035, 0.026, 0.3), coat, { at: [sx * 0.12, 0.2, sz * 0.36], ...bone }));
+    parts.push(part(oval(0.085, 0.07, 0.11), C.black, { at: [sx * 0.12, 0.035, sz * 0.36], ...bone }));
   });
-  if (barding) parts.push(part(box(0.38, 0.22, 0.8), '#ffffff', { at: [0, 0.74, 0], team: 1 }));
-  parts.push(part(box(0.36, 0.06, 0.34), C.leather, { at: [0, 0.98, -0.02] })); // saddle
+  if (barding) parts.push(part(oval(0.39, 0.32, 0.84), '#ffffff', { at: [0, 0.79, 0], team: 1 }));
+  parts.push(part(oval(0.36, 0.085, 0.34), C.leather, { at: [0, 1.0, -0.02] }));
   return parts;
 };
 const wheel = (r, x, y, z, color = C.darkWood) => part(cyl(r, r, 0.06, 10), color, { at: [x, y, z], rot: [0, 0, Math.PI / 2] });
 const tankModel = () => [
-  part(box(0.9, 0.3, 1.5), C.olive, { at: [0, 0.3, 0] }),
-  part(box(0.98, 0.2, 1.56), C.rubber, { at: [0, 0.12, 0] }),
-  part(box(0.6, 0.24, 0.68), C.olive, { at: [0, 0.57, -0.08], limb: LIMB.TURRET }),
-  part(cyl(0.05, 0.05, 1.1, 7), C.darkOlive, { at: [0, 0.6, 0.72], rot: [Math.PI / 2, 0, 0], limb: LIMB.TURRET }),
-  part(box(0.3, 0.05, 0.3), '#ffffff', { at: [0, 0.7, -0.2], team: 1, limb: LIMB.TURRET })
+  part(box(0.82, 0.24, 1.4), C.olive, { at: [0, 0.34, 0] }),
+  part(box(0.82, 0.2, 0.3), C.olive, { at: [0, 0.36, 0.67], rot:[-0.45,0,0] }),
+  ...[-1, 1].flatMap(s => [
+    part(oval(0.17,0.31,1.52),C.rubber,{at:[s*0.45,0.17,0]}),
+    ...[-0.5,-0.3,-0.1,0.1,0.3,0.5].map(z => part(cyl(0.1,0.1,0.04,12),C.darkSteel,{at:[s*0.54,0.17,z],rot:[0,0,Math.PI/2]}))
+  ]),
+  part(cyl(0.27,0.32,0.22,14), C.olive, { at: [0, 0.56, -0.08], scale:[1,1,1.2], limb: LIMB.TURRET }),
+  part(cyl(0.045, 0.05, 1.1, 12), C.darkOlive, { at: [0, 0.6, 0.72], rot: [Math.PI / 2, 0, 0], limb: LIMB.TURRET }),
+  part(cyl(0.085,0.085,0.03,12),C.darkSteel,{at:[0.09,0.685,-0.16],limb:LIMB.TURRET}),
+  part(box(0.12, 0.015, 0.12), '#ffffff', { at: [-0.12, 0.681, -0.12], team: 1, limb: LIMB.TURRET })
 ];
+const sweptWing = () => {
+  const shape=new Shape();
+  [[-0.16,0.25],[-0.9,-0.4],[-0.88,-0.6],[-0.16,-0.2],[0.16,-0.2],[0.88,-0.6],[0.9,-0.4],[0.16,0.25]].forEach(([x,y],i)=>i?shape.lineTo(x,y):shape.moveTo(x,y));
+  shape.closePath();
+  return new ExtrudeGeometry(shape,{depth:0.035,bevelEnabled:false}).rotateX(Math.PI/2);
+};
 const truck = (bodyColor = C.olive) => [
   part(box(0.7, 0.35, 1.3), bodyColor, { at: [0, 0.42, 0] }),
   part(box(0.66, 0.3, 0.4), bodyColor, { at: [0, 0.74, 0.42] }),
@@ -211,7 +236,7 @@ const MODELS = {
     bronze: () => [...person('bronze', { skin: 2 }), ...bow()],
     classical: () => [...person('classical'), ...bow()],
     kingdoms: () => [...person('kingdoms', { skin: 3 }), ...bow()],
-    gunpowder: () => [...person('gunpowder', { skin: 1 }), ...longGun(0, C.wood)],
+    gunpowder: () => [...person('gunpowder', { skin: 1 }), ...longGun(0, C.wood), ...pack()],
     modern: () => [...person('modern'), ...launcher(), ...pack(C.darkOlive)]
   },
   cavalry: {
@@ -221,7 +246,7 @@ const MODELS = {
       wheel(0.3, -0.4, 0.3, -0.35), wheel(0.3, 0.4, 0.3, -0.35),
       ...shift(person('bronze', { seat: 0.45, legs: false }), 0, 0, -0.35), ...shift(spear(1.2, 0.45), 0, 0, -0.35)
     ],
-    classical: () => [...horse(C.horse, false), ...person('classical', { seat: 0.62, legs: false }), ...spear(1.3, 0.62)],
+    classical: () => [...horse(C.horse, true), ...person('classical', { seat: 0.62, legs: false }), ...spear(1.3, 0.62)],
     kingdoms: () => [...horse('#cfc7b8', true), ...person('kingdoms', { seat: 0.62, legs: false }), ...spear(1.9, 0.62, C.steel), ...kiteShield(0.62)],
     gunpowder: () => [...horse(C.horseDark), ...person('gunpowder', { seat: 0.62, legs: false }), ...longGun(0.62)],
     modern: tankModel
@@ -271,7 +296,7 @@ const MODELS = {
     modern: () => [
       part(cyl(0.12, 0.18, 1.8, 8), '#8b939c', { at: [0, 0, 0], rot: [Math.PI / 2, 0, 0] }),
       part(cone(0.12, 0.45, 8), '#6e757d', { at: [0, 0, 1.1], rot: [Math.PI / 2, 0, 0] }),
-      part(box(1.5, 0.04, 0.55), '#8b939c', { at: [0, 0, -0.1] }), part(box(0.6, 0.03, 0.25), '#8b939c', { at: [0, 0, -0.8] }),
+      part(sweptWing(), '#8b939c', { at: [0, 0, 0] }), part(box(0.6, 0.03, 0.25), '#8b939c', { at: [0, 0, -0.8] }),
       part(box(0.03, 0.35, 0.3), '#ffffff', { at: [0, 0.18, -0.78], team: 1 }), part(ball(0.1, 6, 4), '#2b3a4a', { at: [0, 0.12, 0.45], scale: [1, 0.7, 2] })
     ]
   }
@@ -287,7 +312,8 @@ export const getProceduralSoldierGeometry = (ageId, classId) => {
   const byAge = MODELS[classId] || MODELS.infantry;
   const build = byAge[ageId] || byAge.modern || byAge.gunpowder || Object.values(byAge)[0];
   const geo = mergeGeometries(build());
-  geo.computeVertexNormals();
+  // The primitives already carry smooth normals. Recomputing on the non-indexed
+  // merge replaces them with face normals and makes every curved surface faceted.
   geo.computeBoundingSphere();
   geo.computeBoundingBox();
   cache.set(key, geo);
@@ -321,62 +347,25 @@ export const registerSoldierGeometry = (ageId, classId, geo) => {
 export const unregisterSoldierGeometry = (ageId, classId) => { overrides.delete(`${ageId}:${classId}`); imposters.clear(); };
 
 // ---- far-zoom imposters ------------------------------------------------------------------------
-// When the camera is zoomed far out a soldier is ~10 px tall: a 1,000–3,000-triangle model is
-// wasted vertex work (and a shadow pass). The imposter is a handful of boxes with the SAME rig
-// attributes, derived from the full model's bounds, so it keeps walking, wearing its team colour
-// and skin tone — and shares the full model's per-instance buffers (see BattleRenderer ZoomLOD).
+// Distant troops keep their class silhouette, equipment and rig. Curved surfaces
+// use fewer segments; instancing still shares one geometry per age and class.
 
 const imposters = new Map();
-const meanColor = (geo, pred) => {
-  const col = geo.attributes.color; const team = geo.attributes.aTeam; const pt = geo.attributes.aPart;
-  let r = 0; let g = 0; let b = 0; let n = 0;
-  for (let i = 0; i < col.count; i++) {
-    if (!pred(team ? team.getX(i) : 0, pt ? pt.getX(i) : 0)) continue;
-    r += col.getX(i); g += col.getY(i); b += col.getZ(i); n += 1;
-  }
-  return n ? new Color(r / n, g / n, b / n) : new Color('#6b6356');
-};
+// Far zoom uses the same equipment, mounts, proportions and rig as near zoom.
+// Only curved surface tessellation changes; a cavalry squad never becomes pink boxes.
 export const getImposterGeometry = (ageId, classId) => {
   const key = `${ageId}:${classId}`;
   if (imposters.has(key)) return imposters.get(key);
-  const full = getSoldierGeometry(ageId, classId);
-  // Already about as light as an imposter (a jet is a few dozen triangles): keep the real thing.
-  if (full.attributes.position.count <= 60 * 3) { imposters.set(key, full); return full; }
-  if (!full.boundingBox) full.computeBoundingBox();
-  const bb = full.boundingBox; const size = bb.getSize(new Vector3());
-  const limbs = new Set(full.attributes.aLimb.array);
-  const cloth = meanColor(full, (team, pt) => team < 0.5 && pt === PART.PLAIN);
-  const h = size.y;
-  let parts;
-  if (limbs.has(LIMB.LEG_L) && !limbs.has(LIMB.HORSE_FRONT)) {
-    // Walker: two legs (still animated), tunic in team colour, head in skin tone.
-    const hip = h * 0.48; const w = Math.min(size.x, h * 0.34);
-    parts = [
-      part(box(w * 0.34, hip, w * 0.4), cloth, { at: [-w * 0.24, hip / 2, 0], limb: LIMB.LEG_L, pivot: [hip, 0] }),
-      part(box(w * 0.34, hip, w * 0.4), cloth, { at: [w * 0.24, hip / 2, 0], limb: LIMB.LEG_R, pivot: [hip, 0] }),
-      part(box(w, h * 0.36, w * 0.62), '#ffffff', { at: [0, hip + h * 0.17, 0], team: 1 }),
-      part(box(w * 0.55, h * 0.18, w * 0.55), SKIN_TONES[1], { at: [0, h * 0.9, 0], skin: true })
-    ];
-  } else if (limbs.has(LIMB.HORSE_FRONT)) {
-    // Rider: horse body, one diagonal leg pair each way, rider in team colour.
-    const legH = h * 0.4; const bodyL = Math.max(0.6, size.z * 0.75);
-    parts = [
-      part(box(0.34, h * 0.22, bodyL), cloth, { at: [0, legH + h * 0.1, 0] }),
-      part(box(0.3, legH, 0.1), cloth, { at: [0, legH / 2, bodyL * 0.38], limb: LIMB.HORSE_FRONT, pivot: [legH, bodyL * 0.38] }),
-      part(box(0.3, legH, 0.1), cloth, { at: [0, legH / 2, -bodyL * 0.38], limb: LIMB.HORSE_BACK, pivot: [legH, -bodyL * 0.38] }),
-      part(box(0.28, h * 0.3, 0.2), '#ffffff', { at: [0, h * 0.72, -0.02], team: 1 }),
-      part(box(0.16, h * 0.12, 0.16), SKIN_TONES[1], { at: [0, h * 0.93, 0], skin: true })
-    ];
-  } else {
-    // Vehicle / engine / aircraft: its bounds in its main colour, a team plate on top.
-    const cy = (bb.min.y + bb.max.y) / 2;
-    parts = [
-      part(box(size.x * 0.9, h * 0.8, size.z * 0.9), cloth, { at: [(bb.min.x + bb.max.x) / 2, cy - h * 0.1, (bb.min.z + bb.max.z) / 2] }),
-      part(box(size.x * 0.6, h * 0.2, size.z * 0.5), '#ffffff', { at: [(bb.min.x + bb.max.x) / 2, bb.max.y - h * 0.1, (bb.min.z + bb.max.z) / 2], team: 1 })
-    ];
-  }
-  const geo = mergeGeometries(parts);
-  geo.computeVertexNormals(); geo.computeBoundingSphere();
+  // An authored override retains its silhouette until an artist supplies a matching LOD.
+  if (hasSoldierOverride(ageId,classId)) return getSoldierGeometry(ageId,classId);
+  const byAge = MODELS[classId] || MODELS.infantry;
+  const build = byAge[ageId] || byAge.modern || byAge.gunpowder || Object.values(byAge)[0];
+  let geo;
+  reducedDetail = true;
+  try { geo = mergeGeometries(build()); }
+  finally { reducedDetail = false; }
+  geo.computeBoundingSphere();
+  geo.computeBoundingBox();
   imposters.set(key, geo);
   return geo;
 };
@@ -400,7 +389,12 @@ uniform float uTime;
 float rigAngle() {
   float t = uTime * 8.5 + aAnim.x;
   float mv = aAnim.y; float at = aAnim.z;
-  float strike = at * (0.35 + 1.1 * max(0.0, sin(uTime * 7.0 + aAnim.x * 1.7)));
+  // Three distinct beats: lift, fast contact, slower recovery. Visual phase never touches RNG.
+  float beat = fract(uTime * 1.15 + aAnim.x * 0.27);
+  float lift = smoothstep(0.0, 0.28, beat);
+  float contact = smoothstep(0.28, 0.40, beat);
+  float recovery = smoothstep(0.40, 0.95, beat);
+  float strike = at * (-0.4 * lift + 1.8 * contact - 1.4 * recovery);
   if (aLimb > 0.5 && aLimb < 1.5) return sin(t) * 0.6 * mv;
   if (aLimb > 1.5 && aLimb < 2.5) return -sin(t) * 0.6 * mv;
   if (aLimb > 2.5 && aLimb < 3.5) return -sin(t) * 0.35 * mv - at * 0.3;
@@ -559,7 +553,6 @@ export const getPropGeometry = (kind) => {
   const build = PROPS[kind];
   if (!build) throw new Error(`unknown prop "${kind}"`);
   const geo = mergeGeometries(build());
-  geo.computeVertexNormals();
   return geo;
 };
 
@@ -583,7 +576,6 @@ export const getMount = (kind) => {
   const m = MOUNTS[kind];
   if (!m) throw new Error(`unknown mount "${kind}"`);
   const geo = mergeGeometries(m.build());
-  geo.computeVertexNormals();
   return { geometry: geo, saddle: m.saddle, standing: !!m.standing };
 };
 

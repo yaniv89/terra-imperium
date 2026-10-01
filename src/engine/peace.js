@@ -1,3 +1,4 @@
+import { canSubjugate } from './worldLifecycle';
 // src/engine/peace.js
 // Plan §M13/§B: peace-deal term costs, AI acceptance, and term application. Split out of
 // diplomacy.js so the two files can stay free of a circular import — applyPeace deliberately does
@@ -16,6 +17,7 @@ import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { applyAggressiveExpansion } from './expansion';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
+import { getPool } from './nationState';
 import { clampPrestige, clampStability } from './nationalPower';
 import {
   FORCED_VASSALIZE_MIN_MAX_PEACE_COST, CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY
@@ -48,13 +50,17 @@ export const getTermCost = (state, war, offererId, term) => {
       const isClaimedOrGoal = war.cb === 'claim' || (war.goal?.type === 'capture_region' && war.goal.regionId === term.regionId);
       return Math.max(CEDE_MIN_COST, Math.round((100 * getTotalDev(region) / recipientTotalDev) * (isClaimedOrGoal ? 0.5 : 1)));
     }
-    case 'gold':
-      return Math.min(GOLD_COST_CAP, Math.round((term.amount || 0) / GOLD_COST_DIVISOR));
+    case 'gold': {
+      const amount = term.amount;
+      if (!Number.isFinite(amount) || amount <= 0 || amount > (getPool(state, recipientId).gold || 0)) return Infinity;
+      return Math.min(GOLD_COST_CAP, Math.round(amount / GOLD_COST_DIVISOR));
+    }
     case 'reparations':
       return REPARATIONS_COST;
     case 'humiliate':
       return HUMILIATE_COST;
     case 'vassalize': {
+      if (!canSubjugate(state.nations, offererId, recipientId)) return Infinity;
       const offererTotalDev = getNationTotalDev(state, offererId) || 1;
       const devShare = (100 * recipientTotalDev) / (offererTotalDev + recipientTotalDev);
       return VASSALIZE_BASE_COST + Math.round(0.5 * devShare);
@@ -64,8 +70,12 @@ export const getTermCost = (state, war, offererId, term) => {
   }
 };
 
-export const getPeaceCost = (state, war, offererId, terms) =>
-  terms.reduce((sum, term) => sum + getTermCost(state, war, offererId, term), 0);
+export const getPeaceCost = (state, war, offererId, terms) => {
+  // Split demands must not spend the same treasury several times.
+  const demandedGold = terms.reduce((sum, term) => sum + (term.type === 'gold' ? term.amount : 0), 0);
+  if (demandedGold > (getPool(state, otherSide(war, offererId)).gold || 0)) return Infinity;
+  return terms.reduce((sum, term) => sum + getTermCost(state, war, offererId, term), 0);
+};
 
 // How much an offerer can justify demanding, in war-score-cost terms — tied to how much they're
 // WINNING by, not merely how lopsided the war is: a losing offerer gets only the flat +10 floor
@@ -159,11 +169,19 @@ export const applyPeace = (state, war, offererId, terms) => {
         nextNations = { ...nextNations, [recipientId]: { ...nextNations[recipientId], hasCededRegionInPeace: true } };
       }
     } else if (term.type === 'gold') {
-      const amount = term.amount || 0;
-      // AI has no simulated treasury pre-M16 (economy.js's own "player-only real computation"
-      // pattern) — a gold indemnity only actually moves state.resources when the player is a party.
-      if (recipientId === state.playerNationId) nextResources = { ...nextResources, gold: Math.max(0, (nextResources.gold || 0) - amount) };
-      else if (offererId === state.playerNationId) nextResources = { ...nextResources, gold: (nextResources.gold || 0) + amount };
+      if (!Number.isFinite(term.amount) || term.amount <= 0) return;
+      const snapshot = { ...state, nations: nextNations, resources: nextResources };
+      const payer = getPool(snapshot, recipientId);
+      const payee = getPool(snapshot, offererId);
+      // An offer may have become stale. Transfer only available funds, conserving gold.
+      const amount = Math.min(term.amount, Math.max(0, payer.gold || 0));
+      if (!amount) return;
+      const setGold = (id, gold) => {
+        if (id === state.playerNationId) nextResources = { ...nextResources, gold };
+        else nextNations = { ...nextNations, [id]: { ...nextNations[id], economy: { ...nextNations[id]?.economy, gold } } };
+      };
+      setGold(recipientId, payer.gold - amount);
+      setGold(offererId, (payee.gold || 0) + amount);
     } else if (term.type === 'reparations') {
       const loser = nextNations[recipientId];
       const winner = nextNations[offererId];
@@ -191,6 +209,7 @@ export const applyPeace = (state, war, offererId, terms) => {
         } };
       }
     } else if (term.type === 'vassalize') {
+      if (!canSubjugate(nextNations, offererId, recipientId)) return;
       const overlord = nextNations[offererId];
       const vassal = nextNations[recipientId];
       if (overlord && vassal && !vassal.vassalOf) {

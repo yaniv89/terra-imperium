@@ -71,7 +71,7 @@ export const getPlayerControl = (state) => state.regions[getCapital(state, state
 
 // Base per-turn yield of a developed extraction building (Copper Mine / Iron Foundry / Oil Well),
 // before the same control%/infrastructure scaling every other resource gets.
-const EXTRACTION_BASE_YIELD = 20;
+export const EXTRACTION_BASE_YIELD = 20;
 
 // Administrative Capacity, now split three ways (plan §M2): a flat pool/turn regardless of empire
 // size meant a 50-region late-game empire acted exactly as often per turn as its 1-region start —
