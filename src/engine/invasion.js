@@ -27,7 +27,7 @@ import { applyBattleAftermath } from './aftermath';
 // second fight until it resolves.
 export const isUnitInBattle = (state, unitId) => {
   // A garrison with an assault queued against it (src/engine/defense.js) is committed too.
-  if ((state.pendingDefenses || []).some((d) => d.defenderUnitIds.includes(unitId))) return true;
+  if ((state.pendingDefenses || []).some((d) => (d.defenderUnitIds.includes(unitId) || d.attackerUnitIds.includes(unitId)))) return true;
   const pb = state.pendingBattle;
   if (!pb) return false;
   if (pb.navalUnitId === unitId) return true; // the fleet carrying a commanded landing

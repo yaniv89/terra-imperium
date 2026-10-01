@@ -1,3 +1,5 @@
+import { getOwnedRegionIds } from '../data/regions';
+import { getPool, getResearched } from './nationState';
 // src/engine/economy.js
 // Plan §M11: expenses ledger, loans, bankruptcy, and the strategic-resource recruit cost. Mirrors
 // nationalPower.js/estates.js's shape — pure functions read from `state`, resolveTurn.js writes the
@@ -22,14 +24,13 @@ import { clampStability, clampPrestige } from './nationalPower';
 export const clampMaintenance = (value) => Math.max(ARMY_MAINTENANCE_MIN, Math.min(ARMY_MAINTENANCE_MAX, value));
 
 export const hasBankingHouses = (state, nationId) =>
-  nationId === state.playerNationId && !!state.techTree?.economy_banking_houses?.researched;
+  getResearched(state, nationId).includes('economy_banking_houses');
 
 // Bank building tier (economy category index 2, "Bank") or higher, one owned region at a time,
 // capped at +3 total per the plan's own "max +3 total" — a direct region scan rather than a
 // modifier-engine hook, the same shape estates.js's land-share terms already use for player-only
 // per-region counts.
 const getBankLoanCapacityBonus = (state, nationId) => {
-  if (nationId !== state.playerNationId) return 0;
   const bankTierOrHigher = Object.values(state.regions || {})
     .filter((r) => r.owner === nationId && (r.buildings?.categories?.economy ?? -1) >= 2).length;
   return Math.min(LOAN_BANK_CAPACITY_CAP, bankTierOrHigher);
@@ -62,16 +63,14 @@ export const getLoanSize = (state, nationId) => {
 // Plan §M11: "army upkeep, navy upkeep, fort upkeep, advisor salaries, loan interest" — vassal
 // tribute is left out (subjects don't exist until M12). Returns zeros for any nation but the
 // player, matching calcIncome's own player-only scope.
-export const calcNationBalance = (state, nationId) => {
-  if (nationId !== state.playerNationId) return { income: { gold: 0 }, expenses: {}, net: 0 };
+export const calcNationBalance = (state, nationId, knownIncome) => {
   const nation = state.nations[nationId];
   const units = Object.values(state.units).filter((u) => u.ownerId === nationId);
   const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
   const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
   const armyUpkeep = Math.round(units.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
   const navyUpkeep = Math.round(units.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);
-  const fortLevels = Object.values(state.regions || {})
-    .filter((r) => r.owner === nationId)
+  const fortLevels = getOwnedRegionIds(state.regions, nationId).map(id => state.regions[id])
     .reduce((sum, r) => {
       const tier = r.buildings?.categories?.defense;
       const fortLevel = tier >= 0 ? BUILDING_CATEGORIES.defense.tiers[tier]?.effects?.['local.fortLevel'] : 0;
@@ -81,7 +80,7 @@ export const calcNationBalance = (state, nationId) => {
   const advisorSalaries = Object.values(nation.advisors || {}).filter(Boolean).reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
   const loanInterest = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
 
-  const income = calcIncome(state);
+  const income = knownIncome || calcIncome(nationId === state.playerNationId ? state : { ...state, playerNationId: nationId, resources: getPool(state, nationId), techTree: Object.fromEntries(getResearched(state, nationId).map(id => [id, { researched: true }])) });
   const expenses = { armyUpkeep, navyUpkeep, fortUpkeep, advisorSalaries, loanInterest };
   const totalExpenses = Object.values(expenses).reduce((sum, v) => sum + v, 0);
   return { income, expenses, net: (income.gold || 0) - totalExpenses };
@@ -111,7 +110,8 @@ export const applyBankruptcy = (nation, regions, nationId, turnNumber, extraStab
       // Plan §M18's "Phoenix" achievement ("recover from bankruptcy to 5,000g") needs a permanent
       // marker that bankruptcy actually happened — a nation's treasury clearing 5,000g on its own
       // means nothing without proof it was ever the one recovering from something.
-      hasBeenBankrupt: true
+      hasBeenBankrupt: true,
+      lastBankruptcyTurn: turnNumber
     },
     { sourceType: 'bankruptcy', sourceId: 'bankruptcy', label: 'Bankruptcy', mods: BANKRUPTCY_MODIFIER_MODS, duration: BANKRUPTCY_DURATION_TURNS, turnNumber }
   );
@@ -127,11 +127,11 @@ export const applyBankruptcy = (nation, regions, nationId, turnNumber, extraStab
   return { nation: nextNation, regions: nextRegions };
 };
 
-export const getRecruitUnitCost = (state, ageId) => {
+export const getRecruitUnitCost = (state, ageId, nationId = state.playerNationId) => {
   const base = ACTION_COSTS.recruitUnit;
   const strategic = RECRUIT_STRATEGIC_RESOURCE_BY_AGE[ageId];
   if (!strategic) return base;
-  const have = state.resources?.[strategic.key] || 0;
+  const have = getPool(state, nationId)[strategic.key] || 0;
   if (have >= strategic.amount) return { ...base, [strategic.key]: strategic.amount };
   return { ...base, gold: Math.round(base.gold * (1 + RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT)) };
 };

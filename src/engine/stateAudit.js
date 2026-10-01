@@ -1,4 +1,5 @@
 // Read-only diagnostics for resolved campaign snapshots. No repairs and no RNG consumption.
+import { PRETENDER_MARKER } from './civilWar';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 
 export const auditGameState = (state) => {
@@ -31,17 +32,22 @@ export const auditGameState = (state) => {
     numbers(n, `nations.${id}`);
     numbers(n.economy, `nations.${id}.economy`);
     if (!!n.isAtWar !== fighting.has(id)) report('war_flag', `nations.${id}.isAtWar`, 'Flag disagrees with active wars');
+    const chain = new Set([id]);
+    let parent = n.vassalOf;
+    while (parent) { if(chain.has(parent)) { report('vassal_cycle', 'nations.'+id, 'Subject graph must be acyclic'); break; } chain.add(parent); parent=nations[parent]?.vassalOf; }
     if (n.vassalOf && (!nations[n.vassalOf] || !(nations[n.vassalOf].vassals || []).includes(id))) {
       report('vassal_link', `nations.${id}.vassalOf`, 'Overlord must reference its vassal');
     }
   });
+  const landOwners = new Set(Object.values(regions).map(r=>r.owner).filter(Boolean));
+  for(const id of landOwners) if(nations[id] && regions[nations[id].capitalRegionId]?.owner!==id) report('invalid_capital','nations.'+id+'.capitalRegionId','Live nations with land need an owned capital');
   Object.entries(regions).forEach(([id, r]) => {
     if (r.id !== id) report('identity', `regions.${id}.id`, 'Record ID differs from its map key');
     numbers(r, `regions.${id}`);
     numbers(r.dev, `regions.${id}.dev`);
     if (r.owner != null && !knownOwner(r.owner)) report('unknown_owner', `regions.${id}.owner`, 'Region owner is missing');
     if (nations[r.owner]?.isEliminated) report('eliminated_owner', `regions.${id}.owner`, 'Eliminated nation still owns land');
-    if (r.occupiedBy && (!knownOwner(r.occupiedBy) || r.occupiedBy === r.owner)) report('invalid_occupation', `regions.${id}.occupiedBy`, 'Occupier must be a different known owner');
+    if (r.occupiedBy && !(r.occupiedBy===PRETENDER_MARKER && nations[r.owner]?.civilWar?.active) && (!knownOwner(r.occupiedBy) || r.occupiedBy === r.owner)) report('invalid_occupation', `regions.${id}.occupiedBy`, 'Occupier must be a different known owner');
     ['control', 'unrest', 'devastation'].forEach(key => {
       if (r[key] != null && (r[key] < 0 || r[key] > 100)) report('range', `regions.${id}.${key}`, 'Expected 0..100');
     });

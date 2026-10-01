@@ -1,3 +1,7 @@
+import { applyActionPolitics } from './actionPolitics';
+import { applyScenario } from './worldgen/emergentWorld';
+import { claimFrontier } from './frontier';
+import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
 // The pure reducer + initial-state factory, extracted from src/context/GameContext.jsx (Phase F,
 // plan §10): "the same module runs client-side for instant local feedback and fully offline
@@ -113,7 +117,7 @@ const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario } = {}) => {
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
@@ -331,7 +335,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     techTree[id] = { id, researched: false, available: data.yearAvailable <= year };
   });
 
-  return {
+  const initial = {
     // Identity
     playerNationId,
 
@@ -465,6 +469,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
+  return applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 });
 };
 
 // A player action the engine refuses still has to SAY why — a bare `return state` is invisible to
@@ -629,7 +634,7 @@ export const sanitizeTacticalResult = (state, pb, result) => {
   };
 };
 
-export const gameReducer = (state, action) => {
+const reduceAction = (state, action) => {
   const blocked = guardPendingBattle(state, action);
   if (blocked) return blocked;
   switch (action.type) {
@@ -1284,6 +1289,7 @@ export const gameReducer = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       const unitId = `unit_${state.nextUnitSeq}`;
       const isNaval = classId === 'naval';
+      if(isNaval && !isCoastal(regionId))return state;
       const newUnit = {
         id: unitId,
         regionId,
@@ -2649,7 +2655,7 @@ export const gameReducer = (state, action) => {
       const player = state.nations[state.playerNationId];
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.vassalize;
-      if (!target || nationId === state.playerNationId || target.isAtWar || target.vassalOf) return state;
+      if (!canSubjugate(state.nations, state.playerNationId, nationId) || target.isAtWar) return state;
       if ((target.hostility || 0) > VASSALIZE_HOSTILITY_CEILING) return state;
       // Plan §M16: real fielded strength (+ damped garrison), not the abstract number alone — see
       // src/engine/aiEconomy.js's getEffectiveMilitaryPower and peace.js's own use of the same metric.
@@ -2678,16 +2684,17 @@ export const gameReducer = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
       const nextRegions = { ...state.regions };
       Object.keys(nextRegions).forEach((regionId) => {
-        if (nextRegions[regionId].owner === nationId) nextRegions[regionId] = { ...nextRegions[regionId], owner: state.playerNationId };
+        if (nextRegions[regionId].owner === nationId) nextRegions[regionId] = transferRegion(nextRegions[regionId], state.playerNationId, state.nations).region;
       });
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
         regions: nextRegions,
+        units: Object.fromEntries(Object.entries(state.units).map(([id,u])=>[id,u.ownerId===nationId?{...u,ownerId:state.playerNationId}:u])),
         nations: {
           ...state.nations,
           [state.playerNationId]: { ...player, vassals: player.vassals.filter((id) => id !== nationId) },
-          [nationId]: { ...target, vassalOf: null }
+          [nationId]: { ...target, vassalOf: null, vassals: [], isEliminated: true, isAtWar: false, capitalRegionId: null }
         },
         logs: [...state.logs, { year: state.year, message: `${target.name} has been annexed into your realm.`, type: LogTypes.MILESTONE }]
       };
@@ -2856,12 +2863,15 @@ export const gameReducer = (state, action) => {
       return { ...fresh, ...incoming, gameStatus: incoming.gameStatus || GameStatus.ACTIVE };
     }
 
+    case ActionTypes.FRONTIER_EXPEDITION:
+      return claimFrontier(state, action.payload.targetRegionId);
+
     case ActionTypes.RESET_GAME: {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from
       // meta-progression localStorage via the component layer — see GameProvider.resetGame below.
       // This keeps gameReducer a pure function of (state, action).
-      const { playerNationId, gameSpeed, doctrineId, difficultyId } = action.payload || {};
-      const fresh = createInitialState({ playerNationId, gameSpeed });
+      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed } = action.payload || {};
+      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed });
       const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
       return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
     }
@@ -2875,3 +2885,8 @@ export const gameReducer = (state, action) => {
 // this file) carries the save-migration layer automatically, without a separate bundling step —
 // see src/engine/saveMigrations.js for why this exists and what it does.
 export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
+
+export const gameReducer = (state, action) => {
+  const next = applyActionPolitics(state,reduceAction(state, action),action);
+  return next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next;
+};

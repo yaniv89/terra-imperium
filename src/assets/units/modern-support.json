@@ -1,5 +1,6 @@
 {
   "base": "vehicle-truck-green",
   "teamFrom": "body",
-  "height": 0.8
+  "height": 0.8,
+  "enabled": false
 }

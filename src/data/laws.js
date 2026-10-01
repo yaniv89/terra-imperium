@@ -1,3 +1,4 @@
+import { getResearched } from '../engine/nationState';
 // src/data/laws.js
 // Plan §M8.2: laws replace the 8 flat policies (src/data/policies.js, now deleted). Each of 6
 // categories holds exactly one law at a time (`nation.laws = { taxation, conscription, religion,
@@ -86,7 +87,7 @@ export const canEnactLaw = (state, nationId, category, lawId) => {
   const law = getLaw(category, lawId);
   if (!nation || !law || nation.laws?.[category] === lawId) return false;
   if (law.requiresTech) {
-    const researched = nationId === state.playerNationId && state.techTree?.[law.requiresTech]?.researched;
+    const researched = getResearched(state,nationId).includes(law.requiresTech);
     if (!researched) return false;
   }
   if (!checkIdentityGate(nation.identity, law.requiresIdentity)) return false;

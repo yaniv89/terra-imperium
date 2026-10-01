@@ -14,6 +14,14 @@ const collectNumericLeaves = (value, out = []) => {
 };
 
 describe('backfillDefaults', () => {
+  it('does not resurrect destroyed emergent starting armies on reload', () => {
+    const fresh = createInitialState({ playerNationId: 'fr', scenario: { mode: 'emergent', nationCount: 75, seed: 7 } });
+    const units = { ...fresh.units };
+    delete units.start_fr;
+    const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state: { ...fresh, units } }).state;
+    expect(loaded.units).toEqual(units);
+    expect(loaded.units.start_fr).toBeUndefined();
+  });
   it('fills a missing top-level field without touching anything else', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
     // eslint-disable-next-line no-unused-vars -- destructured only to omit it from withoutTurnNumber

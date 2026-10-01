@@ -5,6 +5,29 @@ Branch: `audit/stabilization-and-battle-depth`.
 
 ## Verdict
 
+### Implementation update, 2026-10-01
+
+The following sections preserve the initial audit. The branch now also contains:
+
+| Area | Implemented behavior |
+|---|---|
+| Province selection | The globe listens to real pointer taps and picks exact geographic polygon containment from the camera ray. The 2D map accepts fill hits only; its mode and zoom controls avoid the desktop sidebar. Real browser clicks passed at two zoom levels in both renderers. |
+| Conquest actions | Exhausted, unfunded and otherwise invalid attacks show their reason and are disabled; the authoritative reducer validates them independently. |
+| Emergent worlds | Seeded 15/30/45/60/75-nation starts, distinct connected provinces, visible microstate relocation, equal starting strength, neutral resistance, costly expeditions, integration and later emergence. Claims consume the army's movement. |
+| Operational AI | Legal adjacency movement, capital defense, reinforcement and reclamation, actual troop commitments, queued-defense reservations, naval transport and amphibious operations through shared combat. |
+| Territory lifecycle | Shared ownership reconciliation, capital relocation, elimination/revival, war/offer cleanup, ownership-cache invalidation and acyclic reciprocal subject links. |
+| AI economy | Real recruitment/upkeep and strategic stocks, supply and oil constraints, borrowing and bankruptcy with army desertion, stability/law/advisor/estate decisions and treasury reserves. |
+| Connected depth | Supply production/consumption and reserves are visible, taxes/recruitment affect estates, and trade checks land access, ports and blockades. |
+| Save/load | Sparse scenario rosters persist; destroyed starting armies stay destroyed; neutral nulls remain null; timed modifier IDs derive from saved collections. |
+| Battle presentation | Smooth body and helmet normals, rounded horses, period equipment, tracked tanks and swept-wing aircraft; far meshes retain their class silhouettes. The 21 legacy blocky recipes are disabled. Presets bound DPR, shadows and effects; renderer diagnostics expose frame and draw statistics. |
+| Regression tooling | Exact completed-turn simulation, all-mode seeded audits with next-turn save/load comparisons, a short PR gate and scheduled long matrix. |
+
+All 18 combinations of six world modes and three seeds completed 150 audited turns with save/load continuation comparisons. The original four priority sections below are no longer an accurate list of wholly unimplemented work. See `validation-results.md` for final checks and remaining limits.
+
+Remaining scope limits: these are stylized procedural figures, not a finished realistic art roster; actual phone GPU/FPS targets have not been measured. Sea AI can embark and land but does not yet plan an interior army's journey to a port or relocate an unavailable fleet. AI borrowing uses a deficit-covering principal rather than the player's income-based loan size, and automatic debt repayment is not implemented. The future depth table below remains a roadmap, including new battle objectives and age-specific capability redesigns. No zero-defect guarantee or completion of that entire roadmap is claimed.
+
+### Initial audit findings
+
 Keep the Civilization-style growth campaign, CK3-style internal politics, and commanded RTS battles as the design direction. Stabilize the shared campaign rules before adding the proposed 15/30/45/60/75-nation world modes. The checked-out source does **not** contain the emergent-world implementation or commit `d3b146a` described in the pasted conversation. The recommendations below are based on the code at the starting commit and the fixes on this branch, not that earlier summary.
 
 There is a substantial working foundation: deterministic campaign RNG, tactical replay tests, a shared invasion aftermath path, real province development, AI treasuries, supply, conquest markers, multi-war diplomacy, succession, estates, and save migrations. However, passing tests does not establish that every interaction is correct. This audit found real defects and significant unfinished mechanics. Treat this branch as a stabilization increment and a reviewable plan, not a zero-defect certification or the complete redesign.

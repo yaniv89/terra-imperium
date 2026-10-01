@@ -1,3 +1,4 @@
+import { getOwnedRegionIds } from '../data/regions';
 // src/engine/supplies.js
 // Army supplies: the production chain between raw metal and an army in the field. Supplies
 // (provisions, munitions, remounts) are a stock the player builds up and campaigns spend down.
@@ -33,7 +34,8 @@ export const isCampaigning = (unit, regions) => {
 // This turn's flows for `nationId`. `resources` is the stock before the flows are applied.
 export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources }) => {
   let forage = 0; let industryTiers = 0;
-  Object.values(regions).forEach((r) => {
+  getOwnedRegionIds(regions,nationId).forEach((id) => {
+    const r=regions[id];
     if (r.owner !== nationId || r.occupiedBy) return;
     forage += SUPPLY_FORAGE_PER_REGION * Math.max(0, Math.min(1, (r.control ?? 100) / 100));
     const tier = r.buildings?.categories?.industry ?? -1;

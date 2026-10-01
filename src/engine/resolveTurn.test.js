@@ -706,6 +706,7 @@ describe('resolveTurn movement reset, reinforcement, and morale recovery (plan Â
 
   it('reinforces an AI-owned unit\'s strength without touching the player\'s manpower', () => {
     const base = createInitialState({ playerNationId: 'fr' });
+    base.nations.de = {...base.nations.de,economy:{...base.nations.de.economy,hr:1000}};
     const aiUnit = { ...makeUnit({ strength: 500, ownerId: 'de', regionId: cap('de') }), id: 'u_ai' };
     const state = { ...base, units: { u_ai: aiUnit } };
     const next = resolveTurn(state);
@@ -859,12 +860,13 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
       regions,
       difficultyMultiplier: 1000,
       wars: [war],
-      nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], isAtWar: true }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
+      nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], economy: undefined, isAtWar: true }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
     };
   };
 
   it('lets one AI nation actually conquer territory from another', () => {
     const state = withCertainCapture('mx', 'ca', cap('ca'));
+    // Legacy saves without an economy retain their historical abstract capture policy.
     // Same-turn recruits now defend. Keep this conquest fixture below one siege hit
     // so its result does not depend on whether Canada rolls a recruit this turn.
     state.regions = { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], control: 20 } };
@@ -880,6 +882,8 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
       id: 'ca_garrison', regionId: cap('ca'), ownerId: 'ca', domain: 'land', classId: 'infantry', ageId: 'bronze',
       strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
     };
+    // Isolate legacy siege damage from newly declared third-party fronts.
+    state.nations = Object.fromEntries(Object.entries(state.nations).map(([id,n])=>[id,{...n,doctrine:'isolationist',hostility:0}]));
     const withDefender = { ...state, units: { ...state.units, ca_garrison: defenderUnit } };
     const next = resolveTurn(withDefender);
     expect(next.regions[cap('ca')].owner).toBe('ca'); // not captured yet

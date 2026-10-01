@@ -226,7 +226,7 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
     }
     if (!units[u.id]) return;
     if (u.strength <= 0) delete units[u.id];
-    else units[u.id] = { ...units[u.id], strength: u.strength, morale: u.morale, movesLeft: 0, lastBattleTurn: state.turnNumber };
+    else units[u.id] = { ...units[u.id], regionId: captured ? def.regionId : units[u.id].regionId, strength: u.strength, morale: u.morale, movesLeft: 0, lastBattleTurn: state.turnNumber };
   });
   const aggressor = state.nations[def.aggressorId];
   let nations = aggressor && syntheticLoss > 0

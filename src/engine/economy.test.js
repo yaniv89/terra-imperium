@@ -92,9 +92,9 @@ describe('getLoanSize', () => {
 });
 
 describe('calcNationBalance', () => {
-  it('returns zeros for a non-player nation (AI has no simulated gold economy)', () => {
+  it('computes a real income and upkeep ledger for an AI nation', () => {
     const state = createInitialState({ playerNationId: 'fr' });
-    expect(calcNationBalance(state, 'de')).toEqual({ income: { gold: 0 }, expenses: {}, net: 0 });
+    const balance=calcNationBalance(state,'de');expect(balance.income.gold).toBeGreaterThan(0);expect(Number.isFinite(balance.net)).toBe(true);
   });
 
   it('charges army/navy upkeep scaled independently by their own maintenance sliders', () => {

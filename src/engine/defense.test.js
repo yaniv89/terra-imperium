@@ -26,6 +26,8 @@ const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000) => (
 const war = (s) => ({ id: 'war_d', aggressor: 'be', enemy: 'fr', active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'capture_region', regionId: FR_BORDER } });
 const baseState = (units) => {
   const s = createInitialState({ playerNationId: 'fr' });
+  // Legacy synthetic assault compatibility; operational AI has separate real-army tests.
+  s.nations.be={...s.nations.be,economy:undefined};
   return { ...s, wars: [...s.wars, war(s)], units: units || { g1: unit('g1', FR_BORDER, 'fr'), g2: unit('g2', FR_BORDER, 'fr', 'ranged') } };
 };
 const alwaysRoll = { next: () => 0.0001, getSeed: () => 1 };

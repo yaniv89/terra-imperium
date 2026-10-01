@@ -23,7 +23,7 @@
 
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
-import { getBorderingNationIds, getNeighborIds } from '../data/regions';
+import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { declareWar, isInTruce, hasActiveWarBetween } from '../engine/diplomacy';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
@@ -213,7 +213,8 @@ export const chooseAIRecruitRegion = (state, regions, nationId) => {
     if (w.goal?.type === 'capture_region') goals.add(w.goal.regionId);
   });
   let best = null; let bestThreat = -1;
-  Object.entries(regions).forEach(([id, r]) => {
+  getOwnedRegionIds(regions,nationId).forEach(id => {
+    const r=regions[id];
     if (r.owner !== nationId || (r.occupiedBy && r.occupiedBy !== nationId)) return;
     const threatened = getNeighborIds(id).some(n => enemies.has(regions[n]?.occupiedBy || regions[n]?.owner));
     const threat = (r.underInvasion ? 4 : 0) + (goals.has(id) ? 2 : 0) + (threatened ? 1 : 0);
@@ -243,7 +244,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
     // economy phase); a nation without one yet (a hand-built test fixture, mainly) falls back to the
     // original abstract-militaryStrength debit so this function still works standalone.
     const usesRealEconomy = !!nation.economy;
-    if (usesRealEconomy ? !canAffordAIRecruit(nation) : nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
+    if (usesRealEconomy ? !canAffordAIRecruit(nation, state, ageId) : nation.militaryStrength < AI_RECRUIT_MILITARY_STRENGTH_COST) return;
     const standingCount = Object.values(nextUnits).filter(u => u.ownerId === nationId).length;
     if (standingCount >= getAIMaxStandingUnits(ageId)) return;
     if (rng.next() >= AI_RECRUIT_CHANCE) return;
@@ -261,7 +262,7 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
       transportCapacity: null, embarkedOn: null
     };
     nextNations[nationId] = usesRealEconomy
-      ? applyAIRecruitCost(nation)
+      ? applyAIRecruitCost(nation, state, ageId)
       : { ...nation, militaryStrength: nation.militaryStrength - AI_RECRUIT_MILITARY_STRENGTH_COST };
   });
 

@@ -1,3 +1,4 @@
+import { canSubjugate } from './worldLifecycle';
 // src/engine/peace.js
 // Plan §M13/§B: peace-deal term costs, AI acceptance, and term application. Split out of
 // diplomacy.js so the two files can stay free of a circular import — applyPeace deliberately does
@@ -59,6 +60,7 @@ export const getTermCost = (state, war, offererId, term) => {
     case 'humiliate':
       return HUMILIATE_COST;
     case 'vassalize': {
+      if (!canSubjugate(state.nations, offererId, recipientId)) return Infinity;
       const offererTotalDev = getNationTotalDev(state, offererId) || 1;
       const devShare = (100 * recipientTotalDev) / (offererTotalDev + recipientTotalDev);
       return VASSALIZE_BASE_COST + Math.round(0.5 * devShare);
@@ -207,6 +209,7 @@ export const applyPeace = (state, war, offererId, terms) => {
         } };
       }
     } else if (term.type === 'vassalize') {
+      if (!canSubjugate(nextNations, offererId, recipientId)) return;
       const overlord = nextNations[offererId];
       const vassal = nextNations[recipientId];
       if (overlord && vassal && !vassal.vassalOf) {

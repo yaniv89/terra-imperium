@@ -29,3 +29,26 @@ export const resolveClickedRegionId = (
   if (!regionCoordinates || !project || !Number.isFinite(clickX) || !Number.isFinite(clickY)) return null;
   return findClickAssistRegionId(regionCoordinates, project, clickX, clickY, maxDistance);
 };
+
+// Resolve the geographic intersection against province rings. Rendered triangulation can
+// overlap a narrow neighbor; holes and the antimeridian must retain their real meaning.
+export const findRegionAtCoordinates = (features, lat, lng) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const ringContains = ring => {
+    const origin=ring[0][0];
+    const wrap = x => origin+((x-origin+540)%360)-180;
+    const point=wrap(lng);
+    let hit=false;
+    for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+      const a=ring[i],b=ring[j],ax=wrap(a[0]),bx=wrap(b[0]);
+
+      if((a[1]>lat)!==(b[1]>lat) && point<(bx-ax)*(lat-a[1])/(b[1]-a[1])+ax)hit=!hit;
+    }
+    return hit;
+  };
+  for(const f of features || []){
+    const groups=f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[f.geometry.coordinates];
+    if(groups.some(rings=>ringContains(rings[0])&&!rings.slice(1).some(ringContains)))return f.properties?.gameRegionId || f.id;
+  }
+  return null;
+};

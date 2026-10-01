@@ -1,42 +1,43 @@
-# Validation results
+# Validation results — 2026-10-01
 
-Date: 2026-10-01. Branch: `audit/stabilization-and-battle-depth`.
-Environment: Windows, Node 24.13.1, npm 11.8, Vitest 4.1.10.
+Branch: `audit/stabilization-and-battle-depth`. Main has not been merged.
 
-## Passed checks
+## Current checks
 
-- The original 12 stabilization regression cases failed before the fixes; the focused post-fix run passed 104 tests in four files.
-- Broad regression command below: 1,972 passed and one conquest fixture failed out of 1,973 tests across 111 files. That fixture assumed no current-turn AI reinforcement. It was changed to a one-hit siege setup to test conquest independently of recruitment rolls. The entire affected `resolveTurn.test.js` suite then passed all 116 tests. This is a combined verification result, not a claim that the broad command had no failures.
-- The broad run includes the audited 150-turn deterministic campaign and two audited 30-turn campaigns (seeds 7 and 4242).
-- Additional map/UI regression run: 19 tests passed across two files. Covers exact polygon precedence, no-hit fallback, exhausted armies in both panels, movement restoration, insufficient funds, stale war state, and actual conquest followed by a blocked same-turn attack.
-- `npm run lint`: passed, zero warnings.
-- `git diff --check`: passed.
-- Production build with the repository's Vite configuration imported directly: passed, 2,040 modules. Existing warnings: large chunks, mixed static/dynamic countries-meta import, stale Browserslist data.
+- Main regression suite: **120 files, 2,042 tests passed**; two hardware timing tests intentionally require `PERF_CHECKS=1`.
+- Endgame suite: **nine tests passed** in an isolated 63-second run, including full-history passive outcome and the real mission ladder. Together the two final commands passed **2,051 tests across 121 files**. An earlier simultaneous run exceeded the passive campaign time limit; it was rerun without the competing long matrix.
+- Long scenario matrix: **18/18 completed**, each with 150 actual turns: full world and 15/30/45/60/75 nations, seeds 7/4242/2026. State audits and save/load next-turn comparisons passed every ten turns.
+- Browser: globe pointer selection at two zoom levels passed; 2D province fill selection at two zoom levels passed; battle quality changes, mobile near/far captures and plains/forest/urban scenes passed; ordinary start/three-turn playthrough passed. These four tests were run individually.
+- Production Pages build and mobile build passed. The tracked `docs/` bundle was rebuilt from the current source.
+- Lint and whitespace checks passed.
+- Hardware-specific 80 ms mean-turn / 30-second campaign budgets were not measured on a dedicated device. Local matrix times include contention and are not phone performance claims.
 
 ```sh
-npm test -- --maxWorkers=1 --exclude src/engine/aiQualityBenchmark.test.js --exclude src/engine/endgameReachability.test.js --exclude scripts/build-edge-engine.test.mjs --exclude src/battle/render/unitComposer.test.js
-npm test -- --run src/engine/resolveTurn.test.js --maxWorkers=1
-npm test -- --run src/components/battle/attackAvailability.test.js src/utils/regionClickAssist.test.js --maxWorkers=1
+npm test -- --maxWorkers=2 --exclude src/engine/endgameReachability.test.js
+npm test -- --run src/engine/endgameReachability.test.js --maxWorkers=1
+npm run audit:scenarios -- --long
+npx playwright test e2e/stabilization.spec.js --grep 'actual globe'
+npx playwright test e2e/stabilization.spec.js --grep '2D province'
+npx playwright test e2e/stabilization.spec.js --grep 'battle quality'
+npx playwright test e2e/playability.spec.js
+npm run build
+npm run build:mobile
 npm run lint
+git diff --check
 ```
 
-Build workaround, using the actual configuration without changing dependencies:
+## Defects found during extended verification
 
-```sh
-node --input-type=module -e 'import {build} from "vite"; import config from "./vite.config.js"; await build({...config,configFile:false,build:{...config.build,outDir:"../build-verification"}})'
-```
+The campaign replay exposed process-global modifier IDs and save backfill resurrecting destroyed starting armies. IDs now derive from their saved collections; existing unit collections are never populated with fresh-game starting armies. Regression tests cover both. Null neutral-state markers are preserved on load.
 
-## Unresolved failures and verification limits
+The globe library's cached hover target caused stale or missing selection. A canvas tap now computes an exact geographic hit from the current camera ray and ignores drags/pinches. Test camera projection is explicitly settled before real pointer clicks. On the flat map, province borders no longer claim neighboring fill clicks. Map controls are positioned clear of the sidebar.
 
-The initial unrestricted suite reported 1,956 passed, five failed, and six skipped (106 passing files, four failing files). It was not green:
+The old GLB recipes overrode the improved procedural figures with the same blocky prototypes from the screenshots. Those recipes are disabled, smooth normals are preserved, and far models keep the actual class equipment instead of tiny box imposters. New nations now construct their own army record rather than inheriting player commander or transport references.
 
-- `aiQualityBenchmark.test.js`: three timeouts and an 80 ms mean-turn budget failure (observed about 228 ms under that run). Benchmark policy also needs review: some campaigns can stop advancing at unresolved choices. Do not treat these measurements as production-device performance results.
-- `endgameReachability.test.js`: modern space ladder exceeded 120 seconds.
-- `scripts/build-edge-engine.test.mjs`: old esbuild failed while scanning a restricted Windows ancestor directory, followed by an internal panic; six tests skipped.
-- `src/battle/render/unitComposer.test.js`: import-stage `SyntaxError: Invalid or unexpected token`; no tests collected. Not resolved by this branch.
+## Limits and remaining work
 
-The standard `npm run build` configuration-loading path and the standalone simulation CLI hit the same old esbuild/Windows directory issue. Direct-config build passed; real campaign simulations ran through Vitest instead. The four suites above were excluded only in the broad rerun; no repository test script or skip flag was changed to hide them.
+Passing these checks does not prove the absence of all logic flaws. New depth ideas in the audit's roadmap, authored realistic art, phone GPU frame targets, and more complete AI port-routing remain unfinished. AI debt has real upkeep, borrowing and bankruptcy consequences, but its loan principal and automatic repayment policy still need parity work.
 
-The new UI tests render actual components with a mocked context and the real invasion validator/reducer. They do not exercise browser pointer input or a GPU. The map fix has unit coverage for selection policy, but live clicking at several zoom levels and latitudes remains necessary on desktop and touch devices. The fixed low polygon altitude specifically reduces raised-neighbor sidewall interference; it does not prove all source polygon geometry is correct.
+The new roster is smoother **stylized procedural art**, not photorealistic characters. The review gallery and captured near/far images are review artifacts, not a claim that the requested realistic art direction is finished.
 
-No whole-game zero-defect guarantee is justified. Operational AI, ownership lifecycle, diplomacy graph validation, and player/AI economy parity remain explicit follow-up work in the audit report. The proposed emergent-world redesign and full battle art upgrade are recommendations, not implemented features on this branch.
+The initial report's obsolete tooling failures (edge bundler, model-import syntax, ordinary configuration loading) have been fixed. Builds retain non-fatal chunk-size, mixed JSON import and Browserslist warnings.

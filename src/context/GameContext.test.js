@@ -982,7 +982,7 @@ describe('Military tab actions', () => {
 
     it('sets domain to naval for the naval class', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-29', classId: 'naval' } });
       const unit = Object.values(next.units)[0];
       expect(unit.domain).toBe('naval');
     });
@@ -1417,8 +1417,8 @@ describe('Navies and amphibious invasion actions', () => {
 
   const withNavalAndLand = () => {
     const state = richState();
-    const withNaval = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
-    const withLand = gameReducer(withNaval, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
+    const withNaval = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-29', classId: 'naval' } });
+    const withLand = gameReducer(withNaval, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-29', classId: 'infantry' } });
     const navalUnitId = Object.keys(withLand.units).find((id) => withLand.units[id].domain === 'naval');
     const landUnitId = Object.keys(withLand.units).find((id) => withLand.units[id].domain === 'land');
     return { state: withLand, navalUnitId, landUnitId };
@@ -1439,8 +1439,8 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op once the transport is at capacity', () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
-      const withSecondLand = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'cavalry' } });
-      const withThirdLand = gameReducer(withSecondLand, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'ranged' } });
+      const withSecondLand = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-29', classId: 'cavalry' } });
+      const withThirdLand = gameReducer(withSecondLand, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-29', classId: 'ranged' } });
       const otherLandIds = Object.keys(withThirdLand.units).filter((id) => withThirdLand.units[id].domain === 'land' && id !== landUnitId);
       const first = gameReducer(withThirdLand, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
       const second = gameReducer(first, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: otherLandIds[0], navalUnitId } });
@@ -1585,22 +1585,22 @@ describe('Navies and amphibious invasion actions', () => {
     it('refuses to engage the fleet of a nation you are at peace with, and says why', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
       const peaceful = { ...state, wars: state.wars.filter((w) => w.enemy !== 'gb') };
-      const next = gameReducer(peaceful, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } });
+      const next = gameReducer(peaceful, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-29', targetRegionId: cap('gb') } });
       expect(next.units.enemy_navy).toBeDefined();
       expect(next.logs.at(-1).message).toMatch(/at peace/);
     });
 
     it('defeats an enemy fleet contesting a sea lane, holding position rather than advancing', () => {
       const { state, navalUnitId } = withEnemyFleetAt(cap('gb'));
-      const next = gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } });
+      const next = gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-29', targetRegionId: cap('gb') } });
       expect(next.units.enemy_navy).toBeUndefined();
-      expect(next.units[navalUnitId].regionId).toBe(cap('fr'));
+      expect(next.units[navalUnitId].regionId).toBe('fr-29');
       expect(next.lastBattleReport.outcome).toBe('attacker');
     });
 
     it('is a no-op when there is no enemy fleet to engage', () => {
       const { state } = withNavalAndLand();
-      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } }), state);
+      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-29', targetRegionId: cap('gb') } }), state);
     });
 
     it('is a no-op from a region not owned by the player', () => {
@@ -1610,19 +1610,19 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op when the target is not reachable', () => {
       const { state } = withEnemyFleetAt(cap('jp'));
-      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('jp') } }), state);
+      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-29', targetRegionId: cap('jp') } }), state);
     });
 
     it('is a no-op with no attacker naval units in the source region', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
       const noNavy = { ...state, units: {} };
-      expectRefused(gameReducer(noNavy, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } }), noNavy);
+      expectRefused(gameReducer(noNavy, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-29', targetRegionId: cap('gb') } }), noNavy);
     });
 
     it('is a no-op when unaffordable', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
       const poor = { ...state, resources: { ...state.resources, mil: 0 } };
-      expectRefused(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } }), poor);
+      expectRefused(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-29', targetRegionId: cap('gb') } }), poor);
     });
   });
 });

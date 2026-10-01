@@ -1,3 +1,4 @@
+import { BATTLE_QUALITY } from '../../battle/render/quality';
 // src/components/battle/TacticalBattleScreen.jsx
 // The commanded battle (Tactical Battles plan §2, §11): a full-screen three.js battlefield driven
 // by the sim in a Web Worker, with a thumb-friendly HUD on top. Mobile first: tap to select / tap to
@@ -25,6 +26,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const rendererRef = useRef(null);
   const clientRef = useRef(null);
   const audioRef = useRef(null);
+  const [quality, setQuality] = useState('balanced');
   const [soundOn, setSoundOn] = useState(true);
   const frames = useRef({ prev: null, cur: null, arrival: 0 });
   const selectedRef = useRef(new Set());
@@ -59,6 +61,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const wrap = wrapRef.current;
     const renderer = new BattleRenderer(canvas, setup, { playerSide });
     rendererRef.current = renderer;
+    if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
     if (import.meta.env.DEV) window.__battleRenderer = renderer; // for debugging in the console
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
@@ -114,6 +117,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       ro.disconnect();
       client.destroy();
       renderer.dispose();
+      if(window.__E2E_BATTLE_TEST__)delete window.__battleTest;
       wrap.removeEventListener('pointerdown', unlock);
       audio.dispose();
       audioRef.current = null;
@@ -273,6 +277,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
 
   return (
     <div ref={wrapRef} className="fixed inset-0 z-[80] bg-slate-950 select-none" style={{ touchAction: 'none' }} data-testid="tactical-battle">
+      <label className="absolute top-16 right-3 z-20 text-xs rounded bg-slate-900/90 p-2 text-slate-200">Visual quality <select aria-label="Battle visual quality" value={quality} onChange={e=>{setQuality(e.target.value);rendererRef.current?.setQuality(e.target.value);}} className="bg-slate-800 rounded p-1">{Object.entries(BATTLE_QUALITY).map(([id,p])=><option key={id} value={id}>{p.label}</option>)}</select></label>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
       {dragLine && (
         <svg className="absolute inset-0 pointer-events-none w-full h-full">

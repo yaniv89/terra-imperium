@@ -114,3 +114,19 @@ describe('resolveClickedRegionId: exact polygon hits always win', () => {
     expect(resolveClickedRegionId('tiny_a', REGIONS, project, 100, 100)).toBe('tiny_a');
   });
 });
+
+
+describe('geographic province selection',()=>{
+  const feature=(id,rings)=>({properties:{gameRegionId:id},geometry:{type:'Polygon',coordinates:rings}});
+  it('preserves narrow provinces and rejects polygon holes',async()=>{
+    const {findRegionAtCoordinates}=await import('./regionClickAssist');
+    const ring=[[0,0],[1,0],[1,10],[0,10],[0,0]],hole=[[.2,2],[.8,2],[.8,3],[.2,3],[.2,2]];
+    expect(findRegionAtCoordinates([feature('narrow',[ring,hole])],8,.5)).toBe('narrow');
+    expect(findRegionAtCoordinates([feature('narrow',[ring,hole])],2.5,.5)).toBeNull();
+  });
+  it('handles both sides of the antimeridian without covering the rest of Earth',async()=>{
+    const {findRegionAtCoordinates}=await import('./regionClickAssist');
+    const f=feature('island',[[[179,-1],[-179,-1],[-179,1],[179,1],[179,-1]]]);
+    expect(findRegionAtCoordinates([f],0,179.5)).toBe('island');expect(findRegionAtCoordinates([f],0,-179.5)).toBe('island');expect(findRegionAtCoordinates([f],0,178)).toBeNull();expect(findRegionAtCoordinates([f],0,0)).toBeNull();
+  });
+});

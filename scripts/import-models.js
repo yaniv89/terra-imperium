@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // scripts/import-models.js
 // Builds the battle's whole unit roster — every {age}-{class} of the 5 ages × infantry, ranged,
 // cavalry, siege, plus modern support (21 slots) — from CC0 model packs YOU download and unzip into

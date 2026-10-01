@@ -1,10 +1,13 @@
 // src/components/map/MapModeToggle.jsx
 // Switches MapContainer's main view between the 3D globe and the flat 2D map.
 import React from 'react';
+import { useMapInsets } from '../../context/MapInsetsContext';
 import { Globe2, Map as MapIcon } from 'lucide-react';
 
-const MapModeToggle = ({ mode, onChange }) => (
-  <div className="absolute right-2 top-[calc(var(--header-height,4.5rem)+0.5rem)] z-10 flex bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden">
+const MapModeToggle = ({ mode, onChange }) => {
+  const insets=useMapInsets();
+  return (
+  <div style={{right:insets.right+8}} className="absolute top-[calc(var(--header-height,4.5rem)+0.5rem)] z-10 flex bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden">
     <button
       onClick={() => onChange('globe')}
       className={`flex items-center gap-1 px-2 py-1.5 text-[10px] font-semibold transition-colors ${
@@ -26,6 +29,7 @@ const MapModeToggle = ({ mode, onChange }) => (
       <span className="hidden sm:inline">Map</span>
     </button>
   </div>
-);
+  );
+};
 
 export default MapModeToggle;

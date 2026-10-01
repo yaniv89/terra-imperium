@@ -38,6 +38,7 @@ const reviveOptions = (o = {}) => ({
 // An explicit {age}-{class}.glb wins, then an {age}-{class} recipe, then the class-wide file/recipe.
 export const findUnitModel = (ageId, classId) => {
   for (const name of [`${ageId}-${classId}`, classId]) {
+    if (OPTS_BY_NAME[name]?.enabled === false) continue;
     if (BY_NAME[name]) return { name, url: BY_NAME[name], options: reviveOptions(OPTS_BY_NAME[name]) };
     if (isRecipe(name) && resolveSource(OPTS_BY_NAME[name].base)) return { name, recipe: OPTS_BY_NAME[name], url: `recipe:${name}` };
   }
@@ -66,11 +67,11 @@ const withTimeout = (p, ms) => new Promise((resolve, reject) => {
  * Load, bake and register the GLB models a battle needs. Resolves (never rejects) with
  * { loaded: [...names], failed: [{ name, error }] }; failures keep the procedural model.
  */
-export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUnitModel, compose = composeUnitModel } = {}) => {
+export const preloadUnitModels = async (setup, { timeoutMs = 8000, load = loadUnitModel, compose = composeUnitModel, find = findUnitModel } = {}) => {
   const loaded = []; const failed = [];
   await Promise.all(battleModelPairs(setup).map(async ([ageId, classId]) => {
     if (hasSoldierOverride(ageId, classId)) return;
-    const model = findUnitModel(ageId, classId);
+    const model = find(ageId, classId);
     if (!model) return;
     const key = model.recipe ? `${model.url}@${ageId}` : null;
     if (model.recipe) {

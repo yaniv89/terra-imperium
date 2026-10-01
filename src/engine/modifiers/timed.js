@@ -9,27 +9,24 @@
 // M17's event modifiers, ...), each of which only needs to call addNationModifier/
 // addRegionModifier and push the result through applyEventEffects-style state updates; none of
 // them need to touch resolveTurn.js's turn loop again, since expireModifiers is already wired in.
-let nextModifierId = 1;
-export const _resetModifierIdForTests = () => { nextModifierId = 1; };
-
-const makeEntry = ({ sourceType, sourceId, label, mods, duration, turnNumber }) => ({
-  id: `mod_${nextModifierId++}`,
-  sourceType,
-  sourceId,
-  label,
-  mods,
-  expiresTurn: turnNumber + duration
-});
-
-export const addNationModifier = (nation, entry) => ({
-  ...nation,
-  modifiers: [...(nation.modifiers || []), makeEntry(entry)]
-});
-
-export const addRegionModifier = (regionModifiers, regionId, entry) => ({
-  ...regionModifiers,
-  [regionId]: [...(regionModifiers?.[regionId] || []), makeEntry(entry)]
-});
+// IDs come from the owning collection, so parallel campaigns and save/load replay
+// cannot change them through a process-global counter.
+export const _resetModifierIdForTests = () => {};
+const makeEntry = (entry, existing) => {
+  const ids=new Set(existing.map(m=>m.id));
+  let sequence=1;
+  while(ids.has(`mod_${sequence}`))sequence++;
+  const {sourceType,sourceId,label,mods,duration,turnNumber}=entry;
+  return {id:`mod_${sequence}`,sourceType,sourceId,label,mods,expiresTurn:turnNumber+duration};
+};
+export const addNationModifier = (nation, entry) => {
+  const existing=nation.modifiers || [];
+  return {...nation,modifiers:[...existing,makeEntry(entry,existing)]};
+};
+export const addRegionModifier = (regionModifiers, regionId, entry) => {
+  const existing=regionModifiers?.[regionId] || [];
+  return {...regionModifiers,[regionId]:[...existing,makeEntry(entry,existing)]};
+};
 
 // Drops every expired entry (expiresTurn <= newTurnNumber) from every nation's modifiers[] and
 // from the sparse regionModifiers map. Returns the SAME references when nothing expired, so a
