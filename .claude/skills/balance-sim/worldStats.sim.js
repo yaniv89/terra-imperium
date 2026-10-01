@@ -8,12 +8,16 @@ import { resolveTurn } from '../../../src/engine/resolveTurn';
 import { createInitialState, gameReducer } from '../../../src/context/GameContext';
 import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
+import { auditGameState } from '../../../src/engine/stateAudit';
 
 const TURNS = Number(process.env.TURNS || 150);
 const EVERY = Number(process.env.EVERY || 50);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
 const PLAYER = process.env.PLAYER || 'fr';
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
+
+// Campaign invariant violations from the state auditor (src/engine/stateAudit.js): must stay 0.
+const auditCount = (s) => { const r = auditGameState(s); return Array.isArray(r) ? r.length : (r?.violations?.length ?? r?.errors?.length ?? (r?.ok === false ? 1 : 0)); };
 
 const snapshot = (s, t, counters, ms) => {
   const regs = Object.values(s.regions);
@@ -39,7 +43,7 @@ const snapshot = (s, t, counters, ms) => {
     avgUnrest: +(unrest.reduce((a, b) => a + b, 0) / unrest.length).toFixed(1),
     playerProvinces: counts[PLAYER] || 0, playerGold: Math.round(s.resources.gold || 0), playerSupplies: Math.round(s.resources.supplies || 0),
     playerUnits: Object.values(s.units).filter((u) => u.ownerId === PLAYER).length,
-    nonFinite, msPerTurn: +ms.toFixed(1)
+    nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };
 

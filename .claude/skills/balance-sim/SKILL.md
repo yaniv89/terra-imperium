@@ -20,7 +20,7 @@ Roughly 0.1-0.3 s per turn, so 150 turns x 2 seeds takes a few minutes. Keys:
 - strain: devastatedProvinces, avgWarExhaustion, avgUnrest
 - runaway: maxProvinceShare (largest nation's share of provinces), topMilitaryToMedian
 - player: playerProvinces, playerGold, playerSupplies, playerUnits
-- health: nonFinite (must be 0), msPerTurn
+- health: nonFinite and auditViolations (both must be 0; the latter from src/engine/stateAudit.js), msPerTurn
 
 ## Before vs after
 ```bash
@@ -30,8 +30,13 @@ Checks the base out in a temporary git worktree (sharing node_modules), runs the
 both, and prints both SUMMARY lines per seed. Use the commit before the change, or `origin/main`,
 as the base. Timings are only comparable within one compare run.
 
+## Also in the repo
+`node scripts/simulate.mjs --games 5 --turns 150` (the M21 harness: N seeded games, aggregated
+metrics, passive response policy) and `auditGameState(state)` / `assertGameState(state)` in
+src/engine/stateAudit.js for invariant checks inside any test.
+
 ## Reading the numbers
-- Red flags: nonFinite above 0; status not ACTIVE before the run ends (a stall is usually an
+- Red flags: nonFinite or auditViolations above 0; status not ACTIVE before the run ends (a stall is usually an
   unanswered pending item); maxProvinceShare above about 0.33 (runaway); topMilitaryToMedian
   exploding across checkpoints; avgUnrest climbing steadily (rebellion spiral); player gold or
   supplies heading to infinity or pinned at 0.

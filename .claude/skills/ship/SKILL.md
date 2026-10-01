@@ -15,7 +15,7 @@ description: Terra Imperium's delivery workflow and the user's standing rules fo
 ## Before every commit
 ```bash
 npm run lint            # max-warnings 0
-npx vitest run          # all green, except the 80 ms/turn benchmark on slow sandboxes
+npx vitest run          # all green (timing budgets only run with PERF_CHECKS=1)
 ```
 For gameplay or UI changes also run the end-to-end check (builds the mobile bundle and plays
 several turns of a random nation, about 2 minutes):
