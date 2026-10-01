@@ -6,7 +6,8 @@ background and sources. Part 3 there (unit art) continues in `plans/unit-art-bri
 
 Each workstream below has the same layout: what the game does today (checked in the code),
 the design, the engine and UI work, tests, and a critique with the fixes it led to.
-Section 9 critiques the plan as a whole. Section 10 gives the order of work.
+Section 8 is the sprite renderer for battle units. Section 10 critiques the plan as a whole.
+Section 11 gives the order of work.
 
 ---
 
@@ -497,7 +498,475 @@ These are cheap once the marker layer exists.
 
 ---
 
-## 8. Mechanics touched (for the add-mechanic checklist)
+## 8. Sprite renderer for battle units (the Age of Empires technique)
+
+Goal: draw every soldier on the battlefield from pre-rendered sprite sheets made to
+`plans/unit-art-brief.md` (v3). This gives realistic, smoothly animated units with real deaths,
+blocks and reloads, cheap enough for a phone. The current 3D path stays as the fallback for any
+unit that has no sprites yet.
+
+### 8.1 What the battlefield does today (checked in the code)
+- **Camera.** `BattleRenderer.js` uses an orthographic camera.
+  - Direction `ISO_DIR (1, 1.25, 1)`, 120 units back. It never rotates.
+  - Zoom runs from 0.45 to 3.
+  - The view is 30 world units tall in landscape and 16 in portrait.
+  - 1 world unit = 1 tile = 256 sim units (`Q`).
+- **Renderer settings.**
+  - ACES Filmic tone mapping, exposure 1.05.
+  - Pixel ratio capped at 2 (`BATTLE_GRAPHICS.maxDpr`).
+  - MSAA only when the device pixel ratio is below 2.
+  - 2048 px sun shadow map.
+- **Soldiers.** One layer per (age, class), holding up to 640 soldiers.
+  - Each layer is a `ZoomLOD` of two InstancedMeshes: the full model, and a roughly
+    50-triangle imposter used below zoom 0.72.
+  - Animation is a rig in the vertex shader, driven by `aAnim = (phase, moving, fighting)`.
+    That is three states: stand, walk or strike.
+- **Squad layout.** The sim knows squads, not soldiers.
+  - The renderer lays out `getSoldierCount()` soldiers (infantry 12, ranged 10, cavalry 8,
+    siege 3, support 4, air 3) on a grid behind the squad centre.
+  - Grid spacing is 0.52 / 0.95 / 1.05 / 1.5, with hashed jitter.
+  - Every soldier faces the squad's heading.
+- **Deaths.** When the count drops, the **highest-numbered soldiers vanish**. Those are the
+  back rows, so the back of the squad dies while the front fights. They vanish instantly and
+  leave blood spray plus a splat decal (`spillBlood`). There is no death animation.
+- **Per-squad facts in the snapshot** (`view.js`):
+  - position, facing, strength, morale;
+  - `striking`, `target`, `targetKind`, `routed`, `retreating`, `fled`;
+  - `hidden` (ambush), `inside` (garrison), `visible` (fog);
+  - `reinforcement`, `ended`.
+
+  Nothing exists per soldier, and nothing says "this squad was hit this tick".
+- **Size on screen.** A procedural person is about 1.12 units tall times
+  `MODEL_SCALE.infantry 0.88`, so about 0.99 world units. Viewed at 41.5 degrees it is about
+  0.74 units tall on screen. On a phone in landscape (390 CSS px tall) that is **about 10 CSS
+  px at zoom 1 and 29 CSS px at zoom 3**. At pixel ratio 2 that is **at most about 58 real
+  pixels**. On a 1000 px tall desktop window it is up to about 150 real pixels.
+- **Scale check.** The sim's infantry walk is 1.6 tiles per second, and the brief's walk stride
+  is 1.6 m/s. So one Blender metre in the brief equals about one world unit, and foot speeds
+  already match.
+
+### 8.2 What the art brief v3 delivers (the input contract)
+- **Sheets.** Per unit and action: `sprites/{age}-{class}/{age}-{class}_{Action}.webp`
+  (colour, lossy, with lossless alpha) plus `_mask.png` (red = Team, green = Skin and Hair).
+  Variant B sheets are `_B_{Action}`.
+- **Layout.** 8 rows (directions), one column per frame, at 15 fps. A sheet is at most 4096 px
+  wide and wraps into further row blocks.
+- **Cells and anchors:**
+
+  | Class | Cell | Pixels per metre | Anchor |
+  |---|---|---|---|
+  | People | 192 | 150 | (96, 180) |
+  | Large units | 256 | 100 | (128, 240) |
+  | Trebuchet | 320 | 100 | (160, 304) |
+
+- **Direction convention.** Direction 0 faces Blender -Y, which is glTF +Z and the game's +Z.
+  Directions go counter-clockwise from above in 45 degree steps. Direction 2 faces +X.
+- **`sprites.json`** gives:
+  - per action: frames, loop, `contactFrame`, `impactFrame`, `releaseFrame`, `holdLast`;
+  - variants;
+  - `skinBase #D9A07A`.
+- **Team cloth** renders in neutral grey (#BFBFBF on average) with its texture kept.
+
+### 8.3 Key sizing finding (this shapes the whole design)
+- **The delivered resolution is about 2 to 4 times what a phone shows.**
+  - In a 192 px cell at 150 px per metre, a 1.0 m person is about 112 px tall on screen
+    (1.0 m x cos 41.5 degrees x 150).
+  - A phone at maximum zoom shows them at about 58 px.
+- **Memory, if loaded as delivered.** Classical infantry has about 184 sprite frames across its
+  13 actions. Times 8 directions, that is 1,472 cells of 192 x 192 px.
+  - That is about 54 million pixels, or **217 MB of GPU memory for one unit's colour alone**.
+  - A battle typically has 6 to 10 unit types, so this would crash any phone.
+- **Conclusion.** The delivery is the **master**. An import step makes small, compressed,
+  trimmed game sheets from it. The game never loads the master files.
+
+Three runtime tiers, made by the import script from the master:
+
+| Tier | Scale | People cell | Use |
+|---|---|---|---|
+| `sd` | 0.5x (75 px/m) | 96 px | default everywhere; matches a phone at max zoom |
+| `ld` | 0.25x (37 px/m) | 48 px | zoomed out (camera zoom below 1); replaces today's imposters |
+| `hd` | 1.0x (150 px/m) | 192 px | optional, desktop and tablets at zoom 2 and up; streamed on demand, not shipped first |
+
+**Only the actions the game can actually show are imported** (8.6). For a human unit:
+- Idle, Walk, Run, Attack, Attack2, Block or Reload, Death, Rout and Victory;
+- Hit and DeathAlt if the size budget allows.
+
+IdleAlt, Charge, AimHold, Volley, Kneel and Rear are kept in the master. They get used later
+when the sim can tell the renderer about those moments (8.12).
+
+**Budget per unit**, after trimming and compression. This is the sd and ld tiers, variant A
+only. A full variant B (8.13) roughly doubles it.
+- Frames: about 150 imported frames x 8 directions, so about 1,200 cells.
+
+| | sd pixels | On disk (KTX2 ETC1S) | GPU (ETC2 or ASTC, 1 byte per pixel, with mipmaps and masks) |
+|---|---|---|---|
+| Person | about 5 M | about 2 MB | about 8 MB |
+| Cavalry, chariot, machine | about 9 M | about 3 MB | about 13 MB |
+
+- **All 26 units:** about 60 MB on disk, or about 120 MB with full B variants.
+- **A battle with 10 unit types:** about 80 to 150 GPU MB. Phones handle that, with the memory
+  guard of 8.11 as a safety net.
+
+### 8.4 The import pipeline: `npm run import:sprites` (new `scripts/import-sprites.mjs`)
+Input is the GPT delivery folder, `terra-imperium-units/sprites/{age}-{class}/`, kept **outside
+git**. Output is `public/sprites/{age}-{class}/` (Vite copies it into `docs/`).
+
+For each unit:
+1. **Validate** `sprites.json` against a schema (new `src/battle/sprites/manifest.js`, shared
+   with the runtime):
+   - cells, anchors and fps are as the brief says;
+   - every runtime action is present;
+   - frame counts match the sheet sizes;
+   - `contactFrame`, `impactFrame` and `releaseFrame` are inside their frame range;
+   - mask and colour sheets have the same size.
+
+   It fails with a readable list of problems. That is what I send back to GPT.
+2. **Decode** the WebP and PNG files with `sharp`, a new devDependency that handles both. The
+   mask is checked to sit inside the colour pass's alpha.
+3. **Make the tiers.** Downscale each cell to 0.5x and 0.25x with a Lanczos filter, in
+   premultiplied alpha so edges don't get dark halos. Anchors scale with the cell: (48, 90) for
+   people in sd.
+4. **Trim** each cell to its opaque bounding box plus 2 px of padding. Store the offset from the
+   anchor. About 55% of each cell is empty, so this saves about half.
+5. **Pack** all trimmed frames of all actions and directions into **2048 x 2048 pages** with a
+   max-rects packer, for both colour and mask. A person in sd fits in about 2 pages (3 with variant B);
+   a horse in about 3 to 4.
+   - Colour pages are RGBA.
+   - Mask pages are RG at half resolution again. The mask is smooth, so that costs nothing
+     visible.
+   - Pad 4 px between frames and limit mipmaps to 4 levels so neighbours never bleed.
+6. **Encode** pages to **KTX2 (Basis Universal)**.
+   - ETC1S for sd and ld, which is small on disk.
+   - UASTC for hd, which is higher quality.
+   - Encoded with `basisu` (KTX-Software). If the binary isn't available in CI, use a WASM
+     encoder from npm. This is checked on the first run.
+   - **Fallback:** the same pages as WebP, for browsers without KTX2 support.
+7. **Write `{age}-{class}.atlas.json`.**
+   - Pages, tier, scale, the frame table and the action table:
+     `{ frames, loop, fps, contact, impact, release, holdLast, variant }`.
+   - Each frame-table entry is `[page, x, y, w, h, offsetX, offsetY]`, indexed by
+     action, direction, frame and variant.
+   - `worldPerMetre`, the conversion from sprite metres to world units (8.5).
+8. **Report** pixels, pages, disk size and GPU estimate per tier. Fail if over budget.
+9. **Contact sheet.** Write `reports/sprites/{age}-{class}.png` with every action and direction
+   at sd scale, tinted blue and orange, for a quick human review.
+
+Tests for the import script use a small synthetic sheet made inside the test: 2 actions, 8
+directions and 3 frames of coloured boxes with a known anchor. The test asserts:
+- trimming, packing and offsets reproduce each frame's anchor exactly;
+- the frame table is complete;
+- a broken manifest fails with the expected messages.
+
+### 8.5 Drawing a sprite exactly where the 3D model would be
+- **One quad per soldier, in the camera's plane.** The camera never rotates, so every quad
+  shares one fixed orientation (the camera's rotation). No per-frame billboard maths is needed.
+- **Anchoring.**
+  - The quad's anchor point (the feet) is placed at the soldier's ground point
+    `(x, heightAt(x, z), z)`. Flying units are placed at their flight height, with a ground
+    shadow.
+  - The quad's size and offset come from the frame table:
+    `worldWidth = w / pixelsPerMetre x worldPerMetre`, and the same for height and offsets.
+  - Pixels per metre is measured in the image plane, which is what an orthographic Blender
+    camera with `ortho_scale = cell / pixelsPerMetre` produces. **This has to be stated to GPT
+    (8.13).**
+- **Why it lines up.** An orthographic render projected onto a plane parallel to the image
+  plane is exact. A sprite rendered with the game camera, drawn on a camera-facing quad, lands
+  pixel for pixel where the same 3D model would.
+- **`worldPerMetre`** is per class, fitted so a sprite soldier is the same height on screen as
+  today's model: people about 0.99, so the size of everything else in the battle (buildings,
+  spacing, rings, bars) stays right. It is overridable per unit in the atlas.
+- **Depth.** The quad sits at the soldier's foot depth, with depth testing and depth writing on.
+  Overlapping soldiers sort correctly: the nearer one hides the farther one, as in any
+  isometric game. Terrain in front of the feet still hides them correctly (behind a ridge).
+- **Edges.** Alpha test at 0.4 on mipmapped textures. MSAA is off at pixel ratio 2, so there is
+  no alpha-to-coverage. At pixel ratio 2 the aliasing is invisible, and at pixel ratio 1 MSAA
+  is on. No sorting pass is needed.
+
+### 8.6 The animation state machine (per soldier, in the renderer, never in the sim)
+Each soldier gets a small state record in a new `src/battle/render/spriteAnimator.js`:
+`{ action, startTime, rate, dir, variant, skin, slot }`.
+
+Time is **battle time**: sim tick plus interpolation, divided by 20. So animations pause with
+the battle, run 3x at 3x speed, and screenshots stay deterministic.
+
+| Situation (from the snapshot) | Action | Detail |
+|---|---|---|
+| not moving, no target | `Idle` | start offset hashed per soldier so a squad doesn't breathe in unison |
+| moving at walk speed | `Walk` | playback rate = ground speed / stride speed (1.6, 3.2 or 0.9 m/s by class), clamped to 0.7 to 1.4x so feet don't skate |
+| moving faster than 1.3x walk, or the order is attack and the target is within 4 tiles | `Run` (cavalry closing on a target: `Charge` if imported, else `Run`) | |
+| `striking`, melee unit | `Attack` or `Attack2` | chosen per soldier per strike cycle by hash (about 70/30), so the line looks alive; the clip is timed so `contact` lands on the squad's strike tick (8.7) |
+| `striking`, bow unit | `Attack` then `Reload` | the pair is stretched to the squad's `attackTicks` (ranged 1.4 s); if the cycle is longer than the clips, the soldier waits at the end of `Reload` (arrow nocked) |
+| `striking`, gun unit at range | `Attack` then `Reload` | as above |
+| gun unit with its target in melee reach (musketeers) | `Attack2` (bayonet) | |
+| `striking`, machine | `Attack` then `Reload` | stretched to `attackTicks` (siege 3 s) |
+| squad took damage this tick, melee | front row: `Block`; 1 to 2 others: `Hit` | cosmetic, from strength or morale dropping; never interrupts a running Attack before its contact frame |
+| squad took damage, ranged or support | 1 to 2 soldiers `Hit` | |
+| `routed` or `retreating` | `Rout` | sprite direction flipped 180 degrees, as today |
+| battle `ended` | winners `Victory`, losers `Rout` (if still on the field) | |
+| `hidden` (ambush) | the current action, drawn lighter and semi-transparent | |
+| `inside` a building, or not `visible` | not drawn | as today |
+| soldier just died | `Death` (or `DeathAlt` by hash) as a **corpse** (8.8) | |
+
+**Direction.** `dir = round(heading / 45 degrees) mod 8`, where `heading = atan2(fx, fz)`. The
+convention is fixed by a unit test against the brief: +Z is 0, +X is 2, -Z is 4, -X is 6.
+- A **5 degree hysteresis** stops a soldier flickering between two directions near a boundary.
+- **Facing rule:**
+  - soldiers attacking a target face **the target** (bearing from the soldier to the target
+    squad centre), so archers and guns aim where they shoot;
+  - soldiers that are moving face their movement direction;
+  - everyone else faces the squad heading;
+  - plus a hashed plus or minus 10 degrees per soldier, so a squad isn't perfectly uniform.
+
+**Transitions.**
+- Looping clips switch at once.
+- One-shot clips (`Block`, `Hit`) run to their end, then return to the state's action.
+- `Attack` is never cut before its contact frame.
+- A move order cuts any action except `Death`.
+
+**Variety.**
+- Variant A or B is chosen per soldier by hash (about 50/50).
+- Skin tone is one of the brief's four tones, hashed per soldier (the existing
+  `writeSoldierVariant` already hashes a skin tone).
+- Clip start offsets are hashed.
+
+**Variant B rule.** If variant B lacks an action, a B soldier uses A for it. That makes the kit
+visibly change mid-battle, so 8.13 asks GPT for B versions of every runtime action instead.
+
+### 8.7 Syncing strikes with damage, sound and blood
+- **The snapshot needs a strike tick.** Today it only has `striking`, true within the last
+  attack cycle. Add `strikeTick: q.lastStrikeTick` to `view.js`. It is a plain number, a
+  display-only field, and doesn't affect the sim.
+- **Timing the clip.** When a squad's `strikeTick` changes, each soldier starts its attack clip
+  so that its contact frame lands on that tick plus a hashed 0 to 0.25 s. That keeps a squad
+  from moving like one machine. Blood spray from that squad's losses is emitted at the contact
+  time.
+- **Deaths.** The death clip's fall-to-ground frame (`groundFrame`, see 8.13) triggers the blood
+  pool and the splat decal. The pool appears when the body lands, not at the moment of death.
+- **Ranged.**
+  - The arrow, bolt or shell projectile effect starts at the `contact` (release) frame.
+  - Baked muzzle flashes and smoke in the sprite (`fx_flash`, `fx_smoke`) replace the game's own
+    flash for sprite units, so there is no double flash.
+  - Tracers and projectiles stay as game effects.
+
+### 8.8 Death, corpses and stable soldier slots
+- **Stable slots.** Each squad keeps a list of soldier slots (formation positions). It is no
+  longer `0 .. n-1` recomputed every frame.
+- **Who dies.** When the count drops, the soldiers removed are the ones **nearest the enemy**:
+  the front row toward the target, chosen by hash among ties. The back rows no longer die while
+  the front fights.
+- **Corpses.** A dead soldier becomes a **corpse instance**:
+  - it plays `Death` at its last position and direction, holds the last frame, and gets the
+    blood pool at the ground frame;
+  - corpses last 25 s of battle time, then fade out over 2 s;
+  - at most 300 corpses, the oldest fading first. Corpses are drawn in the same sprite mesh, so
+    there are no extra draw calls.
+- **Closing ranks.** Survivors keep their slot positions. When the squad is not in contact for
+  2 s, the formation is recomputed for the new count. Each soldier then **walks** (Walk clip) to
+  its new slot at walk speed instead of teleporting.
+- **Per-soldier position.** Today positions come straight from the squad centre. Now each soldier
+  has its own smoothed position that follows its slot target with a short ease (about 0.25 s).
+  That gives natural movement when the squad turns. It is the same data needed for closing
+  ranks.
+- **Vehicles and machines.** They play their `Death` (breaks, tilts, smokes) and stay as wrecks
+  for the whole battle, capped at 40. A scorch decal is placed as today.
+
+### 8.9 The shader (new `src/battle/render/spriteMaterial.js`)
+**Per-instance attributes** (one InstancedMesh per unit type and tier, shared by both armies and
+by corpses):
+- `aPos` (vec3, foot position);
+- `aFrame` (float, the frame-table index);
+- `aTeam` (vec3, army colour, linear);
+- `aSkin` (vec3, skin tone, linear);
+- `aFx` (vec4): fade, hit flash, highlight, ambush lightening.
+
+**Vertex shader.**
+- Reads the frame rect and offset from a small float **DataTexture** (the frame table: one texel
+  row per frame, page index plus rect plus offset). This is the same trick as the existing rig
+  shader's data.
+- Builds the quad corners in camera right and up vectors from that size.
+- Applies the anchor offset.
+
+**Fragment shader.**
+1. Sample colour from a **texture array** (`sampler2DArray`, one layer per page). That way a
+   whole unit is **one draw call** whatever page a frame is on. Sample the mask from its own
+   array.
+2. `discard` if alpha is below 0.4.
+3. **Team tint**, in linear space:
+   `col = mix(col, col * aTeam / TEAM_GREY, mask.r)`, where `TEAM_GREY` is #BFBFBF in linear
+   (0.52). Grey cloth becomes dyed cloth and keeps its folds.
+4. **Skin:** `col = mix(col, col * aSkin / SKIN_BASE, mask.g)`, with `SKIN_BASE` = #D9A07A in
+   linear.
+5. **Routed:** blend toward grey by 0.6, as today. **Selected:** brighten by 0.2, as today.
+   **Hit flash:** add white times `aFx.y` for 0.1 s.
+6. **Fog:** apply `FogExp2` with the scene's colour and density, so sprites melt into the haze
+   like the terrain does.
+7. **Tone mapping and colour.** No tone mapping: `toneMapped: false`, because the sprite is
+   already tone-mapped by Blender's Filmic. Textures are tagged `SRGBColorSpace`, so three.js
+   decodes them to linear for the tint maths and encodes them back to sRGB once.
+
+**Brightness match.** Blender's Filmic and three.js ACES are close but not identical. A
+calibration step in the pilot measures the mean brightness of the sprite soldier against the
+current 3D soldier rendered in the same scene (both screenshots in battle-lab). It sets one
+global `SPRITE_EXPOSURE` multiplier (expected about 0.95 to 1.05), plus an optional per-unit
+override in the atlas.
+
+**Night, weather and dynamic light.** The sprite light is baked from the game's fixed sun,
+which never changes in battle today. If dynamic time of day is ever added, sprites would need
+normal maps. That is out of scope and noted in the critique.
+
+### 8.10 Shadows
+- **Option 1 (recommended):** shadow proxies.
+  - Keep each soldier's existing **3D imposter** (about 50 triangles, already animated by the
+    rig shader) in the **shadow pass only**: `colorWrite false`, `castShadow true`, drawn with
+    the same instance positions.
+  - Soldiers keep real, sun-correct, animated shadows on the terrain, with no extra art. The
+    cost is about what the low level of detail costs today in the shadow pass.
+- **Option 2:** blob shadows (a soft ellipse decal per soldier, offset along the sun direction).
+  - Cheaper and always works; used for the `ld` tier and for aircraft.
+- Sprites themselves **receive** no scene shadows. A soldier standing in a building's shadow
+  would look too bright, so blob darkening from shadows is not attempted.
+  - Optional later: sample the shadow map at the foot point and darken the whole sprite by it.
+    That is one texture read per fragment.
+
+### 8.11 Loading, tiers, memory and fallbacks
+- **New `src/battle/sprites/spriteLibrary.js`.** `preloadUnitSprites(units, tier)` runs next to
+  the existing `preloadUnitModels` before a battle opens.
+  - It loads only the units that battle needs.
+  - It uses three's `KTX2Loader`, with the Basis transcoder (WASM) copied into `public/basis/`.
+  - It reports progress to the battle loading screen.
+  - It has a 6 s per-unit timeout. On timeout or error, **that unit falls back to the 3D path**,
+    so a bad file can never block a battle (the same rule as the GLB models today).
+- **Tier choice.**
+  - `sd` is always loaded.
+  - `ld` is loaded with it, and is small.
+  - `hd` is only requested if the device reports `navigator.deviceMemory` of 6 GB or more (or
+    a desktop GPU), the canvas is at least 900 px tall, and the camera zoom passes 2. It
+    streams in and swaps without a hitch, and is evicted when the player zooms back out.
+- **Zoom LOD.** The quad uses `ld` below zoom 1.0 and `sd` above. The switch uses the
+  `ZoomLOD` hysteresis that already exists. `ld` replaces the current 3D imposters for sprite
+  units, so the far view gets better, not worse.
+- **Memory guard.** Before loading, add up the GPU estimates from the atlas reports. If a battle
+  would pass 160 MB (very large mixed battles), drop to `ld` for the least common unit types.
+- **Caching.** The browser HTTP cache handles the web. Capacitor bundles the files in the app,
+  so a phone needs no download. Files are content-hashed so updates aren't served stale.
+- **Mixed battles.** A unit type without sprites draws in 3D next to sprite units. The style
+  difference is visible, which is why sprites roll out **one whole age at a time** (matching
+  the brief's phases).
+- **Feature flag.** `BATTLE_GRAPHICS.sprites = true`, with `?sprites=0` in the URL to compare
+  in the sandbox. There is no player setting; the user asked for fewer presets.
+
+### 8.12 Performance plan
+- **CPU per frame.** Up to 64 squads x 12 soldiers is 768, plus up to 300 corpses. Each needs a
+  state update, a direction, a frame index, and 12 floats written into the instance buffers.
+  That is well under 1 ms. Only the used range is uploaded, as today.
+- **GPU.** About one draw call per unit type per tier (plus shadow proxies). That is fewer than
+  today's two levels of detail.
+  - Overdraw is the main cost: trimmed quads are about 45% of a cell.
+  - Alpha-tested `discard` disables early depth rejection on phone GPUs, but at about 1,000
+    small quads the fill cost is a fraction of the terrain's.
+- **Targets.** Measured in the sandbox at 64 squads with the existing `frameSummary`:
+  - no slower than today's 3D path on desktop;
+  - at least 50 fps on a mid-range phone, tested with Playwright's phone emulation (CPU 4x
+    throttled) and checked once on a real phone through the app build.
+- **Things the sim doesn't tell the renderer yet.** These are follow-ups. Each needs one
+  display-only field in `view.js`:
+  - `Volley` (ranged attack orders at long range);
+  - `Kneel` (riflemen holding);
+  - `Charge` (the charge bonus is active);
+  - `Rear` (cavalry stopped by pikes).
+
+### 8.13 Changes to send back to GPT (brief v3 corrections)
+1. **Define pixels per metre exactly:** "orthographic camera, `ortho_scale = cell /
+   pixelsPerMetre` metres, so 192 / 150 = 1.28 m for people, 256 / 100 = 2.56 m for large
+   units, 320 / 100 = 3.2 m for the trebuchet." Without this, two units can come out at
+   different sizes.
+2. **Variant B gets every action the game uses:** Idle, Walk, Run, Attack, Attack2, Block (or
+   Reload), Hit, Death, Rout and Victory. Otherwise the kit changes in the middle of a fight.
+   Alternatively drop variant B and rely on the skin mask plus slight hue variation. Decision
+   for you.
+3. **Add `groundFrame` to every `Death`** (the 0-based frame where the body hits the ground), so
+   blood pools appear at the right moment.
+4. **For `Attack` + `Reload` pairs**, the last frame of `Reload` must flow into frame 0 of
+   `Attack` (the game chains them).
+5. **Name the masters by tier:** deliver at the brief's sizes, and note in the log that the game
+   downscales to 0.5x and 0.25x. Small details (thin bowstrings, rivets) should survive 0.5x.
+   Validation adds a check that renders the sd version and confirms the silhouette still reads.
+
+### 8.14 Building it before GPT's art arrives
+- **Placeholder sprites from our own units.** A new `scripts/bake-placeholder-sprites.mjs` runs
+  in headless Chromium (Playwright, already installed). It renders today's procedural soldiers
+  (or the pilot GLB) with the exact game camera and sun into sheets laid out like the brief:
+  8 directions, 15 fps, masks from a team-only and skin-only pass. Actions: Idle, Walk and
+  Attack, plus a simple tipping-over Death made by rotating the model.
+- **The whole pipeline can be built and tested on placeholders now:** import, atlas, renderer,
+  state machine, corpses, shadows, budgets, phone speed.
+- **When GPT's realistic pilot arrives**, it drops into the same folder and only the art
+  changes.
+- **Every unit gets sprites from day one** (placeholder quality), so mixed battles never mix
+  styles. Each unit is replaced as its real art is approved.
+
+### 8.15 Tests
+- **Unit tests:**
+  - direction from heading, all 8 plus hysteresis, plus the brief's convention;
+  - frame selection: loop, hold last, rate clamping, contact-time alignment;
+  - state machine transitions from scripted snapshots: walk, strike, damage, rout, end;
+  - "who dies" picks the front row;
+  - corpse cap and fade;
+  - closing-ranks targets;
+  - manifest validation;
+  - tier and memory budget calculation;
+  - the import script on synthetic sheets (8.4).
+- **Battle-lab browser checks** (the screenshot skill gains a `SPRITES=1` option):
+  - screenshot sprite and 3D versions of the same battle side by side at phone size
+    (844x390, pixel ratio 2) and at desktop size;
+  - the console has no errors;
+  - the fps summary is printed.
+- **Fallback test:** remove one unit's atlas and the battle still opens with that unit in 3D.
+- **Replay tests are unchanged.** All of this is renderer-only, and the sim and replays stay
+  exact. `view.js` gains only display fields (`strikeTick`).
+
+### 8.16 Critique and fixes
+- **Delivered size versus phone reality.** The brief's 192 px cells are about 2x what a phone
+  can show. Fix: keep them as masters, ship sd and ld, and stream hd only where it helps.
+  - Also worth doing: the landscape work (section 1) should raise the battle's maximum zoom on
+    phones from 3 to about 5. Otherwise even sd is more detail than ever reaches the screen,
+    and the realistic art goes unseen.
+- **The repo and the site would bloat.** About 60 to 120 MB of game sprites goes into `public/`, and is
+  then copied into the committed `docs/`. Each art revision adds to git history forever.
+  - Fix: masters never enter git. Game sprites are regenerated, and only the final approved
+    version of each unit is committed.
+  - If history grows past about 1 GB, move sprite hosting to Supabase Storage (already used by
+    the project) and keep only the manifest in git.
+  - hd is never committed.
+- **Squad-level sim, per-soldier animation.** Blocks and hits are cosmetic guesses from "the
+  squad lost strength". That is honest for a squad-level sim and is how most RTS games fake
+  it. Their rate is kept low so it doesn't look random.
+- **Fixed lighting is baked.** If battles ever get time of day, sprites can't relight. That is
+  acceptable: the camera and sun are fixed by design, and that is exactly why sprites work here.
+- **Two renderers to maintain** (3D and sprites). Fix: the 3D path stays only as a fallback and
+  for the sandbox comparison. New visual features target sprites first.
+- **Mixed styles during roll-out.** Fixed by placeholder sprites for every unit (8.14) and by
+  replacing art one age at a time.
+- **Turning.** Eight directions snap in 45 degree steps. With the per-soldier smoothing and
+  hysteresis, turning reads well at this size (Age of Empires II uses 8 too). If it looks
+  steppy on the pilot, ask GPT for 16 directions for cavalry only. That roughly doubles their
+  size.
+
+### 8.17 Order of work inside this workstream
+1. `view.js` `strikeTick`, `spriteAnimator.js` (state machine, directions, slots, corpses) with
+   unit tests. Renderer-independent.
+2. Placeholder bake script; import pipeline with tiers, trimming, packing and KTX2; atlas
+   format; budgets.
+3. `spriteMaterial.js` and the sprite layer in `BattleRenderer` behind the feature flag; shadow
+   proxies; fog; tint; brightness calibration.
+4. Loading, tiers, memory guard, fallback; battle loading progress.
+5. Battle-lab sprite screenshots, phone speed check, then sprites on by default for
+   placeholder units.
+6. GPT pilot (classical infantry) import, tuning, phone screenshots for you; then age by age.
+
+---
+
+## 9. Mechanics touched (for the add-mechanic checklist)
 | Change | Module | Feeds into |
 |---|---|---|
 | Science accumulation and queue | new `research.js`, resolveTurn income phase, gameReducer | tech age, buildings and units unlocked, AI economy, score |
@@ -511,10 +980,12 @@ after, and `compare.sh` for speed.
 
 ---
 
-## 9. Critique of the plan as a whole
+## 10. Critique of the plan as a whole
 
 1. **It is too much for one branch.** These are six projects. Fix: each workstream gets its
    own branch and its own merge, in the order below. Each one ships and is playable alone.
+   The sprite renderer is the exception that can run fully in parallel: it touches only
+   `src/battle/render/`, a new import script, and one display field in `view.js`.
 2. **The order matters more than any single feature.** Building the research sheet, the
    battle report and the delegation cards before the landscape shell means designing every
    one of them twice. So the shell comes first, even though it is the least exciting.
@@ -537,11 +1008,12 @@ after, and `compare.sh` for speed.
 
    Each is a follow-up, so scope stays honest.
 7. **Unit art is separate.** Army banners on the map are icons, not the 3D units. They don't
-   wait on ChatGPT's art.
+   wait on ChatGPT's art. The sprite renderer doesn't wait either: it is built and tested on
+   placeholder sprites baked from our own models (8.14).
 
 ---
 
-## 10. Order of work and rough size
+## 11. Order of work and rough size
 
 | # | Workstream | Size | Depends on |
 |---|---|---|---|
@@ -552,12 +1024,13 @@ after, and `compare.sh` for speed.
 | 5 | Map markers: own and foreign armies, battles; `MOVE_STACK`; drag and drop | L | 1, 4 |
 | 6 | Delegation (Domestic, Economy, Military, Research) | M | 3 (research pick), 5 (report jump) |
 | 7 | Building icons at close zoom, other map layers | M | 5 |
+| 8 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
 
 S is about a day of work, M two to three days, L four to six days. Each ends with lint, the
 full test suite, e2e at 844x390, balance-sim where it touches the engine, and a merge only
 when you say so.
 
-## 11. Decisions for you
+## 12. Decisions for you
 1. **Landscape.** Lock phones to landscape, with a "play in portrait anyway" escape hatch for
    web? (Recommended: yes.)
 2. **Research.** Remove ADM, DIP and MIL from research costs? (Recommended: yes.) Keep hard
@@ -567,5 +1040,14 @@ when you say so.
 4. **Delegations.** Off by default except research, with spending guards? (Recommended: yes.)
 5. **Moving armies.** Move a whole stack for 1 MIL? (Recommended: yes, needed for drag and
    drop.)
-6. **Order.** The order in section 10, or the battle reports and odds first as a quick
+6. **Order.** The order in section 11, or the battle reports and odds first as a quick
    visible win?
+7. **Sprites.** Start the sprite renderer now on placeholder sprites, in parallel with
+   workstream 1? (Recommended: yes.)
+8. **Variant B.** Ask GPT for a full variant B set (about double the sprite size), or drop B
+   and vary soldiers by skin tone and slight hue only? (Recommended: a full B for infantry and
+   ranged only, none for machines.)
+9. **Phone battle zoom.** Raise the maximum zoom from 3 to about 5 so the detail can be seen?
+   (Recommended: yes.)
+10. **Sprite hosting.** Commit the game sprites into the repo (about 60 to 120 MB), or move them
+    to Supabase Storage once history grows? (Recommended: commit for now and watch the size.)
