@@ -8,6 +8,7 @@
 //                             XP for units that fought, stack movement, war score, log, report
 // LAUNCH_INVASION (gameReducer.js) is now just these three around one resolveBattle call; the
 // tactical path swaps only the middle step for a simulated battle producing the same result shape.
+import { recordBattleReport } from './battleReports';
 import { LogTypes } from '../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
@@ -224,7 +225,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
     units: nextUnits,
     wars: nextWars,
     rngSeed,
-    lastBattleReport: { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+    ...recordBattleReport(state, { ...report, captured, fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),
     logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }, ...aftermath.logs]
   };
 };
@@ -345,7 +346,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
     units: nextUnits,
     wars: nextWars,
     rngSeed,
-    lastBattleReport: { ...report, captured, kind: 'amphibious', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+    ...recordBattleReport(state, { ...report, captured, kind: 'amphibious', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),
     logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
   };
 };

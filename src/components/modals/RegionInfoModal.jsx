@@ -33,6 +33,7 @@ import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
+import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
@@ -563,9 +564,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       </Section>
 
-      {battleChoiceFrom && <PreBattleModal fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
-      {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} />}
-      {landingChoice && <PreBattleModal navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
+      <TopLayer>
+        {battleChoiceFrom && <PreBattleModal fromRegionId={battleChoiceFrom} targetRegionId={regionId} onClose={() => setBattleChoiceFrom(null)} />}
+        {peaceOpen && occupationWar && <PeaceDealSheet warId={occupationWar.id} onClose={() => setPeaceOpen(false)} />}
+        {landingChoice && <PreBattleModal navalUnitId={landingChoice} targetRegionId={regionId} onClose={() => setLandingChoice(null)} />}
+      </TopLayer>
 
       {/* Description */}
       {regionData.description && (

@@ -249,6 +249,10 @@ export const resolveBattle = ({
   let attackerBroken = attFront.length === 0;
   let defenderBroken = defFront.length === 0;
   let rounds = 0;
+  // Each side's total strength at the start and after every round (and after the pursuit), for
+  // the auto-resolve replay and the battle report chart. Display only: nothing reads it back.
+  const standing = (all) => all.reduce((sum, u) => sum + Math.max(0, u.strength), 0);
+  const timeline = [{ round: 0, att: Math.round(standing(attAll)), def: Math.round(standing(defAll)) }];
   while (!attackerBroken && !defenderBroken && rounds < MAX_BATTLE_ROUNDS) {
     rounds += 1;
     // Ranged phase: archers/artillery on both sides fire (every round — they keep shooting).
@@ -275,10 +279,10 @@ export const resolveBattle = ({
     defFront = refillLine(defFront, defReserve, combatWidth, defFought);
     attackerBroken = attFront.length === 0;
     defenderBroken = defFront.length === 0;
+    timeline.push({ round: rounds, att: Math.round(standing(attAll)), def: Math.round(standing(defAll)), attBroken: attackerBroken, defBroken: defenderBroken });
   }
 
   // Both lines broke in the same round: whoever still has clearly more men on the field holds it.
-  const standing = (all) => all.reduce((sum, u) => sum + Math.max(0, u.strength), 0);
   const mutual = attackerBroken && defenderBroken
     ? (standing(attAll) > standing(defAll) * 1.1 ? 'attacker' : standing(defAll) > standing(attAll) * 1.1 ? 'defender' : 'stalemate')
     : null;
@@ -296,6 +300,9 @@ export const resolveBattle = ({
   // of the winner; pursuit only ever runs the loser down.)
   const attOut = finish(attAll);
   const defOut = finish(defAll);
+  const afterPursuit = { att: Math.round(standing(attAll)), def: Math.round(standing(defAll)) };
+  const last = timeline[timeline.length - 1];
+  if (afterPursuit.att !== last.att || afterPursuit.def !== last.def) timeline.push({ round: rounds + 1, pursuit: true, ...afterPursuit });
 
   return {
     outcome,
@@ -306,6 +313,7 @@ export const resolveBattle = ({
       terrain,
       isAttackingFortification,
       rounds,
+      timeline,
       fortune: { attacker: Math.round(attackerFortune * 100) / 100, defender: Math.round(defenderFortune * 100) / 100 },
       deployedAttackers: attFought.size,
       deployedDefenders: defFought.size,

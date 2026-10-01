@@ -10,6 +10,7 @@
 // aggressor's militaryStrength to make up the gap. Synthetic troops exist only for this battle:
 // they're stored on the defense record, never in state.units, and their losses come out of
 // militaryStrength afterwards.
+import { recordBattleReport } from './battleReports';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { LogTypes } from '../data/types';
@@ -272,7 +273,11 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
     regions: aftermath.regions,
     hiredCommanders: aftermath.hiredCommanders,
     wars,
-    lastBattleReport: { ...report, captured, defense: true, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, attackerNationId: def.aggressorId, defenderNationId: state.playerNationId },
+    ...recordBattleReport(state, { ...report, captured, defense: true, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, attackerNationId: def.aggressorId, defenderNationId: state.playerNationId }, {
+      attackers: attackerUnits, defenders: defenderUnits,
+      // Synthetic attackers (an AI's abstract militaryStrength, fielded for this fight) aren't in state.units.
+      beforeOf: (u) => (u.synthetic ? (def.synthetic || []).find((s) => s.id === u.id)?.strength : state.units[u.id]?.strength) ?? u.maxStrength ?? u.strength
+    }),
     logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }, ...aftermath.logs]
   };
 };

@@ -825,6 +825,13 @@ In CK3 every ruler has a family; only the succession law differs. Do the same:
 
 ## 6. Auto-battle: odds, an animated "fight", and real battle reports
 
+**Status: built (workstream 2).** Differences from the design below:
+- the no-intel band ("Scouts' estimate") buckets the real auto-resolve chance into Likely win,
+  Uncertain or Unlikely, because the army size bands of 4a don't exist yet;
+- the report sheet has no factors list and no fallen commanders yet;
+- `lastBattleReport` stays as it was (with its round log), next to the new `battleReports`
+  history. There is no save migration: old saves start with an empty history.
+
 ### 6a. Odds again, for every fight
 - **Without intel**, PreBattleModal shows nothing today. Show a band instead, worked out from
   what is visible (the size band from section 4):
@@ -1429,7 +1436,7 @@ after, and `compare.sh` for speed.
 | # | Workstream | Size | Depends on |
 |---|---|---|---|
 | 1 | Landscape shell, rotate overlay, native lock, side sheets | L | **done** |
-| 2 | Battle odds band, animated auto-resolve, battle report history | M | none |
+| 2 | Battle odds band, animated auto-resolve, battle report history | M | **done** |
 | 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | none |
 | 4 | Research engine, calibration, choice popup, research tab | L | 3 (calibrate on the final map) |
 | 5 | Tap disambiguation, more zoom | S | 3 |

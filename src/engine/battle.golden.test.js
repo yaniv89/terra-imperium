@@ -50,7 +50,11 @@ export const buildGoldenCases = () => {
 const run = (input) => resolveBattle({ ...input, rng: createRng(input.seed) });
 // A SHA-256 of the full JSON result: as strict as deep equality (any byte of any field changes it)
 // without committing megabytes of fixture. The outcome is kept in the clear for readable failures.
-const fingerprint = (result) => ({ outcome: result.outcome, sha: crypto.createHash('sha256').update(JSON.stringify(result)).digest('hex').slice(0, 24) });
+// report.timeline (strength after each round, for the replay and the report chart) is display
+// data added after the fixture was recorded; leaving it out keeps the fixture proving that the
+// battle itself is unchanged.
+const withoutDisplay = (result) => ({ ...result, report: (({ timeline, ...rest }) => rest)(result.report || {}) }); // eslint-disable-line no-unused-vars
+const fingerprint = (result) => ({ outcome: result.outcome, sha: crypto.createHash('sha256').update(JSON.stringify(withoutDisplay(result))).digest('hex').slice(0, 24) });
 
 it('resolveBattle results stay identical to the recorded golden set', () => {
   const cases = buildGoldenCases();

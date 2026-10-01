@@ -5,7 +5,7 @@
 // suppress rebellion) used to render here whenever a region was selected — they now live in the
 // Civ-style ProvinceModal.jsx (its Military tab), opened via RegionInfoModal's "Manage Region"
 // button, so this tab stays a short, always-relevant overview regardless of map selection.
-import React from 'react';
+import React, { useState } from 'react';
 import { Swords, UserCog } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -15,6 +15,8 @@ import { UNIT_CLASSES } from '../../data/unitClasses';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { canAfford, formatNumber, getFieldedStrength } from '../../utils/helpers';
 import { useEffects } from '../../context/EffectsContext';
+import { describeOutcome, formatMen, sidesFor } from '../battle/battleReportView';
+import { openBattleReport } from '../battle/battleReportEvents';
 import { computeSupplyFlow } from '../../engine/supplies';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getNationCapital } from '../../data/regions';
@@ -108,9 +110,14 @@ const MilitaryPanel = () => {
           <span>Auto-resolve enemy assaults on my provinces</span>
           <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.autoDefend === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { autoDefend: e.target.checked } })} data-testid="auto-defend" />
         </label>
+        <label className="flex items-center justify-between gap-2 text-[12px] text-slate-200 min-h-[40px]">
+          <span>Instant battles (skip the auto-resolve replay)</span>
+          <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.instantBattles === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { instantBattles: e.target.checked } })} data-testid="instant-battles" />
+        </label>
       </div>
 
-      {state.lastBattleReport && <BattleReport report={state.lastBattleReport} />}
+      <BattleReportList reports={state.battleReports || []} />
+      {state.lastBattleReport?.log && <BattleReport report={state.lastBattleReport} />}
 
       <div className="text-slate-500 text-xs text-center pt-4 border-t border-slate-800">
         Select a region on the map and use its &quot;Manage Region&quot; button to recruit and command armies there.
@@ -131,6 +138,41 @@ const OUTCOME_LABELS = {
 const SIEGE_CONTINUES_LABEL = { text: 'Siege Continues', className: 'text-amber-400' };
 
 const PHASE_LABELS = { ranged: 'Ranged', shock: 'Shock', flanking: 'Flanking', pursuit: 'Pursuit' };
+
+// The player's last battles (src/engine/battleReports.js), newest first; tap one for the full
+// report sheet (BattleReportSheet.jsx).
+const REPORT_FILTERS = [['all', 'All'], ['win', 'Won'], ['loss', 'Lost']];
+const BattleReportList = ({ reports }) => {
+  const [filter, setFilter] = useState('all');
+  if (!reports.length) return null;
+  const shown = reports.filter((r) => filter === 'all' || describeOutcome(r).tone === filter);
+  return (
+    <div className="bg-slate-800/40 rounded-lg p-3 space-y-2" data-testid="battle-report-list">
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold text-slate-300">Battle reports</div>
+        <div className="flex gap-1">
+          {REPORT_FILTERS.map(([id, label]) => (
+            <button key={id} onClick={() => setFilter(id)} className={`px-2 py-1 rounded text-[10px] ${filter === id ? 'bg-blue-600 text-white' : 'bg-slate-700/60 text-slate-300'}`}>{label}</button>
+          ))}
+        </div>
+      </div>
+      {shown.length === 0 && <div className="text-[11px] text-slate-500">None.</div>}
+      {shown.map((r) => {
+        const result = describeOutcome(r);
+        const { mine, theirs } = sidesFor(r);
+        return (
+          <button key={r.id} onClick={() => openBattleReport(r.id)} className="w-full text-left rounded-md bg-slate-900/60 hover:bg-slate-900 px-2 py-1.5 min-h-[40px]">
+            <div className="flex justify-between gap-2 text-[11px]">
+              <span className={`truncate font-semibold ${result.tone === 'win' ? 'text-emerald-300' : result.tone === 'loss' ? 'text-red-300' : 'text-amber-300'}`}>{result.text}</span>
+              <span className="shrink-0 text-slate-500">{r.year < 0 ? `${-r.year} BCE` : `${r.year} CE`}</span>
+            </div>
+            <div className="text-[10px] text-slate-400">Fallen {formatMen(r.fallen[mine])} of yours · {formatMen(r.fallen[theirs])} of theirs</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
 
 // After-action report (plan §9's "detailed after-action reports"): an itemized, phase-by-phase
 // breakdown of the most recent LAUNCH_INVASION battle (src/engine/battle.js's report shape).
