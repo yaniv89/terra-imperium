@@ -241,7 +241,125 @@ is the real complaint today. That trade is right.
 
 ---
 
+## 3b. A lighter map: fewer, evenly sized regions (the CK3 approach)
+
+### The problem, measured
+- The map has **4,482 regions**, one per real admin-1 province, and they are wildly uneven.
+- **Provinces per country.** The UK has 232, Slovenia 192, Latvia 114, Uganda 111, Italy 110,
+  France 101 and North Macedonia 84. Russia has 86, China 32 and the median country 11.
+  Small European countries are cut into municipalities.
+- **Province area.** The smallest 10% are under 33 km². The median is 3,366 km² and the largest
+  10% are over 64,000 km². The small ones are about 2,000 times smaller than the large ones.
+  That is why they are impossible to tap, slow to draw, and tedious to manage (101 French
+  provinces to build in, against 32 Chinese).
+- **How CK3 does it.** Crusader Kings III also has a large map with thousands of provinces. It
+  feels easy because:
+  1. provinces are roughly the same size;
+  2. the map shows the level that fits the zoom: realms when far away, provinces when close;
+  3. you rarely manage provinces one by one.
+
+  We copy all three: this section covers the first two, and delegation (section 5) covers the
+  third.
+
+### A. Balanced regions: merge over-split countries (recommended, a data rebuild)
+- **New script `scripts/geo/build-balanced-regions.mjs`.** It feeds the existing geo pipeline
+  (`scripts/geo/build.mjs`) a merge table, `regionMerge.json`, mapping each old id to its new id.
+- **The rule, per country:**
+  - target count `K = min(provinces, max(4, round(country area / 30,000 km²)))`;
+  - then repeatedly merge the smallest cluster into its smallest neighbouring cluster in the
+    same country, until there are K clusters;
+  - islands with no land neighbour stay separate;
+  - countries already at or below K are untouched. The US keeps its 51 states, China its 32
+    provinces and Russia its 86.
+- **Measured result** (a dry run of the rule on the real data):
+
+  | Area per region | Regions | UK | Slovenia | France | Germany | Italy | Japan | Israel |
+  |---|---|---|---|---|---|---|---|---|
+  | 20,000 km² | 2,245 | 11 | 4 | 31 | 16 | 15 | 18 | 4 |
+  | **30,000 km² (proposed)** | **2,028** | **8** | **4** | **21** | **12** | **10** | **12** | **4** |
+  | 50,000 km² | 1,777 | 8 | 4 | 13 | 7 | 6 | 7 | 4 |
+
+  That is **55% fewer regions**, and the tiny ones are gone. Every border is still a real border:
+  a merged region is the union of real provinces, with the inner lines removed (topojson
+  `merge`).
+- **Each merged region:**
+  - **Id and name** come from its most populous member, so capitals and most references stay
+    valid. For example Ljubljana, Greater London, Île-de-France.
+  - **Population, GDP and resources** are summed.
+  - **Infrastructure and strategic value** are population-weighted.
+  - **Terrain** is the member with the largest area.
+  - **Coastal** if any member is. **Capital** if it contains the capital.
+  - **Neighbours** are the union of the members' neighbours, mapped to new ids.
+  - **Geometry** is the merged shape, with sea lanes, coordinates and adjacency rebuilt by the
+    pipeline.
+- **References.** About 30 hard-coded region ids in code and tests are remapped through the
+  table. A new test checks that every region id referenced in `src/data/` exists.
+- **Balance.** National totals of population, GDP and resources stay identical, because they
+  are sums. But anything counted **per region** shrinks for over-split countries:
+  - building slots, development, recruitment sites, unrest checks.
+
+  That is the point: the UK no longer has 7 times China's building capacity. It still needs
+  calibrating with balance-sim, before and after, on 2 seeds over 150 turns:
+  - median income, buildings, army size, wars and conquests;
+  - then tune slots per region to scale with population, so big regions build more.
+- **Speed.** Turn phases loop over regions, so 55% fewer regions should make turns clearly
+  faster. Measure it with `compare.sh` (today about 240 ms per turn here). The globe and flat map
+  also draw 2,028 shapes instead of 4,482.
+- **Saves.** A save migration (`saveMigrations.js`) merges each old save region by region:
+  - **owner:** the owner of the most populous member. If members had different owners (a war
+    split), log it in the event log;
+  - **control and unrest:** population-weighted;
+  - **buildings:** the highest tier per category;
+  - **units:** moved to the new id.
+
+  It is deterministic and tested on fixture saves. Old saves keep working.
+- **One map, not two.** Keeping both maps would double the data, the bundle and the testing.
+  Recommended: switch everyone to the balanced map.
+
+### B. Zoom levels on the map (do both A and B)
+- **Zoomed out**, the map draws **nations, not provinces**. Province fills have no outlines, and
+  one mesh path draws only the borders between different owners (topojson `mesh` with an owner
+  filter). It is rebuilt only when land changes hands.
+  - Flat map: outlines appear from 3x zoom.
+  - Globe: below an altitude of about 0.8, plus a nation-border line layer above it.
+- **Tapping when zoomed out** picks the province under your finger, with the chooser from
+  section 3 when several are under it. A double tap zooms into it.
+- **Province labels.** Nation names are drawn across their land when zoomed out. Province names
+  appear when zoomed in. A label is skipped when it doesn't fit.
+- **Speed.** Thousands of stroked outlines per frame are the globe's main cost, and that is what
+  makes the browser tests so slow. Drawing one border mesh is far cheaper.
+
+### Tests
+- **Merge script:**
+  - the region count is within plus or minus 3% of 2,028;
+  - every merged region is contiguous or an island;
+  - totals are preserved per country;
+  - every capital still exists.
+- **Data:** a referenced-id check; the geo tests pass on the new data.
+- **Save migration:** an old fixture save loads, `auditGameState` is clean and owners are as
+  expected.
+- **balance-sim and compare.sh:** before and after numbers in the commit message.
+- **e2e:** tap tests on the new map (the stabilization spec's two-zoom-level checks).
+
+### Critique and fixes
+- **Losing real local detail.** Dutch, Slovenian and English players lose their local
+  provinces. Fix: the merged region shows its member place names in its card ("includes
+  Kranj, Celje…"). The 4 regions per country minimum keeps even small countries playable.
+- **The balance shift is real.** Over-split countries lose per-region advantages they never
+  should have had. Fix: a dedicated calibration commit with numbers, before research
+  calibration, so the two don't mix.
+- **History and events** that name a province by id are remapped by the table, and the test
+  catches any that are missed.
+
+---
+
 ## 4. A living map: armies, buildings, drag to move
+
+**Everything in this section is drawn on the map itself** (on the globe and the flat map, at the
+province where it is), not in a sheet or a modal. A mockup on the real map at phone size:
+
+![Armies, buildings, battles and settle-able land drawn on the map (mockup)](images/map-markers-mockup.png)
+
 
 ### 4a. A shared marker model
 - **One pure function** for both maps:
@@ -319,6 +437,52 @@ is the real complaint today. That trade is right.
     affected, because AI movement is abstract.
 - **Splitting.** Tapping a banner opens the stack card with a checkbox per unit. "Move
   selected" then means dragging that card's banner.
+
+### 4e. Settling land you can actually find
+
+**How it works today** (why it was hard to find):
+- **"Full world" scenario: there is no empty land.** "Settle / Colonize" only works on land
+  nobody governs any more: a province held by rebels, or what is left of a nation that has been
+  wiped out. It must also border you, have control below 20, and you must afford the cost. It
+  is rare, and the button only appears when every condition is already met.
+- **"Emergent civilizations" scenario.** The world starts with free **frontier** land. "Frontier
+  expedition" needs one of your land armies, with a move left, standing next to it.
+  - Cost: gold 80 + 20 x claims^1.4, plus ADM and supplies.
+  - The army loses men to the land's resistance.
+  - The button only shows on the frontier province's card.
+- **Nothing on the map tells you where any of this is possible.**
+
+**Fixes:**
+1. **The map shows it.** A pure function `getSettleTargets(state)` (unit-tested) lists every
+   province you could settle or claim, with its cost and what is missing.
+   - **Land you can settle now** is drawn **striped yellow with a "Settle" chip**.
+   - **Frontier land** you could claim once an army stands next to it is **striped grey** with
+     its resistance.
+
+   Both stay visible at every zoom level.
+2. **Drag an army onto it.** In the drag of 4d, striped land lights up yellow. Dropping on it
+   runs the expedition (emergent) or settles (full world), after a one-line confirm showing the
+   cost and expected losses.
+3. **The card explains, never hides.** Tapping any unowned, rebel-held or abandoned province
+   shows an "Expand here" block with a checklist, for example:
+   - "✓ borders you"
+   - "✗ control 45, needs below 20"
+   - "✓ cost 80 gold, 2 ADM, 3 supplies"
+   - "✗ needs an army next to it"
+
+   The button is greyed with the reason instead of being absent.
+4. **An Expansion list** in the Domestic tab: every current target, cheapest first. Tapping one
+   flies the map there.
+5. **A first-turn tip** in the emergent scenario: "The striped land around you is free. Drag an
+   army onto it to settle." In full world, tapping foreign land says plainly: "All land here is
+   claimed. You grow by war, vassals, or land that rebels or collapse leave behind."
+
+**Tests:**
+- unit tests for `getSettleTargets` in both scenarios;
+- the checklist reasons match the reducer's own refusals (the same validation functions,
+  `validateFrontier` and a new `validateSettle`, used by both);
+- e2e: start an emergent game, the striped land is visible, drag an army onto it, the land
+  becomes yours.
 
 ### Tests
 - **mapMarkers unit tests:** fog rules (foreign presence hidden far away, shown at the
@@ -1022,20 +1186,24 @@ after, and `compare.sh` for speed.
 
 | # | Workstream | Size | Depends on |
 |---|---|---|---|
-| 1 | Landscape shell, rotate overlay, native lock, side sheets | L | none |
-| 2 | Battle odds band, animated auto-resolve, battle report history | M | none (can run beside 1) |
-| 3 | Research engine, calibration, choice popup, research tab | L | 1 for the UI |
-| 4 | Tap disambiguation, more zoom | S | 1 |
-| 5 | Map markers: own and foreign armies, battles; `MOVE_STACK`; drag and drop | L | 1, 4 |
-| 6 | Delegation (Domestic, Economy, Military, Research) | M | 3 (research pick), 5 (report jump) |
-| 7 | Building icons at close zoom, other map layers | M | 5 |
-| 8 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
+| 1 | Landscape shell, rotate overlay, native lock, side sheets | L | **done** |
+| 2 | Battle odds band, animated auto-resolve, battle report history | M | none |
+| 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | none |
+| 4 | Research engine, calibration, choice popup, research tab | L | 3 (calibrate on the final map) |
+| 5 | Tap disambiguation, more zoom | S | 3 |
+| 6 | On-map armies, battles and settle-able land; `MOVE_STACK`; drag and drop; settle checklist and Expansion list (4, 4e) | L | 3, 5 |
+| 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
+| 8 | Building icons on the map at close zoom, other map layers | M | 6 |
+| 9 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
 
 S is about a day of work, M two to three days, L four to six days. Each ends with lint, the
 full test suite, e2e at 844x390, balance-sim where it touches the engine, and a merge only
 when you say so.
 
 ## 12. Decisions for you
+
+Decisions 1 to 10 were accepted as recommended (2026-10-01). 11 and 12 are new.
+
 1. **Landscape.** Lock phones to landscape, with a "play in portrait anyway" escape hatch for
    web? (Recommended: yes.)
 2. **Research.** Remove ADM, DIP and MIL from research costs? (Recommended: yes.) Keep hard
@@ -1056,3 +1224,7 @@ when you say so.
    (Recommended: yes.)
 10. **Sprite hosting.** Commit the game sprites into the repo (about 60 to 120 MB), or move them
     to Supabase Storage once history grows? (Recommended: commit for now and watch the size.)
+11. **Balanced map.** Merge over-split countries to about 2,028 evenly sized regions (30,000 km²
+    per region, at least 4 per country), with old saves migrated? (Recommended: yes. The UK goes
+    from 232 to 8, Slovenia from 192 to 4, the US keeps its 51 states.)
+12. **Old saves on the new map.** Migrate them (recommended), or start fresh games only?
