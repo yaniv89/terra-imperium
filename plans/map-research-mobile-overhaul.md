@@ -219,6 +219,10 @@ tech and turns left. The AI pays its science into research every third turn, sta
 
 ## 3. Mobile zoom and tapping small provinces
 
+**Status: built (workstream 5).** On touch, a tap samples a 18 px ring around the finger; two or
+more provinces under it open a small chooser (globe and flat map). The flat map zooms to 80x on
+touch devices (40x with a mouse). The globe-to-flat hand-over comes with the super zoom (4f).
+
 ### Problem
 Small nations such as Israel, Lebanon and the Gulf states have provinces a few pixels wide
 at normal zoom. Zoom alone doesn't fix a fingertip that covers about 45 px.
@@ -1456,7 +1460,7 @@ after, and `compare.sh` for speed.
 | 2 | Battle odds band, animated auto-resolve, battle report history | M | **done** |
 | 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | **done** |
 | 4 | Research engine, calibration, choice popup, research tab | L | **done** (boosts and soft gate later) |
-| 5 | Tap disambiguation, more zoom | S | 3 |
+| 5 | Tap disambiguation, more zoom | S | **done** |
 | 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | 3, 5 |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
 | 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, towns and buildings, army figures (4f)** | L | 6; army figures need 9 (placeholders until then) |
