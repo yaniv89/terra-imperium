@@ -1,4 +1,4 @@
-import { BATTLE_QUALITY, frameSummary } from './quality';
+import { BATTLE_GRAPHICS, frameSummary } from './quality';
 // src/battle/render/BattleRenderer.js
 // The battlefield on screen (Tactical Battles plan §15): a three.js scene with an orthographic,
 // isometric camera (the Red Alert 2 look), soft sun shadows and filmic tone mapping, a heightmapped
@@ -119,22 +119,21 @@ const MAX_SPLATS = 96;
 const MAX_BLOOD = 256;
 
 export class BattleRenderer {
-  constructor(canvas, setup, { playerSide = 0, quality = 'balanced' } = {}) {
+  constructor(canvas, setup, { playerSide = 0 } = {}) {
     this.setup = setup;
     this.map = setup.map;
     this.playerSide = playerSide;
-    this.quality = BATTLE_QUALITY[quality] ? quality : 'balanced';
     this.frameTimes = [];
     this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
     // Dynamic resolution (plan §15): start at the screen's DPR (max 2); 3 slow frames in a row
     // (> 20 ms) drop it a step (1.25, then 1), and a long run of fast frames earns it back.
-    this.baseDpr = Math.min(window.devicePixelRatio || 1, BATTLE_QUALITY[this.quality].maxDpr);
+    this.baseDpr = Math.min(window.devicePixelRatio || 1, BATTLE_GRAPHICS.maxDpr);
     this.dpr = this.baseDpr;
     this.slowFrames = 0; this.fastFrames = 0;
     this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
-    this.renderer.shadowMap.enabled = BATTLE_QUALITY[this.quality].shadows;
+    this.renderer.shadowMap.enabled = BATTLE_GRAPHICS.shadows;
     // three r186 folded PCFSoftShadowMap into PCFShadowMap (now soft: Vogel-disk filtering sized by
     // shadow.radius); asking for PCFSoft only logs a deprecation warning.
     this.renderer.shadowMap.type = PCFShadowMap;
@@ -159,7 +158,7 @@ export class BattleRenderer {
     // A low warm sun from the side, casting soft shadows that follow the camera around the field.
     this.sun = new DirectionalLight('#ffe7c2', 3.1);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(BATTLE_QUALITY[this.quality].shadowSize, BATTLE_QUALITY[this.quality].shadowSize);
+    this.sun.shadow.mapSize.set(BATTLE_GRAPHICS.shadowSize, BATTLE_GRAPHICS.shadowSize);
     Object.assign(this.sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 120 });
     this.sun.shadow.bias = -0.0005;
     this.sun.shadow.normalBias = 0.025;
@@ -793,27 +792,12 @@ export class BattleRenderer {
         if (s) for (let k = 0; k < 8; k++) this.fx.push({ kind: 'spark', x: s.x / Q + (hash01(k * 3 + e.t) - 0.5) * 1.6, z: s.y / Q + (hash01(k * 5 + e.t) - 0.5) * 1.6, t: 0, life: 0.8, seed: k, big: true });
       }
     });
-    const budget=BATTLE_QUALITY[this.quality].effects;
+    const budget=BATTLE_GRAPHICS.effects;
     if (this.fx.length > budget) this.fx.splice(0, this.fx.length - budget);
   }
 
-  setQuality(id) {
-    if(!BATTLE_QUALITY[id]) return;
-    this.quality=id;
-    const profile=BATTLE_QUALITY[id];
-    this.baseDpr=Math.min(window.devicePixelRatio || 1,profile.maxDpr);
-    this.dpr=Math.min(this.dpr,this.baseDpr);
-    this.renderer.setPixelRatio(this.dpr);
-    this.renderer.shadowMap.enabled=profile.shadows;
-    this.sun.shadow.mapSize.set(profile.shadowSize,profile.shadowSize);
-    this.sun.shadow.map?.dispose(); this.sun.shadow.map=null;
-    this.shadowRadius=null;
-    this.fx.splice(0,Math.max(0,this.fx.length-profile.effects));
-    if(this.width)this.renderer.setSize(this.width,this.height,false);
-  }
-
   diagnostics() {
-    return {quality:this.quality,dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures};
+    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures};
   }
 
   adaptResolution(dt) {
