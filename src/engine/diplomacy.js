@@ -415,12 +415,9 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
     if (!war.active) return war;
     let currentWar = war;
 
-    // Scope trim: only the AI-aggressor side rolls a capture/attrition attempt here — an AI
-    // DEFENDER in a player-declared war doesn't counter-invade, since picking and attacking an
-    // arbitrary target region is attack-initiative the AI doesn't have until M14's stack/movement
-    // overhaul. Until then, a war the player started still ends via war exhaustion or the
-    // score/peace machinery below, using whatever battleScore the player's own invasions produced.
-    if (war.aggressor !== state.playerNationId) {
+// Real-economy campaigns use aiOperations for army movement and combat. Legacy fixtures
+    // without an economy retain abstract attrition while their save defaults are backfilled.
+    if (war.aggressor !== state.playerNationId && !nextNations[war.aggressor]?.economy) {
       const aggressor = nextNations[war.aggressor];
       const defender = nextNations[war.enemy];
       if (!aggressor || !defender) return war;

@@ -81,7 +81,7 @@ describe('calcIncome', () => {
 
   it('adds a flat gold bonus per active trade agreement', () => {
     const state = createInitialState({ playerNationId: 'fr' });
-    const anyNationId = Object.keys(state.nations).find(id => id !== 'fr');
+    const anyNationId = 'de'; // Adjacent capitals provide an open land route.
     const withTrade = calcIncome({
       ...state,
       nations: { ...state.nations, [anyNationId]: { ...state.nations[anyNationId], hasTradeAgreement: true } }

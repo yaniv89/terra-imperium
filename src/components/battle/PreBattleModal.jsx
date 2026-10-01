@@ -20,6 +20,7 @@ import { UNIT_CLASSES } from '../../data/unitClasses';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { estimateInvasionOdds, estimateLandingOdds } from '../../engine/battleOdds';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
+import { describeAttackBlock } from '../../utils/attackAvailability';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { canSeeRegionDetails } from '../../engine/intel';
 import { canAfford } from '../../utils/helpers';
@@ -63,10 +64,11 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
   const preferred = state.battleSettings?.defaultMode === 'command' ? 'command' : state.battleSettings?.defaultMode === 'auto' ? 'auto' : null;
   const [prefer, setPrefer] = useState(false);
 
-  const v = useMemo(() => (landing
-    ? validateAmphibious(state, navalUnitId, targetRegionId, { ignoreCost: true })
-    : validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true })), [state.units, state.regions, state.wars, landing, navalUnitId, fromRegionId, targetRegionId]); // eslint-disable-line react-hooks/exhaustive-deps
-  const odds = useMemo(() => (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)), [state.units, state.regions, landing, navalUnitId, fromRegionId, targetRegionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const v = landing ? validateAmphibious(state, navalUnitId, targetRegionId)
+    : validateInvasion(state, fromRegionId, targetRegionId);
+  const blockedReason = describeAttackBlock(v);
+  const odds = useMemo(() => v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)) : null,
+    [state, landing, navalUnitId, fromRegionId, targetRegionId, v.ok]);
   const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : ACTION_COSTS.launchInvasion);
   // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
   const blockedAtSea = landing && Object.values(state.units).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
@@ -84,6 +86,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
 
   const remember = (mode) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: mode } }); };
   const auto = () => {
+    if (blockedReason) return addLog(blockedReason, 'action');
     if (!affordable) return addLog('Not enough resources', 'action');
     remember('auto');
     if (landing) {
@@ -96,6 +99,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
     onClose();
   };
   const command = () => {
+    if (blockedReason || blockedAtSea) return addLog(blockedReason || 'Defeat the defending fleet first.', 'action');
     if (!affordable) return addLog('Not enough resources', 'action');
     remember('command');
     dispatch(landing
@@ -159,14 +163,16 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
           <div className="text-[11px] text-emerald-200 rounded-lg bg-emerald-900/30 border border-emerald-700/40 px-3 py-2" data-testid="pre-battle-undefended">No garrison: the province falls as soon as your army marches in.</div>
         )}
 
-        {!knownEmpty && <button type="button" onClick={command} disabled={!affordable || blockedAtSea} className={`w-full min-h-[64px] p-3 rounded-xl bg-blue-600/90 border border-blue-400 flex items-center gap-3 text-left disabled:opacity-50${ring('command')}`} data-testid="battle-choice-command">
+        {blockedReason && <div role="status" className="text-sm text-amber-200 rounded-lg border border-amber-500/40 p-3" data-testid="battle-blocked-reason">{blockedReason}</div>}
+
+        {!knownEmpty && <button type="button" onClick={command} disabled={!!blockedReason || !affordable || blockedAtSea} className={`w-full min-h-[64px] p-3 rounded-xl bg-blue-600/90 border border-blue-400 flex items-center gap-3 text-left disabled:opacity-50${ring('command')}`} data-testid="battle-choice-command">
           <Swords className="w-6 h-6 text-white shrink-0" />
           <span>
             <span className="block font-semibold text-white">Fight manually {preferred === 'command' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
             <span className="block text-xs text-blue-100">Command it in real time with exactly these armies, this ground and these walls.</span>
           </span>
         </button>}
-        <button type="button" onClick={auto} disabled={!affordable} className={`w-full min-h-[64px] p-3 rounded-xl bg-slate-800 border border-slate-600 flex items-center gap-3 text-left disabled:opacity-50${ring('auto')}`} data-testid="battle-choice-auto">
+        <button type="button" onClick={auto} disabled={!!blockedReason || !affordable} className={`w-full min-h-[64px] p-3 rounded-xl bg-slate-800 border border-slate-600 flex items-center gap-3 text-left disabled:opacity-50${ring('auto')}`} data-testid="battle-choice-auto">
           <Zap className="w-6 h-6 text-amber-300 shrink-0" />
           <span>
             <span className="block font-semibold text-white">{knownEmpty ? 'March in' : 'Auto-resolve'} {!knownEmpty && preferred === 'auto' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>

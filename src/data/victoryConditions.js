@@ -74,7 +74,7 @@ export const VICTORY_CONDITIONS = {
       // Their historic capital or wherever they moved it after losing it — conquering the capital
       // relocates it (src/engine/conquest.js), and taking it should still count.
       const held = (id) => !!id && state.regions[id]?.owner === state.playerNationId;
-      const capitalsHeld = others.filter(n => held(getCapital(state, n.id)) || held(getNationCapital(n.id))).length;
+      const capitalsHeld = others.filter(n => held(getCapital(state, n.id)) || held(state.scenario?.starts?.[n.id] || getNationCapital(n.id))).length;
       return capitalsHeld / others.length >= CONQUEROR_CAPITAL_SHARE;
     }
   },

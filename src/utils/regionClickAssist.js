@@ -1,17 +1,5 @@
-// src/utils/regionClickAssist.js
-// A "fat-finger" correction for selecting small regions on the globe (GlobeView.jsx). react-globe.gl's
-// own click raycasting is precise, but a region whose real polygon is only a few screen pixels wide
-// (a small country, a small province) is genuinely hard to hit exactly — miss by a few pixels and the
-// ray lands on whichever larger neighbor actually occupies that spot instead, which is exactly what
-// got reported: tapping a small region kept selecting "all the regions around" it.
-//
-// This checks every region's centroid (REGION_COORDINATES) for whichever one projects closest to the
-// click on screen, within a small pixel tolerance, and prefers that region over the raw click's own
-// polygon hit — but only when a candidate is genuinely close, so an ordinary click deep inside a
-// normal-sized region is completely unaffected (no other region's centroid will be anywhere near it).
-//
-// Takes a `project(lat, lng) => { x, y, visible } | null` callback rather than talking to three.js/
-// react-globe.gl directly, so this is unit testable without a real WebGL camera.
+// Exact polygon hits take precedence over proximity assistance. Centroids are only
+// useful as an optional fallback when no polygon was hit.
 export const CLICK_ASSIST_MAX_PIXEL_DISTANCE = 24;
 
 export const findClickAssistRegionId = (
@@ -31,25 +19,36 @@ export const findClickAssistRegionId = (
   return bestId;
 };
 
-// Bug fix (plan feedback: "still can't pick Tel Aviv"): GlobeView.jsx used to run the assist above
-// unconditionally against EVERY region, with no regard for how good the raw hit already was. Tel
-// Aviv is a tiny enclave inside HaMerkaz (a much bigger district) — HaMerkaz's own label point can
-// legitimately be the closest thing on screen to some pixels that still land, correctly, on Tel
-// Aviv's own polygon (an elongated small region's own label isn't necessarily the closest point to
-// every part of it), so the plain "closest centroid wins" search would happily override an
-// ALREADY-CORRECT raw hit with the bigger neighbor. Comparing raw-hit distance alone doesn't fully
-// fix this (the bigger neighbor's label can still be nominally closer even to a valid click), so
-// this instead only ever considers a candidate SMALLER (by `extent`, both regions' own on-screen
-// size proxy — see build-region-coordinates.mjs) than the region actually hit: the assist can still
-// rescue a genuine miss (raw hit is the big region, a smaller one's label is nearby), it just can
-// never redirect AWAY from a region that's already the smallest thing under the cursor.
+// A geometric polygon hit is authoritative. The old smaller-centroid override still stole
+// valid clicks from larger/elongated provinces at low zoom. Proximity cannot establish that
+// the user intended a different region. Assistance is only meaningful when nothing was hit.
 export const resolveClickedRegionId = (
   rawId, regionCoordinates, project, clickX, clickY, maxDistance = CLICK_ASSIST_MAX_PIXEL_DISTANCE
 ) => {
-  const rawExtent = regionCoordinates[rawId]?.extent;
-  if (rawExtent == null) return rawId; // no size data for whatever was hit — nothing safe to compare against
-  const smallerCandidates = Object.fromEntries(
-    Object.entries(regionCoordinates).filter(([id, r]) => id !== rawId && r.extent != null && r.extent < rawExtent)
-  );
-  return findClickAssistRegionId(smallerCandidates, project, clickX, clickY, maxDistance) || rawId;
+  if (rawId) return rawId;
+  if (!regionCoordinates || !project || !Number.isFinite(clickX) || !Number.isFinite(clickY)) return null;
+  return findClickAssistRegionId(regionCoordinates, project, clickX, clickY, maxDistance);
+};
+
+// Resolve the geographic intersection against province rings. Rendered triangulation can
+// overlap a narrow neighbor; holes and the antimeridian must retain their real meaning.
+export const findRegionAtCoordinates = (features, lat, lng) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const ringContains = ring => {
+    const origin=ring[0][0];
+    const wrap = x => origin+((x-origin+540)%360)-180;
+    const point=wrap(lng);
+    let hit=false;
+    for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+      const a=ring[i],b=ring[j],ax=wrap(a[0]),bx=wrap(b[0]);
+
+      if((a[1]>lat)!==(b[1]>lat) && point<(bx-ax)*(lat-a[1])/(b[1]-a[1])+ax)hit=!hit;
+    }
+    return hit;
+  };
+  for(const f of features || []){
+    const groups=f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[f.geometry.coordinates];
+    if(groups.some(rings=>ringContains(rings[0])&&!rings.slice(1).some(ringContains)))return f.properties?.gameRegionId || f.id;
+  }
+  return null;
 };

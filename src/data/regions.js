@@ -59,6 +59,11 @@ export const getOwnedRegionIds = (regions, nationId) => getOwnedRegionsIndex(reg
 // The nested Map (not a second WeakMap) is because the cache key here is a nationId STRING, which
 // WeakMap can't hold as a key on its own.
 const borderingNationsIndexCache = new WeakMap();
+// Turn phases mutate a private draft. Explicitly expire its indexes at ownership boundaries.
+export const invalidateRegionsCache = regions => {
+  ownedRegionsIndexCache.delete(regions);
+  borderingNationsIndexCache.delete(regions);
+};
 export const getBorderingNationIds = (regions, nationId) => {
   let perNation = borderingNationsIndexCache.get(regions);
   if (!perNation) {

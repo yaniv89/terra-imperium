@@ -59,3 +59,14 @@ describe('addRegionModifier / getRegionModifier / expireRegionModifiers', () => 
     expect(expireRegionModifiers(undefined, 1)).toBeUndefined();
   });
 });
+
+it('modifier IDs replay identically after reload and unrelated campaigns',()=>{
+  const entry={sourceType:'event',sourceId:'test',label:'Test',mods:{},duration:5,turnNumber:10};
+  const original=addNationModifier({modifiers:[]},entry);
+  const loaded=JSON.parse(JSON.stringify(original));
+  const a=addNationModifier(original,entry);
+  addNationModifier({modifiers:[]},entry);
+  const b=addNationModifier(loaded,entry);
+  expect(b).toEqual(a);
+  expect(new Set(b.modifiers.map(m=>m.id)).size).toBe(2);
+});

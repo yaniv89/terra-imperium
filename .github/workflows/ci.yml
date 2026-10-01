@@ -33,6 +33,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Seeded campaign correctness and save/load checks
+        run: npm run audit:scenarios
+
       - name: Build (GitHub Pages target)
         run: npm run build
 

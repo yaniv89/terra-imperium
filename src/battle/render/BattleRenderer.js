@@ -1,3 +1,4 @@
+import { BATTLE_GRAPHICS, frameSummary } from './quality';
 // src/battle/render/BattleRenderer.js
 // The battlefield on screen (Tactical Battles plan §15): a three.js scene with an orthographic,
 // isometric camera (the Red Alert 2 look), soft sun shadows and filmic tone mapping, a heightmapped
@@ -122,16 +123,17 @@ export class BattleRenderer {
     this.setup = setup;
     this.map = setup.map;
     this.playerSide = playerSide;
+    this.frameTimes = [];
     this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
     // Dynamic resolution (plan §15): start at the screen's DPR (max 2); 3 slow frames in a row
     // (> 20 ms) drop it a step (1.25, then 1), and a long run of fast frames earns it back.
-    this.baseDpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.baseDpr = Math.min(window.devicePixelRatio || 1, BATTLE_GRAPHICS.maxDpr);
     this.dpr = this.baseDpr;
     this.slowFrames = 0; this.fastFrames = 0;
     this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = BATTLE_GRAPHICS.shadows;
     // three r186 folded PCFSoftShadowMap into PCFShadowMap (now soft: Vogel-disk filtering sized by
     // shadow.radius); asking for PCFSoft only logs a deprecation warning.
     this.renderer.shadowMap.type = PCFShadowMap;
@@ -154,10 +156,9 @@ export class BattleRenderer {
     // Less flat fill than before, a stronger sun: shadows read as shadows and ground the troops.
     this.scene.add(new HemisphereLight('#e3eef8', '#5a503f', 0.95));
     // A low warm sun from the side, casting soft shadows that follow the camera around the field.
-    const small = Math.min(window.innerWidth || 1024, window.innerHeight || 768) < 700;
     this.sun = new DirectionalLight('#ffe7c2', 3.1);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+    this.sun.shadow.mapSize.set(BATTLE_GRAPHICS.shadowSize, BATTLE_GRAPHICS.shadowSize);
     Object.assign(this.sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 120 });
     this.sun.shadow.bias = -0.0005;
     this.sun.shadow.normalBias = 0.025;
@@ -791,11 +792,18 @@ export class BattleRenderer {
         if (s) for (let k = 0; k < 8; k++) this.fx.push({ kind: 'spark', x: s.x / Q + (hash01(k * 3 + e.t) - 0.5) * 1.6, z: s.y / Q + (hash01(k * 5 + e.t) - 0.5) * 1.6, t: 0, life: 0.8, seed: k, big: true });
       }
     });
-    if (this.fx.length > 400) this.fx.splice(0, this.fx.length - 400);
+    const budget=BATTLE_GRAPHICS.effects;
+    if (this.fx.length > budget) this.fx.splice(0, this.fx.length - budget);
+  }
+
+  diagnostics() {
+    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures};
   }
 
   adaptResolution(dt) {
-    if (dt > 0.02) { this.slowFrames += 1; this.fastFrames = 0; } else if (dt < 0.012) { this.fastFrames += 1; this.slowFrames = 0; } else { this.slowFrames = 0; this.fastFrames = 0; }
+    // A stable 60 Hz display delivers ~16.7 ms frames even with GPU headroom. Requiring
+    // <12 ms permanently trapped those displays at reduced resolution after a slowdown.
+    if (dt > 0.02) { this.slowFrames += 1; this.fastFrames = 0; } else if (dt < 0.018) { this.fastFrames += 1; this.slowFrames = 0; } else { this.slowFrames = 0; this.fastFrames = 0; }
     let next = this.dpr;
     if (this.slowFrames >= 3 && this.dpr > 1) { next = this.dpr > 1.25 ? 1.25 : 1; this.slowFrames = -30; } // give the new size a moment
     else if (this.fastFrames >= 240 && this.dpr < this.baseDpr) { next = this.dpr < 1.25 ? Math.min(1.25, this.baseDpr) : this.baseDpr; this.fastFrames = 0; }
@@ -826,6 +834,8 @@ export class BattleRenderer {
     if (cur) this.drawPoints(cur);
     this.drawFx(dt);
     this.renderer.render(this.scene, this.camera);
+    this.frameTimes.push(dt*1000);
+    if(this.frameTimes.length>180)this.frameTimes.shift();
   }
 
   drawSquads(prev, cur, alpha, ui) {

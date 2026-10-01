@@ -1,3 +1,5 @@
+import { NATION_COUNTS, generateStarts } from '../../engine/worldgen/emergentWorld';
+import { REGIONS_DATA } from '../../data/regions';
 // src/components/ui/StartScreen.jsx
 // Country-select + difficulty + game-speed start screen (plan §1/§3/§8.6). Shown for a
 // brand-new player and whenever a new game is started — picking a nation is the single
@@ -12,6 +14,9 @@ import { DIFFICULTIES } from '../../data/difficulty';
 const DEFAULT_NATION_ID = 'us';
 
 const StartScreen = ({ onStart }) => {
+  const [mode, setMode] = useState('full');
+  const [nationCount, setNationCount] = useState(45);
+  const [seed, setSeed] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedNationId, setSelectedNationId] = useState(DEFAULT_NATION_ID);
   const [gameSpeed, setGameSpeed] = useState('normal');
@@ -23,6 +28,8 @@ const StartScreen = ({ onStart }) => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [search]);
 
+  const preview = useMemo(() => mode === 'emergent' ? generateStarts(selectedNationId, nationCount, seed) : null, [mode, selectedNationId, nationCount, seed]);
+  const relocation = preview?.relocations.find(r => r.nationId === selectedNationId);
   const selectedNation = WORLD_NATIONS[selectedNationId];
 
   return (
@@ -33,6 +40,18 @@ const StartScreen = ({ onStart }) => {
       </div>
 
       <div className="w-full max-w-2xl space-y-6">
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-slate-300">World scenario</h2>
+          <select aria-label="World scenario" className="bg-slate-800 rounded p-2" value={mode} onChange={e=>setMode(e.target.value)}>
+            <option value="full">Full world</option><option value="emergent">Emergent civilizations</option>
+          </select>
+          {mode === 'emergent' && <>
+            <label className="block text-sm">Active nations <select aria-label="Active nations" value={nationCount} onChange={e=>setNationCount(Number(e.target.value))} className="bg-slate-800 p-2 rounded">{NATION_COUNTS.map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+            <label className="block text-sm">World seed <input aria-label="World seed" type="number" min="0" max="4294967295" value={seed} onChange={e=>setSeed(Math.max(0,Math.min(4294967295,Math.floor(Number(e.target.value)||0))))} className="bg-slate-800 p-2 rounded" /></label>
+            <p className="text-xs text-slate-400">Each nation starts in one province with equal military strength. Neutral regions have inhabitants and resistance; expeditions spend army movement and resources.</p>
+            <p className="text-sm text-amber-200">Your starting province: {REGIONS_DATA[preview.starts[selectedNationId]]?.name}. {relocation && 'This nation is relocated to connected land so it has room to expand.'}</p>
+          </>}
+        </section>
         {/* Nation picker */}
         <section>
           <h2 className="text-sm font-semibold text-slate-300 mb-2">Choose Your Nation</h2>
@@ -112,7 +131,7 @@ const StartScreen = ({ onStart }) => {
         </section>
 
         <button
-          onClick={() => onStart({ playerNationId: selectedNationId, gameSpeed, difficultyId })}
+          onClick={() => onStart({ playerNationId: selectedNationId, gameSpeed, difficultyId, scenario: {mode,nationCount,seed} })}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold text-base
                      bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
                      text-white shadow-lg transition-all active:scale-95"

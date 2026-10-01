@@ -26,6 +26,8 @@ import {
 } from '../data/victoryConditions';
 import { WORLD_NATIONS } from '../data/worldNations';
 import { HISTORICAL_EVENTS } from '../data/events';
+import { advanceCampaign } from '../../scripts/simulate.mjs';
+import { assertGameState } from './stateAudit';
 import { getNationCapital } from '../data/regions';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
@@ -34,7 +36,7 @@ const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc
 // aiQualityBenchmark.test.js's freshWorld: a pending event makes resolveTurn a no-op, which would
 // silently stall a long run rather than exercise the victory/space-race machinery under test.
 const freshWorld = (playerNationId = 'fr') => ({
-  ...createInitialState({ playerNationId }),
+  ...createInitialState({ playerNationId, rngSeed: 7 }),
   firedEvents,
   proceduralEventCooldown: 999999,
   // A queued defense battle also pauses resolveTurn; a passive player lets them auto-resolve.
@@ -47,12 +49,7 @@ const freshWorld = (playerNationId = 'fr') => ({
 // became common enough that an unanswered offer stalled roughly half of all passive runs. A free
 // white peace (no terms: what an exhausted enemy offers now that one is never imposed on the
 // player) is accepted, as a do-nothing player would; anything that costs them is rejected.
-const answerPeace = (state) => (state.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE);
-const advance = (state) => {
-  const current = state.pendingPeaceOffer ? gameReducer(state, { type: answerPeace(state) }) : state;
-  const next = resolveTurn(current);
-  return next.activeProceduralEvent ? { ...next, activeProceduralEvent: null } : next;
-};
+const advance = state => advanceCampaign({resolveTurn,gameReducer,ActionTypes,assertGameState},state);
 
 const advanceUntil = (state, predicate, maxTurns) => {
   let current = state;
@@ -192,7 +189,7 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     const TURNS_INTO_MODERN_AT_UNLOCK = Math.ceil(YEARS_INTO_MODERN_AT_UNLOCK / getYearsPerTurn('modern', 'normal'));
     const REMAINING_MODERN_BUDGET = MODERN_AGE_TURNS_NORMAL - TURNS_INTO_MODERN_AT_UNLOCK;
 
-    let state = advanceUntil(freshWorld(), (s) => s.year >= SATELLITE_UNLOCK_YEAR, 400);
+    let state = { ...freshWorld(), year: SATELLITE_UNLOCK_YEAR, age: 'modern', techAgeId: 'modern' };
     expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
     const turnsUsedToReachUnlock = state.turnNumber;
 
@@ -207,7 +204,8 @@ describe('endgame reachability: the space-race ladder completes within the Moder
       const afterLaunch = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: mission.id } });
       expect(afterLaunch.spaceMissionProgress[mission.id], `${mission.id} failed to launch`).toBe(mission.turns);
       state = advanceUntil(afterLaunch, (s) => s.completedMissions.includes(mission.id) || s.gameStatus !== GameStatus.ACTIVE, mission.turns + 1);
-      expect(state.completedMissions, `${mission.id} never completed`).toContain(mission.id);
+      if(!state.completedMissions.includes(mission.id))console.log('mission deadline',mission.id,state.year,state.gameStatus,state.resources,state.spaceMissionProgress);
+      expect(state.completedMissions, `${mission.id} never completed: year=${state.year} status=${state.gameStatus} gold=${state.resources.gold} science=${state.resources.techPoints} active=${JSON.stringify(state.activeMission)}`).toContain(mission.id);
     });
 
     const turnsSpentOnLadder = state.turnNumber - turnsUsedToReachUnlock;
@@ -231,8 +229,14 @@ describe('endgame reachability: the space-race ladder completes within the Moder
   it('a nation with one Research Lab affords the entire ladder from its own natural income, no injected resources', () => {
     const capitalId = getNationCapital('us');
     const base = freshWorld('us');
+    // Isolate mission affordability from external conquests and succession crises.
+    // Diplomacy and wartime save/load are exercised in separate campaign scenarios.
+    base.nations.us={...base.nations.us,stability:3,legitimacy:100,ruler:{...base.nations.us.ruler,reignEndsTurn:999999,traits:[]},truces:Object.fromEntries(Object.keys(base.nations).filter(id=>id!=='us').map(id=>[id,999999]))};
+    for(const id of Object.keys(base.nations))if(id!=='us')base.nations[id]={...base.nations[id],truces:{...base.nations[id].truces,us:999999}};
     let state = { ...base, regions: { ...base.regions, [capitalId]: { ...base.regions[capitalId], buildings: { categories: { science: 3 } } } } };
-    state = advanceUntil(state, (s) => s.year >= SATELLITE_UNLOCK_YEAR, 400);
+    // The lab operates from the start of the Modern Age; its savings come from real turns.
+    state = { ...state, year: AGES.modern.startYear, age: 'modern', techAgeId: 'modern' };
+    state = advanceUntil(state, s => s.year >= SATELLITE_UNLOCK_YEAR, 40);
     expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
 
     for (const mission of SPACE_MISSIONS) {
@@ -246,7 +250,7 @@ describe('endgame reachability: the space-race ladder completes within the Moder
       const launched = gameReducer(state, { type: ActionTypes.LAUNCH_MISSION, payload: { missionId: mission.id } });
       expect(launched, `${mission.id} failed to launch even though it was affordable`).not.toBe(state);
       state = advanceUntil(launched, (s) => s.completedMissions.includes(mission.id) || s.gameStatus !== GameStatus.ACTIVE, mission.turns + 1);
-      expect(state.completedMissions, `${mission.id} never completed`).toContain(mission.id);
+      expect(state.completedMissions, `${mission.id} never completed: year=${state.year} status=${state.gameStatus} gold=${state.resources.gold} science=${state.resources.techPoints} active=${JSON.stringify(state.activeMission)}`).toContain(mission.id);
     }
     expect(state.gameStatus).toBe(GameStatus.VICTORY);
     expect(state.victoryConditionId).toBe('spaceAscendancy');

@@ -115,14 +115,14 @@ describe('calcAllNationIncomes', () => {
 });
 
 describe('processAIEconomyTurn (plan §M16: one spending decision per think)', () => {
-  it('deducts unit upkeep from gold and floors at 0 rather than going negative', () => {
+  it('does not charge upkeep again during a spending decision', () => {
     const state = makeState({
       regions: { [REGION_A]: makeRegion(REGION_A) },
       nations: { id: makeAiNation({ economy: { gold: 1, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, government: { type: 'dictatorship', reforms: {} } }) },
       units: { u1: { ownerId: 'id', strength: 10 }, u2: { ownerId: 'id', strength: 10 } }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, 'id');
-    expect(nation.economy.gold).toBe(0);
+    expect(nation.economy.gold).toBe(1);
   });
 
   it('adopts a real government once old enough to leave Tribal behind', () => {

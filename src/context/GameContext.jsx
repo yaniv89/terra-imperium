@@ -155,6 +155,8 @@ export const GameProvider = ({ children }) => {
       payload: {
         playerNationId: options.playerNationId,
         gameSpeed: options.gameSpeed,
+        scenario: options.scenario,
+        rngSeed: options.scenario?.seed,
         doctrineId: meta.selectedDoctrine,
         difficultyId: options.difficultyId || meta.difficulty
       }

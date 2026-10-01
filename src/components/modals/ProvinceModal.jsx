@@ -72,6 +72,7 @@ const TABS = [
 // Same reachability helper MilitaryPanel used to define — see its own header (before this move)
 // for why: land-adjacent always, plus (for naval units) sea lanes within the current age's reach.
 const getMoveOptions = (unit, age, regions, playerNationId) => {
+  if ((unit.movesLeft ?? 1)<=0 || unit.embarkedOn) return [];
   const isOwned = (id) => regions[id]?.owner === playerNationId;
   const landNeighbors = getNeighborIds(unit.regionId).filter(isOwned);
   if (unit.domain !== 'naval') return landNeighbors;
@@ -202,6 +203,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
     dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId } });
   };
   const handleMove = (unitId, toRegionId) => {
+    if ((state.units[unitId]?.movesLeft ?? 1)<=0) return addLog('This army has already moved or fought. End the turn to restore movement.', 'action');
     if (!canAfford(state.resources, ACTION_COSTS.moveArmy)) return addLog('Not enough resources', 'action');
     triggerEffect('move_army', { from: state.units[unitId]?.regionId, to: toRegionId });
     dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId, toRegionId } });
@@ -629,6 +631,7 @@ const UnitRow = ({
           <select
             className="flex-1 bg-slate-700 text-slate-200 rounded px-1.5 py-1 text-[11px] disabled:opacity-40"
             disabled={moveOptions.length === 0}
+            title={(unit.movesLeft ?? 1)<=0 ? 'This army has already moved or fought. End the turn to restore movement.' : 'Choose an adjacent owned province'}
             defaultValue=""
             onChange={(e) => { if (e.target.value) { onMove(e.target.value); e.target.value = ''; } }}
           >

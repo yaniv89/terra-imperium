@@ -1,3 +1,5 @@
+import { getTradeRoute } from '../../engine/tradeRoutes';
+import { validateFrontier } from '../../engine/frontier';
 // src/components/modals/RegionInfoModal.jsx
 // Region information modal/panel with close button
 
@@ -24,6 +26,8 @@ import { getRankForXp } from '../../data/promotions';
 import { getDepositsFor } from '../../data/deposits';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
 import { getTotalDev } from '../../engine/development';
+import { validateInvasion, validateAmphibious } from '../../engine/invasion';
+import { describeAttackBlock } from '../../utils/attackAvailability';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
@@ -100,6 +104,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
   if (!regionData || !regionState) return null;
 
+  const frontier = validateFrontier(state, regionId);
+  const isNeutralFrontier = state.scenario?.mode === 'emergent' && regionState.owner === null;
   const isPlayerOwned = regionState.owner === state.playerNationId;
   const ownerNation = !isPlayerOwned ? state.nations[regionState.owner] : null;
 
@@ -108,13 +114,18 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const invasionSources = !isPlayerOwned
     ? getNeighborIds(regionId)
       .filter((nId) => state.regions[nId]?.owner === state.playerNationId)
-      .map((nId) => ({ regionId: nId, unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length }))
+      .map((nId) => ({
+        regionId: nId,
+        unitCount: Object.values(state.units).filter((u) => u.regionId === nId && u.ownerId === state.playerNationId && u.domain === 'land').length,
+        blockedReason: describeAttackBlock(validateInvasion(state, nId, regionId))
+      }))
       .filter((source) => source.unitCount > 0)
     : [];
   const amphibiousSources = (!isPlayerOwned && isCoastal(regionId))
     ? Object.values(state.units)
       .filter((u) => u.ownerId === state.playerNationId && u.domain === 'naval' && isReachable(u.regionId, regionId, state.age))
-      .map((u) => ({ unit: u, cargoCount: Object.values(state.units).filter((c) => c.embarkedOn === u.id).length }))
+      .map((u) => ({ unit: u, cargoCount: Object.values(state.units).filter((c) => c.embarkedOn === u.id).length,
+        blockedReason: describeAttackBlock(validateAmphibious(state, u.id, regionId)) }))
       .filter(({ cargoCount }) => cargoCount > 0)
     : [];
   const defendingNavalUnits = !isPlayerOwned
@@ -142,7 +153,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const regionOwner = state.nations[regionState.owner];
   const isRebelHeld = Object.values(state.units).some((u) => u.regionId === regionId && u.ownerId === REBEL_OWNER_ID);
   const isUngoverned = !regionOwner || regionOwner.isEliminated || (isRebelHeld && !regionOwner.hasMilitaryPact && regionOwner.vassalOf !== state.playerNationId);
-  const canSettle = !isPlayerOwned && isUngoverned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
+  const canSettle = !isNeutralFrontier && !isPlayerOwned && isUngoverned && isAdjacentToOwner(regionId, state.regions, state.playerNationId) && regionState.control < SETTLE_COLONIZE_CONTROL_THRESHOLD;
 
   // Foreign provinces only show their insides with intel on the owner (src/engine/intel.js).
   const revealed = canSeeRegionDetails(state, regionId);
@@ -178,11 +189,13 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // undefended province: without intel you can't know it's empty, and nothing should be launched
   // behind your back. No setting skips it.
   const handleInvade = (fromRegionId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.launchInvasion)) return addLog('Not enough resources', 'action');
+    const blockedReason = describeAttackBlock(validateInvasion(state, fromRegionId, regionId));
+    if (blockedReason) return addLog(blockedReason, 'action');
     setBattleChoiceFrom(fromRegionId);
   };
   const handleAmphibiousAssault = (navalUnitId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return addLog('Not enough resources', 'action');
+    const blockedReason = describeAttackBlock(validateAmphibious(state, navalUnitId, regionId));
+    if (blockedReason) return addLog(blockedReason, 'action');
     setLandingChoice(navalUnitId);
   };
   const handleNavalEngagement = (fromRegionId) => {
@@ -344,28 +357,31 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               />
             </div>
           )}
-          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount }) => (
+          {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
+          {ownerNation?.hasTradeAgreement && <p className="text-xs text-slate-300">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}</p>}
+          {isNeutralFrontier && <ActionButton icon={Compass} label="Frontier expedition" description={frontier.ok ? 'Integrate this region; the army spends its movement for this turn.' : frontier.reason} disabled={!frontier.ok} onClick={()=>dispatch({type:ActionTypes.FRONTIER_EXPEDITION,payload:{targetRegionId:regionId}})} />}
+          {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason }) => (
             <ActionButton
               key={srcId}
               icon={Flag}
               label={`Invade from ${REGIONS_DATA[srcId]?.name}`}
-              description={`${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
+              description={blockedReason || `${unitCount} land unit${unitCount === 1 ? '' : 's'} available`}
               costs={ACTION_COSTS.launchInvasion}
               onClick={() => handleInvade(srcId)}
-              disabled={!canAfford(state.resources, ACTION_COSTS.launchInvasion)}
+              disabled={!!blockedReason}
               variant="danger"
               size="small"
             />
           ))}
-          {atWarWithOwner && amphibiousSources.map(({ unit, cargoCount }) => (
+          {atWarWithOwner && amphibiousSources.map(({ unit, cargoCount, blockedReason }) => (
             <ActionButton
               key={unit.id}
               icon={Anchor}
               label={`Amphibious assault from ${REGIONS_DATA[unit.regionId]?.name}`}
-              description={`${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}`}
+              description={blockedReason || `${cargoCount} embarked land unit${cargoCount === 1 ? '' : 's'}`}
               costs={ACTION_COSTS.amphibiousAssault}
               onClick={() => handleAmphibiousAssault(unit.id)}
-              disabled={!canAfford(state.resources, ACTION_COSTS.amphibiousAssault)}
+              disabled={!!blockedReason}
               variant="danger"
               size="small"
             />

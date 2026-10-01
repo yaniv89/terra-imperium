@@ -31,11 +31,11 @@ export default defineConfig({
       // that pegs the render thread hard enough to make the page appear to hang to CDP — swapping
       // in SwiftShader explicitly (a real, correct software GL implementation, not a hack) is the
       // standard fix for exactly this class of symptom in CI/sandboxed headless environments.
-      args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl']
+      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl']
     }
   },
   webServer: {
-    command: `npm run build:mobile && npx vite preview --config vite.config.mobile.js --port ${PORT} --strictPort`,
+    command: `npm run build:mobile && node scripts/preview.mjs --mobile --port ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000
