@@ -12,9 +12,9 @@ import { getSatelliteEffectTotal } from '../data/satellites';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
 import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
-import { getPopFactor, seedDevelopment } from '../engine/development';
+import { getPopFactor, seedDevelopment, getTotalDev } from '../engine/development';
 import { devastationIncomeMult } from '../engine/aftermath';
-import { BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
+import { BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 // Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
 // keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
 // which also exposes explainNationBonus for a future breakdown tooltip.
@@ -251,6 +251,8 @@ export const calcIncome = (state) => {
     if (localTechPoints) {
       income.techPoints = (income.techPoints || 0) + localTechPoints * controlMult * infraMult;
     }
+    // Science from development (src/engine/research.js): a share of the province's development.
+    income.techPoints = (income.techPoints || 0) + SCIENCE_PER_DEV * getTotalDev({ dev: region.dev || seedDevelopment(region.id) }) * controlMult;
   });
 
   // Occupation (plan §M13): the occupier gets a lesser tax-only share of what it holds, rather than
@@ -306,10 +308,8 @@ export const calcIncome = (state) => {
     if (reward.helium3PerTurn && income.helium3 !== undefined) income.helium3 += reward.helium3PerTurn;
   });
 
-  // Set Research Focus (plan §M7) no longer boosts techPoints income here — it's now a real
-  // -15% power-cost discount applied directly in RESEARCH_TECH/canResearchTech for the focused
-  // line's own techs (src/data/techTree.js's getTechPowerCost), not a flat, line-agnostic
-  // techPoints multiplier.
+  // Research Focus doesn't change science income here: science spent on a tech of the focused line
+  // counts FOCUS_SCIENCE_BONUS more (src/engine/research.js).
   // A flat base trickle for every nation that still holds territory (BASE_TECHPOINTS_PER_TURN's own
   // header comment) — added before the Scholar/techPointsMult bonus below so that bonus applies to it.
   if (playerRegions.length > 0) income.techPoints = (income.techPoints || 0) + BASE_TECHPOINTS_PER_TURN;

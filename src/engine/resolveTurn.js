@@ -25,7 +25,7 @@ import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusT
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
-import { checkNationElimination, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
+import { checkNationElimination, unlinkEliminatedVassalage, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
 import { processAIAbmDefense } from './aiMissiles';
@@ -56,6 +56,7 @@ import {
   POWER_POOL_CAP
 } from '../data/actionCosts';
 import { processSuccession, processRoyalBirth, getAdvisorSalary } from './succession';
+import { applyResearchTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
@@ -890,7 +891,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.keys(nationsAfterWars).forEach((nId) => {
     const eliminated = checkNationElimination(nationsAfterWars, regions, nId);
     if (!eliminated) return;
-    nationsAfterWars = { ...nationsAfterWars, [nId]: eliminated };
+    nationsAfterWars = unlinkEliminatedVassalage({ ...nationsAfterWars, [nId]: eliminated }, nId, nationsAfterWars[nId].vassalOf);
     wars.forEach(w => {
       if (w.aggressor === nId || w.enemy === nId) {
         eliminationWarParticipants.add(w.aggressor);
@@ -1067,5 +1068,6 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   }
   mark('victory');
 
-  return reconcileTerritory(processEmergence(next));
+  // Research last, once this turn's science has been credited (src/engine/research.js).
+  return applyResearchTurn(reconcileTerritory(processEmergence(next)));
 };

@@ -1,5 +1,6 @@
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
+import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { claimFrontier } from './frontier';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
@@ -19,7 +20,7 @@ import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
 import { WORLD_NATIONS } from '../data/worldNations';
-import { TECH_TREE, canResearchTech, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from '../data/techTree';
+import { TECH_TREE } from '../data/techTree';
 import {
   GOVERNMENT_TYPES, canChangeGovernmentType, canEnactReform, resetReformsForType, getReformChoices
 } from '../data/government';
@@ -42,10 +43,9 @@ import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
-import { withDiffusion } from './techDiffusion';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, AGE_ORDER, AGES, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId } from '../data/ages';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
@@ -55,7 +55,7 @@ import {
 import { hasDeposit } from '../data/deposits';
 import { getAvailableClasses } from '../data/unitClasses';
 import {
-  ACTION_COSTS, TECH_RESEARCH_POOL, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
+  ACTION_COSTS, DISBAND_HR_REFUND_RATIO, FUND_SCHOLARS_TECHPOINTS,
   SUE_FOR_PEACE_MIN_GOLD, SUE_FOR_PEACE_BASE_GOLD, GIFT_HOSTILITY_REDUCTION,
   UNJUSTIFIED_WAR_GLOBAL_HOSTILITY, UNJUSTIFIED_WAR_HOME_UNREST,
   SETTLE_COLONIZE_CONTROL_THRESHOLD, SETTLE_COLONIZE_START_CONTROL, SETTLE_COLONIZE_START_UNREST, SETTLE_COLONIZE_OWNER_HOSTILITY,
@@ -396,6 +396,9 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // Set Research Focus (Research tab) — which TechCategory the nation is committing research
     // effort toward; null until first set. See helpers.js's calcIncome for its effect.
     researchFocus: null,
+    // Civ-style research (src/engine/research.js): the tech being researched, the queue after it,
+    // progress kept per tech, and whether the advisor picks the next tech when the queue runs out.
+    research: emptyResearch(),
 
     // Per-region armies (plan §7) — a flat dict keyed by unit id, not nested under regions, since
     // units move between regions over their lifetime. See src/data/unitClasses.js for the class/
@@ -1835,51 +1838,35 @@ const reduceAction = (state, action) => {
       };
     }
 
+    // Research (src/engine/research.js): choosing a tech sets it as the target (its missing earlier
+    // techs are queued first); science pays for it turn by turn in resolveTurn. Nothing is spent here.
     case ActionTypes.RESEARCH_TECH: {
       const { techId } = action.payload;
-      const tech = TECH_TREE[techId];
-      if (!tech) return state;
-      // Plan §M7: research costs the power of the tech's own line's pool (age-scaled,
-      // getTechPowerCost) plus techPoints — gold is gone. national.researchCost and (for the
-      // currently-focused line) Research Focus's own -15% power discount both apply.
-      const agesBehind = getAgesBehind(state.age, state.techAgeId);
-      // Cheaper when neighbours already know it, dearer when nobody in the world does yet (techDiffusion.js).
-      const researchCostMult = withDiffusion(state, state.playerNationId, techId, getModifier(state, state.playerNationId, 'national.researchCost').total);
-      const focused = state.researchFocus === tech.category;
-      if (!canResearchTech(techId, state.techTree, state.resources, state.year, TECH_TREE, agesBehind, researchCostMult, focused).can) return state;
+      if (!TECH_TREE[techId] || state.techTree[techId]?.researched) return state;
+      const researched = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id]?.researched));
+      const research = chooseResearch(state.research || emptyResearch(), techId, researched);
+      if (research === state.research) return state;
+      return { ...state, research, logs: [...state.logs, { year: state.year, message: `Now researching ${TECH_TREE[research.current]?.name}${research.queue.length ? `, then ${research.queue.map((id) => TECH_TREE[id]?.name).join(', ')}` : ''}.`, type: LogTypes.TECH }] };
+    }
 
-      const nextTechTree = { ...state.techTree, [techId]: { ...state.techTree[techId], researched: true } };
+    case ActionTypes.QUEUE_RESEARCH: {
+      const { techId } = action.payload;
+      if (!TECH_TREE[techId] || state.techTree[techId]?.researched) return state;
+      const researched = new Set(Object.keys(state.techTree).filter((id) => state.techTree[id]?.researched));
+      const research = queueResearch(state.research || emptyResearch(), techId, researched);
+      return research === state.research ? state : { ...state, research };
+    }
 
-      // Tech-earned age (plan §2): once a majority of the current tech age's line is researched,
-      // it advances — see src/data/ages.js's getEffectiveAgeId, which is what actually gates
-      // buildings/units/extraction one age ahead of the calendar as a result.
-      const currentAgeTechs = getTechsForAge(state.techAgeId);
-      const researchedCount = currentAgeTechs.filter(t => nextTechTree[t.id]?.researched).length;
-      const nextTechAgeIndex = AGE_ORDER.indexOf(state.techAgeId) + 1;
-      const advancesTechAge = researchedCount >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextTechAgeIndex < AGE_ORDER.length;
-      const nextTechAgeId = advancesTechAge ? AGE_ORDER[nextTechAgeIndex] : state.techAgeId;
+    case ActionTypes.UNQUEUE_RESEARCH: {
+      const { techId } = action.payload;
+      const current = state.research || emptyResearch();
+      // Removing the current tech moves the queue up (its progress is kept for later).
+      if (current.current === techId) return { ...state, research: unqueueResearch({ ...current, current: current.queue[0] || null, queue: current.queue.slice(1) }, techId) };
+      return { ...state, research: unqueueResearch(current, techId) };
+    }
 
-      const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
-      const powerCost = Math.round(getTechPowerCost(tech, { researchCostMult, focused }) * costMult);
-      const techPointsCost = Math.round(tech.cost.techPoints * (1 + researchCostMult) * costMult);
-      const pool = TECH_RESEARCH_POOL[tech.category];
-      const resourcesAfterTechCost = {
-        ...state.resources,
-        [pool]: state.resources[pool] - powerCost,
-        techPoints: state.resources.techPoints - techPointsCost
-      };
-
-      return {
-        ...state,
-        resources: resourcesAfterTechCost,
-        techTree: nextTechTree,
-        techAgeId: nextTechAgeId,
-        logs: [
-          ...state.logs,
-          { year: state.year, message: `Researched ${tech.name}.`, type: LogTypes.TECH },
-          ...(advancesTechAge ? [{ year: state.year, message: `Your empire's expertise has reached the ${AGES[nextTechAgeId]?.name}.`, type: LogTypes.MILESTONE }] : [])
-        ]
-      };
+    case ActionTypes.SET_RESEARCH_AUTO: {
+      return { ...state, research: { ...(state.research || emptyResearch()), auto: action.payload?.auto === true } };
     }
 
     case ActionTypes.SET_RESEARCH_FOCUS: {

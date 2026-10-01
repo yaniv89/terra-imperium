@@ -75,7 +75,10 @@ export const ActionTypes = {
   SUPPRESS_REBELLION: 'SUPPRESS_REBELLION',
 
   // Research tab (plan) — Set Focus/Fund Scholars feed techPoints, Research Tech spends them.
-  RESEARCH_TECH: 'RESEARCH_TECH',
+  RESEARCH_TECH: 'RESEARCH_TECH', // choose what to research (src/engine/research.js): not an instant purchase
+  QUEUE_RESEARCH: 'QUEUE_RESEARCH',
+  UNQUEUE_RESEARCH: 'UNQUEUE_RESEARCH',
+  SET_RESEARCH_AUTO: 'SET_RESEARCH_AUTO',
   SET_RESEARCH_FOCUS: 'SET_RESEARCH_FOCUS',
   FUND_SCHOLARS: 'FUND_SCHOLARS',
 

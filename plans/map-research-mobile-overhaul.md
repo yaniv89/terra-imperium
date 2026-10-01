@@ -122,6 +122,16 @@ sheet ever covers it. The battle's max zoom on phones is 5 (was 3).
 
 ## 2. Civ-style research, with a choice popup at the start and after each tech
 
+**Status: built (workstream 4, slices 1 to 3).** Science (tech points) builds up each turn
+toward the current tech, with leftovers carried over, progress kept when switching and a queue.
+Picking a later tech queues its missing earlier ones. ADM, DIP and MIL no longer pay for research.
+Science from development is 0.02 x development. Costs by age were calibrated on the balance sim
+(median science is about 9 to 10 a turn in every age) to 40 / 85 / 135 / 140 / 290. The median
+AI nation reaches 7 techs by turn 30, 15 by 95, 22 by 195 and 30 by 295, against targets of 7,
+14, 21 and 28. The choice sheet is a non-blocking corner card; a top bar pill shows the current
+tech and turns left. The AI pays its science into research every third turn, staggered. Boosts
+(slice 4) and the soft year gate (slice 5) are not built yet.
+
 ### Engine design (follows the add-mechanic skill)
 - **Science per turn**, shown as `+N`:
   `science = base 2 + Science buildings + round(totalDev x 0.02) + modifiers`.
@@ -1445,7 +1455,7 @@ after, and `compare.sh` for speed.
 | 1 | Landscape shell, rotate overlay, native lock, side sheets | L | **done** |
 | 2 | Battle odds band, animated auto-resolve, battle report history | M | **done** |
 | 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | **done** |
-| 4 | Research engine, calibration, choice popup, research tab | L | 3 (calibrate on the final map) |
+| 4 | Research engine, calibration, choice popup, research tab | L | **done** (boosts and soft gate later) |
 | 5 | Tap disambiguation, more zoom | S | 3 |
 | 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | 3, 5 |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |

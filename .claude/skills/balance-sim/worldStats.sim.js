@@ -43,6 +43,9 @@ const snapshot = (s, t, counters, ms) => {
     avgUnrest: +(unrest.reduce((a, b) => a + b, 0) / unrest.length).toFixed(1),
     playerProvinces: counts[PLAYER] || 0, playerGold: Math.round(s.resources.gold || 0), playerSupplies: Math.round(s.resources.supplies || 0),
     playerUnits: Object.values(s.units).filter((u) => u.ownerId === PLAYER).length,
+    // Research (src/engine/research.js): the player's advisor picks; the median AI nation.
+    playerTechs: Object.values(s.techTree).filter((t) => t.researched).length, playerTechAge: s.techAgeId,
+    medianAiTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated).map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
     nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };
@@ -50,6 +53,7 @@ const snapshot = (s, t, counters, ms) => {
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0 };
     let last;
     let t0 = performance.now(); let turnsSince = 0;

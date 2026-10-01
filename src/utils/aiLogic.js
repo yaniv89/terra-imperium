@@ -279,7 +279,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null) => {
   // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
   // truce-active neighbor is filtered out of consideration entirely.
   const candidates = getBorderingNationIds(state.regions, nationId)
-    .filter(id => state.nations[id] && !state.nations[id].isEliminated && !isInTruce(state, nationId, id)
+    // Never its own vassal: an overlord settles a vassal by annexing it, not by war.
+    .filter(id => state.nations[id] && !state.nations[id].isEliminated && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id)
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;

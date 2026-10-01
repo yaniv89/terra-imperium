@@ -5,8 +5,7 @@
 // reaches those prices (player and AI).
 import { describe, it, expect } from 'vitest';
 import { ACTION_COSTS, POWER_POOL_CAP } from './actionCosts';
-import { TECH_TREE, getTechPowerCost, canResearchTech } from './techTree';
-import { AGE_ORDER, getAgesBehindResearchCostMultiplier } from './ages';
+import { TECH_TREE } from './techTree';
 import { LAW_CATEGORIES } from './laws';
 import { GREAT_PROJECT_TIER_COST } from './greatProjects';
 import { HISTORICAL_EVENTS } from './events';
@@ -32,12 +31,6 @@ describe('power costs fit under POWER_POOL_CAP', () => {
     expect(over).toEqual([]);
   });
 
-  it('every tech, even at the worst ages-behind research multiplier', () => {
-    const worstMult = getAgesBehindResearchCostMultiplier(AGE_ORDER.length - 1);
-    const over = Object.values(TECH_TREE).filter((t) => getTechPowerCost(t) * worstMult > POWER_POOL_CAP);
-    expect(over.map((t) => t.id)).toEqual([]);
-  });
-
   it('every law (50 x tier ADM) and every great project tier', () => {
     Object.values(LAW_CATEGORIES).flat().forEach((law) => expect(50 * law.tier).toBeLessThanOrEqual(POWER_POOL_CAP));
     GREAT_PROJECT_TIER_COST.forEach((tier) => POOLS.forEach((p) => expect(tier[p] || 0).toBeLessThanOrEqual(POWER_POOL_CAP)));
@@ -45,21 +38,18 @@ describe('power costs fit under POWER_POOL_CAP', () => {
 });
 
 describe('power costs are actually reachable in play', () => {
-  it('the player can afford a tech (power-wise) within 15 turns, and pools grow past 2x income', () => {
+  it('pools grow past 2x income, and science alone researches a first tech within 15 turns', () => {
     let state = {
-      ...createInitialState({ playerNationId: 'fr' }),
+      ...createInitialState({ playerNationId: 'fr', rngSeed: 7 }),
       firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
       proceduralEventCooldown: 999999
     };
+    // Research is Civ-style (src/engine/research.js): choose a tech, science pays for it each turn.
+    const techId = Object.values(TECH_TREE).find((t) => t.prerequisites.length === 0).id;
+    state = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId } });
     for (let i = 0; i < 15; i++) state = resolveTurn(state);
     POOLS.forEach((p) => expect(state.resources[p]).toBeGreaterThan(state.resources[`max${p[0].toUpperCase()}${p.slice(1)}`] * 2));
-    // techPoints aren't what this guards (Fund Scholars/Libraries supply those) — only the power side.
-    const researchable = Object.keys(TECH_TREE).filter((id) =>
-      canResearchTech(id, state.techTree, { ...state.resources, techPoints: 9999 }, state.year).can);
-    expect(researchable.length).toBeGreaterThan(0);
-    const techId = researchable[0];
-    const next = gameReducer({ ...state, resources: { ...state.resources, techPoints: 9999 } }, { type: ActionTypes.RESEARCH_TECH, payload: { techId } });
-    expect(next.techTree[techId].researched).toBe(true);
+    expect(state.techTree[techId].researched).toBe(true);
   }, 60000);
 
   it('AI nations research techs too', () => {

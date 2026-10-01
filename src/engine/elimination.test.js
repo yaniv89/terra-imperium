@@ -82,3 +82,23 @@ describe('checkPlayerDefeat (plan §M15)', () => {
     expect(checkPlayerDefeat({}, 'fr')).toBe(true);
   });
 });
+
+// Regression (endgame reachability run, seed 7, turn 269): Italy conquered its own vassal San
+// Marino; the eliminated vassal kept vassalOf: 'it' and the state audit failed.
+import { checkNationElimination as checkElim, unlinkEliminatedVassalage } from './elimination';
+describe('eliminating a vassal or an overlord clears the vassal links', () => {
+  it('a dead vassal points at nobody, and its overlord no longer lists it', () => {
+    const nations = {
+      it: { id: 'it', vassals: ['sm'], vassalOf: null },
+      sm: { id: 'sm', vassalOf: 'it', vassals: [] }
+    };
+    const dead = checkElim(nations, {}, 'sm');
+    expect(dead).toMatchObject({ isEliminated: true, vassalOf: null, vassals: [] });
+    const out = unlinkEliminatedVassalage({ ...nations, sm: dead }, 'sm', 'it');
+    expect(out.it.vassals).toEqual([]);
+  });
+  it("a dead overlord's vassals are free", () => {
+    const out = unlinkEliminatedVassalage({ it: { id: 'it', vassals: ['sm'], isEliminated: true }, sm: { id: 'sm', vassalOf: 'it', libertyDesire: 40 } }, 'it', null);
+    expect(out.sm).toMatchObject({ vassalOf: null, libertyDesire: 0 });
+  });
+});

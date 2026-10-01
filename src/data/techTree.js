@@ -9,9 +9,8 @@
 // built for. GameContext.jsx now passes that effective age to getAvailableClasses instead of the
 // raw calendar age.
 //
-// Plan §M7: every tech now costs the power of its own line's pool (Military->MIL, Economy/
-// Science->DIP, Infrastructure/Governance->ADM, TECH_RESEARCH_POOL below) PLUS techPoints — gold
-// is removed from research entirely. Building/tech unlocks named in the plan's own §M6.3/§M7
+// Research cost: science only, by age (src/engine/research.js RESEARCH_AGE_BASE); the old
+// per-tech `cost.techPoints` below is kept only as data. Building/tech unlocks named in the plan's own §M6.3/§M7
 // tables are wired as REAL effects wherever this codebase already has the hook to receive them
 // (most of the building unlocks are src/data/buildings.js's own requiresTech, already wired in
 // M6): every tech below whose plan-described effect maps onto an EXISTING, consumed modifier hook
@@ -22,9 +21,8 @@
 // chances) is left with no `effects` entry — it's still real progression (its own prerequisite
 // chain, its building unlocks where those exist), just not a faked modifier line. Those systems'
 // own milestones (M8/M9/M11/M12/M14/M17) are where those techs' remaining effects get wired.
-import { AGE_ORDER, AGES, getAgesBehindResearchCostMultiplier } from './ages';
+import { AGE_ORDER, AGES } from './ages';
 import { TechCategories } from './types';
-import { TECH_RESEARCH_POOL } from './actionCosts';
 
 const CATEGORY_LINES = {
   [TechCategories.MILITARY]: [
@@ -139,15 +137,6 @@ export const TECH_TREE = Object.entries(CATEGORY_LINES).reduce((acc, [category, 
   return { ...acc, ...buildLine(category, names) };
 }, {});
 
-// Plan §M7's own formula: 40 + 30 x ageIndex (Bronze 40 -> Modern 160), before the ages-behind
-// multiplier, national.researchCost, and (for the tech's own line, when it's the research focus)
-// the -15% Research Focus discount.
-export const getTechPowerCost = (tech, { researchCostMult = 0, focused = false } = {}) => {
-  const ageIndex = AGE_ORDER.indexOf(tech.ageId);
-  const base = 40 + Math.max(0, ageIndex) * 30;
-  return Math.round(base * (1 + researchCostMult) * (focused ? 0.85 : 1));
-};
-
 // How many of a given age's techs (across all 5 lines) must be researched before a nation's
 // tech-earned age (state.techAgeId) advances to the next one — a majority, not all ten, so
 // falling behind in one line doesn't lock out the reward from the other four.
@@ -168,40 +157,3 @@ export const getTechsByCategory = () => {
   return categories;
 };
 
-// Check if tech can be researched. `techDefs` defaults to the real TECH_TREE — tests pass their
-// own fixture table instead, so exercising the generic gating logic never has to mutate the real
-// production tree. `agesBehind` (src/data/ages.js's getAgesBehind) scales the affordability check
-// by the same ages-behind research-cost multiplier the reducer actually deducts — otherwise a
-// player could see "can research" here while the reducer charges them a scaled-up cost they can't
-// afford. `researchCostMult`/`focused` mirror getTechPowerCost's own options, applied to the power
-// check the same way the reducer will actually charge it.
-export const canResearchTech = (techId, techTree, resources, year, techDefs = TECH_TREE, agesBehind = 0, researchCostMult = 0, focused = false) => {
-  const tech = techDefs[techId];
-  const state = techTree[techId];
-
-  if (!tech || !state) return { can: false, reason: 'Invalid tech' };
-  if (state.researched) return { can: false, reason: 'Already researched' };
-  if (tech.yearAvailable > year) return { can: false, reason: `Available in ${tech.yearAvailable}` };
-
-  const hasPrereqs = tech.requiresAny
-    ? tech.prerequisites.some(p => techTree[p]?.researched)
-    : tech.prerequisites.every(p => techTree[p]?.researched);
-  if (!hasPrereqs) return { can: false, reason: 'Prerequisites not met' };
-
-  // Mutually exclusive techs: researching one locks out the other permanently for this game.
-  const exclusiveResearched = (tech.exclusiveWith || []).find(id => techTree[id]?.researched);
-  if (exclusiveResearched) {
-    return { can: false, reason: `Exclusive with ${techDefs[exclusiveResearched]?.name}` };
-  }
-
-  const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
-  if (resources.techPoints < tech.cost.techPoints * (1 + researchCostMult) * costMult) return { can: false, reason: 'Insufficient tech points' };
-  // Plan §M2/§M7: which power pool gates this depends on the tech's own line.
-  const pool = TECH_RESEARCH_POOL[tech.category];
-  const powerCost = getTechPowerCost(tech, { researchCostMult, focused }) * costMult;
-  if ((resources[pool] || 0) < powerCost) {
-    return { can: false, reason: `Need ${Math.round(powerCost)} ${pool.toUpperCase()}` };
-  }
-
-  return { can: true, reason: null };
-};
