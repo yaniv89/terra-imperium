@@ -1,4 +1,5 @@
 import { applyActionPolitics } from './actionPolitics';
+import { recordBattleReport } from './battleReports';
 import { applyScenario } from './worldgen/emergentWorld';
 import { claimFrontier } from './frontier';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
@@ -423,6 +424,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // Set by LAUNCH_INVASION to the itemized phase-by-phase result of the most recent battle (see
     // src/engine/battle.js) — read by the UI for an after-action report, never by the reducer.
     lastBattleReport: null,
+    battleReports: [], // the player's last 30 battles (src/engine/battleReports.js)
 
     // Events
     activeEventId: null,
@@ -1649,6 +1651,7 @@ const reduceAction = (state, action) => {
       const next = { ...(state.battleSettings || {}), ...(action.payload || {}) };
       if (!['ask', 'auto', 'command'].includes(next.defaultMode)) next.defaultMode = 'ask';
       next.autoDefend = next.autoDefend === true;
+      next.instantBattles = next.instantBattles === true; // skip the auto-resolve replay
       return { ...state, battleSettings: next };
     }
 
@@ -1689,7 +1692,7 @@ const reduceAction = (state, action) => {
             resources: applyCosts(state.resources, costs),
             units: nextUnits,
             rngSeed: rng.getSeed(),
-            lastBattleReport: { ...navalBattle.report, kind: 'naval', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner },
+            ...recordBattleReport(state, { ...navalBattle.report, kind: 'naval', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner }, { attackers: navalBattle.attackerUnits, defenders: navalBattle.defenderUnits }),
             logs: [...state.logs, { year: state.year, message: `Your invasion fleet was intercepted and sunk approaching ${REGIONS_DATA[targetRegionId]?.name}.`, type: LogTypes.COMBAT }]
           };
         }
@@ -1770,7 +1773,7 @@ const reduceAction = (state, action) => {
         resources: applyCosts(state.resources, costs),
         units: nextUnits,
         rngSeed: rng.getSeed(),
-        lastBattleReport: { ...report, kind: 'naval', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: state.regions[targetRegionId]?.owner },
+        ...recordBattleReport(state, { ...report, kind: 'naval', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: state.regions[targetRegionId]?.owner }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }
@@ -1827,7 +1830,7 @@ const reduceAction = (state, action) => {
         regions: nextRegions,
         units: nextUnits,
         rngSeed: rng.getSeed(),
-        lastBattleReport: { ...report, kind: 'rebellion', fromRegionId: regionId, targetRegionId: regionId, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID },
+        ...recordBattleReport(state, { ...report, kind: 'rebellion', fromRegionId: regionId, targetRegionId: regionId, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID }, { attackers: resolvedGarrison, defenders: resolvedRebels }),
         logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
       };
     }

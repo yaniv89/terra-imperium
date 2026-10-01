@@ -19,6 +19,7 @@ import { getRegionTerrain } from '../../data/terrain';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { estimateInvasionOdds, estimateLandingOdds } from '../../engine/battleOdds';
+import { scoutsEstimate } from './battleReportView';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
@@ -155,6 +156,19 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
           </div>
         )}
 
+        {odds && !hasIntel && (() => {
+          const band = scoutsEstimate(odds.attacker);
+          return (
+            <div className="rounded-lg bg-slate-800/60 p-3 space-y-1" data-testid="battle-odds-scouts">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[11px] text-slate-400">Scouts&apos; estimate</span>
+                <span className={`text-base font-bold ${band.tone}`}>{band.label}</span>
+              </div>
+              <div className="text-[11px] text-slate-400">{band.hint} Spy on {enemyName} (Diplomacy) for exact odds.</div>
+            </div>
+          );
+        })()}
+
         {landing && blockedAtSea && (
           <div className="text-[11px] text-slate-400 rounded-lg bg-slate-800/60 px-3 py-2">An enemy fleet guards the coast: it has to be fought at sea first, so this landing can only be auto-resolved.</div>
         )}
@@ -176,7 +190,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
           <Zap className="w-6 h-6 text-amber-300 shrink-0" />
           <span>
             <span className="block font-semibold text-white">{knownEmpty ? 'March in' : 'Auto-resolve'} {!knownEmpty && preferred === 'auto' && <Star className="inline w-3.5 h-3.5 text-amber-300" />}</span>
-            <span className="block text-xs text-slate-400">{knownEmpty ? 'Take the province now.' : `${odds && !odds.undefended && hasIntel ? 'Instant, by the odds above.' : 'Instant, by the same rules (no odds without intelligence).'} Break their whole garrison and the region is yours.`}</span>
+            <span className="block text-xs text-slate-400">{knownEmpty ? 'Take the province now.' : `${odds && !odds.undefended && hasIntel ? 'Instant, by the odds above.' : 'Instant, by the same rules (your scouts\' estimate above).'} Break their whole garrison and the region is yours.`}</span>
           </span>
         </button>
         <button type="button" onClick={onClose} className="w-full min-h-[48px] p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-center gap-3 text-left" data-testid="battle-choice-calloff">

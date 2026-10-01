@@ -14,6 +14,7 @@
 import React, { useMemo, useState } from 'react';
 import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles, Heart, Users, Crown, Unlock, Ban, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { useEffects } from '../../context/EffectsContext';
 import { WORLD_NATIONS } from '../../data/worldNations';
@@ -375,7 +376,7 @@ const NationCard = ({ nation }) => {
               disabled={!canAfford(state.resources, sueForPeaceCosts)}
               onClick={() => dispatchIfAffordable(ActionTypes.SUE_FOR_PEACE, sueForPeaceCosts)}
             />
-            {peaceOpen && activeWar && <PeaceDealSheet warId={activeWar.id} onClose={() => setPeaceOpen(false)} />}
+            <TopLayer>{peaceOpen && activeWar && <PeaceDealSheet warId={activeWar.id} onClose={() => setPeaceOpen(false)} />}</TopLayer>
           </>
         ) : (
           <>
