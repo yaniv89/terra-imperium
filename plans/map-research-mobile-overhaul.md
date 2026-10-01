@@ -52,6 +52,11 @@ Section 11 gives the order of work.
 
 ## 1. Landscape-first on phones
 
+**Status: built (slice 1).** Two changes from the design below, made while building it: the tab
+rail is on the **right** edge (the dock opens beside it), mirroring desktop, so the province
+panel can stay on the left with both open; and **End Turn** sits in the slim top bar, where no
+sheet ever covers it. The battle's max zoom on phones is 5 (was 3).
+
 ### Design
 - **Phones are landscape only.** Detected as a short side of 500 px or less, plus touch.
   Tablets and desktop keep their current layouts.

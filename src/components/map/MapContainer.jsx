@@ -104,7 +104,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
         position="panel-hud"
       />
       )}
-      <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2">
+      <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
         <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
         <MapLegend />
       </div>

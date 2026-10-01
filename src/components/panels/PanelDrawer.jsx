@@ -8,16 +8,22 @@
 // that tab's content, styled like ProvinceModal's own mobile sheet. Neither ActionPanelTabs nor
 // ActionPanel are modified — this component only owns positioning/open state, not tab content.
 //
+// On a phone held sideways (useLayoutMode 'phone-landscape') it is a slim tab rail on the right
+// edge instead, with the Event Log at its foot; tapping a tab docks that tab's content beside the
+// rail (the map stays usable on the left), tapping the open tab again closes it.
+//
 // Also publishes the mobile tab bar's real on-screen height as the --panel-bar-height CSS custom
 // property (set on <html>, mirroring GameHeader's --header-height), so map corner controls
 // (MiniMap/MapLegend) can offset themselves above it without needing to know anything about this
 // component's own markup.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, ScrollText, X } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
-import ActionPanelTabs from './ActionPanelTabs';
+import ActionPanelTabs, { TABS, getTabBadge } from './ActionPanelTabs';
 import ActionPanel from './ActionPanel';
 
 const COLLAPSED_STORAGE_KEY = 'terra-imperium-panel-drawer-collapsed';
@@ -29,8 +35,31 @@ const readStoredCollapsed = () => {
   }
 };
 
-const PanelDrawer = ({ activeTab, onTabChange }) => {
+// One rail button: icon over a tiny label, with the same red badge as the tab bar.
+const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) => (
+  <button
+    onClick={onClick}
+    aria-label={ariaLabel || label}
+    aria-pressed={active}
+    className={`relative w-full flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-lg transition-colors
+                ${active ? 'bg-blue-600/25 text-blue-300' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+  >
+    <Icon className="w-[18px] h-[18px]" />
+    <span className="text-[9px] leading-none font-semibold">{label}</span>
+    {badge > 0 && (
+      <span className="absolute top-0.5 right-1 min-w-[1rem] h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+        {badge > 9 ? '9+' : badge}
+      </span>
+    )}
+  </button>
+);
+
+const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
+  const { state } = useGame();
   const isMobile = useIsMobile();
+  const isLandscapePhone = useLayoutMode() === 'phone-landscape';
+  const [dockOpen, setDockOpen] = useState(false);
+  const landscapeRef = useRef(null);
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
   const mobileBarRef = useRef(null);
@@ -42,7 +71,9 @@ const PanelDrawer = ({ activeTab, onTabChange }) => {
   // capital from the Domestic tab.
   useReportInset('panel-bar', 'bottom', mobileBarRef, isMobile);
   useReportInset('panel-sheet', 'bottom', mobileSheetRef, isMobile && mobileSheetOpen);
-  useReportInset('panel-drawer', 'right', desktopPanelRef, !isMobile && !collapsed);
+  useReportInset('panel-drawer', 'right', desktopPanelRef, !isMobile && !isLandscapePhone && !collapsed);
+  // The rail plus the open dock, measured as one block on the right edge.
+  useReportInset('panel-rail', 'right', landscapeRef, isLandscapePhone);
   const [peeking, cancelPeek] = useAutoPeek(isMobile && mobileSheetOpen);
 
   const toggleCollapsed = useCallback(() => {
@@ -77,6 +108,40 @@ const PanelDrawer = ({ activeTab, onTabChange }) => {
       setMobileSheetOpen(true);
     }
   }, [activeTab, onTabChange]);
+
+  if (isLandscapePhone) {
+    const handleRailTab = (tabId) => {
+      if (tabId === activeTab) setDockOpen((open) => !open);
+      else { onTabChange(tabId); setDockOpen(true); }
+    };
+    return (
+      <div
+        ref={landscapeRef}
+        data-testid="landscape-rail"
+        className="fixed right-0 bottom-0 top-[var(--header-height,2.75rem)] z-20 flex pr-[env(safe-area-inset-right)] bg-slate-900/95 backdrop-blur-md border-l border-slate-700/70"
+      >
+        {dockOpen && (
+          <div data-testid="landscape-dock" className="w-[clamp(300px,40vw,380px)] flex flex-col border-r border-slate-800 shadow-2xl">
+            <ActionPanel activeTab={activeTab} />
+          </div>
+        )}
+        <nav className="w-[3.75rem] shrink-0 flex flex-col gap-0.5 p-1 overflow-y-auto scrollbar-none pb-[max(env(safe-area-inset-bottom),0.25rem)]">
+          {TABS.map((tab) => (
+            <RailButton
+              key={tab.id}
+              icon={tab.icon}
+              label={tab.label}
+              active={dockOpen && activeTab === tab.id}
+              badge={getTabBadge(state, tab.id)}
+              onClick={() => handleRailTab(tab.id)}
+            />
+          ))}
+          <div className="mt-auto" />
+          <RailButton icon={ScrollText} label="Log" ariaLabel="Open event log" badge={unreadLogs} onClick={onOpenLog} />
+        </nav>
+      </div>
+    );
+  }
 
   if (isMobile) {
     return (

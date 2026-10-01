@@ -110,8 +110,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
   const ring = (mode) => (preferred === mode ? ' ring-2 ring-amber-300/70' : '');
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose} data-testid="battle-choice">
-      <div onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-slate-200 shadow-2xl space-y-3" data-testid="pre-battle">
+    <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" onClick={onClose} data-testid="battle-choice">
+      <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-slate-200 shadow-2xl space-y-3" data-testid="pre-battle">
         <div className="flex items-start justify-between">
           <div>
             <div className="text-base font-bold text-white">{landing ? 'Land on' : 'Attack'} {REGIONS_DATA[targetRegionId]?.name}</div>

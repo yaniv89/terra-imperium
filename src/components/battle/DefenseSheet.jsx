@@ -70,7 +70,7 @@ const DefenseSheet = () => {
 
   if (tucked) {
     return (
-      <button type="button" onClick={() => setTucked(false)} className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] px-4 py-2 rounded-full bg-red-600 text-white text-sm font-bold shadow-2xl animate-pulse flex items-center gap-2" data-testid="defense-pill">
+      <button type="button" onClick={() => setTucked(false)} className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] pl:bottom-3 px-4 py-2 rounded-full bg-red-600 text-white text-sm font-bold shadow-2xl animate-pulse flex items-center gap-2" data-testid="defense-pill">
         <Shield className="w-4 h-4" /> {defenses.length} under attack
       </button>
     );
@@ -78,8 +78,8 @@ const DefenseSheet = () => {
 
   const enemies = [...new Set(defenses.map((d) => state.nations[d.aggressorId]?.name || d.aggressorId))];
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center" data-testid="defense-sheet">
-      <div className="w-full sm:max-w-md max-h-[85vh] flex flex-col bg-slate-900 border border-red-500/60 rounded-t-2xl sm:rounded-2xl text-slate-200 shadow-2xl">
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" data-testid="defense-sheet">
+      <div className="sheet-panel w-full sm:max-w-md max-h-[85vh] flex flex-col bg-slate-900 border border-red-500/60 rounded-t-2xl sm:rounded-2xl text-slate-200 shadow-2xl">
         <div className="p-4 pb-2 flex items-start justify-between gap-3">
           <div>
             <div className="text-base font-bold text-white flex items-center gap-2"><Shield className="w-5 h-5 text-red-400" /> Under attack!</div>

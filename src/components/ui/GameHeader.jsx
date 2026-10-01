@@ -8,6 +8,7 @@ import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { AGES } from '../../data/ages';
 import ResourceBar from './ResourceBar';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 // plan §M0.5's header cloud status icon: guest/idle (not signed in — nothing to sync), synced,
 // syncing, offline (queued, will retry), conflict/error (needs attention, red).
@@ -21,8 +22,95 @@ const CLOUD_STATUS = {
   error: { Icon: AlertTriangle, className: 'text-red-400', title: 'Cloud sync error — click to retry' }
 };
 
+// Export/Import/Cloud/Reset folded into one "more" button (narrow screens and the phone top bar).
+const OverflowMenu = ({ showMenu, setShowMenu, handleExport, handleImportClick, onOpenSettings, onReset, cloudInfo, CloudIcon }) => (
+  <>
+    <button
+      onClick={() => setShowMenu((v) => !v)}
+      className="p-1.5 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
+      title="More"
+    >
+      <MoreVertical className="w-4 h-4" />
+    </button>
+    {showMenu && (
+      <>
+        <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
+        <div className="absolute right-0 top-full mt-1 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-40 py-1">
+          <button
+            onClick={() => { handleExport(); setShowMenu(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+          >
+            <Download className="w-4 h-4" /> Export Save
+          </button>
+          <button
+            onClick={() => { handleImportClick(); setShowMenu(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+          >
+            <Upload className="w-4 h-4" /> Import Save
+          </button>
+          <button
+            onClick={() => { onOpenSettings(); setShowMenu(false); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
+          >
+            <CloudIcon className={`w-4 h-4 ${cloudInfo.className}`} /> {cloudInfo.title}
+          </button>
+          <button
+            onClick={() => { setShowMenu(false); onReset(); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-slate-700"
+          >
+            <RotateCcw className="w-4 h-4" /> Reset Game
+          </button>
+        </div>
+      </>
+    )}
+  </>
+);
+
+// End Turn and Fast Forward: the same two buttons in every layout.
+const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => (
+  <>
+    <button
+      onClick={advanceTurn}
+      disabled={state.activeEventId !== null || isGameOver}
+      className={`
+        px-3 sm:px-4 py-1.5 sm:py-2 pl:px-3 pl:py-1.5 pl:text-xs rounded-lg font-bold text-xs sm:text-sm
+        bg-gradient-to-r from-blue-600 to-blue-500
+        hover:from-blue-500 hover:to-blue-400
+        text-white shadow-lg transition-all
+        active:scale-95 flex items-center gap-1.5 sm:gap-2 shrink-0
+        disabled:opacity-50 disabled:cursor-not-allowed
+      `}
+    >
+      {/* Always labeled — this is the single most-repeated action in the game and must never
+          degrade to an unlabeled color block on a narrow screen. */}
+      <span className="whitespace-nowrap">End Turn</span>
+      {state.pendingDefenses?.length > 0 && (
+        <span className="ml-0.5 px-1.5 rounded-full bg-red-500 text-[10px] leading-4" title="Your regions are under attack — fight the assaults first">{state.pendingDefenses.length}</span>
+      )}
+    </button>
+
+    {/* Fast Forward — resolves turns until an event, a war starting/ending, or the game
+        ending, so the quiet stretches of a multi-century game don't need one click each. */}
+    <button
+      onClick={fastForward}
+      disabled={state.activeEventId !== null || isGameOver}
+      title="Fast-forward until something happens"
+      className={`
+        px-2.5 sm:px-3 py-1.5 sm:py-2 pl:px-2 pl:py-1.5 rounded-lg font-bold text-xs sm:text-sm
+        bg-slate-700 hover:bg-slate-600
+        text-slate-200 shadow-lg transition-all
+        active:scale-95 flex items-center gap-1 shrink-0
+        disabled:opacity-50 disabled:cursor-not-allowed
+      `}
+    >
+      <FastForward className="w-4 h-4" />
+    </button>
+  </>
+);
+
 const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
+  const layoutMode = useLayoutMode();
   const fileInputRef = useRef(null);
   const headerRef = useRef(null);
   // Export/Import/Cloud/Reset are rarely used mid-turn compared to End Turn, so on narrow
@@ -47,9 +135,10 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [layoutMode]); // the phone-landscape bar is a different <header> element: observe the new one
   // The header floats over the map's top edge — reported so the map centres below it (plan §5.1).
-  useReportInset('game-header', 'top', headerRef);
+  // Keyed by layout so the measurement restarts on the new element when the layout switches.
+  useReportInset(`game-header-${layoutMode}`, 'top', headerRef);
 
   const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
   const cloudInfo = CLOUD_STATUS[cloudStatus] || CLOUD_STATUS.guest;
@@ -82,6 +171,39 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
     reader.readAsText(file);
     e.target.value = '';
   };
+
+  const menuProps = { showMenu, setShowMenu, handleExport, handleImportClick, onOpenSettings, onReset, cloudInfo, CloudIcon };
+  const importInput = <input ref={fileInputRef} type="file" accept="application/json" onChange={handleImportFile} className="hidden" />;
+
+  // A phone held sideways: one slim row (about 44 px) so the map keeps the height. Nation, year,
+  // the scrolling resource bar, End Turn and the overflow menu; the age name lives in the tooltip.
+  if (layoutMode === 'phone-landscape') {
+    return (
+      <header
+        ref={headerRef}
+        className="fixed top-0 inset-x-0 z-20 bg-slate-900/90 backdrop-blur-md border-b border-slate-700/50
+                   pt-[env(safe-area-inset-top)] pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)]
+                   flex items-center gap-2 h-[calc(2.75rem+env(safe-area-inset-top))]"
+      >
+        <Globe2 className="w-4 h-4 text-blue-400 shrink-0" />
+        <div className="max-w-[7rem] px-1.5 py-0.5 rounded border text-[11px] font-semibold truncate bg-blue-500/20 text-blue-300 border-blue-500/50" title={`${playerNation?.name} · ${ageName}`}>
+          {playerNation?.name}
+        </div>
+        <div className="shrink-0 bg-slate-800 px-2 py-0.5 rounded-md flex items-center gap-1 border border-slate-700" title={ageName}>
+          <Calendar className="w-3 h-3 text-slate-400" />
+          <span className="font-mono text-xs font-bold text-white">{yearLabel}</span>
+        </div>
+        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+          <ResourceBar />
+        </div>
+        <TurnButtons state={state} isGameOver={isGameOver} advanceTurn={advanceTurn} fastForward={fastForward} />
+        {importInput}
+        <div className="relative shrink-0">
+          <OverflowMenu {...menuProps} />
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header
@@ -152,53 +274,10 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
             </button>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            onChange={handleImportFile}
-            className="hidden"
-          />
+          {importInput}
 
           <div className="relative sm:hidden">
-            <button
-              onClick={() => setShowMenu((v) => !v)}
-              className="p-1.5 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
-              title="More"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-40 py-1">
-                  <button
-                    onClick={() => { handleExport(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
-                  >
-                    <Download className="w-4 h-4" /> Export Save
-                  </button>
-                  <button
-                    onClick={() => { handleImportClick(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
-                  >
-                    <Upload className="w-4 h-4" /> Import Save
-                  </button>
-                  <button
-                    onClick={() => { onOpenSettings(); setShowMenu(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-slate-700"
-                  >
-                    <CloudIcon className={`w-4 h-4 ${cloudInfo.className}`} /> {cloudInfo.title}
-                  </button>
-                  <button
-                    onClick={() => { setShowMenu(false); onReset(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-slate-700"
-                  >
-                    <RotateCcw className="w-4 h-4" /> Reset Game
-                  </button>
-                </div>
-              </>
-            )}
+            <OverflowMenu {...menuProps} />
           </div>
         </div>
       </div>
@@ -209,42 +288,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
           <ResourceBar />
         </div>
 
-        <button
-          onClick={advanceTurn}
-          disabled={state.activeEventId !== null || isGameOver}
-          className={`
-            px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-xs sm:text-sm
-            bg-gradient-to-r from-blue-600 to-blue-500
-            hover:from-blue-500 hover:to-blue-400
-            text-white shadow-lg transition-all
-            active:scale-95 flex items-center gap-1.5 sm:gap-2 shrink-0
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
-        >
-          {/* Always labeled — this is the single most-repeated action in the game and must never
-              degrade to an unlabeled color block on a narrow screen. */}
-          <span className="whitespace-nowrap">End Turn</span>
-          {state.pendingDefenses?.length > 0 && (
-            <span className="ml-0.5 px-1.5 rounded-full bg-red-500 text-[10px] leading-4" title="Your regions are under attack — fight the assaults first">{state.pendingDefenses.length}</span>
-          )}
-        </button>
-
-        {/* Fast Forward — resolves turns until an event, a war starting/ending, or the game
-            ending, so the quiet stretches of a multi-century game don't need one click each. */}
-        <button
-          onClick={fastForward}
-          disabled={state.activeEventId !== null || isGameOver}
-          title="Fast-forward until something happens"
-          className={`
-            px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg font-bold text-xs sm:text-sm
-            bg-slate-700 hover:bg-slate-600
-            text-slate-200 shadow-lg transition-all
-            active:scale-95 flex items-center gap-1 shrink-0
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
-        >
-          <FastForward className="w-4 h-4" />
-        </button>
+        <TurnButtons state={state} isGameOver={isGameOver} advanceTurn={advanceTurn} fastForward={fastForward} />
       </div>
     </header>
   );

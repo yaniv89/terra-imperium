@@ -243,7 +243,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
         onClick={(e) => e.stopPropagation()}
         className={isMobile
           ? `absolute inset-x-0 bottom-0 ${peeking ? 'max-h-[22vh]' : 'max-h-[65vh]'} transition-[max-height] duration-300 ease-out rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]`
-          : 'absolute left-0 top-0 bottom-0 w-full max-w-md bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col'}
+          : 'absolute left-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(400px,46vw)] pl:pl-[env(safe-area-inset-left)] bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col'}
       >
         {/* Header — tapping it while the sheet is peeking brings the full sheet straight back. */}
         <div onClick={peeking ? cancelPeek : undefined} className="p-4 border-b border-slate-700 shrink-0 flex items-start justify-between gap-2">

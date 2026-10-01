@@ -24,6 +24,7 @@ import { useCloudSync } from './hooks/useCloudSync';
 import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseClient';
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
+import RotateOverlay from './components/ui/RotateOverlay';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
@@ -192,7 +193,12 @@ const GameLayout = () => {
       {/* Empire-management tabs/content: a collapsible right-docked drawer on desktop, a bottom
           tab bar + on-demand sheet on mobile (PanelDrawer.jsx) — floating over the map instead of
           a fixed sidebar column next to it. */}
-      <PanelDrawer activeTab={activeTab} onTabChange={setActiveTab} />
+      <PanelDrawer
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenLog={handleOpenLogDrawer}
+        unreadLogs={Math.max(0, state.logs.length - lastSeenLogCountRef.current)}
+      />
 
       {/* Event log trigger — a small floating button now that there's no sidebar column left for
           it to sit at the bottom of (the log's actual content only exists in the LogDrawer
@@ -264,6 +270,8 @@ const GameLayout = () => {
 // Root App component with provider
 const App = () => {
   return (
+    <>
+    <RotateOverlay />
     <GameProvider>
       <EffectsProvider>
         <MapInsetsProvider>
@@ -271,6 +279,7 @@ const App = () => {
         </MapInsetsProvider>
       </EffectsProvider>
     </GameProvider>
+    </>
   );
 };
 

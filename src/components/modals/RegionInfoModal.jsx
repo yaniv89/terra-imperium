@@ -85,7 +85,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     return (
       <div className={`
         ${isCornerCard
-          ? `absolute ${cornerTopClass} left-2 z-20`
+          ? `absolute ${cornerTopClass} left-2 z-20 pl:hidden`
           : 'relative'
         }
         bg-slate-900 p-3 rounded-lg text-xs min-w-[180px]
