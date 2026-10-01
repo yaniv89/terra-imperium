@@ -796,6 +796,17 @@ In CK3 every ruler has a family; only the succession law differs. Do the same:
    - a succession without an adult heir costs stability (the existing crisis).
 6. **The AI** gets the same family rules (it already has rulers and heirs on every nation).
 
+### Who inherits (decision 16, designed)
+- **Monarchy:** the eldest son, then the eldest daughter (male-preference primogeniture) through
+  the Gunpowder Age. From the Modern Age it becomes the eldest child of any gender (absolute
+  primogeniture), as most real monarchies did.
+- **A new law, "Succession",** lets a monarchy switch earlier or keep the old rule. It uses the
+  existing Laws system and costs, with nobility loyalty -5 for the change.
+- **No living child:** the eldest sibling, then a named relative ("Name a relative as heir"). With
+  nobody at all, a succession crisis, as today.
+- **Regency:** a child heir (under 16) inherits with a regent. There is -1 stability a turn until
+  they come of age, and the regent's skills are used.
+
 ### Tests
 - marriage and birth work for every government;
 - inheritance follows the government rule;
@@ -1434,7 +1445,8 @@ when you say so.
 
 ## 12. Decisions for you
 
-Decisions 1 to 11 were accepted as recommended (2026-10-01). 12 to 16 are open.
+Decisions 1 to 15 are settled (2026-10-01): all as recommended, 14 = terrain textures with real
+elevation shading. 16 was left to design: see 5b, "Who inherits".
 
 1. **Landscape.** Lock phones to landscape, with a "play in portrait anyway" escape hatch for
    web? (Recommended: yes.)
