@@ -414,6 +414,9 @@ province where it is), not in a sheet or a modal. A mockup on the real map at ph
   from outside).
 
 ### 4d. Drag and drop to move or attack
+
+*Extended by 4g: an army can now be sent anywhere, over several turns. The drag rules below still
+apply to the first step and to targets next door.*
 - **Gesture.** Press and hold an own army banner for 250 ms. It lifts, with haptics on
   native. Then drag. Pressing anywhere else pans the map as today, so dragging never fights
   panning. On desktop, a plain drag on the banner works.
@@ -488,6 +491,165 @@ overlay (item 1 below) is **dropped** at the user's request; the rest stays opti
   `validateFrontier` and a new `validateSettle`, used by both);
 - e2e: start an emergent game, the striped land is visible, drag an army onto it, the land
   becomes yours.
+
+### 4f. Super zoom, CK3 style: buildings and armies standing on the land
+
+**Goal.** One continuous zoom from the globe down to a single province. Up close you see the
+province itself:
+- its terrain;
+- its town and buildings;
+- your armies as little soldiers standing on the land (walking when they march);
+- sieges and battles happening where they are.
+
+Zoomed out, it is the clean political map again. This is what CK3 does: realms far away, holdings
+and units up close.
+
+**Zoom levels (one zoom gesture, no mode switch):**
+
+| Level | Shows |
+|---|---|
+| World (the globe) | nations as single shapes, nation borders only (3b) |
+| Region (flat map, 1x to 4x) | provinces, army banners (4a), battle markers |
+| **Close (flat map, 5x to 40x)** | **terrain board**: real terrain look, buildings, town, armies as figures, roads, sieges |
+
+- **Globe to flat.** Pinching in past an altitude of about 0.35 hands over smoothly to the flat
+  map, centred on the same point, with a short cross-fade. Pinching out of the flat map below 1x
+  goes back to the globe. The Globe and Map toggle stays for players who want one fixed view.
+- **Renderer.** The close view needs hundreds of images and textures, which SVG can't do fast.
+  It gets a **WebGL layer** over the flat map. It uses three.js, already in the app for battles,
+  with an orthographic camera matching the d3 projection, and draws only the provinces on screen.
+  The SVG stays for the region level, where it works well today.
+
+**The terrain board (how it looks), options ranked:**
+1. **Per-terrain textures plus real elevation shading (recommended).**
+   - Each province is filled with a tiling texture for its terrain: fields and meadows, forest,
+     hills, mountains, desert, snow, marsh.
+   - It is shaded with a small world elevation map: public-domain NOAA ETOPO data, downsampled to
+     4096 x 2048, about 3 MB as WebP. Mountains read as mountains, coasts get a sand edge, and
+     water is animated.
+   - The owner's colour becomes a thin tint and a border line, like CK3's close view.
+2. **Pre-made satellite-style tiles** (Natural Earth rasters, public domain). Prettier, but
+   25 to 100 MB of tiles. Too heavy for the app.
+3. **Flat colours plus icons only.** Cheapest, but not the CK3 feel.
+
+**Buildings standing on the map:**
+- **The town.** Each province has a town at its centre (the capital province's is bigger, with a
+  palace). It grows with population: a hamlet, a town, then a city.
+- **Buildings** are placed at fixed spots inside the province shape. The spots are seeded by the
+  region id, so they never move:
+  - farms as field patches round the town;
+  - a market in the town;
+  - barracks and walls round it (walls ring the town by defense level);
+  - temples and libraries in town;
+  - docks on the coast;
+  - workshops on the edge;
+  - mines on the deposit;
+  - roads between neighbouring towns by infrastructure level.
+- **Tier and age.** The tier shows as the building's size and detail, and the art follows the
+  age: a Bronze Age granary, then a Classical villa, a medieval watermill, a factory.
+- **Your provinces** show everything. **Foreign provinces** show town, walls and roads always,
+  and their other buildings only with intel.
+- **Tapping** a building opens the province panel on that building.
+
+**Armies standing on the map:**
+- **An army is 1 to 3 small figures**, depending on its size, of its main unit type and age. The
+  figures **reuse the battle sprites** (section 8): the same art, at map size, in the owner's
+  colour.
+- **They play `Walk` while marching** (between turns, see 4g) and `Idle` when standing. They
+  face the way they're going.
+- A small banner above them shows soldiers and morale, as in 4a. Foreign armies follow the 4a
+  visibility rule, without numbers.
+- **Sieges** show a camp and siege engines round the town. A **battle** shows the two sides'
+  figures clashing for that turn.
+- **Fleets** are the ship models from the art brief (5.2), on the water.
+
+**Art needed** (added to the art brief as a later phase, "map props"):
+- one 3/4 top-down view per prop, no 8 directions;
+- 9 building categories x 5 ages x 3 tier sizes, plus towns (3 sizes x 5 ages), walls, mines,
+  docks and camps;
+- about 170 small sprites, budget about 6 MB in total.
+
+Until that art arrives, simple procedural shapes stand in (houses, field patches, wall rings).
+
+**Speed.** Close zoom only ever shows a handful of provinces, so the board draws a few hundred
+sprites at most. They are instanced, one draw call per atlas, as in the battle sprite renderer.
+At region and world level none of it is drawn.
+
+**Tests:**
+- prop placement is deterministic and always inside the province shape;
+- each zoom level shows the right layers;
+- foreign buildings follow the intel rule;
+- browser screenshots at three zoom levels on a phone in landscape;
+- the frame rate stays at 50 fps or more at close zoom (sandbox measure).
+
+### 4g. Move anywhere, over several turns, at a cost (CK3 style)
+
+**Today.** An army moves one step per turn, only into your own neighbouring provinces, for
+1 MIL per unit. Attacks are separate one-step actions.
+
+**New:**
+- **Pick an army, tap any province.** The game plans the route (A* over province adjacency, the
+  cheapest path by terrain and roads). The path is drawn on the map with **a number per turn**
+  ("1", "2", "3") and the arrival turn: "Arrives in 3 turns, costs about 6 supplies".
+  - Dragging the army works the same way: drop it anywhere, not just next door.
+  - The order costs nothing to give. Marching is what costs (below).
+- **Movement points per turn**, by unit type, terrain and roads:
+
+  | | Own or allied land, with roads | Own land, no roads | Hills, forest, marsh | Mountains, desert | Enemy land |
+  |---|---|---|---|---|---|
+  | Infantry and archers | 3 provinces | 2 | 1 | 1, every other turn | 1 |
+  | Cavalry | 4 | 3 | 2 | 1 | 2 |
+  | Siege and support | 2 | 1 | 1, every other turn | 1, every other turn | 1, every other turn |
+
+  - An army moves at its slowest unit's pace.
+  - Forced March (the existing perk) adds 1.
+  - The numbers are calibrated with balance-sim against how long wars take.
+- **What marching costs** (the "consumes resources" part):
+  - **Supplies:** each unit marching uses supplies every turn it moves, double in enemy land.
+    The existing `SUPPLY_PER_CAMPAIGNING_UNIT` model in supplies.js grows a marching term.
+  - **Gold:** marching armies pay 25% more upkeep that turn.
+  - **Attrition:** out of supplies, or in mountains, desert or winter-hostile land, an army
+    loses strength each turn. The rule is the existing hunger rule plus a terrain rate.
+- **Borders:**
+  - **At peace**, a route may only cross your own land, a vassal's or a military ally's.
+    Anywhere else the path is drawn red: "No access to Spain: declare war or form an alliance".
+  - **At war**, routes go through enemy land. Arriving in a defended enemy province starts the
+    battle at **End Turn**, through the existing pending-battle flow. You still choose Auto or
+    Command there, so every attack still asks first.
+  - Arriving in an undefended enemy province starts a siege (existing siege rules).
+  - Meeting an enemy army on the way stops the march and fights.
+- **By sea.** A route that needs the sea uses a fleet with room, if one is at the coast. Otherwise
+  it is drawn as "needs transport". Embarking and landing reuse the existing embark and
+  amphibious rules.
+- **Engine.**
+  - A unit gets `route: [regionIds]` and `routeProgress`.
+  - resolveTurn's movement phase spends movement points along the route, deterministically, in
+    unit id order. It sets up battles and sieges on arrival, and logs "The 1st Army reached
+    Lyon".
+  - `MOVE_ARMY` (one step) stays and becomes a one-province route.
+  - The 1 MIL per unit order cost is dropped; marching costs supplies and gold instead. This is a
+    rule change, so it goes through the add-mechanic checklist.
+- **Stacks.** A route is given to the whole stack in a province, or to the units ticked on the
+  stack card. That replaces `MOVE_STACK` in 4d.
+- **AI.** AI-against-AI war stays abstract (resolveWarProgress) to keep turns fast. Tier-1 AI
+  nations at war with **you** get real routes to your border, so you see their armies coming.
+  That is the same visibility rule as 4a.
+
+**Tests:**
+- route finding: the shortest by cost, no access at peace, sea routes;
+- points per turn by terrain and roads;
+- supply and gold charged only while moving;
+- attrition;
+- arrival triggers a pending battle and a siege;
+- a route given before a save and continued after loading;
+- determinism over 150 turns (longRun);
+- balance-sim before and after (war length, conquests, the player's supplies).
+
+**Critique:**
+- **Moving anywhere makes wars faster and AI wars look static.** Fix: AI routes against the
+  player, and calibrate the points so a war against a neighbour still takes several turns.
+- **Turns span 1 to 25 years**, so "provinces per turn" is an abstraction, not a speed in km. It
+  feels right as long as it matches war length, which is why it is calibrated, not guessed.
 
 ### Tests
 - **mapMarkers unit tests:** fog rules (foreign presence hidden far away, shown at the
@@ -583,6 +745,70 @@ An advisor only adds +level power to its pool. The player wants:
 - **A weak AI makes a weak advisor.** If the AI's building choices are poor, so are the
   advisor's. A placement score per province (above) is better than the AI's current one, and
   the AI can adopt it later.
+
+---
+
+## 5b. A royal family for every ruler (why succession seemed to do nothing)
+
+### What happens today (checked in the code)
+- **Marriage, births and heirs only exist under a Monarchy.** Every nation starts **Tribal**. The
+  Court panel says "Tribal: the strongest claimant takes over. Adopt a Monarchy…", and no marry
+  or heir buttons show.
+- **Adopting a Monarchy costs 300 ADM.**
+  - ADM comes in at about +9 a turn at the start, and stability (130) and other actions spend the
+    same pool.
+  - So a passive player reaches it after 30 or more turns, which is longer than the whole Bronze
+    Age (about 30 turns).
+  - When you do adopt it, your ruler gets a spouse and an heir at once.
+- **After that it works:**
+  - "Marry a noble" (60 gold), or a royal marriage with another monarchy (Diplomacy, 100 gold
+    and 10 DIP);
+  - then each turn a 25% chance of an heir being born;
+  - or "Name a relative as heir" (50 ADM, a weaker claim).
+
+**So today, to get a wife and a son:** save 300 ADM, then Domestic → Government → Monarchy. Your
+ruler comes married with an heir. If the heir dies or the ruler remarries, use "Marry a noble"
+and wait for a birth (25% a turn).
+
+### Proposed: families for everyone, as in CK3
+In CK3 every ruler has a family; only the succession law differs. Do the same:
+1. **Every ruler can marry and have children, whatever the government.**
+   - "Marry a noble" and royal marriages work for all.
+   - A royal marriage between two different government types is allowed, with smaller relation
+     gains.
+2. **Children are real people.** Each has a name, an age, a gender, three skills and a trait.
+   They come of age at 16. Children and siblings are listed in the Court panel with ages, and a
+   birth is logged and shown as a toast ("A son, Aldric, is born").
+3. **The government decides who inherits:**
+   - **Monarchy:** the eldest child (gender rule by age and culture, a decision for you), as
+     today.
+   - **Tribal:** the strongest claimant: your adult children get +20 claim, so a strong son
+     usually wins, but a powerful general can take over.
+   - **Republic:** an election; your children can stand with +10.
+   - **Theocracy or dictatorship:** as today, with the family kept for flavour, events and
+     marriages.
+4. **The Monarchy price comes down** from 300 to 120 ADM for a Tribal nation founding a dynasty
+   (the first adoption only). Changing government again later stays at 300.
+5. **Feeds other systems:**
+   - royal marriages already improve relations;
+   - a married ruler gains +1 legitimacy a turn up to 60;
+   - an adult heir with high MIL can lead an army as a general;
+   - a succession without an adult heir costs stability (the existing crisis).
+6. **The AI** gets the same family rules (it already has rulers and heirs on every nation).
+
+### Tests
+- marriage and birth work for every government;
+- inheritance follows the government rule;
+- the cost of founding a Monarchy;
+- determinism over a 150-turn run;
+- balance-sim succession crises and civil wars before and after (they must not rise);
+- a save from before loads (old rulers get an empty family).
+
+### Critique
+- **More people, more save data.** Fix: at most 6 living children per ruler, and only the player
+  and Tier-1 AI keep full families. Other AI keep a ruler and one heir, as today.
+- **A cheaper Monarchy changes balance.** It is a dedicated balance-sim commit, with the
+  crisis rate and civil wars compared before and after.
 
 ---
 
@@ -1196,10 +1422,11 @@ after, and `compare.sh` for speed.
 | 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | none |
 | 4 | Research engine, calibration, choice popup, research tab | L | 3 (calibrate on the final map) |
 | 5 | Tap disambiguation, more zoom | S | 3 |
-| 6 | On-map armies, battles and settle-able land; `MOVE_STACK`; drag and drop; settle checklist and Expansion list (4, 4e) | L | 3, 5 |
+| 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | 3, 5 |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
-| 8 | Building icons on the map at close zoom, other map layers | M | 6 |
+| 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, towns and buildings, army figures (4f)** | L | 6; army figures need 9 (placeholders until then) |
 | 9 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
+| 10 | **Families for every ruler, cheaper first Monarchy (5b)** | M | none (can go any time) |
 
 S is about a day of work, M two to three days, L four to six days. Each ends with lint, the
 full test suite, e2e at 844x390, balance-sim where it touches the engine, and a merge only
@@ -1207,7 +1434,7 @@ when you say so.
 
 ## 12. Decisions for you
 
-Decisions 1 to 10 were accepted as recommended (2026-10-01). 11 and 12 are new.
+Decisions 1 to 11 were accepted as recommended (2026-10-01). 12 to 16 are open.
 
 1. **Landscape.** Lock phones to landscape, with a "play in portrait anyway" escape hatch for
    web? (Recommended: yes.)
@@ -1233,3 +1460,12 @@ Decisions 1 to 10 were accepted as recommended (2026-10-01). 11 and 12 are new.
     per region, at least 4 per country), with old saves migrated? (Recommended: yes. The UK goes
     from 232 to 8, Slovenia from 192 to 4, the US keeps its 51 states.)
 12. **Old saves on the new map.** Migrate them (recommended), or start fresh games only?
+13. **Globe to flat hand-over.** Pinching in on the globe moves smoothly into the flat close view
+    (CK3 style)? (Recommended: yes, with the Globe and Map toggle kept.)
+14. **Terrain look up close.** Per-terrain textures plus real elevation shading (about 3 MB,
+    recommended), satellite-style tiles (25 to 100 MB), or flat colours with icons?
+15. **Movement cost.** Drop the 1 MIL per unit order cost and charge supplies plus 25% upkeep while
+    marching, with attrition out of supply? (Recommended: yes.)
+16. **Families.** Families for every government, the first Monarchy at 120 ADM instead of 300, and
+    which children inherit in a Monarchy: the eldest son first, the eldest child, or by culture?
+
