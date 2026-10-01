@@ -9,7 +9,8 @@ import { chromium } from '@playwright/test';
 
 const out = process.argv[2] || 'battle.png';
 const seconds = Number(process.argv[3] || 60);
-const url = process.env.URL || 'http://localhost:5199/?battleSandbox';
+// main serves under /terra-imperium/ (vite base); override with URL=... if that changes.
+const url = process.env.URL || 'http://localhost:5199/terra-imperium/?battleSandbox';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'] });
 const page = await browser.newPage({ viewport: { width: Number(process.env.W || 900), height: Number(process.env.H || 600) } });
 const errors = [];
@@ -30,7 +31,15 @@ for (let s = 0; s < seconds; s += 5) {
   const st = await page.evaluate(() => { const r = window.__battleRenderer; return { blood: r.fx.filter((f) => f.kind === 'blood').length, fx: r.fx.length, splats: r.splats.length }; });
   console.log(`t+${s + 5}s ${JSON.stringify(st)}`);
 }
-await page.evaluate(() => { const r = window.__battleRenderer; const sp = r.splats[r.splats.length - 1]; if (sp) r.centerOn(sp.x, sp.z); });
+// Aim the camera at the fighting (the latest blood splat) or, before any blood, at the middle of all
+// soldiers drawn: never at the empty deployment area the army has already marched away from.
+await page.evaluate(() => {
+  const r = window.__battleRenderer; const sp = r.splats[r.splats.length - 1];
+  if (sp) { r.centerOn(sp.x, sp.z); return; }
+  let sx = 0; let sz = 0; let n = 0;
+  r.soldierLayers.forEach((l) => { const a = l.high.instanceMatrix.array; for (let i = 0; i < l.count; i++) { sx += a[i * 16 + 12]; sz += a[i * 16 + 14]; n += 1; } });
+  if (n) r.centerOn(sx / n, sz / n);
+});
 await page.waitForTimeout(400);
 await page.screenshot({ path: out });
 console.log(`saved ${out}`);
