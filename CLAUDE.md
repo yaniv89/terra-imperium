@@ -23,7 +23,8 @@ The live site is GitHub Pages, built into `docs/`.
   Systems live in their own modules: economy.js, population.js, development.js, diplomacy.js
   (wars, war progress, `declareWar`), peace.js, invasion.js / defense.js (battle results),
   aftermath.js (war costs), vassals.js, pacts.js, techDiffusion.js, supplies.js, expansion.js (AE),
-  aiEconomy.js, plus src/utils/aiLogic.js (AI recruitment and war decisions).
+  aiEconomy.js, stateAudit.js (invariant checks), plus src/utils/aiLogic.js (AI recruitment and
+  war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
 - `src/data/`: static game data (regions with 4,482 provinces, nations, techTree, buildings, resources).
 - `src/battle/`: the tactical RTS. `sim/` is an integer fixed-point 20 Hz deterministic sim
@@ -37,8 +38,11 @@ The live site is GitHub Pages, built into `docs/`.
 - Battle sandbox in the browser: `npx vite`, then open `/?battleSandbox`.
 
 ## Known quirks
-- `aiQualityBenchmark` "80 ms/turn" fails on slow sandboxes (timings vary by about 10 ms run to
-  run). Compare against the base commit on the same machine, never against an old number.
+- Timing budgets (80 ms/turn) run only with `PERF_CHECKS=1`. The sandbox varies by 10-20 ms run
+  to run: compare against the base commit on the same machine (balance-sim compare.sh), never
+  against an old number. Long full-game tests can time out under full-suite load; rerun alone.
+- Invariants: `auditGameState` / `assertGameState` in src/engine/stateAudit.js.
+- Plans and audits live in `plans/` (stabilization audit, Civ-style research, unit art brief).
 - Tests that create a game must pass a fixed `rngSeed`; a fresh game gets a random one.
 - resolveTurn does nothing while an event, a `pendingPeaceOffer` or a pending defense battle is
   open: long-run loops must answer them.

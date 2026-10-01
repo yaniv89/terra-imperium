@@ -53,10 +53,10 @@ vassals.js (liberty desire), techDiffusion.js, pacts.js, supplies.js.
   4,482 keys each time. Inside resolveTurn assign into the working copy: `regions[id] = next`.
 - Cache per turn (a Map keyed by nation) or per object identity (WeakMap), as techDiffusion.js does.
 - No O(regions) scan per nation per turn (getOverextension is one; AI paths skip it).
-- Check with `npx vitest run src/engine/aiQualityBenchmark.test.js -t "mean cost" --silent=false`
-  and read the per-phase breakdown. The sandbox varies by about 10 ms: compare against the base
-  commit on the same machine at the same time (the balance-sim skill's compare.sh), never
-  against a number from an earlier session.
+- Check speed with the balance-sim skill: `compare.sh <base-ref> 50 11` prints msPerTurn for the
+  base and the working tree on the same machine at the same time (the sandbox varies by about
+  10-20 ms, so never compare against a number from an earlier session). The hard 80 ms/turn
+  budgets in aiQualityBenchmark.test.js run only with `PERF_CHECKS=1` on a dedicated machine.
 
 ## 5. Show it to the player
 A number that changes silently doesn't exist for the player. Surface it where they look:
@@ -74,5 +74,7 @@ Mobile first: everything must work at phone width.
   resolveTurn does nothing while an event, a peace offer or a defense battle is pending.
 - Run the balance-sim skill for any balance-relevant change. src/engine/longRun.test.js already
   checks 150-turn determinism, finite numbers, no runaway and population floors.
-- `npm run lint` (max-warnings 0) and `npx vitest run`. The 80 ms/turn benchmark fails on slow
-  sandboxes; everything else must pass.
+- Check invariants with `auditGameState(state)` (src/engine/stateAudit.js) after any change that
+  moves land, wars, vassals, units or treasuries.
+- `npm run lint` (max-warnings 0) and `npx vitest run`: everything must pass. Long full-game
+  tests (endgameReachability) can exceed their time limit on a loaded sandbox; rerun alone.
