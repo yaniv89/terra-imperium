@@ -19,10 +19,9 @@ import { hasDeposit } from '../data/deposits';
 // Spending follows a bounded cadence with stability, frontier reserves, laws and advisors ahead
 // of long-term investment. Space missions remain a player victory objective.
 import { devastationIncomeMult } from './aftermath';
-import { withDiffusion } from './techDiffusion';
-import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN } from '../data/actionCosts';
+import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
-import { getResearched, getTechAgeId } from './nationState';
+import { getResearched } from './nationState';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import {
   getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO
@@ -31,13 +30,9 @@ import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
 } from '../data/buildings';
-import {
-  TECH_TREE, canResearchTech, getTechPowerCost, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD
-} from '../data/techTree';
-import { TECH_RESEARCH_POOL } from '../data/actionCosts';
-import { AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { AGE_ORDER } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
-import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
+import { DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { getSuccessionStyle, generateHeir } from './succession';
 import { createRng } from '../utils/rng';
@@ -110,6 +105,7 @@ export const calcAllNationIncomes = (state) => {
     entry.gold += getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
     entry.hr += getRegionModifier(state, region.id, 'local.flatManpower').total * controlMult;
     if (localTechPoints) entry.techPoints += localTechPoints * controlMult * infraMult;
+    entry.techPoints += SCIENCE_PER_DEV * getTotalDev({ dev }) * controlMult; // as the player's calcIncome
     Object.entries(region.buildings?.extraction || {}).forEach(([key, built]) => {
       if (built && hasDeposit(regData.startOwner, key)) entry[key] = (entry[key] || 0) + EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
@@ -200,51 +196,6 @@ const tryConstructBuilding = (state, nation, regions) => {
   return null;
 };
 
-// Researches the first affordable, unlocked tech in the doctrine's preferred category order (ties
-// within a category broken by earliest yearAvailable). Builds a synthetic {id: {researched}} map
-// from nation.tech.researched (an array, per nationState.js's own AI shape) since canResearchTech's
-// generic gating logic expects the player's own {researched, available} map shape.
-const tryResearchTech = (state, nation) => {
-  const researched = getResearched(state, nation.id);
-  const researchedSet = new Set(researched);
-  const ageId = getTechAgeId(state, nation.id);
-  const agesBehind = getAgesBehind(state.age, ageId);
-  const researchCostMult = getModifier(state, nation.id, 'national.researchCost').total;
-  const priority = DOCTRINE_TECH_CATEGORY_PRIORITY[nation.doctrine] || Object.keys(TECH_RESEARCH_POOL);
-  const syntheticTechTree = {};
-  Object.keys(TECH_TREE).forEach((id) => { syntheticTechTree[id] = { researched: researchedSet.has(id) }; });
-
-  const candidates = Object.values(TECH_TREE)
-    .filter((t) => !researchedSet.has(t.id))
-    .sort((a, b) => {
-      const pa = priority.indexOf(a.category);
-      const pb = priority.indexOf(b.category);
-      if (pa !== pb) return (pa === -1 ? Infinity : pa) - (pb === -1 ? Infinity : pb);
-      return a.yearAvailable - b.yearAvailable;
-    });
-
-  const pool = { ...emptyAIPool(), ...nation.economy };
-  for (const tech of candidates) {
-    const techCostMult = withDiffusion(state, nation.id, tech.id, researchCostMult); // techDiffusion.js
-    const check = canResearchTech(tech.id, syntheticTechTree, pool, state.year, TECH_TREE, agesBehind, techCostMult, false);
-    if (!check.can) continue;
-    const costMult = getAgesBehindResearchCostMultiplier(agesBehind);
-    const powerCost = Math.round(getTechPowerCost(tech, { researchCostMult: techCostMult, focused: false }) * costMult);
-    const techPointsCost = Math.round(tech.cost.techPoints * (1 + techCostMult) * costMult);
-    const poolKey = TECH_RESEARCH_POOL[tech.category];
-    const nextResearched = [...researched, tech.id];
-    const currentAgeTechIds = getTechsForAge(ageId).map((t) => t.id);
-    const researchedCount = currentAgeTechIds.filter((id) => nextResearched.includes(id)).length;
-    const nextAgeIndex = AGE_ORDER.indexOf(ageId) + 1;
-    const advances = researchedCount >= TECH_AGE_ADVANCEMENT_THRESHOLD && nextAgeIndex < AGE_ORDER.length;
-    return {
-      ...nation,
-      economy: { ...pool, [poolKey]: pool[poolKey] - powerCost, techPoints: pool.techPoints - techPointsCost },
-      tech: { researched: nextResearched, ageId: advances ? AGE_ORDER[nextAgeIndex] : ageId }
-    };
-  }
-  return null;
-};
 
 // Develops the nation's own highest-dev owned region (same placement convention as
 // tryConstructBuilding above) by +1 in whichever of tax/production/manpower its corresponding power
@@ -335,15 +286,12 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
         nextNation = buildResult.nation;
         regions[buildResult.regionId] = buildResult.updatedRegion;
       } else {
-        const techResult = tryResearchTech(state, nextNation);
-        if (techResult) {
-          nextNation = techResult;
-        } else {
-          const devResult = tryDevelopProvince(state, nextNation, regions);
-          if (devResult) {
-            nextNation = devResult.nation;
-            regions[devResult.regionId] = devResult.updatedRegion;
-          }
+        // Research is no longer a purchase here: AI science accumulates every turn into the
+        // tech it is researching (src/engine/research.js, run at the end of resolveTurn).
+        const devResult = tryDevelopProvince(state, nextNation, regions);
+        if (devResult) {
+          nextNation = devResult.nation;
+          regions[devResult.regionId] = devResult.updatedRegion;
         }
       }
     }

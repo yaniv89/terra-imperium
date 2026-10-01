@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { TECH_TREE, canResearchTech, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD, getTechPowerCost } from './techTree';
+import { TECH_TREE, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from './techTree';
+import { canStartTech, RESEARCH_AGE_BASE } from '../engine/research';
 import { AGE_ORDER } from './ages';
 import { TechCategories } from './types';
 
-// The generic gating mechanism (canResearchTech) is exercised against its own small fixture table,
-// passed explicitly as `techDefs` — this never touches the real production TECH_TREE, so these
-// tests can freely construct exclusive/requiresAny scenarios the real linear-chain content doesn't
-// use without polluting or depending on real content's shape. Plan §M7: gold is gone from tech
-// cost — only techPoints, plus a power cost (getTechPowerCost) computed from the tech's own ageId.
+// The generic gating mechanism (canStartTech, src/engine/research.js) is exercised against its own
+// small fixture table, passed explicitly as `techDefs`, so these tests can construct
+// exclusive/requiresAny scenarios the real linear-chain content doesn't use. Research costs only
+// science now (no power, no purchase), so there is no affordability to gate here.
 const FIXTURE_TECH = {
   a: { id: 'a', category: 'military', ageId: 'bronze', cost: { techPoints: 5 }, prerequisites: [], effects: {}, yearAvailable: 1000 },
   b: { id: 'b', category: 'military', ageId: 'bronze', cost: { techPoints: 10 }, prerequisites: ['a'], effects: {}, yearAvailable: 1100 },
@@ -24,102 +24,47 @@ const freshTree = (fixture = FIXTURE_TECH) => {
   return tree;
 };
 
-// Every fixture tech is Bronze-age (ageIndex 0), so getTechPowerCost is 40 for all of them —
-// richResources needs enough of every pool to clear that, not just the old flat power cost of 2.
-const richResources = { techPoints: 10000, adm: 1000, dip: 1000, mil: 1000 };
+const researchedOf = (tree) => new Set(Object.keys(tree).filter((id) => tree[id].researched));
+const can = (id, tree, year) => canStartTech(id, researchedOf(tree), year, FIXTURE_TECH);
 
-describe('canResearchTech (generic gating, against a fixture table)', () => {
+describe('canStartTech (generic gating, against a fixture table)', () => {
   it('rejects a tech whose exclusive counterpart is already researched', () => {
     const tree = freshTree();
     tree.a.researched = true;
     tree.c1.researched = true;
-    const check = canResearchTech('c2', tree, richResources, 2000, FIXTURE_TECH);
-    expect(check.can).toBe(false);
+    const check = can('c2', tree, 2000);
+    expect(check.ok).toBe(false);
     expect(check.reason).toContain('Exclusive with');
   });
 
   it('allows either side of an exclusive pair when neither is researched yet', () => {
     const tree = freshTree();
     tree.a.researched = true;
-    expect(canResearchTech('c1', tree, richResources, 2000, FIXTURE_TECH).can).toBe(true);
-    expect(canResearchTech('c2', tree, richResources, 2000, FIXTURE_TECH).can).toBe(true);
+    expect(can('c1', tree, 2000).ok).toBe(true);
+    expect(can('c2', tree, 2000).ok).toBe(true);
   });
 
-  it('is researchable with only ONE of two requiresAny prerequisites satisfied', () => {
+  it('is startable with only ONE of two requiresAny prerequisites satisfied', () => {
     const tree = freshTree();
     tree.a.researched = true;
     tree.c1.researched = true;
-    expect(canResearchTech('d', tree, richResources, 2000, FIXTURE_TECH).can).toBe(true);
+    expect(can('d', tree, 2000).ok).toBe(true);
   });
 
-  it('is not researchable with neither requiresAny prerequisite satisfied', () => {
+  it('is not startable with neither requiresAny prerequisite satisfied', () => {
     const tree = freshTree();
     tree.a.researched = true;
-    expect(canResearchTech('d', tree, richResources, 2000, FIXTURE_TECH).can).toBe(false);
+    expect(can('d', tree, 2000).ok).toBe(false);
   });
 
   it('rejects a tech before its yearAvailable', () => {
-    const tree = freshTree();
-    expect(canResearchTech('a', tree, richResources, 500, FIXTURE_TECH).can).toBe(false);
+    expect(can('a', freshTree(), 500).ok).toBe(false);
   });
 
-  it('rejects insufficient tech points', () => {
-    const tree = freshTree();
-    expect(canResearchTech('a', tree, { techPoints: 0, mil: 1000 }, 2000, FIXTURE_TECH).can).toBe(false);
-  });
-
-  // Tech 'a' is category 'military', which draws from the MIL pool (TECH_RESEARCH_POOL,
-  // src/data/actionCosts.js) — insufficient power in that specific pool blocks research even with
-  // unlimited ADM/DIP/techPoints.
-  it('rejects insufficient power in the tech\'s own pool regardless of funds or other pools', () => {
-    const tree = freshTree();
-    expect(canResearchTech('a', tree, { techPoints: 10000, adm: 1000, dip: 1000, mil: 1 }, 2000, FIXTURE_TECH).can).toBe(false);
-  });
-
-  it('scales the affordability check up by agesBehind\'s research-cost multiplier', () => {
-    const tree = freshTree();
-    // tech 'a' costs techPoints: 5, power: 40 (Bronze) — exactly affordable at 1x, not at 1.3x.
-    const exact = { techPoints: 5, mil: 40 };
-    expect(canResearchTech('a', tree, exact, 2000, FIXTURE_TECH, 0).can).toBe(true);
-    expect(canResearchTech('a', tree, exact, 2000, FIXTURE_TECH, 1).can).toBe(false);
-  });
-});
-
-describe('getTechPowerCost (plan §M7: 40 + 30 x ageIndex, before ages-behind)', () => {
-  it('is exactly 40 for a Bronze-age tech with no discounts', () => {
-    expect(getTechPowerCost(TECH_TREE.military_bronze_casting)).toBe(40);
-  });
-
-  it('is exactly 160 for a Modern-age tech with no discounts', () => {
-    expect(getTechPowerCost(TECH_TREE.military_mechanized_warfare)).toBe(160);
-  });
-
-  it('applies a positive researchCostMult as a surcharge', () => {
-    const base = getTechPowerCost(TECH_TREE.military_bronze_casting);
-    const surcharged = getTechPowerCost(TECH_TREE.military_bronze_casting, { researchCostMult: 0.5 });
-    expect(surcharged).toBe(Math.round(base * 1.5));
-  });
-
-  it('applies exactly -15% when focused on the tech\'s own line (Research Focus)', () => {
-    const base = getTechPowerCost(TECH_TREE.military_bronze_casting);
-    const focused = getTechPowerCost(TECH_TREE.military_bronze_casting, { focused: true });
-    expect(focused).toBe(Math.round(base * 0.85));
-  });
-
-  it('stacks researchCostMult and the focus discount multiplicatively', () => {
-    const both = getTechPowerCost(TECH_TREE.military_bronze_casting, { researchCostMult: -0.1, focused: true });
-    expect(both).toBe(Math.round(40 * 0.9 * 0.85));
-  });
-});
-
-describe('canResearchTech against the real TECH_TREE (default techDefs)', () => {
-  it('gates a real tech on its real prerequisite', () => {
-    const tree = {};
-    Object.keys(TECH_TREE).forEach(id => { tree[id] = { id, researched: false }; });
+  it('gates a real tech on its real prerequisite (default techDefs)', () => {
     const second = TECH_TREE.military_composite_bow;
-    expect(canResearchTech(second.id, tree, richResources, 3000).can).toBe(false);
-    tree[second.prerequisites[0]].researched = true;
-    expect(canResearchTech(second.id, tree, richResources, 3000).can).toBe(true);
+    expect(canStartTech(second.id, new Set(), 3000).ok).toBe(false);
+    expect(canStartTech(second.id, new Set(second.prerequisites), 3000).ok).toBe(true);
   });
 });
 
@@ -157,14 +102,8 @@ describe('real TECH_TREE content integrity', () => {
     });
   });
 
-  it('techPoints cost and power cost both scale up with age', () => {
-    Object.values(TechCategories).forEach(category => {
-      const chain = AGE_ORDER.map(ageId => Object.values(TECH_TREE).find(t => t.category === category && t.ageId === ageId));
-      for (let i = 1; i < chain.length; i++) {
-        expect(chain[i].cost.techPoints).toBeGreaterThan(chain[i - 1].cost.techPoints);
-        expect(getTechPowerCost(chain[i])).toBeGreaterThan(getTechPowerCost(chain[i - 1]));
-      }
-    });
+  it('research costs rise with each age (src/engine/research.js RESEARCH_AGE_BASE)', () => {
+    for (let i = 1; i < AGE_ORDER.length; i++) expect(RESEARCH_AGE_BASE[AGE_ORDER[i]]).toBeGreaterThanOrEqual(RESEARCH_AGE_BASE[AGE_ORDER[i - 1]]);
   });
 
   it('every tech\'s cost object has no gold key at all (plan §M7: gold removed from research)', () => {

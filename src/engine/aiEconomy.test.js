@@ -192,7 +192,9 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
     expect(state.regions[REGION_C].buildings.categories.military).toBeUndefined();
   });
 
-  it('researches a tech when no government decision or affordable building is available', () => {
+  // Research left the AI's spending decisions: AI science accumulates every turn into a tech
+  // (src/engine/research.js applyResearchTurn, tested in research.test.js).
+  it('no longer buys a tech as a spending decision (research is a per-turn science flow now)', () => {
     const state = makeState({
       age: 'bronze',
       regions: { [REGION_A]: makeRegion(REGION_A, { buildings: { categories: { food: 0, economy: 0, military: 0, defense: 0, science: 0, industry: 0, culture: 0, naval: 0, logistics: 0 } } }) },
@@ -204,7 +206,8 @@ describe('processAIEconomyTurn (plan §M16: one spending decision per think)', (
       }
     });
     const { nation } = processAIEconomyTurn(state, state.regions, 'id');
-    expect(nation.tech.researched.length).toBe(1);
+    expect(nation.tech?.researched || []).toHaveLength(0);
+    expect(nation.economy.techPoints).toBe(1000);
   });
 
   // Plan feedback: an AI nation's own province dev.tax/production/manpower never moved past its

@@ -46,9 +46,8 @@ export const ACTION_COSTS = {
   navalEngagement: { mil: 2 },
   suppressRebellion: { mil: 2 },
 
-  // Plan §M7: a tech's own techPoints cost, and its power cost (src/data/techTree.js's own
-  // getTechPowerCost, scaled by age), both draw from the tech's own line — no flat action cost
-  // here for research itself (unlike every other action's ACTION_COSTS entry).
+  // Research itself has no action cost: science pays for the chosen tech turn by turn
+  // (src/engine/research.js).
   setResearchFocus: { adm: 1 },
   fundScholars: { gold: 100, dip: 1 },
 
@@ -163,17 +162,9 @@ export const POWER_POOL_CAP = 9999;
 // that no AI nation could ever enter (the player could only via Fund Scholars). 2/turn funds a
 // 10-TP Bronze tech every 5 turns and a 25-TP Classical one every ~12, so Libraries still matter.
 export const BASE_TECHPOINTS_PER_TURN = 2;
-
-// Plan §M7's line-to-pool mapping, used now (ahead of the fuller M7 tech rework) so a research
-// action's flat `power` quantity (ACTION_COSTS.researchTech above) draws from the right one of the
-// three pools depending on the tech's own TechCategories value.
-export const TECH_RESEARCH_POOL = {
-  military: 'mil',
-  economy: 'dip',
-  science: 'dip',
-  infrastructure: 'adm',
-  governance: 'adm'
-};
+// Science (tech points) from development (plan §2): this share of each controlled province's total
+// development every turn, so a growing realm researches faster. Player and AI alike.
+export const SCIENCE_PER_DEV = 0.02;
 
 // Above this climateResilience level, a region is considered adequately prepared — the same
 // mechanical role defenseLevel 3 already plays gating frontier_raiders (src/data/proceduralEvents.js).

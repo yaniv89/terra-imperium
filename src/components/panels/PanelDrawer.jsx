@@ -25,6 +25,7 @@ import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
 import ActionPanelTabs, { TABS, getTabBadge } from './ActionPanelTabs';
+import { OPEN_TAB } from './panelEvents';
 import ActionPanel from './ActionPanel';
 
 const COLLAPSED_STORAGE_KEY = 'terra-imperium-panel-drawer-collapsed';
@@ -83,6 +84,18 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
     if (isLandscapePhone) setDockOpen(!tucked);
     else setCollapsed(tucked);
   });
+
+  // Another part of the UI asked for a tab (panelEvents.js): switch to it and make sure it shows.
+  useEffect(() => {
+    const onOpen = (e) => {
+      onTabChange(e.detail);
+      if (isLandscapePhone) setDockOpen(true);
+      else if (isMobile) setMobileSheetOpen(true);
+      else setCollapsed(false);
+    };
+    window.addEventListener(OPEN_TAB, onOpen);
+    return () => window.removeEventListener(OPEN_TAB, onOpen);
+  }, [onTabChange, isLandscapePhone, isMobile]);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {

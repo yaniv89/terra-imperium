@@ -20,7 +20,21 @@ export const checkNationElimination = (nations, regions, nationId) => {
   const nation = nations[nationId];
   if (!nation || nation.isPlayer || nation.isEliminated) return null;
   if (getOwnedRegionIds(regions, nationId).length > 0) return null;
-  return { ...nation, isEliminated: true, isAtWar: false };
+  // A dead nation is nobody's vassal and nobody's overlord any more (the other side of each link
+  // is cleared by unlinkEliminatedVassalage below).
+  return { ...nation, isEliminated: true, isAtWar: false, vassalOf: null, vassals: [] };
+};
+
+// Clears every vassal link naming an eliminated nation: off its overlord's vassal list, and off
+// any of its own vassals (who are free). Returns the same object when nothing changes.
+export const unlinkEliminatedVassalage = (nations, nationId, formerOverlordId) => {
+  let out = nations;
+  const overlord = formerOverlordId && out[formerOverlordId];
+  if (overlord?.vassals?.includes(nationId)) out = { ...out, [formerOverlordId]: { ...overlord, vassals: overlord.vassals.filter((v) => v !== nationId) } };
+  Object.values(out).forEach((n) => {
+    if (n.vassalOf === nationId) out = { ...out, [n.id]: { ...n, vassalOf: null, libertyDesire: 0 } };
+  });
+  return out;
 };
 
 // Plan §M15: "GameStatus.DEFEAT is set when the player owns 0 regions: annexed by a peace deal, or

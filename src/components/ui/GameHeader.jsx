@@ -3,11 +3,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useReportInset } from '../../context/MapInsetsContext';
-import { Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
+import { Beaker, Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
 import { AGES } from '../../data/ages';
 import ResourceBar from './ResourceBar';
+import { getResearchView } from '../panels/researchView';
+import { openPanelTab } from '../panels/panelEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 // plan §M0.5's header cloud status icon: guest/idle (not signed in — nothing to sync), synced,
@@ -65,6 +67,24 @@ const OverflowMenu = ({ showMenu, setShowMenu, handleExport, handleImportClick, 
     )}
   </>
 );
+
+// The research being done, and how long it has left; tap for the Research tab (plan §2).
+const ResearchPill = ({ state, compact }) => {
+  const view = getResearchView(state);
+  const label = view.current ? `${view.current.tech.name} · ${view.current.finishesIn === Infinity ? '?' : view.current.finishesIn}t` : 'Choose research';
+  return (
+    <button
+      onClick={() => openPanelTab('tech')}
+      data-testid="research-pill"
+      title={view.current ? `Researching ${view.current.tech.name}: ${view.current.finishesIn} turns left at +${view.science} science a turn` : 'Nothing is being researched'}
+      className={`shrink-0 flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${compact ? 'max-w-[9rem]' : 'max-w-[14rem]'}
+                  ${view.current ? 'bg-purple-500/15 border-purple-500/50 text-purple-200' : 'bg-amber-500/15 border-amber-500/50 text-amber-200 animate-pulse'}`}
+    >
+      <Beaker className="w-3 h-3 shrink-0" />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+};
 
 // End Turn and Fast Forward: the same two buttons in every layout.
 const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => (
@@ -193,6 +213,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
           <Calendar className="w-3 h-3 text-slate-400" />
           <span className="font-mono text-xs font-bold text-white">{yearLabel}</span>
         </div>
+        <ResearchPill state={state} compact />
         <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
           <ResourceBar />
         </div>
@@ -232,6 +253,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
           <div className="hidden md:block px-2 py-0.5 rounded border text-xs font-semibold whitespace-nowrap bg-slate-700/50 text-slate-300 border-slate-600">
             {ageName}
           </div>
+          <ResearchPill state={state} />
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

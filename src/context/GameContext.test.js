@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { applyResearchTurn, getResearchCost } from '../engine/research';
 import { gameReducer, createInitialState } from './GameContext';
 import { ActionTypes, GameStatus, LogTypes } from '../data/types';
 import { XP_THRESHOLDS } from '../data/promotions';
@@ -1696,39 +1697,41 @@ describe('Research tab actions', () => {
     return { ...state, resources: { ...state.resources, techPoints: 100000, mil: 100000, dip: 100000, adm: 100000 } };
   };
 
+  // Research is Civ-style now (src/engine/research.js): RESEARCH_TECH chooses the target and
+  // science pays for it at the end of each turn; nothing is bought on the spot.
   describe('RESEARCH_TECH', () => {
-    it('researches an available first-of-chain tech and deducts its power and techPoints cost', () => {
+    // Choose a tech, then pay `stock` science into it (what the end of a turn does).
+    const researchWith = (state, techId, stock) => applyResearchTurn({ ...gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId } }), resources: { ...state.resources, techPoints: stock } });
+
+    it('chooses a tech without spending anything; science completes it at the end of the turn', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      expect(next.techTree.military_bronze_casting.researched).toBe(true);
-      expect(next.resources.techPoints).toBeLessThan(state.resources.techPoints);
-      expect(next.resources.mil).toBeLessThan(state.resources.mil);
+      const chosen = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
+      expect(chosen.research.current).toBe('military_bronze_casting');
+      expect(chosen.resources).toBe(state.resources);
+      const cost = getResearchCost(chosen, 'fr', 'military_bronze_casting');
+      const done = researchWith(state, 'military_bronze_casting', cost);
+      expect(done.techTree.military_bronze_casting.researched).toBe(true);
+      expect(done.resources.techPoints).toBe(0);
+      expect(done.resources.mil).toBe(state.resources.mil); // the power pools no longer pay for research
     });
 
-    it('is a no-op for a tech whose prerequisite is not yet researched', () => {
+    it('queues a missing prerequisite before the tech picked', () => {
       const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_composite_bow' } })).toBe(state);
+      const next = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_composite_bow' } });
+      expect(next.research.current).toBe('military_bronze_casting');
+      expect(next.research.queue).toEqual(['military_composite_bow']);
     });
 
-    it('charges a scaled-up cost the further the tech age has fallen behind the calendar (src/data/ages.js\'s getAgesBehindResearchCostMultiplier)', () => {
+    it('costs more science the further the tech age has fallen behind the calendar', () => {
       const baseline = richState();
       const behind = { ...baseline, age: 'gunpowder', techAgeId: 'bronze' }; // 3 ages behind -> +90%
-
-      const nextBaseline = gameReducer(baseline, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      const nextBehind = gameReducer(behind, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-
-      const baselineMilSpent = baseline.resources.mil - nextBaseline.resources.mil;
-      const behindMilSpent = behind.resources.mil - nextBehind.resources.mil;
-      expect(behindMilSpent).toBeGreaterThan(baselineMilSpent);
-      expect(behindMilSpent).toBe(Math.round(baselineMilSpent * 1.9));
+      expect(getResearchCost(behind, 'fr', 'military_bronze_casting')).toBe(Math.round(getResearchCost(baseline, 'fr', 'military_bronze_casting') * 1.9));
     });
 
-    it('is researchable once its prerequisite is researched', () => {
-      // military_composite_bow is the second Bronze-age tech in its line, available partway
-      // through the age (see techTree.js's buildLine) — advance the year past that point.
+    it('the second tech of a line follows once the first is researched and its year has come', () => {
       const state = { ...richState(), year: -1000 };
-      const withFirst = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      const next = gameReducer(withFirst, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_composite_bow' } });
+      const next = researchWith(state, 'military_composite_bow', 10000);
+      expect(next.techTree.military_bronze_casting.researched).toBe(true);
       expect(next.techTree.military_composite_bow.researched).toBe(true);
     });
 
@@ -1737,43 +1740,21 @@ describe('Research tab actions', () => {
       expect(gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'not_a_real_tech' } })).toBe(state);
     });
 
-    it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, mil: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } })).toBe(state);
+    it('a Research Focus line gets 10% more out of the same science', () => {
+      const cost = getResearchCost(richState(), 'fr', 'military_bronze_casting');
+      const spend = Math.ceil(cost / 2);
+      const plain = researchWith({ ...richState(), researchFocus: null }, 'military_bronze_casting', spend);
+      const focused = researchWith({ ...richState(), researchFocus: 'military' }, 'military_bronze_casting', spend);
+      expect(focused.research.progress.military_bronze_casting).toBeCloseTo(plain.research.progress.military_bronze_casting * 1.1, 5);
     });
 
-    it('charges 15% less power for a tech in the currently-focused line (plan §M7 Research Focus)', () => {
-      const base = { ...richState(), researchFocus: null };
-      const focused = { ...richState(), researchFocus: 'military' };
-      const nextBase = gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      const nextFocused = gameReducer(focused, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      const baseSpent = base.resources.mil - nextBase.resources.mil;
-      const focusedSpent = focused.resources.mil - nextFocused.resources.mil;
-      expect(focusedSpent).toBeLessThan(baseSpent);
-      expect(focusedSpent).toBe(Math.round(baseSpent * 0.85));
-    });
-
-    it('does not discount a tech OUTSIDE the currently-focused line', () => {
-      const base = { ...richState(), researchFocus: null };
-      const focused = { ...richState(), researchFocus: 'science' }; // focus on a different line
-      const nextBase = gameReducer(base, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      const nextFocused = gameReducer(focused, { type: ActionTypes.RESEARCH_TECH, payload: { techId: 'military_bronze_casting' } });
-      expect(base.resources.mil - nextBase.resources.mil).toBe(focused.resources.mil - nextFocused.resources.mil);
-    });
-
-    it('advances the tech-earned age once enough of the current age\'s line is researched', () => {
+    it("advances the tech-earned age once enough of the current age's techs are researched", () => {
       let state = { ...richState(), year: -1000 };
-      const chain = [
-        'military_bronze_casting', 'military_composite_bow',
-        'economy_bronze_trade_routes', 'economy_granary_storage',
-        'infrastructure_irrigation_canals', 'infrastructure_mudbrick_roads'
-      ];
-      chain.forEach(techId => {
-        state = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId } });
-      });
+      ['military_composite_bow', 'economy_granary_storage', 'infrastructure_mudbrick_roads'].forEach((techId) => { state = researchWith(state, techId, 10000); });
       expect(state.techAgeId).toBe('classical');
     });
   });
+
 
   describe('RESEARCH_TECH: tech-earned age unlocks recruiting a class early', () => {
     it('lets a nation whose tech has raced ahead recruit the next age\'s unit class before the calendar catches up', () => {
@@ -1799,7 +1780,7 @@ describe('Research tab actions', () => {
         'infrastructure_canal_locks', 'infrastructure_turnpike_roads'
       ];
       chain.forEach(techId => {
-        state = gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId } });
+        state = applyResearchTurn({ ...gameReducer(state, { type: ActionTypes.RESEARCH_TECH, payload: { techId } }), resources: { ...state.resources, techPoints: 100000 } });
       });
       expect(state.techAgeId).toBe('modern');
 
