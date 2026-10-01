@@ -1,9 +1,12 @@
-import { getOwnedRegionIds } from '../data/regions';
+import { getOwnedRegionIds, REGIONS_DATA } from '../data/regions';
 // src/engine/supplies.js
 // Army supplies: the production chain between raw metal and an army in the field. Supplies
 // (provisions, munitions, remounts) are a stock the player builds up and campaigns spend down.
 //
-//   Foraging     every province the nation holds (and controls) yields SUPPLY_FORAGE_PER_REGION.
+//   Foraging     every province the nation holds (and controls) yields SUPPLY_FORAGE_PER_REGION for
+//                each of the original admin-1 provinces it contains (a balanced region is several
+//                of them merged, scripts/geo/build-balanced-regions.mjs), so foraging is the
+//                same as on the detailed map.
 //   Industry     each Industry tier in a province (Workshop, Manufactory, Factory) converts
 //                METAL_PER_INDUSTRY_TIER of the age's metal into SUPPLIES_PER_INDUSTRY_TIER:
 //                copper in the Bronze Age, iron from the Classical to the Gunpowder Age, oil in
@@ -32,12 +35,15 @@ export const isCampaigning = (unit, regions) => {
 };
 
 // This turn's flows for `nationId`. `resources` is the stock before the flows are applied.
+// How many original provinces a region stands for (1 for an unmerged one).
+const forageSize = (regionId) => 1 + (REGIONS_DATA[regionId]?.includes?.length || 0);
+
 export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources }) => {
   let forage = 0; let industryTiers = 0;
   getOwnedRegionIds(regions,nationId).forEach((id) => {
     const r=regions[id];
     if (r.owner !== nationId || r.occupiedBy) return;
-    forage += SUPPLY_FORAGE_PER_REGION * Math.max(0, Math.min(1, (r.control ?? 100) / 100));
+    forage += SUPPLY_FORAGE_PER_REGION * forageSize(id) * Math.max(0, Math.min(1, (r.control ?? 100) / 100));
     const tier = r.buildings?.categories?.industry ?? -1;
     if (tier >= 0) industryTiers += tier + 1;
   });

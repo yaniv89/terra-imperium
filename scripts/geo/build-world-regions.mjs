@@ -11,7 +11,7 @@
 // (subregions-adjacency.json) used directly — no more collapsing to country level, since a region
 // now IS a province. That graph already includes both intra-country edges (Amman-Zarqa) and
 // cross-border edges (Amman-a Saudi province), which is exactly what army movement/invasion needs.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { feature } from 'topojson-client';
@@ -213,7 +213,16 @@ const smallestAreaFallback = (provinceIds) =>
 //      capital territory, a city-state province) — with the old smallest-area heuristic as the
 //      absolute last resort, logged so that fallback list stays auditable rather than silent.
 const capitalFallbacks = [];
+// Balanced regions (build-balanced-regions.mjs): the capital is the merged region holding the
+// country's original capital province. The point-in-polygon test below doesn't handle merged
+// multi-part shapes reliably, so this mapping wins when it exists.
+const capitalProvinces = existsSync(path.join(__dirname, 'source/capital-provinces.json')) ? readJson(path.join(__dirname, 'source/capital-provinces.json')) : {};
+const regionMerge = existsSync(path.join(geoDir, 'regionMerge.json')) ? readJson(path.join(geoDir, 'regionMerge.json')) : {};
+
 const resolveCapitalId = (countryId, provinceIds) => {
+  const original = capitalProvinces[countryId];
+  const merged = original && (regionMerge[original] || original);
+  if (merged && provinceIds.includes(merged)) return merged;
   const alias = CAPITAL_PROVINCE_ALIASES[countryId];
   if (alias) {
     const aliasMatch = provinceIds.find((id) => normalize(subregionsMeta[id].name) === normalize(alias));
@@ -273,7 +282,9 @@ Object.entries(countriesMeta).forEach(([countryId, meta]) => {
       isCapital: id === capitalId,
       isCoastal: !!isCoastalById[id],
       neighbors: subregionsAdjacency[id] || [],
-      description: `${provinceMeta.name}, ${meta.name}`
+      description: `${provinceMeta.name}, ${meta.name}`,
+      // A balanced region (build-balanced-regions.mjs) lists the real provinces merged into it.
+      ...(provinceMeta.includes ? { includes: provinceMeta.includes } : {})
     };
   });
 });

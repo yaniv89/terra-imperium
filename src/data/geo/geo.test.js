@@ -77,7 +77,9 @@ describe('countries tier', () => {
 describe('subregions tier', () => {
   it('has a plausible number of admin-1 divisions worldwide', () => {
     const count = Object.keys(subregionsMeta).length;
-    expect(count).toBeGreaterThan(4000);
+    // Balanced regions: over-split countries merged (build-balanced-regions.mjs).
+    expect(count).toBeGreaterThan(2000);
+    expect(count).toBeLessThan(2100);
     expect(count).toBeLessThan(5000);
   });
 
@@ -106,9 +108,9 @@ describe('subregions tier', () => {
   });
 
   it('a mainland subregion has at least one neighbor (sanity check, not exhaustive)', () => {
-    // Nord (France, on the Belgian border) should border something.
-    expect(subregionsMeta['fr-59']?.name).toBe('Nord');
-    expect(subregionsAdjacency['fr-59']?.length).toBeGreaterThan(0);
+    // Somme (France), which now includes Nord on the Belgian border, should border something.
+    expect(subregionsMeta['fr-80']?.includes).toContain('Nord');
+    expect(subregionsAdjacency['fr-80']?.length).toBeGreaterThan(0);
   });
 
   it('the topology has one object layer with a geometry per subregion', () => {

@@ -26,7 +26,11 @@ The live site is GitHub Pages, built into `docs/`.
   aiEconomy.js, stateAudit.js (invariant checks), plus src/utils/aiLogic.js (AI recruitment and
   war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
-- `src/data/`: static game data (regions with 4,482 provinces, nations, techTree, buildings, resources).
+- `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).
+- Map data: `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
+  (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
+  and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to
+  new ones (used by the v6 save migration); a region's `includes` lists its member provinces.
 - `src/battle/`: the tactical RTS. `sim/` is an integer fixed-point 20 Hz deterministic sim
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.

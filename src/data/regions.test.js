@@ -3,7 +3,8 @@ import { REGIONS_DATA, isAdjacentToOwner, distanceFromAnchor, getNationCapital, 
 
 describe('region adjacency graph', () => {
   it('covers all 240 nations via their real admin-1 provinces', () => {
-    expect(Object.keys(REGIONS_DATA).length).toBe(4482);
+    // Balanced regions (scripts/geo/build-balanced-regions.mjs): 4,482 admin-1 provinces merged to 2,028.
+    expect(Object.keys(REGIONS_DATA).length).toBe(2028);
     const countries = new Set(Object.values(REGIONS_DATA).map(r => r.startOwner));
     expect(countries.size).toBe(240);
   });
@@ -41,25 +42,24 @@ describe('region adjacency graph', () => {
 describe('isAdjacentToOwner', () => {
   // jo-ir (Irbid, Jordan) really borders il-z, a real Israeli province — see subregions-adjacency.json.
   it('is true when a neighboring region is owned by the given owner', () => {
-    const regions = { 'il-z': { owner: 'us' }, 'jo-ir': { owner: 'us' }, 'eg-c': { owner: 'egypt' } };
-    expect(isAdjacentToOwner('jo-ir', regions, 'us')).toBe(true);
+    const regions = { 'il-z': { owner: 'us' }, 'jo-ba': { owner: 'us' }, 'eg-c': { owner: 'egypt' } };
+    expect(isAdjacentToOwner('jo-ba', regions, 'us')).toBe(true);
   });
 
   it('is false when no neighbor is owned by the given owner', () => {
-    const regions = { 'jo-ir': { owner: 'egypt' } };
-    expect(isAdjacentToOwner('jo-ir', regions, 'us')).toBe(false);
+    const regions = { 'jo-ba': { owner: 'egypt' } };
+    expect(isAdjacentToOwner('jo-ba', regions, 'us')).toBe(false);
   });
 });
 
 describe('distanceFromAnchor (overextension)', () => {
-  // A real 3-hop chain of provinces: id-nt (Indonesia) borders tl-bo (Timor-Leste) borders
-  // tl-an (Timor-Leste), with id-nt NOT directly adjacent to tl-an — and tl-co (also
-  // Timor-Leste) is a second real neighbor of id-nt that itself borders tl-an directly, for the
-  // multi-anchor case.
-  const A = 'id-nt';
-  const B = 'tl-bo';
-  const C = 'tl-an';
-  const D = 'tl-co';
+  // A real 3-hop chain, found in the data: A borders B, B borders C, and C is not next to A.
+  // D is another neighbour of C, for the multi-anchor case.
+  const nb = (id) => REGIONS_DATA[id].neighbors;
+  const A = Object.keys(REGIONS_DATA).sort().find((a) => nb(a).some((b) => nb(b).some((c) => c !== a && !nb(a).includes(c))));
+  const B = nb(A).find((b) => nb(b).some((c) => c !== A && !nb(A).includes(c)));
+  const C = nb(B).find((c) => c !== A && !nb(A).includes(c));
+  const D = nb(C).find((d) => d !== B && d !== A) || B;
 
   it('is 0 for the anchor region itself', () => {
     expect(distanceFromAnchor([A], A)).toBe(0);

@@ -6,6 +6,16 @@ import { feature } from 'topojson-client';
 
 let cachedCountryFeatures = null;
 let cachedSubregionFeatures = null;
+let cachedSubregionTopology = null;
+
+// The province topology itself (shared arcs), for drawing borders as one mesh (Map2DView's
+// nation borders) instead of one outline per province.
+export const loadSubregionTopology = async () => {
+  if (cachedSubregionTopology) return cachedSubregionTopology;
+  const { default: topology } = await import('./subregions.topo.json');
+  cachedSubregionTopology = topology;
+  return topology;
+};
 
 export const loadCountryFeatures = async () => {
   if (cachedCountryFeatures) return cachedCountryFeatures;

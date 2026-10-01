@@ -48,9 +48,9 @@ vassals.js (liberty desire), techDiffusion.js, pacts.js, supplies.js.
   `state.techTree`. Only "Tier 1" AI nations declare wars (performance tiering), so the AI world
   is quiet by design.
 
-## 4. Performance (4,482 provinces x 240 nations)
+## 4. Performance (2,028 regions x 240 nations)
 - Never spread the whole `regions` map per item: `{ ...regions, [id]: r }` in a loop copies
-  4,482 keys each time. Inside resolveTurn assign into the working copy: `regions[id] = next`.
+  2,028 keys each time. Inside resolveTurn assign into the working copy: `regions[id] = next`.
 - Cache per turn (a Map keyed by nation) or per object identity (WeakMap), as techDiffusion.js does.
 - No O(regions) scan per nation per turn (getOverextension is one; AI paths skip it).
 - Check speed with the balance-sim skill: `compare.sh <base-ref> 50 11` prints msPerTurn for the
