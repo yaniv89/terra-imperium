@@ -39,7 +39,7 @@ ps aux | grep "[v]ite --port 5199" | awk '{print $2}' | xargs -r kill
 ```
 (Don't stop the server with `pkill -f "vite --port …"`: the pattern matches the calling shell
 and kills it.) The script opens `?battleSandbox`, starts the battle, attack-moves the player
-army on the keep at 3x, prints blood and fx counts every 5 s, centres on the fight, saves the
+army on the keep at 3x, prints blood and fx counts every 5 s, centres on the fight (or on the army before any blood), saves the
 screenshot and lists console errors. Look at the image with the Read tool. "GPU stall due to
 ReadPixels" warnings come from SwiftShader, not the game. It relies on the DEV-only hooks
 `window.__battleRenderer` and `window.__battleOrders`.
