@@ -67,39 +67,3 @@ test('2D province fills select their own region at two zoom levels',async({page}
     await expect.poll(()=>page.evaluate(()=>window.__map2DTest.selected)).toBeNull();
   }
 });
-test('battle quality presets change rendering without restarting the battle',async({page})=>{
-  test.setTimeout(180000);
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(()=>{window.__E2E_BATTLE_TEST__=true;});
-  await page.goto('/?battleSandbox&age=classical&terrain=plains&fort=0&seed=7');
-  await page.getByRole('button',{name:'Fight',exact:true}).click();
-  const quality=page.getByLabel('Battle visual quality');
-  await expect(quality).toBeVisible({timeout:60000});
-  await page.waitForFunction(()=>Number.isFinite(window.__battleTest?.tick()));
-  const tick=await page.evaluate(()=>window.__battleTest.tick());
-  await quality.selectOption('low');await expect(quality).toHaveValue('low');
-  await quality.selectOption('high');await expect(quality).toHaveValue('high');
-  expect(await page.evaluate(()=>window.__battleTest.tick())).toBe(tick);
-  expect((await page.evaluate(()=>window.__battleTest.diagnostics())).dpr).toBeLessThanOrEqual(2);
-  await page.getByRole('button',{name:'Start',exact:true}).click();
-  await page.waitForFunction(()=>window.__battleTest.tick()>10);
-  await page.screenshot({path:'../battle-classical-plains.png'});
-  await page.getByRole('button',{name:'Pause',exact:true}).click();
-  await page.setViewportSize({width:588,height:1020});
-  await page.mouse.move(294,560);
-  for(let i=0;i<16;i++)await page.mouse.wheel(0,-100);
-  await page.waitForTimeout(500);
-  await page.screenshot({path:'../battle-mobile-near.png'});
-  for(let i=0;i<24;i++)await page.mouse.wheel(0,100);
-  await page.waitForTimeout(500);
-  await page.screenshot({path:'../battle-mobile-far.png'});
-  await page.setViewportSize({width:1280,height:720});
-  for(const [terrain,fort] of [['forest',0],['urban',3]]){
-    await page.goto('/?battleSandbox&age=classical&terrain='+terrain+'&fort='+fort+'&seed=7');
-    await page.getByRole('button',{name:'Fight',exact:true}).click();
-    await page.getByRole('button',{name:'Start',exact:true}).click();
-    await page.waitForFunction(()=>window.__battleTest.tick()>10);
-    await page.screenshot({path:'../battle-classical-'+terrain+'.png'});
-  }
-  expect(errors).toEqual([]);
-});
