@@ -956,11 +956,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   });
   mark('diplomacy');
 
-  // --- great projects (plan §M10) --- construction is player-only for now, matching every other
-  // AI-economic-action deferral since M8 (government reforms, laws, estates — AI never acts, only
-  // the player does), so only player-owned regions ever carry a `greatProjectConstruction` in the
-  // first place. A region captured mid-construction loses its queued project outright (there's no
-  // partial-credit hand-off to a new owner) rather than silently freezing forever.
+  // --- great projects (plan §M10, now plans/civ-map-rework.md C9.2) --- a wonder is built from a
+  // city's production queue on a tile of its border (wonders.js), by the player and the AI alike;
+  // the old gold-and-turns construction queue is gone.
   const greatProjects = { ...state.greatProjects };
   // Wonders built from a city's queue this turn (wonders.js): the tile, the tier, the prestige.
   (cityTurn.wonders || []).forEach((w) => {
@@ -978,33 +976,6 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const ownerId = regions[w.city]?.owner;
     if (ownerId && nations[ownerId] && tierSpec?.completionPrestige) nations[ownerId] = { ...nations[ownerId], prestige: clampPrestige((nations[ownerId].prestige || 0) + tierSpec.completionPrestige) };
     if (ownerId === state.playerNationId) logs.push({ year: newYear, message: `${project?.name || w.projectId} (tier ${w.tier}) stands at ${regions[w.city]?.name}!${tierSpec?.completionPrestige ? ` (+${tierSpec.completionPrestige} prestige)` : ''}`, type: LogTypes.MILESTONE });
-  });
-  Object.keys(regions).forEach((regionId) => {
-    const region = regions[regionId];
-    const construction = region.greatProjectConstruction;
-    if (!construction) return;
-    if (region.owner !== state.playerNationId) {
-      regions[regionId] = { ...region, greatProjectConstruction: null };
-      return;
-    }
-    const turnsLeft = construction.turnsLeft - 1;
-    if (turnsLeft > 0) {
-      regions[regionId] = { ...region, greatProjectConstruction: { ...construction, turnsLeft } };
-      return;
-    }
-    const project = GREAT_PROJECTS[construction.projectId];
-    const tierSpec = project?.tiers[construction.tier - 1];
-    regions[regionId] = { ...region, greatProjectConstruction: null };
-    greatProjects[construction.projectId] = { regionId, tier: construction.tier };
-    if (tierSpec?.completionPrestige) {
-      const nation = nations[state.playerNationId];
-      nations[state.playerNationId] = { ...nation, prestige: clampPrestige((nation.prestige || 0) + tierSpec.completionPrestige) };
-    }
-    logs.push({
-      year: newYear,
-      message: `${project.name} (tier ${construction.tier}) completed!${tierSpec?.completionPrestige ? ` (+${tierSpec.completionPrestige} prestige)` : ''}`,
-      type: LogTypes.MILESTONE
-    });
   });
   mark('greatProjects');
 

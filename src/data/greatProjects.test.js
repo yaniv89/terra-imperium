@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   GREAT_PROJECTS, GREAT_PROJECT_IDS, GREAT_PROJECT_TIER_COST, getGreatProject, getGreatProjectCost,
-  getGreatProjectOwner, meetsSiteRule, canStartGreatProject, canUpgradeGreatProject, SITE_RULES
+  getGreatProjectOwner, meetsSiteRule, SITE_RULES
 } from './greatProjects';
 import { AGE_ORDER } from './ages';
 import { createEmptyRegionBuildings } from './buildings';
@@ -127,71 +127,5 @@ describe('meetsSiteRule', () => {
 
   it('is false for a project with no such rule', () => {
     expect(meetsSiteRule({ siteRule: 'not_a_real_rule' }, {}, 'r1')).toBe(false);
-  });
-});
-
-describe('canStartGreatProject', () => {
-  const baseState = () => ({
-    age: 'bronze',
-    regions: { r1: { owner: 'fr', buildings: createEmptyRegionBuildings() } },
-    greatProjects: {}
-  });
-
-  it('allows starting at an owned region meeting the site rule and age', () => {
-    // r1 isn't flagged isCapital in REGIONS_DATA, so use devAtLeast15 (Colosseum, Classical) instead —
-    // still needs the calendar to have reached Classical.
-    const state = { ...baseState(), age: 'classical', regions: { r1: { owner: 'fr', dev: { tax: 5, production: 5, manpower: 5 } } } };
-    expect(canStartGreatProject(state, 'fr', 'colosseum', 'r1')).toBe(true);
-  });
-
-  it('rejects a region the nation doesn\'t own', () => {
-    const state = { ...baseState(), age: 'classical', regions: { r1: { owner: 'de', dev: { tax: 5, production: 5, manpower: 5 } } } };
-    expect(canStartGreatProject(state, 'fr', 'colosseum', 'r1')).toBe(false);
-  });
-
-  it('rejects a region that fails the site rule', () => {
-    const state = { ...baseState(), age: 'classical', regions: { r1: { owner: 'fr', dev: { tax: 1, production: 1, manpower: 1 } } } };
-    expect(canStartGreatProject(state, 'fr', 'colosseum', 'r1')).toBe(false);
-  });
-
-  it('rejects a project not yet reached by the calendar age', () => {
-    const state = { ...baseState(), age: 'bronze', regions: { r1: { owner: 'fr', dev: { tax: 5, production: 5, manpower: 5 } } } };
-    expect(canStartGreatProject(state, 'fr', 'colosseum', 'r1')).toBe(false); // Colosseum is Classical
-  });
-
-  it('rejects once the project has been started anywhere', () => {
-    const state = { ...baseState(), age: 'classical', regions: { r1: { owner: 'fr', dev: { tax: 5, production: 5, manpower: 5 } } }, greatProjects: { colosseum: { regionId: 'r2', tier: 1 } } };
-    expect(canStartGreatProject(state, 'fr', 'colosseum', 'r1')).toBe(false);
-  });
-
-  it('rejects a region already mid-construction on a different project', () => {
-    const state = { ...baseState(), age: 'classical', regions: { r1: { owner: 'fr', dev: { tax: 5, production: 5, manpower: 5 }, greatProjectConstruction: { projectId: 'lighthouse', tier: 1, turnsLeft: 2 } } } };
-    expect(canStartGreatProject(state, 'fr', 'colosseum', 'r1')).toBe(false);
-  });
-});
-
-describe('canUpgradeGreatProject', () => {
-  it('allows the current owner to upgrade below tier 3', () => {
-    const state = { greatProjects: { great_pyramids: { regionId: 'r1', tier: 1 } }, regions: { r1: { owner: 'fr' } } };
-    expect(canUpgradeGreatProject(state, 'fr', 'great_pyramids')).toBe(true);
-  });
-
-  it('rejects a non-owner', () => {
-    const state = { greatProjects: { great_pyramids: { regionId: 'r1', tier: 1 } }, regions: { r1: { owner: 'de' } } };
-    expect(canUpgradeGreatProject(state, 'fr', 'great_pyramids')).toBe(false);
-  });
-
-  it('rejects once already at tier 3', () => {
-    const state = { greatProjects: { great_pyramids: { regionId: 'r1', tier: 3 } }, regions: { r1: { owner: 'fr' } } };
-    expect(canUpgradeGreatProject(state, 'fr', 'great_pyramids')).toBe(false);
-  });
-
-  it('rejects a project never started', () => {
-    expect(canUpgradeGreatProject({ greatProjects: {}, regions: {} }, 'fr', 'great_pyramids')).toBe(false);
-  });
-
-  it('rejects while the region is already mid-construction', () => {
-    const state = { greatProjects: { great_pyramids: { regionId: 'r1', tier: 1 } }, regions: { r1: { owner: 'fr', greatProjectConstruction: { projectId: 'x', tier: 1, turnsLeft: 1 } } } };
-    expect(canUpgradeGreatProject(state, 'fr', 'great_pyramids')).toBe(false);
   });
 });

@@ -52,7 +52,6 @@ import { getDepositsFor } from '../../data/deposits';
 import { INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
 import { getEffectiveAgeId } from '../../data/ages';
 import { FOOD_TIER_GROWTH_BONUS } from '../../engine/population';
-import { GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, canStartGreatProject } from '../../data/greatProjects';
 import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { canAfford, formatNumber, getStability, getSupplyCapacity, getDisplayPopulation } from '../../utils/helpers';
@@ -181,12 +180,6 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
     if (!canAfford(state.resources, ACTION_COSTS.developResourceSite)) return addLog('Not enough resources', 'action');
     triggerEffect('develop_resource_site', { region: regionId, variant: resourceId });
     dispatch({ type: ActionTypes.DEVELOP_RESOURCE_SITE, payload: { regionId, resourceId } });
-  };
-  const handleStartGreatProject = (projectId) => {
-    const { gold, adm } = getGreatProjectCost(1);
-    if (!canAfford(state.resources, { gold, adm })) return addLog('Not enough resources', 'action');
-    triggerEffect('start_great_project', { region: regionId });
-    dispatch({ type: ActionTypes.START_GREAT_PROJECT, payload: { projectId, regionId } });
   };
 
   const deposits = getDepositsFor(regionData.startOwner); // deposits are geological, keyed by the province's home country
@@ -463,36 +456,6 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
                       />
                     );
                   })}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs font-semibold text-slate-300">Great Projects</div>
-                  {regionState.greatProjectConstruction && (
-                    <div className="bg-slate-800/60 rounded-lg p-2 text-xs text-slate-300">
-                      Building {GREAT_PROJECTS[regionState.greatProjectConstruction.projectId]?.name} (tier {regionState.greatProjectConstruction.tier}) —{' '}
-                      {regionState.greatProjectConstruction.turnsLeft} turn{regionState.greatProjectConstruction.turnsLeft === 1 ? '' : 's'} left
-                    </div>
-                  )}
-                  {GREAT_PROJECT_IDS.filter((projectId) => canStartGreatProject(state, state.playerNationId, projectId, regionId)).map((projectId) => {
-                    const project = GREAT_PROJECTS[projectId];
-                    const cost = getGreatProjectCost(1);
-                    return (
-                      <ActionButton
-                        key={projectId}
-                        icon={Landmark}
-                        label={`Start ${project.name}`}
-                        description={`${cost.turns} turns — ${project.description}`}
-                        costs={{ gold: cost.gold, adm: cost.adm }}
-                        onClick={() => handleStartGreatProject(projectId)}
-                        disabled={!canAfford(state.resources, { gold: cost.gold, adm: cost.adm })}
-                        resources={state.resources}
-                        size="small"
-                      />
-                    );
-                  })}
-                  {!regionState.greatProjectConstruction && !GREAT_PROJECT_IDS.some((projectId) => canStartGreatProject(state, state.playerNationId, projectId, regionId)) && (
-                    <div className="text-[10px] text-slate-500">No great project can be started here right now.</div>
-                  )}
                 </div>
 
                 {deposits.length > 0 && (

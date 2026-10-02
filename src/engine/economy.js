@@ -124,13 +124,7 @@ export const applyBankruptcy = (nation, regions, nationId, turnNumber, extraStab
   // "All construction is cancelled without refund" — see resolveTurn.js's own note on why a Great
   // Project's multi-turn queue is the only real substrate for this in a codebase where ordinary
   // buildings complete instantly.
-  const nextRegions = { ...regions };
-  Object.keys(nextRegions).forEach((regionId) => {
-    if (nextRegions[regionId].owner === nationId && nextRegions[regionId].greatProjectConstruction) {
-      nextRegions[regionId] = { ...nextRegions[regionId], greatProjectConstruction: null };
-    }
-  });
-  return { nation: nextNation, regions: nextRegions };
+  return { nation: nextNation, regions }; // wonders are built from production now: nothing to cancel
 };
 
 export const getRecruitUnitCost = (state, ageId, nationId = state.playerNationId) => {

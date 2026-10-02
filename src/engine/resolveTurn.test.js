@@ -297,16 +297,6 @@ describe('resolveTurn economy (plan §M11)', () => {
     expect(next.nations.fr.modifiers.some((m) => m.sourceType === 'bankruptcy' && m.expiresTurn === next.turnNumber + 10)).toBe(true);
   });
 
-  it('bankruptcy cancels in-progress Great Project construction without refund', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const region = { ...base.regions[cap('fr')], greatProjectConstruction: { projectId: 'great_pyramids', tier: 1, turnsLeft: 3 } };
-    const state = { ...base, regions: { ...base.regions, [cap('fr')]: region }, resources: { ...base.resources, gold: 0 } };
-    const withHugeArmy = { ...state, units: Array.from({ length: 1000 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }]).reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}) };
-    const next = resolveTurn(withHugeArmy);
-    expect(next.logs.some((l) => l.message.includes('Bankruptcy'))).toBe(true);
-    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
-  });
-
   it('Fusion Grid deducts its per-turn helium3 upkeep while active', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, fusionGridActive: true } }, resources: { ...base.resources, helium3: 10 } };
@@ -1306,38 +1296,6 @@ describe('resolveTurn estates (plan §M9)', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const next = resolveTurn(base); // still Bronze age at game start
     expect(next.nations.fr.estates.labor).toBeUndefined();
-  });
-});
-
-describe('resolveTurn great projects (plan §M10)', () => {
-  const withConstruction = (turnsLeft, tier = 1) => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    return {
-      ...base,
-      regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], greatProjectConstruction: { projectId: 'great_pyramids', tier, turnsLeft } } }
-    };
-  };
-
-  it('ticks turnsLeft down by 1 without completing', () => {
-    const next = resolveTurn(withConstruction(4));
-    expect(next.regions[cap('fr')].greatProjectConstruction).toEqual({ projectId: 'great_pyramids', tier: 1, turnsLeft: 3 });
-    expect(next.greatProjects.great_pyramids).toBeUndefined();
-  });
-
-  it('completes construction, clears the queue, records the project, and grants prestige', () => {
-    const base = withConstruction(1);
-    const next = resolveTurn(base);
-    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
-    expect(next.greatProjects.great_pyramids).toEqual({ regionId: cap('fr'), tier: 1 });
-    expect(next.nations.fr.prestige).toBeGreaterThan(base.nations.fr.prestige || 0);
-  });
-
-  it('cancels a queued project outright if the region is captured before it finishes', () => {
-    const base = withConstruction(2);
-    const captured = { ...base, regions: { ...base.regions, [cap('fr')]: { ...base.regions[cap('fr')], owner: 'de' } } };
-    const next = resolveTurn(captured);
-    expect(next.regions[cap('fr')].greatProjectConstruction).toBeNull();
-    expect(next.greatProjects.great_pyramids).toBeUndefined();
   });
 });
 
