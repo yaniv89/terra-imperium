@@ -10,6 +10,7 @@ import { REGIONS_DATA } from '../../data/regions';
 import { getMapMarkers } from '../../utils/mapMarkers';
 import { getAtWarNationIds } from '../../utils/mapRegionStyle';
 import { openBattleReport } from '../battle/battleReportEvents';
+import { ARMY_SPOT, unitPx } from './closeView/scale';
 import { clusterBannerHtml, clusterScreenMarkers, MARKER_OFFSET, markerHtml, markerItems } from './mapBanners';
 
 export const FOREIGN_MIN_ZOOM = 2;
@@ -24,7 +25,9 @@ const describe = (m) => {
   return m.kind === 'fleet' ? `Your fleet in ${where}` : `Your army in ${where}, ${m.men} soldiers`;
 };
 
-const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectRegion, onZoomTo }) => {
+// `close`: the close view is on (Map2DView CLOSE_ZOOM_K). Armies are drawn as soldiers there, so
+// their banners shrink to a small tag above the figures.
+const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectRegion, onZoomTo, close = false }) => {
   const { state } = useGame();
   const markers = useMemo(() => getMapMarkers(state),
     // Only what the markers read: units, ownership, alliances, intel and battles.
@@ -40,14 +43,16 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
       const c = REGION_COORDINATES[m.regionId];
       const p = c && projection([c.lng, c.lat]);
       if (!p) return;
-      const [ox, oy] = MARKER_OFFSET[m.kind];
+      // In the close view an army's banner becomes a small tag over its soldiers.
+      const s = unitPx(transform.k);
+      const [ox, oy] = close && m.kind === 'army' ? [s * ARMY_SPOT.x, s * ARMY_SPOT.y - s * 2.2 - 10] : MARKER_OFFSET[m.kind];
       const x = p[0] * transform.k + transform.x + ox;
       const y = p[1] * transform.k + transform.y + oy;
       if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;
       items.push({ ...m, x, y });
     });
     return clusterScreenMarkers(items, CLUSTER_RADIUS_PX);
-  }, [markers, projection, transform, width, height]);
+  }, [markers, projection, transform, width, height, close]);
 
   if (!placed.length) return null;
   return (
@@ -65,8 +70,10 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
           <button
             key={c.key}
             type="button"
-            className={`map-banner pointer-events-auto${single && !c.own ? ' foreign' : ''}`}
-            style={{ transform: `translate(${Math.round(c.x)}px, ${Math.round(c.y)}px) translate(-50%, -50%)` }}
+            className={`map-banner pointer-events-auto${single && !c.own ? ' foreign' : ''}${close && single && c.kind === 'army' ? ' close-tag' : ''}`}
+            // In the close view an army's banner is a smaller tag above its 3D soldiers (the scale goes last
+            // in the transform, so it does not shrink the position).
+            style={{ transform: `translate(${Math.round(c.x)}px, ${Math.round(c.y)}px) translate(-50%, -50%)${close && single && c.kind === 'army' ? ' scale(0.72)' : ''}` }}
             data-marker={single ? c.kind : 'cluster'}
             data-region-id={c.regionId}
             aria-label={single ? describe(c) : `${c.members.length} markers: zoom in`}

@@ -9,7 +9,7 @@
 // lat/lng geometry into an SVG path string) is memoized on [width, height, polygons] only; fill and
 // stroke are computed per-render (cheap: a couple of object lookups), the same split GlobeView's
 // own capColor/strokeColor already uses for the same reason.
-import React, { useMemo, useCallback, useEffect, useState, useRef } from 'react';
+import React, { Suspense, useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import { select } from 'd3-selection';
@@ -27,6 +27,9 @@ import { mesh } from 'topojson-client';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
+// The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
+const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
+export const CLOSE_ZOOM_K = 10;
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
@@ -360,6 +363,10 @@ const Map2DView = ({
     );
   }, [pathsById, atWarNationIds, state.regions, state.playerNationId, selectedRegion, zoomK]);
 
+  // Load the close view a little before it is needed, then keep it (one WebGL context for good).
+  const [closeLoaded, setCloseLoaded] = useState(false);
+  useEffect(() => { if (interactive && transform.k >= CLOSE_ZOOM_K * 0.7) setCloseLoaded(true); }, [interactive, transform.k]);
+
   // A tapped marker cluster: zoom in on it until its banners separate.
   const zoomToRegion = useCallback((regionId) => {
     const c = REGION_COORDINATES[regionId];
@@ -408,7 +415,12 @@ const Map2DView = ({
   return (
     <div className="relative w-full h-full">
       {map}
-      <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} />
+      {closeLoaded && (
+        <Suspense fallback={null}>
+          <CloseViewLayer projection={projection} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} />
+        </Suspense>
+      )}
+      <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} close={transform.k >= CLOSE_ZOOM_K} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
       <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
