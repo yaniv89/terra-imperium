@@ -1718,6 +1718,17 @@ without conquest or overseas settling. The reachable target is a median of 2 at 
 at turn 150 with about 1,000 cities by 1500 CE, which the next slices aim at. The loyalty flip
 rate rose with the city count (1.9% per 10 turns in the last window) and goes back on the list.
 
+**Workstream 13, loyalty flips (2026-10-02).** Every one of the 259 flips in 150 turns (seed 11)
+was a settled city, 64% younger than 60 turns, most on the turn the founding grace ended, and
+in almost every case its owner was the nation pressing it MOST: in a dense region the pressure
+field splits among four or five neighbours, so the owner's absolute share sat at 30 to 40%
+under the 40% floor however strong its lead. The target is now the owner's LEAD: 50 +
+LOYALTY_LEAD_SCALE (100) x (owner's share - the biggest other share), an even split holding at
+50, with LOYALTY_SHARE_FLOOR lowered to 0.25 as the "never loyal" line. Seed 11, 150 turns:
+flips 259 to 69 (17 by turn 100), the last window at 0.6% of cities per 10 turns (target 0.5 to
+1%), cities at turn 150 885, land claimed 63.2% at 1050 CE, median cities per nation 2 at turns
+100 and 150, audit 0. The city card lists the people term next to the culture shares.
+
 ---
 
 ---

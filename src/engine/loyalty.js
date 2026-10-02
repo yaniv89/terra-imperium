@@ -6,8 +6,12 @@
 //              press their own culture (its shares) at SELF_WEIGHT of their size, so a lone
 //              conquest never converts itself but a big neighbour can turn a small city. The
 //              shares drift CULTURE_DRIFT of the way to the pressure shares each turn.
-//   Target     100 x how far the owner's share stands above LOYALTY_SHARE_FLOOR (a city needs
-//              over LOYALTY_SHARE_FLOOR of its people of its owner's culture to be loyal at all),
+//   Target     50 + LOYALTY_LEAD_SCALE x (the owner's share - the biggest other share): an even
+//              split holds at 50, a lead of a quarter of the people gives 75, a rival culture a
+//              quarter ahead gives 25; under LOYALTY_SHARE_FLOOR of the owner's people the city
+//              is never loyal at all (in a dense region the pressure field splits among four or
+//              five neighbours, so an absolute share could never hold a small city even when
+//              its owner pressed it most),
 //              + LOYALTY_GARRISON_PER_UNIT per own land unit on the
 //              centre (up to LOYALTY_GARRISON_CAP), + the amenities balance (capped either way),
 //              - LOYALTY_CONQUERED while the conquest is younger than CONQUERED_TURNS,
@@ -38,7 +42,8 @@ export const KM_PER_RING = 147;
 export const CULTURE_DRIFT = 0.05;
 export const CULTURE_PERIOD = 3;        // a city's shares drift every third turn (by CULTURE_PERIOD x CULTURE_DRIFT)
 export const SELF_WEIGHT = 0.6;
-export const LOYALTY_SHARE_FLOOR = 0.4;
+export const LOYALTY_SHARE_FLOOR = 0.25;
+export const LOYALTY_LEAD_SCALE = 100;
 export const LOYALTY_STEP = 5;
 export const LOYALTY_GARRISON_PER_UNIT = 10;
 export const LOYALTY_GARRISON_CAP = 30;
@@ -104,9 +109,10 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const conquered = city.conquest && turn - (city.conquest.turn || 0) < CONQUERED_TURNS ? LOYALTY_CONQUERED : 0;
   const owner = nations[city.owner];
   const capitalLost = owner && owner.capitalRegionId && state.regions[owner.capitalRegionId] && state.regions[owner.capitalRegionId].owner !== city.owner ? LOYALTY_CAPITAL_LOST : 0;
-  const fromShare = 100 * Math.max(0, share - LOYALTY_SHARE_FLOOR) / (1 - LOYALTY_SHARE_FLOOR);
+  const maxOther = Object.entries(culture).reduce((m, [id, v]) => (id !== city.owner && v > m ? v : m), 0);
+  const fromShare = share < LOYALTY_SHARE_FLOOR ? 0 : Math.max(0, Math.min(100, 50 + LOYALTY_LEAD_SCALE * (share - maxOther)));
   const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost)));
-  return { total, share, garrison, amenities, conquered, capitalLost };
+  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost };
 };
 
 // Nations whose land touches this city's tiles.
