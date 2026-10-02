@@ -1438,6 +1438,25 @@ India and Pakistan. Mountains are not impassable yet (no Mountaineering tech exi
 with the research web of workstream 10). Still to come in 5: fog of war, the supply meter,
 stacking limits, fleets on sea tiles, army templates and the AI front planner (workstream 9).
 
+
+---
+
+**Workstream 5, second wave (2026-10-02): the supply meter and sight by tile.**
+`src/engine/supplyMeter.js` replaces the old "beyond the supply range" attrition (one rate, by
+province hops) with the plan's meter: every land unit carries `supply` 0 to 100; a turn at home
+(own, vassal or allied land) gives +20, free land costs 10, enemy land 20 (10 when own land is
+within 6 tiles, more with the supply range modifiers, 0 next to a city it holds), an empty
+national supplies stock 10 more everywhere abroad, and a stack above the tile's cap (combat
+width x 2 units) 10 more. Losses are scaled by national.attrition (the player's Paved Roads),
+halved by Forager and by a logistician commander. At 0 the unit starves: 5% of its strength
+(floored, so it can die) and 10 morale a turn, and it neither recovers nor reinforces. The
+unit line in the region card shows SUP; a banner's description names a short supply.
+`src/engine/sight.js`: a nation sees its land and allies' land plus 2 tiles, its armies plus 2
+(3 on hills), its fleets plus 2; foreign armies and colonies outside that are fog unless intel
+reveals the nation (the region-neighbour rule is gone). The greyed memory and the darkened map
+wait for the lenses of workstream 12. Still open in 5: fleets on sea tiles, recruitment to the
+city tile, army templates, the AI front planner (9).
+
 ---
 
 ---

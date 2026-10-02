@@ -21,7 +21,7 @@ import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { calcIncome, formatMoney, nextUnrest, getSupplyCapacity, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
+import { calcIncome, formatMoney, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
 import { getPopulationGrowthRate, nextRegionPopulation } from './population';
@@ -35,7 +35,7 @@ import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
 import { SPACE_MISSIONS_BY_ID } from '../data/spaceMissions';
-import { REGIONS_DATA, getOwnedRegionIds, regionsWithinRange, getCapital } from '../data/regions';
+import { REGIONS_DATA, getCapital } from '../data/regions';
 import {
   REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD, REBEL_GROWTH_RATE, REBEL_MAX_GROWTH_MULT, getRebelSpawnStrength,
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
@@ -79,9 +79,9 @@ import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
 import { normalizeUnitTiles } from './armies';
+import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
-import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -406,55 +406,23 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
   });
 
-  // --- supply attrition (plan §9): armies beyond their nation's supply reach bleed strength each
-  // turn — this is what makes Build Infrastructure strategically load-bearing, not just an
-  // economy button. Every nation's units are subject to it, not just the player's. A unit
-  // stationed on one of its own regions is always distance 0 from itself and never bled; only
-  // units that have marched beyond every region their nation actually holds pay the cost.
-  const SUPPLY_ATTRITION_RATE = 0.1;
-  const unitsByOwner = {};
-  Object.values(units).forEach(u => { (unitsByOwner[u.ownerId] = unitsByOwner[u.ownerId] || []).push(u); });
-  Object.entries(unitsByOwner).forEach(([ownerId, ownerUnits]) => {
-    const ownedRegionIds = getOwnedRegionIds(regions, ownerId);
-    if (ownedRegionIds.length === 0) return; // no territory of its own (e.g. rebels) — nothing to be supplied from
-    // Plan §M7: Paved Roads/Highway Systems reduce attrition, and Infrastructure techs add a flat
-    // national.supplyRange — both sourced only from the player's own researched techs today (AI
-    // nations don't track a techTree until M16's AI parity), so this is gated the same way the
-    // tech-effects source itself already is. Calling getModifier for every AI-owned nation here
-    // would otherwise force contextSources' O(regions) getOverextension scan up to ~240 times a
-    // turn for a value that's unconditionally 0 for every one of them anyway.
-    const attritionMult = Math.max(0, 1 + getModifier(state, ownerId, 'national.attrition').total);
-    // Plan §M6: the Logistics building line's local.supplyRange extends how far THAT region can
-    // supply from, on top of infrastructure's own existing contribution.
-    const nationalSupplyRange = getModifier(state, ownerId, 'national.supplyRange').total;
-    const maxSupplyRange = nationalSupplyRange + Math.max(...ownedRegionIds.map(id => getSupplyCapacity(regions[id].currentInfrastructure) + getRegionModifier(state, id, 'local.supplyRange').total));
-    // One bounded multi-source BFS covers every in-range region at once, rather than a fresh
-    // search per distinct region a unit happens to occupy — the set of in-range regions is the
-    // same for every one of this nation's units this turn regardless of how many distinct
-    // regions they're spread across.
-    // Supply lines run through friendly country only: a province an enemy occupies can be reached
-    // but not supplied through, so an army beyond a lost province is cut off.
-    const enemyHeld = (rid) => { const occ = regions[rid]?.occupiedBy; return !!occ && occ !== ownerId; };
-    const inSupplyRegions = regionsWithinRange(ownedRegionIds.filter((rid) => !enemyHeld(rid)), maxSupplyRange, enemyHeld);
-    ownerUnits.forEach(u => {
-      if (u.embarkedOn) return; // cargo shares its transport's supply state, not its own
-      if (inSupplyRegions.has(u.regionId)) return; // in supply
-      // Plan §M14: terrain hardship (desert/mountains/arctic) compounds with the ages-old out-of-
-      // supply attrition instead of being a second, separate drain — this codebase has exactly one
-      // attrition mechanic, so terrain's own attrition modifier folds into it. Forager (-50%, a real
-      // per-unit perk) and a logistician-commanded unit's own general (-50%, standing in for the
-      // plan's "whole stack" until generals command more than one unit — see this milestone's own
-      // scope-trim note in gameReducer.js) both reduce it further, and stack.
-      let unitAttritionMult = attritionMult * getTerrainCombatModifier(getRegionTerrain(u.regionId, REGIONS_DATA)).attritionMult;
-      if (hasPerk(u, 'forager')) unitAttritionMult *= 0.5;
-      if (state.hiredCommanders[u.commanderId]?.personality === 'logistician') unitAttritionMult *= 0.5;
-      // Math.floor, not round: a unit's strength must actually reach 0 under sustained attrition
-      // rather than rounding back up to 1 forever once it gets small.
-      const strength = Math.max(0, Math.floor(u.strength * (1 - SUPPLY_ATTRITION_RATE * unitAttritionMult)));
-      if (strength <= 0) { delete units[u.id]; return; }
-      units[u.id] = { ...u, strength };
-    });
+  // --- supply (plans/civ-map-rework.md D3, supplyMeter.js): every land unit's meter moves by the
+  // land it stands on; at 0 it starves. The player's national.attrition modifier scales the
+  // losses (AI nations do not track a techTree until AI parity, and the 240-nation getModifier
+  // scan would cost a turn budget for a value that is 0 for all of them); the supply line reach
+  // grows with the player's national.supplyRange.
+  const playerAttritionMult = Math.max(0, 1 + getModifier(state, state.playerNationId, 'national.attrition').total);
+  const playerLineRings = SUPPLY_LINE_RINGS + Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total));
+  const hungryNations = new Set();
+  if (supplyFlow.hungry) hungryNations.add(state.playerNationId);
+  const meter = applySupplyMeter(state, units, {
+    hungryFor: (nid) => hungryNations.has(nid),
+    attritionMultFor: (nid) => (nid === state.playerNationId ? playerAttritionMult : 1),
+    lineRingsFor: (nid) => (nid === state.playerNationId ? playerLineRings : SUPPLY_LINE_RINGS)
   });
+  const starvingOwn = meter.starving.get(state.playerNationId) || 0;
+  const deadOwn = meter.dead.get(state.playerNationId) || 0;
+  if (starvingOwn || deadOwn) logs.push({ year: newYear, message: `Out of supply: ${starvingOwn ? `${starvingOwn} of your unit${starvingOwn > 1 ? 's' : ''} starve${starvingOwn > 1 ? '' : 's'} in the field` : ''}${starvingOwn && deadOwn ? ' and ' : ''}${deadOwn ? `${deadOwn} unit${deadOwn > 1 ? 's' : ''} melted away` : ''}. Bring them home or hold a city near them.`, type: LogTypes.CRISIS });
   mark('rebellionAndSupply');
 
   // --- movement reset, reinforcement, and morale recovery (plan §M14) ---
@@ -489,7 +457,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const ownerPool = isPlayer ? resources : (modifierExpiredNations[u.ownerId].economy || {});
     if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool}));
     const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
-    const hungry = ownerSupply.hungry && isCampaigning(u, regions);
+    // A starving unit (supply meter at 0, supplyMeter.js) recovers nothing either.
+    const hungry = (ownerSupply.hungry && isCampaigning(u, regions)) || (u.supply != null && u.supply <= 0);
     if (hungry) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) };
 
     if (!hungry && !foughtThisTurn && u.morale < 100) {

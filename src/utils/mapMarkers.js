@@ -13,6 +13,8 @@ import { MEN_PER_STRENGTH } from '../engine/aftermath';
 import { hasIntel } from '../engine/intel';
 import { playerWon } from '../engine/battleReports';
 import { unitTile } from '../engine/armies';
+import { visibleTiles } from '../engine/sight';
+import { supplyOf } from '../engine/supplyMeter';
 
 // Soldier bands a foreign army is described by when the player has intel on its owner.
 export const sizeBand = (strength) => (strength >= 3000 ? 'large' : strength >= 1000 ? 'medium' : 'small');
@@ -46,7 +48,7 @@ export const getVisibleRegionIds = (state) => {
 // { armies: [...], fleets: [...], battles: [...], colonies: [...] } — one entry per (province, owner, domain).
 export const getMapMarkers = (state) => {
   const me = state.playerNationId;
-  const visible = getVisibleRegionIds(state);
+  const sight = visibleTiles(state, me);
   const groups = new Map();
   Object.values(state.units).forEach((u) => {
     if (!u || !(u.strength > 0) || u.embarkedOn || u.classId === 'settler' || !REGIONS_DATA[u.regionId]) return;
@@ -59,7 +61,7 @@ export const getMapMarkers = (state) => {
   const armies = []; const fleets = [];
   groups.forEach((g) => {
     const own = g.ownerId === me;
-    if (!own && !visible.has(g.regionId) && !hasIntel(state, g.ownerId)) return; // fog of war
+    if (!own && !sight.has(g.tile) && !hasIntel(state, g.ownerId)) return; // fog of war: seen by tile
     const strength = g.units.reduce((s, u) => s + (u.strength || 0), 0);
     const marker = {
       id: `${g.tile}|${g.regionId}|${g.ownerId}|${g.domain}`,
@@ -75,6 +77,7 @@ export const getMapMarkers = (state) => {
         mainClass: mainClass(g.units),
         morale: Math.round(g.units.reduce((s, u) => s + (u.morale ?? 100), 0) / g.units.length),
         canMove: g.units.some((u) => (u.movesLeft ?? 1) > 0),
+        supply: Math.round(g.units.reduce((s, u) => s + supplyOf(u), 0) / g.units.length),
         embarked: g.domain === 'naval' ? Object.values(state.units).filter((c) => g.units.some((f) => f.id === c.embarkedOn)).length : 0
       } : {
         band: hasIntel(state, g.ownerId) ? sizeBand(strength) : null
@@ -90,7 +93,7 @@ export const getMapMarkers = (state) => {
   const colonies = Object.keys(state.regions).filter((id) => state.regions[id].colony && REGIONS_DATA[id]).map((id) => {
     const c = state.regions[id].colony;
     return { id, regionId: id, ownerId: c.ownerId, own: c.ownerId === me, progress: c.progress };
-  }).filter((c) => c.own || visible.has(c.regionId) || hasIntel(state, c.ownerId));
+  }).filter((c) => c.own || sight.has(state.regions[c.regionId]?.tile) || hasIntel(state, c.ownerId));
   return { armies, fleets, battles, colonies };
 };
 

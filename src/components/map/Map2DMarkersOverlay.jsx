@@ -22,7 +22,7 @@ const describe = (m) => {
   if (m.kind === 'battle') return `Battle at ${where}: open the report`;
   if (m.kind === 'colony') return `${m.own ? 'Your' : 'A foreign'} colony in ${where}, ${Math.round(m.progress || 0)}% grown`;
   if (!m.own) return `${m.kind === 'fleet' ? 'Foreign fleet' : 'Foreign army'} in ${where}`;
-  return m.kind === 'fleet' ? `Your fleet in ${where}` : `Your army in ${where}, ${m.men} soldiers`;
+  return m.kind === 'fleet' ? `Your fleet in ${where}` : `Your army in ${where}, ${m.men} soldiers${m.supply != null && m.supply < 30 ? `, supply ${m.supply}` : ''}`;
 };
 
 // `close`: the close view is on (Map2DView CLOSE_ZOOM_K). Armies are drawn as soldiers there, so
