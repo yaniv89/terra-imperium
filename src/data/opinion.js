@@ -18,6 +18,7 @@ export const CLAIM_ON_MY_CITY = -10;
 export const TRADE_ROUTE = 5;
 export const TRADE_MAX = 15;
 export const ALLIANCE = 25;
+export const OPEN_BORDERS = 10;
 export const DEFENSIVE_PACT = 15;
 export const ROYAL_MARRIAGE = 15;
 export const SAME_IDENTITY_AXIS = 5;

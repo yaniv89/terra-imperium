@@ -12,7 +12,8 @@
 // the rest behind a per-card "More" toggle.
 
 import React, { useMemo, useState } from 'react';
-import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles, Heart, Users, Crown, Unlock, Ban, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Swords, Target, HeartHandshake, ShieldCheck, Gift, Flag, Eye, Sparkles, Heart, Users, Crown, Unlock, Ban, AlertTriangle, ChevronDown, ChevronUp, DoorOpen, Scale
+} from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import TopLayer from '../ui/TopLayer';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
@@ -35,6 +36,7 @@ import { opinionOf, opinionReasons } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { ActionButton } from '../ui';
 import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
+import { hasOpenBorders, openBordersAcceptance, demandAcceptance, DEMANDS } from '../../engine/accords';
 
 // Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
 // player was reading the top-bar Gold total and assuming that meant "affordable," when most
@@ -332,6 +334,9 @@ const NationCard = ({ nation }) => {
         {nation.hasMilitaryPact && (
           <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded text-[10px]">✓ Military Pact</span>
         )}
+        {hasOpenBorders(state, player.id, nation.id) && (
+          <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[10px]" data-testid="open-borders-badge">Open borders</span>
+        )}
         {claimsAgainst(state, player.id, nation.id).length > 0 && (
           <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]" data-testid="claim-badge">Claim on {claimsAgainst(state, player.id, nation.id).map((c) => c.name).join(', ')}</span>
         )}
@@ -445,6 +450,24 @@ const NationCard = ({ nation }) => {
                     />
                   );
                 })()}
+                {(() => {
+                  const open = hasOpenBorders(state, player.id, nation.id);
+                  const answer = openBordersAcceptance(state, nation.id);
+                  return open
+                    ? <IconButton icon={DoorOpen} label="Close borders" title="Your armies, settlers and traders lose passage through their land, and theirs through yours" onClick={() => dispatch({ type: ActionTypes.CLOSE_BORDERS, payload: { nationId: nation.id } })} />
+                    : <IconButton icon={DoorOpen} label={`Open borders (${formatCost(ACTION_COSTS.openBorders)})`} title={answer.accepted ? 'They would accept: passage for armies, settlers and trade both ways, +10 opinion' : `They would refuse today (opinion ${answer.opinion}, needs ${answer.needed}${answer.atWar ? ', and you are at war' : ''})`} disabled={!canAfford(state.resources, ACTION_COSTS.openBorders)} onClick={() => dispatchIfAffordable(ActionTypes.OPEN_BORDERS, ACTION_COSTS.openBorders)} />;
+                })()}
+                {Object.entries(DEMANDS).map(([kind, d]) => {
+                  const claimed = kind === 'city' ? claimsAgainst(state, player.id, nation.id).filter((c) => nation.capitalRegionId !== c.id)[0] : null;
+                  if (kind === 'city' && !claimed) return null;
+                  const answer = demandAcceptance(state, nation.id, kind, claimed?.id);
+                  return (
+                    <IconButton key={kind} icon={Scale} label={`${kind === 'city' ? `Demand ${claimed.name}` : d.label} (${formatCost(ACTION_COSTS.demand)})`}
+                      title={answer.reason || `${answer.accepted ? 'They would yield' : 'They would refuse, giving you a casus belli'} (score ${answer.score}: strength x${answer.ratio}, opinion ${answer.opinion})`}
+                      disabled={!!answer.reason || !canAfford(state.resources, ACTION_COSTS.demand)}
+                      onClick={() => dispatchIfAffordable(ActionTypes.DEMAND, ACTION_COSTS.demand, { kind, cityId: claimed?.id || null })} />
+                  );
+                })}
                 {!nation.hasTradeAgreement && (
                   <IconButton
                     icon={HeartHandshake}

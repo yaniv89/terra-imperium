@@ -114,6 +114,8 @@ export const ACTION_COSTS = {
   // diplomacyPoints and the diplomatic AP draw from the same pool.
   fabricateClaim: { gold: 150, dip: 11 },
   tradeAgreement: { gold: 100, dip: 1 },
+  openBorders: { gold: 50, dip: 5 },
+  demand: { dip: 5 },
   militaryAlliance: { gold: 150, dip: 16 },
   giftBribe: { gold: 100, dip: 1 },
   // Espionage risks the gold on a coin-flip-ish roll (see ESPIONAGE_SUCCESS_CHANCE, gameReducer.js)

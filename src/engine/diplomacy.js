@@ -7,6 +7,7 @@
 
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { claimsAgainst } from './claims';
+import { hasDemandCasusBelli, setOpenBorders } from './accords';
 import { RelationStatus } from '../data/types';
 import { isAdjacentToOwner, REGIONS_DATA, getCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
@@ -55,8 +56,9 @@ export const CASUS_BELLI_HOSTILITY_THRESHOLD = 70;
 
 export const hasCasusBelli = (state, aggressorId, targetId) => {
   const target = state.nations[targetId];
-  // A claim or a core on any city the target owns (claims.js).
+  // A claim or a core on any city the target owns (claims.js), or a demand they refused (accords.js).
   if (claimsAgainst(state, aggressorId, targetId).length) return true;
+  if (hasDemandCasusBelli(state, aggressorId, targetId)) return true;
   if ((target?.hostility || 0) >= CASUS_BELLI_HOSTILITY_THRESHOLD) return true;
   // Opinion (opinion.js): a nation that thinks this badly of the aggressor justifies the war.
   return opinionGivesCasusBelli(opinionOf(state, targetId, aggressorId));
@@ -195,10 +197,12 @@ const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
   const aggressorNation = state.nations[aggressor];
   // A claim on a city the target owns (claims.js) justifies the war; it stays until the city is taken.
   const hadClaim = claimsAgainst(state, aggressor, nationId).length > 0;
+  // War closes the borders both ways (accords.js).
+  const baseNations = (nation.openBordersWith?.[aggressor] || aggressorNation?.openBordersWith?.[nationId]) ? setOpenBorders(state.nations, nationId, aggressor, false) : state.nations;
   const nextNations = {
-    ...state.nations,
+    ...baseNations,
     [nationId]: {
-      ...nation,
+      ...baseNations[nationId],
       isAtWar: true,
       hostility: 100,
       relationStatus: RelationStatus.WAR,
@@ -207,7 +211,7 @@ const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
   };
   if (aggressorNation) {
     nextNations[aggressor] = {
-      ...aggressorNation,
+      ...baseNations[aggressor],
       isAtWar: true,
       relationStatus: RelationStatus.WAR
     };

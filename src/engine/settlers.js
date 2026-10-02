@@ -30,6 +30,7 @@ import { canFoundCity, foundCity, ringDistance, cityId, SETTLER_MIN_SIZE } from 
 import { tileFacts, tileYields } from '../data/tileYields';
 import { legacyTerrainOf } from './world/registry';
 import { isWarBetween } from './diplomacy';
+import { settlingBarred } from './accords';
 
 export const SETTLER_MOVES = 2;
 export const SETTLER_STRENGTH = 100;
@@ -65,7 +66,7 @@ const passable = (state, tiles, tile, nationId) => {
   const owner = state.regions[cityHere]?.owner;
   if (!owner || owner === nationId) return true;
   const n = state.nations[owner];
-  if (n?.vassalOf === nationId || state.nations[nationId]?.vassalOf === owner) return true;
+  if (n?.vassalOf === nationId || state.nations[nationId]?.vassalOf === owner || n?.openBordersWith?.[nationId]) return true; // open borders (accords.js)
   return (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, owner));
 };
 
@@ -104,6 +105,7 @@ export const canSettle = (state, tile, nationId, ageId) => {
   const ok = canFoundCity(world, tiles, tile, nationId);
   if (!ok.ok) return ok;
   if (outpostsOf(state.regions, nationId).length >= outpostSlots(ageId)) return { ok: false, reason: `Every outpost slot is in use (${outpostSlots(ageId)} this age).` };
+  if (settlingBarred(state, nationId, tile)) return { ok: false, reason: 'You promised not to settle this close to their cities.' };
   return { ok: true };
 };
 
@@ -142,7 +144,7 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   const out = [];
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
-      if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok) {
+      if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok && !settlingBarred(state, nationId, t)) {
         const quality = siteQuality(state, t);
         if (quality >= SITE_SCORE_MIN) out.push({ tile: t, score: Math.round((quality - d * 0.6) * 10) / 10, quality, steps: d });
       }
