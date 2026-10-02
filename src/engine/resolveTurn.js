@@ -83,6 +83,7 @@ import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processSieges } from './sieges';
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { applyLoyalty } from './loyalty';
+import { awardEraLegacy } from './eraGoals';
 import { createDefenseRecord } from './defense';
 import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
@@ -219,6 +220,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // will be the first real writer), so both calls are a same-reference no-op today.
   const modifierExpiredNations = { ...expireNationModifiers(state.nations, newTurnNumber) };
   const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
+  // Era goals (plans/civ-map-rework.md C9.3, eraGoals.js): the ending age is scored for the player
+  // and a legacy carries into the new one.
+  if (newAge !== state.age && modifierExpiredNations[state.playerNationId]) {
+    const legacy = awardEraLegacy(state, modifierExpiredNations[state.playerNationId], state.age, newTurnNumber);
+    modifierExpiredNations[state.playerNationId] = legacy.nation;
+    if (legacy.log) logs.push({ year: newYear, message: legacy.log, type: LogTypes.MILESTONE });
+  }
   mark('time');
 
   // --- sieges (plans/civ-map-rework.md D2, sieges.js): armies beside a city grind its walls; at
