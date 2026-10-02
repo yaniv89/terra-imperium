@@ -28,7 +28,15 @@ The live site is GitHub Pages, built into `docs/`.
   war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
 - `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).
-- Map data: `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
+- New map (plans/civ-map-rework.md, in progress on the features branch): `src/data/geo/tiles.json`
+  is a frequency-53 geodesic hex grid (28,092 cells, 8,274 land) built by `npm run build:tiles`
+  from Natural Earth, Köppen climate and terrain tiles (`npm run fetch:tiles` first, raw data is
+  gitignored). `src/data/geo/geodesic.js` is the grid math, `tiles.js` the loader, `tileGeometry.js`
+  turns ownership into GeoJSON territories, borders and the hex mesh, `src/data/scenarios.js` the
+  starts (Dawn: one city per nation). `npm run build:raster` renders the realistic Earth
+  (`public/map/world-*.webp`), the globe texture and flat map background. `/?tileViewer` is the
+  prototype of the new map. The look is decided: real Earth, hexes only as a faint overlay.
+- Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
   and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to
   new ones (used by the v6 save migration); a region's `includes` lists its member provinces.
