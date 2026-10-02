@@ -1,14 +1,14 @@
 // src/components/map/Map2DView.jsx
-// A flat, CK3-style world map — the same real admin-1 province geometry the 3D globe uses
-// (loadGameRegionFeatures), projected to a rectangle instead of a sphere via d3-geo. Shares the
-// same selectedRegion/onSelectRegion contract and the same region coloring rules
-// (src/utils/mapRegionStyle.js) as GlobeView, so switching map modes never changes what a color
-// or outline means — only how the world is projected.
+// The flat world map on the tile world (plans/civ-map-rework.md, B4b, B5 and workstream 3.4): the
+// realistic Earth raster underneath, one translucent territory per city (src/data/geo/
+// cityFeatures.js, clipped to the real coastline), nation borders as one line, city borders
+// dotted from region zoom, the hex mesh as a faint overlay from local zoom, and a badge per city
+// with its size. Shares the selectedRegion/onSelectRegion contract and the colour rules
+// (src/utils/mapRegionStyle.js) with GlobeView, so switching views never changes what a colour
+// means, only how the world is projected.
 //
-// Rendered as one <path> per region in a single <svg>. The expensive part (turning each feature's
-// lat/lng geometry into an SVG path string) is memoized on [width, height, polygons] only; fill and
-// stroke are computed per-render (cheap: a couple of object lookups), the same split GlobeView's
-// own capColor/strokeColor already uses for the same reason.
+// Rendered as one <path> per city in a single <svg>. The path strings are memoized on
+// [width, height, territories]; fill and stroke are computed per render (a couple of lookups).
 import React, { Suspense, useMemo, useCallback, useEffect, useState, useRef } from 'react';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
@@ -21,9 +21,9 @@ import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
-import { loadSubregionTopology } from '../../data/geo/loadWorldFeatures';
-import { mesh } from 'topojson-client';
+import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
+import { getCityFeatures, getNationTerritories, getHexMeshWithin, cityLatLon } from '../../data/geo/cityFeatures';
+import { getNationColor } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
@@ -39,6 +39,9 @@ import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/wo
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
 const POLITICAL_ALPHA = 0.45;
+// The hex mesh shows from this zoom (B5's local view), city borders and names from this one.
+const HEX_FROM_ZOOM = 3;
+const CITY_DETAIL_ZOOM = 2.5;
 // Max raised from 8x to 40x (plan feedback: playing as a small nation like Israel, its provinces
 // stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
 // already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
@@ -60,7 +63,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 
 // `interactive: false` is the minimap's own mode: no click handling, no hover title, no zoom/pan
 // (see below), and a slightly thinner/absent stroke so a few thousand paths stay cheap to render
-// at a tiny size. Loads its own geometry (loadGameRegionFeatures() below) rather than taking it as
+// at a tiny size. Reads its territories from game state (cityFeatures.js caches them) rather than taking them as
 // a prop — that loader already caches at the module level (see its own file), so a second
 // Map2DView instance (the minimap, alongside the main flat map) re-fetches nothing.
 // `hudOffset` (default false, preserving the original tuned offset for MapModal's own compact
@@ -87,41 +90,51 @@ const Map2DView = ({
   // the minimap's own Map2DView instances are in their own boxes and ignore the insets.
   const rawInsets = useMapInsets();
   const insets = hudOffset ? rawInsets : { top: 0, bottom: 0, left: 0, right: 0 };
-  const [polygons, setPolygons] = useState(null);
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
   const appliedInitialFocusRef = useRef(false);
   const [transform, setTransform] = useState(zoomIdentity);
 
+  // The real coastline cuts every territory (B4b: never a hex edge along a coast); until it has
+  // loaded the raw hex territories show.
+  const [land, setLand] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    loadGameRegionFeatures().then((f) => { if (!cancelled) setPolygons(f.gameRegionFeatures); });
+    loadCountryFeatures().then((f) => { if (!cancelled) setLand(f); });
     return () => { cancelled = true; };
   }, []);
+  // Territories follow ownership: rebuilt only when a tile changes hands (cityFeatures.js caches
+  // on the tileOwner object's identity).
+  const tileOwner = state.world?.tileOwner || null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const polygons = useMemo(() => getCityFeatures(state, land), [tileOwner, land]);
 
-  // Split out from pathsById below so the initial-focus effect can reuse the exact same
-  // projection to convert a region's lat/lng into the same pixel space the paths are drawn in.
+  // The whole sphere, so the raster and every path share one pixel space at every zoom.
   const projection = useMemo(() => {
-    if (!polygons || width <= 0 || height <= 0) return null;
-    return geoEquirectangular().fitSize([width, height], { type: 'FeatureCollection', features: polygons });
-  }, [polygons, width, height]);
-
-  // Nation borders (plan §3b, the CK3 look): one line wherever two different owners meet, drawn
-  // over the provinces. Zoomed out, province outlines fade away and only these remain; from about
-  // 3x the province outlines come back. Rebuilt only when land changes hands.
-  const [topology, setTopology] = useState(null);
-  useEffect(() => {
-    if (!interactive) return undefined;
-    let cancelled = false;
-    loadSubregionTopology().then((t) => { if (!cancelled) setTopology(t); });
-    return () => { cancelled = true; };
-  }, [interactive]);
+    if (width <= 0 || height <= 0) return null;
+    return geoEquirectangular().fitSize([width, height], { type: 'Sphere' });
+  }, [width, height]);
+  // Nation borders (B4): the outline of each nation's land.
   const nationBorderPath = useMemo(() => {
-    if (!topology || !projection) return null;
-    const object = topology.objects[Object.keys(topology.objects)[0]];
-    const ownerOf = (g) => state.regions[g.id]?.owner ?? null;
-    return geoPath(projection)(mesh(topology, object, (a, b) => a !== b && ownerOf(a) !== ownerOf(b)));
-  }, [topology, projection, state.regions]);
+    if (!projection) return null;
+    const pathGen = geoPath(projection);
+    return getNationTerritories(state, land).map((f) => pathGen(f)).filter(Boolean).join(' ');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projection, tileOwner, land, state.regions]);
+  // The hex mesh for the part of the world on screen (plus a margin), rebuilt when the view
+  // moves by about a cell or zooms a step; the whole world's mesh is far too heavy to paint.
+  const hexWindow = useMemo(() => {
+    if (!projection || !interactive || transform.k < HEX_FROM_ZOOM || width <= 0 || height <= 0) return null;
+    const toWorld = (sx, sy) => projection.invert([(sx - transform.x) / transform.k, (sy - transform.y) / transform.k]);
+    const a = toWorld(-width * 0.25, -height * 0.25); const b = toWorld(width * 1.25, height * 1.25);
+    if (!a || !b) return null;
+    const q = (v) => Math.round(v / 2) * 2; // 2-degree steps keep the key stable while panning
+    return { west: q(Math.max(-180, a[0])), east: q(Math.min(180, b[0])), north: q(Math.min(90, a[1])), south: q(Math.max(-90, b[1])) };
+  }, [projection, interactive, transform, width, height]);
+  const hexKey = hexWindow ? `${hexWindow.west},${hexWindow.east},${hexWindow.south},${hexWindow.north}` : '';
+  const hexPath = useMemo(() => (hexWindow && projection ? geoPath(projection)(getHexMeshWithin(hexWindow)) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hexKey, projection]);
 
   // Where the equirectangular raster sits in the projection's pixel space: the whole world
   // rectangle, so it lines up with the province paths at every zoom.
@@ -132,7 +145,7 @@ const Map2DView = ({
   }, [projection]);
 
   const pathsById = useMemo(() => {
-    if (!projection || !polygons) return null;
+    if (!projection) return null;
     const pathGen = geoPath(projection);
     const map = new Map();
     polygons.forEach((feature) => {
@@ -328,18 +341,19 @@ const Map2DView = ({
           ? getRegionStrokeColor(state.regions, state.playerNationId, gameRegionId, selectedRegion, atWarNationIds)
           : 'rgba(0,0,0,0.4)';
         // Divided by the current zoom scale so the stroke's SCREEN width stays constant as the
-        // map zooms in — without this, an 8x zoom would render a "thin" 0.4 stroke 3.2px wide.
-        const strokeWidth = (gameRegionId === selectedRegion ? 1.5 : 0.4) / zoomK;
-        // Below 2.5x the province outline takes the province's own colour (nation borders carry the
-        // map there): an invisible stroke rather than none, so no hairline gap of sea shows
-        // between two provinces of the same nation.
-        const blendOutline = interactive && zoomK < 2.5 && gameRegionId !== selectedRegion && stroke !== '#ef4444';
+        // map zooms in.
+        const plain = stroke === '#000000';
+        const strokeWidth = (gameRegionId === selectedRegion ? 1.5 : plain ? 0.5 : 0.8) / zoomK;
+        // City borders inside a nation show as a faint solid line from region zoom and not at all
+        // farther out (the nation borders carry the map there). Never dashed: a dash pattern on
+        // 240 coastline paths wedged the rasterizer for good under software rendering.
+        const faint = interactive && plain && zoomK >= CITY_DETAIL_ZOOM;
         return (
           <path
             key={gameRegionId}
             d={d}
             fill={fill}
-            stroke={blendOutline ? fill : stroke}
+            stroke={interactive && plain && !faint ? 'none' : faint ? 'rgba(255,255,255,0.35)' : stroke}
             strokeWidth={strokeWidth}
             pointerEvents="fill"
             data-region-id={gameRegionId}
@@ -387,21 +401,43 @@ const Map2DView = ({
     focusOnLatLng(c.lat, c.lng, Math.min(max, Math.max(transform.k * 2.5, INITIAL_FOCUS_ZOOM)), true);
   }, [focusOnLatLng, transform.k]);
 
+  // A badge per city (B5's region view): a disc with the size, the name from region zoom. Scaled
+  // by 1/sqrt(zoom) so badges grow a little as the map zooms without covering the land.
+  const badgeElements = useMemo(() => {
+    if (!interactive || !projection) return null;
+    const out = [];
+    Object.values(state.regions).forEach((city) => {
+      const ll = cityLatLon(state, city.id);
+      if (!ll) return;
+      const [x, y] = projection([ll.lng, ll.lat]);
+      const colour = getNationColor(city.owner);
+      const r = (city.isCapital ? 5 + (city.size || 1) * 0.35 : 3.5 + (city.size || 1) * 0.3) / Math.sqrt(zoomK);
+      out.push(
+        <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
+          <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} />
+          {city.isCapital && <circle r={r * 0.4} fill={colour} />}
+          {zoomK >= CITY_DETAIL_ZOOM && <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="700" fill="#0f172a" pointerEvents="none">{city.size || 1}</text>}
+          {zoomK >= CITY_DETAIL_ZOOM && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
+        </g>
+      );
+    });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactive, projection, state.regions, zoomK, selectedRegion, handleClick]);
+
   useEffect(()=>{
     if(!interactive || !hudOffset || !polygons || !projection || window.__E2E_MAP_TEST__!==true)return undefined;
     window.__map2DTest={
-      features:polygons,selected:selectedRegion,
+      features:polygons.map((f)=>({...f,properties:{...f.properties,owner:state.regions[f.properties.gameRegionId]?.owner||null}})),selected:selectedRegion,
       focus:(lat,lng,k)=>focusOnLatLng(lat,lng,k,false),
       project:(lat,lng)=>{const [x,y]=projection([lng,lat]);return {x:transform.applyX(x),y:transform.applyY(y)};}
     };
     return ()=>{delete window.__map2DTest;};
-  },[interactive,hudOffset,polygons,projection,selectedRegion,focusOnLatLng,transform]);
+  },[interactive,hudOffset,polygons,projection,selectedRegion,focusOnLatLng,transform,state.regions]);
 
   if (!pathsById) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm" style={{ background: OCEAN_COLOR }}>
-        {polygons ? null : 'Loading world map…'}
-      </div>
+      <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm" style={{ background: OCEAN_COLOR }} />
     );
   }
 
@@ -422,9 +458,13 @@ const Map2DView = ({
             preserveAspectRatio="none" pointerEvents="none" data-testid="world-raster"
           />
         )}
-        {pathElements}
-        {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" pointerEvents="none" data-testid="nation-borders" />}
-        {warBorderElements}
+        <g data-testid="territories">
+          {pathElements}
+          {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" strokeLinecap="round" pointerEvents="none" data-testid="nation-borders" />}
+          {warBorderElements}
+          {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
+        </g>
+        {badgeElements}
       </g>
     </svg>
   );

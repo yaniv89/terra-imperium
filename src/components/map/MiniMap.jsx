@@ -13,33 +13,21 @@
 // indicator either way. `onNavigate(lat, lng)` is called with wherever was clicked/dragged to —
 // MapContainer.jsx turns that into a fresh `navigateTarget` object both main views know how to fly
 // to (see their own navigateTarget effects for why it must be a new object every time).
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { geoEquirectangular } from 'd3-geo';
 import Map2DView from './Map2DView';
-import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
 
 const WIDTH = 132;
 const HEIGHT = 74;
 
 const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
   const containerRef = useRef(null);
-  const [polygons, setPolygons] = useState(null);
   const draggingRef = useRef(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    loadGameRegionFeatures().then((f) => { if (!cancelled) setPolygons(f.gameRegionFeatures); });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Same fitSize a Map2DView instance at this exact width/height would compute — kept independent
-  // (rather than threaded down as a ref/prop from the background Map2DView below) so this stays a
-  // plain, cheap lat/lng<->pixel conversion with no coupling to that component's internals.
-  const projection = useMemo(() => {
-    if (!polygons) return null;
-    return geoEquirectangular().fitSize([WIDTH, HEIGHT], { type: 'FeatureCollection', features: polygons });
-  }, [polygons]);
+  // Same fitSize a Map2DView instance at this exact width/height computes (the whole sphere), so
+  // this stays a plain, cheap lat/lng<->pixel conversion with no coupling to that component.
+  const projection = useMemo(() => geoEquirectangular().fitSize([WIDTH, HEIGHT], { type: 'Sphere' }), []);
 
   const navigateFromEvent = useCallback((e) => {
     if (!projection || !onNavigate) return;

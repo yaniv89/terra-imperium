@@ -36,6 +36,7 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "lucide-react": "^0.263.1",
+    "polygon-clipping": "^0.15.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-globe.gl": "^2.38.0",

@@ -841,7 +841,7 @@ describe('resolveTurn AI war declarations', () => {
     }
     expect(warDeclared).toBe(true);
     expect(state.nations.de.isAtWar).toBe(true);
-  });
+  }, 60000); // up to 300 whole-world turns: slow under full-suite load
 });
 
 describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-to-end)', () => {
