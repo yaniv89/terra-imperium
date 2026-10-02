@@ -38,6 +38,7 @@ import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
 import { lawRulesOf, describeRules } from '../../engine/lawRules';
+import { describeHoldings, estateHoldings, estateLandEffects, ESTATE_LAND_MIN_COUNTRYSIDE } from '../../engine/estateLand';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -573,6 +574,9 @@ const DomesticPanel = () => {
   };
 
   const crownLand = playerNation?.crownLand ?? 50;
+  const holdings = estateHoldings(state);
+  const holdingLines = describeHoldings(state);
+  const landEffects = estateLandEffects(state);
   const estatesSection = (
     <div className="space-y-2">
       <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
@@ -580,6 +584,12 @@ const DomesticPanel = () => {
           <span className="text-slate-400">Crown Land</span>
           <span className={`font-mono ${crownLand <= CROWN_LAND_LOW_THRESHOLD ? 'text-red-400' : crownLand >= CROWN_LAND_HIGH_THRESHOLD ? 'text-emerald-400' : 'text-white'}`}>{crownLand}%</span>
         </div>
+        {holdings.countryside > 0 && (
+          <div className="text-[11px] text-slate-400" data-testid="estate-land">
+            The crown works {holdings.crownTiles} of {holdings.countryside} countryside tiles{holdings.byTile.size === 0 ? ` (the estates take land from ${ESTATE_LAND_MIN_COUNTRYSIDE} tiles on)` : ''}. {holdingLines.map((l) => `${ESTATE_LABELS[l.estateId] || l.estateId} ${l.tiles} tiles (${l.worked} worked) for ${l.gives}`).join('; ')}.
+            {landEffects.goldToEstates > 0 && ` The estates keep ${landEffects.goldToEstates} gold a turn.`} Press 6 on the map to see their land.
+          </div>
+        )}
         <div className="flex gap-1.5">
           <ActionButton icon={Landmark} label="Seize Land" description="+10 crown land, -20 loyalty (all estates)" costs={ACTION_COSTS.seizeLand}
             onClick={handleSeizeLand} disabled={!canAfford(state.resources, ACTION_COSTS.seizeLand) || !canDoEstateInteraction(playerNation, 'seizeLand', state.turnNumber)} size="small" />

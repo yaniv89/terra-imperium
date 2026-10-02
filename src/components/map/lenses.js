@@ -6,6 +6,7 @@
 //   loyalty    a disc behind each city coloured by its loyalty (green to red)
 //   threat     a red circle of THREAT_RINGS around every enemy stack at war with the player
 //   supply     the tile of every own army tinted by its supply zone (home, held, wild, enemy)
+//   estates    the countryside tiles each estate holds, tinted with a crest letter (estateLand.js)
 import { getTiles } from '../../data/geo/tiles';
 import { tileFacts, tileYields } from '../../data/tileYields';
 import { ringsAround } from '../../engine/world/cities';
@@ -16,13 +17,15 @@ import { unitTile } from '../../engine/armies';
 import { supplyZone } from '../../engine/supplyMeter';
 import { THREAT_RINGS } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
+import { estateHoldings, ESTATE_COLOUR, ESTATE_CREST } from '../../engine/estateLand';
 
 export const LENSES = [
   { id: 'political', label: 'Political', key: '1', hint: 'Borders and cities' },
   { id: 'yields', label: 'Yields', key: '2', hint: 'Food, production and gold on your tiles' },
   { id: 'loyalty', label: 'Loyalty', key: '3', hint: 'How loyal each city is' },
   { id: 'threat', label: 'Threat', key: '4', hint: 'Enemy armies and their reach' },
-  { id: 'supply', label: 'Supply', key: '5', hint: 'Where your armies are fed' }
+  { id: 'supply', label: 'Supply', key: '5', hint: 'Where your armies are fed' },
+  { id: 'estates', label: 'Estates', key: '6', hint: 'The land your estates hold' }
 ];
 export const LENS_IDS = LENSES.map((l) => l.id);
 export const ZONE_COLOUR = { home: 'rgba(34,197,94,0.45)', held: 'rgba(250,204,21,0.45)', wild: 'rgba(251,146,60,0.45)', enemy: 'rgba(239,68,68,0.5)' };
@@ -84,3 +87,10 @@ export const supplyTints = (state) => {
 };
 
 export const isAtWarWith = (state, a, b) => (state.wars || []).some((w) => w.active && isWarBetween(w, a, b));
+
+/** The tiles the player's estates hold: [{ tile, estateId, colour, crest }]. */
+export const estateTints = (state) => {
+  const out = [];
+  estateHoldings(state).byTile.forEach((estateId, tile) => out.push({ tile, estateId, colour: ESTATE_COLOUR[estateId] || 'rgba(148,163,184,0.4)', crest: ESTATE_CREST[estateId] || '?' }));
+  return out.sort((a, b) => a.tile - b.tile);
+};

@@ -41,7 +41,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -447,6 +447,12 @@ const Map2DView = ({
       </g>
     ); });
     if (lens === 'supply') return supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />);
+    if (lens === 'estates') return estateTints(state).map((t) => { const [x, y] = at(t.tile); return (
+      <g key={t.tile} pointerEvents="none" data-lens-estate={t.tile} data-estate={t.estateId}>
+        <path d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" />
+        {zoomK >= HEX_FROM_ZOOM && <text x={x} y={y + 3 / zoomK} textAnchor="middle" fontSize={9 / zoomK} fontWeight="700" fill="#fff" stroke="rgba(0,0,0,0.7)" strokeWidth={2 / zoomK} paintOrder="stroke">{t.crest}</text>}
+      </g>
+    ); });
     return null;
   }, [interactive, projection, lens, state, zoomK]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.

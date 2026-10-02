@@ -1919,6 +1919,25 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**C4.2, estates on the map (2026-10-02).** `src/engine/estateLand.js`. The player's countryside
+(every tile their cities own, centres aside) is split between the crown and the estates:
+the crown works `crownLand` percent of it, the rest is held by the estates in proportion to their
+influence plus the land a privilege grants (`landShare`: Landed Estates for the nobility, Church
+Lands for the clergy, +10% of the countryside each). Which tiles each estate holds is derived,
+never stored (`estateHoldings`, memoised per map): the nobility takes farmland first (grassland,
+plains, farms), the clergy hills, forests and river banks, the burghers coasts, rivers, luxuries
+and mines; so Seize Land hands tiles back to the crown at once and "crown land %" is a share of
+real ground. Under ESTATE_LAND_MIN_COUNTRYSIDE (12) tiles the crown works everything (a Dawn
+chiefdom has no landed estates; the take otherwise ate the one-gold Dawn surplus). A worked
+estate tile pays the estate ESTATE_TILE_GOLD_SHARE (0.5) of its gold (calcIncome, after the
+multipliers); the nobility returns NOBLE_LEVY_PER_TILE (1) manpower per worked tile, the clergy
+CLERGY_CULTURE_PER_TILE (0.5) culture to the tile's city (the city context in resolveTurn), the
+burghers BURGHER_TRADE_GOLD_PER_TILE (1) gold per worked tile while the nation has a trade pact.
+Shown: an Estates lens (key 6, tiles tinted per estate with a crest letter at the detail zoom),
+the estates card (tiles held, worked, what each estate gives, what they keep) and the tile
+sheet ("Held by the Nobility"). Player only, like the rest of the estate game. Tests in
+estateLand.test.js. C4 is complete.
+
 **C4.4 and C4.5, laws with real effects and the AI's doctrine table (2026-10-02).**
 `src/engine/lawRules.js`: a law's or reform's `rules` are the hooks the tile world's systems read
 directly, summed over the six laws and the active reforms (`lawRulesOf`, memoised per nation):
@@ -1936,7 +1955,7 @@ its laws from DOCTRINE_LAWS (`pickAILaw`: the doctrine's categories first, the f
 law it can enact and afford with AI_LAW_ADM_RESERVE 50 to spare, never backwards; a category
 without a view takes the highest tier that costs no stability) and its reforms from
 DOCTRINE_REFORMS (src/data/nations.js). The laws card lists the rules in force. Tests in
-lawRules.test.js. Still open in C4: estates on the map.
+lawRules.test.js. Estates on the map followed (C4.2 entry).
 
 **Workstream 13, wave 4: the bridge's last readers (2026-10-02).** Trade routes
 (`src/engine/tradeRoutes.js`): a land route is now a caravan path over tiles from capital to
