@@ -8,7 +8,7 @@ import { MapInsetsProvider } from './context/MapInsetsContext';
 import { GameHeader, StartScreen } from './components/ui';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner } from './components/modals';
+import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
 import AdminPage from './components/admin/AdminPage';
 
 // The commanded-battle screen (three.js + the sim worker) only downloads when a battle starts.
@@ -174,7 +174,7 @@ const GameLayout = () => {
   }, [handleSelectRegion]);
 
   if (showStartScreen) {
-    return <StartScreen onStart={handleStart} />;
+    return <><StartScreen onStart={handleStart} /><OldSaveNotice /></>;
   }
 
   return (

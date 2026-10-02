@@ -11,3 +11,4 @@ export { default as ConflictChooserModal } from './ConflictChooserModal';
 export { default as OnboardingOverlay } from './OnboardingOverlay';
 export { default as AgeAdvanceBanner } from './AgeAdvanceBanner';
 export { default as NationEliminatedBanner } from './NationEliminatedBanner';
+export { default as OldSaveNotice } from './OldSaveNotice';

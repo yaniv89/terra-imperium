@@ -28,6 +28,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
 import { assertGameState } from './stateAudit';
 import { getNationCapital } from '../data/regions';
+import { addCities, growCities } from './testWorld';
 
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {});
 
@@ -212,17 +213,17 @@ describe('endgame reachability: the space-race ladder completes within the Moder
   // untouched nation, per the passive-run test above, never plays at all), so "a strong nation" here
   // means one Research Lab (Science tier 3) in the capital: a single, modest, realistic build for
   // any nation that reached the Modern Age still playing — not a min-maxed or resource-injected one.
-  // Skipped until the economy is calibrated per age on the tile world (plans/civ-map-rework.md,
-  // workstream 13): a Dawn-size capital jumped to 1900 earns a few gold a turn, which says nothing
-  // about a modern nation's income.
-  it.skip('a nation with one Research Lab affords the entire ladder from its own natural income, no injected resources', () => {
-    const capitalId = getNationCapital('us');
-    const base = freshWorld('us');
+  // On the tile world a modern nation is many cities, not one Dawn capital jumped to 1900: the
+  // fixture grows the United States to twelve cities with Science, Economy and Industry
+  // buildings (testWorld.js growCities), about 600 gold and 250 science a turn, and the ladder
+  // must still be paid from that income alone.
+  it('a twelve-city nation with Research Labs affords the entire ladder from its own natural income, no injected resources', () => {
+    const base = growCities(addCities(freshWorld('us'), 'us', 11).state, 'us');
     // Isolate mission affordability from external conquests and succession crises.
     // Diplomacy and wartime save/load are exercised in separate campaign scenarios.
     base.nations.us={...base.nations.us,stability:3,legitimacy:100,ruler:{...base.nations.us.ruler,reignEndsTurn:999999,traits:[]},truces:Object.fromEntries(Object.keys(base.nations).filter(id=>id!=='us').map(id=>[id,999999]))};
     for(const id of Object.keys(base.nations))if(id!=='us')base.nations[id]={...base.nations[id],truces:{...base.nations[id].truces,us:999999}};
-    let state = { ...base, regions: { ...base.regions, [capitalId]: { ...base.regions[capitalId], buildings: { categories: { science: 3 } } } } };
+    let state = base;
     // The lab operates from the start of the Modern Age; its savings come from real turns.
     state = { ...state, year: AGES.modern.startYear, age: 'modern', techAgeId: 'modern' };
     state = advanceUntil(state, s => s.year >= SATELLITE_UNLOCK_YEAR, 40);

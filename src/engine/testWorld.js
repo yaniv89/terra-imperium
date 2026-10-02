@@ -91,3 +91,19 @@ export const atGates = (state, fromId, targetId) => {
   const owner = state.regions[fromId]?.owner;
   return { ...state, units: Object.fromEntries(Object.entries(state.units || {}).map(([id, u]) => [id, u.regionId === fromId && u.ownerId === owner && u.domain !== 'naval' && !u.embarkedOn ? { ...u, tile: gate } : u])) };
 };
+
+// A grown realm for late-game fixtures: every city of `nationId` takes the free land within two
+// rings, is set to `size` and gets the building tiers in `categories` (a Dawn city owns a few
+// tiles and makes a few gold; a modern nation needs more). Returns the state.
+export const growCities = (state, nationId, { size = 8, categories = { science: 3, economy: 3, industry: 2 } } = {}) => {
+  const tiles = getTiles();
+  const regions = { ...state.regions }; const tileOwner = { ...state.world.tileOwner };
+  Object.values(regions).forEach((c) => {
+    if (c.owner !== nationId || c.tile == null) return;
+    const ring2 = [...new Set(tiles.neighbors[c.tile].flatMap((t) => [t, ...tiles.neighbors[t]]))];
+    const extra = ring2.filter((t) => t !== c.tile && tiles.land[t] === 1 && tileOwner[t] == null);
+    extra.forEach((t) => { tileOwner[t] = c.id; });
+    regions[c.id] = { ...c, tiles: [...new Set([...(c.tiles || [c.tile]), ...extra])], size, buildings: { ...(c.buildings || {}), categories: { ...(c.buildings?.categories || {}), ...categories } } };
+  });
+  return syncWorldRegistry({ ...state, regions, world: { ...state.world, tileOwner } });
+};

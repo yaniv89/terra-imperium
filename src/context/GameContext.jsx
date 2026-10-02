@@ -12,7 +12,7 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 // they're importable, unmodified, from a server-authoritative context too — re-exported here so
 // every existing `from '../context/GameContext'` import site keeps working unchanged.
 import { createInitialState, gameReducer } from '../engine/gameReducer';
-import { migrateSave, CURRENT_SAVE_VERSION } from '../engine/saveMigrations';
+import { migrateSave, CURRENT_SAVE_VERSION, saveProblem } from '../engine/saveMigrations';
 
 export { createInitialState, gameReducer };
 
@@ -28,12 +28,27 @@ const SAVE_VERSION = CURRENT_SAVE_VERSION;
 // backfills any field a newer build added that this save predates; a save it can't read at all
 // (corrupt, or from a future build) is left untouched in storage and a fresh game starts instead —
 // see saveMigrations.js's own header for why this never deletes anything.
+// A save this build cannot read is set aside under OLD_SAVE_KEY before the fresh game's first
+// autosave would overwrite it (the save v7 screen offers it for download); the raw text and the
+// reason are kept for that screen. Never deleted here.
+export const OLD_SAVE_KEY = 'terra-imperium-save-old';
+export const OLD_SAVE_NOTICE_KEY = 'terra-imperium-save-old-notice';
+let pendingSaveProblem = null; // { reason, raw } for the session, once a load failed
+export const getPendingSaveProblem = () => pendingSaveProblem;
+export const dismissSaveProblem = () => { pendingSaveProblem = null; try { localStorage.setItem(OLD_SAVE_NOTICE_KEY, 'seen'); } catch (e) { /* storage unavailable */ } };
+export const getOldSaveText = () => { try { return localStorage.getItem(OLD_SAVE_KEY); } catch (e) { return null; } };
+
 const loadOrCreateState = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createInitialState();
-    const migrated = migrateSave(JSON.parse(raw));
-    return migrated ? migrated.state : createInitialState();
+    const parsed = JSON.parse(raw);
+    const migrated = migrateSave(parsed);
+    if (migrated) return migrated.state;
+    const reason = saveProblem(parsed) || 'corrupt';
+    if (!localStorage.getItem(OLD_SAVE_KEY)) localStorage.setItem(OLD_SAVE_KEY, raw);
+    if (localStorage.getItem(OLD_SAVE_NOTICE_KEY) !== 'seen') pendingSaveProblem = { reason, raw };
+    return createInitialState();
   } catch (e) {
     return createInitialState();
   }
@@ -44,7 +59,9 @@ const loadOrCreateState = () => {
 // player, or one whose save is gone) or go straight to GameLayout.
 export const hasExistingSave = () => {
   try {
-    return localStorage.getItem(STORAGE_KEY) !== null;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === null) return false;
+    return saveProblem(JSON.parse(raw)) === null; // a save this build cannot read is no save to resume: pick a nation
   } catch (e) {
     return false;
   }
@@ -173,15 +190,16 @@ export const GameProvider = ({ children }) => {
     return JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }, null, 2);
   }, [state]);
 
+  // Returns true, or the reason it could not load ('tooOld', 'tooNew', 'corrupt'; saveMigrations.js).
   const importSave = useCallback((jsonText) => {
     try {
       const parsed = JSON.parse(jsonText);
       const migrated = migrateSave(parsed);
-      if (!migrated) return false;
+      if (!migrated) return saveProblem(parsed) || 'corrupt';
       dispatch({ type: ActionTypes.LOAD_GAME, payload: migrated.state });
       return true;
     } catch (e) {
-      return false;
+      return 'corrupt';
     }
   }, []);
 
