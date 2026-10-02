@@ -524,6 +524,56 @@ overlay (item 1 below) is **dropped** at the user's request; the rest stays opti
 - e2e: start an emergent game, the striped land is visible, drag an army onto it, the land
   becomes yours.
 
+### 4h. Settling as a project, not a click (user request: "too easy and boring")
+
+**Today (measured, emergent world, seed 11).** A frontier claim is one instant action: an army next
+to the land, 80 + 20 x claims^1.4 gold, 2 ADM and a few supplies, and the province is yours at
+once. Every AI nation claims one each turn it can afford; a player with several armies claims
+several a turn. After 100 turns the biggest nation has 43 provinces and the median 12, with no
+choice made along the way.
+
+**New: a colony grows over several turns, and costs you while it does.**
+- **Founding** (`FOUND_COLONY { regionId, policy }`), on free frontier land next to yours:
+  - an army must stand next to it; it moves in as the colony's escort;
+  - an up-front cost in gold and ADM that grows with the size of your realm, not only with the
+    number of claims: gold `60 + 12 x provinces^1.15`, ADM `2 + provinces / 6`;
+  - **settlers**: 4% of the population of the province they leave from (at least 2,000). The
+    land needs people, and your own province shrinks for a while.
+- **Colony slots.** At most `1 + age bonus` colonies at once: 1 in the Bronze Age, 2 from the
+  Classical, 3 from the Gunpowder Age, plus `national.colonySlots` modifiers. This is the main
+  brake: expansion becomes a pace you plan.
+- **Growing.** Each turn a colony gains progress toward 100:
+  `10 x terrain (open 1, hills and forest 0.7, mountains, desert, arctic 0.4) x policy
+  x (1 + 0.05 x your bordering provinces, max +25%)`. About 8 to 15 turns.
+  It costs upkeep every turn: 4 gold plus 2 for every other colony, and 1 supply.
+- **The natives** (the land's existing `inhabitants` and `resistance`), chosen when founding:
+  - **Live alongside them**: progress x0.75; on completion the inhabitants stay as your
+    population, unrest starts at 20.
+  - **Drive them out**: progress x1.25; the population drops to the settlers, unrest starts at 45,
+    and every bordering nation's hostility rises by 5.
+  - **Raids.** Each turn a seeded roll against `resistance / 250` (half when living alongside):
+    a raid sets progress back by 15 and costs the escort 5% of its strength. No escort in the
+    colony (it marched away) doubles the chance. Three raids in a row and the colony is lost.
+- **Completion.** The province becomes yours at control 35 with the five-turn integration that
+  exists today. The log and the map say so.
+- **Abandon** (`ABANDON_COLONY`): the land goes back to the natives, nothing is refunded.
+- **One colony per province.** A province another nation is colonizing can't be colonized.
+- **AI parity.** AI nations use the same rules (slots, costs, progress, raids), picking the
+  best-scoring target. So AI growth slows by the same rules, not by a special cap.
+
+**On the map and the card.**
+- A colony shows a tent marker with a progress ring (yours with the turns left; foreign ones
+  under the 4a visibility rule).
+- The frontier card shows "Found a colony" with the checklist (army next to it, slot free,
+  cost, settlers) and the two native policies with their speed and raid risk. A colony's card
+  shows its progress, turns left, upkeep, raid risk and Abandon.
+
+**Tests:** the formula edges (terrain, policy, border bonus cap), slots, costs by realm size,
+settlers taken from the source province, raids and the three-raid loss, completion, abandon,
+the AI using the same validation, determinism, a save with a colony in progress.
+**Balance-sim (emergent, seeds 11 and 12, 100 turns):** median and top nation provinces before
+and after; the target is roughly half today's pace with the top nation under 25.
+
 ### 4f. Super zoom, CK3 style: buildings and armies standing on the land
 
 **Goal.** One continuous zoom from the globe down to a single province. Up close you see the
@@ -565,8 +615,17 @@ and units up close.
 3. **Flat colours plus icons only.** Cheapest, but not the CK3 feel.
 
 **Buildings standing on the map:**
-- **The town.** Each province has a town at its centre (the capital province's is bigger, with a
-  palace). It grows with population: a hamlet, a town, then a city.
+- **The town** (user request: real models, sized by buildings). Each province has a town model at
+  its centre, sized by **how many buildings the province has** (all building tiers added up):
+  - no or few buildings (0 to 3): a **small town**, a few houses and a well;
+  - some (4 to 9): a **medium town**, a market square, more houses, a wall ring if it has defense;
+  - many (10 or more): a **big town**, dense houses, towers, a keep, the walls.
+  The capital adds a palace. The style follows the age, like the buildings.
+- **Models, not flat icons, up close; icons when zoomed out.** In the close view (flat map 5x and
+  up) towns, buildings and armies are **3D models** drawn by three.js, the same engine and the
+  same unit models (src/assets/raw-models, `npm run import:models`) as the tactical battles.
+  Below that zoom they go back to the 4a banners and the building icons. The swap cross-fades over
+  one zoom step so it never pops.
 - **Buildings** are placed at fixed spots inside the province shape. The spots are seeded by the
   region id, so they never move:
   - farms as field patches round the town;
@@ -584,9 +643,9 @@ and units up close.
 - **Tapping** a building opens the province panel on that building.
 
 **Armies standing on the map:**
-- **An army is 1 to 3 small figures**, depending on its size, of its main unit type and age. The
-  figures **reuse the battle sprites** (section 8): the same art, at map size, in the owner's
-  colour.
+- **An army is 1 to 3 small 3D figures**, depending on its size, of its main unit type and age.
+  The figures **reuse the battle unit models** (and later the sprites of section 8): the same
+  art, at map size, in the owner's colour. Zoomed out they are the 4a banners again.
 - **They play `Walk` while marching** (between turns, see 4g) and `Idle` when standing. They
   face the way they're going.
 - A small banner above them shows soldiers and morale, as in 4a. Foreign armies follow the 4a
@@ -1489,9 +1548,10 @@ after, and `compare.sh` for speed.
 | 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | **done** |
 | 4 | Research engine, calibration, choice popup, research tab | L | **done** (boosts and soft gate later) |
 | 5 | Tap disambiguation, more zoom | S | **done** |
-| 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | slice 1 (banners) **done**; routes and drag next |
+| 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | banners, routes engine, March bar **done**; path lines and drag next |
+| 6b | **Settling as a project: colonies over turns, slots, settlers, natives, raids (4h)** (user request) | M | next, before 7 |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
-| 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, towns and buildings, army figures (4f)** | L | 6; army figures need 9 (placeholders until then) |
+| 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, town models sized by buildings, 3D army figures, icons when zoomed out (4f)** (user request: moved up, right after 6b) | L | 6; uses the battle unit models now, sprites of 9 later |
 | 9 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
 | 10 | **Families for every ruler, cheaper first Monarchy (5b)** | M | none (can go any time) |
 
