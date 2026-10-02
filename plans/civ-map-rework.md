@@ -1376,6 +1376,25 @@ tests, 16 skipped). What it settled and what it found:
 
 ---
 
+**Workstream 3.4, first wave (2026-10-02): the map draws the tile world.** Both views read one
+geometry module, `src/data/geo/cityFeatures.js`: a territory per city from `tileOwner`, cut to the
+real coastline once with polygon-clipping (never an SVG clip path: a clip of every coastline on
+Earth wedged software rendering), a territory per nation (the union of its cities) whose outline
+is the nation border, the hex mesh for the part of the world on screen, and the city under a
+point by nearest tile. The flat map draws translucent city fills over the Earth raster, nation
+outlines, faint city borders from 2.5x, the hex mesh from 3x and a badge per city with its size
+and name. The globe composites the same fills and outlines into its texture
+(`src/components/globe/politicalTexture.js`) and resolves taps by nearest tile: the 4,482
+province meshes are gone. The city sheet's first two views (`src/components/city/CityPanel.jsx`:
+size, growth, housing, amenities, focus, live yields, the build queue with units, buildings and
+tile improvements; the tiles list with yields, worked tiles, locks and tiles to buy) are the
+first two tabs of Manage Region. Found on the way: polygon-clipping's ring winding is the
+opposite of d3-geo's (a territory read as the rest of the world), and a dash pattern on 240
+coastline paths never finishes rasterising. Still to come in 3.4: the tile sheet for free land,
+the army and nation sheets, and the end of the province modal's old tabs.
+
+---
+
 ---
 
 ## Appendix 1. Mechanics touched (add-mechanic checklist index)

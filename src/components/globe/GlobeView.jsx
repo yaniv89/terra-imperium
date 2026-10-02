@@ -1,26 +1,26 @@
 // src/components/globe/GlobeView.jsx
-// The 3D globe (react-globe.gl / three.js) IS the game's map — there is no flat SVG map anymore.
-// Every country on Earth is a real, playable game region (src/data/regions.js): the 28
-// hand-authored ones from the original campaign, plus one whole-country region for every other
-// nation (Phase 13's world-region expansion — see scripts/geo/build-world-regions.mjs), each
-// rendered using real admin-1 province geometry (see loadGameRegions.js) so the globe reads as an
-// actual subdivided map, not flat per-country blobs. Every region is colored by live
-// ownership/control and clickable to drive the same selectedRegion/onSelectRegion contract the
-// rest of the game (ActionPanel, RegionInfoModal) already expects — there's no separate
-// "decorative backdrop" tier anymore, the whole world is the same one system.
+// The 3D globe (react-globe.gl / three.js) on the tile world (plans/civ-map-rework.md, B4b and
+// B5): the world view. Its texture is the realistic Earth raster with every city's land tinted in
+// its nation's colour, nation borders and the selection drawn in (politicalTexture.js), clipped
+// to the real coastline, so no hex edge ever shows along a coast. A tap resolves to the city whose
+// land is under the pointer (nearest tile), driving the same selectedRegion/onSelectRegion
+// contract the rest of the game expects. No polygon layer: the old 4,482 province meshes were the
+// dominant cost of every frame.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
-import { Raycaster, Sphere, Vector2, Vector3 } from 'three';
+import { CanvasTexture, MeshPhongMaterial, Raycaster, Sphere, SRGBColorSpace, Vector2, Vector3 } from 'three';
 import { useGame } from '../../context/GameContext';
-import { REGIONS_DATA, getNationCapital } from '../../data/regions';
-import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
+import { getNationCapital } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { findRegionAtCoordinates, tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
+import { cityAtLatLon, getCityFeatures } from '../../data/geo/cityFeatures';
+import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
+import { renderPoliticalCanvas, loadImage } from './politicalTexture';
+import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
-import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
-import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
+import { getAtWarNationIds, getRegionFillColor } from '../../utils/mapRegionStyle';
+import { worldRasterUrl, worldRasterSizeFor } from '../../data/geo/worldRaster';
 import { getMapMarkers } from '../../utils/mapMarkers';
 import { clusterGlobeItems, createMarkerElement, markerItems } from '../map/mapBanners';
 import { openBattleReport } from '../battle/battleReportEvents';
@@ -28,8 +28,6 @@ import { openBattleReport } from '../battle/battleReportEvents';
 // Above this camera altitude (globe radii) the globe shows nations, not provinces.
 const FAR_VIEW_ALTITUDE = 1.1;
 const OCEAN_COLOR = '#0f172a'; // slate-900, the space behind the globe
-// How much of the terrain shows through a nation's colour on land.
-const POLITICAL_ALPHA = 0.45;
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -71,11 +69,9 @@ const GlobeView = ({ onAmbiguousTap = null,
   const { effects } = useEffects();
   const insets = useMapInsets();
   const globeRef = useRef(null);
+  // `geo` is ready once the coastline (the texture's land mask) and the Earth raster have loaded.
   const [geo, setGeo] = useState(null);
-  // The realistic Earth (plans/civ-map-rework.md B4b): the shaded-relief raster built from real
-  // elevation and climate is the globe texture, and the political caps are drawn translucent over
-  // it so terrain, rivers and coasts stay visible under every nation's colour.
-  const globeImageUrl = useMemo(() => worldRasterUrl(worldRasterSizeFor(width, height)), [width, height]);
+  const rasterSize = worldRasterSizeFor(width, height);
 
   // The globe auto-rotates (below) — without this, a newly-triggered effect could land anywhere
   // on the sphere, including the far side facing away from the camera, making it invisible.
@@ -120,9 +116,18 @@ const GlobeView = ({ onAmbiguousTap = null,
 
   useEffect(() => {
     let cancelled = false;
-    loadGameRegionFeatures().then((f) => { if (!cancelled) setGeo(f); });
+    Promise.all([loadCountryFeatures(), loadImage(worldRasterUrl(rasterSize))])
+      .then(([land, image]) => { if (!cancelled) setGeo({ land, image }); })
+      .catch(() => { if (!cancelled) setGeo({ land: [], image: null }); });
     return () => { cancelled = true; };
-  }, []);
+  }, [rasterSize]);
+
+  // The globe's material carries the composited texture (politicalTexture.js). One canvas and one
+  // CanvasTexture for the session; a change of ownership, war, occupation or selection repaints
+  // the canvas on the next frame and flags the texture for upload.
+  const material = useMemo(() => new MeshPhongMaterial({ color: 0xffffff }), []);
+  const canvasRef = useRef(null);
+  const textureRef = useRef(null);
 
   // Flies to the player's home turf on first load so the game opens somewhere meaningful instead
   // of wherever react-globe.gl's own default camera position happens to be.
@@ -189,35 +194,35 @@ const GlobeView = ({ onAmbiguousTap = null,
     return () => controls.removeEventListener('start', stopOnInteract);
   }, [geo]);
 
-  // Precomputed once per wars/playerNationId change rather than once per polygon — capColor below
-  // is invoked for every one of the ~4,482 polygons on every recompute, so an O(#wars) isWarBetween
-  // scan per polygon (O(#polygons x #wars) total) would otherwise be repeated needlessly per region.
   const atWarNationIds = useMemo(() => getAtWarNationIds(state.wars, state.playerNationId), [state.wars, state.playerNationId]);
+  const fillFor = useCallback((cityId) => getRegionFillColor(state.regions, state.playerNationId, cityId), [state.regions, state.playerNationId]);
 
-  // useCallback (scoped only to the state slices actually read here, not the whole `state` object)
-  // is what makes react-globe.gl's own reference-equality prop diff actually skip work: without it,
-  // this closure — and therefore every polygon accessor prop passed to <Globe> below — gets a new
-  // identity on every GlobeView render (i.e. on every dispatched game action, even a tax-rate change
-  // that never touches a region), which forces three-globe to re-walk and re-color all ~4,482
-  // polygons regardless of whether anything actually changed. See plan item 6 for the full trace.
-  // fillColorForRegion/getRegionStrokeColor are shared with Map2DView (src/utils/mapRegionStyle.js)
-  // so the globe and the flat map always agree on what a region looks like.
-  const capColor = useCallback(
-    (feature) => withAlpha(getRegionFillColor(state.regions, state.playerNationId, feature.properties?.gameRegionId), POLITICAL_ALPHA),
-    [state.regions, state.playerNationId]
-  );
+  // Repaints the political texture whenever what it shows changes: cheap enough (one canvas of
+  // 240 territories) to run on the frame after any such change.
+  const tileOwner = state.world?.tileOwner || null;
+  useEffect(() => {
+    if (!geo || window.__E2E_STATIC_GLOBE__ === true) return undefined;
+    const frame = requestAnimationFrame(() => {
+      if (!canvasRef.current) {
+        const c = document.createElement('canvas');
+        c.width = geo.image?.naturalWidth || rasterSize; c.height = geo.image?.naturalHeight || rasterSize / 2;
+        canvasRef.current = c;
+      }
+      renderPoliticalCanvas({ canvas: canvasRef.current, baseImage: geo.image, state, fillFor, land: geo.land, warOwners: atWarNationIds, selected: selectedRegion });
+      if (!textureRef.current) {
+        const t = new CanvasTexture(canvasRef.current);
+        t.colorSpace = SRGBColorSpace;
+        textureRef.current = t;
+        material.map = t;
+        material.needsUpdate = true;
+      } else textureRef.current.needsUpdate = true;
+    });
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo, tileOwner, state.regions, fillFor, atWarNationIds, selectedRegion, material, rasterSize]);
 
-  // Polygon geometry is real admin-1 provinces (loadGameRegions.js), and since the full
-  // province-level split (Task 51) every one of those provinces is its own clickable, independently
-  // owned/controlled gameRegionId — unlike the old one-gameRegionId-per-country model this stroke
-  // logic was originally written for. Defaulting the stroke to plain black keeps every clickable
-  // province edge visible against any fill color. A region owned by a nation you're at war with
-  // gets a red outline instead of black — the war signal lives on the stroke, not the fill, so a
-  // hostile nation's own color identity (capColor above) stays visible the whole time you're
-  // fighting it, not just before or after.
-  // Far out (plan §3b, the CK3 look) province outlines take their province's own colour, so lines
-  // inside a nation disappear and only the change of colour between nations shows. Selection and
-  // war outlines stay. Checked on a light poll: a threshold flip, not a per-frame value.
+  // Far out (B5) only the player's own armies and battles show as markers. Checked on a light
+  // poll: a threshold flip, not a per-frame value.
   const [farView, setFarView] = useState(false);
   useEffect(() => {
     const interval = setInterval(() => {
@@ -226,31 +231,6 @@ const GlobeView = ({ onAmbiguousTap = null,
     }, 300);
     return () => clearInterval(interval);
   }, []);
-  const strokeColor = useCallback(
-    (feature) => {
-      const id = feature.properties?.gameRegionId;
-      if (farView && id !== selectedRegion && !atWarNationIds.has(state.regions[id]?.owner)) return getRegionFillColor(state.regions, state.playerNationId, id);
-      return getRegionStrokeColor(state.regions, state.playerNationId, id, selectedRegion, atWarNationIds);
-    },
-    [selectedRegion, state.regions, state.playerNationId, atWarNationIds, farView]
-  );
-
-  const label = useCallback((feature) => {
-    const gameRegionId = feature.properties?.gameRegionId;
-    const regionData = REGIONS_DATA[gameRegionId];
-    const regionState = state.regions[gameRegionId];
-    if (!regionData || !regionState) return '';
-    const isPlayerOwned = regionState.owner === state.playerNationId;
-    const ownerName = isPlayerOwned ? 'You' : (state.nations[regionState.owner]?.name || regionState.owner);
-    const provinceName = feature.properties?.name;
-    const subtitle = provinceName && provinceName !== regionData.name ? `${provinceName} &middot; ` : '';
-    return `
-      <div style="background:#0f172a;color:#e2e8f0;padding:6px 10px;border-radius:6px;font:12px sans-serif;border:1px solid #334155">
-        <strong>${regionData.name}</strong><br/>
-        <span style="color:#94a3b8">${subtitle}${ownerName}${isPlayerOwned ? ` &middot; ${regionState.control || 0}%` : ''}</span>
-      </div>
-    `;
-  }, [state.regions, state.nations, state.playerNationId]);
 
   // Pick from the pointer ray rather than the library's cached hover object. On touch
   // and low frame rates that object can belong to an earlier pointer position or be null.
@@ -265,8 +245,8 @@ const GlobeView = ({ onAmbiguousTap = null,
     const point=ray.ray.intersectSphere(new Sphere(new Vector3(),g.getGlobeRadius()*1.002),new Vector3());
     if(!point)return null;
     const coords=g.toGeoCoords(point);
-    return { coords, id: findRegionAtCoordinates(geo?.gameRegionFeatures,coords.lat,coords.lng) };
-  },[geo]);
+    return { coords, id: cityAtLatLon(state, coords.lat, coords.lng) };
+  },[state]);
 
   const handlePointerPick = useCallback(event => {
     const hit=regionAtClient(event.clientX,event.clientY);
@@ -306,11 +286,6 @@ const GlobeView = ({ onAmbiguousTap = null,
     };
   },[geo,handlePointerPick]);
 
-  // Memoized so polygonsData keeps a STABLE reference across re-renders that don't actually
-  // change the underlying geometry (e.g. a GameContext update from an unrelated action) — a new
-  // array identity every render would make react-globe.gl treat it as entirely new data and
-  // rebuild every polygon mesh on every render instead of just once.
-  const polygons = useMemo(() => geo?.gameRegionFeatures || null, [geo]);
   // Armies, fleets and battles on the globe (plan §4b): the same banners as the flat map, as DOM
   // elements react-globe.gl keeps over each province and hides on the far side. Far out only your
   // own armies and battles show. The element factory is stable (it reads the latest handlers and
@@ -345,13 +320,13 @@ const GlobeView = ({ onAmbiguousTap = null,
   useEffect(() => {
     if(window.__E2E_MAP_TEST__ !== true || !globeRef.current || !geo)return undefined;
     window.__mapTest={
-      features:geo.gameRegionFeatures,
+      features:getCityFeatures(state,geo.land).map((f)=>({...f,properties:{...f.properties,owner:state.regions[f.properties.gameRegionId]?.owner||null}})),
       selected:selectedRegion,
       focus:(lat,lng,altitude)=>{const g=globeRef.current;g.controls().autoRotate=false;g.pointOfView({lat,lng,altitude},0);g.controls().update();g.camera().updateMatrixWorld();},
       project:(lat,lng)=>globeRef.current.getScreenCoords(lat,lng,0.002)
     };
     return ()=>{delete window.__mapTest;};
-  },[geo,selectedRegion]);
+  },[geo,selectedRegion,state]);
 
   if (!geo) {
     return (
@@ -391,15 +366,7 @@ const GlobeView = ({ onAmbiguousTap = null,
         showAtmosphere
         atmosphereColor="#38bdf8"
         atmosphereAltitude={0.15}
-        globeImageUrl={globeImageUrl}
-        polygonsData={polygons}
-        polygonCapColor={capColor}
-        polygonSideColor={() => 'rgba(15, 23, 42, 0.6)'}
-        polygonStrokeColor={strokeColor}
-        polygonAltitude={0.002}
-        polygonCapCurvatureResolution={12}
-        polygonsTransitionDuration={200}
-        polygonLabel={label}
+        globeMaterial={material}
         htmlElementsData={markerData}
         htmlElement={markerElement}
         htmlElementVisibilityModifier={markerVisibility}

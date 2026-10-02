@@ -156,16 +156,19 @@ export const buildBorders = (tiles, ownerOf) => {
 
 /** The whole hex mesh (every edge once) as a MultiLineString, for the faint grid overlay. Land
  * only by default, since the sea grid is noise on a realistic map. */
-export const buildHexMesh = (tiles, { landOnly = true } = {}) => {
+export const buildHexMesh = (tiles, { landOnly = true, only = null } = {}) => {
   const lines = [];
-  for (let i = 0; i < tiles.count; i++) {
+  const chosen = only ? new Set(only) : null;
+  const ids = only || Array.from({ length: tiles.count }, (_, i) => i);
+  for (const i of ids) {
     if (landOnly && !tiles.land[i]) continue;
     const ns = tiles.neighbors[i];
     const corners = cornersOf(tiles, i);
     const m = ns.length;
     for (let k = 0; k < m; k++) {
       const j = ns[k];
-      if (j < i && (!landOnly || tiles.land[j])) continue; // drawn from the other side
+      // Each edge once: the lower-numbered cell draws it, unless the other cell is not drawn.
+      if (j < i && (!landOnly || tiles.land[j]) && (!chosen || chosen.has(j))) continue;
       lines.push(unwrap([corners[(k - 1 + m) % m], corners[k]]));
     }
   }

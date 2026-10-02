@@ -256,10 +256,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               {coastal && <span>· Coastal</span>}
               {regionData.isCapital && <span className="text-purple-400">· Capital</span>}
             </div>
-            {/* A balanced region (scripts/geo/build-balanced-regions.mjs) names the real provinces in it. */}
-            {regionData.includes?.length > 0 && (
-              <div className="text-slate-500 text-[10px] truncate" title={`Includes ${regionData.includes.join(', ')}`}>
-                Includes {regionData.includes.slice(0, 3).join(', ')}{regionData.includes.length > 3 ? ` and ${regionData.includes.length - 3} more` : ''}
+            {regionState.size != null && (
+              <div className="text-slate-500 text-[10px] truncate">
+                Size {regionState.size} · {regionState.tiles?.length || 1} tile{(regionState.tiles?.length || 1) === 1 ? '' : 's'}
               </div>
             )}
           </div>
@@ -462,7 +461,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <ProgressBar value={regionState.control} color="dynamic" size="small" />
         </div>
         <div className="grid grid-cols-2 gap-1.5">
-          <StatTile icon={Users} label="Population" value={formatNumber(getDisplayPopulation(regionState, regionData, state.year))} />
+          <StatTile icon={Users} label="People" value={formatNumber(regionState.currentPopulation || getDisplayPopulation(regionState, regionData, state.year))} sub={regionState.size != null ? `size ${regionState.size}` : undefined} />
           <StatTile icon={HeartPulse} label="Stability" value={`${Math.round(getStability(regionState))}%`} valueClass={getStability(regionState) < 50 ? 'text-red-400' : 'text-slate-100'} />
           <StatTile icon={Building} label="Infrastructure" value={`${regionState.currentInfrastructure || 0}/10`} sub={`Supply ${getSupplyCapacity(regionState.currentInfrastructure)}`} />
           <StatTile icon={Shield} label="Defenses" value={`Lv ${regionState.defenseLevel || 0}`} sub={`Terrain fort ${regionData.fortification}`} />

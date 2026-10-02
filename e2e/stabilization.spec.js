@@ -26,7 +26,7 @@ test('actual globe pointer hits preserve selected province at two zoom levels',a
   await page.getByRole('button',{name:'Begin as Israel'}).dispatchEvent('click');
   await page.getByRole('button',{name:'Skip',exact:true}).click();
   await page.waitForFunction(()=>window.__mapTest?.features?.length>0,{timeout:90000});
-  const sample=await page.evaluate(()=>window.__mapTest.features.filter(f=>f.properties.gameRegionId?.startsWith('il-')).slice(0,3));
+  const sample=await page.evaluate(()=>window.__mapTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
   expect(sample.length).toBeGreaterThan(0);
   for(const feature of sample){
     const point=interior(feature),id=feature.properties.gameRegionId;
@@ -54,7 +54,7 @@ test('2D province fills select their own region at two zoom levels',async({page}
   await page.getByRole('button',{name:'Skip',exact:true}).click();
   await page.getByTitle('Flat map view').click();
   await page.waitForFunction(()=>window.__map2DTest?.features?.length>0);
-  const features=await page.evaluate(()=>window.__map2DTest.features.filter(f=>f.properties.gameRegionId?.startsWith('il-')).slice(0,3));
+  const features=await page.evaluate(()=>window.__map2DTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
   for(const feature of features)for(const zoom of [10,30]){
     const point=interior(feature),id=feature.properties.gameRegionId;
     await page.evaluate(({point,zoom})=>window.__map2DTest.focus(point.lat,point.lng,zoom),{point,zoom});

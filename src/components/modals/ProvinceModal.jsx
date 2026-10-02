@@ -63,10 +63,15 @@ import { ALL_PERKS, XP_THRESHOLDS, RANK_ORDER, getRankForXp, canPromote, hasPerk
 import { getSeaLanesWithinReach } from '../../data/navalReach';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { ActionButton } from '../ui';
+import CityPanel from '../city/CityPanel';
 
+// City and Tiles are the city sheet (plans/civ-map-rework.md E4, src/components/city/CityPanel.jsx);
+// the older tabs keep the nation-level actions until they move into the empire sheet.
 const TABS = [
+  { id: 'city', label: 'City' },
+  { id: 'tiles', label: 'Tiles' },
   { id: 'overview', label: 'Overview' },
-  { id: 'economy', label: 'Economy & Buildings' },
+  { id: 'economy', label: 'Economy' },
   { id: 'military', label: 'Military' }
 ];
 
@@ -85,7 +90,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('city');
   const sheetRef = useRef(null);
   // Plan §5.1/§5.2: report how much of the screen this panel covers so the map centres the region
   // (and every animation fired from here) in the part still visible, and on a phone shrink to a
@@ -96,7 +101,7 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
   // Opening the tab panel beside it closes this one when both wouldn't leave room for the map.
   useExclusivePanel('province', isShown && !isMobile, (tucked) => { if (tucked) onClose(); });
 
-  useEffect(() => { setTab('overview'); }, [regionId]);
+  useEffect(() => { setTab('city'); }, [regionId]);
 
   if (!open || !regionId) return null;
 
@@ -279,6 +284,8 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
 
         {/* Content */}
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
+          {tab === 'city' && <CityPanel cityId={regionId} view="city" />}
+          {tab === 'tiles' && <CityPanel cityId={regionId} view="tiles" />}
           {tab === 'overview' && (
             <div className="space-y-3">
               {regionState.formerOwner && (
