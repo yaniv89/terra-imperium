@@ -2,6 +2,7 @@
 // What the research UI shows (the Research tab, the choice sheet, the top bar pill), worked out
 // once from the state: science per turn, the current tech with its progress and turns left, the
 // queue with when each would finish, and a tech's effect in plain words. Pure.
+import { boostOf } from '../../engine/boosts';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
@@ -48,8 +49,10 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
   const remaining = Math.max(0, cost - progress);
   const start = canStartTech(techId, researched, state.year);
   const diffusion = researched.has(techId) ? null : getTechDiffusion(state, state.playerNationId, techId);
+  const boost = researched.has(techId) ? null : boostOf(state, state.playerNationId, techId);
   return {
     tech,
+    boost,
     cost,
     progress,
     share: cost > 0 ? Math.min(1, progress / cost) : 0,

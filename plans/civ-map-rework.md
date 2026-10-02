@@ -1582,6 +1582,21 @@ toward a threatened front stays. Garrisons sally (workstream 6). Not yet: the th
 of 4 tiles for defence, raiding routes, out-of-sight dice calibrated against the real sim,
 the city auto-governor for every nation every turn, opinion-driven alliances and claims.
 
+
+---
+
+**Workstream 10, first wave (2026-10-02): research boosts from the map.** `src/data/boosts.js`
+gives every one of the 50 techs a fact that pays 40% of its cost once: own copper for Bronze
+Casting, a forest for Composite Bow, iron for Iron Weapons, lay a siege for Siege Engineering,
+rule 6 cities for Feudal Levies, a river city for Irrigation Canals, build a road for Paved
+Roads, a coastal city for Early Astronomy, a harbour for Canal Locks, coal for Rail Networks,
+oil for Mechanized Warfare, and so on. `src/engine/boosts.js` reads a nation's facts once a
+turn (its cities, the resources, rivers, roads and buildings on their tiles, its wars and
+sieges) and applies the newly met boosts to the player every turn and to each AI nation on its
+research period; the research sheet shows each tech's boost and whether it is met or taken.
+Still open in 10: the tree as a web with crossing prerequisites, a map effect for every tech
+(a Mountaineering tech for mountain crossings, districts), science from districts.
+
 ---
 
 ---
