@@ -12,6 +12,7 @@
 // A lost capital moves to the loser's richest remaining province (the same move a peace deal makes).
 import { transferRegion } from './regionTransfer';
 import { applyAggressiveExpansion } from './expansion';
+import { LOYALTY_ON_CONQUEST } from './loyalty';
 import { getTotalDev } from './development';
 import { clampStability } from './nationalPower';
 import { getCapital } from '../data/regions';
@@ -44,7 +45,9 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
     control: CONQUEST_CONTROL,
     unrest: Math.max(region.unrest || 0, CONQUEST_MIN_UNREST),
     lastAttackedTurn: turnNumber,
-    conquest: { warId: war?.id || null, from: loserId, turn: turnNumber, capital: loserCapital === regionId }
+    conquest: { warId: war?.id || null, from: loserId, turn: turnNumber, capital: loserCapital === regionId },
+    // Loyalty (loyalty.js): a taken city starts half loyal and resents the conquest for a while.
+    loyalty: LOYALTY_ON_CONQUEST, freeCity: undefined
   });
   const nextRegions = { ...regions, [regionId]: taken };
   let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId);

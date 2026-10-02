@@ -40,6 +40,7 @@ import { placeName } from '../../engine/routes';
 import { supplyOf } from '../../engine/supplyMeter';
 import { atSea } from '../../engine/fleets';
 import { wallsOf } from '../../engine/sieges';
+import { cultureOf, loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -441,6 +442,24 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             {ownerNation?.name || 'Its owner'} keeps its provinces closed to you. Population, garrisons, buildings,
             development and resources stay unknown until your agents get inside.
           </div>
+          {regionState.tile != null && regionState.owner && (isPlayerOwned || revealed) && (() => {
+            const t = loyaltyTarget(state, regionState);
+            const culture = Object.entries(cultureOf(regionState)).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            const loyalty = loyaltyOf(regionState);
+            return (
+              <div className="mb-2" data-testid="loyalty">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-slate-400">Loyalty</span>
+                  <span className={`font-mono font-bold ${loyalty <= 25 ? 'text-red-400' : loyalty < t.total ? 'text-amber-300' : 'text-emerald-300'}`}>{loyalty}{loyalty !== t.total ? ` → ${t.total}` : ''}</span>
+                </div>
+                <ProgressBar value={loyalty} color="dynamic" size="small" />
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  {culture.map(([id, v]) => `${state.nations[id]?.name || id} ${Math.round(v * 100)}%`).join(' · ')}
+                  {t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}
+                </div>
+              </div>
+            );
+          })()}
           {regionState.lastAttackedTurn != null && (
             <div className="mb-2">
               <div className="flex justify-between items-center mb-1">
