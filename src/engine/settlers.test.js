@@ -7,10 +7,11 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { getNationCapital, getOwnedRegionIds } from '../data/regions';
 import { assertGameState } from './stateAudit';
 import { getTiles } from '../data/geo/tiles';
+import { ringDistance } from './world/cities';
 import {
-  bestSites, settlerPath, canSettle, settlersOf, outpostsOf, processSettlers, makeSettler, OUTPOST_DONE, OUTPOST_PROGRESS, SETTLER_MOVES
+  bestSites, settlerPath, canSettle, settlersOf, outpostsOf, processSettlers, makeSettler, OUTPOST_DONE, OUTPOST_PROGRESS, SETTLER_MOVES, OUTPOST_SLOTS_BY_AGE
 } from './settlers';
-import { chooseProduction } from './aiProduction';
+import { chooseProduction, SETTLER_THINK_PERIOD } from './aiProduction';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const play = (s) => {
@@ -90,20 +91,25 @@ describe('settlers and outposts', () => {
   });
 
   it('respects the outpost slot cap of the age', () => {
-    const s = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
-    const paris = s.regions[getNationCapital('fr')];
-    const sites = bestSites(s, 'fr', paris.tile, 'bronze', { rings: 12, limit: 2 });
-    expect(sites.length).toBe(2);
-    const units = { a: { ...makeSettler('a', paris, 'fr'), tile: sites[0].tile, target: sites[0].tile }, b: { ...makeSettler('b', paris, 'fr'), tile: sites[1].tile, target: sites[1].tile } };
+    // India: Paris is boxed in by its neighbours' capitals at Dawn and has one legal site only.
+    const s = createInitialState({ playerNationId: 'in', rngSeed: 1 });
+    const paris = s.regions[getNationCapital('in')];
+    const slots = OUTPOST_SLOTS_BY_AGE.bronze;
+    // Sites far enough apart that founding one does not crowd the next (MIN_CITY_SPACING).
+    const tiles = getTiles();
+    const sites = [];
+    bestSites(s, 'in', paris.tile, 'bronze', { rings: 12, limit: 12 }).forEach((site) => { if (sites.length < slots + 1 && sites.every((o) => ringDistance(tiles, o.tile, site.tile, 3) > 2)) sites.push(site); });
+    expect(sites.length).toBe(slots + 1);
+    const units = Object.fromEntries(sites.map((site, i) => [`s${i}`, { ...makeSettler(`s${i}`, paris, 'in'), tile: site.tile, target: site.tile }]));
     const r = processSettlers({ ...s, units }, s.regions, units, s.world, () => 'bronze', 2);
-    expect(outpostsOf(r.regions, 'fr')).toHaveLength(1); // Bronze: one slot
-    expect(Object.keys(r.units)).toHaveLength(Object.keys(units).length - 1);
+    expect(outpostsOf(r.regions, 'in')).toHaveLength(slots); // one settler waits for a slot
+    expect(Object.keys(r.units)).toHaveLength(1);
   });
 
   it('AI cities queue settlers when they have room and then buildings, and the AI world fills in', () => {
     const s = quiet(createInitialState({ playerNationId: 'au', rngSeed: 5 }));
     const cairo = s.regions[getNationCapital('eg')];
-    const thinkTurn = (5 - (cairo.tile % 5)) % 5; // the site search runs one turn in five
+    const thinkTurn = (SETTLER_THINK_PERIOD - (cairo.tile % SETTLER_THINK_PERIOD)) % SETTLER_THINK_PERIOD; // the site search runs one turn in a few
     const item = chooseProduction(s, cairo, { researched: [], ageId: 'bronze', citiesOwned: 1, units: s.units, turnNumber: thinkTurn });
     expect(item).toEqual({ kind: 'settler' });
     const small = { ...cairo, size: 2 };

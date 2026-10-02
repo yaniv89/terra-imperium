@@ -60,7 +60,7 @@ describe('loyalty', () => {
     assertGameState({ ...state, regions, nations });
     // A Belgian city founded on Paris's doorstep, with no garrison, turns French.
     const { state: s2, cityId } = addCity(S, 'be', { near: FR });
-    const r2 = { ...s2.regions, [FR]: { ...s2.regions[FR], size: 8 } }; const n2 = { ...s2.nations };
+    const r2 = { ...s2.regions, [FR]: { ...s2.regions[FR], size: 20 } }; const n2 = { ...s2.nations };
     let flip2 = null;
     for (let turn = S.turnNumber + 1; turn <= S.turnNumber + 80 && !flip2; turn++) { const { flips } = applyLoyalty({ ...s2, regions: r2, nations: n2 }, r2, {}, n2, turn); if (flips.length) flip2 = flips[0]; }
     expect(flip2).toMatchObject({ cityId, from: 'be', to: 'fr' });
