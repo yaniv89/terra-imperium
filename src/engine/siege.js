@@ -16,7 +16,7 @@
 // captured in one hit — walking into an empty city needs no siege — see the caller-side check in
 // gameReducer.js (`defenderUnits.length === 0`), not handled here.
 
-import { getNeighborIds } from '../data/regions';
+import { getTouchingIds } from '../data/regions';
 
 export const SIEGE_CONTROL_DAMAGE = { attacker: 30, stalemate: 10, defender: 0 };
 export const SIEGE_CAPTURE_CONTROL_THRESHOLD = 15;
@@ -81,7 +81,7 @@ export const nextSiegeControlRegen = (region, currentTurn) => {
 export const ZOC_FORT_LEVEL_THRESHOLD = 4;
 export const ZOC_DAMAGE_REDUCTION_MULT = 0.5;
 export const getZoneOfControlMultiplier = (regions, regionId, defenderId) => {
-  const hasProtectingFort = getNeighborIds(regionId).some((nId) => {
+  const hasProtectingFort = getTouchingIds(regionId).some((nId) => { // lands that touch, not the Dawn bridge
     const region = regions[nId];
     if (!region || (region.owner !== defenderId && region.occupiedBy !== defenderId)) return false;
     return (region.defenseLevel || 0) >= ZOC_FORT_LEVEL_THRESHOLD;

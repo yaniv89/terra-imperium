@@ -11,7 +11,7 @@ import {
   ZOC_FORT_LEVEL_THRESHOLD
 } from './siege';
 import { createInitialState } from './gameReducer';
-import { borderPair } from './testWorld';
+import { touchingPair } from './testWorld';
 
 describe('resolveSiegeControlDamage', () => {
   it('damages control on an attacker win without capturing, while control stays above the threshold', () => {
@@ -123,7 +123,7 @@ describe('nextSiegeControlRegen', () => {
 // A real bordering pair of cities (a French and a Belgian one) on the Dawn world, wherever
 // genuine adjacency (not just any two owned regions) matters.
 describe('getZoneOfControlMultiplier (plan §M14)', () => {
-  const [FR, BE] = borderPair(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr', 'be');
+  const [FR, BE] = touchingPair(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr', 'be') || touchingPair(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr', 'lu'); // lands that touch: the fort rule reads `touching`
   const regions = {
     [FR]: { owner: 'fr', defenseLevel: 0 },
     [BE]: { owner: 'be', defenseLevel: 0 }

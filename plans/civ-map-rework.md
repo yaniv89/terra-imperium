@@ -1919,6 +1919,22 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**Workstream 13, wave 4: the bridge's last readers (2026-10-02).** Trade routes
+(`src/engine/tradeRoutes.js`): a land route is now a caravan path over tiles from capital to
+capital (`findCaravanPath`, at most TRADE_ROUTE_MAX_TILES 40 steps over land a caravan can
+cross, through free land and the land of any nation not at war with the player, never through
+an occupied city's land; the old rule, only the partner's, a pact's or open-borders land, closed
+every route in Dawn Europe), the sea route unchanged, memoised on the state parts it reads
+(regions, wars, nations, world, units, age) because the trade pact modifier asks per partner.
+Reinforcements (invasion.js `getReinforcementSources`, defense.js `pickRealAssaultUnits`) are
+the land units standing within REINFORCE_RINGS (3) of the city's centre (armies.js
+`unitsWithinRings`), not the units of bridged neighbour provinces; the AI assault's staging
+region is a touching city of the aggressor, else the region of its nearest troops. A beaten
+garrison falls back to the nearest city its nation holds within FALLBACK_RINGS (12)
+(`nearestHeldCity`; `getWithdrawalTarget`), the siege's protecting fort (siege.js) reads lands
+that touch. Tests in bridgeReaders.test.js; `touchingPair` in testWorld.js. Still open in 13:
+the space-race test, turn time at 2,000 cities, the save v7 screen.
+
 **Workstream 13, the Dawn bridge and land attacks (2026-10-02).** The registry's neighbour rule
 (registry.js) has three parts: lands that touch, centres within NEAR_RINGS (3), and the BRIDGE
 that links a people's capital to the nearest city of each neighbouring people up to
@@ -1929,9 +1945,8 @@ bridge; `getTouchingIds` in regions.js), and a land attack from inside a city ne
 lands to touch (invasion.js validateInvasion); otherwise the army walks to a tile beside the
 city first, as the AI's fronts already do. Wars, trade routes, reinforcements, diffusion and
 the AI's tiering keep `neighbors`. The reducer's invasion fixtures and the route test follow
-the rule. Still open in 13: the bridge's other readers one by one (trade routes over
-neighbours, reinforcement sources, the siege's protecting fort), the space-race test, turn
-time at 2,000 cities, the save v7 screen.
+the rule. The bridge's other readers (trade routes, reinforcement sources, the siege's
+protecting fort, the garrison's fallback) followed in wave 4.
 
 **Workstream 11, wave 3: wonders as tiles (2026-10-02).** `src/engine/wonders.js`. A great
 project is built from a city's production queue (`kind: 'wonder'`), not bought with gold: tier

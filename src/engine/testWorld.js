@@ -59,6 +59,15 @@ export const borderPair = (state, a, b) => {
   return null;
 };
 
+// A city of `a` and a city of `b` whose lands touch (registry `touching`, no Dawn bridge), or null.
+export const touchingPair = (state, a, b) => {
+  for (const id of getOwnedRegionIds(state.regions, a)) {
+    const other = getTouchingIds(id).find((n) => state.regions[n]?.owner === b);
+    if (other) return [id, other];
+  }
+  return null;
+};
+
 // A city of `nationId` that borders no city of `otherId` (founding one if needed).
 export const interiorCity = (state, nationId, otherId) => {
   const existing = getOwnedRegionIds(state.regions, nationId).find((id) => !getNeighborIds(id).some((n) => state.regions[n]?.owner === otherId));

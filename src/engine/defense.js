@@ -14,7 +14,7 @@ import { recordBattleReport } from './battleReports';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { LogTypes } from '../data/types';
-import { REGIONS_DATA, getNeighborIds } from '../data/regions';
+import { REGIONS_DATA, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
 import { getEffectiveAgeId } from '../data/ages';
 import { getAvailableClasses } from '../data/unitClasses';
@@ -26,7 +26,7 @@ import { recordBattle } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { getRegionModifier } from './modifiers/sheet';
 import { XP_WIN, XP_LOSE } from './invasion';
-import { placeInCity } from './armies';
+import { placeInCity, unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD, isGarrisonBroken } from './siege';
 
 // Before this system, a successful capture roll against a garrisoned player region always did
@@ -42,14 +42,17 @@ const SYNTHETIC_CLASS_WEIGHTS = [['infantry', 5], ['ranged', 2], ['cavalry', 2],
 export const getGarrison = (state, regionId) => Object.values(state.units || {})
   .filter((u) => u.regionId === regionId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId === state.playerNationId && !u.embarkedOn && u.strength > 0);
 
-// Which neighbouring province the assault comes from: one the aggressor holds, if any.
+// Where the assault comes from: a city of the aggressor whose land touches the target, else the
+// region of the aggressor's nearest troops beside it, else the target itself (a landing).
 const pickStagingRegion = (state, aggressorId, regionId) => {
-  const neighbours = getNeighborIds(regionId);
-  const held = neighbours.filter((rid) => {
+  const held = getTouchingIds(regionId).filter((rid) => {
     const r = state.regions[rid];
     return r && (r.occupiedBy ? r.occupiedBy === aggressorId : r.owner === aggressorId);
   });
-  return held[0] || neighbours[0] || regionId;
+  if (held.length) return held[0];
+  const centre = state.regions[regionId]?.tile;
+  const near = centre == null ? [] : unitsWithinRings(state, centre, aggressorId, REINFORCE_RINGS);
+  return near.find((u) => u.regionId && u.regionId !== regionId)?.regionId || regionId;
 };
 
 // How many units the assault should field: as many as the garrison when the two nations are evenly
@@ -80,12 +83,15 @@ export const buildSyntheticForce = ({ defenseId, aggressorId, ageId, count, seed
   });
 };
 
-// Real units standing in the aggressor's provinces next to the target that could join the assault.
-// Units already committed to another queued defense are skipped.
-const pickRealAssaultUnits = (state, aggressorId, regionId, committed) => getNeighborIds(regionId)
-  .filter((rid) => state.regions[rid]?.owner === aggressorId)
-  .flatMap((rid) => Object.values(state.units || {}).filter((u) => u.regionId === rid && u.ownerId === aggressorId && u.domain === 'land' && !u.embarkedOn && u.strength > 0 && !committed.has(u.id)))
-  .sort((a, b) => b.strength - a.strength || (a.id < b.id ? -1 : 1));
+// Real units of the aggressor standing within REINFORCE_RINGS tiles of the target that could join
+// the assault, strongest first. Units already committed to another queued defense are skipped.
+const pickRealAssaultUnits = (state, aggressorId, regionId, committed) => {
+  const centre = state.regions[regionId]?.tile;
+  if (centre == null) return [];
+  return unitsWithinRings(state, centre, aggressorId, REINFORCE_RINGS)
+    .filter((u) => u.domain === 'land' && !committed.has(u.id))
+    .sort((a, b) => b.strength - a.strength || (a.id < b.id ? -1 : 1));
+};
 
 // Builds one queued defense record. `seed` comes from the turn's rng.
 export const createDefenseRecord = (state, { war, regionId, aggressorShare, seed, index, committed = new Set() }) => {
@@ -207,9 +213,7 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
   // neighbouring province the player still holds (or are lost if there's nowhere to go).
   const defenderXp = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
   const deployed = report?.deployedDefenderIds || [];
-  const fallback = captured
-    ? getNeighborIds(def.regionId).find((rid) => state.regions[rid]?.owner === state.playerNationId && !state.regions[rid]?.occupiedBy)
-    : null;
+  const fallback = captured ? nearestHeldCity(state, def.regionId, state.playerNationId) : null;
   defenderUnits.forEach((u) => {
     if (!units[u.id]) return;
     if (u.strength <= 0 || (captured && !fallback)) { delete units[u.id]; return; }
@@ -328,9 +332,9 @@ export const estimateDefenseOdds = (state, def, samples = 40) => {
 export const WITHDRAW_MORALE_LOSS = 25;
 export const WITHDRAW_STRENGTH_LOSS = 0.05; // stragglers and abandoned baggage
 
-// Where a garrison can fall back to: a neighbouring province the player owns and holds.
-export const getWithdrawalTarget = (state, regionId) =>
-  getNeighborIds(regionId).find((rid) => state.regions[rid]?.owner === state.playerNationId && !state.regions[rid]?.occupiedBy) || null;
+// Where a garrison can fall back to: the nearest city the player owns and holds (armies.js
+// nearestHeldCity, within FALLBACK_RINGS of the lost city).
+export const getWithdrawalTarget = (state, regionId) => nearestHeldCity(state, regionId, state.playerNationId);
 
 // The garrison gives up the province without a fight: it falls back to a neighbouring province
 // (losing morale and some men on the way) and the enemy takes the province unopposed — a small

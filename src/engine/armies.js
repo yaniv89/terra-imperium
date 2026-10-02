@@ -202,6 +202,44 @@ export const regionForTile = (state, tile, nationId, fallback = null) => {
   return nearestCity(state, getTiles(), tile, nationId) ?? fallback;
 };
 
+export const REINFORCE_RINGS = 3;   // how far from a city's centre idle troops can join its battle
+export const FALLBACK_RINGS = 12;   // how far a beaten garrison looks for a city of its own to fall back to
+
+/** Land units of `nationId` standing within `rings` of `centre` (the centre itself excluded),
+ * sorted by id: the troops near a battle, a city or a siege. Settlers and cargo never count. */
+export const unitsWithinRings = (state, centre, nationId, rings, units = state.units) => {
+  const tiles = getTiles();
+  const near = new Set();
+  let frontier = [centre]; const seen = new Set(frontier);
+  for (let d = 1; d <= rings; d++) {
+    const next = [];
+    for (const t of frontier) for (const n of tiles.neighbors[t]) if (!seen.has(n)) { seen.add(n); near.add(n); next.push(n); }
+    frontier = next;
+  }
+  return Object.values(units)
+    .filter((u) => u.ownerId === nationId && u.domain !== 'naval' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && near.has(unitTile(state, u)))
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+};
+
+/** The nearest city `nationId` owns and holds, by rings from `regionId`'s centre, within
+ * `maxRing` (the city itself excluded); null when there is none: where a garrison falls back to. */
+export const nearestHeldCity = (state, regionId, nationId, maxRing = FALLBACK_RINGS) => {
+  const tiles = getTiles();
+  const centre = state.regions[regionId]?.tile;
+  if (centre == null) return null;
+  let frontier = [centre]; const seen = new Set(frontier);
+  for (let d = 1; d <= maxRing; d++) {
+    const next = [];
+    for (const t of frontier) for (const n of tiles.neighbors[t]) if (!seen.has(n)) { seen.add(n); next.push(n); }
+    frontier = next.sort((a, b) => a - b);
+    for (const t of frontier) {
+      const city = state.world?.tileOwner?.[t];
+      if (city && city !== regionId && state.regions[city]?.tile === t && state.regions[city]?.owner === nationId && !state.regions[city]?.occupiedBy) return city;
+    }
+  }
+  return null;
+};
+
 /** True when `tile` touches the land of city `cityId` (or is part of it). */
 export const touchesCity = (state, tiles, tile, cityId) => {
   const tileOwner = state.world?.tileOwner || {};
