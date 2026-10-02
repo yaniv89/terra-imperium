@@ -131,7 +131,7 @@ describe('resolveTurn calendar advance', () => {
 
 describe('resolveTurn resource income', () => {
   it('grows the player\'s gold and hr each turn', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 5 }); // a fixed seed: a random first turn can cost gold
     const next = resolveTurn(state);
     expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
     expect(next.resources.hr).toBeGreaterThan(state.resources.hr);

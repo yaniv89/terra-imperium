@@ -1622,6 +1622,37 @@ tents, marches their numbered turn dots and the tile sheet its attack and landin
 Still open in 12: the army and nation sheets, the empire sheet with the era strip, lenses, the
 fog hatch, the portrait empire view, desktop hotkeys, onboarding, retiring the province modal.
 
+
+---
+
+**Workstream 13, first calibration slice (2026-10-02).** The balance sim now prints the Part H
+keys (cities, land claimed, cities changed hands, loyalty flips, free cities, sieges, armies on
+the road). Measured on seed 11, player France passive, 150 turns, before and after this slice:
+
+| Key | Before | After | Target |
+|---|---|---|---|
+| Land claimed at 550 CE (turn 100) | 39% | 44% | 50% |
+| Land claimed at 1050 CE (turn 150) | 50% | 54% | about 65% |
+| Cities at turn 150 | 616 | 682 | |
+| Loyalty flips, turns 50 to 100 | 275 (5% of cities per 10 turns) | 75 (1.4%) | 0.5 to 1% |
+| Siege phase, ms a turn at 460 cities | 50 | 7 | 10 |
+| Supply and loyalty phases, ms a turn | 52 | 13 | 10 |
+| Cities phase, ms a turn at 546 cities | 89 (at 461) | 114 | 50 at 2,000 |
+| Audit violations | 0 | 0 | 0 |
+
+What changed: a flipped city's people take 60% of its shares for the new owner and the city
+cannot flip again for 30 turns (no ping-pong), a newly founded city holds for 30 turns, a
+city's own people press at 0.6 of its size and loyalty needs 40% of the owner's culture; the
+siege and loyalty phases share one land-unit-by-tile index and culture drifts every third
+turn; AI cities build settlers from size 2 and every nation runs 2 outposts at Dawn (3 and 4
+later). Still open in 13: the cities phase (114 ms at 546 cities, 0.2 ms a city: the
+allocation and yield arithmetic need the per-city caching the budget assumes), the AI economy
+phase (67 ms), median cities per nation (1 at turn 100 against 6: growth to size 2 is the
+bottleneck, food and housing need the next slice), the registry's city bridge (cities 12 tiles
+apart still count as neighbours for the player's attacks and trade; AI fronts no longer use
+it), the Dawn geography (Paris and Berlin cannot reach each other over land at peace), and the
+space-race affordability test.
+
 ---
 
 ---

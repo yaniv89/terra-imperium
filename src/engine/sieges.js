@@ -44,18 +44,29 @@ export const siegeHpOf = (city) => (city.siege ? city.siege.hp : siegeMaxHp(city
 
 const hostile = (state, nationId, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, ownerId));
 
-/** Enemy land units on the tiles around the city centre (ring 1), grouped by nation. */
-export const besiegersOf = (state, city, units = state.units) => {
-  const tiles = getTiles();
-  const ring = new Set(tiles.neighbors[city.tile]);
-  const byNation = new Map();
+/** Land units (no cargo, no settlers, alive) by the tile they stand on: Map tile -> units. Built
+ * once per turn and shared by the siege and loyalty phases. */
+export const landUnitsByTile = (state, units = state.units) => {
+  const map = new Map();
   Object.values(units).forEach((u) => {
-    if (u.domain === 'naval' || u.embarkedOn || isSettler(u) || !(u.strength > 0) || u.ownerId === city.owner) return;
-    if (!ring.has(unitTile(state, u))) return;
-    if (!hostile(state, city.owner, u.ownerId)) return;
+    if (u.domain === 'naval' || u.embarkedOn || isSettler(u) || !(u.strength > 0)) return;
+    const t = unitTile(state, u);
+    if (t == null) return;
+    const list = map.get(t); if (list) list.push(u); else map.set(t, [u]);
+  });
+  return map;
+};
+
+/** Enemy land units on the tiles around the city centre (ring 1), grouped by nation. */
+export const besiegersOf = (state, city, units = state.units, byTile = null) => {
+  const tiles = getTiles();
+  const index = byTile || landUnitsByTile(state, units);
+  const byNation = new Map();
+  tiles.neighbors[city.tile].forEach((t) => (index.get(t) || []).forEach((u) => {
+    if (u.ownerId === city.owner || !hostile(state, city.owner, u.ownerId)) return;
     if (!byNation.has(u.ownerId)) byNation.set(u.ownerId, []);
     byNation.get(u.ownerId).push(u);
-  });
+  }));
   return byNation;
 };
 
@@ -69,12 +80,11 @@ export const siegeStrength = (state, nationId, units) => {
 
 /** True when every land tile of ring 1 holds a besieger of `nationId` and every water tile beside
  * the city is blockaded. */
-export const isEncircled = (state, city, nationId, units = state.units) => {
+export const isEncircled = (state, city, nationId, units = state.units, byTile = null) => {
   const tiles = getTiles();
-  const held = new Set();
-  Object.values(units).forEach((u) => { if (u.ownerId === nationId && u.domain !== 'naval' && !u.embarkedOn && !isSettler(u) && u.strength > 0) held.add(unitTile(state, u)); });
+  const index = byTile || landUnitsByTile(state, units);
   const ring = tiles.neighbors[city.tile];
-  const landClosed = ring.filter((t) => tiles.land[t] === 1).every((t) => held.has(t));
+  const landClosed = ring.filter((t) => tiles.land[t] === 1).every((t) => (index.get(t) || []).some((u) => u.ownerId === nationId));
   const hasWater = ring.some((t) => tiles.land[t] !== 1 && tiles.terrainOf(t) !== 'lake');
   return landClosed && (!hasWater || isBlockaded(state, city.id, units));
 };
@@ -86,10 +96,12 @@ export const isEncircled = (state, city, nationId, units = state.units) => {
  */
 export const processSieges = (state, regions, units, { turn }) => {
   const fallen = []; const logs = [];
+  const view = { ...state, regions };
+  const byTile = landUnitsByTile(view, units);
   Object.keys(regions).sort().forEach((id) => {
     const city = regions[id];
     if (city.tile == null || !city.owner) return;
-    const by = besiegersOf({ ...state, regions }, city, units);
+    const by = besiegersOf(view, city, units, byTile);
     if (!by.size) {
       if (city.siege) {
         const hp = Math.min(siegeMaxHp(city), city.siege.hp + Math.round(siegeMaxHp(city) * SIEGE_HEAL));
@@ -101,7 +113,7 @@ export const processSieges = (state, regions, units, { turn }) => {
     const stacks = [...by].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1));
     const leader = stacks[0][0];
     const strength = stacks.reduce((s, [nid, list]) => s + siegeStrength(state, nid, list), 0);
-    const encircled = isEncircled({ ...state, regions }, city, leader, units);
+    const encircled = isEncircled(view, city, leader, units, byTile);
     const regen = encircled ? 0 : WALL_REGEN * wallsOf(city);
     const damage = Math.max(0, Math.round((strength - regen) * (encircled ? ENCIRCLE_MULT : 1)));
     const maxHp = siegeMaxHp(city);

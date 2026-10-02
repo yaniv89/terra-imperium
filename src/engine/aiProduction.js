@@ -16,8 +16,8 @@ import { getAvailableClasses } from '../data/unitClasses';
 import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf, SITE_SCORE_MIN } from './settlers';
 
-export const SETTLER_FROM_SIZE = 3;
-export const SETTLER_THINK_PERIOD = 5; // a city looks for a site one turn in five (the site search is the costly part)
+export const SETTLER_FROM_SIZE = 2;
+export const SETTLER_THINK_PERIOD = 3; // a city looks for a site one turn in three (the site search is the costly part)
 export const MAX_BUILD_TURNS = 40;
 export const UNITS_PER_CITY = 1;
 export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'infrastructure', 'defense', 'naval'];

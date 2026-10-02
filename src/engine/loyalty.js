@@ -7,7 +7,7 @@
 //              conquest never converts itself but a big neighbour can turn a small city. The
 //              shares drift CULTURE_DRIFT of the way to the pressure shares each turn.
 //   Target     100 x how far the owner's share stands above LOYALTY_SHARE_FLOOR (a city needs
-//              more than half its people of its owner's culture to be loyal at all),
+//              over LOYALTY_SHARE_FLOOR of its people of its owner's culture to be loyal at all),
 //              + LOYALTY_GARRISON_PER_UNIT per own land unit on the
 //              centre (up to LOYALTY_GARRISON_CAP), + the amenities balance (capped either way),
 //              - LOYALTY_CONQUERED while the conquest is younger than CONQUERED_TURNS,
@@ -17,7 +17,9 @@
 //              those whose land borders it, else becomes a FREE CITY (owner null, `freeCity`): it
 //              keeps its record and its people, can be settled peacefully (SETTLE_COLONIZE) or
 //              retaken, and after FREE_CITY_JOIN_TURNS joins the bordering nation that presses
-//              it most. A flip relocates the loser's capital if needed (conquest.js).
+//              it most. A flip relocates the loser's capital if needed (conquest.js). The people who
+//              chose the new owner take FLIP_CULTURE_SHIFT of the shares, and the city cannot flip
+//              again for FLIP_COOLDOWN_TURNS: no ping-pong between neighbours.
 // Control stays the siege and battle ground (siege.js); loyalty is how integrated a city is.
 // Ripples: conquest at distance costs garrisons (anti-snowball), culture feeds the "my people"
 // opinion reason (opinion.js), free cities are land to settle. Pure of randomness.
@@ -29,12 +31,14 @@ import { transferRegion } from './regionTransfer';
 import { relocateLostCapital } from './conquest';
 import { unitTile } from './armies';
 import { isSettler } from './settlers';
+import { landUnitsByTile } from './sieges';
 
 export const PRESSURE_RINGS = 9;
 export const KM_PER_RING = 147;
 export const CULTURE_DRIFT = 0.05;
-export const SELF_WEIGHT = 0.25;
-export const LOYALTY_SHARE_FLOOR = 0.5;
+export const CULTURE_PERIOD = 3;        // a city's shares drift every third turn (by CULTURE_PERIOD x CULTURE_DRIFT)
+export const SELF_WEIGHT = 0.6;
+export const LOYALTY_SHARE_FLOOR = 0.4;
 export const LOYALTY_STEP = 5;
 export const LOYALTY_GARRISON_PER_UNIT = 10;
 export const LOYALTY_GARRISON_CAP = 30;
@@ -45,6 +49,9 @@ export const LOYALTY_CAPITAL_LOST = -20;
 export const LOYALTY_ON_CONQUEST = 50;
 export const LOYALTY_ON_FLIP = 50;
 export const FREE_CITY_JOIN_TURNS = 10;
+export const FLIP_COOLDOWN_TURNS = 30;
+export const FOUNDING_GRACE_TURNS = 30;  // a newly founded city's settlers hold it whatever the pressure   // a city that just changed hands by loyalty settles before it can flip again
+export const FLIP_CULTURE_SHIFT = 0.6;   // the share the people who chose the new owner take at a flip
 
 export const loyaltyOf = (city) => (city.loyalty == null ? 100 : city.loyalty);
 export const cultureOf = (city) => city.culture || { [city.founderId || city.owner]: 1 };
@@ -68,12 +75,12 @@ const pressureOn = (tiles, cities, index, city) => {
   return out;
 };
 
-const drift = (culture, pressure) => {
+const drift = (culture, pressure, rate = CULTURE_DRIFT) => {
   const total = Object.values(pressure).reduce((s, v) => s + v, 0);
   if (!total) return culture;
   const next = {};
   const ids = new Set([...Object.keys(culture), ...Object.keys(pressure)]);
-  ids.forEach((id) => { const v = (culture[id] || 0) + CULTURE_DRIFT * ((pressure[id] || 0) / total - (culture[id] || 0)); if (v >= 0.0005) next[id] = Math.round(v * 10000) / 10000; });
+  ids.forEach((id) => { const v = (culture[id] || 0) + rate * ((pressure[id] || 0) / total - (culture[id] || 0)); if (v >= 0.0005) next[id] = Math.round(v * 10000) / 10000; });
   const sum = Object.values(next).reduce((s, v) => s + v, 0) || 1;
   Object.keys(next).forEach((id) => { next[id] = Math.round((next[id] / sum) * 10000) / 10000; });
   return next;
@@ -87,10 +94,11 @@ export const pressureOf = (state, city) => {
 };
 
 /** The loyalty target of a city today, with its parts. */
-export const loyaltyTarget = (state, city, units = state.units, nations = state.nations) => {
+export const loyaltyTarget = (state, city, units = state.units, nations = state.nations, byTile = null) => {
   const culture = cultureOf(city);
   const share = city.owner ? (culture[city.owner] || 0) : 0;
-  const garrison = Math.min(LOYALTY_GARRISON_CAP, LOYALTY_GARRISON_PER_UNIT * Object.values(units).filter((u) => u.ownerId === city.owner && u.domain === 'land' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && unitTile(state, u) === city.tile).length);
+  const onCentre = byTile ? (byTile.get(city.tile) || []).filter((u) => u.ownerId === city.owner) : Object.values(units).filter((u) => u.ownerId === city.owner && u.domain === 'land' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && unitTile(state, u) === city.tile);
+  const garrison = Math.min(LOYALTY_GARRISON_CAP, LOYALTY_GARRISON_PER_UNIT * onCentre.length);
   const amenities = Math.max(-LOYALTY_AMENITY_CAP, Math.min(LOYALTY_AMENITY_CAP, amenitiesOf(city).net));
   const turn = state.turnNumber || 1;
   const conquered = city.conquest && turn - (city.conquest.turn || 0) < CONQUERED_TURNS ? LOYALTY_CONQUERED : 0;
@@ -118,9 +126,13 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
   const cities = Object.values(regions).filter((c) => c.tile != null);
   const index = buildRadiusIndex(cities.map((c) => tiles.centres[c.tile]));
   const view = { ...state, regions, units, nations, turnNumber: turn };
+  const byTile = landUnitsByTile(view, units);
   const flips = []; const logs = [];
   cities.forEach((city) => {
-    const pressure = pressureOn(tiles, cities, index, city);
+    // Pressure is costly over hundreds of cities: each city's shares drift every CULTURE_PERIOD
+    // turns by the whole period's drift (the turn count staggers the cities).
+    const drifts = city.owner === null || (turn + city.tile) % CULTURE_PERIOD === 0;
+    const pressure = drifts ? pressureOn(tiles, cities, index, city) : null;
     if (city.owner === null) {
       // A free city joins the bordering nation that presses it most, after a while.
       const since = city.freeCity?.since ?? turn;
@@ -130,26 +142,29 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
       if (best) flips.push({ cityId: city.id, from: null, to: best });
       return;
     }
-    const culture = drift(cultureOf(city), pressure);
-    const target = loyaltyTarget(view, { ...city, culture }, units, nations).total;
+    const culture = pressure ? drift(cultureOf(city), pressure, CULTURE_DRIFT * CULTURE_PERIOD) : cultureOf(city);
+    const target = loyaltyTarget(view, { ...city, culture }, units, nations, byTile).total;
     const current = loyaltyOf(city);
     const loyalty = current < target ? Math.min(target, current + LOYALTY_STEP) : Math.max(target, current - LOYALTY_STEP);
     regions[city.id] = { ...city, culture, loyalty };
-    if (loyalty <= 0 && nations[city.owner]?.capitalRegionId !== city.id) { // a nation's current capital never flips (a stale isCapital flag on a taken city does not count)
+    const settling = (city.lastFlipTurn != null && turn - city.lastFlipTurn < FLIP_COOLDOWN_TURNS) || (city.founded > 1 && turn - city.founded < FOUNDING_GRACE_TURNS);
+    if (loyalty <= 0 && !settling && nations[city.owner]?.capitalRegionId !== city.id) { // a nation's current capital never flips (a stale isCapital flag on a taken city does not count)
       const near = bordering(view, tiles, city);
-      const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated).sort((a, b) => (pressure[b] || 0) - (pressure[a] || 0) || (a < b ? -1 : 1))[0];
+      const press = pressure || pressureOn(tiles, cities, index, city);
+      const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated).sort((a, b) => (press[b] || 0) - (press[a] || 0) || (a < b ? -1 : 1))[0];
       flips.push({ cityId: city.id, from: city.owner, to: best || null });
     } else if (loyalty <= 25 && current > 25) logs.push({ nationId: city.owner, message: `${city.name} is losing its loyalty (${loyalty}): garrison it or raise its amenities.` });
   });
   flips.forEach((f) => {
     const city = regions[f.cityId];
+    const shifted = (() => { const c = cultureOf(city); const rest = 1 - FLIP_CULTURE_SHIFT; const out = {}; Object.entries(c).forEach(([id, v]) => { out[id] = Math.round(v * rest * 10000) / 10000; }); if (f.to) out[f.to] = Math.round(((out[f.to] || 0) + FLIP_CULTURE_SHIFT) * 10000) / 10000; return out; })();
     if (f.to) {
-      const { region, revivedNation } = transferRegion(city, f.to, nations, { loyalty: LOYALTY_ON_FLIP, control: 100, unrest: 0, freeCity: undefined, siege: null });
+      const { region, revivedNation } = transferRegion(city, f.to, nations, { loyalty: LOYALTY_ON_FLIP, control: 100, unrest: 0, freeCity: undefined, siege: null, culture: shifted, lastFlipTurn: turn });
       regions[f.cityId] = region;
       if (revivedNation) nations[f.to] = revivedNation;
       logs.push({ nationId: f.from, message: `${city.name} has gone over to ${nations[f.to]?.name || f.to}: its people no longer feel yours.` }, { nationId: f.to, message: `${city.name} joins you: its people chose your rule.` });
     } else {
-      regions[f.cityId] = { ...city, owner: null, occupiedBy: undefined, conquest: undefined, siege: null, control: 0, loyalty: LOYALTY_ON_FLIP, freeCity: { since: turn, formerOwner: f.from } };
+      regions[f.cityId] = { ...city, owner: null, occupiedBy: undefined, conquest: undefined, siege: null, control: 0, loyalty: LOYALTY_ON_FLIP, freeCity: { since: turn, formerOwner: f.from }, lastFlipTurn: turn };
       logs.push({ nationId: f.from, message: `${city.name} has thrown off your rule and stands as a free city.` });
     }
     if (f.from) {
