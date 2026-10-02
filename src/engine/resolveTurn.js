@@ -76,7 +76,7 @@ import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseD
 import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
 import { updateDefensivePacts } from './pacts';
-import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
+import { computeSupplyFlow, isCampaigning, unitsByOwner, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
 import { normalizeUnitTiles } from './armies';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
@@ -494,6 +494,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const playerOutOfOil = getEffectiveAgeId(newAge, state.techAgeId) === 'modern' && (resources.oil ?? 0) <= 0;
   let groundedCount = 0;
   const ownerSupplyFlows = new Map();
+  const unitsByOwnerAtStart = unitsByOwner(state.units); // one scan for every nation's supply flow
   Object.values(units).forEach((u) => {
     if (u.ownerId === REBEL_OWNER_ID || u.embarkedOn) return;
     const nation = state.nations[u.ownerId];
@@ -507,7 +508,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     let patch = null;
     // Hungry armies on campaign (supplies.js) neither recover nor reinforce, and lose heart.
     const ownerPool = isPlayer ? resources : (modifierExpiredNations[u.ownerId].economy || {});
-    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool,tileOwner:state.world?.tileOwner}));
+    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool,tileOwner:state.world?.tileOwner,ownedUnits:unitsByOwnerAtStart.get(u.ownerId) || []}));
     const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
     // A starving unit (supply meter at 0, supplyMeter.js) recovers nothing either.
     const hungry = (ownerSupply.hungry && isCampaigning(u, regions, state.world?.tileOwner)) || (u.supply != null && u.supply <= 0);
@@ -547,6 +548,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- AI nations: passive growth + hostility drift ---
   const aiUpdates = processAllAINations(state, newYear, rng);
   const nations = { ...modifierExpiredNations, ...revivedNations };
+  const opinionView = { ...state, nations: modifierExpiredNations }; // one view for the loop: a fresh spread per nation would rebuild the modifier sheets 240 times
   Object.entries(nations).forEach(([nId, nation]) => {
     if (nation.isPlayer || nation.isEliminated) return;
     const growthUpdate = aiUpdates.nationUpdates[nId];
@@ -554,7 +556,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
     const relationStatus = nation.isAtWar || nation.hasPeaceTreaty || nation.hasTradeAgreement
       ? nation.relationStatus
-      : getRelationFromHostility(opinionGivesCasusBelli(opinionOf({ ...state, nations: modifierExpiredNations }, nId)) ? Math.max(hostility, 80) : hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);
+      : getRelationFromHostility(opinionGivesCasusBelli(opinionOf(opinionView, nId)) ? Math.max(hostility, 80) : hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
@@ -583,6 +585,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const aiEconState = { ...state, regions, nations };
   const allIncomes = calcAllNationIncomes(aiEconState);
   const tieringSortedByMilitary = getSortedByMilitary(aiEconState);
+  // Units grouped by owner once; a nation's own desertion below only drops its own, already settled, units.
+  const unitsByOwnerNow = unitsByOwner(units);
+  const upkeepState = { ...aiEconState, units, turnNumber: newTurnNumber };
   Object.keys(nations).forEach((nId) => {
     if (nId === state.playerNationId) return;
     const nation = nations[nId];
@@ -594,7 +599,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     pool.gold += income.gold;
     pool.hr += income.hr;
     pool.techPoints += income.techPoints;
-    const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool,tileOwner:state.world?.tileOwner});
+    const ownedUnits = unitsByOwnerNow.get(nId) || [];
+    const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool,tileOwner:state.world?.tileOwner,ownedUnits});
     pool.supplies=aiSupply.supplies;
     pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
     ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
@@ -603,7 +609,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool };
-    nations[nId] = settleAIUpkeep({ ...aiEconState, units, turnNumber: newTurnNumber }, nId, income);
+    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits);
     if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;

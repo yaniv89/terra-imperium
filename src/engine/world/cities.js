@@ -310,18 +310,36 @@ export const toggleLock = (city, tile) => (city.locked.includes(tile) ? { ...cit
 // Borders
 export const tileCultureCost = (city, ring) => TILE_COST_BASE + TILE_COST_PER_RING * ring + TILE_COST_PER_TILE * city.tiles.length;
 
+// The rings around a centre, Map tile -> ring, up to maxRing. The grid is static, so one walk per
+// (centre, maxRing) serves every turn: the claim step of 500 cities was a walk per candidate tile.
+const ringsMemo = new Map();
+export const ringsAround = (tiles, centre, maxRing) => {
+  const key = centre * 8 + maxRing;
+  let rings = ringsMemo.get(key);
+  if (rings) return rings;
+  rings = new Map([[centre, 0]]); let frontier = [centre];
+  for (let d = 1; d <= maxRing; d++) {
+    const next = [];
+    for (const id of frontier) for (const n of tiles.neighbors[id]) { if (!rings.has(n)) { rings.set(n, d); next.push(n); } }
+    frontier = next;
+  }
+  ringsMemo.set(key, rings);
+  return rings;
+};
+
 /** Tiles the city could claim next, best first: unowned, workable, adjacent to its land, inside
  * the age's ring. Each entry { tile, ring, cost, score }. */
 export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
   const maxRing = BORDER_RING_BY_AGE[ageId] || 2;
   const own = new Set(city.tiles);
   const out = new Map();
+  const rings = ringsAround(tiles, city.tile, maxRing);
   city.tiles.forEach((t) => tiles.neighbors[t].forEach((n) => {
     if (own.has(n) || world.tileOwner[n] || !isWorkable(tiles, n) || out.has(n)) return;
-    const ring = ringDistance(tiles, city.tile, n, maxRing);
-    if (ring > maxRing) return;
+    const ring = rings.get(n);
+    if (ring === undefined) return;
     const y = yieldsOfTile(tiles, world, n, researched);
-    const facts = tileFacts(tiles, n, world.tileState[n]);
+    const facts = factsOf(tiles, world, n);
     const adjacency = tiles.neighbors[n].filter((m) => own.has(m)).length;
     const score = y.food + y.production + y.gold + (facts.resource ? 3 : 0) + (facts.river ? 1 : 0) + adjacency * 0.5 - ring;
     out.set(n, { tile: n, ring, cost: tileCultureCost(city, ring), score });
@@ -331,19 +349,26 @@ export const claimCandidates = (city, tiles, world, { ageId = 'bronze', research
 
 export const buyTileCost = (city, candidate) => candidate.cost * BUY_TILE_MULT;
 
-const claimTile = (world, city, tile) => ({
-  world: { ...world, tileOwner: { ...world.tileOwner, [tile]: city.id } },
-  city: { ...city, tiles: [...city.tiles, tile] }
-});
+// `inPlace`: the caller owns `world.tileOwner` (processCities copies it once a turn), so the claim
+// is written into it; a spread of the 4,000-key ownership map per claim was the cities phase's cost.
+const claimTile = (world, city, tile, inPlace = false) => {
+  if (inPlace) { world.tileOwner[tile] = city.id; return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
+  return { world: { ...world, tileOwner: { ...world.tileOwner, [tile]: city.id } }, city: { ...city, tiles: [...city.tiles, tile] } };
+};
+const writeTileState = (world, tile, entry, inPlace = false) => {
+  if (inPlace) { world.tileState[tile] = entry; return world; }
+  return { ...world, tileState: { ...world.tileState, [tile]: entry } };
+};
 
 // ---------------------------------------------------------------------------------------------
 // The turn
 /**
  * One city's turn. `ctx`: { researched, ageId, turnNumber, citiesOwned, luxuries, amenityBonus,
  * goldMult, productionMult, blockedTiles (Set of tiles an enemy stands on) }.
- * Returns { city, world, yields, completed: [item...], logs: [string...] }.
+ * Returns { city, world, yields, completed: [item...], logs: [string...] }. With `inPlace` the
+ * world's tileOwner and tileState are the caller's own copies and are written directly.
  */
-export const processCity = (world, tiles, city, ctx = {}) => {
+export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   const researched = ctx.researched || [];
   const ageId = ctx.ageId || 'bronze';
   let w = world;
@@ -390,7 +415,7 @@ export const processCity = (world, tiles, city, ctx = {}) => {
       buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };
       logs.push(`${c.name} completes a ${BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category}.`);
     } else if (item.kind === 'improvement') {
-      w = { ...w, tileState: { ...w.tileState, [item.tile]: { ...(w.tileState[item.tile] || {}), improvement: item.improvement, pillaged: false, ...(item.improvement === 'road' ? { road: true } : {}) } } };
+      w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), improvement: item.improvement, pillaged: false, ...(item.improvement === 'road' ? { road: true } : {}) }, inPlace);
       logs.push(`${c.name} builds a ${IMPROVEMENTS[item.improvement]?.name || item.improvement}.`);
     } else if (item.kind === 'settler') {
       if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(`${c.name} sends out settlers.`); }
@@ -414,7 +439,7 @@ export const processCity = (world, tiles, city, ctx = {}) => {
   }
   next = { ...next, production, buildings, cultureBank: Math.round(cultureBank * 10) / 10 };
   if (claimed.length) {
-    const r = claimTile(w, next, claimed[0]); w = r.world; next = r.city;
+    const r = claimTile(w, next, claimed[0], inPlace); w = r.world; next = r.city;
     logs.push(`${c.name}'s borders grow to ${tiles.names[claimed[0]] || 'new land'}.`);
   }
   return { city: next, world: w, yields: y, completed, logs };
@@ -422,13 +447,14 @@ export const processCity = (world, tiles, city, ctx = {}) => {
 
 /** Every city of the world, in id order. `ctxFor(city)` gives the per-nation context. */
 export const processCities = (world, tiles, ctxFor) => {
-  let w = world;
+  // One copy of the ownership and tile state maps for the whole pass; the cities write into it.
+  let w = { ...world, tileOwner: { ...world.tileOwner }, tileState: { ...world.tileState } };
   const cities = {};
   const results = {};
   const logs = []; const completed = [];
   Object.keys(world.cities).sort().forEach((id) => {
     const city = w.cities[id] || world.cities[id];
-    const r = processCity(w, tiles, city, ctxFor(city));
+    const r = processCity(w, tiles, city, ctxFor(city), true);
     w = r.world;
     cities[id] = r.city;
     results[id] = r.yields;

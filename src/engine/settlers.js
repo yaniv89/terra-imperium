@@ -16,7 +16,11 @@
 //               slots of before); a settler that arrives while every slot is taken waits.
 //   AI          an AI settler picks the best site in reach the turn it is built (scoreSite:
 //               yields of the centre and its ring, a resource, a river, the coast, distance from
-//               the capital), the player picks a tile on the map (SET_SETTLER_TARGET).
+//               the capital), the player picks a tile on the map (SET_SETTLER_TARGET). One that
+//               found no site looks again every SETTLER_RETRY_TURNS turns, as far as
+//               MAX_SETTLE_RINGS, and is disbanded after SETTLER_GIVE_UP_TURNS turns idle: an
+//               idle settler would otherwise block its nation's next one for the whole game
+//               (aiProduction.js builds a settler only when the nation has none).
 //   Ripples     a new city pays upkeep and claims land (cities.js), the nation's city count raises
 //               later settler and tile costs (cities.productionCost, tileCultureCost), and more
 //               cities mean more amenities to find (cities.amenitiesOf). Natives and loyalty
@@ -36,6 +40,8 @@ export const OUTPOST_SLOTS_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunp
 export const MAX_SETTLE_RINGS = 12;   // how far a settler is sent at most
 export const AI_SETTLE_RINGS = 8;     // how far the AI looks for a site
 export const SITE_SCORE_MIN = 6;      // below this the AI would rather not settle
+export const SETTLER_RETRY_TURNS = 5;   // an AI settler without a target looks again this often
+export const SETTLER_GIVE_UP_TURNS = 15; // and is disbanded after this long without one
 export { SETTLER_MIN_SIZE };
 
 export const isSettler = (unit) => unit?.classId === 'settler';
@@ -102,8 +108,9 @@ export const canSettle = (state, tile, nationId, ageId) => {
 };
 
 /** How good a city site is: the centre and its ring's food, production and gold, a resource, a
- * river, the coast, minus distance. Pure of state except ownership. */
-export const scoreSite = (state, tile, fromTile = null) => {
+ * river, the coast, minus distance (`distance` when the caller already walked it). Pure of state
+ * except ownership. */
+export const scoreSite = (state, tile, fromTile = null, distance = null) => {
   const tiles = getTiles();
   const tileState = state.world?.tileState || {};
   const tileOwner = state.world?.tileOwner || {};
@@ -116,7 +123,8 @@ export const scoreSite = (state, tile, fromTile = null) => {
   if (facts.resource) score += 3;
   if (facts.river) score += 2;
   if (facts.coastal) score += 1.5;
-  if (fromTile != null) score -= ringDistance(tiles, fromTile, tile, MAX_SETTLE_RINGS) * 0.6;
+  if (distance != null) score -= distance * 0.6;
+  else if (fromTile != null) score -= ringDistance(tiles, fromTile, tile, MAX_SETTLE_RINGS) * 0.6;
   return Math.round(score * 10) / 10;
 };
 
@@ -130,7 +138,7 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
       if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok) {
-        const score = scoreSite(state, t, fromTile);
+        const score = scoreSite(state, t, fromTile, d);
         if (score >= SITE_SCORE_MIN) out.push({ tile: t, score, steps: d });
       }
     }
@@ -166,10 +174,22 @@ export const foundOutpost = (state, regions, world, settler, turn) => {
 export const processSettlers = (state, regions, units, world, ageById, turn) => {
   const tiles = getTiles();
   let nextRegions = regions; let nextWorld = world; const nextUnits = { ...units }; const logs = [];
-  const view = () => ({ ...state, regions: nextRegions, world: nextWorld, units: nextUnits });
+  let v = null; // the state as the settlers see it, rebuilt only when the cities or the map changed
+  const view = () => (v && v.regions === nextRegions && v.world === nextWorld ? v : (v = { ...state, regions: nextRegions, world: nextWorld, units: nextUnits }));
   Object.values(units).forEach((u) => {
     if (!isSettler(u) || u.tile == null) return;
     let settler = { ...u, movesLeft: SETTLER_MOVES };
+    // An AI settler without a destination looks again now and then, further each time it must; one
+    // idle too long is disbanded.
+    if (settler.target == null && settler.ownerId !== state.playerNationId) {
+      const idleSince = settler.idleSince ?? turn;
+      if (turn - idleSince >= SETTLER_GIVE_UP_TURNS) { delete nextUnits[u.id]; logs.push({ nationId: u.ownerId, message: `The settlers of ${state.nations?.[u.ownerId]?.name || u.ownerId} found no land and went home.` }); return; }
+      settler = { ...settler, idleSince };
+      if ((turn - idleSince) % SETTLER_RETRY_TURNS === 0) {
+        const site = bestSites(view(), settler.ownerId, settler.tile, ageById(settler.ownerId), { rings: MAX_SETTLE_RINGS, limit: 1 })[0];
+        if (site) settler = { ...settler, target: site.tile, path: null, idleSince: null };
+      }
+    }
     if (settler.target != null && settler.target !== settler.tile) {
       // The planned road is kept on the unit and replanned only when it breaks (a border closed).
       let path = settler.path && settler.path.length && settler.path[settler.path.length - 1] === settler.target && settler.path.slice(0, SETTLER_MOVES).every((t) => t === settler.target || passable(view(), tiles, t, settler.ownerId)) ? settler.path : null;
@@ -196,14 +216,15 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
     // A settler's home city for the readers that place units by city: the nearest own city.
     nextUnits[u.id] = settler;
   });
-  // Outposts grow into cities.
-  Object.values(nextRegions).forEach((c) => {
-    if (!c.outpost) return;
+  // Outposts grow into cities (one copy of the cities map, written in place).
+  const grown = Object.values(nextRegions).filter((c) => c.outpost);
+  if (grown.length) nextRegions = { ...nextRegions };
+  grown.forEach((c) => {
     const progress = c.outpost.progress + OUTPOST_PROGRESS * terrainFactor(tiles, c.tile);
     if (progress >= OUTPOST_DONE) {
-      nextRegions = { ...nextRegions, [c.id]: { ...c, outpost: null, size: Math.max(1, c.size) } };
+      nextRegions[c.id] = { ...c, outpost: null, size: Math.max(1, c.size) };
       logs.push({ nationId: c.owner, message: `${c.name} has grown from an outpost into a city.` });
-    } else nextRegions = { ...nextRegions, [c.id]: { ...c, outpost: { ...c.outpost, progress: Math.round(progress * 10) / 10 } } };
+    } else nextRegions[c.id] = { ...c, outpost: { ...c.outpost, progress: Math.round(progress * 10) / 10 } };
   });
   return { regions: nextRegions, units: nextUnits, world: nextWorld, logs };
 };

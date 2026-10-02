@@ -1654,6 +1654,42 @@ apart still count as neighbours for the player's attacks and trade; AI fronts no
 it), the Dawn geography (Paris and Berlin cannot reach each other over land at peace), and the
 space-race affordability test.
 
+**Workstream 13, second performance slice (2026-10-02).** Four per-nation scans and one spread
+per claim were most of the turn. Measured with the phase hook over 80 turns (seed 11, France
+passive) and the balance sim (seed 11, 150 turns, which adds the audit and the snapshot to each
+turn), before and after:
+
+| Key | Before | After | Target |
+|---|---|---|---|
+| AI economy phase, ms a turn (average, turns 1 to 80) | 55 | 20 | |
+| Reinforcement and morale phase | 22 | 5 | |
+| AI growth and hostility phase (opinion) | 25 | 4 | |
+| Cities phase | 70 | 45 | 50 at 2,000 cities |
+| Whole resolveTurn, ms (average, turns 1 to 80) | 167 | 127 | 150 at turn 100 |
+| Balance sim ms a turn, turns 50 to 100 (with audit) | 351 | 215 | |
+| Balance sim ms a turn, turns 100 to 150 (with audit) | 431 | 262 | |
+| Land claimed at 550 CE / 1050 CE | 43.7% / 55.4% | 46.7% / 59.1% | 50% / 65% |
+| Cities at turn 150 | 686 | 756 | |
+| Median cities per nation at turn 100 | 1 | 1 | 6 |
+| Audit violations | 0 | 0 | 0 |
+
+What changed: the supply flow and the upkeep of every AI nation scanned the whole unit map
+(four scans per nation, 240 nations); `unitsByOwner` (supplies.js) groups the units once per
+phase and the helpers take the nation's list. The opinion of 240 nations ran a ring walk per
+city pair; `opinion.js` now indexes the cities by owner and the rings around every city founded
+after the start once per turn. The border claim spread the 4,000-key tile ownership map per
+claim (34 ms of the cities phase at 33 claims a turn); `processCities` copies the ownership and
+tile state maps once and the cities write into them (`processCity(..., inPlace)`), the ring walk
+of `claimCandidates` is memoised per city centre and age, and the outposts' growth writes one
+copy of the cities map. A rule change found on the way: an AI settler that found no site sat
+for the whole game and, as `aiProduction` builds a settler only when the nation has none,
+blocked its nation's settling for good; an idle AI settler now looks again every
+SETTLER_RETRY_TURNS (5) turns as far as MAX_SETTLE_RINGS and is disbanded after
+SETTLER_GIVE_UP_TURNS (15) turns without a site. Still open in 13: the cities phase at 2,000
+cities, the AI economy's `processAIEconomyTurn` (14 ms for 95 thinking nations), the rebellion
+and disaster phases (10 and 7 ms), median cities per nation (growth to size 2 and the sites in
+reach), the registry's city bridge, the Dawn geography, and the space-race affordability test.
+
 ---
 
 ---
