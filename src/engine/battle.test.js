@@ -311,3 +311,20 @@ describe('resolveBattle: fairness', () => {
     expect(rates(army('a', 4), army('d', 4), { defenderDamageReductionMultiplier: 0.75 }).attacker).toBeLessThan(open.attacker);
   });
 });
+
+describe('resolveBattle: the battle type sets the odds (battleType.js)', () => {
+  const sides = () => ({ attackerUnits: [makeUnit('a1', 'infantry', 1000), makeUnit('a2', 'infantry', 1000), makeUnit('a3', 'ranged', 1000)], defenderUnits: [makeUnit('d1', 'infantry', 1000), makeUnit('d2', 'infantry', 1000), makeUnit('d3', 'ranged', 1000)] });
+  const defenderLost = (r) => 3000 - r.defenderUnits.reduce((s, u) => s + u.strength, 0);
+  it('a river crossing, an ambush and a landing cost the attacker output; a sally and an assault change nothing by themselves; the report names the type', () => {
+    const field = run({ ...sides(), battleType: 'field' }, 11);
+    expect(field.report.battleType).toBe('field');
+    ['river', 'ambush', 'landing'].forEach((battleType) => {
+      const r = run({ ...sides(), battleType }, 11);
+      expect(r.report.battleType).toBe(battleType);
+      expect(defenderLost(r)).toBeLessThan(defenderLost(field));
+    });
+    expect(defenderLost(run({ ...sides(), battleType: 'sally' }, 11))).toBe(defenderLost(field));
+    expect(defenderLost(run({ ...sides(), battleType: 'assault' }, 11))).toBe(defenderLost(field));
+    expect(run(sides(), 11).report.battleType).toBe('field'); // the default
+  });
+});

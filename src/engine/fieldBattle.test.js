@@ -49,7 +49,9 @@ describe('field attacks', () => {
     const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: 'pk', tile: theirs })]));
     const v = validateFieldAttack(war, IN, theirs);
     const plain = getFieldBattleContext(war, v);
-    expect(plain.attackerPenaltyMultiplier).toBe(tiles.riverBetween(ours, theirs) ? RIVER_ATTACK_MULT : 1);
+    expect(plain.attackerPenaltyMultiplier).toBe(1);
+    expect(tiles.riverBetween(ours, theirs) ? plain.battleType === 'river' : plain.battleType !== 'river').toBe(true); // the type carries the river odds (battleType.js)
+    expect(RIVER_ATTACK_MULT).toBeLessThan(1);
     expect(plain.defenderDamageReductionMultiplier).toBe(1);
     const fort = { ...war, world: { ...war.world, tileState: { ...war.world.tileState, [theirs]: { improvement: 'fort' } } } };
     expect(getFieldBattleContext(fort, validateFieldAttack(fort, IN, theirs)).defenderDamageReductionMultiplier).toBe(FORT_REDUCTION);

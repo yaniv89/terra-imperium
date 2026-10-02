@@ -29,9 +29,11 @@ import { recordBattleReport } from './battleReports';
 import { findTilePath, passableTile, regionForTile, unitTile } from './armies';
 import { isUnitInBattle, XP_WIN, XP_LOSE } from './invasion';
 import { isSettler } from './settlers';
+import { battleTypeOf, RIVER_ATTACK_MULT } from '../battle/setup/battleType';
+import { tileContextOf } from '../battle/setup/tileContext';
 
 export const FORT_REDUCTION = 0.75;      // damage taken by a stack on a tile with a Fort
-export const RIVER_ATTACK_MULT = 0.85;   // attacking across a river
+export { RIVER_ATTACK_MULT };            // attacking across a river (battleType.js, shared with the tactical sim)
 export const RETREAT_RINGS = 1;
 
 const isCentre = (state, tile) => state.regions[state.world?.tileOwner?.[tile]]?.tile === tile;
@@ -62,15 +64,21 @@ export const getFieldBattleContext = (state, v) => {
   const tiles = getTiles();
   const fort = state.world?.tileState?.[v.tile]?.improvement === 'fort' && !state.world?.tileState?.[v.tile]?.pillaged;
   const river = v.fromTile != null && tiles.riverBetween(v.fromTile, v.tile);
+  // The battle type the tactical sim would set (river crossing, ambush, sally, field): the
+  // auto-resolve applies the same type's odds (battleType.js), so the two stay in parity.
+  const from = state.regions[v.fromRegionId];
+  const sally = !!from?.siege?.by && from.tile != null && tiles.neighbors[from.tile].includes(v.tile);
+  const battleType = battleTypeOf({ sally, city: false, tileContext: tileContextOf(state, v.tile, { fromTile: v.fromTile }), fromTile: v.fromTile });
   return {
     terrain: legacyTerrainOf(tiles, v.tile),
     isDefended: true,
     isAttackingFortification: fort,
     river,
+    battleType,
     generals: state.hiredCommanders,
     attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
     defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? state.age : getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)),
-    attackerPenaltyMultiplier: river ? RIVER_ATTACK_MULT : 1,
+    attackerPenaltyMultiplier: 1,
     defenderDamageReductionMultiplier: fort ? FORT_REDUCTION : 1
   };
 };
@@ -78,7 +86,7 @@ export const getFieldBattleContext = (state, v) => {
 export const getFieldResolveArgs = (v, ctx) => ({
   attackerUnits: v.attackerUnits, defenderUnits: v.defenderUnits, terrain: ctx.terrain, isAttackingFortification: ctx.isAttackingFortification,
   generals: ctx.generals, attackerAgeId: ctx.attackerAgeId, defenderAgeId: ctx.defenderAgeId,
-  attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier, defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier
+  attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier, defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier, battleType: ctx.battleType
 });
 
 // Where a beaten stack on `tile` falls back to: the first step towards its base, else any

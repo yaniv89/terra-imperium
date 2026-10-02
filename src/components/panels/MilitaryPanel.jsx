@@ -6,6 +6,7 @@
 // Civ-style ProvinceModal.jsx (its Military tab), opened via RegionInfoModal's "Manage Region"
 // button, so this tab stays a short, always-relevant overview regardless of map selection.
 import React, { useState } from 'react';
+import { BATTLE_TYPES } from '../../battle/setup/battleType';
 import { Swords, UserCog } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
@@ -195,7 +196,7 @@ const BattleReport = ({ report }) => {
         <span className={`font-bold ${outcome.className}`}>{outcome.text}</span>
       </div>
       <div className="text-slate-400 font-mono">
-        Combat width {report.combatWidth} on {report.terrain} terrain — {report.deployedAttackers} vs {report.deployedDefenders} deployed
+        {report.battleType && report.battleType !== 'field' ? `${BATTLE_TYPES[report.battleType]?.label || report.battleType}: ` : ''}Combat width {report.combatWidth} on {report.terrain} terrain — {report.deployedAttackers} vs {report.deployedDefenders} deployed
         {report.isAttackingFortification ? ', attacking a fortification' : ''}
       </div>
       <div className="space-y-0.5">
