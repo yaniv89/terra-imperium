@@ -1918,6 +1918,24 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**Workstream 13, wave 6: the late-game performance pass (2026-10-02).** Measured on a saved
+turn-260 world (seed 3, 1,037 cities, 1,351 units) over six consecutive turns, the same machine,
+base against working tree: 442 to 352 ms a turn. The cuts: an AI city that found nothing to
+build waits for its next settler-think turn instead of asking every turn (`production.idleUntil`;
+704 empty queues asked and 471 found nothing, a third of the cities phase); governor groups are
+served per map object before the key memo (the key was a join of the nation's city ids, asked
+once per city by loyalty and the unrest phase); the culture pressure neighbours (cities within
+PRESSURE_RINGS and their weights) are kept across turns and updated for the cities founded or
+lost, instead of a radius search per drifting city; the AI war loop indexes units by region
+once (it scanned every unit per enemy neighbour per stack); a civil war builds the loyalist
+strength per region once per turn; a stack whose route search failed waits ROUTE_RETRY_TURNS
+(3) before searching again; the region modifier sheet is memoised on the building tiers (a
+turn rewrites every city object) and the AI income loop reads its seven keys from one lookup.
+The balance sim at turn 200 (seed 3) moves 374 to 370 ms (its number averages the whole run
+and the stats), cities 1,030 vs 1,019, flips 13 vs 11, audit 0. What is left at turn 260:
+cities 57 (tile allocation 14 warm, the rest yields and borders), the AI war loop 32, AI
+economy 33 (upkeep 16, incomes 12), civil wars 11 per two wars, loyalty 22, sieges 16.
+
 **Workstream 13, wave 5: the save v7 screen, the space race, turn time at the city cap
 (2026-10-02).** `saveMigrations.js saveProblem` names why a save cannot load (tooOld: the
 province map, tooNew, corrupt) and `SAVE_PROBLEM_TEXT` says it in words; an unreadable save is
