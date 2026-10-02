@@ -35,6 +35,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [selected, setSelected] = useState([]);
   const [paused, setPaused] = useState(true); // always open paused: deployment, or a resumed battle
   const [started, setStarted] = useState(!!resume);
+  const startedRef = useRef(!!resume);
   const [speed, setSpeed] = useState(1);
   const [armed, setArmed] = useState(null);
   const [formation, setFormation] = useState('line');
@@ -163,7 +164,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       send([{ type: 'attack', squads: sel, target: { kind: 'structure', index: hit.index } }]);
       r.addMarker(hit.ground.x, hit.ground.z, '#f87171');
     } else {
-      const type = forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move';
+      const type = !startedRef.current ? 'deploy' : forceAttackMove || armedRef.current === 'attackMove' ? 'attackMove' : 'move'; // before Start the ground order places the squads (plan D5)
       send([{ type, squads: sel, x: Math.round(hit.ground.x * Q), y: Math.round(hit.ground.z * Q), formation: formationRef.current }]);
       r.addMarker(hit.ground.x, hit.ground.z, type === 'attackMove' ? '#fb923c' : '#a3e635');
     }
@@ -231,7 +232,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // --- HUD actions -----------------------------------------------------------------------------
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { setStarted(true); setPaused(false); c.resume(); return; } // deployment → battle
+    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); c.resume(); return; } // deployment → battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const toggleSound = () => { const on = !soundOn; audioRef.current?.setEnabled(on); setSoundOn(on); };

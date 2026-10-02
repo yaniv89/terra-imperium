@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { generateMap, reachable, TEMPLATES } from '../setup/mapgen';
 import { buildSetupFromArmies } from '../setup/buildBattleSetup';
 import { runHeadless } from './headless';
-import { createWorld } from './world';
+import { createWorld, deployZone } from './world';
 import { step } from './step';
 import { buildSpatialHash } from './pathing';
 import { updateAssimilation, ASSIMILATION_TICKS } from './objectives';
@@ -149,5 +149,51 @@ describe('performance', () => {
     const ms = Date.now() - t0;
     expect(world.ended).toBeTruthy();
     expect(ms / Math.max(1, world.tick)).toBeLessThan(2); // < 2 ms per tick even on a loaded CI box
+  });
+});
+
+describe('deployment phase (plan D5)', () => {
+  it('a deploy order before the first tick sets squads down inside their zone, is ignored later, and replays identically', () => {
+    const w = createWorld(setup({ controllers: ['player', 'ai'] }));
+    const zone = deployZone(w, 0);
+    const q = w.squads.find((s) => s.side === 0 && s.onField);
+    const inside = { x: (zone.x0 + 2) * Q + (Q >> 1), y: (zone.y0 + 3) * Q + (Q >> 1) };
+    step(w, [{ tick: 0, side: 0, type: 'deploy', squads: [q.idx], x: inside.x, y: inside.y, seq: 1 }]);
+    expect([q.x, q.y]).toEqual([inside.x, inside.y]);
+    expect([q.anchorX, q.anchorY]).toEqual([inside.x, inside.y]);
+    // Outside the zone: clamped to its edge. After tick 0: nothing happens.
+    const w2 = createWorld(setup({ controllers: ['player', 'ai'] }));
+    const q2 = w2.squads.find((s) => s.side === 0 && s.onField);
+    step(w2, [{ tick: 0, side: 0, type: 'deploy', squads: [q2.idx], x: (zone.x1 + 20) * Q, y: inside.y, seq: 1 }]);
+    expect(q2.x).toBe(zone.x1 * Q + (Q >> 1));
+    const before = [q2.x, q2.y];
+    step(w2, [{ tick: 1, side: 0, type: 'deploy', squads: [q2.idx], x: inside.x, y: inside.y, seq: 2 }]);
+    expect([q2.x, q2.y]).toEqual(before);
+    // The defender cannot place the attacker's squads; a deploy of several squads keeps a formation.
+    const w3 = createWorld(setup({ controllers: ['player', 'ai'] }));
+    const own = w3.squads.filter((s) => s.side === 0 && s.onField).map((s) => s.idx);
+    step(w3, [{ tick: 0, side: 1, type: 'deploy', squads: [own[0]], x: inside.x, y: inside.y, seq: 1 }]);
+    expect(w3.squads[own[0]].x).not.toBe(inside.x);
+    const w4 = createWorld(setup({ controllers: ['player', 'ai'] }));
+    step(w4, [{ tick: 0, side: 0, type: 'deploy', squads: own, x: inside.x, y: inside.y, seq: 1 }]);
+    const xs = own.map((i) => w4.squads[i].x); const ys = own.map((i) => w4.squads[i].y);
+    expect(new Set(own.map((i) => `${w4.squads[i].x},${w4.squads[i].y}`)).size).toBe(own.length);
+    xs.forEach((x) => expect(x).toBeGreaterThanOrEqual(zone.x0 * Q)); ys.forEach((y) => expect(y).toBeGreaterThanOrEqual(zone.y0 * Q));
+    const orders = [{ tick: 0, side: 0, type: 'deploy', squads: own, x: inside.x, y: inside.y, seq: 1 }];
+    expect(runHeadless(setup({ controllers: ['player', 'ai'] }), { orders, checkpointEvery: 100 }).checkpoints).toEqual(runHeadless(setup({ controllers: ['player', 'ai'] }), { orders, checkpointEvery: 100 }).checkpoints);
+    expect(runHeadless(setup({ controllers: ['player', 'ai'] }), { orders }).hash).not.toBe(runHeadless(setup({ controllers: ['player', 'ai'] })).hash);
+  });
+  it('the templates place each side by battle type: the river defender on the far bank, the ambush attacker in column', () => {
+    const at = (type, side) => createWorld(setup({ battleType: type })).squads.filter((q) => q.side === side && q.onField);
+    const field = at('field', 1); const river = at('river', 1);
+    const mid = Math.floor(createWorld(setup()).map.w / 2);
+    expect(Math.min(...river.map((q) => q.x))).toBeGreaterThanOrEqual(mid * Q);
+    expect(Math.min(...field.map((q) => q.x))).not.toBe(Math.min(...river.map((q) => q.x)));
+    const column = at('ambush', 0).filter((q) => !['ranged', 'siege'].includes(q.classId));
+    const line = at('field', 0).filter((q) => !['ranged', 'siege'].includes(q.classId));
+    expect(new Set(column.map((q) => q.x)).size).toBeGreaterThanOrEqual(Math.min(2, column.length));
+    expect(new Set(line.map((q) => q.x)).size).toBe(1);
+    const forward = at('ambush', 1); const home = at('assault', 1);
+    expect(Math.max(...forward.map((q) => q.x))).toBeLessThan(Math.max(...home.map((q) => q.x)));
   });
 });

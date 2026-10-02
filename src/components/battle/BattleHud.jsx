@@ -91,7 +91,7 @@ const BattleHud = ({
         <div className="absolute top-24 inset-x-0 flex justify-center pointer-events-none px-4">
           <div className="max-w-md text-center px-3 py-2 rounded-2xl bg-slate-900/85 border border-slate-600 text-slate-200 text-xs shadow-xl">
             <div className="font-bold text-sm text-white mb-1">Deploy your army</div>
-            Tap a squad (or a class chip) to select it, tap the ground to move, tap an enemy to attack, drag from a selected squad to draw a battle line. Orders given now start when you press <b>Start</b>.
+            Tap a squad (or a class chip) to select it, then tap the ground inside your zone to place it there. Tap an enemy to mark an attack, drag from a selected squad to draw a battle line. The fight starts when you press <b>Start</b>.
             {setup.structures.some((st) => st.kind === 'building') && (
               <div className="mt-1.5 text-sky-200" data-testid="battle-buildings">
                 {playerSide === 1 ? 'Your buildings here help you while they stand: ' : "The enemy's buildings help them — raze them for plunder: "}

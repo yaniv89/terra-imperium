@@ -1918,6 +1918,21 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**D5, the deployment phase and the AI's deployment templates (2026-10-02).** The battle
+already opened paused ("Start"); now that pause is a real deployment. A `deploy` order
+(src/battle/sim/orders.js) sets own squads down at once, in formation, clamped to the side's
+DEPLOYMENT ZONE (`deployZone` in world.js: the attacker's mapgen zone west of the field or the
+beach, the defender's the DEFENDER_ZONE_DEPTH 16 tiles before its keep); it only works before
+the first tick, is logged like any order (the replay applies it at tick 0, so live and replay
+agree) and the paused frame shows the result (battleLoop.js applies it immediately). On the
+screen a ground tap before Start places the selected squads instead of ordering a march
+(TacticalBattleScreen.jsx), and the hint says so. Every side's opening lines come from a
+template by battle type (`deployTemplate`, world.js): the river defender holds the far bank, the
+ambush defender waits forward in cover while the attacker enters in column, the assault
+garrison keeps to its walls, the landing attacker stands on the sand with the defender a little
+inland. Tests in sim.test.js. The zone is not yet drawn on the battlefield (the hint names it);
+a drawn outline is the next slice of E7.
+
 **D5, auto-resolve reads the battle type (2026-10-02).** `src/battle/setup/battleType.js`
 now carries each type's quick-battle odds (AUTO_ATTACK_MULT: river RIVER_ATTACK_MULT 0.85,
 ambush AMBUSH_ATTACK_MULT 0.8, landing LANDING_ATTACK_MULT 0.75, sally and assault 1) and
@@ -1931,8 +1946,7 @@ N seeds): at 12 seeds, field 0.95x / 2.99x / 1.54x, river 0.85x / 2.65x / 1.34x,
 2.39x / 1.29x (the tactical ambush rule ends the even fight for the attacker 12 of 12 times),
 landing 0.82x / 2.06x / 1.58x, sally 1.02x / 3.19x / 1.62x (a sally's objective is harder than
 the quick battle: the multiplier stays 1). Tests in battle.test.js, fieldBattle.test.js; the
-golden set ignores the label. Still open in D5: the deployment phase and AI deployment
-templates.
+golden set ignores the label. The deployment phase and the templates followed (next entry).
 
 **C9, AI wonders (2026-10-02).** `canQueueWonder` / `wonderOptions` take the builder
 (`nationId`, the player by default), so an AI city may start a wonder from its queue like the
