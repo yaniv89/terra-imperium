@@ -1,3 +1,4 @@
+import { isBlockaded } from './fleets';
 import { getNeighborIds,getOwnedRegionIds,getCapital } from '../data/regions';
 import { isCoastal,isReachableBySea } from '../data/navalReach';
 export const getTradeRoute = (state,partnerId) => {
@@ -14,7 +15,7 @@ export const getTradeRoute = (state,partnerId) => {
     for(const n of getNeighborIds(id))if(!prev.has(n) && allowed(n) && !state.regions[n].occupiedBy){prev.set(n,id);queue.push(n);}
   }
   const ports=id=>getOwnedRegionIds(state.regions,id).filter(r=>isCoastal(r) && !state.regions[r].occupiedBy && (state.regions[r].buildings?.categories?.naval ?? -1)>=0);
-  const blocked=r=>Object.values(state.units).some(u=>u.regionId===r && u.domain==='naval' && state.wars.some(w=>w.active && ((w.aggressor===me&&w.enemy===u.ownerId)||(w.enemy===me&&w.aggressor===u.ownerId))));
+  const blocked=r=>isBlockaded(state,r)||Object.values(state.units).some(u=>u.regionId===r && u.domain==='naval' && state.wars.some(w=>w.active && ((w.aggressor===me&&w.enemy===u.ownerId)||(w.enemy===me&&w.aggressor===u.ownerId))));
   for(const a of ports(me))for(const b of ports(partnerId))if(isReachableBySea(a,b,state.age) && !blocked(a) && !blocked(b))return {ok:true,kind:'sea',regions:[a,b]};
   return {ok:false,reason:'No open land route or reachable, unblocked ports.'};
 };

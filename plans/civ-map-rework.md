@@ -1457,6 +1457,26 @@ reveals the nation (the region-neighbour rule is gone). The greyed memory and th
 wait for the lenses of workstream 12. Still open in 5: fleets on sea tiles, recruitment to the
 city tile, army templates, the AI front planner (9).
 
+
+---
+
+**Workstream 5, third wave (2026-10-02): fleets on sea tiles.** `src/engine/fleets.js`: a fleet
+is in port on its city's centre tile and at sea on a water tile (its `regionId` stays its last
+port); cargo rides on the fleet's tile. Pace by the owner's age (3 water tiles a turn at Dawn,
+4 Classical, 5 Kingdoms, 6 Gunpowder, 8 Modern), one point a tile; coast and shelf tiles open
+to all, the deep ocean from the Age of Gunpowder, lakes never. Sea routes are A* over water
+(`findSeaPath`): a voyage leaves a port by any water beside the city's land, puts in at an own
+or allied port, halts outside an enemy port at war and before an enemy fleet. "Sail…" on the
+region card, a port or a sea tile as the target, drawn like a march. A fleet beside a shore
+lands its troops on own, allied or free land from the tile sheet ("Land N units here");
+enemy shores are an amphibious assault, now also from any tile beside the city's coast, and a
+naval engagement can be fought from beside the coast. A warship beside a city's coast with no
+warship of the owner there blockades it: its sea trade stops (siege regen is workstream 6's).
+Found on the way: with depth as the only gate, a Dawn fleet could hug the coasts to America in
+a long voyage; MAX_SEA_STEPS (120) refuses such a route for one order. The AI's fleets keep
+the port-to-port operations until the front planner. Not done: the four naval lines (galley,
+transport, raider, carrier) as data, carriers and air; army templates.
+
 ---
 
 ---

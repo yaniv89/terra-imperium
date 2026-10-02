@@ -19,24 +19,25 @@ const MarchBar = ({ onSelectRegion }) => {
   const { march, plan, cancel } = ctx;
   const target = march.target;
   const isTile = typeof target === 'number';
-  const units = marchingUnits(state, march.from);
+  const naval = !!march.naval;
+  const units = marchingUnits(state, march.from, null, { naval });
   const neighbour = target && !isTile && getNeighborIds(march.from).includes(target);
   const access = target && !isTile ? accessOf(state, target) : null;
   const targetName = isTile ? placeName(state, target) : name(target);
-  const canMoveNow = neighbour && access === 'own' && units.length > 0 && units.every((u) => (u.movesLeft ?? 1) > 0);
-  const canAttack = neighbour && access === 'enemy';
+  const canMoveNow = !naval && neighbour && access === 'own' && units.length > 0 && units.every((u) => (u.movesLeft ?? 1) > 0);
+  const canAttack = !naval && neighbour && access === 'enemy';
 
-  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target } }); cancel(); };
+  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target }), naval } }); cancel(); };
   const moveNow = () => { units.forEach((u) => dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId: u.id, toRegionId: target } })); cancel(); };
   const attack = () => { cancel(); onSelectRegion?.(target); };
 
   let line;
-  if (!target) line = <>Tap a city or a tile to march to from <b>{name(march.from)}</b>.</>;
+  if (target == null) line = naval ? <>Tap a port or a sea tile to sail to from <b>{name(march.from)}</b>.</> : <>Tap a city or a tile to march to from <b>{name(march.from)}</b>.</>;
   else if (!plan?.ok) line = <span className="text-red-300">{plan?.reason || 'No route.'}</span>;
   else {
     line = (
       <>
-        To <b>{targetName}</b>: {plan.turns} turn{plan.turns > 1 ? 's' : ''}, about {plan.supplies} supplies
+        To <b>{targetName}</b>: {plan.turns} turn{plan.turns > 1 ? 's' : ''}{naval ? '' : `, about ${plan.supplies} supplies`}
         {plan.haltAt && <span className="text-red-300">. Halts at {name(plan.haltAt)} to attack</span>}
       </>
     );
@@ -48,7 +49,7 @@ const MarchBar = ({ onSelectRegion }) => {
       <div className="flex-1 min-w-0 leading-snug">{line}</div>
       {canAttack && <button onClick={attack} className="shrink-0 min-h-[36px] px-3 rounded-lg bg-red-600 hover:bg-red-500 font-semibold text-white">Attack</button>}
       {canMoveNow && <button onClick={moveNow} className="shrink-0 min-h-[36px] px-3 rounded-lg bg-slate-700 hover:bg-slate-600 font-semibold">Move now</button>}
-      {plan?.ok && !canAttack && <button onClick={marchNow} data-testid="march-confirm" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-white">March</button>}
+      {plan?.ok && !canAttack && <button onClick={marchNow} data-testid="march-confirm" className="shrink-0 min-h-[36px] px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold text-white">{naval ? 'Sail' : 'March'}</button>}
       <button onClick={cancel} aria-label="Cancel march" className="shrink-0 p-2 rounded-lg hover:bg-slate-800 text-slate-400"><X className="w-4 h-4" /></button>
     </div>
   );

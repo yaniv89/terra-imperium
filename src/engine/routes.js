@@ -26,6 +26,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { getResearched } from './nationState';
+import { enemyFleetAt, findSeaPath, fleetPace, isFleet, portsBeside, portWaters } from './fleets';
 import {
   BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
   enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
@@ -77,8 +78,8 @@ export const scheduleSteps = (state, from, steps, pace, bank = 0) => {
 };
 
 // The player's own land units that would march from the city `fromId` (all of them, or `unitIds`).
-export const marchingUnits = (state, fromId, unitIds = null) => Object.values(state.units).filter((u) => u.ownerId === state.playerNationId
-  && u.regionId === fromId && u.domain !== 'naval' && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler' && (!unitIds || unitIds.includes(u.id)));
+export const marchingUnits = (state, fromId, unitIds = null, { naval = false } = {}) => Object.values(state.units).filter((u) => u.ownerId === state.playerNationId
+  && u.regionId === fromId && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler' && (!unitIds || unitIds.includes(u.id)));
 
 // The tile most of a stack stands on (ties: the lowest id).
 const mainTile = (state, units) => {
@@ -89,28 +90,29 @@ const mainTile = (state, units) => {
 
 // Everything the map needs to preview a march: the path (tiles), the turn of each step, the arrival
 // turn, the supplies it will eat, and where it will halt (the first enemy tile, and its city). Pure.
-export const planMarch = (state, fromId, target, unitIds = null) => {
-  const units = marchingUnits(state, fromId, unitIds);
-  if (!units.length) return { ok: false, reason: 'No army here can march.' };
+export const planMarch = (state, fromId, target, unitIds = null, { naval = false } = {}) => {
+  const units = marchingUnits(state, fromId, unitIds, { naval });
+  if (!units.length) return { ok: false, reason: naval ? 'No fleet here can sail.' : 'No army here can march.' };
   const from = mainTile(state, units);
-  const found = findRoute(state, from, target);
+  const to = targetTile(state, target);
+  const found = naval ? (to == null ? { reason: 'Unknown place.' } : findSeaPath(state, from, to, state.playerNationId)) : findRoute(state, from, target);
   if (!found.path) return { ok: false, reason: found.reason };
   const steps = found.path.slice(1);
-  const pace = stackPace(units);
-  const stepTurns = scheduleSteps(state, from, steps, pace);
+  const pace = naval ? units.reduce((m, u) => Math.min(m, fleetPace(state, u)), Infinity) : stackPace(units);
+  const stepTurns = naval ? steps.map((_, i) => Math.floor(i / pace) + 1) : scheduleSteps(state, from, steps, pace);
   const turns = stepTurns[stepTurns.length - 1];
   const me = state.playerNationId;
   const haltIndex = steps.findIndex((t) => tileAccess(state, t, me) === 'enemy');
   const enemySteps = steps.filter((t) => ['enemy', 'held'].includes(tileAccess(state, t, me))).length;
   const supplies = Math.round(units.length * MARCH_SUPPLY_PER_UNIT * (turns + Math.min(turns, enemySteps)) * 10) / 10;
   const haltTile = haltIndex >= 0 ? steps[haltIndex] : null;
-  return { ok: true, from, path: found.path, steps, stepTurns, turns, pace, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
+  return { ok: true, naval, from, path: found.path, steps, stepTurns, turns, pace, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
 };
 
 // Give the order (gameReducer SET_ROUTE). Units standing elsewhere in the city's land get a route
 // of their own. Returns { units, plan } or { reason }.
-export const orderMarch = (state, fromId, target, unitIds = null) => {
-  const plan = planMarch(state, fromId, target, unitIds);
+export const orderMarch = (state, fromId, target, unitIds = null, { naval = false } = {}) => {
+  const plan = planMarch(state, fromId, target, unitIds, { naval });
   if (!plan.ok) return { reason: plan.reason };
   const units = { ...state.units };
   const to = plan.path[plan.path.length - 1];
@@ -118,7 +120,7 @@ export const orderMarch = (state, fromId, target, unitIds = null) => {
     const u = units[id];
     const at = unitTile(state, u);
     if (at === plan.from) { units[id] = { ...u, route: plan.steps, routeBank: 0, routePace: plan.pace, routeHalt: null }; return; }
-    const own = at === to ? null : findRoute(state, at, to);
+    const own = at === to ? null : naval ? findSeaPath(state, at, to, state.playerNationId) : findRoute(state, at, to);
     if (own?.path) units[id] = { ...u, route: own.path.slice(1), routeBank: 0, routePace: plan.pace, routeHalt: null };
   });
   return { units, plan };
@@ -129,6 +131,46 @@ export const cancelRoute = clearRoute;
 
 /** Where a marching unit is going, for the UI. */
 export const routeDestination = (unit) => (unit.route?.length ? unit.route[unit.route.length - 1] : null);
+
+// A fleet's turn on its route (fleets.js): `routePace` water tiles, in and out of ports, halting
+// before an enemy fleet or outside an enemy port. Cargo moves with it.
+const sailFleet = (state, units, u, { reached, halted }) => {
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  let route = u.route;
+  let at = unitTile(state, u);
+  const here = route.indexOf(at);
+  if (here >= 0) route = route.slice(here + 1);
+  // The first step leaves a port by any of its waters, or follows on from the fleet's tile.
+  const inPort = at != null && tiles.land[at] === 1;
+  const startsRight = at != null && route.length && (inPort ? portWaters(state, tiles, u.regionId).includes(route[0]) : tiles.neighbors[at].includes(route[0]));
+  if (!startsRight) { units[u.id] = clearRoute(u); return; }
+  const pace = u.routePace || fleetPace(state, u);
+  let left = pace; let moved = false; let halt = null; let regionId = u.regionId;
+  while (route.length && left > 0) {
+    const next = route[0];
+    if (tiles.land[next] === 1) {
+      // Putting in at a port.
+      const port = state.world?.tileOwner?.[next];
+      const access = port ? regionAccess(state, port, me) : 'closed';
+      if (access === 'closed' || access === 'wild') { halt = 'closed'; break; }
+      if (access === 'enemy') { halt = 'attack'; break; }
+      regionId = port;
+    } else if (enemyFleetAt(state, next, me, units)) { halt = 'enemy'; break; }
+    else { const ports = portsBeside(state, tiles, next).filter((c) => state.regions[c]?.owner === me); if (ports.length) regionId = ports[0]; }
+    at = next; route = route.slice(1); left -= 1; moved = true;
+  }
+  const place = { tile: at, regionId, ...(moved ? { marchedTurn: state.turnNumber } : {}) };
+  if (halt === 'closed') { units[u.id] = { ...clearRoute(u), ...place }; halted.set(`closed|${at}`, (halted.get(`closed|${at}`) || 0) + 1); }
+  else if (!route.length) { units[u.id] = { ...clearRoute(u), ...place }; reached.set(at, (reached.get(at) || 0) + 1); }
+  else {
+    const newHalt = halt === 'attack' || halt === 'enemy' ? halt : null;
+    if (newHalt && u.routeHalt !== newHalt) halted.set(`${newHalt}|${route[0]}`, (halted.get(`${newHalt}|${route[0]}`) || 0) + 1);
+    units[u.id] = { ...u, ...place, route, routeHalt: newHalt };
+  }
+  // Cargo rides along.
+  Object.values(units).forEach((c) => { if (c.embarkedOn === u.id) units[c.id] = { ...c, tile: at, regionId }; });
+};
 
 // The march phase, run at the start of resolveTurn on the turn's working `units` (mutated in
 // place, like resolveTurn's other phases). Units are walked in id order; a stack ordered together
@@ -145,7 +187,8 @@ export const advanceMarches = (state, units, { year } = {}) => {
   Object.keys(units).sort().forEach((id) => {
     const u = units[id];
     if (!u?.route?.length || u.ownerId !== me) return;
-    if (u.embarkedOn || u.domain === 'naval' || !(u.strength > 0)) { units[id] = clearRoute(u); return; }
+    if (u.embarkedOn || !(u.strength > 0)) { units[id] = clearRoute(u); return; }
+    if (isFleet(u)) { sailFleet(state, units, u, { reached, halted }); return; }
     // An attack (or a manual move) put the unit somewhere on its route: drop the steps behind it.
     let route = u.route;
     let at = unitTile(state, u);
@@ -188,6 +231,8 @@ export const advanceMarches = (state, units, { year } = {}) => {
     // Cargo never marches on land, so nothing rides along.
   });
   const name = (tile) => placeName(state, Number(tile));
+  // A fleet's log names the port it reached when it put in.
+
   const plural = (n) => (n > 1 ? `${n} units` : 'Your army');
   reached.forEach((n, tile) => logs.push({ year, message: `${plural(n)} reached ${name(tile)}.`, type: 'action' }));
   halted.forEach((n, key) => {
