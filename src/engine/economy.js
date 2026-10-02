@@ -21,6 +21,7 @@ import { getAdvisorSalary } from './succession';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { addNationModifier } from './modifiers/timed';
 import { clampStability, clampPrestige } from './nationalPower';
+import { lawRulesOf } from './lawRules';
 
 export const clampMaintenance = (value) => Math.max(ARMY_MAINTENANCE_MIN, Math.min(ARMY_MAINTENANCE_MAX, value));
 
@@ -68,7 +69,8 @@ export const getLoanSize = (state, nationId) => {
 export const calcNationBalance = (state, nationId, knownIncome, ownedUnits = null) => {
   const nation = state.nations[nationId];
   const units = ownedUnits || Object.values(state.units).filter((u) => u.ownerId === nationId);
-  const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
+  // Laws and reforms move the army's upkeep (lawRules.js unitUpkeepMult: Feudal Levy -20%, Professional Army +30%...).
+  const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100 * Math.max(0, 1 + (lawRulesOf(nation).unitUpkeepMult || 0));
   const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
   const armyUpkeep = Math.round(units.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
   const navyUpkeep = Math.round(units.filter((u) => u.domain === 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * navyMaintenanceMult);

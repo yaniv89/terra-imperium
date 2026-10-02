@@ -34,8 +34,8 @@ export const GOVERNMENT_TYPES = {
 export const GOVERNMENT_REFORMS = {
   tribal: {
     bronze: [
-      { id: 'chieftaincy', name: 'Chieftaincy', description: 'Raid neighboring lands for gold and build cohesion (not yet a mechanic).', effects: {} },
-      { id: 'warrior_council', name: 'Warrior Council', description: '+20% manpower, +10% land morale (combat bonus arrives with M14).', effects: { hrMult: 0.2 } }
+      { id: 'chieftaincy', name: 'Chieftaincy', description: 'Raids on enemy land yield double gold; +1 loyalty in every city.', effects: {}, rules: { pillageGoldMult: 1, loyaltyBonus: 1 } },
+      { id: 'warrior_council', name: 'Warrior Council', description: '+20% manpower; morale recovers 10% faster.', effects: { hrMult: 0.2, moraleRecovery: 0.1 } }
     ]
   },
   monarchy: {
@@ -69,7 +69,7 @@ export const GOVERNMENT_REFORMS = {
       { id: 'oracle_council', name: 'Oracle Council', description: '+15% tech point income.', effects: { techPointsMult: 0.15 } }
     ],
     kingdoms: [
-      { id: 'holy_order', name: 'Holy Order', description: '+15% land morale (combat, M14); a Crusade casus belli vs other culture groups (M12).', effects: {} },
+      { id: 'holy_order', name: 'Holy Order', description: 'Morale recovers 15% faster; army upkeep -10%.', effects: { moraleRecovery: 0.15 }, rules: { unitUpkeepMult: -0.1 } },
       { id: 'monastic_state', name: 'Monastic State', description: '+20% pop growth; +10% tech point income.', effects: { popGrowthBonus: 0.004, techPointsMult: 0.1 } }
     ],
     gunpowder: [
@@ -82,7 +82,7 @@ export const GOVERNMENT_REFORMS = {
   republic: {
     classical: [
       { id: 'oligarchic_republic', name: 'Oligarchic Republic', description: 'Elections every 8 turns; +1 DIP.', effects: { dipBonus: 1 } },
-      { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% trade income; +1 trade pact capacity (M12); burghers influence +15.', effects: { goldMult: 0.25, estateInfluence: { burghers: 15 } } }
+      { id: 'merchant_republic', name: 'Merchant Republic', description: '+25% income; +2 gold per trade pact; burghers influence +15.', effects: { goldMult: 0.25, estateInfluence: { burghers: 15 } }, rules: { tradeGoldPerRoute: 2 } }
     ],
     kingdoms: [
       { id: 'signoria', name: 'Signoria', description: 'Ruler re-electable twice (not yet a distinct mechanic); +0.5 tradition/turn.', effects: {} },
@@ -99,7 +99,7 @@ export const GOVERNMENT_REFORMS = {
   },
   dictatorship: {
     modern: [
-      { id: 'military_junta', name: 'Military Junta', description: '+2 MIL; +20% land morale (combat, M14); -1 stability floor (not yet wired).', effects: { milBonus: 2 } },
+      { id: 'military_junta', name: 'Military Junta', description: '+2 MIL; morale recovers 20% faster; war exhaustion rises 20% slower.', effects: { milBonus: 2, moraleRecovery: 0.2 }, rules: { warExhaustionMult: -0.2 } },
       // "-50% estate influence" is a multiplier, which the additive estateInfluence model above
       // can't represent (unlike Absolutism/Temple State/etc.'s flat bonuses) — left unwired rather
       // than faked as a flat number that wouldn't scale the way "-50%" actually implies.

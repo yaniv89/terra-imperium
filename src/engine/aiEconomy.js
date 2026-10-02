@@ -1,6 +1,6 @@
 import { ESTATE_PRIVILEGES, CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY, ESTATE_INTERACTION_COOLDOWN_TURNS } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
-import { LAW_CATEGORIES, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
+import { LAW_CATEGORIES, LAW_CATEGORY_IDS, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
 import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from './succession';
 import { getNeighborIds } from '../data/regions';
 import { getRecruitUnitCost, calcNationBalance, getLoanCapacity, getLoanInterestRate, applyBankruptcy } from './economy';
@@ -32,7 +32,7 @@ import {
 } from '../data/buildings';
 import { AGE_ORDER } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
-import { DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
+import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { getSuccessionStyle, generateHeir } from './succession';
 import { createRng } from '../utils/rng';
@@ -126,17 +126,17 @@ export const calcAllNationIncomes = (state) => {
   return incomes;
 };
 
-// Adopts a government (once old enough that staying Tribal has no upside left to model — see this
-// file's header on the laws/reform scope trim: enacting a REFORM tier picks the first available
-// choice, a defensible neutral default since no doctrine-driven reform-preference table exists yet)
-// or fills in the current age's reform tier if the nation already has a type but hasn't picked one.
+// Adopts a government once old enough that staying Tribal has no upside left to model, the
+// doctrine's preferred type first (DOCTRINE_GOVERNMENT, plan C4.5), or fills in the current age's
+// reform tier with the doctrine's preferred reform (DOCTRINE_REFORMS), else the first choice.
 const tryAdoptOrReformGovernment = (state, nation) => {
   const ageId = state.age;
   if (!nation.government || nation.government.type === 'tribal') {
     if (AGE_ORDER.indexOf(ageId) < AGE_ORDER.indexOf('classical')) return null;
     const available = getAvailableGovernmentTypes(ageId, nation.identity).filter((t) => t.id !== 'tribal');
     if (available.length === 0) return null;
-    const choice = available[fnv1a(`${nation.id}gov`) % available.length];
+    const preferred = (DOCTRINE_GOVERNMENT[nation.doctrine] || []).map((id) => available.find((t) => t.id === id)).find(Boolean);
+    const choice = preferred || available[fnv1a(`${nation.id}gov`) % available.length];
     // Plan §M21 balance fix (see this file's own header on the M16 laws/reform scope trim, and
     // gameReducer.js's CHANGE_GOVERNMENT_TYPE case for the identical player-side fix): without
     // this, an AI nation's FIRST reign as a fresh monarchy is always heirless (heir stays null
@@ -151,7 +151,9 @@ const tryAdoptOrReformGovernment = (state, nation) => {
   }
   const reforms = getReformChoices(nation.government.type, ageId);
   if (reforms.length > 0 && !nation.government.reforms?.[ageId]) {
-    return { ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: reforms[0].id } } };
+    const liked = DOCTRINE_REFORMS[nation.doctrine] || [];
+    const pick = reforms.find((r) => liked.includes(r.id)) || reforms[0];
+    return { ...nation, government: { ...nation.government, reforms: { ...nation.government.reforms, [ageId]: pick.id } } };
   }
   return null;
 };
@@ -232,6 +234,26 @@ const tryDevelopProvince = (state, nation, regions) => {
   };
 };
 
+export const AI_LAW_ADM_RESERVE = 50;
+/** The law an AI nation enacts this think, { category, id } or null (see the think's own note). */
+export const pickAILaw = (state, nationId, nation, pool) => {
+  const liked = DOCTRINE_LAWS[nation.doctrine] || {};
+  const affordable = (category, l) => (pool.adm || 0) >= getLawChangeCost(state, nationId, category, l.id) + AI_LAW_ADM_RESERVE;
+  const order = [...Object.keys(liked), ...LAW_CATEGORY_IDS.filter((c) => !liked[c])]; // the doctrine's own categories first
+  for (const category of order) {
+    const current = nation.laws?.[category];
+    const preferred = (liked[category] || []).map((id) => LAW_CATEGORIES[category].find((l) => l.id === id)).filter(Boolean);
+    const held = preferred.findIndex((l) => l.id === current);
+    const wanted = (held === -1 ? preferred : preferred.slice(0, held)).find((l) => canEnactLaw(state, nationId, category, l.id) && affordable(category, l));
+    if (wanted) return { category, id: wanted.id };
+    if (liked[category]) continue; // a doctrine with a view on this category waits for its law
+    const choices = [...LAW_CATEGORIES[category]].filter((l) => l.requiresTech && canEnactLaw(state, nationId, category, l.id) && (l.effects.stabilityBonus || 0) >= 0).reverse();
+    const law = choices.find((l) => affordable(category, l));
+    if (law) return { category, id: law.id };
+  }
+  return null;
+};
+
 // One "think" for one nation: unit upkeep, then the FIRST affordable decision in priority order
 // (government, building, tech, then province development). `state` must already reflect this turn's income having been
 // credited to nation.economy (the caller, resolveTurn.js, does this for every nation every turn,
@@ -264,11 +286,10 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
   // Keep power and cash for movement, recruitment and the next upkeep bill during wars.
   if(nextNation.isAtWar && ((pool.gold || 0)<Math.max(200,-(nextNation.lastNetIncome || 0)*3) || (pool.mil || 0)<10))return {nation:nextNation};
   if(!stabilityResult && (nextNation.stability || 0)>=0){
-    for(const category of ['taxation','religion','land','trade']){
-      const choices=[...LAW_CATEGORIES[category]].filter(l=>l.requiresTech && canEnactLaw(state,nationId,category,l.id) && (l.effects.stabilityBonus || 0)>=0).reverse();
-      const law=choices.find(l=>(pool.adm || 0)>=getLawChangeCost(state,nationId,category,l.id)+50);
-      if(law)return {nation:{...nextNation,economy:{...pool,adm:pool.adm-getLawChangeCost(state,nationId,category,law.id)},laws:{...nextNation.laws,[category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS}}};
-    }
+    // Laws by doctrine (plan C4.5, DOCTRINE_LAWS): the first preferred law the nation can enact,
+    // else the highest tier that costs no stability; the AI never moves back to a law it holds.
+    const law=pickAILaw(state,nationId,nextNation,pool);
+    if(law)return {nation:{...nextNation,economy:{...pool,adm:pool.adm-getLawChangeCost(state,nationId,law.category,law.id)},laws:{...nextNation.laws,[law.category]:law.id},lawCooldowns:{...nextNation.lawCooldowns,[law.category]:state.turnNumber+LAW_CHANGE_COOLDOWN_TURNS}}};
     const advisorPool=nextNation.isAtWar?'mil':'adm';
     if(!nextNation.advisors?.[advisorPool] && (pool.gold || 0)>500 && (nextNation.lastNetIncome || 0)>20){
       const advisor=generateAdvisorCandidates(nationId,createRng(fnv1a(nationId+state.turnNumber)))[advisorPool].sort((a,b)=>a.level-b.level)[0];

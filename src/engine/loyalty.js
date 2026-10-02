@@ -38,6 +38,7 @@ import { unitTile } from './armies';
 import { isSettler } from './settlers';
 import { landUnitsByTile } from './sieges';
 import { governorEffects } from './governors';
+import { lawRulesOf } from './lawRules';
 
 export const PRESSURE_RINGS = 9;
 export const KM_PER_RING = 147;
@@ -46,6 +47,7 @@ export const CULTURE_PERIOD = 3;        // a city's shares drift every third tur
 export const SELF_WEIGHT = 0.6;
 export const LOYALTY_SHARE_FLOOR = 0.25;
 export const LOYALTY_LEAD_SCALE = 100;
+export const LOYALTY_NEUTRAL = 50;      // the people term of a city whose culture is nobody's lead; Tolerance never goes below it
 export const LOYALTY_STEP = 5;
 export const LOYALTY_GARRISON_PER_UNIT = 10;
 export const LOYALTY_GARRISON_CAP = 30;
@@ -112,10 +114,13 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const owner = nations[city.owner];
   const capitalLost = owner && owner.capitalRegionId && state.regions[owner.capitalRegionId] && state.regions[owner.capitalRegionId].owner !== city.owner ? LOYALTY_CAPITAL_LOST : 0;
   const maxOther = Object.entries(culture).reduce((m, [id, v]) => (id !== city.owner && v > m ? v : m), 0);
-  const fromShare = share < LOYALTY_SHARE_FLOOR ? 0 : Math.max(0, Math.min(100, 50 + LOYALTY_LEAD_SCALE * (share - maxOther)));
+  const rules = lawRulesOf(owner); // laws and reforms (lawRules.js): Tolerance, Codified Law, Martial Law...
+  const rawShare = share < LOYALTY_SHARE_FLOOR ? 0 : Math.max(0, Math.min(100, 50 + LOYALTY_LEAD_SCALE * (share - maxOther)));
+  const fromShare = rules.tolerance ? Math.max(LOYALTY_NEUTRAL, rawShare) : rawShare;
   const governor = city.owner ? governorEffects({ ...state, nations }, city.owner, city.id, turn).loyalty : 0;
-  const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor)));
-  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor };
+  const law = rules.loyaltyBonus || 0;
+  const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor + law)));
+  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor, law };
 };
 
 // Nations whose land touches this city's tiles.

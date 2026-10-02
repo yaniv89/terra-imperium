@@ -90,6 +90,7 @@ import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
+import { lawRulesOf } from './lawRules';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
 import { navalCargo } from '../data/navalLines';
@@ -1091,7 +1092,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this
   // is what "forces you to actually end them" rather than letting a war run forever for free.
   Object.entries(nationsAfterWars).forEach(([nId, nation]) => {
-    const delta = nation.isAtWar ? WAR_EXHAUSTION_RISE_PER_TURN : -WAR_EXHAUSTION_DECAY_PER_TURN;
+    // Laws and reforms slow the rise (lawRules.js warExhaustionMult: Mass Conscription, Martial Law, Military Junta).
+    const delta = nation.isAtWar ? WAR_EXHAUSTION_RISE_PER_TURN * Math.max(0, 1 + (lawRulesOf(nation).warExhaustionMult || 0)) : -WAR_EXHAUSTION_DECAY_PER_TURN;
     const warExhaustion = clamp((nation.warExhaustion || 0) + delta, 0, 100);
     if (warExhaustion !== nation.warExhaustion) nationsAfterWars[nId] = { ...nation, warExhaustion };
   });

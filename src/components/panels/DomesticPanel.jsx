@@ -37,6 +37,7 @@ import { TRAITS } from '../../data/traits';
 import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
+import { lawRulesOf, describeRules } from '../../engine/lawRules';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -496,8 +497,10 @@ const DomesticPanel = () => {
     </div>
   );
 
+  const rulesInForce = describeRules(lawRulesOf(playerNation));
   const lawsSection = (
     <div className="space-y-2">
+      {rulesInForce.length > 0 && <div className="text-[11px] text-emerald-200/90 bg-slate-800/40 rounded-lg px-2 py-1" data-testid="law-rules">In force: {rulesInForce.join('; ')}.</div>}
       {LAW_CATEGORY_IDS.map((category) => {
         const currentLawId = playerNation?.laws?.[category];
         const currentLaw = getLaw(category, currentLawId);

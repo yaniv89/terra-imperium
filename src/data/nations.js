@@ -33,10 +33,9 @@ export const DOCTRINE_IDS = Object.keys(DOCTRINES);
 // read by src/engine/diplomacy.js's assignDefaultWarGoal.
 export const CAPTURE_PREFERRING_DOCTRINES = ['blitz', 'opportunist', 'conqueror', 'zealot'];
 
-// Plan §M16: "doctrine drives building priorities... law preferences... tech bias." Laws/reforms are
-// left as a documented scope trim (no AI reform/law-change decision exists yet — see aiEconomy.js's
-// own header); building category and tech category are the two the AI decision loop actually
-// consumes. Each list is a full priority ordering — the AI decision loop (src/engine/aiEconomy.js)
+// Plan §M16: "doctrine drives building priorities... law preferences... tech bias." Building
+// category and tech category are consumed by the AI decision loop; laws, governments and reforms
+// by doctrine are DOCTRINE_LAWS / DOCTRINE_GOVERNMENT / DOCTRINE_REFORMS below (plan C4.5). Each list is a full priority ordering — the AI decision loop (src/engine/aiEconomy.js)
 // walks it and takes the first affordable, unlocked option, so an entry late in the list still gets
 // built/researched eventually, just after the doctrine's preferred ones.
 export const DOCTRINE_BUILDING_PRIORITY = {
@@ -49,6 +48,44 @@ export const DOCTRINE_BUILDING_PRIORITY = {
   isolationist: ['food', 'science', 'defense', 'economy', 'culture', 'military', 'industry', 'naval', 'logistics'],
   defender: ['defense', 'food', 'military', 'economy', 'science', 'industry', 'culture', 'naval', 'logistics'],
   merchant: ['economy', 'naval', 'food', 'science', 'defense', 'military', 'industry', 'culture', 'logistics']
+};
+
+// Plan C4.5 (plans/civ-map-rework.md): the doctrine picks the government, the laws and the
+// reforms (src/engine/aiEconomy.js). Each list is a preference order; the first entry the nation
+// may take wins, and a category or age with no preference falls back to the highest tier the
+// nation can enact (laws) or the first choice (reforms).
+export const DOCTRINE_GOVERNMENT = {
+  attrition: ['monarchy', 'republic'],
+  blitz: ['monarchy', 'dictatorship'],
+  opportunist: ['republic', 'monarchy'],
+  cautious: ['republic', 'monarchy'],
+  conqueror: ['monarchy', 'dictatorship'],
+  zealot: ['theocracy', 'monarchy'],
+  isolationist: ['monarchy', 'theocracy'],
+  defender: ['republic', 'monarchy'],
+  merchant: ['republic', 'monarchy']
+};
+export const DOCTRINE_LAWS = {
+  attrition: { conscription: ['feudal_levy', 'mass_conscription'], justice: ['rule_of_law', 'codified_law'] },
+  blitz: { conscription: ['professional_army', 'mass_conscription', 'feudal_levy'], justice: ['martial_law', 'codified_law'] },
+  opportunist: { trade: ['free_trade', 'mercantilism'], conscription: ['professional_army', 'feudal_levy'] },
+  cautious: { justice: ['rule_of_law', 'codified_law'], religion: ['tolerance', 'established_church'], conscription: ['feudal_levy'] },
+  conqueror: { conscription: ['mass_conscription', 'professional_army', 'feudal_levy'], justice: ['martial_law', 'codified_law'], taxation: ['head_tax', 'income_tax', 'progressive_tax', 'land_tax'] },
+  zealot: { religion: ['established_church'], conscription: ['mass_conscription', 'feudal_levy'], justice: ['martial_law', 'codified_law'] },
+  isolationist: { trade: ['autarky', 'barter'], justice: ['rule_of_law', 'codified_law'], religion: ['tolerance', 'established_church'] },
+  defender: { justice: ['rule_of_law', 'codified_law'], conscription: ['feudal_levy', 'mass_conscription'], religion: ['tolerance'] },
+  merchant: { trade: ['free_trade', 'mercantilism'], taxation: ['progressive_tax', 'income_tax', 'land_tax'], land: ['private_property'] }
+};
+export const DOCTRINE_REFORMS = {
+  attrition: ['feudal_nobility', 'imperial_bureaucracy', 'hereditary_primogeniture', 'parliamentary_monarchy', 'constitutional_monarchy'],
+  blitz: ['warrior_council', 'despotic_rule', 'feudal_nobility', 'absolutism', 'autocratic_monarchy', 'military_junta'],
+  opportunist: ['merchant_republic', 'oligarchic_republic', 'imperial_bureaucracy', 'parliamentary_monarchy'],
+  cautious: ['imperial_bureaucracy', 'hereditary_primogeniture', 'parliamentary_monarchy', 'constitutional_monarchy', 'parliamentary_democracy'],
+  conqueror: ['warrior_council', 'despotic_rule', 'feudal_nobility', 'absolutism', 'autocratic_monarchy', 'military_junta', 'revolutionary_republic'],
+  zealot: ['divine_kingship', 'temple_state', 'priest_kings', 'holy_order', 'ecclesiastical_absolutism', 'theocratic_republic'],
+  isolationist: ['chieftaincy', 'imperial_bureaucracy', 'hereditary_primogeniture', 'absolutism', 'constitutional_monarchy'],
+  defender: ['imperial_bureaucracy', 'hereditary_primogeniture', 'parliamentary_monarchy', 'constitutional_monarchy', 'federal_republic'],
+  merchant: ['merchant_republic', 'signoria', 'maritime_republic', 'federal_republic', 'parliamentary_monarchy']
 };
 
 export const DOCTRINE_TECH_CATEGORY_PRIORITY = {

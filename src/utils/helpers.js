@@ -14,6 +14,7 @@ import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
 import { getPopFactor, seedDevelopment, getTotalDev } from '../engine/development';
 import { devastationIncomeMult } from '../engine/aftermath';
+import { lawRulesOf } from '../engine/lawRules';
 import { BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 // Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
 // keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
@@ -276,7 +277,10 @@ export const calcIncome = (state) => {
 
   // Trade Pact income (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) is
   // now a real goldMult line in the modifier engine (sources.js's contextSources), summed into the
-  // same goldMult lookup a few lines below rather than added here as a flat bonus.
+  // same goldMult lookup a few lines below rather than added here as a flat bonus. Mercantilism and
+  // the Merchant Republic add flat gold per pact on top (lawRules.js tradeGoldPerRoute).
+  const perRoute = lawRulesOf(state.nations?.[state.playerNationId]).tradeGoldPerRoute || 0;
+  if (perRoute) income.gold = (income.gold || 0) + perRoute * Object.values(state.nations || {}).filter((n) => !n.isPlayer && n.hasTradeAgreement && !n.isEliminated).length;
 
   // Government/policy/wonder/satellite bonuses (plan §9/§10.4) — summed on the same hook
   // (the modifier engine, src/engine/modifiers/), applied as one multiplier — government, policy,

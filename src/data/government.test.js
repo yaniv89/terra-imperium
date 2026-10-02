@@ -8,7 +8,7 @@ import { AGE_ORDER } from './ages';
 const RECOGNIZED_HOOKS = [
   'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus', 'admBonus',
   'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
-  'supplyRange', 'attrition', 'governingCapacity'
+  'supplyRange', 'attrition', 'governingCapacity', 'moraleRecovery'
 ];
 // These are raw, non-LEGACY_HOOK keys consumed directly by succession.js/laws.js/estates.js rather
 // than through the modifier engine — see government.js's header comment. estateLoyalty/
