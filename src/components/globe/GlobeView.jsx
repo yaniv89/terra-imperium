@@ -10,7 +10,7 @@
 // "decorative backdrop" tier anymore, the whole world is the same one system.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
-import { MeshBasicMaterial, Color, Raycaster, Sphere, Vector2, Vector3 } from 'three';
+import { Raycaster, Sphere, Vector2, Vector3 } from 'three';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA, getNationCapital } from '../../data/regions';
 import { loadGameRegionFeatures } from '../../data/geo/loadGameRegions';
@@ -20,13 +20,16 @@ import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
+import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 import { getMapMarkers } from '../../utils/mapMarkers';
 import { clusterGlobeItems, createMarkerElement, markerItems } from '../map/mapBanners';
 import { openBattleReport } from '../battle/battleReportEvents';
 
 // Above this camera altitude (globe radii) the globe shows nations, not provinces.
 const FAR_VIEW_ALTITUDE = 1.1;
-const OCEAN_COLOR = '#0f172a'; // slate-900
+const OCEAN_COLOR = '#0f172a'; // slate-900, the space behind the globe
+// How much of the terrain shows through a nation's colour on land.
+const POLITICAL_ALPHA = 0.45;
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -69,10 +72,10 @@ const GlobeView = ({ onAmbiguousTap = null,
   const insets = useMapInsets();
   const globeRef = useRef(null);
   const [geo, setGeo] = useState(null);
-  // No globeImageUrl (no texture fetch, no external dependency, matches the stylized/game look
-  // over photorealism) — react-globe.gl defaults an untextured globe to solid black, so oceans
-  // are given an explicit deep-blue material instead to read clearly against land polygons.
-  const globeMaterial = useMemo(() => new MeshBasicMaterial({ color: new Color('#0c2c4d') }), []);
+  // The realistic Earth (plans/civ-map-rework.md B4b): the shaded-relief raster built from real
+  // elevation and climate is the globe texture, and the political caps are drawn translucent over
+  // it so terrain, rivers and coasts stay visible under every nation's colour.
+  const globeImageUrl = useMemo(() => worldRasterUrl(worldRasterSizeFor(width, height)), [width, height]);
 
   // The globe auto-rotates (below) — without this, a newly-triggered effect could land anywhere
   // on the sphere, including the far side facing away from the camera, making it invisible.
@@ -200,7 +203,7 @@ const GlobeView = ({ onAmbiguousTap = null,
   // fillColorForRegion/getRegionStrokeColor are shared with Map2DView (src/utils/mapRegionStyle.js)
   // so the globe and the flat map always agree on what a region looks like.
   const capColor = useCallback(
-    (feature) => getRegionFillColor(state.regions, state.playerNationId, feature.properties?.gameRegionId),
+    (feature) => withAlpha(getRegionFillColor(state.regions, state.playerNationId, feature.properties?.gameRegionId), POLITICAL_ALPHA),
     [state.regions, state.playerNationId]
   );
 
@@ -388,7 +391,7 @@ const GlobeView = ({ onAmbiguousTap = null,
         showAtmosphere
         atmosphereColor="#38bdf8"
         atmosphereAltitude={0.15}
-        globeMaterial={globeMaterial}
+        globeImageUrl={globeImageUrl}
         polygonsData={polygons}
         polygonCapColor={capColor}
         polygonSideColor={() => 'rgba(15, 23, 42, 0.6)'}
