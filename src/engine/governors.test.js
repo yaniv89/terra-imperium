@@ -32,7 +32,7 @@ describe('governors', () => {
     const all = groups.flatMap((g) => g.cities);
     expect(new Set(all).size).toBe(big.cities.length);
     groups.forEach((g) => expect(g.cities.length).toBeLessThanOrEqual(GOVERNOR_GROUP_MAX));
-    expect(cityGroups(s, big.n.id)).toBe(groups); // cached per cities map
+    expect(cityGroups({ ...s, regions: { ...s.regions } }, big.n.id)).toBe(groups); // memoised on the city set, not the regions object
   }, 60000);
 
   it('the player seats a candidate who takes office after GOVERNOR_ASSIGN_TURNS, with the yields and loyalty of a governed city', () => {

@@ -15,6 +15,7 @@ import { getTiles } from '../data/geo/tiles';
 import { generateGivenName } from '../data/names';
 import { createRng } from '../utils/rng';
 import { ringsAround } from './world/cities';
+import { getOwnedRegionIds } from '../data/regions';
 
 export const GOVERNOR_GROUP_RINGS = 6;
 export const GOVERNOR_GROUP_MAX = 6;
@@ -31,16 +32,30 @@ export const GOVERNOR_MAX_SKILL = 3;
 
 const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; };
 
-const groupsCache = new WeakMap(); // regions -> Map nationId -> groups
-/** The city groups of a nation: [{ seat, cities }] in a fixed order. */
-export const cityGroups = (state, nationId) => {
+// Memoised on the nation's city set and capital (the turn replaces the regions object several
+// times, but a nation's cities change rarely): key -> { groups, byCity }. Bounded.
+const groupsMemo = new Map();
+const GROUPS_MEMO_MAX = 4000;
+const groupsEntry = (state, nationId) => {
   const regions = state.regions || {};
-  let byNation = groupsCache.get(regions);
-  if (!byNation) { byNation = new Map(); groupsCache.set(regions, byNation); }
-  if (byNation.has(nationId)) return byNation.get(nationId);
-  const tiles = getTiles();
-  const mine = Object.values(regions).filter((c) => c.owner === nationId && c.tile != null).sort((a, b) => (a.id < b.id ? -1 : 1));
   const capitalId = state.nations?.[nationId]?.capitalRegionId;
+  const ids = getOwnedRegionIds(regions, nationId);
+  const key = `${nationId}|${capitalId}|${ids.length}|${ids.join(',')}`;
+  const hit = groupsMemo.get(key);
+  if (hit) return hit;
+  const groups = buildGroups(regions, ids, capitalId);
+  const byCity = new Map();
+  groups.forEach((g) => g.cities.forEach((id) => byCity.set(id, g)));
+  if (groupsMemo.size >= GROUPS_MEMO_MAX) groupsMemo.clear();
+  const entry = { groups, byCity };
+  groupsMemo.set(key, entry);
+  return entry;
+};
+/** The city groups of a nation: [{ seat, cities }] in a fixed order. */
+export const cityGroups = (state, nationId) => groupsEntry(state, nationId).groups;
+const buildGroups = (regions, ids, capitalId) => {
+  const tiles = getTiles();
+  const mine = ids.map((id) => regions[id]).filter((c) => c && c.tile != null).sort((a, b) => (a.id < b.id ? -1 : 1));
   const left = new Map(mine.map((c) => [c.id, c]));
   const groups = [];
   const seatOrder = [];
@@ -55,12 +70,11 @@ export const cityGroups = (state, nationId) => {
     near.forEach((x) => left.delete(x.c.id));
     groups.push({ seat: seatId, cities: [seatId, ...near.map((x) => x.c.id)] });
   }
-  byNation.set(nationId, groups);
   return groups;
 };
 
 /** The group a city belongs to, or null. */
-export const groupOfCity = (state, nationId, cityId) => cityGroups(state, nationId).find((g) => g.cities.includes(cityId)) || null;
+export const groupOfCity = (state, nationId, cityId) => groupsEntry(state, nationId).byCity.get(cityId) || null;
 
 /** The governor in office over `cityId` (assigned and arrived), else null. */
 export const governorOf = (state, nationId, cityId, turn = state.turnNumber || 1) => {
