@@ -43,7 +43,7 @@ import {
 import { createRng } from '../utils/rng';
 import { processCities, sizeToPeople } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
-import { chooseProduction, nationCounts } from './aiProduction';
+import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
 import { getTiles } from '../data/geo/tiles';
 import { getResearched, getTechAgeId } from './nationState';
@@ -153,9 +153,14 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   const counts = nationCounts(state);
   Object.values(state.regions).forEach((city) => {
     if (!city.owner || city.owner === state.playerNationId || city.outpost || city.production?.current) return;
+    // A city that found nothing to build waits for its next settler-think turn (aiProduction.js
+    // SETTLER_THINK_PERIOD) instead of asking again every turn: the ask was a third of the phase.
+    if ((city.production?.idleUntil || 0) > newTurnNumber) return;
     const ctx = ctxFor(city);
     const item = chooseProduction(state, city, { ...ctx, units: state.units, counts: counts[city.owner] });
-    if (item) { if (cities === state.regions) cities = { ...cities }; cities[city.id] = { ...city, production: { ...city.production, current: item } }; }
+    if (cities === state.regions) cities = { ...cities };
+    if (item) cities[city.id] = { ...city, production: { ...city.production, current: item, idleUntil: undefined } };
+    else { let nextThink = newTurnNumber + 1; while ((nextThink + city.tile) % SETTLER_THINK_PERIOD !== 0) nextThink += 1; cities[city.id] = { ...city, production: { ...city.production, idleUntil: nextThink } }; }
   });
   const world = { cities, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
   const result = processCities(world, tiles, ctxFor);
@@ -634,13 +639,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool };
-    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits);
+    const __u0 = performance.now(); nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits); (globalThis.__ai ||= { up: 0, think: 0, pre: 0 }).up += performance.now() - __u0;
     if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
-    const result = processAIEconomyTurn(aiEconState, regions, nId);
-    nations[nId] = result.nation;
+    const __t0 = performance.now(); const result = processAIEconomyTurn(aiEconState, regions, nId);
+    nations[nId] = result.nation; globalThis.__ai.think += performance.now() - __t0;
   });
   mark('aiEconomy');
 

@@ -38,6 +38,7 @@ const routeStep = (regions, nationId, from, goals) => {
 // (sieges.js); it assaults when it outweighs the garrison or the walls are under ASSAULT_HP.
 export const ASSAULT_HP = 0.3;
 export const AI_MARCH_STEPS = 40;
+export const ROUTE_RETRY_TURNS = 3; // a stack that found no path to its goal waits this long before searching again
 
 // A besieged AI city's garrison sallies (fieldBattle.js) against the besiegers on one ring-1 tile
 // when it outweighs them by SALLY_RATIO; the player's besiegers get a battle report.
@@ -68,6 +69,7 @@ export const aiSally = (state, nationId, rng) => {
 export const processAIOperations = (state, rng) => {
   let next = { ...state, units: { ...state.units }, aiOperations: {}, pendingDefenses: [...(state.pendingDefenses || [])] };
   const committed = new Set();
+  let unitsByRegion = null; let unitsByRegionFor = null;
   for (const nationId of Object.keys(state.nations).sort()) {
     if (nationId === state.playerNationId || state.nations[nationId].isEliminated) continue;
     if (state.scenario?.mode === 'emergent') {
@@ -126,8 +128,12 @@ export const processAIOperations = (state, rng) => {
         break;
       }
       if (relieved) continue;
-      const ranked = getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !Object.values(next.units).some(u=>u.regionId===id&&isUnitInBattle(next,u.id))).sort((a,b) => {
-        const value = id => (next.regions[id].formerOwner === nationId || next.regions[id].conquest?.from === nationId ? 100 : 0) + (wars.some(w => w.goal?.regionId === id) ? 20 : 0) - Object.values(next.units).filter(u => u.regionId === id && u.ownerId !== nationId).reduce((s,u) => s + u.strength, 0) / 1000;
+      // Units by region, rebuilt only when a battle replaced the units map (the scan per enemy
+      // neighbour per stack was most of the phase at a thousand units).
+      if (unitsByRegionFor !== next.units) { unitsByRegion = new Map(); Object.values(next.units).forEach(u => { const l = unitsByRegion.get(u.regionId); if (l) l.push(u); else unitsByRegion.set(u.regionId, [u]); }); unitsByRegionFor = next.units; }
+      const unitsIn = (id) => unitsByRegion.get(id) || [];
+      const ranked = getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))).sort((a,b) => {
+        const value = id => (next.regions[id].formerOwner === nationId || next.regions[id].conquest?.from === nationId ? 100 : 0) + (wars.some(w => w.goal?.regionId === id) ? 20 : 0) - unitsIn(id).filter(u => u.ownerId !== nationId).reduce((s,u) => s + u.strength, 0) / 1000;
         return value(b)-value(a) || a.localeCompare(b);
       });
       // Attacks come from tiles that touch the city's land; a city farther off is marched on.
@@ -176,10 +182,12 @@ export const processAIOperations = (state, rng) => {
         }
         if (!goal || next.regions[goal]?.tile == null) continue;
         const actor = { ...next, playerNationId: nationId };
+        const failed = stack[0].routeFailed;
+        if (failed && failed.goal === goal && failed.until > state.turnNumber) continue; // searched lately, nothing found
         const path = findTilePath(actor, at, next.regions[goal].tile, nationId, { maxSteps: AI_MARCH_STEPS });
-        if (!path.path) continue;
+        if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
         const pace = stackPace(stack);
-        stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null }; });
+        stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
         marching = true;
       }
     }

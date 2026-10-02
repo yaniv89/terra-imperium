@@ -98,8 +98,13 @@ export const startCivilWar = (regions, units, nationId, fieldedStrength, rng, tu
 // crushed (no pretender-held regions left) or lost (held >= 50% of the nation's regions for 5
 // consecutive turns). Returns null when nothing about this civil war changes that resolveTurn.js
 // needs to react to beyond the streak counter (still active, share below the losing threshold).
-const loyalLandStrength = (units, regionId, nationId) => Object.values(units)
-  .reduce((sum, u) => sum + (u.regionId === regionId && u.ownerId === nationId && u.domain === 'land' ? (u.strength || 0) : 0), 0);
+// The nation's land strength per region, built once per call: a long civil war has many pretender
+// stacks, and a scan of every unit per stack per neighbour was the phase's cost.
+const loyalLandStrengthMap = (units, nationId) => {
+  const map = new Map();
+  Object.values(units).forEach((u) => { if (u.ownerId === nationId && u.domain === 'land') map.set(u.regionId, (map.get(u.regionId) || 0) + (u.strength || 0)); });
+  return map;
+};
 
 // One turn of pretender movement and (AI-only) loyalist suppression. Mutates the passed-in copies.
 const advancePretenders = (state, regions, units, nationId, rng, turnNumber) => {
@@ -117,10 +122,11 @@ const advancePretenders = (state, regions, units, nationId, rng, turnNumber) => 
   }
 
   // Spread: a surviving stack stronger than the loyal garrison next door may take that province.
+  const loyal = loyalLandStrengthMap(units, nationId);
   Object.values(units).filter((u) => u.isPretender && regions[u.regionId]?.owner === nationId).forEach((u) => {
     if (rng.next() >= PRETENDER_SPREAD_CHANCE) return;
     const target = getNeighborIds(u.regionId).find((id) =>
-      regions[id]?.owner === nationId && !regions[id].occupiedBy && loyalLandStrength(units, id, nationId) < u.strength);
+      regions[id]?.owner === nationId && !regions[id].occupiedBy && (loyal.get(id) || 0) < u.strength);
     if (!target) return;
     const strength = Math.max(1, Math.round(u.strength * PRETENDER_SPLIT_STRENGTH_SHARE));
     const id = `pretender_${nationId}_${target}_${turnNumber}`;

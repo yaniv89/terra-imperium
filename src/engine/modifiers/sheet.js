@@ -67,13 +67,41 @@ export const getModifier = (state, nationId, key) => getNationSheet(state, natio
 // Region scope: a region's own building tiers (plan §M6, cached per region object reference the
 // same way staticSheet caches per nation) plus any sparse TIMED modifier (plan §A.2 — nothing
 // populates state.regionModifiers yet; M14's terrain/occupation are the plan's next real source).
+// The building lines depend on the region's building tiers only, so a second memo keyed on
+// those tiers serves the region objects a turn rewrites (every city is a new object each turn;
+// a thousand cities share a few hundred tier combinations). Bounded.
+const sheetByTiers = new Map();
+const SHEET_BY_TIERS_MAX = 2000;
+const tiersKey = (region) => { const c = region?.buildings?.categories; if (!c) return ''; let k = ''; for (const id in c) k += `${id}:${c[id]},`; return k; };
 const regionStaticSheet = (region) => {
   let grouped = regionStaticCache.get(region);
   if (!grouped) {
-    grouped = groupByKey(regionSources(region));
+    const key = tiersKey(region);
+    grouped = sheetByTiers.get(key);
+    if (!grouped) {
+      grouped = groupByKey(regionSources(region));
+      if (sheetByTiers.size >= SHEET_BY_TIERS_MAX) sheetByTiers.clear();
+      sheetByTiers.set(key, grouped);
+    }
     regionStaticCache.set(region, grouped);
   }
   return grouped;
+};
+
+/** Several region keys from one sheet lookup: { key: total }. For the per-region income loops
+ * (aiEconomy.js), which asked six times per region. */
+export const getRegionModifierTotals = (state, regionId, keys) => {
+  const region = state.regions?.[regionId];
+  const grouped = region ? regionStaticSheet(region) : null;
+  const timed = state.regionModifiers?.[regionId] || [];
+  const out = {};
+  keys.forEach((key) => {
+    let total = 0;
+    if (grouped) { const lines = grouped.get(key); if (lines) for (let i = 0; i < lines.length; i++) total += lines[i].value; }
+    if (timed.length) timed.forEach((mod) => { if (mod.mods?.[key]) total += mod.mods[key]; });
+    out[key] = total;
+  });
+  return out;
 };
 
 export const getRegionModifier = (state, regionId, key) => {

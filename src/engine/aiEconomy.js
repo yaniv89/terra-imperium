@@ -22,7 +22,8 @@ import { devastationIncomeMult } from './aftermath';
 import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
 import { getResearched } from './nationState';
-import { getModifier, getRegionModifier } from './modifiers/sheet';
+import { getModifier, getRegionModifierTotals } from './modifiers/sheet';
+const INCOME_KEYS = ['local.taxIncome', 'local.productionIncome', 'local.manpower', 'local.techPoints', 'local.flatGold', 'local.flatManpower', 'local.tradeIncome'];
 import {
   getPopFactor, seedDevelopment, getTotalDev, DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO
 } from './development';
@@ -95,22 +96,23 @@ export const calcAllNationIncomes = (state) => {
     const controlMult = region.control / 100;
     const infraMult = 1 + (region.currentInfrastructure || 0) * 0.1;
     const popFactor = getPopFactor(region, regData) * devastationIncomeMult(region); // a battlefield earns less while it recovers
-    const localTax = getRegionModifier(state, region.id, 'local.taxIncome').total;
-    const localProduction = getRegionModifier(state, region.id, 'local.productionIncome').total;
-    const localManpower = getRegionModifier(state, region.id, 'local.manpower').total;
-    const localTechPoints = getRegionModifier(state, region.id, 'local.techPoints').total;
+    const m = getRegionModifierTotals(state, region.id, INCOME_KEYS); // one sheet lookup for the six keys
+    const localTax = m['local.taxIncome'];
+    const localProduction = m['local.productionIncome'];
+    const localManpower = m['local.manpower'];
+    const localTechPoints = m['local.techPoints'];
     const entry = incomes[region.owner] || { gold: 0, hr: 0, techPoints: 0 };
     entry.gold += (dev.tax * (1 + localTax) + dev.production * (1 + localProduction)) * controlMult * infraMult * popFactor;
     entry.hr += dev.manpower * (1 + localManpower) * controlMult * infraMult * popFactor;
     // The income buildings' flat yields, exactly as the player's calcIncome counts them.
-    entry.gold += getRegionModifier(state, region.id, 'local.flatGold').total * controlMult;
-    entry.hr += getRegionModifier(state, region.id, 'local.flatManpower').total * controlMult;
+    entry.gold += m['local.flatGold'] * controlMult;
+    entry.hr += m['local.flatManpower'] * controlMult;
     if (localTechPoints) entry.techPoints += localTechPoints * controlMult * infraMult;
     entry.techPoints += SCIENCE_PER_DEV * getTotalDev({ dev }) * controlMult; // as the player's calcIncome
     Object.entries(region.buildings?.extraction || {}).forEach(([key, built]) => {
       if (built && hasDeposit(regData.startOwner, key)) entry[key] = (entry[key] || 0) + EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
-    entry.gold += getRegionModifier(state, region.id, 'local.tradeIncome').total * controlMult;
+    entry.gold += m['local.tradeIncome'] * controlMult;
     incomes[region.owner] = entry;
   });
   Object.keys(incomes).forEach((nationId) => {

@@ -37,20 +37,26 @@ const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++)
 // times, but a nation's cities change rarely): key -> { groups, byCity }. Bounded.
 const groupsMemo = new Map();
 const GROUPS_MEMO_MAX = 4000;
+const entryByRegions = new WeakMap(); // regions object -> Map nationId -> entry (a turn asks per city; the key below costs a join per ask)
 const groupsEntry = (state, nationId) => {
   const regions = state.regions || {};
+  let perNation = entryByRegions.get(regions);
+  if (!perNation) { perNation = new Map(); entryByRegions.set(regions, perNation); }
+  const quick = perNation.get(nationId);
+  if (quick && quick.capitalId === state.nations?.[nationId]?.capitalRegionId) return quick.entry;
   const capitalId = state.nations?.[nationId]?.capitalRegionId;
   const ids = getOwnedRegionIds(regions, nationId);
   const rings = GOVERNOR_GROUP_RINGS + mapEffectsFor(state, nationId).governorRings; // techs that widen a governor's reach (techMapEffects.js)
   const key = `${nationId}|${capitalId}|${rings}|${ids.length}|${ids.join(',')}`;
   const hit = groupsMemo.get(key);
-  if (hit) return hit;
+  if (hit) { perNation.set(nationId, { capitalId, entry: hit }); return hit; }
   const groups = buildGroups(regions, ids, capitalId, rings);
   const byCity = new Map();
   groups.forEach((g) => g.cities.forEach((id) => byCity.set(id, g)));
   if (groupsMemo.size >= GROUPS_MEMO_MAX) groupsMemo.clear();
   const entry = { groups, byCity };
   groupsMemo.set(key, entry);
+  perNation.set(nationId, { capitalId, entry });
   return entry;
 };
 /** The city groups of a nation: [{ seat, cities }] in a fixed order. */

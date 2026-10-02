@@ -66,20 +66,53 @@ export const loyaltyOf = (city) => (city.loyalty == null ? 100 : city.loyalty);
 export const cultureOf = (city) => city.culture || { [city.founderId || city.owner]: 1 };
 
 // The pressure every nation puts on `city`: { nationId: weight }.
-const pressureOn = (tiles, cities, index, city) => {
-  const { lat, lon } = tiles.latLonOf(city.tile);
+// The cities within PRESSURE_RINGS of each city, by tile, with the weight of their pressure
+// (1 / (1 + rings)^2). Kept across turns and updated for the cities founded or lost since the
+// last call (cities never move, and the relation is symmetric), so a turn costs the new cities
+// only instead of a radius search per city.
+const neighbourLists = new Map(); // tile -> [{ tile, weight }]
+let knownTiles = new Set();
+const pressureNeighbours = (tiles, cities, index) => {
+  const current = new Set(cities.map((c) => c.tile));
+  const added = cities.filter((c) => !knownTiles.has(c.tile));
+  const removed = [...knownTiles].filter((t) => !current.has(t));
+  removed.forEach((t) => {
+    (neighbourLists.get(t) || []).forEach(({ tile }) => { const l = neighbourLists.get(tile); if (l) neighbourLists.set(tile, l.filter((x) => x.tile !== t)); });
+    neighbourLists.delete(t);
+  });
+  added.forEach((city) => {
+    const { lat, lon } = tiles.latLonOf(city.tile);
+    const list = [];
+    index.within(lat, lon, PRESSURE_RINGS * KM_PER_RING + 60).forEach((i) => {
+      const other = cities[i];
+      if (other.tile === city.tile) return;
+      const rings = distanceKm(tiles.centres[city.tile], tiles.centres[other.tile]) / KM_PER_RING;
+      if (rings > PRESSURE_RINGS) return;
+      const weight = 1 / ((1 + rings) * (1 + rings));
+      list.push({ tile: other.tile, weight });
+      if (!current.has(other.tile)) return;
+      const theirs = neighbourLists.get(other.tile);
+      if (theirs && !theirs.some((x) => x.tile === city.tile)) theirs.push({ tile: city.tile, weight });
+    });
+    neighbourLists.set(city.tile, list);
+  });
+  knownTiles = current;
+  return neighbourLists;
+};
+
+const cityByTileCache = new WeakMap(); // cities array -> Map tile -> city
+const cityByTile = (cities) => { let m = cityByTileCache.get(cities); if (!m) { m = new Map(cities.map((c) => [c.tile, c])); cityByTileCache.set(cities, m); } return m; };
+
+const pressureOn = (tiles, cities, index, city, neighbours = null) => {
   const out = {};
-  index.within(lat, lon, PRESSURE_RINGS * KM_PER_RING + 60).forEach((i) => {
-    const other = cities[i];
-    if (!other.owner) return;
-    if (other.id === city.id) {
-      const own = cultureOf(city);
-      Object.entries(own).forEach(([id, share]) => { out[id] = (out[id] || 0) + Math.max(1, city.size || 1) * SELF_WEIGHT * share; });
-      return;
-    }
-    const rings = distanceKm(tiles.centres[city.tile], tiles.centres[other.tile]) / KM_PER_RING;
-    if (rings > PRESSURE_RINGS) return;
-    out[other.owner] = (out[other.owner] || 0) + Math.max(1, other.size || 1) / ((1 + rings) * (1 + rings));
+  const own = cultureOf(city);
+  Object.entries(own).forEach(([id, share]) => { out[id] = (out[id] || 0) + Math.max(1, city.size || 1) * SELF_WEIGHT * share; });
+  const list = (neighbours || pressureNeighbours(tiles, cities, index)).get(city.tile) || [];
+  const byTile = cityByTile(cities);
+  list.forEach(({ tile, weight }) => {
+    const other = byTile.get(tile);
+    if (!other || !other.owner) return;
+    out[other.owner] = (out[other.owner] || 0) + Math.max(1, other.size || 1) * weight;
   });
   return out;
 };
@@ -117,7 +150,7 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const rules = lawRulesOf(owner); // laws and reforms (lawRules.js): Tolerance, Codified Law, Martial Law...
   const rawShare = share < LOYALTY_SHARE_FLOOR ? 0 : Math.max(0, Math.min(100, 50 + LOYALTY_LEAD_SCALE * (share - maxOther)));
   const fromShare = rules.tolerance ? Math.max(LOYALTY_NEUTRAL, rawShare) : rawShare;
-  const governor = city.owner ? governorEffects({ ...state, nations }, city.owner, city.id, turn).loyalty : 0;
+  const governor = city.owner ? governorEffects(nations === state.nations ? state : { ...state, nations }, city.owner, city.id, turn).loyalty : 0;
   const law = rules.loyaltyBonus || 0;
   const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor + law)));
   return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor, law };
@@ -139,6 +172,7 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
   const tiles = getTiles();
   const cities = Object.values(regions).filter((c) => c.tile != null);
   const index = buildRadiusIndex(cities.map((c) => tiles.centres[c.tile]));
+  const neighbours = pressureNeighbours(tiles, cities, index); // once a turn: the lists are kept across turns
   const view = { ...state, regions, units, nations, turnNumber: turn };
   const byTile = landUnitsByTile(view, units);
   const flips = []; const logs = [];
@@ -146,7 +180,7 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
     // Pressure is costly over hundreds of cities: each city's shares drift every CULTURE_PERIOD
     // turns by the whole period's drift (the turn count staggers the cities).
     const drifts = city.owner === null || (turn + city.tile) % CULTURE_PERIOD === 0;
-    const pressure = drifts ? pressureOn(tiles, cities, index, city) : null;
+    const pressure = drifts ? pressureOn(tiles, cities, index, city, neighbours) : null;
     if (city.owner === null) {
       // A free city joins the bordering nation that presses it most, after a while.
       const since = city.freeCity?.since ?? turn;
@@ -164,7 +198,7 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
     const settling = (city.lastFlipTurn != null && turn - city.lastFlipTurn < FLIP_COOLDOWN_TURNS) || (city.founded > 1 && turn - city.founded < FOUNDING_GRACE_TURNS);
     if (loyalty <= 0 && !settling && nations[city.owner]?.capitalRegionId !== city.id) { // a nation's current capital never flips (a stale isCapital flag on a taken city does not count)
       const near = bordering(view, tiles, city);
-      const press = pressure || pressureOn(tiles, cities, index, city);
+      const press = pressure || pressureOn(tiles, cities, index, city, neighbours);
       const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated).sort((a, b) => (press[b] || 0) - (press[a] || 0) || (a < b ? -1 : 1))[0];
       flips.push({ cityId: city.id, from: city.owner, to: best || null });
     } else if (loyalty <= 25 && current > 25) logs.push({ nationId: city.owner, message: `${city.name} is losing its loyalty (${loyalty}): garrison it or raise its amenities.` });
