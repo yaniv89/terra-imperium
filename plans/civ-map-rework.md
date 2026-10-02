@@ -1884,8 +1884,8 @@ navalLines.test.js. Still open in D5b: raiders plundering sea routes for gold, t
 units, sea tiles in three depths (coast, shelf, ocean; the ocean opens by tech today), naval
 battles in the tactical sim.
 
-**Workstream 12, wave 2: the army sheet (2026-10-02).** Tapping one of your army banners on the
-flat map opens `ArmySheet.jsx` (a bottom sheet on a phone, a docked panel otherwise) for the
+**Workstream 12, wave 2: the army sheet (2026-10-02).** Tapping one of your army banners in the field on the
+flat map (a garrison on its city tile still opens the city card) opens `ArmySheet.jsx` (a bottom sheet on a phone, a docked panel otherwise) for the
 stack on that tile: units grouped by army (`unit.army`, from a template order or a name given
 here), each with its roster name, strength, morale, supply meter, moves, general and
 promotions; the supply zone with its reason; the route with its ETA; orders: March (the stack
@@ -1895,6 +1895,18 @@ stack), Disband. The model (`armySheetModel.js`) is pure and tested. Still open 
 sheet on the globe view (its banners still open the city card), merge and split, fortify,
 pillage and siege orders from the sheet, the city, nation and empire sheets replacing the
 province modal, lenses, the "next" prompt.
+
+**Workstream 12, wave 3: lenses and the marks of E6 (2026-10-02).** `src/components/map/lenses.js`
+(pure models, tested) and `LensStrip.jsx`: five lenses on the flat map, a strip of 44 px
+buttons bottom left and keys 1 to 5 on a keyboard. Political is the map as before; Yields
+writes food, production and gold on every tile your cities own from the local zoom (worked
+tiles brighter); Loyalty draws a disc behind every city coloured from green (100) to red (0);
+Threat draws a circle of THREAT_RINGS around every enemy stack at war with you (and the rebels)
+with its strength; Supply tints the tile of every own army by its supply zone (home green, held
+yellow, wild amber, enemy red). The city badge now shows a disaster mark (a flood, a fire, a
+plague) and the ground shows crossed swords where a field battle was fought for 5 turns. Still
+open in E5 and E6: the Trade lens (routes and plunder risk), the lenses on the globe, pressure
+arrows on the loyalty lens, fog as a hatch, the growth arc on the city badge.
 
 ---
 

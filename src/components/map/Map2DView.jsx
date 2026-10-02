@@ -41,6 +41,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -88,7 +89,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 // header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
-  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null
+  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political'
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -425,6 +426,38 @@ const Map2DView = ({
     onSelectTile(tile === selectedTile ? null : tile);
   }, [interactive, onSelectTile, projection, transform, selectedTile]);
   const selectedTilePath = useMemo(() => (projection && selectedTile != null ? geoPath(projection)(getTileFeature(selectedTile)) : null), [projection, selectedTile]);
+
+  // The lens layer (lenses.js): yields on your tiles, loyalty discs, threat circles, supply tints.
+  const lensElements = useMemo(() => {
+    if (!interactive || !projection || lens === 'political') return null;
+    const tiles = getTiles();
+    const pathGen = geoPath(projection);
+    const at = (t) => { const { lat, lon } = tiles.latLonOf(t); return projection([lon, lat]); };
+    if (lens === 'yields') {
+      if (zoomK < HEX_FROM_ZOOM) return null;
+      return yieldLabels(state).map((y) => { const [x, yy] = at(y.tile); return (
+        <text key={y.tile} x={x} y={yy} textAnchor="middle" fontSize={9 / zoomK} fontWeight="700" fill={y.worked ? '#fef3c7' : '#cbd5e1'} stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke" pointerEvents="none" data-lens-yield={y.tile}>{`${y.food}·${y.production}·${y.gold}`}</text>
+      ); });
+    }
+    if (lens === 'loyalty') return loyaltyDiscs(state).map((d) => { const [x, y] = at(d.tile); return <circle key={d.cityId} cx={x} cy={y} r={14 / Math.sqrt(zoomK)} fill={d.colour} fillOpacity={0.45} stroke={d.colour} strokeWidth={1 / zoomK} pointerEvents="none" data-lens-loyalty={d.cityId} />; });
+    if (lens === 'threat') return threatStacks(state).map((s) => { const [x, y] = at(s.tile); const [ex, ey] = at(s.edgeTile); const r = Math.max(6 / zoomK, Math.hypot(ex - x, ey - y)); return (
+      <g key={s.tile} pointerEvents="none" data-lens-threat={s.tile}>
+        <circle cx={x} cy={y} r={r} fill="rgba(239,68,68,0.14)" stroke="rgba(239,68,68,0.6)" strokeWidth={1 / zoomK} strokeDasharray={`${4 / zoomK} ${3 / zoomK}`} />
+        <text x={x} y={y - r - 2 / zoomK} textAnchor="middle" fontSize={10 / zoomK} fontWeight="700" fill="#fca5a5" stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke">{s.strength.toLocaleString()}</text>
+      </g>
+    ); });
+    if (lens === 'supply') return supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />);
+    return null;
+  }, [interactive, projection, lens, state, zoomK]);
+  // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.
+  const battleMarkElements = useMemo(() => {
+    if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;
+    const tiles = getTiles();
+    return Object.entries(state.world?.tileState || {}).filter(([, v]) => v.battle && v.battle.until >= state.turnNumber).map(([t, v]) => {
+      const { lat, lon } = tiles.latLonOf(Number(t)); const [x, y] = projection([lon, lat]);
+      return <text key={t} x={x} y={y} textAnchor="middle" fontSize={11 / zoomK} fill={v.battle.outcome === 'attacker' ? '#fda4af' : '#cbd5e1'} stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke" pointerEvents="none" data-battle-mark={t}>⚔</text>;
+    });
+  }, [interactive, projection, zoomK, state.world, state.turnNumber]);
   // March lines (plan §4g, on tiles since workstream 5): the marches under way and the one being
   // planned, over the tile centres, with the turn number where each turn's march ends.
   const marchCtx = useMarch();
@@ -501,6 +534,7 @@ const Map2DView = ({
           {city.siege && <text y={-r - sw * 2.5} textAnchor="middle" fontSize={r * 0.9} fontWeight="700" fill="#fb923c" stroke="rgba(0,0,0,0.7)" strokeWidth={sw * 0.8} paintOrder="stroke" pointerEvents="none" data-siege-badge={city.id}>⚔</text>}
           {walls > 0 && !city.outpost && <rect x={-r * 0.9} y={r * 0.45} width={r * 1.8} height={r * 0.35} fill="#475569" stroke="#0f172a" strokeWidth={sw * 0.4} />}
           {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.38} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
+          {city.disaster && <text x={-r * 0.95} y={-r * 0.6} textAnchor="middle" fontSize={r * 0.9} pointerEvents="none" data-disaster-badge={city.id}>{city.disaster.kind === 'flood' ? '≈' : city.disaster.kind === 'fire' ? '🔥' : '☠'}</text>}
           {zoomK >= CITY_DETAIL_ZOOM && <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="700" fill="#0f172a" pointerEvents="none">{city.size || 1}</text>}
           {zoomK >= CITY_DETAIL_ZOOM && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
         </g>
@@ -551,6 +585,8 @@ const Map2DView = ({
           {warBorderElements}
           {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
         </g>
+        {lensElements && <g data-testid="lens-layer" data-lens={lens}>{lensElements}</g>}
+        {battleMarkElements}
         {selectedTilePath && <path d={selectedTilePath} fill="rgba(255,255,255,0.15)" stroke="#ffffff" strokeWidth={1.6 / zoomK} pointerEvents="none" data-testid="selected-tile" />}
         {marchElements}
         {settlerElements}
