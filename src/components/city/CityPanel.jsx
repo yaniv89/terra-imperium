@@ -20,6 +20,7 @@ import {
   FOCUS, growthThreshold, housingOf, amenitiesOf, productionCost, canQueue, claimCandidates, buyTileCost, MAX_SIZE, allocateTiles, cityYields
 } from '../../engine/world/cities';
 import { templatesOf, nextTemplateUnit, templateProgress, templateSize } from '../../engine/armyTemplates';
+import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -32,7 +33,7 @@ const describeTile = (facts) => {
 };
 
 const itemLabel = (item, tiles) => {
-  if (item.kind === 'unit') return UNIT_CLASSES[item.classId]?.name || item.classId;
+  if (item.kind === 'unit') return item.classId === 'naval' ? `${NAVAL_LINES[item.navalLine || 'warship'].label} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : UNIT_CLASSES[item.classId]?.name || item.classId;
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;
   if (item.kind === 'settler') return 'Settlers (takes one citizen, founds a city)';
@@ -74,6 +75,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     const settler = { kind: 'settler' };
     out.push({ item: settler, group: 'Units', ...check(settler) });
     getAvailableClasses(ageId).forEach((classId) => {
+      if (classId === 'naval') { navalLinesFor(ageId).forEach((navalLine) => { const item = { kind: 'unit', classId, navalLine }; out.push({ item, group: 'Units', ...check(item) }); }); return; }
       const item = { kind: 'unit', classId };
       out.push({ item, group: 'Units', ...check(item) });
     });

@@ -116,9 +116,9 @@ import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS }
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
+import { NAVAL_LINES, navalCargo } from '../data/navalLines';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
-const NAVAL_TRANSPORT_CAPACITY = 2;
 
 // Any of the 240 nations works as a fallback default — only used when no explicit choice (from
 // the country-select start screen) or saved game is present yet.
@@ -1276,6 +1276,7 @@ const reduceAction = (state, action) => {
     // ---- Military tab (plan §7) — per-region armies ----
 
     case ActionTypes.RECRUIT_UNIT: {
+      const navalLine = action.payload?.navalLine && NAVAL_LINES[action.payload.navalLine] ? action.payload.navalLine : 'warship'; // naval lines (navalLines.js)
       const { regionId, classId } = action.payload;
       const region = state.regions[regionId];
       // Plan §M11 resource sink: costs the age's strategic resource when available, else a gold
@@ -1314,7 +1315,8 @@ const reduceAction = (state, action) => {
         commanderId: null,
         // Naval-only: how many land units it can carry (plan §7.5's Embark/Disembark). Land-only:
         // which naval unit currently carries it, if any — set by EMBARK_UNIT/AMPHIBIOUS_ASSAULT.
-        transportCapacity: isNaval ? NAVAL_TRANSPORT_CAPACITY : null,
+        transportCapacity: isNaval ? navalCargo(navalLine, getEffectiveAgeId(state.age, state.techAgeId)) : null,
+        ...(isNaval ? { navalLine } : {}),
         embarkedOn: null
       };
       const recruitingNation = state.nations[state.playerNationId];

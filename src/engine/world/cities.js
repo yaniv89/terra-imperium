@@ -36,6 +36,7 @@ import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOU
 import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
 import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTemplates';
+import { navalLinesFor } from '../../data/navalLines';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -283,6 +284,7 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'b
       return { ok: true };
     }
     case 'unit':
+      if (item.classId === 'naval' && item.navalLine && !navalLinesFor(ageId).includes(item.navalLine)) return { ok: false, reason: 'Not available in this age.' };
       return getAvailableClasses(ageId).includes(item.classId) ? { ok: true } : { ok: false, reason: 'Not available in this age.' };
     case 'improvement': {
       if (!city.tiles.includes(item.tile)) return { ok: false, reason: 'Not this city\'s land.' };
