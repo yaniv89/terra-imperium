@@ -1827,6 +1827,18 @@ mark on the city card until it heals, a log line for the player. Tests in cityDi
 and proceduralEvents.test.js. Still open in C9: the event sheet as a side sheet with a map
 marker, wonders as tiles built from production, scripted events pinned to places.
 
+**Workstream 10, wave 2: a map effect for every tech (2026-10-02).** `src/data/techMapEffects.js`
+is the table (30 techs) and `src/engine/techMapEffects.js` sums a nation's researched techs
+(memoised on the list): sight (+rings for land and armies, sight.js), naval moves and the open
+ocean by tech (fleets.js), border ring and tile culture cost (cities.js claimCandidates), the
+share of food a city keeps when it grows (granaries), claim range (claims.js), governor group
+rings (governors.js), stack cap, supply meter and supply line reach (supplyMeter.js), hills,
+mountain and road movement costs (armies.js tileStepCost). With the income effects of
+techTree.js and the building, improvement and unit unlocks, every one of the 50 techs now
+changes something (a test holds the line: no idle tech). The research sheet shows the map line
+under each tech. Tests in techMapEffects.test.js. Still open in C3: the web of prerequisites
+across lines and the graph view of the sheet, science from districts.
+
 ---
 
 ---

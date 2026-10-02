@@ -21,6 +21,7 @@ import { hasPerk } from '../data/promotions';
 import { legacyTerrainOf } from './world/registry';
 import { isSettler } from './settlers';
 import { tileAccess, unitTile } from './armies';
+import { mapEffectsFor } from './techMapEffects';
 
 export const SUPPLY_MAX = 100;
 export const SUPPLY_HOME_GAIN = 20;
@@ -34,10 +35,10 @@ export const STACK_OVER_LOSS = 10;
 export const STARVE_STRENGTH = 0.05;
 export const STARVE_MORALE = 10;
 
-export const supplyOf = (unit) => (unit.supply == null ? SUPPLY_MAX : unit.supply);
+export const supplyOf = (unit, max = SUPPLY_MAX) => (unit.supply == null ? max : Math.min(max, unit.supply));
 
 /** How many land units of one nation a tile holds without supply trouble. */
-export const stackCap = (tiles, tile) => getCombatWidth(legacyTerrainOf(tiles, tile)) * STACK_WIDTH_MULT;
+export const stackCap = (tiles, tile, extra = 0) => getCombatWidth(legacyTerrainOf(tiles, tile)) * STACK_WIDTH_MULT + extra;
 
 // Own land of `nationId` within `rings` of `tile`, over land (a supply line).
 const lineReaches = (state, tiles, tile, nationId, rings) => {
@@ -86,24 +87,27 @@ const stackSizes = (state, units) => {
  */
 export const applySupplyMeter = (state, units, { hungryFor = () => false, attritionMultFor = () => 1, lineRingsFor = () => SUPPLY_LINE_RINGS } = {}) => {
   const tiles = getTiles();
+  const fxOf = (nationId) => mapEffectsFor(state, nationId); // techs: a wider stack, a bigger meter, longer lines (techMapEffects.js)
   const sizes = stackSizes(state, units);
   const starving = new Map(); const dead = new Map();
   Object.keys(units).sort().forEach((id) => {
     const u = units[id];
     if (!u || u.domain === 'naval' || u.embarkedOn || isSettler(u)) return;
     if (!state.nations[u.ownerId]) return; // rebels live off the land
-    const { zone, delta } = supplyZone(state, tiles, u, { lineRings: lineRingsFor(u.ownerId) });
+    const fx = fxOf(u.ownerId);
+    const max = SUPPLY_MAX + fx.supplyMax;
+    const { zone, delta } = supplyZone(state, tiles, u, { lineRings: lineRingsFor(u.ownerId) + fx.lineRings });
     let change = delta;
     if (zone !== 'home') {
       if (hungryFor(u.ownerId)) change -= SUPPLY_HUNGER_LOSS;
       const tile = unitTile(state, u);
-      if (tile != null && (sizes.get(`${u.ownerId}|${tile}`) || 0) > stackCap(tiles, tile)) change -= STACK_OVER_LOSS;
+      if (tile != null && (sizes.get(`${u.ownerId}|${tile}`) || 0) > stackCap(tiles, tile, fx.stackCap)) change -= STACK_OVER_LOSS;
       let mult = Math.max(0, attritionMultFor(u.ownerId));
       if (hasPerk(u, 'forager')) mult *= 0.5;
       if (state.hiredCommanders?.[u.commanderId]?.personality === 'logistician') mult *= 0.5;
       change = Math.round(change * mult);
     }
-    const supply = Math.max(0, Math.min(SUPPLY_MAX, supplyOf(u) + change));
+    const supply = Math.max(0, Math.min(max, supplyOf(u, max) + change));
     let next = { ...u, supply };
     if (supply <= 0) {
       const strength = Math.max(0, Math.floor(u.strength * (1 - STARVE_STRENGTH)));

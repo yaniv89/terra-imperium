@@ -22,6 +22,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 import { ringsAround } from './world/cities';
+import { mapEffectsFor } from './techMapEffects';
 
 export const CLAIM_RANGE_RINGS = 5;
 export const CLAIM_FABRICATE_TURNS = 5;
@@ -53,7 +54,8 @@ export const claimsAgainst = (state, nationId, targetId) =>
   Object.values(state.regions || {}).filter((c) => c.owner === targetId && claimOn(state, nationId, c)).sort((a, b) => (a.id < b.id ? -1 : 1));
 
 /** Rings from a city to the nearest tile `nationId` owns, Infinity beyond `max`. */
-export const ringsToBorder = (state, city, nationId, max = CLAIM_RANGE_RINGS) => {
+export const claimRange = (state, nationId) => CLAIM_RANGE_RINGS + mapEffectsFor(state, nationId).claimRange; // techs that reach further (techMapEffects.js)
+export const ringsToBorder = (state, city, nationId, max = claimRange(state, nationId)) => {
   if (city.tile == null) return Infinity;
   const tileOwner = state.world?.tileOwner || {};
   const regions = state.regions || {};
@@ -74,7 +76,7 @@ export const canFabricateClaim = (state, nationId, cityId) => {
   if (!city.owner) return { ok: false, reason: 'Nobody rules it: settle it instead.' };
   if (claimOn(state, nationId, city)) return { ok: false, reason: 'You already hold a claim on it.' };
   if (claimsInProgressOf(nation).some((c) => c.cityId === cityId)) return { ok: false, reason: 'Your agents are already at work there.' };
-  if (ringsToBorder(state, city, nationId) > CLAIM_RANGE_RINGS) return { ok: false, reason: `Out of reach: a claim needs your border within ${CLAIM_RANGE_RINGS} tiles of the city.` };
+  if (ringsToBorder(state, city, nationId) > claimRange(state, nationId)) return { ok: false, reason: `Out of reach: a claim needs your border within ${claimRange(state, nationId)} tiles of the city.` };
   return { ok: true };
 };
 
@@ -82,7 +84,7 @@ export const canFabricateClaim = (state, nationId, cityId) => {
 export const claimableCities = (state, nationId, targetId = null) => Object.values(state.regions || {})
   .filter((c) => c.owner && c.owner !== nationId && (!targetId || c.owner === targetId) && c.tile != null)
   .map((c) => ({ city: c, rings: ringsToBorder(state, c, nationId) }))
-  .filter((x) => x.rings <= CLAIM_RANGE_RINGS && canFabricateClaim(state, nationId, x.city.id).ok)
+  .filter((x) => x.rings <= claimRange(state, nationId) && canFabricateClaim(state, nationId, x.city.id).ok)
   .sort((a, b) => a.rings - b.rings || (b.city.size || 0) - (a.city.size || 0) || (a.city.id < b.city.id ? -1 : 1));
 
 /** The city of `targetId` nearest to `nationId`'s land that it holds no claim on, in reach or not

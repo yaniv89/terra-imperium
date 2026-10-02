@@ -23,6 +23,7 @@ import { getEffectiveAgeId } from '../data/ages';
 import { isWarBetween } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
+import { mapEffectsFor } from './techMapEffects';
 
 export const NAVAL_MOVES_BY_AGE = { bronze: 3, classical: 4, kingdoms: 5, gunpowder: 6, modern: 8 };
 export const DEEP_OK_FROM = ['gunpowder', 'modern'];
@@ -32,11 +33,11 @@ const KM_PER_RING = 170;
 
 export const isFleet = (u) => u?.domain === 'naval';
 export const fleetAge = (state, nationId) => getEffectiveAgeId(state.age, getTechAgeId(state, nationId));
-export const fleetPace = (state, unit) => NAVAL_MOVES_BY_AGE[fleetAge(state, unit.ownerId)] || 3;
-export const deepOk = (ageId) => DEEP_OK_FROM.includes(ageId);
+export const fleetPace = (state, unit) => (NAVAL_MOVES_BY_AGE[fleetAge(state, unit.ownerId)] || 3) + mapEffectsFor(state, unit.ownerId).navalMoves; // techs that sail further (techMapEffects.js)
+export const deepOk = (ageId, deepTech = false) => deepTech || DEEP_OK_FROM.includes(ageId);
 
-/** Water a fleet of this age may sail. */
-export const seaPassable = (tiles, tile, ageId) => tile != null && tile >= 0 && tiles.land[tile] !== 1 && tiles.terrainOf(tile) !== 'lake' && (deepOk(ageId) || tiles.terrainOf(tile) !== 'ocean');
+/** Water a fleet of this age may sail (`deepTech`: the nation's techs open the ocean). */
+export const seaPassable = (tiles, tile, ageId, deepTech = false) => tile != null && tile >= 0 && tiles.land[tile] !== 1 && tiles.terrainOf(tile) !== 'lake' && (deepOk(ageId, deepTech) || tiles.terrainOf(tile) !== 'ocean');
 
 /** True when a fleet stands at sea (not in a port). */
 export const atSea = (state, unit) => { const t = unit.tile; return t != null && t >= 0 && getTiles().land[t] !== 1; };
@@ -77,6 +78,7 @@ const heapPop = (h) => {
 export const findSeaPath = (state, from, to, nationId = state.playerNationId) => {
   const tiles = getTiles();
   const ageId = fleetAge(state, nationId);
+  const deepTech = mapEffectsFor(state, nationId).deepOcean > 0;
   if (from === to) return { reason: 'The fleet is already there.' };
   const tileOwner = state.world?.tileOwner || {};
   const fromPort = tiles.land[from] === 1 ? tileOwner[from] : null;
@@ -87,8 +89,8 @@ export const findSeaPath = (state, from, to, nationId = state.playerNationId) =>
     const owner = state.nations[state.regions[toPort]?.owner];
     return { reason: `No access to the port of ${state.regions[toPort]?.name || 'that city'}${owner ? ` (${owner.name})` : ''}.` };
   }
-  if (!toPort && !seaPassable(tiles, to, ageId)) return { reason: tiles.land[to] ? 'A fleet can only put in at a city.' : tiles.terrainOf(to) === 'lake' ? 'No fleet sails a lake.' : 'The open ocean needs the Age of Gunpowder.' };
-  const starts = fromPort ? portWaters(state, tiles, fromPort).filter((t) => seaPassable(tiles, t, ageId)) : [from];
+  if (!toPort && !seaPassable(tiles, to, ageId, deepTech)) return { reason: tiles.land[to] ? 'A fleet can only put in at a city.' : tiles.terrainOf(to) === 'lake' ? 'No fleet sails a lake.' : 'The open ocean needs the Age of Gunpowder.' };
+  const starts = fromPort ? portWaters(state, tiles, fromPort).filter((t) => seaPassable(tiles, t, ageId, deepTech)) : [from];
   if (!starts.length) return { reason: 'No water in reach of that port.' };
   const goal = toPort ? new Set(portWaters(state, tiles, toPort)) : null;
   const h = (t) => distanceKm(tiles.centres[t], tiles.centres[to]) / KM_PER_RING;
@@ -101,7 +103,7 @@ export const findSeaPath = (state, from, to, nationId = state.playerNationId) =>
     if (id === to || (goal && goal.has(id))) { end = id; break; }
     if (++visited > MAX_SEARCH) break;
     for (const n of tiles.neighbors[id]) {
-      if (!seaPassable(tiles, n, ageId)) continue;
+      if (!seaPassable(tiles, n, ageId, deepTech)) continue;
       const nd = d + 1;
       if (nd < (dist.get(n) ?? Infinity)) { dist.set(n, nd); prev.set(n, id); heapPush(heap, [nd + h(n), nd, n]); }
     }
