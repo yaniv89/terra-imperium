@@ -536,7 +536,7 @@ Scenario starts (one table in `src/data/scenarios.js`):
 
 | Start | Year | Who exists | Land claimed |
 |---|---|---|---|
-| Dawn (default) | 2000 BCE | all 240 as peoples, **one city each (the capital)** | the capital's first ring only, about 6% of land |
+| Dawn (default) | 2000 BCE | all 240 as peoples, **one city each (the capital)** | the capital's first ring only, about 10% of land (measured) |
 | Classical | 800 BCE | all 240 | cores plus ring 2, about 30% |
 | Kingdoms | 500 | all 240 | about 50% |
 | Gunpowder | 1500 | all 240 | about 65% |
@@ -1179,7 +1179,7 @@ Every target is a number the balance-sim prints (new keys added to the skill):
 
 | Target | Value at Normal speed | Why |
 |---|---|---|
-| Land claimed | 15% at start, 50% by 500 CE, 80% by 1800, 100% by 1950 | historical plausibility, room to settle |
+| Land claimed | 10% at start (measured), 50% by 500 CE, 80% by 1800, 100% by 1950 | historical plausibility, room to settle |
 | Cities per nation | median 6 at turn 100, 12 at turn 200; largest under 60 | readable empires, no runaway |
 | Max land share of one nation | under 0.25 at turn 150 | anti-snowball (today's red flag is 0.33) |
 | Wars | 20 to 40 active worldwide per 150 turns, each 5 to 20 turns | a living world without chaos |
