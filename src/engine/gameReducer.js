@@ -1,9 +1,9 @@
 import { orderMarch, cancelRoute } from './routes';
+import { abandonColony, foundColony, validateColony } from './colonies';
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
-import { claimFrontier } from './frontier';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
 // The pure reducer + initial-state factory, extracted from src/context/GameContext.jsx (Phase F,
@@ -2878,8 +2878,19 @@ const reduceAction = (state, action) => {
       return { ...fresh, ...incoming, gameStatus: incoming.gameStatus || GameStatus.ACTIVE };
     }
 
+    // Settling frontier land is a colony that grows over turns (plan §4h, colonies.js).
+    // FRONTIER_EXPEDITION is the older name, kept for saved actions: it founds a colony that
+    // lives alongside the natives.
     case ActionTypes.FRONTIER_EXPEDITION:
-      return claimFrontier(state, action.payload.targetRegionId);
+    case ActionTypes.FOUND_COLONY: {
+      const regionId = action.payload?.regionId ?? action.payload?.targetRegionId;
+      const v = validateColony(state, regionId);
+      if (!v.ok) return reject(state, v.reason);
+      return foundColony(state, regionId, action.payload?.policy || 'coexist');
+    }
+
+    case ActionTypes.ABANDON_COLONY:
+      return abandonColony(state, action.payload?.regionId);
 
     case ActionTypes.RESET_GAME: {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from

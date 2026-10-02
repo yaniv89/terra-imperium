@@ -72,6 +72,7 @@ import { decayAggressiveExpansion } from './expansion';
 import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
+import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
@@ -1083,5 +1084,5 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   mark('victory');
 
   // Research last, once this turn's science has been credited (src/engine/research.js).
-  return applyResearchTurn(reconcileTerritory(processEmergence(next)));
+  return applyResearchTurn(reconcileTerritory(processColonies(processEmergence(next))));
 };

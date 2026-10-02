@@ -41,7 +41,7 @@ export const getVisibleRegionIds = (state) => {
   return visible;
 };
 
-// { armies: [...], fleets: [...], battles: [...] } — one entry per (province, owner, domain).
+// { armies: [...], fleets: [...], battles: [...], colonies: [...] } — one entry per (province, owner, domain).
 export const getMapMarkers = (state) => {
   const me = state.playerNationId;
   const visible = getVisibleRegionIds(state);
@@ -82,7 +82,12 @@ export const getMapMarkers = (state) => {
   const battles = (state.battleReports || [])
     .filter((b) => b.turn >= (state.turnNumber || 0) - 1 && b.targetRegionId && REGIONS_DATA[b.targetRegionId])
     .map((b) => ({ id: b.id, regionId: b.targetRegionId, outcome: b.outcome, playerSide: b.playerSide, won: playerWon(b) }));
-  return { armies, fleets, battles };
+  // Colonies growing on free land (plan §4h): yours always, others where you can see.
+  const colonies = Object.keys(state.regions).filter((id) => state.regions[id].colony && REGIONS_DATA[id]).map((id) => {
+    const c = state.regions[id].colony;
+    return { id, regionId: id, ownerId: c.ownerId, own: c.ownerId === me, progress: c.progress };
+  }).filter((c) => c.own || visible.has(c.regionId) || hasIntel(state, c.ownerId));
+  return { armies, fleets, battles, colonies };
 };
 
 // "12k", "850": short soldier counts for a banner.

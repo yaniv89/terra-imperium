@@ -76,6 +76,12 @@ describe('map markers', () => {
     expect(getMapMarkers(st).battles).toEqual([{ id: 'battle-2', regionId: border, outcome: 'attacker', playerSide: 'attacker', won: true }]);
   });
 
+  it('shows your colonies with their progress, and hides far foreign ones', () => {
+    const { s, mine, far, farOwner } = setup();
+    const st = { ...s, regions: { ...s.regions, [mine]: { ...s.regions[mine], colony: { ownerId: 'fr', progress: 40 } }, [far]: { ...s.regions[far], colony: { ownerId: farOwner, progress: 10 } } } };
+    expect(getMapMarkers(st).colonies).toEqual([{ id: mine, regionId: mine, ownerId: 'fr', own: true, progress: 40 }]);
+  });
+
   it('formats soldier counts and bands', () => {
     expect(shortMen(850)).toBe('850');
     expect(shortMen(1250)).toBe('1.3k');
