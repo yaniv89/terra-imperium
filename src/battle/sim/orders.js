@@ -14,6 +14,7 @@
 //   { side, type: 'power', power, x, y }                // commander power (effects.js)
 //   { side, type: 'garrison', squads, structure }       // man the keep or a tower (objectives.js)
 import { angleBetween, polarX, polarY } from './fixed';
+import { deployZone } from './world';
 import { fieldCap, fieldCount } from './world';
 import { Q, SIDE_ATTACKER, secondsToTicks } from './constants';
 import { activateAbility, firePower } from './effects';
@@ -135,6 +136,20 @@ export const applyOrder = (w, o) => {
         q.order = { type: 'attack' };
         q.targetKind = t.kind; q.target = t.index; q.groupSpeed = 0; q.retreating = false;
       });
+      return;
+    }
+    case 'deploy': {
+      // { x, y } before the first tick only (the deployment phase, plan D5): the squads are set
+      // down at once, in formation, clamped to their side's deployment zone (world.js).
+      if (w.tick !== 0) return;
+      const squads = ids.map((i) => w.squads[i]).filter((q) => q.onField && !(q.inside >= 0));
+      if (!squads.length) return;
+      const zone = deployZone(w, side);
+      const clampX = (x) => Math.max(zone.x0 * Q + (Q >> 1), Math.min(zone.x1 * Q + (Q >> 1), x));
+      const clampY = (y) => Math.max(zone.y0 * Q + (Q >> 1), Math.min(zone.y1 * Q + (Q >> 1), y));
+      const slots = squads.length === 1 ? new Map([[squads[0].idx, { x: o.x, y: o.y }]]) : formationSlots(squads, clampX(o.x), clampY(o.y), o.formation);
+      squads.forEach((q) => { const slot = slots.get(q.idx); q.x = clampX(slot.x); q.y = clampY(slot.y); q.anchorX = q.x; q.anchorY = q.y; q.order = { type: 'idle' }; q.target = -1; q.targetKind = null; });
+      w.events.push({ t: w.tick, type: 'deployed', side, ids: squads.map((q) => q.idx) });
       return;
     }
     case 'stop':

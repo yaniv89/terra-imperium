@@ -86,10 +86,34 @@ export const createWorld = (setup) => {
   return w;
 };
 
+// The deployment zone of a side, in tiles: the attacker's own zone from mapgen (west of the
+// field, the beach for a landing), the defender's the east part of the field up to the keep.
+// A `deploy` order (orders.js) and the templates below never place a squad outside it.
+export const DEFENDER_ZONE_DEPTH = 16;
+export const deployZone = (w, side) => {
+  const { map } = w;
+  if (side === SIDE_ATTACKER) return map.attackerZone || { x0: map.attackerEdge || 1, y0: 2, x1: 11, y1: map.h - 3 };
+  return { x0: Math.max(2, map.keep.x - DEFENDER_ZONE_DEPTH), y0: 2, x1: map.w - 3, y1: map.h - 3 };
+};
+
+// Where each side's lines stand before the battle, by battle type (plans/civ-map-rework.md D5,
+// the AI's deployment templates): { front, back } tile x per side, and 'column' for an attacker
+// that must enter an ambush in file. The default is the field template.
+const DEPLOY_TEMPLATES = {
+  field: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
+  river: { attacker: (w, e) => [Math.min(e + 7, Math.floor(w.map.w / 2) - 3), e + 3], defender: (w) => [Math.floor(w.map.w / 2) + 2, Math.floor(w.map.w / 2) + 5] }, // the defender holds the far bank
+  ambush: { attacker: (w, e) => [e + 4, e + 2], defender: (w) => [w.map.keep.x - 14, w.map.keep.x - 11], column: true }, // the defender waits forward in cover; the attacker enters in file
+  assault: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 6, w.map.keep.x - 3] }, // the garrison keeps close to its walls
+  sally: { attacker: (w, e) => [e + 6, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
+  landing: { attacker: (w, e) => [e + 3, e + 1], defender: (w) => [w.map.keep.x - 8, w.map.keep.x - 4] } // on the sand; the defender a little inland
+};
+export const deployTemplate = (type) => DEPLOY_TEMPLATES[type] || DEPLOY_TEMPLATES.field;
+
 // Place each side's front line in formation; reserves wait off-map.
 const spawnSides = (w) => {
   const { setup, map } = w;
   const midY = Math.floor(map.h / 2);
+  const template = deployTemplate(setup.battleType);
   [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
     const s = setup.sides[side];
     const { front, reserve } = splitFrontAndReserve(s.units.filter((u) => u.strength > 0), setup.combatWidth);
@@ -97,13 +121,17 @@ const spawnSides = (w) => {
     const melee = squads.filter((q) => !isBackLine(q.stats));
     const back = squads.filter((q) => isBackLine(q.stats));
     const edge = map.attackerEdge || 1; // a landing deploys on the beach, not in the sea
-    const frontX = side === SIDE_ATTACKER ? edge + 7 : map.keep.x - 10;
-    const backX = side === SIDE_ATTACKER ? edge + 3 : map.keep.x - 6;
+    const [frontX, backX] = side === SIDE_ATTACKER ? template.attacker(w, edge) : template.defender(w);
+    const zone = deployZone(w, side);
+    const column = side === SIDE_ATTACKER && template.column;
     [[melee, frontX], [back, backX]].forEach(([line, x]) => {
       line.forEach((q, i) => {
         const offset = Math.round((i - (line.length - 1) / 2) * 3);
-        q.x = tileCenter(x);
-        q.y = tileCenter(Math.max(2, Math.min(map.h - 3, midY + offset)));
+        // In column the squads file up along x behind the lead; in line they spread along y.
+        const tx = column ? x - Math.abs(offset) : x;
+        const ty = column ? midY + (offset > 0 ? 1 : offset < 0 ? -1 : 0) : midY + offset;
+        q.x = tileCenter(Math.max(zone.x0, Math.min(zone.x1, tx)));
+        q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, ty)));
         q.onField = true;
         q.anchorX = q.x; q.anchorY = q.y;
       });

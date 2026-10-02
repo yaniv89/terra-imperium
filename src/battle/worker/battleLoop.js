@@ -5,6 +5,7 @@
 // (setup + log = the whole battle), and posts compact render frames, checkpoints and the result.
 import { createWorld } from '../sim/world';
 import { step } from '../sim/step';
+import { applyOrder } from '../sim/orders';
 import { toStrategicResult } from '../sim/result';
 import { worldHash } from '../sim/hash';
 import { TICK_HZ } from '../sim/constants';
@@ -46,7 +47,14 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
     pushOrders(orders) {
       // Orders always take effect on the next tick to be simulated — never in the past — which
       // is exactly how the replay applies them, so live play and replay agree.
-      orders.forEach((o) => { const stamped = { ...o, tick: world.tick, seq: seq++ }; pending.push(stamped); log.push(stamped); });
+      orders.forEach((o) => {
+        const stamped = { ...o, tick: world.tick, seq: seq++ };
+        log.push(stamped);
+        // A deployment (before the first tick) is set down at once so the paused frame shows it;
+        // the replay applies the same logged order at tick 0 before stepping, to the same effect.
+        if (o.type === 'deploy' && world.tick === 0) { applyOrder(world, stamped); world.events.length = 0; return; }
+        pending.push(stamped);
+      });
       if (paused) post({ type: 'frame', view: makeRenderView(world, pending, playerSide, false), alpha: 1, events: [] });
     },
     setPaused(p) { paused = p; last = null; },
