@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
+import { SUPPLY_MAX, SUPPLY_ENEMY_LOSS, SUPPLY_HOME_GAIN, STARVE_STRENGTH } from './supplyMeter';
 import { createInitialState, gameReducer } from '../context/GameContext';
 import { GameStatus, ActionTypes, LogTypes } from '../data/types';
 import { getYearsPerTurn, getCalendarAgeId, END_YEAR } from '../data/ages';
@@ -535,80 +536,56 @@ describe('resolveTurn revolt end conditions (conquered territory)', () => {
   });
 });
 
-describe('resolveTurn supply attrition', () => {
-  it('bleeds strength from a unit stationed beyond its nation\'s supply reach', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
-    // 'us' is 9 land hops from France — beyond even a maxed-out region's supply range (up to 6).
-    const farUnit = {
-      id: 'u_far', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
-      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
-    };
-    const state = { ...base, units: { u_far: farUnit } };
+describe('resolveTurn supply meter (plans/civ-map-rework.md D3)', () => {
+  const unitAt = (id, regionId, extra = {}) => ({
+    id, regionId, ownerId: 'fr', domain: 'land', classId: 'infantry',
+    strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null, ...extra
+  });
+  const atWar = (s, enemy) => ({ ...s, wars: [...s.wars, { id: 'w-sup', aggressor: 'fr', enemy, active: true, startYear: s.year }] });
+
+  it('drains the meter of a unit deep in enemy land and starves it at zero', () => {
+    const base = atWar(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'us');
+    const state = { ...base, units: { u_far: unitAt('u_far', cap('us')) } };
     const next = resolveTurn(state);
-    expect(next.units.u_far.strength).toBeLessThan(1000);
+    expect(next.units.u_far.supply).toBe(SUPPLY_MAX - SUPPLY_ENEMY_LOSS);
+    expect(next.units.u_far.strength).toBe(1000);
+    const starved = resolveTurn({ ...state, units: { u_far: unitAt('u_far', cap('us'), { supply: 5 }) } });
+    expect(starved.units.u_far.supply).toBe(0);
+    expect(starved.units.u_far.strength).toBe(Math.floor(1000 * (1 - STARVE_STRENGTH)));
+    expect(starved.units.u_far.morale).toBeLessThan(100);
   });
 
-  it('does not bleed a unit stationed on its own nation\'s territory', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
-    const homeUnit = {
-      id: 'u_home', regionId: cap('fr'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
-      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
-    };
-    const state = { ...base, units: { u_home: homeUnit } };
-    const next = resolveTurn(state);
+  it('keeps a unit at home full, and refills one that comes home', () => {
+    const base = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
+    const next = resolveTurn({ ...base, units: { u_home: unitAt('u_home', cap('fr'), { supply: 50 }) } });
+    expect(next.units.u_home.supply).toBe(50 + SUPPLY_HOME_GAIN);
     expect(next.units.u_home.strength).toBe(1000);
   });
 
-  it('does not bleed embarked cargo directly — it shares its transport\'s supply state', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
-    const cargoUnit = {
-      id: 'u_cargo', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
-      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: 'u_ship'
-    };
-    const state = { ...base, units: { u_cargo: cargoUnit } };
-    const next = resolveTurn(state);
+  it('does not touch embarked cargo (it shares its transport\'s supply)', () => {
+    const base = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
+    const next = resolveTurn({ ...base, units: { u_cargo: unitAt('u_cargo', cap('us'), { embarkedOn: 'u_ship', supply: 5 }) } });
     expect(next.units.u_cargo.strength).toBe(1000);
+    expect(next.units.u_cargo.supply).toBe(5);
   });
 
-  it('removes a unit whose strength is fully consumed by attrition', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
-    const weakUnit = {
-      id: 'u_weak', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
-      strength: 1, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
-    };
-    const state = { ...base, units: { u_weak: weakUnit } };
-    const next = resolveTurn(state);
+  it('removes a starving unit whose strength is gone', () => {
+    const base = atWar(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'us');
+    const next = resolveTurn({ ...base, units: { u_weak: unitAt('u_weak', cap('us'), { strength: 1, supply: 0 }) } });
     expect(next.units.u_weak).toBeUndefined();
   });
 
-  // Plan §M7: Paved Roads/Highway Systems reduce attrition (national.attrition), read only for the
-  // player (AI nations don't track a techTree until M16) — see resolveTurn.js's own comment on why
-  // this is gated, not a blanket getModifier call across all ~240 nations every turn.
-  it('bleeds less strength from an out-of-supply unit once Paved Roads is researched', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
-    const farUnit = {
-      id: 'u_far', regionId: cap('us'), ownerId: 'fr', domain: 'land', classId: 'infantry', ageId: 'bronze',
-      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
-    };
-    const withoutTech = { ...base, units: { u_far: farUnit } };
-    const withTech = { ...withoutTech, techTree: { ...base.techTree, infrastructure_paved_roads: { ...base.techTree.infrastructure_paved_roads, researched: true } } };
-    const nextWithout = resolveTurn(withoutTech);
-    const nextWith = resolveTurn(withTech);
-    expect(nextWith.units.u_far.strength).toBeGreaterThan(nextWithout.units.u_far.strength);
-  });
-
-  it('never applies a supplyRange/attrition bonus for an AI-owned unit, even if the player has researched one', () => {
-    const base = createInitialState({ playerNationId: 'fr' });
+  it('a Forager loses less, and Paved Roads (national.attrition) slow the drain for the player only', () => {
+    const base = atWar(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'us');
+    const forager = resolveTurn({ ...base, units: { u: unitAt('u', cap('us'), { promotions: ['forager'] }) } });
+    expect(forager.units.u.supply).toBe(SUPPLY_MAX - SUPPLY_ENEMY_LOSS / 2);
     const withTech = { ...base, techTree: { ...base.techTree, infrastructure_paved_roads: { ...base.techTree.infrastructure_paved_roads, researched: true } } };
-    const aiFarUnit = {
-      id: 'u_ai_far', regionId: cap('au'), ownerId: 'de', domain: 'land', classId: 'infantry', ageId: 'bronze', // Canberra: nowhere near German supply
-      strength: 1000, maxStrength: 1000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, transportCapacity: null, embarkedOn: null
-    };
-    const state = { ...withTech, units: { u_ai_far: aiFarUnit } };
-    const next = resolveTurn(state);
-    // Germany's own unit, sitting on French soil, is still out of ITS OWN supply and takes the
-    // full, un-discounted attrition rate — the player's tech never leaks onto another nation.
-    expect(next.units.u_ai_far.strength).toBeLessThan(1000);
+    const plain = resolveTurn({ ...base, units: { u: unitAt('u', cap('us')) } });
+    const paved = resolveTurn({ ...withTech, units: { u: unitAt('u', cap('us')) } });
+    expect(paved.units.u.supply).toBeGreaterThan(plain.units.u.supply);
+    // Germany's unit on Australian soil, at war, drains at the full rate whatever France researched.
+    const german = { ...withTech, wars: [...withTech.wars, { id: 'w-de', aggressor: 'de', enemy: 'au', active: true, startYear: base.year }], units: { u_ai: unitAt('u_ai', cap('au'), { ownerId: 'de' }) } };
+    expect(resolveTurn(german).units.u_ai.supply).toBe(SUPPLY_MAX - SUPPLY_ENEMY_LOSS);
   });
 });
 
@@ -719,26 +696,24 @@ describe('resolveTurn movement reset, reinforcement, and morale recovery (plan �
     expect(next.units.u_ai.strength).toBeGreaterThan(500);
   });
 
-  it('the Forager perk halves out-of-supply attrition', () => {
+  it('the Forager perk halves the supply drain abroad', () => {
     const base = createInitialState({ playerNationId: 'fr' });
-    const plain = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
-    const withForager = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), promotions: ['forager'] }) } };
-    const plainStrength = resolveTurn(plain).units.u1.strength;
-    const foragerStrength = resolveTurn(withForager).units.u1.strength;
-    expect(foragerStrength).toBeGreaterThan(plainStrength);
+    const war = { ...base, wars: [...base.wars, { id: 'w-f', aggressor: 'fr', enemy: 'us', active: true, startYear: base.year }] };
+    const plain = { ...war, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
+    const withForager = { ...war, units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), promotions: ['forager'] }) } };
+    expect(resolveTurn(withForager).units.u1.supply).toBeGreaterThan(resolveTurn(plain).units.u1.supply);
   });
 
-  it('a logistician-commanded unit also takes half attrition', () => {
+  it('a logistician-commanded unit also loses half its supply', () => {
     const base = createInitialState({ playerNationId: 'fr' });
-    const plain = { ...base, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
+    const war = { ...base, wars: [...base.wars, { id: 'w-l', aggressor: 'fr', enemy: 'us', active: true, startYear: base.year }] };
+    const plain = { ...war, units: { u1: makeUnit({ strength: 1000, regionId: cap('us') }) } };
     const withLogistician = {
-      ...base,
+      ...war,
       units: { u1: makeUnit({ strength: 1000, regionId: cap('us'), commanderId: 'g1' }) },
       hiredCommanders: { g1: { id: 'g1', nationId: 'fr', name: 'Test', martial: 3, shock: 3, fire: 3, maneuver: 3, personality: 'logistician', assignedUnitId: 'u1' } }
     };
-    const plainStrength = resolveTurn(plain).units.u1.strength;
-    const logisticianStrength = resolveTurn(withLogistician).units.u1.strength;
-    expect(logisticianStrength).toBeGreaterThan(plainStrength);
+    expect(resolveTurn(withLogistician).units.u1.supply).toBeGreaterThan(resolveTurn(plain).units.u1.supply);
   });
 });
 

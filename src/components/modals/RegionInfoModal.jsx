@@ -37,6 +37,7 @@ import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
 import { startMarch } from '../map/marchEvents';
 import { placeName } from '../../engine/routes';
+import { supplyOf } from '../../engine/supplyMeter';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -665,6 +666,7 @@ const UnitLine = ({ unit, age, commander }) => {
       <div className="text-right font-mono text-[10px] text-slate-400 shrink-0">
         <div>{unit.strength}/{unit.maxStrength}</div>
         <div>MOR {unit.morale}</div>
+        {unit.domain !== 'naval' && <div className={supplyOf(unit) < 30 ? 'text-red-400' : ''} title="Supply">SUP {supplyOf(unit)}</div>}
       </div>
     </div>
   );

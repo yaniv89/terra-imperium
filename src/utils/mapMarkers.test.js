@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../engine/gameReducer';
-import { REGIONS_DATA, getNeighborIds } from '../data/regions';
-import { getMapMarkers, getVisibleRegionIds, shortMen, sizeBand } from './mapMarkers';
+import { getMapMarkers, shortMen, sizeBand } from './mapMarkers';
+import { visibleTiles } from '../engine/sight';
+import { getTiles } from '../data/geo/tiles';
 
 const fresh = () => createInitialState({ playerNationId: 'fr', rngSeed: 5 });
 const unit = (id, ownerId, regionId, extra = {}) => ({ id, ownerId, regionId, classId: 'infantry', domain: 'land', strength: 100, maxStrength: 100, morale: 80, movesLeft: 1, embarkedOn: null, ...extra });
@@ -11,11 +12,12 @@ const onlyUnits = (s, list) => ({ ...s, units: Object.fromEntries(list.map((u) =
 const setup = () => {
   const s = fresh();
   const mine = Object.keys(s.regions).find((id) => s.regions[id].owner === 'fr');
-  const visible = getVisibleRegionIds(s);
-  const border = Object.keys(s.regions).find((id) => s.regions[id].owner !== 'fr' && s.regions[id].owner && visible.has(id));
+  // Sight is by tile (sight.js): a foreign city whose centre France can see, and one it cannot.
+  const sight = visibleTiles(s, 'fr');
+  const border = Object.keys(s.regions).find((id) => s.regions[id].owner !== 'fr' && s.regions[id].owner && sight.has(s.regions[id].tile));
   const far = Object.keys(s.regions).find((id) => {
     const o = s.regions[id].owner;
-    return o && o !== 'fr' && !visible.has(id) && !s.nations[o]?.hasMilitaryPact && s.nations[o]?.vassalOf !== 'fr';
+    return o && o !== 'fr' && !sight.has(s.regions[id].tile) && !s.nations[o]?.hasMilitaryPact && s.nations[o]?.vassalOf !== 'fr';
   });
   return { s, mine, border, far, farOwner: s.regions[far].owner, borderOwner: s.regions[border].owner };
 };
@@ -50,8 +52,10 @@ describe('map markers', () => {
     const { s, far, farOwner } = setup();
     const st = onlyUnits(s, [unit('y', farOwner, far, { strength: 1500 })]);
     expect(getMapMarkers(st).armies).toHaveLength(0);
-    const neighbour = getNeighborIds(far).find((n) => REGIONS_DATA[n]);
-    const scouted = onlyUnits(s, [unit('y', farOwner, far, { strength: 1500 }), unit('me', 'fr', neighbour)]);
+    // A French scout two tiles from the far city sees the army there.
+    const tiles = getTiles();
+    const lookout = tiles.neighbors[tiles.neighbors[s.regions[far].tile].find((t) => tiles.land[t])].find((t) => tiles.land[t] && !s.world.tileOwner[t]);
+    const scouted = onlyUnits(s, [unit('y', farOwner, far, { strength: 1500 }), unit('me', 'fr', 'c0', { regionId: Object.keys(s.regions).find((id) => s.regions[id].owner === 'fr'), tile: lookout })]);
     expect(getMapMarkers(scouted).armies.some((a) => a.regionId === far)).toBe(true);
     const intel = { ...st, intel: { [farOwner]: (s.turnNumber || 1) + 3 } };
     const seen = getMapMarkers(intel).armies.find((a) => a.regionId === far);
