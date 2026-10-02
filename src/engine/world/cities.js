@@ -154,7 +154,27 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
 
 // ---------------------------------------------------------------------------------------------
 // Yields and allocation
-const yieldsOfTile = (tiles, world, id, researched) => tileYields(tileFacts(tiles, id, world.tileState[id]), researched);
+// A tile's facts and yields change only with its sparse state entry and the owner's researched
+// list: both are memoised on those identities, so the thousands of tiles a turn cost one
+// computation each (and none when nothing changed since the last turn).
+const factsMemo = new Map(); // tile -> { dyn, facts }
+const yieldMemo = new Map(); // tile -> { dyn, researched, y }
+const factsOf = (tiles, world, id) => {
+  const dyn = world.tileState[id];
+  const hit = factsMemo.get(id);
+  if (hit && hit.dyn === dyn) return hit.facts;
+  const facts = tileFacts(tiles, id, dyn);
+  factsMemo.set(id, { dyn, facts });
+  return facts;
+};
+const yieldsOfTile = (tiles, world, id, researched) => {
+  const dyn = world.tileState[id];
+  const hit = yieldMemo.get(id);
+  if (hit && hit.dyn === dyn && hit.researched === researched) return hit.y;
+  const y = tileYields(factsOf(tiles, world, id), researched);
+  yieldMemo.set(id, { dyn, researched, y });
+  return y;
+};
 
 export const housingOf = (city, researched = []) => {
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
@@ -224,9 +244,9 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const cultureTier = (city.buildings?.categories?.culture ?? -1) + 1;
   const culture = Math.round((CULTURE_BASE + palace.culture + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier) * 10) / 10;
   const strategic = {};
-  worked.forEach((t) => { const s = strategicSupply(tileFacts(tiles, t, world.tileState[t]), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
+  worked.forEach((t) => { const s = strategicSupply(factsOf(tiles, world, t), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
   const luxuries = new Set();
-  worked.forEach((t) => { const f = tileFacts(tiles, t, world.tileState[t]); const r = RESOURCES_ON_TILES[f.resource]; if (r?.kind === 'luxury' && f.improvement === r.improvement && !f.pillaged) luxuries.add(f.resource); });
+  worked.forEach((t) => { const f = factsOf(tiles, world, t); const r = RESOURCES_ON_TILES[f.resource]; if (r?.kind === 'luxury' && f.improvement === r.improvement && !f.pillaged) luxuries.add(f.resource); });
   return { food, production, gold, science, culture, strategic, luxuries: [...luxuries].sort(), raw: sum };
 };
 

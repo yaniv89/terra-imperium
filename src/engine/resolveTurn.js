@@ -43,7 +43,7 @@ import {
 import { createRng } from '../utils/rng';
 import { processCities, sizeToPeople } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
-import { chooseProduction } from './aiProduction';
+import { chooseProduction, nationCounts } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
 import { getTiles } from '../data/geo/tiles';
 import { getResearched, getTechAgeId } from './nationState';
@@ -128,13 +128,15 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     }
     return ctxCache.get(nid);
   };
-  // AI cities with nothing queued pick something first (aiProduction.js).
+  // AI cities with nothing queued pick something first (aiProduction.js). One copy of the map,
+  // one set of nation counts: never a spread per city.
   let cities = state.regions;
+  const counts = nationCounts(state);
   Object.values(state.regions).forEach((city) => {
     if (!city.owner || city.owner === state.playerNationId || city.outpost || city.production?.current) return;
     const ctx = ctxFor(city);
-    const item = chooseProduction(state, city, { ...ctx, units: state.units });
-    if (item) cities = { ...cities, [city.id]: { ...city, production: { ...city.production, current: item } } };
+    const item = chooseProduction(state, city, { ...ctx, units: state.units, counts: counts[city.owner] });
+    if (item) { if (cities === state.regions) cities = { ...cities }; cities[city.id] = { ...city, production: { ...city.production, current: item } }; }
   });
   const world = { cities, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
   const result = processCities(world, tiles, ctxFor);
