@@ -24,7 +24,7 @@ import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { getTiles } from '../data/geo/tiles';
-import { touchesCity, unitTile } from './armies';
+import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
@@ -40,19 +40,19 @@ export const isUnitInBattle = (state, unitId) => {
   return [...(pb.attackerReinforcements || []), ...(pb.defenderReinforcements || [])].some((src) => src.unitIds.includes(unitId));
 };
 
-// Idle land troops in provinces next to the battle that a side could call in as reinforcements
-// (RoN Conquer the World): owned by that nation, in land it owns and actually holds, with their
-// move still available, not already in the battle and not aboard a ship.
-export const getReinforcementSources = (state, targetRegionId, nationId, excludeRegionIds = []) => getNeighborIds(targetRegionId)
-  .filter((rid) => !excludeRegionIds.includes(rid))
-  .filter((rid) => state.regions[rid]?.owner === nationId && !state.regions[rid]?.occupiedBy)
-  .map((rid) => ({
-    regionId: rid,
-    unitIds: Object.values(state.units)
-      .filter((u) => u.regionId === rid && u.ownerId === nationId && u.domain === 'land' && !u.embarkedOn && (u.movesLeft ?? 1) > 0 && u.strength > 0)
-      .map((u) => u.id)
-  }))
-  .filter((src) => src.unitIds.length > 0);
+// Idle land troops near the battle that a side could call in as reinforcements (RoN Conquer the
+// World): owned by that nation, standing within REINFORCE_RINGS tiles of the city's centre (not in
+// the city itself, not in an excluded region such as the attack's origin), with their move still
+// available and not aboard a ship. Grouped by the region they belong to, for the battlefield edge.
+export const getReinforcementSources = (state, targetRegionId, nationId, excludeRegionIds = []) => {
+  const centre = state.regions[targetRegionId]?.tile;
+  if (centre == null) return [];
+  const byRegion = new Map();
+  unitsWithinRings(state, centre, nationId, REINFORCE_RINGS)
+    .filter((u) => u.domain === 'land' && (u.movesLeft ?? 1) > 0 && u.regionId !== targetRegionId && !excludeRegionIds.includes(u.regionId))
+    .forEach((u) => { const rid = u.regionId; if (!byRegion.has(rid)) byRegion.set(rid, []); byRegion.get(rid).push(u.id); });
+  return [...byRegion].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([regionId, unitIds]) => ({ regionId, unitIds }));
+};
 
 // The commander powers a nation brings into a battle, from what it really has (Tactical Battles
 // plan §8.8): everyone can rally; the arrow storm belongs to the early ages; artillery needs a
