@@ -752,10 +752,32 @@ cost at distance (Civ VI's best anti-snowball). AE stays as the diplomatic cost.
    wars for cores have no AE.
 2. **War goals are cities**: conquer city X, liberate city Y for an ally, humiliate, subjugate.
    War score adds occupied cities weighted by size, battles won, and plundered routes.
-3. **Opinion with itemised reasons** replaces the single hostility number. Reasons are a list
-   with decay: border friction (-1 per shared border tile over 5), settled near me, same
-   religion/identity, trade partner, allied, declared war on my friend, broke a truce, gave a
-   gift. The panel shows the list. The AI uses the same list to decide.
+3. **Opinion with itemised reasons** replaces the single hostility number (-100 to +100).
+   Reasons are a list with their own decay; the panel shows the list; the AI uses the same
+   list to decide. The table is data (`src/data/opinion.js`):
+
+   | Reason | Value | Decay |
+   |---|---|---|
+   | Shared border tiles over 5 | -1 each, max -20 | none while true |
+   | You settled within 4 tiles of my city | -15 per city | -1 a turn |
+   | You hold a city with my culture majority | -10 per city | none while true |
+   | You have a claim on my city | -10 per claim | none while true |
+   | Trade route between us | +5 per route, max +15 | none while true |
+   | Open borders, alliance, defensive pact | +10, +25, +15 | none while true |
+   | Royal marriage | +15 | none while true |
+   | Gift | +10 to +25 by size | -1 a turn |
+   | Same identity lean (all three axes) | +5 per axis | none while true |
+   | You declared war on my ally or vassal | -40 | -1 a turn |
+   | You broke a truce | -50 | -1 a turn, and a floor of -20 for 50 turns |
+   | Aggressive expansion (AE) | -1 per AE point above 20 | with AE |
+   | You razed a city | -30 to every nation within 10 tiles | -1 a turn |
+   | Rival | -30 | none while true |
+   | Liberated a city for me | +40 | -1 a turn |
+   | Insult | -30 | -1 a turn |
+
+   The AI's war roll multiplies by `max(0, (20 - opinion) / 60)`, so a friend never gets a
+   surprise war and an enemy at -60 is at the full roll. Alliance offers need +40, trade +10,
+   open borders +20. These replace `hostility`, `hostilityFloor` and `ALLIANCE_HOSTILITY_CEILING`.
 4. **Trade routes need access**: open borders (a pact) to route through, else the route is
    blocked at the border. Embargo as an action.
 5. **Demands and ultimatums**: demand tribute, demand a city with a claim, demand to stop
@@ -1127,6 +1149,22 @@ prompt, no modal lectures.
 Difficulty: AI reserves, how far it plans, how fast it reacts, and the dice calibration out of
 sight. No yield bonuses above Prince; above it, small yield bonuses as in Civ, shown openly.
 
+**Turn budget (target 150 ms at turn 100 on the sandbox, measured per phase with `PERF_CHECKS`):**
+
+| Phase | Loop size | Budget | How it stays inside |
+|---|---|---|---|
+| Cities (yields, growth, queue, borders, loyalty, governor) | up to 2,000 cities | 50 ms | pure per-city arithmetic over at most 19 tiles each; neighbour lists cached; no allocation per tile |
+| Armies and supply | hundreds of armies | 10 ms | routes precomputed when ordered; one step per turn |
+| Sieges and in-sight AI battles | tens | 10 ms | auto-resolve shares the existing `resolveBattle` |
+| Fronts (AI at war) | 10 to 40 nations | 30 ms | A* capped at 400 nodes per route, 3 routes per nation per turn, paths cached until blocked |
+| Settler and economy planners | 80 nations per turn (every 3 turns each) | 15 ms | candidate tiles limited to ring 6 around owned cities |
+| Diplomacy and politics | Tier 1 every turn, 80 others | 15 ms | opinion reasons updated incrementally (events push, decay is a scalar per pair) |
+| Out-of-sight war dice | pairs at war | 5 ms | one roll per contested city |
+| Research, succession, events, victory, audit | nations | 15 ms | unchanged |
+
+If a phase exceeds its budget on the sandbox the fix is in that phase, never a global cap on
+how many nations think.
+
 ---
 
 # Part H. Balance targets and how they are checked
@@ -1255,6 +1293,11 @@ the pacing table before the long tail.
 8. **What is lost.** Development points as a currency, control %, the trade pact as the only
    trade, HR as a pool, region names for places that are now tiles. Each was reviewed above as
    not worth keeping. ADM/DIP/MIL stay for politics and diplomacy only.
+9. **Deliberately left out of this plan**, each a follow-up with its own plan: religion as a
+   system (the identity axes and the Religion building line stand in for it; a religion lens
+   and spread would be the next CK3-style layer), great people, espionage on tiles (spies as
+   units), weather and seasons on tiles, a world congress, naval tactical battles (auto-resolve
+   first), and multiplayer beyond the existing submitted-turns mode.
 
 ## J2. Decisions for you
 
@@ -1297,3 +1340,39 @@ removed), `src/engine/aiEconomy.js` and `src/utils/aiLogic.js` (merged into `src
 `src/battle/setup/mapgen.js` and `buildBattleSetup.js` (tile context, battle types),
 `src/components/map/*` and `globe/*` (hex rendering), `src/components/modals/ProvinceModal.jsx`
 (replaced by sheets), `scripts/simulate.mjs` and the balance-sim skill (new keys).
+
+## Appendix 3. Glossary
+
+| Term | Meaning in this plan |
+|---|---|
+| Tile | one cell of the geodesic hex grid, about 18,000 km², with static terrain, features, river edges and resources |
+| City | the unit of economy, population, production, recruitment and borders; stands on a tile |
+| Size | a city's citizens (1 to 30); the simulated variable; works that many tiles |
+| Population | people, derived from size, age and buildings, for display and score |
+| Border | the tiles a city owns; a nation's border is the union of its cities' tiles |
+| Core | a nation's starting city sites at the Dawn start; also a city held long enough to be claimed without AE |
+| Outpost | a freshly founded city during its colony progress phase |
+| Wilderness | land no city owns; natives may live there |
+| Loyalty | a city's attachment to its owner, driven by culture pressure; at 0 the city flips |
+| Authority | the merged stability and legitimacy meter of a nation, with a breakdown |
+| Manpower | the regenerating pool of recruitable people, from city sizes and the conscription law |
+| Supply | an army's provisioning meter, filled inside borders and on supply lines, drained abroad |
+| ZOC | zone of control: adjacent enemy armies and forts stop movement |
+| Claim | a diplomatic right to a specific city, giving a casus belli |
+| Opinion | one nation's view of another, a sum of listed reasons |
+| Lens | a map overlay that shows one kind of information (yields, trade, threat, supply, loyalty) |
+| Next prompt | the pill that cycles through things that need the player's attention before End Turn |
+
+## Appendix 4. Table of contents
+
+Part A reviews (A1 map, A2 economy, A3 population, A4 research, A5 politics, A6 succession,
+A7 diplomacy, A8 army, A9 settlers, A10 battles, A11 AI, A12 events, A13 UX, A14 engine,
+A15 scorecard). Part B designs the map (B1 goals, B2 grid, B3 cities, B4 borders, B5 zoom,
+B6 the Dawn world and scenario starts, B7 deletions). Part C reworks the macro systems (C1
+economy, C2 population, C3 research, C4 politics, C5 loyalty, C6 diplomacy, C7 settlers, C8
+characters, C9 events and wonders, C10 victory). Part D is war (D1 armies, D2 sieges, D3
+supply, D4 recruitment, D5 battle types, D5b naval and air, D6 AI fronts). Part E is UI (E1
+inputs, E2 layouts, E3 next prompt, E4 sheets, E5 lenses, E6 map affordances, E7 battle UI, E8
+wireframes, E9 onboarding). Part F data and performance, G the AI layers and turn budget, H
+balance targets, I the order of work, I2 pacing, K tests per workstream, L the thin slice, J
+risks and decisions, then the appendices.
