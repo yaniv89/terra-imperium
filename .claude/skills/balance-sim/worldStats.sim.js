@@ -9,6 +9,9 @@ import { createInitialState, gameReducer } from '../../../src/context/GameContex
 import { ActionTypes, GameStatus } from '../../../src/data/types';
 import { HISTORICAL_EVENTS } from '../../../src/data/events';
 import { auditGameState } from '../../../src/engine/stateAudit';
+import { getTiles } from '../../../src/data/geo/tiles';
+
+const LAND_TILES = (() => { const t = getTiles(); let n = 0; for (let i = 0; i < t.count; i++) if (t.land[i] === 1) n += 1; return n; })();
 
 const TURNS = Number(process.env.TURNS || 150);
 const EVERY = Number(process.env.EVERY || 50);
@@ -39,6 +42,10 @@ const snapshot = (s, t, counters, ms) => {
     pactMembers: nations.filter((n) => n.defensivePact).length, leaguesFormed: counters.leagues,
     vassals: vassals.length, avgLibertyDesire: +(vassals.reduce((a, n) => a + (n.libertyDesire || 0), 0) / Math.max(1, vassals.length)).toFixed(1),
     conquests: counters.conquests, devastatedProvinces: dev.length,
+    // The tile world (plans/civ-map-rework.md Part H): land claimed, cities, hands changed, flips.
+    cities: regs.length, landClaimedPct: +(100 * Object.keys(s.world?.tileOwner || {}).filter((t) => getTiles().land[t] === 1).length / LAND_TILES).toFixed(1),
+    citiesChangedHands: counters.changedHands, loyaltyFlips: counters.flips, freeCities: regs.filter((r) => r.owner === null && r.freeCity).length,
+    sieges: regs.filter((r) => r.siege?.by).length, armiesOnRoad: Object.values(s.units).filter((u) => u.route?.length).length,
     maxProvinceShare: +(Math.max(...Object.entries(counts).filter(([o]) => o !== 'null').map(([, c]) => c)) / regs.length).toFixed(3),
     // Land growth: the biggest and the median living nation, and the land nobody holds yet.
     topNationProvinces: Math.max(...Object.entries(counts).filter(([o]) => o !== 'null').map(([, c]) => c)),
@@ -60,8 +67,9 @@ SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...(SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0 };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0 };
     let last;
+    let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
     let t0 = performance.now(); let turnsSince = 0;
     for (let t = 1; t <= TURNS && s.gameStatus === GameStatus.ACTIVE; t++) {
       if (s.pendingPeaceOffer) s = gameReducer(s, { type: s.pendingPeaceOffer.terms?.length ? ActionTypes.REJECT_PENDING_PEACE : ActionTypes.ACCEPT_PENDING_PEACE });
@@ -72,6 +80,11 @@ SEEDS.forEach((seed) => {
       s.logs.slice(before).forEach((l) => {
         if (/defensive league/.test(l.message)) counters.leagues += 1;
         if (/conquers|is conquered|storms/.test(l.message)) counters.conquests += 1;
+      });
+      // Cities that changed hands this turn; the ones that did so without a conquest are loyalty flips.
+      Object.values(s.regions).forEach((r) => {
+        if (owners[r.id] !== undefined && owners[r.id] !== r.owner) { counters.changedHands += 1; if (!r.conquest || r.conquest.turn !== s.turnNumber) counters.flips += 1; }
+        owners[r.id] = r.owner;
       });
       if (t % EVERY === 0 || t === TURNS) {
         last = snapshot(s, t, counters, (performance.now() - t0) / turnsSince);
