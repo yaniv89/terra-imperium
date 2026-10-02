@@ -17,6 +17,7 @@
 // -40 or less gives a casus belli (diplomacy.js). Pure; cached per (nations, regions, world).
 import { getTiles } from '../data/geo/tiles';
 import { IDENTITY_AXES, leansNegative, leansPositive } from '../data/identity';
+import { lawRulesOf } from './lawRules';
 import {
   OPINION_MIN, OPINION_MAX, OPINION_BASELINE, GRUDGE_PER_HOSTILITY, BORDER_FREE_TILES, BORDER_PER_TILE, BORDER_MAX, SETTLED_NEAR_RINGS, SETTLED_NEAR,
   HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, RIVAL, VASSAL_OF_YOU,
@@ -86,7 +87,11 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   const hostility = b === state.playerNationId ? (A.hostility || 0) : 0; // the grudge ledger is kept towards the player
   if (hostility) out.push({ id: 'grudge', label: 'Past grievances', value: -GRUDGE_PER_HOSTILITY * hostility, detail: `hostility ${hostility}` });
   out.push(...mapReasons(state, a, b));
-  if (b === state.playerNationId && A.hasTradeAgreement) out.push({ id: 'trade', label: 'Trade between us', value: Math.min(TRADE_MAX, TRADE_ROUTE) });
+  if (b === state.playerNationId && A.hasTradeAgreement) {
+    out.push({ id: 'trade', label: 'Trade between us', value: Math.min(TRADE_MAX, TRADE_ROUTE) });
+    const tradeLaw = lawRulesOf(B).partnerOpinion; // Mercantilism -5, Free Trade +15, Autarky -20 (lawRules.js)
+    if (tradeLaw) out.push({ id: 'tradeLaw', label: tradeLaw > 0 ? 'Your open markets' : 'Your trade barriers', value: tradeLaw });
+  }
   if (b === state.playerNationId && A.hasMilitaryPact) out.push({ id: 'alliance', label: 'Allied', value: ALLIANCE });
   if (A.openBordersWith?.[b] || B.openBordersWith?.[a]) out.push({ id: 'openBorders', label: 'Open borders', value: OPEN_BORDERS });
   if (A.defensivePact && B.defensivePact && A.defensivePact.against === B.defensivePact.against) out.push({ id: 'pact', label: 'Defensive pact together', value: DEFENSIVE_PACT });

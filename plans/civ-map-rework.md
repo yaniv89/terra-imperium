@@ -1793,8 +1793,8 @@ the capital is in other hands or occupied. The gates of the plan hold on it: und
 AUTHORITY_NO_LAWS (25) no law can be enacted (laws.js canEnactLaw, player and AI alike) and
 every estate loses 1 loyalty a turn (estates.js); under AUTHORITY_CIVIL_WAR (10) the turn counts
 toward the civil war streak (civilWar.js). Prestige stays its own score. The Court section
-shows the meter, its parts and the gate in force. Tests in authority.test.js. Still open in C4:
-estates on the map, laws with real effects on the new systems, the AI picking laws by doctrine.
+shows the meter, its parts and the gate in force. Tests in authority.test.js. Laws with real effects and the AI's
+doctrine table followed (C4.4 / C4.5 entry); still open in C4: estates on the map.
 
 **Workstream 9, wave 2: threats, relief, raids, dice out of sight (2026-10-02).**
 `src/engine/threat.js`. A city's THREAT is the enemy land strength within THREAT_RINGS (4) of
@@ -1918,6 +1918,25 @@ army sheet, the settlers' tile, the tech or diplomacy tab; `selectArmy` and `sel
 window events MapContainer listens to) and the chevron skips to the next. End Turn is never
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
+
+**C4.4 and C4.5, laws with real effects and the AI's doctrine table (2026-10-02).**
+`src/engine/lawRules.js`: a law's or reform's `rules` are the hooks the tile world's systems read
+directly, summed over the six laws and the active reforms (`lawRulesOf`, memoised per nation):
+loyaltyBonus (Codified Law +2, Rule of Law +4, Martial Law +6, Manorialism +1, Chieftaincy +1,
+read by loyalty.js as a `law` part), tolerance (the people term never below LOYALTY_NEUTRAL 50),
+unitUpkeepMult (Feudal Levy -20%, Professional Army +30%, Mass Conscription -10%, Volunteer Army
++50%, Autarky -20%, Holy Order -10%; economy.js calcNationBalance), warExhaustionMult (Mass
+Conscription, Martial Law, Military Junta -20%; resolveTurn), tradeGoldPerRoute (Mercantilism,
+Merchant Republic +2 gold per pact; calcIncome), partnerOpinion (Mercantilism -5, Free Trade
++15, Autarky -20; an opinion reason `tradeLaw` for trade partners), pillageGoldMult (Chieftaincy
+doubles a raid's gold; threat.js). "+x% morale" promises became `moraleRecovery` modifier lines
+(new key `national.moraleRecovery`, read by the morale pass). Every law description now names a
+real effect. The AI (aiEconomy.js, plan C4.5) picks its government from DOCTRINE_GOVERNMENT,
+its laws from DOCTRINE_LAWS (`pickAILaw`: the doctrine's categories first, the first preferred
+law it can enact and afford with AI_LAW_ADM_RESERVE 50 to spare, never backwards; a category
+without a view takes the highest tier that costs no stability) and its reforms from
+DOCTRINE_REFORMS (src/data/nations.js). The laws card lists the rules in force. Tests in
+lawRules.test.js. Still open in C4: estates on the map.
 
 **Workstream 13, wave 4: the bridge's last readers (2026-10-02).** Trade routes
 (`src/engine/tradeRoutes.js`): a land route is now a caravan path over tiles from capital to

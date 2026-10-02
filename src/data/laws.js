@@ -10,10 +10,9 @@ import { getResearched } from '../engine/nationState';
 // Tiers within a category aren't a prerequisite chain the way techs are — you can switch straight to
 // any tier your tech/identity unlocks, matching a policy swap rather than a research queue. Each
 // tier's `effects` uses the same LEGACY_HOOK vocabulary as government reforms, plus the raw
-// `estateLoyalty` key (plan §M9, read directly by src/engine/estates.js — see government.js's
-// header comment for why it's nested rather than a flat number). A plan-described effect naming a
-// system that doesn't exist yet (per-unit upkeep/morale, trade pact capacity, control growth,
-// opinion) is left off rather than faked — see each tier's `description` for the full plan flavor.
+// `estateLoyalty` / `estateInfluence` keys (plan §M9, read directly by src/engine/estates.js). A
+// tier's `rules` are the hooks the tile world's systems read directly (src/engine/lawRules.js:
+// loyalty, army upkeep, war exhaustion, trade gold, partners' opinion, raids).
 import { TECH_TREE } from './techTree';
 import { leansPositive, leansNegative } from './identity';
 import { getGovernmentReformEffectSum } from './government';
@@ -29,26 +28,26 @@ export const LAW_CATEGORIES = {
   ],
   conscription: [
     { id: 'warrior_caste', name: 'Warrior Caste', tier: 1, requiresTech: null, description: 'The baseline levy pool.', effects: {} },
-    { id: 'feudal_levy', name: 'Feudal Levy', tier: 2, requiresTech: 'military_feudal_levies', description: '+30% manpower; unit upkeep -20% (M11).', effects: { hrMult: 0.3 } },
-    { id: 'professional_army', name: 'Professional Army', tier: 3, requiresTech: 'military_standing_armies', description: '-10% manpower; unit upkeep +30% (M11); +15% morale (M14).', effects: { hrMult: -0.1 } },
-    { id: 'mass_conscription', name: 'Mass Conscription', tier: 4, requiresTech: 'military_mechanized_warfare', description: '+60% manpower; unit upkeep -10% (M11); +2 unrest; -20% war exhaustion (M13).', effects: { hrMult: 0.6, stabilityBonus: -2 } },
-    { id: 'volunteer_army', name: 'Volunteer Army', tier: 5, requiresTech: 'governance_digital_administration', description: '-20% manpower; unit upkeep +50% (M11); +20% morale (M14).', effects: { hrMult: -0.2 } }
+    { id: 'feudal_levy', name: 'Feudal Levy', tier: 2, requiresTech: 'military_feudal_levies', description: '+30% manpower; army upkeep -20%.', effects: { hrMult: 0.3 }, rules: { unitUpkeepMult: -0.2 } },
+    { id: 'professional_army', name: 'Professional Army', tier: 3, requiresTech: 'military_standing_armies', description: '-10% manpower; army upkeep +30%; morale recovers 15% faster.', effects: { hrMult: -0.1, moraleRecovery: 0.15 }, rules: { unitUpkeepMult: 0.3 } },
+    { id: 'mass_conscription', name: 'Mass Conscription', tier: 4, requiresTech: 'military_mechanized_warfare', description: '+60% manpower; army upkeep -10%; +2 unrest; war exhaustion rises 20% slower.', effects: { hrMult: 0.6, stabilityBonus: -2 }, rules: { unitUpkeepMult: -0.1, warExhaustionMult: -0.2 } },
+    { id: 'volunteer_army', name: 'Volunteer Army', tier: 5, requiresTech: 'governance_digital_administration', description: '-20% manpower; army upkeep +50%; morale recovers 20% faster.', effects: { hrMult: -0.2, moraleRecovery: 0.2 }, rules: { unitUpkeepMult: 0.5 } }
   ],
   religion: [
     { id: 'state_cult', name: 'State Cult', tier: 1, requiresTech: null, description: 'The baseline faith.', effects: {} },
     { id: 'established_church', name: 'Established Church', tier: 2, requiresTech: 'science_scholastic_method', description: '-10% stability cost; -1 unrest; +10 clergy loyalty.', effects: { stabilityCost: -0.1, stabilityBonus: 1, estateLoyalty: { clergy: 10 } } },
-    { id: 'tolerance', name: 'Tolerance', tier: 3, requiresTech: 'governance_constitutional_law', description: '-0.5 unrest; identity drift toward secularism (not yet wired).', effects: { stabilityBonus: 0.5 } },
+    { id: 'tolerance', name: 'Tolerance', tier: 3, requiresTech: 'governance_constitutional_law', description: '-0.5 unrest; no loyalty penalty for cities of a foreign culture.', effects: { stabilityBonus: 0.5 }, rules: { tolerance: true } },
     { id: 'secularism', name: 'Secularism', tier: 4, requiresTech: 'science_scientific_method', requiresIdentity: { axis: 'secularism', pole: 'negative' }, description: '+10% stability cost; -10 clergy loyalty.', effects: { stabilityCost: 0.1, estateLoyalty: { clergy: -10 } } }
   ],
   trade: [
     { id: 'barter', name: 'Barter', tier: 1, requiresTech: null, description: 'The baseline exchange.', effects: {} },
-    { id: 'mercantilism', name: 'Mercantilism', tier: 2, requiresTech: 'economy_joint_stock_companies', description: '+10% trade income, +10% production; opinion of trade partners unchanged.', effects: { goldMult: 0.2 } },
-    { id: 'free_trade', name: 'Free Trade', tier: 3, requiresTech: 'economy_global_markets', description: '+30% trade income; +2 trade pact capacity (M12); +15 opinion with trade partners (M12).', effects: { goldMult: 0.3 } },
-    { id: 'autarky', name: 'Autarky', tier: 4, requiresTech: 'economy_industrial_capital', description: '-30% trade income, +20% production; trade pact capacity -99 (M12); -20 opinion with trade partners (M12).', effects: { goldMult: -0.1 } }
+    { id: 'mercantilism', name: 'Mercantilism', tier: 2, requiresTech: 'economy_joint_stock_companies', description: '+20% income; +2 gold per trade pact; trade partners -5 opinion.', effects: { goldMult: 0.2 }, rules: { tradeGoldPerRoute: 2, partnerOpinion: -5 } },
+    { id: 'free_trade', name: 'Free Trade', tier: 3, requiresTech: 'economy_global_markets', description: '+30% income; trade partners +15 opinion.', effects: { goldMult: 0.3 }, rules: { partnerOpinion: 15 } },
+    { id: 'autarky', name: 'Autarky', tier: 4, requiresTech: 'economy_industrial_capital', description: '-10% income; army upkeep -20%; trade partners -20 opinion.', effects: { goldMult: -0.1 }, rules: { partnerOpinion: -20, unitUpkeepMult: -0.2 } }
   ],
   land: [
     { id: 'communal', name: 'Communal', tier: 1, requiresTech: null, description: '+0.1% pop growth.', effects: { popGrowthBonus: 0.001 } },
-    { id: 'manorialism', name: 'Manorialism', tier: 2, requiresTech: 'governance_feudal_charters', description: '-5% production; nobility influence up (M9).', effects: { goldMult: -0.05 } },
+    { id: 'manorialism', name: 'Manorialism', tier: 2, requiresTech: 'governance_feudal_charters', description: '-5% income; nobility influence +10; +1 loyalty in every city.', effects: { goldMult: -0.05, estateInfluence: { nobility: 10 } }, rules: { loyaltyBonus: 1 } },
     { id: 'private_property', name: 'Private Property', tier: 3, requiresTech: 'economy_joint_stock_companies', description: '+0.1% pop growth; +15% production.', effects: { popGrowthBonus: 0.001, goldMult: 0.15 } },
     // "+2 unrest for 10 turns after enacting" is a real timed nation.modifiers[] entry — see the
     // COLLECTIVIZATION_UNREST_MODIFIER/COLLECTIVIZATION_UNREST_TURNS constants below and
@@ -57,11 +56,11 @@ export const LAW_CATEGORIES = {
   ],
   justice: [
     { id: 'customary_law', name: 'Customary Law', tier: 1, requiresTech: null, description: 'The baseline courts.', effects: {} },
-    { id: 'codified_law', name: 'Codified Law', tier: 2, requiresTech: 'governance_code_of_laws', description: '+1 control growth (region-scoped, M14); -0.5 unrest.', effects: { stabilityBonus: 0.5 } },
-    { id: 'rule_of_law', name: 'Rule of Law', tier: 3, requiresTech: 'governance_constitutional_law', description: '+2 control growth (region-scoped, M14); -1 unrest.', effects: { stabilityBonus: 1 } },
+    { id: 'codified_law', name: 'Codified Law', tier: 2, requiresTech: 'governance_code_of_laws', description: '+2 loyalty in every city; -0.5 unrest.', effects: { stabilityBonus: 0.5 }, rules: { loyaltyBonus: 2 } },
+    { id: 'rule_of_law', name: 'Rule of Law', tier: 3, requiresTech: 'governance_constitutional_law', description: '+4 loyalty in every city; -1 unrest.', effects: { stabilityBonus: 1 }, rules: { loyaltyBonus: 4 } },
     // "-1 stability to enact" is a one-time cost applied directly by gameReducer.js's CHANGE_LAW
     // case (not part of `effects`, which are ongoing per-turn bonuses, not one-shot costs).
-    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -1 DIP/turn; -1 stability to enact; +2 unrest.', effects: { goldMult: -0.2, dipBonus: -1, stabilityBonus: -2 } }
+    { id: 'martial_law', name: 'Martial Law', tier: 4, requiresTech: null, description: '-20% tax, -1 DIP/turn; -1 stability to enact; +2 unrest; +6 loyalty in every city; war exhaustion rises 20% slower.', effects: { goldMult: -0.2, dipBonus: -1, stabilityBonus: -2 }, rules: { loyaltyBonus: 6, warExhaustionMult: -0.2 } }
   ]
 };
 

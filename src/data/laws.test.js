@@ -7,7 +7,7 @@ import { TECH_TREE } from './techTree';
 const RECOGNIZED_HOOKS = [
   'goldMult', 'hrMult', 'techPointsMult', 'stabilityBonus', 'popGrowthBonus', 'apBonus', 'admBonus',
   'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
-  'supplyRange', 'attrition', 'governingCapacity'
+  'supplyRange', 'attrition', 'governingCapacity', 'moraleRecovery'
 ];
 
 describe('LAW_CHANGE_COOLDOWN_TURNS', () => {
@@ -41,7 +41,7 @@ describe('LAW_CATEGORIES data integrity', () => {
     Object.values(LAW_CATEGORIES).forEach((tiers) => {
       tiers.forEach((law) => {
         Object.keys(law.effects || {}).forEach((hook) => {
-          if (hook === 'estateLoyalty') return;
+          if (hook === 'estateLoyalty' || hook === 'estateInfluence') return;
           expect(RECOGNIZED_HOOKS, `${law.id}/${hook}`).toContain(hook);
         });
       });
