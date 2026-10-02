@@ -64,6 +64,12 @@ export const useGame = () => {
 // ============ PROVIDER ============
 export const GameProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, null, loadOrCreateState);
+  // Dev builds only: read the state and dispatch from the console or a browser check.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return undefined;
+    window.__game = { state, dispatch };
+    return () => { delete window.__game; };
+  }, [state]);
   // Meta-progression (achievements + selected starting doctrine/difficulty) lives in its OWN
   // localStorage key, deliberately separate from the per-save game state — see
   // src/utils/metaProgression.js. Lazy-init reads storage once on mount, matching

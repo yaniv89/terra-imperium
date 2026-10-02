@@ -1,6 +1,6 @@
 # Plan: landscape mobile, Civ-style research, a living map, working advisors, battle reports
 
-Date: 2026-10-01. Status: proposal for review. Nothing implemented yet.
+Date: 2026-10-01. Status: being built; each section carries its own status note, the order table in section 11 tracks the workstreams.
 Supersedes Parts 1 and 2 of `plans/civ-research-landscape-units.md`, which still holds the research
 background and sources. Part 3 there (unit art) continues in `plans/unit-art-brief.md`.
 
@@ -383,6 +383,17 @@ province where it is), not in a sheet or a modal. A mockup on the real map at ph
 
 
 ### 4a. A shared marker model
+**Status: built (workstream 6, slice 1).** `getMapMarkers(state)` (src/utils/mapMarkers.js) and
+the banners (src/components/map/mapBanners.js) are shared by both maps: an HTML overlay on the flat
+map (Map2DMarkersOverlay.jsx) and `htmlElementsData` on the globe. Differences from the design:
+- Buildings wait for the super zoom (workstream 8), where they stand on the land.
+- Clustering is done on both maps (screen distance on the flat map, about 3 x altitude degrees on
+  the globe); tapping a cluster zooms in on it. Foreign banners show from 2x zoom on the flat map
+  and below the nation-level altitude (1.1) on the globe.
+- The "in battle" pulse becomes the crossed-swords marker of last turn's battle (green rim for a
+  win, amber for a stalemate, red for a loss).
+- Fleets show the number of land units they carry as a badge.
+
 - **One pure function** for both maps:
   `getMapMarkers(state, viewerId) -> { armies: [...], fleets: [...], buildings: [...], battles: [...] }`.
   It lives in `src/utils/mapMarkers.js`, is unit-tested and is memoised on
@@ -1461,7 +1472,7 @@ after, and `compare.sh` for speed.
 | 3 | Balanced regions (about 2,028), save migration, balance calibration; nation-level borders when zoomed out (3b) | L | **done** |
 | 4 | Research engine, calibration, choice popup, research tab | L | **done** (boosts and soft gate later) |
 | 5 | Tap disambiguation, more zoom | S | **done** |
-| 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | 3, 5 |
+| 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | slice 1 (banners) **done**; routes and drag next |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
 | 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, towns and buildings, army figures (4f)** | L | 6; army figures need 9 (placeholders until then) |
 | 9 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
