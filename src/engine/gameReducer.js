@@ -43,7 +43,7 @@ import {
 import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, AMPHIBIOUS_PENALTY_MULT, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
@@ -1805,7 +1805,8 @@ const reduceAction = (state, action) => {
         generals: state.hiredCommanders,
         attackerAgeId,
         defenderAgeId: state.age,
-        attackerPenaltyMultiplier: hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT,
+        attackerPenaltyMultiplier: 1,
+        battleType: hasBeachhead ? 'field' : 'landing', // the landing's odds live in battleType.js
         defenderDamageReductionMultiplier: isDefended
           ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
           : 1

@@ -1918,6 +1918,22 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**D5, auto-resolve reads the battle type (2026-10-02).** `src/battle/setup/battleType.js`
+now carries each type's quick-battle odds (AUTO_ATTACK_MULT: river RIVER_ATTACK_MULT 0.85,
+ambush AMBUSH_ATTACK_MULT 0.8, landing LANDING_ATTACK_MULT 0.75, sally and assault 1) and
+`resolveBattle` takes `battleType`, scales the attacker's output by it and names it in the
+report (the military panel shows it). The field battle context (fieldBattle.js) derives the
+type from the tile context the tactical sim uses (`battleTypeOf`: river edge, cover without a
+road, a sally from a besieged city), the invasion context says assault or field, the amphibious
+context landing until a beachhead holds; the old separate river and amphibious factors are the
+same constants read from one place. The parity harness (battle-lab) runs every type (TYPES env,
+N seeds): at 12 seeds, field 0.95x / 2.99x / 1.54x, river 0.85x / 2.65x / 1.34x, ambush 0.50x /
+2.39x / 1.29x (the tactical ambush rule ends the even fight for the attacker 12 of 12 times),
+landing 0.82x / 2.06x / 1.58x, sally 1.02x / 3.19x / 1.62x (a sally's objective is harder than
+the quick battle: the multiplier stays 1). Tests in battle.test.js, fieldBattle.test.js; the
+golden set ignores the label. Still open in D5: the deployment phase and AI deployment
+templates.
+
 **C9, AI wonders (2026-10-02).** `canQueueWonder` / `wonderOptions` take the builder
 (`nationId`, the player by default), so an AI city may start a wonder from its queue like the
 player's (aiProduction.js: one turn in WONDER_THINK_PERIOD 5, when the city makes

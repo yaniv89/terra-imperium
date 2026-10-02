@@ -26,6 +26,7 @@ import { applyBattleAftermath } from './aftermath';
 import { getTiles } from '../data/geo/tiles';
 import { touchesCity, unitTile, unitsWithinRings, REINFORCE_RINGS } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
+import { LANDING_ATTACK_MULT } from '../battle/setup/battleType';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -112,6 +113,7 @@ export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, 
     terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),
     isDefended,
     isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
+    battleType: (targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field', // battleType.js
     generals: state.hiredCommanders,
     // Plan §M14: each side's roster stats are looked up live from its OWNER's current effective
     // age. The defender has no independent tech age here, so it fights at the calendar age.
@@ -135,7 +137,9 @@ export const getResolveBattleArgs = (v, ctx) => ({
   generals: ctx.generals,
   attackerAgeId: ctx.attackerAgeId,
   defenderAgeId: ctx.defenderAgeId,
-  defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier
+  defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier,
+  battleType: ctx.battleType,
+  attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier ?? 1
 });
 
 export const XP_WIN = 30;
@@ -244,7 +248,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
 // ---- Amphibious landings (AMPHIBIOUS_ASSAULT, and the commanded landing of Tactical Battles T9) ----
 
 // No foothold next to the target: the landing itself fights at a malus.
-export const AMPHIBIOUS_PENALTY_MULT = 0.75;
+export const AMPHIBIOUS_PENALTY_MULT = LANDING_ATTACK_MULT; // the landing type's odds (battleType.js)
 
 // May this fleet land its troops on `targetRegionId` right now? Mirrors AMPHIBIOUS_ASSAULT's gate.
 export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreCost = false, ignoreBattleLocks = false } = {}) => {
@@ -278,7 +282,8 @@ export const getAmphibiousBattleContext = (state, v, defenderLandUnits) => {
     generals: state.hiredCommanders,
     attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
     defenderAgeId: state.age,
-    attackerPenaltyMultiplier: v.hasBeachhead ? 1 : AMPHIBIOUS_PENALTY_MULT,
+    battleType: v.hasBeachhead ? ((v.targetRegion.defenseLevel || 0) > 0 ? 'assault' : 'field') : 'landing',
+    attackerPenaltyMultiplier: 1,
     defenderDamageReductionMultiplier: isDefended
       ? getDefenseLevelDamageReductionMultiplier((v.targetRegion.defenseLevel || 0) + getRegionModifier(state, v.targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, v.targetRegionId, v.targetRegion.owner)
       : 1

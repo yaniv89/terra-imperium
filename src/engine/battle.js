@@ -30,6 +30,7 @@
 // into the same per-hit multiplier stack as everything else.
 
 import { getCounterMultiplier, getSiegeMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
+import { autoAttackerMult } from '../battle/setup/battleType';
 import { getCombatWidth, getTerrainCombatModifier } from '../data/terrain';
 import {
   getPromotionDamageMultiplier,
@@ -213,7 +214,7 @@ const pursuitPhase = (winnerUnits, loserFront, generals, log) => {
 export const resolveBattle = ({
   attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {},
   attackerPenaltyMultiplier = 1, defenderDamageReductionMultiplier = 1,
-  attackerAgeId = 'bronze', defenderAgeId = 'bronze'
+  attackerAgeId = 'bronze', defenderAgeId = 'bronze', battleType = 'field'
 }) => {
   const combatWidth = getCombatWidth(terrain);
   const terrainMod = getTerrainCombatModifier(terrain);
@@ -244,7 +245,7 @@ export const resolveBattle = ({
   // underfoot), so the stronger side is favoured but an underdog can still carry the day.
   const attackerFortune = 1 + (rng.next() * 2 - 1) * BATTLE_FORTUNE;
   const defenderFortune = 1 + (rng.next() * 2 - 1) * BATTLE_FORTUNE;
-  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult * attackerFortune };
+  const attackerCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: isAttackingFortification, generals, targetIsDefendingSide: true, baseMultiplier: attackerPenaltyMultiplier * autoAttackerMult(battleType) * defenderDamageReductionMultiplier * attackerRosterMult * terrainMod.attackerMult * attackerFortune }; // the battle type's own odds (battleType.js)
   const defenderCtx = { classFilter: isRangedClass, sourceIsInvadingFortification: false, generals, targetIsDefendingSide: false, baseMultiplier: defenderRosterMult * defenderFortune };
   const isMelee = (classId) => !isRangedClass(classId);
 
@@ -313,6 +314,7 @@ export const resolveBattle = ({
     report: {
       combatWidth,
       terrain,
+      battleType,
       isAttackingFortification,
       rounds,
       timeline,

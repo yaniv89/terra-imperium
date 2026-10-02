@@ -18,16 +18,20 @@ const MATCHUPS = [
 ];
 const lost = (u, st) => st.reduce((x, v) => x + v.strength, 0) - u.reduce((x, v) => x + v.strength, 0);
 
+// The battle types the map decides (src/battle/setup/battleType.js): the tactical sim ends on
+// each type's objective, the auto-resolve scales the attacker by the same type's odds.
+const TYPES = (process.env.TYPES || 'field,river,ambush,landing,sally').split(',');
+
 it('parity', () => {
-  MATCHUPS.forEach(([att, def]) => {
+  TYPES.forEach((battleType) => MATCHUPS.forEach(([att, def]) => {
     let tA = 0; let tD = 0; let aA = 0; let aD = 0; let wins = 0; let autoWins = 0; const reasons = {};
     for (let seed = 1; seed <= N; seed++) {
-      const { result } = runHeadless(buildSetupFromArmies({ regionId: `parity-${seed}`, terrain: 'mixed', seed, attackerUnits: mk('a', att), defenderUnits: mk('d', def), controllers: ['ai', 'ai'], deposits: [], powers: [[], []] }));
+      const { result } = runHeadless(buildSetupFromArmies({ regionId: `parity-${seed}`, terrain: 'mixed', seed, attackerUnits: mk('a', att), defenderUnits: mk('d', def), controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType, landing: battleType === 'landing', sally: battleType === 'sally' }));
       tA += lost(result.attackerUnits, mk('a', att)); tD += lost(result.defenderUnits, mk('d', def)); if (result.outcome === 'attacker') wins += 1; const rk = `${result.outcome}:${result.report.tactical.reason}`; reasons[rk] = (reasons[rk] || 0) + 1;
-      const auto = resolveBattle({ attackerUnits: mk('a', att), defenderUnits: mk('d', def), terrain: 'mixed', isAttackingFortification: false, rng: createRng(seed * 97) });
+      const auto = resolveBattle({ attackerUnits: mk('a', att), defenderUnits: mk('d', def), terrain: 'mixed', isAttackingFortification: false, battleType, rng: createRng(seed * 97) });
       aA += lost(auto.attackerUnits, mk('a', att)); aD += lost(auto.defenderUnits, mk('d', def)); if (auto.outcome === 'attacker') autoWins += 1;
     }
     const tactical = tA / Math.max(1, tD); const auto = aA / Math.max(1, aD);
-    console.log(`PARITY ${att.join('+')} vs ${def.join('+')} seeds=${N} tactical=${tactical.toFixed(3)} auto=${auto.toFixed(3)} ratio=${(tactical / Math.max(0.001, auto)).toFixed(2)}x attackerWins=${wins}/${N} autoWins=${autoWins}/${N} ${Object.entries(reasons).map(([k, v]) => `${k}=${v}`).join(' ')}`);
-  });
+    console.log(`PARITY ${battleType} ${att.join('+')} vs ${def.join('+')} seeds=${N} tactical=${tactical.toFixed(3)} auto=${auto.toFixed(3)} ratio=${(tactical / Math.max(0.001, auto)).toFixed(2)}x attackerWins=${wins}/${N} autoWins=${autoWins}/${N} ${Object.entries(reasons).map(([k, v]) => `${k}=${v}`).join(' ')}`);
+  }));
 });

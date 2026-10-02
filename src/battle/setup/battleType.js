@@ -21,6 +21,15 @@ export const LANDING_HOLD_SECONDS = 60;
 export const SALLY_ENGINES = 2;
 export const AMBUSH_TERRAIN = new Set(['forest', 'jungle', 'hills']);
 
+// Auto-resolve reads the type too (src/engine/battle.js resolveBattle): the attacker's output is
+// scaled so the quick battle keeps parity with the objective the tactical sim would set.
+export const RIVER_ATTACK_MULT = 0.85;    // crossing under fire
+export const AMBUSH_ATTACK_MULT = 0.8;    // entering cover in column
+export const LANDING_ATTACK_MULT = 0.75;  // wading ashore (the old amphibious penalty)
+export const SALLY_ATTACK_MULT = 1;       // the sally must burn engines or the camp: no edge in the quick battle (parity harness)
+export const AUTO_ATTACK_MULT = { field: 1, river: RIVER_ATTACK_MULT, ambush: AMBUSH_ATTACK_MULT, assault: 1, sally: SALLY_ATTACK_MULT, landing: LANDING_ATTACK_MULT };
+export const autoAttackerMult = (type) => AUTO_ATTACK_MULT[type] ?? 1;
+
 export const BATTLE_TYPES = {
   field: { label: 'Field battle', attacker: `Rout the enemy or destroy ${Math.round(LOSS_DECISIVE * 100)}% of its strength`, defender: 'Rout them, or hold to the clock with more strength left', limitTicks: FIELD_BATTLE_TICKS },
   river: { label: 'River crossing', attacker: `Hold the far bank with ${Math.round(RIVER_HOLD_SHARE * 100)}% of your strength when the clock runs out`, defender: 'Hold the bank', limitTicks: FIELD_BATTLE_TICKS },
