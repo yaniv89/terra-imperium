@@ -1532,6 +1532,25 @@ outweighs the besiegers on one tile by 1.3. Open: the battle types' own objectiv
 siege engines, the landing's beachhead), aftermath on tiles (pillage), parity for the field
 type over seeds, the player commanding a defence in the field.
 
+
+---
+
+**Workstream 7, first wave (2026-10-02): opinion with itemised reasons.** `src/data/opinion.js`
+holds the table, `src/engine/opinion.js` computes a nation's opinion of another as a list of
+reasons: a baseline of 8, the grudge ledger (0.6 per point of the existing `hostility`, which
+keeps carrying insults, gifts, wars and broken truces with their decay), shared border tiles
+beyond 5 (-1 each, at most -20), a city settled within 4 tiles of mine (-15, fading 1 a turn),
+holding a city of my people (-10 each), a claim on me (-10), trade (+5), alliance (+25), a
+defensive pact together (+15), royal marriage (+15), the same lean on an identity axis (+5
+each), aggressive expansion above 20 (-1 a point), rival (-30), a broken truce (-20), vassalage
+(-10). The AI's war roll multiplies by max(0, (20 - opinion) / 60), which equals the old
+hostility / 100 + 0.2 when no map reason applies (the old tests hold), so a friend never rolls
+for war and never picks the player as a target; an opinion of -40 or less gives a casus belli
+and reads as Hostile. The Diplomacy panel shows the opinion with its reasons. Still open in 7:
+claims on cities (fabricate within 5 tiles, cores), city war goals and war score by city size,
+open borders for trade routes, demands and ultimatums, and the AI using the full list for
+alliances and trade (today alliance needs +40 only through the old acceptance score).
+
 ---
 
 ---

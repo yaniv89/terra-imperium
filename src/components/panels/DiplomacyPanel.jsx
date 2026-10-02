@@ -31,6 +31,7 @@ import { getNationCapital, getBorderingNationIds } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
 import { hasIntel } from '../../engine/intel';
+import { opinionOf, opinionReasons } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { ActionButton } from '../ui';
 
@@ -294,9 +295,14 @@ const NationCard = ({ nation }) => {
           </div>
         </div>
         <div className="text-right text-xs">
-          <div className="text-slate-400">
-            Hostility: <span className="text-orange-400 font-mono">{nation.hostility}</span>
-          </div>
+          <details className="text-slate-400" data-testid="opinion">
+            <summary className="cursor-pointer list-none">Opinion: <span className={`font-mono ${opinionOf(state, nation.id) >= 20 ? 'text-emerald-300' : opinionOf(state, nation.id) <= -40 ? 'text-red-400' : 'text-orange-300'}`}>{opinionOf(state, nation.id) > 0 ? '+' : ''}{opinionOf(state, nation.id)}</span></summary>
+            <ul className="mt-1 text-left text-[10px] space-y-0.5">
+              {opinionReasons(state, nation.id).map((r) => (
+                <li key={r.id} className="flex justify-between gap-2"><span>{r.label}{r.detail ? ` (${r.detail})` : ''}</span><span className={`font-mono ${r.value >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{r.value > 0 ? '+' : ''}{r.value}</span></li>
+              ))}
+            </ul>
+          </details>
           <div className="text-slate-400">
             Military: {hasIntel(state, nation.id)
               ? <span className="text-red-400 font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
