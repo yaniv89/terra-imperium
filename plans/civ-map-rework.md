@@ -1,6 +1,6 @@
 # Terra Imperium: full review and the Civ-style map rework
 
-Date: 2026-10-02. Status: plan v3, decisions 1, 2 and 5 settled (grid, one-city Dawn start, clean save break), nothing implemented. Written against branch
+Date: 2026-10-02. Status: plan v3, all nine decisions settled, implementation starts with workstream 1. Written against branch
 `claude/gallant-pasteur-rfkma8` at commit `d08ded8` (the features branch; `main` is the live site).
 
 This document has two halves. **Part A** reviews and criticises every game system as it is in the
@@ -1307,22 +1307,25 @@ the pacing table before the long tail.
 
 ## J2. Decisions
 
-Settled 2026-10-02: **1** the 18,000 km² grid; **2** Dawn is the default and every nation starts
-with one city; **5** a clean save break. The rest are open.
+All settled 2026-10-02: **1** the 18,000 km² grid; **2** Dawn is the default and every nation
+starts with one city; **3** automatic tile work by focus is the default, with a manual mode and
+locks for players who want it; **4** improvements come from the city's build queue, no builder
+units; **5** a clean save break; **6** HR and development points are deleted in favour of
+manpower and tiles; **7** a city at loyalty 0 flips to the bordering nation with the most
+culture pressure, and becomes a free city when no nation borders it; **8** the naval class
+splits into four lines; **9** the full sequence of Part I, everything in the end, order at my
+discretion.
 
 1. **Grid size.** About 18,000 km² tiles (8,500 land). **Settled.**
 2. **Default start.** Dawn 2000 BCE, one city per nation. **Settled.**
-3. **Citizens.** Automatic tile work with focus and locks (recommended), or full manual
-   allocation?
-4. **Builders.** Improvements built by the city queue (recommended) or by builder units?
+3. **Citizens.** Automatic by focus, with a manual mode and locks. **Settled.**
+4. **Builders.** Improvements from the city queue. **Settled.**
 5. **Saves.** A clean save break with a notice. **Settled.**
-6. **HR and development.** Delete both in favour of population and tiles (recommended)?
-7. **Loyalty flips.** Allow cities to flip to neighbours by culture pressure (recommended, with
-   a 20-turn warning on the city badge), or only to free cities?
-8. **Naval classes.** Split the naval class into galley/warship/transport/carrier lines
-   (recommended, data only) now or later?
-9. **Order.** The sequence in Part I, or a thinner first slice (grid, rendering, cities, settlers
-   only) to play with the new map sooner?
+6. **HR and development.** Deleted. **Settled.**
+7. **Loyalty flips.** To the bordering nation with the most pressure, else a free city, with a
+   20-turn warning on the badge. **Settled.**
+8. **Naval classes.** Four lines. **Settled.**
+9. **Order.** The full sequence of Part I. **Settled.**
 
 ---
 
