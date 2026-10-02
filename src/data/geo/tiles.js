@@ -35,6 +35,7 @@ const decorate = (raw) => {
     reliefOf: (id) => raw.reliefNames[raw.relief[id]],
     featureOf: (id) => raw.featureNames[raw.feature[id]],
     countryOf: (id) => (raw.country[id] >= 0 ? raw.countryIds[raw.country[id]] : null),
+    resourceOf: (id) => (raw.resource && raw.resource[id] >= 0 ? raw.resourceNames[raw.resource[id]] : null),
     isLand: (id) => raw.land[id] === 1,
     latLonOf: (id) => toLatLon(centres[id]),
     polygonOf: (id) => cellPolygon(centres, neighbors, id).map(toLatLon),
