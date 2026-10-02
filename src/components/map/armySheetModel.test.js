@@ -1,0 +1,32 @@
+import { describe, it, expect } from 'vitest';
+import { createInitialState, gameReducer } from '../../engine/gameReducer';
+import { ActionTypes } from '../../data/types';
+import { getNationCapital } from '../../data/regions';
+import { armySheetModel, stackOn, ZONE_TEXT } from './armySheetModel';
+
+describe('army sheet model', () => {
+  it('groups the stack on a tile by army, reads supply and route, and renaming tags every unit', () => {
+    let s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const cap = s.regions[getNationCapital('fr')];
+    const mine = Object.values(s.units).filter((u) => u.ownerId === 'fr' && u.domain === 'land' && u.regionId === cap.id);
+    expect(mine.length).toBeGreaterThan(0);
+    const m = armySheetModel(s, cap.tile);
+    expect(m).not.toBeNull();
+    expect(stackOn(s, cap.tile).map((u) => u.id)).toEqual(m.unitIds);
+    expect(m.groups[0].name).toBe('Unassigned units');
+    expect(m.zone).toBe('home');
+    expect(m.zoneText).toBe(ZONE_TEXT.home);
+    expect(m.route).toBeNull();
+    expect(m.soldiers).toBe(mine.reduce((x, u) => x + u.strength, 0));
+    m.groups[0].units.forEach((u) => { expect(u.supply).toBeGreaterThan(0); expect(u.movePoints).toBeGreaterThan(0); });
+    s = gameReducer(s, { type: ActionTypes.RENAME_ARMY, payload: { unitIds: m.unitIds, name: 'Old Guard' } });
+    const named = armySheetModel(s, cap.tile);
+    expect(named.groups).toHaveLength(1);
+    expect(named.groups[0].name).toBe('Old Guard');
+    m.unitIds.forEach((id) => expect(s.units[id].army.name).toBe('Old Guard'));
+    expect(gameReducer(s, { type: ActionTypes.RENAME_ARMY, payload: { unitIds: m.unitIds, name: '  ' } })).toBe(s);
+    const walking = { ...s, units: { ...s.units, [m.unitIds[0]]: { ...s.units[m.unitIds[0]], route: [1, 2, 3, 4], routePace: 2 } } };
+    expect(armySheetModel(walking, cap.tile).route.turns).toBe(2);
+    expect(armySheetModel(s, 0)).toBeNull();
+  });
+});
