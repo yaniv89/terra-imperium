@@ -1768,6 +1768,21 @@ one button per demand with its score. Tests in accords.test.js. Still open in C6
 borders and demands, war score from occupied cities, trade routes blocked at closed borders
 for the AI.
 
+**Workstream 8, wave 2: governors (2026-10-02).** `src/engine/governors.js`. A nation's cities
+fall into groups: the capital and the cities within GOVERNOR_GROUP_RINGS (6) of it, nearest
+first, up to GOVERNOR_GROUP_MAX (6); the next ungrouped city by id seats the next group
+(`cityGroups`, cached per cities map). Each group's seat may hold a governor from the court's
+candidates (GOVERNOR_CANDIDATES 3, refreshed every GOVERNOR_REFRESH_TURNS 10 turns; the heir may
+serve with a skill from ADM), in office GOVERNOR_ASSIGN_TURNS (2) turns after the assignment. A
+governed city gets +1 food, +10% production, +1 culture (cities.js through the turn's per-city
+context), +2 + skill loyalty (loyalty.js) and its unrest x0.9 a turn (resolveTurn); a city in an
+ungoverned group loses 5 loyalty. AI nations seat the best candidate in every empty group on
+their economy think (free, at once); a governor whose seat is lost leaves. Actions
+ASSIGN_GOVERNOR and DISMISS_GOVERNOR; the Court section of the domestic panel lists the groups
+with their governor or the candidates to seat; the city card's loyalty line shows the governor
+term. Tests in governors.test.js. Still open in C4: authority (stability and legitimacy merged),
+estates on the map, laws with real effects on the new systems, the AI picking laws by doctrine.
+
 ---
 
 ---
