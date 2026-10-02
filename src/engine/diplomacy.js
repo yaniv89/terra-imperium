@@ -20,6 +20,7 @@ import { leansPositive, leansNegative } from '../data/identity';
 import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from './defense';
 import { conquerRegion } from './conquest';
 import { pactAllies } from './pacts';
+import { canSeeTile } from './sight';
 
 // Trade Pact capacity (plan §M8.3/§M12): Globalism > 40 grants +1, Isolationism > 40 costs -1,
 // floored at 0 so a committed isolationist can be locked out of trade pacts entirely.
@@ -452,7 +453,10 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
           // §16). The garrison can now win, so the roll fires more often to keep expected losses
           // where they were (PLAYER_DEFENDED_CAPTURE_MULT, calibrated in defense.test.js).
           const playerGarrisoned = targetRegion.owner === state.playerNationId && getGarrison(state, currentWar.goal.regionId).length > 0;
-          const chance = AI_CAPTURE_BASE_CHANCE * aggressorShare * (state.difficultyMultiplier || 1) * (playerGarrisoned ? PLAYER_DEFENDED_CAPTURE_MULT : 1);
+          // Within the player's sight (sight.js) an AI-against-AI city is taken by real sieges and
+          // assaults (aiOperations.js, threat.js); the dice decide only out of sight.
+          const inSight = targetRegion.owner !== state.playerNationId && targetRegion.tile != null && canSeeTile(state, targetRegion.tile, state.playerNationId);
+          const chance = inSight ? 0 : AI_CAPTURE_BASE_CHANCE * aggressorShare * (state.difficultyMultiplier || 1) * (playerGarrisoned ? PLAYER_DEFENDED_CAPTURE_MULT : 1);
           if (playerGarrisoned && rng.next() < chance) {
             const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
             pendingDefenses.push(createDefenseRecord({ ...state, regions: nextRegions, nations: nextNations }, {

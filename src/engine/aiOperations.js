@@ -16,6 +16,8 @@ import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyF
 import { besiegersOf } from './sieges';
 import { applyCosts, canAfford } from '../utils/helpers';
 import { ACTION_COSTS } from '../data/actionCosts';
+import { landUnitsByTile } from './sieges';
+import { threatenedCities, besiegerStacksBeside, pillageTile, RELIEF_RATIO } from './threat';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -83,10 +85,10 @@ export const processAIOperations = (state, rng) => {
     const enemies = new Set(wars.map(w => w.aggressor === nationId ? w.enemy : w.aggressor));
     const land = getOwnedRegionIds(next.regions, nationId);
     const fronts = new Set(land.filter(id => getNeighborIds(id).some(n => enemies.has(next.regions[n]?.owner))));
-    // The capital counts as threatened when an enemy army stands next to it, not merely because
-    // enemy land borders it (on the Dawn world every capital borders its neighbours' capitals).
-    const enemyArmyNear = (id) => getNeighborIds(id).some(n => Object.values(next.units).some(u => u.regionId === n && u.domain === 'land' && !u.embarkedOn && enemies.has(u.ownerId)));
-    const threatened = new Set(land.filter(id => next.regions[id].underInvasion || (id === next.nations[nationId].capitalRegionId && fronts.has(id) && enemyArmyNear(id))));
+    // Threatened cities (threat.js): besieged, under invasion, or enemy strength within 4 tiles
+    // over the garrison; the AI defends them before it advances.
+    const byTile = landUnitsByTile(next);
+    const threatened = new Set(threatenedCities(next, nationId, enemies, byTile));
     const goals = threatened.size ? threatened : fronts;
     next.aiOperations[nationId] = { turn: state.turnNumber, objective: threatened.size ? 'defend' : 'advance', startedTurn:state.aiOperations?.[nationId]?.objective === (threatened.size ? 'defend' : 'advance') ? state.aiOperations[nationId].startedTurn : state.turnNumber, fronts: [...fronts].sort(), targets: [...goals].sort() };
     const tiles = getTiles();
@@ -104,6 +106,26 @@ export const processAIOperations = (state, rng) => {
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
       const at = unitTile(next, stack[0]);
+      // Relief (threat.js): a stack beside a besieger of an own city attacks it when it outweighs
+      // that besieger stack by RELIEF_RATIO.
+      const besiegedNear = land.map(id => next.regions[id]).filter(c => c.siege?.by && tiles.neighbors[c.tile].some(t => t === at || tiles.neighbors[at].includes(t)));
+      let relieved = false;
+      for (const city of besiegedNear) {
+        const weakest = besiegerStacksBeside(next, at, city, byTile)[0];
+        if (!weakest || stack.reduce((s, u) => s + u.strength, 0) < weakest.strength * RELIEF_RATIO) continue;
+        const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
+        const v = validateFieldAttack(actor, from, weakest.tile, { ignoreCost: true });
+        if (!v.ok) continue;
+        const ctx = getFieldBattleContext(actor, v);
+        const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
+        const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
+        stack.forEach(u => committed.add(u.id));
+        next = { ...next, units: r.units, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+          logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => v.defenderNationId === state.playerNationId)] };
+        relieved = true;
+        break;
+      }
+      if (relieved) continue;
       const ranked = getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !Object.values(next.units).some(u=>u.regionId===id&&isUnitInBattle(next,u.id))).sort((a,b) => {
         const value = id => (next.regions[id].formerOwner === nationId || next.regions[id].conquest?.from === nationId ? 100 : 0) + (wars.some(w => w.goal?.regionId === id) ? 20 : 0) - Object.values(next.units).filter(u => u.regionId === id && u.ownerId !== nationId).reduce((s,u) => s + u.strength, 0) / 1000;
         return value(b)-value(a) || a.localeCompare(b);
@@ -144,6 +166,14 @@ export const processAIOperations = (state, rng) => {
         // At the front with no city in reach: march on tiles toward the goal and lay siege.
         if (threatened.size && !threatened.has(from)) continue;
         const goal = wars.map(w => w.goal?.regionId).find(id => id && enemies.has(next.regions[id]?.owner)) || ranked[0];
+        // A raid (threat.js): halted on an enemy tile with an improvement, the stack pillages it.
+        const raid = pillageTile(next, nationId, at, enemies);
+        if (raid) {
+          stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, movesLeft: 0 }; });
+          next = { ...next, world: { ...next.world, tileState: raid.tileState }, nations: { ...next.nations, [nationId]: { ...next.nations[nationId], economy: { ...pool, gold: (pool.gold || 0) + raid.gold } } },
+            logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} pillages the land of ${next.regions[raid.cityId].name} (${tiles.names[at] || 'a tile'}).` }] : next.logs };
+          continue;
+        }
         if (!goal || next.regions[goal]?.tile == null) continue;
         const actor = { ...next, playerNationId: nationId };
         const path = findTilePath(actor, at, next.regions[goal].tile, nationId, { maxSteps: AI_MARCH_STEPS });
