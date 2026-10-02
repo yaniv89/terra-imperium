@@ -102,7 +102,8 @@ export const planMarch = (state, fromId, target, unitIds = null, { naval = false
   const stepTurns = naval ? steps.map((_, i) => Math.floor(i / pace) + 1) : scheduleSteps(state, from, steps, pace);
   const turns = stepTurns[stepTurns.length - 1];
   const me = state.playerNationId;
-  const haltIndex = steps.findIndex((t) => tileAccess(state, t, me) === 'enemy');
+  const centres = new Set(Object.values(state.regions).map((c) => c.tile));
+  const haltIndex = steps.findIndex((t) => tileAccess(state, t, me) === 'enemy' && centres.has(t));
   const enemySteps = steps.filter((t) => ['enemy', 'held'].includes(tileAccess(state, t, me))).length;
   const supplies = Math.round(units.length * MARCH_SUPPLY_PER_UNIT * (turns + Math.min(turns, enemySteps)) * 10) / 10;
   const haltTile = haltIndex >= 0 ? steps[haltIndex] : null;
@@ -204,7 +205,9 @@ export const advanceMarches = (state, units, { year } = {}) => {
       const next = route[0];
       const access = tileAccess(state, next, me);
       if (access === 'closed') { halt = 'closed'; break; }
-      if (access === 'enemy') { halt = 'attack'; break; }
+      // Enemy land is walked at war (a siege is an army beside the city); the city itself is taken
+      // through the attack card.
+      if (access === 'enemy' && state.regions[state.world?.tileOwner?.[next]]?.tile === next) { halt = 'attack'; break; }
       if (enemyArmyAt(state, next, me, units)) { halt = 'enemy'; break; }
       const cost = tileStepCost(state, tiles, at, next, access, researched);
       if (bank + 1e-9 < cost) break;
@@ -237,7 +240,7 @@ export const advanceMarches = (state, units, { year } = {}) => {
   reached.forEach((n, tile) => logs.push({ year, message: `${plural(n)} reached ${name(tile)}.`, type: 'action' }));
   halted.forEach((n, key) => {
     const [kind, tile] = key.split('|');
-    const msg = kind === 'attack' ? `${plural(n)} wait${n > 1 ? '' : 's'} at the border of ${name(tile)}: attack it to march on.`
+    const msg = kind === 'attack' ? `${plural(n)} stand${n > 1 ? '' : 's'} before ${name(tile)}: lay siege, or attack it to march on.`
       : kind === 'enemy' ? `${plural(n)} halted: an enemy army stands at ${name(tile)}.`
       : `${plural(n)} stopped at ${name(tile)}: no access any more.`;
     logs.push({ year, message: msg, type: kind === 'closed' ? 'action' : 'combat' });

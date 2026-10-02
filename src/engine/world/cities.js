@@ -210,8 +210,10 @@ const tierEffect = (city, category, key) => {
 /** The city's yields this turn with the given worked tiles. */
 export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}) => {
   const centre = centreYields(tiles, world, city, researched);
-  // A city under invasion lives off its centre alone: the enemy holds the countryside.
-  const fields = city.underInvasion ? [] : worked;
+  // A city under invasion lives off its centre alone: the enemy holds the countryside. One under
+  // siege (sieges.js) works ring 1 only.
+  const ring1 = city.siege ? new Set(tiles.neighbors[city.tile]) : null;
+  const fields = city.underInvasion ? [] : ring1 ? worked.filter((t) => ring1.has(t)) : worked;
   const sum = fields.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
   const palace = city.isCapital ? PALACE_YIELDS : { gold: 0, production: 0, science: 0, culture: 0 };
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;

@@ -1,0 +1,119 @@
+// src/engine/sieges.js
+// Sieges on tiles (plans/civ-map-rework.md, D2; workstream 6). A city has WALLS (0 to 3 from the
+// Defense building line: none, Palisade, Stone Walls, Star Fort and better) and siege HP
+// `SIEGE_HP_BASE x (1 + walls) x (1 + size / 10)`. Enemy land units standing on the tiles around
+// the city centre (ring 1) BESIEGE it:
+//   damage a turn  the besiegers' siege strength (SIEGE_STRENGTH_SIEGE per siege unit, SIEGE_STRENGTH_OTHER
+//                  per other unit, x SIEGE_ENGINEERING_MULT with Siege Engineering) minus the walls'
+//                  regen (WALL_REGEN x walls), never below 0
+//   encircled      every land tile of ring 1 holds a besieger and every water tile beside the city
+//                  is blockaded (fleets.js): damage doubles and the city starves (size -1 every
+//                  ENCIRCLE_STARVE_TURNS turns)
+//   yields         a besieged city works ring 1 only (cities.js); the countryside is the enemy's
+//   relief         a turn without besiegers heals SIEGE_HEAL of the max HP; at full HP the siege
+//                  record is dropped
+//   fall           at HP 0 the city falls to the besieger: the player's and an AI's conquest go
+//                  through conquest.js at once; a player city falls through a last-stand assault
+//                  (defense.js, the pending defence of the turn), so the player may still fight
+// Assaults stay the attack card (invasion.js). Rebels besiege too.
+// Ripples: a siege feeds war score through the capture, the supply meter (besiegers sit in enemy
+// land), the city's yields and growth, and the AI's "threatened city" objective (aiOperations).
+import { getTiles } from '../data/geo/tiles';
+import { REBEL_OWNER_ID } from '../data/rebellion';
+import { isWarBetween } from './diplomacy';
+import { getResearched } from './nationState';
+import { unitTile } from './armies';
+import { isBlockaded } from './fleets';
+import { isSettler } from './settlers';
+
+export const SIEGE_HP_BASE = 200;
+export const SIEGE_STRENGTH_SIEGE = 20;
+export const SIEGE_STRENGTH_OTHER = 3;
+export const SIEGE_ENGINEERING_MULT = 1.5;
+export const SIEGE_ENGINEERING_TECH = 'military_siege_engineering';
+export const WALL_REGEN = 5;
+export const ENCIRCLE_MULT = 2;
+export const ENCIRCLE_STARVE_TURNS = 4;
+export const SIEGE_HEAL = 0.1;
+export const MAX_WALLS = 3;
+
+/** Walls from the Defense building line: none 0, Palisade 1, Stone Walls 2, Star Fort and up 3. */
+export const wallsOf = (city) => Math.min(MAX_WALLS, (city.buildings?.categories?.defense ?? -1) + 1);
+export const siegeMaxHp = (city) => Math.round(SIEGE_HP_BASE * (1 + wallsOf(city)) * (1 + (city.size || 1) / 10));
+export const siegeHpOf = (city) => (city.siege ? city.siege.hp : siegeMaxHp(city));
+
+const hostile = (state, nationId, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, ownerId));
+
+/** Enemy land units on the tiles around the city centre (ring 1), grouped by nation. */
+export const besiegersOf = (state, city, units = state.units) => {
+  const tiles = getTiles();
+  const ring = new Set(tiles.neighbors[city.tile]);
+  const byNation = new Map();
+  Object.values(units).forEach((u) => {
+    if (u.domain === 'naval' || u.embarkedOn || isSettler(u) || !(u.strength > 0) || u.ownerId === city.owner) return;
+    if (!ring.has(unitTile(state, u))) return;
+    if (!hostile(state, city.owner, u.ownerId)) return;
+    if (!byNation.has(u.ownerId)) byNation.set(u.ownerId, []);
+    byNation.get(u.ownerId).push(u);
+  });
+  return byNation;
+};
+
+const researchedOf = (state, nationId) => (nationId === REBEL_OWNER_ID ? [] : getResearched(state, nationId));
+
+/** The siege strength of a stack: siege units 20, others 3, x1.5 with Siege Engineering. */
+export const siegeStrength = (state, nationId, units) => {
+  const base = units.reduce((s, u) => s + (u.classId === 'siege' ? SIEGE_STRENGTH_SIEGE : SIEGE_STRENGTH_OTHER), 0);
+  return researchedOf(state, nationId).includes(SIEGE_ENGINEERING_TECH) ? base * SIEGE_ENGINEERING_MULT : base;
+};
+
+/** True when every land tile of ring 1 holds a besieger of `nationId` and every water tile beside
+ * the city is blockaded. */
+export const isEncircled = (state, city, nationId, units = state.units) => {
+  const tiles = getTiles();
+  const held = new Set();
+  Object.values(units).forEach((u) => { if (u.ownerId === nationId && u.domain !== 'naval' && !u.embarkedOn && !isSettler(u) && u.strength > 0) held.add(unitTile(state, u)); });
+  const ring = tiles.neighbors[city.tile];
+  const landClosed = ring.filter((t) => tiles.land[t] === 1).every((t) => held.has(t));
+  const hasWater = ring.some((t) => tiles.land[t] !== 1 && tiles.terrainOf(t) !== 'lake');
+  return landClosed && (!hasWater || isBlockaded(state, city.id, units));
+};
+
+/**
+ * The siege phase of a turn, on the turn's working `regions` (mutated in place) against `units`.
+ * Returns { fallen: [{ cityId, to, from, encircled }], logs: [{ nationId, message }] }.
+ * The caller resolves the falls (conquest.js, or a last-stand defence for the player).
+ */
+export const processSieges = (state, regions, units, { turn }) => {
+  const fallen = []; const logs = [];
+  Object.keys(regions).sort().forEach((id) => {
+    const city = regions[id];
+    if (city.tile == null || !city.owner) return;
+    const by = besiegersOf({ ...state, regions }, city, units);
+    if (!by.size) {
+      if (city.siege) {
+        const hp = Math.min(siegeMaxHp(city), city.siege.hp + Math.round(siegeMaxHp(city) * SIEGE_HEAL));
+        regions[id] = hp >= siegeMaxHp(city) ? { ...city, siege: null } : { ...city, siege: { ...city.siege, hp, by: null, encircled: false } };
+      }
+      return;
+    }
+    // The strongest besieging nation leads the siege; the others add their strength.
+    const stacks = [...by].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1));
+    const leader = stacks[0][0];
+    const strength = stacks.reduce((s, [nid, list]) => s + siegeStrength(state, nid, list), 0);
+    const encircled = isEncircled({ ...state, regions }, city, leader, units);
+    const regen = encircled ? 0 : WALL_REGEN * wallsOf(city);
+    const damage = Math.max(0, Math.round((strength - regen) * (encircled ? ENCIRCLE_MULT : 1)));
+    const maxHp = siegeMaxHp(city);
+    const prev = city.siege || { hp: maxHp, startedTurn: turn, starving: 0 };
+    const hp = Math.max(0, Math.min(maxHp, prev.hp) - damage);
+    let size = city.size;
+    let starving = encircled ? (prev.starving || 0) + 1 : 0;
+    if (encircled && starving >= ENCIRCLE_STARVE_TURNS && size > 1) { size -= 1; starving = 0; logs.push({ nationId: city.owner, message: `${city.name}, encircled, starves and shrinks to size ${size}.` }); }
+    const siege = { hp, maxHp, by: leader, startedTurn: prev.startedTurn ?? turn, encircled, starving };
+    regions[id] = { ...city, size, siege, food: encircled ? 0 : city.food };
+    if (!city.siege) logs.push({ nationId: city.owner, message: `${city.name} is under siege by ${state.nations[leader]?.name || 'rebels'}.` }, { nationId: leader, message: `Your army lays siege to ${city.name} (walls ${wallsOf(city)}, ${hp} HP).` });
+    if (hp <= 0) fallen.push({ cityId: id, to: leader, from: city.owner, encircled });
+  });
+  return { fallen, logs };
+};

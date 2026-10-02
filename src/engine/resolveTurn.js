@@ -80,6 +80,9 @@ import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
 import { normalizeUnitTiles } from './armies';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
+import { processSieges } from './sieges';
+import { createDefenseRecord } from './defense';
+import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 
@@ -216,6 +219,36 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
   mark('time');
 
+  // --- sieges (plans/civ-map-rework.md D2, sieges.js): armies beside a city grind its walls; at
+  // 0 HP it falls. Before the cities phase, so a besieged city works ring 1 only this turn.
+  {
+    const siegeRegions = { ...state.regions };
+    const siegeUnits = { ...state.units };
+    const { fallen, logs: siegeLogs } = processSieges(state, siegeRegions, siegeUnits, { turn: newTurnNumber });
+    let siegeNations = state.nations; let siegeWars = state.wars; const pendingDefenses = [...(state.pendingDefenses || [])];
+    const committed = new Set();
+    fallen.forEach((f, i) => {
+      const war = siegeWars.find((w) => w.active && ((w.aggressor === f.to && w.enemy === f.from) || (w.aggressor === f.from && w.enemy === f.to)));
+      if (f.from === state.playerNationId && war && f.to !== REBEL_OWNER_ID) {
+        // A last stand: the besiegers assault the player's city this turn (defense.js).
+        const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;
+        const record = createDefenseRecord({ ...state, regions: siegeRegions, units: siegeUnits }, { war: { ...war, aggressor: f.to }, regionId: f.cityId, aggressorShare: 1, seed, index: `siege_${i}`, committed });
+        pendingDefenses.push({ ...record, siege: true });
+        siegeLogs.push({ nationId: f.from, message: `The walls of ${siegeRegions[f.cityId].name} are breached: the garrison makes its last stand.` });
+        return;
+      }
+      if (f.to === REBEL_OWNER_ID) return; // rebels take no cities by siege (rebellion.js holds the revolt)
+      const r = conquerRegion({ regions: siegeRegions, nations: siegeNations, turnNumber: newTurnNumber }, f.cityId, f.to, war || null);
+      Object.assign(siegeRegions, r.regions); siegeRegions[f.cityId] = { ...r.regions[f.cityId], siege: null, buildings: siegeRegions[f.cityId].buildings };
+      siegeNations = r.nations;
+      siegeLogs.push({ nationId: f.from, message: `${siegeRegions[f.cityId].name} has fallen to ${state.nations[f.to]?.name || f.to} after a siege.` }, { nationId: f.to, message: `${siegeRegions[f.cityId].name} surrenders to your siege.` });
+    });
+    siegeLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }); });
+    state = { ...state, regions: siegeRegions, units: siegeUnits, nations: siegeNations, pendingDefenses };
+    state = syncWorldRegistry(state);
+  }
+  mark('sieges');
+
   // --- cities (plans/civ-map-rework.md C1, C2, B4): every city works its land, grows, builds and
   // extends its borders. Runs first so income reads this turn's yields (dev mirrors them) and
   // every later phase sees the new sizes and borders. Finished units are created here.
@@ -230,7 +263,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
   // Army supplies (src/engine/supplies.js): foraged and manufactured from metal, eaten on campaign.
-  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources, turnNumber: state.turnNumber });
+  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources, turnNumber: state.turnNumber, tileOwner: state.world?.tileOwner });
   resources[supplyFlow.metalId] = (resources[supplyFlow.metalId] || 0) - supplyFlow.metalUsed;
   resources.supplies = supplyFlow.supplies;
   if (supplyFlow.hungry) logs.push({ year: newYear, message: `Out of supplies: your ${supplyFlow.campaigning} unit${supplyFlow.campaigning > 1 ? 's' : ''} on campaign go hungry (-${HUNGER_MORALE} morale, no reinforcement). Build Industry, stockpile metal or bring them home.`, type: LogTypes.CRISIS });
@@ -455,10 +488,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     let patch = null;
     // Hungry armies on campaign (supplies.js) neither recover nor reinforce, and lose heart.
     const ownerPool = isPlayer ? resources : (modifierExpiredNations[u.ownerId].economy || {});
-    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool}));
+    if (!isPlayer && !ownerSupplyFlows.has(u.ownerId)) ownerSupplyFlows.set(u.ownerId,computeSupplyFlow({regions:state.regions,units:state.units,nationId:u.ownerId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:ownerPool,tileOwner:state.world?.tileOwner}));
     const ownerSupply = isPlayer ? supplyFlow : ownerSupplyFlows.get(u.ownerId);
     // A starving unit (supply meter at 0, supplyMeter.js) recovers nothing either.
-    const hungry = (ownerSupply.hungry && isCampaigning(u, regions)) || (u.supply != null && u.supply <= 0);
+    const hungry = (ownerSupply.hungry && isCampaigning(u, regions, state.world?.tileOwner)) || (u.supply != null && u.supply <= 0);
     if (hungry) patch = { morale: Math.max(0, (u.morale ?? 100) - HUNGER_MORALE) };
 
     if (!hungry && !foughtThisTurn && u.morale < 100) {
@@ -542,7 +575,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     pool.gold += income.gold;
     pool.hr += income.hr;
     pool.techPoints += income.techPoints;
-    const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool});
+    const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool,tileOwner:state.world?.tileOwner});
     pool.supplies=aiSupply.supplies;
     pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
     ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });

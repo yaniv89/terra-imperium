@@ -149,16 +149,18 @@ describe('marching', () => {
     expect(units.m.strength).toBe(970);
   });
 
-  it('halts at an enemy border and marches on once the city is taken', () => {
+  it('walks into enemy land at war, halts before the city, and marches on once it is taken', () => {
     let s = withUnits(atWarWith(S, 'pk'), [unit('a', P)]);
     s = marchTo(s, P, PK);
     const plan = planMarch(s, P, PK);
+    expect(plan.haltTile).toBe(s.regions[PK].tile);
     const units = { ...s.units };
     let st = s;
-    for (let i = 0; i < 6 && units.a.routeHalt !== 'attack'; i++) { advanceMarches(st, units, { year: s.year }); st = { ...st, units: { ...units } }; }
+    for (let i = 0; i < 8 && units.a.routeHalt !== 'attack'; i++) { advanceMarches(st, units, { year: s.year }); st = { ...st, units: { ...units } }; }
     expect(units.a.routeHalt).toBe('attack');
     expect(units.a.route[0]).toBe(plan.haltTile);
-    expect(st.world.tileOwner[units.a.tile]).not.toBe(PK); // waits at the border, on its own or free land
+    expect(st.world.tileOwner[units.a.tile]).toBe(PK); // stands on Pakistani land, beside the city
+    expect(units.a.regionId).toBe(P); // its base stays its own city
     expect(tiles.neighbors[units.a.tile]).toContain(plan.haltTile);
     // The waiting army can attack the city from its tile.
     const v = validateInvasion({ ...st, resources: { ...st.resources, mil: 1000, gold: 1000 } }, P, PK, { ignoreCost: true });
@@ -243,15 +245,19 @@ describe('marching', () => {
 });
 
 describe('units and tiles', () => {
-  it('a unit without a tile stands on its city centre, and one on land another city claimed moves to that city', () => {
+  it('a unit without a tile stands on its city centre; one on foreign land keeps its base; one on its nation\'s other city\'s land joins that city', () => {
     const s = normalizeUnitTiles(withUnits(S, [unit('a', P), unit('n', P, { domain: 'naval' })]));
     expect(s.units.a.tile).toBe(homeTile);
     expect(s.units.n.tile).toBe(homeTile);
     expect(unitTile(s, { regionId: P })).toBe(homeTile);
-    const belgianTile = S.regions[PK].tiles.find((t) => t !== S.regions[PK].tile && tiles.land[t] === 1);
-    const moved = normalizeUnitTiles(withUnits(S, [unit('a', P, { tile: belgianTile })]));
-    expect(moved.units.a.regionId).toBe(PK);
-    expect(moved.units.a.tile).toBe(belgianTile);
+    const foreign = S.regions[PK].tiles.find((t) => t !== S.regions[PK].tile && tiles.land[t] === 1);
+    const abroad = normalizeUnitTiles(withUnits(S, [unit('a', P, { tile: foreign })]));
+    expect(abroad.units.a.regionId).toBe(P);
+    expect(abroad.units.a.tile).toBe(foreign);
+    const { state: s2, cityId: B } = addCity(S, 'in', { near: P });
+    const ownLand = s2.regions[B].tiles.find((t) => t !== s2.regions[B].tile && tiles.land[t] === 1);
+    const rebased = normalizeUnitTiles(withUnits(s2, [unit('a', P, { tile: ownLand })]));
+    expect(rebased.units.a.regionId).toBe(B);
     expect(normalizeUnitTiles(s)).toBe(s);
   });
 
