@@ -21,6 +21,7 @@
 // (src/data/unitClasses.js) — spam cavalry at a Tier 1 neighbor and its own recruiting starts
 // favoring infantry, the real counter, not a scripted response to "cavalry" by name.
 
+import { opinionOf, warRollOpinionMult } from '../engine/opinion';
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
@@ -275,12 +276,12 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
 // coalition member with a valid shot at the runaway leader ignores that and goes straight for the
 // leader instead, regardless of how it compares to other neighbors — that's the whole point of
 // ganging up on it.
-const pickWarTarget = (state, nationId, preferredTargetId = null) => {
+const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = null) => {
   // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
   // truce-active neighbor is filtered out of consideration entirely.
   const candidates = getBorderingNationIds(state.regions, nationId)
     // Never its own vassal: an overlord settles a vassal by annexing it, not by war.
-    .filter(id => state.nations[id] && !state.nations[id].isEliminated && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id)
+    .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id)
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
@@ -288,10 +289,13 @@ const pickWarTarget = (state, nationId, preferredTargetId = null) => {
   return candidates.reduce((weakest, id) => (effective(id) < effective(weakest) ? id : weakest), candidates[0]);
 };
 
-const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1) => {
+// `opinionMult`: the opinion factor (opinion.js warRollOpinionMult) of this nation's view of the
+// player: 0 for a friend, 1.2 for a sworn enemy; with no map reasons it is the old
+// hostility / 100 + 0.2.
+const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1, opinionMult = (nation.hostility || 0) / 100 + 0.2) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
   if (doctrine.warRollMult <= 0) return false;
-  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * (nation.hostility / 100 + 0.2);
+  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult;
   return rng.next() < chance;
 };
 
@@ -362,8 +366,11 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
       ? COALITION_WAR_ROLL_MULT * getCulturalCoalitionDiscount(leader.culturalInfluence) * aeScale * doctrine.bandwagonMult
       : 1;
 
-    if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1))) return;
-    const targetId = pickWarTarget({ ...state, nations: currentNations, wars: currentWars }, nationId, canStrikeLeader ? runawayLeaderId : null);
+    // Opinion (opinion.js, C6.3): the roll follows what this nation thinks of the player, and a
+    // nation that thinks well of the player never picks the player as its target.
+    const opinion = opinionOf({ ...state, nations: currentNations }, nationId);
+    if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
+    const targetId = pickWarTarget({ ...state, nations: currentNations, wars: currentWars }, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null);
     if (!targetId) return;
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)

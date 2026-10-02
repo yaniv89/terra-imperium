@@ -5,6 +5,7 @@
 // nation (the player's included) is just an entry in state.nations with the same militaryStrength
 // stat, so none of this needs to special-case which nation is the player.
 
+import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { RelationStatus } from '../data/types';
 import { isAdjacentToOwner, REGIONS_DATA, getCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
@@ -55,7 +56,9 @@ export const hasCasusBelli = (state, aggressorId, targetId) => {
   const aggressor = state.nations[aggressorId];
   const target = state.nations[targetId];
   if (aggressor?.claims?.includes(targetId)) return true;
-  return (target?.hostility || 0) >= CASUS_BELLI_HOSTILITY_THRESHOLD;
+  if ((target?.hostility || 0) >= CASUS_BELLI_HOSTILITY_THRESHOLD) return true;
+  // Opinion (opinion.js): a nation that thinks this badly of the aggressor justifies the war.
+  return opinionGivesCasusBelli(opinionOf(state, targetId, aggressorId));
 };
 
 // Finds a region owned by `ownerId` that borders territory `attackerId` already holds — the

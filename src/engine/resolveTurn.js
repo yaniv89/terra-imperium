@@ -81,6 +81,7 @@ import { advanceMarches, marchUpkeep } from './routes';
 import { normalizeUnitTiles } from './armies';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processSieges } from './sieges';
+import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { createDefenseRecord } from './defense';
 import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
@@ -535,7 +536,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
     const relationStatus = nation.isAtWar || nation.hasPeaceTreaty || nation.hasTradeAgreement
       ? nation.relationStatus
-      : getRelationFromHostility(hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);
+      : getRelationFromHostility(opinionGivesCasusBelli(opinionOf({ ...state, nations: modifierExpiredNations }, nId)) ? Math.max(hostility, 80) : hostility, nation.isAtWar, nation.hasPeaceTreaty, nation.hasTradeAgreement);
     nations[nId] = { ...nation, militaryStrength, hostility, relationStatus };
   });
   logs.push(...aiUpdates.logs.map(l => ({ year: newYear, ...l })));
