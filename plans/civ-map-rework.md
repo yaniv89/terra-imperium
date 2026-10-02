@@ -1597,6 +1597,19 @@ research period; the research sheet shows each tech's boost and whether it is me
 Still open in 10: the tree as a web with crossing prerequisites, a map effect for every tech
 (a Mountaineering tech for mountain crossings, districts), science from districts.
 
+
+---
+
+**Workstream 11, first wave (2026-10-02): era goals and legacies.** `src/data/eraGoals.js` sets
+one goal per playstyle for every age with targets that grow with the age (expand: 4, 6, 9, 12,
+16 cities; wealth: 1 to 5 trade agreements; war: 1 to 5 cities taken; culture: 1 to 5 wonders;
+science: 4, 8, 14, 20, 28 techs). `src/engine/eraGoals.js` reads the player's numbers from the
+state; when the calendar age turns, the ending age is scored: two goals or more met give a
+legacy for 50 turns made of the met playstyles' bonuses (+10% growth, +10% gold, +1 military
+power, +1 stability, -10% research cost) as a timed national modifier, and the result is kept
+on the player nation. The Legacy tab shows the strip with the five goals and past eras. Still
+open in 11: events pinned to cities or tiles, wonders as tiles, disasters by tile facts.
+
 ---
 
 ---

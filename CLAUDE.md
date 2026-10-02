@@ -51,7 +51,7 @@ The live site is GitHub Pages, built into `docs/`.
   roll, casus belli): src/engine/opinion.js over src/data/opinion.js. Loyalty and culture per
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
-  src/engine/boosts.js over src/data/boosts.js.
+  src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
   Progress and open balance items: plan section J3.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`

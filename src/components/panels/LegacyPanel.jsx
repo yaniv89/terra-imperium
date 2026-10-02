@@ -9,13 +9,34 @@ import { useGame } from '../../context/GameContext';
 import { ACHIEVEMENTS, checkAchievements } from '../../data/achievements';
 import { STARTING_DOCTRINES } from '../../data/startingDoctrines';
 import { DIFFICULTIES } from '../../data/difficulty';
+import { AGES } from '../../data/ages';
+import { eraGoalProgress } from '../../engine/eraGoals';
+import { PLAYSTYLES } from '../../data/eraGoals';
 
 const LegacyPanel = () => {
   const { state, meta, selectDoctrine, selectDifficulty } = useGame();
   const satisfiedNow = checkAchievements(state);
+  const era = eraGoalProgress(state);
+  const pastEras = Object.entries(state.nations?.[state.playerNationId]?.eraGoals || {});
 
   return (
     <div className="space-y-4">
+      {/* This era's goals (plans/civ-map-rework.md C9.3): meet two before the age ends for a legacy. */}
+      <div className="p-3 rounded-lg border border-sky-500/30 bg-sky-500/5" data-testid="era-goals">
+        <div className="flex items-center justify-between text-sm font-semibold text-sky-300">
+          <span>Goals of the {AGES[era.ageId]?.name || era.ageId}</span>
+          <span className="text-[11px] font-mono">{era.met}/{era.needed} for a legacy</span>
+        </div>
+        <div className="mt-1.5 grid grid-cols-5 gap-1">
+          {era.goals.map((g) => (
+            <div key={g.id} className={`rounded-md px-1 py-1 text-center border ${g.done ? 'border-emerald-500/60 bg-emerald-900/30 text-emerald-200' : 'border-slate-700 bg-slate-800/50 text-slate-300'}`} title={`${g.label}: ${g.value}/${g.target} ${g.unit}. Legacy: ${PLAYSTYLES[g.id].bonusLabel}`}>
+              <div className="text-[10px] font-semibold">{g.label}</div>
+              <div className="text-[10px] font-mono">{Math.min(g.value, g.target)}/{g.target}</div>
+            </div>
+          ))}
+        </div>
+        {pastEras.length > 0 && <div className="text-[10px] text-slate-400 mt-1.5">{pastEras.map(([age, r]) => `${AGES[age]?.name || age}: ${r.legacy ? 'legacy earned' : 'no legacy'}`).join(' · ')}</div>}
+      </div>
       <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
         <div className="flex items-center gap-2 text-sm font-semibold text-amber-400">
           <Trophy className="w-4 h-4" />
