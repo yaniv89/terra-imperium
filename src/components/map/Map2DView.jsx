@@ -453,8 +453,9 @@ const Map2DView = ({
   const battleMarkElements = useMemo(() => {
     if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;
     const tiles = getTiles();
-    return Object.entries(state.world?.tileState || {}).filter(([, v]) => v.battle && v.battle.until >= state.turnNumber).map(([t, v]) => {
+    return Object.entries(state.world?.tileState || {}).filter(([, v]) => v.wonder || (v.battle && v.battle.until >= state.turnNumber)).map(([t, v]) => {
       const { lat, lon } = tiles.latLonOf(Number(t)); const [x, y] = projection([lon, lat]);
+      if (v.wonder) return <text key={t} x={x} y={y} textAnchor="middle" fontSize={12 / zoomK} fill="#fde68a" stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke" pointerEvents="none" data-wonder-mark={t}>★</text>;
       return <text key={t} x={x} y={y} textAnchor="middle" fontSize={11 / zoomK} fill={v.battle.outcome === 'attacker' ? '#fda4af' : '#cbd5e1'} stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke" pointerEvents="none" data-battle-mark={t}>⚔</text>;
     });
   }, [interactive, projection, zoomK, state.world, state.turnNumber]);

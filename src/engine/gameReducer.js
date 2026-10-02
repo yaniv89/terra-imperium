@@ -117,6 +117,7 @@ import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEM
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo } from '../data/navalLines';
+import { canQueueWonder, wonderItem } from './wonders';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 
@@ -3023,7 +3024,13 @@ const reduceAction = (state, action) => {
       // An army order is expanded from its template here, so later edits never change a queued order.
       const template = raw.kind === 'army' ? templatesOf(state.nations[state.playerNationId]).find((t) => t.id === raw.templateId) : null;
       if (raw.kind === 'army' && !template) return reject(state, 'No such army template.');
-      const item = template ? armyOrder(template, city, state.turnNumber) : raw;
+      let item = template ? armyOrder(template, city, state.turnNumber) : raw;
+      if (raw.kind === 'wonder') {
+        // Wonders (wonders.js): the project's rules with the whole state, and the tile it takes.
+        const can = canQueueWonder(state, city, raw.projectId, raw.tier || 1);
+        if (!can.ok) return reject(state, can.reason);
+        item = wonderItem(raw.projectId, raw.tier || 1, raw.tile ?? can.tile);
+      }
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
       const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
       if (!ok.ok) return reject(state, ok.reason);

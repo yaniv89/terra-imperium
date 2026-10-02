@@ -161,6 +161,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   const disasterLogs = rollCityDisasters(regions, newTurnNumber);
   let units = state.units;
   let nextUnitSeq = state.nextUnitSeq || 0;
+  const wonders = result.completed.filter((item) => item.kind === 'wonder').map((item) => ({ ...item, nationId: item.nationId }));
   result.completed.forEach((item) => {
     if (item.kind === 'settler') {
       const id = `unit_${nextUnitSeq++}`;
@@ -179,10 +180,10 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   // Settlers walk, found outposts, and outposts grow (settlers.js).
   const afterCities = { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } };
   const hasSettlers = Object.values(units).some(isSettler) || Object.values(regions).some((c) => c.outpost);
-  if (!hasSettlers) return { state: afterCities, logs };
+  if (!hasSettlers) return { state: afterCities, logs, wonders };
   const settled = processSettlers(afterCities, regions, units, afterCities.world, (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
   settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
-  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: settled.world }, logs };
+  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: settled.world }, logs, wonders };
 };
 
 export const resolveTurn = (incomingState, { onPhase } = {}) => {
@@ -942,6 +943,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // first place. A region captured mid-construction loses its queued project outright (there's no
   // partial-credit hand-off to a new owner) rather than silently freezing forever.
   const greatProjects = { ...state.greatProjects };
+  // Wonders built from a city's queue this turn (wonders.js): the tile, the tier, the prestige.
+  (cityTurn.wonders || []).forEach((w) => {
+    const project = GREAT_PROJECTS[w.projectId];
+    const tierSpec = project?.tiers[w.tier - 1];
+    greatProjects[w.projectId] = { regionId: w.city, tier: w.tier, tile: w.tile };
+    const ownerId = regions[w.city]?.owner;
+    if (ownerId && nations[ownerId] && tierSpec?.completionPrestige) nations[ownerId] = { ...nations[ownerId], prestige: clampPrestige((nations[ownerId].prestige || 0) + tierSpec.completionPrestige) };
+    if (ownerId === state.playerNationId) logs.push({ year: newYear, message: `${project?.name || w.projectId} (tier ${w.tier}) stands at ${regions[w.city]?.name}!${tierSpec?.completionPrestige ? ` (+${tierSpec.completionPrestige} prestige)` : ''}`, type: LogTypes.MILESTONE });
+  });
   Object.keys(regions).forEach((regionId) => {
     const region = regions[regionId];
     const construction = region.greatProjectConstruction;

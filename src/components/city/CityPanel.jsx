@@ -21,6 +21,8 @@ import {
 } from '../../engine/world/cities';
 import { templatesOf, nextTemplateUnit, templateProgress, templateSize } from '../../engine/armyTemplates';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
+import { wonderOptions, wonderItem } from '../../engine/wonders';
+import { GREAT_PROJECTS } from '../../data/greatProjects';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -37,6 +39,7 @@ const itemLabel = (item, tiles) => {
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;
   if (item.kind === 'settler') return 'Settlers (takes one citizen, founds a city)';
+  if (item.kind === 'wonder') return `${GREAT_PROJECTS[item.projectId]?.name || item.projectId} (tier ${item.tier})${item.tile != null ? ` on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}` : ''}`;
   if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); return next ? `${item.name}: ${UNIT_CLASSES[next]?.name || next} (${p.done + 1} of ${p.total})` : `${item.name} (${p.total} units)`; }
   return item.kind;
 };
@@ -84,6 +87,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       const item = { kind: 'army', templateId: t.id, name: t.name, composition: t.composition, built: {} };
       out.push({ item, group: 'Armies', ...check(item) });
     });
+    // Wonders (wonders.js): a tile of the border that fits, built from production.
+    wonderOptions(state, city).forEach((w) => { out.push({ item: wonderItem(w.projectId, w.tier, w.tile), group: 'Wonders', ok: true }); });
     Object.keys(BUILDING_CATEGORIES).forEach((category) => {
       const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
       if (!BUILDING_CATEGORIES[category].tiers[tier]) return;
@@ -102,7 +107,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     // Queued improvements are not offered twice.
     const queued = new Set([city.production.current, ...city.production.queue].filter(Boolean).map((i) => JSON.stringify(i)));
     return out.filter((o) => !queued.has(JSON.stringify(o.item)));
-  }, [city, tiles, world, researched, ageId, state.nations, state.playerNationId]);
+  }, [city, tiles, world, researched, ageId, state]);
 
   const tileRows = useMemo(() => {
     if (!city) return [];
@@ -241,7 +246,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         )}
       </div>
 
-      {mine && ['Units', 'Armies', 'Buildings', 'Improvements'].map((group) => {
+      {mine && ['Units', 'Armies', 'Buildings', 'Wonders', 'Improvements'].map((group) => {
         const rows = options.filter((o) => o.group === group);
         if (!rows.length) return null;
         return (
