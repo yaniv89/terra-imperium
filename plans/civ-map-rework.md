@@ -1110,12 +1110,17 @@ prompt, no modal lectures.
 
 # Part F. Data, migration, performance, determinism
 
-- **Geo build**: `scripts/geo/build-tiles.mjs` produces the grid, terrain, features, rivers,
-  resources, country ids, names and the per-nation cores. Inputs: ETOPO (already planned),
-  a Köppen raster, Natural Earth rivers, lakes and populated places, ESA WorldCover at 1 km.
-  All public domain or CC-BY with attribution in `LICENSE.md`. The build is deterministic and
-  checked by tests (tile count, land share about 29%, every nation has a core, every core
-  tile is land, rivers only on land edges).
+- **Geo build** (built, workstream 1): `scripts/geo/build-tiles.mjs` produces the grid, terrain,
+  relief, features, rivers, country ids, names and the 240 capitals. Inputs actually used (see
+  `CREDITS.md`): Natural Earth land, lakes, rivers, glaciers, named physical regions and
+  populated places; Köppen climate at 0.5° (`koppen-climate-lookup`); Mapzen/Tilezen terrain
+  tiles at zoom 4 for relief (mean, max and roughness per cell). Terrain is a base (grassland,
+  plains, desert, tundra, snow, coast, ocean, lake) plus a relief (flat, hills, mountains) plus
+  a feature (forest, jungle, marsh, oasis, floodplain, ice), which is how the yield table in C1
+  composes. Resources are not placed yet (workstream 3 scatters them by terrain). The build is
+  deterministic (checked: identical bytes twice) and tested (28,092 cells, 29.5% land, 11 of 12
+  pentagons off land, every nation a capital on its own land, Nile and Danube present, famous
+  places classified). `/?tileViewer` shows it.
 - **State**: `state.tiles` holds only dynamic tile data as sparse maps: `owner` (cityId),
   `improvement`, `pillaged`, `road`, `seenBy`, `nativeCamp`. Static tile data lives outside
   state in a typed array module, never serialised. A save is cities + armies + nations + the
