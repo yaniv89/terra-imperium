@@ -842,8 +842,10 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
   // rngSeed — this is an integration test of the real resolveTurn wiring (Object.assign onto the
   // in-progress regions object, reassigning nationsAfterWars/wars for the rest of the turn to see),
   // not a probability estimate; diplomacy.test.js already covers the exact odds with a mocked rng.
+  // A fixed seed: with a random one a third nation sometimes declares war on the defender this
+  // turn and its garrison marches out, leaving the capital empty (a flaky "captured" result).
   const withCertainCapture = (aggressor, enemy, regionId) => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 7 }));
     const war = { id: 'war_1', aggressor, enemy, active: true, goalAchieved: false, startYear: base.year, goal: { type: 'capture_region', regionId } };
     // Plan §M13: capturing sets occupiedBy, and war score/peace bookkeeping now runs every turn —
     // occupying just one region (here, always the capital, tripled by getOccupationScore's own

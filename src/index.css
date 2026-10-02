@@ -334,3 +334,78 @@ svg path {
   /* Clear of a notch on the right; the strip under it shows the backdrop. */
   margin-right: env(safe-area-inset-right);
 }
+
+/* Map markers (plan §4a): army, fleet and battle banners on the flat map and the globe
+   (src/components/map/mapBanners.js). Positioned by the overlay; drawn at screen scale. */
+.map-banner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+  -webkit-tap-highlight-color: transparent;
+}
+.map-banner::before {
+  /* A 40 px touch target around a ~26 px banner. */
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+.map-banner:active { filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.9)); }
+.map-banner.foreign { opacity: 0.92; }
+.map-banner-svg { display: block; overflow: visible; }
+.map-banner-label {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translateX(-50%);
+  font: 800 10px/1 ui-sans-serif, system-ui, sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.map-banner-dot {
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: #facc15;
+  box-shadow: 0 0 0 1.5px #0f172a;
+  pointer-events: none;
+}
+.map-banner-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 9999px;
+  background: #0f172a;
+  color: #fde68a;
+  font: 700 9px/13px ui-sans-serif, system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+.map-banner-cluster {
+  display: block;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: #334155;
+  border: 2px solid #94a3b8;
+  color: #fff;
+  font: 800 11px/20px ui-sans-serif, system-ui, sans-serif;
+  text-align: center;
+}
+.map-banner-cluster.own { background: #2563eb; border-color: #e2e8f0; }
+.map-banner-anchor { position: relative; width: 0; height: 0; }

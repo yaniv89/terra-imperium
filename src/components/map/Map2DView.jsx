@@ -26,6 +26,7 @@ import { loadSubregionTopology } from '../../data/geo/loadWorldFeatures';
 import { mesh } from 'topojson-client';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
+import Map2DMarkersOverlay from './Map2DMarkersOverlay';
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
@@ -359,6 +360,14 @@ const Map2DView = ({
     );
   }, [pathsById, atWarNationIds, state.regions, state.playerNationId, selectedRegion, zoomK]);
 
+  // A tapped marker cluster: zoom in on it until its banners separate.
+  const zoomToRegion = useCallback((regionId) => {
+    const c = REGION_COORDINATES[regionId];
+    if (!c) return;
+    const max = (isTouchDevice() ? TOUCH_ZOOM_EXTENT : ZOOM_EXTENT)[1];
+    focusOnLatLng(c.lat, c.lng, Math.min(max, Math.max(transform.k * 2.5, INITIAL_FOCUS_ZOOM)), true);
+  }, [focusOnLatLng, transform.k]);
+
   useEffect(()=>{
     if(!interactive || !hudOffset || !polygons || !projection || window.__E2E_MAP_TEST__!==true)return undefined;
     window.__map2DTest={
@@ -399,6 +408,7 @@ const Map2DView = ({
   return (
     <div className="relative w-full h-full">
       {map}
+      <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
       <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button

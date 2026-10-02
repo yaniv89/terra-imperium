@@ -1,0 +1,83 @@
+// src/components/map/Map2DMarkersOverlay.jsx
+// Armies, fleets and last turn's battles drawn on the flat map (plan §4a/4b), at screen scale so a
+// banner stays the same size at any zoom. Positions come from the d3 projection plus the live
+// pan/zoom transform. Banners that would overlap merge into a numbered cluster; tapping a cluster
+// zooms in on it. Zoomed out (below FOREIGN_MIN_ZOOM) only your own armies and battles show.
+import React, { useMemo } from 'react';
+import { useGame } from '../../context/GameContext';
+import { REGION_COORDINATES } from '../../data/regionCoordinates';
+import { REGIONS_DATA } from '../../data/regions';
+import { getMapMarkers } from '../../utils/mapMarkers';
+import { getAtWarNationIds } from '../../utils/mapRegionStyle';
+import { openBattleReport } from '../battle/battleReportEvents';
+import { clusterBannerHtml, clusterScreenMarkers, MARKER_OFFSET, markerHtml, markerItems } from './mapBanners';
+
+export const FOREIGN_MIN_ZOOM = 2;
+const CLUSTER_RADIUS_PX = 22;
+const EDGE_PX = 30;
+
+const describe = (m) => {
+  const where = REGIONS_DATA[m.regionId]?.name || m.regionId;
+  if (m.kind === 'battle') return `Battle at ${where}: open the report`;
+  if (!m.own) return `${m.kind === 'fleet' ? 'Foreign fleet' : 'Foreign army'} in ${where}`;
+  return m.kind === 'fleet' ? `Your fleet in ${where}` : `Your army in ${where}, ${m.men} soldiers`;
+};
+
+const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectRegion, onZoomTo }) => {
+  const { state } = useGame();
+  const markers = useMemo(() => getMapMarkers(state),
+    // Only what the markers read: units, ownership, alliances, intel and battles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.units, state.regions, state.nations, state.intel, state.battleReports, state.turnNumber, state.playerNationId]);
+  const atWar = useMemo(() => getAtWarNationIds(state.wars, state.playerNationId), [state.wars, state.playerNationId]);
+
+  const placed = useMemo(() => {
+    if (!projection) return [];
+    const showForeign = transform.k >= FOREIGN_MIN_ZOOM;
+    const items = [];
+    markerItems(markers, showForeign).forEach((m) => {
+      const c = REGION_COORDINATES[m.regionId];
+      const p = c && projection([c.lng, c.lat]);
+      if (!p) return;
+      const [ox, oy] = MARKER_OFFSET[m.kind];
+      const x = p[0] * transform.k + transform.x + ox;
+      const y = p[1] * transform.k + transform.y + oy;
+      if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;
+      items.push({ ...m, x, y });
+    });
+    return clusterScreenMarkers(items, CLUSTER_RADIUS_PX);
+  }, [markers, projection, transform, width, height]);
+
+  if (!placed.length) return null;
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-[5]" data-testid="map-markers">
+      {placed.map((c) => {
+        const single = c.members.length === 1;
+        const html = single ? markerHtml(c, atWar.has(c.ownerId)) : clusterBannerHtml(c.members.length, c.members.some((m) => m.own && m.kind !== 'battle'));
+        const onClick = (e) => {
+          e.stopPropagation();
+          if (!single) { onZoomTo?.(c.regionId); return; }
+          if (c.kind === 'battle') openBattleReport(c.id);
+          else onSelectRegion?.(c.regionId);
+        };
+        return (
+          <button
+            key={c.key}
+            type="button"
+            className={`map-banner pointer-events-auto${single && !c.own ? ' foreign' : ''}`}
+            style={{ transform: `translate(${Math.round(c.x)}px, ${Math.round(c.y)}px) translate(-50%, -50%)` }}
+            data-marker={single ? c.kind : 'cluster'}
+            data-region-id={c.regionId}
+            aria-label={single ? describe(c) : `${c.members.length} markers: zoom in`}
+            title={single ? describe(c) : `${c.members.length} markers: zoom in`}
+            onClick={onClick}
+            // Built from numbers and fixed ids only (mapBanners.js), never from player text.
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+export default Map2DMarkersOverlay;

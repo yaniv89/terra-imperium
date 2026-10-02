@@ -20,6 +20,9 @@ import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import GlobeEffectsOverlay, { getFramingPov, getImpactDelay } from './GlobeEffectsOverlay';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
+import { getMapMarkers } from '../../utils/mapMarkers';
+import { clusterGlobeItems, createMarkerElement, markerItems } from '../map/mapBanners';
+import { openBattleReport } from '../battle/battleReportEvents';
 
 // Above this camera altitude (globe radii) the globe shows nations, not provinces.
 const FAR_VIEW_ALTITUDE = 1.1;
@@ -305,6 +308,36 @@ const GlobeView = ({ onAmbiguousTap = null,
   // array identity every render would make react-globe.gl treat it as entirely new data and
   // rebuild every polygon mesh on every render instead of just once.
   const polygons = useMemo(() => geo?.gameRegionFeatures || null, [geo]);
+  // Armies, fleets and battles on the globe (plan §4b): the same banners as the flat map, as DOM
+  // elements react-globe.gl keeps over each province and hides on the far side. Far out only your
+  // own armies and battles show. The element factory is stable (it reads the latest handlers and
+  // war set through a ref), because a new one would make the globe rebuild every banner.
+  const markers = useMemo(() => getMapMarkers(state),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.units, state.regions, state.nations, state.intel, state.battleReports, state.turnNumber, state.playerNationId]);
+  // Camera altitude in steps of x1.4, so clusters regroup only when the zoom really changed.
+  const [altStep, setAltStep] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const alt = globeRef.current?.pointOfView?.()?.altitude;
+      if (alt > 0) setAltStep(Math.round(Math.log(alt) / Math.log(1.4)));
+    }, 300);
+    return () => clearInterval(interval);
+  }, []);
+  const markerData = useMemo(() => clusterGlobeItems(markerItems(markers, !farView)
+    .map((m) => ({ ...m, lat: REGION_COORDINATES[m.regionId]?.lat, lng: REGION_COORDINATES[m.regionId]?.lng }))
+    .filter((m) => m.lat != null), 3 * 1.4 ** altStep), [markers, farView, altStep]);
+  const markerCtx = useRef({});
+  markerCtx.current = { onSelectRegion, atWarNationIds };
+  const markerElement = useCallback((item) => createMarkerElement(item, markerCtx.current.atWarNationIds.has(item.ownerId), (it) => {
+    if (it.kind === 'cluster') {
+      const pov = globeRef.current?.pointOfView?.();
+      globeRef.current?.pointOfView({ lat: it.lat, lng: it.lng, altitude: Math.max(0.12, (pov?.altitude || 1) / 2.5) }, 500);
+    } else if (it.kind === 'battle') openBattleReport(it.id);
+    else markerCtx.current.onSelectRegion(it.regionId);
+  }), []);
+  const markerVisibility = useCallback((el, visible) => { el.style.display = visible ? '' : 'none'; }, []);
+
 
   useEffect(() => {
     if(window.__E2E_MAP_TEST__ !== true || !globeRef.current || !geo)return undefined;
@@ -364,6 +397,11 @@ const GlobeView = ({ onAmbiguousTap = null,
         polygonCapCurvatureResolution={12}
         polygonsTransitionDuration={200}
         polygonLabel={label}
+        htmlElementsData={markerData}
+        htmlElement={markerElement}
+        htmlElementVisibilityModifier={markerVisibility}
+        htmlAltitude={0.004}
+        htmlTransitionDuration={0}
       />
       {!prefersReducedMotion() && (
         <GlobeEffectsOverlay globeRef={globeRef} width={width} height={height} effects={effects} ageId={state.age} />
