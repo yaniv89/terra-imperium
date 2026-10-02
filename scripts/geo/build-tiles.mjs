@@ -397,6 +397,63 @@ export const buildTiles = ({ log = console.log } = {}) => {
     terrain[i] = code(TERRAIN, c.terrain); relief[i] = code(RELIEF, c.relief); featureCode[i] = code(FEATURE, c.feature);
   }
 
+  // Resources (plans/civ-map-rework.md C1): a deterministic scatter by terrain, relief and feature,
+  // with the curated country deposits (src/data/deposits.js) guaranteeing copper, iron and oil
+  // where history put them. One resource per tile at most; amounts come later from improvements.
+  const resourceOf = new Array(n).fill(null);
+  const depositsByCountry = readJson(path.join(__dirname, '../../src/data/geo/deposits.json'));
+  const pick = (id, options) => {
+    let total = 0; options.forEach(([, w]) => { total += w; });
+    let r = hash01(id, 31) * total;
+    for (const [name, w] of options) { r -= w; if (r <= 0) return name; }
+    return options[options.length - 1][0];
+  };
+  for (let i = 0; i < n; i++) {
+    const t = TERRAIN[terrain[i]]; const rel = RELIEF[relief[i]]; const feat = FEATURE[featureCode[i]];
+    const near = coastal[i];
+    if (!land[i]) {
+      if (t === 'coast' && hash01(i, 11) < 0.18) resourceOf[i] = hash01(i, 12) < 0.8 ? 'fish' : 'whales';
+      continue;
+    }
+    if (t === 'snow' || t === 'lake') continue;
+    const chance = hash01(i, 13);
+    if (chance > 0.42) continue; // most tiles carry nothing
+    const options = [];
+    if (rel === 'mountains') options.push(['gold', 2], ['silver', 2], ['copper', 2], ['iron', 2], ['stone', 3], ['gems', 1]);
+    else if (rel === 'hills') options.push(['iron', 4], ['copper', 3], ['stone', 3], ['coal', 3], ['gold', 1], ['wine', 1], ['sheep', 3]);
+    else if (feat === 'forest') options.push(['furs', 3], ['deer', 3], ['timber', 3], ['honey', 1]);
+    else if (feat === 'jungle') options.push(['spices', 3], ['bananas', 3], ['dyes', 2], ['sugar', 2], ['rubber', 1]);
+    else if (feat === 'marsh') options.push(['rice', 3], ['reeds', 1]);
+    else if (feat === 'floodplain') options.push(['wheat', 4], ['cotton', 2], ['papyrus', 1]);
+    else if (feat === 'oasis') options.push(['dates', 3]);
+    else if (t === 'desert') options.push(['salt', 2], ['oil', 2], ['incense', 1], ['copper', 1], ['gold', 1]);
+    else if (t === 'tundra') options.push(['furs', 3], ['oil', 1], ['iron', 1], ['uranium', 1]);
+    else if (t === 'grassland') options.push(['wheat', 4], ['cattle', 4], ['horses', 3], ['sheep', 2], ['wine', 1], ['silk', 1], ['tea', 1]);
+    else if (t === 'plains') options.push(['wheat', 3], ['horses', 4], ['cattle', 2], ['cotton', 2], ['olives', 1], ['coal', 1], ['salt', 1]);
+    if (near && hash01(i, 14) < 0.15) options.push(['fish', 3]);
+    if (options.length) resourceOf[i] = pick(i, options);
+  }
+  // Curated deposits: every listed country gets at least two tiles of each of its resources, on
+  // its own land, chosen by the hash so the choice never moves between builds.
+  Object.entries(depositsByCountry).forEach(([cid, list]) => {
+    const ci = countryIds.indexOf(cid);
+    if (ci < 0) return;
+    const own = [];
+    for (let i = 0; i < n; i++) if (land[i] && country[i] === ci && TERRAIN[terrain[i]] !== 'snow') own.push(i);
+    if (!own.length) return;
+    list.forEach((res, k) => {
+      const have = own.filter((i) => resourceOf[i] === res).length;
+      const ordered = own.slice().sort((a, b) => hash01(a, 50 + k) - hash01(b, 50 + k));
+      for (let j = 0, placed = have; placed < Math.min(2, own.length) && j < ordered.length; j++) {
+        const i = ordered[j];
+        if (resourceOf[i] === res) continue;
+        if (resourceOf[i] && hash01(i, 60) < 0.5) continue;
+        resourceOf[i] = res; placed++;
+      }
+    });
+  });
+  const resourceList = [...new Set(resourceOf.filter(Boolean))].sort();
+
   const climateList = [...new Set(climate.filter(Boolean))].sort();
   const out = {
     version: GRID_VERSION,
@@ -416,6 +473,8 @@ export const buildTiles = ({ log = console.log } = {}) => {
     climate: climate.map((k) => (k ? climateList.indexOf(k) : -1)),
     terrain: Array.from(terrain), relief: Array.from(relief), feature: Array.from(featureCode),
     rivers: Array.from(riverMask),
+    resourceNames: resourceList,
+    resource: resourceOf.map((r) => (r ? resourceList.indexOf(r) : -1)),
     riverNames: Object.fromEntries(riverNames.map((x, i) => [i, x]).filter(([, x]) => x)),
     names: Object.fromEntries(names.map((x, i) => [i, x]).filter(([, x]) => x)),
     capitals: capitalTile
@@ -476,5 +535,6 @@ if (isMain) {
   console.log(`relief: ${count(out.relief, out.reliefNames)}`);
   console.log(`feature: ${count(out.feature, out.featureNames)}`);
   console.log(`named cells ${Object.keys(out.names).length}, capitals ${Object.keys(out.capitals).length}`);
+  console.log(`resources: ${out.resourceNames.map((name, k) => `${name} ${out.resource.filter((v) => v === k).length}`).join(', ')}`);
   console.log(`wrote src/data/geo/tiles.json (${(JSON.stringify(out).length / 1024).toFixed(0)} KB) in ${(result.ms / 1000).toFixed(1)} s`);
 }
