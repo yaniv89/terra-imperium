@@ -7,6 +7,7 @@ import { getTiles } from '../data/geo/tiles';
 import { foundCity, sizeToPeople, ringDistance } from './world/cities';
 import { syncWorldRegistry } from './world/registry';
 import { getNationCapital, getNeighborIds, getOwnedRegionIds } from '../data/regions';
+import { getTouchingIds } from '../data/regions';
 
 export const cap = (nationId) => getNationCapital(nationId);
 
@@ -64,4 +65,20 @@ export const interiorCity = (state, nationId, otherId) => {
   if (existing) return { state, cityId: existing };
   const r = addCity(state, nationId);
   return r;
+};
+
+// A land attack from inside a city needs the two lands to touch (registry `touching`). When they
+// do not, this stands every land unit of `fromId` (its owner's) on a land tile beside the target's
+// centre, where the attack is valid. Returns the same state when the lands touch.
+export const gateTile = (state, fromId, targetId) => {
+  if (getTouchingIds(fromId).includes(targetId)) return null;
+  const tiles = getTiles();
+  const centre = state.regions[targetId]?.tile;
+  return centre == null ? null : tiles.neighbors[centre].find((n) => tiles.land[n] === 1) ?? null;
+};
+export const atGates = (state, fromId, targetId) => {
+  const gate = gateTile(state, fromId, targetId);
+  if (gate == null) return state;
+  const owner = state.regions[fromId]?.owner;
+  return { ...state, units: Object.fromEntries(Object.entries(state.units || {}).map(([id, u]) => [id, u.regionId === fromId && u.ownerId === owner && u.domain !== 'naval' && !u.embarkedOn ? { ...u, tile: gate } : u])) };
 };

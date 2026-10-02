@@ -8,6 +8,8 @@ import { validateInvasion } from '../../engine/invasion';
 import { addCity } from '../../engine/testWorld';
 import PreBattleModal from './PreBattleModal';
 import RegionInfoModal from '../modals/RegionInfoModal';
+import { atGates } from '../../engine/testWorld';
+import { getTouchingIds } from '../../data/regions';
 
 const game = vi.hoisted(() => ({ state: null, dispatch: vi.fn(), addLog: vi.fn() }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
@@ -32,6 +34,7 @@ describe('attack buttons follow the engine validation', () => {
     game.state.resources.gold = 10000;
     game.state.resources.mil = 10000;
     game.state.units = { army: { id: 'army', ownerId: 'fr', regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 0 } };
+    game.state = atGates(game.state, from, target); // the attack needs touching lands or an army beside the city
   });
   it('disables both battle modes and explains the exhausted army after conquest', () => {
     expect(validateInvasion(game.state, from, target)).toMatchObject({ ok: false, reason: 'no_moves' });
@@ -60,8 +63,9 @@ describe('attack buttons follow the engine validation', () => {
     expect(game.state.units.army.regionId).toBe(target);
     expect(game.state.units.army.movesLeft).toBe(0);
     from = target;
-    target = getNeighborIds(from).find(id => game.state.regions[id]?.owner === 'de');
+    target = getTouchingIds(from).find(id => game.state.regions[id]?.owner === 'de') || getNeighborIds(from).find(id => game.state.regions[id]?.owner === 'de');
     expect(target).toBeDefined();
+    game.state = atGates(game.state, from, target);
     expect(button(renderBattle(), 'battle-choice-auto')).toContain('disabled=""');
     expect(renderBattle()).toContain('End the turn before attacking again.');
   });

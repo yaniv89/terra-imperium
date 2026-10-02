@@ -5,7 +5,7 @@ import { createInitialState, gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
 import { HISTORICAL_EVENTS } from '../data/events';
-import { getNationCapital, getNeighborIds } from '../data/regions';
+import { getNationCapital, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
@@ -261,11 +261,16 @@ describe('units and tiles', () => {
     expect(normalizeUnitTiles(s)).toBe(s);
   });
 
-  it('an army standing in a neighbouring city still attacks across the city bridge', () => {
-    const s = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: homeTile })]);
-    const v = validateInvasion(s, P, PK, { ignoreCost: true });
-    expect(v.ok, v.reason).toBe(true);
+  it('an army at home no longer attacks across the Dawn bridge: it must stand beside the city', () => {
+    const home = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: homeTile })]);
+    const touching = getTouchingIds(P).includes(PK);
+    const v = validateInvasion(home, P, PK, { ignoreCost: true });
+    expect(v.ok).toBe(touching);
+    if (!touching) expect(v.reason).toBe('not_adjacent');
+    const gate = getTiles().neighbors[S.regions[PK].tile].find((n) => getTiles().land[n] === 1);
+    const beside = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: gate })]);
+    expect(validateInvasion(beside, P, PK, { ignoreCost: true }).ok).toBe(true);
     const far = withUnits(atWarWith(S, 'pk'), [unit('a', P, { tile: freeAt(6) })]);
-    expect(validateInvasion(far, P, PK, { ignoreCost: true }).reason).toBe('no_units');
+    expect(['no_units', 'not_adjacent']).toContain(validateInvasion(far, P, PK, { ignoreCost: true }).reason);
   });
 });

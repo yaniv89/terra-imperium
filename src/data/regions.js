@@ -12,6 +12,8 @@ export const REGIONS_DATA = WORLD_REGISTRY.regions;
 // ============ ADJACENCY ============
 
 export const getNeighborIds = (regionId) => REGIONS_DATA[regionId]?.neighbors || [];
+// Cities whose land touches this one's (registry.js `touching`): no near rule, no Dawn bridge.
+export const getTouchingIds = (regionId) => REGIONS_DATA[regionId]?.touching || REGIONS_DATA[regionId]?.neighbors || [];
 
 // True if `regionId` shares a border with any region the given owner holds.
 export const isAdjacentToOwner = (regionId, regions, ownerId) => {

@@ -7,7 +7,8 @@ import { TECH_TREE } from '../data/techTree';
 import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
-import { getNationCapital, REGIONS_DATA, getBorderingNationIds, getNeighborIds } from '../data/regions';
+import { getNationCapital, REGIONS_DATA, getBorderingNationIds, getNeighborIds, getTouchingIds } from '../data/regions';
+import { getTiles } from '../data/geo/tiles';
 import { addCity, addCities } from '../engine/testWorld';
 import { setTruce } from '../engine/diplomacy';
 import { hasIntel, getIntelTurnsLeft, canSeeRegionDetails } from '../engine/intel';
@@ -1057,7 +1058,9 @@ describe('Military tab actions', () => {
   // target) and FR_NEIGHBOR, a second French city bordering it. The enemy is whoever owns the target.
   const WORLD = (() => {
     const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-    const target = getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
+    // A land attack from inside a city needs the two lands to touch (registry `touching`); the Dawn
+    // bridge between capitals no longer carries one.
+    const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr') || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
     const second = addCity(first.state, 'fr', { near: first.cityId });
     const AGG = second.state.regions[target].owner;
     // The enemy gets two more cities, so taking the target does not end its nation and its war.
@@ -1126,7 +1129,12 @@ describe('Military tab actions', () => {
 
     const withAttacker = (strength) => {
       const state = withWarAgainst(richState(), AGG);
-      const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
+      const raw = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
+      // The recruit stands at the target's gates when its city's land does not touch the target's.
+      const touching = getTouchingIds(FR_BORDER).includes(BE_REGION);
+      const t = getTiles();
+      const gate = touching ? null : t.neighbors[raw.regions[BE_REGION].tile].find((n) => t.land[n] === 1);
+      const recruited = gate == null ? raw : { ...raw, units: Object.fromEntries(Object.entries(raw.units).map(([id, u]) => [id, u.regionId === FR_BORDER && u.domain === 'land' ? { ...u, tile: gate } : u])) };
       if (strength === undefined) return recruited;
       const unitId = Object.keys(recruited.units)[0];
       return { ...recruited, units: { ...recruited.units, [unitId]: { ...recruited.units[unitId], strength } } };

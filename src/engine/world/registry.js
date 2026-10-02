@@ -93,7 +93,7 @@ const ringsBetweenRaw = (tiles, from, to, maxRing) => {
 
 // Neighbour lists depend only on which cities exist, their land and their owners: cached on that
 // key, so a turn that changes sizes and yields alone rebuilds nothing expensive.
-let neighbourCache = { key: null, byCity: null };
+let neighbourCache = { key: null, byCity: null, touchingByCity: null };
 
 export const buildRegistry = (regions) => {
   const tiles = getTiles();
@@ -114,13 +114,17 @@ export const buildRegistry = (regions) => {
   const geoKey = cities.map((c) => `${c.id}:${c.owner}:${c.founderId || ''}:${(c.tiles || [c.tile]).length}:${c.isCapital ? 1 : 0}`).join('|');
   const cachedNeighbours = neighbourCache.key === geoKey ? neighbourCache.byCity : null;
   const neighboursOut = {};
+  const touchingOut = {};
   cities.forEach((city) => {
     const neighbors = new Set(cachedNeighbours ? cachedNeighbours[city.id] : []);
+    // `touching`: cities whose land touches this one's (no near rule, no bridge): what a land
+    // attack from inside a city needs (invasion.js); wars, trade and diffusion keep `neighbors`.
+    const touching = new Set(cachedNeighbours ? neighbourCache.touchingByCity[city.id] : []);
     const nation = city.founderId || city.owner;
     if (!cachedNeighbours) {
     (city.tiles || [city.tile]).forEach((t) => tiles.neighbors[t].forEach((n) => {
       const o = owners[n];
-      if (o && o !== city.id) neighbors.add(o);
+      if (o && o !== city.id) { neighbors.add(o); touching.add(o); }
     }));
     nearCities(city, NEAR_RINGS).forEach((c) => neighbors.add(c.id));
     // The bridge links a people's CAPITAL to the nearest city of each neighbouring people, one
@@ -145,6 +149,7 @@ export const buildRegistry = (regions) => {
       startOwner: city.founderId || city.owner,
       population: sizeToPeople(city.size || 1),
       neighbors: [...neighbors].sort(),
+      touching: [...touching].sort(),
       terrain: legacyTerrainOf(tiles, city.tile),
       isCoastal: coastal,
       isCapital: !!city.isCapital,
@@ -177,7 +182,7 @@ export const buildRegistry = (regions) => {
   // Symmetric: the bridge rule picks one nearest city per side, so close the pairs.
   Object.values(out.regions).forEach((r) => r.neighbors.forEach((n) => { const other = out.regions[n]; if (other && !other.neighbors.includes(r.id)) other.neighbors.push(r.id); }));
   Object.values(out.regions).forEach((r) => r.neighbors.sort());
-  if (!cachedNeighbours) { Object.values(out.regions).forEach((r) => { neighboursOut[r.id] = r.neighbors; }); neighbourCache = { key: geoKey, byCity: neighboursOut }; }
+  if (!cachedNeighbours) { Object.values(out.regions).forEach((r) => { neighboursOut[r.id] = r.neighbors; touchingOut[r.id] = r.touching; }); neighbourCache = { key: geoKey, byCity: neighboursOut, touchingByCity: touchingOut }; }
   return out;
 };
 

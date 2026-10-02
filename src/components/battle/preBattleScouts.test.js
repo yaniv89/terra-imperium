@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNeighborIds } from '../../data/regions';
 import PreBattleModal from './PreBattleModal';
+import { atGates } from '../../engine/testWorld';
 
 const game = vi.hoisted(() => ({ state: null, dispatch: vi.fn(), addLog: vi.fn() }));
 vi.mock('../../context/GameContext', () => ({ useGame: () => game }));
@@ -25,6 +26,7 @@ describe('pre-battle odds without intel', () => {
         d: { id: 'd', ownerId: 'de', regionId: target, domain: 'land', classId: 'infantry', strength: 300, maxStrength: 300, morale: 100, movesLeft: 1 }
       }
     };
+    game.state = atGates(game.state, from, target);
     const html = renderToStaticMarkup(React.createElement(PreBattleModal, { fromRegionId: from, targetRegionId: target, onClose: vi.fn() }));
     expect(html).toContain('data-testid="battle-odds-scouts"');
     expect(html).toContain('Likely win');
