@@ -123,7 +123,7 @@ const advancePretenders = (state, regions, units, nationId, rng, turnNumber) => 
     if (!target) return;
     const strength = Math.max(1, Math.round(u.strength * PRETENDER_SPLIT_STRENGTH_SHARE));
     const id = `pretender_${nationId}_${target}_${turnNumber}`;
-    units[id] = { ...u, id, regionId: target, strength, maxStrength: strength, spawnedTurn: turnNumber };
+    units[id] = { ...u, id, regionId: target, tile: regions[target]?.tile ?? null, strength, maxStrength: strength, spawnedTurn: turnNumber };
     regions[target] = { ...regions[target], occupiedBy: PRETENDER_MARKER };
   });
 };

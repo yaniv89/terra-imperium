@@ -23,6 +23,8 @@ import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolve
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
+import { getTiles } from '../data/geo/tiles';
+import { touchesCity, unitTile } from './armies';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -77,14 +79,20 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   if (!targetRegion || targetRegion.owner === state.playerNationId) return { ok: false, reason: 'bad_target' };
   // Already held by your army (an occupation from an older save): there is nothing left to fight.
   if (targetRegion.occupiedBy === state.playerNationId) return { ok: false, reason: 'already_held' };
-  if (!getNeighborIds(fromRegionId).includes(targetRegionId)) return { ok: false, reason: 'not_adjacent' };
+  // Workstream 5: an army attacks a city from any tile next to its land (armies.js), or from inside
+  // a neighbouring city's land (the registry's city adjacency, which bridges the sparse Dawn world).
+  const tiles = getTiles();
+  const tileOwner = state.world?.tileOwner || {};
+  const cityAdjacent = getNeighborIds(fromRegionId).includes(targetRegionId);
+  const reaches = (u) => { const t = unitTile(state, u); return t != null && ((cityAdjacent && tileOwner[t] === fromRegionId) || touchesCity(state, tiles, t, targetRegionId)); };
+  // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
+  const stack = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
+  const attackerUnits = stack.filter(reaches);
+  if (!cityAdjacent && attackerUnits.length === 0) return { ok: false, reason: 'not_adjacent' };
   // Plan §M13: invasions require an active war with the target's owner.
   const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
   if (!war) return { ok: false, reason: 'no_war' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.launchInvasion)) return { ok: false, reason: 'cost' };
-
-  // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
-  const attackerUnits = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
   if (attackerUnits.length === 0) return { ok: false, reason: 'no_units' };
   // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still have
   // its move (all-or-nothing on the whole stack, matching "an army is every unit in one region").
@@ -172,7 +180,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
   // so resolveTurn.js's reinforcement/morale-recovery phase skips it.
   xpAttackers.forEach(u => {
     if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-    nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId, movesLeft: 0, lastBattleTurn: state.turnNumber };
+    nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId, tile: captured ? targetRegion.tile : unitTile(state, u), movesLeft: 0, lastBattleTurn: state.turnNumber };
   });
   // A captured region's garrison doesn't remain a coherent defending force — on actual capture
   // the whole defending side is cleared, survivors and routed alike. A round that only damages

@@ -14,6 +14,7 @@ import {
 } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
+import { markerLatLng } from '../../../utils/markerPosition';
 import { getEffectiveAgeId } from '../../../data/ages';
 import { getMapMarkers } from '../../../utils/mapMarkers';
 import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_SCALE } from '../../../battle/render/soldierFactory';
@@ -84,13 +85,13 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     camera.updateProjectionMatrix();
     const k = transform.k;
     const s = unitPx(k);
-    const toScreen = (regionId) => {
-      const c = REGION_COORDINATES[regionId];
+    const toScreenLatLng = (c) => {
       const p = c && projection([c.lng, c.lat]);
       if (!p) return null;
       const x = p[0] * k + transform.x; const y = p[1] * k + transform.y;
       return x < -EDGE || y < -EDGE || x > width + EDGE || y > height + EDGE ? null : { x, y };
     };
+    const toScreen = (regionId) => toScreenLatLng(REGION_COORDINATES[regionId]);
 
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
@@ -142,7 +143,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     const tmp = new Object3D(); const color = new Color();
     let moving = false;
     markers.armies.forEach((m, mi) => {
-      const at = toScreen(m.regionId);
+      const at = toScreenLatLng(markerLatLng(m));
       if (!at) return;
       const classId = m.own && m.mainClass && m.mainClass !== 'mixed' ? m.mainClass : 'infantry';
       const ageId = ageOf(state, m.ownerId);

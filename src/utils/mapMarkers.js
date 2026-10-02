@@ -1,6 +1,7 @@
 // src/utils/mapMarkers.js
-// What the map draws on top of the provinces (plan §4a): one army banner per province stack, fleets,
-// and last turn's battles. Pure, shared by the flat map and the globe.
+// What the map draws on top of the map (plan §4a): one army banner per stack on a tile (workstream
+// 5: armies stand on tiles), fleets, and last turn's battles. Pure, shared by the flat map and the
+// globe. Each marker carries `tile` (where to draw it) and `regionId` (the city it belongs to).
 //   Own armies: soldiers (strength x MEN_PER_STRENGTH), main unit type, average morale, whether any
 //   unit can still move, and how many units ride on a fleet.
 //   Foreign armies: presence only (owner and a rough size band with intel), and only where the
@@ -11,6 +12,7 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { MEN_PER_STRENGTH } from '../engine/aftermath';
 import { hasIntel } from '../engine/intel';
 import { playerWon } from '../engine/battleReports';
+import { unitTile } from '../engine/armies';
 
 // Soldier bands a foreign army is described by when the player has intel on its owner.
 export const sizeBand = (strength) => (strength >= 3000 ? 'large' : strength >= 1000 ? 'medium' : 'small');
@@ -49,8 +51,9 @@ export const getMapMarkers = (state) => {
   Object.values(state.units).forEach((u) => {
     if (!u || !(u.strength > 0) || u.embarkedOn || u.classId === 'settler' || !REGIONS_DATA[u.regionId]) return;
     const domain = u.domain === 'naval' ? 'naval' : 'land';
-    const key = `${u.regionId}|${u.ownerId}|${domain}`;
-    if (!groups.has(key)) groups.set(key, { regionId: u.regionId, ownerId: u.ownerId, domain, units: [] });
+    const tile = unitTile(state, u);
+    const key = `${tile}|${u.regionId}|${u.ownerId}|${domain}`;
+    if (!groups.has(key)) groups.set(key, { tile, regionId: u.regionId, ownerId: u.ownerId, domain, units: [] });
     groups.get(key).units.push(u);
   });
   const armies = []; const fleets = [];
@@ -59,7 +62,8 @@ export const getMapMarkers = (state) => {
     if (!own && !visible.has(g.regionId) && !hasIntel(state, g.ownerId)) return; // fog of war
     const strength = g.units.reduce((s, u) => s + (u.strength || 0), 0);
     const marker = {
-      id: `${g.regionId}|${g.ownerId}|${g.domain}`,
+      id: `${g.tile}|${g.regionId}|${g.ownerId}|${g.domain}`,
+      tile: g.tile,
       regionId: g.regionId,
       ownerId: g.ownerId,
       own,

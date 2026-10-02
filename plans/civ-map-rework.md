@@ -1413,6 +1413,31 @@ ms a turn, of which the cities phase is 40, the AI economy 28 and the registry r
 spacing check, the AI site search, settler paths and city neighbours are now cached, which took
 the turn from 200 ms down. Natives, loyalty on far outposts and migration are still to come.
 
+
+---
+
+**Workstream 5, first wave (2026-10-02): armies stand on tiles and march real routes.**
+`src/engine/armies.js`: every land unit has a `tile`; its `regionId` is the city whose land it
+stands on, or on free land the nearest own city (its supply base, and the record every older
+reader keeps using). Move points a turn by class (foot 2, cavalry 4, siege 1, +1 Forced March),
+banked up to 4. Tile cost: 1 on open land, +1 for hills, +1 for forest, jungle or marsh, +1 for
+desert or tundra, mountains 4, a river crossing +1 until Stone Bridges, a road 0.5 (a railway
+0.25 with Rail Networks), enemy land at least 2; snow, ice and water are impassable. Routes are
+A* over tiles (`findTilePath`); a march halts at the border of enemy land you do not hold and
+before an enemy army, and entering a tile next to an enemy army ends the move for the turn (zone
+of control). `routes.js` runs on tiles (`route` is a list of tiles; a target is a city or a tile
+of free land, SET_ROUTE `toTile`). A city is attacked from any tile next to its land, and still
+from inside a neighbouring city's land (the registry bridge of the sparse Dawn world). Every
+mover that still thinks in cities (a manual move, a captured city, a defence fallback, AI
+operations, civil wars, colonies) places the unit on the city centre, and `normalizeUnitTiles`
+at the start and end of a turn re-anchors a unit whose land changed hands. The maps draw
+armies at their tiles (flat map, globe, close view); the flat map draws the march lines with
+turn numbers; the march bar takes a tile as target. Found on the way: at Dawn, Paris can reach
+only seven free tiles at peace (its neighbours' capitals enclose it), so the route tests play
+India and Pakistan. Mountains are not impassable yet (no Mountaineering tech exists; it comes
+with the research web of workstream 10). Still to come in 5: fog of war, the supply meter,
+stacking limits, fleets on sea tiles, army templates and the AI front planner (workstream 9).
+
 ---
 
 ---

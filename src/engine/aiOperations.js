@@ -8,6 +8,7 @@ import { getPool, getTechAgeId } from './nationState';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
 import { resolveBattle } from './battle';
 import { isUnitInBattle } from './invasion';
+import { placeInCity } from './armies';
 import { applyCosts, canAfford } from '../utils/helpers';
 import { ACTION_COSTS } from '../data/actionCosts';
 
@@ -86,7 +87,7 @@ export const processAIOperations = (state, rng) => {
       } else {
         const to = routeStep(next.regions, nationId, from, goals);
         if (!to || !canAfford(pool, ACTION_COSTS.moveArmy)) continue;
-        stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, regionId: to, movesLeft: 0 }; });
+        stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...placeInCity(u, next.regions, to), movesLeft: 0 }; });
         next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.moveArmy) } };
       }
     }
