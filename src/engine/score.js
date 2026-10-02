@@ -19,6 +19,7 @@ export const getWarsWonCount = (state, nationId) =>
   )).length;
 
 const GREAT_PROJECT_IDS = Object.keys(GREAT_PROJECTS);
+export const SCORE_PER_CITIZEN = 5;
 
 export const calcNationScore = (state, nationId) => {
   const ownedRegionIds = getOwnedRegionIds(state.regions, nationId);
@@ -28,8 +29,10 @@ export const calcNationScore = (state, nationId) => {
   const prestige = state.nations[nationId]?.prestige || 0;
   const greatProjects = GREAT_PROJECT_IDS.filter((id) => getGreatProjectOwner(state, id) === nationId).length;
   const warsWon = getWarsWonCount(state, nationId);
-  const total = development + regions * 10 + techResearched * 15 + prestige + greatProjects * 50 + warsWon * 100;
-  return { nationId, total, development, regions, techResearched, prestige, greatProjects, warsWon };
+  // People (C10): every citizen of every city counts SCORE_PER_CITIZEN.
+  const population = ownedRegionIds.reduce((sum, id) => sum + (state.regions[id]?.size || 0), 0);
+  const total = development + regions * 10 + techResearched * 15 + prestige + greatProjects * 50 + warsWon * 100 + population * SCORE_PER_CITIZEN;
+  return { nationId, total, development, regions, techResearched, prestige, greatProjects, warsWon, population };
 };
 
 // Every nation in the world, ranked highest score first — ties broken by nation id for a stable,

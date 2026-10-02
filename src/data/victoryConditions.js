@@ -7,27 +7,44 @@
 
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
-import { REGIONS_DATA, getCapital, getNationCapital } from './regions';
+import { getCapital, getNationCapital } from './regions';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
 
-// Domination: a real share of the world's regions (real admin-1 provinces — see regions.js) held
-// by the player.
-export const DOMINATION_REGION_SHARE = 0.4;
-// Conqueror: a share of every OTHER nation's capital region under the player's flag — a different
-// flavor of dominance than Domination's raw region-count share, rewarding decapitating strikes on
-// the seats of power (including nations fully eliminated by src/engine/elimination.js, whose
-// former capital the player necessarily already holds) rather than grinding through peripheral
-// provinces. Set comparably "late-game dominant" to Domination's 40% region share: ~25% of the
-// ~239 other nations is ~60 capitals.
-export const CONQUEROR_CAPITAL_SHARE = 0.25;
-// Economic Hegemony: a real share of the world's total GDP, using each region's own gdpMillions
-// (REGIONS_DATA, a province's share of its country's real countries-meta.json GDP figure — see
-// build-world-regions.mjs) — the closest thing to "world trade share" this data model can compute
-// without simulating every AI nation's own economy in full.
-// Plan §M18: "raise to 45% ... so it's no easier than Domination (40% regions)" — GDP is far more
-// concentrated than region count (a handful of nations hold most of it), so 35% used to be reachable
-// well before 40% of regions was; 45% closes that gap.
-export const ECONOMIC_HEGEMONY_GDP_SHARE = 0.45;
+// Retargeted to the tile world (plans/civ-map-rework.md C10): domination counts the CAPITALS held,
+// conqueror counts the CITIES held, economic hegemony counts the world's gold income and the
+// player's trade, score counts population, wonders and techs (score.js).
+// Domination: the capitals of DOMINATION_CAPITAL_SHARE of every other nation under the player's
+// flag (their historic seat or wherever they moved it after losing it; a nation eliminated by
+// elimination.js still counts), rewarding decapitating strikes on the seats of power.
+export const DOMINATION_CAPITAL_SHARE = 0.25;
+// Conqueror: CONQUEROR_CITY_SHARE of the world's cities (outposts included) held by the player.
+export const CONQUEROR_CITY_SHARE = 0.4;
+// Economic hegemony: the player's share of the world's gold income (every city's last yields, the
+// same number the cities phase mirrors into dev) plus a trade route's share of each partner's own
+// gold (ECONOMIC_ROUTE_SHARE, so trade scales with the world's economy and a Dawn world of one-city
+// nations cannot be bought with agreements alone), at ECONOMIC_HEGEMONY_SHARE or more.
+export const ECONOMIC_HEGEMONY_SHARE = 0.35;
+export const ECONOMIC_ROUTE_SHARE = 0.4; // trade with the whole world alone tops out at 0.4 / 1.4 = 0.29
+// The older names, for readers written against the province world.
+export const DOMINATION_REGION_SHARE = CONQUEROR_CITY_SHARE;
+export const CONQUEROR_CAPITAL_SHARE = DOMINATION_CAPITAL_SHARE;
+export const ECONOMIC_HEGEMONY_GDP_SHARE = ECONOMIC_HEGEMONY_SHARE;
+
+/** The player's share of the world's gold income, trade included: { share, mine, world, routes }. */
+export const getEconomicShare = (state) => {
+  let mine = 0; let world = 0;
+  const byNation = {};
+  Object.values(state.regions || {}).forEach((c) => {
+    if (!c.owner) return;
+    const gold = Math.max(0, c.lastYields?.gold ?? c.dev?.tax ?? 0);
+    world += gold;
+    byNation[c.owner] = (byNation[c.owner] || 0) + gold;
+    if (c.owner === state.playerNationId) mine += gold;
+  });
+  const routes = Object.values(state.nations || {}).reduce((s, n) => (!n.isPlayer && n.hasTradeAgreement ? s + (byNation[n.id] || 0) * ECONOMIC_ROUTE_SHARE : s), 0);
+  mine += routes; world += routes;
+  return { share: world > 0 ? mine / world : 0, mine, world, routes };
+};
 // Diplomatic: friendly standing (trade, alliance, or genuinely low hostility) with a majority of
 // every other nation, SUSTAINED for a real stretch of turns (state.diplomaticLeadershipStreak,
 // incremented in resolveTurn.js) — a momentary majority shouldn't win outright; "leadership" per
@@ -56,18 +73,7 @@ export const VICTORY_CONDITIONS = {
   domination: {
     id: 'domination',
     name: 'Domination Victory',
-    description: `Hold at least ${Math.round(DOMINATION_REGION_SHARE * 100)}% of the world's regions.`,
-    check: (state) => {
-      const total = Object.keys(state.regions).length;
-      if (total === 0) return false;
-      const owned = Object.values(state.regions).filter(r => r.owner === state.playerNationId).length;
-      return owned / total >= DOMINATION_REGION_SHARE;
-    }
-  },
-  conqueror: {
-    id: 'conqueror',
-    name: 'Conqueror Victory',
-    description: `Hold the capital of at least ${Math.round(CONQUEROR_CAPITAL_SHARE * 100)}% of the world's other nations.`,
+    description: `Hold the capital of at least ${Math.round(DOMINATION_CAPITAL_SHARE * 100)}% of the world's other nations.`,
     check: (state) => {
       const others = Object.values(state.nations).filter(n => !n.isPlayer);
       if (others.length === 0) return false;
@@ -75,24 +81,25 @@ export const VICTORY_CONDITIONS = {
       // relocates it (src/engine/conquest.js), and taking it should still count.
       const held = (id) => !!id && state.regions[id]?.owner === state.playerNationId;
       const capitalsHeld = others.filter(n => held(getCapital(state, n.id)) || held(state.scenario?.starts?.[n.id] || getNationCapital(n.id))).length;
-      return capitalsHeld / others.length >= CONQUEROR_CAPITAL_SHARE;
+      return capitalsHeld / others.length >= DOMINATION_CAPITAL_SHARE;
+    }
+  },
+  conqueror: {
+    id: 'conqueror',
+    name: 'Conqueror Victory',
+    description: `Hold at least ${Math.round(CONQUEROR_CITY_SHARE * 100)}% of the world's cities.`,
+    check: (state) => {
+      const total = Object.keys(state.regions).length;
+      if (total === 0) return false;
+      const owned = Object.values(state.regions).filter(r => r.owner === state.playerNationId).length;
+      return owned / total >= CONQUEROR_CITY_SHARE;
     }
   },
   economicHegemony: {
     id: 'economicHegemony',
     name: 'Economic Hegemony Victory',
-    description: `Command at least ${Math.round(ECONOMIC_HEGEMONY_GDP_SHARE * 100)}% of the world's total GDP.`,
-    check: (state) => {
-      let ownedGdp = 0;
-      let totalGdp = 0;
-      Object.entries(state.regions).forEach(([id, region]) => {
-        const gdp = REGIONS_DATA[id]?.gdpMillions || 0;
-        totalGdp += gdp;
-        if (region.owner === state.playerNationId) ownedGdp += gdp;
-      });
-      if (totalGdp === 0) return false;
-      return ownedGdp / totalGdp >= ECONOMIC_HEGEMONY_GDP_SHARE;
-    }
+    description: `Earn at least ${Math.round(ECONOMIC_HEGEMONY_SHARE * 100)}% of the world's gold, trade included.`,
+    check: (state) => { const { share, world } = getEconomicShare(state); return world > 0 && share >= ECONOMIC_HEGEMONY_SHARE; }
   },
   diplomatic: {
     id: 'diplomatic',

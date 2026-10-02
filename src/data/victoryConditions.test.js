@@ -1,14 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import {
-  VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned,
-  getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, CONQUEROR_CAPITAL_SHARE,
-  ECONOMIC_HEGEMONY_GDP_SHARE
-} from './victoryConditions';
+import { VICTORY_CONDITIONS, checkVictoryConditions, applyVictory, isDiplomaticallyAligned, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS, DOMINATION_CAPITAL_SHARE, CONQUEROR_CITY_SHARE, ECONOMIC_HEGEMONY_SHARE, ECONOMIC_ROUTE_SHARE, getEconomicShare } from './victoryConditions';
 import { createInitialState } from '../context/GameContext';
 import { GameStatus } from './types';
 import { END_YEAR } from './ages';
 import { FINAL_SPACE_MISSION_ID } from './spaceMissions';
-import { WORLD_NATIONS } from './worldNations';
 import { getNationCapital } from './regions';
 
 // Plan §M18: "Remove the free win. survival no longer grants VICTORY." — reaching END_YEAR is no
@@ -23,89 +18,53 @@ describe('eventVictory / finalScore (display-only entries)', () => {
   });
 });
 
-describe('domination', () => {
-  it('is false at the start of a fresh game (owns only its own one region of 240)', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+describe('domination (capitals held)', () => {
+  it('is false at the start of a fresh game (owns no one else\'s capital)', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
     expect(VICTORY_CONDITIONS.domination.check(state)).toBe(false);
   });
 
-  it('is true once the player owns enough of the world\'s regions', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+  it('is true once the player holds enough of the world\'s other capitals, a nation later eliminated still counting', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
+    const regions = { ...state.regions }; const nations = { ...state.nations };
+    const otherNationIds = Object.keys(state.nations).filter(id => id !== 'fr');
+    const needed = Math.ceil(otherNationIds.length * DOMINATION_CAPITAL_SHARE);
+    let handedOver = 0;
+    for (const nationId of otherNationIds) {
+      const capitalId = getNationCapital(nationId);
+      if (!capitalId) continue;
+      regions[capitalId] = { ...regions[capitalId], owner: 'fr' };
+      if (handedOver % 2 === 0) nations[nationId] = { ...nations[nationId], isEliminated: true };
+      handedOver += 1;
+      if (handedOver >= needed) break;
+    }
+    expect(VICTORY_CONDITIONS.domination.check({ ...state, regions, nations })).toBe(true);
+  });
+});
+
+describe('conqueror (cities held)', () => {
+  it('is false at the start and true once the player owns enough of the world\'s cities', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
+    expect(VICTORY_CONDITIONS.conqueror.check(state)).toBe(false);
     const regions = { ...state.regions };
     const ids = Object.keys(regions);
-    const ownedCount = Math.ceil(ids.length * 0.41);
-    ids.slice(0, ownedCount).forEach(id => { regions[id] = { ...regions[id], owner: 'fr' }; });
-    expect(VICTORY_CONDITIONS.domination.check({ ...state, regions })).toBe(true);
-  });
-});
-
-describe('conqueror', () => {
-  it('is false at the start of a fresh game (owns no one else\'s capital)', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    expect(VICTORY_CONDITIONS.conqueror.check(state)).toBe(false);
-  });
-
-  it('is true once the player holds enough of the world\'s other capitals', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const regions = { ...state.regions };
-    const otherNationIds = Object.keys(state.nations).filter(id => id !== 'fr');
-    const neededCapitals = Math.ceil(otherNationIds.length * CONQUEROR_CAPITAL_SHARE);
-    let handedOver = 0;
-    for (const nationId of otherNationIds) {
-      const capitalId = getNationCapital(nationId);
-      if (!capitalId) continue;
-      regions[capitalId] = { ...regions[capitalId], owner: 'fr' };
-      handedOver += 1;
-      if (handedOver >= neededCapitals) break;
-    }
+    ids.slice(0, Math.ceil(ids.length * (CONQUEROR_CITY_SHARE + 0.01))).forEach(id => { regions[id] = { ...regions[id], owner: 'fr' }; });
     expect(VICTORY_CONDITIONS.conqueror.check({ ...state, regions })).toBe(true);
   });
-
-  it('still credits a capital taken from a nation later fully eliminated', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const otherNationIds = Object.keys(state.nations).filter(id => id !== 'fr');
-    const regions = { ...state.regions };
-    const nations = { ...state.nations };
-    const neededCapitals = Math.ceil(otherNationIds.length * CONQUEROR_CAPITAL_SHARE);
-    let handedOver = 0;
-    for (const nationId of otherNationIds) {
-      const capitalId = getNationCapital(nationId);
-      if (!capitalId) continue;
-      regions[capitalId] = { ...regions[capitalId], owner: 'fr' };
-      nations[nationId] = { ...nations[nationId], isEliminated: true };
-      handedOver += 1;
-      if (handedOver >= neededCapitals) break;
-    }
-    expect(VICTORY_CONDITIONS.conqueror.check({ ...state, regions, nations })).toBe(true);
-  });
 });
 
-describe('economicHegemony', () => {
-  it('is false at the start of a fresh game', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+describe('economicHegemony (gold and trade)', () => {
+  it('is false at the start and true once the player earns enough of the world\'s gold', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
     expect(VICTORY_CONDITIONS.economicHegemony.check(state)).toBe(false);
-  });
-
-  it('is true once the player\'s owned regions carry enough of the world\'s GDP', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
-    const regions = { ...state.regions };
-    // Hand France every REGION belonging to the world's biggest economies (a nation is many real
-    // provinces now, not one region matching its own id) until the share clears the threshold —
-    // real per-region gdpMillions data means this is a real computation, not a fixture stub.
-    let totalGdp = 0;
-    Object.values(regions).forEach(r => { totalGdp += r.gdpMillions || 0; });
-    const regionIdsByNation = {};
-    Object.entries(state.regions).forEach(([id, r]) => { (regionIdsByNation[r.owner] ||= []).push(id); });
-    const sortedNationIds = Object.keys(WORLD_NATIONS).sort((a, b) => (WORLD_NATIONS[b].gdpMillions || 0) - (WORLD_NATIONS[a].gdpMillions || 0));
-    let ownedGdp = 0;
-    for (const nationId of sortedNationIds) {
-      (regionIdsByNation[nationId] || []).forEach((id) => {
-        regions[id] = { ...regions[id], owner: 'fr' };
-        ownedGdp += regions[id].gdpMillions || 0;
-      });
-      if (ownedGdp / totalGdp >= ECONOMIC_HEGEMONY_GDP_SHARE) break;
-    }
-    expect(VICTORY_CONDITIONS.economicHegemony.check({ ...state, regions })).toBe(true);
+    const regions = Object.fromEntries(Object.entries(state.regions).map(([id, r]) => [id, { ...r, lastYields: { ...(r.lastYields || {}), gold: r.owner === 'fr' ? 100000 : 10 } }]));
+    const rich = { ...state, regions };
+    expect(getEconomicShare(rich).share).toBeGreaterThan(ECONOMIC_HEGEMONY_SHARE);
+    expect(VICTORY_CONDITIONS.economicHegemony.check(rich)).toBe(true);
+    const traded = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hasTradeAgreement: true } } };
+    const deGold = Object.values(state.regions).filter((r) => r.owner === 'de').reduce((sum, r) => sum + Math.max(0, r.lastYields?.gold ?? r.dev?.tax ?? 0), 0);
+    expect(getEconomicShare(traded).routes).toBeCloseTo(deGold * ECONOMIC_ROUTE_SHARE, 6);
+    expect(getEconomicShare(traded).mine).toBeCloseTo(getEconomicShare(state).mine + deGold * ECONOMIC_ROUTE_SHARE, 6);
   });
 });
 

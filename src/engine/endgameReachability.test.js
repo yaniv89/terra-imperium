@@ -22,7 +22,7 @@ import { AGES, getYearsPerTurn, END_YEAR } from '../data/ages';
 import { SATELLITE_UNLOCK_YEAR } from '../data/satellites';
 import { SPACE_MISSIONS, FINAL_SPACE_MISSION_ID } from '../data/spaceMissions';
 import {
-  DOMINATION_REGION_SHARE, ECONOMIC_HEGEMONY_GDP_SHARE, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
+  DOMINATION_CAPITAL_SHARE, ECONOMIC_HEGEMONY_SHARE, getEconomicShare, DIPLOMATIC_LEADERSHIP_STREAK_TURNS
 } from '../data/victoryConditions';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
@@ -81,39 +81,28 @@ describe('endgame reachability: the game always resolves to a definite outcome b
 });
 
 describe('endgame reachability: each victory condition fires when its real threshold is met', () => {
-  it('Domination: holding the region-share threshold ends the game as a Domination Victory', () => {
+  it('Domination: holding the capital-share threshold ends the game as a Domination Victory', () => {
     const state = freshWorld();
-    const regionIds = Object.keys(state.regions);
-    const targetCount = Math.ceil(regionIds.length * DOMINATION_REGION_SHARE) + 1;
+    const others = Object.keys(state.nations).filter((id) => id !== state.playerNationId);
     const regions = { ...state.regions };
-    regionIds.slice(0, targetCount).forEach((id) => { regions[id] = { ...regions[id], owner: state.playerNationId }; });
+    const needed = Math.ceil(others.length * DOMINATION_CAPITAL_SHARE) + 1;
+    others.slice(0, needed).forEach((id) => { const cap = getNationCapital(id); if (cap) regions[cap] = { ...regions[cap], owner: state.playerNationId }; });
     const next = resolveTurn({ ...state, regions });
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
     expect(next.victoryConditionId).toBe('domination');
   });
 
-  it('Economic Hegemony: holding the world-GDP-share threshold ends the game as an Economic Hegemony Victory', () => {
+  it('Economic Hegemony: earning the gold-share threshold (trade included) ends the game as an Economic Hegemony Victory', () => {
     const state = freshWorld();
-    // GDP is far more concentrated than region count (a handful of nations hold most of it), so
-    // reaching the GDP threshold this way stays well under the domination region-share threshold —
-    // confirmed below — proving this is genuinely the GDP condition firing, not domination. A
-    // nation is now many real provinces, not one region matching its own id, so "holding" a
-    // nation's GDP means owning ALL of its provinces, not one region keyed by its nation id.
-    // A city's GDP follows its size (src/engine/world/registry.js), so a few huge cities hold the
-    // world's GDP share long before they are 40% of its cities: the player takes capitals one by
-    // one, each grown to the largest size, until the share is reached.
+    // A fifth of the capitals (under the domination and conqueror shares; city gold does not grow with
+    // size at Dawn, worked tiles are capped by owned tiles) and trade with most of the world: the player's gold and routes clear the share, nothing else fires.
+    const others = Object.keys(state.nations).filter((id) => id !== state.playerNationId);
     const regions = { ...state.regions };
-    const gdpOf = (r) => (r.size || 1) * 10;
-    const others = Object.keys(regions).filter((id) => regions[id].owner !== state.playerNationId);
-    let ownedCount = 0;
-    const share = () => { let own = 0; let all = 0; Object.values(regions).forEach((r) => { const g = gdpOf(r); all += g; if (r.owner === state.playerNationId) own += g; }); return own / all; };
-    while (share() < ECONOMIC_HEGEMONY_GDP_SHARE && others.length) {
-      const id = others.shift();
-      regions[id] = { ...regions[id], owner: state.playerNationId, size: 30 };
-      ownedCount += 1;
-    }
-    expect(ownedCount / Object.keys(state.regions).length).toBeLessThan(DOMINATION_REGION_SHARE);
-    const next = resolveTurn({ ...state, regions });
+    others.slice(0, Math.floor(others.length * 0.2)).forEach((id) => { const cap = getNationCapital(id); if (cap) regions[cap] = { ...regions[cap], owner: state.playerNationId, size: 40 }; });
+    const nations = { ...state.nations };
+    others.slice(0, Math.floor(others.length * 0.7)).forEach((id) => { nations[id] = { ...nations[id], hasTradeAgreement: true }; });
+    const next = resolveTurn({ ...state, regions, nations });
+    expect(getEconomicShare(next).share).toBeGreaterThanOrEqual(ECONOMIC_HEGEMONY_SHARE);
     expect(next.gameStatus).toBe(GameStatus.VICTORY);
     expect(next.victoryConditionId).toBe('economicHegemony');
   });

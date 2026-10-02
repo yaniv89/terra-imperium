@@ -1949,6 +1949,18 @@ The gold path (START_GREAT_PROJECT in the province modal) stays until that modal
 Tests in wonders.test.js. Still open in C9: the wonder as a model at close zoom, the AI building
 wonders, terrain requirements shown on the tile sheet.
 
+**C10, victory retargeted (2026-10-02).** `src/data/victoryConditions.js`: domination counts the
+CAPITALS held (DOMINATION_CAPITAL_SHARE 0.25 of every other nation's, historic or moved, an
+eliminated nation still counting), conqueror counts the CITIES held (CONQUEROR_CITY_SHARE 0.4 of
+the world's), economic hegemony counts the player's share of the world's gold income (every
+city's last yields) plus ECONOMIC_ROUTE_SHARE (0.4) of each trade partner's own gold at
+ECONOMIC_HEGEMONY_SHARE (0.35; trade with the whole world alone tops out at 0.29) (`getEconomicShare`; a flat 20 gold per agreement let a majority of
+Dawn agreements win the economic game by itself); diplomatic, space and the final score are
+unchanged. The score (score.js) adds SCORE_PER_CITIZEN (5) per citizen of every city to
+development, cities, techs, prestige, wonders and wars won. The older constant names stay as
+aliases for readers of the province world. Tests in victoryConditions.test.js,
+endgameReachability.test.js and score.test.js.
+
 ---
 
 ---
