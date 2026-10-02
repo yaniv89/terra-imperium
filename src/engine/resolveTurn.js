@@ -130,7 +130,8 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         ageId: getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge),
         turnNumber: newTurnNumber,
         citiesOwned: citiesOwned[nid] || 1,
-        luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0
+        luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
+        greatProjects: state.greatProjects || {}
       });
     }
     return ctxCache.get(nid);
@@ -960,6 +961,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   (cityTurn.wonders || []).forEach((w) => {
     const project = GREAT_PROJECTS[w.projectId];
     const tierSpec = project?.tiers[w.tier - 1];
+    const standing = greatProjects[w.projectId];
+    if (w.tier === 1 && standing && standing.regionId !== w.city) {
+      // Two cities finished the same wonder this turn: the first in id order keeps it, the
+      // other's tile mark is cleared and its owner told.
+      if (w.tile != null && state.world?.tileState?.[w.tile]?.wonder === w.projectId) state = { ...state, world: { ...state.world, tileState: { ...state.world.tileState, [w.tile]: { ...state.world.tileState[w.tile], wonder: undefined } } } };
+      if (regions[w.city]?.owner === state.playerNationId) logs.push({ year: newYear, message: `${project?.name || w.projectId} was finished elsewhere first: ${regions[w.city]?.name} loses the race.`, type: LogTypes.EVENT });
+      return;
+    }
     greatProjects[w.projectId] = { regionId: w.city, tier: w.tier, tile: w.tile };
     const ownerId = regions[w.city]?.owner;
     if (ownerId && nations[ownerId] && tierSpec?.completionPrestige) nations[ownerId] = { ...nations[ownerId], prestige: clampPrestige((nations[ownerId].prestige || 0) + tierSpec.completionPrestige) };

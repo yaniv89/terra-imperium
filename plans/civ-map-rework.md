@@ -1918,6 +1918,16 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**C9, AI wonders (2026-10-02).** `canQueueWonder` / `wonderOptions` take the builder
+(`nationId`, the player by default), so an AI city may start a wonder from its queue like the
+player's (aiProduction.js: one turn in WONDER_THINK_PERIOD 5, when the city makes
+WONDER_MIN_PRODUCTION 6 or more and could finish within MAX_WONDER_TURNS 30, the doctrine's
+preferred wonder first, DOCTRINE_WONDERS in nations.js, else the first it may start; after
+buildings, before units). Races: a tier-1 wonder that already stands elsewhere is dropped from
+a queue when its turn comes, the production banked (cities.js reads `ctx.greatProjects`); two
+cities finishing the same wonder in one turn go to the first in id order, the other's tile
+mark is cleared and the player told. Tests in wonders.test.js.
+
 **D6 wave 3 and D5b, raids on trade routes, the pillage order, the trade lens (2026-10-02).**
 `src/engine/plunder.js`. A caravan now goes round an enemy stack when it can (tradeRoutes.js
 `findCaravanPath` avoids tiles with enemy armies); when every way is cut, the land route is
