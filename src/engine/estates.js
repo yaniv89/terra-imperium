@@ -7,6 +7,7 @@ import { getActiveReforms } from '../data/government';
 import { getLaw } from '../data/laws';
 import { TRAITS } from '../data/traits';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../data/greatProjects';
+import { estatesDemanding, AUTHORITY_ESTATE_DEMAND } from './authority';
 
 const sumRawEstateEffect = (effect, estateId) => {
   if (!effect) return 0;
@@ -94,13 +95,14 @@ export const processEstatesTurn = (state, nationId) => {
     ? Object.values(state.regions || {}).filter((r) => r.owner === nationId)
     : null;
   const greatProjectEffects = getOwnedGreatProjectEstateLoyaltyEffects(state, nationId);
+  const demanding = estatesDemanding(state, nationId); // authority under AUTHORITY_NO_LAWS: the estates press their demands (authority.js)
   let changed = false;
   const estates = {};
   Object.entries(nation.estates).forEach(([id, estate]) => {
     const target = getEstateLoyaltyTarget(nation, id, greatProjectEffects);
     const diff = target - estate.loyalty;
     const step = Math.sign(diff) * Math.min(1, Math.abs(diff));
-    const loyalty = Math.max(0, Math.min(100, estate.loyalty + step));
+    const loyalty = Math.max(0, Math.min(100, estate.loyalty + step - (demanding ? AUTHORITY_ESTATE_DEMAND : 0)));
     const influence = getEstateInfluence(state, nationId, id, ownedRegions);
     if (loyalty !== estate.loyalty || influence !== estate.influence) {
       changed = true;

@@ -90,6 +90,7 @@ import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
+import { authorityRisksCivilWar } from './authority';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -766,7 +767,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       return;
     }
 
-    const lowStabilityStreak = nextLowStabilityStreak(nations[nId]);
+    const lowStabilityStreak = nextLowStabilityStreak(nations[nId], authorityRisksCivilWar({ ...state, regions, nations }, nId));
     const shouldStart = triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak);
     if (shouldStart) {
       const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);

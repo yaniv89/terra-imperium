@@ -1783,6 +1783,19 @@ with their governor or the candidates to seat; the city card's loyalty line show
 term. Tests in governors.test.js. Still open in C4: authority (stability and legitimacy merged),
 estates on the map, laws with real effects on the new systems, the AI picking laws by doctrine.
 
+**Workstream 8, wave 3: authority (2026-10-02).** `src/engine/authority.js`. A deviation from
+C4.1 on purpose: stability and legitimacy stay the stored numbers (a dozen writers across
+events, peace, civil war, succession, disasters and the reducer keep working untouched) and
+Authority is DERIVED from them each time, 0 to 100 with a breakdown card: 50 + 8 x stability +
+(legitimacy - 50) / 2 + (the ruler's ADM + DIP + MIL - 9) + 5 x the laws' stability bonus +
+(mean estate loyalty - 50) / 5 - war exhaustion / 4 - overextension / 4 (at most 25) - 20 while
+the capital is in other hands or occupied. The gates of the plan hold on it: under
+AUTHORITY_NO_LAWS (25) no law can be enacted (laws.js canEnactLaw, player and AI alike) and
+every estate loses 1 loyalty a turn (estates.js); under AUTHORITY_CIVIL_WAR (10) the turn counts
+toward the civil war streak (civilWar.js). Prestige stays its own score. The Court section
+shows the meter, its parts and the gate in force. Tests in authority.test.js. Still open in C4:
+estates on the map, laws with real effects on the new systems, the AI picking laws by doctrine.
+
 ---
 
 ---

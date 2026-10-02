@@ -36,6 +36,7 @@ import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
 import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
+import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -270,8 +271,18 @@ const DomesticPanel = () => {
     );
   })();
 
+  const authority = authorityOf(state, state.playerNationId);
   const courtSection = (
     <div className="space-y-2">
+      <div className="bg-slate-800/60 rounded-lg p-3 text-sm" data-testid="authority">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-slate-300 font-semibold">Authority</span>
+          <span className={`font-mono font-bold ${authority.total < AUTHORITY_CIVIL_WAR ? 'text-red-400' : authority.total < AUTHORITY_NO_LAWS ? 'text-amber-300' : 'text-emerald-300'}`}>{authority.total}</span>
+        </div>
+        <div className="h-1.5 rounded bg-slate-700 overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${authority.total}%` }} /></div>
+        <div className="text-[10px] text-slate-500 mt-1">{authority.parts.map((p) => `${p.label} ${p.value > 0 ? '+' : ''}${p.value}`).join(' · ')}</div>
+        {authority.total < AUTHORITY_NO_LAWS && <div className="text-[10px] text-amber-300 mt-0.5">Under {AUTHORITY_NO_LAWS}: no new laws, the estates press their demands{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}.</div>}
+      </div>
       {ruler && (
         <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
           <div className="flex items-center gap-2">
