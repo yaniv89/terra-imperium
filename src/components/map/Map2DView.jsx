@@ -34,8 +34,11 @@ import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
+import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
+// How much of the terrain raster shows through a nation's colour on land.
+const POLITICAL_ALPHA = 0.45;
 // Max raised from 8x to 40x (plan feedback: playing as a small nation like Israel, its provinces
 // stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
 // already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
@@ -119,6 +122,14 @@ const Map2DView = ({
     const ownerOf = (g) => state.regions[g.id]?.owner ?? null;
     return geoPath(projection)(mesh(topology, object, (a, b) => a !== b && ownerOf(a) !== ownerOf(b)));
   }, [topology, projection, state.regions]);
+
+  // Where the equirectangular raster sits in the projection's pixel space: the whole world
+  // rectangle, so it lines up with the province paths at every zoom.
+  const rasterRect = useMemo(() => {
+    if (!projection) return null;
+    const [x0, y0] = projection([-180, 90]); const [x1, y1] = projection([180, -90]);
+    return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+  }, [projection]);
 
   const pathsById = useMemo(() => {
     if (!projection || !polygons) return null;
@@ -311,7 +322,8 @@ const Map2DView = ({
     return (
       [...pathsById.entries()].map(([gameRegionId, d]) => {
         if (!d) return null;
-        const fill = getRegionFillColor(state.regions, state.playerNationId, gameRegionId);
+        // Translucent over the terrain raster (plans/civ-map-rework.md B4b): the land shows through.
+        const fill = withAlpha(getRegionFillColor(state.regions, state.playerNationId, gameRegionId), POLITICAL_ALPHA);
         const stroke = interactive
           ? getRegionStrokeColor(state.regions, state.playerNationId, gameRegionId, selectedRegion, atWarNationIds)
           : 'rgba(0,0,0,0.4)';
@@ -357,7 +369,7 @@ const Map2DView = ({
       <g pointerEvents="none" data-testid="war-borders">
         {enemy.map(([id, d]) => <path key={`wb-${id}`} d={d} fill="none" stroke="#ef4444" strokeWidth={band} strokeLinejoin="round" />)}
         {enemy.map(([id, d]) => (
-          <path key={`wf-${id}`} d={d} fill={getRegionFillColor(state.regions, state.playerNationId, id)} stroke={id === selectedRegion ? '#2563eb' : 'rgba(127,29,29,0.55)'} strokeWidth={id === selectedRegion ? 1.5 / zoomK : hair} />
+          <path key={`wf-${id}`} d={d} fill={withAlpha(getRegionFillColor(state.regions, state.playerNationId, id), POLITICAL_ALPHA)} stroke={id === selectedRegion ? '#2563eb' : 'rgba(127,29,29,0.55)'} strokeWidth={id === selectedRegion ? 1.5 / zoomK : hair} />
         ))}
       </g>
     );
@@ -403,6 +415,13 @@ const Map2DView = ({
       style={{ background: OCEAN_COLOR, display: 'block', touchAction: interactive ? 'none' : undefined }}
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
+        {rasterRect && (
+          <image
+            href={worldRasterUrl(worldRasterSizeFor(width, height))}
+            x={rasterRect.x} y={rasterRect.y} width={rasterRect.width} height={rasterRect.height}
+            preserveAspectRatio="none" pointerEvents="none" data-testid="world-raster"
+          />
+        )}
         {pathElements}
         {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" pointerEvents="none" data-testid="nation-borders" />}
         {warBorderElements}
