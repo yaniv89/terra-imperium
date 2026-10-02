@@ -82,6 +82,7 @@ import { normalizeUnitTiles } from './armies';
 import { applySupplyMeter, SUPPLY_LINE_RINGS } from './supplyMeter';
 import { processSieges } from './sieges';
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
+import { applyLoyalty } from './loyalty';
 import { createDefenseRecord } from './defense';
 import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
@@ -457,6 +458,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const starvingOwn = meter.starving.get(state.playerNationId) || 0;
   const deadOwn = meter.dead.get(state.playerNationId) || 0;
   if (starvingOwn || deadOwn) logs.push({ year: newYear, message: `Out of supply: ${starvingOwn ? `${starvingOwn} of your unit${starvingOwn > 1 ? 's' : ''} starve${starvingOwn > 1 ? '' : 's'} in the field` : ''}${starvingOwn && deadOwn ? ' and ' : ''}${deadOwn ? `${deadOwn} unit${deadOwn > 1 ? 's' : ''} melted away` : ''}. Bring them home or hold a city near them.`, type: LogTypes.CRISIS });
+  // --- loyalty and culture (plans/civ-map-rework.md C5, loyalty.js): culture pressure drifts every
+  // city's shares, loyalty follows the owner's share, garrison and amenities; at 0 a city goes over
+  // to the nation pressing it most, or stands free.
+  {
+    const loyal = applyLoyalty(state, regions, units, modifierExpiredNations, newTurnNumber);
+    loyal.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.CRISIS }); });
+  }
   mark('rebellionAndSupply');
 
   // --- movement reset, reinforcement, and morale recovery (plan §M14) ---

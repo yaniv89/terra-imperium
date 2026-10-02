@@ -1551,6 +1551,22 @@ claims on cities (fabricate within 5 tiles, cores), city war goals and war score
 open borders for trade routes, demands and ultimatums, and the AI using the full list for
 alliances and trade (today alliance needs +40 only through the old acceptance score).
 
+
+---
+
+**Workstream 8, first wave (2026-10-02): loyalty and culture.** `src/engine/loyalty.js`: every
+city carries culture shares per nation and a loyalty of 0 to 100. Cities within 9 tiles press
+their nation's culture on it (size over distance); the shares drift 5% of the way to the
+pressure each turn. Loyalty moves 5 a turn toward 100 x the owner's share, +10 per own land unit
+on the centre (up to +30), the amenities balance (within +-10), -20 for 20 turns after a
+conquest, -20 while the owner's capital is in enemy hands. A taken city starts at 50. At 0 a
+city that is not a capital goes over to the nation with the most pressure among those whose
+land borders it, else stands as a free city (owner none, control 0): settle it peacefully,
+retake it, or watch it join the bordering nation that presses it most after 10 turns. The
+region card shows loyalty, its target with the parts, and the culture shares. Control stays
+the siege and battle ground. Not yet: governors (C4), the authority merge, estates on land,
+the AI reading loyalty for its conquests (workstream 9).
+
 ---
 
 ---

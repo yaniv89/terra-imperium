@@ -19,7 +19,7 @@ import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
 import { fromLatLon, distanceKm } from '../../data/geo/geodesic';
 
 // A small lat/lon bucket index over city centres (unit vectors), with a radius query in km.
-const buildLatLonIndex = (centres, step = 3) => {
+export const buildRadiusIndex = (centres, step = 3) => {
   const buckets = new Map();
   const key = (lat, lon) => `${Math.floor((lat + 90) / step)},${Math.floor((lon + 180) / step)}`;
   const latLon = centres.map((c) => ({ lat: (Math.asin(Math.max(-1, Math.min(1, c[2]))) * 180) / Math.PI, lon: (Math.atan2(c[1], c[0]) * 180) / Math.PI }));
@@ -102,7 +102,7 @@ export const buildRegistry = (regions) => {
   const cities = Object.values(regions).filter((c) => c && c.tile != null);
   cities.forEach((city) => { (city.tiles || [city.tile]).forEach((t) => { owners[t] = city.id; }); });
   // Cities by tile bucket for the distance rules (a 2-degree bucket index like geodesic.js's).
-  const index = buildLatLonIndex(cities.map((c) => tiles.centres[c.tile]));
+  const index = buildRadiusIndex(cities.map((c) => tiles.centres[c.tile]));
   const nearCities = (city, rings) => {
     const { lat, lon } = tiles.latLonOf(city.tile);
     const km = rings * 150 + 60;
