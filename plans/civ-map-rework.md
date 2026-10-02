@@ -1567,6 +1567,21 @@ region card shows loyalty, its target with the parts, and the culture shares. Co
 the siege and battle ground. Not yet: governors (C4), the authority merge, estates on land,
 the AI reading loyalty for its conquests (workstream 9).
 
+
+---
+
+**Workstream 9, first wave (2026-10-02): AI fronts on tiles.** `aiOperations.js`: an AI stack
+attacks a city only from tiles that touch its land (the registry's city bridge no longer lets
+an army strike a city eight tiles away). A stack at a front with no city in reach marches on
+tiles toward its goal (the war-goal city, else the most valuable enemy city next door by the
+registry) on an A* route of at most 40 tiles, walked by the same march phase as the player's
+(the nation as the actor): it halts before the city, besieges it (sieges.js), and assaults when
+it outweighs the garrison by 1.25 or the walls are under 30% HP. Stacks are grouped by tile,
+so an army on the road stands apart from its base's garrison; the hop between own cities
+toward a threatened front stays. Garrisons sally (workstream 6). Not yet: the threat radius
+of 4 tiles for defence, raiding routes, out-of-sight dice calibrated against the real sim,
+the city auto-governor for every nation every turn, opinion-driven alliances and claims.
+
 ---
 
 ---

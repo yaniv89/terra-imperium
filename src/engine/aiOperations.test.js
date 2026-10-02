@@ -66,8 +66,29 @@ describe('operational AI',()=>{
     expect(next.nations.de.economy.mil).toBe(100); // moving is free since routes (plan §4g)
     expect(processAIOperations(next,createRng(7)).units.a).toEqual(next.units.a);
   });
-  it('counterattacks in a player-started war using real troops only',()=>{
-    const {s,border}=setup();s.units.a.regionId=border;
+  it('marches on tiles toward the player\'s city when its own does not touch it, and halts before it',()=>{
+    // India (AI) at war with the player Pakistan: New Delhi does not touch Islamabad, five tiles away.
+    const s0=createInitialState({playerNationId:'pk',rngSeed:7});
+    const IN=s0.nations.in.capitalRegionId;const PK=s0.nations.pk.capitalRegionId;
+    const s={...s0,wars:[{id:'w',aggressor:'pk',enemy:'in',active:true,battleScore:0}],units:{a:{id:'a',ownerId:'in',regionId:IN,tile:s0.regions[IN].tile,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0}}};
+    s.nations.in={...s.nations.in,economy:{gold:1000,hr:1000,mil:100,adm:100},isAtWar:true};s.nations.pk={...s.nations.pk,isAtWar:true};
+    const tiles=getTiles();
+    const next=processAIOperations(s,createRng(7));
+    expect(next.pendingDefenses).toHaveLength(0);
+    expect(next.units.a.tile).not.toBe(s.regions[IN].tile);
+    expect(next.units.a.route?.length).toBeGreaterThan(0);
+    expect(next.units.a.regionId).toBe(IN);
+    let st=next;
+    for(let i=0;i<12&&st.units.a.route?.length;i++){st={...st,units:Object.fromEntries(Object.entries(st.units).map(([id,u])=>[id,{...u,movesLeft:1}]))};st=processAIOperations(st,createRng(7+i));}
+    const at=st.units.a.tile;
+    expect(tiles.neighbors[at].some(t=>s.world.tileOwner[t]===PK)||s.world.tileOwner[at]===PK).toBe(true);
+    expect(st.units.a.routeHalt).toBe('attack');
+  });
+  it('counterattacks in a player-started war using real troops only, from a tile touching the city',()=>{
+    const {s,border,target}=setup();s.units.a.regionId=border;
+    const tiles=getTiles();
+    const beside=s.regions[target].tiles.flatMap(t=>tiles.neighbors[t]).find(t=>tiles.land[t]===1&&s.world.tileOwner[t]!==target);
+    s.units.a.tile=beside;
     const next=processAIOperations(s,createRng(7));
     expect(next.pendingDefenses).toHaveLength(1);
     expect(next.pendingDefenses[0].attackerUnitIds).toEqual(['a']);
