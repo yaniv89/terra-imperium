@@ -93,7 +93,7 @@ const polygonIndex = (features, step = 4) => {
 
 // ---------------------------------------------------------------------------------------------
 // Elevation: 16 x 16 terrarium tiles at zoom 4 (web mercator, 4096 x 4096 px worldwide).
-const loadElevation = () => {
+export const loadElevation = () => {
   const SIZE = 4096;
   const data = new Float32Array(SIZE * SIZE);
   for (let tx = 0; tx < 16; tx++) {

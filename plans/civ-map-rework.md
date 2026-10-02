@@ -507,6 +507,16 @@ to 2,000 cities, which is the per-turn loop size (same order as the 2,028 region
 - **Unclaimed land** is wilderness: anyone can walk, settle or pillage; native tribes live there
   (the existing `inhabitants` and `resistance` of the emergent world become tile data).
 
+## B4b. How the grid looks (decided 2026-10-02: realistic, never blocky)
+
+The grid is the logic layer only. The map keeps the real Earth look: real coastlines, a shaded
+relief base map built from real elevation and climate (hillshade, hypsometric tints, forests,
+deserts, ice, bathymetry), used on the flat map and as the globe texture. City and nation
+borders are smooth lines along cell boundaries, clipped to the real coast. Units, cities and
+improvements stand at cell centres on the real terrain. The hex outline is a faint overlay
+that appears when zoomed in, or with the grid lens, like Civ VI's grid toggle or Humankind's
+map. Nothing on screen is ever a flat-coloured hexagon field.
+
 ## B5. Zoom levels and what the map shows
 
 | Zoom | Shows |
