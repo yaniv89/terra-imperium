@@ -1,0 +1,1168 @@
+# Terra Imperium: full review and the Civ-style map rework
+
+Date: 2026-10-02. Status: plan v1, nothing implemented. Written against branch
+`claude/gallant-pasteur-rfkma8` at commit `d08ded8` (the features branch; `main` is the live site).
+
+This document has two halves. **Part A** reviews and criticises every game system as it is in the
+code today, with a grade and the fix direction. **Part B onward** designs the new map (no more
+regions: tiles, cities with growing borders, nation borders) and reworks every system, the RTS
+battles and the UI for phones and desktop on top of it. It ends with balance targets, the order of
+work, risks and the decisions you need to make.
+
+Facts marked **(measured)** were read from the code or produced by the balance sim on this branch.
+Everything else is design.
+
+---
+
+## 0. The game today in numbers (measured)
+
+| Fact | Value |
+|---|---|
+| Map | 2,028 regions (merged from 4,482 real admin-1 provinces), 240 nations, real adjacency, 7 terrain classes by name matching, sea lanes, coastal flags |
+| Turn engine | `resolveTurn` runs 26 fixed phases (time, income, maintenance, unrest, rebellion, supply, morale, AI growth, AI economy, succession, national power, capitals, estates, disasters, economy, diplomacy, great projects, AI recruitment, AI wars, ABM, AI war progress, elimination, war exhaustion, space, debris, victory) |
+| Turn time | about 120 to 250 ms per turn in this sandbox at turns 50 to 100 |
+| Player actions | 109 reducer action types |
+| Units | 7 classes (infantry, cavalry, ranged, siege, naval, air, support), a unit is 1,000 strength = 10,000 men, costs 60 gold + 100 HR + 1 MIL, upkeep 5 gold a turn |
+| Movement | routes over region adjacency, 2 march points for foot, 3 cavalry, 1 siege; terrain step cost 1, 2 or 4 |
+| Research | 50 techs in 5 linear lines, Civ-style science per turn, a queue, border diffusion |
+| Buildings | 9 categories, one tier line each, instant construction, 100 gold + 1 ADM |
+| Economy | gold, HR, supplies, copper, iron, oil, rare metals, helium-3; income = dev x control x infrastructure x population factor; loans and bankruptcy for the player only |
+| Politics | 5 government types with reform tiers, 26 laws in 6 categories, 3 estates (+ labour in the modern age), identity sliders, stability -3 to +3, legitimacy, prestige |
+| Diplomacy | wars with goals and war score, peace terms, truces, trade pacts, alliances, defensive pacts, vassals, AE, rivals, marriages, espionage, intel |
+| Colonies | a colony grows over 8 to 15 turns, slots per age 1/2/2/3/3, natives raid |
+| AI | only Tier 1 (at war, bordering the player, or top-20 military) thinks each turn; 2% base war roll; standing caps 8 to 30 units by age; AI vs AI wars are abstract |
+| Battles | integer 20 Hz sim in a worker; 5 min field, 7.5 min siege; 12 order types; 5 AI difficulty levels; auto-resolve shares the same inputs |
+| UI | 4 layouts: desktop (1024 px+), tablet, phone landscape (short side 500 px or less), phone portrait with a rotate overlay; flat SVG map with a three.js close view from 10x, and a globe |
+| Content | 40 scripted events, 9 procedural templates, 15 great projects, 7 victory conditions, satellites, missiles, space missions |
+
+The balance-sim baseline (seeds 11 and 12, 120 turns, player France) is in section 0.1 once the
+run finishes; the plan is written so that every balance target in Part H is checked against it.
+
+### 0.1 Balance baseline (measured on this branch, full world, player France passive)
+
+| Key | Seed 11 | Seed 12 | Reading |
+|---|---|---|---|
+| Wars in 120 turns (2000 BCE to 750 CE) | 6 | 8 | about one war every 15 to 20 turns in a 240-nation world |
+| Conquests in 120 turns | 5 | 6 | the map is essentially frozen for 2,750 years |
+| Largest nation's share of provinces | 0.042 at turn 40, 80 and 120 | same | Russia's 86 regions stay the top from start to end; nobody grows |
+| Median nation provinces | 4 | 4 | unchanged all game |
+| Unclaimed provinces | 0 | 0 | nothing to settle in the full world |
+| Devastated provinces | 0 to 2 | 0 to 2 | wars barely touch land |
+| Average unrest | 0.6 to 2.4 | 0.9 to 2.2 | the world is calm to the point of inert |
+| Pacts and leagues | 2 members, 2 leagues | 3 members, 3 leagues | the only diplomacy that forms |
+| Player gold (does nothing) | 13.6k at turn 40, 42k at turn 120 | 41k | a passive player hoards; no sinks |
+| Player units | 0 | 0 | passive policy; nobody attacks France in 120 turns |
+| Player techs / median AI techs | 22 / 16 | 22 / 16 | research pace fine, player leads by a third |
+| ms per turn | 58 to 83 | 58 to 69 | fast on this sandbox |
+| Audit violations, non-finite | 0 | 0 | engine health is good |
+
+Two conclusions for the review. First, **the engine is sound** (no violations, determinism, fast
+turns). Second, **the world is dead**: in 2,750 simulated years the map's largest nation never
+changes, the median nation never grows, nothing is settled, and a player who clicks nothing
+reaches the Age of Kingdoms unbothered with 42,000 gold. That is the strongest argument for the
+map rework below: a map with land to settle, cities that grow and fall, and AI nations that
+expand and fight for visible reasons.
+
+---
+
+# Part A. Review and critique, system by system
+
+Grades: **A** works and is fun, **B** works but shallow or opaque, **C** exists but barely matters or
+is confusing, **D** broken, missing or actively harmful to fun.
+
+## A1. Map and territory: **C**
+
+**What exists.** 2,028 polygons of very different sizes. A nation is the set of regions with the
+same owner. Control (0 to 100) per region is both "how much income you get" and "siege HP". There
+is no concept of a city: the region card shows population, development, buildings. The close view
+draws one synthetic town per region sized by its building count.
+
+**What is wrong.**
+1. **Every region is the same kind of thing.** A desert region with 20,000 people and the
+   Nile delta are both "a region with 9 building slots". Nothing on the map tells you where the
+   people and the wealth are. Civ makes this obvious at a glance: cities, their size, their rings.
+2. **Borders are frozen 2024 borders in 2000 BCE.** Every nation starts owning its whole modern
+   territory at full control. There is no land to settle in the Bronze Age except in the emergent
+   modes, so "expansion" means conquest from turn 1. The settle-a-colony system (4h) only has
+   land to work with in the emergent modes.
+3. **Polygons fight the phone.** Even after the merge, the smallest regions are tap targets of a
+   few pixels; the chooser popup (section 3 of the previous plan) is a patch over a data problem.
+4. **Adjacency is a graph, not a space.** There is no distance, no rivers, no chokepoints, no
+   "the mountains are between us". Terrain is one label per region guessed from its name.
+5. **Control doubles as siege HP and as income multiplier**, so taking a province and taxing it are
+   the same number, which makes occupation and integration hard to read.
+
+**Fix direction.** Part B replaces regions with tiles, cities and borders.
+
+## A2. Economy: **B-**
+
+**What exists.** Income per region from three development numbers (tax, production, manpower),
+each raised by spending ADM/DIP/MIL (EU4 monarch points), multiplied by control, infrastructure
+(+10% a level) and a clamped population factor. Buildings add flat and percentage lines through a
+proper modifier sheet. Supplies are foraged per province and made by industry from metal. Loans
+and bankruptcy exist for the player; the AI has a parallel `nation.economy` with its own simpler
+rules. Taxes have 4 levels with cooldowns and estate reactions.
+
+**What is right.** The modifier sheet (`src/engine/modifiers/`) is good engineering: one place
+that explains every number. The supplies model is a real logistics constraint. Bankruptcy has
+teeth (desertion).
+
+**What is wrong.**
+1. **Three economies.** The player uses `state.resources` and `calcIncome`; the AI uses
+   `nation.economy` and `calcAllNationIncomes`; war progress for AI vs AI uses the abstract
+   `militaryStrength`. Three truths means three sets of bugs and no fair difficulty.
+2. **Development is EU4's weakest idea.** Spending abstract points to click a province from 3 to
+   4 is a chore, invisible on the map, and it makes the economy grow by clicking rather than by
+   geography. The user already called settling "too easy and boring"; developing is the same
+   click.
+3. **Nothing is spatial.** A market in a province next to a trade route earns the same as one in
+   the mountains. Infrastructure is a number, not roads you can see.
+4. **Money has few sinks.** Buildings are instant and cheap (100 gold), upkeep is a flat 5 per
+   unit. A mid-game treasury has nothing to do but recruit.
+5. **Resources are binary.** A country either "has a deposit" (by modern country id!) or not;
+   amounts are flat 20 a turn.
+
+**Fix direction.** Tile yields worked by cities, improvements you can see, roads as tiles,
+trade routes between cities, resources as tile features with amounts. One economy for everyone.
+
+## A3. Population and growth: **C+**
+
+**What exists.** Each region carries a real population that grows 0.02% a turn, plus 0.2% per food
+building tier, plus infrastructure, minus unrest, capped at 5x the modern baseline. War drains 2%
+a turn. Population feeds a clamped factor into income and nothing else.
+
+**What is wrong.**
+1. Population is **a display number**. It does not eat, it does not need housing, it does not
+   work land, it does not limit recruitment directly (HR does, separately).
+2. Growth is **the same everywhere**: a desert grows like a river valley.
+3. There is no migration, no cities, no urban vs rural.
+
+**Fix direction.** Population per city, fed by food from worked tiles, housing from buildings and
+water, growth that depends on where the city is. Recruitment draws from city population.
+
+## A4. Research and technology: **B+**
+
+**What exists.** Civ-style accumulation, queue, turns-to-complete, diffusion, a choice sheet.
+Costs calibrated per age. 50 techs, each gating buildings, units and some modifiers.
+
+**What is wrong.**
+1. **Linear lines.** Five parallel chains with no cross-links, so there are no interesting paths,
+   only "which line first".
+2. **Many techs still do nothing** except unlock the next one (the file header admits it:
+   movement, attrition, siege, naval, trade capacity are not wired).
+3. **No boosts (Eurekas)** yet, so research has no connection to what you do on the map.
+4. Techs do not change **what you can see or do on the map** (roads, rivers crossing, ocean
+   travel), which is where Civ's tech feels best.
+
+**Fix direction.** Keep the engine. Rebuild the tree as a web of about 60 techs with
+prerequisites across lines, every tech with a visible map effect, and boosts tied to tiles
+(own a mine, settle on a coast, win a river battle).
+
+## A5. Government, laws, estates, identity, national power: **B-**
+
+**What exists.** A lot: 5 government types with age reforms, 26 laws, 3 to 4 estates with loyalty,
+influence and privileges, crown land, identity sliders, stability with decay, legitimacy,
+prestige, civil wars from stability streaks, disasters.
+
+**What is wrong.**
+1. **It is a wall of sliders with no map consequence.** Estates have no land on the map; crown
+   land is a percentage. The player never sees the nobility's estates or the clergy's temples.
+2. **Too many parallel meters** (stability, legitimacy, prestige, unrest per region, war
+   exhaustion, AE, estate loyalty x3, identity x3) with overlapping effects. New players cannot
+   tell which one is hurting them.
+3. **Reforms with "not yet a mechanic" in their description** (Chieftaincy, Tolerance,
+   Mercantilism's opinion part).
+4. **AI does not use any of it**: AI nations never change government, laws, estates or identity,
+   so the systems are player-only flavour.
+
+**Fix direction.** Estates own cities' land on the map (the nobility holds the countryside
+tiles of certain cities, the clergy holds the temple tile, the burghers hold the market tiles).
+Merge meters: stability and legitimacy become one "authority" with a visible breakdown; prestige
+stays. Every reform gets a real effect or is cut. AI picks laws and reforms by doctrine.
+
+## A6. Succession and court: **C**
+
+**What exists.** A ruler with 3 skills and traits, an heir only under a monarchy, reigns of 3 to 25
+turns, marriages, royal births at 25% a turn, advisors with a salary that only add +level to a
+pool, generals with XP.
+
+**What is wrong.**
+1. Everyone starts **Tribal with no heir**, and the Monarchy costs 300 ADM, so for a whole age
+   succession looks like nothing (plan 5b already found this).
+2. Rulers **do nothing visible**: skills add a couple of points to a pool. In CK3 a ruler's traits
+   drive events and AI personalities; here traits are modifiers.
+3. Advisors are **a salary for +1**. Plan section 5 (delegation) fixes this and should stay.
+4. **No characters anywhere else**: generals are a name and an XP bar, no court, no governors.
+
+**Fix direction.** Families for everyone (plan 5b stays). Rulers and heirs become characters with
+opinions used by events and the AI. Governors per city group (a character assigned to a group
+of cities, with a skill that changes yields and unrest) replace invisible per-region bonuses.
+Advisors become delegations (plan section 5).
+
+## A7. Diplomacy: **B**
+
+**What exists.** Wars with goals, battle and tick war score, occupation score, peace terms
+(cede, gold, reparations, humiliate, vassalize), AI peace offers, truces, trade pacts, alliances,
+defensive pacts, AE with coalitions against a runaway, vassals with liberty desire and
+independence wars, rivals, royal marriages, gifts, insults, espionage, counter-intel, intel that
+reveals region details, diplomats you can assign.
+
+**What is right.** This is the most complete layer in the game. War score and peace terms are
+EU4-grade. AE and coalitions are a real anti-snowball.
+
+**What is wrong.**
+1. **Claims are not on the map.** "Fabricate claim" gives a casus belli on a nation. In Civ and
+   EU4 you look at a province and want it. Here the war goal is picked for you.
+2. **Hostility is one number per nation** with no reasons shown. Civ shows "you settled near me
+   (-10)", which teaches the player the rules.
+3. **AI vs AI wars are abstract dice** (`AI_CAPTURE_BASE_CHANCE`), so the world map rarely
+   changes and never for a visible reason. Over 150 turns about 10 wars happen (measured in the
+   skill's notes). The world is quiet by design, but quiet reads as dead.
+4. **Trade is a pact, not a route.** `getTradeRoute` finds a path for validation only; nothing
+   flows along it, so blockades mean "pact off".
+5. **Nothing between peace and war**: no border friction, no raids, no tribute demands, no
+   "stop settling here".
+
+**Fix direction.** Claims on cities and tiles. Opinion with itemised reasons. Trade routes as
+visible lines between cities with gold flowing per tile crossed. Real AI vs AI wars fought by
+armies on tiles (abstracted only when far from the player's sight). Demands and ultimatums.
+
+## A8. Army: **B-**
+
+**What exists.** Units recruited in a region, stacks, routes over several turns with supply and
+attrition, embark and amphibious assault, naval engagement, invasions that damage control (siege
+HP) or trigger a battle, garrison defence battles at the start of your turn, generals,
+promotions, XP, morale, reinforcement, desertion on bankruptcy, war exhaustion.
+
+**What is wrong.**
+1. **Every unit is 1,000 strength of one class.** There is no army composition on the map: a
+   stack of 5 infantry and 2 archers is 7 icons. The RTS then deals the stack out as squads.
+   Players cannot design an army.
+2. **Sieges are "control damage"**, an invisible number that goes down. There is no encirclement,
+   no walls on the map, no supply cut, no sally.
+3. **Movement is region hops**, so distance is meaningless: crossing Russia and crossing Belgium
+   are each "one region" if they are one region.
+4. **HR and supplies are national pools**, so an army in Siberia recruits from Lisbon's manpower.
+5. **Naval is a separate mini-game** (embark, lanes, engagements) with 1 class and no visible
+   ships on the map until the close view.
+6. **No zone of control, no fog, no scouting**: you see every region's owner always.
+
+**Fix direction.** Armies as named stacks of units on tiles with movement points, roads, rivers
+and ZOC; sieges of cities with walls, encirclement and supply; recruitment from the city's own
+population; fog of war with scouts; fleets on sea tiles.
+
+## A9. Settlers, colonies and expansion: **B** (in emergent modes), **D** (in the full world)
+
+**What exists.** The colony project (4h) is good: slots, settlers from the source province,
+native policies, raids, upkeep, AI parity. Frontier expeditions in emergent modes. AE and
+coalitions brake conquest.
+
+**What is wrong.**
+1. In the **default full world there is nothing to settle**: all 2,028 regions are owned from turn
+   1 in 2000 BCE, which is historically absurd and removes the best early-game loop in the genre.
+2. Colonies are **"an owner flag flips"**, not a new city appearing with a border that grows.
+3. There is no **settler unit** moving across the map: settling is a menu action on a neighbour.
+
+**Fix direction.** The world starts mostly unclaimed in 2000 BCE. Settlers are units. A new city
+starts as an outpost (the colony progress bar reused) and its border grows from a 1-tile ring.
+
+## A10. Tactical battles (RTS): **B+**
+
+**What exists.** A deterministic integer sim in a worker, replayable, with formations, attack
+move, hold, garrisons in keeps and towers, reserves and reinforcements paid with battle supply,
+abilities and powers, terrain tiles from `mapgen`, buildings of the province standing on the
+field, 5 AI levels, a thumb-zone HUD, parity with auto-resolve, result and report screens.
+
+**What is right.** The architecture (orders only, fixed point, worker, replay) is correct for a
+phone RTS. Auto-resolve and manual battles sharing one aftermath contract is the right call.
+
+**What is wrong.**
+1. **The battlefield is generic.** `mapgen` is seeded from the region, not from where the battle
+   really is: no river you can see on the map, no coast on the side the fleet came from, no
+   walls of the real city.
+2. **Every battle is "take the keep or hold it"**, even an open field meeting of two armies.
+   The audit's "battle objectives" row is still open.
+3. **Composition comes from the stack**, so the player cannot bring "a mostly cavalry army".
+4. **No pre-battle deployment**: squads appear in a template.
+5. **Clock-based**, which is right for phones, but a field battle ending with "time ran out,
+   defender holds" when both armies are intact is unsatisfying.
+6. Art: stylised procedural figures; the sprite pipeline (art brief v3) is the fix in flight.
+
+**Fix direction.** The battle map is generated from the real tile and its neighbours (terrain,
+river edges, coast, roads, the city's walls and districts). Battle types with their own
+objectives: field, river crossing, ambush, siege assault, sally, landing. Deployment phase. The
+army composition the player built is what fights.
+
+## A11. AI: **C+**
+
+**What exists.** Tiered thinking, doctrine personalities, counter-recruiting, operational
+planner for Tier 1 (`aiOperations`: capital defence, reinforcement, reclamation, naval
+transport), an AI economy with buildings, research and stability, coalitions.
+
+**What is wrong.**
+1. **Only Tier 1 acts**; the other 200 nations are frozen scenery. AI vs AI wars are dice.
+2. **AI never uses politics or diplomacy** beyond war and peace: no alliances between AI
+   nations, no trade pacts, no vassals, no laws.
+3. **AI does not expand** in the full world (nothing to settle) and barely in emergent worlds
+   after the colony brake.
+4. Difficulty is multipliers on aggression and capture chance, not better play.
+
+**Fix direction.** With cities and tiles the AI gets cheap, local decisions: settle the best
+scored tile, work tiles automatically, build what the city lacks, defend the city under
+threat. All nations think, on a budget: cities think every turn, armies plan on fronts, the
+diplomacy pass runs every 3 turns for everyone. AI vs AI wars move real armies on tiles when
+within the player's sight radius, dice elsewhere, with the same expected outcome.
+
+## A12. Events, disasters, great projects, space, victory: **B-**
+
+**What exists.** 40 scripted events, 9 procedural templates, event chains, disasters with
+progress bars, 15 great projects with tiers, satellites, missiles and ABM, space missions,
+7 victory conditions, achievements and meta progression.
+
+**What is wrong.**
+1. Events are **modal interruptions** without map location, so they feel like pop quizzes.
+2. Great projects are **a list in a panel**, not wonders on the map.
+3. Space and missiles are a **late-game bolt-on** few games reach (Modern is 200 turns away).
+4. Victory conditions are checked but the game gives **no mid-game goals** (eras, agendas,
+   missions).
+
+**Fix direction.** Events pinned to a city or tile with a map marker. Wonders as tiles. Era
+goals (Civ VII legacy paths, EU4 missions) so each age has a target.
+
+## A13. UX and UI: **B-** desktop, **C+** phone
+
+**What exists.** A full-bleed map with a right drawer on desktop; a bottom bar and sheets on
+tablet and portrait; a right rail with a docked tab on phone landscape; a province modal of 711
+lines; panels for domestic (647 lines), diplomacy (520), military, research, space, legacy,
+log; the battle HUD with 44 px targets; onboarding; cloud saves.
+
+**What is wrong.**
+1. **The map is not the UI.** Almost every decision happens in a panel. The map shows owners and
+   banners; it shows no yields, no cities, no roads, no trade, no threats.
+2. **The province modal is a 711-line everything-sheet.** Building, development, buildings,
+   colony, defence, population policy, resource sites, all in one scroll.
+3. **Panels are organised by engine module** (Domestic, Diplomacy, Military) rather than by
+   player intent (what should I do now?). There is no "next action" prompt like Civ's.
+4. **Numbers without reasons**: unrest 37, hostility 64, stability -1. Breakdowns exist in the
+   modifier sheet but few screens show them.
+5. **Phone portrait is a rotate overlay.** That is acceptable for battles, not for checking your
+   empire on the bus.
+6. **No desktop keyboard flow** (no hotkeys, no unit cycling, no space to end turn).
+
+**Fix direction.** Part E: map-first UI, a city screen as a half sheet, tile cards, a
+"next" prompt, lenses (yield, borders, trade, threat), one design for both inputs with
+hover on desktop and long press on touch, portrait allowed for the empire view.
+
+## A14. Engine quality, determinism, performance: **A-**
+
+**What exists.** Pure reducer and turn engine, seeded RNG everywhere, state audit invariants,
+save migrations (v6), long-run determinism tests, balance-sim and compare scripts, perf hooks.
+
+**What is wrong.** Turn time (120 to 250 ms) is already near the budget with per-region loops,
+and three parallel economies triple the surface for bugs. `gameReducer.js` is 2,918 lines.
+
+**Fix direction.** Keep every discipline. Per-turn loops over cities and units, never over
+tiles. Split the reducer by domain (the `nationActions` folder already started).
+
+## A15. Scorecard and the three root problems
+
+| System | Grade | Root problem |
+|---|---|---|
+| Map | C | regions are not places |
+| Economy | B- | three economies, click-to-develop, nothing spatial |
+| Population | C+ | a display number |
+| Research | B+ | linear, many dead techs |
+| Politics | B- | sliders without map consequence |
+| Succession | C | invisible rulers |
+| Diplomacy | B | claims and trade not on the map, dead AI world |
+| Army | B- | no composition, invisible sieges, no distance |
+| Settlers | B / D | nothing to settle in the full world |
+| Battles | B+ | generic battlefield, one objective |
+| AI | C+ | 200 frozen nations |
+| Events etc. | B- | not on the map, no mid-game goals |
+| UX | B- / C+ | the map is not the UI |
+| Engine | A- | keep |
+
+The three root problems, which the rest of this plan is built to solve:
+1. **The map is not a place.** Regions have no cities, no distance, no features, no borders that
+   move for reasons you can see.
+2. **Systems are numbers in panels, not things on the map**, so they cannot be read, taught or
+   felt.
+3. **The world is static**: no land to settle, 200 frozen nations, abstract AI wars.
+
+---
+
+# Part B. The new map: tiles, cities, borders
+
+## B1. Goals
+
+1. One continuous world: the real Earth, any of 240 nations, 2000 BCE to 2300 CE, kept.
+2. **Civ-style readability**: cities you can see, borders that grow from cities, tiles with
+   terrain, rivers, resources, improvements and roads.
+3. **Phone first**: a tile is a tap target of at least 44 px at the default zoom; a city sheet
+   fits a 390 px tall landscape screen.
+4. **Deterministic and fast**: per-turn cost grows with cities and units, not with tiles.
+5. **Every system lands on the map**: economy (yields, improvements, trade lines), politics
+   (estate land, governors), war (armies, sieges, ZOC, fog), expansion (settlers, outposts),
+   events (pins), wonders (tiles).
+
+## B2. The tile grid
+
+**Options, ranked.**
+1. **A geodesic hex grid on the sphere (recommended).** Subdivide an icosahedron so the average
+   cell is about **18,000 km²** (hex edge about 80 km). That is about **28,000 cells** worldwide and
+   about **8,500 land cells**. Twelve cells are pentagons (unavoidable on a sphere); put them in
+   oceans or Antarctica by choosing the icosahedron orientation. Equal-area, no poles problem, the
+   globe and the flat map show the same grid, rivers and coasts follow cell edges.
+   - Why 18,000 km²: Civ VI's huge map has about 2,800 land tiles for 12 civs; we have 240
+     nations at start (most tiny) and 8,500 land tiles gives the median modern country about 15
+     tiles and France about 30, Russia about 950. That is enough for borders to grow in rings
+     and for armies to take 3 to 6 turns to cross a mid-size country.
+   - Cost: a new geo build script, new rendering, a full save break.
+2. **A coarser grid (about 35,000 km², 4,300 land cells).** Faster and fewer things to draw, but
+   small countries become 2 to 4 tiles and city borders cannot grow (Belgium is one tile).
+3. **Keep the 2,028 polygons as "tiles" and add cities on top.** Cheapest, keeps saves, but keeps
+   every problem of A1 (uneven sizes, no distance, polygon taps) and city borders cannot grow
+   across polygons.
+
+**Decision proposed: option 1.** The rest of the plan assumes it.
+
+**Tile data (static, built once by `scripts/geo/build-tiles.mjs`, shipped as a binary blob
+`src/data/geo/tiles.bin` plus `tiles-meta.json`):**
+
+| Field | Source |
+|---|---|
+| id (0..N), centre lat/lon, 5 or 6 neighbour ids | the grid |
+| terrain: ocean, coast, lake, grassland, plains, desert, tundra, snow, hills, mountains | ETOPO elevation (already planned for the close view) + Köppen climate raster (public domain) |
+| features: forest, jungle, marsh, oasis, floodplain, reef, ice | land cover raster (ESA WorldCover or Natural Earth), rivers |
+| river edges (which of the 6 edges a river runs along) | Natural Earth rivers, snapped to cell edges |
+| elevation class for the close view shading | ETOPO |
+| resources: a resource id and an amount class (small, rich) | existing `deposits.js` plus a seeded scatter by terrain (iron on hills, horses on grassland, fish on coast, oil in desert/sea) |
+| base yields: food, production, gold (per terrain and feature, section C1) | a table |
+| historical owner at 2000 BCE, 800 BCE, 500, 1500, 1900 (for scenario starts) | hand-curated per nation core, see B6 |
+| modern country (the 240 ids) | the existing geo |
+| name (for the close view and the tile card) | nearest populated place from Natural Earth |
+
+About 8,500 land tiles x roughly 40 bytes is under 400 KB. Ocean tiles store only neighbours and
+depth class (coast, shelf, deep).
+
+## B3. Cities
+
+A **city** is the unit of the economy, population, buildings, recruitment and borders.
+
+```js
+// state.cities[cityId]
+{
+  id, name, ownerId, tileId,
+  founded: turnNumber,
+  population: 12400,          // real people, displayed as "12.4k" and as a size 1-20 badge
+  food: { stored, growthTarget },
+  housing: 4,                 // cap on size from buildings, water, terrain
+  amenities: 1,               // happiness supply; negative = unrest grows
+  unrest: 0..100,             // the per-region unrest moves here
+  loyalty: 0..100,            // cultural pressure from neighbours (Civ VI loyalty), see C5
+  buildings: { categories: {...}, districts: [...] },   // the 9 categories stay; districts are tiles
+  tilesOwned: [tileIds],      // the city's border; nation border = union
+  workedTiles: [tileIds],     // chosen automatically by the governor (C1); the player can lock tiles
+  production: { current: { kind: 'building'|'unit'|'improvement'|'project'|'wonder', id, tileId }, queue: [], progress },
+  walls: 0..3, hp, maxHp,      // sieges, D2
+  garrison: [unitIds],
+  governorId,                 // a character, A6 fix
+  isCapital, founderId, culture: { [nationId]: share },
+  outpost: { progress, policy, escortUnitId } | null   // colony phase (C7)
+}
+```
+
+**Size.** City size for display is `floor(log2(population / 2000)) + 1` clamped to 1..20, so a
+2k outpost is size 1, 32k is size 5, 1M is size 10, 32M is size 15.
+
+**Founding rules.** A settler founds a city on a land tile that is not within 3 tiles of another
+city and not inside another nation's border. The tile becomes the city centre (yields 2 food, 1
+production, 1 gold minimum, like Civ). The city owns its centre and the 6 adjacent tiles at once
+if free; the rest grows.
+
+**Capital.** The nation's capital city. Losing it still relocates (existing `relocateLostCapital`).
+
+**How many cities.** At 2000 BCE every nation starts with 1 to 4 cities (section B6). Over a game
+a mid-size nation reaches 8 to 15, a large one 30 to 60. World total at turn 150 of about 1,200
+to 2,000 cities, which is the per-turn loop size (same order as the 2,028 regions today).
+
+## B4. Borders
+
+- **City borders grow with culture.** Each city makes culture a turn (buildings, population,
+  wonders, the Temple line). Each tile has a cost `20 + 10 x ring + 5 x tilesOwned` culture; when
+  the city's culture bank exceeds the cheapest unowned eligible tile, it claims it. Eligible: free
+  (not owned by any city), within ring 3 of the centre (ring 5 with Civic Assemblies), land or
+  coast. Score = yields + resource + adjacency to owned tiles + 2 if it closes a gap.
+- **Nation border** = union of its cities' tiles. Rendered as one line mesh per nation.
+- **Tiles can be bought** for gold (Civ style) at 3 x their culture cost in gold. This is the
+  "develop province" click replaced by something you can see.
+- **Border conflict.** When two cities want the same tile, the one with more culture pressure
+  on it gets it; a tile already owned never flips through culture (only through loyalty
+  flipping of whole cities, C5, or war).
+- **Unclaimed land** is wilderness: anyone can walk, settle or pillage; native tribes live there
+  (the existing `inhabitants` and `resistance` of the emergent world become tile data).
+
+## B5. Zoom levels and what the map shows
+
+| Zoom | Shows |
+|---|---|
+| World (globe, far) | nation fills, nation borders, capitals as stars, nothing else |
+| Region (globe near or flat 1x to 3x) | city badges with size, nation borders, city borders dotted, army banners, trade lines (lens), fog |
+| Local (flat 3x to 10x) | tiles with terrain colours and feature icons, improvements, roads, rivers, resources, units as figures, city districts as icons |
+| Close (flat 10x+) | the existing three.js close view: town models by size, soldiers, walls, fields on improved tiles |
+
+The globe remains the world and region view. The flat map handles local and close. The hand-over
+(previous plan 4f) stays.
+
+## B6. The world at 2000 BCE and the scenario starts
+
+The full-world scenario changes meaning: **the modern 240 nations exist as peoples with a core,
+not as modern borders.** Each nation gets a hand-curated **core**: 1 to 4 city sites (real
+ancient or modern city coordinates: the capital and the largest cities) and a ring radius. At
+2000 BCE a nation owns its core cities and their first rings only. Everything else is
+wilderness with native tribes scaled by the real historical population density (the existing
+`historicalPopulation.js` gives the per-nation curve).
+
+Scenario starts (one table in `src/data/scenarios.js`):
+
+| Start | Year | Who exists | Land claimed |
+|---|---|---|---|
+| Dawn (default) | 2000 BCE | all 240 as peoples, 1 to 4 cities | cores only, about 15% of land |
+| Classical | 800 BCE | all 240 | cores plus ring 2, about 30% |
+| Kingdoms | 500 | all 240 | about 50% |
+| Gunpowder | 1500 | all 240 | about 65% |
+| Modern | 1900 | all 240 | modern borders, every tile owned |
+| Emergent 15/30/45/60/75 | 2000 BCE | the chosen count | cores only |
+
+The existing emergent world generator (`worldgen/emergentWorld.js`) becomes the only generator:
+the full world is the 240-nation case.
+
+**A nation's starting cities and population** come from `historicalPopulation.js` at the start
+year: population split across its core cities by a fixed share table, so Egypt at 2000 BCE is a
+real power and Iceland does not exist as a city yet (it exists as a people with a 1-tile outpost
+and a settler, so the player can still pick it, with a warning that it is a hard start).
+
+## B7. What is deleted
+
+`regions.js` and `worldRegions.json` as game state (kept only in the geo build pipeline for
+country membership of tiles), `regionCoordinates.js`, `regionMerge.json`, `regionClickAssist`,
+`mapRegionStyle`, `RegionChooser`, the region modal, `regionTransfer.js` (becomes
+`cityTransfer.js`), development points (`development.js`), control as a stat (replaced by
+city loyalty and siege HP), `GAIN_CONTROL`, `DEVELOP_PROVINCE`, `BUILD_INFRASTRUCTURE`
+(roads are tile improvements), `SETTLE_COLONIZE` (settlers), `POPULATION_POLICY` (city
+focus), the per-region `defenseLevel` (walls), `climateResilience` (a city building), the
+`MOVE_ARMY` one-hop (routes are the only move).
+
+---
+
+# Part C. Every macro system on the new map
+
+Each section follows the add-mechanic checklist shape: today, design, state, turn phase, player
+actions, AI, UI, tests, balance target.
+
+## C1. Economy: yields, worked tiles, improvements, roads, trade
+
+**Yields.** Four per tile: food, production, gold, science (science comes only from districts and
+buildings, never raw terrain; culture is city-level). Base table:
+
+| Terrain | Food | Prod | Gold | Notes |
+|---|---|---|---|---|
+| Grassland | 2 | 0 | 0 | +1 food with river |
+| Plains | 1 | 1 | 0 | |
+| Floodplain (feature) | 3 | 0 | 1 | desert river tiles: Egypt, Mesopotamia |
+| Hills | 0 | 2 | 0 | +1 food on grassland hills |
+| Forest (feature) | +0 | +1 | 0 | can be cleared for a one-time production boost |
+| Jungle | +1 | -1 | 0 | |
+| Marsh | +1 | -1 | 0 | drainable with Aqueducts |
+| Desert | 0 | 0 | 0 | oasis +3 food |
+| Tundra | 1 | 0 | 0 | |
+| Snow, mountains | 0 | 0 | 0 | mountains impassable without Mountaineering |
+| Coast | 1 | 0 | 1 | +1 food with fish |
+| Ocean | 1 | 0 | 0 | needs Shipbuilding to work |
+
+A river edge adds +1 gold to the tile. A resource adds its line (wheat +1 food, iron +1 prod,
+gold +2 gold, horses +1 prod and a strategic amount, and so on; the full table is a data file).
+
+**Worked tiles.** A city works `min(size, tilesOwned)` tiles. Allocation is **automatic** every
+turn by the city focus (balanced, food, production, gold, science), with optional locks. No
+citizen micro: this is the single biggest UX choice for a phone, and Civ's own auto-assign is
+good enough when the focus is explicit.
+
+**City yields.** `food = sum(worked food) + buildings - population upkeep` (every 1,000 people eat
+0.5 food a turn at the Bronze scale; the scale is a data constant per age so later ages' bigger
+cities still work). Production builds the city's queue. Gold goes to the treasury after building
+upkeep. Science goes to the research engine (which already exists and stays).
+
+**Improvements** (on a tile, built by the city as a production item that costs 1 to 3 turns, no
+builder units to push around on a phone; the "builder" is implicit):
+
+| Improvement | On | Effect | Tech |
+|---|---|---|---|
+| Farm | grassland, plains, floodplain | +1 food, +1 more with Crop Rotation | none |
+| Pasture | horses, cattle, sheep | +1 food, +1 prod | Animal Husbandry |
+| Mine | hills, iron, copper, gold | +1 prod (+1 with Iron Working), extracts the resource | Mining |
+| Quarry | stone, marble | +1 prod, +1 culture for wonders | Masonry |
+| Lumber camp | forest | +1 prod | Bronze Working |
+| Fishing boats | fish, coast | +1 food, +1 gold | Sailing |
+| Plantation | spices, sugar, cotton, tea | +2 gold | Irrigation |
+| Oil well | oil | extracts oil | Combustion |
+| Road | any land | movement x2 along roads, +1 gold if on a trade route | none; Rail Networks make railways |
+| Fort | any land | +50% defence, a ZOC tile | Siege Engineering |
+
+Improvements show as icons at local zoom and models at close zoom; a pillaged improvement shows
+burning and yields nothing until repaired (1 turn).
+
+**Roads.** Tiles, not a number. Cities auto-build a road to a neighbour city when a trade route
+runs between them (Civ VI's trader builds roads). The player can also queue a road segment.
+Roads matter for movement (D1), trade (below) and supply (D3).
+
+**Trade routes.** A city with a Market sends one trade route (two with Bazaar, three with Bank)
+to another city within 15 tiles by land or 30 by sea (needs a Harbour). The route yields gold
+to both ends: `2 + 0.5 x tiles crossed + partner size / 4`, more with Silk Road Trade and Free
+Trade. Routes are drawn as lines on the trade lens. A route through a tile with an enemy unit
+or a besieged city is **plundered**: the gold goes to the plunderer that turn and the route is
+suspended. This replaces trade pacts with something on the map; pacts stay as the diplomatic
+permission to route through another nation's land.
+
+**One economy for all.** The AI's `nation.economy` and the player's `state.resources` merge into
+`nation.treasury` and per-city yields computed by the same function. `calcIncome` is deleted.
+Difficulty changes only AI reserves, planning horizon and reaction speed, as the audit asked.
+
+**Gold sinks.** Buildings cost production (turns), not gold; gold buys tiles, rush-buys
+production at 2 gold per hammer, pays unit upkeep that rises with army size (`1 + 0.02 x units`
+per unit), building maintenance (1 to 3 a turn per tier), and mercenaries.
+
+**Supplies** stay as the campaign resource: produced per city from food surplus (granary) and
+industry, consumed by armies outside friendly borders (D3).
+
+**Strategic resources** (horses, copper, iron, saltpetre, coal, oil, uranium) are counted per
+turn from worked and improved tiles; a unit type needs N of its resource to be built and 1 a
+turn to be maintained (Civ VI). Shortage halves the unit's combat strength instead of the
+current gold penalty.
+
+**Turn phase.** `cities` replaces `income` and `regionUnrestAndPopulation`: for each city, in id
+order: allocate tiles, compute yields, grow or starve, advance production, advance border, update
+loyalty and amenities, pay upkeep. One loop, one place.
+
+**Tests.** Yield tables per tile; auto-allocation picks the focus's best tiles deterministically;
+a starving city shrinks; improvements only on legal tiles; plunder suspends a route; one economy
+gives identical results for a player and an AI with identical cities.
+
+**Balance target.** A 5-city nation at turn 50 earns about what France earns today at turn 50
+(from the baseline in 0.1), so existing unit and building prices keep their meaning.
+
+## C2. Population, growth, housing, amenities
+
+- `population` is real people per city. Growth per turn: `surplusFood x 400 x ageScale` people,
+  capped by housing: at the cap growth is a quarter; two over the cap it stops. Starvation at
+  negative stored food loses 2% a turn.
+- **Housing**: 2 from the centre, +1 river or coast, +1 per Food tier, +2 Aqueduct, +4 Sewers,
+  +1 per farm after Feudal Charters, +N from Housing buildings in the modern age. Expressed in
+  size steps, which keeps it readable ("Housing 6 / size 5").
+- **Amenities**: each city needs `size / 2` amenities; luxury resources (one per distinct
+  resource, shared across up to 4 cities), entertainment buildings, wonders and the Religion
+  line supply them. Shortfall adds unrest; surplus lifts growth and loyalty.
+- **Unrest** per city (the existing region unrest moves here, with the same thresholds for
+  rebels). Rebel units spawn on tiles around the city, siege it, and a city that falls to rebels
+  becomes a free city (C5).
+- **Migration**: a city over its housing cap sends 2% of its population a turn to the nearest
+  friendly city under cap, which is how big empires fill their new cities without a click.
+- Recruiting a land unit takes 1,000 x unit size people from the city (replacing HR as a global
+  pool; the HR resource is deleted, manpower is the sum of city populations above size 1 times
+  the conscription law).
+
+**Tests.** Growth curve against housing; starvation; migration conserves people; recruitment
+takes people; amenity shortfall raises unrest and nothing else.
+
+## C3. Research
+
+Engine stays. Changes:
+1. The tree becomes a **web of about 60 techs**: prerequisites cross lines (Siege Engineering
+   needs Iron Weapons and Masonry). Data only, in `techTree.js`, drawn as a graph in the research
+   sheet (nodes in columns per age).
+2. **Every tech has at least one map effect**: unlocks an improvement, a unit, a building, a
+   district, a movement rule (rivers, mountains, ocean), a border ring, a trade range, or a
+   combat rule. The ones that today "do nothing yet" are rewired or cut. The audit table of
+   "Technology changes capabilities" is satisfied by construction.
+3. **Boosts** (40% of the cost) from tile facts: Mining when you own a hill mine, Sailing when a
+   city is coastal, Iron Weapons when you own iron, Siege Engineering after a siege, Feudal
+   Levies with 6 cities, Banking Houses with 3 trade routes, Combustion with an oil well,
+   Flight after a Modern war. Checked in the cities phase and in battle aftermath.
+4. Science comes from districts (Library tile) and buildings, plus 1 per 10k population, so
+   bigger empires research faster but the size factor (+0.5% per city over 10) keeps a brake.
+
+## C4. Government, laws, estates, identity, authority
+
+1. **Merge stability and legitimacy into Authority (0 to 100)** with a breakdown card: ruler
+   skill, legitimacy of succession, laws, estate loyalty, war exhaustion, overextension (cities
+   over the governing capacity), capital occupied. Under 25: no new laws, estates demand; under
+   10: civil war check. Prestige stays as a separate, slowly decaying score. Every modifier
+   source that writes stability or legitimacy today writes authority. (`nationalPower.js`.)
+2. **Estates own land on the map**: when a privilege "grant land" is given, the nobility holds
+   named countryside tiles (shown with a small crest in the politics lens) whose gold goes to
+   them in exchange for levies; the clergy holds temple districts; the burghers hold trade
+   routes. Crown land = tiles the state works directly. Seize Land takes tiles back with a
+   loyalty cost. This makes the EU4 estate game visible and gives "crown land %" a meaning.
+3. **Governors**: a character per city group (a capital region of up to 6 cities within 6
+   tiles). Skills: +1 food per city, +10% production, +2 loyalty, -10% unrest, +1 culture.
+   Assigning takes 2 turns. Unassigned groups suffer -5 loyalty. The ruler's court supplies
+   governor candidates (A6 fix), so rulers and heirs become people you use.
+4. **Laws and reforms**: every entry with "not yet a mechanic" gets a real effect on the new
+   systems or is removed. Chieftaincy: pillaging wilderness tiles and plundering routes gives
+   double gold. Tolerance: no loyalty penalty for foreign-culture cities. Mercantilism: +2 gold
+   per internal trade route, -1 opinion with partners. The 6 categories stay.
+5. **AI uses them**: a doctrine table picks a government type at the first age change, a law
+   when the prerequisite tech lands, and a reform at each age, every 3 turns in the diplomacy
+   pass.
+
+## C5. Loyalty and culture (new)
+
+Each city has a culture share per nation (`culture: { fr: 0.8, de: 0.2 }`). Each turn:
+pressure from the city's own nation's nearby cities (within 9 tiles, weighted by size and
+distance) and from foreign nearby cities. Loyalty moves toward the share of the owner's
+culture, +amenities, +governor, +garrison, -recently conquered (-20 for 20 turns),
+-occupied capital. **At loyalty 0 the city flips**: to the nation with the most pressure if it
+borders it, or becomes a free city (rebels), which can be retaken or will ask to join a
+neighbour. This replaces control as "how integrated is this land" and gives conquest a real
+cost at distance (Civ VI's best anti-snowball). AE stays as the diplomatic cost.
+
+## C6. Diplomacy on the map
+
+1. **Claims on cities.** A claim is on a city (and its tiles). Fabricate Claim targets a city
+   within 5 tiles of your border, costs DIP and takes 5 turns, visible to the target (opinion
+   -10). Cores: a city you held for 50 turns, or that has your culture majority, is a core;
+   wars for cores have no AE.
+2. **War goals are cities**: conquer city X, liberate city Y for an ally, humiliate, subjugate.
+   War score adds occupied cities weighted by size, battles won, and plundered routes.
+3. **Opinion with itemised reasons** replaces the single hostility number. Reasons are a list
+   with decay: border friction (-1 per shared border tile over 5), settled near me, same
+   religion/identity, trade partner, allied, declared war on my friend, broke a truce, gave a
+   gift. The panel shows the list. The AI uses the same list to decide.
+4. **Trade routes need access**: open borders (a pact) to route through, else the route is
+   blocked at the border. Embargo as an action.
+5. **Demands and ultimatums**: demand tribute, demand a city with a claim, demand to stop
+   settling near me; the AI accepts by relative strength and opinion; refusal gives a casus
+   belli.
+6. **AI vs AI wars are real within sight** (D6): armies move on tiles and besiege cities. Out of
+   sight the same expected outcome is resolved by dice per city per turn, with the dice
+   calibrated against the real sim so the world changes at the same rate either way.
+7. Vassals keep their cities; annexation absorbs cities one at a time (DIP per city size).
+8. Everything else (truces, pacts, alliances, defensive leagues, marriages, espionage, intel,
+   rivals) is kept as is, retargeted to cities where it names a region.
+
+## C7. Settlers, outposts, expansion
+
+1. **Settler unit**: built in a city for 60 production (rising 10 per city owned), takes 2,000
+   people (never below size 2), moves 2 tiles a turn, no combat, captured if caught.
+2. **Found city** on a legal tile. The city starts as an **outpost** with the colony progress
+   bar (the 4h mechanics reused: policy toward natives, raids, escort, upkeep, abandon). At 100
+   it is a city of size 1 with its ring. Progress speed by terrain and native resistance as
+   today. Slots per age as today cap how many outposts you run at once.
+3. **Native tribes** live on wilderness tiles as camps (a tile feature with a strength); they
+   raid outposts and pillage improvements within 3 tiles; you can trade with them (gift for
+   peace), convert them (religion line), or clear them (a battle; the tactical sim gets a
+   "tribal camp" setup). Clearing a camp gives a boost and -opinion with Tolerance nations.
+4. **Loyalty** (C5) stops forward settling deep in a foreign culture zone: a new outpost far
+   from your cities bleeds loyalty unless garrisoned and governed.
+5. **AI** scores settle targets: yields in rings 1 to 2, resources, river, coast, distance to
+   capital, loyalty pressure, native strength. All nations settle, within their slot cap, so the
+   world fills in over the ages at a historically plausible pace (target: about 50% of land
+   claimed by 500 CE, 80% by 1800).
+
+## C8. Succession and characters
+
+Plan 5b (families for everyone) stays. Additions on the new map: governors come from the
+court; an adult heir can govern; generals are characters with the same skill model; a ruler's
+traits bias the AI (a warlike ruler raises the war roll, a builder ruler raises the building
+budget). Events reference characters by name and pin to the capital.
+
+## C9. Events, disasters, wonders, era goals
+
+1. **Every event pins to a city or tile** and the modal becomes a side sheet with a map marker;
+   choices that affect a place show it. Procedural templates pick a city by its facts (a
+   flooding river city, a starving city, a border city with a foreign majority).
+2. **Wonders are tiles**: a great project takes a tile in the city's border (shown as a model at
+   close zoom, an icon at local zoom) and finishes over turns of production, not gold. The 15
+   existing projects map to tiles with terrain requirements (Pyramids on desert, Lighthouse on
+   coast).
+3. **Era goals**: each age has 3 goals per playstyle (expand: 6 cities; wealth: 3 routes; war:
+   a capital taken; culture: 2 wonders; science: 6 techs). Hitting 2 of 3 gives a legacy bonus
+   for the next age (Civ VII's idea, EU4 missions' feel). Shown as a small progress strip, no
+   popup.
+4. Disasters (famine, plague, flood, fire) pick cities by their tile facts and leave visible
+   marks (a burnt district for 5 turns).
+
+## C10. Victory
+
+Unchanged conditions, retargeted: domination counts capitals held; conqueror counts cities;
+economic counts gold and routes; score counts population, wonders, techs. The era goals give
+the mid-game shape the audit asked for.
+
+---
+
+# Part D. Armies, movement, sieges and the RTS battles on tiles
+
+## D1. Armies and movement
+
+- A **unit** keeps its class and strength but gains a **size** (1 to 3 squads worth; strength
+  1,000 per squad) and an **army** grouping: `state.armies[armyId] = { ownerId, tileId, unitIds,
+  generalId, name, movePoints, route, supply }`. Units are always in an army; a lone unit is an
+  army of one. The map draws armies, not units.
+- **Movement points per turn**: foot 2, cavalry 4, siege 1, settler 2, scout 5, modern
+  mechanised 4. Tile costs: open 1, hills and forest 2, mountains impassable until
+  Mountaineering (then 3), desert 2, river crossing +1 (0 with a bridge, Stone Bridges tech),
+  road: every road tile costs 0.5, railway 0.25. Embark at a coast tile of a city with a Harbour
+  or any coast after Navigation. An army moves at its slowest unit.
+- **Routes** stay (A* on tiles with those costs), drawn with a number per turn, as designed in
+  4g, now with real distance.
+- **Zone of control**: an enemy army or fort in an adjacent tile stops movement after entering
+  that tile (Civ). This is what makes lines, chokepoints and flanks exist on the map.
+- **Fog of war**: tiles you see this turn (own tiles plus 2, armies plus 2, scouts plus 3,
+  hills plus 1, allies' sight shared), tiles you have seen (greyed, last-known owner), unknown
+  (dark). Intel (espionage) reveals a nation's cities and armies for 10 turns as today. The
+  globe at world zoom shows known nations only.
+- **Stacking**: an army holds at most `combatWidth(terrain) x 2` squads worth (4 to 12 units);
+  bigger stacks suffer supply (D3). Two friendly armies can share a tile; they merge or split
+  with one tap.
+- **Naval**: fleets are armies on sea tiles with ship units (the naval class splits into
+  galley/warship/transport/carrier lines per age, data only); they carry `capacity` land units.
+  Coastal tiles with a Harbour are ports. A fleet adjacent to a coast tile lands its army there
+  (an amphibious battle if defended). Fleets blockade a city by sitting on its coast tiles (no
+  sea trade, siege supply cut).
+
+## D2. Sieges
+
+- A city has **walls** (0 to 3: none, palisade, stone, star fort, by the Defense line) and
+  **HP** `200 x (1 + walls) x (1 + size / 10)`. An enemy army on an adjacent tile **besieges**
+  it: the city's tiles beyond ring 1 stop yielding, routes are plundered, HP drops each turn by
+  the army's siege strength (siege units 20 each, others 3, +50% with Siege Engineering) minus
+  the walls' regen (5 x walls if not encircled). **Encircled** (every land neighbour occupied or
+  sea blockaded) doubles the damage and starves the city (-5% population a turn).
+- **Assault**: at any time the attacker may assault: a tactical battle of type **siege** with
+  the real walls at their current HP. Winning takes the city. Losing costs the units and
+  resets nothing.
+- **Fall by siege**: at HP 0 the garrison surrenders without a battle unless the defender
+  chooses to fight (a **last stand** battle with no walls).
+- **Sally**: the defender's garrison may attack the besiegers (battle type sally, defender is
+  the attacker with the city at its back).
+- **Relief**: an army arriving next to the besieger fights a field battle with the besieger;
+  the garrison may join as reinforcements.
+- **Taking a city**: ownership flips, loyalty set to 10, a 20-turn "recently conquered" malus,
+  walls -1, population -10%, improvements in ring 1 pillaged, AE by city size, war score +size.
+  Option to raze (only size 1 to 3 cities, big opinion cost) or liberate to a former owner.
+- Capitals cannot be razed. The capital's fall doubles the authority hit.
+
+## D3. Supply
+
+Each army has a supply meter 0 to 100. Inside friendly borders or within 3 tiles of a friendly
+city on a road: +20 a turn to 100. In wilderness: -10 a turn. In enemy land: -20, -10 if a
+supply line of your tiles or roads reaches it within 6 tiles, 0 if it sits next to a captured
+city with a Harbour or a road home. At 0 supply: -5% strength a turn and -10 morale. Siege armies
+need supply or they melt, which makes deep sieges a plan and not a click. The national
+supplies resource pays for the +20 abroad (1 per 2 squads) as today; without supplies the
+meter only falls.
+
+## D4. Recruitment and army composition
+
+- Units are **built in a city's production queue** (production cost by class and age, taking
+  population). A unit appears on the city tile. Mercenaries can be hired instantly for gold in a
+  city with a Market (2x upkeep).
+- **Army templates**: the player defines a composition ("Legion: 4 infantry, 2 archers, 1
+  cavalry, 1 siege") and the city builds the missing pieces into the named army. This is the
+  one piece of design to make the RTS armies the player's own.
+- **Generals** attach to an army. Promotions and XP stay.
+
+## D5. Battles from tiles
+
+- **Battle types**, decided by the situation on the map, each with its own objective and
+  battlefield layout:
+
+| Type | When | Battlefield | Attacker wins by | Defender wins by |
+|---|---|---|---|---|
+| Field | armies meet on an open tile | the tile's terrain, neighbours on the edges | rout or destroy 60% | the same, or hold to the clock with more strength left |
+| River crossing | the attacker crosses a river edge | the river across the field with 1 to 3 fords or a bridge | hold the far bank with 40% strength | hold the bank |
+| Ambush | defender in forest/jungle/hills with no road and sight advantage | dense cover, attacker enters in column | survive and rout | 30% losses on the attacker in 2 minutes |
+| Siege assault | assault on a city | the real city: walls at current HP, towers, districts as buildings, the keep | hold the keep 30 s | hold to the clock |
+| Sally | garrison attacks besiegers | the camp and siege engines outside the walls | destroy 2 siege engines or the camp | hold |
+| Landing | a fleet lands on a defended coast | beach, the fleet's ships bombarding, defender inland | hold a beachhead 60 s | push them back |
+| Tribal camp | clearing natives | huts and a palisade | burn the camp | 3 minutes |
+
+- **The battlefield is generated from the tile**: terrain of the tile and the 6 neighbours
+  (each neighbour's terrain fills its edge sector), rivers on the right edges, coast on the
+  fleet's side, roads as a corridor, the city's walls level and districts, improvements as
+  farms, mines and lumber camps that can be burnt for supply. `mapgen.js` takes a
+  `tileContext` instead of a region id. Seeded by tile id and turn, so replay works.
+- **Deployment**: 30 s (or Start) in which the player drags squads within the deployment zone;
+  the AI uses a template by battle type.
+- **Composition**: the army's units become squads 1:1 (a size-3 unit is 3 squads), with
+  reserves from the army's reserve units and reinforcements from friendly armies on adjacent
+  tiles (the existing reinforcement sources, now by tile).
+- **Aftermath on the map**: tile devastation (the existing aftermath) becomes pillaged
+  improvements and a battle marker for 5 turns; routed armies retreat 1 to 2 tiles along their
+  route; captured siege engines; a river battle lost leaves the attacker on the near bank.
+- Auto-resolve keeps parity through the same `buildBattleSetup` inputs; the parity harness in
+  the battle-lab skill adds the new types.
+
+## D6. AI armies and fronts
+
+`aiOperations` grows into a front planner on tiles: for each AI nation at war, a front per
+enemy border; goals in order: defend threatened cities (threat = enemy army strength within 4
+tiles), relieve sieges, take the war-goal city, raid routes. Armies plan A* routes with ZOC;
+sieges when strong enough (strength ratio 1.5 against the garrison and walls); assault when
+HP under 30% or when a relief army approaches. Within the player's sight all of this is real.
+Out of sight (no player tile or army within 8 tiles) a nation pair resolves the war with one
+roll per turn per contested city using the same strength ratio, which keeps the 240-nation turn
+under budget. The tier system stays for the thinking frequency (every turn, 3, 10) but every
+nation gets the city auto-governor every turn, so the world grows everywhere.
+
+---
+
+# Part E. UX and UI for phones and desktop
+
+## E1. One design, two inputs
+
+| Interaction | Touch (phone, tablet) | Desktop |
+|---|---|---|
+| Select a tile or city | tap | click |
+| Peek (tooltip) | long press 250 ms | hover |
+| Move an army | tap army, tap destination (path preview), tap again to confirm; or drag after 250 ms | click, right click destination, or drag |
+| Pan and zoom | one finger pan, pinch | drag, wheel, +/- keys |
+| Lenses | lens button, bottom left | the same, keys 1 to 6 |
+| End turn | the big button bottom right; a "next" prompt before it | Enter or Space |
+| Cycle units with moves | the "next" prompt | Tab |
+| Sheets | half sheet from the bottom (portrait) or right dock (landscape, desktop) | right dock |
+
+Minimum touch target 44 px; tiles at default region zoom are at least 48 px across on a 390 px
+tall phone, which fixes the zoom scale: at 844 x 390 the default shows about 17 x 8 tiles.
+
+## E2. Layouts
+
+- **Phone landscape (primary for play)**: the existing shell (36 px top bar, right rail, right
+  dock up to 380 px) stays. The dock holds sheets: city, tile, army, nation, research.
+- **Phone portrait (allowed for the empire view)**: the map on top, a half sheet below (city,
+  tile, army). Battles still ask to rotate. The rotate overlay becomes a soft hint.
+- **Tablet**: landscape shell with a wider dock (420 px) and two sheets stacked.
+- **Desktop**: map full bleed, a left city list rail (collapsible), the right dock 400 px,
+  the top bar with yields per turn (gold +12, science +8, culture +5, supplies 40), hotkeys.
+
+## E3. The "next" prompt (Civ's end-turn blocker, made optional)
+
+A single pill above End Turn that cycles through: a city with an empty queue, an army with
+moves and no route, research done, a settler idle, a peace offer, a city in unrest, an event.
+Tapping it opens the sheet. End Turn is never blocked (a toggle "warn me" in settings).
+
+## E4. Sheets (replacing the 711-line province modal and the engine-named panels)
+
+- **City sheet**: header (name, size, growth in N turns, housing, amenities, loyalty with a
+  reason list), tabs: Build (queue with turns, grouped by units, buildings, improvements,
+  wonders; "buy" with gold), Tiles (the ring map with yields, locks, buy tile), Buildings,
+  Politics (governor, estates holding, unrest reasons). Every number opens a breakdown.
+- **Tile sheet**: terrain, features, yields, resource, improvement with build or pillage, owner
+  city, river, road, units on it.
+- **Army sheet**: units with strength and morale, general, supply with a reason, move points,
+  route with ETA, actions: merge, split, template, fortify, pillage, siege, assault, embark.
+- **Nation sheet** (tap a border or a capital): opinion list with reasons, relations, actions
+  (the whole diplomacy panel).
+- **Empire sheet** (the rail): overview (authority breakdown, era goals strip, treasury with
+  income and upkeep lines), government and laws, estates, court, research, log. The Domestic
+  and Diplomacy panels dissolve into the city, nation and empire sheets.
+- **Research sheet**: the web graph in columns by age, the current tech with turns, boosts
+  shown with their trigger and whether it is done.
+
+## E5. Lenses
+
+Political (default), Yields (numbers on tiles), Borders and loyalty (city loyalty colours,
+pressure arrows), Trade (routes and plunder risk), Threat (enemy armies, sieges, ZOC tiles),
+Supply (army supply and supply lines), Religion/culture (later). One button, a strip of icons.
+
+## E6. On-map affordances
+
+City badges show size and a growth arc, a wall icon when fortified, a siege icon with HP when
+besieged, a red exclamation when starving or in unrest. Army banners show strength as a bar,
+morale colour, a general's star. Settlers show a tent. Outposts show a progress ring. Routes
+show numbered turn dots. Trade routes animate dashes at the trade lens. Fog is a desaturated
+hatch, unknown is dark.
+
+## E7. Battle UI changes
+
+Deployment phase with drag; the objective banner per battle type ("Hold the ford for 2:00");
+a mini map of the field; the existing HUD otherwise. Portrait battles are not supported.
+
+## E8. Onboarding
+
+A 10-turn guided Dawn start as Egypt: settle the second city, work a floodplain, build a
+granary, research Mining, meet a neighbour, fight one river battle. Each step is a "next"
+prompt, no modal lectures.
+
+---
+
+# Part F. Data, migration, performance, determinism
+
+- **Geo build**: `scripts/geo/build-tiles.mjs` produces the grid, terrain, features, rivers,
+  resources, country ids, names and the per-nation cores. Inputs: ETOPO (already planned),
+  a Köppen raster, Natural Earth rivers, lakes and populated places, ESA WorldCover at 1 km.
+  All public domain or CC-BY with attribution in `LICENSE.md`. The build is deterministic and
+  checked by tests (tile count, land share about 29%, every nation has a core, every core
+  tile is land, rivers only on land edges).
+- **State**: `state.tiles` holds only dynamic tile data as sparse maps: `owner` (cityId),
+  `improvement`, `pillaged`, `road`, `seenBy`, `nativeCamp`. Static tile data lives outside
+  state in a typed array module, never serialised. A save is cities + armies + nations + the
+  sparse tile maps: about the same size as today.
+- **Saves**: old region saves **cannot be migrated** to tiles with any honesty. The save version
+  bumps to 7 and old saves open a "this save is from the region map" screen with an export
+  option. The emergent-world scenario record (versioned) carries the grid version.
+- **Turn cost**: loops over cities (about 2,000 at most) and armies (hundreds); border growth
+  looks at ring tiles only; loyalty pressure uses a per-city neighbour list cached per 10
+  turns; AI pathfinding on a 28k-cell grid with A* and a cap of 400 nodes per route per turn,
+  budgeted per nation. Target: under 150 ms a turn at turn 100 on the sandbox, measured by
+  `compare.sh` against the branch before the rework. Rendering: one instanced hex mesh for the
+  globe and one for the flat map, per-tile colour in a texture updated when ownership changes.
+- **Determinism**: all loops in id order, all randomness from `state.rngSeed`, tile ids stable
+  across builds (the grid version is in the save), the 150-turn determinism test and the audit
+  keep running; the audit gains city invariants (every city has an owner and a tile, every
+  tile owner is a live city, borders are contiguous or coastal, armies on land tiles, no two
+  cities within 3 tiles).
+
+---
+
+# Part G. AI summary
+
+| Layer | Runs | Decides |
+|---|---|---|
+| City governor | every city, every turn | tile allocation by focus, build queue by what the city lacks (food, housing, amenities, production, walls when threatened), improvements on the best unimproved tile, buy a tile when rich |
+| Settler planner | every nation, every 3 turns | where to send the next settler, within the slot cap |
+| Economy | every nation, every 3 turns | taxes, maintenance, loans, mercenaries, trade route targets |
+| Politics | every nation at age change and every 10 turns | government, laws, reforms, estate actions, governors |
+| Diplomacy | Tier 1 every turn, others every 3 | opinion-driven: pacts, alliances, claims, demands, war, peace |
+| Fronts | nations at war, every turn | D6 |
+| Tactical | in battle | the existing tactical AI with per-type templates |
+
+Difficulty: AI reserves, how far it plans, how fast it reacts, and the dice calibration out of
+sight. No yield bonuses above Prince; above it, small yield bonuses as in Civ, shown openly.
+
+---
+
+# Part H. Balance targets and how they are checked
+
+Every target is a number the balance-sim prints (new keys added to the skill):
+
+| Target | Value at Normal speed | Why |
+|---|---|---|
+| Land claimed | 15% at start, 50% by 500 CE, 80% by 1800, 100% by 1950 | historical plausibility, room to settle |
+| Cities per nation | median 6 at turn 100, 12 at turn 200; largest under 60 | readable empires, no runaway |
+| Max land share of one nation | under 0.25 at turn 150 | anti-snowball (today's red flag is 0.33) |
+| Wars | 20 to 40 active worldwide per 150 turns, each 5 to 20 turns | a living world without chaos |
+| Cities changing hands | 1 to 3% of cities per 10 turns | visible history |
+| City loyalty flips | 0.5 to 1% per 10 turns, mostly from conquest | distance costs |
+| Player income | a 5-city player at turn 50 earns within 20% of today's France | prices keep meaning |
+| Research pace | 7 of 10 age techs on time (already calibrated) | keep |
+| Turn time | under 150 ms at turn 100 | phones |
+| Audit violations, nonFinite | 0 | always |
+| Battle parity | auto-resolve vs tactical within 5% win rate per battle type over 200 seeds | fairness |
+
+A calibration slice follows each engine workstream, with a before/after table in the commit
+message, as the ship skill requires.
+
+---
+
+# Part I. Order of work
+
+Each workstream is its own branch off `claude/gallant-pasteur-rfkma8`, playable alone, merged
+when you say so. S is a day, M two to three days, L four to six, XL more than a week.
+
+| # | Workstream | Size | Depends on | Delivers |
+|---|---|---|---|---|
+| 1 | **Tile grid and geo build**: the geodesic grid, terrain, features, rivers, resources, cores, scenario starts; tests on the data | L | none | `tiles.bin`, `scenarios.js`, a viewer page |
+| 2 | **Map rendering**: hex mesh on the globe and the flat map, nation and city borders, fog, lenses scaffold, tap and hover on tiles, zoom levels | L | 1 | the new map, empty of game logic |
+| 3 | **Cities and the one economy**: city state, yields, worked tiles, housing, amenities, growth, production queue, improvements, roads, border growth, buildings retargeted; delete development and the three economies; the cities turn phase; the city and tile sheets | XL | 1 | a playable peaceful game |
+| 4 | **Settlers, outposts, natives, migration** | M | 3 | expansion loop |
+| 5 | **Armies, movement, ZOC, supply, fleets, recruitment from cities, templates** | L | 3 | war on the map without battles |
+| 6 | **Sieges and battle types**: walls, HP, encirclement, assault, sally, relief, landing; `mapgen` from tiles; deployment; aftermath on tiles; parity | L | 5 | the RTS on the real place |
+| 7 | **Diplomacy on cities**: claims, opinion reasons, war goals, peace on cities, trade routes with plunder, demands | L | 3, 5 | |
+| 8 | **Loyalty and culture, authority merge, estates on land, governors** | M | 3 | |
+| 9 | **AI**: governors for all, settler planner, fronts on tiles, in-sight real wars, politics | XL | 4 to 8 | a living world |
+| 10 | **Research web, boosts, map effects per tech** | M | 3 | |
+| 11 | **Events pinned, wonders as tiles, era goals, disasters** | M | 3 | |
+| 12 | **UI**: next prompt, empire sheet, nation sheet, army sheet, lenses, portrait empire view, desktop hotkeys, onboarding | L | 2 to 8 | |
+| 13 | **Calibration and the balance-sim keys of Part H**, performance pass, audit invariants, save v7 screen | M | all | |
+
+Sprite renderer and unit art (previous plan section 8, art brief v3) continue in parallel and
+plug into workstream 6.
+
+Suggested sequence: 1, 2, 3 (the long one), then 5 and 4 in parallel, 6, 7 and 8 in parallel,
+10 and 11, 9, 12 throughout from 3 on, 13 last. About 12 to 16 weeks of work at this pace.
+
+---
+
+# Part J. Risks, critique of this plan, and decisions
+
+## J1. Critique
+
+1. **This is a new game on the old engine.** Workstream 3 alone replaces the economy, the
+   province, the buildings' home and the player's main screen. Mitigation: the engine
+   disciplines (pure reducer, seeded RNG, audit, determinism test) carry over unchanged, and
+   workstreams 1 and 2 can ship as a map viewer before any rule changes.
+2. **Save break.** Unavoidable with a new map. Say so plainly in the app and keep the current
+   build on `main` until the rework is playable end to end.
+3. **8,500 land tiles on a phone globe.** One instanced mesh is fine for the GPU; the risk is
+   the hit test and the border mesh rebuild. Mitigation: a tile lookup by lat/lon is O(1) on a
+   geodesic grid, and border meshes rebuild per nation only when its tiles change.
+4. **AI cost with real armies everywhere.** The in-sight rule bounds it: at most a few dozen
+   AI armies move for real each turn. Dice out of sight are calibrated, which is a test, not a
+   hope.
+5. **Civ's citizen micro would kill the phone.** Auto-allocation with focus and locks is the
+   right trade. If players want more, locks are enough.
+6. **Too many meters still.** Authority merges two; opinion reasons replace hostility; loyalty
+   replaces control. The remaining list (authority, prestige, unrest per city, loyalty per city,
+   war exhaustion, AE, supply per army) each has a reason list, which is what makes a meter
+   acceptable.
+7. **Historical cores are hand work** for 240 nations. Mitigation: generate a first pass (the
+   capital plus the largest cities by modern population within the modern border) and curate
+   the 40 nations that matter at 2000 BCE (Egypt, Mesopotamia, Indus, China, Minoans, Hittites,
+   Nubia, Elam and so on). The rest get a one-city start, which is right for most.
+8. **What is lost.** Development points as a currency, control %, the trade pact as the only
+   trade, HR as a pool, region names for places that are now tiles. Each was reviewed above as
+   not worth keeping. ADM/DIP/MIL stay for politics and diplomacy only.
+
+## J2. Decisions for you
+
+1. **Grid size.** About 18,000 km² tiles (8,500 land, recommended), coarser (4,300), or keep the
+   2,028 polygons as tiles?
+2. **Default start.** Dawn 2000 BCE with cores only (recommended), so the full world has land to
+   settle; or keep modern borders as the default and offer Dawn as a mode?
+3. **Citizens.** Automatic tile work with focus and locks (recommended), or full manual
+   allocation?
+4. **Builders.** Improvements built by the city queue (recommended) or by builder units?
+5. **Saves.** A clean save break with a notice (recommended), or keep the region map as a
+   second mode (double maintenance; not recommended)?
+6. **HR and development.** Delete both in favour of population and tiles (recommended)?
+7. **Loyalty flips.** Allow cities to flip to neighbours by culture pressure (recommended, with
+   a 20-turn warning on the city badge), or only to free cities?
+8. **Naval classes.** Split the naval class into galley/warship/transport/carrier lines
+   (recommended, data only) now or later?
+9. **Order.** The sequence in Part I, or a thinner first slice (grid, rendering, cities, settlers
+   only) to play with the new map sooner?
+
+---
+
+## Appendix 1. Mechanics touched (add-mechanic checklist index)
+
+Economy (yields, upkeep, trade, supplies, strategic resources), population (growth, housing,
+amenities, migration, recruitment), research (tree, boosts, science sources), politics
+(authority, estates on land, governors, laws effects, AI politics), loyalty (new), diplomacy
+(claims, opinion, war goals, peace, demands, AI vs AI), settlers (settler unit, outposts,
+natives), succession (characters as governors and generals), events (pins, wonders, era
+goals), armies (movement, ZOC, fog, stacking, naval), sieges (walls, HP, encirclement,
+assault, sally, relief), supply (per-army meter), battles (types, mapgen from tiles,
+deployment, aftermath), AI (all layers), victory (retargeted).
+
+## Appendix 2. Files that change the most
+
+`src/data/geo/*` (new build), `src/data/regions.js` (removed from state), `src/engine/resolveTurn.js`
+(phases: cities, armies, sieges, loyalty replace income, unrest, control), `src/engine/gameReducer.js`
+(split into `nationActions/`, `cityActions/`, `armyActions/`), `src/utils/helpers.js` (calcIncome
+removed), `src/engine/aiEconomy.js` and `src/utils/aiLogic.js` (merged into `src/engine/ai/`),
+`src/battle/setup/mapgen.js` and `buildBattleSetup.js` (tile context, battle types),
+`src/components/map/*` and `globe/*` (hex rendering), `src/components/modals/ProvinceModal.jsx`
+(replaced by sheets), `scripts/simulate.mjs` and the balance-sim skill (new keys).
