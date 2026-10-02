@@ -3,7 +3,7 @@ import { pickProceduralEvent } from './proceduralEvents';
 import { createInitialState } from '../context/GameContext';
 import { createRng } from '../utils/rng';
 import { EVENT_CHAINS } from './eventChains';
-import { REGIONS_DATA, getNationCapital } from './regions';
+import { getNationCapital } from './regions';
 
 describe('pickProceduralEvent', () => {
   it('returns a real, well-formed event for at least one seed against the initial state', () => {
@@ -31,14 +31,14 @@ describe('pickProceduralEvent', () => {
     expect(a).toEqual(b);
   });
 
-  it('substitutes the actual player nation\'s own region name into the description', () => {
+  it('pins the event to one of the player\'s cities and names it in the description', () => {
     const state = createInitialState({ playerNationId: 'fr' });
     const results = Array.from({ length: 20 }, (_, seed) => pickProceduralEvent(state, createRng(seed)));
-    const hit = results.find(e => e && !e.id.includes('ambitious_general') && !e.id.includes('throne_pretender'));
-    // "Your region" is the player's capital (src/data/proceduralEvents.js's home()) — now that a
-    // nation spans many provinces, that's Paris, not "France" itself.
-    const capitalName = REGIONS_DATA[getNationCapital('fr')].name;
-    expect(hit.description).toContain(capitalName);
+    const hit = results.find(e => e && e.cityId);
+    expect(hit).toBeTruthy();
+    expect(state.regions[hit.cityId].owner).toBe('fr');
+    expect(hit.tile).toBe(state.regions[hit.cityId].tile);
+    expect(hit.description).toContain(state.regions[hit.cityId].name);
   });
 
   it('only offers the ambitious-general template once a general is actually hired', () => {
@@ -120,7 +120,7 @@ describe('pickProceduralEvent', () => {
       hiredCommanders: {},
       regions: {
         ...state.regions,
-        us: { ...state.regions.us, control: 0, currentInfrastructure: 0, defenseLevel: 5, unrest: 0 }
+        [getNationCapital('us')]: { ...state.regions[getNationCapital('us')], control: 0, currentInfrastructure: 0, defenseLevel: 5, unrest: 0 }
       }
     };
     for (let seed = 0; seed < 10; seed++) {

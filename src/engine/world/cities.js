@@ -33,6 +33,7 @@ import { AGE_ORDER } from '../../data/ages';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
+import { disasterMults } from '../cityDisasters';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -237,8 +238,9 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const sum = fields.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
   const palace = city.isCapital ? PALACE_YIELDS : { gold: 0, production: 0, science: 0, culture: 0 };
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
-  const food = sum.food + foodTier + (ctx.foodBonus || 0) - FOOD_PER_CITIZEN * city.size;
-  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * 10) / 10;
+  const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
+  const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10;
+  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   const science = Math.round((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints')) * 10) / 10;
   const cultureTier = (city.buildings?.categories?.culture ?? -1) + 1;
@@ -389,7 +391,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     size = Math.max(1, size - STARVE_LOSS); food = 0;
     logs.push(c.underInvasion ? `${c.name} starves under siege and shrinks to ${size}.` : `${c.name} starves and shrinks to ${size}.`);
   } else if (y.food > 0 && !c.underInvasion) {
-    let gain = y.food;
+    let gain = y.food * disasterMults(c, ctx.turnNumber).growth; // no growth under plague
     if (size >= housing + 2) gain = 0; else if (size >= housing) gain *= GROWTH_AT_CAP;
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
     food = c.food + gain;

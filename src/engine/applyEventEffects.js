@@ -92,6 +92,18 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.regionModifiers = regionModifiers;
   }
 
+  // Effects on the event's own city (procedural events pin to a city: event.cityId).
+  const cityId = event.cityId && next.regions[event.cityId]?.owner === playerNationId ? event.cityId : null;
+  if (cityId && (effects.cityUnrest || effects.cityFood || effects.citySize || effects.cityLoyalty)) {
+    const c = next.regions[cityId];
+    next.regions = { ...next.regions, [cityId]: {
+      ...c,
+      unrest: Math.max(0, Math.min(100, (c.unrest || 0) + (effects.cityUnrest || 0))),
+      food: Math.max(0, Math.round(((c.food || 0) + (effects.cityFood || 0)) * 10) / 10),
+      size: Math.max(1, (c.size || 1) + (effects.citySize || 0)),
+      loyalty: Math.max(0, Math.min(100, (c.loyalty == null ? 100 : c.loyalty) + (effects.cityLoyalty || 0)))
+    } };
+  }
   if (effects.controlBonus) {
     const regions = { ...next.regions };
     Object.values(regions).forEach(r => {
