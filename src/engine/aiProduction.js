@@ -22,19 +22,30 @@ export const MAX_BUILD_TURNS = 40;
 export const UNITS_PER_CITY = 1;
 export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'infrastructure', 'defense', 'naval'];
 
+/** The nation-wide counts the choice reads, computed once a turn for every nation (the per-city
+ * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
+export const nationCounts = (state) => {
+  const out = {};
+  const of = (id) => (out[id] ||= { settlers: 0, outposts: 0, landUnits: 0 });
+  Object.values(state.units || {}).forEach((u) => { if (!u.ownerId) return; if (u.classId === 'settler') of(u.ownerId).settlers += 1; else if (u.domain === 'land') of(u.ownerId).landUnits += 1; });
+  Object.values(state.regions || {}).forEach((c) => { if (c.owner && c.outpost) of(c.owner).outposts += 1; });
+  return out;
+};
+
 /** The item an AI city with an empty queue should build, or null. `ctx`: { researched, ageId,
- * citiesOwned, units }. */
+ * citiesOwned, units, counts? (nationCounts(state)[nation]) }. */
 export const chooseProduction = (state, city, ctx) => {
   if (city.outpost || city.production?.current) return null;
   const tiles = getTiles();
   const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
   const nationId = city.owner;
   const units = ctx.units || state.units || {};
+  const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length };
   const production = Math.max(1, city.lastYields?.production ?? city.dev?.production ?? city.size ?? 1);
   const affordable = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned }) / production <= MAX_BUILD_TURNS;
 
   const thinks = ((ctx.turnNumber || 0) + city.tile) % SETTLER_THINK_PERIOD === 0;
-  if (thinks && city.size >= SETTLER_FROM_SIZE && settlersOf(units, nationId).length === 0 && outpostsOf(state.regions, nationId).length < outpostSlots(ctx.ageId)) {
+  if (thinks && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId)) {
     const site = bestSites(state, nationId, city.tile, ctx.ageId, { limit: 1 })[0];
     const item = { kind: 'settler' };
     if (site && site.score >= SITE_SCORE_MIN && canQueue(city, tiles, world, item, ctx).ok) return item;
@@ -45,8 +56,7 @@ export const chooseProduction = (state, city, ctx) => {
     const item = { kind: 'building', category, tier };
     if (canQueue(city, tiles, world, item, ctx).ok && affordable(item)) return item;
   }
-  const landUnits = Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length;
-  if (landUnits < ctx.citiesOwned * UNITS_PER_CITY && getAvailableClasses(ctx.ageId).includes('infantry')) {
+  if (counts.landUnits < ctx.citiesOwned * UNITS_PER_CITY && getAvailableClasses(ctx.ageId).includes('infantry')) {
     const item = { kind: 'unit', classId: 'infantry' };
     if (canQueue(city, tiles, world, item, ctx).ok && affordable(item)) return item;
   }

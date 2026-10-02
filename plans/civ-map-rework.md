@@ -1637,10 +1637,11 @@ the road). Measured on seed 11, player France passive, 150 turns, before and aft
 | Loyalty flips, turns 50 to 100 | 275 (5% of cities per 10 turns) | 75 (1.4%) | 0.5 to 1% |
 | Siege phase, ms a turn at 460 cities | 50 | 7 | 10 |
 | Supply and loyalty phases, ms a turn | 52 | 13 | 10 |
-| Cities phase, ms a turn at 546 cities | 89 (at 461) | 114 | 50 at 2,000 |
+| Cities phase, ms a turn at 550 cities | 115 | 86 | 50 at 2,000 |
+| Whole turn, ms at 550 cities (turn 80) | 320 | 267 | 150 at turn 100 |
 | Audit violations | 0 | 0 | 0 |
 
-What changed: a flipped city's people take 60% of its shares for the new owner and the city
+The cities phase: the AI production choice scanned every unit and every city per city (95 ms of the phase); the nation counts are now built once a turn, the city map is copied once, tile facts and yields are memoised on the tile's state entry and the researched list (the player's list is memoised on the tech tree). What changed in the rules: a flipped city's people take 60% of its shares for the new owner and the city
 cannot flip again for 30 turns (no ping-pong), a newly founded city holds for 30 turns, a
 city's own people press at 0.6 of its size and loyalty needs 40% of the owner's culture; the
 siege and loyalty phases share one land-unit-by-tile index and culture drifts every third

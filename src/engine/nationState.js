@@ -14,9 +14,18 @@
 export const getPool = (state, nationId) =>
   (nationId === state.playerNationId ? state.resources : state.nations[nationId]?.economy) || {};
 
+// The player's list is memoised on the tech tree's identity, so callers that key caches on the
+// array (the cities phase's tile yields) hit across turns until a tech completes.
+const researchedMemo = new WeakMap();
 export const getResearched = (state, nationId) => {
   if (nationId === state.playerNationId) {
-    return Object.keys(state.techTree || {}).filter((id) => state.techTree[id]?.researched);
+    const tree = state.techTree;
+    if (!tree) return [];
+    const hit = researchedMemo.get(tree);
+    if (hit) return hit;
+    const list = Object.keys(tree).filter((id) => tree[id]?.researched);
+    researchedMemo.set(tree, list);
+    return list;
   }
   return state.nations[nationId]?.tech?.researched || [];
 };
