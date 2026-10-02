@@ -17,6 +17,7 @@ import { CLIMATE_RESILIENCE_MAX, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT
 import { TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { ARMY_MAINTENANCE_MIN, ARMY_MAINTENANCE_MAX, ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3 } from '../data/actionCosts';
 import { MAX_RIVALS, VASSAL_ANNEX_COOLDOWN_TURNS, TRUCE_BREAK_STABILITY_PENALTY } from '../data/actionCosts';
+import { claimableCities } from '../engine/claims';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -2161,14 +2162,14 @@ describe('Diplomacy tab actions', () => {
 
     it('declares a justified war for free of the gold premium when a claim already exists', () => {
       const state = richState();
-      const withClaim = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, claims: ['de'] } } };
+      const withClaim = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, claims: [cap('de')] } } };
       const other = Object.keys(state.nations).find(id => id !== 'fr' && id !== 'de');
       const before = state.nations[other].hostility;
       const next = gameReducer(withClaim, { type: ActionTypes.DECLARE_WAR, payload: { nationId: 'de' } });
       expect(next.nations.de.isAtWar).toBe(true);
       expect(next.resources.gold).toBe(withClaim.resources.gold); // declareWarJustified has no gold cost
       expect(next.nations[other].hostility).toBe(before); // no global relations penalty
-      expect(next.nations.fr.claims).not.toContain('de'); // the claim is spent
+      expect(next.nations.fr.claims).toContain(cap('de')); // the claim stays until the city is taken
     });
 
     it('is a no-op declaring war on yourself', () => {
@@ -2202,10 +2203,11 @@ describe('Diplomacy tab actions', () => {
   });
 
   describe('FABRICATE_CLAIM', () => {
-    it('adds a claim against the target and deducts the cost', () => {
+    it('starts a claim on the nearest city of the target within reach and deducts the cost', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: 'de' } });
-      expect(next.nations.fr.claims).toContain('de');
+      const site = claimableCities(state, 'fr')[0].city;
+      const next = gameReducer(state, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: site.owner } });
+      expect(next.nations.fr.claimsInProgress.map((c) => c.cityId)).toContain(site.id);
       expect(next.resources.gold).toBeLessThan(state.resources.gold);
     });
 

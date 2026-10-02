@@ -14,6 +14,7 @@ import { REBEL_OWNER_ID, getRebelSpawnStrength } from '../data/rebellion';
 import { getLaw } from '../data/laws';
 import { seedDevelopment } from './development';
 import { transferRegion } from './regionTransfer';
+import { grantClaim, nearestCityOf } from './claims';
 
 // Plan §M17: "defenseBonus becomes a timed fort modifier" — the old value (0.05-0.1, meant as a
 // percentage under the pre-M6 combat model) is scaled onto the modifier engine's FLAT
@@ -262,12 +263,11 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.nations = { ...next.nations, [playerNationId]: { ...player, estates } };
   }
 
-  // addClaim: nationId — this codebase's own claim model (src/engine/diplomacy.js's hasCasusBelli)
-  // is per-NATION, not per-region as the plan's own text describes; an event reuses the exact same
-  // `nation.claims` array FABRICATE_CLAIM (gameReducer.js) already writes to.
-  if (effects.addClaim && next.nations[playerNationId] && !next.nations[playerNationId].claims.includes(effects.addClaim)) {
-    const player = next.nations[playerNationId];
-    next.nations = { ...next.nations, [playerNationId]: { ...player, claims: [...player.claims, effects.addClaim] } };
+  // addClaim: nationId — claims are on cities (claims.js): the event grants one on that nation's
+  // city nearest to the player's land (none when the player already claims every city of theirs).
+  if (effects.addClaim && next.nations[playerNationId]) {
+    const city = nearestCityOf(next, playerNationId, effects.addClaim);
+    if (city) next.nations = { ...next.nations, [playerNationId]: grantClaim(next.nations[playerNationId], city.id) };
   }
 
   // spawnRebels: { regionId, strength } — the exact rebel-unit shape resolveTurn.js's own

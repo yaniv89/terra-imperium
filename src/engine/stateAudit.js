@@ -33,6 +33,7 @@ export const auditGameState = (state) => {
     numbers(n, `nations.${id}`);
     numbers(n.economy, `nations.${id}.economy`);
     if (!!n.isAtWar !== fighting.has(id)) report('war_flag', `nations.${id}.isAtWar`, 'Flag disagrees with active wars');
+    (n.claims || []).forEach((cid, k) => { if (!regions[cid]) report('claim_city', `nations.${id}.claims.${k}`, 'A claim names a city that does not exist'); }); // a claim on a city taken this turn drops at the next claims step
     const chain = new Set([id]);
     let parent = n.vassalOf;
     while (parent) { if(chain.has(parent)) { report('vassal_cycle', 'nations.'+id, 'Subject graph must be acyclic'); break; } chain.add(parent); parent=nations[parent]?.vassalOf; }

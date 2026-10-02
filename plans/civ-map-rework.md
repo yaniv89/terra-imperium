@@ -1729,6 +1729,27 @@ flips 259 to 69 (17 by turn 100), the last window at 0.6% of cities per 10 turns
 1%), cities at turn 150 885, land claimed 63.2% at 1050 CE, median cities per nation 2 at turns
 100 and 150, audit 0. The city card lists the people term next to the culture shares.
 
+**Workstream 7, wave 2: claims on cities (2026-10-02).** `src/engine/claims.js`. A claim names a
+city: fabricated on a city whose owner's land lies within CLAIM_RANGE_RINGS (5) of your border,
+for the Fabricate Claim cost (150 gold, 11 DIP), ready after CLAIM_FABRICATE_TURNS (5) turns
+(`nation.claimsInProgress` then `nation.claims`, city ids). A core (the city's founder, or a
+culture majority over CORE_CULTURE_SHARE 0.5) is a standing claim. A claim or core on any city
+the target owns is a casus belli (diplomacy.js), the war's goal is that city (buildWarGoal),
+the claim stays until the city is taken (advanceClaims in the diplomacy phase drops claims on
+own, free or vanished cities), taking a claimed city costs CLAIM_AE_MULT (0.5) of the
+aggressive expansion and a core CORE_AE_MULT (0) (expansion.js through conquest.js and the
+peace cede), and ceding a claimed city at the peace table costs half. Opinion counts -10 per
+claimed city of mine with the names. Events' `addClaim: nationId` grant a claim on that nation's
+nearest city. The AI (processAIWarDecisions): a Tier-1 nation whose war roll passes against a
+target it has no casus belli against fabricates a claim on the target's nearest city when it can
+pay, and declares once the claim is ready without a new roll; with no city in reach or no DIP it
+declares unjustified as before. UI: the diplomacy panel shows claims and claims in progress per
+nation and fabricates on the nearest city; the city card has a claim card (core, claim, in
+progress, or the fabricate button). Audit: a claim names an existing foreign city. Dawn and
+founded cities carry `founderId`. Seed 11, 150 turns: cities 887, land 63.2%, flips 70, audit 0,
+2 of 6 wars by turn 100 carried a claim and its city as the goal. Still open in C6: open
+borders, demands and ultimatums, trade routes needing access, war score from occupied cities.
+
 ---
 
 ---
