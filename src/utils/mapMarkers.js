@@ -47,7 +47,7 @@ export const getMapMarkers = (state) => {
   const visible = getVisibleRegionIds(state);
   const groups = new Map();
   Object.values(state.units).forEach((u) => {
-    if (!u || !(u.strength > 0) || u.embarkedOn || !REGIONS_DATA[u.regionId]) return;
+    if (!u || !(u.strength > 0) || u.embarkedOn || u.classId === 'settler' || !REGIONS_DATA[u.regionId]) return;
     const domain = u.domain === 'naval' ? 'naval' : 'land';
     const key = `${u.regionId}|${u.ownerId}|${domain}`;
     if (!groups.has(key)) groups.set(key, { regionId: u.regionId, ownerId: u.ownerId, domain, units: [] });

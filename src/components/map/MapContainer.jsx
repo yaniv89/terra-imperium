@@ -41,6 +41,7 @@ import MiniMap from './MiniMap';
 import MapModal from './MapModal';
 import MapLegend from '../globe/MapLegend';
 import { RegionInfoModal, ProvinceModal } from '../modals';
+import TileSheet from './TileSheet';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -67,7 +68,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const { state } = useGame();
   const marchCtx = useMarch();
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
-  const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else selectRegion(id); };
+  const [selectedTile, setSelectedTile] = useState(null);
+  const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) setSelectedTile(null); selectRegion(id); } };
+  const onSelectTile = (tile) => { if (marching) return; setSelectedTile(tile); if (tile != null) { setManageOpen(false); selectRegion(null); } };
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -99,6 +102,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             focusRegionId={focusRegionId}
             navigateTarget={navigateTarget}
             onViewportChange={setViewportBounds}
+            onSelectTile={onSelectTile}
           />
         )
         : (
@@ -111,6 +115,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             focusRegionId={focusRegionId}
             navigateTarget={navigateTarget}
             onViewportChange={setViewportBounds}
+            selectedTile={selectedTile}
+            onSelectTile={onSelectTile}
           />
         )}
 
@@ -125,6 +131,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         position="panel-hud"
       />
       )}
+      {selectedTile != null && !selectedRegion && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
         <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
         <MapLegend />

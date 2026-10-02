@@ -42,6 +42,8 @@ import {
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
 import { processCities, sizeToPeople } from './world/cities';
+import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
+import { chooseProduction } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
 import { getTiles } from '../data/geo/tiles';
 import { getResearched, getTechAgeId } from './nationState';
@@ -119,7 +121,15 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     }
     return ctxCache.get(nid);
   };
-  const world = { cities: state.regions, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
+  // AI cities with nothing queued pick something first (aiProduction.js).
+  let cities = state.regions;
+  Object.values(state.regions).forEach((city) => {
+    if (!city.owner || city.owner === state.playerNationId || city.outpost || city.production?.current) return;
+    const ctx = ctxFor(city);
+    const item = chooseProduction(state, city, { ...ctx, units: state.units });
+    if (item) cities = { ...cities, [city.id]: { ...city, production: { ...city.production, current: item } } };
+  });
+  const world = { cities, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
   const result = processCities(world, tiles, ctxFor);
   const regions = {};
   Object.entries(result.world.cities).forEach(([id, c]) => {
@@ -129,12 +139,26 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   let units = state.units;
   let nextUnitSeq = state.nextUnitSeq || 0;
   result.completed.forEach((item) => {
+    if (item.kind === 'settler') {
+      const id = `unit_${nextUnitSeq++}`;
+      const settler = makeSettler(id, regions[item.city], item.nationId);
+      // An AI settler picks its site at once; the player's waits for SET_SETTLER_TARGET.
+      const site = item.nationId !== state.playerNationId ? bestSites({ ...state, regions, units }, item.nationId, settler.tile, ctxFor(regions[item.city]).ageId, { limit: 1 })[0] : null;
+      units = { ...units, [id]: site ? { ...settler, target: site.tile } : settler };
+      return;
+    }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
     units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null } };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
-  return { state: { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } }, logs };
+  // Settlers walk, found outposts, and outposts grow (settlers.js).
+  const afterCities = { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } };
+  const hasSettlers = Object.values(units).some(isSettler) || Object.values(regions).some((c) => c.outpost);
+  if (!hasSettlers) return { state: afterCities, logs };
+  const settled = processSettlers(afterCities, regions, units, afterCities.world, (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
+  settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
+  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: settled.world }, logs };
 };
 
 export const resolveTurn = (incomingState, { onPhase } = {}) => {

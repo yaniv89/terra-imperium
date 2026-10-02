@@ -39,7 +39,7 @@ const SYNTHETIC_CLASS_WEIGHTS = [['infantry', 5], ['ranged', 2], ['cavalry', 2],
 
 // The player's land troops holding `regionId` (the garrison an assault has to beat).
 export const getGarrison = (state, regionId) => Object.values(state.units || {})
-  .filter((u) => u.regionId === regionId && u.domain === 'land' && u.ownerId === state.playerNationId && !u.embarkedOn && u.strength > 0);
+  .filter((u) => u.regionId === regionId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId === state.playerNationId && !u.embarkedOn && u.strength > 0);
 
 // Which neighbouring province the assault comes from: one the aggressor holds, if any.
 const pickStagingRegion = (state, aggressorId, regionId) => {

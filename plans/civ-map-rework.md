@@ -1395,6 +1395,26 @@ the army and nation sheets, and the end of the province modal's old tabs.
 
 ---
 
+**Workstream 4, first wave (2026-10-02): settlers, outposts and the AI's first production.**
+`src/engine/settlers.js`: a settler is a queue item (the city gives up a citizen), a land unit of
+no combat that stands on a tile and walks 2 tiles a turn over free, own, allied or enemy land to
+a target the player picks on the map (SET_SETTLER_TARGET, FOUND_CITY) or the AI scores
+(`bestSites`: yields of the site and its ring, resource, river, coast, minus distance). On arrival
+it founds an outpost: a size-1 city that claims its ring but yields and builds nothing until its
+progress (14 a turn, 0.7 on hills and forest, 0.4 in desert, mountains and the arctic) reaches
+100. A nation runs at most 1 outpost at Dawn, 2 in the Classical and Kingdoms ages, 3 later.
+`src/engine/aiProduction.js`: an AI city with an empty queue builds a settler when it is size 3,
+has a free slot and a worthwhile site (checked one turn in five), else the next building line in
+a fixed order it can finish within 40 turns, else infantry up to one unit per city. The tile
+sheet (`src/components/map/TileSheet.jsx`) opens on a tap on open land on either map: terrain,
+yields, resource, the owning city, the site score, and the send and found buttons; settlers are
+drawn as tents on their tiles. Measured at 330 cities (turn 40, Australia passive, seed 11): 106
+ms a turn, of which the cities phase is 40, the AI economy 28 and the registry rebuild 17; the
+spacing check, the AI site search, settler paths and city neighbours are now cached, which took
+the turn from 200 ms down. Natives, loyalty on far outposts and migration are still to come.
+
+---
+
 ---
 
 ## Appendix 1. Mechanics touched (add-mechanic checklist index)
