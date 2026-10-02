@@ -475,7 +475,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />
                 <div className="text-[10px] text-slate-500 mt-0.5">
                   {culture.map(([id, v]) => `${state.nations[id]?.name || id} ${Math.round(v * 100)}%`).join(' · ')}
-                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}
+                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}
                 </div>
               </div>
             );

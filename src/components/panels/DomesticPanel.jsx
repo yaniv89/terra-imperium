@@ -35,6 +35,7 @@ import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPo
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
 import { ActionButton, CollapsibleSection } from '../ui';
+import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -231,6 +232,43 @@ const DomesticPanel = () => {
   const nationStability = playerNation?.stability || 0;
   const nationLegitimacy = playerNation?.legitimacy ?? 50;
   const nationPrestige = playerNation?.prestige || 0;
+
+  // Governors (src/engine/governors.js): one seat per city group, a candidate or the heir in it.
+  const governorsSection = (() => {
+    const me = state.playerNationId;
+    const nation = state.nations[me];
+    const groups = cityGroups(state, me);
+    const choices = governorChoices(nation);
+    if (!groups.length) return null;
+    return (
+      <div className="bg-slate-800/60 rounded-lg p-3 text-sm space-y-2" data-testid="governors">
+        <div className="flex items-center gap-2"><Users size={14} className="text-emerald-300 shrink-0" /><div className="text-white font-semibold">Governors</div></div>
+        <div className="text-[10px] text-slate-500">A governed group: +{GOVERNOR_FOOD} food, +{Math.round(GOVERNOR_PRODUCTION_MULT * 100)}% production, +{GOVERNOR_CULTURE} culture, +{GOVERNOR_LOYALTY} loyalty and skill, less unrest. Ungoverned: {UNGOVERNED_LOYALTY} loyalty. Taking office takes {GOVERNOR_ASSIGN_TURNS} turns.</div>
+        {groups.map((g) => {
+          const gov = nation.governors?.[g.seat];
+          const arriving = gov && state.turnNumber < gov.ready;
+          return (
+            <div key={g.seat} className="rounded-lg border border-slate-700 p-2 space-y-1" data-testid="governor-seat">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-white">{state.regions[g.seat]?.name} <span className="text-slate-500">+{g.cities.length - 1}</span></span>
+                <span className={gov ? 'text-emerald-300' : 'text-amber-300'}>{gov ? `${gov.name} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
+              </div>
+              {gov ? (
+                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-slate-700 hover:bg-slate-600 text-xs text-slate-200">Recall</button>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {choices.map((c) => (
+                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-white">Seat {c.name} (skill {c.skill})</button>
+                  ))}
+                  {!choices.length && <span className="text-[10px] text-slate-500">No one at court is free: candidates arrive every {GOVERNOR_REFRESH_TURNS} turns.</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  })();
 
   const courtSection = (
     <div className="space-y-2">
@@ -619,6 +657,7 @@ const DomesticPanel = () => {
     <div className="space-y-3">
       <CollapsibleSection title="Court" icon={Crown} defaultOpen>
         {courtSection}
+        {governorsSection}
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
       <CollapsibleSection title="Empire" icon={ShieldAlert} defaultOpen>

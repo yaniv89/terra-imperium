@@ -89,6 +89,7 @@ import { createDefenseRecord } from './defense';
 import { conquerRegion } from './conquest';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
+import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -116,8 +117,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   const citiesOwned = {};
   Object.values(state.regions).forEach((c) => { if (c.owner) citiesOwned[c.owner] = (citiesOwned[c.owner] || 0) + 1; });
   const ctxCache = new Map();
-  const ctxFor = (city) => {
-    const nid = city.owner;
+  const nationCtx = (nid) => {
     if (!ctxCache.has(nid)) {
       ctxCache.set(nid, {
         researched: nid ? getResearched(state, nid) : [],
@@ -128,6 +128,14 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
       });
     }
     return ctxCache.get(nid);
+  };
+  // A governed city (governors.js) adds its governor's food, production and culture to the nation's context.
+  const ctxFor = (city) => {
+    const base = nationCtx(city.owner);
+    if (!city.owner || !state.nations[city.owner]?.governors || city.id == null) return base;
+    const g = governorEffects(state, city.owner, city.id, newTurnNumber);
+    if (!g.governed) return base;
+    return { ...base, foodBonus: g.food, productionMult: (base.productionMult || 0) + g.productionMult, cultureBonus: g.culture };
   };
   // AI cities with nothing queued pick something first (aiProduction.js). One copy of the map,
   // one set of nation counts: never a spread per city.
@@ -326,6 +334,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     stabilityCache.set(ownerId, value);
     return value;
   };
+  const governView = { ...state, nations: modifierExpiredNations }; // one view for the governor lookups below
   Object.entries(regions).forEach(([id, region]) => {
     if (region.owner === null) return;
     const owner = modifierExpiredNations[region.owner];
@@ -339,6 +348,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // province the nation holds, up to +1.5/turn at 100.
     const warWeariness = Math.max(0, ((owner?.warExhaustion || 0) - WAR_WEARINESS_FROM) / WAR_WEARINESS_SCALE);
     let unrest = nextUnrest(region, stabilityBonus, taxUnrestDelta + warWeariness);
+    if (owner?.governors && governorOf(governView, region.owner, id, newTurnNumber)) unrest = Math.round(unrest * GOVERNOR_UNREST_MULT * 10) / 10; // a governor keeps order (governors.js)
     // Siege recovery (src/engine/siege.js): a region not attacked recently regenerates the control
     // combat ground down — an interrupted siege doesn't bank its damage forever. Also clears the
     // `underInvasion` map/UI flag once the cooldown passes, so a region stops reading as "under
@@ -625,6 +635,16 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // 240 nations' worth of log lines every few turns would drown out everything else in the console.
   // AI nations still get a real ruler/heir update even though nothing reads an AI ruler's stats
   // mechanically yet (M16), so this doesn't need touching again once AI parity lands.
+  // Governors (governors.js): the player's court offers fresh candidates every GOVERNOR_REFRESH_TURNS
+  // turns, and a governor whose seat was lost leaves.
+  {
+    const me = state.playerNationId;
+    const view = { ...state, regions, nations };
+    Object.keys(nations).forEach((nId) => { const pruned = pruneGovernors(view, nations[nId]); if (pruned !== nations[nId]) nations[nId] = pruned; });
+    if (nations[me] && (newTurnNumber % GOVERNOR_REFRESH_TURNS === 1 || !nations[me].governorCandidates)) {
+      nations[me] = { ...nations[me], governorCandidates: generateGovernorCandidates(me, `${state.rngSeed}|${newTurnNumber}`) };
+    }
+  }
   Object.entries(nations).forEach(([nId, nation]) => {
     const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed, bornHeirsOnly: nId === state.playerNationId });
     if (!result) return;

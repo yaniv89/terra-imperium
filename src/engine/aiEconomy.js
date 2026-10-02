@@ -36,6 +36,7 @@ import { DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
 import { getSuccessionStyle, generateHeir } from './succession';
 import { createRng } from '../utils/rng';
+import { autoGovern } from './governors';
 
 // Plan §M21 balance harness (scripts/simulate.mjs) found that a 150-turn AI-vs-AI run produced
 // roughly one civil war per 3 nations — this file's own scope-trim list above never actually named
@@ -243,7 +244,7 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
   const nation = { ...state.nations[nationId], id: nationId };
   const pool = { ...emptyAIPool(), ...nation.economy };
   // Upkeep is settled each turn before the decision cadence.
-  let nextNation = { ...nation, economy: pool };
+  let nextNation = autoGovern({ ...state, regions }, { ...nation, economy: pool }, state.turnNumber + 1); // every group governed (governors.js)
 
 
   // A nation on the brink of civil war (see this function's own AI_STABILITY_RAISE_THRESHOLD

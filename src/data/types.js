@@ -163,6 +163,9 @@ export const ActionTypes = {
   CULTURAL_EXPORT: 'CULTURAL_EXPORT',
   // Rulers, heirs, advisors (plan §M3) — see src/engine/succession.js.
   HIRE_ADVISOR: 'HIRE_ADVISOR',
+  // Governors (plans/civ-map-rework.md C4.3, src/engine/governors.js).
+  ASSIGN_GOVERNOR: 'ASSIGN_GOVERNOR',
+  DISMISS_GOVERNOR: 'DISMISS_GOVERNOR',
   // Stability, legitimacy, prestige, overextension (plan §M4) — see src/engine/nationalPower.js.
   INCREASE_STABILITY: 'INCREASE_STABILITY',
 

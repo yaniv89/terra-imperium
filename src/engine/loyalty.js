@@ -15,7 +15,8 @@
 //              + LOYALTY_GARRISON_PER_UNIT per own land unit on the
 //              centre (up to LOYALTY_GARRISON_CAP), + the amenities balance (capped either way),
 //              - LOYALTY_CONQUERED while the conquest is younger than CONQUERED_TURNS,
-//              - LOYALTY_CAPITAL_LOST while the owner's capital is in enemy hands.
+//              - LOYALTY_CAPITAL_LOST while the owner's capital is in enemy hands,
+//              + the governor's term (governors.js: +2 + skill governed, -5 in an ungoverned group).
 //   Movement   loyalty moves LOYALTY_STEP a turn toward the target.
 //   Flip       at 0 a city that is not a capital flips to the nation with the most pressure among
 //              those whose land borders it, else becomes a FREE CITY (owner null, `freeCity`): it
@@ -36,6 +37,7 @@ import { relocateLostCapital } from './conquest';
 import { unitTile } from './armies';
 import { isSettler } from './settlers';
 import { landUnitsByTile } from './sieges';
+import { governorEffects } from './governors';
 
 export const PRESSURE_RINGS = 9;
 export const KM_PER_RING = 147;
@@ -111,8 +113,9 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const capitalLost = owner && owner.capitalRegionId && state.regions[owner.capitalRegionId] && state.regions[owner.capitalRegionId].owner !== city.owner ? LOYALTY_CAPITAL_LOST : 0;
   const maxOther = Object.entries(culture).reduce((m, [id, v]) => (id !== city.owner && v > m ? v : m), 0);
   const fromShare = share < LOYALTY_SHARE_FLOOR ? 0 : Math.max(0, Math.min(100, 50 + LOYALTY_LEAD_SCALE * (share - maxOther)));
-  const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost)));
-  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost };
+  const governor = city.owner ? governorEffects({ ...state, nations }, city.owner, city.id, turn).loyalty : 0;
+  const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor)));
+  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor };
 };
 
 // Nations whose land touches this city's tiles.

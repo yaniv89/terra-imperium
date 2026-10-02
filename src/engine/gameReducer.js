@@ -114,6 +114,7 @@ import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
+import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 const NAVAL_TRANSPORT_CAPACITY = 2;
@@ -734,6 +735,25 @@ const reduceAction = (state, action) => {
         nations: nextNations,
         logs: [...state.logs, { year: state.year, message: `Your culture spreads abroad, easing tensions worldwide. Cultural Influence: ${nextInfluence}.`, type: LogTypes.DIPLOMACY }]
       };
+    }
+
+    case ActionTypes.ASSIGN_GOVERNOR: {
+      // Governors (governors.js): a court candidate or the heir takes a city group's seat.
+      const { seatId, candidateId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const group = cityGroups(state, state.playerNationId).find((g) => g.seat === seatId);
+      const candidate = governorChoices(nation).find((c) => c.id === candidateId);
+      if (!group || !candidate) return state;
+      const next = assignGovernor(nation, seatId, candidate, state.turnNumber);
+      return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, message: `${candidate.name} sets out to govern ${state.regions[seatId]?.name} and ${group.cities.length - 1} more cit${group.cities.length === 2 ? 'y' : 'ies'}: in office in ${GOVERNOR_ASSIGN_TURNS} turns.`, type: LogTypes.ACTION }] };
+    }
+
+    case ActionTypes.DISMISS_GOVERNOR: {
+      const { seatId } = action.payload;
+      const nation = state.nations[state.playerNationId];
+      const next = dismissGovernor(nation, seatId);
+      if (next === nation) return state;
+      return { ...state, nations: { ...state.nations, [state.playerNationId]: next }, logs: [...state.logs, { year: state.year, message: `The governor of ${state.regions[seatId]?.name} is recalled.`, type: LogTypes.ACTION }] };
     }
 
     case ActionTypes.HIRE_ADVISOR: {
