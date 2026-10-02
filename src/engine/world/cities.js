@@ -270,6 +270,7 @@ export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {})
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
     case 'army': { const next = nextTemplateUnit(item); return next ? productionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
+    case 'wonder': return item.cost || 100; // stamped by wonders.js wonderItem at queue time (no import: the registry would cycle)
     default: return item.cost || 9999;
   }
 };
@@ -296,6 +297,9 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'b
       return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, reason: `Needs size ${SETTLER_MIN_SIZE}.` };
     case 'army':
       return validateTemplate(item, ageId);
+    case 'wonder':
+      // The reducer checks the project's rules with the whole state (wonders.js canQueueWonder); here the tile.
+      return item.tile != null && (item.tier > 1 || city.tiles.includes(item.tile)) ? { ok: true } : { ok: false, reason: 'No site for it in the city.' };
     default:
       return { ok: false, reason: 'Unknown item.' };
   }
@@ -430,6 +434,11 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     } else if (item.kind === 'settler') {
       if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(`${c.name} sends out settlers.`); }
       else { production = { ...production, progress: production.progress + cost }; break; } // wait for people
+    } else if (item.kind === 'wonder') {
+      // A wonder on its tile (wonders.js): the turn's great projects phase records it.
+      if (item.tile != null) w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), wonder: item.projectId }, inPlace);
+      completed.push({ kind: 'wonder', projectId: item.projectId, tier: item.tier, tile: item.tile, city: c.id });
+      logs.push(`${c.name} completes ${item.projectId.replace(/_/g, ' ')} (tier ${item.tier}).`);
     } else if (item.kind === 'army') {
       // One piece of the army at a time (armyTemplates.js); the order stays current until complete.
       const classId = nextTemplateUnit(item);

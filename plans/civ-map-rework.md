@@ -1933,6 +1933,22 @@ the rule. Still open in 13: the bridge's other readers one by one (trade routes 
 neighbours, reinforcement sources, the siege's protecting fort), the space-race test, turn
 time at 2,000 cities, the save v7 screen.
 
+**Workstream 11, wave 3: wonders as tiles (2026-10-02).** `src/engine/wonders.js`. A great
+project is built from a city's production queue (`kind: 'wonder'`), not bought with gold: tier
+1 takes a tile of the city's border that fits the project's tile rule (the Pyramids on desert,
+the Hanging Gardens on a river, the Great Wall and the Observatory on hills, the Lighthouse and
+the Arsenal on the coast, the Colosseum, Forbidden City, Versailles and Space Program on flat
+land, the rest anywhere) and costs WONDER_PRODUCTION_PER_TURN (25) x the tier's turns (100,
+150, 200); a later tier is built on the same tile by the city that holds it. On completion the
+tile carries `wonder`, `state.greatProjects[id] = { regionId, tier, tile }` as before (the
+modifiers and the owner still derive from the site city), the owner gains the tier's prestige
+and the player a milestone line. The city rules of greatProjects.js (a capital, a building)
+still gate who may start one. The city sheet's build tab lists the wonders a city may start or
+raise with the tile each takes; the map shows a star on a wonder's tile from the detail zoom.
+The gold path (START_GREAT_PROJECT in the province modal) stays until that modal retires.
+Tests in wonders.test.js. Still open in C9: the wonder as a model at close zoom, the AI building
+wonders, terrain requirements shown on the tile sheet.
+
 ---
 
 ---
