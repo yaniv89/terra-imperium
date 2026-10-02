@@ -145,7 +145,9 @@ describe('calcIncome', () => {
   });
 
   it('applies Set Tax Rate\'s goldMult on top of government/policy bonuses', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    // A fixed seed and a real tax base: a Dawn capital's few gold a turn can round the same at two rates.
+    const fresh = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const state = { ...fresh, regions: Object.fromEntries(Object.entries(fresh.regions).map(([id, r]) => [id, r.owner === 'fr' ? { ...r, dev: { ...r.dev, tax: 100, production: 100, manpower: 100 } } : r])) };
     const normal = calcIncome(state);
     const highTax = calcIncome({ ...state, nations: { ...state.nations, fr: { ...state.nations.fr, taxRate: 'high' } } });
     const lowTax = calcIncome({ ...state, nations: { ...state.nations, fr: { ...state.nations.fr, taxRate: 'low' } } });

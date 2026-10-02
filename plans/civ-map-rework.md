@@ -1908,6 +1908,17 @@ plague) and the ground shows crossed swords where a field battle was fought for 
 open in E5 and E6: the Trade lens (routes and plunder risk), the lenses on the globe, pressure
 arrows on the loyalty lens, fog as a hatch, the growth arc on the city badge.
 
+**Workstream 12, wave 4: the "next" prompt (2026-10-02).** `src/components/ui/nextPrompt.js`
+(pure, tested) lists what still wants a decision, in order: a peace offer, nothing being
+researched (unless the advisor chooses), a city with an empty build queue, settlers with no
+destination, an army in the field with moves left and no route (garrisons rest in their
+cities), a city with unrest UNREST_PROMPT (50) or more. `NextPrompt.jsx` is one pill beside
+End Turn with the first prompt and a count; tapping it opens the place (the city card, the
+army sheet, the settlers' tile, the tech or diplomacy tab; `selectArmy` and `selectTile` are
+window events MapContainer listens to) and the chevron skips to the next. End Turn is never
+blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
+already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
+
 ---
 
 ---
