@@ -49,8 +49,10 @@ describe('ESTATE_THRESHOLD_BONUS / MALUS data integrity', () => {
 });
 
 describe('ESTATE_PRIVILEGES data integrity', () => {
-  it('every estate (including Labor) has exactly 2 privileges', () => {
-    [...ESTATE_IDS, LABOR_ESTATE_ID].forEach((id) => expect(getEstatePrivileges(id).length, id).toBe(2));
+  it('every estate (including Labor) has 2 or 3 privileges (the nobility and clergy a land grant too, estateLand.js)', () => {
+    [...ESTATE_IDS, LABOR_ESTATE_ID].forEach((id) => expect(getEstatePrivileges(id).length, id).toBeGreaterThanOrEqual(2));
+    expect(getEstatePrivileges('nobility').find((p) => p.landShare)).toBeTruthy();
+    expect(getEstatePrivileges('clergy').find((p) => p.landShare)).toBeTruthy();
   });
 
   it('every privilege effect key is a real, wired modifier hook', () => {

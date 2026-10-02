@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { ICONS } from './LensStrip';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
 import { LENSES, LENS_IDS, yieldLabels, loyaltyDiscs, loyaltyColour, threatStacks, supplyTints, ZONE_COLOUR } from './lenses';
 
 describe('lenses', () => {
   const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-  it('five lenses with keys 1 to 5', () => {
-    expect(LENS_IDS).toEqual(['political', 'yields', 'loyalty', 'threat', 'supply']);
-    expect(LENSES.map((l) => l.key)).toEqual(['1', '2', '3', '4', '5']);
+  it('six lenses with keys 1 to 6', () => {
+    expect(LENS_IDS).toEqual(['political', 'yields', 'loyalty', 'threat', 'supply', 'estates']);
+    expect(LENSES.map((l) => l.key)).toEqual(['1', '2', '3', '4', '5', '6']);
+    LENSES.forEach((l) => expect(ICONS[l.id], l.id).toBeTruthy()); // the strip needs an icon per lens
   });
   it('yields on the player\'s tiles, loyalty discs per city, supply tints per own army, threat circles per enemy stack', () => {
     const cap = S.regions[getNationCapital('fr')];

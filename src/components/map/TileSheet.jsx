@@ -17,6 +17,8 @@ import { WORLD_NATIONS } from '../../data/worldNations';
 import { atSea } from '../../engine/fleets';
 import { tileAccess } from '../../engine/armies';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
+import { estateHoldings } from '../../engine/estateLand';
+import { ESTATE_LABELS } from '../../data/estates';
 import PreBattleModal from '../battle/PreBattleModal';
 import { Swords } from 'lucide-react';
 
@@ -41,6 +43,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
   if (tile == null || !facts) return null;
   const y = tileYields(facts, researched);
   const ownerCity = state.world?.tileOwner?.[tile] ? state.regions[state.world.tileOwner[tile]] : null;
+  const heldBy = ownerCity?.owner === state.playerNationId ? estateHoldings(state).byTile.get(tile) || null : null; // an estate's land (estateLand.js)
   const ownerNation = ownerCity ? state.nations[ownerCity.owner] : null;
   const name = tiles.names[tile] || (facts.river ? `On the ${tiles.riverNames[tile] || 'river'}` : facts.land ? 'Wild land' : 'Open water');
   const parts = [facts.terrain, facts.relief !== 'flat' ? facts.relief : null, facts.feature !== 'none' ? facts.feature : null, facts.river ? 'river' : null, facts.coastal && facts.land ? 'coast' : null].filter(Boolean);
@@ -87,6 +90,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
         <Yield icon={Coins} value={`${y.gold} gold`} className="text-yellow-300" title="Gold" />
         {facts.resource && <span className="text-fuchsia-300 capitalize">{facts.resource}</span>}
         {facts.improvement && <span className="text-sky-300">{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
+        {heldBy && <span className="text-violet-300" data-testid="tile-estate">Held by the {ESTATE_LABELS[heldBy] || heldBy}</span>}
       </div>
       {ownerCity ? (
         <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-left text-xs rounded-lg bg-slate-800/60 border border-slate-700 px-2 py-2 min-h-[40px]">

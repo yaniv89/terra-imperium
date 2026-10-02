@@ -91,6 +91,7 @@ import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { lawRulesOf } from './lawRules';
+import { estateLandEffects } from './estateLand';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
 import { navalCargo } from '../data/navalLines';
@@ -134,12 +135,15 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     return ctxCache.get(nid);
   };
   // A governed city (governors.js) adds its governor's food, production and culture to the nation's context.
+  // The clergy's land returns culture to the city whose countryside it holds (estateLand.js).
+  const clergyCulture = estateLandEffects(state).cultureByCity;
   const ctxFor = (city) => {
-    const base = nationCtx(city.owner);
+    let base = nationCtx(city.owner);
+    if (city.owner === state.playerNationId && clergyCulture[city.id]) base = { ...base, cultureBonus: (base.cultureBonus || 0) + clergyCulture[city.id] };
     if (!city.owner || !state.nations[city.owner]?.governors || city.id == null) return base;
     const g = governorEffects(state, city.owner, city.id, newTurnNumber);
     if (!g.governed) return base;
-    return { ...base, foodBonus: g.food, productionMult: (base.productionMult || 0) + g.productionMult, cultureBonus: g.culture };
+    return { ...base, foodBonus: g.food, productionMult: (base.productionMult || 0) + g.productionMult, cultureBonus: (base.cultureBonus || 0) + g.culture };
   };
   // AI cities with nothing queued pick something first (aiProduction.js). One copy of the map,
   // one set of nation counts: never a spread per city.

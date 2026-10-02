@@ -57,11 +57,13 @@ export const ESTATE_THRESHOLD_MALUS = {
 export const ESTATE_PRIVILEGES = {
   clergy: [
     { id: 'religious_tax_exemption', name: 'Religious Tax Exemption', description: '+15 clergy loyalty, -10% tax, +5 clergy influence', loyaltyBonus: 15, influenceBonus: 5, effects: { goldMult: -0.1 } },
-    { id: 'control_of_education', name: 'Control of Education', description: '+15% tech points, +10 clergy influence', loyaltyBonus: 0, influenceBonus: 10, effects: { techPointsMult: 0.15 } }
+    { id: 'control_of_education', name: 'Control of Education', description: '+15% tech points, +10 clergy influence', loyaltyBonus: 0, influenceBonus: 10, effects: { techPointsMult: 0.15 } },
+    { id: 'church_lands', name: 'Church Lands', description: '+10 clergy loyalty; the clergy holds 10% more of the countryside (estateLand.js)', loyaltyBonus: 10, influenceBonus: 5, landShare: 0.1, effects: {} }
   ],
   nobility: [
     { id: 'officer_corps', name: 'Officer Corps', description: '+10% land morale (combat, M14), +1 general candidate (M14), +10 nobility influence', loyaltyBonus: 0, influenceBonus: 10, effects: {} },
-    { id: 'seigneurial_rights', name: 'Seigneurial Rights', description: '+20% manpower, -1 ADM/turn, +10 nobility influence', loyaltyBonus: 0, influenceBonus: 10, effects: { hrMult: 0.2, admBonus: -1 } }
+    { id: 'seigneurial_rights', name: 'Seigneurial Rights', description: '+20% manpower, -1 ADM/turn, +10 nobility influence', loyaltyBonus: 0, influenceBonus: 10, effects: { hrMult: 0.2, admBonus: -1 } },
+    { id: 'landed_estates', name: 'Landed Estates', description: '+10 nobility loyalty; the nobility holds 10% more of the countryside (estateLand.js)', loyaltyBonus: 10, influenceBonus: 5, landShare: 0.1, effects: {} }
   ],
   burghers: [
     // "+15% production, -10% trade" nets to +5% on the one shared goldMult hook this codebase has.
