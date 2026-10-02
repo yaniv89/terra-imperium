@@ -13,6 +13,8 @@ import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap, TILE } from './mapgen';
+import { tileContextOf } from './tileContext';
+import { unitTile } from '../../engine/armies';
 import { BUILDING_CATEGORIES, getCategoryTierName } from '../../data/buildings';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks, FIELD_BATTLE_TICKS, SIEGE_BATTLE_TICKS } from '../sim/constants';
@@ -86,10 +88,13 @@ export const buildSetupFromArmies = ({
   attackerNationId = 'attacker', defenderNationId = 'defender',
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
-  landing = false, regionBuildings = []
+  landing = false, regionBuildings = [], tileContext = null
 }) => {
   const combatWidth = getCombatWidth(terrain);
-  const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0), landing });
+  const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext });
+  // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
+  const structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings)];
+  if (tileContext && tileContext.hpRatio < 1) structures.forEach((st) => { if (st.kind === 'keep' || st.kind === 'tower') st.hp = Math.max(1, Math.round(st.maxHp * tileContext.hpRatio)); });
   const points = map.points.map((p, i) => ({ id: `p_${deposits[i]}`, kind: 'deposit', resId: deposits[i], x: centre(p.x), y: centre(p.y), owner: 1, progress: 0, capturingSide: -1 }));
   return {
     version: SETUP_VERSION,
@@ -100,7 +105,8 @@ export const buildSetupFromArmies = ({
     // Adaptive clock: open-field battles are fast and decisive; sieges give the engines time.
     limitTicks: fortLevel > 0 ? SIEGE_BATTLE_TICKS : FIELD_BATTLE_TICKS,
     map,
-    structures: [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings)],
+    tile: tileContext?.tile ?? null,
+    structures,
     points,
     territoryRadius: TERRITORY_RADIUS,
     supplyCap: 200 + 30 * Math.max(0, infrastructure),
@@ -163,7 +169,9 @@ const buildDefenseSetup = (state, pb) => {
   if (!armies.attackerUnits.length || !armies.defenderUnits.length) return null;
   const ctx = getDefenseBattleContext(state, def);
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
+  const fromUnit = armies.attackerUnits.find((u) => !u.synthetic && state.units[u.id]);
   return buildSetupFromArmies({
+    tileContext: tileContextOf(state, region.tile, { fromTile: fromUnit ? unitTile(state, state.units[fromUnit.id]) : state.regions[def.fromRegionId]?.tile ?? null, city: region }),
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
@@ -206,6 +214,7 @@ const buildAmphibiousSetup = (state, pb) => {
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, pb.targetRegionId, 'local.fortLevel').total;
   return buildSetupFromArmies({
+    tileContext: tileContextOf(state, v.targetRegion.tile, { fromTile: unitTile(state, v.navalUnit), city: v.targetRegion }),
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
@@ -250,6 +259,7 @@ export const buildInvasionSetup = (state, pendingBattle) => {
   const regionData = REGIONS_DATA[targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
   return buildSetupFromArmies({
+    tileContext: tileContextOf(state, v.targetRegion.tile, { fromTile: attackerUnits.length ? unitTile(state, attackerUnits[0]) : state.regions[fromRegionId]?.tile ?? null, city: v.targetRegion }),
     regionId: targetRegionId,
     terrain: ctx.terrain,
     seed,
