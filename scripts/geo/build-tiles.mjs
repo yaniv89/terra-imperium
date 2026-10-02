@@ -197,6 +197,17 @@ const classify = ({ id, land, lat, elevMean, elevMax, rough, koppen, regionClass
 };
 
 // Capitals countryCapitals.json could not resolve to coordinates (its own build log lists them).
+// Cells opened as water so every sea reaches the ocean (see pass 1). Centres from the built grid.
+const STRAITS = [
+  { name: 'Bab-el-Mandeb', lat: 12.8, lon: 43.7 },
+  { name: 'Dardanelles', lat: 40.2, lon: 26.9 },
+  { name: 'Sea of Marmara', lat: 41.3, lon: 28.0 },
+  { name: 'Oresund', lat: 55.5, lon: 13.7 },
+  { name: 'White Sea throat', lat: 66.8, lon: 39.8 },
+  { name: 'Malacca west', lat: 1.8, lon: 100.9 },
+  { name: 'Malacca east', lat: 0.6, lon: 102.8 }
+];
+
 const CAPITAL_FALLBACKS = {
   sm: { name: 'San Marino', lat: 43.94, lng: 12.45 }, hk: { name: 'Hong Kong', lat: 22.28, lng: 114.16 },
   xn: { name: 'North Nicosia', lat: 35.18, lng: 33.36 }, ki: { name: 'South Tarawa', lat: 1.33, lng: 172.98 },
@@ -240,7 +251,7 @@ export const buildTiles = ({ log = console.log } = {}) => {
   const glacierFc = readJson(path.join(RAW, 'ne', 'ne_10m_glaciated_areas.geojson'));
   const glacierIndex = polygonIndex(glacierFc.features);
   const lakesFc = readJson(path.join(RAW, 'ne', 'ne_10m_lakes.geojson'));
-  const lakeIndex = polygonIndex(lakesFc.features.filter((f) => (f.properties.scalerank ?? 10) <= 3));
+  const lakeIndex = polygonIndex(lakesFc.features.filter((f) => (f.properties.scalerank ?? 10) <= 6));
   const elevation = loadElevation();
   const koppen = KoppenLookup.getInstance();
 
@@ -285,6 +296,17 @@ export const buildTiles = ({ log = console.log } = {}) => {
     }
   }
   log(`pass 1 done (${((Date.now() - t0) / 1000).toFixed(1)} s): land cells ${land.reduce((a, b) => a + b, 0)}`);
+
+  // Straits narrower than a cell (26 km at Bab-el-Mandeb, 1 km at the Dardanelles) land on cells
+  // the land polygons call land, which seals the Red Sea, the Black Sea, the Baltic and the White
+  // Sea off from the oceans. Each entry names the cell centre that becomes the strait's water.
+  STRAITS.forEach(({ name, lat, lon }) => {
+    const id = cellIndex.nearest(lat, lon);
+    if (!land[id]) { log(`  strait ${name}: cell ${id} is already water`); return; }
+    land[id] = 0; country[id] = -1; climate[id] = null; lake[id] = 0; glaciated[id] = 0;
+    elevMean[id] = Math.min(elevMean[id], -20); // shelf water for the classifier
+    log(`  strait ${name}: cell ${id} (${latLon[id].lat.toFixed(1)}, ${latLon[id].lon.toFixed(1)}) opened`);
+  });
 
   // Coastal flags and sea distance.
   const coastal = new Uint8Array(n);

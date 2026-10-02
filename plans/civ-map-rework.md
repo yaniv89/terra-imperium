@@ -1342,6 +1342,40 @@ discretion.
 8. **Naval classes.** Four lines. **Settled.**
 9. **Order.** The full sequence of Part I. **Settled.**
 
+## J3. Progress log
+
+**Workstream 3.3 (2026-10-02): the game state runs on the tile world.** Full suite green (2,116
+tests, 16 skipped). What it settled and what it found:
+
+- Every nation's state is one city record per city (`state.regions`, keyed `c<tile>`), with
+  `state.world.tileOwner` and `tileState`; the registry bridge (`src/engine/world/registry.js`)
+  keeps the old static readers (`REGIONS_DATA`, `getNeighborIds`, `getNationCapital`) working
+  until each is migrated. City neighbours: touching land, within 3 rings, a capital-to-capital
+  bridge between adjacent modern countries within 12 rings, and a landlocked city with no
+  neighbour at all links to the nearest city (islands stay sea-only).
+- **Straits.** Seven cells narrower than a tile are opened as water by `scripts/geo/build-tiles.mjs`
+  (Bab-el-Mandeb, Dardanelles, Sea of Marmara, Oresund, the White Sea throat, Malacca west and
+  east), so the Red Sea, the Black Sea, the Baltic, the White Sea and the Strait of Malacca reach
+  the ocean. The Caspian stays closed. Suez stays closed until a canal mechanic.
+- **Coastal.** A city is coastal when its centre, or an owned tile of its founder's own country,
+  touches the sea. Bern's first ring reaches a Lombard tile on the Ligurian Sea at this grid
+  size; without the rule Switzerland was a sea power.
+- **People.** `sizeToPeople(size) = 1000 x size^2.8` (size 2 is 7,000, size 5 is 90,000, size 30 is
+  14 million). The historical share is no longer used.
+- **The Palace.** The capital yields +4 gold, +2 production, +2 science, +1 culture flat, so a
+  one-city Dawn nation nets about +3 gold after its first army's upkeep instead of bleeding.
+- **Siege.** A city under invasion lives off its centre tile alone, so it starves and shrinks.
+- **AI.** A capital counts as threatened only when an enemy army stands next to it (on the Dawn
+  world every capital borders its neighbours' capitals, so the old rule kept every AI on the
+  defensive). Troops aboard a ship never join a land attack (they walked off with the flag set).
+- **Open balance items for workstream 13.** A passive player with neighbours loses its only city
+  by turn 42 (every bordering capital is a Tier-1 attacker, and one city is the whole nation):
+  the long-run harness plays Australia for now. The space-race affordability test is skipped
+  until yields are calibrated per age. Western Europe is saturated at Dawn (no free tile touches
+  Paris), which matters for settlers (workstream 4).
+
+---
+
 ---
 
 ## Appendix 1. Mechanics touched (add-mechanic checklist index)

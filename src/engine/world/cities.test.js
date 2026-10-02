@@ -23,7 +23,7 @@ describe('cities on the grid', () => {
     const okFar = canFoundCity(world, tiles, far, 'eg');
     // Either far enough, or the reason is the spacing rule.
     expect(okFar.ok || /Too close/.test(okFar.reason)).toBe(true);
-    expect(MIN_CITY_SPACING).toBe(3);
+    expect(MIN_CITY_SPACING).toBe(2);
   });
 
   it('works its best tiles by focus, never starving when food is reachable', () => {
@@ -133,7 +133,7 @@ describe('cities on the grid', () => {
   });
 
   it('derives people from size', () => {
-    expect(sizeToPeople(1, 0.0027)).toBeGreaterThan(50);
-    expect(sizeToPeople(8, 1)).toBeGreaterThan(sizeToPeople(4, 1) * 4);
+    expect(sizeToPeople(1)).toBe(1000);
+    expect(sizeToPeople(8)).toBeGreaterThan(sizeToPeople(4) * 4);
   });
 });

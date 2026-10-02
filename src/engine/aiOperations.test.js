@@ -3,14 +3,21 @@ import { createInitialState } from './gameReducer';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { getNeighborIds } from '../data/regions';
 import { createRng } from '../utils/rng';
+import { addCity } from './testWorld';
+import { getTiles } from '../data/geo/tiles';
+import { distanceKm } from '../data/geo/geodesic';
 import { processAINavalOperations, processAIOperations } from './aiOperations';
+// The Dawn world gives Germany one city (its capital, which borders Paris), so the fixture founds
+// a German interior city beside it that borders no French city.
 const setup=()=>{
-  const s=createInitialState({playerNationId:'fr',rngSeed:7});
-  const border=Object.keys(s.regions).find(id=>s.regions[id].owner==='de' && getNeighborIds(id).some(n=>s.regions[n]?.owner==='fr') && getNeighborIds(id).some(n=>s.regions[n]?.owner==='de' && !getNeighborIds(n).some(m=>s.regions[m]?.owner==='fr')));
-  const interior=getNeighborIds(border).find(id=>s.regions[id]?.owner==='de' && !getNeighborIds(id).some(n=>s.regions[n]?.owner==='fr'));
+  const s0=createInitialState({playerNationId:'fr',rngSeed:7});
+  const border=s0.nations.de.capitalRegionId;
+  const added=addCity(s0,'de',{near:border});
+  const s=added.state;const interior=added.cityId;
   const target=getNeighborIds(border).find(id=>s.regions[id]?.owner==='fr');
+  if(!target||getNeighborIds(interior).some(n=>s.regions[n]?.owner==='fr'))throw new Error('fixture: expected Berlin to border Paris and the new city not to');
   s.wars=[{id:'w',aggressor:'fr',enemy:'de',active:true,battleScore:0}];
-  s.nations.de.economy={gold:1000,hr:1000,mil:100,adm:100};
+  s.nations.de={...s.nations.de,economy:{gold:1000,hr:1000,mil:100,adm:100}};
   const unit={id:'a',ownerId:'de',regionId:interior,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[],xp:0};
   s.units={a:unit};return {s,border,interior,target};
 };
@@ -26,15 +33,28 @@ describe('operational AI',()=>{
     expect(next.pendingDefenses).toHaveLength(0);
   });
   it('does not commit the same player garrison to two simultaneous battles',()=>{
-    const {s}=setup();
-    const target=Object.keys(s.regions).find(id=>s.regions[id].owner==='fr'&&getNeighborIds(id).filter(n=>s.regions[n]?.owner==='de').length>=2);
-    expect(target).toBeDefined();
-    const sources=getNeighborIds(target).filter(id=>s.regions[id]?.owner==='de').slice(0,2);
+    const base=setup();
+    // A French city with two German neighbours: a new French city, then two German ones beside it.
+    // Beside the interior city, away from Berlin, so the capital is not threatened.
+    // A French city that borders neither Berlin nor the interior city's French neighbours: the
+    // nearest free land to the interior city that is not adjacent to the capital.
+    const tiles=getTiles();const from=base.s.regions[base.interior].tile;
+    const pool=[];for(let t=0;t<tiles.count;t++)if(tiles.land[t]&&!base.s.world.tileOwner[t])pool.push(t);
+    pool.sort((a,b)=>distanceKm(tiles.centres[from],tiles.centres[a])-distanceKm(tiles.centres[from],tiles.centres[b]));
+    let f=null;
+    for(const t of pool.slice(0,40)){let r;try{r=addCity(base.s,'fr',{near:t});}catch{continue;}if(r.state.regions[r.cityId].tile===t&&!getNeighborIds(r.cityId).includes(base.border)){f=r;break;}}
+    if(!f)throw new Error('fixture: no French site away from Berlin');
+    let st=f.state;const sources=[];
+    for(let i=0;i<5&&sources.length<2;i++){const g=addCity(st,'de',{near:f.cityId});st=g.state;if(getNeighborIds(f.cityId).includes(g.cityId))sources.push(g.cityId);}
+    const s={...st,wars:base.s.wars,nations:{...st.nations,de:base.s.nations.de},units:base.s.units};
+    const target=f.cityId;
+    sources.forEach(id=>expect(getNeighborIds(target)).toContain(id));
+    expect(getNeighborIds(target)).not.toContain(base.border);
     s.units=Object.fromEntries(sources.map((regionId,i)=>['a'+i,{...s.units.a,id:'a'+i,regionId}]));
     s.units.defender={...s.units.a0,id:'defender',ownerId:'fr',regionId:target,strength:10};
     const next=processAIOperations(s,createRng(7));
     const defenses=next.pendingDefenses.filter(d=>d.regionId===target);
-    expect(defenses).toHaveLength(1);
+    expect(defenses,JSON.stringify({ops:next.aiOperations?.de,pd:next.pendingDefenses,units:next.units,nb:getNeighborIds(target).map(id=>[id,s.regions[id].owner])})).toHaveLength(1);
     expect(defenses[0].defenderUnitIds).toEqual(['defender']);
     const attackers=next.pendingDefenses.flatMap(d=>d.attackerUnitIds);
     expect(new Set(attackers).size).toBe(attackers.length);

@@ -13,21 +13,31 @@ import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
 import { getDefenseLevelDamageReductionMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
 import { createRng } from '../utils/rng';
+import { addCity } from './testWorld';
+import { getNeighborIds } from '../data/regions';
 import {
   buildSyntheticForce, getAssaultSize, getAssaultPressure, createDefenseRecord, PLAYER_DEFENDED_CAPTURE_MULT
 } from './defense';
 
-const FR_BORDER = 'fr-80';
-const BE_REGION = 'be-wht';
+// The Dawn world gives France one city with no room beside it, so the fixture founds two French
+// cities on the nearest free land (the first borders a foreign capital, the second borders the
+// first) and the war comes from whoever owns that foreign neighbour.
+const WORLD = (() => {
+  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
+  const second = addCity(first.state, 'fr', { near: first.cityId });
+  const border = getNeighborIds(first.cityId).find((id) => second.state.regions[id].owner !== 'fr');
+  return { state: second.state, FR_BORDER: first.cityId, FR_BACK: second.cityId, BE_REGION: border, AGG: second.state.regions[border].owner };
+})();
+const { FR_BORDER, BE_REGION, AGG } = WORLD;
 
 const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000) => ({
   id, regionId, ownerId, domain: 'land', classId, strength, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1
 });
-const war = (s) => ({ id: 'war_d', aggressor: 'be', enemy: 'fr', active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'capture_region', regionId: FR_BORDER } });
+const war = (s) => ({ id: 'war_d', aggressor: AGG, enemy: 'fr', active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'capture_region', regionId: FR_BORDER } });
 const baseState = (units) => {
-  const s = createInitialState({ playerNationId: 'fr' });
+  const s = { ...WORLD.state, nations: { ...WORLD.state.nations } };
   // Legacy synthetic assault compatibility; operational AI has separate real-army tests.
-  s.nations.be={...s.nations.be,economy:undefined};
+  s.nations[AGG] = { ...s.nations[AGG], economy: undefined };
   return { ...s, wars: [...s.wars, war(s)], units: units || { g1: unit('g1', FR_BORDER, 'fr'), g2: unit('g2', FR_BORDER, 'fr', 'ranged') } };
 };
 const alwaysRoll = { next: () => 0.0001, getSeed: () => 1 };
@@ -42,7 +52,7 @@ describe('queueing defenses', () => {
     const s = baseState();
     const out = queue(s);
     expect(out.pendingDefenses).toHaveLength(1);
-    expect(out.pendingDefenses[0]).toMatchObject({ warId: 'war_d', aggressorId: 'be', regionId: FR_BORDER, defenderUnitIds: ['g1', 'g2'] });
+    expect(out.pendingDefenses[0]).toMatchObject({ warId: 'war_d', aggressorId: AGG, regionId: FR_BORDER, defenderUnitIds: ['g1', 'g2'] });
     expect(out.regions[FR_BORDER].control).toBe(s.regions[FR_BORDER].control);
     expect(out.pendingDefenses[0].synthetic.length).toBeGreaterThan(0);
   });
@@ -51,11 +61,11 @@ describe('queueing defenses', () => {
     const s = baseState({});
     const out = queue(s);
     expect(out.pendingDefenses).toHaveLength(0);
-    expect(out.regions[FR_BORDER].owner).toBe('be'); // conquered
+    expect(out.regions[FR_BORDER].owner).toBe(AGG); // conquered
   });
 
   it('prefers the aggressor\'s real neighbouring troops over synthetic ones', () => {
-    const s = baseState({ g1: unit('g1', FR_BORDER, 'fr'), r1: unit('r1', BE_REGION, 'be', 'cavalry') });
+    const s = baseState({ g1: unit('g1', FR_BORDER, 'fr'), r1: unit('r1', BE_REGION, AGG, 'cavalry') });
     const def = createDefenseRecord(s, { war: s.wars.at(-1), regionId: FR_BORDER, aggressorShare: 0.5, seed: 5, index: 1 });
     expect(def.attackerUnitIds).toEqual(['r1']);
     expect(def.synthetic).toHaveLength(0);
@@ -66,8 +76,8 @@ describe('queueing defenses', () => {
     expect(getAssaultSize(3, 0.5)).toBe(3);
     expect(getAssaultSize(3, 0.75)).toBeGreaterThan(3);
     expect(getAssaultSize(1, 0.1)).toBe(1);
-    const a = buildSyntheticForce({ defenseId: 'x', aggressorId: 'be', ageId: 'gunpowder', count: 5, seed: 42 });
-    const b = buildSyntheticForce({ defenseId: 'x', aggressorId: 'be', ageId: 'gunpowder', count: 5, seed: 42 });
+    const a = buildSyntheticForce({ defenseId: 'x', aggressorId: AGG, ageId: 'gunpowder', count: 5, seed: 42 });
+    const b = buildSyntheticForce({ defenseId: 'x', aggressorId: AGG, ageId: 'gunpowder', count: 5, seed: 42 });
     expect(a).toEqual(b);
     expect(a[0].classId).toBe('infantry');
     expect(a.every((u) => u.synthetic && u.strength === 1000)).toBe(true);
@@ -79,7 +89,7 @@ describe('turn flow', () => {
     const s = withDefense();
     expect(gameReducer(s, { type: ActionTypes.ADVANCE_TURN }).turnNumber).toBe(s.turnNumber);
     expect(gameReducer(s, { type: ActionTypes.FAST_FORWARD }).turnNumber).toBe(s.turnNumber);
-    const moved = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'g1', toRegionId: 'fr-80' } });
+    const moved = gameReducer(s, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'g1', toRegionId: FR_BORDER } });
     expect(moved.units.g1.regionId).toBe(FR_BORDER);
   });
 
@@ -110,15 +120,15 @@ describe('consequences', () => {
     expect(next.regions[FR_BORDER].control).toBe(st.regions[FR_BORDER].control);
     expect(next.regions[FR_BORDER].occupiedBy).toBeFalsy();
     expect(next.wars.find((w) => w.id === 'war_d').battleScore).toBeLessThan(0); // negative = toward the defender (fr)
-    expect(next.nations.be.militaryStrength).toBeLessThan(st.nations.be.militaryStrength);
+    expect(next.nations[AGG].militaryStrength).toBeLessThan(st.nations[AGG].militaryStrength);
   });
 
   it('a garrison that is overrun at low control falls back to a neighbouring province and the region is conquered', () => {
     const s0 = withDefense(baseState({ g1: unit('g1', FR_BORDER, 'fr', 'ranged', 120) }));
     const s = { ...s0, regions: { ...s0.regions, [FR_BORDER]: { ...s0.regions[FR_BORDER], control: 20 } } };
-    const def = { ...s.pendingDefenses[0], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: 'be', ageId: s.age, count: 8, seed: 3 }) };
+    const def = { ...s.pendingDefenses[0], synthetic: buildSyntheticForce({ defenseId: 'z', aggressorId: AGG, ageId: s.age, count: 8, seed: 3 }) };
     const next = gameReducer({ ...s, pendingDefenses: [def] }, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
-    expect(next.regions[FR_BORDER].owner).toBe('be');
+    expect(next.regions[FR_BORDER].owner).toBe(AGG);
     expect(next.regions[FR_BORDER].conquest?.from).toBe('fr');
     if (next.units.g1) expect(next.units.g1.regionId).not.toBe(FR_BORDER);
   });
@@ -138,7 +148,7 @@ describe('commanded defense', () => {
     const s = withDefense();
     const def = s.pendingDefenses[0];
     const started = gameReducer(s, { type: ActionTypes.BEGIN_DEFENSE_BATTLE, payload: { defenseId: def.id } });
-    expect(started.pendingBattle).toMatchObject({ kind: 'defense', defenseId: def.id, playerSide: 'defender', attackerNationId: 'be', defenderNationId: 'fr', defenderUnitIds: ['g1', 'g2'] });
+    expect(started.pendingBattle).toMatchObject({ kind: 'defense', defenseId: def.id, playerSide: 'defender', attackerNationId: AGG, defenderNationId: 'fr', defenderUnitIds: ['g1', 'g2'] });
     expect(started.resources).toEqual(s.resources); // defending is free
     const setup = buildInvasionSetup(started, started.pendingBattle);
     expect(setup.controllers).toEqual(['ai', 'player']);
@@ -160,7 +170,7 @@ describe('commanded defense', () => {
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: bogus } });
     expect(next.units.g1.strength).toBeLessThanOrEqual(1000);
     expect(next.units.intruder).toBeUndefined();
-    expect(next.nations.be.militaryStrength).toBe(s.nations.be.militaryStrength); // no synthetic "gains"
+    expect(next.nations[AGG].militaryStrength).toBe(s.nations[AGG].militaryStrength); // no synthetic "gains"
     const abandoned = gameReducer(started, { type: ActionTypes.ABANDON_TACTICAL_BATTLE });
     const auto = gameReducer(s, { type: ActionTypes.RESOLVE_DEFENSE_AUTO, payload: { defenseId: def.id } });
     expect(abandoned.pendingDefenses).toHaveLength(0);
@@ -220,7 +230,7 @@ describe('pre-battle choice is never skipped by accident', () => {
     const def = s.pendingDefenses[0];
     const next = gameReducer(s, { type: ActionTypes.WITHDRAW_FROM_DEFENSE, payload: { defenseId: def.id } });
     expect(next.pendingDefenses).toHaveLength(0);
-    expect(next.regions[FR_BORDER].owner).toBe('be');
+    expect(next.regions[FR_BORDER].owner).toBe(AGG);
     expect(next.units.g1.regionId).not.toBe(FR_BORDER);
     expect(next.regions[next.units.g1.regionId].owner).toBe('fr');
     expect(next.units.g1.morale).toBeLessThan(s.units.g1.morale ?? 100);

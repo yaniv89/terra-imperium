@@ -83,7 +83,8 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   if (!war) return { ok: false, reason: 'no_war' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.launchInvasion)) return { ok: false, reason: 'cost' };
 
-  const attackerUnits = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
+  // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
+  const attackerUnits = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
   if (attackerUnits.length === 0) return { ok: false, reason: 'no_units' };
   // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still have
   // its move (all-or-nothing on the whole stack, matching "an army is every unit in one region").

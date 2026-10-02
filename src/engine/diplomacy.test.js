@@ -5,6 +5,7 @@ import {
 } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
+import { addCity } from './testWorld';
 
 // A nation now spans many real provinces, not one region matching its own id — these tests use
 // each nation's capital as "its" region wherever the old one-region-per-nation model used the
@@ -17,7 +18,10 @@ const neverRolls = { next: () => 0.999999 }; // guarantees any realistic probabi
 // Player is the US; Canada ('ca') and Mexico ('mx') are its real bordering nations.
 // These tests exercise the compatibility policy for saves predating real AI economies.
 // Current campaigns use real armies, covered by aiOperations and campaignAudit.
-const usState = () => {const s=createInitialState({ playerNationId: 'us' });for(const n of Object.values(s.nations))if(!n.isPlayer)n.economy=undefined;return s;};
+// Every nation starts with a garrison in its capital on the tile world; these legacy capture-roll
+// tests want undefended capitals, so the starting units go. Canada gets a second city so a lost
+// capital has somewhere to move to.
+const usState = () => {const s=addCity(createInitialState({ playerNationId: 'us', rngSeed: 1 }),'ca').state;s.units={};for(const n of Object.values(s.nations))if(!n.isPlayer)n.economy=undefined;return s;};
 
 describe('assignDefaultWarGoal', () => {
   it('gives the player a capture_region goal against a nation with a bordering region', () => {
@@ -38,7 +42,7 @@ describe('assignDefaultWarGoal', () => {
 
   it('gives a blitz/opportunist AI aggressor a capture_region goal when a target exists', () => {
     const state = usState();
-    const aggressorId = 'mx';
+    const aggressorId = 'ca'; // Mexico City is too far from Washington to border it at the Dawn start
     const withDoctrine = { ...state, nations: { ...state.nations, [aggressorId]: { ...state.nations[aggressorId], doctrine: 'blitz' } } };
     const goal = assignDefaultWarGoal(withDoctrine, 'us', aggressorId);
     expect(goal.type).toBe('capture_region');

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NATION_COLORS, getNationColor, UNKNOWN_NATION_COLOR } from './nationColors';
 import { REGIONS_DATA } from './regions';
+import COUNTRY_ADJACENCY from './geo/countries-adjacency.json';
 
 describe('NATION_COLORS', () => {
   it('assigns every real nation (every distinct startOwner) a color', () => {
@@ -22,17 +23,9 @@ describe('NATION_COLORS', () => {
     // more than the palette's own size — where a repeat is an accepted, documented rarity rather
     // than a bug. This asserts the greedy assignment is actually doing its job, not that it's
     // perfect for every nation on Earth.
-    const adjacency = {};
-    Object.values(REGIONS_DATA).forEach((region) => {
-      const nationId = region.startOwner;
-      if (!nationId) return;
-      const set = (adjacency[nationId] ||= new Set());
-      (region.neighbors || []).forEach((neighborId) => {
-        const neighborNation = REGIONS_DATA[neighborId]?.startOwner;
-        if (neighborNation && neighborNation !== nationId) set.add(neighborNation);
-      });
-    });
-
+    // Colours are assigned from the modern country adjacency the map's countries carry, so the
+    // check reads the same source (the Dawn world's city neighbours are mostly 3-ring bridges).
+    const adjacency = COUNTRY_ADJACENCY;
     let pairs = 0;
     let clashes = 0;
     Object.entries(adjacency).forEach(([nationId, neighbors]) => {

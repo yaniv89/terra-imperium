@@ -5,6 +5,7 @@ import { ActionTypes } from '../../data/types';
 import { createInitialState, gameReducer } from '../../engine/gameReducer';
 import { getNeighborIds, REGIONS_DATA } from '../../data/regions';
 import { validateInvasion } from '../../engine/invasion';
+import { addCity } from '../../engine/testWorld';
 import PreBattleModal from './PreBattleModal';
 import RegionInfoModal from '../modals/RegionInfoModal';
 
@@ -21,7 +22,9 @@ const button = (html, testId) => html.match(new RegExp(`<button[^>]*data-testid=
 
 describe('attack buttons follow the engine validation', () => {
   beforeEach(() => {
-    game.state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    // Two German cities beside the capital, so a conquered one still has a German neighbour.
+    const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 7 }), 'de');
+    game.state = addCity(first.state, 'de', { near: first.cityId }).state;
     from = Object.keys(game.state.regions).find(id => game.state.regions[id].owner === 'de' && getNeighborIds(id).some(n => game.state.regions[n]?.owner === 'de'));
     target = getNeighborIds(from).find(id => game.state.regions[id]?.owner === 'de');
     game.state.regions[from].owner = 'fr';

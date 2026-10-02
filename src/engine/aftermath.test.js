@@ -10,7 +10,8 @@ import { POPULATION_FLOOR_RATIO } from './population';
 import { createInitialState } from '../context/GameContext';
 import { calcIncome } from '../utils/helpers';
 
-const someRegionId = Object.keys(REGIONS_DATA).find((id) => REGIONS_DATA[id].population > 200000);
+// The most populous Dawn city, with a population a 1000-strength levy cannot push below its floor.
+const someRegionId = Object.keys(REGIONS_DATA).sort((a, b) => REGIONS_DATA[b].population - REGIONS_DATA[a].population)[0];
 const base = REGIONS_DATA[someRegionId].population;
 const regions = () => ({ [someRegionId]: { id: someRegionId, currentPopulation: base } });
 

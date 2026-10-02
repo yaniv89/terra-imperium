@@ -7,6 +7,8 @@ import { REGIONS_DATA, getNeighborIds } from './regions';
 // a country is coastal if ANY of its provinces is. These helpers resolve a country id to one real
 // province for the spot-checks below, the same way a UI action (Amphibious Assault, Naval
 // Engagement) always operates on one specific province.
+// On the tile world a nation starts with one city, its capital, so "a coastal city of X" is its
+// capital when that is coastal.
 const coastalProvinceOf = (countryId) => Object.values(REGIONS_DATA).find(r => r.startOwner === countryId && r.isCoastal)?.id;
 const anyProvinceOf = (countryId) => Object.values(REGIONS_DATA).find(r => r.startOwner === countryId)?.id;
 
@@ -41,12 +43,13 @@ describe('NAVAL_REACH_KM', () => {
 });
 
 describe('getSeaLanesWithinReach / isReachableBySea', () => {
-  it('a very short lane (Dover Strait) is reachable even in the Bronze Age', () => {
-    expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('fr'), 'bronze')).toBe(true);
+  it("a very short lane (across the North Sea's narrow end) is reachable even in the Bronze Age", () => {
+    expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('nl'), 'bronze')).toBe(true);
   });
 
   it('a transoceanic lane is unreachable before Gunpowder and reachable by Modern', () => {
-    // UK <-> US crosses the Atlantic — real transoceanic colonial-era range.
+    // London <-> Washington crosses the Atlantic: deep ocean, which opens with the Age of Gunpowder,
+    // and about 5,900 km, which only the Modern Age's unbounded reach covers.
     expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('us'), 'bronze')).toBe(false);
     expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('us'), 'classical')).toBe(false);
     expect(isReachableBySea(coastalProvinceOf('gb'), coastalProvinceOf('us'), 'modern')).toBe(true);

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { addCities } from './testWorld';
 import { createInitialState } from '../context/GameContext';
 import { createEmptyRegionBuildings } from '../data/buildings';
 import { ACTION_COSTS } from '../data/actionCosts';
@@ -42,7 +43,7 @@ describe('getLoanCapacity (plan: "requires Banking Houses; before that, actions 
   });
 
   it('adds up to +3 more for Bank-tier-or-higher regions, capped at +3 total', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = addCities(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr', 4).state;
     const withTech = { ...state, techTree: { ...state.techTree, economy_banking_houses: { ...state.techTree.economy_banking_houses, researched: true } } };
     const regionIds = Object.keys(withTech.regions).filter((id) => withTech.regions[id].owner === 'fr').slice(0, 5);
     expect(regionIds.length).toBeGreaterThanOrEqual(5);

@@ -7,6 +7,9 @@ import {
 } from './aiLogic';
 import { createRng } from './rng';
 import { RelationStatus } from '../data/types';
+import { getNationCapital } from '../data/regions';
+
+const cap = getNationCapital;
 
 const aiNation = (overrides = {}) => ({
   id: 'fr',
@@ -126,12 +129,13 @@ describe('getNationTier', () => {
       fr: { id: 'fr', isPlayer: false, isAtWar: false, ...nationOverrides.fr },
       au: { id: 'au', isPlayer: false, isAtWar: false, ...nationOverrides.au }
     },
+    // Real Dawn capitals: Ottawa borders Washington, Berlin borders Prague, Canberra borders nobody.
     regions: {
-      'us-mt': { owner: 'us' },
-      'ca-ab': { owner: 'ca' },
-      'de-sn': { owner: 'de' },
-      'cz-kr': { owner: 'cz' },
-      'au-tas': { owner: 'au' }
+      [cap('us')]: { owner: 'us' },
+      [cap('ca')]: { owner: 'ca' },
+      [cap('de')]: { owner: 'de' },
+      [cap('cz')]: { owner: 'cz' },
+      [cap('au')]: { owner: 'au' }
     }
   });
 
@@ -214,11 +218,12 @@ describe('processAIWarDecisions', () => {
     // province hub, which is what lets one nation ('de') border three others at once — and br-am
     // and co-ama also really border each other directly, so 'fr' and 'be' border each other too,
     // exactly like the old country-level fixture's France/Belgium border.
+    // Real Dawn capitals: Berlin borders Paris, Brussels and Vienna, and Paris borders Brussels.
     regions: {
-      'pe-lor': { owner: 'de' },
-      'br-am': { owner: 'fr' },
-      'co-ama': { owner: 'be' },
-      'ec-d': { owner: 'at' }
+      [cap('de')]: { owner: 'de' },
+      [cap('fr')]: { owner: 'fr' },
+      [cap('be')]: { owner: 'be' },
+      [cap('at')]: { owner: 'at' }
     },
     wars: []
   });
@@ -452,7 +457,7 @@ describe('chooseAIRecruitClass', () => {
     playerNationId: 'us',
     wars: [],
     nations: { de: { id: 'de' }, fr: { id: 'fr' }, us: { id: 'us', isPlayer: true } },
-    regions: { 'de-rp': { owner: 'de' }, 'fr-52': { owner: 'fr' } },
+    regions: { [cap('de')]: { owner: 'de' }, [cap('fr')]: { owner: 'fr' } },
     ...overrides
   });
 

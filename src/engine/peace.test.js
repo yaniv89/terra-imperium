@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getTermCost, getPeaceCost, getMaxPeaceCost, getPeaceAcceptance, applyPeace, buildAITerms } from './peace';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
+import { addCity } from './testWorld';
 
 const cap = getNationCapital;
 const usState = () => createInitialState({ playerNationId: 'us' });
@@ -195,7 +196,7 @@ describe('applyPeace', () => {
   });
 
   it('capital lost in peace (plan §M15): the recipient auto-relocates its capital and loses stability', () => {
-    const state = usState();
+    const state = addCity(usState(), 'ca').state;
     const war = warWithOccupiedCapital(state);
     const occupiedState = { ...state, regions: { ...state.regions, [cap('ca')]: { ...state.regions[cap('ca')], occupiedBy: 'us' } } };
     const result = applyPeace(occupiedState, war, 'us', [{ type: 'cede', regionId: cap('ca') }]);

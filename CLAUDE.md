@@ -36,6 +36,12 @@ The live site is GitHub Pages, built into `docs/`.
   starts (Dawn: one city per nation). `npm run build:raster` renders the realistic Earth
   (`public/map/world-*.webp`), the globe texture and flat map background. `/?tileViewer` is the
   prototype of the new map. The look is decided: real Earth, hexes only as a faint overlay.
+  The engine now runs on it: `state.regions` holds one city record per city (`src/engine/world/
+  cities.js`), `state.world.tileOwner` the borders; `src/engine/world/registry.js` rebuilds the
+  old static readers (`REGIONS_DATA`, `getNeighborIds`, `getNationCapital`) from the last synced
+  state. Tests that need more cities use `src/engine/testWorld.js` (`addCity`, `addCities`,
+  `borderPair`); tests that build their own `regions` map must pass real city ids (`cap('fr')`).
+  Save version 7 is a clean break. Progress and open balance items: plan section J3.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
   and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to

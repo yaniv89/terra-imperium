@@ -8,6 +8,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import { MAX_ABM_LEVEL } from '../data/missiles';
 import { getNationCapital, REGIONS_DATA, getBorderingNationIds, getNeighborIds } from '../data/regions';
+import { addCity, addCities } from '../engine/testWorld';
 import { setTruce } from '../engine/diplomacy';
 import { hasIntel, getIntelTurnsLeft, canSeeRegionDetails } from '../engine/intel';
 import { INTEL_DURATION_TURNS, ESPIONAGE_TECH_POINTS_STOLEN, ESPIONAGE_FAILURE_HOSTILITY_INCREASE, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, ACTION_COSTS } from '../data/actionCosts';
@@ -120,6 +121,7 @@ describe('LOAD_GAME', () => {
 describe('Domestic tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, gold: 100000 } };
   };
 
@@ -382,7 +384,7 @@ describe('Domestic tab actions', () => {
     // be-vwv (Hainaut) really borders fr-59 (Nord) — worldRegions.json — used instead of Belgium's
     // (capital-heuristic) "capital" region, which isn't necessarily anywhere near the French
     // border (Brussels isn't).
-    const BE_BORDER = 'be-wht';
+    const BE_BORDER = cap('be'); // Brussels borders Paris on the Dawn world
     // Settling now needs land nobody governs: a rebel army holding the province (or a dead owner).
     const withCollapsedNeighbor = (control, rebels = true) => {
       const base = richState();
@@ -785,7 +787,7 @@ describe('Space Race tab actions', () => {
     // territory, well inside tactical range (3). 'us' cap is ~30 real land hops from France (no
     // actual land route at all, in truth — Europe/Americas aren't land-connected in this data),
     // making it a genuine out-of-range target for any finite-range tier.
-    const DE_REGION = 'de-rp';
+    const DE_REGION = cap('de'); // Berlin borders Paris on the Dawn world: 1 hop
     // A strike is an act of war (second review pass S4), so the default fixture is at war with both
     // target nations; `atWar: false` exercises the refusal.
     const withMissile = (tierId, count = 1, { atWar = true } = {}) => {
@@ -952,8 +954,10 @@ describe('Space Race tab actions', () => {
 });
 
 describe('Military tab actions', () => {
+  // French states build on WORLD (below): the Dawn world gives France one city with no room
+  // beside it, and these actions need a border city with a French neighbour.
   const richState = (playerNationId = 'fr') => {
-    const state = createInitialState({ playerNationId });
+    const state = playerNationId === 'fr' ? WORLD.state : { ...createInitialState({ playerNationId }), units: {} };
     return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000 } };
   };
 
@@ -986,7 +990,7 @@ describe('Military tab actions', () => {
 
     it('sets domain to naval for the naval class', () => {
       const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-44', classId: 'naval' } });
+      const next = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
       const unit = Object.values(next.units)[0];
       expect(unit.domain).toBe('naval');
     });
@@ -1047,15 +1051,25 @@ describe('Military tab actions', () => {
   // fr-59 (Nord) really borders be-vwv (Hainaut) — worldRegions.json — used below wherever the
   // old model's bare 'fr'/'be' needed genuine land adjacency, not just any owned region (a
   // nation's capital, e.g. Paris, isn't necessarily anywhere near a given border).
-  const FR_BORDER = 'fr-80';
-  const BE_REGION = 'be-wht';
+  // The Dawn world gives France one city with no room beside it, so the fixture founds French
+  // cities on the nearest free land: FR_BORDER (bordering a foreign capital, the invasion's
+  // target) and FR_NEIGHBOR, a second French city bordering it. The enemy is whoever owns the target.
+  const WORLD = (() => {
+    const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
+    const target = getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
+    const second = addCity(first.state, 'fr', { near: first.cityId });
+    const AGG = second.state.regions[target].owner;
+    // The enemy gets two more cities, so taking the target does not end its nation and its war.
+    const grown = addCities(second.state, AGG, 2);
+    return { state: { ...grown.state, units: {} }, FR_BORDER: first.cityId, BE_REGION: target, FR_NEIGHBOR: second.cityId, AGG };
+  })();
+  const { FR_BORDER, BE_REGION, FR_NEIGHBOR, AGG } = WORLD;
 
   describe('MOVE_ARMY', () => {
     // A French-owned neighbor of FR_BORDER (fr-62, Pas-de-Calais) — MOVE_ARMY is redeployment
     // within your own territory, not an invasion, so a genuinely successful move has to land in a
     // region the player already owns; BE_REGION (foreign, Belgium) is used below specifically to
     // confirm that's rejected, not as a valid destination.
-    const FR_NEIGHBOR = 'fr-51'; // a French neighbour of FR_BORDER on the balanced map
     const withUnit = () => {
       const state = richState();
       return gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
@@ -1101,9 +1115,8 @@ describe('Military tab actions', () => {
 
   describe('LAUNCH_INVASION', () => {
     it('invading a nation you are at peace with does nothing but explain why (declare war first)', () => {
-      const state = createInitialState({ playerNationId: 'fr' });
-      const from = Object.keys(state.regions).find((id) => state.regions[id].owner === 'fr' && getNeighborIds(id).some((n) => state.regions[n]?.owner === 'be'));
-      const target = getNeighborIds(from).find((n) => state.regions[n]?.owner === 'be');
+      const state = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
+      const from = cap('fr'); const target = cap('be'); // Paris borders Brussels
       const armed = { ...state, units: { x1: { id: 'x1', regionId: from, ownerId: 'fr', domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1 } } };
       const next = gameReducer(armed, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: from, targetRegionId: target } });
       expectRefused(next, armed);
@@ -1111,7 +1124,7 @@ describe('Military tab actions', () => {
     });
 
     const withAttacker = (strength) => {
-      const state = withWarAgainst(richState(), 'be');
+      const state = withWarAgainst(richState(), AGG);
       const recruited = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'infantry' } });
       if (strength === undefined) return recruited;
       const unitId = Object.keys(recruited.units)[0];
@@ -1126,7 +1139,7 @@ describe('Military tab actions', () => {
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
       expect(next.regions[BE_REGION].owner).toBe('fr');
       expect(next.regions[BE_REGION].occupiedBy).toBeUndefined();
-      expect(next.regions[BE_REGION].conquest).toMatchObject({ from: 'be' });
+      expect(next.regions[BE_REGION].conquest).toMatchObject({ from: AGG });
       // Attacking it again is refused — it's already held.
       const again = gameReducer(next, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
       expect(again.regions).toBe(next.regions);
@@ -1137,7 +1150,7 @@ describe('Military tab actions', () => {
 
     it('records the invasion as a battle in the war record, favoring the winning side\'s war score', () => {
       const state = withAttacker();
-      const war = state.wars.find(w => w.enemy === 'be' || w.aggressor === 'be');
+      const war = state.wars.find(w => w.enemy === AGG || w.aggressor === AGG);
       const next = gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
       const nextWar = next.wars.find(w => w.id === war.id);
       expect(nextWar.battleScore).toBeGreaterThan(war.battleScore);
@@ -1146,12 +1159,12 @@ describe('Military tab actions', () => {
     it('is repelled by a strong defender, leaving the region unconquered', () => {
       const state = withAttacker(100); // a token attacking force
       const defenderUnit = {
-        id: 'def_x', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+        id: 'def_x', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry', ageId: 'bronze',
         strength: 50000, maxStrength: 50000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
       };
       const withDefender = { ...state, units: { ...state.units, def_x: defenderUnit } };
       const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-      expect(next.regions[BE_REGION].owner).toBe('be');
+      expect(next.regions[BE_REGION].owner).toBe(AGG);
       expect(next.lastBattleReport.outcome).toBe('defender');
     });
 
@@ -1164,7 +1177,7 @@ describe('Military tab actions', () => {
       const baseline = withAttacker(2000);
       const attackerId = Object.keys(baseline.units)[0];
       const defenderUnit = {
-        id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry',
+        id: 'def_gap', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry',
         strength: 20000, maxStrength: 20000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
       };
       const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
@@ -1185,12 +1198,12 @@ describe('Military tab actions', () => {
         const attackerId = Object.keys(armed.units)[0];
         const state = { ...armed, units: { ...armed.units, [attackerId]: { ...armed.units[attackerId], classId: 'ranged' } } };
         const defenderUnit = {
-          id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          id: 'def_weak', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry', ageId: 'bronze',
           strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
         };
         const withDefender = { ...state, units: { ...state.units, def_weak: defenderUnit } };
         const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-        expect(next.regions[BE_REGION].owner).toBe('be'); // still not captured
+        expect(next.regions[BE_REGION].owner).toBe(AGG); // still not captured
         expect(next.regions[BE_REGION].control).toBe(70); // 100 - 30
         expect(next.regions[BE_REGION].underInvasion).toBe(true);
         expect(next.lastBattleReport.outcome).toBe('attacker');
@@ -1203,7 +1216,7 @@ describe('Military tab actions', () => {
       it('captures once control crosses the threshold and a melee unit is present', () => {
         const state = withAttacker(50000);
         const defenderUnit = {
-          id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          id: 'def_weak', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry', ageId: 'bronze',
           strength: 2000, maxStrength: 2000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
         };
         // Already weakened by a prior round (or unrest) down to 40 — one more 30-point hit crosses
@@ -1217,18 +1230,18 @@ describe('Military tab actions', () => {
       });
 
       it('clamps at the threshold without capturing when the attacker has no melee unit deployed', () => {
-        const state = withWarAgainst(richState(), 'be');
+        const state = withWarAgainst(richState(), AGG);
         const recruitedRanged = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: FR_BORDER, classId: 'ranged' } });
         const rangedId = Object.keys(recruitedRanged.units)[0];
         const strongRanged = { ...recruitedRanged, units: { ...recruitedRanged.units, [rangedId]: { ...recruitedRanged.units[rangedId], strength: 50000 } } };
         const defenderUnit = {
-          id: 'def_weak', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          id: 'def_weak', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry', ageId: 'bronze',
           strength: 100, maxStrength: 100, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
         };
         const withDefender = { ...strongRanged, units: { ...strongRanged.units, def_weak: defenderUnit }, regions: { ...strongRanged.regions, [BE_REGION]: { ...strongRanged.regions[BE_REGION], control: 40 } } };
         const next = gameReducer(withDefender, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
         expect(next.lastBattleReport.outcome).toBe('attacker'); // ranged fire alone broke the weak garrison
-        expect(next.regions[BE_REGION].owner).toBe('be'); // but nothing to occupy it with
+        expect(next.regions[BE_REGION].owner).toBe(AGG); // but nothing to occupy it with
         expect(next.regions[BE_REGION].control).toBe(15); // clamped at the threshold, not lower
         expect(next.lastBattleReport.captured).toBe(false);
       });
@@ -1237,7 +1250,7 @@ describe('Military tab actions', () => {
         const baseline = withAttacker(2000);
         const attackerId = Object.keys(baseline.units)[0];
         const defenderUnit = {
-          id: 'def_gap', regionId: BE_REGION, ownerId: 'be', domain: 'land', classId: 'infantry', ageId: 'bronze',
+          id: 'def_gap', regionId: BE_REGION, ownerId: AGG, domain: 'land', classId: 'infantry', ageId: 'bronze',
           strength: 20000, maxStrength: 20000, morale: 100, organization: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null
         };
         const withDefender = { ...baseline, units: { ...baseline.units, def_gap: defenderUnit } };
@@ -1298,6 +1311,7 @@ describe('Military tab actions', () => {
 describe('Promotions and generals actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
@@ -1416,13 +1430,14 @@ describe('Promotions and generals actions', () => {
 describe('Navies and amphibious invasion actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
   const withNavalAndLand = () => {
     const state = richState();
-    const withNaval = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-44', classId: 'naval' } });
-    const withLand = gameReducer(withNaval, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-44', classId: 'infantry' } });
+    const withNaval = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'naval' } });
+    const withLand = gameReducer(withNaval, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'infantry' } });
     const navalUnitId = Object.keys(withLand.units).find((id) => withLand.units[id].domain === 'naval');
     const landUnitId = Object.keys(withLand.units).find((id) => withLand.units[id].domain === 'land');
     return { state: withLand, navalUnitId, landUnitId };
@@ -1443,8 +1458,8 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op once the transport is at capacity', () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
-      const withSecondLand = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-44', classId: 'cavalry' } });
-      const withThirdLand = gameReducer(withSecondLand, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: 'fr-44', classId: 'ranged' } });
+      const withSecondLand = gameReducer(state, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'cavalry' } });
+      const withThirdLand = gameReducer(withSecondLand, { type: ActionTypes.RECRUIT_UNIT, payload: { regionId: cap('fr'), classId: 'ranged' } });
       const otherLandIds = Object.keys(withThirdLand.units).filter((id) => withThirdLand.units[id].domain === 'land' && id !== landUnitId);
       const first = gameReducer(withThirdLand, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
       const second = gameReducer(first, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: otherLandIds[0], navalUnitId } });
@@ -1498,7 +1513,7 @@ describe('Navies and amphibious invasion actions', () => {
     // longer satisfies this test's actual requirement below. 'gb-ios' (Isles of Scilly) is not
     // land-adjacent to France but is within Bronze-age sea range (~33km across the Channel per
     // sea-lanes.json) and has no land neighbors of its own — a genuine sea-only target.
-    const GB_TARGET = 'gb-ios';
+    const GB_TARGET = cap('gb');
     const withEmbarkedForce = () => {
       const { state, navalUnitId, landUnitId } = withNavalAndLand();
       const embarked = gameReducer(state, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId, navalUnitId } });
@@ -1590,22 +1605,22 @@ describe('Navies and amphibious invasion actions', () => {
     it('refuses to engage the fleet of a nation you are at peace with, and says why', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
       const peaceful = { ...state, wars: state.wars.filter((w) => w.enemy !== 'gb') };
-      const next = gameReducer(peaceful, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-44', targetRegionId: cap('gb') } });
+      const next = gameReducer(peaceful, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } });
       expect(next.units.enemy_navy).toBeDefined();
       expect(next.logs.at(-1).message).toMatch(/at peace/);
     });
 
     it('defeats an enemy fleet contesting a sea lane, holding position rather than advancing', () => {
       const { state, navalUnitId } = withEnemyFleetAt(cap('gb'));
-      const next = gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-44', targetRegionId: cap('gb') } });
+      const next = gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } });
       expect(next.units.enemy_navy).toBeUndefined();
-      expect(next.units[navalUnitId].regionId).toBe('fr-44');
+      expect(next.units[navalUnitId].regionId).toBe(cap('fr'));
       expect(next.lastBattleReport.outcome).toBe('attacker');
     });
 
     it('is a no-op when there is no enemy fleet to engage', () => {
       const { state } = withNavalAndLand();
-      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-44', targetRegionId: cap('gb') } }), state);
+      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } }), state);
     });
 
     it('is a no-op from a region not owned by the player', () => {
@@ -1615,19 +1630,19 @@ describe('Navies and amphibious invasion actions', () => {
 
     it('is a no-op when the target is not reachable', () => {
       const { state } = withEnemyFleetAt(cap('jp'));
-      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-44', targetRegionId: cap('jp') } }), state);
+      expectRefused(gameReducer(state, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('jp') } }), state);
     });
 
     it('is a no-op with no attacker naval units in the source region', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
       const noNavy = { ...state, units: {} };
-      expectRefused(gameReducer(noNavy, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-44', targetRegionId: cap('gb') } }), noNavy);
+      expectRefused(gameReducer(noNavy, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } }), noNavy);
     });
 
     it('is a no-op when unaffordable', () => {
       const { state } = withEnemyFleetAt(cap('gb'));
       const poor = { ...state, resources: { ...state.resources, mil: 0 } };
-      expectRefused(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: 'fr-44', targetRegionId: cap('gb') } }), poor);
+      expectRefused(gameReducer(poor, { type: ActionTypes.NAVAL_ENGAGEMENT, payload: { fromRegionId: cap('fr'), targetRegionId: cap('gb') } }), poor);
     });
   });
 });
@@ -1635,6 +1650,7 @@ describe('Navies and amphibious invasion actions', () => {
 describe('SUPPRESS_REBELLION', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, gold: 100000, hr: 100000, mil: 10 } };
   };
 
@@ -1693,6 +1709,7 @@ describe('SUPPRESS_REBELLION', () => {
 describe('Research tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     // Plan §M7: research costs power (age-scaled, up to 160 at Modern) + techPoints — no gold.
     return { ...state, resources: { ...state.resources, techPoints: 100000, mil: 100000, dip: 100000, adm: 100000 } };
   };
@@ -1838,6 +1855,7 @@ describe('Research tab actions', () => {
 describe('Government reform and law actions (plan §M8)', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, gold: 100000, adm: 100000 } };
   };
 
@@ -2031,6 +2049,7 @@ describe('Government reform and law actions (plan §M8)', () => {
 describe('Estates actions (plan §M9)', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, adm: 100000, gold: 100000, hr: 100000 } };
   };
 
@@ -2123,6 +2142,7 @@ describe('Estates actions (plan §M9)', () => {
 describe('Diplomacy tab actions', () => {
   const richState = (playerNationId = 'fr') => {
     const state = createInitialState({ playerNationId });
+    state.units = {}; // the Dawn start's own garrison would be "the unit" below
     return { ...state, resources: { ...state.resources, gold: 100000, dip: 1000 } };
   };
 
@@ -2671,7 +2691,7 @@ describe('Diplomacy tab actions', () => {
 
   describe('MOVE_CAPITAL (plan §M15)', () => {
     const affordable = () => {
-      const state = richState();
+      const state = addCity(richState(), 'fr').state; // somewhere to move it to
       return { ...state, resources: { ...state.resources, adm: 500 } };
     };
 

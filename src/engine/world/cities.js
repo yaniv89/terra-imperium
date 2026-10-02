@@ -30,7 +30,7 @@
 // Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
 // object when nothing changed.
 import { AGE_ORDER } from '../../data/ages';
-import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier } from '../../data/buildings';
+import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
 
@@ -46,11 +46,13 @@ export const AMENITY_NEED_PER_CITIZENS = 2;
 export const AMENITY_GROWTH_BONUS = 0.1;   // at +2 or more
 export const AMENITY_GROWTH_PENALTY = 0.25; // when short
 export const AMENITY_UNREST_PER_MISSING = 2;
-export const UNREST_DECAY = 1;
 export const CULTURE_PER_SIZE = 0.25;
 export const CULTURE_BASE = 1;
 export const CULTURE_PER_TIER = 2; // Culture building line
 export const SCIENCE_PER_SIZE = 0.5;
+// The capital's palace (C2): a flat income every nation starts with, so a one-city Dawn nation
+// can pay for its first army and still save a little.
+export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
 export const BORDER_RING_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunpowder: 4, modern: 5 };
 export const TILE_COST_BASE = 20;
 export const TILE_COST_PER_RING = 10;
@@ -63,11 +65,13 @@ export const UNIT_BASE_COST = 40;
 export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const IMPROVEMENT_COST_PER_TURN = 10;
-export const MIN_CITY_SPACING = 3;
+// Tiles are about 150 km across, so one free tile between cities is already Civ's spacing.
+export const MIN_CITY_SPACING = 2;
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
 export const growthThreshold = (size) => Math.round(15 + 6 * size + size ** 1.8);
-export const amenityNeed = (size) => Math.floor(size / AMENITY_NEED_PER_CITIZENS);
+// The first two citizens are content for free, so a young city never starts restless.
+export const amenityNeed = (size) => Math.max(0, Math.floor((size - 2) / AMENITY_NEED_PER_CITIZENS));
 
 export const emptyWorld = () => ({ cities: {}, tileOwner: {}, tileState: {} });
 
@@ -122,7 +126,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
     size: Math.max(1, Math.min(MAX_SIZE, size)), food: 0, focus: 'balanced', locked: [], worked: [],
     tiles: claim, cultureBank: 0, unrest: 0, loyalty: 100,
     production: { current: null, queue: [], progress: 0 },
-    buildings: { categories: {}, extraction: {} },
+    buildings: createEmptyRegionBuildings(),
     walls: 0, isCapital, water: facts.river || facts.coastal || facts.lake,
     outpost: null
   };
@@ -187,14 +191,17 @@ const tierEffect = (city, category, key) => {
 /** The city's yields this turn with the given worked tiles. */
 export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}) => {
   const centre = centreYields(tiles, world, city, researched);
-  const sum = worked.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
+  // A city under invasion lives off its centre alone: the enemy holds the countryside.
+  const fields = city.underInvasion ? [] : worked;
+  const sum = fields.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
+  const palace = city.isCapital ? PALACE_YIELDS : { gold: 0, production: 0, science: 0, culture: 0 };
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const food = sum.food + foodTier - FOOD_PER_CITIZEN * city.size;
-  const production = Math.round(sum.production * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * 10) / 10;
-  const gold = Math.round((sum.gold * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
-  const science = Math.round((SCIENCE_PER_SIZE * city.size + tierEffect(city, 'science', 'local.techPoints')) * 10) / 10;
+  const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * 10) / 10;
+  const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
+  const science = Math.round((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints')) * 10) / 10;
   const cultureTier = (city.buildings?.categories?.culture ?? -1) + 1;
-  const culture = Math.round((CULTURE_BASE + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier) * 10) / 10;
+  const culture = Math.round((CULTURE_BASE + palace.culture + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier) * 10) / 10;
   const strategic = {};
   worked.forEach((t) => { const s = strategicSupply(tileFacts(tiles, t, world.tileState[t]), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
   const luxuries = new Set();
@@ -314,8 +321,8 @@ export const processCity = (world, tiles, city, ctx = {}) => {
   let food = c.food + y.food;
   if (food < 0) {
     size = Math.max(1, size - STARVE_LOSS); food = 0;
-    logs.push(`${c.name} starves and shrinks to ${size}.`);
-  } else if (y.food > 0) {
+    logs.push(c.underInvasion ? `${c.name} starves under siege and shrinks to ${size}.` : `${c.name} starves and shrinks to ${size}.`);
+  } else if (y.food > 0 && !c.underInvasion) {
     let gain = y.food;
     if (size >= housing + 2) gain = 0; else if (size >= housing) gain *= GROWTH_AT_CAP;
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
@@ -324,8 +331,10 @@ export const processCity = (world, tiles, city, ctx = {}) => {
     if (food >= threshold && size < MAX_SIZE) { size += 1; food -= threshold; logs.push(`${c.name} grows to size ${size}.`); }
   }
   // 3. Unrest from amenities.
+  // Only the penalty lives here: resolveTurn's unrest drift (control, stability, taxes) owns the
+  // decay, so the two never pull twice in the same direction.
   let unrest = c.unrest;
-  if (amen.net < 0) unrest = Math.min(100, unrest + AMENITY_UNREST_PER_MISSING * -amen.net); else unrest = Math.max(0, unrest - UNREST_DECAY);
+  if (amen.net < 0) unrest = Math.min(100, unrest + AMENITY_UNREST_PER_MISSING * -amen.net);
 
   // 4. Production.
   let production = { ...c.production, progress: c.production.progress + y.production };
@@ -388,5 +397,6 @@ export const processCities = (world, tiles, ctxFor) => {
   return { world: { ...w, cities }, yields: results, logs, completed };
 };
 
-// Display population from size (C2): 1,000 x 1.6^(size-1) x the historical scale of the year.
-export const sizeToPeople = (size, historicalShare = 1) => Math.round(1000 * 1.6 ** (size - 1) * Math.max(0.1, historicalShare * 40));
+// People from size (C2), city and countryside together: 1,000 x size^2.8 (size 2 is 7,000, size 5
+// is 90,000, size 12 is 1.1 million, size 30 is 14 million), the curve Civilization uses.
+export const sizeToPeople = (size) => Math.round(1000 * Math.max(1, size) ** 2.8);

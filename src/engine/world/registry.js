@@ -15,7 +15,33 @@
 import { getTiles } from '../../data/geo/tiles';
 import { sizeToPeople, foundCity, emptyWorld } from './cities';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
-import { getHistoricalPopulationShare } from '../../data/historicalPopulation';
+import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
+import { fromLatLon, distanceKm } from '../../data/geo/geodesic';
+
+// A small lat/lon bucket index over city centres (unit vectors), with a radius query in km.
+const buildLatLonIndex = (centres, step = 3) => {
+  const buckets = new Map();
+  const key = (lat, lon) => `${Math.floor((lat + 90) / step)},${Math.floor((lon + 180) / step)}`;
+  const latLon = centres.map((c) => ({ lat: (Math.asin(Math.max(-1, Math.min(1, c[2]))) * 180) / Math.PI, lon: (Math.atan2(c[1], c[0]) * 180) / Math.PI }));
+  latLon.forEach((p, i) => { const k = key(p.lat, p.lon); (buckets.get(k) || buckets.set(k, []).get(k)).push(i); });
+  const within = (lat, lon, km) => {
+    const v = fromLatLon(lat, lon);
+    const span = Math.ceil(km / 111 / step) + 1;
+    const cosDot = Math.cos(km / 6371);
+    const out = [];
+    const bl = Math.floor((lat + 90) / step); const bo = Math.floor((lon + 180) / step);
+    const cols = Math.ceil(360 / step);
+    for (let dl = -span; dl <= span; dl++) {
+      for (let dn = -span; dn <= span; dn++) {
+        const list = buckets.get(`${bl + dl},${((bo + dn) % cols + cols) % cols}`);
+        if (!list) continue;
+        list.forEach((i) => { const c = centres[i]; if (c[0] * v[0] + c[1] * v[1] + c[2] * v[2] >= cosDot) out.push(i); });
+      }
+    }
+    return out;
+  };
+  return { within };
+};
 
 export const WORLD_REGISTRY = {
   regions: {},      // cityId -> the static-looking record (name, neighbors, startOwner, ...)
@@ -37,28 +63,68 @@ export const legacyTerrainOf = (tiles, tile) => {
   return 'mixed';
 };
 
-export const buildRegistry = (regions, year = -2000) => {
+// City adjacency on a sparse world (B4, D1 until armies walk tiles in workstream 5): two cities
+// are neighbours when their land touches, when their centres are within NEAR_RINGS tiles, or,
+// for two different peoples whose modern countries border each other, when they are the nearest
+// cities of those peoples within BRIDGE_RINGS tiles. The last rule is the bridge that keeps wars,
+// trade and AI fronts working on the Dawn world, where only 10% of the land is claimed.
+export const NEAR_RINGS = 3;
+export const BRIDGE_RINGS = 12;
+const ringsBetween = (tiles, from, to, maxRing) => {
+  if (from === to) return 0;
+  let frontier = [from]; const seen = new Set(frontier);
+  for (let d = 1; d <= maxRing; d++) {
+    const next = [];
+    for (const id of frontier) for (const n of tiles.neighbors[id]) { if (seen.has(n)) continue; if (n === to) return d; seen.add(n); next.push(n); }
+    frontier = next;
+  }
+  return Infinity;
+};
+
+export const buildRegistry = (regions) => {
   const tiles = getTiles();
   const out = { regions: {}, coordinates: {}, capitals: {} };
   const owners = {};
-  Object.values(regions).forEach((city) => {
-    if (city?.tiles) city.tiles.forEach((t) => { owners[t] = city.id; });
-  });
-  const share = getHistoricalPopulationShare(year);
-  Object.values(regions).forEach((city) => {
-    if (!city || city.tile == null) return;
+  const cities = Object.values(regions).filter((c) => c && c.tile != null);
+  cities.forEach((city) => { (city.tiles || [city.tile]).forEach((t) => { owners[t] = city.id; }); });
+  // Cities by tile bucket for the distance rules (a 2-degree bucket index like geodesic.js's).
+  const index = buildLatLonIndex(cities.map((c) => tiles.centres[c.tile]));
+  const nearCities = (city, rings) => {
+    const { lat, lon } = tiles.latLonOf(city.tile);
+    const km = rings * 150 + 60;
+    const found = index.within(lat, lon, km).map((i) => cities[i]).filter((c) => c.id !== city.id);
+    return found.filter((c) => ringsBetween(tiles, city.tile, c.tile, rings) <= rings);
+  };
+  const byNation = {};
+  cities.forEach((c) => { (byNation[c.owner] ||= []).push(c); });
+  cities.forEach((city) => {
     const neighbors = new Set();
     (city.tiles || [city.tile]).forEach((t) => tiles.neighbors[t].forEach((n) => {
       const o = owners[n];
       if (o && o !== city.id) neighbors.add(o);
     }));
+    nearCities(city, NEAR_RINGS).forEach((c) => neighbors.add(c.id));
+    // The bridge links a people's CAPITAL to the nearest city of each neighbouring people, one
+    // link per pair of peoples, so a nation's other cities can still be "interior".
+    const nation = city.founderId || city.owner;
+    if (city.isCapital) (COUNTRY_ADJACENCY[nation] || []).forEach((other) => {
+      const candidates = (byNation[other] || []).filter((c) => (c.founderId || c.owner) === other);
+      let best = null; let bestD = Infinity;
+      candidates.forEach((c) => { const d = ringsBetween(tiles, city.tile, c.tile, BRIDGE_RINGS); if (d < bestD) { bestD = d; best = c; } });
+      if (best) { neighbors.add(best.id); }
+    });
     const { lat, lon } = tiles.latLonOf(city.tile);
-    const coastal = tiles.coastal[city.tile] === 1 || tiles.neighbors[city.tile].some((n) => !tiles.land[n]);
+    // Coastal when the city's land touches the sea (a lake does not count) through its centre or
+    // through a tile of the founder's own country: on a 147 km grid Bern's first ring reaches a
+    // Lombard tile that touches the Ligurian Sea, which must not make Switzerland a sea power.
+    const coastal = (city.tiles || [city.tile]).some((t) => tiles.land[t] === 1 && (t === city.tile || tiles.countryOf(t) === nation)
+      && tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake'));
     out.regions[city.id] = {
       id: city.id,
+      ownerNow: city.owner,
       name: city.name,
       startOwner: city.founderId || city.owner,
-      population: sizeToPeople(city.size || 1, share),
+      population: sizeToPeople(city.size || 1),
       neighbors: [...neighbors].sort(),
       terrain: legacyTerrainOf(tiles, city.tile),
       isCoastal: coastal,
@@ -75,6 +141,23 @@ export const buildRegistry = (regions, year = -2000) => {
     out.coordinates[city.id] = { lat, lng: lon, extent: 2 };
     if (city.isCapital && city.founderId && !out.capitals[city.founderId]) out.capitals[city.founderId] = city.id;
   });
+  // A landlocked city with no neighbour at all (Brasília or Canberra at the Dawn start) links to
+  // the nearest city anywhere, so no city is cut off from the world before armies walk tiles. A
+  // coastal one (an island, Tokyo) is reached by sea instead (src/data/navalReach.js).
+  cities.forEach((city) => {
+    const r = out.regions[city.id];
+    if (r.neighbors.length || r.isCoastal) return;
+    let best = null; let bestD = Infinity;
+    cities.forEach((c) => {
+      if (c.id === city.id) return;
+      const d = distanceKm(tiles.centres[city.tile], tiles.centres[c.tile]);
+      if (d < bestD || (d === bestD && c.id < best)) { bestD = d; best = c.id; }
+    });
+    if (best) r.neighbors.push(best);
+  });
+  // Symmetric: the bridge rule picks one nearest city per side, so close the pairs.
+  Object.values(out.regions).forEach((r) => r.neighbors.forEach((n) => { const other = out.regions[n]; if (other && !other.neighbors.includes(r.id)) other.neighbors.push(r.id); }));
+  Object.values(out.regions).forEach((r) => r.neighbors.sort());
   return out;
 };
 
@@ -82,7 +165,7 @@ export const buildRegistry = (regions, year = -2000) => {
 export const syncWorldRegistry = (state) => {
   if (!state || !state.regions) return state;
   if (WORLD_REGISTRY.source === state.regions) return state;
-  const built = buildRegistry(state.regions, state.year);
+  const built = buildRegistry(state.regions);
   // Mutate in place: the exported objects are shared by reference with src/data/regions.js and
   // src/data/regionCoordinates.js.
   Object.keys(WORLD_REGISTRY.regions).forEach((k) => { delete WORLD_REGISTRY.regions[k]; });
@@ -116,7 +199,7 @@ export const ensureDefaultWorld = () => {
     });
   });
   Object.values(world.cities).forEach((c) => { regions[c.id] = { ...regions[c.id], tiles: c.tiles }; });
-  const built = buildRegistry(regions, -2000);
+  const built = buildRegistry(regions);
   Object.assign(WORLD_REGISTRY.regions, built.regions);
   Object.assign(WORLD_REGISTRY.coordinates, built.coordinates);
   Object.assign(WORLD_REGISTRY.capitals, built.capitals);

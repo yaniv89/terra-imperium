@@ -32,12 +32,13 @@ const coastTilesOf = (regionId) => {
 const reachCache = new WeakMap();
 const seaReach = (regionId, ageId) => {
   const key = REGIONS_DATA[regionId];
-  if (!key) return new Map();
+  if (!key || !key.isCoastal) return new Map();
   let perAge = reachCache.get(key);
   if (!perAge) { perAge = new Map(); reachCache.set(key, perAge); }
   if (perAge.has(ageId)) return perAge.get(ageId);
   const tiles = getTiles();
-  const maxTiles = NAVAL_REACH_KM[ageId] === Infinity ? 400 : Math.ceil((NAVAL_REACH_KM[ageId] || 0) / KM_PER_TILE);
+  // Whole tiles only, so a lane's km never exceeds the age's reach (one tile at Bronze).
+  const maxTiles = NAVAL_REACH_KM[ageId] === Infinity ? 400 : Math.max(1, Math.floor((NAVAL_REACH_KM[ageId] || 0) / KM_PER_TILE));
   const deepOk = DEEP_OK_FROM.includes(ageId);
   const dist = new Map();
   let frontier = coastTilesOf(regionId);

@@ -10,19 +10,31 @@ import { ActionTypes } from '../data/types';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
 import { estimateInvasionOdds } from './battleOdds';
-import { getNationCapital } from '../data/regions';
+import { getNationCapital, getNeighborIds } from '../data/regions';
+import { addCity, addCities } from './testWorld';
 import { createWorld, sideEdgeX } from '../battle/sim/world';
 import { firePower } from '../battle/sim/effects';
 
-const FR_BORDER = 'fr-80';
-const BE_REGION = 'be-wht';
+// The Dawn world gives France one city with no room beside it, so the fixture founds French
+// cities on the nearest free land: FR_BORDER (bordering a foreign capital, the war's target),
+// and FR_NEAR, a second French city bordering that target. The enemy is whoever owns the target.
+const WORLD = (() => {
+  const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
+  const target = getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
+  const near = addCity(first.state, 'fr', { near: target });
+  const AGG = near.state.regions[target].owner;
+  // The enemy gets three more cities, so losing the target is a fraction of its nation.
+  const grown = addCities(near.state, AGG, 3);
+  return { state: grown.state, FR_BORDER: first.cityId, BE_REGION: target, FR_NEAR: near.cityId, AGG, THIRD: AGG === 'de' ? 'it' : 'de' };
+})();
+const { FR_BORDER, BE_REGION, AGG, THIRD } = WORLD;
 
 const baseState = () => {
-  const s = createInitialState({ playerNationId: 'fr' });
+  const s = WORLD.state;
   return {
     ...s,
     resources: { ...s.resources, gold: 100000, hr: 100000, mil: 500, adm: 500, dip: 500 },
-    wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: 'be', active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
+    wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: AGG, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
   };
 };
 const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000) => ({
@@ -32,7 +44,7 @@ const withArmies = (state = baseState()) => ({
   ...state,
   units: {
     a1: unit('a1', FR_BORDER, 'fr'), a2: unit('a2', FR_BORDER, 'fr', 'cavalry'), a3: unit('a3', FR_BORDER, 'fr', 'ranged'),
-    d1: unit('d1', BE_REGION, 'be'), d2: unit('d2', BE_REGION, 'be', 'ranged', 800)
+    d1: unit('d1', BE_REGION, AGG), d2: unit('d2', BE_REGION, AGG, 'ranged', 800)
   }
 });
 const begin = (s) => gameReducer(s, { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
@@ -44,7 +56,7 @@ describe('BEGIN_TACTICAL_BATTLE', () => {
     expect(next.pendingBattle).toMatchObject({ fromRegionId: FR_BORDER, targetRegionId: BE_REGION, attackerUnitIds: ['a1', 'a2', 'a3'], defenderUnitIds: ['d1', 'd2'], playerSide: 'attacker' });
     expect(next.resources.mil).toBeLessThan(s.resources.mil);
     // locked: can't move, can't end the turn, can't start a second battle
-    const moved = gameReducer(next, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a1', toRegionId: 'fr-80' } });
+    const moved = gameReducer(next, { type: ActionTypes.MOVE_ARMY, payload: { unitId: 'a1', toRegionId: FR_BORDER } });
     expect(moved.units.a1.regionId).toBe(FR_BORDER);
     const turn = gameReducer(next, { type: ActionTypes.ADVANCE_TURN });
     expect(turn.turnNumber).toBe(next.turnNumber);
@@ -184,13 +196,13 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
   const withNeighbourTroops = () => {
     const s = withArmies();
     // Any French neighbour of the target that isn't the origin.
-    const neighbour = REGIONS_DATA[BE_REGION].neighbors.find((id) => id !== FR_BORDER && s.regions[id]?.owner === 'fr');
+    const neighbour = WORLD.FR_NEAR;
     return { s: { ...s, units: { ...s.units, r1: unit('r1', neighbour, 'fr', 'cavalry') } }, neighbour };
   };
 
   it('BEGIN records standby reinforcements from neighbouring provinces and locks them', () => {
     const s = withArmies();
-    const neighbours = ['fr-80', 'fr-80', 'fr-51', 'fr-80'];
+    const neighbours = REGIONS_DATA[BE_REGION].neighbors.filter((id) => s.regions[id]?.owner === 'fr');
     const next = begin(s);
     expect(Array.isArray(next.pendingBattle.attackerReinforcements)).toBe(true);
     // the origin province is never a "reinforcement" source
@@ -226,12 +238,12 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
     const s = { ...s0, nations: { ...s0.nations, fr: { ...s0.nations.fr, missiles: { tactical: 0, theatre: 0, icbm: 0, nuclear: 1 } } } };
     const started = begin(s);
     const pb = started.pendingBattle;
-    const before = started.nations.de.hostility;
+    const before = started.nations[THIRD].hostility;
     const result = { outcome: 'stalemate', attackerUnits: pb.attackerUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), defenderUnits: pb.defenderUnitIds.map((id) => ({ ...started.units[id], strength: 0 })), report: { tactical: { powersUsed: [{ nuclearStrike: 1 }, {}] } } };
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: pb.id, result } });
     expect(next.nations.fr.missiles.nuclear).toBe(0);
-    expect(next.nations.be.hostility).toBe(100);
-    expect(next.nations.de.hostility).toBeGreaterThan(before);
+    expect(next.nations[AGG].hostility).toBe(100);
+    expect(next.nations[THIRD].hostility).toBeGreaterThan(before);
     expect(next.regions[BE_REGION].nuclearScarred).toBe(true);
     expect(next.nations.fr.prestige).toBeLessThan(started.nations.fr.prestige || 0.0001);
   });
@@ -248,9 +260,9 @@ describe('T7: reinforcements, missiles and powers in the campaign', () => {
 });
 
 describe('T9: commanded amphibious landing', () => {
-  const GB_TARGET = 'gb-ios';
+  const GB_TARGET = getNationCapital('gb');
   const landingState = () => {
-    const s = createInitialState({ playerNationId: 'fr' });
+    const s = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
     const port = getNationCapital('fr');
     const units = {
       fleet: { id: 'fleet', regionId: port, ownerId: 'fr', domain: 'naval', classId: 'naval', strength: 1000, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1, transportCapacity: 2, embarkedOn: null },
@@ -327,9 +339,9 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
     const s0 = withArmies();
     const s = { ...s0, units: { a1: s0.units.a1 } };
     const taken = gameReducer(s, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
-    expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'fr', control: 25, formerOwner: 'be' });
+    expect(taken.regions[BE_REGION]).toMatchObject({ owner: 'fr', control: 25, formerOwner: AGG });
     expect(taken.regions[BE_REGION].occupiedBy).toBeUndefined();
-    expect(taken.regions[BE_REGION].conquest).toMatchObject({ warId: 'war_t', from: 'be' });
+    expect(taken.regions[BE_REGION].conquest).toMatchObject({ warId: 'war_t', from: AGG });
     expect(taken.logs.at(-1).message).toMatch(/conquered/);
     expect(taken.units.a1.regionId).toBe(BE_REGION);
     // Attacking it again is refused (it's your own land now), nothing is spent.
@@ -358,7 +370,7 @@ describe('conquest by battle (reported: "I won but the region didn\'t become min
     const s0 = withArmies();
     const taken = gameReducer({ ...s0, units: { a1: s0.units.a1 } }, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: FR_BORDER, targetRegionId: BE_REGION } });
     const war = { ...taken.wars.find((w) => w.id === 'war_t'), score: -60 };
-    expect(buildAITerms(taken, war, 'be')).toContainEqual({ type: 'cede', regionId: BE_REGION });
+    expect(buildAITerms(taken, war, AGG)).toContainEqual({ type: 'cede', regionId: BE_REGION });
   });
 
   it('the map shows occupation: an occupied region is drawn differently from its owner\'s land', async () => {

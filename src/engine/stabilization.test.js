@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { addCity } from './testWorld';
 import { createInitialState, gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { applyPeace, getPeaceCost } from './peace';
@@ -55,7 +56,7 @@ describe('AI lifecycle and recruitment', () => {
     expect(getSortedByMilitary(state)).not.toContain('de');
   });
   it('never recruits into an occupied province even when it is the most populous', () => {
-    const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const state = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 7 }), 'de').state;
     const owned = Object.values(state.regions).filter(r => r.owner === 'de');
     const occupied = owned[0];
     occupied.currentPopulation = 1e12;
@@ -66,7 +67,7 @@ describe('AI lifecycle and recruitment', () => {
     expect(Object.values(result.units)[0].regionId).not.toBe(occupied.id);
   });
   it('reinforces a threatened border before a distant population center', () => {
-    const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const state = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 7 }), 'de').state;
     const owned = Object.values(state.regions).filter(r => r.owner === 'de');
     const front = owned.find(r => getNeighborIds(r.id).some(id => state.regions[id]?.owner === 'fr'));
     const interior = owned.find(r => !getNeighborIds(r.id).some(id => state.regions[id]?.owner === 'fr'));

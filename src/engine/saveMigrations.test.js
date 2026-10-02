@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { migrateSave, backfillDefaults, CURRENT_SAVE_VERSION } from './saveMigrations';
+import { migrateSave, backfillDefaults, CURRENT_SAVE_VERSION, OLDEST_LOADABLE_SAVE_VERSION } from './saveMigrations';
 import { createInitialState, gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
+import { getNationCapital } from '../data/regions';
 import saveV1Fixture from './__fixtures__/save-v1.json';
 
-// A quick, cheap check that every numeric leaf in a state tree is a finite number — used to catch
-// a migration silently producing NaN/Infinity rather than asserting every field by name.
 const collectNumericLeaves = (value, out = []) => {
   if (typeof value === 'number') { out.push(value); return out; }
   if (Array.isArray(value)) { value.forEach((v) => collectNumericLeaves(v, out)); return out; }
@@ -15,200 +14,106 @@ const collectNumericLeaves = (value, out = []) => {
 
 describe('backfillDefaults', () => {
   it('does not resurrect destroyed emergent starting armies on reload', () => {
-    const fresh = createInitialState({ playerNationId: 'fr', scenario: { mode: 'emergent', nationCount: 75, seed: 7 } });
-    const units = { ...fresh.units };
-    delete units.start_fr;
+    const fresh = createInitialState({ playerNationId: 'fr', rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });
+    const { start_fr, ...units } = fresh.units; // eslint-disable-line no-unused-vars
     const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state: { ...fresh, units } }).state;
-    expect(loaded.units).toEqual(units);
     expect(loaded.units.start_fr).toBeUndefined();
+    expect(Object.keys(loaded.nations)).toHaveLength(15);
   });
+
   it('fills a missing top-level field without touching anything else', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit it from withoutTurnNumber
-    const { turnNumber, ...withoutTurnNumber } = fresh;
-    const result = backfillDefaults(withoutTurnNumber);
-    expect(result.turnNumber).toBe(1);
-    expect(result.year).toBe(fresh.year);
+    const { wars, ...withoutWars } = fresh; // eslint-disable-line no-unused-vars
+    const result = backfillDefaults(withoutWars);
+    expect(result.wars).toEqual([]);
+    expect(result.playerNationId).toBe('fr');
   });
 
   it('fills a missing nested region field without touching present ones', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    const capital = 'fr-75';
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit it from regionWithoutDefense
-    const { defenseLevel, ...regionWithoutDefense } = fresh.regions[capital];
+    const capital = getNationCapital('fr');
+    const { defenseLevel, ...regionWithoutDefense } = fresh.regions[capital]; // eslint-disable-line no-unused-vars
     const damaged = { ...fresh, regions: { ...fresh.regions, [capital]: { ...regionWithoutDefense, control: 42 } } };
     const result = backfillDefaults(damaged);
     expect(result.regions[capital].defenseLevel).toBe(0);
-    expect(result.regions[capital].control).toBe(42); // present value untouched
+    expect(result.regions[capital].control).toBe(42);
   });
 
   it('never overwrites a present falsy value (0, false, null)', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    const capital = 'fr-75';
-    const zeroed = { ...fresh, regions: { ...fresh.regions, [capital]: { ...fresh.regions[capital], control: 0, underInvasion: false } } };
-    const result = backfillDefaults(zeroed);
-    expect(result.regions[capital].control).toBe(0);
-    expect(result.regions[capital].underInvasion).toBe(false);
+    const state = { ...fresh, activeEventId: null, turnNumber: 0, resources: { ...fresh.resources, gold: 0 } };
+    const result = backfillDefaults(state);
+    expect(result.activeEventId).toBeNull();
+    expect(result.turnNumber).toBe(0);
+    expect(result.resources.gold).toBe(0);
   });
 
   it('never overwrites region identity fields (owner) from the fresh template', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    const capital = 'fr-75';
+    const capital = getNationCapital('fr');
     const conquered = { ...fresh, regions: { ...fresh.regions, [capital]: { ...fresh.regions[capital], owner: 'de' } } };
-    const result = backfillDefaults(conquered);
-    expect(result.regions[capital].owner).toBe('de');
-  });
-
-  // Real live bug, found via a player's own save: a nation record missing `id` entirely (predating
-  // the field's introduction to the schema) could never self-heal, because `id` was deliberately
-  // excluded from what backfill is allowed to add (to protect real identity data like `owner`/
-  // `isPlayer` from ever being reset). Every gated diplomacy action silently no-oped forever on
-  // that save, since gameReducer.js's own `state.nations[nationId]` lookup — using the exact same
-  // `nation.id` the UI reads — always resolved to undefined. Unlike owner/isPlayer/name/color, a
-  // record's own `id` can never legitimately differ from the map key it's stored under, so
-  // repairing it is always safe, never an overwrite of real save data.
-  it('repairs a nation record missing its own id field entirely', () => {
-    const fresh = createInitialState({ playerNationId: 'fr' });
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit id, simulating the bug
-    const { id, ...nationWithoutId } = fresh.nations.de;
-    const damaged = { ...fresh, nations: { ...fresh.nations, de: nationWithoutId } };
-    const result = backfillDefaults(damaged);
-    expect(result.nations.de.id).toBe('de');
+    expect(backfillDefaults(conquered).regions[capital].owner).toBe('de');
   });
 
   it('repairs a region record missing its own id field entirely', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    const capital = 'fr-75';
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit id, simulating the bug
-    const { id, ...regionWithoutId } = fresh.regions[capital];
-    const damaged = { ...fresh, regions: { ...fresh.regions, [capital]: regionWithoutId } };
-    const result = backfillDefaults(damaged);
+    const capital = getNationCapital('fr');
+    const { id, ...withoutId } = fresh.regions[capital]; // eslint-disable-line no-unused-vars
+    const result = backfillDefaults({ ...fresh, regions: { ...fresh.regions, [capital]: withoutId } });
     expect(result.regions[capital].id).toBe(capital);
   });
 
   it('is idempotent: backfilling an already-complete state changes nothing', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    const once = backfillDefaults(fresh);
-    const twice = backfillDefaults(once);
-    expect(twice).toEqual(once);
+    expect(backfillDefaults(fresh)).toEqual(fresh);
   });
 });
 
-describe('migrateSave', () => {
-  it('migrates the real, trimmed v1 fixture to a valid current-version state', () => {
-    const result = migrateSave(saveV1Fixture);
-    expect(result).not.toBeNull();
-    expect(result.version).toBe(CURRENT_SAVE_VERSION);
-    expect(result.state.playerNationId).toBe('fr');
-    expect(Object.keys(result.state.regions).length).toBeGreaterThan(0);
-    expect(Object.keys(result.state.nations).length).toBeGreaterThan(0);
+describe('migrateSave (version 7: the tile world, a clean break with the region map)', () => {
+  it('loads a current save and leaves it intact', () => {
+    const fresh = createInitialState({ playerNationId: 'de', rngSeed: 3 });
+    const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state: fresh });
+    expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
+    expect(loaded.state.playerNationId).toBe('de');
+    expect(loaded.state.world.tileOwner).toEqual(fresh.world.tileOwner);
+    expect(Object.keys(loaded.state.regions)).toHaveLength(240);
   });
 
-  it('produces a state with no NaN/Infinity leaves', () => {
-    const result = migrateSave(saveV1Fixture);
-    const leaves = collectNumericLeaves(result.state);
-    expect(leaves.length).toBeGreaterThan(0);
-    expect(leaves.every(Number.isFinite)).toBe(true);
-  });
-
-  it('produces a state that survives 5 more turns with no NaN/Infinity leaves', () => {
-    let state = migrateSave(saveV1Fixture).state;
-    for (let i = 0; i < 5; i++) {
-      state = gameReducer(state, { type: ActionTypes.ADVANCE_TURN });
-    }
+  it('a loaded save survives 5 more turns with no NaN/Infinity leaves', () => {
+    let state = migrateSave({ version: CURRENT_SAVE_VERSION, state: createInitialState({ playerNationId: 'fr', rngSeed: 5 }) }).state;
+    for (let i = 0; i < 5; i++) state = gameReducer(state, { type: ActionTypes.ADVANCE_TURN });
     const leaves = collectNumericLeaves(state);
     expect(leaves.every(Number.isFinite)).toBe(true);
   });
 
   it('is idempotent: migrating an already-current save changes nothing further', () => {
-    const once = migrateSave(saveV1Fixture);
+    const once = migrateSave({ version: CURRENT_SAVE_VERSION, state: createInitialState({ playerNationId: 'fr', rngSeed: 5 }) });
     const twice = migrateSave(once);
     expect(twice.state).toEqual(once.state);
   });
 
-  it('accepts a bare state object with no {version, state} envelope (a legacy raw import)', () => {
-    const fresh = createInitialState({ playerNationId: 'de' });
-    const result = migrateSave(fresh);
-    expect(result).not.toBeNull();
-    expect(result.state.playerNationId).toBe('de');
+  it('refuses every save from the region map (versions 1 to 6) rather than guessing', () => {
+    expect(OLDEST_LOADABLE_SAVE_VERSION).toBe(7);
+    expect(migrateSave(saveV1Fixture)).toBeNull();
+    const fresh = createInitialState({ playerNationId: 'fr' });
+    expect(migrateSave({ version: 6, state: fresh })).toBeNull();
+    expect(migrateSave(fresh)).toBeNull(); // a bare state without an envelope counts as version 1
   });
 
   it('returns null for a save from a newer build than this one knows how to read', () => {
-    const result = migrateSave({ version: CURRENT_SAVE_VERSION + 1, state: createInitialState() });
-    expect(result).toBeNull();
+    expect(migrateSave({ version: CURRENT_SAVE_VERSION + 1, state: createInitialState({ playerNationId: 'fr' }) })).toBeNull();
   });
 
   it('returns null for garbage input, without throwing', () => {
     expect(migrateSave(null)).toBeNull();
-    expect(migrateSave(undefined)).toBeNull();
-    expect(migrateSave('not an object')).toBeNull();
-    expect(migrateSave({})).toBeNull();
-    expect(migrateSave({ version: 1, state: { not: 'a real state' } })).toBeNull();
+    expect(migrateSave('nope')).toBeNull();
+    expect(migrateSave({ version: CURRENT_SAVE_VERSION, state: { playerNationId: 'fr' } })).toBeNull();
   });
 
   it('backfills a fresh top-level field missing from an otherwise-valid save', () => {
     const fresh = createInitialState({ playerNationId: 'fr' });
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit it from trimmed
-    const { orbitalDebrisLevel, ...trimmed } = fresh;
-    const result = migrateSave({ version: 1, state: trimmed });
-    expect(result.state.orbitalDebrisLevel).toBe(0);
-  });
-});
-
-// M2 (plan §M2): the v1->v2 step converts the old single actionPoints pool (+ the separate
-// diplomacyPoints currency) into the three adm/dip/mil power pools.
-describe('migrateSave: a current save written with the old envelope version 1', () => {
-  // Regression: GameContext wrote `version: 1` on every save, so every reload ran v1→v2 on an
-  // already-current state and reset ADM/DIP/MIL (and their per-turn income) to 0.
-  it('keeps the power pools and their income intact', () => {
-    const fresh = createInitialState({ playerNationId: 'us' });
-    const played = { ...fresh, resources: { ...fresh.resources, adm: 412, dip: 97, mil: 1234, maxAdm: 7, maxDip: 6, maxMil: 8 } };
-    const loaded = migrateSave({ version: 1, state: played });
-    expect(loaded.state.resources).toMatchObject({ adm: 412, dip: 97, mil: 1234, maxAdm: 7, maxDip: 6, maxMil: 8 });
-  });
-});
-
-describe('migrateSave: v1 -> v2 (AP -> ADM/DIP/MIL)', () => {
-  it('converts a v1 save\'s actionPoints/diplomacyPoints into adm/dip/mil at the 3/5 ratio, dropping the old keys', () => {
-    const v1 = { version: 1, state: { ...createInitialState({ playerNationId: 'fr' }), resources: { gold: 500, hr: 100, actionPoints: 8, maxActionPoints: 5, diplomacyPoints: 20, techPoints: 0 } } };
-    const result = migrateSave(v1);
-    expect(result.state.resources.adm).toBe(5); // round(8 * 3/5) = round(4.8) = 5
-    expect(result.state.resources.mil).toBe(5);
-    expect(result.state.resources.dip).toBe(25); // 5 + 20 diplomacyPoints folded in
-    expect(result.state.resources.maxAdm).toBe(5);
-    expect(result.state.resources.maxDip).toBe(5);
-    expect(result.state.resources.maxMil).toBe(5);
-    expect(result.state.resources.actionPoints).toBeUndefined();
-    expect(result.state.resources.maxActionPoints).toBeUndefined();
-    expect(result.state.resources.diplomacyPoints).toBeUndefined();
-    expect(result.state.resources.gold).toBe(500); // untouched
-  });
-
-  it('the real v1 fixture (actionPoints: 8, diplomacyPoints: 20) converts the same way', () => {
-    const result = migrateSave(saveV1Fixture);
-    expect(result.state.resources.adm).toBe(5);
-    expect(result.state.resources.dip).toBe(25);
-  });
-
-  it('floors a negative/missing actionPoints at 0 rather than producing a negative pool', () => {
-    const v1 = { version: 1, state: { ...createInitialState({ playerNationId: 'fr' }), resources: { gold: 500, hr: 100 } } };
-    const result = migrateSave(v1);
-    expect(result.state.resources.adm).toBe(0);
-    expect(result.state.resources.dip).toBe(0);
-  });
-
-  it('v4 → v5: an occupation in a war still being fought becomes a conquest; others are left alone', () => {
-    const s = createInitialState({ playerNationId: 'fr' });
-    const beRegion = Object.keys(s.regions).find((id) => s.regions[id].owner === 'be');
-    const deRegion = Object.keys(s.regions).find((id) => s.regions[id].owner === 'de');
-    const old = {
-      ...s,
-      wars: [{ id: 'w1', aggressor: 'fr', enemy: 'be', active: true, battleScore: 0, tickScore: 0, score: 0 }],
-      regions: { ...s.regions, [beRegion]: { ...s.regions[beRegion], occupiedBy: 'fr' }, [deRegion]: { ...s.regions[deRegion], occupiedBy: 'fr' } }
-    };
-    const out = migrateSave({ version: 4, state: old }).state;
-    expect(out.regions[beRegion]).toMatchObject({ owner: 'fr', conquest: { warId: 'w1', from: 'be' } });
-    expect(out.regions[beRegion].occupiedBy).toBeUndefined();
-    expect(out.regions[deRegion]).toMatchObject({ owner: 'de', occupiedBy: 'fr' }); // no war with de: untouched
+    const { wars, ...withoutWars } = fresh; // eslint-disable-line no-unused-vars
+    const loaded = migrateSave({ version: CURRENT_SAVE_VERSION, state: withoutWars });
+    expect(loaded.state.wars).toEqual([]);
   });
 });

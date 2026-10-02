@@ -38,6 +38,7 @@ describe('economic and scenario connections',()=>{
   it('late emergence uses only neutral territory and keeps valid capital and save metadata',()=>{
     const s=createInitialState({playerNationId:'fr',rngSeed:7,scenario:{mode:'emergent',nationCount:15,seed:7}});s.turnNumber=50;
     const next=processEmergence(s);expect(Object.keys(next.nations)).toHaveLength(16);
-    const id=next.scenario.activeNationIds.at(-1);expect(s.regions[next.nations[id].capitalRegionId].owner).toBeNull();assertGameState(next);
+    const id=next.scenario.activeNationIds.at(-1);const capital=next.nations[id].capitalRegionId;
+    expect(s.regions[capital]).toBeUndefined();expect(s.world.tileOwner[next.regions[capital].tile]).toBeUndefined();expect(next.regions[capital].owner).toBe(id);assertGameState(next);
   });
 });
