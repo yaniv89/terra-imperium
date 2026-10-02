@@ -35,6 +35,7 @@ import { getAvailableClasses } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
 import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
+import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTemplates';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -267,6 +268,7 @@ export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {})
     case 'unit': return Math.round(UNIT_BASE_COST * (1 + UNIT_COST_PER_AGE * AGE_ORDER.indexOf(ageId)) * (UNIT_CLASS_COST[item.classId] || 1));
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
+    case 'army': { const next = nextTemplateUnit(item); return next ? productionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
     default: return item.cost || 9999;
   }
 };
@@ -290,6 +292,8 @@ export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'b
     }
     case 'settler':
       return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, reason: `Needs size ${SETTLER_MIN_SIZE}.` };
+    case 'army':
+      return validateTemplate(item, ageId);
     default:
       return { ok: false, reason: 'Unknown item.' };
   }
@@ -424,6 +428,16 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     } else if (item.kind === 'settler') {
       if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(`${c.name} sends out settlers.`); }
       else { production = { ...production, progress: production.progress + cost }; break; } // wait for people
+    } else if (item.kind === 'army') {
+      // One piece of the army at a time (armyTemplates.js); the order stays current until complete.
+      const classId = nextTemplateUnit(item);
+      const built = { ...(item.built || {}), [classId]: ((item.built || {})[classId] || 0) + 1 };
+      completed.push({ kind: 'unit', classId, army: { id: item.armyId, name: item.name }, city: c.id, tile: c.tile });
+      const order = { ...item, built };
+      const { done, total } = templateProgress(order);
+      logs.push(`${c.name} trains ${classId} for ${item.name} (${done}/${total}).`);
+      if (done < total) { production = { ...production, current: order }; continue; }
+      logs.push(`${item.name} is complete at ${c.name}.`);
     } else {
       completed.push({ ...item, city: c.id, tile: c.tile });
       if (item.kind === 'unit') logs.push(`${c.name} trains ${item.classId}.`);

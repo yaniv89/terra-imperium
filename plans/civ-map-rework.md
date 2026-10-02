@@ -1859,6 +1859,17 @@ even armies 8/16 attacker wins against auto-resolve's 8/16 (was 3/16), exchange 
 in D5: the deployment phase by type, the AI's deployment templates, the parity harness over the
 new types, the map's battle marker, auto-resolve reading the type.
 
+**Workstream 5, wave 2: army templates (2026-10-02).** `src/engine/armyTemplates.js`. The player
+names a composition (`nation.armyTemplates`; two defaults, Legion and Siege train, until they
+write their own; at most TEMPLATE_MAX_UNITS 12) and queues it in a city as one production item
+(`kind: 'army'`, expanded from the template at queue time so later edits never change an order):
+the city builds the missing pieces one by one at each class's own cost (cities.js), every unit
+appears on the city tile carrying `army: { id, name }`, and the order leaves the queue when the
+last piece is done. Actions SAVE_ARMY_TEMPLATE and DELETE_ARMY_TEMPLATE; the city sheet's build
+tab has an Armies group and a template editor (name, a counter per class of the age). Tests in
+armyTemplates.test.js. Still open in D4: the army sheet grouping units by army (workstream 12),
+mercenaries, generals attached to an army by name, the AI building templates.
+
 ---
 
 ---

@@ -115,6 +115,7 @@ import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, ge
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
+import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 const NAVAL_TRANSPORT_CAPACITY = 2;
@@ -2990,10 +2991,26 @@ const reduceAction = (state, action) => {
 
     // Cities (plans/civ-map-rework.md C1): production queue, focus, locks, buying tiles. All on
     // the player's own cities; the AI governor (workstream 9) drives the same functions.
+    case ActionTypes.SAVE_ARMY_TEMPLATE: {
+      // Army templates (armyTemplates.js): a named composition the cities build as one order.
+      const { template } = action.payload || {};
+      const ok = validateTemplate(template, getEffectiveAgeId(state.age, state.techAgeId));
+      if (!ok.ok) return reject(state, ok.reason);
+      const me = state.nations[state.playerNationId];
+      return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
+    }
+    case ActionTypes.DELETE_ARMY_TEMPLATE: {
+      const me = state.nations[state.playerNationId];
+      return { ...state, nations: { ...state.nations, [state.playerNationId]: deleteTemplate(me, action.payload?.id) } };
+    }
     case ActionTypes.QUEUE_PRODUCTION: {
-      const { cityId: id, item } = action.payload || {};
+      const { cityId: id, item: raw } = action.payload || {};
       const city = state.regions[id];
-      if (!city || city.owner !== state.playerNationId || !item) return reject(state, 'Not your city.');
+      if (!city || city.owner !== state.playerNationId || !raw) return reject(state, 'Not your city.');
+      // An army order is expanded from its template here, so later edits never change a queued order.
+      const template = raw.kind === 'army' ? templatesOf(state.nations[state.playerNationId]).find((t) => t.id === raw.templateId) : null;
+      if (raw.kind === 'army' && !template) return reject(state, 'No such army template.');
+      const item = template ? armyOrder(template, city, state.turnNumber) : raw;
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
       const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
       if (!ok.ok) return reject(state, ok.reason);

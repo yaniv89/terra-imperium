@@ -29,6 +29,8 @@ export const ActionTypes = {
   // Cities on the tile world (plans/civ-map-rework.md C1): the production queue, the tile focus
   // and locks, and buying a tile.
   QUEUE_PRODUCTION: 'QUEUE_PRODUCTION',
+  SAVE_ARMY_TEMPLATE: 'SAVE_ARMY_TEMPLATE',
+  DELETE_ARMY_TEMPLATE: 'DELETE_ARMY_TEMPLATE',
   DEQUEUE_PRODUCTION: 'DEQUEUE_PRODUCTION',
   SET_CITY_FOCUS: 'SET_CITY_FOCUS',
   TOGGLE_TILE_LOCK: 'TOGGLE_TILE_LOCK',

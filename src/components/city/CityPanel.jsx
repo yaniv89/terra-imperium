@@ -19,6 +19,7 @@ import { IMPROVEMENTS, tileFacts, tileYields, canImprove } from '../../data/tile
 import {
   FOCUS, growthThreshold, housingOf, amenitiesOf, productionCost, canQueue, claimCandidates, buyTileCost, MAX_SIZE, allocateTiles, cityYields
 } from '../../engine/world/cities';
+import { templatesOf, nextTemplateUnit, templateProgress, templateSize } from '../../engine/armyTemplates';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -35,6 +36,7 @@ const itemLabel = (item, tiles) => {
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;
   if (item.kind === 'settler') return 'Settlers (takes one citizen, founds a city)';
+  if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); return next ? `${item.name}: ${UNIT_CLASSES[next]?.name || next} (${p.done + 1} of ${p.total})` : `${item.name} (${p.total} units)`; }
   return item.kind;
 };
 
@@ -75,6 +77,11 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       const item = { kind: 'unit', classId };
       out.push({ item, group: 'Units', ...check(item) });
     });
+    // Armies (armyTemplates.js): one order per template, built piece by piece.
+    templatesOf(state.nations[state.playerNationId]).forEach((t) => {
+      const item = { kind: 'army', templateId: t.id, name: t.name, composition: t.composition, built: {} };
+      out.push({ item, group: 'Armies', ...check(item) });
+    });
     Object.keys(BUILDING_CATEGORIES).forEach((category) => {
       const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
       if (!BUILDING_CATEGORIES[category].tiers[tier]) return;
@@ -93,7 +100,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     // Queued improvements are not offered twice.
     const queued = new Set([city.production.current, ...city.production.queue].filter(Boolean).map((i) => JSON.stringify(i)));
     return out.filter((o) => !queued.has(JSON.stringify(o.item)));
-  }, [city, tiles, world, researched, ageId]);
+  }, [city, tiles, world, researched, ageId, state.nations, state.playerNationId]);
 
   const tileRows = useMemo(() => {
     if (!city) return [];
@@ -232,7 +239,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         )}
       </div>
 
-      {mine && ['Units', 'Buildings', 'Improvements'].map((group) => {
+      {mine && ['Units', 'Armies', 'Buildings', 'Improvements'].map((group) => {
         const rows = options.filter((o) => o.group === group);
         if (!rows.length) return null;
         return (
@@ -257,6 +264,54 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           </div>
         );
       })}
+      {mine && <ArmyTemplateEditor state={state} dispatch={dispatch} ageId={ageId} />}
+    </div>
+  );
+};
+
+// Army templates (src/engine/armyTemplates.js): name a composition, the cities build it as one order.
+const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
+  const templates = templatesOf(state.nations[state.playerNationId]);
+  const classes = getAvailableClasses(ageId).filter((c) => c !== 'naval');
+  const [draft, setDraft] = React.useState(null);
+  const edit = (t) => setDraft({ id: t?.id || null, name: t?.name || '', composition: { ...(t?.composition || {}) } });
+  const bump = (c, d) => setDraft((x) => ({ ...x, composition: { ...x.composition, [c]: Math.max(0, (x.composition[c] | 0) + d) } }));
+  return (
+    <div className="mt-3 border-t border-slate-800 pt-2" data-testid="army-templates">
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-[11px] font-semibold text-slate-300">Army templates</div>
+        <button type="button" onClick={() => edit(null)} className="text-[11px] text-emerald-300 min-h-[32px] px-2">New</button>
+      </div>
+      <ul className="space-y-1 text-xs">
+        {templates.map((t) => (
+          <li key={t.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] bg-slate-800/40 border border-slate-700/60">
+            <div className="min-w-0 flex-1 truncate text-slate-100">{t.name} <span className="text-slate-400">({templateSize(t.composition)} units: {Object.entries(t.composition).map(([c, n]) => `${n} ${UNIT_CLASSES[c]?.name || c}`).join(', ')})</span></div>
+            <button type="button" onClick={() => edit(t)} className="text-slate-300 min-h-[32px] px-2">Edit</button>
+            <button type="button" onClick={() => dispatch({ type: ActionTypes.DELETE_ARMY_TEMPLATE, payload: { id: t.id } })} aria-label={`Delete ${t.name}`} className="text-red-300 min-h-[32px] px-2">Delete</button>
+          </li>
+        ))}
+      </ul>
+      {draft && (
+        <div className="mt-2 rounded-lg border border-emerald-700/60 bg-slate-900/60 p-2 space-y-2 text-xs" data-testid="army-template-editor">
+          <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Army name" className="w-full bg-slate-800 rounded px-2 min-h-[36px] text-white" aria-label="Army name" />
+          <div className="grid grid-cols-2 gap-1">
+            {classes.map((c) => (
+              <div key={c} className="flex items-center justify-between rounded bg-slate-800/60 px-2 min-h-[36px]">
+                <span className="text-slate-200">{UNIT_CLASSES[c]?.name || c}</span>
+                <span className="flex items-center gap-1">
+                  <button type="button" onClick={() => bump(c, -1)} className="min-w-[32px] min-h-[32px] rounded bg-slate-700 text-white" aria-label={`Fewer ${c}`}>-</button>
+                  <span className="w-5 text-center text-white">{draft.composition[c] | 0}</span>
+                  <button type="button" onClick={() => bump(c, 1)} className="min-w-[32px] min-h-[32px] rounded bg-slate-700 text-white" aria-label={`More ${c}`}>+</button>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { dispatch({ type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: draft } }); setDraft(null); }} disabled={!draft.name.trim() || templateSize(draft.composition) < 1} className="flex-1 min-h-[40px] rounded-lg bg-emerald-700 text-white disabled:opacity-40" data-testid="save-army-template">Save</button>
+            <button type="button" onClick={() => setDraft(null)} className="min-h-[40px] px-3 rounded-lg bg-slate-700 text-slate-200">Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
