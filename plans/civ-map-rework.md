@@ -1806,9 +1806,8 @@ RELIEF_RATIO (1.2). RAIDS: a stack halted on an enemy tile with an improvement p
 improvement stops yielding, tileYields.js; RAID_GOLD 20 to the raider; the player is told when
 it is their land). DICE: the AI war's capture roll (diplomacy.js resolveWarProgress) now fires
 only when the goal city is out of the player's sight (sight.js); within sight the real sieges,
-assaults and relief decide, as D6 asks. Tests in threat.test.js. Still open in D6: calibrating
-the dice against the real sim (the world's wars stay few, see the Part H keys), raids on trade
-routes, a pillage order for the player's armies.
+assaults and relief decide, as D6 asks. Tests in threat.test.js. Raids on trade routes and the
+pillage order followed (D6 wave 3 entry); still open: calibrating the dice against the real sim.
 
 **Workstream 11, wave 2: events pinned to cities, disasters by tile facts (2026-10-02).**
 Procedural events (src/data/proceduralEvents.js) name the city they happen to: every template
@@ -1918,6 +1917,20 @@ army sheet, the settlers' tile, the tech or diplomacy tab; `selectArmy` and `sel
 window events MapContainer listens to) and the chevron skips to the next. End Turn is never
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
+
+**D6 wave 3 and D5b, raids on trade routes, the pillage order, the trade lens (2026-10-02).**
+`src/engine/plunder.js`. A caravan now goes round an enemy stack when it can (tradeRoutes.js
+`findCaravanPath` avoids tiles with enemy armies); when every way is cut, the land route is
+PLUNDERED: the raider (a nation at war with the player, or rebels) takes PLUNDER_GOLD (15,
+doubled by Chieftaincy), the pact's gold line is gone that turn (sources.js reads
+`getTradeRoute(...).ok`) and the player is told. A sea route is plundered when an enemy RAIDER
+fleet (navalLines.js) lies within RAIDER_REACH_RINGS (2) of either port's waters. Applied once a
+turn in the diplomacy phase (`plunderedRoutes`). The player's armies get the PILLAGE order
+(reducer PILLAGE_TILE, the army sheet's "Pillage the Farm (+20 gold)" button): a stack halted on
+an enemy tile with an unburnt improvement burns it for RAID_GOLD and spends its moves. A Trade
+lens (key 7) draws every pact's caravan path (amber) or sea link (dashed blue), red with a mark
+on the raider's tile when plundered. Tests in plunder.test.js. Still open in D6: calibrating
+the dice against the real sim, AI stacks that seek the player's routes on purpose.
 
 **C4.2, estates on the map (2026-10-02).** `src/engine/estateLand.js`. The player's countryside
 (every tile their cities own, centres aside) is split between the crown and the estates:

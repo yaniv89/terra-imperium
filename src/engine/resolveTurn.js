@@ -92,6 +92,7 @@ import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { lawRulesOf } from './lawRules';
 import { estateLandEffects } from './estateLand';
+import { plunderedRoutes, plunderGoldFor } from './plunder';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
 import { navalCargo } from '../data/navalLines';
@@ -903,6 +904,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   Object.assign(nations, decayAggressiveExpansion(nations));
   // Claims on cities (claims.js): the ones being fabricated complete, the ones on cities now owned drop.
   advanceClaims(nations, regions, newTurnNumber).forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.DIPLOMACY }); });
+  // Raids on the player's trade routes (plunder.js): the raider takes the gold, the player is told.
+  plunderedRoutes({ ...state, regions, units, nations }).forEach((p) => {
+    const gold = plunderGoldFor(state, p.by);
+    const raider = nations[p.by];
+    if (raider) nations[p.by] = { ...raider, economy: { ...(raider.economy || {}), gold: ((raider.economy || {}).gold || 0) + gold } };
+    logs.push({ year: newYear, message: `${raider?.name || 'Rebels'} plunder your ${p.kind} trade route to ${nations[p.partnerId]?.name || p.partnerId} (${getTiles().names[p.tile] || 'a tile'}): no trade this turn.`, type: LogTypes.COMBAT });
+  });
   // Nations that fear the same conqueror band together in defensive pacts (src/engine/pacts.js).
   {
     const pacts = updateDefensivePacts(nations, { playerNationId: state.playerNationId, turnNumber: newTurnNumber });

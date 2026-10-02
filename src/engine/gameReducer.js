@@ -1,5 +1,5 @@
 import { orderMarch, cancelRoute, placeName } from './routes';
-import { normalizeUnitTiles, regionForTile, tileAccess, passableTile } from './armies';
+import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { abandonColony, foundColony, validateColony } from './colonies';
@@ -89,6 +89,7 @@ import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDef
 import { applyEventEffects } from './applyEventEffects';
 import { resolveBattle } from './battle';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
+import { pillageTile } from './threat';
 import { canPromote, getPerk } from '../data/promotions';
 import { generateGeneral } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -3001,6 +3002,27 @@ const reduceAction = (state, action) => {
       if (!ok.ok) return reject(state, ok.reason);
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
+    }
+    case ActionTypes.PILLAGE_TILE: {
+      // The army sheet's pillage order (plan D6): a stack halted on an enemy tile with an
+      // improvement burns it (threat.js pillageTile: the raid's gold, doubled by Chieftaincy) and
+      // spends the stack's moves. Needs at least one unit with a move left.
+      const { unitIds = [] } = action.payload || {};
+      const mine = unitIds.map((id) => state.units[id]).filter((u) => u && u.ownerId === state.playerNationId && u.domain !== 'naval' && !u.embarkedOn && u.strength > 0);
+      if (!mine.length || !mine.some((u) => (u.movesLeft ?? 0) > 0)) return state;
+      const tile = unitTile(state, mine[0]);
+      const enemies = new Set([REBEL_OWNER_ID, ...(state.wars || []).filter((w) => w.active && (w.aggressor === state.playerNationId || w.enemy === state.playerNationId)).map((w) => (w.aggressor === state.playerNationId ? w.enemy : w.aggressor))]);
+      const raid = tile == null ? null : pillageTile(state, state.playerNationId, tile, enemies);
+      if (!raid) return state;
+      const units = { ...state.units };
+      mine.forEach((u) => { units[u.id] = { ...u, movesLeft: 0, route: null }; });
+      return {
+        ...state,
+        units,
+        world: { ...state.world, tileState: raid.tileState },
+        resources: { ...state.resources, gold: (state.resources.gold || 0) + raid.gold },
+        logs: [...state.logs, { year: state.year, message: `Your army pillages ${getTiles().names[tile] || 'the land'} of ${state.regions[raid.cityId]?.name || 'the enemy'}: +${raid.gold} gold.`, type: LogTypes.COMBAT }]
+      };
     }
     case ActionTypes.RENAME_ARMY: {
       // The army sheet names a stack: every unit of it carries the same army tag from now on.
