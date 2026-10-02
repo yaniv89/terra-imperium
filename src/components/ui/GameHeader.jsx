@@ -11,6 +11,7 @@ import ResourceBar from './ResourceBar';
 import { getResearchView } from '../panels/researchView';
 import { openPanelTab } from '../panels/panelEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import NextPrompt from './NextPrompt';
 
 // plan §M0.5's header cloud status icon: guest/idle (not signed in — nothing to sync), synced,
 // syncing, offline (queued, will retry), conflict/error (needs attention, red).
@@ -89,6 +90,7 @@ const ResearchPill = ({ state, compact }) => {
 // End Turn and Fast Forward: the same two buttons in every layout.
 const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => (
   <>
+    {!isGameOver && <NextPrompt />}
     <button
       onClick={advanceTurn}
       disabled={state.activeEventId !== null || isGameOver}

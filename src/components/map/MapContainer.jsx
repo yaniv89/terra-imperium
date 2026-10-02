@@ -46,6 +46,7 @@ import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
+import { SELECT_ARMY, SELECT_TILE } from './marchEvents';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -79,6 +80,14 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) setLens(l.id); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  // The next prompt opens an army sheet or a tile sheet from the header (marchEvents.js).
+  useEffect(() => {
+    const onArmy = (e) => { setSelectedArmy(e.detail); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
+    const onTile = (e) => { setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
+    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile);
+    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // the tile of one of your armies: its sheet (ArmySheet.jsx)
   const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
   const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) { setSelectedTile(null); setSelectedArmy(null); } selectRegion(id); } };
