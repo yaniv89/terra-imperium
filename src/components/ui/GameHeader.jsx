@@ -2,6 +2,7 @@
 // Main game header with title, nation, age/year, resources, and end turn button
 
 import React, { useEffect, useRef, useState } from 'react';
+import { SAVE_PROBLEM_TEXT } from '../../engine/saveMigrations';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { Beaker, Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -188,7 +189,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
     const reader = new FileReader();
     reader.onload = () => {
       const ok = importSave(String(reader.result));
-      if (!ok) window.alert('Could not load that save file — it may be corrupted or from an incompatible version.');
+      if (ok !== true) window.alert(SAVE_PROBLEM_TEXT[ok] || SAVE_PROBLEM_TEXT.corrupt);
     };
     reader.readAsText(file);
     e.target.value = '';

@@ -117,3 +117,18 @@ describe('migrateSave (version 7: the tile world, a clean break with the region 
     expect(loaded.state.wars).toEqual([]);
   });
 });
+
+describe('saveProblem (the save v7 screen)', () => {
+  it('names why a save cannot load, and null when it can', async () => {
+    const { saveProblem, CURRENT_SAVE_VERSION, SAVE_PROBLEM_TEXT } = await import('./saveMigrations');
+    const { createInitialState } = await import('./gameReducer');
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
+    expect(saveProblem({ version: CURRENT_SAVE_VERSION, state })).toBeNull();
+    expect(saveProblem({ version: 6, state })).toBe('tooOld');
+    expect(saveProblem({ version: CURRENT_SAVE_VERSION + 1, state })).toBe('tooNew');
+    expect(saveProblem({ version: CURRENT_SAVE_VERSION, state: { hello: 1 } })).toBe('corrupt');
+    expect(saveProblem(null)).toBe('corrupt');
+    expect(saveProblem('text')).toBe('corrupt');
+    ['tooOld', 'tooNew', 'corrupt'].forEach((k) => expect(SAVE_PROBLEM_TEXT[k]).toBeTruthy());
+  });
+});

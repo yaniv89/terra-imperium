@@ -1918,6 +1918,20 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**Workstream 13, wave 5: the save v7 screen, the space race, turn time at the city cap
+(2026-10-02).** `saveMigrations.js saveProblem` names why a save cannot load (tooOld: the
+province map, tooNew, corrupt) and `SAVE_PROBLEM_TEXT` says it in words; an unreadable save is
+no save to resume (the start screen shows), it is set aside under OLD_SAVE_KEY before the fresh
+game's first autosave, and `OldSaveNotice.jsx` tells the player once with a download button
+(the import alert names the reason too). The space-race affordability test is back on a
+tile-world fixture (testWorld.js `growCities`: twelve United States cities with Science,
+Economy and Industry buildings earn about 600 gold and 250 science a turn, and the whole ladder
+is paid from that income alone). Turn time measured to turn 300 on seed 3 (one run, this
+machine): 205 ms at turn 100 (797 cities), 352 at 200 (1,019), 411 at 300 (1,078, land 83%),
+audit 0 throughout. The geometry caps the world near 1,100 cities, so "2,000 cities" is the
+old region count, not a reachable city count; the late game at 400 ms a turn is the next
+performance pass (the plan's target is 150 ms at turn 100).
+
 **D5, the deployment phase and the AI's deployment templates (2026-10-02).** The battle
 already opened paused ("Start"); now that pause is a real deployment. A `deploy` order
 (src/battle/sim/orders.js) sets own squads down at once, in formation, clamped to the side's

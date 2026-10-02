@@ -306,6 +306,29 @@ export const backfillDefaults = (state) => {
 // how to read, or has a gap in its migration chain. `null` means "this save can't be loaded right
 // now" — callers fall back to a fresh game but must NOT delete the raw save; a future build (or a
 // bug fix) may still be able to read it.
+/**
+ * Why `migrateSave(payload)` would refuse this save: 'tooOld' (the province map, before version
+ * OLDEST_LOADABLE_SAVE_VERSION: a clean break), 'tooNew' (a later build), 'corrupt' (not a save),
+ * or null when it loads. Read-only; the save v7 screen (OldSaveNotice.jsx) and the import alert
+ * name the reason.
+ */
+export const saveProblem = (payload) => {
+  if (!payload || typeof payload !== 'object') return 'corrupt';
+  const hasEnvelope = isPlainObject(payload.state);
+  const version = hasEnvelope ? (payload.version ?? 1) : 1;
+  const state = hasEnvelope ? payload.state : payload;
+  if (!isPlainObject(state) || !state.playerNationId || !isPlainObject(state.regions) || !isPlainObject(state.nations)) return 'corrupt';
+  if (version > CURRENT_SAVE_VERSION) return 'tooNew';
+  if (version < OLDEST_LOADABLE_SAVE_VERSION) return 'tooOld';
+  for (let v = version; v < CURRENT_SAVE_VERSION; v++) if (!MIGRATIONS[v]) return 'corrupt';
+  return null;
+};
+export const SAVE_PROBLEM_TEXT = {
+  tooOld: 'This save is from the old province map. The tile world is a clean break, so it cannot be loaded here.',
+  tooNew: 'This save is from a newer build than this one. Update the game to load it.',
+  corrupt: 'This file is not a Terra Imperium save, or it is damaged.'
+};
+
 export const migrateSave = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
 
