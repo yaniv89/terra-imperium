@@ -53,10 +53,13 @@ describe('power costs are actually reachable in play', () => {
   }, 60000);
 
   it('AI nations research techs too', () => {
+    // A fixed seed and auto-defend: a random seed can queue an AI assault on France that stalls
+    // resolveTurn until the player answers it.
     let state = {
-      ...createInitialState({ playerNationId: 'fr' }),
+      ...createInitialState({ playerNationId: 'fr', rngSeed: 7 }),
       firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-      proceduralEventCooldown: 999999
+      proceduralEventCooldown: 999999,
+      battleSettings: { autoDefend: true }
     };
     for (let i = 0; i < 30; i++) state = resolveTurn(state);
     const withTech = Object.values(state.nations).filter((n) => !n.isPlayer && (n.tech?.researched || []).length > 0);

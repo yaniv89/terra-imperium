@@ -1477,6 +1477,27 @@ a long voyage; MAX_SEA_STEPS (120) refuses such a route for one order. The AI's 
 the port-to-port operations until the front planner. Not done: the four naval lines (galley,
 transport, raider, carrier) as data, carriers and air; army templates.
 
+
+---
+
+**Workstream 6, first wave (2026-10-02): walls, siege HP, encirclement, cities that fall.**
+`src/engine/sieges.js`: walls 0 to 3 from the Defense line (none, Palisade, Stone Walls, Star
+Fort and better), siege HP 200 x (1 + walls) x (1 + size / 10). At war an army now walks into
+enemy land (the march halts before the city centre itself; the city is taken through the attack
+card) and every enemy land unit on the six tiles around the centre besieges: damage a turn is
+the besiegers' siege strength (20 per siege unit, 3 per other, x1.5 with Siege Engineering)
+minus 5 x walls of regen; encircled (all land neighbours held, every water tile beside the city
+blockaded) doubles it and shrinks the city by one size every four turns. A besieged city works
+ring 1 only. A turn without besiegers heals a tenth of the HP. At 0 HP the city falls: an AI
+city surrenders to the besieger through conquest.js (war score, AE, capital rules as a capture),
+the player's city makes a last stand through the pending-defence flow (auto or commanded). A
+unit's `regionId` is now strictly its base: its own city, never the enemy's land it stands on,
+so the garrison and attacker readers stay right; campaigning and march supply read the tile
+the unit stands on. The region card shows the siege, walls and HP. Not yet: sally, relief
+battles, the siege and last-stand battle types in the RTS (D5, next waves), the capture extras
+(loyalty, pillage, raze, liberate: with loyalty in workstream 8), and AI sieges (the AI still
+hops city to city; the front planner of workstream 9 will stand its armies beside cities).
+
 ---
 
 ---

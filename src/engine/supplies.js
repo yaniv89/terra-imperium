@@ -29,10 +29,11 @@ export const industryMetalFor = (ageId) => (ageId === 'bronze' ? 'copper' : ageI
 
 const round1 = (v) => Math.round(v * 10) / 10;
 
-// A land unit is campaigning when it stands outside its nation's own, unoccupied provinces.
-export const isCampaigning = (unit, regions) => {
+// A land unit is campaigning when it stands outside its nation's own, unoccupied land: by the tile
+// it stands on when the tile owner map is given (workstream 5), else by its region.
+export const isCampaigning = (unit, regions, tileOwner = null) => {
   if (unit.domain === 'naval' || unit.embarkedOn) return false;
-  const r = regions[unit.regionId];
+  const r = regions[tileOwner && unit.tile != null && unit.tile >= 0 ? tileOwner[unit.tile] : unit.regionId];
   return !r || r.owner !== unit.ownerId || !!r.occupiedBy;
 };
 
@@ -41,14 +42,12 @@ export const isCampaigning = (unit, regions) => {
 const forageSize = (regionId) => Math.max(1, Math.round((REGIONS_DATA[regionId]?.includes?.length || 1) / 2));
 
 // Supplies the marches of `turnNumber` cost (units with marchedTurn === turnNumber).
-export const marchSupplyCost = (units, regions, nationId, turnNumber) => (turnNumber == null ? 0 : Object.values(units).reduce((sum, u) => {
+export const marchSupplyCost = (units, regions, nationId, turnNumber, tileOwner = null) => (turnNumber == null ? 0 : Object.values(units).reduce((sum, u) => {
   if (u.ownerId !== nationId || u.marchedTurn !== turnNumber || u.domain === 'naval' || u.embarkedOn) return sum;
-  const r = regions[u.regionId];
-  const abroad = !r || r.owner !== nationId || !!r.occupiedBy;
-  return sum + MARCH_SUPPLY_PER_UNIT * (abroad ? 2 : 1);
+  return sum + MARCH_SUPPLY_PER_UNIT * (isCampaigning(u, regions, tileOwner) ? 2 : 1);
 }, 0));
 
-export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources, turnNumber = null }) => {
+export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources, turnNumber = null, tileOwner = null }) => {
   let forage = 0; let industryTiers = 0;
   getOwnedRegionIds(regions,nationId).forEach((id) => {
     const r=regions[id];
@@ -61,8 +60,8 @@ export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources, 
   const metalWanted = industryTiers * METAL_PER_INDUSTRY_TIER;
   const metalUsed = Math.max(0, Math.min(metalWanted, resources?.[metalId] || 0));
   const manufactured = metalWanted > 0 ? (metalUsed / METAL_PER_INDUSTRY_TIER) * SUPPLIES_PER_INDUSTRY_TIER : 0;
-  const campaigning = Object.values(units).filter((u) => u.ownerId === nationId && isCampaigning(u, regions)).length;
-  const marching = marchSupplyCost(units, regions, nationId, turnNumber);
+  const campaigning = Object.values(units).filter((u) => u.ownerId === nationId && isCampaigning(u, regions, tileOwner)).length;
+  const marching = marchSupplyCost(units, regions, nationId, turnNumber, tileOwner);
   const consumed = round1(campaigning * SUPPLY_PER_CAMPAIGNING_UNIT + marching);
   const produced = round1(forage + manufactured);
   const before = resources?.supplies || 0;

@@ -39,6 +39,7 @@ import { startMarch } from '../map/marchEvents';
 import { placeName } from '../../engine/routes';
 import { supplyOf } from '../../engine/supplyMeter';
 import { atSea } from '../../engine/fleets';
+import { wallsOf } from '../../engine/sieges';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -297,11 +298,18 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       )}
 
       {/* Alerts */}
-      {(regionState.underInvasion || regionState.occupiedBy || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
+      {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
               <AlertTriangle className="w-3 h-3" /><span>Under Invasion!</span>
+            </div>
+          )}
+          {regionState.siege && (
+            <div className="rounded-lg border border-orange-400/50 bg-orange-500/10 p-2 text-[11px] text-orange-100" data-testid="siege-note">
+              <div className="font-semibold">{regionState.siege.by ? `Under siege by ${state.nations[regionState.siege.by]?.name || 'rebels'}` : 'Recovering from a siege'}{regionState.siege.encircled ? ', encircled' : ''}</div>
+              <div className="h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden"><div className="h-full bg-orange-400" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
+              <div className="text-orange-200/80 mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
             </div>
           )}
           {regionState.occupiedBy === state.playerNationId && occupationWar && (

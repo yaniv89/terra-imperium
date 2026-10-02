@@ -82,7 +82,8 @@ export const auditGameState = (state) => {
     // city the unit belongs to that city. A unit without a tile stands on its city's centre.
     if (u.tile != null && tileOwner) {
       if (u.domain !== 'naval' && !u.embarkedOn && getTiles().land[u.tile] !== 1) report('unit_tile', `units.${id}.tile`, 'A land unit stands on land');
-      if (getTiles().land[u.tile] === 1 && tileOwner[u.tile] != null && tileOwner[u.tile] !== u.regionId && regions[tileOwner[u.tile]]) report('unit_region', `units.${id}.regionId`, `Unit stands on the land of ${tileOwner[u.tile]}`);
+      const here = tileOwner[u.tile];
+      if (getTiles().land[u.tile] === 1 && here != null && here !== u.regionId && regions[here]?.owner === u.ownerId) report('unit_region', `units.${id}.regionId`, `Unit stands on its nation's land of ${here}`);
     }
     if (u.embarkedOn) {
       const ship = units[u.embarkedOn];

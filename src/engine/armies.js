@@ -55,14 +55,13 @@ export const stackPace = (units) => units.reduce((m, u) => Math.min(m, movePoint
 /** Land an army may stand on at all. */
 export const passableTile = (tiles, tile) => tile != null && tile >= 0 && tiles.land[tile] === 1 && tiles.terrainOf(tile) !== 'snow' && tiles.featureOf(tile) !== 'ice';
 
-/** The tile a unit stands on: its own when it agrees with its region, else its region's centre. */
+/** The tile a unit stands on: its own (land for an army, water for a fleet at sea and its cargo),
+ * else its region's centre (a unit an older mover placed by city). */
 export const unitTile = (state, unit) => {
   const t = unit.tile;
   if (t != null && t >= 0) {
-    // A fleet at sea (and its cargo) stands on water, whoever owns the coast.
-    if (getTiles().land[t] !== 1) return unit.domain === 'naval' || unit.embarkedOn ? t : (state.regions[unit.regionId]?.tile ?? null);
-    const owner = state.world?.tileOwner?.[t];
-    if (owner == null || owner === unit.regionId) return t;
+    if (getTiles().land[t] === 1) return t;
+    if (unit.domain === 'naval' || unit.embarkedOn) return t;
   }
   return state.regions[unit.regionId]?.tile ?? null;
 };
@@ -176,30 +175,28 @@ export const findTilePath = (state, from, to, nationId = state.playerNationId, {
   return { path, cost: dist.get(to) };
 };
 
-// Nearest city of `nationId` (else of anyone) to `tile` within SUPPLY_BASE_RINGS rings, or null.
+// Nearest city of `nationId` to `tile` within SUPPLY_BASE_RINGS rings, or null.
 const nearestCity = (state, tiles, tile, nationId) => {
   const tileOwner = state.world?.tileOwner || {};
-  let frontier = [tile]; const seen = new Set(frontier); let anyone = null;
+  let frontier = [tile]; const seen = new Set(frontier);
   for (let d = 0; d <= SUPPLY_BASE_RINGS; d++) {
     const next = [];
     for (const t of frontier) {
       const city = tileOwner[t];
-      if (city != null && state.regions[city]) {
-        if (state.regions[city].owner === nationId) return city;
-        if (anyone == null) anyone = city;
-      }
+      if (city != null && state.regions[city]?.owner === nationId) return city;
       for (const n of tiles.neighbors[t]) if (!seen.has(n)) { seen.add(n); next.push(n); }
     }
     frontier = next.sort((a, b) => a - b);
   }
-  return anyone;
+  return null;
 };
 
-/** The region record a unit of `nationId` standing on `tile` belongs to: the tile's city, else the
- * nearest own city. `fallback` when nothing is in reach. */
+/** The region record a unit of `nationId` standing on `tile` belongs to: the tile's city when it
+ * is the nation's own, else the nearest own city (its base). `fallback` when nothing is in reach:
+ * enemy and free land never become a unit's region. */
 export const regionForTile = (state, tile, nationId, fallback = null) => {
   const owner = state.world?.tileOwner?.[tile];
-  if (owner != null && state.regions[owner]) return owner;
+  if (owner != null && state.regions[owner]?.owner === nationId) return owner;
   return nearestCity(state, getTiles(), tile, nationId) ?? fallback;
 };
 
@@ -214,8 +211,11 @@ export const placeInCity = (unit, regions, regionId) => ({ ...unit, regionId, ti
 
 /**
  * Makes every unit's tile and region agree: a unit without a tile (an older mover or a fresh
- * recruit) stands on its region's centre; one whose tile's land changed hands (border growth, a
- * city founded next to it) now belongs to that city. Returns the same object when nothing changed.
+ * recruit) stands on its region's centre; one standing on land its own nation's other city now
+ * holds (border growth, a city founded next to it) belongs to that city; one in foreign or free
+ * land keeps its base (the nearest own city when its base is gone). Enemy land never becomes a
+ * unit's region: the garrison readers (invasion.js, defense.js) count units by region.
+ * Returns the same object when nothing changed.
  */
 export const normalizeUnitTiles = (state) => {
   const tiles = getTiles();
@@ -235,7 +235,11 @@ export const normalizeUnitTiles = (state) => {
       else tile = centre;
     } else if (u.domain === 'naval') tile = tile != null && tile >= 0 && tiles.land[tile] !== 1 ? tile : centre; // at sea, or in port
     else if (tile == null || tile < 0 || !tiles.land[tile]) tile = centre;
-    else if (tileOwner[tile] != null && tileOwner[tile] !== regionId && regions[tileOwner[tile]]) regionId = tileOwner[tile];
+    else {
+      const here = tileOwner[tile];
+      if (here != null && here !== regionId && regions[here]?.owner === u.ownerId) regionId = here;
+      else if (!regions[regionId]) regionId = regionForTile(state, tile, u.ownerId, regionId);
+    }
     if (tile === u.tile && regionId === u.regionId) return;
     if (!changed) { units = { ...units }; changed = true; }
     units[u.id] = { ...u, tile, regionId };
