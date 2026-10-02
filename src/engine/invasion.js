@@ -84,13 +84,13 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.launchInvasion)) return { ok: false, reason: 'cost' };
 
   // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
-  const attackerUnits = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
+  const attackerUnits = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
   if (attackerUnits.length === 0) return { ok: false, reason: 'no_units' };
   // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still have
   // its move (all-or-nothing on the whole stack, matching "an army is every unit in one region").
   if (!ignoreBattleLocks && !attackerUnits.every((u) => (u.movesLeft ?? 1) > 0)) return { ok: false, reason: 'no_moves' };
   // The garrison is whoever else stands there — never the player's own troops.
-  const defenderUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.ownerId !== state.playerNationId);
+  const defenderUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId !== state.playerNationId);
   return { ok: true, war, fromRegion, targetRegion, attackerUnits, defenderUnits };
 };
 

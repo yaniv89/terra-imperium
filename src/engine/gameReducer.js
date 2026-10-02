@@ -5,7 +5,8 @@ import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
-import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost } from './world/cities';
+import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost, canFoundCity } from './world/cities';
+import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
 import { getTiles } from '../data/geo/tiles';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
@@ -2861,11 +2862,33 @@ const reduceAction = (state, action) => {
       const { cityId: id, item } = action.payload || {};
       const city = state.regions[id];
       if (!city || city.owner !== state.playerNationId || !item) return reject(state, 'Not your city.');
-      if (item.kind === 'settler') return reject(state, 'Settlers arrive with the next update.');
       const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
       const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
       if (!ok.ok) return reject(state, ok.reason);
       return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
+    }
+    case ActionTypes.SET_SETTLER_TARGET: {
+      const { unitId, tile } = action.payload || {};
+      const unit = state.units[unitId];
+      if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, 'Not your settlers.');
+      if (tile == null) return { ...state, units: { ...state.units, [unitId]: { ...unit, target: null } } };
+      const can = canFoundCity({ cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, getTiles(), tile, state.playerNationId);
+      if (!can.ok) return reject(state, can.reason);
+      const path = settlerPath(state, unit.tile, tile, state.playerNationId);
+      if (!path) return reject(state, 'No way there over land.');
+      const turns = Math.ceil(path.length / SETTLER_MOVES);
+      return { ...state, units: { ...state.units, [unitId]: { ...unit, target: tile } }, logs: [...state.logs, { year: state.year, message: `Settlers set out for ${getTiles().names[tile] || 'new land'}: ${turns} turn${turns === 1 ? '' : 's'}.`, type: 'action' }] };
+    }
+    case ActionTypes.FOUND_CITY: {
+      const { unitId } = action.payload || {};
+      const unit = state.units[unitId];
+      if (!unit || unit.ownerId !== state.playerNationId || !isSettler(unit)) return reject(state, 'Not your settlers.');
+      const can = canSettle(state, unit.tile, state.playerNationId, getEffectiveAgeId(state.age, state.techAgeId));
+      if (!can.ok) return reject(state, can.reason);
+      const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
+      if (!founded) return reject(state, 'This is no place for a city.');
+      const units = { ...state.units }; delete units[unitId];
+      return syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, message: `${founded.city.name} is founded as an outpost.`, type: 'action' }] });
     }
     case ActionTypes.DEQUEUE_PRODUCTION: {
       const { cityId: id, index } = action.payload || {};

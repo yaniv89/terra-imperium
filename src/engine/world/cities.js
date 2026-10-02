@@ -92,14 +92,33 @@ export const ringDistance = (tiles, from, to, maxRing = 6) => {
 
 const isWorkable = (tiles, id) => tiles.land[id] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(id));
 
+// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings), cached per cities map:
+// the AI asks about hundreds of sites a turn, and a ring walk per city per site was the cost.
+const blockedCache = new WeakMap();
+const blockedTiles = (cities, tiles) => {
+  let map = blockedCache.get(cities);
+  if (map) return map;
+  map = new Map();
+  Object.values(cities).forEach((city) => {
+    let frontier = [city.tile]; const seen = new Set(frontier);
+    map.set(city.tile, city.name);
+    for (let d = 1; d < MIN_CITY_SPACING; d++) {
+      const next = [];
+      frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); if (!map.has(n)) map.set(n, city.name); } }));
+      frontier = next;
+    }
+  });
+  blockedCache.set(cities, map);
+  return map;
+};
+
 export const canFoundCity = (world, tiles, tile, nationId) => {
   if (!tiles.land[tile]) return { ok: false, reason: 'A city needs land.' };
   if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return { ok: false, reason: 'Nothing can live on the ice.' };
   const owner = world.tileOwner[tile];
   if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, reason: 'This land belongs to another nation.' };
-  for (const city of Object.values(world.cities)) {
-    if (ringDistance(tiles, city.tile, tile, MIN_CITY_SPACING - 1) < MIN_CITY_SPACING) return { ok: false, reason: `Too close to ${city.name}.` };
-  }
+  const near = blockedTiles(world.cities, tiles).get(tile);
+  if (near) return { ok: false, reason: `Too close to ${near}.` };
   return { ok: true };
 };
 

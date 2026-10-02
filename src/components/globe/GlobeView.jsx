@@ -12,7 +12,8 @@ import { CanvasTexture, MeshPhongMaterial, Raycaster, Sphere, SRGBColorSpace, Ve
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { cityAtLatLon, getCityFeatures } from '../../data/geo/cityFeatures';
+import { cityAtLatLon, getCityFeatures, tileAtLatLon } from '../../data/geo/cityFeatures';
+import { getTiles } from '../../data/geo/tiles';
 import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
 import { renderPoliticalCanvas, loadImage } from './politicalTexture';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
@@ -63,7 +64,7 @@ let userDismissedAutoRotate = false;
 const visibleHalfAngleDeg = (altitude) => (Math.acos(1 / (1 + Math.max(altitude, 0.01))) * 180) / Math.PI;
 
 const GlobeView = ({ onAmbiguousTap = null,
-  width, height, selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null
+  width, height, selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null, onSelectTile = null
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -259,7 +260,8 @@ const GlobeView = ({ onAmbiguousTap = null,
       if(ids.length>1){onAmbiguousTap({x:event.clientX,y:event.clientY,ids});return;}
     }
     if(gameRegionId)onSelectRegion(gameRegionId===selectedRegion?null:gameRegionId);
-  },[regionAtClient,selectedRegion,onSelectRegion,onAmbiguousTap]);
+    else if(onSelectTile){const tile=tileAtLatLon(hit.coords.lat,hit.coords.lng);onSelectTile(tile!=null&&tile>=0&&getTiles().land[tile]?tile:null);}
+  },[regionAtClient,selectedRegion,onSelectRegion,onAmbiguousTap,onSelectTile]);
 
   useEffect(()=>{
     const canvas=globeRef.current?.renderer().domElement;

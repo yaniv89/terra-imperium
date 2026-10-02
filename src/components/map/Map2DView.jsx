@@ -22,7 +22,9 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
-import { getCityFeatures, getNationTerritories, getHexMeshWithin, cityLatLon } from '../../data/geo/cityFeatures';
+import { getCityFeatures, getNationTerritories, getHexMeshWithin, cityLatLon, getTileFeature, tileAtLatLon } from '../../data/geo/cityFeatures';
+import { getTiles } from '../../data/geo/tiles';
+import { isSettler } from '../../engine/settlers';
 import { getNationColor } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
@@ -82,7 +84,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 // header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
-  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null
+  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -401,6 +403,42 @@ const Map2DView = ({
     focusOnLatLng(c.lat, c.lng, Math.min(max, Math.max(transform.k * 2.5, INITIAL_FOCUS_ZOOM)), true);
   }, [focusOnLatLng, transform.k]);
 
+  // A tap on open land (no city path under it) selects the tile for the tile sheet. A drag is
+  // not a tap: d3-zoom moves the map, and the pointer travels.
+  const tapRef = useRef(null);
+  const onPointerDown = useCallback((e) => { tapRef.current = { x: e.clientX, y: e.clientY }; }, []);
+  const onPointerUp = useCallback((e) => {
+    const start = tapRef.current; tapRef.current = null;
+    if (!interactive || !onSelectTile || !start || !projection || !svgRef.current) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) return;
+    if (e.target.closest?.('[data-region-id],[data-city-badge],button')) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const px = (e.clientX - rect.left - transform.x) / transform.k; const py = (e.clientY - rect.top - transform.y) / transform.k;
+    const ll = projection.invert([px, py]);
+    if (!ll) return;
+    const tile = tileAtLatLon(ll[1], ll[0]);
+    if (tile == null || tile < 0 || !getTiles().land[tile]) { onSelectTile(null); return; }
+    onSelectTile(tile === selectedTile ? null : tile);
+  }, [interactive, onSelectTile, projection, transform, selectedTile]);
+  const selectedTilePath = useMemo(() => (projection && selectedTile != null ? geoPath(projection)(getTileFeature(selectedTile)) : null), [projection, selectedTile]);
+  // Settlers stand on tiles, not in cities: a tent per settler (yours, and others' near your land).
+  const settlerElements = useMemo(() => {
+    if (!interactive || !projection) return null;
+    const tiles = getTiles();
+    return Object.values(state.units).filter((u) => isSettler(u) && u.tile != null && (u.ownerId === state.playerNationId || zoomK >= 2)).map((u) => {
+      const { lat, lon } = tiles.latLonOf(u.tile);
+      const [x, y] = projection([lon, lat]);
+      const own = u.ownerId === state.playerNationId;
+      const r = 5 / Math.sqrt(zoomK);
+      return (
+        <g key={u.id} transform={`translate(${x},${y})`} data-settler={u.id} data-own={own ? "true" : "false"} onClick={(e) => { e.stopPropagation(); onSelectTile?.(u.tile); }} style={{ cursor: 'pointer' }}>
+          <polygon points={`0,${-r} ${r},${r * 0.8} ${-r},${r * 0.8}`} fill={own ? '#fde68a' : '#e2e8f0'} stroke={own ? '#92400e' : '#334155'} strokeWidth={1.2 / Math.sqrt(zoomK)} />
+          {own && u.target == null && <circle r={r * 1.6} fill="none" stroke="#fde68a" strokeWidth={1 / Math.sqrt(zoomK)} strokeDasharray={`${3 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}`} />}
+        </g>
+      );
+    });
+  }, [interactive, projection, state.units, state.playerNationId, zoomK, onSelectTile]);
+
   // A badge per city (B5's region view): a disc with the size, the name from region zoom. Scaled
   // by 1/sqrt(zoom) so badges grow a little as the map zooms without covering the land.
   const badgeElements = useMemo(() => {
@@ -449,6 +487,8 @@ const Map2DView = ({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       style={{ background: OCEAN_COLOR, display: 'block', touchAction: interactive ? 'none' : undefined }}
+      onPointerDown={interactive ? onPointerDown : undefined}
+      onPointerUp={interactive ? onPointerUp : undefined}
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
         {rasterRect && (
@@ -464,6 +504,8 @@ const Map2DView = ({
           {warBorderElements}
           {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
         </g>
+        {selectedTilePath && <path d={selectedTilePath} fill="rgba(255,255,255,0.15)" stroke="#ffffff" strokeWidth={1.6 / zoomK} pointerEvents="none" data-testid="selected-tile" />}
+        {settlerElements}
         {badgeElements}
       </g>
     </svg>

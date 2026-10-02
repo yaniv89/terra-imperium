@@ -70,8 +70,18 @@ export const legacyTerrainOf = (tiles, tile) => {
 // trade and AI fronts working on the Dawn world, where only 10% of the land is claimed.
 export const NEAR_RINGS = 3;
 export const BRIDGE_RINGS = 12;
+// City centres never move, so the ring distance between two tiles is memoised for good.
+const ringCache = new Map();
 const ringsBetween = (tiles, from, to, maxRing) => {
   if (from === to) return 0;
+  const key = `${from}|${to}|${maxRing}`;
+  const hit = ringCache.get(key);
+  if (hit !== undefined) return hit;
+  const d = ringsBetweenRaw(tiles, from, to, maxRing);
+  ringCache.set(key, d);
+  return d;
+};
+const ringsBetweenRaw = (tiles, from, to, maxRing) => {
   let frontier = [from]; const seen = new Set(frontier);
   for (let d = 1; d <= maxRing; d++) {
     const next = [];
@@ -80,6 +90,10 @@ const ringsBetween = (tiles, from, to, maxRing) => {
   }
   return Infinity;
 };
+
+// Neighbour lists depend only on which cities exist, their land and their owners: cached on that
+// key, so a turn that changes sizes and yields alone rebuilds nothing expensive.
+let neighbourCache = { key: null, byCity: null };
 
 export const buildRegistry = (regions) => {
   const tiles = getTiles();
@@ -97,8 +111,13 @@ export const buildRegistry = (regions) => {
   };
   const byNation = {};
   cities.forEach((c) => { (byNation[c.owner] ||= []).push(c); });
+  const geoKey = cities.map((c) => `${c.id}:${c.owner}:${c.founderId || ''}:${(c.tiles || [c.tile]).length}:${c.isCapital ? 1 : 0}`).join('|');
+  const cachedNeighbours = neighbourCache.key === geoKey ? neighbourCache.byCity : null;
+  const neighboursOut = {};
   cities.forEach((city) => {
-    const neighbors = new Set();
+    const neighbors = new Set(cachedNeighbours ? cachedNeighbours[city.id] : []);
+    const nation = city.founderId || city.owner;
+    if (!cachedNeighbours) {
     (city.tiles || [city.tile]).forEach((t) => tiles.neighbors[t].forEach((n) => {
       const o = owners[n];
       if (o && o !== city.id) neighbors.add(o);
@@ -106,13 +125,13 @@ export const buildRegistry = (regions) => {
     nearCities(city, NEAR_RINGS).forEach((c) => neighbors.add(c.id));
     // The bridge links a people's CAPITAL to the nearest city of each neighbouring people, one
     // link per pair of peoples, so a nation's other cities can still be "interior".
-    const nation = city.founderId || city.owner;
     if (city.isCapital) (COUNTRY_ADJACENCY[nation] || []).forEach((other) => {
       const candidates = (byNation[other] || []).filter((c) => (c.founderId || c.owner) === other);
       let best = null; let bestD = Infinity;
       candidates.forEach((c) => { const d = ringsBetween(tiles, city.tile, c.tile, BRIDGE_RINGS); if (d < bestD) { bestD = d; best = c; } });
       if (best) { neighbors.add(best.id); }
     });
+    }
     const { lat, lon } = tiles.latLonOf(city.tile);
     // Coastal when the city's land touches the sea (a lake does not count) through its centre or
     // through a tile of the founder's own country: on a 147 km grid Bern's first ring reaches a
@@ -146,7 +165,7 @@ export const buildRegistry = (regions) => {
   // coastal one (an island, Tokyo) is reached by sea instead (src/data/navalReach.js).
   cities.forEach((city) => {
     const r = out.regions[city.id];
-    if (r.neighbors.length || r.isCoastal) return;
+    if (cachedNeighbours || r.neighbors.length || r.isCoastal) return;
     let best = null; let bestD = Infinity;
     cities.forEach((c) => {
       if (c.id === city.id) return;
@@ -158,6 +177,7 @@ export const buildRegistry = (regions) => {
   // Symmetric: the bridge rule picks one nearest city per side, so close the pairs.
   Object.values(out.regions).forEach((r) => r.neighbors.forEach((n) => { const other = out.regions[n]; if (other && !other.neighbors.includes(r.id)) other.neighbors.push(r.id); }));
   Object.values(out.regions).forEach((r) => r.neighbors.sort());
+  if (!cachedNeighbours) { Object.values(out.regions).forEach((r) => { neighboursOut[r.id] = r.neighbors; }); neighbourCache = { key: geoKey, byCity: neighboursOut }; }
   return out;
 };
 

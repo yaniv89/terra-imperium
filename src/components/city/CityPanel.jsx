@@ -34,7 +34,7 @@ const itemLabel = (item, tiles) => {
   if (item.kind === 'unit') return UNIT_CLASSES[item.classId]?.name || item.classId;
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;
-  if (item.kind === 'settler') return 'Settler';
+  if (item.kind === 'settler') return 'Settlers (takes one citizen, founds a city)';
   return item.kind;
 };
 
@@ -69,6 +69,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     if (!city) return [];
     const out = [];
     const check = (item) => canQueue(city, tiles, world, item, { researched, ageId });
+    const settler = { kind: 'settler' };
+    out.push({ item: settler, group: 'Units', ...check(settler) });
     getAvailableClasses(ageId).forEach((classId) => {
       const item = { kind: 'unit', classId };
       out.push({ item, group: 'Units', ...check(item) });

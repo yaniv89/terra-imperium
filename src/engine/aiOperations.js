@@ -51,7 +51,7 @@ export const processAIOperations = (state, rng) => {
     next.aiOperations[nationId] = { turn: state.turnNumber, objective: threatened.size ? 'defend' : 'advance', startedTurn:state.aiOperations?.[nationId]?.objective === (threatened.size ? 'defend' : 'advance') ? state.aiOperations[nationId].startedTurn : state.turnNumber, fronts: [...fronts].sort(), targets: [...goals].sort() };
     const stacks = new Map();
     for (const u of Object.values(next.units)) {
-      if (u.ownerId !== nationId || u.domain !== 'land' || u.embarkedOn || u.strength <= 0 || isUnitInBattle(next, u.id)) continue;
+      if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || u.strength <= 0 || isUnitInBattle(next, u.id)) continue;
       const stack = stacks.get(u.regionId) || []; stack.push(u); stacks.set(u.regionId, stack);
     }
     for (const [from, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {

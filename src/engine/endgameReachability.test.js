@@ -77,7 +77,7 @@ describe('endgame reachability: the game always resolves to a definite outcome b
     if (state.gameStatus === GameStatus.COMPLETE) {
       expect(state.finalRank, 'a nation that never acted should not rank #1 against 239 real AI economies').toBeGreaterThan(1);
     }
-  }, 120000); // 4,482 real provinces makes a turn cost tens of ms, not fractions — 1200 of them needs real wall-clock room
+  }, 900000); // up to 1,200 whole-world turns at about 100 ms each (plan J3): real wall-clock room
 });
 
 describe('endgame reachability: each victory condition fires when its real threshold is met', () => {
@@ -213,7 +213,7 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     expect(state.year, 'the ladder finished after the game already ended (2300)').toBeLessThanOrEqual(2300);
     expect(state.gameStatus).toBe(GameStatus.VICTORY);
     expect(state.victoryConditionId).toBe('spaceAscendancy');
-  }, 120000); // several hundred simulated turns at 4,482 real provinces' per-turn cost
+  }, 900000); // several hundred whole-world turns
 
   // Plan §M19: "Space ladder costs retuned so a real Modern economy can afford the ladder (the
   // current test force-feeds 999,999 gold). Add a reachability test using the natural income of a
@@ -254,5 +254,5 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     }
     expect(state.gameStatus).toBe(GameStatus.VICTORY);
     expect(state.victoryConditionId).toBe('spaceAscendancy');
-  }, 120000);
+  }, 900000);
 });
