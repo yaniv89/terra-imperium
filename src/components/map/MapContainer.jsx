@@ -30,10 +30,12 @@
 // draws that as a real "you are here" rectangle. Clicking/dragging the minimap calls
 // `handleMiniMapNavigate`, which sets `navigateTarget` — a fresh `{lat,lng}` object every time —
 // and both views know how to fly/pan there (only the active one is actually mounted).
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GlobeContainer } from '../globe';
 import Map2DContainer from './Map2DContainer';
 import RegionChooser from './RegionChooser';
+import MarchBar from './MarchBar';
+import { MarchProvider, useMarch } from './MarchContext';
 import MapModeToggle from './MapModeToggle';
 import MiniMap from './MiniMap';
 import MapModal from './MapModal';
@@ -53,8 +55,19 @@ const readStoredMode = () => {
   }
 };
 
-const MapContainer = ({ selectedRegion, onSelectRegion }) => {
+// While an army's march is being planned (MarchContext), a tapped province is its target instead
+// of a selection.
+const MapContainer = (props) => (
+  <MarchProvider>
+    <MapContainerInner {...props} />
+  </MarchProvider>
+);
+
+const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => {
   const { state } = useGame();
+  const marchCtx = useMarch();
+  const marching = !!marchCtx?.march && !marchCtx.march.dragging;
+  const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else selectRegion(id); };
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -63,6 +76,9 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
   const [navigateTarget, setNavigateTarget] = useState(null);
   // A touch tap that covered several provinces: which one did the player mean? (RegionChooser)
   const [tapChoice, setTapChoice] = useState(null);
+  // Starting a march closes the region card, so the map is free to pick the target.
+  const marchFrom = marchCtx?.march?.from;
+  useEffect(() => { if (marchFrom) { setManageOpen(false); selectRegion(null); } }, [marchFrom, selectRegion]);
   const playerCapitalId = getNationCapital(state.playerNationId);
   const focusRegionId = manageOpen ? selectedRegion : null;
   const handleMiniMapNavigate = (lat, lng) => setNavigateTarget({ lat, lng });
@@ -114,6 +130,7 @@ const MapContainer = ({ selectedRegion, onSelectRegion }) => {
         <MapLegend />
       </div>
       <MapModeToggle mode={mode} onChange={handleModeChange} />
+      <MarchBar onSelectRegion={selectRegion} />
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />
 
       <MapModal

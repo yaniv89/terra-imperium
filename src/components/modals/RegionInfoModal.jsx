@@ -35,6 +35,7 @@ import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
+import { startMarch } from '../map/marchEvents';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -496,6 +497,22 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                   <UnitLine key={unit.id} unit={unit} age={state.age} commander={unit.commanderId ? state.hiredCommanders?.[unit.commanderId] : null} />
                 ))}
               </div>
+              {ownerId === state.playerNationId && units.some((u) => u.domain !== 'naval' && !u.embarkedOn) && (() => {
+                const onRoute = units.find((u) => u.route?.length);
+                const dest = onRoute?.route[onRoute.route.length - 1];
+                return (
+                  <div className="flex gap-1.5 mt-1.5">
+                    <button onClick={() => startMarch(regionId)} data-testid="march-start" className="flex-1 min-h-[36px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white text-[12px] font-semibold flex items-center justify-center gap-1.5">
+                      <Flag className="w-3.5 h-3.5" /> March…
+                    </button>
+                    {onRoute && (
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Marching to ${REGIONS_DATA[dest]?.name || dest}`}>
+                        Stop march to {REGIONS_DATA[dest]?.name || dest}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>
