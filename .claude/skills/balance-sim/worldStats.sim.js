@@ -14,6 +14,8 @@ const TURNS = Number(process.env.TURNS || 150);
 const EVERY = Number(process.env.EVERY || 50);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
 const PLAYER = process.env.PLAYER || 'fr';
+// SCENARIO=emergent starts the 'emergent civilizations' world (free frontier land, 45 nations).
+const SCENARIO = process.env.SCENARIO || 'full';
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
 
 // Campaign invariant violations from the state auditor (src/engine/stateAudit.js): must stay 0.
@@ -37,7 +39,11 @@ const snapshot = (s, t, counters, ms) => {
     pactMembers: nations.filter((n) => n.defensivePact).length, leaguesFormed: counters.leagues,
     vassals: vassals.length, avgLibertyDesire: +(vassals.reduce((a, n) => a + (n.libertyDesire || 0), 0) / Math.max(1, vassals.length)).toFixed(1),
     conquests: counters.conquests, devastatedProvinces: dev.length,
-    maxProvinceShare: +(Math.max(...Object.values(counts)) / regs.length).toFixed(3),
+    maxProvinceShare: +(Math.max(...Object.entries(counts).filter(([o]) => o !== 'null').map(([, c]) => c)) / regs.length).toFixed(3),
+    // Land growth: the biggest and the median living nation, and the land nobody holds yet.
+    topNationProvinces: Math.max(...Object.entries(counts).filter(([o]) => o !== 'null').map(([, c]) => c)),
+    medianNationProvinces: (() => { const c = Object.entries(counts).filter(([o]) => o !== 'null').map(([, v]) => v).sort((a, b) => a - b); return c[Math.floor(c.length / 2)] || 0; })(),
+    unclaimedProvinces: counts.null || 0,
     topMilitaryToMedian: +(mil[0] / Math.max(1, mil[Math.floor(mil.length / 2)])).toFixed(1),
     avgWarExhaustion: +(we.reduce((a, b) => a + b, 0) / we.length).toFixed(1),
     avgUnrest: +(unrest.reduce((a, b) => a + b, 0) / unrest.length).toFixed(1),
@@ -52,7 +58,7 @@ const snapshot = (s, t, counters, ms) => {
 
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...(SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0 };
     let last;
