@@ -70,7 +70,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
   const [selectedTile, setSelectedTile] = useState(null);
   const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) setSelectedTile(null); selectRegion(id); } };
-  const onSelectTile = (tile) => { if (marching) return; setSelectedTile(tile); if (tile != null) { setManageOpen(false); selectRegion(null); } };
+  const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedTile(tile); if (tile != null) { setManageOpen(false); selectRegion(null); } };
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);

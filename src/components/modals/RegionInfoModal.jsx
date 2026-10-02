@@ -36,6 +36,7 @@ import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
 import { startMarch } from '../map/marchEvents';
+import { placeName } from '../../engine/routes';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -504,8 +505,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                       <Flag className="w-3.5 h-3.5" /> March…
                     </button>
                     {onRoute && (
-                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Marching to ${REGIONS_DATA[dest]?.name || dest}`}>
-                        Stop march to {REGIONS_DATA[dest]?.name || dest}
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
+                        Stop march to {placeName(state, dest)}
                       </button>
                     )}
                   </div>

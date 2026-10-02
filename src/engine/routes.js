@@ -1,245 +1,200 @@
 // src/engine/routes.js
-// Marching anywhere over several turns (plan §4g, the CK3 way). The player picks an army and any
-// province; the game plans the cheapest land route and the army walks it at End Turn, a few
-// provinces a turn, paying for the march in supplies and gold.
+// Marching anywhere over several turns (plan §4g, the CK3 way), on tiles since workstream 5. The
+// player picks an army and any place (a city, or a tile of free land); the game plans the cheapest
+// land route over tiles (armies.js findTilePath) and the army walks it at End Turn, as many tiles
+// as its movement points allow, paying for the march in supplies and gold.
 //
-//   Pace        movement points per turn: the slowest unit's MARCH_POINTS (+1 with Forced March).
-//   Step cost   entering a province costs TERRAIN_STEP_COST by its terrain (src/data/terrain.js):
-//               open land 1, hills and forest 2, mountains, desert and arctic 4. Roads (any
-//               Logistics building) in your own or a friend's province cut it by ROAD_FACTOR.
-//               Enemy land costs at least ENEMY_STEP_COST. So infantry (2 a turn) cover 2 open
-//               provinces of their own, 3 on roads, 1 of hills or enemy land, and a mountain every
-//               other turn; cavalry (3) a little more, siege trains (1) much less.
+//   Pace        movement points per turn: the slowest unit's MOVE_POINTS (+1 with Forced March).
+//   Step cost   armies.js tileStepCost: open land 1, hills, forest and desert more, mountains 4,
+//               a river crossing +1, a road 0.5. Enemy land costs at least ENEMY_TILE_COST.
 //   Banking     unspent points carry over (up to BANK_CAP), so a slow army still crosses mountains.
-//   Access      at peace a route may only cross your land, a vassal's or a military ally's (and
-//               unclaimed land). At war it may enter the enemy's land, but it halts at the border
-//               of every enemy province you do not hold yet: attacking still goes through the attack
-//               card (Auto or Command), and winning moves the army in, so the march goes on.
-//               An enemy army standing in the next province halts it too.
+//   Access      at peace a route may only cross your land, a vassal's or a military ally's (and free
+//               land). At war it may plan into the enemy's land, but it halts at the border of every
+//               enemy tile you do not hold: attacking still goes through the attack card (Auto or
+//               Command), and winning moves the army in, so the march goes on. An enemy army on the
+//               next tile halts it too, and entering a tile next to one ends the turn's move (ZOC).
 //   Costs       giving the order is free. Every land unit that marched this turn eats
 //               MARCH_SUPPLY_PER_UNIT supplies (double in enemy land) on top of the campaign rule
 //               (supplies.js) and costs MARCH_UPKEEP_SHARE more gold upkeep (economy). A step into
 //               mountains, desert or arctic land costs MARCH_ATTRITION of the unit's strength.
 //
-// Unit fields: `route` (the provinces still to go, in order), `routeBank` (banked points),
-// `routePace` (the stack's pace, fixed when ordered so the stack stays together), `routeHalt`
-// ('attack' | 'enemy' | null: why it waits), `marchedTurn` (the last turn it marched).
-// Player armies only. AI armies keep their abstract war model (diplomacy.js resolveWarProgress)
-// and the AI operations of aiOperations.js, so AI turns stay fast.
-import { REGIONS_DATA } from '../data/regions';
-import { getRegionTerrain } from '../data/terrain';
-import { REBEL_OWNER_ID } from '../data/rebellion';
-import { isAtWarWithPlayer } from './diplomacy';
-import { hasPerk } from '../data/promotions';
+// Unit fields: `route` (the tiles still to go, in order), `routeBank` (banked points), `routePace`
+// (the stack's pace, fixed when ordered so the stack stays together), `routeHalt` ('attack' |
+// 'enemy' | null: why it waits), `marchedTurn` (the last turn it marched).
+// Player armies only. AI armies keep their city-hopping operations (aiOperations.js) until the
+// front planner of workstream 9, so AI turns stay fast.
+import { getTiles } from '../data/geo/tiles';
 import { MARCH_SUPPLY_PER_UNIT } from './supplies';
+import { getResearched } from './nationState';
+import {
+  BANK_CAP, DEFAULT_MOVE_POINTS, ENEMY_TILE_COST, MARCH_ATTRITION, MAX_ROUTE_STEPS, MOVE_POINTS,
+  enemyArmyAt, findTilePath, inEnemyZoc, isHarsh, regionAccess, regionForTile, stackPace, tileAccess, tileStepCost, unitTile
+} from './armies';
 
-export const MARCH_POINTS = { infantry: 2, ranged: 2, cavalry: 3, siege: 1, support: 1, air: 3 };
-export const DEFAULT_MARCH_POINTS = 2;
-export const TERRAIN_STEP_COST = { mixed: 1, plains: 1, urban: 1, island: 1, hills: 2, forest: 2, mountains: 4, desert: 4, arctic: 4 };
-export const ROAD_FACTOR = 2 / 3;
-export const ENEMY_STEP_COST = 2;
-export const BANK_CAP = 4;
-export { MARCH_SUPPLY_PER_UNIT };
-// The planner avoids enemy land on the way to somewhere else: each enemy step counts this much more.
-export const ENEMY_PATH_PENALTY = 6;
+export { MARCH_SUPPLY_PER_UNIT, BANK_CAP, MAX_ROUTE_STEPS, MARCH_ATTRITION, stackPace };
+export const MARCH_POINTS = MOVE_POINTS;
+export const DEFAULT_MARCH_POINTS = DEFAULT_MOVE_POINTS;
+export const ENEMY_STEP_COST = ENEMY_TILE_COST;
 export const MARCH_UPKEEP_SHARE = 0.25;
-export const MARCH_ATTRITION = 0.03;
-const HARSH_TERRAIN = new Set(['mountains', 'desert', 'arctic']);
-// A route longer than this many steps is refused (keeps the planner and the save small).
-export const MAX_ROUTE_STEPS = 60;
 
+// How the player relates to a city: own | friend | wild | enemy | held | closed.
+export const accessOf = (state, regionId) => regionAccess(state, regionId, state.playerNationId);
 
-// The pace of a stack: its slowest unit.
-export const stackPace = (units) => units.reduce((m, u) => Math.min(m, (MARCH_POINTS[u.classId] ?? DEFAULT_MARCH_POINTS) + (hasPerk(u, 'forcedMarch') ? 1 : 0)), Infinity);
+// Movement points for the player to enter `tile` from `from`.
+export const stepCost = (state, tile, from = null, access = tileAccess(state, tile, state.playerNationId)) => tileStepCost(state, getTiles(), from, tile, access, getResearched(state, state.playerNationId));
 
-// How the player relates to a province: own | friend | wild | enemy | held (enemy land the player
-// occupies) | closed (no access).
-export const accessOf = (state, regionId) => {
-  const me = state.playerNationId;
-  const r = state.regions[regionId];
-  if (!r || !REGIONS_DATA[regionId]) return 'closed';
-  if (r.owner === me) return r.occupiedBy && r.occupiedBy !== me ? 'enemy' : 'own';
-  if (!r.owner) return 'wild';
-  if (r.owner === REBEL_OWNER_ID) return 'enemy';
-  if (isAtWarWithPlayer(state, r.owner)) return r.occupiedBy === me ? 'held' : 'enemy';
-  const owner = state.nations[r.owner];
-  if (owner && !owner.isEliminated && (owner.vassalOf === me || owner.hasMilitaryPact)) return 'friend';
-  return 'closed';
+/** The name of a tile for the player: its own, its city's land, or its kind. */
+export const placeName = (state, tile) => {
+  const tiles = getTiles();
+  const city = state.regions[state.world?.tileOwner?.[tile]];
+  if (city?.tile === tile) return city.name;
+  if (tiles.names[tile]) return tiles.names[tile];
+  if (city) return `the land of ${city.name}`;
+  return tiles.rivers[tile] ? `the ${tiles.riverNames[tile] || 'river'}` : 'open country';
 };
 
-// Movement points to enter `regionId`.
-export const stepCost = (state, regionId, access = accessOf(state, regionId)) => {
-  const terrain = getRegionTerrain(regionId, REGIONS_DATA);
-  let cost = TERRAIN_STEP_COST[terrain] ?? 1;
-  const hasRoad = (state.regions[regionId]?.buildings?.categories?.logistics ?? -1) >= 0;
-  if (hasRoad && (access === 'own' || access === 'friend')) cost *= ROAD_FACTOR;
-  if (access === 'enemy' || access === 'held') cost = Math.max(cost, ENEMY_STEP_COST);
-  return cost;
-};
+/** The tile a march target means: a city id (its centre) or a tile id. */
+export const targetTile = (state, target) => (typeof target === 'number' ? target : state.regions[target]?.tile ?? null);
 
-// Units of a nation at war with the player standing in `regionId`.
-const enemyArmyIn = (state, regionId, units = state.units) => Object.values(units).some((u) => u.regionId === regionId && u.domain !== 'naval' && !u.embarkedOn && u.strength > 0
-  && u.ownerId !== state.playerNationId && (u.ownerId === REBEL_OWNER_ID || isAtWarWithPlayer(state, u.ownerId)));
-
-// A tiny binary heap for Dijkstra.
-const heapPush = (h, item) => {
-  h.push(item);
-  let i = h.length - 1;
-  while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; }
-};
-const heapPop = (h) => {
-  const top = h[0]; const last = h.pop();
-  if (h.length) {
-    h[0] = last; let i = 0;
-    for (;;) {
-      const l = 2 * i + 1; const r = l + 1; let m = i;
-      if (l < h.length && h[l][0] < h[m][0]) m = l;
-      if (r < h.length && h[r][0] < h[m][0]) m = r;
-      if (m === i) break;
-      [h[m], h[i]] = [h[i], h[m]]; i = m;
-    }
-  }
-  return top;
-};
-
-// The cheapest land path from `fromId` to `toId` (both ends included), by step cost. Enemy land
-// is allowed (the march halts at it); closed land is not. Ties break on region id so the result
-// is deterministic. Returns { path } or { reason }.
-export const findRoute = (state, fromId, toId) => {
-  if (fromId === toId) return { reason: 'The army is already there.' };
-  if (!REGIONS_DATA[toId]) return { reason: 'Unknown province.' };
-  const targetAccess = accessOf(state, toId);
-  if (targetAccess === 'closed') {
-    const owner = state.nations[state.regions[toId]?.owner];
-    return { reason: `No access to ${owner?.name || 'that land'}: declare war or form an alliance.` };
-  }
-  const dist = new Map([[fromId, 0]]);
-  const prev = new Map();
-  const heap = [[0, fromId]];
-  while (heap.length) {
-    const [d, id] = heapPop(heap);
-    if (d > (dist.get(id) ?? Infinity)) continue;
-    if (id === toId) break;
-    const neighbors = [...(REGIONS_DATA[id]?.neighbors || [])].sort();
-    for (const n of neighbors) {
-      const access = accessOf(state, n);
-      if (access === 'closed') continue;
-      // Each enemy province means a halt and a battle, so a friendly way round is preferred.
-      const penalty = access === 'enemy' && n !== toId ? ENEMY_PATH_PENALTY : 0;
-      const nd = d + stepCost(state, n, access) + penalty;
-      if (nd < (dist.get(n) ?? Infinity) - 1e-9) { dist.set(n, nd); prev.set(n, id); heapPush(heap, [nd, n]); }
-    }
-  }
-  if (!dist.has(toId)) return { reason: 'No land route: this needs a fleet to carry the army.' };
-  const path = [toId];
-  while (path[0] !== fromId) path.unshift(prev.get(path[0]));
-  if (path.length - 1 > MAX_ROUTE_STEPS) return { reason: 'Too far for one march: pick a closer province.' };
-  return { path, cost: dist.get(toId) };
+// The cheapest path for the player from tile `from` to a target (a city id or a tile).
+export const findRoute = (state, from, target) => {
+  const to = targetTile(state, target);
+  if (to == null) return { reason: 'Unknown place.' };
+  return findTilePath(state, from, to, state.playerNationId, { researched: getResearched(state, state.playerNationId) });
 };
 
 // On which turn (1 = this End Turn) the army enters each step, ignoring halts.
-export const scheduleSteps = (state, steps, pace, bank = 0) => {
+export const scheduleSteps = (state, from, steps, pace, bank = 0) => {
   const turns = [];
-  let turn = 0; let b = bank;
-  steps.forEach((id) => {
-    const cost = stepCost(state, id);
+  let turn = 0; let b = bank; let at = from;
+  steps.forEach((tile) => {
+    const cost = stepCost(state, tile, at);
     while (b + 1e-9 < cost) { turn += 1; b = Math.min(BANK_CAP + pace, b + pace); }
-    b -= cost;
+    b -= cost; at = tile;
     turns.push(Math.max(1, turn));
   });
   return turns;
 };
 
-// The player's own land units that would march from `fromId` (all of them, or `unitIds`).
+// The player's own land units that would march from the city `fromId` (all of them, or `unitIds`).
 export const marchingUnits = (state, fromId, unitIds = null) => Object.values(state.units).filter((u) => u.ownerId === state.playerNationId
-  && u.regionId === fromId && u.domain !== 'naval' && !u.embarkedOn && u.strength > 0 && (!unitIds || unitIds.includes(u.id)));
+  && u.regionId === fromId && u.domain !== 'naval' && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler' && (!unitIds || unitIds.includes(u.id)));
 
-// Everything the map needs to preview a march: the path, the turn of each step, the arrival turn,
-// the supplies it will eat, and where it will halt (the first enemy province). Pure.
-export const planMarch = (state, fromId, toId, unitIds = null) => {
+// The tile most of a stack stands on (ties: the lowest id).
+const mainTile = (state, units) => {
+  const count = new Map();
+  units.forEach((u) => { const t = unitTile(state, u); count.set(t, (count.get(t) || 0) + 1); });
+  return [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+};
+
+// Everything the map needs to preview a march: the path (tiles), the turn of each step, the arrival
+// turn, the supplies it will eat, and where it will halt (the first enemy tile, and its city). Pure.
+export const planMarch = (state, fromId, target, unitIds = null) => {
   const units = marchingUnits(state, fromId, unitIds);
   if (!units.length) return { ok: false, reason: 'No army here can march.' };
-  const found = findRoute(state, fromId, toId);
+  const from = mainTile(state, units);
+  const found = findRoute(state, from, target);
   if (!found.path) return { ok: false, reason: found.reason };
   const steps = found.path.slice(1);
   const pace = stackPace(units);
-  const stepTurns = scheduleSteps(state, steps, pace);
+  const stepTurns = scheduleSteps(state, from, steps, pace);
   const turns = stepTurns[stepTurns.length - 1];
-  const haltIndex = steps.findIndex((id) => accessOf(state, id) === 'enemy');
-  const enemySteps = steps.filter((id) => ['enemy', 'held'].includes(accessOf(state, id))).length;
+  const me = state.playerNationId;
+  const haltIndex = steps.findIndex((t) => tileAccess(state, t, me) === 'enemy');
+  const enemySteps = steps.filter((t) => ['enemy', 'held'].includes(tileAccess(state, t, me))).length;
   const supplies = Math.round(units.length * MARCH_SUPPLY_PER_UNIT * (turns + Math.min(turns, enemySteps)) * 10) / 10;
-  return { ok: true, path: found.path, steps, stepTurns, turns, pace, units: units.map((u) => u.id), supplies, haltAt: haltIndex >= 0 ? steps[haltIndex] : null };
+  const haltTile = haltIndex >= 0 ? steps[haltIndex] : null;
+  return { ok: true, from, path: found.path, steps, stepTurns, turns, pace, units: units.map((u) => u.id), supplies, haltTile, haltAt: haltTile != null ? state.world?.tileOwner?.[haltTile] ?? null : null };
 };
 
-// Give the order (gameReducer SET_ROUTE). Returns the next units map, or null when refused.
-export const orderMarch = (state, fromId, toId, unitIds = null) => {
-  const plan = planMarch(state, fromId, toId, unitIds);
+// Give the order (gameReducer SET_ROUTE). Units standing elsewhere in the city's land get a route
+// of their own. Returns { units, plan } or { reason }.
+export const orderMarch = (state, fromId, target, unitIds = null) => {
+  const plan = planMarch(state, fromId, target, unitIds);
   if (!plan.ok) return { reason: plan.reason };
   const units = { ...state.units };
-  plan.units.forEach((id) => { units[id] = { ...units[id], route: plan.steps, routeBank: 0, routePace: plan.pace, routeHalt: null }; });
+  const to = plan.path[plan.path.length - 1];
+  plan.units.forEach((id) => {
+    const u = units[id];
+    const at = unitTile(state, u);
+    if (at === plan.from) { units[id] = { ...u, route: plan.steps, routeBank: 0, routePace: plan.pace, routeHalt: null }; return; }
+    const own = at === to ? null : findRoute(state, at, to);
+    if (own?.path) units[id] = { ...u, route: own.path.slice(1), routeBank: 0, routePace: plan.pace, routeHalt: null };
+  });
   return { units, plan };
 };
 
 const clearRoute = (u) => ({ ...u, route: null, routeBank: 0, routePace: null, routeHalt: null });
 export const cancelRoute = clearRoute;
 
+/** Where a marching unit is going, for the UI. */
+export const routeDestination = (unit) => (unit.route?.length ? unit.route[unit.route.length - 1] : null);
+
 // The march phase, run at the start of resolveTurn on the turn's working `units` (mutated in
 // place, like resolveTurn's other phases). Units are walked in id order; a stack ordered together
 // shares route, pace and bank, so it stays together. Returns { logs, marched } (marched = how
 // many units moved at least one step).
 export const advanceMarches = (state, units, { year } = {}) => {
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const researched = getResearched(state, me);
   const logs = [];
   let marched = 0;
   const reached = new Map(); // destination -> count, for one log line per stack
   const halted = new Map();
   Object.keys(units).sort().forEach((id) => {
     const u = units[id];
-    if (!u?.route?.length || u.ownerId !== state.playerNationId) return;
+    if (!u?.route?.length || u.ownerId !== me) return;
     if (u.embarkedOn || u.domain === 'naval' || !(u.strength > 0)) { units[id] = clearRoute(u); return; }
     // An attack (or a manual move) put the unit somewhere on its route: drop the steps behind it.
     let route = u.route;
-    const here = route.indexOf(u.regionId);
+    let at = unitTile(state, u);
+    const here = route.indexOf(at);
     if (here >= 0) route = route.slice(here + 1);
     if (!route.length) { units[id] = clearRoute(u); return; }
     // The route must still start next door.
-    if (!(REGIONS_DATA[u.regionId]?.neighbors || []).includes(route[0])) { units[id] = clearRoute(u); return; }
-    const pace = u.routePace || DEFAULT_MARCH_POINTS;
+    if (at == null || !tiles.neighbors[at].includes(route[0])) { units[id] = clearRoute(u); return; }
+    const pace = u.routePace || DEFAULT_MOVE_POINTS;
     let bank = Math.min(BANK_CAP + pace, (u.routeBank || 0) + pace);
-    let at = u.regionId; let strength = u.strength; let moved = false; let halt = null;
+    let strength = u.strength; let moved = false; let halt = null;
     while (route.length) {
       const next = route[0];
-      const access = accessOf(state, next);
+      const access = tileAccess(state, next, me);
       if (access === 'closed') { halt = 'closed'; break; }
       if (access === 'enemy') { halt = 'attack'; break; }
-      if (enemyArmyIn(state, next, units)) { halt = 'enemy'; break; }
-      const cost = stepCost(state, next, access);
+      if (enemyArmyAt(state, next, me, units)) { halt = 'enemy'; break; }
+      const cost = tileStepCost(state, tiles, at, next, access, researched);
       if (bank + 1e-9 < cost) break;
       bank -= cost; at = next; route = route.slice(1); moved = true;
-      if (HARSH_TERRAIN.has(getRegionTerrain(next, REGIONS_DATA))) strength = Math.max(1, Math.round(strength * (1 - MARCH_ATTRITION)));
+      if (isHarsh(tiles, next)) strength = Math.max(1, Math.round(strength * (1 - MARCH_ATTRITION)));
+      // Zone of control: next to an enemy army the move ends for the turn.
+      if (inEnemyZoc(state, tiles, next, me, units)) { bank = 0; break; }
     }
+    const regionId = moved ? regionForTile(state, at, me, u.regionId) : u.regionId;
+    const place = { tile: at, regionId, strength, ...(moved ? { marchedTurn: state.turnNumber } : {}) };
     if (halt === 'closed') {
-      units[id] = { ...clearRoute(u), regionId: at, strength, ...(moved ? { marchedTurn: state.turnNumber } : {}) };
+      units[id] = { ...clearRoute(u), ...place };
       halted.set(`closed|${at}`, (halted.get(`closed|${at}`) || 0) + 1);
     } else if (!route.length) {
-      units[id] = { ...clearRoute(u), regionId: at, strength, marchedTurn: state.turnNumber };
+      units[id] = { ...clearRoute(u), ...place, marchedTurn: state.turnNumber };
       reached.set(at, (reached.get(at) || 0) + 1);
     } else {
       // A halted army does not bank points while it waits.
       const newHalt = halt === 'attack' || halt === 'enemy' ? halt : null;
       if (newHalt && u.routeHalt !== newHalt) halted.set(`${newHalt}|${route[0]}`, (halted.get(`${newHalt}|${route[0]}`) || 0) + 1);
-      units[id] = { ...u, regionId: at, strength, route, routeBank: newHalt ? 0 : bank, routeHalt: newHalt, ...(moved ? { marchedTurn: state.turnNumber } : {}) };
+      units[id] = { ...u, ...place, route, routeBank: newHalt ? 0 : bank, routeHalt: newHalt };
     }
     if (moved) marched += 1;
     // Cargo never marches on land, so nothing rides along.
   });
-  const name = (rid) => REGIONS_DATA[rid]?.name || rid;
+  const name = (tile) => placeName(state, Number(tile));
   const plural = (n) => (n > 1 ? `${n} units` : 'Your army');
-  reached.forEach((n, rid) => logs.push({ year, message: `${plural(n)} reached ${name(rid)}.`, type: 'action' }));
+  reached.forEach((n, tile) => logs.push({ year, message: `${plural(n)} reached ${name(tile)}.`, type: 'action' }));
   halted.forEach((n, key) => {
-    const [kind, rid] = key.split('|');
-    const msg = kind === 'attack' ? `${plural(n)} wait${n > 1 ? '' : 's'} at the border of ${name(rid)}: attack it to march on.`
-      : kind === 'enemy' ? `${plural(n)} halted: an enemy army stands in ${name(rid)}.`
-      : `${plural(n)} stopped at ${name(rid)}: no access any more.`;
+    const [kind, tile] = key.split('|');
+    const msg = kind === 'attack' ? `${plural(n)} wait${n > 1 ? '' : 's'} at the border of ${name(tile)}: attack it to march on.`
+      : kind === 'enemy' ? `${plural(n)} halted: an enemy army stands at ${name(tile)}.`
+      : `${plural(n)} stopped at ${name(tile)}: no access any more.`;
     logs.push({ year, message: msg, type: kind === 'closed' ? 'action' : 'combat' });
   });
   return { logs, marched };

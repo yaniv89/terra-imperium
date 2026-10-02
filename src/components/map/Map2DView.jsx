@@ -25,6 +25,7 @@ import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
 import { getCityFeatures, getNationTerritories, getHexMeshWithin, cityLatLon, getTileFeature, tileAtLatLon } from '../../data/geo/cityFeatures';
 import { getTiles } from '../../data/geo/tiles';
 import { isSettler } from '../../engine/settlers';
+import { useMarch } from './MarchContext';
 import { getNationColor } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
@@ -421,6 +422,35 @@ const Map2DView = ({
     onSelectTile(tile === selectedTile ? null : tile);
   }, [interactive, onSelectTile, projection, transform, selectedTile]);
   const selectedTilePath = useMemo(() => (projection && selectedTile != null ? geoPath(projection)(getTileFeature(selectedTile)) : null), [projection, selectedTile]);
+  // March lines (plan §4g, on tiles since workstream 5): the marches under way and the one being
+  // planned, over the tile centres, with the turn number where each turn's march ends.
+  const marchCtx = useMarch();
+  const marchLines = marchCtx?.lines;
+  const marchElements = useMemo(() => {
+    if (!interactive || !projection || !marchLines?.length) return null;
+    const tiles = getTiles();
+    const pt = (t) => { const { lat, lon } = tiles.latLonOf(t); return projection([lon, lat]); };
+    const w = 2.2 / Math.sqrt(zoomK);
+    return marchLines.map((l) => {
+      const pts = l.points.map(pt).filter(Boolean);
+      if (pts.length < 2) return null;
+      const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
+      const preview = l.kind === 'preview';
+      const colour = preview ? '#fde68a' : l.halted ? '#f87171' : '#34d399';
+      return (
+        <g key={l.key} pointerEvents="none" data-march-line={l.kind}>
+          <path d={d} fill="none" stroke="rgba(15,23,42,0.7)" strokeWidth={w * 2} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={d} fill="none" stroke={colour} strokeWidth={w} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={preview ? `${w * 3} ${w * 2}` : undefined} />
+          {l.marks.map((m) => { const p = pts[m.index]; if (!p) return null; const r = 6 / Math.sqrt(zoomK); return (
+            <g key={m.index} transform={`translate(${p[0]},${p[1]})`}>
+              <circle r={r} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.6} />
+              <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.2} fontWeight="700" fill="#0f172a">{m.turn}</text>
+            </g>); })}
+          {l.haltIndex > 0 && pts[l.haltIndex] && <circle cx={pts[l.haltIndex][0]} cy={pts[l.haltIndex][1]} r={5 / Math.sqrt(zoomK)} fill="none" stroke="#f87171" strokeWidth={w} />}
+        </g>
+      );
+    });
+  }, [interactive, projection, marchLines, zoomK]);
   // Settlers stand on tiles, not in cities: a tent per settler (yours, and others' near your land).
   const settlerElements = useMemo(() => {
     if (!interactive || !projection) return null;
@@ -505,6 +535,7 @@ const Map2DView = ({
           {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
         </g>
         {selectedTilePath && <path d={selectedTilePath} fill="rgba(255,255,255,0.15)" stroke="#ffffff" strokeWidth={1.6 / zoomK} pointerEvents="none" data-testid="selected-tile" />}
+        {marchElements}
         {settlerElements}
         {badgeElements}
       </g>

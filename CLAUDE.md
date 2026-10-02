@@ -42,7 +42,9 @@ The live site is GitHub Pages, built into `docs/`.
   state. Tests that need more cities use `src/engine/testWorld.js` (`addCity`, `addCities`,
   `borderPair`); tests that build their own `regions` map must pass real city ids (`cap('fr')`).
   Save version 7 is a clean break. Settlers and outposts: `src/engine/settlers.js`; what AI cities
-  build: `src/engine/aiProduction.js`. Progress and open balance items: plan section J3.
+  build: `src/engine/aiProduction.js`. Armies on tiles (unit.tile, move points, tile costs, A*
+  routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js.
+  Progress and open balance items: plan section J3.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
   and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to

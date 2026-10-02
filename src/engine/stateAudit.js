@@ -1,6 +1,7 @@
 // Read-only diagnostics for resolved campaign snapshots. No repairs and no RNG consumption.
 import { PRETENDER_MARKER } from './civilWar';
 import { REBEL_OWNER_ID } from '../data/rebellion';
+import { getTiles } from '../data/geo/tiles';
 
 export const auditGameState = (state) => {
   const issues = [];
@@ -77,6 +78,12 @@ export const auditGameState = (state) => {
     if (!regions[u.regionId]) report('missing_region', `units.${id}.regionId`, 'Unit region is missing');
     if (u.strength < 0 || u.strength > u.maxStrength) report('range', `units.${id}.strength`, 'Strength must fit the unit capacity');
     if (u.movesLeft < 0) report('range', `units.${id}.movesLeft`, 'Movement cannot be negative');
+    // Armies on tiles (workstream 5): a land unit's tile is land, and when that land belongs to a
+    // city the unit belongs to that city. A unit without a tile stands on its city's centre.
+    if (u.tile != null && tileOwner) {
+      if (u.domain !== 'naval' && !u.embarkedOn && getTiles().land[u.tile] !== 1) report('unit_tile', `units.${id}.tile`, 'A land unit stands on land');
+      if (tileOwner[u.tile] != null && tileOwner[u.tile] !== u.regionId && regions[tileOwner[u.tile]]) report('unit_region', `units.${id}.regionId`, `Unit stands on the land of ${tileOwner[u.tile]}`);
+    }
     if (u.embarkedOn) {
       const ship = units[u.embarkedOn];
       if (!ship || ship.domain !== 'naval' || ship.ownerId !== u.ownerId || ship.regionId !== u.regionId) {

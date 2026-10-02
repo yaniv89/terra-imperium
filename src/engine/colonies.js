@@ -156,7 +156,7 @@ export const foundColony = (state, regionId, policy = 'coexist', nationId = stat
       [v.sourceRegionId]: { ...source, currentPopulation: Math.max(0, (source.currentPopulation || 0) - v.settlers) },
       [regionId]: { ...target, colony: { ownerId: nationId, policy, progress: 0, settlers: v.settlers, foundedTurn: state.turnNumber, raids: 0 } }
     },
-    units: { ...state.units, [v.escort.id]: { ...v.escort, regionId, movesLeft: 0, route: null } },
+    units: { ...state.units, [v.escort.id]: { ...v.escort, regionId, tile: state.regions[regionId]?.tile ?? null, movesLeft: 0, route: null } },
     logs: [...state.logs, { year: state.year, type: 'action', message: `${isPlayer ? 'Your' : `${state.nations[nationId].name}'s`} settlers found a colony in ${name(regionId)}${policy === 'driveOut' ? ', driving out its people' : ''}.` }]
   };
 };
@@ -171,7 +171,7 @@ const sendEscortsHome = (regions, units, regionId, ownerId) => {
     const u = units[uid];
     if (u.ownerId === ownerId && u.regionId === regionId && u.domain === 'land') {
       if (next === units) next = { ...units };
-      next[uid] = { ...u, regionId: home, route: null };
+      next[uid] = { ...u, regionId: home, tile: regions[home]?.tile ?? null, route: null };
     }
   });
   return next;

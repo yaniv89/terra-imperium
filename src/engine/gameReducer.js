@@ -1,4 +1,5 @@
-import { orderMarch, cancelRoute } from './routes';
+import { orderMarch, cancelRoute, placeName } from './routes';
+import { normalizeUnitTiles } from './armies';
 import { abandonColony, foundColony, validateColony } from './colonies';
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
@@ -1263,6 +1264,7 @@ const reduceAction = (state, action) => {
       const newUnit = {
         id: unitId,
         regionId,
+        tile: region.tile ?? null, // the tile it stands on (armies.js)
         homeRegionId: regionId, // where its men come from: levy and casualty scars (aftermath.js)
         ownerId: state.playerNationId,
         domain: isNaval ? 'naval' : 'land',
@@ -1351,10 +1353,11 @@ const reduceAction = (state, action) => {
       if (state.regions[toRegionId]?.owner !== state.playerNationId) return state;
       if (!canAfford(state.resources, costs)) return state;
       // A manual move replaces any march order and counts as marching this turn (routes.js costs).
-      const nextUnits = { ...state.units, [unitId]: { ...cancelRoute(unit), regionId: toRegionId, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber }) } };
+      const toTile = state.regions[toRegionId]?.tile ?? null;
+      const nextUnits = { ...state.units, [unitId]: { ...cancelRoute(unit), regionId: toRegionId, tile: toTile, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber }) } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
-        if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId };
+        if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId, tile: toTile };
       });
       return {
         ...state,
@@ -1367,14 +1370,16 @@ const reduceAction = (state, action) => {
     // March anywhere over several turns (plan §4g, routes.js): the stack in `fromRegionId` (or the
     // units in `unitIds`) gets a route to `toRegionId`, walked at End Turn. Giving the order is free.
     case ActionTypes.SET_ROUTE: {
-      const { fromRegionId, toRegionId, unitIds = null } = action.payload || {};
-      const order = orderMarch(state, fromRegionId, toRegionId, unitIds);
+      // The target is a city id or a tile id (free land).
+      const { fromRegionId, toRegionId, toTile, unitIds = null } = action.payload || {};
+      const target = toTile != null ? toTile : toRegionId;
+      const order = orderMarch(state, fromRegionId, target, unitIds);
       if (!order.units) return reject(state, order.reason || 'That march is not possible.');
       const p = order.plan;
       return {
         ...state,
         units: order.units,
-        logs: [...state.logs, { year: state.year, message: `${p.units.length > 1 ? `${p.units.length} units` : 'An army'} set out for ${REGIONS_DATA[toRegionId]?.name || toRegionId}: about ${p.turns} turn${p.turns > 1 ? 's' : ''}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, message: `${p.units.length > 1 ? `${p.units.length} units` : 'An army'} set out for ${placeName(state, p.path[p.path.length - 1])}: about ${p.turns} turn${p.turns > 1 ? 's' : ''}.`, type: LogTypes.ACTION }]
       };
     }
 
@@ -2888,7 +2893,7 @@ const reduceAction = (state, action) => {
       const founded = foundOutpost(state, state.regions, { tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} }, unit, state.turnNumber);
       if (!founded) return reject(state, 'This is no place for a city.');
       const units = { ...state.units }; delete units[unitId];
-      return syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, message: `${founded.city.name} is founded as an outpost.`, type: 'action' }] });
+      return normalizeUnitTiles(syncWorldRegistry({ ...state, regions: founded.regions, world: { ...(state.world || {}), tileOwner: founded.world.tileOwner, tileState: founded.world.tileState }, units, logs: [...state.logs, { year: state.year, message: `${founded.city.name} is founded as an outpost.`, type: 'action' }] }));
     }
     case ActionTypes.DEQUEUE_PRODUCTION: {
       const { cityId: id, index } = action.payload || {};

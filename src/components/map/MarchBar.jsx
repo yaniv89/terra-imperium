@@ -7,7 +7,7 @@ import { Flag, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA, getNeighborIds } from '../../data/regions';
-import { accessOf, marchingUnits } from '../../engine/routes';
+import { accessOf, marchingUnits, placeName } from '../../engine/routes';
 import { useMarch } from './MarchContext';
 
 const name = (id) => REGIONS_DATA[id]?.name || id;
@@ -18,23 +18,25 @@ const MarchBar = ({ onSelectRegion }) => {
   if (!ctx?.march || ctx.march.dragging) return null;
   const { march, plan, cancel } = ctx;
   const target = march.target;
+  const isTile = typeof target === 'number';
   const units = marchingUnits(state, march.from);
-  const neighbour = target && getNeighborIds(march.from).includes(target);
-  const access = target ? accessOf(state, target) : null;
+  const neighbour = target && !isTile && getNeighborIds(march.from).includes(target);
+  const access = target && !isTile ? accessOf(state, target) : null;
+  const targetName = isTile ? placeName(state, target) : name(target);
   const canMoveNow = neighbour && access === 'own' && units.length > 0 && units.every((u) => (u.movesLeft ?? 1) > 0);
   const canAttack = neighbour && access === 'enemy';
 
-  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: march.from, toRegionId: target } }); cancel(); };
+  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target } }); cancel(); };
   const moveNow = () => { units.forEach((u) => dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId: u.id, toRegionId: target } })); cancel(); };
   const attack = () => { cancel(); onSelectRegion?.(target); };
 
   let line;
-  if (!target) line = <>Tap the province to march to from <b>{name(march.from)}</b>.</>;
+  if (!target) line = <>Tap a city or a tile to march to from <b>{name(march.from)}</b>.</>;
   else if (!plan?.ok) line = <span className="text-red-300">{plan?.reason || 'No route.'}</span>;
   else {
     line = (
       <>
-        To <b>{name(target)}</b>: {plan.turns} turn{plan.turns > 1 ? 's' : ''}, about {plan.supplies} supplies
+        To <b>{targetName}</b>: {plan.turns} turn{plan.turns > 1 ? 's' : ''}, about {plan.supplies} supplies
         {plan.haltAt && <span className="text-red-300">. Halts at {name(plan.haltAt)} to attack</span>}
       </>
     );

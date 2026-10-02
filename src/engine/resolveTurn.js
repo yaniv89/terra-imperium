@@ -78,6 +78,7 @@ import { decayAggressiveExpansion } from './expansion';
 import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
+import { normalizeUnitTiles } from './armies';
 import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
@@ -149,7 +150,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null } };
+    units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null } };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
   // Settlers walk, found outposts, and outposts grow (settlers.js).
@@ -170,6 +171,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   }
   // Tactical Battles plan §16: assaults on the player's garrisons are fought before the turn ends.
   if (state.pendingDefenses?.length) return state;
+  // Armies on tiles (armies.js): every unit's tile and city agree before the turn reads them.
+  state = normalizeUnitTiles(state);
 
   let regionDraft = null;
   let phaseStart = onPhase ? performance.now() : 0;
@@ -1165,5 +1168,5 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   mark('victory');
 
   // Research last, once this turn's science has been credited (src/engine/research.js).
-  return syncWorldRegistry(applyResearchTurn(reconcileTerritory(processColonies(processEmergence(next)))));
+  return normalizeUnitTiles(syncWorldRegistry(applyResearchTurn(reconcileTerritory(processColonies(processEmergence(next))))));
 };

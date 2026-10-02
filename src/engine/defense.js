@@ -26,6 +26,7 @@ import { recordBattle } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { getRegionModifier } from './modifiers/sheet';
 import { XP_WIN, XP_LOSE } from './invasion';
+import { placeInCity } from './armies';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD, isGarrisonBroken } from './siege';
 
 // Before this system, a successful capture roll against a garrisoned player region always did
@@ -214,7 +215,7 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
     if (u.strength <= 0 || (captured && !fallback)) { delete units[u.id]; return; }
     const gained = deployed.includes(u.id) ? Math.round(defenderXp * getGeneralXpMultiplier(state.hiredCommanders?.[u.commanderId])) + (xpBonusById?.[u.id] || 0) : 0;
     const next = gained ? awardXp({ ...units[u.id], strength: u.strength, morale: u.morale }, gained) : { ...units[u.id], strength: u.strength, morale: u.morale };
-    units[u.id] = { ...next, regionId: captured ? fallback : next.regionId, lastBattleTurn: state.turnNumber };
+    units[u.id] = { ...(captured ? placeInCity(next, state.regions, fallback) : next), lastBattleTurn: state.turnNumber };
   });
   // The aggressor's real troops take their losses and stay where they are. Synthetic ones fold
   // back into militaryStrength, minus what they lost.
@@ -227,7 +228,7 @@ export const applyDefenseResult = (state, def, battle, { decisive = false, xpBon
     }
     if (!units[u.id]) return;
     if (u.strength <= 0) delete units[u.id];
-    else units[u.id] = { ...units[u.id], regionId: captured ? def.regionId : units[u.id].regionId, strength: u.strength, morale: u.morale, movesLeft: 0, lastBattleTurn: state.turnNumber };
+    else units[u.id] = { ...(captured ? placeInCity(units[u.id], state.regions, def.regionId) : units[u.id]), strength: u.strength, morale: u.morale, movesLeft: 0, lastBattleTurn: state.turnNumber };
   });
   const aggressor = state.nations[def.aggressorId];
   let nations = aggressor && syntheticLoss > 0

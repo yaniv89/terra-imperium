@@ -5,7 +5,7 @@
 // zooms in on it. Zoomed out (below FOREIGN_MIN_ZOOM) only your own armies and battles show.
 import React, { useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
-import { REGION_COORDINATES } from '../../data/regionCoordinates';
+import { markerLatLng } from '../../utils/markerPosition';
 import { REGIONS_DATA } from '../../data/regions';
 import { getMapMarkers } from '../../utils/mapMarkers';
 import { getAtWarNationIds } from '../../utils/mapRegionStyle';
@@ -40,7 +40,7 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
     const showForeign = transform.k >= FOREIGN_MIN_ZOOM;
     const items = [];
     markerItems(markers, showForeign).forEach((m) => {
-      const c = REGION_COORDINATES[m.regionId];
+      const c = markerLatLng(m);
       const p = c && projection([c.lng, c.lat]);
       if (!p) return;
       // In the close view an army's banner becomes a small tag over its soldiers.

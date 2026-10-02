@@ -24,6 +24,7 @@ import { getAtWarNationIds, getRegionFillColor } from '../../utils/mapRegionStyl
 import { worldRasterUrl, worldRasterSizeFor } from '../../data/geo/worldRaster';
 import { getMapMarkers } from '../../utils/mapMarkers';
 import { clusterGlobeItems, createMarkerElement, markerItems } from '../map/mapBanners';
+import { markerLatLng } from '../../utils/markerPosition';
 import { openBattleReport } from '../battle/battleReportEvents';
 
 // Above this camera altitude (globe radii) the globe shows nations, not provinces.
@@ -305,7 +306,7 @@ const GlobeView = ({ onAmbiguousTap = null,
     return () => clearInterval(interval);
   }, []);
   const markerData = useMemo(() => clusterGlobeItems(markerItems(markers, !farView)
-    .map((m) => ({ ...m, lat: REGION_COORDINATES[m.regionId]?.lat, lng: REGION_COORDINATES[m.regionId]?.lng }))
+    .map((m) => ({ ...m, ...(markerLatLng(m) || {}) }))
     .filter((m) => m.lat != null), 3 * 1.4 ** altStep), [markers, farView, altStep]);
   const markerCtx = useRef({});
   markerCtx.current = { onSelectRegion, atWarNationIds };
