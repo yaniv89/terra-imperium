@@ -249,5 +249,5 @@ export const advanceMarches = (state, units, { year } = {}) => {
 };
 
 // Extra gold upkeep for the land units that marched this turn (`units`: a map or an array).
-export const marchUpkeep = (units, nationId, turnNumber, perUnitUpkeep) => Math.round(Object.values(units)
+export const marchUpkeep = (units, nationId, turnNumber, perUnitUpkeep, ownedUnits = null) => Math.round((ownedUnits || Object.values(units))
   .filter((u) => u.ownerId === nationId && u.marchedTurn === turnNumber && u.domain !== 'naval').length * perUnitUpkeep * MARCH_UPKEEP_SHARE);

@@ -24,23 +24,38 @@ import {
 } from '../data/opinion';
 
 const clamp = (v) => Math.max(OPINION_MIN, Math.min(OPINION_MAX, Math.round(v)));
-const ringsBetween = (tiles, from, to, max) => {
-  if (from === to) return 0;
-  let frontier = [from]; const seen = new Set(frontier);
-  for (let d = 1; d <= max; d++) { const next = []; for (const t of frontier) for (const n of tiles.neighbors[t]) { if (seen.has(n)) continue; if (n === to) return d; seen.add(n); next.push(n); } frontier = next; }
-  return Infinity;
+// Per regions identity: cities by owner, and for every city founded after the start the set of
+// tiles within SETTLED_NEAR_RINGS of it. Built once per turn, so the opinion of 240 nations costs
+// one pass over the cities instead of a breadth-first search per city pair.
+const cityIndexCache = new WeakMap(); // regions -> { byOwner: Map, nearSets: Map(cityId -> Set(tile)) }
+const ringSet = (tiles, from, max) => {
+  const seen = new Set([from]); let frontier = [from];
+  for (let d = 1; d <= max; d++) { const next = []; for (const t of frontier) for (const n of tiles.neighbors[t]) { if (!seen.has(n)) { seen.add(n); next.push(n); } } frontier = next; }
+  return seen;
+};
+const cityIndexOf = (regions, tiles) => {
+  let idx = cityIndexCache.get(regions);
+  if (idx) return idx;
+  idx = { byOwner: new Map(), nearSets: new Map() };
+  Object.values(regions).forEach((c) => {
+    if (!c.owner || c.tile == null) return;
+    const list = idx.byOwner.get(c.owner); if (list) list.push(c); else idx.byOwner.set(c.owner, [c]);
+    if (c.founded > 1) idx.nearSets.set(c.id, ringSet(tiles, c.tile, SETTLED_NEAR_RINGS));
+  });
+  cityIndexCache.set(regions, idx);
+  return idx;
 };
 
-// The map's part of A's opinion of B: borders, settling, culture. Cheap on the Dawn world
-// (a few cities each), cached by the caller.
+// The map's part of A's opinion of B: borders, settling, culture.
 const mapReasons = (state, a, b) => {
   const out = [];
   const regions = state.regions || {};
   const tileOwner = state.world?.tileOwner;
   if (!tileOwner) return out;
   const tiles = getTiles();
-  const mine = Object.values(regions).filter((c) => c.owner === a && c.tile != null);
-  const theirs = Object.values(regions).filter((c) => c.owner === b && c.tile != null);
+  const idx = cityIndexOf(regions, tiles);
+  const mine = idx.byOwner.get(a) || [];
+  const theirs = idx.byOwner.get(b) || [];
   if (!mine.length || !theirs.length) return out;
   const theirCities = new Set(theirs.map((c) => c.id));
   let shared = 0;
@@ -49,9 +64,9 @@ const mapReasons = (state, a, b) => {
   const turn = state.turnNumber || 1;
   let settled = 0;
   theirs.forEach((c) => {
-    if (!(c.founded > 1)) return;
-    const near = mine.some((m) => (m.founded || 1) < c.founded && ringsBetween(tiles, m.tile, c.tile, SETTLED_NEAR_RINGS) <= SETTLED_NEAR_RINGS);
-    if (near) settled += Math.min(0, SETTLED_NEAR + (turn - c.founded));
+    const near = idx.nearSets.get(c.id);
+    if (!near) return;
+    if (mine.some((m) => (m.founded || 1) < c.founded && near.has(m.tile))) settled += Math.min(0, SETTLED_NEAR + (turn - c.founded));
   });
   if (settled < 0) out.push({ id: 'settledNear', label: 'Settled next to my cities', value: settled });
   const culture = theirs.filter((c) => c.founderId === a).length;

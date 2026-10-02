@@ -64,9 +64,10 @@ export const getLoanSize = (state, nationId) => {
 // Plan §M11: "army upkeep, navy upkeep, fort upkeep, advisor salaries, loan interest" — vassal
 // tribute is left out (subjects don't exist until M12). Returns zeros for any nation but the
 // player, matching calcIncome's own player-only scope.
-export const calcNationBalance = (state, nationId, knownIncome) => {
+// `ownedUnits`: the nation's units when the caller already grouped them (supplies.js unitsByOwner).
+export const calcNationBalance = (state, nationId, knownIncome, ownedUnits = null) => {
   const nation = state.nations[nationId];
-  const units = Object.values(state.units).filter((u) => u.ownerId === nationId);
+  const units = ownedUnits || Object.values(state.units).filter((u) => u.ownerId === nationId);
   const armyMaintenanceMult = clampMaintenance(nation.armyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
   const navyMaintenanceMult = clampMaintenance(nation.navyMaintenance ?? ARMY_MAINTENANCE_DEFAULT) / 100;
   const armyUpkeep = Math.round(units.filter((u) => u.domain !== 'naval').length * UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
@@ -83,7 +84,7 @@ export const calcNationBalance = (state, nationId, knownIncome) => {
 
   const income = knownIncome || calcIncome(nationId === state.playerNationId ? state : { ...state, playerNationId: nationId, resources: getPool(state, nationId), techTree: Object.fromEntries(getResearched(state, nationId).map(id => [id, { researched: true }])) });
   // Armies that marched this turn (routes.js) cost MARCH_UPKEEP_SHARE more.
-  const marchingUpkeep = marchUpkeep(units, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
+  const marchingUpkeep = marchUpkeep(state.units, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult, units);
   const expenses = { armyUpkeep, marchingUpkeep, navyUpkeep, fortUpkeep, advisorSalaries, loanInterest };
   const totalExpenses = Object.values(expenses).reduce((sum, v) => sum + v, 0);
   return { income, expenses, net: (income.gold || 0) - totalExpenses };

@@ -319,9 +319,9 @@ export const applyAIRecruitCost = (nation, state, ageId) => {
   return { ...nation, economy: applyCosts(pool, costs) };
 };
 
-export const settleAIUpkeep = (state, nationId, income) => {
+export const settleAIUpkeep = (state, nationId, income, ownedUnits = null) => {
   const nation = state.nations[nationId];
-  const balance = calcNationBalance(state, nationId, income);
+  const balance = calcNationBalance(state, nationId, income, ownedUnits);
   const expenses = Object.values(balance.expenses).reduce((a,b)=>a+b,0);
   const gold = (nation.economy.gold || 0) - expenses;
   if (gold >= 0) return { ...nation, economy: { ...nation.economy, gold }, lastNetIncome: balance.net };

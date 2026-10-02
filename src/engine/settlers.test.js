@@ -9,7 +9,7 @@ import { assertGameState } from './stateAudit';
 import { getTiles } from '../data/geo/tiles';
 import { ringDistance } from './world/cities';
 import {
-  bestSites, settlerPath, canSettle, settlersOf, outpostsOf, processSettlers, makeSettler, OUTPOST_DONE, OUTPOST_PROGRESS, SETTLER_MOVES, OUTPOST_SLOTS_BY_AGE
+  bestSites, settlerPath, canSettle, settlersOf, outpostsOf, processSettlers, makeSettler, OUTPOST_DONE, OUTPOST_PROGRESS, SETTLER_MOVES, OUTPOST_SLOTS_BY_AGE, SETTLER_GIVE_UP_TURNS
 } from './settlers';
 import { chooseProduction, SETTLER_THINK_PERIOD } from './aiProduction';
 
@@ -104,6 +104,23 @@ describe('settlers and outposts', () => {
     const r = processSettlers({ ...s, units }, s.regions, units, s.world, () => 'bronze', 2);
     expect(outpostsOf(r.regions, 'in')).toHaveLength(slots); // one settler waits for a slot
     expect(Object.keys(r.units)).toHaveLength(1);
+  });
+
+  it('an AI settler without a target looks for a site again, and one idle too long is disbanded', () => {
+    const s = quiet(createInitialState({ playerNationId: 'au', rngSeed: 5 }));
+    const cairo = s.regions[getNationCapital('eg')];
+    const idle = { ...makeSettler('u_idle', cairo, 'eg'), target: null };
+    const r = processSettlers(s, s.regions, { ...s.units, u_idle: idle }, s.world, () => 'bronze', 1);
+    expect(r.units.u_idle.target).not.toBeNull(); // the retry found Egypt's site
+    expect(r.units.u_idle.idleSince ?? null).toBeNull();
+    const stuck = { ...idle, idleSince: 1 };
+    const r2 = processSettlers(s, s.regions, { ...s.units, u_idle: stuck }, s.world, () => 'bronze', 1 + SETTLER_GIVE_UP_TURNS);
+    expect(r2.units.u_idle).toBeUndefined();
+    expect(r2.logs.some((l) => l.nationId === 'eg' && /went home/.test(l.message))).toBe(true);
+    // The player's settlers are theirs to send: never retargeted, never disbanded.
+    const mine = { ...makeSettler('u_mine', s.regions[getNationCapital('au')], 'au'), target: null, idleSince: 1 };
+    const r3 = processSettlers(s, s.regions, { ...s.units, u_mine: mine }, s.world, () => 'bronze', 1 + SETTLER_GIVE_UP_TURNS);
+    expect(r3.units.u_mine.target).toBeNull();
   });
 
   it('AI cities queue settlers when they have room and then buildings, and the AI world fills in', () => {
