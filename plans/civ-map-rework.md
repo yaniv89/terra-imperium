@@ -1690,6 +1690,34 @@ cities, the AI economy's `processAIEconomyTurn` (14 ms for 95 thinking nations),
 and disaster phases (10 and 7 ms), median cities per nation (growth to size 2 and the sites in
 reach), the registry's city bridge, the Dawn geography, and the space-race affordability test.
 
+**Workstream 13, growth pace (2026-10-02).** Why the median nation had one city at turn 100
+(seed 11, 120 of 239 nations): 101 had no legal site within 12 rings of their capital. Of those,
+42 are islands with three or fewer land tiles in reach, 35 sit in land every neighbour already
+owns (Europe, the Levant), 23 had free land whose site score fell under the floor, and one had
+only tiles too close to a city. Letting settlers cross a neighbour's land at peace changed
+nothing (117 one-city nations in the same run), so borders are not the lever and the rule
+stays. The floor was: the AI rejected a site whose score, AFTER the 0.6-a-ring distance
+penalty, fell under 6, so a good site ten rings away never counted. A site is now judged by its
+quality (`siteQuality`: the yields of the centre and its ring, a resource, a river, the coast)
+against SITE_SCORE_MIN (4), and the distance only ranks the candidates. Seed 11, 150 turns:
+
+| Key | Before | After | Target |
+|---|---|---|---|
+| Land claimed at 550 CE / 1050 CE | 46.7% / 59.1% | 49.1% / 63.1% | 50% / 65% |
+| Cities at turn 100 / 150 | 656 / 756 | 726 / 879 | |
+| One-city nations at turn 100 | 120 | 111 | |
+| Nations with 6 or more cities at turn 100 | 37 | 49 | |
+| Median cities per nation at turn 100 | 1 | 2 | 6 (see below) |
+| Loyalty flips, turns 100 to 150 | 92 (1.2% per 10 turns) | 149 (1.9%) | 0.5 to 1% |
+| Audit violations | 0 | 0 | 0 |
+
+The target of 6 cities for the median nation is out of reach by geometry, not by pace: the
+grid has 8,274 land tiles, cities stand at least 2 tiles apart, so the world holds about 1,100
+cities for 240 nations, and 77 nations (islands and the boxed in) can never have a second city
+without conquest or overseas settling. The reachable target is a median of 2 at turn 100 and 3
+at turn 150 with about 1,000 cities by 1500 CE, which the next slices aim at. The loyalty flip
+rate rose with the city count (1.9% per 10 turns in the last window) and goes back on the list.
+
 ---
 
 ---

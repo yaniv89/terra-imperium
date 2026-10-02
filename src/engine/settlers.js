@@ -39,7 +39,7 @@ export const OUTPOST_TERRAIN_FACTOR = { mountains: 0.4, desert: 0.4, arctic: 0.4
 export const OUTPOST_SLOTS_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunpowder: 4, modern: 4 };
 export const MAX_SETTLE_RINGS = 12;   // how far a settler is sent at most
 export const AI_SETTLE_RINGS = 8;     // how far the AI looks for a site
-export const SITE_SCORE_MIN = 6;      // below this the AI would rather not settle
+export const SITE_SCORE_MIN = 4;      // a site's quality (its yields, before distance) below this is not worth a city
 export const SETTLER_RETRY_TURNS = 5;   // an AI settler without a target looks again this often
 export const SETTLER_GIVE_UP_TURNS = 15; // and is disbanded after this long without one
 export { SETTLER_MIN_SIZE };
@@ -108,9 +108,16 @@ export const canSettle = (state, tile, nationId, ageId) => {
 };
 
 /** How good a city site is: the centre and its ring's food, production and gold, a resource, a
- * river, the coast, minus distance (`distance` when the caller already walked it). Pure of state
- * except ownership. */
-export const scoreSite = (state, tile, fromTile = null, distance = null) => {
+ * river, the coast (the site's QUALITY), minus 0.6 a ring of distance (`distance` when the caller
+ * already walked it). Pure of state except ownership. */
+export const scoreSite = (state, tile, fromTile = null, distance = null) => siteQuality(state, tile) - siteDistancePenalty(state, tile, fromTile, distance);
+export const siteDistancePenalty = (state, tile, fromTile = null, distance = null) => {
+  if (distance != null) return distance * 0.6;
+  return fromTile != null ? ringDistance(getTiles(), fromTile, tile, MAX_SETTLE_RINGS) * 0.6 : 0;
+};
+/** The site's worth on its own, without the walk: the AI settles a site of quality SITE_SCORE_MIN
+ * or more however far it is (within reach), and ranks the candidates by score. */
+export const siteQuality = (state, tile) => {
   const tiles = getTiles();
   const tileState = state.world?.tileState || {};
   const tileOwner = state.world?.tileOwner || {};
@@ -123,12 +130,10 @@ export const scoreSite = (state, tile, fromTile = null, distance = null) => {
   if (facts.resource) score += 3;
   if (facts.river) score += 2;
   if (facts.coastal) score += 1.5;
-  if (distance != null) score -= distance * 0.6;
-  else if (fromTile != null) score -= ringDistance(tiles, fromTile, tile, MAX_SETTLE_RINGS) * 0.6;
   return Math.round(score * 10) / 10;
 };
 
-/** The best legal sites for a settler standing on `fromTile`, best first: [{ tile, score, steps }]. */
+/** The best legal sites for a settler standing on `fromTile`, best first: [{ tile, score, quality, steps }]. */
 export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_RINGS, limit = 5 } = {}) => {
   const tiles = getTiles();
   const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
@@ -138,8 +143,8 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
       if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok) {
-        const score = scoreSite(state, t, fromTile, d);
-        if (score >= SITE_SCORE_MIN) out.push({ tile: t, score, steps: d });
+        const quality = siteQuality(state, t);
+        if (quality >= SITE_SCORE_MIN) out.push({ tile: t, score: Math.round((quality - d * 0.6) * 10) / 10, quality, steps: d });
       }
     }
     const next = [];
