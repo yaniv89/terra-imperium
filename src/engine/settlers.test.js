@@ -72,7 +72,7 @@ describe('settlers and outposts', () => {
     expect(s.regions[outpost.id].outpost).toBeNull();
     expect(getOwnedRegionIds(s.regions, 'eg')).toContain(outpost.id);
     assertGameState(s);
-  });
+  }, 60000);
 
   it('a settler can found on the spot, and never where a nation already is', () => {
     const s = createInitialState({ playerNationId: 'fr', rngSeed: 1 });

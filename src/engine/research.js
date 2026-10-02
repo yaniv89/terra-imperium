@@ -16,6 +16,8 @@
 // The player's research lives on state.research and state.techTree; an AI nation's on
 // nation.research and nation.tech. Both use the same step (applyResearchTurn below), run at the
 // very end of resolveTurn, after this turn's income has been credited.
+import { applyBoosts } from './boosts';
+import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
 import { AGES, AGE_ORDER, GAME_SPEEDS, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
@@ -163,12 +165,17 @@ export const stepResearch = (state, nationId) => {
 // Runs every nation's research for the turn (the player's and every AI nation with an economy).
 export const applyResearchTurn = (state) => {
   let next = state;
+  // Boosts from the map (boosts.js): every tech whose fact a nation has met gets its share first.
+  const boostedPlayer = applyBoosts(state, state.playerNationId, researchOf(state, state.playerNationId), researchedSetOf(state, state.playerNationId));
+  if (boostedPlayer.applied.length) {
+    next = { ...next, research: boostedPlayer.research, logs: [...next.logs, ...boostedPlayer.applied.map((id) => ({ year: state.year, message: `Boost: ${BOOSTS[id].label} speeds ${TECH_TREE[id].name} (${Math.round(BOOST_SHARE * 100)}% of its cost).`, type: LogTypes.TECH }))] };
+  }
   // The player.
-  const p = stepResearch(state, state.playerNationId);
+  const p = stepResearch(next, state.playerNationId);
   if (p.completed.length || p.stock !== (state.resources?.techPoints || 0) || p.research.current !== state.research?.current || p.research !== state.research) {
     const techTree = { ...state.techTree };
     p.completed.forEach((id) => { techTree[id] = { ...techTree[id], researched: true }; });
-    const logs = [...state.logs];
+    const logs = [...next.logs];
     p.completed.forEach((id) => logs.push({ year: state.year, message: `Researched ${TECH_TREE[id].name}.`, type: LogTypes.TECH }));
     if (p.techAgeId !== state.techAgeId) logs.push({ year: state.year, message: `Your empire's expertise has reached the ${AGES[p.techAgeId]?.name}.`, type: LogTypes.MILESTONE });
     next = { ...next, techTree, techAgeId: p.techAgeId, research: p.research, resources: { ...next.resources, techPoints: p.stock }, logs };
@@ -179,7 +186,8 @@ export const applyResearchTurn = (state) => {
     const nation = state.nations[id];
     if (id === state.playerNationId || nation.isEliminated || !nation.economy) return;
     if ((state.turnNumber + stagger(id)) % AI_RESEARCH_PERIOD !== 0) return;
-    const r = stepResearch(state, id);
+    const boosted = applyBoosts(state, id, researchOf(state, id), researchedSetOf(state, id));
+    const r = stepResearch(boosted.applied.length ? { ...state, nations: { ...state.nations, [id]: { ...nation, research: boosted.research } } } : state, id);
     if (!r.completed.length && r.stock === nation.economy.techPoints && r.research.current === nation.research?.current) return;
     nations ||= { ...next.nations };
     nations[id] = {
