@@ -45,7 +45,6 @@ import { processCities, sizeToPeople } from './world/cities';
 import { syncWorldRegistry } from './world/registry';
 import { getTiles } from '../data/geo/tiles';
 import { getResearched, getTechAgeId } from './nationState';
-import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getEffectiveAgeId } from '../data/ages';
 import { libertyDesireTarget, libertyInputs, nextLibertyDesire } from './vassals';
 import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
@@ -289,7 +288,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }) - devastationGrowthPenalty(region);
     const devastation = decayDevastation(region.devastation);
     const currentPopulation = region.size != null
-      ? sizeToPeople(region.size, getHistoricalPopulationShare(newYear))
+      ? sizeToPeople(region.size)
       : nextRegionPopulation({
         currentPopulation: region.currentPopulation || modernBaseline,
         modernBaseline,

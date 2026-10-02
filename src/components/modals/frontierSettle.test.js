@@ -19,7 +19,9 @@ vi.mock('../../hooks/useAutoPeek', () => ({ useAutoPeek: () => [false, vi.fn()] 
 const expeditionButton = (html) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map((m) => m[0]).find((b) => b.includes('Live alongside them'));
 const render = (regionId) => renderToStaticMarkup(React.createElement(RegionInfoModal, { regionId, onClose: vi.fn() }));
 
-describe('founding a colony on the region card (plan §4h)', () => {
+// Skipped with the tile world: unclaimed land is free tiles, not neutral regions, and settlers
+// replace colonies (plans/civ-map-rework.md, workstream 4).
+describe.skip('founding a colony on the region card (plan §4h)', () => {
   let home; let frontier;
   beforeEach(() => {
     game.state = createInitialState({ playerNationId: 'fr', rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });

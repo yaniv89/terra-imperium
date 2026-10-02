@@ -4,15 +4,19 @@ import {
   calcAllNationIncomes, processAIEconomyTurn, canAffordAIRecruit, applyAIRecruitCost
 } from './aiEconomy';
 import { REGIONS_DATA } from '../data/regions';
+import { getNationCapital } from '../data/regions';
+import { createInitialState } from './gameReducer';
+import { addCities } from './testWorld';
 import { seedDevelopment } from './development';
 import { getIncreaseStabilityCost } from './nationalPower';
 
-// Real geo ids (both start-owned by Indonesia, both coastal) rather than hand-faked region data —
-// calcAllNationIncomes/tryConstructBuilding read isCoastal/isCapital/population straight off
-// REGIONS_DATA, so a fake id would silently no-op every one of those checks.
-const REGION_A = 'id-ki';
-const REGION_B = 'id-kb';
-const REGION_C = 'id-jt';
+// Real city ids (Indonesia's capital and two cities founded beside it on the tile world) rather
+// than hand-faked region data: calcAllNationIncomes/tryConstructBuilding read isCoastal/isCapital/
+// population straight off REGIONS_DATA, so a fake id would silently no-op every one of those checks.
+// The registry stays synced to this world for the whole file (nothing else builds a state here).
+const WORLD = addCities(createInitialState({ playerNationId: 'us', rngSeed: 1 }), 'id', 2);
+const REGION_A = getNationCapital('id');
+const [REGION_B, REGION_C] = WORLD.cityIds;
 
 const makeRegion = (id, overrides = {}) => ({
   id,

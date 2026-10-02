@@ -25,7 +25,10 @@ import { withDiffusion } from './techDiffusion';
 
 // Science cost of one tech, by its age, at Normal speed. Calibrated with the balance-sim so a
 // typical nation researches about 6 to 8 of an age's 10 techs before the calendar age ends.
-export const RESEARCH_AGE_BASE = { bronze: 40, classical: 85, kingdoms: 135, gunpowder: 140, modern: 290 };
+// Recalibrated for the one-city Dawn start (plans/civ-map-rework.md, Part H): a size-2 capital
+// makes about 3 science a turn, so a Bronze tech takes about 8 turns. The later ages keep their
+// values until the balance-sim pass of workstream 13.
+export const RESEARCH_AGE_BASE = { bronze: 24, classical: 85, kingdoms: 135, gunpowder: 140, modern: 290 };
 export { SCIENCE_PER_DEV } from '../data/actionCosts';
 export const FOCUS_SCIENCE_BONUS = 0.1;
 // A safety cap on techs completed in one turn (a big bank paid into cheap techs).

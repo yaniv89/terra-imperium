@@ -76,9 +76,10 @@ describe('region buildings have real effects', () => {
   });
 
   it('Food (Granary…) speeds up population growth', () => {
+    // People follow city size, which grows from the food bank (src/engine/world/cities.js).
     const s = base();
-    const plain = resolveTurn(s).regions[CAPITAL].currentPopulation;
-    const granary = resolveTurn(withBuilding(s, 'food', 0)).regions[CAPITAL].currentPopulation;
+    const plain = resolveTurn(s).regions[CAPITAL].food;
+    const granary = resolveTurn(withBuilding(s, 'food', 0)).regions[CAPITAL].food;
     expect(granary).toBeGreaterThan(plain);
   });
 

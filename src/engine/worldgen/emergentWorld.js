@@ -7,7 +7,6 @@
 import { getTiles } from '../../data/geo/tiles';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
 import { foundCity, emptyWorld, sizeToPeople } from '../world/cities';
-import { getHistoricalPopulationShare } from '../../data/historicalPopulation';
 import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
 
@@ -44,7 +43,6 @@ export const generateStarts = (playerNationId, nationCount, seed) => {
 const buildCityWorld = (initial, scenarioId, nationIds) => {
   const tiles = getTiles();
   const { starts } = buildScenarioStarts(tiles, scenarioId, nationIds);
-  const share = getHistoricalPopulationShare(initial.year);
   let world = emptyWorld();
   const nations = { ...initial.nations };
   const units = {};
@@ -85,7 +83,7 @@ const buildCityWorld = (initial, scenarioId, nationIds) => {
         founderId: nationId,
         owner: nationId,
         control: 100,
-        currentPopulation: sizeToPeople(size, share),
+        currentPopulation: sizeToPeople(size),
         currentInfrastructure: 0,
         underInvasion: false,
         unrest: 0,
@@ -112,6 +110,8 @@ export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed =
   const nationIds = mode === 'emergent' ? Object.keys(generateStarts(initial.playerNationId, nationCount, seed).starts) : allIds;
   const built = buildCityWorld(initial, start, nationIds);
   const dormantNationIds = allIds.filter((id) => !built.activeNationIds.includes(id));
+  // An emergent world carries only its active peoples; the dormant ones return through emergence.
+  if (mode === 'emergent') built.nations = Object.fromEntries(built.activeNationIds.map((id) => [id, built.nations[id]]));
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
   return {

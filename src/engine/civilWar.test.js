@@ -4,10 +4,12 @@ import {
 } from './civilWar';
 import { createInitialState } from './gameReducer';
 import { createRng } from '../utils/rng';
+import { addCities } from './testWorld';
 import { getOwnedRegionIds } from '../data/regions';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 
-const usState = () => createInitialState({ playerNationId: 'us' });
+// Seven US cities, so the pretenders' share of the nation is a fraction and not all of it.
+const usState = () => addCities(createInitialState({ playerNationId: 'us', rngSeed: 1 }), 'us', 6).state;
 
 describe('nextLowStabilityStreak / isStabilityCivilWarTrigger (plan §M15)', () => {
   it('increments while stability is at the floor (-3)', () => {

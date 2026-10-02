@@ -6,6 +6,7 @@ import { transferRegion } from './regionTransfer';
 import { canSubjugate,reconcileTerritory } from './worldLifecycle';
 import { getOwnedRegionIds,getBorderingNationIds,invalidateRegionsCache } from '../data/regions';
 import { auditGameState } from './stateAudit';
+import { addCity } from './testWorld';
 describe('territory and subject lifecycle',()=>{
   it('rejects subjugating the overlord and subject chains',()=>{
     const s=createInitialState({playerNationId:'fr',rngSeed:7});
@@ -20,7 +21,7 @@ describe('territory and subject lifecycle',()=>{
     expect(moved.conquest).toBeUndefined();expect(moved.occupiedBy).toBeUndefined();
   });
   it('refreshes cached ownership and capitals at a draft boundary',()=>{
-    const s=createInitialState({playerNationId:'fr',rngSeed:7});
+    const s=addCity(createInitialState({playerNationId:'fr',rngSeed:7}),'de').state;
     const id=s.nations.de.capitalRegionId;
     const old=getOwnedRegionIds(s.regions,'de').length;
     getBorderingNationIds(s.regions,'de');

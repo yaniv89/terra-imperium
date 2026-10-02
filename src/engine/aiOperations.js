@@ -43,7 +43,10 @@ export const processAIOperations = (state, rng) => {
     const enemies = new Set(wars.map(w => w.aggressor === nationId ? w.enemy : w.aggressor));
     const land = getOwnedRegionIds(next.regions, nationId);
     const fronts = new Set(land.filter(id => getNeighborIds(id).some(n => enemies.has(next.regions[n]?.owner))));
-    const threatened = new Set(land.filter(id => next.regions[id].underInvasion || (id === next.nations[nationId].capitalRegionId && fronts.has(id))));
+    // The capital counts as threatened when an enemy army stands next to it, not merely because
+    // enemy land borders it (on the Dawn world every capital borders its neighbours' capitals).
+    const enemyArmyNear = (id) => getNeighborIds(id).some(n => Object.values(next.units).some(u => u.regionId === n && u.domain === 'land' && !u.embarkedOn && enemies.has(u.ownerId)));
+    const threatened = new Set(land.filter(id => next.regions[id].underInvasion || (id === next.nations[nationId].capitalRegionId && fronts.has(id) && enemyArmyNear(id))));
     const goals = threatened.size ? threatened : fronts;
     next.aiOperations[nationId] = { turn: state.turnNumber, objective: threatened.size ? 'defend' : 'advance', startedTurn:state.aiOperations?.[nationId]?.objective === (threatened.size ? 'defend' : 'advance') ? state.aiOperations[nationId].startedTurn : state.turnNumber, fronts: [...fronts].sort(), targets: [...goals].sort() };
     const stacks = new Map();

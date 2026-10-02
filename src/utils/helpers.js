@@ -251,8 +251,10 @@ export const calcIncome = (state) => {
     if (localTechPoints) {
       income.techPoints = (income.techPoints || 0) + localTechPoints * controlMult * infraMult;
     }
-    // Science from development (src/engine/research.js): a share of the province's development.
-    income.techPoints = (income.techPoints || 0) + SCIENCE_PER_DEV * getTotalDev({ dev: region.dev || seedDevelopment(region.id) }) * controlMult;
+    // Science from development (src/engine/research.js): a share of the province's development,
+    // plus the city's own science (size and Science buildings, src/engine/world/cities.js).
+    income.techPoints = (income.techPoints || 0) + SCIENCE_PER_DEV * getTotalDev({ dev: region.dev || seedDevelopment(region.id) }) * controlMult
+      + (region.lastYields?.science || 0) * controlMult;
   });
 
   // Occupation (plan §M13): the occupier gets a lesser tax-only share of what it holds, rather than

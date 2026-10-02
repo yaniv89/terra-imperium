@@ -11,6 +11,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { getBorderingNationIds, getOwnedRegionIds, isAdjacentToOwner } from '../data/regions';
 import { createRng } from '../utils/rng';
+import { addCity } from './testWorld';
 
 const A = (type, payload) => ({ type: ActionTypes[type], payload });
 const fresh = (playerNationId = 'fr') => ({
@@ -193,7 +194,7 @@ describe('S6: loan ids are unique and repaying removes exactly one loan', () => 
 
 describe('S7: a successful revolt never hands land to a dead nation or leaves it occupied', () => {
   it('revives the eliminated former owner and clears occupiedBy', () => {
-    const base = fresh();
+    const base = addCity(fresh(), 'fr').state;
     const [formerOwner, occupier] = getBorderingNationIds(base.regions, 'fr');
     const regionId = getOwnedRegionIds(base.regions, 'fr').find((id) => id !== base.nations.fr.capitalRegionId);
     const state = {

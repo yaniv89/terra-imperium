@@ -80,7 +80,9 @@ describe('calcIncome', () => {
   });
 
   it('adds a flat gold bonus per active trade agreement', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    // A Dawn capital pays a few gold a turn, so this gives it a real tax base first.
+    const base = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
+    const state = { ...base, regions: Object.fromEntries(Object.entries(base.regions).map(([id, r]) => [id, r.owner === 'fr' ? { ...r, dev: { ...r.dev, tax: 100, production: 100 } } : r])) };
     const anyNationId = 'de'; // Adjacent capitals provide an open land route.
     const withTrade = calcIncome({
       ...state,
@@ -151,8 +153,11 @@ describe('calcIncome', () => {
     expect(lowTax.gold).toBeLessThan(normal.gold);
   });
 
+  // A Dawn capital pays a few gold a turn, so these give it a real tax base first.
+  const richer = (s) => ({ ...s, regions: Object.fromEntries(Object.entries(s.regions).map(([id, r]) => [id, r.owner === 'fr' ? { ...r, dev: { ...r.dev, tax: 100, production: 100, manpower: 100 } } : r])) });
+
   it('applies an owned Navigation Satellite\'s goldMult and a Weather Satellite\'s hrMult', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = richer(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
     const withoutSatellites = calcIncome(state);
     const withSatellites = calcIncome({
       ...state,
@@ -185,7 +190,7 @@ describe('calcIncome', () => {
   });
 
   it('degrades a satellite\'s bonus under high orbital debris', () => {
-    const state = createInitialState({ playerNationId: 'fr' });
+    const state = richer(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
     const satellites = { s1: { id: 's1', ownerId: 'fr', typeId: 'navigation' } };
     const noDebris = calcIncome({ ...state, satellites, orbitalDebrisLevel: 0 });
     const highDebris = calcIncome({ ...state, satellites, orbitalDebrisLevel: 100 });
