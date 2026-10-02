@@ -27,7 +27,7 @@ const MarchBar = ({ onSelectRegion }) => {
   const canMoveNow = !naval && neighbour && access === 'own' && units.length > 0 && units.every((u) => (u.movesLeft ?? 1) > 0);
   const canAttack = !naval && neighbour && access === 'enemy';
 
-  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target }), naval } }); cancel(); };
+  const marchNow = () => { dispatch({ type: ActionTypes.SET_ROUTE, payload: { ...(isTile ? { fromRegionId: march.from, toTile: target } : { fromRegionId: march.from, toRegionId: target }), naval, unitIds: march.unitIds || null } }); cancel(); };
   const moveNow = () => { units.forEach((u) => dispatch({ type: ActionTypes.MOVE_ARMY, payload: { unitId: u.id, toRegionId: target } })); cancel(); };
   const attack = () => { cancel(); onSelectRegion?.(target); };
 

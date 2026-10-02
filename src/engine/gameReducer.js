@@ -3001,6 +3001,17 @@ const reduceAction = (state, action) => {
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: saveTemplate(me, template, state.turnNumber) } };
     }
+    case ActionTypes.RENAME_ARMY: {
+      // The army sheet names a stack: every unit of it carries the same army tag from now on.
+      const { unitIds = [], name } = action.payload || {};
+      const label = (name || '').trim();
+      const mine = unitIds.filter((id) => state.units[id]?.ownerId === state.playerNationId);
+      if (!label || !mine.length) return state;
+      const army = { id: `army_${state.turnNumber}_${label.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`, name: label };
+      const units = { ...state.units };
+      mine.forEach((id) => { units[id] = { ...units[id], army }; });
+      return { ...state, units };
+    }
     case ActionTypes.DELETE_ARMY_TEMPLATE: {
       const me = state.nations[state.playerNationId];
       return { ...state, nations: { ...state.nations, [state.playerNationId]: deleteTemplate(me, action.payload?.id) } };

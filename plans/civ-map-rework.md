@@ -1884,6 +1884,18 @@ navalLines.test.js. Still open in D5b: raiders plundering sea routes for gold, t
 units, sea tiles in three depths (coast, shelf, ocean; the ocean opens by tech today), naval
 battles in the tactical sim.
 
+**Workstream 12, wave 2: the army sheet (2026-10-02).** Tapping one of your army banners on the
+flat map opens `ArmySheet.jsx` (a bottom sheet on a phone, a docked panel otherwise) for the
+stack on that tile: units grouped by army (`unit.army`, from a template order or a name given
+here), each with its roster name, strength, morale, supply meter, moves, general and
+promotions; the supply zone with its reason; the route with its ETA; orders: March (the stack
+on this tile only: `startMarch(regionId, { unitIds })` carries the ids through the march
+context into SET_ROUTE), Halt the march, Name this army (RENAME_ARMY tags every unit of the
+stack), Disband. The model (`armySheetModel.js`) is pure and tested. Still open in E4: the
+sheet on the globe view (its banners still open the city card), merge and split, fortify,
+pillage and siege orders from the sheet, the city, nation and empire sheets replacing the
+province modal, lenses, the "next" prompt.
+
 ---
 
 ---

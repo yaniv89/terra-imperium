@@ -88,7 +88,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 // header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
-  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null
+  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -569,7 +569,7 @@ const Map2DView = ({
           <CloseViewLayer projection={projection} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} />
         </Suspense>
       )}
-      <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} close={transform.k >= CLOSE_ZOOM_K} />
+      <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
       <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
