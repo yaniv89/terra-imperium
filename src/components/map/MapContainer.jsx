@@ -36,6 +36,7 @@ import Map2DContainer from './Map2DContainer';
 import RegionChooser from './RegionChooser';
 import MarchBar from './MarchBar';
 import { MarchProvider, useMarch } from './MarchContext';
+import { getTiles } from '../../data/geo/tiles';
 import MapModeToggle from './MapModeToggle';
 import MiniMap from './MiniMap';
 import MapModal from './MapModal';
@@ -70,7 +71,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
   const [selectedTile, setSelectedTile] = useState(null);
   const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) setSelectedTile(null); selectRegion(id); } };
-  const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedTile(tile); if (tile != null) { setManageOpen(false); selectRegion(null); } };
+  // In march mode any tile (sea included, for a fleet) is the target; otherwise only land opens the tile sheet.
+  const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } const land = tile != null && getTiles().land[tile] === 1 ? tile : null; setSelectedTile(land); if (land != null) { setManageOpen(false); selectRegion(null); } };
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);

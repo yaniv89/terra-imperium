@@ -418,7 +418,7 @@ const Map2DView = ({
     const ll = projection.invert([px, py]);
     if (!ll) return;
     const tile = tileAtLatLon(ll[1], ll[0]);
-    if (tile == null || tile < 0 || !getTiles().land[tile]) { onSelectTile(null); return; }
+    if (tile == null || tile < 0) { onSelectTile(null); return; }
     onSelectTile(tile === selectedTile ? null : tile);
   }, [interactive, onSelectTile, projection, transform, selectedTile]);
   const selectedTilePath = useMemo(() => (projection && selectedTile != null ? geoPath(projection)(getTileFeature(selectedTile)) : null), [projection, selectedTile]);

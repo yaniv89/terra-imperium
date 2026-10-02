@@ -25,6 +25,7 @@ import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { getTiles } from '../data/geo/tiles';
 import { touchesCity, unitTile } from './armies';
+import { atSea, touchesCoastOf } from './fleets';
 
 // Units committed to an in-progress tactical battle can't be moved, disbanded or sent into a
 // second fight until it resolves.
@@ -252,7 +253,8 @@ export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreC
   if (!targetRegion || targetRegion.owner === state.playerNationId) return { ok: false, reason: 'bad_target' };
   if (targetRegion.occupiedBy === state.playerNationId) return { ok: false, reason: 'already_held' };
   if (!isCoastal(targetRegionId)) return { ok: false, reason: 'not_coastal' };
-  if (!getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, state.age)) return { ok: false, reason: 'out_of_reach' };
+  const beside = atSea(state, navalUnit) && touchesCoastOf(state, getTiles(), navalUnit.tile, targetRegionId);
+  if (!beside && !getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, state.age)) return { ok: false, reason: 'out_of_reach' };
   const embarkedLandUnits = Object.values(state.units).filter((u) => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
   if (embarkedLandUnits.length === 0) return { ok: false, reason: 'no_units' };
   const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
@@ -316,7 +318,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
   xpAttackers.forEach(u => {
     if (u.strength <= 0) { delete nextUnits[u.id]; return; }
     nextUnits[u.id] = captured
-      ? { ...u, regionId: targetRegionId, embarkedOn: null, movesLeft: 0, lastBattleTurn: state.turnNumber }
+      ? { ...u, regionId: targetRegionId, tile: targetRegion.tile ?? null, embarkedOn: null, movesLeft: 0, lastBattleTurn: state.turnNumber }
       : { ...u, regionId: fromRegionId, embarkedOn: navalUnitId, movesLeft: 0, lastBattleTurn: state.turnNumber };
   });
   xpDefenders.forEach(u => {

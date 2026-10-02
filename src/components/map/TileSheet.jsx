@@ -14,6 +14,8 @@ import { getResearched } from '../../engine/nationState';
 import { tileFacts, tileYields, IMPROVEMENTS } from '../../data/tileYields';
 import { canSettle, scoreSite, settlerPath, settlersOf, SETTLER_MOVES } from '../../engine/settlers';
 import { WORLD_NATIONS } from '../../data/worldNations';
+import { atSea } from '../../engine/fleets';
+import { tileAccess } from '../../engine/armies';
 
 const Yield = ({ icon: Icon, value, title, className }) => (
   <span className={`inline-flex items-center gap-0.5 ${className}`} title={title}><Icon className="w-3 h-3" />{value}</span>
@@ -40,6 +42,11 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
   const parts = [facts.terrain, facts.relief !== 'flat' ? facts.relief : null, facts.feature !== 'none' ? facts.feature : null, facts.river ? 'river' : null, facts.coastal && facts.land ? 'coast' : null].filter(Boolean);
   const country = tiles.countryOf(tile);
   const turnsFor = (u) => { const p = settlerPath(state, u.tile, tile, me); return p ? Math.ceil(p.length / SETTLER_MOVES) : null; };
+  // A fleet at sea beside this shore can land its troops here (fleets.js), on own, allied or free land.
+  const landing = facts.land && ['own', 'friend', 'wild'].includes(tileAccess(state, tile, me))
+    ? Object.values(state.units).filter((u) => u.ownerId === me && u.domain === 'naval' && atSea(state, u) && tiles.neighbors[u.tile].includes(tile))
+      .flatMap((f) => Object.values(state.units).filter((c) => c.embarkedOn === f.id))
+    : [];
 
   const body = (
     <>
@@ -88,6 +95,11 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
             );
           })}
           {facts.land && can.ok && !settlers.length && <div className="text-[11px] text-slate-500">Build settlers in a city of size 2 or more to claim this land.</div>}
+          {landing.length > 0 && (
+            <button type="button" onClick={() => landing.forEach((c) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id, tile } }))} data-testid="land-here" className="w-full min-h-[44px] rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-1">
+              Land {landing.length} unit{landing.length === 1 ? '' : 's'} here
+            </button>
+          )}
         </div>
       )}
     </>

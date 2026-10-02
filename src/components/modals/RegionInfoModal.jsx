@@ -38,6 +38,7 @@ import PreBattleModal from '../battle/PreBattleModal';
 import { startMarch } from '../map/marchEvents';
 import { placeName } from '../../engine/routes';
 import { supplyOf } from '../../engine/supplyMeter';
+import { atSea } from '../../engine/fleets';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
@@ -508,6 +509,22 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                     {onRoute && (
                       <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { regionId } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Marching to ${placeName(state, dest)}`}>
                         Stop march to {placeName(state, dest)}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+              {ownerId === state.playerNationId && units.some((u) => u.domain === 'naval' && !atSea(state, u)) && (() => {
+                const sailing = units.find((u) => u.domain === 'naval' && u.route?.length);
+                const dest = sailing?.route[sailing.route.length - 1];
+                return (
+                  <div className="flex gap-1.5 mt-1.5">
+                    <button onClick={() => startMarch(regionId, { naval: true })} data-testid="sail-start" className="flex-1 min-h-[36px] rounded-lg bg-sky-700/80 hover:bg-sky-600 text-white text-[12px] font-semibold flex items-center justify-center gap-1.5">
+                      <Ship className="w-3.5 h-3.5" /> Sail…
+                    </button>
+                    {sailing && (
+                      <button onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: units.filter((u) => u.domain === 'naval').map((u) => u.id) } })} className="flex-1 min-h-[36px] rounded-lg bg-slate-700 hover:bg-slate-600 text-[12px] truncate px-2" title={`Sailing to ${placeName(state, dest)}`}>
+                        Stop sailing to {placeName(state, dest)}
                       </button>
                     )}
                   </div>

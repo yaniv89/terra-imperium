@@ -1,5 +1,6 @@
 import { orderMarch, cancelRoute, placeName } from './routes';
-import { normalizeUnitTiles } from './armies';
+import { normalizeUnitTiles, regionForTile, tileAccess, passableTile } from './armies';
+import { atSea, touchesCoastOf } from './fleets';
 import { abandonColony, foundColony, validateColony } from './colonies';
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
@@ -1371,15 +1372,15 @@ const reduceAction = (state, action) => {
     // units in `unitIds`) gets a route to `toRegionId`, walked at End Turn. Giving the order is free.
     case ActionTypes.SET_ROUTE: {
       // The target is a city id or a tile id (free land).
-      const { fromRegionId, toRegionId, toTile, unitIds = null } = action.payload || {};
+      const { fromRegionId, toRegionId, toTile, unitIds = null, naval = false } = action.payload || {};
       const target = toTile != null ? toTile : toRegionId;
-      const order = orderMarch(state, fromRegionId, target, unitIds);
+      const order = orderMarch(state, fromRegionId, target, unitIds, { naval });
       if (!order.units) return reject(state, order.reason || 'That march is not possible.');
       const p = order.plan;
       return {
         ...state,
         units: order.units,
-        logs: [...state.logs, { year: state.year, message: `${p.units.length > 1 ? `${p.units.length} units` : 'An army'} set out for ${placeName(state, p.path[p.path.length - 1])}: about ${p.turns} turn${p.turns > 1 ? 's' : ''}.`, type: LogTypes.ACTION }]
+        logs: [...state.logs, { year: state.year, message: `${p.naval ? (p.units.length > 1 ? `${p.units.length} ships` : 'A fleet') : (p.units.length > 1 ? `${p.units.length} units` : 'An army')} set out for ${placeName(state, p.path[p.path.length - 1])}: about ${p.turns} turn${p.turns > 1 ? 's' : ''}.`, type: LogTypes.ACTION }]
       };
     }
 
@@ -1412,16 +1413,27 @@ const reduceAction = (state, action) => {
     }
 
     case ActionTypes.DISEMBARK_UNIT: {
-      const { landUnitId } = action.payload;
+      // In port the unit steps ashore into the city; at sea it lands on `tile`, a land tile next to
+      // the fleet on own, allied or free land (enemy land is an AMPHIBIOUS_ASSAULT).
+      const { landUnitId, tile = null } = action.payload;
       const landUnit = state.units[landUnitId];
       const costs = ACTION_COSTS.disembarkUnit;
       if (!landUnit || landUnit.ownerId !== state.playerNationId || !landUnit.embarkedOn) return state;
       if (!canAfford(state.resources, costs)) return state;
+      const ship = state.units[landUnit.embarkedOn];
+      let landed;
+      if (ship && atSea(state, ship)) {
+        const tiles = getTiles();
+        if (tile == null || !passableTile(tiles, tile) || !tiles.neighbors[ship.tile].includes(tile)) return reject(state, 'Pick a shore next to the fleet to land on.');
+        const access = tileAccess(state, tile, state.playerNationId);
+        if (access === 'enemy' || access === 'held' || access === 'closed') return reject(state, access === 'closed' ? 'No access to that shore.' : 'Enemy shore: use an amphibious assault.');
+        landed = { ...landUnit, embarkedOn: null, tile, regionId: regionForTile(state, tile, state.playerNationId, landUnit.regionId), movesLeft: 0 };
+      } else landed = { ...landUnit, embarkedOn: null, tile: state.regions[landUnit.regionId]?.tile ?? landUnit.tile };
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        units: { ...state.units, [landUnitId]: { ...landUnit, embarkedOn: null } },
-        logs: [...state.logs, { year: state.year, message: `A ${landUnit.classId} unit disembarked at ${REGIONS_DATA[landUnit.regionId]?.name}.`, type: LogTypes.ACTION }]
+        units: { ...state.units, [landUnitId]: landed },
+        logs: [...state.logs, { year: state.year, message: `A ${landUnit.classId} unit disembarked at ${placeName(state, landed.tile)}.`, type: LogTypes.ACTION }]
       };
     }
 
@@ -1727,10 +1739,12 @@ const reduceAction = (state, action) => {
       const fromRegion = state.regions[fromRegionId];
       const costs = ACTION_COSTS.navalEngagement;
       if (!fromRegion || fromRegion.owner !== state.playerNationId) return state;
+      const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
       const isLandAdjacent = getNeighborIds(fromRegionId).includes(targetRegionId);
       const isSeaLaneReachable = isReachableBySea(fromRegionId, targetRegionId, state.age);
-      if (!isLandAdjacent && !isSeaLaneReachable) return state;
-      const attackerNavalUnits = Object.values(state.units).filter(u => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'naval');
+      // A fleet at sea beside the target's coast (fleets.js) engages too.
+      const besideCoast = attackerNavalUnits.some(u => atSea(state, u) && touchesCoastOf(state, getTiles(), u.tile, targetRegionId));
+      if (!isLandAdjacent && !isSeaLaneReachable && !besideCoast) return state;
       if (attackerNavalUnits.length === 0) return state;
       // Plan §M14: one attack per stack per turn.
       if (!attackerNavalUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;

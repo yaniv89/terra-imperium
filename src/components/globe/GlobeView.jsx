@@ -13,7 +13,6 @@ import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { cityAtLatLon, getCityFeatures, tileAtLatLon } from '../../data/geo/cityFeatures';
-import { getTiles } from '../../data/geo/tiles';
 import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
 import { renderPoliticalCanvas, loadImage } from './politicalTexture';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
@@ -261,7 +260,7 @@ const GlobeView = ({ onAmbiguousTap = null,
       if(ids.length>1){onAmbiguousTap({x:event.clientX,y:event.clientY,ids});return;}
     }
     if(gameRegionId)onSelectRegion(gameRegionId===selectedRegion?null:gameRegionId);
-    else if(onSelectTile){const tile=tileAtLatLon(hit.coords.lat,hit.coords.lng);onSelectTile(tile!=null&&tile>=0&&getTiles().land[tile]?tile:null);}
+    else if(onSelectTile){const tile=tileAtLatLon(hit.coords.lat,hit.coords.lng);onSelectTile(tile!=null&&tile>=0?tile:null);}
   },[regionAtClient,selectedRegion,onSelectRegion,onAmbiguousTap,onSelectTile]);
 
   useEffect(()=>{

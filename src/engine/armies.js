@@ -59,6 +59,8 @@ export const passableTile = (tiles, tile) => tile != null && tile >= 0 && tiles.
 export const unitTile = (state, unit) => {
   const t = unit.tile;
   if (t != null && t >= 0) {
+    // A fleet at sea (and its cargo) stands on water, whoever owns the coast.
+    if (getTiles().land[t] !== 1) return unit.domain === 'naval' || unit.embarkedOn ? t : (state.regions[unit.regionId]?.tile ?? null);
     const owner = state.world?.tileOwner?.[t];
     if (owner == null || owner === unit.regionId) return t;
   }
@@ -221,11 +223,17 @@ export const normalizeUnitTiles = (state) => {
   const tileOwner = state.world?.tileOwner || {};
   let units = state.units || {};
   let changed = false;
-  Object.values(state.units || {}).forEach((u) => {
+  const all = state.units || {};
+  Object.values(all).forEach((u) => {
     const centre = regions[u.regionId]?.tile ?? null;
     let tile = u.tile;
     let regionId = u.regionId;
-    if (u.domain === 'naval' || u.embarkedOn) tile = centre;
+    if (u.embarkedOn) {
+      // Cargo rides its carrier (fleets.js).
+      const ship = all[u.embarkedOn];
+      if (ship) { tile = ship.tile != null && ship.tile >= 0 ? ship.tile : (regions[ship.regionId]?.tile ?? centre); regionId = ship.regionId; }
+      else tile = centre;
+    } else if (u.domain === 'naval') tile = tile != null && tile >= 0 && tiles.land[tile] !== 1 ? tile : centre; // at sea, or in port
     else if (tile == null || tile < 0 || !tiles.land[tile]) tile = centre;
     else if (tileOwner[tile] != null && tileOwner[tile] !== regionId && regions[tileOwner[tile]]) regionId = tileOwner[tile];
     if (tile === u.tile && regionId === u.regionId) return;

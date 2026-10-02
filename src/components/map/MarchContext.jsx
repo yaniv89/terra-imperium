@@ -18,18 +18,18 @@ export const MarchProvider = ({ children }) => {
   const [march, setMarch] = useState(null);
 
   useEffect(() => {
-    const onStart = (e) => setMarch({ from: e.detail, target: null });
+    const onStart = (e) => setMarch({ from: e.detail.from, naval: !!e.detail.naval, target: null });
     window.addEventListener(START_MARCH, onStart);
     return () => window.removeEventListener(START_MARCH, onStart);
   }, []);
 
-  const plan = useMemo(() => (march?.from && march.target ? planMarch(state, march.from, march.target) : null), [state, march]);
+  const plan = useMemo(() => (march?.from && march.target != null ? planMarch(state, march.from, march.target, null, { naval: !!march.naval }) : null), [state, march]);
   // The march mode ends by itself when its army is gone (moved, disbanded, beaten).
-  const hasArmy = useMemo(() => !march || Object.values(state.units).some((u) => u.regionId === march.from && u.ownerId === state.playerNationId && u.domain !== 'naval' && !u.embarkedOn), [state.units, state.playerNationId, march]);
+  const hasArmy = useMemo(() => !march || Object.values(state.units).some((u) => u.regionId === march.from && u.ownerId === state.playerNationId && (march.naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn), [state.units, state.playerNationId, march]);
   useEffect(() => { if (!hasArmy) setMarch(null); }, [hasArmy]);
 
   const lines = useMemo(() => getMarchLines(state, plan), [state, plan]);
-  const begin = useCallback((from, dragging = false) => setMarch({ from, target: null, dragging }), []);
+  const begin = useCallback((from, dragging = false, naval = false) => setMarch({ from, target: null, dragging, naval }), []);
   const aimAt = useCallback((target) => setMarch((m) => (m ? { ...m, target } : m)), []);
   const drop = useCallback((target) => setMarch((m) => (m ? { ...m, target, dragging: false } : m)), []);
   const cancel = useCallback(() => setMarch(null), []);
