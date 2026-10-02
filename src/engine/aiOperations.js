@@ -1,7 +1,7 @@
 import { gameReducer } from './gameReducer';
 import { ActionTypes } from '../data/types';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
-import { claimFrontier, validateFrontier } from './frontier';
+import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } from './colonies';
 // Persistent front objectives and real, one-hop army orders. All combat uses invasion aftermath.
 import { getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getPool, getTechAgeId } from './nationState';
@@ -31,8 +31,12 @@ export const processAIOperations = (state, rng) => {
     if (nationId === state.playerNationId || state.nations[nationId].isEliminated) continue;
     if (state.scenario?.mode === 'emergent') {
       const neutral = [...new Set(getOwnedRegionIds(next.regions, nationId).flatMap(getNeighborIds))].filter(id => next.regions[id]?.owner === null).sort();
-      const target = neutral.find(id => validateFrontier(next,id,nationId).ok);
-      if(target) next=claimFrontier(next,target,nationId);
+      // Colonies (colonies.js), under the same rules as the player: a free slot first, then the
+      // first affordable target. Wary of strong natives: live alongside them; else drive them out.
+      if (coloniesOf(next, nationId).length < colonySlots(next, nationId) && canAfford(getPool(next, nationId), foundingCost(next, nationId))) {
+        const target = neutral.find(id => !next.regions[id].colony && validateColony(next,id,nationId,{quick:true}).ok);
+        if(target) next=foundColony(next,target,(next.regions[target].neutral?.resistance||0)>=45?'coexist':'driveOut',nationId);
+      }
     }
     const wars = next.wars.filter(w => w.active && (w.aggressor === nationId || w.enemy === nationId));
     if (!wars.length) continue;

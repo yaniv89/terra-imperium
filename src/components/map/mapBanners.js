@@ -60,11 +60,21 @@ export const battleBannerHtml = (b) => `<svg class="map-banner-svg" width="22" h
   + `<circle cx="12" cy="12" r="10.5" fill="#7f1d1d" stroke="${b.won ? '#22c55e' : b.outcome === 'stalemate' ? '#f59e0b' : '#f87171'}" stroke-width="2" />`
   + '<path d="M7 7 L17 17 M17 7 L7 17 M6 9.5 L9.5 6 M14.5 6 L18 9.5" stroke="#f8fafc" stroke-width="2" stroke-linecap="round" fill="none" /></svg>';
 
+// A colony (plan §4h): a tent, with a ring that fills as it grows.
+export const colonyBannerHtml = (m) => {
+  const r = 10; const len = 2 * Math.PI * r; const done = Math.max(0, Math.min(1, (m.progress || 0) / 100));
+  const fill = m.own ? PLAYER_BANNER_COLOR : getNationColor(m.ownerId) || '#64748b';
+  return `<svg class="map-banner-svg" width="${m.own ? 24 : 18}" height="${m.own ? 24 : 18}" viewBox="0 0 24 24" aria-hidden="true">`
+    + `<circle cx="12" cy="12" r="${r}" fill="${fill}" stroke="rgba(15,23,42,0.9)" stroke-width="2.4" />`
+    + `<circle cx="12" cy="12" r="${r}" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-dasharray="${(len * done).toFixed(1)} ${len.toFixed(1)}" transform="rotate(-90 12 12)" />`
+    + '<path d="M6.5 16.5 L12 7 L17.5 16.5 Z M12 16.5 V12.5" fill="#f8fafc" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round" /></svg>';
+};
+
 // A cluster: several banners that would overlap at this zoom.
 export const clusterBannerHtml = (count, own) => `<span class="map-banner-cluster${own ? ' own' : ''}">${count}</span>`;
 
 // Screen offsets so an army, a fleet and a battle in the same province do not cover each other.
-export const MARKER_OFFSET = { army: [0, -14], fleet: [16, 4], battle: [-16, 2] };
+export const MARKER_OFFSET = { army: [0, -14], fleet: [16, 4], battle: [-16, 2], colony: [0, 10] };
 
 // Greedy screen-space clustering: markers closer than `radius` px join the first one placed.
 // `items` = [{ key, x, y, own, ... }] in priority order (own first). Returns
@@ -81,7 +91,7 @@ export const clusterScreenMarkers = (items, radius) => {
 };
 
 // The banner HTML for any placed marker (`kind` = army | fleet | battle), shared by both maps.
-export const markerHtml = (m, atWar) => (m.kind === 'battle' ? battleBannerHtml(m)
+export const markerHtml = (m, atWar) => (m.kind === 'colony' ? colonyBannerHtml(m) : m.kind === 'battle' ? battleBannerHtml(m)
   : m.kind === 'fleet' ? fleetBannerHtml(m, { atWar }) : armyBannerHtml(m, { atWar }));
 
 // Flatten a getMapMarkers() result into one list, own markers first. `showForeign` false keeps only
@@ -92,7 +102,8 @@ export const markerItems = (markers, showForeign) => {
   add(markers.armies, 'army', true);
   add(markers.fleets, 'fleet', true);
   add(markers.battles, 'battle', true);
-  if (showForeign) { add(markers.armies, 'army', false); add(markers.fleets, 'fleet', false); }
+  add(markers.colonies || [], 'colony', true);
+  if (showForeign) { add(markers.armies, 'army', false); add(markers.fleets, 'fleet', false); add(markers.colonies || [], 'colony', false); }
   return out;
 };
 

@@ -1,5 +1,5 @@
 import { getTradeRoute } from '../../engine/tradeRoutes';
-import { validateFrontier } from '../../engine/frontier';
+import ColonyBlock from './ColonyBlock';
 // src/components/modals/RegionInfoModal.jsx
 // Region information modal/panel with close button
 
@@ -106,7 +106,6 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
 
   if (!regionData || !regionState) return null;
 
-  const frontier = validateFrontier(state, regionId);
   const isNeutralFrontier = state.scenario?.mode === 'emergent' && regionState.owner === null;
   const isPlayerOwned = regionState.owner === state.playerNationId;
   const ownerNation = !isPlayerOwned ? state.nations[regionState.owner] : null;
@@ -278,7 +277,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       <div className="flex items-center justify-between mb-2">
         <span className="text-slate-400">Owner:</span>
         <span className={`font-semibold ${isPlayerOwned ? 'text-blue-400' : ''}`} style={{ color: !isPlayerOwned ? ownerNation?.color : undefined }}>
-          {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation?.name || 'Unknown'}
+          {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation?.name || (isNeutralFrontier ? (regionState.colony ? `Free land, ${regionState.colony.ownerId === state.playerNationId ? 'your' : `${state.nations[regionState.colony.ownerId]?.name || 'a'}`} colony` : 'Free land') : 'Unknown')}
         </span>
       </div>
 
@@ -370,7 +369,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           )}
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
           {ownerNation?.hasTradeAgreement && <p className="text-xs text-slate-300">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}</p>}
-          {isNeutralFrontier && <ActionButton icon={Compass} label="Frontier expedition" description={frontier.ok ? 'Integrate this region; the army spends its movement for this turn.' : frontier.reason} disabled={!frontier.ok} onClick={()=>dispatch({type:ActionTypes.FRONTIER_EXPEDITION,payload:{targetRegionId:regionId}})} />}
+          {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
           {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason }) => (
             <ActionButton
               key={srcId}

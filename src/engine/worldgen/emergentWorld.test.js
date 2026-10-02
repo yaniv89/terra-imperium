@@ -49,13 +49,13 @@ describe('emergent world invariants',()=>{
     const army=state.units.start_fr;
     const target=getNeighborIds(army.regionId).find(id=>state.regions[id].owner===null);
     state=gameReducer(state,{type:ActionTypes.FRONTIER_EXPEDITION,payload:{targetRegionId:target}});
-    expect(state.regions[target].owner).toBe('fr');
+    expect(state.regions[target].colony.ownerId).toBe('fr'); // a colony now (plan §4h), yours over turns
     expect(state.units.start_fr.movesLeft).toBe(0);
     const nextTarget=getNeighborIds(target).find(id=>state.regions[id].owner===null);
     const next=gameReducer(state,{type:ActionTypes.FRONTIER_EXPEDITION,payload:{targetRegionId:nextTarget}});
     expect(next.regions).toBe(state.regions);
     expect(state.resources.gold).toBeLessThan(10000);
-    expect(migrateSave({version:CURRENT_SAVE_VERSION,state:JSON.parse(JSON.stringify(state))}).state.regions[target].neutral).toBeNull();
+    expect(migrateSave({version:CURRENT_SAVE_VERSION,state:JSON.parse(JSON.stringify(state))}).state.regions[target].colony.ownerId).toBe('fr');
   });
   it('relocates an isolated player visibly and persists its active roster through turns',()=>{
     let state=createInitialState({playerNationId:'va',rngSeed:3,scenario:{mode:'emergent',nationCount:15,seed:3}});
@@ -64,7 +64,8 @@ describe('emergent world invariants',()=>{
     for(let i=0;i<5;i++) state=resolveTurn({...state,activeProceduralEvent:null});
     expect(state.turnNumber).toBe(6);
     expect(Object.keys(state.nations)).toHaveLength(15);
-    expect(Object.values(state.regions).filter(r=>r.owner!==null).length).toBeGreaterThan(15);
+    // Expansion is colonies growing over turns now (plan §4h): several are under way by turn 6.
+    expect(Object.values(state.regions).filter(r=>r.owner!==null || r.colony).length).toBeGreaterThan(15);
     assertGameState(state);
   });
 });

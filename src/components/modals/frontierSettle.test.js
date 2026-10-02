@@ -1,4 +1,4 @@
-// Regression: frontier land (an emergent world's unowned regions) showed no actions at all, so a
+// Regression (the card part still applies to colonies, plan §4h): frontier land (an emergent world's unowned regions) showed no actions at all, so a
 // player with an army right next to it had no way to claim it. The card's action block was gated
 // on the region having an owner nation.
 import React from 'react';
@@ -16,10 +16,10 @@ vi.mock('../../context/MapInsetsContext', () => ({ useReportInset: () => {} }));
 vi.mock('../../hooks/useIsMobile', () => ({ useIsMobile: () => false }));
 vi.mock('../../hooks/useAutoPeek', () => ({ useAutoPeek: () => [false, vi.fn()] }));
 
-const expeditionButton = (html) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map((m) => m[0]).find((b) => b.includes('Frontier expedition'));
+const expeditionButton = (html) => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map((m) => m[0]).find((b) => b.includes('Live alongside them'));
 const render = (regionId) => renderToStaticMarkup(React.createElement(RegionInfoModal, { regionId, onClose: vi.fn() }));
 
-describe('frontier expedition on the region card', () => {
+describe('founding a colony on the region card (plan §4h)', () => {
   let home; let frontier;
   beforeEach(() => {
     game.state = createInitialState({ playerNationId: 'fr', rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });
@@ -30,7 +30,7 @@ describe('frontier expedition on the region card', () => {
     game.state.units = { army: { id: 'army', ownerId: 'fr', regionId: home, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 1 } };
   });
 
-  it('shows an enabled expedition when an army with a move stands next to it', () => {
+  it('shows enabled colony options when an army with a move stands next to it', () => {
     expect(frontier).toBeDefined();
     const button = expeditionButton(render(frontier));
     expect(button).toBeDefined();
@@ -41,11 +41,12 @@ describe('frontier expedition on the region card', () => {
     game.state.units.army.movesLeft = 0;
     const html = render(frontier);
     expect(expeditionButton(html)).toContain('disabled=""');
-    expect(html).toContain('An adjacent land army with movement remaining is required.');
+    expect(html).toContain('Needs a land army next to it with a move left');
   });
 
-  it('the expedition makes the land yours', () => {
-    const next = gameReducer(game.state, { type: ActionTypes.FRONTIER_EXPEDITION, payload: { targetRegionId: frontier } });
-    expect(next.regions[frontier].owner).toBe('fr');
+  it('founding starts a colony on the land, which becomes yours over the next turns', () => {
+    const next = gameReducer(game.state, { type: ActionTypes.FOUND_COLONY, payload: { regionId: frontier, policy: 'coexist' } });
+    expect(next.regions[frontier].colony.ownerId).toBe('fr');
+    expect(next.regions[frontier].owner).toBe(null);
   });
 });

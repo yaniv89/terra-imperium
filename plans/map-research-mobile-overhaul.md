@@ -526,6 +526,18 @@ overlay (item 1 below) is **dropped** at the user's request; the rest stays opti
 
 ### 4h. Settling as a project, not a click (user request: "too easy and boring")
 
+**Status: built (workstream 6b).** src/engine/colonies.js, FOUND_COLONY and ABANDON_COLONY (the old
+FRONTIER_EXPEDITION now founds a colony), the colony block on the region card and a tent marker
+with a progress ring on both maps. Tuned with balance-sim (emergent, 100 turns, seeds 11 and 12):
+median nation 12-15 provinces before, 8 after; biggest 43-46 before, 17-18 after; ms per turn
+unchanged, audit 0. Changes from the design while tuning:
+- Growth base 14 a turn (10 was too slow), raid odds resistance / 350.
+- A lost or abandoned colony's escort walks home: small nations were left with their only army
+  stranded on empty land, which stalled half the world at 4 provinces.
+- Raids roll on their own well-mixed hash: the shared one gave three raids in a row 30 times too
+  often, and a third of all colonies were lost.
+
+
 **Today (measured, emergent world, seed 11).** A frontier claim is one instant action: an army next
 to the land, 80 + 20 x claims^1.4 gold, 2 ADM and a few supplies, and the province is yours at
 once. Every AI nation claims one each turn it can afford; a player with several armies claims
@@ -1549,7 +1561,7 @@ after, and `compare.sh` for speed.
 | 4 | Research engine, calibration, choice popup, research tab | L | **done** (boosts and soft gate later) |
 | 5 | Tap disambiguation, more zoom | S | **done** |
 | 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | banners, routes engine, March bar **done**; path lines and drag next |
-| 6b | **Settling as a project: colonies over turns, slots, settlers, natives, raids (4h)** (user request) | M | next, before 7 |
+| 6b | **Settling as a project: colonies over turns, slots, settlers, natives, raids (4h)** (user request) | M | **done** |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
 | 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, town models sized by buildings, 3D army figures, icons when zoomed out (4f)** (user request: moved up, right after 6b) | L | 6; uses the battle unit models now, sprites of 9 later |
 | 9 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
