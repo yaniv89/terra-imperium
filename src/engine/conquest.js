@@ -12,6 +12,7 @@
 // A lost capital moves to the loser's richest remaining province (the same move a peace deal makes).
 import { transferRegion } from './regionTransfer';
 import { applyAggressiveExpansion } from './expansion';
+import { aeMultFor } from './claims';
 import { LOYALTY_ON_CONQUEST } from './loyalty';
 import { getTotalDev } from './development';
 import { clampStability } from './nationalPower';
@@ -50,7 +51,9 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
     loyalty: LOYALTY_ON_CONQUEST, freeCity: undefined
   });
   const nextRegions = { ...regions, [regionId]: taken };
-  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId);
+  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region));
+  // The claim the city was taken for is settled.
+  if (nextNations[conquerorId]?.claims?.includes(regionId)) nextNations = { ...nextNations, [conquerorId]: { ...nextNations[conquerorId], claims: nextNations[conquerorId].claims.filter((id) => id !== regionId) } };
   nextNations = relocateLostCapital(nextNations, nextRegions, loserId);
   return { regions: nextRegions, nations: nextNations, loserId, capitalTaken: loserCapital === regionId };
 };

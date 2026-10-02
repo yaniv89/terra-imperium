@@ -75,6 +75,7 @@ import {
 import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
 import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
+import { advanceClaims } from './claims';
 import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, unitsByOwner, HUNGER_MORALE } from './supplies';
 import { advanceMarches, marchUpkeep } from './routes';
@@ -868,6 +869,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- diplomacy (plan §M12): Aggressive Expansion decay (every nation), diplomat tasks and
   // vassal tribute (player-only, matching every other player-only economic action this turn). ---
   Object.assign(nations, decayAggressiveExpansion(nations));
+  // Claims on cities (claims.js): the ones being fabricated complete, the ones on cities now owned drop.
+  advanceClaims(nations, regions, newTurnNumber).forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.DIPLOMACY }); });
   // Nations that fear the same conqueror band together in defensive pacts (src/engine/pacts.js).
   {
     const pacts = updateDefensivePacts(nations, { playerNationId: state.playerNationId, turnNumber: newTurnNumber });

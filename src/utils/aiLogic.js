@@ -25,7 +25,9 @@ import { opinionOf, warRollOpinionMult } from '../engine/opinion';
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
-import { declareWar, isInTruce, hasActiveWarBetween } from '../engine/diplomacy';
+import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
+import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../engine/claims';
+import { ACTION_COSTS } from '../data/actionCosts';
 import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitClasses';
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { independenceChance } from '../engine/vassals';
@@ -369,9 +371,26 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // Opinion (opinion.js, C6.3): the roll follows what this nation thinks of the player, and a
     // nation that thinks well of the player never picks the player as its target.
     const opinion = opinionOf({ ...state, nations: currentNations }, nationId);
-    if (!shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
-    const targetId = pickWarTarget({ ...state, nations: currentNations, wars: currentWars }, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null);
+    const view = { ...state, nations: currentNations, wars: currentWars };
+    // A claim this nation fabricated (claims.js) and that is ready: the war it was made for
+    // needs no new roll (the roll was passed when the claim was started).
+    const readyTarget = claimsOf(activeNation).map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null) === t) || null;
+    if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
+    const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null);
     if (!targetId) return;
+    if (!hasCasusBelli(view, nationId, targetId)) {
+      // No justification yet: fabricate a claim on the nearest city of the target when the DIP is
+      // there, and come back for the war when it is ready; a nation that cannot (no city within
+      // reach, no DIP) declares unjustified as before.
+      if (claimsInProgressOf(activeNation).length) return;
+      const site = claimableCities(view, nationId, targetId)[0];
+      const cost = ACTION_COSTS.fabricateClaim;
+      const pool = activeNation.economy;
+      if (site && pool && (pool.dip || 0) >= (cost.dip || 0) && (pool.gold || 0) >= (cost.gold || 0)) {
+        currentNations = { ...currentNations, [nationId]: startClaim({ ...activeNation, economy: { ...pool, dip: pool.dip - (cost.dip || 0), gold: pool.gold - (cost.gold || 0) } }, site.city.id, state.turnNumber) };
+        return;
+      }
+    }
     const result = declareWar({ ...state, nations: currentNations, wars: currentWars }, targetId, { aggressor: nationId });
     if (result.wars === currentWars) return; // no-op (shouldn't happen given pickWarTarget's filter, but stay defensive)
     draggedIn.add(targetId);

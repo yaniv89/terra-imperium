@@ -71,6 +71,10 @@ const mapReasons = (state, a, b) => {
   if (settled < 0) out.push({ id: 'settledNear', label: 'Settled next to my cities', value: settled });
   const culture = theirs.filter((c) => c.founderId === a).length;
   if (culture) out.push({ id: 'myPeople', label: 'Holds cities of my people', value: HOLDS_MY_CULTURE * culture, detail: `${culture} cit${culture > 1 ? 'ies' : 'y'}` });
+  // Claims are on cities (claims.js): each of mine that B claims.
+  const bClaims = state.nations?.[b]?.claims || [];
+  const claimed = bClaims.length ? mine.filter((c) => bClaims.includes(c.id)).length : 0;
+  if (claimed) out.push({ id: 'claim', label: 'Holds a claim on my city', value: CLAIM_ON_MY_CITY * claimed, detail: mine.filter((c) => bClaims.includes(c.id)).map((c) => c.name).join(', ') });
   return out;
 };
 
@@ -82,7 +86,6 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   const hostility = b === state.playerNationId ? (A.hostility || 0) : 0; // the grudge ledger is kept towards the player
   if (hostility) out.push({ id: 'grudge', label: 'Past grievances', value: -GRUDGE_PER_HOSTILITY * hostility, detail: `hostility ${hostility}` });
   out.push(...mapReasons(state, a, b));
-  if ((B.claims || []).includes(a)) out.push({ id: 'claim', label: 'Holds a claim on me', value: CLAIM_ON_MY_CITY });
   if (b === state.playerNationId && A.hasTradeAgreement) out.push({ id: 'trade', label: 'Trade between us', value: Math.min(TRADE_MAX, TRADE_ROUTE) });
   if (b === state.playerNationId && A.hasMilitaryPact) out.push({ id: 'alliance', label: 'Allied', value: ALLIANCE });
   if (A.defensivePact && B.defensivePact && A.defensivePact.against === B.defensivePact.against) out.push({ id: 'pact', label: 'Defensive pact together', value: DEFENSIVE_PACT });

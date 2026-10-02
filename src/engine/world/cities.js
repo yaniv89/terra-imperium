@@ -141,7 +141,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
   claim.forEach((t) => { tileOwner[t] = id; });
   const facts = cityFacts(tiles, tile);
   const city = {
-    id, name: name || tiles.names[tile] || `City ${tile}`, ownerId: nationId, tile, founded: turn,
+    id, name: name || tiles.names[tile] || `City ${tile}`, ownerId: nationId, founderId: nationId, tile, founded: turn,
     size: Math.max(1, Math.min(MAX_SIZE, size)), food: 0, focus: 'balanced', locked: [], worked: [],
     tiles: claim, cultureBank: 0, unrest: 0, loyalty: 100,
     production: { current: null, queue: [], progress: 0 },

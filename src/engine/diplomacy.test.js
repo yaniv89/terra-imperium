@@ -140,18 +140,16 @@ describe('declareWar', () => {
     expect(declareWar(state, 'us', { aggressor: 'us' })).toBe(state);
   });
 
-  it('consumes a fabricated claim the aggressor holds against the target', () => {
+  it('a claim on a city of the target justifies the war, names it as the goal and stays until the city is taken', () => {
     const state = usState();
-    const withClaim = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: ['ca'] } } };
-    const next = declareWar(withClaim, 'ca', { aggressor: 'us' });
-    expect(next.nations.us.claims).not.toContain('ca');
-  });
-
-  it('leaves claims against other nations untouched', () => {
-    const state = usState();
-    const withClaims = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: ['ca', 'mx'] } } };
+    const caCity = Object.values(state.regions).find((r) => r.owner === 'ca').id;
+    const mxCity = Object.values(state.regions).find((r) => r.owner === 'mx').id;
+    const withClaims = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: [caCity, mxCity] } } };
     const next = declareWar(withClaims, 'ca', { aggressor: 'us' });
-    expect(next.nations.us.claims).toEqual(['mx']);
+    const war = next.wars[next.wars.length - 1];
+    expect(war.cb).toBe('claim');
+    expect(war.goal).toEqual({ type: 'capture_region', regionId: caCity });
+    expect(next.nations.us.claims).toEqual([caCity, mxCity]);
   });
 
   it('marks the aggressor isAtWar too, not just the target — every isAtWar reader in the codebase means "a belligerent", not "the defender"', () => {
@@ -163,9 +161,10 @@ describe('declareWar', () => {
 });
 
 describe('hasCasusBelli', () => {
-  it('is true when the aggressor has a fabricated claim against the target', () => {
+  it('is true when the aggressor holds a claim on a city of the target', () => {
     const state = usState();
-    const withClaim = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: ['ca'] } } };
+    const caCity = Object.values(state.regions).find((r) => r.owner === 'ca').id;
+    const withClaim = { ...state, nations: { ...state.nations, us: { ...state.nations.us, claims: [caCity] } } };
     expect(hasCasusBelli(withClaim, 'us', 'ca')).toBe(true);
   });
 
@@ -600,10 +599,11 @@ describe('nation ids survive turn resolution (regression)', () => {
     const mismatched = Object.entries(state.nations).filter(([key, n]) => n.id !== key);
     expect(mismatched).toEqual([]);
 
-    const target = Object.values(state.nations).find(n => !n.isPlayer && !n.isAtWar);
+    const { claimableCities } = await import('./claims');
+    const site = claimableCities(state, state.playerNationId)[0].city;
     const rich = { ...state, resources: { ...state.resources, gold: 10000, dip: 100 } };
-    const next = gameReducer(rich, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: target.id } });
-    expect(next.nations[state.playerNationId].claims).toContain(target.id);
+    const next = gameReducer(rich, { type: ActionTypes.FABRICATE_CLAIM, payload: { nationId: site.owner } });
+    expect(next.nations[state.playerNationId].claimsInProgress.map((c) => c.cityId)).toContain(site.id);
   });
 });
 

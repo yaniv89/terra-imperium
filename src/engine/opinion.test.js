@@ -26,7 +26,8 @@ describe('opinion', () => {
     const allied = { ...S, nations: { ...S.nations, be: { ...S.nations.be, hasMilitaryPact: true } } };
     expect(reason(opinionReasons(allied, 'be'), 'alliance').value).toBe(ALLIANCE);
     expect(warRollOpinionMult(opinionOf(allied, 'be'))).toBe(0);
-    const rival = { ...S, nations: { ...S.nations, fr: { ...S.nations.fr, rivals: ['be'], claims: ['be'] } } };
+    const beCity = Object.values(S.regions).find((c) => c.owner === 'be').id;
+    const rival = { ...S, nations: { ...S.nations, fr: { ...S.nations.fr, rivals: ['be'], claims: [beCity] } } };
     const rs = opinionReasons(rival, 'be');
     expect(reason(rs, 'rival').value).toBe(RIVAL);
     expect(reason(rs, 'claim').value).toBeLessThan(0);

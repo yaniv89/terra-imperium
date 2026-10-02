@@ -181,12 +181,13 @@ describe('applyEventEffects', () => {
       expect(capped.nations.fr.estates.clergy.loyalty).toBe(100);
     });
 
-    it('addClaim pushes the nation id onto the real claims array used by hasCasusBelli, without duplicating', () => {
+    it('addClaim names a nation and grants a claim on its city nearest to the player, one city per event', () => {
       const state = createInitialState({ playerNationId: 'fr' });
       const next = applyEventEffects(state, fixtureEvent('claim_event', { addClaim: 'de' }), 0);
-      expect(next.nations.fr.claims).toEqual(['de']);
+      expect(next.nations.fr.claims).toHaveLength(1);
+      expect(next.regions[next.nations.fr.claims[0]].owner).toBe('de');
       const again = applyEventEffects(next, fixtureEvent('claim_event_2', { addClaim: 'de' }), 0);
-      expect(again.nations.fr.claims).toEqual(['de']); // no duplicate
+      expect(again.nations.fr.claims).toHaveLength(Math.min(2, Object.values(state.regions).filter((r) => r.owner === 'de').length));
     });
 
     it('spawnRebels creates a real rebel unit in the target region and dents its control', () => {

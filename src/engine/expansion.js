@@ -11,7 +11,8 @@ import { AE_PER_DEV_POINT, AE_DECAY_PER_TURN, AE_PRUNE_BELOW, AE_ISOLATIONIST_DI
 // Called once per successful capture (player LAUNCH_INVASION/AMPHIBIOUS_ASSAULT in gameReducer.js,
 // AI captures in diplomacy.js's resolveWarProgress) — region/dev must be read from the state
 // BEFORE ownership changed, since AE is proportional to what was actually taken.
-export const applyAggressiveExpansion = (nations, regions, regionId, previousOwnerId, takerId) => {
+// `mult`: claims.js aeMultFor, 0 for a core of the taker's, CLAIM_AE_MULT for a claimed city.
+export const applyAggressiveExpansion = (nations, regions, regionId, previousOwnerId, takerId, mult = 1) => {
   if (!previousOwnerId || previousOwnerId === takerId) return nations;
   const dev = regions[regionId]?.dev;
   const devTotal = (dev?.tax || 0) + (dev?.production || 0) + (dev?.manpower || 0);
@@ -19,7 +20,7 @@ export const applyAggressiveExpansion = (nations, regions, regionId, previousOwn
 
   const taker = nations[takerId];
   const discount = leansNegative(taker?.identity, 'globalism') ? AE_ISOLATIONIST_DISCOUNT : 1;
-  const aeGain = Math.round(devTotal * AE_PER_DEV_POINT * discount);
+  const aeGain = Math.round(devTotal * AE_PER_DEV_POINT * discount * mult);
   if (aeGain <= 0) return nations;
 
   const affectedIds = new Set([previousOwnerId]);

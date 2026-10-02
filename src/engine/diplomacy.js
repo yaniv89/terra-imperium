@@ -6,6 +6,7 @@
 // stat, so none of this needs to special-case which nation is the player.
 
 import { opinionOf, opinionGivesCasusBelli } from './opinion';
+import { claimsAgainst } from './claims';
 import { RelationStatus } from '../data/types';
 import { isAdjacentToOwner, REGIONS_DATA, getCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
@@ -53,9 +54,9 @@ export const setTruce = (nations, aId, bId, turnNumber) => {
 export const CASUS_BELLI_HOSTILITY_THRESHOLD = 70;
 
 export const hasCasusBelli = (state, aggressorId, targetId) => {
-  const aggressor = state.nations[aggressorId];
   const target = state.nations[targetId];
-  if (aggressor?.claims?.includes(targetId)) return true;
+  // A claim or a core on any city the target owns (claims.js).
+  if (claimsAgainst(state, aggressorId, targetId).length) return true;
   if ((target?.hostility || 0) >= CASUS_BELLI_HOSTILITY_THRESHOLD) return true;
   // Opinion (opinion.js): a nation that thinks this badly of the aggressor justifies the war.
   return opinionGivesCasusBelli(opinionOf(state, targetId, aggressorId));
@@ -71,7 +72,8 @@ const findCaptureTarget = (regions, ownerId, attackerId) =>
 // 'capture_region' is requested but no valid bordering target exists.
 export const buildWarGoal = (state, nationId, aggressor, type) => {
   if (type === 'capture_region') {
-    const targetRegion = findCaptureTarget(state.regions, nationId, aggressor);
+    // The claimed (or core) city first: that is what the war is for.
+    const targetRegion = claimsAgainst(state, aggressor, nationId)[0]?.id || findCaptureTarget(state.regions, nationId, aggressor);
     if (targetRegion) return { type: 'capture_region', regionId: targetRegion };
   }
   const nation = state.nations[nationId];
@@ -191,8 +193,8 @@ const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
   const brokePeace = !!nation.hasPeaceTreaty;
   const resolvedGoal = goal || assignDefaultWarGoal(state, nationId, aggressor);
   const aggressorNation = state.nations[aggressor];
-  // A fabricated claim is spent the moment it justifies a war — it doesn't carry over to the next one.
-  const hadClaim = !!aggressorNation?.claims?.includes(nationId);
+  // A claim on a city the target owns (claims.js) justifies the war; it stays until the city is taken.
+  const hadClaim = claimsAgainst(state, aggressor, nationId).length > 0;
   const nextNations = {
     ...state.nations,
     [nationId]: {
@@ -207,8 +209,7 @@ const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
     nextNations[aggressor] = {
       ...aggressorNation,
       isAtWar: true,
-      relationStatus: RelationStatus.WAR,
-      claims: hadClaim ? aggressorNation.claims.filter((id) => id !== nationId) : aggressorNation.claims
+      relationStatus: RelationStatus.WAR
     };
   }
   // Unique even when two nations declare on the same target in the same year.

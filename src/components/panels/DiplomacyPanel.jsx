@@ -34,6 +34,7 @@ import { hasIntel } from '../../engine/intel';
 import { opinionOf, opinionReasons } from '../../engine/opinion';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { ActionButton } from '../ui';
+import { claimsAgainst, claimableCities, CLAIM_FABRICATE_TURNS, CLAIM_RANGE_RINGS } from '../../engine/claims';
 
 // Plan feedback ("I don't understand why I can't start a war, I have plenty of resources"): the
 // player was reading the top-bar Gold total and assuming that meant "affordable," when most
@@ -211,11 +212,11 @@ const NationCard = ({ nation }) => {
   const [expanded, setExpanded] = useState(false);
   const [peaceOpen, setPeaceOpen] = useState(false);
 
-  const dispatchIfAffordable = (type, costs) => {
+  const dispatchIfAffordable = (type, costs, extra = {}) => {
     if (!canAfford(state.resources, costs)) return addLog(`Not enough resources — need ${describeShortfall(state.resources, costs)}`, 'action');
     const effectType = DIPLOMACY_EFFECT_BY_ACTION[type];
     if (effectType) triggerEffect(effectType, { from: getNationCapital(state.playerNationId), to: getNationCapital(nation.id) });
-    dispatch({ type, payload: { nationId: nation.id } });
+    dispatch({ type, payload: { nationId: nation.id, ...extra } });
   };
 
   const nationData = WORLD_NATIONS[nation.id];
@@ -331,9 +332,12 @@ const NationCard = ({ nation }) => {
         {nation.hasMilitaryPact && (
           <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded text-[10px]">✓ Military Pact</span>
         )}
-        {player.claims?.includes(nation.id) && (
-          <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">✓ Claim Fabricated</span>
+        {claimsAgainst(state, player.id, nation.id).length > 0 && (
+          <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]" data-testid="claim-badge">Claim on {claimsAgainst(state, player.id, nation.id).map((c) => c.name).join(', ')}</span>
         )}
+        {(player.claimsInProgress || []).filter((c) => state.regions[c.cityId]?.owner === nation.id).map((c) => (
+          <span key={c.cityId} className="px-1.5 py-0.5 bg-amber-500/10 text-amber-300 rounded text-[10px]">Claim on {state.regions[c.cityId]?.name} in {Math.max(0, c.done - state.turnNumber)} turns</span>
+        ))}
         {atWarWithPlayer && (
           <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ AT WAR</span>
         )}
@@ -429,15 +433,18 @@ const NationCard = ({ nation }) => {
 
             {expanded && (
               <>
-                {!player.claims?.includes(nation.id) && (
-                  <IconButton
-                    icon={Target}
-                    label={`Fabricate Claim (${formatCost(ACTION_COSTS.fabricateClaim)})`}
-                    title="Manufacture a casus belli for a future war"
-                    disabled={!canAfford(state.resources, ACTION_COSTS.fabricateClaim)}
-                    onClick={() => dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim)}
-                  />
-                )}
+                {(() => {
+                  const site = claimableCities(state, player.id, nation.id)[0];
+                  return (
+                    <IconButton
+                      icon={Target}
+                      label={site ? `Fabricate claim on ${site.city.name} (${formatCost(ACTION_COSTS.fabricateClaim)})` : 'Fabricate claim (no city in reach)'}
+                      title={site ? `A casus belli for ${site.city.name}, ready in ${CLAIM_FABRICATE_TURNS} turns` : `A claim needs one of their cities within ${CLAIM_RANGE_RINGS} tiles of your border`}
+                      disabled={!site || !canAfford(state.resources, ACTION_COSTS.fabricateClaim)}
+                      onClick={() => site && dispatchIfAffordable(ActionTypes.FABRICATE_CLAIM, ACTION_COSTS.fabricateClaim, { cityId: site.city.id })}
+                    />
+                  );
+                })()}
                 {!nation.hasTradeAgreement && (
                   <IconButton
                     icon={HeartHandshake}

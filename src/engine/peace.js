@@ -15,6 +15,7 @@ import { getNationTotalDev, getTotalDev } from './development';
 import { getCapital } from '../data/regions';
 import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { applyAggressiveExpansion } from './expansion';
+import { aeMultFor, claimOn } from './claims';
 import { addNationModifier } from './modifiers/timed';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { getPool } from './nationState';
@@ -47,7 +48,7 @@ export const getTermCost = (state, war, offererId, term) => {
     case 'cede': {
       const region = state.regions[term.regionId];
       if (!region || region.owner !== recipientId) return Infinity; // can only cede what the recipient still owns
-      const isClaimedOrGoal = war.cb === 'claim' || (war.goal?.type === 'capture_region' && war.goal.regionId === term.regionId);
+      const isClaimedOrGoal = war.cb === 'claim' || (war.goal?.type === 'capture_region' && war.goal.regionId === term.regionId) || !!claimOn(state, offererId, region);
       return Math.max(CEDE_MIN_COST, Math.round((100 * getTotalDev(region) / recipientTotalDev) * (isClaimedOrGoal ? 0.5 : 1)));
     }
     case 'gold': {
@@ -161,7 +162,7 @@ export const applyPeace = (state, war, offererId, terms) => {
           unrest: Math.max(region.unrest || 0, 50)
         }
       };
-      nextNations = applyAggressiveExpansion(nextNations, nextRegions, term.regionId, recipientId, offererId);
+      nextNations = applyAggressiveExpansion(nextNations, nextRegions, term.regionId, recipientId, offererId, aeMultFor({ nations: nextNations, regions: state.regions }, offererId, state.regions[term.regionId]));
       // Plan §M18's "Unbroken" achievement ("never lose a region to a peace deal") needs a real,
       // permanent marker the instant the PLAYER is the one ceding — not derived after the fact from
       // region ownership history, which isn't tracked anywhere.

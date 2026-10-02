@@ -112,6 +112,7 @@ import {
 import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
+import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 const NAVAL_TRANSPORT_CAPACITY = 2;
@@ -2299,17 +2300,18 @@ const reduceAction = (state, action) => {
     }
 
     case ActionTypes.FABRICATE_CLAIM: {
-      const { nationId } = action.payload;
+      // Claims are on cities (claims.js): `cityId`, or the nearest claimable city of `nationId`.
+      const { nationId, cityId } = action.payload;
       const player = state.nations[state.playerNationId];
-      const target = state.nations[nationId];
+      const city = cityId ? state.regions[cityId] : claimableCities(state, state.playerNationId, nationId)[0]?.city;
+      if (!city || !canFabricateClaim(state, state.playerNationId, city.id).ok) return state;
       const costs = ACTION_COSTS.fabricateClaim;
-      if (!target || nationId === state.playerNationId || player.claims.includes(nationId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        nations: { ...state.nations, [state.playerNationId]: { ...player, claims: [...player.claims, nationId] } },
-        logs: [...state.logs, { year: state.year, message: `Fabricated a claim against ${target.name}.`, type: LogTypes.DIPLOMACY }]
+        nations: { ...state.nations, [state.playerNationId]: startClaim(player, city.id, state.turnNumber) },
+        logs: [...state.logs, { year: state.year, message: `Your agents start fabricating a claim on ${city.name} (${state.nations[city.owner]?.name || city.owner}): ready in ${CLAIM_FABRICATE_TURNS} turns.`, type: LogTypes.DIPLOMACY }]
       };
     }
 

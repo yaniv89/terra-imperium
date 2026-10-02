@@ -42,6 +42,7 @@ import { atSea } from '../../engine/fleets';
 import { wallsOf } from '../../engine/sieges';
 import { cultureOf, loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
+import { claimOn, canFabricateClaim, CLAIM_FABRICATE_TURNS } from '../../engine/claims';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
 // within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
@@ -360,6 +361,25 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           {!hasMilitaryOption && !isNeutralFrontier && !canSettle && (
             <div className="text-slate-500 text-[10px]">No actions available against this region right now.</div>
           )}
+          {regionState.tile != null && (() => {
+            const kind = claimOn(state, state.playerNationId, regionState);
+            const pending = (state.nations[state.playerNationId]?.claimsInProgress || []).find((c) => c.cityId === regionId);
+            const can = canFabricateClaim(state, state.playerNationId, regionId);
+            return (
+              <div className="rounded-lg border border-slate-700 bg-slate-800/60 p-2 space-y-1" data-testid="claim-card">
+                <div className="text-[11px] text-slate-300">
+                  {kind === 'core' ? `A core of yours: ${ownerNation.name} holds a city of your people. A war for it is justified and costs no reputation.`
+                    : kind === 'claim' ? 'You hold a claim on this city: a war for it is justified.'
+                      : pending ? `Your agents are fabricating a claim here: ready in ${Math.max(0, pending.done - state.turnNumber)} turns.`
+                        : can.ok ? `No claim yet. One takes ${CLAIM_FABRICATE_TURNS} turns and justifies a war for this city.` : can.reason}
+                </div>
+                {!kind && !pending && can.ok && (
+                  <ActionButton icon={Target} label={`Fabricate a claim on ${regionState.name}`} description={`${CLAIM_FABRICATE_TURNS} turns`} costs={ACTION_COSTS.fabricateClaim}
+                    onClick={() => dispatch({ type: ActionTypes.FABRICATE_CLAIM, payload: { cityId: regionId } })} disabled={!canAfford(state.resources, ACTION_COSTS.fabricateClaim)} size="small" />
+                )}
+              </div>
+            );
+          })()}
           {!atWarWithOwner && hasMilitaryOption && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5" data-testid="peace-gate">
               <div className="text-[11px] text-amber-200">
