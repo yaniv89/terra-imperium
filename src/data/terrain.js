@@ -58,8 +58,10 @@ const classify = (name, region) => {
 // whole process lifetime is safe, same reasoning as getNationCapital's own static index.
 const terrainCache = {};
 export const getRegionTerrain = (regionId, regionsData) => {
-  if (terrainCache[regionId]) return terrainCache[regionId];
   const region = regionsData[regionId];
+  // The tile world states a city's terrain outright (src/engine/world/registry.js).
+  if (region?.terrain && TERRAIN_COMBAT_MODIFIERS[region.terrain]) return region.terrain;
+  if (terrainCache[regionId]) return terrainCache[regionId];
   const terrain = classify(`${region?.name || ''} ${region?.description || ''}`, region);
   terrainCache[regionId] = terrain;
   return terrain;

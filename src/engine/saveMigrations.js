@@ -15,13 +15,16 @@
 //   (no migration needed yet) still gets any new field for free.
 import { createInitialState } from './gameReducer';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
-import REGION_MERGE from '../data/geo/regionMerge.json';
 import { conquerRegion } from './conquest';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-export const CURRENT_SAVE_VERSION = 6;
+// Version 7 is the tile world (plans/civ-map-rework.md, decision 5: a clean break). A save from the
+// region map cannot be converted, so migrateSave returns null for anything older and the app
+// starts a fresh game while keeping the raw save untouched.
+export const CURRENT_SAVE_VERSION = 7;
+export const OLDEST_LOADABLE_SAVE_VERSION = 7;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
@@ -196,7 +199,7 @@ const renameIds = (value, map) => {
 };
 
 const migrate5to6 = (state) => {
-  const map = REGION_MERGE;
+  const map = {}; // the region merge table is gone with the tile world; this step is unreachable
   const groups = {};
   Object.entries(state.regions || {}).forEach(([oldId, region]) => {
     (groups[map[oldId] || oldId] ||= []).push({ ...region, id: region.id || oldId });
@@ -314,6 +317,7 @@ export const migrateSave = (payload) => {
     return null;
   }
   if (version > CURRENT_SAVE_VERSION) return null;
+  if (version < OLDEST_LOADABLE_SAVE_VERSION) return null; // the region-map era: a clean break
 
   while (version < CURRENT_SAVE_VERSION) {
     const step = MIGRATIONS[version];

@@ -11,7 +11,8 @@
 // nothing to do with what the player did. A live-ownership-based scheme (getBorderingNationIds,
 // regions.js) would be wrong for this: it changes as territory changes hands, which is exactly
 // what a stable color identity must NOT do.
-import { REGIONS_DATA } from './regions';
+import COUNTRY_ADJACENCY from './geo/countries-adjacency.json';
+import countriesMeta from './geo/countries-meta.json';
 
 // Deliberately excludes the hues the rest of the globe already uses for something else: green/
 // lime/yellow/orange/red (the player's own 5-band control gradient, GlobeView.jsx's fillColorFor)
@@ -44,19 +45,14 @@ const hashToIndex = (str, mod) => {
   return hash % mod;
 };
 
-// Static nation-to-nation adjacency, built once from every region's real geographic neighbor list
-// (REGIONS_DATA[id].neighbors) mapped through each neighbor's own startOwner — this is "who
-// actually borders whom on Earth," independent of anything that happens in a playthrough.
+// Static nation-to-nation adjacency from the real country borders (countries-adjacency.json):
+// "who actually borders whom on Earth," independent of anything that happens in a playthrough.
 const buildNationAdjacency = () => {
   const adjacency = {};
-  Object.values(REGIONS_DATA).forEach((region) => {
-    const nationId = region.startOwner;
-    if (!nationId) return;
+  Object.keys(countriesMeta).forEach((nationId) => { adjacency[nationId] = new Set(); });
+  Object.entries(COUNTRY_ADJACENCY).forEach(([nationId, neighbours]) => {
     const set = (adjacency[nationId] ||= new Set());
-    (region.neighbors || []).forEach((neighborRegionId) => {
-      const neighborNation = REGIONS_DATA[neighborRegionId]?.startOwner;
-      if (neighborNation && neighborNation !== nationId) set.add(neighborNation);
-    });
+    neighbours.forEach((other) => { if (other !== nationId) { set.add(other); (adjacency[other] ||= new Set()).add(nationId); } });
   });
   return adjacency;
 };

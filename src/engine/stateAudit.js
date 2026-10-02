@@ -53,6 +53,23 @@ export const auditGameState = (state) => {
     });
     if (r.currentPopulation < 0) report('range', `regions.${id}.currentPopulation`, 'Population cannot be negative');
   });
+  // Tile world (plans/civ-map-rework.md): every city stands on a tile, owns its tiles once, and the
+  // tile owner map agrees with the cities.
+  const tileOwner = state.world?.tileOwner;
+  if (tileOwner) {
+    const seen = new Map();
+    Object.entries(regions).forEach(([id, c]) => {
+      if (c.tile == null) { report('city_tile', `regions.${id}.tile`, 'A city needs a tile'); return; }
+      (c.tiles || []).forEach((t) => {
+        if (seen.has(t)) report('tile_twice', `regions.${id}.tiles`, `Tile ${t} is owned by ${seen.get(t)} too`);
+        seen.set(t, id);
+        if (tileOwner[t] !== id) report('tile_owner', `world.tileOwner.${t}`, `Tile ${t} owner should be ${id}`);
+      });
+      if (!(c.tiles || []).includes(c.tile)) report('city_centre', `regions.${id}.tiles`, 'A city owns its centre');
+      if (c.size != null && (c.size < 1 || c.size > 30)) report('range', `regions.${id}.size`, 'Size is 1..30');
+    });
+    Object.entries(tileOwner).forEach(([t, id]) => { if (!regions[id]) report('tile_owner', `world.tileOwner.${t}`, 'Tile owned by a missing city'); });
+  }
   Object.entries(units).forEach(([id, u]) => {
     if (u.id !== id) report('identity', `units.${id}.id`, 'Record ID differs from its map key');
     numbers(u, `units.${id}`);

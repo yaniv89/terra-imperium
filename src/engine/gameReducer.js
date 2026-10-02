@@ -4,6 +4,9 @@ import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
+import { syncWorldRegistry } from './world/registry';
+import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost } from './world/cities';
+import { getTiles } from '../data/geo/tiles';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
 // The pure reducer + initial-state factory, extracted from src/context/GameContext.jsx (Phase F,
@@ -50,7 +53,7 @@ import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId } from '../da
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
-  createEmptyRegionBuildings, canBuildTier, canBuildExtraction, BUILDING_CATEGORIES,
+  canBuildTier, canBuildExtraction, BUILDING_CATEGORIES,
   getBuildingSlots, getUsedBuildingSlots, getBuildingTierCost, getCategoryTierName
 } from '../data/buildings';
 import { hasDeposit } from '../data/deposits';
@@ -91,7 +94,7 @@ import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle, generateHeir, generateConsort, ADOPTED_HEIR_CLAIM_PENALTY } from './succession';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
-import { seedDevelopment, getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
+import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
 import {
@@ -123,46 +126,9 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
-  // Every one of the 240 nations starts owning exactly its own territory at full control — see
-  // src/data/regions.js.
+  // Cities and land come from the scenario (src/engine/worldgen/emergentWorld.js applies the
+  // start on the tile grid at the end of this function); `regions` is empty until then.
   const regions = {};
-  Object.entries(REGIONS_DATA).forEach(([id, data]) => {
-    regions[id] = {
-      id,
-      owner: data.startOwner,
-      control: data.startControl,
-      currentPopulation: data.population,
-      // Every region starts with NO built infrastructure, regardless of `data.infrastructure`
-      // (a real-world-2024-GDP-derived 1-10 "development index" — see build-world-regions.mjs's
-      // own file header, "richer nations score modestly higher, but this is flavor, not balance;
-      // every nation starts on equal footing"). That index was never meant to seed a LIVE,
-      // buildable gameplay stat: at 2000 BCE nobody has roads or aqueducts yet, and starting a
-      // modern-GDP nation at infrastructure 10 handed it a permanent +100% gold multiplier
-      // (calcIncome's infraMult) and 6x supply range from turn one, for free, forever, while
-      // contradicting the file's own "equal footing" intent. `data.infrastructure` is still used
-      // as-is for the separate, cosmetic `strategicValue` display stat.
-      currentInfrastructure: 0,
-      underInvasion: false,
-      buildings: createEmptyRegionBuildings(),
-      // Unrest (plan §9): 0 = fully calm. Drifts each turn based on control% (resolveTurn.js) and
-      // can be pushed down directly via the Quell Unrest action. Every nation starts at full
-      // control of its own territory, so unrest starts at 0 rather than needing a curve.
-      unrest: 0,
-      // Built-up defense from the Build Defenses action — separate from REGIONS_DATA's static
-      // `fortification` seed value; Phase C's combat system will read both once it exists.
-      defenseLevel: 0,
-      // Built-up resilience from the Build Climate Resilience action (Modern age) — raises the
-      // threshold proceduralEvents.js's harsh_winter/failed_harvest templates gate on, the same way
-      // defenseLevel already gates frontier_raiders. Closes the loop the plan's climate_stress world
-      // event otherwise left one-way: investing here measurably reduces future weather/disaster
-      // exposure instead of only ever reacting to it after the fact.
-      climateResilience: 0,
-      // Province development (plan §M5) — the live economic base calcIncome now reads instead of
-      // REGIONS_DATA's static resources.gold/hr directly; see src/engine/development.js's own
-      // header for why this seeding preserves today's exact starting income.
-      dev: seedDevelopment(id)
-    };
-  });
 
   // Ruler/heir generation (plan §M3) draws from a seeded rng so the whole nations table stays
   // reproducible from state.rngSeed alone — the seed captured at the end of this loop already
@@ -176,9 +142,6 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // nation and a 1-region nation are equally "at capacity" at the same overextension% — captured
   // once, here, since region ownership churns every game while this stays a fixed reference point.
   const startRegionCountByOwner = {};
-  Object.values(regions).forEach((r) => {
-    startRegionCountByOwner[r.owner] = (startRegionCountByOwner[r.owner] || 0) + 1;
-  });
 
   // Every one of the 240 nations gets a record — any of them can be the player's.
   const nations = {};
@@ -475,7 +438,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  return applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 });
+  return syncWorldRegistry(applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 }));
 };
 
 // A player action the engine refuses still has to SAY why — a bare `return state` is invisible to
@@ -2892,6 +2855,54 @@ const reduceAction = (state, action) => {
     case ActionTypes.ABANDON_COLONY:
       return abandonColony(state, action.payload?.regionId);
 
+    // Cities (plans/civ-map-rework.md C1): production queue, focus, locks, buying tiles. All on
+    // the player's own cities; the AI governor (workstream 9) drives the same functions.
+    case ActionTypes.QUEUE_PRODUCTION: {
+      const { cityId: id, item } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId || !item) return reject(state, 'Not your city.');
+      if (item.kind === 'settler') return reject(state, 'Settlers arrive with the next update.');
+      const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
+      const ok = canQueue(city, getTiles(), world, item, { researched: Object.keys(state.techTree || {}).filter((t) => state.techTree[t]?.researched), ageId: getEffectiveAgeId(state.age, state.techAgeId) });
+      if (!ok.ok) return reject(state, ok.reason);
+      return { ...state, regions: { ...state.regions, [id]: queueItem(city, item) } };
+    }
+    case ActionTypes.DEQUEUE_PRODUCTION: {
+      const { cityId: id, index } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      return { ...state, regions: { ...state.regions, [id]: dequeueItem(city, index || 0) } };
+    }
+    case ActionTypes.SET_CITY_FOCUS: {
+      const { cityId: id, focus } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      const next = setFocus(city, focus);
+      return next === city ? state : { ...state, regions: { ...state.regions, [id]: next } };
+    }
+    case ActionTypes.TOGGLE_TILE_LOCK: {
+      const { cityId: id, tile } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId || !city.tiles.includes(tile)) return reject(state, 'Not your land.');
+      return { ...state, regions: { ...state.regions, [id]: toggleLock(city, tile) } };
+    }
+    case ActionTypes.BUY_TILE: {
+      const { cityId: id, tile } = action.payload || {};
+      const city = state.regions[id];
+      if (!city || city.owner !== state.playerNationId) return reject(state, 'Not your city.');
+      const world = { cities: state.regions, tileOwner: state.world?.tileOwner || {}, tileState: state.world?.tileState || {} };
+      const candidate = claimCandidates(city, getTiles(), world, { ageId: getEffectiveAgeId(state.age, state.techAgeId) }).find((c) => c.tile === tile);
+      if (!candidate) return reject(state, 'That tile cannot be claimed.');
+      const cost = buyTileCost(city, candidate);
+      if ((state.resources.gold || 0) < cost) return reject(state, `Needs ${cost} gold.`);
+      return {
+        ...state,
+        resources: { ...state.resources, gold: state.resources.gold - cost },
+        regions: { ...state.regions, [id]: { ...city, tiles: [...city.tiles, tile] } },
+        world: { ...state.world, tileOwner: { ...(state.world?.tileOwner || {}), [tile]: id } }
+      };
+    }
+
     case ActionTypes.RESET_GAME: {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from
       // meta-progression localStorage via the component layer — see GameProvider.resetGame below.
@@ -2913,6 +2924,7 @@ const reduceAction = (state, action) => {
 export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 
 export const gameReducer = (state, action) => {
+  syncWorldRegistry(state);
   const next = applyActionPolitics(state,reduceAction(state, action),action);
-  return next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next;
+  return syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
 };
