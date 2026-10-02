@@ -378,7 +378,8 @@ const writeTileState = (world, tile, entry, inPlace = false) => {
 // The turn
 /**
  * One city's turn. `ctx`: { researched, ageId, turnNumber, citiesOwned, luxuries, amenityBonus,
- * goldMult, productionMult, foodBonus, cultureBonus (governors.js), blockedTiles (Set of tiles an enemy stands on) }.
+ * goldMult, productionMult, foodBonus, cultureBonus (governors.js), blockedTiles (Set of tiles an enemy stands on),
+ * greatProjects (state.greatProjects: a tier-1 wonder already built elsewhere is dropped from a queue) }.
  * Returns { city, world, yields, completed: [item...], logs: [string...] }. With `inPlace` the
  * world's tileOwner and tileState are the caller's own copies and are written directly.
  */
@@ -435,10 +436,17 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
       if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(`${c.name} sends out settlers.`); }
       else { production = { ...production, progress: production.progress + cost }; break; } // wait for people
     } else if (item.kind === 'wonder') {
-      // A wonder on its tile (wonders.js): the turn's great projects phase records it.
-      if (item.tile != null) w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), wonder: item.projectId }, inPlace);
-      completed.push({ kind: 'wonder', projectId: item.projectId, tier: item.tier, tile: item.tile, city: c.id });
-      logs.push(`${c.name} completes ${item.projectId.replace(/_/g, ' ')} (tier ${item.tier}).`);
+      const built = ctx.greatProjects?.[item.projectId];
+      if (item.tier === 1 && built && built.regionId !== c.id) {
+        // Lost the race (another city finished it first): the order is dropped, the production banked.
+        production = { ...production, progress: production.progress + cost };
+        logs.push(`${c.name} abandons ${item.projectId.replace(/_/g, ' ')}: it stands elsewhere.`);
+      } else {
+        // A wonder on its tile (wonders.js): the turn's great projects phase records it.
+        if (item.tile != null) w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), wonder: item.projectId }, inPlace);
+        completed.push({ kind: 'wonder', projectId: item.projectId, tier: item.tier, tile: item.tile, city: c.id });
+        logs.push(`${c.name} completes ${item.projectId.replace(/_/g, ' ')} (tier ${item.tier}).`);
+      }
     } else if (item.kind === 'army') {
       // One piece of the army at a time (armyTemplates.js); the order stays current until complete.
       const classId = nextTemplateUnit(item);

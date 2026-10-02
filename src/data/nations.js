@@ -88,6 +88,20 @@ export const DOCTRINE_REFORMS = {
   merchant: ['merchant_republic', 'signoria', 'maritime_republic', 'federal_republic', 'parliamentary_monarchy']
 };
 
+// Plan C9: the wonders a doctrine reaches for first (src/engine/aiProduction.js); any other
+// wonder a city may start comes after, in data order.
+export const DOCTRINE_WONDERS = {
+  attrition: ['great_wall', 'arsenal', 'great_pyramids', 'forbidden_city'],
+  blitz: ['great_wall', 'arsenal', 'colosseum', 'atomic_research_center'],
+  opportunist: ['lighthouse', 'grand_bazaar', 'international_exchange', 'colosseum'],
+  cautious: ['great_pyramids', 'great_library', 'royal_observatory', 'palace_of_versailles'],
+  conqueror: ['colosseum', 'arsenal', 'great_wall', 'forbidden_city', 'atomic_research_center'],
+  zealot: ['great_cathedral', 'great_pyramids', 'colosseum', 'forbidden_city'],
+  isolationist: ['great_wall', 'hanging_gardens', 'royal_observatory', 'space_program'],
+  defender: ['great_wall', 'great_pyramids', 'arsenal', 'palace_of_versailles'],
+  merchant: ['lighthouse', 'grand_bazaar', 'international_exchange', 'great_library']
+};
+
 export const DOCTRINE_TECH_CATEGORY_PRIORITY = {
   attrition: ['military', 'infrastructure', 'economy', 'governance', 'science'],
   blitz: ['military', 'infrastructure', 'governance', 'economy', 'science'],

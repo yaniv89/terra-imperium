@@ -40,10 +40,10 @@ export const wonderSites = (state, city, projectId) => {
 };
 
 /** Can `city` queue tier `tier` of `projectId` now? { ok, reason, tile }. */
-export const canQueueWonder = (state, city, projectId, tier = 1) => {
+export const canQueueWonder = (state, city, projectId, tier = 1, nationId = state.playerNationId) => {
   const project = GREAT_PROJECTS[projectId];
   if (!project || !city) return { ok: false, reason: 'No such wonder.' };
-  if (city.owner !== state.playerNationId) return { ok: false, reason: 'Not your city.' };
+  if (!city.owner || city.owner !== nationId) return { ok: false, reason: 'Not your city.' };
   if (getAgeIndex(project.ageId) > getAgeIndex(state.age)) return { ok: false, reason: `Needs the ${project.ageId} age.` };
   const queued = [city.production?.current, ...(city.production?.queue || [])].some((i) => i?.kind === 'wonder' && i.projectId === projectId);
   if (queued) return { ok: false, reason: 'Already in the queue.' };
@@ -64,10 +64,11 @@ export const canQueueWonder = (state, city, projectId, tier = 1) => {
 /** The production item for a wonder tier on `tile`. */
 export const wonderItem = (projectId, tier, tile) => ({ kind: 'wonder', projectId, tier, tile, cost: wonderCost(tier) });
 
-/** The wonders a city may start or raise now: [{ projectId, tier, tile, name }]. */
-export const wonderOptions = (state, city) => Object.keys(GREAT_PROJECTS).flatMap((projectId) => {
+/** The wonders a city may start or raise now: [{ projectId, tier, tile, name }]. `nationId` is
+ * the builder (the player by default; AI cities pass their owner, aiProduction.js). */
+export const wonderOptions = (state, city, nationId = state.playerNationId) => Object.keys(GREAT_PROJECTS).flatMap((projectId) => {
   const entry = state.greatProjects?.[projectId];
   const tier = entry ? entry.tier + 1 : 1;
-  const can = canQueueWonder(state, city, projectId, tier);
+  const can = canQueueWonder(state, city, projectId, tier, nationId);
   return can.ok ? [{ projectId, tier, tile: can.tile, name: GREAT_PROJECTS[projectId].name }] : [];
 });
