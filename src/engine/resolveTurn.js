@@ -92,6 +92,7 @@ import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
+import { navalCargo } from '../data/navalLines';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -171,7 +172,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}) } };
+    units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) } };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
   disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });

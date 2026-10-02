@@ -1870,6 +1870,20 @@ tab has an Armies group and a template editor (name, a counter per class of the 
 armyTemplates.test.js. Still open in D4: the army sheet grouping units by army (workstream 12),
 mercenaries, generals attached to an army by name, the AI building templates.
 
+**Workstream 5, wave 3: the four naval lines (2026-10-02).** `src/data/navalLines.js`. A fleet
+keeps `classId: 'naval'` (the domain all 27 readers check) and carries `navalLine`; an older
+record is a warship. Warship (every age: War Galley, Trireme, Cog, Frigate, Destroyer; carries
+1, then 2 from the Kingdoms; bombards a besieged coastal city for NAVAL_BOMBARD 10 a ship a
+turn from its port waters, sieges.js), transport (from the Classical age: Longship, Carrack,
+Galleon, Landing ship; carries 3 to 6; fights at 0.4), raider (from the Classical age: Bireme,
+Corsair, Privateer, Submarine; carries nothing, sees a tile further, fights at 0.8), carrier
+(Modern: two air units, sees a tile further, fights at 0.6). The line scales the ship's hits
+(battle.js), its sight (sight.js) and its cargo at recruiting (RECRUIT_UNIT `navalLine`) and
+in the city queue (one build item per line of the age, cities.js canQueue). Tests in
+navalLines.test.js. Still open in D5b: raiders plundering sea routes for gold, the carrier's air
+units, sea tiles in three depths (coast, shelf, ocean; the ocean opens by tech today), naval
+battles in the tactical sim.
+
 ---
 
 ---

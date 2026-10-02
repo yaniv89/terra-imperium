@@ -39,6 +39,7 @@ import {
   hasPerk
 } from '../data/promotions';
 import { getGeneralDamageMultiplier, getGeneralDefenseMultiplier } from '../data/generals';
+import { navalLineOf, navalCombatMult } from '../data/navalLines';
 
 const RANGED_CLASSES = ['ranged', 'siege'];
 const MORALE_ROUT_THRESHOLD = 20;
@@ -74,6 +75,7 @@ const deploy = (units, combatWidth) => {
 // exchange — auto-resolve and commanded battles can never drift apart on "how hard does this hit".
 export const computeHitMultiplier = (unit, target, { phase, sourceIsInvadingFortification, generals = {}, targetIsDefendingSide, baseMultiplier = 1 }) => {
   let multiplier = getCounterMultiplier(unit.classId, target.classId) * baseMultiplier;
+  if (unit.classId === 'naval') multiplier *= navalCombatMult(navalLineOf(unit)); // a transport fights badly, a raider lightly (navalLines.js)
   if (unit.classId === 'siege') {
     multiplier *= applySapperToSiegeMultiplier(unit, sourceIsInvadingFortification, getSiegeMultiplier(sourceIsInvadingFortification));
   }

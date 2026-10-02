@@ -8,6 +8,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
+import { navalLineOf, navalSightBonus } from '../data/navalLines';
 
 export const SIGHT_LAND = 2;
 export const SIGHT_ARMY = 2;
@@ -51,7 +52,7 @@ export const visibleTiles = (state, nationId = state.playerNationId) => {
     if (u.ownerId !== nationId || u.embarkedOn) return;
     const t = unitTile(state, u);
     if (t == null) return;
-    const rings = extra + (u.domain === 'naval' ? SIGHT_FLEET : SIGHT_ARMY + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS : 0));
+    const rings = extra + (u.domain === 'naval' ? SIGHT_FLEET + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS : 0));
     grow(tiles, [t], rings, set);
   });
   cache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, set });

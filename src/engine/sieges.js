@@ -23,7 +23,8 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
 import { getResearched } from './nationState';
 import { unitTile } from './armies';
-import { isBlockaded } from './fleets';
+import { isBlockaded, isFleet, portWaters } from './fleets';
+import { NAVAL_BOMBARD, navalBombards } from '../data/navalLines';
 import { isSettler } from './settlers';
 
 export const SIEGE_HP_BASE = 200;
@@ -78,6 +79,14 @@ export const siegeStrength = (state, nationId, units) => {
   return researchedOf(state, nationId).includes(SIEGE_ENGINEERING_TECH) ? base * SIEGE_ENGINEERING_MULT : base;
 };
 
+/** The bombardment of the besieging nations' warships on the city's port waters: NAVAL_BOMBARD each. */
+export const bombardStrength = (state, city, units, nationIds) => {
+  if (!nationIds.length || city.tile == null) return 0;
+  const waters = new Set(portWaters(state, getTiles(), city.id));
+  if (!waters.size) return 0;
+  return Object.values(units).reduce((s, u) => (isFleet(u) && u.strength > 0 && nationIds.includes(u.ownerId) && navalBombards(u) && waters.has(unitTile(state, u)) ? s + NAVAL_BOMBARD : s), 0);
+};
+
 /** True when every land tile of ring 1 holds a besieger of `nationId` and every water tile beside
  * the city is blockaded. */
 export const isEncircled = (state, city, nationId, units = state.units, byTile = null) => {
@@ -112,7 +121,8 @@ export const processSieges = (state, regions, units, { turn }) => {
     // The strongest besieging nation leads the siege; the others add their strength.
     const stacks = [...by].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1));
     const leader = stacks[0][0];
-    const strength = stacks.reduce((s, [nid, list]) => s + siegeStrength(state, nid, list), 0);
+    const bombard = bombardStrength(view, city, units, [...by.keys()]); // warships on the port waters (navalLines.js)
+    const strength = stacks.reduce((s, [nid, list]) => s + siegeStrength(state, nid, list), 0) + bombard;
     const encircled = isEncircled(view, city, leader, units, byTile);
     const regen = encircled ? 0 : WALL_REGEN * wallsOf(city);
     const damage = Math.max(0, Math.round((strength - regen) * (encircled ? ENCIRCLE_MULT : 1)));
