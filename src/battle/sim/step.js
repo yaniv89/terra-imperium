@@ -13,7 +13,11 @@ import { updateFog } from './fog';
 import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
-import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } from './constants';
+import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
+
+const AMBUSH_TICKS = secondsToTicks(AMBUSH_SECONDS);
+const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
 const lastStand = (w, side) => {
@@ -32,14 +36,50 @@ const isBroken = (w, side) => !w.squads.some((q) => q.side === side && q.alive &
   (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0 || (q.reserve && !w.lastStandUsed[side] && !w.retreatOrdered?.[side])
 ));
 
+// The strength a side still fields (alive, not fled, not routed; reserves count) against what it
+// brought: the battle types' loss rules read this (battleType.js).
+const startStrength = (w, side) => (w.setup.sides?.[side]?.units || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
+const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (q.side === side && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
+const lossShare = (w, side) => { const start = startStrength(w, side); return start > 0 ? 1 - sideStrength(w, side) / start : 0; };
+// The share of a side's squads destroyed or fled the field: "rout or destroy 60%" counts squads
+// gone for good, so a side breaks only once most of its line has left (a strength share would end
+// even fights early for the side that trades worse).
+const brokenShare = (w, side) => { const mine = w.squads.filter((q) => q.side === side); return mine.length ? mine.filter((q) => !q.alive || q.fled).length / mine.length : 0; }; // a routed squad may still rally: only the dead and the fled count
+// The attacker's strength standing on the far bank (the defender's half of the field).
+const farBankStrength = (w) => { const midX = Math.floor(w.map.w / 2) * Q; return w.squads.reduce((s, q) => s + (q.side === SIDE_ATTACKER && q.alive && !q.fled && !q.routed && q.onField && q.x >= midX ? q.strength : 0), 0); };
+const campBurned = (w) => { const razed = w.razed || []; return razed.filter((c) => c === 'engine').length >= SALLY_ENGINES || razed.includes('camp'); };
+
 const checkEnd = (w) => {
+  const type = w.setup.battleType || 'field';
   if (w.assimilation >= ASSIMILATION_TICKS) { w.ended = { outcome: 'attacker', reason: 'keepTaken', decisive: true, tick: w.tick }; return; }
+  if (type === 'sally' && campBurned(w)) { w.ended = { outcome: 'attacker', reason: 'campBurned', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'campBurned' }); return; }
+  if (type === 'landing') {
+    const beach = w.points.find((p) => p.kind === 'beachhead');
+    w.beachhead = beach && beach.owner === SIDE_ATTACKER ? (w.beachhead || 0) + 1 : 0;
+    if (w.beachhead >= LANDING_HOLD_TICKS) { w.ended = { outcome: 'attacker', reason: 'beachheadHeld', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'beachheadHeld' }); return; }
+  }
+  if (type === 'ambush' && w.tick <= AMBUSH_TICKS && lossShare(w, SIDE_ATTACKER) >= AMBUSH_LOSS) { w.ended = { outcome: 'defender', reason: 'ambushed', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'defender', reason: 'ambushed' }); return; }
+  // Field rules (field, river, ambush, landing): a side down LOSS_DECISIVE of its strength breaks
+  // and runs (the pursuit then costs it as auto-resolve would), a decisive end for the other side.
+  const lossRule = type !== 'assault' && type !== 'sally';
+  w.spent = w.spent || [false, false];
+  [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
+    if (!lossRule || w.spent[side] || brokenShare(w, side) < LOSS_DECISIVE) return;
+    w.spent[side] = true;
+    w.squads.forEach((q) => { if (q.side === side && q.alive && !q.fled && !q.routed && !(q.inside >= 0)) { q.routed = true; q.morale = 0; w.events.push({ t: w.tick, type: 'routed', id: q.idx }); } });
+    w.events.push({ t: w.tick, type: 'sideSpent', side });
+  });
   const attackerBroken = isBroken(w, SIDE_ATTACKER);
   const defenderBroken = isBroken(w, SIDE_DEFENDER);
   if (attackerBroken && defenderBroken) w.ended = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
-  else if (defenderBroken) w.ended = { outcome: 'attacker', reason: 'defendersBroken', decisive: false, tick: w.tick };
-  else if (attackerBroken) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : 'attackersBroken', tick: w.tick };
-  else if (w.tick >= battleLimitTicks(w.setup)) w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
+  else if (defenderBroken) w.ended = { outcome: 'attacker', reason: w.spent[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent[SIDE_DEFENDER], tick: w.tick };
+  else if (attackerBroken) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : w.spent[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
+  else if (w.tick >= battleLimitTicks(w.setup)) {
+    // At the clock: a river crossing is won by the far bank; a field battle by the strength left.
+    if (type === 'river' && farBankStrength(w) >= RIVER_HOLD_SHARE * startStrength(w, SIDE_ATTACKER)) w.ended = { outcome: 'attacker', reason: 'farBankHeld', decisive: true, tick: w.tick };
+    else if (type === 'field' && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
+    else w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
+  }
   if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
 };
 

@@ -13,12 +13,14 @@ import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
 import { validateFieldAttack, getFieldBattleContext } from '../../engine/fieldBattle';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
-import { generateMap, TILE } from './mapgen';
+import { generateMap, TILE, LANDING_SEA_COLS } from './mapgen';
+import { BATTLE_TYPES, battleTypeOf } from './battleType';
+import { getTiles } from '../../data/geo/tiles';
 import { tileContextOf } from './tileContext';
 import { unitTile } from '../../engine/armies';
 import { BUILDING_CATEGORIES, getCategoryTierName } from '../../data/buildings';
 import { polarX, polarY } from '../sim/fixed';
-import { Q, SIDE_ATTACKER, secondsToTicks, FIELD_BATTLE_TICKS, SIEGE_BATTLE_TICKS } from '../sim/constants';
+import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield).
@@ -57,6 +59,19 @@ export const getRegionBattleBuildings = (region) => Object.entries(region?.build
 
 // Stands each building on open ground around the keep, mostly on the defender's side of it, and
 // turns its tile into a building so troops walk around it.
+// A besiegers' camp for a sally: three siege engines and the camp itself, east of the field, as
+// razable 'building' structures (buildings.js) the garrison must burn (battleType.js).
+const placeCamp = (map) => {
+  const { w, h, tiles } = map;
+  const cx = Math.floor(w * 0.78); const cy = Math.floor(h / 2);
+  const spots = [[cx, cy, 'camp', 'Siege camp', 900], [cx - 4, cy - 5, 'engine', 'Siege engine', 500], [cx - 5, cy + 1, 'engine', 'Siege engine', 500], [cx - 3, cy + 6, 'engine', 'Siege engine', 500]];
+  return spots.map(([x, y, category, name, hp], i) => {
+    const tx = Math.max(2, Math.min(w - 3, x)); const ty = Math.max(2, Math.min(h - 3, y));
+    tiles[ty * w + tx] = TILE.BUILDING;
+    return { id: `${category}_${i}`, kind: 'building', category, name, tier: 1, x: centre(tx), y: centre(ty), radius: Math.round(0.9 * Q), maxHp: hp, hp, range: 0, attackTicks: secondsToTicks(1.5), damage: 0, cooldown: 0, alive: true };
+  });
+};
+
 const placeBuildings = (map, list) => {
   if (!list.length) return [];
   const { w, h, tiles, keep } = map;
@@ -89,22 +104,26 @@ export const buildSetupFromArmies = ({
   attackerNationId = 'attacker', defenderNationId = 'defender',
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
-  landing = false, regionBuildings = [], tileContext = null
+  landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null
 }) => {
   const combatWidth = getCombatWidth(terrain);
+  const type = battleType || battleTypeOf({ landing, sally, city, fortLevel, tileContext, fromTile });
   const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
-  const structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings)];
+  const structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
   if (tileContext && tileContext.hpRatio < 1) structures.forEach((st) => { if (st.kind === 'keep' || st.kind === 'tower') st.hp = Math.max(1, Math.round(st.maxHp * tileContext.hpRatio)); });
   const points = map.points.map((p, i) => ({ id: `p_${deposits[i]}`, kind: 'deposit', resId: deposits[i], x: centre(p.x), y: centre(p.y), owner: 1, progress: 0, capturingSide: -1 }));
+  // A landing's beachhead: a point on the sand the invaders must hold (battleType.js).
+  if (type === 'landing') points.push({ id: 'beachhead', kind: 'beachhead', resId: null, x: centre(LANDING_SEA_COLS + 3), y: centre(Math.floor(map.h / 2)), owner: 1, progress: 0, capturingSide: -1 });
   return {
     version: SETUP_VERSION,
     seed: seed >>> 0,
     regionId,
     terrain,
     combatWidth,
-    // Adaptive clock: open-field battles are fast and decisive; sieges give the engines time.
-    limitTicks: fortLevel > 0 ? SIEGE_BATTLE_TICKS : FIELD_BATTLE_TICKS,
+    // The clock by battle type (battleType.js): a field battle is fast, a siege gives the engines time.
+    battleType: type,
+    limitTicks: BATTLE_TYPES[type].limitTicks,
     map,
     tile: tileContext?.tile ?? null,
     structures,
@@ -251,12 +270,16 @@ const buildAmphibiousSetup = (state, pb) => {
 const buildFieldSetup = (state, pb) => {
   const v = validateFieldAttack(state, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;
+  // A sally: the attackers come out of a besieged city onto its ring (battleType.js).
+  const from = state.regions[pb.fromRegionId];
+  const sally = !!from?.siege?.by && from.tile != null && getTiles().neighbors[from.tile].includes(pb.tile);
   const attackerUnits = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
   const defenderUnits = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
   const ctx = getFieldBattleContext(state, { ...v, attackerUnits, defenderUnits });
   return buildSetupFromArmies({
     tileContext: tileContextOf(state, pb.tile, { fromTile: v.fromTile }),
+    fromTile: v.fromTile, sally, city: false,
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,

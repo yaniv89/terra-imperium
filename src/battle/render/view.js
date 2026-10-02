@@ -13,6 +13,8 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
   playerSide,
   supply: [...w.supply],
   assimilation: w.assimilation,
+  battleType: w.setup.battleType || 'field',
+  beachhead: w.beachhead || 0,
   ended: w.ended,
   pendingOrders: pendingOrders.length,
   fog: includeFog && w.fog ? w.fog[playerSide].slice() : null,

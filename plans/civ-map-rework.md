@@ -1839,6 +1839,26 @@ changes something (a test holds the line: no idle tech). The research sheet show
 under each tech. Tests in techMapEffects.test.js. Still open in C3: the web of prerequisites
 across lines and the graph view of the sheet, science from districts.
 
+**Workstream 6, wave 2: battle types from the map (2026-10-02).** `src/battle/setup/battleType.js`
+names the six types of D5 and chooses one from the situation: a landing, a sally (the attack
+comes out of a besieged city onto its ring), an assault (a city with walls), a river crossing
+(the approach sector carries a river), an ambush (the defender stands in forest, jungle or hills
+with no road) or a field battle. The setup carries `battleType` and its clock; the sim ends on
+the type's objective (step.js checkEnd): a side with LOSS_DECISIVE (60%) of its squads dead or
+fled breaks and runs (a routed squad may still rally, so it does not count); an attacker down
+AMBUSH_LOSS (30%) of its strength within AMBUSH_SECONDS (120) is ambushed; a river crossing is
+won at the clock by holding the far bank (the defender's half of the field) with
+RIVER_HOLD_SHARE (40%) of the attacker's strength; a field battle at the clock goes to an
+attacker with 1.5x the defender's strength left, else to the defender; a sally is won by
+burning SALLY_ENGINES (2) of the three siege engines or the camp (razable structures east of
+the field); a landing by holding the beachhead point on the sand for LANDING_HOLD_SECONDS (60).
+The HUD's objective line reads the type. A field battle leaves a `battle` mark on the tile's
+state for BATTLE_MARK_TURNS (5). Parity (battle-lab, 16 seeds, AI against AI) after the change:
+even armies 8/16 attacker wins against auto-resolve's 8/16 (was 3/16), exchange rate 0.96 against
+1.01; 5 against 2 and cavalry against archers unchanged. Tests in battleType.test.js. Still open
+in D5: the deployment phase by type, the AI's deployment templates, the parity harness over the
+new types, the map's battle marker, auto-resolve reading the type.
+
 ---
 
 ---
