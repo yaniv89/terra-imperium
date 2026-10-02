@@ -7,6 +7,7 @@
 // arrive with the lenses of workstream 12. Pure; cached on the state's units and cities.
 import { getTiles } from '../data/geo/tiles';
 import { unitTile } from './armies';
+import { mapEffectsFor } from './techMapEffects';
 
 export const SIGHT_LAND = 2;
 export const SIGHT_ARMY = 2;
@@ -38,21 +39,22 @@ const friendsOf = (state, nationId) => {
 /** The set of tiles `nationId` can see this turn. */
 export const visibleTiles = (state, nationId = state.playerNationId) => {
   const hit = cache.get(state.units);
-  if (hit && hit.regions === state.regions && hit.nations === state.nations && hit.nationId === nationId) return hit.set;
+  if (hit && hit.regions === state.regions && hit.nations === state.nations && hit.techTree === state.techTree && hit.nationId === nationId) return hit.set;
   const tiles = getTiles();
   const set = new Set();
+  const extra = mapEffectsFor(state, nationId).sight; // techs that see further (techMapEffects.js)
   const friends = friendsOf(state, nationId);
   const landSeeds = [];
   Object.values(state.regions).forEach((c) => { if (friends.has(c.owner) && c.tile != null) landSeeds.push(...(c.tiles || [c.tile])); });
-  grow(tiles, landSeeds, SIGHT_LAND, set);
+  grow(tiles, landSeeds, SIGHT_LAND + extra, set);
   Object.values(state.units).forEach((u) => {
     if (u.ownerId !== nationId || u.embarkedOn) return;
     const t = unitTile(state, u);
     if (t == null) return;
-    const rings = u.domain === 'naval' ? SIGHT_FLEET : SIGHT_ARMY + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS : 0);
+    const rings = extra + (u.domain === 'naval' ? SIGHT_FLEET : SIGHT_ARMY + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS : 0));
     grow(tiles, [t], rings, set);
   });
-  cache.set(state.units, { regions: state.regions, nations: state.nations, nationId, set });
+  cache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, set });
   return set;
 };
 

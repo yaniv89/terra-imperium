@@ -34,6 +34,7 @@ import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegi
 import { getAvailableClasses } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
 import { disasterMults } from '../cityDisasters';
+import { mapEffectsOf } from '../techMapEffects';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -310,7 +311,7 @@ export const toggleLock = (city, tile) => (city.locked.includes(tile) ? { ...cit
 
 // ---------------------------------------------------------------------------------------------
 // Borders
-export const tileCultureCost = (city, ring) => TILE_COST_BASE + TILE_COST_PER_RING * ring + TILE_COST_PER_TILE * city.tiles.length;
+export const tileCultureCost = (city, ring, costMult = 0) => Math.round((TILE_COST_BASE + TILE_COST_PER_RING * ring + TILE_COST_PER_TILE * city.tiles.length) * Math.max(0.5, 1 + costMult));
 
 // The rings around a centre, Map tile -> ring, up to maxRing. The grid is static, so one walk per
 // (centre, maxRing) serves every turn: the claim step of 500 cities was a walk per candidate tile.
@@ -332,7 +333,8 @@ export const ringsAround = (tiles, centre, maxRing) => {
 /** Tiles the city could claim next, best first: unowned, workable, adjacent to its land, inside
  * the age's ring. Each entry { tile, ring, cost, score }. */
 export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
-  const maxRing = BORDER_RING_BY_AGE[ageId] || 2;
+  const fx = mapEffectsOf(researched); // techs that push the border and cheapen tiles (techMapEffects.js)
+  const maxRing = (BORDER_RING_BY_AGE[ageId] || 2) + fx.borderRing;
   const own = new Set(city.tiles);
   const out = new Map();
   const rings = ringsAround(tiles, city.tile, maxRing);
@@ -344,7 +346,7 @@ export const claimCandidates = (city, tiles, world, { ageId = 'bronze', research
     const facts = factsOf(tiles, world, n);
     const adjacency = tiles.neighbors[n].filter((m) => own.has(m)).length;
     const score = y.food + y.production + y.gold + (facts.resource ? 3 : 0) + (facts.river ? 1 : 0) + adjacency * 0.5 - ring;
-    out.set(n, { tile: n, ring, cost: tileCultureCost(city, ring), score });
+    out.set(n, { tile: n, ring, cost: tileCultureCost(city, ring, fx.tileCostMult), score });
   }));
   return [...out.values()].sort((a, b) => b.score - a.score || a.ring - b.ring || a.tile - b.tile);
 };
@@ -396,7 +398,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
     food = c.food + gain;
     const threshold = growthThreshold(size);
-    if (food >= threshold && size < MAX_SIZE) { size += 1; food -= threshold; logs.push(`${c.name} grows to size ${size}.`); }
+    if (food >= threshold && size < MAX_SIZE) { size += 1; food -= threshold * (1 - Math.min(0.5, mapEffectsOf(researched).granaryKeep)); logs.push(`${c.name} grows to size ${size}.`); } // granaries keep a share (techMapEffects.js)
   }
   // 3. Unrest from amenities.
   // Only the penalty lives here: resolveTurn's unrest drift (control, stability, taxes) owns the

@@ -27,6 +27,7 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { hasPerk } from '../data/promotions';
 import { isWarBetween } from './diplomacy';
 import { legacyTerrainOf } from './world/registry';
+import { mapEffectsOf } from './techMapEffects';
 
 export const MOVE_POINTS = { infantry: 2, ranged: 2, cavalry: 4, siege: 1, support: 2, settler: 2, air: 4 };
 export const DEFAULT_MOVE_POINTS = 2;
@@ -89,12 +90,13 @@ export const tileAccess = (state, tile, nationId = state.playerNationId) => {
 /** Movement points to step from `from` onto `to`. `researched`: the mover's tech ids. */
 export const tileStepCost = (state, tiles, from, to, access = 'wild', researched = []) => {
   const road = state.world?.tileState?.[to];
+  const fx = mapEffectsOf(researched); // techs that ease the ground (techMapEffects.js)
   let cost;
-  if (road?.road && !road.pillaged) cost = researched.includes(RAIL_TECH) ? RAIL_COST : ROAD_COST;
-  else if (tiles.reliefOf(to) === 'mountains') cost = TILE_COST_MOUNTAINS;
+  if (road?.road && !road.pillaged) cost = researched.includes(RAIL_TECH) ? RAIL_COST : Math.max(0.2, ROAD_COST + fx.roadCost);
+  else if (tiles.reliefOf(to) === 'mountains') cost = Math.max(1, TILE_COST_MOUNTAINS + fx.mountainCost);
   else {
     cost = 1;
-    if (tiles.reliefOf(to) === 'hills') cost += 1;
+    if (tiles.reliefOf(to) === 'hills') cost += Math.max(0, 1 + fx.hillsCost);
     if (SLOW_FEATURES.has(tiles.featureOf(to))) cost += 1;
     if (SLOW_TERRAIN.has(tiles.terrainOf(to))) cost += 1;
   }

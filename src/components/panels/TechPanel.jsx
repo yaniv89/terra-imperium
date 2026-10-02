@@ -31,7 +31,7 @@ const ProgressBar = ({ share }) => (
 );
 
 const TechRow = ({ info, onResearch, onQueue }) => {
-  const { tech, researched, current, queuedAt, canStart, reason, cost, turns, share, diffusion, boost } = info;
+  const { tech, researched, current, queuedAt, canStart, reason, cost, turns, share, diffusion, boost, mapEffect } = info;
   const status = researched ? 'Researched' : current ? `Researching · ${formatTurns(turns)}` : queuedAt >= 0 ? `Queued #${queuedAt + 2}` : canStart ? `${cost} science · ${formatTurns(turns)}` : reason;
   const diffusionNote = !diffusion || researched ? '' : diffusion.pioneer ? ' · first in the world: +20% cost'
     : diffusion.neighborsWithIt ? ` · ${diffusion.neighborsWithIt} neighbour${diffusion.neighborsWithIt > 1 ? 's know' : ' knows'} it: -${Math.round((1 - diffusion.mult) * 100)}%` : '';
@@ -51,6 +51,7 @@ const TechRow = ({ info, onResearch, onQueue }) => {
         )}
       </div>
       <div className="text-[11px] text-slate-500">{describeTech(tech)}</div>
+      {mapEffect && <div className="text-[10px] text-sky-300" data-testid="tech-map-effect">Map: {mapEffect}</div>}
       {boost && <div className={`text-[10px] ${boost.taken ? 'text-emerald-400' : boost.met ? 'text-amber-300' : 'text-slate-500'}`} data-testid="tech-boost">Boost: {boost.label}{boost.taken ? ' (taken)' : boost.met ? ' (met, lands next turn)' : ''}</div>}
       {current && <ProgressBar share={share} />}
     </div>

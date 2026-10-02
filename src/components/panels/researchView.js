@@ -8,6 +8,7 @@ import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
 import { canStartTech, getResearchCost, FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { getTechDiffusion } from '../../engine/techDiffusion';
+import { mapEffectLabel } from '../../engine/techMapEffects';
 
 const pct = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`;
 const EFFECT_WORDS = {
@@ -53,6 +54,7 @@ export const techInfo = (state, techId, science = getSciencePerTurn(state)) => {
   return {
     tech,
     boost,
+    mapEffect: mapEffectLabel(techId),
     cost,
     progress,
     share: cost > 0 ? Math.min(1, progress / cost) : 0,

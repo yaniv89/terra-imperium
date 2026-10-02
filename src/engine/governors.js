@@ -16,6 +16,7 @@ import { generateGivenName } from '../data/names';
 import { createRng } from '../utils/rng';
 import { ringsAround } from './world/cities';
 import { getOwnedRegionIds } from '../data/regions';
+import { mapEffectsFor } from './techMapEffects';
 
 export const GOVERNOR_GROUP_RINGS = 6;
 export const GOVERNOR_GROUP_MAX = 6;
@@ -40,10 +41,11 @@ const groupsEntry = (state, nationId) => {
   const regions = state.regions || {};
   const capitalId = state.nations?.[nationId]?.capitalRegionId;
   const ids = getOwnedRegionIds(regions, nationId);
-  const key = `${nationId}|${capitalId}|${ids.length}|${ids.join(',')}`;
+  const rings = GOVERNOR_GROUP_RINGS + mapEffectsFor(state, nationId).governorRings; // techs that widen a governor's reach (techMapEffects.js)
+  const key = `${nationId}|${capitalId}|${rings}|${ids.length}|${ids.join(',')}`;
   const hit = groupsMemo.get(key);
   if (hit) return hit;
-  const groups = buildGroups(regions, ids, capitalId);
+  const groups = buildGroups(regions, ids, capitalId, rings);
   const byCity = new Map();
   groups.forEach((g) => g.cities.forEach((id) => byCity.set(id, g)));
   if (groupsMemo.size >= GROUPS_MEMO_MAX) groupsMemo.clear();
@@ -53,7 +55,7 @@ const groupsEntry = (state, nationId) => {
 };
 /** The city groups of a nation: [{ seat, cities }] in a fixed order. */
 export const cityGroups = (state, nationId) => groupsEntry(state, nationId).groups;
-const buildGroups = (regions, ids, capitalId) => {
+const buildGroups = (regions, ids, capitalId, groupRings = GOVERNOR_GROUP_RINGS) => {
   const tiles = getTiles();
   const mine = ids.map((id) => regions[id]).filter((c) => c && c.tile != null).sort((a, b) => (a.id < b.id ? -1 : 1));
   const left = new Map(mine.map((c) => [c.id, c]));
@@ -65,7 +67,7 @@ const buildGroups = (regions, ids, capitalId) => {
     if (!left.has(seatId)) continue;
     const seat = left.get(seatId);
     left.delete(seatId);
-    const rings = ringsAround(tiles, seat.tile, GOVERNOR_GROUP_RINGS);
+    const rings = ringsAround(tiles, seat.tile, groupRings);
     const near = [...left.values()].map((c) => ({ c, d: rings.get(c.tile) })).filter((x) => x.d !== undefined).sort((a, b) => a.d - b.d || (a.c.id < b.c.id ? -1 : 1)).slice(0, GOVERNOR_GROUP_MAX - 1);
     near.forEach((x) => left.delete(x.c.id));
     groups.push({ seat: seatId, cities: [seatId, ...near.map((x) => x.c.id)] });
