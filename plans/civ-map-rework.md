@@ -1796,6 +1796,20 @@ toward the civil war streak (civilWar.js). Prestige stays its own score. The Cou
 shows the meter, its parts and the gate in force. Tests in authority.test.js. Still open in C4:
 estates on the map, laws with real effects on the new systems, the AI picking laws by doctrine.
 
+**Workstream 9, wave 2: threats, relief, raids, dice out of sight (2026-10-02).**
+`src/engine/threat.js`. A city's THREAT is the enemy land strength within THREAT_RINGS (4) of
+its centre; it is threatened when besieged, under invasion, or the threat exceeds its garrison
+x THREAT_DEFEND_RATIO (0.8), and the AI defends threatened cities before it advances
+(aiOperations, replacing the old "enemy army next to the capital" rule). RELIEF: a stack beside
+a besieger of an own city attacks it (a field battle) when it outweighs that besieger stack by
+RELIEF_RATIO (1.2). RAIDS: a stack halted on an enemy tile with an improvement pillages it (the
+improvement stops yielding, tileYields.js; RAID_GOLD 20 to the raider; the player is told when
+it is their land). DICE: the AI war's capture roll (diplomacy.js resolveWarProgress) now fires
+only when the goal city is out of the player's sight (sight.js); within sight the real sieges,
+assaults and relief decide, as D6 asks. Tests in threat.test.js. Still open in D6: calibrating
+the dice against the real sim (the world's wars stay few, see the Part H keys), raids on trade
+routes, a pillage order for the player's armies.
+
 ---
 
 ---
