@@ -1919,6 +1919,20 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**Workstream 13, the Dawn bridge and land attacks (2026-10-02).** The registry's neighbour rule
+(registry.js) has three parts: lands that touch, centres within NEAR_RINGS (3), and the BRIDGE
+that links a people's capital to the nearest city of each neighbouring people up to
+BRIDGE_RINGS (12) away, so wars, trade, tech diffusion and opinion work on the sparse Dawn
+world. The bridge also let the player attack a city twelve tiles away straight from their own
+city. Every registry record now also carries `touching` (lands that touch, no near rule, no
+bridge; `getTouchingIds` in regions.js), and a land attack from inside a city needs the two
+lands to touch (invasion.js validateInvasion); otherwise the army walks to a tile beside the
+city first, as the AI's fronts already do. Wars, trade routes, reinforcements, diffusion and
+the AI's tiering keep `neighbors`. The reducer's invasion fixtures and the route test follow
+the rule. Still open in 13: the bridge's other readers one by one (trade routes over
+neighbours, reinforcement sources, the siege's protecting fort), the space-race test, turn
+time at 2,000 cities, the save v7 screen.
+
 ---
 
 ---

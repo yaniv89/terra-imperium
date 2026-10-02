@@ -10,7 +10,8 @@ import { ActionTypes } from '../data/types';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { runHeadless } from '../battle/sim/headless';
 import { estimateInvasionOdds } from './battleOdds';
-import { getNationCapital, getNeighborIds } from '../data/regions';
+import { getNationCapital, getNeighborIds, getTouchingIds } from '../data/regions';
+import { getTiles } from '../data/geo/tiles';
 import { addCity, addCities } from './testWorld';
 import { createWorld, sideEdgeX } from '../battle/sim/world';
 import { firePower } from '../battle/sim/effects';
@@ -20,7 +21,9 @@ import { firePower } from '../battle/sim/effects';
 // and FR_NEAR, a second French city bordering that target. The enemy is whoever owns the target.
 const WORLD = (() => {
   const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-  const target = getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
+  // A land attack from inside a city needs touching lands (registry `touching`); else the army
+  // stands at the target's gates (`unit` below places it there).
+  const target = getTouchingIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr') || getNeighborIds(first.cityId).find((id) => first.state.regions[id].owner !== 'fr');
   const near = addCity(first.state, 'fr', { near: target });
   const AGG = near.state.regions[target].owner;
   // The enemy gets three more cities, so losing the target is a fraction of its nation.
@@ -37,8 +40,10 @@ const baseState = () => {
     wars: [...s.wars, { id: 'war_t', aggressor: 'fr', enemy: AGG, active: true, goalAchieved: false, startYear: s.year, startTurn: s.turnNumber, cb: 'none', battleScore: 0, tickScore: 0, score: 0, peaceOfferCooldownTurn: 0, goal: { type: 'destroy_military', threshold: 1 } }]
   };
 };
+const GATE = getTouchingIds(FR_BORDER).includes(BE_REGION) ? null : getTiles().neighbors[WORLD.state.regions[BE_REGION].tile].find((n) => getTiles().land[n] === 1);
 const unit = (id, regionId, ownerId, classId = 'infantry', strength = 1000) => ({
-  id, regionId, ownerId, domain: 'land', classId, strength, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1
+  id, regionId, ownerId, domain: 'land', classId, strength, maxStrength: 1000, morale: 100, xp: 0, rank: 'recruit', promotions: [], commanderId: null, movesLeft: 1,
+  ...(regionId === FR_BORDER && GATE != null ? { tile: GATE } : {})
 });
 const withArmies = (state = baseState()) => ({
   ...state,

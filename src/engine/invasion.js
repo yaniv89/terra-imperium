@@ -10,7 +10,7 @@
 // tactical path swaps only the middle step for a simulated battle producing the same result shape.
 import { recordBattleReport } from './battleReports';
 import { LogTypes } from '../data/types';
-import { REGIONS_DATA, getNeighborIds } from '../data/regions';
+import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
 import { getEffectiveAgeId } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
@@ -80,11 +80,12 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   if (!targetRegion || targetRegion.owner === state.playerNationId) return { ok: false, reason: 'bad_target' };
   // Already held by your army (an occupation from an older save): there is nothing left to fight.
   if (targetRegion.occupiedBy === state.playerNationId) return { ok: false, reason: 'already_held' };
-  // Workstream 5: an army attacks a city from any tile next to its land (armies.js), or from inside
-  // a neighbouring city's land (the registry's city adjacency, which bridges the sparse Dawn world).
+  // Workstream 5 and 13: an army attacks a city from any tile next to its land (armies.js), or from
+  // inside a city whose land TOUCHES the target's (registry.js `touching`); the Dawn bridge that
+  // linked capitals 12 tiles apart no longer carries an attack: the army walks there first.
   const tiles = getTiles();
   const tileOwner = state.world?.tileOwner || {};
-  const cityAdjacent = getNeighborIds(fromRegionId).includes(targetRegionId);
+  const cityAdjacent = getTouchingIds(fromRegionId).includes(targetRegionId);
   const reaches = (u) => { const t = unitTile(state, u); return t != null && ((cityAdjacent && tileOwner[t] === fromRegionId) || touchesCity(state, tiles, t, targetRegionId)); };
   // Troops aboard a ship are not on the land: they land through AMPHIBIOUS_ASSAULT, never here.
   const stack = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));

@@ -6,6 +6,7 @@ import { ActionTypes } from '../data/types';
 import { getNeighborIds } from '../data/regions';
 import { MEN_PER_STRENGTH } from './aftermath';
 import { recordBattleReport, BATTLE_REPORT_HISTORY } from './battleReports';
+import { atGates } from './testWorld';
 
 const unit = (id, classId, strength) => ({ id, classId, strength, maxStrength: strength, morale: 100, domain: 'land' });
 const sum = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -46,6 +47,7 @@ describe('battle report history', () => {
         d1: { ...unit('d1', 'infantry', 600), ownerId: 'de', regionId: target, movesLeft: 1 }
       }
     };
+    state = atGates(state, from, target); // the attack needs touching lands or an army beside the city
     return { state, next: gameReducer(state, { type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId: from, targetRegionId: target } }), from, target };
   };
 
