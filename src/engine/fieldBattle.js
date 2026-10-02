@@ -95,9 +95,12 @@ const retreatTile = (state, tile, unit, enemyTiles) => {
 
 /** Everything after the battle. `battle` is resolveBattle's shape. `attackerNationId` defaults to
  * the player (the AI's sallies pass their own). */
+export const BATTLE_MARK_TURNS = 5;
 export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null, attackerNationId = state.playerNationId } = {}) => {
   const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = battle;
   const units = { ...state.units };
+  // The ground remembers the battle for a few turns (the map shows the mark).
+  const world = state.world ? { ...state.world, tileState: { ...(state.world.tileState || {}), [v.tile]: { ...(state.world.tileState?.[v.tile] || {}), battle: { turn: state.turnNumber, until: (state.turnNumber || 0) + BATTLE_MARK_TURNS, outcome } } } } : state.world;
   const xp = (list, deployed, amount) => list.map((u) => (deployed.includes(u.id) ? awardXp(u, Math.round(amount * getGeneralXpMultiplier(state.hiredCommanders?.[u.commanderId])) + (xpBonusById?.[u.id] || 0)) : u));
   const attackerXp = outcome === 'attacker' ? XP_WIN : outcome === 'defender' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
   const defenderXp = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
@@ -139,7 +142,7 @@ export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null
   const anchor = state.world?.tileOwner?.[v.tile] ?? regionForTile(state, v.tile, attackerNationId, v.fromRegionId);
   return {
     ...state,
-    units,
+    world, units,
     wars,
     rngSeed: rngSeed ?? state.rngSeed,
     ...recordBattleReport(state, { ...report, kind: 'field', tile: v.tile, outcome, fromRegionId: v.fromRegionId, targetRegionId: anchor, attackerNationId, defenderNationId: v.defenderNationId }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),

@@ -59,7 +59,7 @@ export const aiSally = (state, nationId, rng) => {
     const ctx = getFieldBattleContext(actor, v);
     const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
     const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
-    next = { ...next, units: r.units, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+    next = { ...next, units: r.units, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
       logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => by.has(state.playerNationId))] };
   }
   return next;
@@ -120,7 +120,7 @@ export const processAIOperations = (state, rng) => {
         const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
         const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
         stack.forEach(u => committed.add(u.id));
-        next = { ...next, units: r.units, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+        next = { ...next, units: r.units, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
           logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => v.defenderNationId === state.playerNationId)] };
         relieved = true;
         break;

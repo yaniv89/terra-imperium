@@ -74,6 +74,8 @@ export const createWorld = (setup) => {
     powersUsed: [{}, {}],
     powerCooldowns: [{}, {}],
     assimilation: 0,
+    beachhead: 0,
+    spent: [false, false],
     events: [],
     tally: {},
     ended: null,

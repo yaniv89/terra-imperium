@@ -9,6 +9,7 @@ import { getSquadDisplayName } from '../../battle/data/battleStats';
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { getRankForXp } from '../../data/promotions';
+import { BATTLE_TYPES } from '../../battle/setup/battleType';
 
 const CLASS_LABEL = { infantry: 'Inf', cavalry: 'Cav', ranged: 'Rng', siege: 'Sge', air: 'Air', support: 'Sup' };
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -55,7 +56,7 @@ const BattleHud = ({
             <span className="truncate max-w-[40vw] hidden min-[420px]:inline">{title || 'Battle'}</span>
             <span
               data-testid="battle-clock"
-              title={playerSide === 1 ? 'Hold out until the clock runs out and the battle is yours' : 'Take the keep or break the defenders before time runs out — or the defender holds'}
+              title={`${BATTLE_TYPES[hud.battleType || 'field'].label}: ${BATTLE_TYPES[hud.battleType || 'field'][playerSide === 1 ? 'defender' : 'attacker']}`}
               className={`font-mono flex items-center gap-1 ${timeLeft <= 30 ? 'text-red-400 animate-pulse font-bold' : timeLeft <= 60 ? 'text-amber-300 font-bold' : ''}`}
             >
               <Timer className="w-3 h-3" />{fmtTime(timeLeft)}
