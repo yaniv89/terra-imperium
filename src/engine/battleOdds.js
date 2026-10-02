@@ -7,6 +7,7 @@
 import { resolveBattle } from './battle';
 import { createRng } from '../utils/rng';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
+import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
 import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } from './siege';
 import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
@@ -32,7 +33,7 @@ export const explainInvasion = (v, ctx) => {
     { id: 'walls', label: 'Walls & forts', value: ctx.defenderDamageReductionMultiplier ?? 1 },
     { id: 'age', label: 'Technology', value: getRosterCombatMultiplier(ctx.attackerAgeId, ctx.defenderAgeId) / Math.max(0.01, getRosterCombatMultiplier(ctx.defenderAgeId, ctx.attackerAgeId)) }
   ];
-  if (ctx.attackerPenaltyMultiplier && ctx.attackerPenaltyMultiplier !== 1) lines.push({ id: 'landing', label: 'Landing from the sea', value: ctx.attackerPenaltyMultiplier });
+  if (ctx.attackerPenaltyMultiplier && ctx.attackerPenaltyMultiplier !== 1) lines.push({ id: ctx.river ? 'river' : 'landing', label: ctx.river ? 'Crossing a river' : 'Landing from the sea', value: ctx.attackerPenaltyMultiplier });
   return lines.map((l) => ({ ...l, value: Math.round(l.value * 100) / 100 }));
 };
 
@@ -84,6 +85,15 @@ export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, sample
 
 // The land battle of an amphibious landing (the naval interception, if any, is fought first and
 // isn't part of these odds).
+// A field battle (fieldBattle.js): no province to take, so `capture` is the chance of a win.
+export const estimateFieldOdds = (state, fromRegionId, tile, samples = 200) => {
+  const v = validateFieldAttack(state, fromRegionId, tile, { ignoreCost: true });
+  if (!v.ok) return null;
+  const ctx = getFieldBattleContext(state, v);
+  const r = simulate({ ...v, targetRegion: { control: 100 } }, getFieldResolveArgs(v, ctx), ctx, samples);
+  return { ...r, capture: r.attacker, field: true };
+};
+
 export const estimateLandingOdds = (state, navalUnitId, targetRegionId, samples = 200) => {
   const v = validateAmphibious(state, navalUnitId, targetRegionId, { ignoreCost: true });
   if (!v.ok) return null;

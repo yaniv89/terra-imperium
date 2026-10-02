@@ -1,6 +1,7 @@
 import { orderMarch, cancelRoute, placeName } from './routes';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
+import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { abandonColony, foundColony, validateColony } from './colonies';
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
@@ -458,6 +459,8 @@ const ATTACK_REFUSALS = {
   bad_target: "That region can't be attacked — it's already yours.",
   already_held: 'Your army already holds that region — there is nothing left to fight for there.',
   not_adjacent: "That region isn't next to your army.",
+  no_enemy: 'There is no enemy army on that tile.',
+  is_city: 'That is a city: attack it as a city.',
   cost: 'Not enough resources to attack.',
   no_units: 'There are no troops there to attack with.',
   no_moves: 'That army has already moved or fought this turn.',
@@ -1437,6 +1440,19 @@ const reduceAction = (state, action) => {
       };
     }
 
+    case ActionTypes.ATTACK_ARMY: {
+      // A field battle (fieldBattle.js), auto-resolved: the stack in `fromRegionId` beside `tile`
+      // attacks the enemy stack standing there.
+      const { fromRegionId, tile } = action.payload || {};
+      const v = validateFieldAttack(state, fromRegionId, tile);
+      if (!v.ok) return refuseAttack(state, v.reason, fromRegionId);
+      const ctx = getFieldBattleContext(state, v);
+      const rng = createRng(state.rngSeed);
+      const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
+      const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
+      return applyFieldResult(paid, v, battle, { rngSeed: rng.getSeed() });
+    }
+
     case ActionTypes.LAUNCH_INVASION: {
       // Auto-resolve. The gate, the battle inputs and every consequence live in
       // src/engine/invasion.js so a commanded (real-time) battle shares them exactly — see
@@ -1455,7 +1471,28 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.BEGIN_TACTICAL_BATTLE: {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
-      const { fromRegionId, targetRegionId } = action.payload;
+      const { fromRegionId, targetRegionId, tile = null } = action.payload;
+      if (tile != null) {
+        // A commanded field battle (fieldBattle.js): the stack beside `tile` against the enemy on it.
+        const fv = validateFieldAttack(state, fromRegionId, tile);
+        if (!fv.ok) return refuseAttack(state, fv.reason, fromRegionId);
+        const frng = createRng(state.rngSeed);
+        const fseed = Math.floor(frng.next() * 0xffffffff) >>> 0;
+        const fcounter = (state.battleCounter || 0) + 1;
+        const anchor = state.world?.tileOwner?.[tile] ?? fromRegionId;
+        return {
+          ...state,
+          resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion),
+          rngSeed: frng.getSeed(),
+          battleCounter: fcounter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${fcounter}`, kind: 'field', fromRegionId, tile, targetRegionId: anchor, warId: fv.war?.id ?? null,
+            attackerNationId: state.playerNationId, defenderNationId: fv.defenderNationId, seed: fseed, startedTurn: state.turnNumber, playerSide: 'attacker',
+            attackerUnitIds: fv.attackerUnits.map((u) => u.id), defenderUnitIds: fv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+          },
+          logs: [...state.logs, { year: state.year, message: 'Your army gives battle in the field; you take command.', type: LogTypes.COMBAT }]
+        };
+      }
       const v = validateInvasion(state, fromRegionId, targetRegionId);
       if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       // Nothing to fight: an undefended region is simply taken, exactly as auto-resolve does.
@@ -1507,6 +1544,14 @@ const reduceAction = (state, action) => {
       // If peace was signed while the battle was being fought, the battle has no consequences.
       const war = state.wars.find((w) => w.id === pb.warId && w.active);
       const cleared = { ...state, pendingBattle: null };
+      if (pb.kind === 'field') {
+        const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        if (!fv.ok || (pb.warId && !war)) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
+        const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
+        return applyFieldResult(afterMissiles, vv, safe, { rngSeed: state.rngSeed, xpBonusById: safe.report.tactical.xpBonusById });
+      }
       if (pb.kind === 'defense') {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
         if (!def) return cleared;
@@ -1540,6 +1585,15 @@ const reduceAction = (state, action) => {
       if (!pb) return state;
       const cleared = { ...state, pendingBattle: null };
       if (pb.kind === 'defense') return resolveDefenseAuto(cleared, pb.defenseId);
+      if (pb.kind === 'field') {
+        const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        if (!fv.ok) return cleared;
+        const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)) };
+        if (!vv.attackerUnits.length || !vv.defenderUnits.length) return cleared;
+        const fctx = getFieldBattleContext(cleared, vv);
+        const battle = resolveBattle({ ...getFieldResolveArgs(vv, fctx), rng: createRng(pb.seed) });
+        return applyFieldResult(cleared, vv, battle, { rngSeed: state.rngSeed });
+      }
       if (pb.kind === 'amphibious') {
         const av = validateAmphibious(cleared, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
         if (!av.ok) return cleared;

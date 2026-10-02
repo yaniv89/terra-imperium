@@ -41,7 +41,7 @@ const TacticalBattleHost = () => {
       key={pb.id}
       setup={setup}
       playerSide={pb.playerSide === 'defender' ? 1 : 0}
-      title={`${pb.kind === 'defense' ? 'Defense' : 'Battle'} of ${REGIONS_DATA[pb.targetRegionId]?.name || 'the border'}`}
+      title={pb.kind === 'field' ? `Battle in the field near ${REGIONS_DATA[pb.targetRegionId]?.name || 'the border'}` : `${pb.kind === 'defense' ? 'Defense' : 'Battle'} of ${REGIONS_DATA[pb.targetRegionId]?.name || 'the border'}`}
       resume={resume}
       onCheckpoint={(cp) => saveBattleCheckpoint(pb.id, { ...cp, setupVersion: SETUP_VERSION, savedAt: Date.now() })}
       onFinish={finish}

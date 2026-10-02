@@ -63,6 +63,8 @@ export const ActionTypes = {
   SET_ROUTE: 'SET_ROUTE',
   CANCEL_ROUTE: 'CANCEL_ROUTE',
   LAUNCH_INVASION: 'LAUNCH_INVASION',
+  // A field battle against an enemy stack on an adjacent tile (fieldBattle.js), auto-resolved.
+  ATTACK_ARMY: 'ATTACK_ARMY',
   // Tactical Battles (design/rts-battles-implementation-plan.md §10): a commanded, real-time
   // alternative to LAUNCH_INVASION's auto-resolve, sharing its gate and consequences.
   BEGIN_TACTICAL_BATTLE: 'BEGIN_TACTICAL_BATTLE',

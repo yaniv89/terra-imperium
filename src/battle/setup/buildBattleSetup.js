@@ -11,6 +11,7 @@ import { getRosterCombatMultiplier } from '../../data/unitClasses';
 import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
+import { validateFieldAttack, getFieldBattleContext } from '../../engine/fieldBattle';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap, TILE } from './mapgen';
 import { tileContextOf } from './tileContext';
@@ -245,8 +246,46 @@ const buildAmphibiousSetup = (state, pb) => {
   });
 };
 
+// A field battle (fieldBattle.js): two stacks on open ground. The defender's camp stands for the
+// keep (an unfortified town fires nothing); the tile and its neighbours shape the field.
+const buildFieldSetup = (state, pb) => {
+  const v = validateFieldAttack(state, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+  if (!v.ok) return null;
+  const attackerUnits = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
+  const defenderUnits = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
+  if (!attackerUnits.length || !defenderUnits.length) return null;
+  const ctx = getFieldBattleContext(state, { ...v, attackerUnits, defenderUnits });
+  return buildSetupFromArmies({
+    tileContext: tileContextOf(state, pb.tile, { fromTile: v.fromTile }),
+    regionId: pb.targetRegionId,
+    terrain: ctx.terrain,
+    seed: pb.seed,
+    attackerUnits,
+    defenderUnits,
+    attackerAgeId: ctx.attackerAgeId,
+    defenderAgeId: ctx.defenderAgeId,
+    generals: ctx.generals || {},
+    fortLevel: 0,
+    isCapital: false,
+    infrastructure: 0,
+    deposits: [],
+    defenseReduction: ctx.defenderDamageReductionMultiplier,
+    isAttackingFortification: false,
+    attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
+    attackerNationId: state.playerNationId,
+    defenderNationId: v.defenderNationId,
+    controllers: ['player', 'ai'],
+    difficultyId: state.difficultyId || 'prince',
+    powers: [getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })],
+    reinforcements: [[], []],
+    intel: { attackerSeesDefender: true },
+    regionBuildings: []
+  });
+};
+
 export const buildInvasionSetup = (state, pendingBattle) => {
   if (pendingBattle?.kind === 'defense') return buildDefenseSetup(state, pendingBattle);
+  if (pendingBattle?.kind === 'field') return buildFieldSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'amphibious') return buildAmphibiousSetup(state, pendingBattle);
   const { fromRegionId, targetRegionId, seed, playerSide = 'attacker' } = pendingBattle;
   const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
