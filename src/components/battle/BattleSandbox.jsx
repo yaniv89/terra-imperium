@@ -6,6 +6,8 @@ import React, { useMemo, useState } from 'react';
 import TacticalBattleScreen from './TacticalBattleScreen';
 import { buildSetupFromArmies } from '../../battle/setup/buildBattleSetup';
 import { TEMPLATES } from '../../battle/setup/mapgen';
+import { tileContextOf } from '../../battle/setup/tileContext';
+import { getTiles } from '../../data/geo/tiles';
 import { AGE_ORDER } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 
@@ -52,7 +54,19 @@ const BattleSandbox = () => {
   const [lastResult, setLastResult] = useState(null);
   const [runId, setRunId] = useState(0);
 
+  // The sandbox fights on a real tile of the world (a river mouth on a coast), so the battlefield
+  // shows the six neighbours' ground, the river and the sea exactly as a game battle would.
+  const sampleTile = useMemo(() => {
+    const t = getTiles();
+    for (let i = 0; i < t.count; i++) {
+      if (t.land[i] !== 1) continue;
+      const ns = t.neighbors[i];
+      if (ns.some((n) => t.land[n] !== 1 && t.terrainOf(n) !== 'lake') && ns.some((n) => t.land[n] === 1 && t.riverBetween(i, n)) && ns.some((n) => t.land[n] === 1 && t.reliefOf(n) === 'hills')) return i;
+    }
+    return null;
+  }, []);
   const setup = useMemo(() => buildSetupFromArmies({
+    tileContext: sampleTile != null ? tileContextOf(null, sampleTile) : null,
     regionId: `sandbox-${config.terrain}-${config.seed}`,
     terrain: config.terrain,
     seed: config.seed + runId,
@@ -75,7 +89,7 @@ const BattleSandbox = () => {
     infrastructure: 5,
     deposits: ['iron', 'copper'],
     controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai']
-  }), [config, runId]);
+  }), [config, runId, sampleTile]);
 
   if (running) {
     return (

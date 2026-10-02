@@ -1498,6 +1498,23 @@ battles, the siege and last-stand battle types in the RTS (D5, next waves), the 
 (loyalty, pillage, raze, liberate: with loyalty in workstream 8), and AI sieges (the AI still
 hops city to city; the front planner of workstream 9 will stand its armies beside cities).
 
+
+---
+
+**Workstream 6, second wave (2026-10-02): the battlefield is built from the tile.**
+`src/battle/setup/tileContext.js` describes a battle's ground from the fought-over tile and its
+six neighbours (terrain, water, river on the edge, road), rotated so the neighbour the attacker
+comes from lies due west, with the city's walls and its current siege HP. `mapgen.js` paints
+the outer band of the field by sector: each neighbour's ground (forest, rock for mountains,
+sand for desert, the sea beyond a beach for water), a river on an edge as a band of water
+across that sector's rim with one or two fords, hills and mountains rising beyond the rim; the
+middle keeps the tile's own template, and the map is a pure function of the tile. Every setup
+(invasion, defence, landing) passes the context; a city battered by a siege starts the assault
+with its keep and towers at the siege HP. The battle sandbox fights on a real river-mouth
+tile so the ground can be seen. Still to come in 6: field battles between armies on tiles
+(attack an army, sally, relief), the battle types' own objectives and deployment, aftermath on
+tiles (pillage, retreat along the route), parity for the new types.
+
 ---
 
 ---

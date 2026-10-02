@@ -45,7 +45,8 @@ The live site is GitHub Pages, built into `docs/`.
   build: `src/engine/aiProduction.js`. Armies on tiles (unit.tile, move points, tile costs, A*
   routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js;
   the supply meter: supplyMeter.js; tile sight (fog): sight.js; fleets on sea tiles: fleets.js; sieges (walls, HP,
-  encirclement, falls): sieges.js.
+  encirclement, falls): sieges.js. Battlefields come from the tile and its six
+  neighbours: src/battle/setup/tileContext.js feeds mapgen.js.
   Progress and open balance items: plan section J3.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`

@@ -4,6 +4,7 @@
 // same battlefield, however many times it is fought over. Canonical orientation: the attacker
 // enters from the WEST edge (x = 0), the defender's keep stands near the EAST edge.
 import { createRng } from '../../utils/rng';
+import { sectorAt } from './tileContext';
 
 export const TILE = { OPEN: 0, FOREST: 1, WATER: 2, ROCK: 3, ROAD: 4, SAND: 5, FORD: 6, BUILDING: 7 };
 // Movement cost per tile in eighths (8 = normal); 0 = impassable for ground units.
@@ -99,15 +100,65 @@ export const reachable = (tiles, w, h, fromX, fromY, toX, toY) => {
   return false;
 };
 
+// The outer band of the field belongs to the six neighbouring tiles (tileContext.js): each sector
+// takes its neighbour's ground (forest, rock for mountains, sand for desert, a sea with a beach for
+// water), and a river on the edge between the tile and a neighbour runs across that sector's inner
+// rim with a ford or two. The middle of the field stays the tile's own template.
+export const SECTOR_INNER = 0.55; // of the half-diagonal: where a neighbour's ground begins
+const SECTOR_TEMPLATES = {
+  forest: { forest: 0.6, rock: 0 }, hills: { forest: 0.15, rock: 0.06 }, mountains: { forest: 0.05, rock: 0.35 },
+  desert: { forest: 0, rock: 0.03, sand: 0.7 }, arctic: { forest: 0.02, rock: 0.08, sand: 0.5 }, plains: { forest: 0.04, rock: 0 },
+  mixed: { forest: 0.15, rock: 0.02 }, urban: { forest: 0, rock: 0 }, island: { forest: 0.1, rock: 0 }
+};
+const paintSectors = (tiles, heightNoise, forestNoise, w, h, ctx, rng) => {
+  const cx = (w - 1) / 2; const cy = (h - 1) / 2;
+  const half = Math.hypot(cx, cy);
+  const riverFords = new Map();
+  ctx.sectors.forEach((s) => { if (s.river) riverFords.set(s.tile, [rng.next(), rng.next()]); });
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx; const dy = cy - y; // y grows south on the map, north is up
+      const d = Math.hypot(dx, dy) / half;
+      if (d < SECTOR_INNER - 0.08) continue;
+      const deg = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+      const s = sectorAt(ctx.sectors, deg);
+      if (!s) continue;
+      const i = y * w + x;
+      // A river on this edge: a band of water across the sector's inner rim, with fords.
+      if (s.river && d >= SECTOR_INNER - 0.08 && d < SECTOR_INNER + 0.02) {
+        const [f1, f2] = riverFords.get(s.tile);
+        const along = ((deg - s.bearing + 540) % 360 - 180) / 60; // -0.5..0.5 across the sector
+        const ford = Math.abs(along - (f1 - 0.5) * 0.8) < 0.07 || Math.abs(along - (f2 - 0.5) * 0.8) < 0.07;
+        tiles[i] = ford ? TILE.FORD : TILE.WATER;
+        continue;
+      }
+      if (d < SECTOR_INNER) continue;
+      if (s.water) {
+        // The sea (or a lake) fills the sector beyond a beach.
+        if (d >= SECTOR_INNER + 0.22) tiles[i] = TILE.WATER;
+        else if (d >= SECTOR_INNER + 0.14) tiles[i] = TILE.SAND;
+        continue;
+      }
+      const t = SECTOR_TEMPLATES[s.terrain] || SECTOR_TEMPLATES.mixed;
+      const fn = forestNoise[i]; const hn = heightNoise[i];
+      if (t.rock && hn >= 1024 * (1 - t.rock)) tiles[i] = TILE.ROCK;
+      else if (t.forest && fn >= 1024 * (1 - t.forest)) tiles[i] = TILE.FOREST;
+      else if (t.sand && (fn + hn) / 2 >= 1024 * (1 - t.sand)) tiles[i] = TILE.SAND;
+      else if (tiles[i] !== TILE.OPEN) tiles[i] = TILE.OPEN;
+    }
+  }
+};
+
 // regionId drives the whole layout; terrain/combatWidth pick the template and size; `features`
 // (deposit capture points, road count, keep radius) come from the region's real strategic data.
 // `landing`: an amphibious assault (T9). The attacker's (west) edge becomes open sea with a sand
 // beach in front of it; the invaders deploy on the sand and fall back to their boats.
 export const LANDING_SEA_COLS = 5;
-export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false }) => {
+export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null }) => {
   const { w, h } = getMapSize(combatWidth);
   const tpl = TEMPLATES[terrain] || TEMPLATES.mixed;
-  const rng = createRng(hashString(`map:${regionId}`));
+  // On the tile world the ground is the tile's: the same tile is always the same battlefield.
+  const rng = createRng(hashString(tileContext ? `map:tile:${tileContext.tile}` : `map:${regionId}`));
   const heightNoise = valueNoise(rng, w, h, tpl.cell);
   const forestNoise = valueNoise(rng, w, h, Math.max(5, tpl.cell - 3));
   const sandNoise = valueNoise(rng, w, h, tpl.cell + 4);
@@ -122,6 +173,7 @@ export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, ro
   }
 
   const midY = Math.floor(h / 2);
+  if (tileContext?.sectors?.length) paintSectors(tiles, heightNoise, forestNoise, w, h, tileContext, rng);
   if (tpl.pass) {
     // Two impassable massifs with a single pass through the middle (combat width 3 by design).
     const passHalf = 3 + Math.floor(rng.next() * 3);
@@ -213,6 +265,19 @@ export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, ro
 
   const height = new Int16Array(w * h);
   for (let i = 0; i < w * h; i++) height[i] = Math.floor(((heightNoise[i] - 512) * tpl.heightAmp) / 8);
+  if (tileContext?.sectors?.length) {
+    // Hills and mountains beyond the rim rise, water sinks.
+    const cx = (w - 1) / 2; const cy = (h - 1) / 2; const half = Math.hypot(cx, cy);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const d = Math.hypot(x - cx, cy - y) / half; if (d < SECTOR_INNER) continue;
+      const s = sectorAt(tileContext.sectors, ((Math.atan2(cy - y, x - cx) * 180) / Math.PI + 360) % 360);
+      if (!s) continue;
+      const i = y * w + x; const rise = Math.min(1, (d - SECTOR_INNER) / 0.4);
+      if (s.water) height[i] = Math.min(height[i], 0);
+      else if (s.terrain === 'mountains') height[i] += Math.round(rise * 160);
+      else if (s.terrain === 'hills') height[i] += Math.round(rise * 60);
+    }
+  }
   if (landing) for (let y = 0; y < h; y++) for (let x = 0; x < LANDING_SEA_COLS + 3; x++) height[y * w + x] = Math.min(0, height[y * w + x]);
   const attackerEdge = landing ? LANDING_SEA_COLS : 1; // the tile x the attacker enters on and falls back to
   return { w, h, tiles, height, keep, points, landing, attackerEdge, attackerZone: { x0: attackerEdge, y0: 2, x1: 11, y1: h - 3 } };
