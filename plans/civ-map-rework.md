@@ -1610,6 +1610,18 @@ power, +1 stability, -10% research cost) as a timed national modifier, and the r
 on the player nation. The Legacy tab shows the strip with the five goals and past eras. Still
 open in 11: events pinned to cities or tiles, wonders as tiles, disasters by tile facts.
 
+
+---
+
+**Workstream 12, first wave (2026-10-02): on-map affordances.** The flat map's city badges now
+carry the plan's marks (E6): an orange arc with the siege HP left and a crossed-swords mark on
+a besieged city, a wall bar under a walled city, a dashed badge with a yellow progress ring on
+an outpost, a red dot on a city whose loyalty is 25 or less, and a grey badge for a free city.
+Earlier waves already gave armies their tiles and banners with a supply note, settlers their
+tents, marches their numbered turn dots and the tile sheet its attack and landing buttons.
+Still open in 12: the army and nation sheets, the empire sheet with the era strip, lenses, the
+fog hatch, the portrait empire view, desktop hotkeys, onboarding, retiring the province modal.
+
 ---
 
 ---

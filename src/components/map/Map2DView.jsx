@@ -26,6 +26,9 @@ import { getCityFeatures, getNationTerritories, getHexMeshWithin, cityLatLon, ge
 import { getTiles } from '../../data/geo/tiles';
 import { isSettler } from '../../engine/settlers';
 import { useMarch } from './MarchContext';
+import { wallsOf } from '../../engine/sieges';
+import { loyaltyOf } from '../../engine/loyalty';
+import { OUTPOST_DONE } from '../../engine/settlers';
 import { getNationColor } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
@@ -478,12 +481,26 @@ const Map2DView = ({
       const ll = cityLatLon(state, city.id);
       if (!ll) return;
       const [x, y] = projection([ll.lng, ll.lat]);
-      const colour = getNationColor(city.owner);
+      const colour = city.owner ? getNationColor(city.owner) : '#94a3b8';
       const r = (city.isCapital ? 5 + (city.size || 1) * 0.35 : 3.5 + (city.size || 1) * 0.3) / Math.sqrt(zoomK);
+      // On-map affordances (plans/civ-map-rework.md E6): a siege arc with the HP left, a wall mark,
+      // an outpost's progress ring, a red mark for a city losing its loyalty.
+      const arc = (share, radius, stroke, width) => {
+        const a = Math.max(0.02, Math.min(1, share)) * Math.PI * 2;
+        const x1 = Math.sin(a) * radius; const y1 = -Math.cos(a) * radius;
+        return <path d={`M0,${-radius} A${radius},${radius} 0 ${a > Math.PI ? 1 : 0} 1 ${x1},${y1}`} fill="none" stroke={stroke} strokeWidth={width} strokeLinecap="round" />;
+      };
+      const walls = wallsOf(city);
+      const sw = 1.6 / Math.sqrt(zoomK);
       out.push(
         <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
-          <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} />
+          <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} strokeDasharray={city.outpost ? `${2 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}` : undefined} />
           {city.isCapital && <circle r={r * 0.4} fill={colour} />}
+          {city.outpost && arc(city.outpost.progress / OUTPOST_DONE, r + sw * 1.2, '#fde68a', sw)}
+          {city.siege && arc(city.siege.hp / Math.max(1, city.siege.maxHp), r + sw * 1.2, '#f97316', sw)}
+          {city.siege && <text y={-r - sw * 2.5} textAnchor="middle" fontSize={r * 0.9} fontWeight="700" fill="#fb923c" stroke="rgba(0,0,0,0.7)" strokeWidth={sw * 0.8} paintOrder="stroke" pointerEvents="none" data-siege-badge={city.id}>⚔</text>}
+          {walls > 0 && !city.outpost && <rect x={-r * 0.9} y={r * 0.45} width={r * 1.8} height={r * 0.35} fill="#475569" stroke="#0f172a" strokeWidth={sw * 0.4} />}
+          {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.38} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
           {zoomK >= CITY_DETAIL_ZOOM && <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="700" fill="#0f172a" pointerEvents="none">{city.size || 1}</text>}
           {zoomK >= CITY_DETAIL_ZOOM && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
         </g>
