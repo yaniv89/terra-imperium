@@ -1,0 +1,392 @@
+// src/engine/world/cities.js
+// Cities on the world grid (plans/civ-map-rework.md, B3, B4, C1, C2): the unit of economy,
+// population, production and borders. Pure functions over `world` (the tile-world part of game
+// state) and the loaded grid (`tiles`, src/data/geo/tiles.js). Nothing here touches the rest of
+// game state; src/engine/resolveTurn.js calls processCities and materialises what it returns
+// (units built, buildings finished, tiles claimed) into nations, units and logs.
+//
+// The model, in plain words:
+//   size        citizens (1..30). The engine's true variable; people are derived for display.
+//   worked      a city works `size` of its tiles plus its centre (free). Allocation is automatic
+//               by focus (balanced, food, production, gold) with optional locks, deterministic.
+//   yields      food, production, gold from src/data/tileYields.js; science and culture from size
+//               and buildings. Food eaten = FOOD_PER_CITIZEN x size; the surplus fills the food
+//               bank; at the threshold the city grows; at the housing cap growth is a quarter;
+//               two over it stops; a negative bank starves a citizen.
+//   housing     HOUSING_BASE + water + Food building tier + housing techs.
+//   amenities   need floor(size / 2); supplied by the nation's luxuries (ctx.luxuries) and the
+//               Culture building tier. Short cities grow slower and gain unrest.
+//   production  one item at a time with a queue; overflow carries; buildings use the existing
+//               9 category lines (src/data/buildings.js), units the age roster, improvements
+//               src/data/tileYields.js, settlers cost a citizen.
+//   borders     culture fills a bank; the cheapest eligible tile (ring, count) is claimed when the
+//               bank covers it, by yield score; tiles can be bought for gold at BUY_TILE_MULT.
+//
+// World shape:
+//   world.cities[cityId]   the city records below
+//   world.tileOwner[tile]  cityId owning the tile (every owned tile, including the centre)
+//   world.tileState[tile]  { improvement, pillaged, road } for tiles that have any of it
+//
+// Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
+// object when nothing changed.
+import { AGE_ORDER } from '../../data/ages';
+import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier } from '../../data/buildings';
+import { getAvailableClasses } from '../../data/unitClasses';
+import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
+
+export const FOOD_PER_CITIZEN = 2;
+export const MAX_SIZE = 30;
+export const HOUSING_BASE = 2;
+export const HOUSING_WATER = 1;
+export const HOUSING_TECHS = { infrastructure_aqueducts: 2, infrastructure_canal_locks: 2, infrastructure_highway_systems: 4 };
+export const CENTRE_MIN_YIELDS = { food: 2, production: 1, gold: 1 };
+export const GROWTH_AT_CAP = 0.25;
+export const STARVE_LOSS = 1;
+export const AMENITY_NEED_PER_CITIZENS = 2;
+export const AMENITY_GROWTH_BONUS = 0.1;   // at +2 or more
+export const AMENITY_GROWTH_PENALTY = 0.25; // when short
+export const AMENITY_UNREST_PER_MISSING = 2;
+export const UNREST_DECAY = 1;
+export const CULTURE_PER_SIZE = 0.25;
+export const CULTURE_BASE = 1;
+export const CULTURE_PER_TIER = 2; // Culture building line
+export const SCIENCE_PER_SIZE = 0.5;
+export const BORDER_RING_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunpowder: 4, modern: 5 };
+export const TILE_COST_BASE = 20;
+export const TILE_COST_PER_RING = 10;
+export const TILE_COST_PER_TILE = 5;
+export const BUY_TILE_MULT = 3;
+export const SETTLER_BASE_COST = 60;
+export const SETTLER_COST_PER_CITY = 10;
+export const SETTLER_MIN_SIZE = 2;
+export const UNIT_BASE_COST = 40;
+export const UNIT_COST_PER_AGE = 0.6;
+export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
+export const IMPROVEMENT_COST_PER_TURN = 10;
+export const MIN_CITY_SPACING = 3;
+export const FOCUS = ['balanced', 'food', 'production', 'gold'];
+
+export const growthThreshold = (size) => Math.round(15 + 6 * size + size ** 1.8);
+export const amenityNeed = (size) => Math.floor(size / AMENITY_NEED_PER_CITIZENS);
+
+export const emptyWorld = () => ({ cities: {}, tileOwner: {}, tileState: {} });
+
+export const cityId = (tile) => `c${tile}`;
+
+// ---------------------------------------------------------------------------------------------
+// Geography helpers
+export const ringDistance = (tiles, from, to, maxRing = 6) => {
+  if (from === to) return 0;
+  let frontier = [from]; const seen = new Set(frontier);
+  for (let d = 1; d <= maxRing; d++) {
+    const next = [];
+    for (const id of frontier) for (const n of tiles.neighbors[id]) { if (seen.has(n)) continue; if (n === to) return d; seen.add(n); next.push(n); }
+    frontier = next;
+  }
+  return Infinity;
+};
+
+const isWorkable = (tiles, id) => tiles.land[id] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(id));
+
+export const canFoundCity = (world, tiles, tile, nationId) => {
+  if (!tiles.land[tile]) return { ok: false, reason: 'A city needs land.' };
+  if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return { ok: false, reason: 'Nothing can live on the ice.' };
+  const owner = world.tileOwner[tile];
+  if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, reason: 'This land belongs to another nation.' };
+  for (const city of Object.values(world.cities)) {
+    if (ringDistance(tiles, city.tile, tile, MIN_CITY_SPACING - 1) < MIN_CITY_SPACING) return { ok: false, reason: `Too close to ${city.name}.` };
+  }
+  return { ok: true };
+};
+
+const cityFacts = (tiles, id) => ({ river: tiles.rivers[id] !== 0, coastal: tiles.coastal[id] === 1, lake: tiles.neighbors[id].some((n) => tiles.terrainOf(n) === 'lake') });
+
+/** Founds a city: the centre and every free workable ring-1 tile are claimed. Returns the new
+ * world and the city. */
+export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn = 1, isCapital = false }) => {
+  const id = cityId(tile);
+  const claim = [tile, ...tiles.neighbors[tile].filter((n) => !world.tileOwner[n] && isWorkable(tiles, n))];
+  const tileOwner = { ...world.tileOwner };
+  // A city centre is always its own: if another city's border already covered this tile
+  // (capitals of neighbouring peoples can start a tile apart), that city gives it up.
+  let cities = world.cities;
+  const previous = tileOwner[tile];
+  if (previous && cities[previous]) {
+    const p = cities[previous];
+    cities = { ...cities, [previous]: { ...p, tiles: p.tiles.filter((t) => t !== tile), worked: p.worked.filter((t) => t !== tile), locked: p.locked.filter((t) => t !== tile) } };
+  }
+  claim.forEach((t) => { tileOwner[t] = id; });
+  const facts = cityFacts(tiles, tile);
+  const city = {
+    id, name: name || tiles.names[tile] || `City ${tile}`, ownerId: nationId, tile, founded: turn,
+    size: Math.max(1, Math.min(MAX_SIZE, size)), food: 0, focus: 'balanced', locked: [], worked: [],
+    tiles: claim, cultureBank: 0, unrest: 0, loyalty: 100,
+    production: { current: null, queue: [], progress: 0 },
+    buildings: { categories: {}, extraction: {} },
+    walls: 0, isCapital, water: facts.river || facts.coastal || facts.lake,
+    outpost: null
+  };
+  return { world: { ...world, cities: { ...cities, [id]: city }, tileOwner }, city };
+};
+
+// ---------------------------------------------------------------------------------------------
+// Yields and allocation
+const yieldsOfTile = (tiles, world, id, researched) => tileYields(tileFacts(tiles, id, world.tileState[id]), researched);
+
+export const housingOf = (city, researched = []) => {
+  const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
+  let h = HOUSING_BASE + (city.water ? HOUSING_WATER : 0) + foodTier;
+  Object.entries(HOUSING_TECHS).forEach(([tech, n]) => { if (researched.includes(tech)) h += n; });
+  return h;
+};
+
+const focusScore = (y, focus) => {
+  switch (focus) {
+    case 'food': return y.food * 3 + y.production + y.gold;
+    case 'production': return y.production * 3 + y.food + y.gold;
+    case 'gold': return y.gold * 3 + y.food + y.production;
+    default: return y.food * 2 + y.production * 2 + y.gold;
+  }
+};
+
+/** Which tiles the city works this turn: locked tiles first, then enough food not to starve, then
+ * the focus score. Returns tile ids (the centre is always worked and not listed). */
+export const allocateTiles = (city, tiles, world, researched = [], blocked = new Set()) => {
+  const candidates = city.tiles.filter((t) => t !== city.tile && !blocked.has(t) && isWorkable(tiles, t));
+  const yields = new Map(candidates.map((t) => [t, yieldsOfTile(tiles, world, t, researched)]));
+  const chosen = [];
+  const locked = city.locked.filter((t) => yields.has(t)).sort((a, b) => a - b);
+  locked.forEach((t) => { if (chosen.length < city.size) chosen.push(t); });
+  const rest = candidates.filter((t) => !chosen.includes(t));
+  const centre = centreYields(tiles, world, city, researched);
+  let food = centre.food + chosen.reduce((s, t) => s + yields.get(t).food, 0);
+  const need = FOOD_PER_CITIZEN * city.size;
+  const byScore = rest.slice().sort((a, b) => focusScore(yields.get(b), city.focus) - focusScore(yields.get(a), city.focus) || a - b);
+  const byFood = rest.slice().sort((a, b) => yields.get(b).food - yields.get(a).food || focusScore(yields.get(b), city.focus) - focusScore(yields.get(a), city.focus) || a - b);
+  while (chosen.length < city.size) {
+    const pool = food < need ? byFood : byScore;
+    const next = pool.find((t) => !chosen.includes(t));
+    if (next === undefined) break;
+    chosen.push(next);
+    food += yields.get(next).food;
+  }
+  return chosen;
+};
+
+const centreYields = (tiles, world, city, researched) => {
+  const y = yieldsOfTile(tiles, world, city.tile, researched);
+  return { food: Math.max(CENTRE_MIN_YIELDS.food, y.food), production: Math.max(CENTRE_MIN_YIELDS.production, y.production), gold: Math.max(CENTRE_MIN_YIELDS.gold, y.gold) };
+};
+
+const tierEffect = (city, category, key) => {
+  const tier = city.buildings?.categories?.[category];
+  if (tier == null || tier < 0) return 0;
+  return BUILDING_CATEGORIES[category]?.tiers[tier]?.effects?.[key] || 0;
+};
+
+/** The city's yields this turn with the given worked tiles. */
+export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}) => {
+  const centre = centreYields(tiles, world, city, researched);
+  const sum = worked.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
+  const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
+  const food = sum.food + foodTier - FOOD_PER_CITIZEN * city.size;
+  const production = Math.round(sum.production * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * 10) / 10;
+  const gold = Math.round((sum.gold * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
+  const science = Math.round((SCIENCE_PER_SIZE * city.size + tierEffect(city, 'science', 'local.techPoints')) * 10) / 10;
+  const cultureTier = (city.buildings?.categories?.culture ?? -1) + 1;
+  const culture = Math.round((CULTURE_BASE + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier) * 10) / 10;
+  const strategic = {};
+  worked.forEach((t) => { const s = strategicSupply(tileFacts(tiles, t, world.tileState[t]), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
+  const luxuries = new Set();
+  worked.forEach((t) => { const f = tileFacts(tiles, t, world.tileState[t]); const r = RESOURCES_ON_TILES[f.resource]; if (r?.kind === 'luxury' && f.improvement === r.improvement && !f.pillaged) luxuries.add(f.resource); });
+  return { food, production, gold, science, culture, strategic, luxuries: [...luxuries].sort(), raw: sum };
+};
+
+export const amenitiesOf = (city, ctx = {}) => {
+  const need = amenityNeed(city.size);
+  const supply = (ctx.luxuriesFor ? ctx.luxuriesFor(city) : ctx.luxuries || 0) + ((city.buildings?.categories?.culture ?? -1) + 1) + (ctx.amenityBonus || 0);
+  return { need, supply, net: supply - need };
+};
+
+// ---------------------------------------------------------------------------------------------
+// Production
+export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
+  switch (item.kind) {
+    case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
+    case 'unit': return Math.round(UNIT_BASE_COST * (1 + UNIT_COST_PER_AGE * AGE_ORDER.indexOf(ageId)) * (UNIT_CLASS_COST[item.classId] || 1));
+    case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
+    case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
+    default: return item.cost || 9999;
+  }
+};
+
+export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'bronze' } = {}) => {
+  switch (item.kind) {
+    case 'building': {
+      const current = city.buildings?.categories?.[item.category] ?? -1;
+      if (item.tier !== current + 1) return { ok: false, reason: 'Tiers are built in order.' };
+      if (!canBuildTier(item.category, new Set(researched), item.tier)) return { ok: false, reason: 'Needs a technology.' };
+      if (BUILDING_CATEGORIES[item.category]?.coastalOnly && !tiles.coastal[city.tile]) return { ok: false, reason: 'Needs a coast.' };
+      return { ok: true };
+    }
+    case 'unit':
+      return getAvailableClasses(ageId).includes(item.classId) ? { ok: true } : { ok: false, reason: 'Not available in this age.' };
+    case 'improvement': {
+      if (!city.tiles.includes(item.tile)) return { ok: false, reason: 'Not this city\'s land.' };
+      const facts = tileFacts(tiles, item.tile, world.tileState[item.tile]);
+      if (facts.improvement === item.improvement && !facts.pillaged) return { ok: false, reason: 'Already built.' };
+      return canImprove(facts, item.improvement, researched) ? { ok: true } : { ok: false, reason: 'Cannot be built here.' };
+    }
+    case 'settler':
+      return city.size >= SETTLER_MIN_SIZE ? { ok: true } : { ok: false, reason: `Needs size ${SETTLER_MIN_SIZE}.` };
+    default:
+      return { ok: false, reason: 'Unknown item.' };
+  }
+};
+
+export const queueItem = (city, item) => {
+  if (!city.production.current) return { ...city, production: { ...city.production, current: item } };
+  return { ...city, production: { ...city.production, queue: [...city.production.queue, item] } };
+};
+export const dequeueItem = (city, index) => {
+  if (index === 0) {
+    const [next, ...rest] = city.production.queue;
+    return { ...city, production: { current: next || null, queue: rest, progress: 0 } };
+  }
+  return { ...city, production: { ...city.production, queue: city.production.queue.filter((_, i) => i !== index - 1) } };
+};
+export const setFocus = (city, focus) => (FOCUS.includes(focus) && focus !== city.focus ? { ...city, focus } : city);
+export const toggleLock = (city, tile) => (city.locked.includes(tile) ? { ...city, locked: city.locked.filter((t) => t !== tile) } : { ...city, locked: [...city.locked, tile] });
+
+// ---------------------------------------------------------------------------------------------
+// Borders
+export const tileCultureCost = (city, ring) => TILE_COST_BASE + TILE_COST_PER_RING * ring + TILE_COST_PER_TILE * city.tiles.length;
+
+/** Tiles the city could claim next, best first: unowned, workable, adjacent to its land, inside
+ * the age's ring. Each entry { tile, ring, cost, score }. */
+export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
+  const maxRing = BORDER_RING_BY_AGE[ageId] || 2;
+  const own = new Set(city.tiles);
+  const out = new Map();
+  city.tiles.forEach((t) => tiles.neighbors[t].forEach((n) => {
+    if (own.has(n) || world.tileOwner[n] || !isWorkable(tiles, n) || out.has(n)) return;
+    const ring = ringDistance(tiles, city.tile, n, maxRing);
+    if (ring > maxRing) return;
+    const y = yieldsOfTile(tiles, world, n, researched);
+    const facts = tileFacts(tiles, n, world.tileState[n]);
+    const adjacency = tiles.neighbors[n].filter((m) => own.has(m)).length;
+    const score = y.food + y.production + y.gold + (facts.resource ? 3 : 0) + (facts.river ? 1 : 0) + adjacency * 0.5 - ring;
+    out.set(n, { tile: n, ring, cost: tileCultureCost(city, ring), score });
+  }));
+  return [...out.values()].sort((a, b) => b.score - a.score || a.ring - b.ring || a.tile - b.tile);
+};
+
+export const buyTileCost = (city, candidate) => candidate.cost * BUY_TILE_MULT;
+
+const claimTile = (world, city, tile) => ({
+  world: { ...world, tileOwner: { ...world.tileOwner, [tile]: city.id } },
+  city: { ...city, tiles: [...city.tiles, tile] }
+});
+
+// ---------------------------------------------------------------------------------------------
+// The turn
+/**
+ * One city's turn. `ctx`: { researched, ageId, turnNumber, citiesOwned, luxuries, amenityBonus,
+ * goldMult, productionMult, blockedTiles (Set of tiles an enemy stands on) }.
+ * Returns { city, world, yields, completed: [item...], logs: [string...] }.
+ */
+export const processCity = (world, tiles, city, ctx = {}) => {
+  const researched = ctx.researched || [];
+  const ageId = ctx.ageId || 'bronze';
+  let w = world;
+  let c = city;
+  const logs = []; const completed = [];
+  if (c.outpost) return { city: c, world: w, yields: null, completed, logs }; // outposts are grown by settlers.js
+
+  // 1. Work the land.
+  const worked = allocateTiles(c, tiles, w, researched, ctx.blockedTiles || new Set());
+  const y = cityYields(c, tiles, w, worked, researched, ctx);
+  const amen = amenitiesOf(c, ctx);
+
+  // 2. Food, growth, starvation, housing.
+  const housing = housingOf(c, researched);
+  let size = c.size;
+  let food = c.food + y.food;
+  if (food < 0) {
+    size = Math.max(1, size - STARVE_LOSS); food = 0;
+    logs.push(`${c.name} starves and shrinks to ${size}.`);
+  } else if (y.food > 0) {
+    let gain = y.food;
+    if (size >= housing + 2) gain = 0; else if (size >= housing) gain *= GROWTH_AT_CAP;
+    if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
+    food = c.food + gain;
+    const threshold = growthThreshold(size);
+    if (food >= threshold && size < MAX_SIZE) { size += 1; food -= threshold; logs.push(`${c.name} grows to size ${size}.`); }
+  }
+  // 3. Unrest from amenities.
+  let unrest = c.unrest;
+  if (amen.net < 0) unrest = Math.min(100, unrest + AMENITY_UNREST_PER_MISSING * -amen.net); else unrest = Math.max(0, unrest - UNREST_DECAY);
+
+  // 4. Production.
+  let production = { ...c.production, progress: c.production.progress + y.production };
+  let buildings = c.buildings;
+  let next = { ...c, size, food: Math.round(food * 10) / 10, unrest, worked };
+  for (let guard = 0; guard < 6 && production.current; guard++) {
+    const item = production.current;
+    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1 });
+    if (production.progress < cost) break;
+    production = { ...production, progress: production.progress - cost };
+    if (item.kind === 'building') {
+      buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };
+      logs.push(`${c.name} completes a ${BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category}.`);
+    } else if (item.kind === 'improvement') {
+      w = { ...w, tileState: { ...w.tileState, [item.tile]: { ...(w.tileState[item.tile] || {}), improvement: item.improvement, pillaged: false, ...(item.improvement === 'road' ? { road: true } : {}) } } };
+      logs.push(`${c.name} builds a ${IMPROVEMENTS[item.improvement]?.name || item.improvement}.`);
+    } else if (item.kind === 'settler') {
+      if (next.size >= SETTLER_MIN_SIZE) { next = { ...next, size: next.size - 1 }; completed.push({ ...item, city: c.id, tile: c.tile }); logs.push(`${c.name} sends out settlers.`); }
+      else { production = { ...production, progress: production.progress + cost }; break; } // wait for people
+    } else {
+      completed.push({ ...item, city: c.id, tile: c.tile });
+      if (item.kind === 'unit') logs.push(`${c.name} trains ${item.classId}.`);
+    }
+    const [following, ...rest] = production.queue;
+    production = { current: following || null, queue: rest, progress: production.progress };
+  }
+  if (!production.current) production = { ...production, progress: Math.min(production.progress, 50) }; // idle cities bank a little
+
+  // 5. Culture and borders.
+  let cultureBank = c.cultureBank + y.culture;
+  const candidates = claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched });
+  let claimed = [];
+  if (candidates.length) {
+    const best = candidates[0];
+    if (cultureBank >= best.cost) { cultureBank -= best.cost; claimed = [best.tile]; }
+  }
+  next = { ...next, production, buildings, cultureBank: Math.round(cultureBank * 10) / 10 };
+  if (claimed.length) {
+    const r = claimTile(w, next, claimed[0]); w = r.world; next = r.city;
+    logs.push(`${c.name}'s borders grow to ${tiles.names[claimed[0]] || 'new land'}.`);
+  }
+  return { city: next, world: w, yields: y, completed, logs };
+};
+
+/** Every city of the world, in id order. `ctxFor(city)` gives the per-nation context. */
+export const processCities = (world, tiles, ctxFor) => {
+  let w = world;
+  const cities = {};
+  const results = {};
+  const logs = []; const completed = [];
+  Object.keys(world.cities).sort().forEach((id) => {
+    const city = w.cities[id] || world.cities[id];
+    const r = processCity(w, tiles, city, ctxFor(city));
+    w = r.world;
+    cities[id] = r.city;
+    results[id] = r.yields;
+    r.logs.forEach((m) => logs.push({ cityId: id, nationId: city.ownerId, message: m }));
+    completed.push(...r.completed.map((x) => ({ ...x, nationId: city.ownerId })));
+  });
+  return { world: { ...w, cities }, yields: results, logs, completed };
+};
+
+// Display population from size (C2): 1,000 x 1.6^(size-1) x the historical scale of the year.
+export const sizeToPeople = (size, historicalShare = 1) => Math.round(1000 * 1.6 ** (size - 1) * Math.max(0.1, historicalShare * 40));
