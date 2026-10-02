@@ -27,7 +27,7 @@ const describe = (m) => {
 
 // `close`: the close view is on (Map2DView CLOSE_ZOOM_K). Armies are drawn as soldiers there, so
 // their banners shrink to a small tag above the figures.
-const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectRegion, onZoomTo, close = false }) => {
+const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectRegion, onZoomTo, onSelectTile = null, close = false }) => {
   const { state } = useGame();
   const markers = useMemo(() => getMapMarkers(state),
     // Only what the markers read: units, ownership, alliances, intel and battles.
@@ -64,6 +64,7 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
           e.stopPropagation();
           if (!single) { onZoomTo?.(c.regionId); return; }
           if (c.kind === 'battle') openBattleReport(c.id);
+          else if (!c.own && c.kind === 'army' && c.tile != null && onSelectTile) onSelectTile(c.tile); // a foreign army: its tile (attack it from the tile sheet)
           else onSelectRegion?.(c.regionId);
         };
         return (

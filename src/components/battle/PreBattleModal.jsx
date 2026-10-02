@@ -18,9 +18,12 @@ import { REGIONS_DATA } from '../../data/regions';
 import { getRegionTerrain } from '../../data/terrain';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { ACTION_COSTS } from '../../data/actionCosts';
-import { estimateInvasionOdds, estimateLandingOdds } from '../../engine/battleOdds';
+import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds } from '../../engine/battleOdds';
 import { scoutsEstimate } from './battleReportView';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
+import { validateFieldAttack } from '../../engine/fieldBattle';
+import { legacyTerrainOf } from '../../engine/world/registry';
+import { getTiles } from '../../data/geo/tiles';
 import { describeAttackBlock } from '../../utils/attackAvailability';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { canSeeRegionDetails } from '../../engine/intel';
@@ -57,33 +60,36 @@ const ArmyColumn = ({ title, tone, army, hidden }) => (
   </div>
 );
 
-const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onClose }) => {
+// With `tile` it's a field battle (fieldBattle.js) against the enemy stack on that tile.
+const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = null, tile = null, onClose }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const landing = !!navalUnitId;
+  const field = tile != null;
   const origin = landing ? state.units[navalUnitId]?.regionId : fromRegionId;
   const preferred = state.battleSettings?.defaultMode === 'command' ? 'command' : state.battleSettings?.defaultMode === 'auto' ? 'auto' : null;
   const [prefer, setPrefer] = useState(false);
 
   const v = landing ? validateAmphibious(state, navalUnitId, targetRegionId)
+    : field ? validateFieldAttack(state, fromRegionId, tile)
     : validateInvasion(state, fromRegionId, targetRegionId);
   const blockedReason = describeAttackBlock(v);
-  const odds = useMemo(() => v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)) : null,
-    [state, landing, navalUnitId, fromRegionId, targetRegionId, v.ok]);
+  const odds = useMemo(() => v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : field ? estimateFieldOdds(state, fromRegionId, tile, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)) : null,
+    [state, landing, field, tile, navalUnitId, fromRegionId, targetRegionId, v.ok]);
   const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : ACTION_COSTS.launchInvasion);
   // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
   const blockedAtSea = landing && Object.values(state.units).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
   // The enemy garrison and the odds computed from it are intelligence: no intel, no numbers.
-  const hasIntel = canSeeRegionDetails(state, targetRegionId);
+  const hasIntel = field ? true : canSeeRegionDetails(state, targetRegionId);
 
-  const region = state.regions[targetRegionId];
-  const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
-  const fortTier = (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
+  const region = field ? null : state.regions[targetRegionId];
+  const terrain = field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
+  const fortTier = field ? 0 : (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
   const mine = summarizeArmy(v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [], state.hiredCommanders);
   const theirs = summarizeArmy(v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [], state.hiredCommanders);
-  const enemyName = state.nations[region?.owner]?.name || 'the enemy';
+  const enemyName = field ? (v?.ok && v.defenderNationId !== 'rebels' ? state.nations[v.defenderNationId]?.name : 'the rebels') || 'the enemy' : state.nations[region?.owner]?.name || 'the enemy';
   // Known to be empty (you have intel): there's no battle to fight, the army just marches in.
-  const knownEmpty = hasIntel && v?.ok && (landing ? v.defenderLandUnits : v.defenderUnits).length === 0;
+  const knownEmpty = !field && hasIntel && v?.ok && (landing ? v.defenderLandUnits : v.defenderUnits).length === 0;
 
   const remember = (mode) => { if (prefer) dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { defaultMode: mode } }); };
   const auto = () => {
@@ -93,6 +99,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
     if (landing) {
       triggerEffect('amphibious_assault', { from: origin, to: targetRegionId });
       dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } });
+    } else if (field) {
+      dispatch({ type: ActionTypes.ATTACK_ARMY, payload: { fromRegionId, tile } });
     } else {
       triggerEffect('ground_invasion', { from: fromRegionId, to: targetRegionId });
       dispatch({ type: ActionTypes.LAUNCH_INVASION, payload: { fromRegionId, targetRegionId } });
@@ -105,7 +113,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
     remember('command');
     dispatch(landing
       ? { type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId } }
-      : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: { fromRegionId, targetRegionId } });
+      : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: field ? { fromRegionId, tile } : { fromRegionId, targetRegionId } });
     onClose();
   };
   const ring = (mode) => (preferred === mode ? ' ring-2 ring-amber-300/70' : '');
@@ -115,8 +123,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
       <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-slate-200 shadow-2xl space-y-3" data-testid="pre-battle">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-base font-bold text-white">{landing ? 'Land on' : 'Attack'} {REGIONS_DATA[targetRegionId]?.name}</div>
-            <div className="text-xs text-slate-400">{landing ? 'by sea from' : 'from'} {REGIONS_DATA[origin]?.name} · held by {enemyName}</div>
+            <div className="text-base font-bold text-white">{field ? `Attack the army near ${getTiles().names[tile] || REGIONS_DATA[origin]?.name || 'the field'}` : `${landing ? 'Land on' : 'Attack'} ${REGIONS_DATA[targetRegionId]?.name}`}</div>
+            <div className="text-xs text-slate-400">{landing ? 'by sea from' : 'from'} {REGIONS_DATA[origin]?.name} · {field ? `${enemyName}'s army` : `held by ${enemyName}`}</div>
           </div>
           <button type="button" onClick={onClose} className="p-2 -m-2 text-slate-400" aria-label="Close"><X className="w-5 h-5" /></button>
         </div>
@@ -136,7 +144,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId, navalUnitId = null, onCl
           <div className="space-y-2 rounded-lg bg-slate-800/60 p-3" data-testid="battle-odds">
             <div className="grid grid-cols-3 gap-2 text-center">
               <div><div className="text-lg font-bold text-blue-300">{pct(odds.attacker)}</div><div className="text-[10px] text-slate-400">you win</div></div>
-              <div><div className="text-lg font-bold text-emerald-300" data-testid="battle-odds-capture">{pct(odds.capture)}</div><div className="text-[10px] text-slate-400">take the region</div></div>
+              <div><div className="text-lg font-bold text-emerald-300" data-testid="battle-odds-capture">{pct(odds.capture)}</div><div className="text-[10px] text-slate-400">{field ? 'drive them off' : 'take the region'}</div></div>
               <div><div className="text-lg font-bold text-orange-300">{pct(odds.defender)}</div><div className="text-[10px] text-slate-400">they hold</div></div>
             </div>
             {/* Balance of power: your strength against theirs, as the auto-resolve weighs it. */}

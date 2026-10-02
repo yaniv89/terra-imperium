@@ -8,7 +8,9 @@ import { getPool, getTechAgeId } from './nationState';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
 import { resolveBattle } from './battle';
 import { isUnitInBattle } from './invasion';
-import { placeInCity } from './armies';
+import { placeInCity, unitTile } from './armies';
+import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
+import { besiegersOf } from './sieges';
 import { applyCosts, canAfford } from '../utils/helpers';
 import { ACTION_COSTS } from '../data/actionCosts';
 
@@ -23,6 +25,32 @@ const routeStep = (regions, nationId, from, goals) => {
     }
   }
   return null;
+};
+
+// A besieged AI city's garrison sallies (fieldBattle.js) against the besiegers on one ring-1 tile
+// when it outweighs them by SALLY_RATIO; the player's besiegers get a battle report.
+export const SALLY_RATIO = 1.3;
+export const aiSally = (state, nationId, rng) => {
+  let next = state;
+  for (const city of Object.values(state.regions).filter((c) => c.owner === nationId && c.siege?.by).sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    const by = besiegersOf(next, city);
+    const garrison = Object.values(next.units).filter((u) => u.ownerId === nationId && u.regionId === city.id && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && (u.movesLeft ?? 1) > 0 && unitTile(next, u) === city.tile);
+    if (!garrison.length) continue;
+    const mine = garrison.reduce((s, u) => s + u.strength, 0);
+    const targets = new Map();
+    by.forEach((list) => list.forEach((u) => { const t = unitTile(next, u); targets.set(t, (targets.get(t) || 0) + u.strength); }));
+    const weakest = [...targets].sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
+    if (!weakest || mine < weakest[1] * SALLY_RATIO) continue;
+    const actor = { ...next, playerNationId: nationId, resources: getPool(next, nationId), techAgeId: getTechAgeId(next, nationId) };
+    const v = validateFieldAttack(actor, city.id, weakest[0], { ignoreCost: true });
+    if (!v.ok) continue;
+    const ctx = getFieldBattleContext(actor, v);
+    const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
+    const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
+    next = { ...next, units: r.units, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+      logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => by.has(state.playerNationId))] };
+  }
+  return next;
 };
 
 export const processAIOperations = (state, rng) => {
@@ -41,6 +69,7 @@ export const processAIOperations = (state, rng) => {
     }
     const wars = next.wars.filter(w => w.active && (w.aggressor === nationId || w.enemy === nationId));
     if (!wars.length) continue;
+    next = aiSally(next, nationId, rng);
     const enemies = new Set(wars.map(w => w.aggressor === nationId ? w.enemy : w.aggressor));
     const land = getOwnedRegionIds(next.regions, nationId);
     const fronts = new Set(land.filter(id => getNeighborIds(id).some(n => enemies.has(next.regions[n]?.owner))));

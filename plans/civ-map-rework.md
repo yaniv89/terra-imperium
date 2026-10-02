@@ -1515,6 +1515,23 @@ tile so the ground can be seen. Still to come in 6: field battles between armies
 (attack an army, sally, relief), the battle types' own objectives and deployment, aftermath on
 tiles (pillage, retreat along the route), parity for the new types.
 
+
+---
+
+**Workstream 6, third wave (2026-10-02): field battles between armies.** `src/engine/fieldBattle.js`:
+a stack attacks an enemy stack on an adjacent tile that is not a city (ATTACK_ARMY, auto; or
+BEGIN_TACTICAL_BATTLE with a tile, commanded on the tile's own ground with the defender's camp
+as the keep). The same gate and consequences for both: the tile's terrain, a Fort improvement
+on it (damage x0.75), a river between the two tiles (attack x0.85, the plan's river-crossing
+type), the ages. A beaten defender stack retreats one tile towards its base, or is destroyed
+when every way out is held; a beaten attacker stays. War score and a battle report of kind
+"field" follow. Tapping a foreign army on the flat map opens its tile; the tile sheet offers
+the attack from each adjacent stack, and the pre-battle sheet shows the odds. Sally and relief
+are this attack from the city or from outside; an AI garrison sallies (auto-resolved) when it
+outweighs the besiegers on one tile by 1.3. Open: the battle types' own objectives (a sally's
+siege engines, the landing's beachhead), aftermath on tiles (pillage), parity for the field
+type over seeds, the player commanding a defence in the field.
+
 ---
 
 ---

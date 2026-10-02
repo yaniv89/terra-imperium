@@ -16,6 +16,9 @@ import { canSettle, scoreSite, settlerPath, settlersOf, SETTLER_MOVES } from '..
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { atSea } from '../../engine/fleets';
 import { tileAccess } from '../../engine/armies';
+import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
+import PreBattleModal from '../battle/PreBattleModal';
+import { Swords } from 'lucide-react';
 
 const Yield = ({ icon: Icon, value, title, className }) => (
   <span className={`inline-flex items-center gap-0.5 ${className}`} title={title}><Icon className="w-3 h-3" />{value}</span>
@@ -23,6 +26,7 @@ const Yield = ({ icon: Icon, value, title, className }) => (
 
 const TileSheet = ({ tile, onClose, onSelectRegion }) => {
   const { state, dispatch } = useGame();
+  const [attackFrom, setAttackFrom] = React.useState(null);
   const isMobile = useIsMobile();
   const tiles = getTiles();
   const me = state.playerNationId;
@@ -43,6 +47,12 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
   const country = tiles.countryOf(tile);
   const turnsFor = (u) => { const p = settlerPath(state, u.tile, tile, me); return p ? Math.ceil(p.length / SETTLER_MOVES) : null; };
   // A fleet at sea beside this shore can land its troops here (fleets.js), on own, allied or free land.
+  // An enemy army on this tile and your stacks beside it: a field battle (fieldBattle.js).
+  const enemyHere = facts.land ? enemyStackAt(state, tile, me) : [];
+  const attackSources = enemyHere.length
+    ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === me && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.tile != null && tiles.neighbors[u.tile].includes(tile)).map((u) => u.regionId))]
+      .map((rid) => ({ regionId: rid, v: validateFieldAttack(state, rid, tile) }))
+    : [];
   const landing = facts.land && ['own', 'friend', 'wild'].includes(tileAccess(state, tile, me))
     ? Object.values(state.units).filter((u) => u.ownerId === me && u.domain === 'naval' && atSea(state, u) && tiles.neighbors[u.tile].includes(tile))
       .flatMap((f) => Object.values(state.units).filter((c) => c.embarkedOn === f.id))
@@ -60,6 +70,17 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
         </div>
         <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
       </div>
+      {enemyHere.length > 0 && (
+        <div className="mb-2 space-y-1" data-testid="enemy-army-here">
+          <div className="text-xs text-red-300 font-semibold flex items-center gap-1"><Swords className="w-3.5 h-3.5" /> {state.nations[enemyHere[0].ownerId]?.name || 'Rebel'} army here: {enemyHere.length} unit{enemyHere.length === 1 ? '' : 's'}</div>
+          {attackSources.map(({ regionId, v }) => (
+            <button key={regionId} type="button" disabled={!v.ok && v.reason !== 'cost'} onClick={() => setAttackFrom(regionId)} data-testid="attack-army" className="w-full min-h-[44px] rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1">
+              Attack with the army of {state.regions[regionId]?.name || regionId}{v.ok ? ` (${v.attackerUnits.length} unit${v.attackerUnits.length === 1 ? '' : 's'})` : v.reason === 'no_moves' ? ' (already moved)' : ''}
+            </button>
+          ))}
+        </div>
+      )}
+      {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}
       <div className="flex flex-wrap gap-3 text-xs mb-2" data-testid="tile-yields">
         <Yield icon={Wheat} value={`${y.food} food`} className="text-emerald-300" title="Food" />
         <Yield icon={Hammer} value={`${y.production} production`} className="text-amber-300" title="Production" />
