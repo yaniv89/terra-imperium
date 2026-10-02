@@ -33,7 +33,8 @@ export const ACTION_COSTS = {
   // matching the RESEARCH_TECH/CHANGE_LAW pattern for dynamically-priced actions.
 
   recruitUnit: { gold: 60, hr: 100, mil: 1 },
-  moveArmy: { mil: 1 },
+  // Free since routes (plan §4g): marching costs supplies and gold instead (routes.js).
+  moveArmy: {},
   launchInvasion: { mil: 2 },
   // Bookkeeping, not a strategic decision — free, like setTaxRate/appointGeneral.
   promoteUnit: { mil: 0 },

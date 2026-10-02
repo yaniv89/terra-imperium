@@ -71,6 +71,7 @@ import { getTotalDev } from './development';
 import { decayAggressiveExpansion } from './expansion';
 import { updateDefensivePacts } from './pacts';
 import { computeSupplyFlow, isCampaigning, HUNGER_MORALE } from './supplies';
+import { advanceMarches, marchUpkeep } from './routes';
 import { hasPerk } from '../data/promotions';
 import { getRegionTerrain, getTerrainCombatModifier } from '../data/terrain';
 
@@ -89,7 +90,8 @@ export const WAR_WEARINESS_SCALE = 40;
 // harness is the only caller) fired after each named phase below with how long it took. It costs
 // one optional-chained call per phase when absent, so normal play and every other test pay nothing
 // for it; when present the closure trades one `performance.now()` read per phase for the timing.
-export const resolveTurn = (state, { onPhase } = {}) => {
+export const resolveTurn = (incomingState, { onPhase } = {}) => {
+  let state = incomingState;
   // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
   // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent || state.pendingPeaceOffer) {
@@ -108,12 +110,22 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     phaseStart = now;
   };
 
+  // --- marches (routes.js): armies on a route walk this turn's steps first, so the supplies, the
+  // upkeep and every phase below see where they now stand.
+  let marchLogs = [];
+  if (Object.values(state.units).some((u) => u.route?.length)) {
+    const marchedUnits = { ...state.units };
+    marchLogs = advanceMarches(state, marchedUnits, { year: state.year }).logs;
+    state = { ...state, units: marchedUnits };
+  }
+
   let rng = createRng(state.rngSeed);
   const logs = [];
   // --- time ---
   const newYear = state.year + getYearsPerTurn(state.age, state.gameSpeed);
   const newAge = getCalendarAgeId(newYear);
   const newTurnNumber = state.turnNumber + 1;
+  marchLogs.forEach((l) => logs.push({ ...l, year: newYear }));
   // The calendar age is a shared floor every nation crosses automatically (plan §2) — this is the
   // one moment that actually happens to everyone, so it gets a log line the same turn it lands
   // (the UI layer, App.jsx's GameLayout, is what turns this into the globe-wide banner/effect,
@@ -136,7 +148,7 @@ export const resolveTurn = (state, { onPhase } = {}) => {
   Object.entries(income).forEach(([id, amount]) => { resources[id] = (resources[id] || 0) + amount; });
   logs.push({ year: newYear, message: `${Math.round(newYear)}: +${formatMoney(income.gold || 0)}`, type: LogTypes.ACTION });
   // Army supplies (src/engine/supplies.js): foraged and manufactured from metal, eaten on campaign.
-  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources });
+  const supplyFlow = computeSupplyFlow({ regions: state.regions, units: state.units, nationId: state.playerNationId, ageId: getEffectiveAgeId(newAge, state.techAgeId), resources, turnNumber: state.turnNumber });
   resources[supplyFlow.metalId] = (resources[supplyFlow.metalId] || 0) - supplyFlow.metalUsed;
   resources.supplies = supplyFlow.supplies;
   if (supplyFlow.hungry) logs.push({ year: newYear, message: `Out of supplies: your ${supplyFlow.campaigning} unit${supplyFlow.campaigning > 1 ? 's' : ''} on campaign go hungry (-${HUNGER_MORALE} morale, no reinforcement). Build Industry, stockpile metal or bring them home.`, type: LogTypes.CRISIS });
@@ -665,12 +677,14 @@ export const resolveTurn = (state, { onPhase } = {}) => {
     const advisors = Object.values(nation.advisors || {}).filter(Boolean);
     const advisorSalaryCost = advisors.reduce((sum, a) => sum + getAdvisorSalary(a.level), 0);
     const loanInterestCost = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
-    const totalExpenses = armyUpkeep + navyUpkeep + fortUpkeep + advisorSalaryCost + loanInterestCost;
+    // Marching armies (routes.js) cost a quarter more upkeep the turn they march.
+    const marchingUpkeep = marchUpkeep(units, playerId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
+    const totalExpenses = armyUpkeep + marchingUpkeep + navyUpkeep + fortUpkeep + advisorSalaryCost + loanInterestCost;
 
     if (totalExpenses > 0) {
       logs.push({
         year: newYear,
-        message: `Upkeep: -${formatMoney(totalExpenses)} (army ${formatMoney(armyUpkeep)}, navy ${formatMoney(navyUpkeep)}, forts ${formatMoney(fortUpkeep)}, advisors ${formatMoney(advisorSalaryCost)}, loan interest ${formatMoney(loanInterestCost)})`,
+        message: `Upkeep: -${formatMoney(totalExpenses)} (army ${formatMoney(armyUpkeep)}${marchingUpkeep ? `, marching ${formatMoney(marchingUpkeep)}` : ''}, navy ${formatMoney(navyUpkeep)}, forts ${formatMoney(fortUpkeep)}, advisors ${formatMoney(advisorSalaryCost)}, loan interest ${formatMoney(loanInterestCost)})`,
         type: LogTypes.ACTION
       });
     }
