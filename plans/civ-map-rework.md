@@ -1918,6 +1918,16 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**C9.2 and E4, the gold great-project path retired (2026-10-02).** A wonder is built from a
+city's production queue on a tile of its border, by the player and the AI alike (wonders.js);
+the old path (START_GREAT_PROJECT and UPGRADE_GREAT_PROJECT for gold and ADM, the
+`greatProjectConstruction` queue ticked in resolveTurn, its clearing on bankruptcy,
+`canStartGreatProject` / `canUpgradeGreatProject`, the province modal's project buttons, the
+domestic panel's upgrade button) is gone. The domestic panel's list says where a wonder stands
+and that a higher tier is raised from that city's queue; the region card lists the wonders
+here. Tests that drove the gold queue are removed. The province modal still carries the old
+overview, economy and military tabs (E4's sheets remain open).
+
 **Workstream 13, wave 6: the late-game performance pass (2026-10-02).** Measured on a saved
 turn-260 world (seed 3, 1,037 cities, 1,351 units) over six consecutive turns, the same machine,
 base against working tree: 442 to 352 ms a turn. The cuts: an AI city that found nothing to

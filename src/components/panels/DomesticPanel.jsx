@@ -25,7 +25,7 @@ import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost
 import { ESTATE_LABELS, ESTATE_LOYALTY_HIGH_THRESHOLD, ESTATE_LOYALTY_LOW_THRESHOLD, getEstatePrivileges, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD } from '../../data/estates';
 import { canDoEstateInteraction } from '../../engine/estates';
 import {
-  GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectCost, getGreatProjectOwner, canUpgradeGreatProject
+  GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectOwner
 } from '../../data/greatProjects';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
@@ -51,13 +51,6 @@ const DomesticPanel = () => {
     if (!canAfford(state.resources, ACTION_COSTS.setTaxRate)) return addLog('Not enough resources', 'action');
     triggerEffect('set_tax_rate', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.SET_TAX_RATE, payload: { rate } });
-  };
-  const handleUpgradeGreatProject = (projectId) => {
-    const entry = state.greatProjects[projectId];
-    const { gold, adm } = getGreatProjectCost((entry?.tier || 0) + 1);
-    if (!canAfford(state.resources, { gold, adm })) return addLog('Not enough resources', 'action');
-    triggerEffect('upgrade_great_project', { region: entry?.regionId });
-    dispatch({ type: ActionTypes.UPGRADE_GREAT_PROJECT, payload: { projectId } });
   };
   const handleCounterIntelligence = () => {
     if (!canAfford(state.resources, ACTION_COSTS.counterIntelligence)) return addLog('Not enough resources', 'action');
@@ -172,8 +165,7 @@ const DomesticPanel = () => {
         const ownedByPlayer = ownerId === state.playerNationId;
         const status = !entry ? 'Not yet built'
           : `Tier ${entry.tier}${ownerId ? ` — ${ownedByPlayer ? 'yours' : state.nations[ownerId]?.name || ownerId}` : ' — contested'}`;
-        const canUpgrade = ownedByPlayer && canUpgradeGreatProject(state, state.playerNationId, projectId);
-        const upgradeCost = canUpgrade ? getGreatProjectCost(entry.tier + 1) : null;
+        const canRaise = ownedByPlayer && entry.tier < (project.tiers?.length || 3);
         return (
           <div key={projectId} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
@@ -181,18 +173,7 @@ const DomesticPanel = () => {
               <span className="text-slate-400">{status}</span>
             </div>
             <div className="text-slate-500">{project.description}</div>
-            {canUpgrade && (
-              <ActionButton
-                icon={Landmark}
-                label={`Upgrade to Tier ${entry.tier + 1}`}
-                description={`${upgradeCost.turns} turns`}
-                costs={{ gold: upgradeCost.gold, adm: upgradeCost.adm }}
-                onClick={() => handleUpgradeGreatProject(projectId)}
-                disabled={!canAfford(state.resources, { gold: upgradeCost.gold, adm: upgradeCost.adm })}
-                resources={state.resources}
-                size="small"
-              />
-            )}
+            {canRaise && <div className="text-[10px] text-amber-200">Raise it to tier {entry.tier + 1} from {state.regions[entry.regionId]?.name || 'its city'}&apos;s production queue (Wonders).</div>}
           </div>
         );
       })}

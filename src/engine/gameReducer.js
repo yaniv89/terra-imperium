@@ -102,9 +102,6 @@ import { clampStability, clampPrestige, getIncreaseStabilityCost } from './natio
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
 import { canAfford, applyCosts, BASE_POWER_PER_TURN, formatMoney } from '../utils/helpers';
-import {
-  GREAT_PROJECTS, getGreatProjectCost, canStartGreatProject, canUpgradeGreatProject
-} from '../data/greatProjects';
 import { SATELLITE_TYPES, canLaunchSatellite, MAX_ORBITAL_DEBRIS } from '../data/satellites';
 import {
   MISSILE_TIERS, MAX_ABM_LEVEL, getAbmReductionMult, canBuildMissile, isMissileInRange, NUCLEAR_GLOBAL_HOSTILITY,
@@ -411,7 +408,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     firedEvents: {},
 
     // Great Projects (plan §M10) — { projectId: { regionId, tier } }, keyed globally so a project
-    // can only ever be STARTED once anywhere (canStartGreatProject). Its current owner is derived
+    // can only ever be built once anywhere (wonders.js canQueueWonder). Its current owner is derived
     // from `regions[regionId].owner`, never stored here — see src/data/greatProjects.js's header
     // comment on why that can't drift out of sync the way a stored copy could.
     greatProjects: {},
@@ -1066,44 +1063,6 @@ const reduceAction = (state, action) => {
         logs: [...state.logs, { year: state.year, message: 'The Fusion Grid is online.', type: LogTypes.MILESTONE }]
       };
     }
-
-    case ActionTypes.START_GREAT_PROJECT: {
-      // Region-scoped, not empire-wide (plan §M10) — a project's SITE is a specific region meeting
-      // the project's own rule (a capital, a region with a named building, coastal, etc.), unlike
-      // the old flat Construct Wonder. Its owner is derived from the region's owner from here on,
-      // never stored — see src/data/greatProjects.js's header comment.
-      const { projectId, regionId } = action.payload;
-      if (!canStartGreatProject(state, state.playerNationId, projectId, regionId)) return state;
-      const { turns, ...costs } = getGreatProjectCost(1);
-      if (!canAfford(state.resources, costs)) return state;
-      const project = GREAT_PROJECTS[projectId];
-      const region = state.regions[regionId];
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        regions: { ...state.regions, [regionId]: { ...region, greatProjectConstruction: { projectId, tier: 1, turnsLeft: turns } } },
-        logs: [...state.logs, { year: state.year, message: `Construction of ${project.name} has begun.`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.UPGRADE_GREAT_PROJECT: {
-      const { projectId } = action.payload;
-      if (!canUpgradeGreatProject(state, state.playerNationId, projectId)) return state;
-      const entry = state.greatProjects[projectId];
-      const nextTier = entry.tier + 1;
-      const { turns, ...costs } = getGreatProjectCost(nextTier);
-      if (!canAfford(state.resources, costs)) return state;
-      const project = GREAT_PROJECTS[projectId];
-      const region = state.regions[entry.regionId];
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        regions: { ...state.regions, [entry.regionId]: { ...region, greatProjectConstruction: { projectId, tier: nextTier, turnsLeft: turns } } },
-        logs: [...state.logs, { year: state.year, message: `Upgrading ${project.name} to tier ${nextTier}.`, type: LogTypes.ACTION }]
-      };
-    }
-
-    // ---- Space Race, orbital layer (plan §10.4) ----
 
     case ActionTypes.LAUNCH_SATELLITE: {
       const { typeId } = action.payload;

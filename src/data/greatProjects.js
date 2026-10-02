@@ -2,7 +2,7 @@
 // Plan §M10: Great Projects replace the old flat, empire-wide, instant-purchase World Wonders
 // (src/data/wonders.js, deleted). 15 projects (3 per age), each tied to a specific REGION (a site
 // rule — the plan's own examples: "a capital", "a region with Irrigation", "coastal with Harbor")
-// with 3 upgrade tiers, a real multi-turn construction queue (region.greatProjectConstruction —
+// with 3 upgrade tiers, built from a city's production queue (src/engine/wonders.js; the old gold queue is gone —
 // buildings.js's own construction stayed instant, see that file's header comment, so this is fresh
 // plumbing, not reused), and genuine capture: a project's owner is DERIVED from whoever currently
 // owns its site region (getGreatProjectOwner) rather than stored redundantly — simpler than the
@@ -42,7 +42,6 @@
 import { REGIONS_DATA } from './regions';
 import { isCoastal } from './navalReach';
 import { getTotalDev } from '../engine/development';
-import { getAgeIndex } from './ages';
 
 const buildingTier = (region, categoryId) => region?.buildings?.categories?.[categoryId] ?? -1;
 
@@ -225,27 +224,3 @@ export const meetsSiteRule = (project, region, regionId) => {
   return check ? check(region, regionId) : false;
 };
 
-// True if `nationId` can start tier 1 of `projectId` at `regionId` right now: nobody has ever
-// started it anywhere, the calendar has reached its age, the nation owns the region, the region
-// meets the site rule, and the region isn't already mid-construction on a DIFFERENT great project.
-export const canStartGreatProject = (state, nationId, projectId, regionId) => {
-  const project = GREAT_PROJECTS[projectId];
-  const region = state.regions?.[regionId];
-  if (!project || !region || region.owner !== nationId) return false;
-  if (state.greatProjects?.[projectId]) return false; // already started/built somewhere
-  if (region.greatProjectConstruction) return false;
-  if (getAgeIndex(project.ageId) > getAgeIndex(state.age)) return false;
-  return meetsSiteRule(project, region, regionId);
-};
-
-// True if `nationId` can upgrade `projectId` to its next tier: they currently own the site region,
-// it's below tier 3, and that region isn't already mid-construction.
-export const canUpgradeGreatProject = (state, nationId, projectId) => {
-  const project = GREAT_PROJECTS[projectId];
-  const entry = state.greatProjects?.[projectId];
-  if (!project || !entry) return false;
-  const region = state.regions?.[entry.regionId];
-  if (!region || region.owner !== nationId) return false;
-  if (entry.tier >= 3 || region.greatProjectConstruction) return false;
-  return true;
-};

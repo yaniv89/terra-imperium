@@ -57,8 +57,6 @@ export const ActionTypes = {
   POPULATION_POLICY: 'POPULATION_POLICY',
   SET_TAX_RATE: 'SET_TAX_RATE',
   // Great Projects (plan §M10) replace the old flat, empire-wide CONSTRUCT_WONDER.
-  START_GREAT_PROJECT: 'START_GREAT_PROJECT',
-  UPGRADE_GREAT_PROJECT: 'UPGRADE_GREAT_PROJECT',
 
   // Military tab (plan §7) — per-region armies.
   RECRUIT_UNIT: 'RECRUIT_UNIT',

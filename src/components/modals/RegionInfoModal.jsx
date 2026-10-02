@@ -6,7 +6,7 @@ import ColonyBlock from './ColonyBlock';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   MapPin, X, Shield, Users, Building, Building2, Target, AlertTriangle, Flag, Swords, Settings2, Anchor, Ship,
-  ChevronUp, Flame, HeartPulse, Eye, EyeOff, Sprout, TrendingUp, Landmark, Hammer, Gem, Compass
+  ChevronUp, Flame, HeartPulse, Eye, EyeOff, Sprout, TrendingUp, Landmark, Gem, Compass
 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
@@ -606,7 +606,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         </div>
       </Section>
 
-      {(projectsHere.length > 0 || regionState.greatProjectConstruction) && (
+      {projectsHere.length > 0 && (
         <Section icon={Landmark} title="Great projects">
           <div className="space-y-1">
             {projectsHere.map(({ projectId, tier }) => (
@@ -615,13 +615,6 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 <TierPips filled={tier} total={GREAT_PROJECTS[projectId]?.tiers?.length || 3} />
               </div>
             ))}
-            {regionState.greatProjectConstruction && (
-              <div className="bg-slate-800/60 rounded px-2 py-1.5 text-slate-300">
-                <Hammer className="w-3 h-3 inline mr-1 text-amber-300" />
-                Building {GREAT_PROJECTS[regionState.greatProjectConstruction.projectId]?.name} (tier {regionState.greatProjectConstruction.tier}) —{' '}
-                {regionState.greatProjectConstruction.turnsLeft} turn{regionState.greatProjectConstruction.turnsLeft === 1 ? '' : 's'} left
-              </div>
-            )}
           </div>
         </Section>
       )}

@@ -54,8 +54,6 @@ export const EFFECT_REGISTRY = {
 
   // ---- building up a province ----
   construct_building: { scene: 'construct', palette: P('#f59e0b', '#fef3c7') },
-  start_great_project: { scene: 'construct', palette: P('#facc15', '#fffbeb'), grand: true, iconKey: 'castle', label: 'Great project begun' },
-  upgrade_great_project: { scene: 'construct', palette: P('#eab308', '#fef9c3'), grand: true, iconKey: 'castle', label: 'Great project upgraded' },
   build_climate_resilience: { scene: 'construct', palette: P('#34d399', '#ecfdf5'), iconKey: 'tree', label: 'Climate defenses built' },
   build_defenses: { scene: 'fortify', palette: P('#94a3b8', '#f1f5f9'), label: 'Walls raised' },
   build_abm_defense: { scene: 'fortify', palette: P('#38bdf8', '#e0f2fe'), dome: true, label: 'ABM shield online' },
