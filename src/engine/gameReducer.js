@@ -1,3 +1,4 @@
+import { orderMarch, cancelRoute } from './routes';
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
@@ -1385,7 +1386,8 @@ const reduceAction = (state, action) => {
       // territory is what LAUNCH_INVASION/AMPHIBIOUS_ASSAULT are for.
       if (state.regions[toRegionId]?.owner !== state.playerNationId) return state;
       if (!canAfford(state.resources, costs)) return state;
-      const nextUnits = { ...state.units, [unitId]: { ...unit, regionId: toRegionId, movesLeft: (unit.movesLeft ?? 1) - 1 } };
+      // A manual move replaces any march order and counts as marching this turn (routes.js costs).
+      const nextUnits = { ...state.units, [unitId]: { ...cancelRoute(unit), regionId: toRegionId, movesLeft: (unit.movesLeft ?? 1) - 1, ...(unit.domain === 'naval' ? {} : { marchedTurn: state.turnNumber }) } };
       // A transport takes its embarked cargo along with it.
       Object.values(state.units).forEach(u => {
         if (u.embarkedOn === unitId) nextUnits[u.id] = { ...u, regionId: toRegionId };
@@ -1396,6 +1398,29 @@ const reduceAction = (state, action) => {
         units: nextUnits,
         logs: [...state.logs, { year: state.year, message: `Moved a ${unit.classId} unit to ${REGIONS_DATA[toRegionId]?.name}.`, type: LogTypes.ACTION }]
       };
+    }
+
+    // March anywhere over several turns (plan §4g, routes.js): the stack in `fromRegionId` (or the
+    // units in `unitIds`) gets a route to `toRegionId`, walked at End Turn. Giving the order is free.
+    case ActionTypes.SET_ROUTE: {
+      const { fromRegionId, toRegionId, unitIds = null } = action.payload || {};
+      const order = orderMarch(state, fromRegionId, toRegionId, unitIds);
+      if (!order.units) return reject(state, order.reason || 'That march is not possible.');
+      const p = order.plan;
+      return {
+        ...state,
+        units: order.units,
+        logs: [...state.logs, { year: state.year, message: `${p.units.length > 1 ? `${p.units.length} units` : 'An army'} set out for ${REGIONS_DATA[toRegionId]?.name || toRegionId}: about ${p.turns} turn${p.turns > 1 ? 's' : ''}.`, type: LogTypes.ACTION }]
+      };
+    }
+
+    case ActionTypes.CANCEL_ROUTE: {
+      const { regionId = null, unitIds = null } = action.payload || {};
+      const targets = Object.values(state.units).filter((u) => u.ownerId === state.playerNationId && u.route?.length && (unitIds ? unitIds.includes(u.id) : u.regionId === regionId));
+      if (!targets.length) return state;
+      const units = { ...state.units };
+      targets.forEach((u) => { units[u.id] = cancelRoute(u); });
+      return { ...state, units };
     }
 
     case ActionTypes.EMBARK_UNIT: {

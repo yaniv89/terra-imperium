@@ -22,6 +22,8 @@ export const SUPPLIES_PER_INDUSTRY_TIER = 3;
 export const METAL_PER_INDUSTRY_TIER = 2;
 export const SUPPLY_PER_CAMPAIGNING_UNIT = 1;
 export const HUNGER_MORALE = 10;
+// Marching (routes.js): every land unit that marched this turn eats this much more, double abroad.
+export const MARCH_SUPPLY_PER_UNIT = 0.5;
 
 export const industryMetalFor = (ageId) => (ageId === 'bronze' ? 'copper' : ageId === 'modern' ? 'oil' : 'iron');
 
@@ -38,7 +40,15 @@ export const isCampaigning = (unit, regions) => {
 // How many original provinces a region stands for (1 for an unmerged one).
 const forageSize = (regionId) => 1 + (REGIONS_DATA[regionId]?.includes?.length || 0);
 
-export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources }) => {
+// Supplies the marches of `turnNumber` cost (units with marchedTurn === turnNumber).
+export const marchSupplyCost = (units, regions, nationId, turnNumber) => (turnNumber == null ? 0 : Object.values(units).reduce((sum, u) => {
+  if (u.ownerId !== nationId || u.marchedTurn !== turnNumber || u.domain === 'naval' || u.embarkedOn) return sum;
+  const r = regions[u.regionId];
+  const abroad = !r || r.owner !== nationId || !!r.occupiedBy;
+  return sum + MARCH_SUPPLY_PER_UNIT * (abroad ? 2 : 1);
+}, 0));
+
+export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources, turnNumber = null }) => {
   let forage = 0; let industryTiers = 0;
   getOwnedRegionIds(regions,nationId).forEach((id) => {
     const r=regions[id];
@@ -52,9 +62,10 @@ export const computeSupplyFlow = ({ regions, units, nationId, ageId, resources }
   const metalUsed = Math.max(0, Math.min(metalWanted, resources?.[metalId] || 0));
   const manufactured = metalWanted > 0 ? (metalUsed / METAL_PER_INDUSTRY_TIER) * SUPPLIES_PER_INDUSTRY_TIER : 0;
   const campaigning = Object.values(units).filter((u) => u.ownerId === nationId && isCampaigning(u, regions)).length;
-  const consumed = campaigning * SUPPLY_PER_CAMPAIGNING_UNIT;
+  const marching = marchSupplyCost(units, regions, nationId, turnNumber);
+  const consumed = round1(campaigning * SUPPLY_PER_CAMPAIGNING_UNIT + marching);
   const produced = round1(forage + manufactured);
   const before = resources?.supplies || 0;
   const after = round1(before + produced - consumed);
-  return { produced, forage, manufactured: round1(manufactured), metalId, metalUsed, consumed, campaigning, supplies: Math.max(0, after), hungry: after < 0 };
+  return { produced, forage, manufactured: round1(manufactured), metalId, metalUsed, consumed, campaigning, marching: round1(marching), supplies: Math.max(0, after), hungry: after < 0 };
 };

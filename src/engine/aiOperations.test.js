@@ -43,7 +43,7 @@ describe('operational AI',()=>{
     const {s,interior}=setup();const next=processAIOperations(s,createRng(7));
     expect(getNeighborIds(interior)).toContain(next.units.a.regionId);
     expect(next.units.a.movesLeft).toBe(0);
-    expect(next.nations.de.economy.mil).toBe(99);
+    expect(next.nations.de.economy.mil).toBe(100); // moving is free since routes (plan §4g)
     expect(processAIOperations(next,createRng(7)).units.a).toEqual(next.units.a);
   });
   it('counterattacks in a player-started war using real troops only',()=>{

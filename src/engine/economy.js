@@ -1,3 +1,4 @@
+import { marchUpkeep } from './routes';
 import { getOwnedRegionIds } from '../data/regions';
 import { getPool, getResearched } from './nationState';
 // src/engine/economy.js
@@ -81,7 +82,9 @@ export const calcNationBalance = (state, nationId, knownIncome) => {
   const loanInterest = (nation.loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
 
   const income = knownIncome || calcIncome(nationId === state.playerNationId ? state : { ...state, playerNationId: nationId, resources: getPool(state, nationId), techTree: Object.fromEntries(getResearched(state, nationId).map(id => [id, { researched: true }])) });
-  const expenses = { armyUpkeep, navyUpkeep, fortUpkeep, advisorSalaries, loanInterest };
+  // Armies that marched this turn (routes.js) cost MARCH_UPKEEP_SHARE more.
+  const marchingUpkeep = marchUpkeep(units, nationId, state.turnNumber, UNIT_UPKEEP_GOLD_PER_TURN * armyMaintenanceMult);
+  const expenses = { armyUpkeep, marchingUpkeep, navyUpkeep, fortUpkeep, advisorSalaries, loanInterest };
   const totalExpenses = Object.values(expenses).reduce((sum, v) => sum + v, 0);
   return { income, expenses, net: (income.gold || 0) - totalExpenses };
 };

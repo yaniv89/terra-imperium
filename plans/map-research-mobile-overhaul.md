@@ -616,6 +616,23 @@ At region and world level none of it is drawn.
 
 ### 4g. Move anywhere, over several turns, at a cost (CK3 style)
 
+**Status: engine built (workstream 6, slice 2).** src/engine/routes.js with the SET_ROUTE and
+CANCEL_ROUTE actions; the map UI (tap or drag to a province, the path with turn numbers) is slice 3.
+As designed, with these choices:
+- Terrain comes from src/data/terrain.js (names matched to mountains, desert, forest, hills and
+  arctic). The real elevation data of the super zoom (workstream 8) will replace it.
+- Step costs: open 1, hills and forest 2, mountains, desert and arctic 4; roads x2/3 in your own or a
+  friend's land; enemy land at least 2. Paces: infantry and ranged 2, cavalry 3, siege 1.
+  Unspent points carry over, so a siege train crosses a mountain in 4 turns.
+- At war the march halts at the border of every enemy province you do not hold yet, and waits for
+  you to attack (Auto or Command, as before). Winning moves the army in and the march goes on. So
+  "battles on arrival" always ask first, as the rules require.
+- Costs: 0.5 supplies per marching unit a turn (1 abroad), +25% of its gold upkeep that turn, and 3%
+  strength per step into mountains, desert or arctic land. MOVE_ARMY lost its 1 MIL cost (it counts
+  as marching instead); AI moves got the same rule.
+- Not yet: AI routes against the player (Tier-1 enemies marching visibly), sea legs in a route.
+  Measured: the passive-world sim is unchanged at 100 turns (same world, 122.5 vs 125 ms a turn).
+
 **Today.** An army moves one step per turn, only into your own neighbouring provinces, for
 1 MIL per unit. Attacks are separate one-step actions.
 
