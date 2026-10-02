@@ -588,6 +588,16 @@ and after; the target is roughly half today's pace with the top nation under 25.
 
 ### 4f. Super zoom, CK3 style: buildings and armies standing on the land
 
+**Status: slice 1 built (workstream 8).** On the flat map from 10x zoom, a three.js layer
+(src/components/map/closeView/) draws a town in every province, sized by its buildings (small 0-3,
+medium 4-9, big 10+, walls with a Defense building, a palace on capitals, colours by age, fields
+round it), and every visible army as 1 to 3 soldiers of its main type and age: the battle models and
+walk cycle, walking while they march. Army banners shrink to a tag above the soldiers; below 10x the
+icons and banners are back. three.js loads only when the player first zooms in that close.
+Next slices: the globe-to-flat hand-over, the terrain board (textures and elevation shading),
+buildings placed round the town by category, fleets as ships, sieges and battles on the land.
+
+
 **Goal.** One continuous zoom from the globe down to a single province. Up close you see the
 province itself:
 - its terrain;
@@ -1563,7 +1573,7 @@ after, and `compare.sh` for speed.
 | 6 | On-map armies (banners), battles; drag and drop; **move anywhere over several turns with supply costs (4g)** | L | banners, routes engine, March bar **done**; path lines and drag next |
 | 6b | **Settling as a project: colonies over turns, slots, settlers, natives, raids (4h)** (user request) | M | **done** |
 | 7 | Delegation (Domestic, Economy, Military, Research) | M | 4, 6 |
-| 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, town models sized by buildings, 3D army figures, icons when zoomed out (4f)** (user request: moved up, right after 6b) | L | 6; uses the battle unit models now, sprites of 9 later |
+| 8 | **Super zoom: globe to flat hand-over, WebGL close view, terrain board, town models sized by buildings, 3D army figures, icons when zoomed out (4f)** (user request: moved up, right after 6b) | L | slice 1 (town models, soldiers, icons when zoomed out) **done**; hand-over, terrain board next |
 | 9 | Sprite renderer: animator, import pipeline, sprite shader, shadows, tiers, placeholders, then the GPT pilot | L (about 6 to 8 days) | none (parallel; the phone zoom change rides with 1) |
 | 10 | **Families for every ruler, cheaper first Monarchy (5b)** | M | none (can go any time) |
 
