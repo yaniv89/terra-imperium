@@ -8,7 +8,10 @@ import { getPool, getTechAgeId } from './nationState';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
 import { resolveBattle } from './battle';
 import { isUnitInBattle } from './invasion';
-import { placeInCity, unitTile } from './armies';
+import { placeInCity, unitTile, touchesCity, findTilePath, stackPace } from './armies';
+import { advanceMarches } from './routes';
+import { getTiles } from '../data/geo/tiles';
+import { siegeMaxHp } from './sieges';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { besiegersOf } from './sieges';
 import { applyCosts, canAfford } from '../utils/helpers';
@@ -26,6 +29,13 @@ const routeStep = (regions, nationId, from, goals) => {
   }
   return null;
 };
+
+// Fronts on tiles (plans/civ-map-rework.md D6, workstream 9): an AI stack attacks a city only from
+// tiles that touch its land; otherwise it marches on tiles toward its goal (the war-goal city, or
+// the most valuable enemy city next door by the registry), halts before the city and besieges it
+// (sieges.js); it assaults when it outweighs the garrison or the walls are under ASSAULT_HP.
+export const ASSAULT_HP = 0.3;
+export const AI_MARCH_STEPS = 40;
 
 // A besieged AI city's garrison sallies (fieldBattle.js) against the besiegers on one ring-1 tile
 // when it outweighs them by SALLY_RATIO; the player's besiegers get a battle report.
@@ -79,25 +89,36 @@ export const processAIOperations = (state, rng) => {
     const threatened = new Set(land.filter(id => next.regions[id].underInvasion || (id === next.nations[nationId].capitalRegionId && fronts.has(id) && enemyArmyNear(id))));
     const goals = threatened.size ? threatened : fronts;
     next.aiOperations[nationId] = { turn: state.turnNumber, objective: threatened.size ? 'defend' : 'advance', startedTurn:state.aiOperations?.[nationId]?.objective === (threatened.size ? 'defend' : 'advance') ? state.aiOperations[nationId].startedTurn : state.turnNumber, fronts: [...fronts].sort(), targets: [...goals].sort() };
+    const tiles = getTiles();
     const stacks = new Map();
     for (const u of Object.values(next.units)) {
       if (u.ownerId !== nationId || u.domain !== 'land' || u.classId === 'settler' || u.embarkedOn || u.strength <= 0 || isUnitInBattle(next, u.id)) continue;
-      const stack = stacks.get(u.regionId) || []; stack.push(u); stacks.set(u.regionId, stack);
+      // Stacks by tile: an army on the road stands apart from the garrison of its base.
+      const key = `${u.regionId}|${unitTile(next, u)}`;
+      const stack = stacks.get(key) || []; stack.push(u); stacks.set(key, stack);
     }
-    for (const [from, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
+    let marching = false;
+    for (const [key, stack] of [...stacks].sort(([a], [b]) => a.localeCompare(b))) {
+      const from = key.split('|')[0];
       if (!stack.every(u => u.movesLeft > 0 && !committed.has(u.id)) || next.regions[from]?.owner !== nationId) continue;
+      if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
-      const candidates = getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !Object.values(next.units).some(u=>u.regionId===id&&isUnitInBattle(next,u.id))).sort((a,b) => {
+      const at = unitTile(next, stack[0]);
+      const ranked = getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !Object.values(next.units).some(u=>u.regionId===id&&isUnitInBattle(next,u.id))).sort((a,b) => {
         const value = id => (next.regions[id].formerOwner === nationId || next.regions[id].conquest?.from === nationId ? 100 : 0) + (wars.some(w => w.goal?.regionId === id) ? 20 : 0) - Object.values(next.units).filter(u => u.regionId === id && u.ownerId !== nationId).reduce((s,u) => s + u.strength, 0) / 1000;
         return value(b)-value(a) || a.localeCompare(b);
       });
+      // Attacks come from tiles that touch the city's land; a city farther off is marched on.
+      const candidates = ranked.filter(id => touchesCity(next, tiles, at, id));
       const target = threatened.size && !threatened.has(from) ? null : candidates[0];
       if (target) {
         const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
         const v = validateInvasion(actor, from, target);
         if (!v.ok) continue;
         const defenderStrength=v.defenderUnits.reduce((sum,u)=>sum+u.strength,0);
-        if(defenderStrength>stack.reduce((sum,u)=>sum+u.strength,0)*1.25)continue;
+        const city = next.regions[target];
+        const wallsDown = !!city.siege && city.siege.hp < ASSAULT_HP * siegeMaxHp(city);
+        if(defenderStrength>stack.reduce((sum,u)=>sum+u.strength,0)*1.25 && !wallsDown)continue;
         // Keep a defensive reserve when the capital is under siege elsewhere.
         stack.forEach(u => committed.add(u.id));
         const chargedPool = applyCosts(pool, ACTION_COSTS.launchInvasion);
@@ -115,13 +136,35 @@ export const processAIOperations = (state, rng) => {
         }
       } else {
         const to = routeStep(next.regions, nationId, from, goals);
-        if (!to || !canAfford(pool, ACTION_COSTS.moveArmy)) continue;
-        stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...placeInCity(u, next.regions, to), movesLeft: 0 }; });
-        next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.moveArmy) } };
+        if (to && canAfford(pool, ACTION_COSTS.moveArmy)) {
+          stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...placeInCity(u, next.regions, to), movesLeft: 0 }; });
+          next.nations = { ...next.nations, [nationId]: { ...next.nations[nationId], economy: applyCosts(pool, ACTION_COSTS.moveArmy) } };
+          continue;
+        }
+        // At the front with no city in reach: march on tiles toward the goal and lay siege.
+        if (threatened.size && !threatened.has(from)) continue;
+        const goal = wars.map(w => w.goal?.regionId).find(id => id && enemies.has(next.regions[id]?.owner)) || ranked[0];
+        if (!goal || next.regions[goal]?.tile == null) continue;
+        const actor = { ...next, playerNationId: nationId };
+        const path = findTilePath(actor, at, next.regions[goal].tile, nationId, { maxSteps: AI_MARCH_STEPS });
+        if (!path.path) continue;
+        const pace = stackPace(stack);
+        stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null }; });
+        marching = true;
       }
     }
+    if (marching) next = marchAiArmies(next, nationId);
   }
   return processAINavalOperations({...next,rngSeed:rng.getSeed()});
+};
+
+// Walks every AI army on a route (routes.js advanceMarches with the nation as the actor). Called
+// once per nation at war from processAIOperations.
+const marchAiArmies = (next, nationId) => {
+  const actor = { ...next, playerNationId: nationId };
+  const units = { ...next.units };
+  advanceMarches(actor, units, { year: next.year });
+  return { ...next, units };
 };
 
 // Island fronts need real paid transports and cargo. Shared actions retain interception,

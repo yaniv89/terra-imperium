@@ -49,7 +49,8 @@ The live site is GitHub Pages, built into `docs/`.
   neighbours: src/battle/setup/tileContext.js feeds mapgen.js. Field battles between stacks on
   tiles: src/engine/fieldBattle.js (ATTACK_ARMY, kind 'field'). Opinion with reasons (AI war
   roll, casus belli): src/engine/opinion.js over src/data/opinion.js. Loyalty and culture per
-  city (flips, free cities): src/engine/loyalty.js.
+  city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
+  tile marches, sieges and assaults): src/engine/aiOperations.js.
   Progress and open balance items: plan section J3.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`

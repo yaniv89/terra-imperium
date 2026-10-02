@@ -845,7 +845,10 @@ describe('resolveTurn AI war progress (Task 32: territorial conquest, wired end-
       regions,
       difficultyMultiplier: 1000,
       wars: [war],
-      nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], economy: undefined, isAtWar: true }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
+      // Overwhelming strength: the assault the capture roll raises (defense.js) is sized by the
+      // strength share, so the garrison cannot hold (AI armies no longer strike across the registry's
+      // city bridge; they march on tiles, workstream 9).
+      nations: { ...base.nations, [aggressor]: { ...base.nations[aggressor], economy: undefined, isAtWar: true, militaryStrength: 50000 }, [enemy]: { ...base.nations[enemy], isAtWar: true } }
     };
   };
 
