@@ -1,6 +1,6 @@
 # Terra Imperium: full review and the Civ-style map rework
 
-Date: 2026-10-02. Status: plan v1, nothing implemented. Written against branch
+Date: 2026-10-02. Status: plan v2 (v1 plus a critique pass: size-based cities, naval and air on tiles, wireframes, per-workstream tests, pacing table, thin first slice), nothing implemented. Written against branch
 `claude/gallant-pasteur-rfkma8` at commit `d08ded8` (the features branch; `main` is the live site).
 
 This document has two halves. **Part A** reviews and criticises every game system as it is in the
@@ -415,9 +415,13 @@ The three root problems, which the rest of this plan is built to solve:
    oceans or Antarctica by choosing the icosahedron orientation. Equal-area, no poles problem, the
    globe and the flat map show the same grid, rivers and coasts follow cell edges.
    - Why 18,000 km²: Civ VI's huge map has about 2,800 land tiles for 12 civs; we have 240
-     nations at start (most tiny) and 8,500 land tiles gives the median modern country about 15
-     tiles and France about 30, Russia about 950. That is enough for borders to grow in rings
-     and for armies to take 3 to 6 turns to cross a mid-size country.
+     nations at start (most tiny) and 8,500 land tiles gives the median modern country (about
+     110,000 km²) about 6 tiles, France about 30, Russia about 950. That is enough for borders
+     to grow in rings and for armies to take 3 to 6 turns to cross a mid-size country. In the
+     Dawn start a nation holds only its core, so the modern area matters less than the number
+     of good city sites inside it. (Checked: 510M km² / 18,000 = 28,300 cells; 149M km² of land
+     / 18,000 = 8,300 land cells. An icosahedral grid of frequency 53 has 10 x 53² + 2 = 28,092
+     cells, 12 of them pentagons.)
    - Cost: a new geo build script, new rendering, a full save break.
 2. **A coarser grid (about 35,000 km², 4,300 land cells).** Faster and fewer things to draw, but
    small countries become 2 to 4 tiles and city borders cannot grow (Belgium is one tile).
@@ -589,10 +593,10 @@ turn by the city focus (balanced, food, production, gold, science), with optiona
 citizen micro: this is the single biggest UX choice for a phone, and Civ's own auto-assign is
 good enough when the focus is explicit.
 
-**City yields.** `food = sum(worked food) + buildings - population upkeep` (every 1,000 people eat
-0.5 food a turn at the Bronze scale; the scale is a data constant per age so later ages' bigger
-cities still work). Production builds the city's queue. Gold goes to the treasury after building
-upkeep. Science goes to the research engine (which already exists and stays).
+**City yields.** `food = sum(worked food) + buildings - 2 x size` (each citizen eats 2 food, as
+in Civ; see C2 for why the engine runs on size, not raw people). Production builds the city's
+queue. Gold goes to the treasury after building upkeep. Science goes to the research engine
+(which already exists and stays).
 
 **Improvements** (on a tile, built by the city as a production item that costs 1 to 3 turns, no
 builder units to push around on a phone; the "builder" is implicit):
@@ -654,9 +658,19 @@ gives identical results for a player and an AI with identical cities.
 
 ## C2. Population, growth, housing, amenities
 
-- `population` is real people per city. Growth per turn: `surplusFood x 400 x ageScale` people,
-  capped by housing: at the cap growth is a quarter; two over the cap it stops. Starvation at
-  negative stored food loses 2% a turn.
+**The engine runs on `size` (citizens, 1 to 30); real people are derived.** v1 tried to run
+growth on raw population and the food math did not add up (a 32,000-person city on five
+2-food tiles). Civ's citizen model is readable and balanced, so: `size` is the true variable
+(worked tiles = size, food eaten = 2 x size, growth threshold in food), and `population` for
+display, score and history is `sizeToPeople(size, age, buildings) = 1,000 x 1.6^(size-1) x
+ageScale`, with ageScale from `historicalPopulation.js` so a size-8 city reads as 30k people in
+the Bronze Age and 1.5M in the Modern Age. A3's complaint (population is a display number)
+is answered differently: the display number now follows something that is simulated (size)
+instead of floating free.
+
+- Growth: stored food accumulates the surplus; the threshold for the next citizen is
+  `15 + 6 x size + size^1.8` food. At the housing cap growth is a quarter; two over it stops.
+  Negative stored food loses a citizen (starvation) and resets the bank.
 - **Housing**: 2 from the centre, +1 river or coast, +1 per Food tier, +2 Aqueduct, +4 Sewers,
   +1 per farm after Feudal Charters, +N from Housing buildings in the modern age. Expressed in
   size steps, which keeps it readable ("Housing 6 / size 5").
@@ -666,11 +680,14 @@ gives identical results for a player and an AI with identical cities.
 - **Unrest** per city (the existing region unrest moves here, with the same thresholds for
   rebels). Rebel units spawn on tiles around the city, siege it, and a city that falls to rebels
   becomes a free city (C5).
-- **Migration**: a city over its housing cap sends 2% of its population a turn to the nearest
-  friendly city under cap, which is how big empires fill their new cities without a click.
-- Recruiting a land unit takes 1,000 x unit size people from the city (replacing HR as a global
-  pool; the HR resource is deleted, manpower is the sum of city populations above size 1 times
-  the conscription law).
+- **Migration**: a city at its housing cap with a full food bank sends that citizen to the
+  nearest friendly city under cap within 10 tiles instead of wasting it, which is how big
+  empires fill their new cities without a click.
+- **Manpower** replaces HR as an accumulating stock: a regenerating pool `manpower = sum over
+  cities of (size - 1) x 100 x conscription law` per turn up to a cap of 10 turns' worth.
+  Recruiting a unit costs production in the city plus manpower; a settler costs 1 citizen
+  of its city (never below size 2). HR as a traded resource, the hr income lines and the
+  `national.hrMult` sources map onto manpower one to one.
 
 **Tests.** Growth curve against housing; starvation; migration conserves people; recruitment
 takes people; amenity shortfall raises unrest and nothing else.
@@ -904,6 +921,39 @@ meter only falls.
 - Auto-resolve keeps parity through the same `buildBattleSetup` inputs; the parity harness in
   the battle-lab skill adds the new types.
 
+## D5b. Naval, air and the modern age on tiles
+
+**Naval.** The single naval class becomes four lines (data only in `unitClasses.js`):
+
+| Line | Ages | Role | Carries |
+|---|---|---|---|
+| Galley, Cog, Frigate, Ironclad, Destroyer | all | fights fleets, blockades, bombards a coastal city (siege damage 10 a turn) | 1 unit (galley) to 2 |
+| Transport (Longship, Carrack, Galleon, Steamer, Landing ship) | from Classical | carries 3 to 6 units, weak | 3 to 6 |
+| Raider (Bireme, Corsair, Privateer, Submarine) | from Classical | plunders sea trade routes, invisible outside 2 tiles | 0 |
+| Carrier | Modern | holds 2 air units | 2 air |
+
+Sea tiles have three depth classes: coast (anyone), shelf (needs Navigation), deep ocean (needs
+Astrolabe or Ocean Shipbuilding). A fleet's sight is 2 tiles, 3 for raiders and carriers. Naval
+battles use the tactical sim on an open-water field with ships as "squads" (a later slice; auto
+resolve first). A blockade is a warship adjacent to a city's coast tiles with no enemy warship
+present: the city's sea routes stop and its siege regen is lost.
+
+**Air (Modern).** Air units live in a city with an Airfield or on a carrier and have a range of
+8 tiles (12 with Jet Engines). Orders: strike an army or city tile in range (joins the next
+battle there as the air squads of the existing sim), patrol (intercepts enemy strikes within 4
+tiles), rebase. Support units with the Anti-Air flag on a tile shoot down 20% of strikes per
+unit. No air units on the map as movers; they are range circles from their base, which keeps
+them simple on a phone.
+
+**Missiles, ABM, satellites, space.** Unchanged as nation-level stockpiles; a missile strike
+targets a city (walls and population damage, a burnt district) or an army tile. Satellites keep
+their modifiers. Space missions and the Fusion Grid are unchanged.
+
+**Modern movement.** Railways (Rail Networks) cost 0.25 per tile along a line; motorised and
+mechanised classes have 4 and 5 move points; rivers and mountains cost nothing with Combustion
+and Highway Systems. Combat width per terrain grows by age (the existing `combatWidth.js`
+gets an age column) so modern battles are bigger.
+
 ## D6. AI armies and fronts
 
 `aiOperations` grows into a front planner on tiles: for each AI nation at war, a front per
@@ -989,7 +1039,40 @@ hatch, unknown is dark.
 Deployment phase with drag; the objective banner per battle type ("Hold the ford for 2:00");
 a mini map of the field; the existing HUD otherwise. Portrait battles are not supported.
 
-## E8. Onboarding
+## E8. Wireframes
+
+Phone landscape, 844 x 390, the city sheet docked right (380 px), the map live on the left:
+
+```
++------------------------------------------------------------------------------------+
+| 1250 BCE  Gold 342 (+12)  Sci +8  Cul +5  Sup 40   [Memphis: 3 turns]  [Next: army] |
++----------------------------------------------------------+---------------+---------+
+|   .  .  .  .  .  .  .  .  .  .  .  .  .  .  .            | THEBES  size 5 | [Emp]   |
+|  .  . ~  ~  .  .  . [F] [F] . ▲  ▲  .  .  .  .           | grows in 4   | [Mil]   |
+|   . ~ ~  . (Memphis 3) [M] . ▲  .  .  . ⚔ .  .           | housing 6/5  | [Dip]   |
+|  .  ~  .  .  .  .  .  . [F] .  .  .  .  .  .             | loyalty 92 ▾ | [Res]   |
+|   .  .  .  . (Thebes 5) .  .  .  .  .  . (Ur 4) .        |--------------| [Log]   |
+|  .  .  .  . [F] [F] . [Q] .  .  .  .  .  .  .            | Build  Tiles |         |
+|   .  . ▲  ▲  .  .  .  .  .  .  .  .  .  .  .             | Bldgs  Pol.  |         |
+|  [lens ◉]                                   [End turn ▶] | > Granary  3t|         |
+|                                             [fast ▶▶]    |   Archer   2t|         |
+|                                                          |   Farm (N) 1t|         |
+|                                                          |   Walls    6t|         |
+|                                                          | [+ queue] [buy 90g]    |
++----------------------------------------------------------+---------------+---------+
+```
+(F farm, M mine, Q quarry, ▲ hills, ~ river, ⚔ enemy army.) Tapping Thebes's badge opened the
+sheet; the tabs are 44 px; the queue rows are 44 px with turns on the right. The rail on the
+far right is the existing one.
+
+Desktop, 1440 x 900: the same sheet in a 400 px right dock, a collapsible city list on the left
+(name, size, growth, production item, turns), yields in the top bar, the next prompt and End
+Turn bottom right, hotkeys shown on hover.
+
+Phone portrait, 390 x 844, the empire view: map on the top 55%, a half sheet below with the
+same tabs, draggable to full height; End Turn is a 56 px bar at the very bottom.
+
+## E9. Onboarding
 
 A 10-turn guided Dawn start as Egypt: settle the second city, work a floodplain, build a
 granary, research Mining, meet a neighbour, fight one river battle. Each step is a "next"
@@ -1018,6 +1101,9 @@ prompt, no modal lectures.
   budgeted per nation. Target: under 150 ms a turn at turn 100 on the sandbox, measured by
   `compare.sh` against the branch before the rework. Rendering: one instanced hex mesh for the
   globe and one for the flat map, per-tile colour in a texture updated when ownership changes.
+- **Multiplayer** (`src/services/multiplayer.js`: hot-seat-by-turn with submitted turns) keeps
+  working because the reducer stays pure and the turn stays deterministic; the only change is
+  that the initial state carries the grid version and the scenario record.
 - **Determinism**: all loops in id order, all randomness from `state.rngSeed`, tile ids stable
   across builds (the grid version is in the save), the 150-turn determinism test and the audit
   keep running; the audit gains city invariants (every city has an owner and a tile, every
@@ -1094,6 +1180,51 @@ Suggested sequence: 1, 2, 3 (the long one), then 5 and 4 in parallel, 6, 7 and 8
 10 and 11, 9, 12 throughout from 3 on, 13 last. About 12 to 16 weeks of work at this pace.
 
 ---
+
+# Part I2. Pacing across the ages
+
+At Normal speed the game is about 495 turns (Bronze 30, Classical 65, Kingdoms 100, Gunpowder
+100, Modern 200). The map rules are tuned per age so the world fills at the historical pace of
+Part H:
+
+| Age | Turns | Border ring max | Settler cost | Outpost slots | Typical cities (mid nation) | Army move (foot) |
+|---|---|---|---|---|---|---|
+| Bronze | 30 | 2 | 60 prod | 1 | 1 to 3 | 2 |
+| Classical | 65 | 3 | 80 | 2 | 3 to 6 | 2 (roads 4) |
+| Kingdoms | 100 | 3 | 100 | 2 | 5 to 10 | 2 (roads 4) |
+| Gunpowder | 100 | 4 | 120 | 3 | 8 to 14 | 3 (roads 6) |
+| Modern | 200 | 5 | 150 | 3, then no free land | 10 to 20 | 4 (rail 16) |
+
+Border growth culture costs are scaled by `1 / ageScale` so later ages claim faster. City growth
+thresholds are the same every age, but later buildings give more food, so cities grow to size
+15 to 25 in the Modern age and 5 to 8 in the Bronze Age.
+
+# Part K. Test and acceptance plan per workstream
+
+| # | Unit and engine tests | e2e (Playwright, 844 x 390 and 1440 x 900) | Acceptance (what you check by hand) |
+|---|---|---|---|
+| 1 Grid | cell count 28,000 ± 2%; land share 27 to 31%; 12 pentagons all in water or Antarctica; every nation has a core on land; rivers only on land edges; deterministic build hash | the viewer page renders and a tap reports a tile | the Nile, Mesopotamia, the Indus and the Yellow River are floodplains; the Alps, Andes and Himalayas are mountain chains; Britain and Japan are islands |
+| 2 Rendering | hit test by lat/lon returns the tile under the pointer at 3 zoom levels; border mesh rebuilds only for the nation whose tiles changed; 60 fps at region zoom with 240 nations on the sandbox GPU | tap a tile, pinch to local zoom, the globe to flat hand-over | borders read at a glance on a phone; no seams at the pentagons |
+| 3 Cities | yield table; allocation by focus; growth and starvation; housing and amenities; production and rush buy; improvements legal tiles; border claim order; one economy identical for player and AI; the cities phase under 60 ms for 2,000 cities | found the second city via the sheet, queue a granary, buy a tile | a 10-turn peaceful game feels like Civ's opening |
+| 4 Settlers | settler founding rules (distance 3, not in borders); outpost progress and raids; natives trade, convert, clear; migration | build a settler, walk it, found, watch the ring grow | the AI settles at the Part H pace |
+| 5 Armies | move points and costs; ZOC; fog and seen tiles; stacking cap; supply meter in and out of borders; embark and land; army merge and split; templates | tap army, tap destination, path with turn numbers, confirm | crossing France takes 3 to 4 turns on foot, 2 by road |
+| 6 Sieges and battles | HP and walls; encirclement doubling; assault, sally, relief, landing setups; mapgen from tile context (river edges, coast side, walls level); each battle type's objective; parity within 5% per type over 200 seeds; replay hash stable | start a siege, assault, play 60 s, result sheet | the river is where the map says it is |
+| 7 Diplomacy | claims within 5 tiles; opinion reason list sums; war goals on cities; peace cedes cities with tiles; routes need access; plunder; demands | fabricate a claim, declare, win, take the city in peace | opinion reasons explain every AI choice |
+| 8 Loyalty and politics | pressure math; flip at 0; authority breakdown equals its parts; estates hold tiles; governor effects | assign a governor, watch loyalty | distant conquests are hard to keep |
+| 9 AI | governors keep every AI city fed and growing; settler planner respects slots; fronts defend and besiege; out-of-sight dice match in-sight outcomes within 10% over 50 seeds; 150-turn determinism | none | the balance-sim world keys of Part H |
+| 10 Research | web prerequisites; boosts trigger from tile facts; every tech has an effect (a test asserts no effect-less tech) | queue a tech, see turns | |
+| 11 Events and wonders | pins resolve to a live city; wonders need a legal tile; era goals count | an event sheet with a marker | |
+| 12 UI | next prompt cycle order; sheets fit 390 px tall; 44 px targets (a test measures every button) | the onboarding 10 turns on a phone and on desktop | a new player finishes onboarding without help |
+| 13 Calibration | the Part H table within tolerance on 3 seeds; turn time under 150 ms at turn 100; audit 0; save v7 screen | | |
+
+# Part L. The thin first slice (if decision 9 picks it)
+
+A playable vertical slice in about 4 weeks: workstreams 1 and 2 complete, workstream 3 without
+trade routes, estates or amenities (yields, growth, housing, queue, improvements, borders),
+workstream 4 without natives, workstream 5 without naval, and auto-resolve only for battles
+(the existing `resolveBattle` on the army's units, sieges by HP). Diplomacy stays the existing
+nation-level one with war goals mapped to "any city". That is enough to feel the map and tune
+the pacing table before the long tail.
 
 # Part J. Risks, critique of this plan, and decisions
 
