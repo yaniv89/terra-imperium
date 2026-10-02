@@ -1,14 +1,13 @@
 // src/data/regions.js
-// Every country on Earth is built from its real admin-1 provinces — 4,482 of them — each a real,
-// separately-ownable/controllable game region, built from real population/GDP (split across a
-// country's own provinces) and real geographic adjacency (see scripts/geo/build-world-regions.mjs
-// and worldRegions.json). A nation is the SET of regions sharing a startOwner, not a region in its
-// own right — nationId and regionId are different id spaces and must never be used
-// interchangeably (see getOwnedRegionIds/getBorderingNationIds below, which bridge the two for AI
-// code that needs to reason about a nation's current territory rather than one specific region).
-import WORLD_REGIONS_DATA from './geo/worldRegions.json';
+// Regions are CITIES on the world grid (plans/civ-map-rework.md, workstream 3.3). What used to be
+// a static table of 2,028 provinces is now a registry rebuilt from game state
+// (src/engine/world/registry.js): `REGIONS_DATA[cityId]` carries the static-looking facts the
+// rest of the code reads (name, neighbours, startOwner, population, terrain, isCoastal,
+// isCapital), derived from the city record and the grid. A nation is the SET of cities it owns;
+// nationId and regionId are different id spaces and must never be used interchangeably.
+import { WORLD_REGISTRY } from '../engine/world/registry';
 
-export const REGIONS_DATA = WORLD_REGIONS_DATA;
+export const REGIONS_DATA = WORLD_REGISTRY.regions;
 
 // ============ ADJACENCY ============
 
@@ -153,16 +152,7 @@ export const regionsWithinRange = (anchorRegionIds, maxDistance, blocks = null) 
 // first use rather than scanning all 4,482 regions on every single call — this is now called for
 // potentially every one of 240 nations every turn (victoryConditions.js's Conqueror Victory check),
 // and an O(regions) scan per call per nation was a real, measured cost at that scale.
-let capitalByNationIndex = null;
-export const getNationCapital = (nationId) => {
-  if (!capitalByNationIndex) {
-    capitalByNationIndex = {};
-    Object.values(REGIONS_DATA).forEach((r) => {
-      if (r.isCapital) capitalByNationIndex[r.startOwner] = r.id;
-    });
-  }
-  return capitalByNationIndex[nationId] || null;
-};
+export const getNationCapital = (nationId) => WORLD_REGISTRY.capitals[nationId] || null;
 
 // Plan §M15: capitals become dynamic — Move Capital (gameReducer.js's MOVE_CAPITAL) can relocate
 // one, and a peace deal that cedes it auto-relocates the loser's (peace.js). `nation.capitalRegionId`

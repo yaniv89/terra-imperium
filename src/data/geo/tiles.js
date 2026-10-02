@@ -3,8 +3,10 @@
 // scripts/geo/build-tiles.mjs. Static data, never part of game state: a tile's dynamic facts
 // (owner city, improvement, road, pillaged, seen) live in state as sparse maps keyed by tile id.
 //
-// `loadTiles()` is async so the 2 MB file stays out of the main bundle; `getTiles()` returns the
-// same object once loaded (the engine and tests call it synchronously after a load).
+// The engine is synchronous (createInitialState, resolveTurn, the reducer), so the grid is a
+// static import, decorated once on first use. `loadTiles()` stays as an async alias for callers
+// written before the engine needed the grid.
+import rawTiles from './tiles.json';
 import { fromLatLon, buildLatLonIndex, cellPolygon, toLatLon } from './geodesic.js';
 
 let cached = null;
@@ -37,6 +39,7 @@ const decorate = (raw) => {
     countryOf: (id) => (raw.country[id] >= 0 ? raw.countryIds[raw.country[id]] : null),
     resourceOf: (id) => (raw.resource && raw.resource[id] >= 0 ? raw.resourceNames[raw.resource[id]] : null),
     isLand: (id) => raw.land[id] === 1,
+    isWater: (id) => raw.land[id] !== 1,
     latLonOf: (id) => toLatLon(centres[id]),
     polygonOf: (id) => cellPolygon(centres, neighbors, id).map(toLatLon),
     nearest: (lat, lon, count = 1) => index.nearest(lat, lon, count),
@@ -45,17 +48,12 @@ const decorate = (raw) => {
   };
 };
 
-export const loadTiles = async () => {
-  if (cached) return cached;
-  const { default: raw } = await import('./tiles.json');
-  cached = decorate(raw);
-  return cached;
-};
-
 export const getTiles = () => {
-  if (!cached) throw new Error('tiles not loaded: await loadTiles() first');
+  if (!cached) cached = decorate(rawTiles);
   return cached;
 };
 
-// For tests and scripts that already hold the raw JSON.
+export const loadTiles = async () => getTiles();
+
+// For tests and scripts that already hold a raw JSON of their own.
 export const tilesFromRaw = (raw) => decorate(raw);

@@ -38,7 +38,7 @@ export const isCampaigning = (unit, regions) => {
 
 // This turn's flows for `nationId`. `resources` is the stock before the flows are applied.
 // How many original provinces a region stands for (1 for an unmerged one).
-const forageSize = (regionId) => 1 + (REGIONS_DATA[regionId]?.includes?.length || 0);
+const forageSize = (regionId) => Math.max(1, Math.round((REGIONS_DATA[regionId]?.includes?.length || 1) / 2));
 
 // Supplies the marches of `turnNumber` cost (units with marchedTurn === turnNumber).
 export const marchSupplyCost = (units, regions, nationId, turnNumber) => (turnNumber == null ? 0 : Object.values(units).reduce((sum, u) => {

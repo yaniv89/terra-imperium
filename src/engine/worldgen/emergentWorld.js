@@ -1,60 +1,126 @@
-import { REGIONS_DATA, getNeighborIds, getNationCapital } from '../../data/regions';
-import { REGION_COORDINATES } from '../../data/regionCoordinates';
+// src/engine/worldgen/emergentWorld.js
+// World scenarios on the tile grid (plans/civ-map-rework.md, B6). Every scenario builds cities from
+// src/data/scenarios.js's starts: the full world is all 240 peoples with one city each at the
+// Dawn start; an emergent world is a subset of `nationCount` peoples chosen for geographic
+// spread (the player always included), the rest dormant until emergence (emergence.js).
+// Deterministic: the spread pick uses the seeded rng only for tie-breaks.
+import { getTiles } from '../../data/geo/tiles';
+import { buildScenarioStarts, DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
+import { foundCity, emptyWorld, sizeToPeople } from '../world/cities';
+import { getHistoricalPopulationShare } from '../../data/historicalPopulation';
 import { createRng } from '../../utils/rng';
+import { distanceKm } from '../../data/geo/geodesic';
+
 export const NATION_COUNTS = [15, 30, 45, 60, 75];
-export const GENERATION_VERSION = 1;
-const separation = (a,b) => {
-  const x = REGION_COORDINATES[a], y = REGION_COORDINATES[b];
-  if (!x || !y) return 0;
-  const lat = (x.lat-y.lat)*Math.PI/180, lon = (x.lng-y.lng)*Math.PI/180;
-  return Math.sin(lat/2)**2 + Math.cos(x.lat*Math.PI/180)*Math.cos(y.lat*Math.PI/180)*Math.sin(lon/2)**2;
-};
-const connected = id => {
-  const seen = new Set([id]), queue = [id];
-  for (let i=0; i<queue.length && seen.size<5; i++) for (const n of getNeighborIds(queue[i])) if (!seen.has(n)) { seen.add(n); queue.push(n); }
-  return seen.size >= 5;
-};
-const connectedCache = new Map();
-const usable = id => { if(!connectedCache.has(id)) connectedCache.set(id,connected(id)); return connectedCache.get(id); };
-const relocatedCache = new Map();
-const eligible = Object.keys(REGIONS_DATA).filter(usable);
+export const GENERATION_VERSION = 2;
+
+// Which nations take part in an emergent world: the player, then repeatedly the nation whose
+// capital is farthest from every chosen capital (ties by the seeded roll).
 export const generateStarts = (playerNationId, nationCount, seed) => {
   if (!NATION_COUNTS.includes(nationCount)) throw new Error('Unsupported nation count');
-  const occupied = new Set();
-  const pick = id => {
-    const native = getNationCapital(id);
-    if (native && usable(native) && !occupied.has(native)) return native;
-    if(!relocatedCache.has(id)) relocatedCache.set(id,[...eligible].sort((a,b)=>separation(native,a)-separation(native,b) || a.localeCompare(b)));
-    return relocatedCache.get(id).find(r=>!occupied.has(r));
-  };
-  const starts = {}, relocations = [];
-  const assign = id => { const region = pick(id); starts[id]=region; occupied.add(region); if(region!==getNationCapital(id))relocations.push({nationId:id,from:getNationCapital(id),to:region}); };
-  if (!getNationCapital(playerNationId)) throw new Error('Unknown player nation');
-  assign(playerNationId);
+  const tiles = getTiles();
+  if (tiles.capitals[playerNationId] == null) throw new Error('Unknown player nation');
   const rng = createRng(seed);
-  const candidates = [...new Set(Object.values(REGIONS_DATA).map(r=>r.startOwner))].filter(id=>id!==playerNationId).map(id=>({id,tie:rng.next()}));
-  while(Object.keys(starts).length<nationCount){
-    const selected=candidates.reduce((best,c)=>{
-      const r=pick(c.id),score=Math.min(...Object.values(starts).map(s=>separation(s,r)));
-      return !best || score>best.score || (score===best.score && c.tie>best.tie) ? {...c,score} : best;
-    },null);
-    assign(selected.id); candidates.splice(candidates.findIndex(c=>c.id===selected.id),1);
+  const all = Object.keys(tiles.capitals).sort();
+  const chosen = [playerNationId];
+  const candidates = all.filter((id) => id !== playerNationId).map((id) => ({ id, tie: rng.next() }));
+  const sep = (a, b) => distanceKm(tiles.centres[tiles.capitals[a]], tiles.centres[tiles.capitals[b]]);
+  while (chosen.length < nationCount && candidates.length) {
+    let best = null;
+    candidates.forEach((c) => {
+      const score = Math.min(...chosen.map((s) => sep(s, c.id)));
+      if (!best || score > best.score || (score === best.score && c.tie > best.tie)) best = { ...c, score };
+    });
+    chosen.push(best.id);
+    candidates.splice(candidates.findIndex((c) => c.id === best.id), 1);
   }
-  return {starts,relocations};
+  const starts = {};
+  chosen.forEach((id) => { starts[id] = tiles.capitals[id]; });
+  return { starts, relocations: [] };
 };
-export const applyScenario = (initial, {mode='full',nationCount=45,seed=1}={}) => {
-  if(mode==='full')return {...initial,scenario:{mode:'full',generationVersion:GENERATION_VERSION,seed,activeNationIds:Object.keys(initial.nations)}};
-  if(mode!=='emergent')throw new Error('Unsupported world mode');
-  const {starts,relocations}=generateStarts(initial.playerNationId,nationCount,seed);
-  const activeNationIds=Object.keys(starts), nations={},regions={},units={};
-  for(const [id,r] of Object.entries(initial.regions))regions[id]={...r,owner:null,control:60,neutral:{inhabitants:r.currentPopulation,resistance:Math.min(80,20+Math.round(Math.log10(1+r.currentPopulation)*5))},unrest:0};
-  for(const id of activeNationIds){
-    const regionId=starts[id];
-    nations[id]={...initial.nations[id],capitalRegionId:regionId,startRegionCount:1,militaryStrength:5000,frontierClaims:0};
-    if(id!==initial.playerNationId)nations[id].economy={...initial.resources,supplies:20};
-    regions[regionId]={...regions[regionId],owner:id,control:100,neutral:null,dev:{tax:4,production:4,manpower:4}};
-    const unitId=`start_${id}`;
-    units[unitId]={id:unitId,ownerId:id,regionId,homeRegionId:regionId,domain:'land',classId:'infantry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,xp:0,rank:'recruit',promotions:[],commanderId:null};
-  }
-  return {...initial,nations,regions,units,resources:{...initial.resources,supplies:20},scenario:{mode,generationVersion:GENERATION_VERSION,seed,nationCount,activeNationIds,starts,relocations,dormantNationIds:Object.keys(initial.nations).filter(id=>!nations[id])}};
+
+// Turns scenario starts into the city world: regions (one record per city, with the fields the
+// rest of the engine reads), world.tileOwner, nations' capitals, and one starting army each.
+const buildCityWorld = (initial, scenarioId, nationIds) => {
+  const tiles = getTiles();
+  const { starts } = buildScenarioStarts(tiles, scenarioId, nationIds);
+  const share = getHistoricalPopulationShare(initial.year);
+  let world = emptyWorld();
+  const nations = { ...initial.nations };
+  const units = {};
+  const founded = {}; // nationId -> [cityId]
+  // 1. Found every city (a later capital takes precedence over an earlier ring, see foundCity).
+  Object.keys(starts).sort().forEach((nationId) => {
+    if (!nations[nationId]) return;
+    founded[nationId] = [];
+    starts[nationId].cities.forEach(({ tile, size }, i) => {
+      const r = foundCity(world, tiles, { nationId, tile, size, turn: 1, isCapital: i === 0 });
+      world = r.world;
+      founded[nationId].push(r.city.id);
+    });
+  });
+  // 2. The scenario's wider claims (rings by age) go to the nearest city of their nation.
+  const tileOwner = { ...world.tileOwner };
+  const extraTiles = {};
+  Object.keys(founded).sort().forEach((nationId) => {
+    const cityIds = founded[nationId];
+    starts[nationId].tiles.forEach((t) => {
+      if (tileOwner[t]) return;
+      let best = cityIds[0]; let bestD = Infinity;
+      cityIds.forEach((cid) => { const d = distanceKm(tiles.centres[t], tiles.centres[world.cities[cid].tile]); if (d < bestD) { bestD = d; best = cid; } });
+      tileOwner[t] = best;
+      (extraTiles[best] ||= []).push(t);
+    });
+  });
+  // 3. Records: the city plus the fields the rest of the engine reads.
+  const regions = {};
+  Object.keys(founded).sort().forEach((nationId) => {
+    const base = nations[nationId];
+    founded[nationId].forEach((cid, i) => {
+      const city = world.cities[cid];
+      const size = city.size;
+      regions[cid] = {
+        ...city,
+        tiles: [...city.tiles, ...(extraTiles[cid] || [])],
+        founderId: nationId,
+        owner: nationId,
+        control: 100,
+        currentPopulation: sizeToPeople(size, share),
+        currentInfrastructure: 0,
+        underInvasion: false,
+        unrest: 0,
+        defenseLevel: 0,
+        climateResilience: 0,
+        dev: { tax: size, production: size, manpower: size },
+        buildings: city.buildings
+      };
+      if (i === 0) {
+        nations[nationId] = { ...base, capitalRegionId: cid, startRegionCount: founded[nationId].length, frontierClaims: 0 };
+        if (nationId !== initial.playerNationId) nations[nationId].economy = { ...initial.resources, supplies: 20 };
+        const unitId = `start_${nationId}`;
+        units[unitId] = { id: unitId, ownerId: nationId, regionId: cid, homeRegionId: cid, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null };
+      }
+    });
+  });
+  return { regions, nations, units, world: { tileOwner, tileState: world.tileState }, activeNationIds: Object.keys(founded).sort() };
+};
+
+export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed = 1, start = DEFAULT_SCENARIO_ID } = {}) => {
+  if (!SCENARIOS[start]) throw new Error(`Unsupported start ${start}`);
+  if (mode !== 'full' && mode !== 'emergent') throw new Error('Unsupported world mode');
+  const allIds = Object.keys(initial.nations);
+  const nationIds = mode === 'emergent' ? Object.keys(generateStarts(initial.playerNationId, nationCount, seed).starts) : allIds;
+  const built = buildCityWorld(initial, start, nationIds);
+  const dormantNationIds = allIds.filter((id) => !built.activeNationIds.includes(id));
+  const starts = {};
+  built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
+  return {
+    ...initial,
+    nations: built.nations,
+    regions: built.regions,
+    units: built.units,
+    world: built.world,
+    resources: { ...initial.resources, supplies: 20 },
+    scenario: { mode, start, generationVersion: GENERATION_VERSION, seed, nationCount: mode === 'emergent' ? nationCount : allIds.length, activeNationIds: built.activeNationIds, starts, relocations: [], dormantNationIds }
+  };
 };

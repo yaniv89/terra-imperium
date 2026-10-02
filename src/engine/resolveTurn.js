@@ -41,6 +41,11 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
+import { processCities, sizeToPeople } from './world/cities';
+import { syncWorldRegistry } from './world/registry';
+import { getTiles } from '../data/geo/tiles';
+import { getResearched, getTechAgeId } from './nationState';
+import { getHistoricalPopulationShare } from '../data/historicalPopulation';
 import { getEffectiveAgeId } from '../data/ages';
 import { libertyDesireTarget, libertyInputs, nextLibertyDesire } from './vassals';
 import { levyUnit, decayDevastation, devastationGrowthPenalty } from './aftermath';
@@ -91,8 +96,50 @@ export const WAR_WEARINESS_SCALE = 40;
 // harness is the only caller) fired after each named phase below with how long it took. It costs
 // one optional-chained call per phase when absent, so normal play and every other test pay nothing
 // for it; when present the closure trades one `performance.now()` read per phase for the timing.
+// The cities phase: processCities over state.regions (every region is a city on the tile world),
+// then the legacy fields the rest of the engine reads are refreshed from the result (dev mirrors
+// the yields, population follows size) and finished units join state.units.
+const runCitiesPhase = (state, newAge, newTurnNumber) => {
+  if (!state.world) return { state, logs: [] };
+  const tiles = getTiles();
+  const luxuriesByNation = {};
+  Object.values(state.regions).forEach((c) => { if (c.owner && c.lastYields?.luxuries) { (luxuriesByNation[c.owner] ||= new Set()); c.lastYields.luxuries.forEach((l) => luxuriesByNation[c.owner].add(l)); } });
+  const citiesOwned = {};
+  Object.values(state.regions).forEach((c) => { if (c.owner) citiesOwned[c.owner] = (citiesOwned[c.owner] || 0) + 1; });
+  const ctxCache = new Map();
+  const ctxFor = (city) => {
+    const nid = city.owner;
+    if (!ctxCache.has(nid)) {
+      ctxCache.set(nid, {
+        researched: nid ? getResearched(state, nid) : [],
+        ageId: getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge),
+        turnNumber: newTurnNumber,
+        citiesOwned: citiesOwned[nid] || 1,
+        luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0
+      });
+    }
+    return ctxCache.get(nid);
+  };
+  const world = { cities: state.regions, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
+  const result = processCities(world, tiles, ctxFor);
+  const regions = {};
+  Object.entries(result.world.cities).forEach(([id, c]) => {
+    const y = result.yields[id];
+    regions[id] = y ? { ...c, lastYields: { gold: y.gold, production: y.production, food: y.food, science: y.science, culture: y.culture, luxuries: y.luxuries, strategic: y.strategic }, dev: { tax: Math.max(1, Math.round(y.raw.gold)), production: Math.max(1, Math.round(y.production)), manpower: Math.max(1, c.size) } } : c;
+  });
+  let units = state.units;
+  let nextUnitSeq = state.nextUnitSeq || 0;
+  result.completed.forEach((item) => {
+    if (item.kind !== 'unit') return;
+    const id = `unit_${nextUnitSeq++}`;
+    units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null } };
+  });
+  const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
+  return { state: { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } }, logs };
+};
+
 export const resolveTurn = (incomingState, { onPhase } = {}) => {
-  let state = incomingState;
+  let state = syncWorldRegistry(incomingState);
   // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
   // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
   if (state.gameStatus !== GameStatus.ACTIVE || state.activeEventId || state.activeProceduralEvent || state.pendingPeaceOffer) {
@@ -142,6 +189,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const modifierExpiredNations = { ...expireNationModifiers(state.nations, newTurnNumber) };
   const regionModifiers = expireRegionModifiers(state.regionModifiers, newTurnNumber);
   mark('time');
+
+  // --- cities (plans/civ-map-rework.md C1, C2, B4): every city works its land, grows, builds and
+  // extends its borders. Runs first so income reads this turn's yields (dev mirrors them) and
+  // every later phase sees the new sizes and borders. Finished units are created here.
+  const cityTurn = runCitiesPhase(state, newAge, newTurnNumber);
+  state = cityTurn.state;
+  cityTurn.logs.forEach((l) => logs.push({ year: newYear, message: l, type: LogTypes.ACTION }));
+  mark('cities');
 
   // --- income ---
   const income = calcIncome({ ...state, nations: modifierExpiredNations });
@@ -233,12 +288,14 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       unrest
     }) - devastationGrowthPenalty(region);
     const devastation = decayDevastation(region.devastation);
-    const currentPopulation = nextRegionPopulation({
-      currentPopulation: region.currentPopulation || modernBaseline,
-      modernBaseline,
-      growthRate,
-      underInvasion: region.underInvasion
-    });
+    const currentPopulation = region.size != null
+      ? sizeToPeople(region.size, getHistoricalPopulationShare(newYear))
+      : nextRegionPopulation({
+        currentPopulation: region.currentPopulation || modernBaseline,
+        modernBaseline,
+        growthRate,
+        underInvasion: region.underInvasion
+      });
 
     if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown) || currentPopulation !== region.currentPopulation || devastation !== (region.devastation || 0)) {
       regions[id] = { ...region, ...(region.integratingUntil != null && newTurnNumber>=region.integratingUntil ? {integratingUntil:null}:{}), unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation, ...(region.devastation != null || devastation ? { devastation } : {}) };
@@ -1011,6 +1068,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- assemble next state ---
   let next = {
     ...state,
+    world: state.world,
     year: newYear,
     age: newAge,
     turnNumber: newTurnNumber,
@@ -1084,5 +1142,5 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   mark('victory');
 
   // Research last, once this turn's science has been credited (src/engine/research.js).
-  return applyResearchTurn(reconcileTerritory(processColonies(processEmergence(next))));
+  return syncWorldRegistry(applyResearchTurn(reconcileTerritory(processColonies(processEmergence(next)))));
 };
