@@ -1,11 +1,11 @@
 // src/components/map/LensStrip.jsx
-// The lens strip (plans/civ-map-rework.md E5): one row of buttons bottom left; keys 1 to 6 on a
+// The lens strip (plans/civ-map-rework.md E5): one row of buttons bottom left; keys 1 to 7 on a
 // keyboard (MapContainer binds them). 44 px targets.
 import React from 'react';
-import { Landmark, Wheat, Heart, Crosshair, Package, Crown } from 'lucide-react';
+import { Landmark, Wheat, Heart, Crosshair, Package, Crown, Coins } from 'lucide-react';
 import { LENSES } from './lenses';
 
-export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, estates: Crown };
+export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, estates: Crown, trade: Coins };
 
 const LensStrip = ({ lens, onChange }) => (
   <div className="flex bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden pointer-events-auto" data-testid="lens-strip" role="radiogroup" aria-label="Map lens">

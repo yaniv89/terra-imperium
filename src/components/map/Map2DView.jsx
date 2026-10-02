@@ -41,7 +41,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -453,6 +453,17 @@ const Map2DView = ({
         {zoomK >= HEX_FROM_ZOOM && <text x={x} y={y + 3 / zoomK} textAnchor="middle" fontSize={9 / zoomK} fontWeight="700" fill="#fff" stroke="rgba(0,0,0,0.7)" strokeWidth={2 / zoomK} paintOrder="stroke">{t.crest}</text>}
       </g>
     ); });
+    if (lens === 'trade') return tradeLines(state).map((r) => {
+      const pts = r.tiles.map((t) => at(t));
+      const colour = r.plundered ? '#f87171' : r.kind === 'sea' ? '#38bdf8' : '#fbbf24';
+      const mark = r.plunderTile != null ? at(r.plunderTile) : null;
+      return (
+        <g key={r.partnerId} pointerEvents="none" data-lens-trade={r.partnerId} data-plundered={r.plundered ? '1' : '0'}>
+          {pts.length > 1 && <polyline points={pts.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={colour} strokeWidth={2.5 / zoomK} strokeDasharray={r.kind === 'sea' ? `${6 / zoomK} ${4 / zoomK}` : undefined} strokeLinejoin="round" strokeLinecap="round" opacity={0.9} />}
+          {mark && <circle cx={mark[0]} cy={mark[1]} r={7 / Math.sqrt(zoomK)} fill="rgba(248,113,113,0.35)" stroke="#f87171" strokeWidth={1.5 / zoomK} />}
+        </g>
+      );
+    });
     return null;
   }, [interactive, projection, lens, state, zoomK]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.

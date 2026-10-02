@@ -11,6 +11,10 @@ import { routeDestination, placeName } from '../../engine/routes';
 import { getTechAgeId } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
 
+import { pillageTile } from '../../engine/threat';
+import { REBEL_OWNER_ID } from '../../data/rebellion';
+import { tileFacts, IMPROVEMENTS } from '../../data/tileYields';
+
 export const ZONE_TEXT = {
   home: 'In friendly land: the meter fills every turn.',
   held: 'Holding enemy land: the meter holds.',
@@ -63,6 +67,18 @@ export const armySheetModel = (state, tile) => {
     zone: zone.zone, zoneText: ZONE_TEXT[zone.zone] || '',
     route: dest != null ? { to: dest, name: placeName(state, dest), turns: Math.max(1, Math.ceil(lead.route.length / Math.max(1, pace))) } : null,
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
+    pillage: pillageTarget(state, tile, units),
     unitIds: units.map((u) => u.id)
   };
+};
+
+/** The improvement the stack could pillage here (an enemy's, unburnt), or null: { name }. */
+export const pillageTarget = (state, tile, units) => {
+  if (!units.some((u) => (u.movesLeft ?? 0) > 0)) return null;
+  const me = state.playerNationId;
+  const enemies = new Set([REBEL_OWNER_ID, ...(state.wars || []).filter((w) => w.active && (w.aggressor === me || w.enemy === me)).map((w) => (w.aggressor === me ? w.enemy : w.aggressor))]);
+  const raid = pillageTile(state, me, tile, enemies);
+  if (!raid) return null;
+  const facts = tileFacts(getTiles(), tile, state.world?.tileState?.[tile]);
+  return { name: IMPROVEMENTS[facts.improvement]?.name || facts.improvement, gold: raid.gold };
 };

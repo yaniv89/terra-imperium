@@ -4,7 +4,7 @@
 // (march, cancel the route, rename the army, disband). A bottom sheet on a phone, a docked panel
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
-import { X, Flag, Shield, Pencil, Trash2 } from 'lucide-react';
+import { X, Flag, Shield, Pencil, Trash2, Flame } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { ActionTypes } from '../../data/types';
@@ -57,6 +57,11 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
           : <button type="button" disabled={!model.canMarch} onClick={() => { startMarch(model.regionId, { unitIds: model.unitIds }); onClose?.(); }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> March…</button>}
         <button type="button" onClick={() => setRenaming(model.groups[0].key ? model.groups[0].name : '')} aria-label="Name this army" className="min-h-[44px] px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200"><Pencil className="w-4 h-4" /></button>
       </div>
+      {model.pillage && (
+        <button type="button" onClick={() => dispatch({ type: ActionTypes.PILLAGE_TILE, payload: { unitIds: model.unitIds } })} data-testid="army-pillage" className="w-full mt-2 min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5" title="Burn the improvement here: it stops yielding until repaired; the stack spends its moves.">
+          <Flame className="w-3.5 h-3.5" /> Pillage the {model.pillage.name} (+{model.pillage.gold} gold)
+        </button>
+      )}
       {renaming != null && (
         <div className="flex gap-2 mt-2">
           <input value={renaming} onChange={(e) => setRenaming(e.target.value)} placeholder="Army name" aria-label="Army name" className="flex-1 bg-slate-800 rounded px-2 min-h-[40px] text-white text-xs" />
