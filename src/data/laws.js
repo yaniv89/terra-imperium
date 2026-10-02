@@ -17,6 +17,7 @@ import { getResearched } from '../engine/nationState';
 import { TECH_TREE } from './techTree';
 import { leansPositive, leansNegative } from './identity';
 import { getGovernmentReformEffectSum } from './government';
+import { canEnactLaws } from '../engine/authority';
 
 export const LAW_CATEGORIES = {
   taxation: [
@@ -91,6 +92,7 @@ export const canEnactLaw = (state, nationId, category, lawId) => {
     if (!researched) return false;
   }
   if (!checkIdentityGate(nation.identity, law.requiresIdentity)) return false;
+  if (!canEnactLaws(state, nationId)) return false; // authority under AUTHORITY_NO_LAWS (authority.js)
   const cooldownUntil = nation.lawCooldowns?.[category] || 0;
   return (state.turnNumber || 0) >= cooldownUntil;
 };

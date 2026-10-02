@@ -51,8 +51,9 @@ export const AI_SUPPRESS_CHANCE_SCALE = 0.5; // max per-stack per-turn destructi
 // Plan: "starts after 3 consecutive turns at stability -3" — call every turn, for every nation,
 // regardless of whether a civil war is already active, so the streak still tracks correctly through
 // one and resets cleanly once stability recovers afterward.
-export const nextLowStabilityStreak = (nation) =>
-  (nation.stability || 0) <= STABILITY_MIN_FOR_CIVIL_WAR ? (nation.lowStabilityStreak || 0) + 1 : 0;
+// `lowAuthority`: authority under AUTHORITY_CIVIL_WAR (authority.js) counts as a low turn too.
+export const nextLowStabilityStreak = (nation, lowAuthority = false) =>
+  ((nation.stability || 0) <= STABILITY_MIN_FOR_CIVIL_WAR || lowAuthority) ? (nation.lowStabilityStreak || 0) + 1 : 0;
 
 export const isStabilityCivilWarTrigger = (streak) => streak >= CIVIL_WAR_STABILITY_STREAK_TURNS;
 
