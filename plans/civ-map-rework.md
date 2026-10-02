@@ -1,6 +1,6 @@
 # Terra Imperium: full review and the Civ-style map rework
 
-Date: 2026-10-02. Status: plan v2 (v1 plus a critique pass: size-based cities, naval and air on tiles, wireframes, per-workstream tests, pacing table, thin first slice), nothing implemented. Written against branch
+Date: 2026-10-02. Status: plan v3, decisions 1, 2 and 5 settled (grid, one-city Dawn start, clean save break), nothing implemented. Written against branch
 `claude/gallant-pasteur-rfkma8` at commit `d08ded8` (the features branch; `main` is the live site).
 
 This document has two halves. **Part A** reviews and criticises every game system as it is in the
@@ -521,18 +521,22 @@ The globe remains the world and region view. The flat map handles local and clos
 
 ## B6. The world at 2000 BCE and the scenario starts
 
-The full-world scenario changes meaning: **the modern 240 nations exist as peoples with a core,
-not as modern borders.** Each nation gets a hand-curated **core**: 1 to 4 city sites (real
-ancient or modern city coordinates: the capital and the largest cities) and a ring radius. At
-2000 BCE a nation owns its core cities and their first rings only. Everything else is
-wilderness with native tribes scaled by the real historical population density (the existing
-`historicalPopulation.js` gives the per-nation curve).
+The full-world scenario changes meaning: **the modern 240 nations exist as peoples with a
+capital, not as modern borders.** Decided 2026-10-02: **every nation starts with exactly one
+city**, its capital, on the real capital's tile (or the historically right ancient site where
+one is curated: Memphis for Egypt, Babylon for Iraq, Anyang for China), owning the centre and
+its first ring. Everything else is wilderness with native tribes scaled by the real historical
+population density (the existing `historicalPopulation.js` gives the per-nation curve). This
+matches the emergent-world starts already on the features branch (equal, small, connected
+starts) and makes the first 30 turns the same for everyone: grow the capital, build a settler,
+pick the second site. The later starts (Classical onward) give more cities per nation from a
+curated core list; only Dawn is one city.
 
 Scenario starts (one table in `src/data/scenarios.js`):
 
 | Start | Year | Who exists | Land claimed |
 |---|---|---|---|
-| Dawn (default) | 2000 BCE | all 240 as peoples, 1 to 4 cities | cores only, about 15% of land |
+| Dawn (default) | 2000 BCE | all 240 as peoples, **one city each (the capital)** | the capital's first ring only, about 6% of land |
 | Classical | 800 BCE | all 240 | cores plus ring 2, about 30% |
 | Kingdoms | 500 | all 240 | about 50% |
 | Gunpowder | 1500 | all 240 | about 65% |
@@ -542,10 +546,12 @@ Scenario starts (one table in `src/data/scenarios.js`):
 The existing emergent world generator (`worldgen/emergentWorld.js`) becomes the only generator:
 the full world is the 240-nation case.
 
-**A nation's starting cities and population** come from `historicalPopulation.js` at the start
-year: population split across its core cities by a fixed share table, so Egypt at 2000 BCE is a
-real power and Iceland does not exist as a city yet (it exists as a people with a 1-tile outpost
-and a settler, so the player can still pick it, with a warning that it is a hard start).
+**Starting size** comes from `historicalPopulation.js` at the start year: the capital's size is
+2 to 5 by the nation's share of the world population at that date (Egypt and China start at
+size 5, most nations at 2), plus one warrior unit, and a settler for the five largest
+peoples. Nations whose land was unpeopled in 2000 BCE (Iceland, New Zealand, the Pacific
+microstates) start as a size-1 outpost with a settler and a "hard start" warning, so any of
+the 240 stays pickable.
 
 ## B7. What is deleted
 
@@ -1299,17 +1305,17 @@ the pacing table before the long tail.
    units), weather and seasons on tiles, a world congress, naval tactical battles (auto-resolve
    first), and multiplayer beyond the existing submitted-turns mode.
 
-## J2. Decisions for you
+## J2. Decisions
 
-1. **Grid size.** About 18,000 km² tiles (8,500 land, recommended), coarser (4,300), or keep the
-   2,028 polygons as tiles?
-2. **Default start.** Dawn 2000 BCE with cores only (recommended), so the full world has land to
-   settle; or keep modern borders as the default and offer Dawn as a mode?
+Settled 2026-10-02: **1** the 18,000 km² grid; **2** Dawn is the default and every nation starts
+with one city; **5** a clean save break. The rest are open.
+
+1. **Grid size.** About 18,000 km² tiles (8,500 land). **Settled.**
+2. **Default start.** Dawn 2000 BCE, one city per nation. **Settled.**
 3. **Citizens.** Automatic tile work with focus and locks (recommended), or full manual
    allocation?
 4. **Builders.** Improvements built by the city queue (recommended) or by builder units?
-5. **Saves.** A clean save break with a notice (recommended), or keep the region map as a
-   second mode (double maintenance; not recommended)?
+5. **Saves.** A clean save break with a notice. **Settled.**
 6. **HR and development.** Delete both in favour of population and tiles (recommended)?
 7. **Loyalty flips.** Allow cities to flip to neighbours by culture pressure (recommended, with
    a 20-turn warning on the city badge), or only to free cities?
