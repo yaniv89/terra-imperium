@@ -2,7 +2,7 @@
 // Historical event modal with effect preview for each option
 
 import React from 'react';
-import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
 import { describeEffects } from '../../engine/describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 
@@ -27,7 +27,7 @@ const EffectBadge = ({ text, sign, tooltip }) => {
   );
 };
 
-const EventModal = ({ event, onResolve, resources }) => {
+const EventModal = ({ event, onResolve, resources, placeName = null }) => {
   if (!event) return null;
   // An option the treasury can't cover is shown but not clickable — unless NO option is affordable,
   // in which case every option stays open and the engine charges what it can (-1 stability).
@@ -52,6 +52,9 @@ const EventModal = ({ event, onResolve, resources }) => {
                 <Calendar className="w-3 h-3" />
                 <span>{event.year}</span>
               </>
+            )}
+            {placeName && (
+              <span className="ml-2 flex items-center gap-1 text-amber-200" data-testid="event-place"><MapPin className="w-3 h-3" />{placeName}</span>
             )}
             {event.mandatory && (
               <span className="ml-2 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]">

@@ -43,6 +43,7 @@ import { wallsOf } from '../../engine/sieges';
 import { cultureOf, loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { claimOn, canFabricateClaim, CLAIM_FABRICATE_TURNS } from '../../engine/claims';
+import { DISASTER_LABELS } from '../../engine/cityDisasters';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
 // within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
@@ -300,8 +301,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       )}
 
       {/* Alerts */}
-      {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
+      {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || regionState.disaster || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
+          {regionState.disaster && (
+            <div className="rounded-lg border border-sky-400/50 bg-sky-500/10 p-2 text-[11px] text-sky-100" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : 'no growth'} until turn {regionState.disaster.until}.</div>
+          )}
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
               <AlertTriangle className="w-3 h-3" /><span>Under Invasion!</span>

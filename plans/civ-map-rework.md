@@ -1810,6 +1810,23 @@ assaults and relief decide, as D6 asks. Tests in threat.test.js. Still open in D
 the dice against the real sim (the world's wars stay few, see the Part H keys), raids on trade
 routes, a pillage order for the player's armies.
 
+**Workstream 11, wave 2: events pinned to cities, disasters by tile facts (2026-10-02).**
+Procedural events (src/data/proceduralEvents.js) name the city they happen to: every template
+lists the player's cities whose facts fit (`candidates`: a coastal city for the trade boom, a
+river city for the new flood, a starving city for the failed harvest, a frontier city for
+raiders and refugees, a northern one for the harsh winter, one with a foreign majority for the
+new foreign quarter, an unsettled one for the pretender), one is drawn with the turn's rng, and
+the event carries `cityId` and `tile`; the event sheet names the place. City-targeted effects
+(`cityUnrest`, `cityFood`, `citySize`, `cityLoyalty`, applyEventEffects.js and describeEffects.js)
+land on that city. Disasters on cities (`src/engine/cityDisasters.js`, the nation meters of
+disasters.js stay politics): each city rolls once a turn by a hash of its id and the turn; a
+river city floods (FLOOD_CHANCE 0.4%: half its food bank, food x0.75 for 5 turns), a city of
+size 4 or more burns (0.3%: half its production progress, production x0.75), one of size 6 or
+more sickens (0.3%: a citizen lost, no growth); one disaster at a time, a 30-turn cooldown, a
+mark on the city card until it heals, a log line for the player. Tests in cityDisasters.test.js
+and proceduralEvents.test.js. Still open in C9: the event sheet as a side sheet with a map
+marker, wonders as tiles built from production, scripted events pinned to places.
+
 ---
 
 ---

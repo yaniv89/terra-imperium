@@ -91,6 +91,7 @@ import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { authorityRisksCivilWar } from './authority';
+import { rollCityDisasters } from './cityDisasters';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -155,6 +156,8 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     const y = result.yields[id];
     regions[id] = y ? { ...c, lastYields: { gold: y.gold, production: y.production, food: y.food, science: y.science, culture: y.culture, luxuries: y.luxuries, strategic: y.strategic }, dev: { tax: Math.max(1, Math.round(y.raw.gold)), production: Math.max(1, Math.round(y.production)), manpower: Math.max(1, c.size) } } : c;
   });
+  // Floods, fires and plagues by tile facts (cityDisasters.js).
+  const disasterLogs = rollCityDisasters(regions, newTurnNumber);
   let units = state.units;
   let nextUnitSeq = state.nextUnitSeq || 0;
   result.completed.forEach((item) => {
@@ -171,6 +174,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null } };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
+  disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
   // Settlers walk, found outposts, and outposts grow (settlers.js).
   const afterCities = { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } };
   const hasSettlers = Object.values(units).some(isSettler) || Object.values(regions).some((c) => c.outpost);
