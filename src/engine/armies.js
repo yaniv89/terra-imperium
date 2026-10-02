@@ -76,7 +76,7 @@ export const regionAccess = (state, regionId, nationId = state.playerNationId) =
   if (r.owner === REBEL_OWNER_ID) return 'enemy';
   if ((state.wars || []).some((w) => w.active && isWarBetween(w, nationId, r.owner))) return r.occupiedBy === nationId ? 'held' : 'enemy';
   const owner = state.nations[r.owner];
-  if (owner && !owner.isEliminated && (owner.vassalOf === nationId || state.nations[nationId]?.vassalOf === r.owner || owner.hasMilitaryPact)) return 'friend';
+  if (owner && !owner.isEliminated && (owner.vassalOf === nationId || state.nations[nationId]?.vassalOf === r.owner || owner.hasMilitaryPact || owner.openBordersWith?.[nationId])) return 'friend';
   return 'closed';
 };
 

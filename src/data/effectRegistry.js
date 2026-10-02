@@ -91,6 +91,8 @@ export const EFFECT_REGISTRY = {
   trade_agreement: { scene: 'tradeRoute', palette: P('#fbbf24', '#fffbeb') },
   gift_bribe: { scene: 'gift', palette: P('#eab308', '#fef9c3') },
   fabricate_claim: { scene: 'claimLine', palette: P('#f59e0b', '#fef3c7') },
+  open_borders: { scene: 'pact', palette: P('#10b981', '#d1fae5'), emblem: 'shield', union: 'handshake', label: 'Borders opened' },
+  demand: { scene: 'claimLine', palette: P('#f97316', '#ffedd5') },
   espionage: { scene: 'espionage', palette: P('#64748b', '#e2e8f0') },
   counter_intelligence: { scene: 'counterIntel', palette: P('#0ea5e9', '#e0f2fe') },
   military_alliance: { scene: 'pact', palette: P('#6366f1', '#e0e7ff'), emblem: 'shield', union: 'handshake', label: 'Alliance formed' },

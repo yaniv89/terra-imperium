@@ -1750,6 +1750,24 @@ founded cities carry `founderId`. Seed 11, 150 turns: cities 887, land 63.2%, fl
 2 of 6 wars by turn 100 carried a claim and its city as the goal. Still open in C6: open
 borders, demands and ultimatums, trade routes needing access, war score from occupied cities.
 
+**Workstream 7, wave 3: open borders and demands (2026-10-02).** `src/engine/accords.js`. Open
+borders are a pact on both records (`openBordersWith`): armies cross the other's land as a
+friend's (armies.js regionAccess), settlers walk it (settlers.js), trade routes may pass
+(tradeRoutes.js) and each side thinks OPEN_BORDERS (+10) better of the other. The player offers
+them (OPEN_BORDERS, 50 gold and 5 DIP, paid either way); the AI accepts at opinion
+OPEN_BORDERS_OPINION (20) or more when no war runs between them; CLOSE_BORDERS ends them, and a
+war between the two closes them. Demands (DEMAND, 5 DIP): tribute (20% of their treasury, at
+least 50), a city you hold a claim on (never a capital; changes hands peacefully, the claim is
+settled, aggressive expansion at the claim's rate), and stop settling near you (no city of
+theirs within 4 tiles of yours for 50 turns, read by the AI's site search and canSettle). The
+target accepts when 20 x (strength ratio - 1) + opinion / 4 - base (10, 40, 5) is 0 or more,
+the ratio capped at 3; a refusal gives a casus belli for 20 turns (hasCasusBelli), any demand
+costs hostility (10, 20, 5) and the same nation hears no demand for 10 turns. The diplomacy
+panel shows the open-borders badge, the offer or close button with the answer in its title, and
+one button per demand with its score. Tests in accords.test.js. Still open in C6: AI-to-AI open
+borders and demands, war score from occupied cities, trade routes blocked at closed borders
+for the AI.
+
 ---
 
 ---

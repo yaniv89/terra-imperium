@@ -113,6 +113,7 @@ import { SPACE_MISSIONS_BY_ID, canLaunchMission } from '../data/spaceMissions';
 import { TAX_RATE_IDS, DEFAULT_TAX_RATE, TAX_RATE_CHANGE_COOLDOWN_TURNS } from '../data/taxRates';
 import { getLoanCapacity, getLoanInterestRate, getLoanSize, clampMaintenance, getRecruitUnitCost, hasBankingHouses } from './economy';
 import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS } from './claims';
+import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 const NAVAL_TRANSPORT_CAPACITY = 2;
@@ -2441,6 +2442,42 @@ const reduceAction = (state, action) => {
         nations: { ...state.nations, [nationId]: { ...target, hasTradeAgreement: true, relationStatus: RelationStatus.FRIENDLY } },
         logs: [...state.logs, { year: state.year, message: `Signed a trade agreement with ${target.name}.`, type: LogTypes.DIPLOMACY }]
       };
+    }
+
+    case ActionTypes.OPEN_BORDERS: {
+      // Open borders (accords.js): the AI accepts at OPEN_BORDERS_OPINION; the offer costs either way.
+      const { nationId } = action.payload;
+      const target = state.nations[nationId];
+      const costs = ACTION_COSTS.openBorders;
+      if (!target || target.isEliminated || nationId === state.playerNationId || hasOpenBorders(state, state.playerNationId, nationId)) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const answer = openBordersAcceptance(state, nationId);
+      if (!answer.accepted) {
+        return { ...state, resources: applyCosts(state.resources, costs), logs: [...state.logs, { year: state.year, message: `${target.name} keeps its borders closed to you (opinion ${answer.opinion}, needs ${answer.needed}${answer.atWar ? ', and you are at war' : ''}).`, type: LogTypes.DIPLOMACY }] };
+      }
+      return {
+        ...state,
+        resources: applyCosts(state.resources, costs),
+        nations: setOpenBorders(state.nations, state.playerNationId, nationId, true),
+        logs: [...state.logs, { year: state.year, message: `${target.name} opens its borders: your armies, settlers and traders may cross its land, and theirs yours.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.CLOSE_BORDERS: {
+      const { nationId } = action.payload;
+      if (!state.nations[nationId] || !hasOpenBorders(state, state.playerNationId, nationId)) return state;
+      return { ...state, nations: setOpenBorders(state.nations, state.playerNationId, nationId, false), logs: [...state.logs, { year: state.year, message: `You close your borders with ${state.nations[nationId].name}.`, type: LogTypes.DIPLOMACY }] };
+    }
+
+    case ActionTypes.DEMAND: {
+      // Demands (accords.js): tribute, a claimed city, or a stop to settling near you.
+      const { nationId, kind, cityId = null } = action.payload;
+      const costs = ACTION_COSTS.demand;
+      if (!state.nations[nationId] || nationId === state.playerNationId || !DEMANDS[kind]) return state;
+      if (!canAfford(state.resources, costs)) return state;
+      const r = applyDemand(state, nationId, kind, cityId);
+      if (r.state === state) return state;
+      return { ...r.state, resources: applyCosts(r.state.resources, costs), logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] };
     }
 
     case ActionTypes.MILITARY_ALLIANCE: {

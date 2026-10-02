@@ -124,6 +124,10 @@ export const ActionTypes = {
   ACCEPT_PENDING_PEACE: 'ACCEPT_PENDING_PEACE',
   REJECT_PENDING_PEACE: 'REJECT_PENDING_PEACE',
   TRADE_AGREEMENT: 'TRADE_AGREEMENT',
+  // Open borders and demands (plans/civ-map-rework.md C6, src/engine/accords.js).
+  OPEN_BORDERS: 'OPEN_BORDERS',
+  CLOSE_BORDERS: 'CLOSE_BORDERS',
+  DEMAND: 'DEMAND',
   MILITARY_ALLIANCE: 'MILITARY_ALLIANCE',
   GIFT_BRIBE: 'GIFT_BRIBE',
   // Espionage/Counter-Intelligence: the plan's statecraft section always named these as a pair

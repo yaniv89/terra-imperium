@@ -7,7 +7,7 @@ export const getTradeRoute = (state,partnerId) => {
   if(state.wars.some(w=>w.active && ((w.aggressor===me && w.enemy===partnerId)||(w.enemy===me && w.aggressor===partnerId))))return {ok:false,reason:'Trade is suspended during war.'};
   const start=getCapital(state,me),target=getCapital(state,partnerId);
   if(!start || !target)return {ok:false,reason:'A trading capital is missing.'};
-  const allowed=id=>state.regions[id]?.owner===me || state.regions[id]?.owner===partnerId || state.nations[state.regions[id]?.owner]?.hasMilitaryPact;
+  const allowed=id=>state.regions[id]?.owner===me || state.regions[id]?.owner===partnerId || state.nations[state.regions[id]?.owner]?.hasMilitaryPact || state.nations[state.regions[id]?.owner]?.openBordersWith?.[me]; // open borders (accords.js)
   const queue=[start],prev=new Map([[start,null]]);
   for(let i=0;i<queue.length;i++){
     const id=queue[i];
