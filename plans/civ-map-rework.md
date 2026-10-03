@@ -1344,6 +1344,15 @@ discretion.
 
 ## J3. Progress log
 
+**C6, trade at closed borders, closed as designed (2026-10-03).** The open item "trade routes
+blocked at closed borders for the AI" needs no code. A trade route exists only between trade
+pact partners (tradeRoutes.js), so the pact is the access; a caravan crosses a third nation's
+land unless that nation is at war with the trader (Civ's rule, chosen over the plan's stricter
+"open borders to route through" when the routes were built, because with 240 nations a route
+that needed a pact with every nation on the way almost never formed). AI trade income is a flat
+local modifier with no path (aiEconomy.js), so there is nothing for a closed border to cut. The
+plan's embargo stays an action for later if a playtest asks for it.
+
 **E2, the tablet shell (2026-10-03).** `useLayoutMode` now splits the middle sizes: a tablet or a
 narrow window held sideways (narrower than 1,024 px, wider than tall, not phone-sized) is
 `tablet` and plays the landscape shell of the phone (the slim top bar, the tab rail on the
