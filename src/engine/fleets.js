@@ -25,13 +25,13 @@ import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 
-export const NAVAL_MOVES_BY_AGE = { bronze: 3, classical: 4, kingdoms: 5, gunpowder: 6, modern: 8 };
+export const NAVAL_MOVES_BY_AGE = { bronze: 4, classical: 6, kingdoms: 7, gunpowder: 8, modern: 11 }; // 106 km hexes
 export const DEEP_OK_FROM = ['gunpowder', 'modern'];
 // The shelf (ocean tiles beside the coast) opens from the Classical age, or earlier with a tech
 // that sails further (techMapEffects navalMoves); the deep ocean from the Age of Gunpowder or a
 // tech that opens the ocean (deepOcean).
 export const SHELF_OK_FROM = ['classical', 'kingdoms', 'gunpowder', 'modern'];
-export const MAX_SEA_STEPS = 120;
+export const MAX_SEA_STEPS = 170;
 const MAX_SEARCH = 12000;
 const KM_PER_RING = 170;
 

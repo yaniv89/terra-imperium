@@ -29,7 +29,7 @@ import { isWarBetween } from './diplomacy';
 import { legacyTerrainOf } from './world/registry';
 import { mapEffectsOf } from './techMapEffects';
 
-export const MOVE_POINTS = { infantry: 2, ranged: 2, cavalry: 4, siege: 1, support: 2, settler: 2, air: 4 };
+export const MOVE_POINTS = { infantry: 3, ranged: 3, cavalry: 6, siege: 2, support: 3, settler: 3, air: 6 }; // 106 km hexes (frequency 75): about the same reach in km as 2/4/1 on the 150 km grid
 export const DEFAULT_MOVE_POINTS = 2;
 export const TILE_COST_MOUNTAINS = 4;
 export const RIVER_CROSSING = 1;
@@ -42,7 +42,7 @@ export const ENEMY_PATH_PENALTY = 6; // each enemy tile on the way to somewhere 
 export const MARCH_ATTRITION = 0.03;  // of strength, per step into mountains, desert or arctic land
 export const BRIDGE_TECH = 'infrastructure_stone_bridges';
 export const RAIL_TECH = 'infrastructure_rail_networks';
-export const SUPPLY_BASE_RINGS = 20;  // how far a unit on free land looks for its nation's nearest city
+export const SUPPLY_BASE_RINGS = 28;  // how far a unit on free land looks for its nation's nearest city
 const SLOW_FEATURES = new Set(['forest', 'jungle', 'marsh']);
 const SLOW_TERRAIN = new Set(['desert', 'tundra']);
 const HARSH_TERRAIN = new Set(['mountains', 'desert', 'arctic']);
@@ -202,8 +202,8 @@ export const regionForTile = (state, tile, nationId, fallback = null) => {
   return nearestCity(state, getTiles(), tile, nationId) ?? fallback;
 };
 
-export const REINFORCE_RINGS = 3;   // how far from a city's centre idle troops can join its battle
-export const FALLBACK_RINGS = 12;   // how far a beaten garrison looks for a city of its own to fall back to
+export const REINFORCE_RINGS = 4;   // how far from a city's centre idle troops can join its battle
+export const FALLBACK_RINGS = 17;   // how far a beaten garrison looks for a city of its own to fall back to
 
 /** Land units of `nationId` standing within `rings` of `centre` (the centre itself excluded),
  * sorted by id: the troops near a battle, a city or a siege. Settlers and cargo never count. */

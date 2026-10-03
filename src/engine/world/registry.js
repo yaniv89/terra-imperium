@@ -68,8 +68,8 @@ export const legacyTerrainOf = (tiles, tile) => {
 // for two different peoples whose modern countries border each other, when they are the nearest
 // cities of those peoples within BRIDGE_RINGS tiles. The last rule is the bridge that keeps wars,
 // trade and AI fronts working on the Dawn world, where only 10% of the land is claimed.
-export const NEAR_RINGS = 3;
-export const BRIDGE_RINGS = 12;
+export const NEAR_RINGS = 4;
+export const BRIDGE_RINGS = 17;
 // City centres never move, so the ring distance between two tiles is memoised for good.
 const ringCache = new Map();
 const ringsBetween = (tiles, from, to, maxRing) => {

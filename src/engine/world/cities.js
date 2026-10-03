@@ -73,7 +73,7 @@ export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const IMPROVEMENT_COST_PER_TURN = 10;
 // Tiles are about 150 km across, so one free tile between cities is already Civ's spacing.
-export const MIN_CITY_SPACING = 2;
+export const MIN_CITY_SPACING = 3; // rings between city centres; 2 on the 150 km grid, 3 on the 106 km grid keeps the city count near the old one
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
 export const growthThreshold = (size) => Math.round(15 + 6 * size + size ** 1.8);

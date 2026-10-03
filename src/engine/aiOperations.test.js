@@ -42,7 +42,7 @@ describe('operational AI',()=>{
     const pool=[];for(let t=0;t<tiles.count;t++)if(tiles.land[t]&&!base.s.world.tileOwner[t])pool.push(t);
     pool.sort((a,b)=>distanceKm(tiles.centres[from],tiles.centres[a])-distanceKm(tiles.centres[from],tiles.centres[b]));
     let f=null;
-    for(const t of pool.slice(0,40)){let r;try{r=addCity(base.s,'fr',{near:t});}catch{continue;}if(r.state.regions[r.cityId].tile===t&&!getNeighborIds(r.cityId).includes(base.border)){f=r;break;}}
+    for(const t of pool.slice(0,160)){let r;try{r=addCity(base.s,'fr',{near:t});}catch{continue;}if(r.state.regions[r.cityId].tile===t&&!getNeighborIds(r.cityId).includes(base.border)){f=r;break;}}
     if(!f)throw new Error('fixture: no French site away from Berlin');
     let st=f.state;const sources=[];
     for(let i=0;i<5&&sources.length<2;i++){const g=addCity(st,'de',{near:f.cityId});st=g.state;if(getNeighborIds(f.cityId).includes(g.cityId))sources.push(g.cityId);}

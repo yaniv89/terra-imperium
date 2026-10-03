@@ -23,7 +23,7 @@ describe('cities on the grid', () => {
     const okFar = canFoundCity(world, tiles, far, 'eg');
     // Either far enough, or the reason is the spacing rule.
     expect(okFar.ok || /Too close/.test(okFar.reason)).toBe(true);
-    expect(MIN_CITY_SPACING).toBe(2);
+    expect(MIN_CITY_SPACING).toBe(3);
   });
 
   it('works its best tiles by focus, never starving when food is reachable', () => {
@@ -118,11 +118,10 @@ describe('cities on the grid', () => {
 
   it('runs 2,000 cities in under 150 ms a turn on this sandbox', () => {
     let world = emptyWorld();
-    const sites = [];
+    const sites = []; const taken = new Set();
     for (let i = 0; i < tiles.count && sites.length < 2000; i += 1) {
-      if (!tiles.land[i] || tiles.terrainOf(i) === 'snow' || tiles.featureOf(i) === 'ice') continue;
-      if (sites.some((s) => tiles.neighbors[s].includes(i) || s === i)) continue;
-      sites.push(i);
+      if (!tiles.land[i] || tiles.terrainOf(i) === 'snow' || tiles.featureOf(i) === 'ice' || taken.has(i)) continue;
+      sites.push(i); taken.add(i); tiles.neighbors[i].forEach((n) => taken.add(n));
     }
     sites.forEach((t, k) => { ({ world } = foundCity(world, tiles, { nationId: `n${k % 240}`, tile: t, size: 3 })); });
     expect(Object.keys(world.cities).length).toBe(2000);
@@ -130,7 +129,7 @@ describe('cities on the grid', () => {
     for (let i = 0; i < 3; i++) world = processCities(world, tiles, () => ctx()).world;
     const ms = (performance.now() - t0) / 3;
     expect(ms).toBeLessThan(150);
-  });
+  }, 60000);
 
   it('derives people from size', () => {
     expect(sizeToPeople(1)).toBe(1000);

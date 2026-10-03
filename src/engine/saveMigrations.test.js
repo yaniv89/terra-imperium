@@ -93,10 +93,11 @@ describe('migrateSave (version 7: the tile world, a clean break with the region 
   });
 
   it('refuses every save from the region map (versions 1 to 6) rather than guessing', () => {
-    expect(OLDEST_LOADABLE_SAVE_VERSION).toBe(7);
+    expect(OLDEST_LOADABLE_SAVE_VERSION).toBe(8); // version 7 (the frequency-53 grid) cannot be converted: every tile id changed
     expect(migrateSave(saveV1Fixture)).toBeNull();
     const fresh = createInitialState({ playerNationId: 'fr' });
     expect(migrateSave({ version: 6, state: fresh })).toBeNull();
+    expect(migrateSave({ version: 7, state: fresh })).toBeNull();
     expect(migrateSave(fresh)).toBeNull(); // a bare state without an envelope counts as version 1
   });
 

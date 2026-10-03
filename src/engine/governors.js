@@ -18,7 +18,7 @@ import { ringsAround } from './world/cities';
 import { getOwnedRegionIds } from '../data/regions';
 import { mapEffectsFor } from './techMapEffects';
 
-export const GOVERNOR_GROUP_RINGS = 6;
+export const GOVERNOR_GROUP_RINGS = 8;
 export const GOVERNOR_GROUP_MAX = 6;
 export const GOVERNOR_ASSIGN_TURNS = 2;
 export const GOVERNOR_FOOD = 1;

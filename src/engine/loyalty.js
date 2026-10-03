@@ -40,7 +40,7 @@ import { landUnitsByTile } from './sieges';
 import { governorEffects } from './governors';
 import { lawRulesOf } from './lawRules';
 
-export const PRESSURE_RINGS = 9;
+export const PRESSURE_RINGS = 13;
 export const KM_PER_RING = 147;
 export const CULTURE_DRIFT = 0.05;
 export const CULTURE_PERIOD = 3;        // a city's shares drift every third turn (by CULTURE_PERIOD x CULTURE_DRIFT)
