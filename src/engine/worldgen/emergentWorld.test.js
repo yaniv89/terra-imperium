@@ -7,6 +7,8 @@ import { resolveTurn } from '../resolveTurn';
 import { HISTORICAL_EVENTS } from '../../data/events';
 import { NATION_COUNTS, generateStarts, applyScenario } from './emergentWorld';
 import { processEmergence } from '../emergence';
+import { getTiles } from '../../data/geo/tiles';
+import { ringDistance, MIN_CITY_SPACING } from '../world/cities';
 import { SCENARIO_IDS, DAWN_SETTLER_NATIONS, UNPEOPLED_AT_DAWN } from '../../data/scenarios';
 
 describe('world scenarios on the tile grid', () => {
@@ -82,6 +84,21 @@ describe('world scenarios on the tile grid', () => {
     expect(added.embarkedOn).toBeUndefined();
     expect(added.homeRegionId).toBe(added.regionId);
     assertGameState(next);
+  });
+
+  it('a people never emerges within MIN_CITY_SPACING rings of a city', () => {
+    let state = createInitialState({ playerNationId: 'fr', rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });
+    state = { ...state, turnNumber: 50 };
+    const tiles = getTiles();
+    const next = processEmergence(state);
+    const id = next.scenario.activeNationIds.at(-1);
+    const capital = next.regions[next.nations[id].capitalRegionId];
+    Object.values(state.regions).forEach((c) => expect(ringDistance(tiles, c.tile, capital.tile, MIN_CITY_SPACING)).toBeGreaterThanOrEqual(MIN_CITY_SPACING));
+    // a city two rings from that people's home: it waits (or another people emerges instead)
+    const near = tiles.neighbors[tiles.neighbors[capital.tile][0]].find((t) => t !== capital.tile && !tiles.neighbors[capital.tile].includes(t));
+    const blocker = { ...Object.values(state.regions)[0], id: 'blocker', tile: near, tiles: [near], owner: 'fr' };
+    const crowded = processEmergence({ ...state, regions: { ...state.regions, blocker } });
+    expect(crowded.scenario.activeNationIds.at(-1)).not.toBe(id);
   });
 
   it('an emergent world plays turns and stays valid', () => {
