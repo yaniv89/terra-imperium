@@ -128,6 +128,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             navigateTarget={navigateTarget}
             onViewportChange={setViewportBounds}
             onSelectTile={onSelectTile}
+            onSelectArmy={onSelectArmy}
+            lens={lens}
           />
         )
         : (
@@ -162,7 +164,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {selectedArmy != null && !selectedRegion && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
-        {mode === 'flat' && <LensStrip lens={lens} onChange={setLens} />}
+        <LensStrip lens={lens} onChange={setLens} />
         <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
         <MapLegend />
       </div>
