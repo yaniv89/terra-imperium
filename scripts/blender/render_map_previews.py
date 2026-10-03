@@ -33,9 +33,14 @@ def lod_at(k):
     return 2 if k < 20 else 1 if k < 40 else 0
 
 
+def is_lod(obj, lod):
+    """Blender names the LODs of a file's second object LOD0.001 and so on."""
+    return obj.name == 'LOD%d' % lod or obj.name.startswith('LOD%d.' % lod)
+
+
 def show_lod(root, lod):
     for c in root.children:
-        c.hide_render = c.name != 'LOD%d' % lod
+        c.hide_render = not is_lod(c, lod)
 
 
 def ortho_cam(scene, target, direction, width_units, res):
@@ -76,7 +81,22 @@ def main(blend, out_dir, concept=None, quick=False):
     os.makedirs(out_dir, exist_ok=True)
     bpy.ops.wm.open_mainfile(filepath=blend)
     scene = bpy.context.scene
-    root = next(o for o in bpy.data.objects if o.type == 'EMPTY')
+    roots = [o for o in bpy.data.objects if o.type == 'EMPTY' and o.parent is None]
+    concept_dir = concept if concept and os.path.isdir(concept) else None
+    for root in roots:
+        for other in roots:  # one object at a time, at the origin
+            for c in other.children:
+                c.hide_render = other is not root
+        home = root.location.copy()
+        root.location = (0, 0, 0)
+        render_object(scene, root, out_dir, os.path.join(concept_dir, root.name + '.png') if concept_dir else concept, quick)
+        root.location = home
+    print('previews in', out_dir)
+    sys.stdout.flush()
+    os._exit(0)
+
+
+def render_object(scene, root, out_dir, concept, quick):
     name = root.name
     ti.setup_render(scene, samples=16 if quick else 48, transparent=False)
     sun = ti.setup_lights(scene, sun_dir=MAP_SUN)
@@ -102,25 +122,24 @@ def main(blend, out_dir, concept=None, quick=False):
         'top': Vector((0, -0.0001, 1)),
         'beauty': Vector((-0.5, -0.5, 0.7071)),
     }
+    lod0 = next(c for c in root.children if is_lod(c, 0))
+    span = max(lod0.dimensions.x, lod0.dimensions.y)
+    hz = lod0.dimensions.z
     for vname, d in views.items():
-        aim = Vector((0, 0, {'front': 0.95, 'top': 0.0, 'beauty': 0.3}[vname]))
-        lod0 = next(c for c in root.children if c.name == 'LOD0')
-        span = max(lod0.dimensions.x, lod0.dimensions.y)
-        cam = ortho_cam(scene, aim * (span / 4.0), d, max(4.6, span * 1.15), (1024, 560 if vname == 'front' else 760))
+        aim = Vector((0, 0, {'front': hz * 0.55, 'top': 0.0, 'beauty': hz * 0.25}[vname]))
+        res = (1024, 560 if vname == 'front' else 760)
+        cam = ortho_cam(scene, aim, d, max(span * 1.15, hz * 1.35 * res[0] / res[1]), res)
         render(scene, os.path.join(out_dir, '%s_view_%s.png' % (name, vname)))
         bpy.data.objects.remove(cam)
     bpy.data.objects.remove(bg)
 
     # 3. one contact sheet of the game-camera renders and one of the model against the concept
     if not quick:
-        sheet(out_dir, ['%s_k%d_%s.png' % (name, k, b) for b in ('grass', 'blue') for k in (10, 40, 150)], 'sheet_game_camera.png', 3)
+        sheet(out_dir, ['%s_k%d_%s.png' % (name, k, b) for b in ('grass', 'blue') for k in (10, 40, 150)], '%s_sheet_game_camera.png' % name, 3)
     parts = ['%s_view_beauty.png' % name, '%s_view_top.png' % name]
-    sheet(out_dir, parts, 'sheet_views.png', 2)
-    if concept:
+    sheet(out_dir, parts, '%s_sheet_views.png' % name, 2)
+    if concept and os.path.exists(concept):
         compare(out_dir, concept, name)
-    print('previews in', out_dir)
-    sys.stdout.flush()
-    os._exit(0)
 
 
 def load(path):
@@ -173,7 +192,7 @@ def compare(out_dir, concept, name):
     canvas[..., :3] = 0.12
     canvas[:, :panel.shape[1]] = panel
     canvas[:, panel.shape[1] + 8:] = ms
-    save(canvas, os.path.join(out_dir, 'sheet_concept_vs_model.png'))
+    save(canvas, os.path.join(out_dir, '%s_concept_vs_model.png' % name))
 
 
 if __name__ == '__main__':
