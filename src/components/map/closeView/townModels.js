@@ -49,7 +49,7 @@ const seeded = (key) => {
 
 const tmpColor = new Color();
 // Give a geometry one vertex colour, drop uvs (every part must share the same attributes to merge).
-const paint = (geo, hex, shade = 1) => {
+export const paint = (geo, hex, shade = 1) => {
   const g = geo.index ? geo.toNonIndexed() : geo;
   g.deleteAttribute('uv');
   tmpColor.set(hex).multiplyScalar(shade);

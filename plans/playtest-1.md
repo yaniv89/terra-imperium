@@ -335,3 +335,27 @@ flattens a model's texture into one colour per triangle for the instanced soldie
 textured soldier material (the atlas sampled in the shader, LOD1 and imposters) is built with
 the first real model, the Swordsmen pilot of plans/model-brief-for-claude.md.
 
+
+**Wave 5 shipped (2026-10-03).** P1.3 the rendered close view and P1.1 the super zoom.
+- The ground: from zoom 10 the flat map's SVG stops drawing its pictures and turns transparent
+  over a new canvas, `CloseTerrainLayer.jsx`, which draws the level-5 tiles on screen through
+  `terrainShader.js` (over the whole-world picture while a tile loads). Each pixel is classed
+  water or land by its colour, and snow or bare ground on land; the class is blended between the
+  four nearest pixels and cut at one half with a one-pixel soft edge, so coasts, lakes, rivers
+  and glaciers stay clean lines at any zoom and each side keeps its own true colour. Ground
+  detail is noise in world kilometres at 24, 6 and 1.5 km (mottled grass, sand ripples, rock
+  crags, sea swells, a light rim on the shore, a small hillshade), each scale fading in once it
+  spans 4 device pixels. It draws only when the view changes. Territories, borders, lenses,
+  routes and badges still draw over it; without WebGL the old pictures stay.
+- On the land (`landscape.js`, `landscapeModels.js`): trees in forest and jungle hexes from zoom
+  14 (pines north of 48 degrees, broadleaf elsewhere, palms in the jungle; 22 a hex, up to 3
+  times denser in the super zoom; none on a city, district, wonder or work tile; at most 4,000),
+  and a small work on every improved tile: farm fields, pasture, camp, mine, quarry, plantation,
+  lumber camp, oil well, fort and fishing boats, darker when pillaged. Placeholders until the
+  models of plans/model-brief-for-claude.md.
+- The super zoom: the zoom limit is 200 on desktop and touch (was 40 and 80). Past zoom 40 the
+  models grow with zoom to the power 0.7 so a town stays inside its hex, and they lean lower
+  (tilt 0.95 to 1.2 radians by zoom 200).
+- Checked in the browser at a phone screen (844 x 390, 2x): Paris at zoom 15 and 200, the
+  Normandy coast at 60, Brittany at 120 and 150, the Alps at 40 and 80. No console errors; a
+  redraw after a view change takes about 25 to 50 ms under software rendering.

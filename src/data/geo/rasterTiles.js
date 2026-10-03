@@ -24,12 +24,12 @@ export const baseRasterZoom = (baseSize) => Math.round(Math.log2(baseSize / (RAS
  * space, for the level matching the zoom, covering the screen plus `margin` tiles. Empty when the
  * base picture is already as sharp (level at or under `baseZ`).
  * `raster`: the world rectangle in projection space; `transform`: { x, y, k }; `dpr`: device
- * pixels per CSS pixel.
+ * pixels per CSS pixel. `forceZ`: always this level (the close terrain layer reads level 5).
  */
-export const visibleRasterTiles = ({ raster, transform, width, height, dpr = 1, baseZ = 3, margin = 1 }) => {
+export const visibleRasterTiles = ({ raster, transform, width, height, dpr = 1, baseZ = 3, margin = 1, forceZ = null }) => {
   if (!raster || !transform || width <= 0 || height <= 0) return [];
-  const z = rasterZoomFor(raster.width * transform.k * dpr);
-  if (z <= baseZ) return [];
+  const z = forceZ ?? rasterZoomFor(raster.width * transform.k * dpr);
+  if (forceZ == null && z <= baseZ) return [];
   const cols = 2 ** (z + 1); const rows = 2 ** z;
   const tw = raster.width / cols; const th = raster.height / rows;
   const x0 = (-transform.x / transform.k - raster.x) / tw; const x1 = ((width - transform.x) / transform.k - raster.x) / tw;
