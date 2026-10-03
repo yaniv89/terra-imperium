@@ -1918,6 +1918,16 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**E4, the nation sheet (2026-10-03).** `NationCard` (one nation's relation card with the
+Diplomacy tab's actions) moved out of DiplomacyPanel into its own file, and
+`src/components/map/NationSheet.jsx` over `nationSheetModel.js` (pure, tested) shows a nation at a
+glance: government and ruler, cities and capital (tap to go there), its army against yours in
+words and numbers, the standing (war, truce, ally, trade pact, open borders, vassal, overlord,
+rival), claims both ways, the wonders it holds, its opinion of you with every reason, then the
+card's actions. Opened by tapping a foreign owner's name on the region card (`selectNation`,
+marchEvents.js); a bottom sheet on a phone, a docked card on desktop, like the army sheet.
+Still open in E4: the empire sheet and the province modal's old tabs.
+
 **E4, the city sheet's Buildings and Politics tabs (2026-10-03).**
 `src/components/city/cityPoliticsModel.js` (pure, tested) and `CityPolitics.jsx` /
 `CityBuildings.jsx`, hosted by the province modal as two more tabs beside City and Tiles. Politics:

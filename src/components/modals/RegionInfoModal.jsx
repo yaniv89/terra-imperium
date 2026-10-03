@@ -35,7 +35,7 @@ import ProgressBar from '../ui/ProgressBar';
 import { ActionButton } from '../ui';
 import TopLayer from '../ui/TopLayer';
 import PreBattleModal from '../battle/PreBattleModal';
-import { startMarch } from '../map/marchEvents';
+import { startMarch, selectNation } from '../map/marchEvents';
 import { placeName } from '../../engine/routes';
 import { supplyOf } from '../../engine/supplyMeter';
 import { atSea } from '../../engine/fleets';
@@ -283,7 +283,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       <div className="flex items-center justify-between mb-2">
         <span className="text-slate-400">Owner:</span>
         <span className={`font-semibold ${isPlayerOwned ? 'text-blue-400' : ''}`} style={{ color: !isPlayerOwned ? ownerNation?.color : undefined }}>
-          {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation?.name || (isNeutralFrontier ? (regionState.colony ? `Free land, ${regionState.colony.ownerId === state.playerNationId ? 'your' : `${state.nations[regionState.colony.ownerId]?.name || 'a'}`} colony` : 'Free land') : 'Unknown')}
+          {isPlayerOwned ? state.nations[state.playerNationId]?.name : ownerNation ? <button type="button" onClick={() => selectNation(ownerNation.id)} className="underline decoration-dotted min-h-[24px]" title="Open the nation sheet" data-testid="open-nation-sheet">{ownerNation.name}</button> : (isNeutralFrontier ? (regionState.colony ? `Free land, ${regionState.colony.ownerId === state.playerNationId ? 'your' : `${state.nations[regionState.colony.ownerId]?.name || 'a'}`} colony` : 'Free land') : 'Unknown')}
         </span>
       </div>
 

@@ -44,9 +44,10 @@ import MapLegend from '../globe/MapLegend';
 import { RegionInfoModal, ProvinceModal } from '../modals';
 import TileSheet from './TileSheet';
 import ArmySheet from './ArmySheet';
+import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
-import { SELECT_ARMY, SELECT_TILE } from './marchEvents';
+import { SELECT_ARMY, SELECT_TILE, SELECT_NATION } from './marchEvents';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -75,6 +76,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const marching = !!marchCtx?.march && !marchCtx.march.dragging;
   const [selectedTile, setSelectedTile] = useState(null);
   const [selectedArmy, setSelectedArmy] = useState(null);
+  const [selectedNation, setSelectedNation] = useState(null); // the nation sheet (NationSheet.jsx)
   const [lens, setLens] = useState('political'); // lenses.js; keys 1 to 5 on a keyboard
   useEffect(() => {
     const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) setLens(l.id); };
@@ -85,12 +87,13 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   useEffect(() => {
     const onArmy = (e) => { setSelectedArmy(e.detail); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
     const onTile = (e) => { setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
-    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile);
-    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); };
+    const onNation = (e) => { setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
+    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation);
+    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // the tile of one of your armies: its sheet (ArmySheet.jsx)
   const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
-  const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) { setSelectedTile(null); setSelectedArmy(null); } selectRegion(id); } };
+  const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) { setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); } selectRegion(id); } };
   // In march mode any tile (sea included, for a fleet) is the target; otherwise only land opens the tile sheet.
   const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } const land = tile != null && getTiles().land[tile] === 1 ? tile : null; setSelectedTile(land); if (land != null) { setManageOpen(false); setSelectedArmy(null); selectRegion(null); } };
   const [mode, setMode] = useState(readStoredMode);
@@ -157,6 +160,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       )}
       {selectedTile != null && !selectedRegion && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
       {selectedArmy != null && !selectedRegion && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
+      {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
         {mode === 'flat' && <LensStrip lens={lens} onChange={setLens} />}
         <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
