@@ -33,7 +33,7 @@ export const isFighting = (q) => q.alive && q.onField && !q.fled;
 export const canAttack = (q) => isFighting(q) && !q.routed && !q.retreating && q.stats.attackTicks > 0 && !(q.inside >= 0);
 
 // Plain unit view for battle.js's multiplier functions.
-const view = (q) => ({ id: q.unitId, classId: q.classId, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId });
+const view = (q) => ({ id: q.unitId, classId: q.classId, navalLine: q.original?.navalLine, strength: q.strength, promotions: q.promotions, commanderId: q.commanderId }); // the line: a transport fights badly, a raider lightly (navalLines.js)
 
 // 0 front (±60°: a 120° arc), 1 flank (60–120° either side), 2 rear (±60° behind: 120°).
 // Angles are 256 to the turn, so 60° ≈ 43 and 120° ≈ 85.

@@ -23,7 +23,7 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     return { id: p.id, label: POWERS[p.id]?.label || p.id, cost: st.cost, usesLeft: st.usesLeft, readyIn: Math.max(0, st.readyAt - w.tick), targeted: !!POWERS[p.id]?.impacts };
   }),
   squads: w.squads.map((q) => ({
-    idx: q.idx, side: q.side, unitId: q.unitId, classId: q.classId, ageId: q.ageId,
+    idx: q.idx, side: q.side, unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null,
     x: q.x, y: q.y, facing: q.facing,
     strength: q.strength, maxStrength: q.maxStrength, startStrength: q.startStrength, morale: q.morale,
     alive: q.alive, onField: q.onField, fled: q.fled, routed: q.routed, retreating: q.retreating,

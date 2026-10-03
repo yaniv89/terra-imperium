@@ -16,7 +16,7 @@ import {
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TILE } from '../setup/mapgen';
-import { getBattleStats, getSoldierCount } from '../data/battleStats';
+import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { getSoldierGeometry, getImposterGeometry, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant } from './unitVariants';
 import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
@@ -254,6 +254,7 @@ export class BattleRenderer {
 
   buildTerrain() {
     const { w, h, tiles } = this.map;
+    const naval = !!this.map.naval;
     const geo = this.track(new PlaneGeometry(w, h, w, h));
     geo.rotateX(-Math.PI / 2);
     geo.translate(w / 2, 0, h / 2);
@@ -277,7 +278,7 @@ export class BattleRenderer {
       const ix = Math.max(0, Math.min(w - 1, Math.floor(x))); const iz = Math.max(0, Math.min(h - 1, Math.floor(z)));
       const t = tiles[iz * w + ix];
       grass(x, z, y, i);
-      if (t === TILE.WATER || t === TILE.FORD) tmpColor.lerp(tileColor.set(TILE_TINT[t]), 0.85);
+      if (t === TILE.WATER || t === TILE.FORD || (naval && t === TILE.OPEN)) tmpColor.lerp(tileColor.set(TILE_TINT[TILE.WATER]), 0.85); // a sea battle's open tiles are water
       colors[i * 3] = tmpColor.r; colors[i * 3 + 1] = tmpColor.g; colors[i * 3 + 2] = tmpColor.b;
     }
     geo.setAttribute('color', new Float32BufferAttribute(colors, 3));
@@ -299,14 +300,14 @@ export class BattleRenderer {
     const skirtGeo = this.track(buildSkirtGeometry(this.map, this.skirtHeight, (x, z, y) => {
       const d = Math.hypot(x - Math.max(0, Math.min(w, x)), z - Math.max(0, Math.min(h, z)));
       grass(x, z, Math.max(0, y), n++);
-      if (y < -0.3) tmpColor.lerp(tileColor.set(TILE_TINT[TILE.WATER]), 0.85);
+      if (y < -0.3 || naval) tmpColor.lerp(tileColor.set(TILE_TINT[TILE.WATER]), 0.85); // open sea all round a sea battle
       return tmpColor.lerp(far, Math.min(0.35, d / 90));
     }));
     this.skirt = new Mesh(skirtGeo, mat);
     this.skirt.receiveShadow = true;
     this.scene.add(this.skirt);
     // And past the skirt, a plain far plane at the skirt's outer level, lost in the haze.
-    const coast = hasCoast(this.map);
+    const coast = naval || hasCoast(this.map);
     // A frame around the skirt's rim — never under the map, where it would hide riverbeds.
     const E = 450; const X0 = -SKIRT; const X1 = w + SKIRT; const Z0 = -SKIRT; const Z1 = h + SKIRT; const hy = horizonLevel(coast);
     const band = (x0, x1, z0, z1) => new PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2).translate((x0 + x1) / 2, hy, (z0 + z1) / 2);
@@ -318,7 +319,7 @@ export class BattleRenderer {
     this.scene.add(horizon);
     // Water is a real, glossy surface over the riverbeds, lakes and the landing sea — and on a
     // coast it carries on to the horizon.
-    if (tiles.some((t) => t === TILE.WATER || t === TILE.FORD)) {
+    if (naval || tiles.some((t) => t === TILE.WATER || t === TILE.FORD)) {
       // A coast's sea runs to the horizon; a river runs on through the skirt and fades at its rim.
       const size = coast ? [w + SKIRT * 2 + 900, h + SKIRT * 2 + 900] : [w + SKIRT * 2, h + SKIRT * 2];
       const water = new Mesh(
@@ -349,8 +350,8 @@ export class BattleRenderer {
           if (r > 0.6) (r2 < 0.5 ? oaks : pines).push([x + 0.8 - r2 * 0.5, z + 0.7 - r * 0.4, 0.5 + r2 * 0.3]);
         } else if (t === TILE.ROCK && r < 0.5) rocks.push([x + 0.3 + r2 * 0.4, z + 0.3 + r * 0.4, 0.4 + r * 0.6]);
         else if (t === TILE.BUILDING && Math.abs(x - keep.x) + Math.abs(z - keep.y) > 3 && !landmarkTiles.has(z * w + x)) houses.push([x + 0.5, z + 0.5, r]);
-        else if ((t === TILE.OPEN || t === TILE.SAND) && !winter && r < (dry ? 0.1 : 0.32)) tufts.push([x + r2, z + hash01(r * 1e6), 0.6 + r2 * 0.5]);
-        else if (t === TILE.OPEN && r > 0.985) rocks.push([x + r2, z + 0.5, 0.25 + r2 * 0.3]); // the odd boulder in a field
+        else if ((t === TILE.OPEN || t === TILE.SAND) && !winter && !this.map.naval && r < (dry ? 0.1 : 0.32)) tufts.push([x + r2, z + hash01(r * 1e6), 0.6 + r2 * 0.5]);
+        else if (t === TILE.OPEN && !this.map.naval && r > 0.985) rocks.push([x + r2, z + 0.5, 0.25 + r2 * 0.3]); // the odd boulder in a field
       }
     }
     // Woods and the odd boulder out in the skirt too, so the land beyond isn't a bare lawn.
@@ -444,6 +445,7 @@ export class BattleRenderer {
       }
     };
     this.setup.structures.forEach((s) => {
+      if (this.map.naval) return; // a sea battle's anchorage is an objective for the AI, nothing stands there
       // Per-structure materials, so a destroyed tower can turn to rubble on its own.
       const stone = this.track(new MeshLambertMaterial({ color: modern ? '#8f9194' : '#a39c8c' }));
       const darkStone = this.track(new MeshLambertMaterial({ color: modern ? '#6c6e72' : '#7d776a' }));
@@ -878,16 +880,16 @@ export class BattleRenderer {
       // Squads in contact get nudged apart a little every tick; that's jostling, not marching.
       const step = useP ? Math.hypot(p.x - s.x, p.y - s.y) / Q : 0;
       const moving = step > 0.03 && !s.striking;
-      const y = this.heightAt(x, z);
-      const stats = getBattleStats(s.classId, s.ageId);
+      const y = s.classId === 'naval' ? -0.2 : this.heightAt(x, z);
+      const stats = s.classId === 'naval' ? getUnitBattleStats({ classId: 'naval', navalLine: s.navalLine }, s.ageId) : getBattleStats(s.classId, s.ageId);
       const n = getSoldierCount(stats, s.strength, s.maxStrength);
       const layer = this.soldierLayer(s.ageId, s.classId);
       const { anim } = layer;
       const a = (facing / 256) * Math.PI * 2;
       const fx = Math.cos(a); const fz = Math.sin(a);
-      const big = s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || stats.flying;
+      const big = s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || stats.flying;
       const cols = Math.max(1, Math.ceil(Math.sqrt(n * (big ? 1.2 : 1.8))));
-      const spacing = stats.flying ? 1.4 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52;
+      const spacing = stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52;
       const scale = MODEL_SCALE[s.classId] || 0.62;
       const heading = Math.atan2(fx, fz);
       // Fighting while it's actually swinging or shooting, or standing its ground with a target.

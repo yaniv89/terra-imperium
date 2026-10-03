@@ -77,7 +77,7 @@ const checkEnd = (w) => {
   else if (w.tick >= battleLimitTicks(w.setup)) {
     // At the clock: a river crossing is won by the far bank; a field battle by the strength left.
     if (type === 'river' && farBankStrength(w) >= RIVER_HOLD_SHARE * startStrength(w, SIDE_ATTACKER)) w.ended = { outcome: 'attacker', reason: 'farBankHeld', decisive: true, tick: w.tick };
-    else if (type === 'field' && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
+    else if ((type === 'field' || type === 'naval') && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
     else w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
   }
   if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });

@@ -2,7 +2,7 @@
 // The tactical world: plain objects with integer fields, created once from a BattleSetup and then
 // mutated only by step() (src/battle/sim/step.js). Everything the sim needs is on the world —
 // including the RNG state — so a structuredClone of it is a complete, replayable checkpoint.
-import { getBattleStats } from '../data/battleStats';
+import { getUnitBattleStats } from '../data/battleStats';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { initFog } from './fog';
 
@@ -18,7 +18,7 @@ export const splitFrontAndReserve = (units, combatWidth) => {
 const isBackLine = (stats) => !stats.melee && !stats.flying;
 
 const makeSquad = (w, unit, side, ageId, index) => {
-  const stats = getBattleStats(unit.classId, ageId);
+  const stats = getUnitBattleStats(unit, ageId); // a ship by its line (D5b), anything else by its class
   return {
     idx: index,
     unitId: unit.id,
@@ -105,7 +105,8 @@ const DEPLOY_TEMPLATES = {
   ambush: { attacker: (w, e) => [e + 4, e + 2], defender: (w) => [w.map.keep.x - 14, w.map.keep.x - 11], column: true }, // the defender waits forward in cover; the attacker enters in file
   assault: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 6, w.map.keep.x - 3] }, // the garrison keeps close to its walls
   sally: { attacker: (w, e) => [e + 6, e + 3], defender: (w) => [w.map.keep.x - 10, w.map.keep.x - 6] },
-  landing: { attacker: (w, e) => [e + 3, e + 1], defender: (w) => [w.map.keep.x - 8, w.map.keep.x - 4] } // on the sand; the defender a little inland
+  landing: { attacker: (w, e) => [e + 3, e + 1], defender: (w) => [w.map.keep.x - 8, w.map.keep.x - 4] }, // on the sand; the defender a little inland
+  naval: { attacker: (w, e) => [e + 7, e + 3], defender: (w) => [w.map.keep.x - 12, w.map.keep.x - 7] } // two lines of ships at sea
 };
 export const deployTemplate = (type) => DEPLOY_TEMPLATES[type] || DEPLOY_TEMPLATES.field;
 

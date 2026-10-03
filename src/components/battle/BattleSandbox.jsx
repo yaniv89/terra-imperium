@@ -21,6 +21,10 @@ const PRESETS = {
 const buildArmy = (prefix, preset, ageId, strength, generalId = null) => PRESETS[preset]
   .filter((c) => getAvailableClasses(ageId).includes(c))
   .map((classId, i) => ({ id: `${prefix}${i}`, classId, strength, maxStrength: 1000, morale: 100, promotions: classId === 'ranged' && i === 3 ? ['volleyFire'] : [], commanderId: i === 0 ? generalId : null, domain: 'land', xp: 0 }));
+// A sea battle (`?battleSandbox&sea`): fleets by naval line (navalLines.js) instead of armies.
+const FLEETS = { attacker: ['warship', 'warship', 'warship', 'raider', 'transport'], defender: ['warship', 'warship', 'raider', 'transport'] };
+const buildFleet = (prefix, side, strength, generalId = null) => FLEETS[side]
+  .map((navalLine, i) => ({ id: `${prefix}${i}`, classId: 'naval', navalLine, strength, maxStrength: 1000, morale: 100, promotions: [], commanderId: i === 0 ? generalId : null, domain: 'naval', xp: 0 }));
 
 const GENERALS = {
   g_att: { id: 'g_att', name: 'Your general', personality: 'reckless', martial: 4, shock: 4, fire: 3, maneuver: 3 },
@@ -48,7 +52,8 @@ const BattleSandbox = () => {
     seed: Number(params.get('seed') || 7),
     spectate: params.has('spectate'),
     fog: params.has('fog'),
-    landing: params.has('landing')
+    landing: params.has('landing'),
+    sea: params.has('sea')
   });
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
@@ -65,7 +70,14 @@ const BattleSandbox = () => {
     }
     return null;
   }, []);
-  const setup = useMemo(() => buildSetupFromArmies({
+  const setup = useMemo(() => config.sea ? buildSetupFromArmies({
+    tileContext: sampleTile != null ? tileContextOf(null, getTiles().neighbors[sampleTile].find((n) => getTiles().land[n] !== 1)) : null,
+    regionId: `sandbox-sea-${config.seed}`, terrain: 'sea', battleType: 'naval', seed: config.seed + runId,
+    attackerUnits: buildFleet('a', 'attacker', 1000, 'g_att'), defenderUnits: buildFleet('d', 'defender', 900, 'g_def'), generals: GENERALS,
+    powers: [[], []], reinforcements: [[], []], intel: { attackerSeesDefender: !config.fog },
+    attackerAgeId: config.ageId, defenderAgeId: config.ageId, fortLevel: 0, isCapital: false, infrastructure: 0, deposits: [],
+    controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai']
+  }) : buildSetupFromArmies({
     tileContext: sampleTile != null ? tileContextOf(null, sampleTile) : null,
     regionId: `sandbox-${config.terrain}-${config.seed}`,
     terrain: config.terrain,
@@ -97,7 +109,7 @@ const BattleSandbox = () => {
         key={runId}
         setup={setup}
         playerSide={0}
-        title={`Sandbox · ${config.terrain}`}
+        title={`Sandbox · ${config.sea ? 'sea battle' : config.terrain}`}
         onFinish={(ended) => { setLastResult(ended.result); setRunning(false); }}
         onAbandon={() => setRunning(false)}
       />

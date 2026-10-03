@@ -11,7 +11,7 @@ import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { getRankForXp } from '../../data/promotions';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
 
-const CLASS_LABEL = { infantry: 'Inf', cavalry: 'Cav', ranged: 'Rng', siege: 'Sge', air: 'Air', support: 'Sup' };
+const CLASS_LABEL = { naval: 'Ships', infantry: 'Inf', cavalry: 'Cav', ranged: 'Rng', siege: 'Sge', air: 'Air', support: 'Sup' };
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 const HudButton = ({ icon: Icon, label, onClick, active, danger, disabled, testId }) => (

@@ -1344,6 +1344,26 @@ discretion.
 
 ## J3. Progress log
 
+**D5b, naval battles in the tactical sim (2026-10-03).** A fleet attack can now be commanded
+like a field battle. The battlefield is open sea (mapgen.js `naval`: every tile passable water,
+NAVAL_ISLET_SHARE (2.5%) of rock islets, and where the sea tile's neighbours are land, a shore
+of sand and rock in that sector; no roads, no points, one unwalled "anchorage" keep as the AI's
+objective that the renderer leaves out). A ship is one squad with stats by naval line and age
+(battleStats.js NAVAL_LINE_STATS: oared and sailing ships ram and board, gunpowder broadsides
+and modern guns fire at range, a raider is fast and far-sighted, a carrier strikes from 11
+tiles; `getUnitBattleStats` picks a ship's stats by its line, anything else by its class). The
+sim's hit view now carries the line, so a transport fights badly and a raider lightly in the
+sim as in the quick battle. A sea battle ends by the field rules (60% losses break a fleet; at
+the clock the stronger fleet by 1.5x wins); the deploy template puts two lines of ships at sea.
+The reducer's BEGIN, RESOLVE and ABANDON cases take `{ fromTile, tile, naval: true }` (kind
+`naval`), the setup builder has `buildNavalSetup`, the pre-battle modal shows the fleet odds
+(`estimateFleetOdds`) with Command or Auto-resolve, the army sheet's fleet targets open it, the
+battle host titles it "Sea battle off X". Ships draw as placeholder hulls (a hull, a mast with a
+sail and a team pennant, oars, a ram, gun ports, a modern superstructure, one per age) until the
+models of plans/art-image-spec.md arrive; the sandbox fights at sea with `?battleSandbox&sea`.
+Parity over 8 seeds and three ages: the sim's exchange rate is 0.72x to 1.15x the quick
+battle's on every matchup, with the same winners. Tests in navalTactical.test.js.
+
 **C8, a ruler's traits steer the AI (2026-10-03).** `src/engine/rulerBias.js`. Every AI
 nation already had a real ruler with 0 to 2 traits (succession.js) that nothing read. Now the
 war roll is multiplied by the product of RULER_WAR_ROLL over the ruler's traits (warrior 1.5,

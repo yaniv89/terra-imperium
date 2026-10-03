@@ -84,7 +84,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
           {model.targets.map((t) => (
-            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => (t.kind === 'fleet' ? dispatch({ type: ActionTypes.ATTACK_FLEET, payload: { fromTile: tile, tile: t.tile } }) : setAttack(t))} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : t.kind === 'fleet' ? 'Fight the fleet beside you (quick battle)' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : t.kind === 'fleet' ? 'Fight the fleet beside you' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? `Assault ${t.name}` : `Attack the ${t.name}`} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
             </button>
           ))}
@@ -92,7 +92,9 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       )}
       {attack && (attack.kind === 'city'
         ? <PreBattleModal fromRegionId={model.regionId} targetRegionId={attack.regionId} onClose={() => setAttack(null)} />
-        : <PreBattleModal fromRegionId={model.regionId} tile={attack.tile} onClose={() => setAttack(null)} />)}
+        : attack.kind === 'fleet'
+          ? <PreBattleModal fromRegionId={model.regionId} fromTile={tile} tile={attack.tile} onClose={() => setAttack(null)} />
+          : <PreBattleModal fromRegionId={model.regionId} tile={attack.tile} onClose={() => setAttack(null)} />)}
       {model.pillage && (
         <button type="button" onClick={() => dispatch({ type: ActionTypes.PILLAGE_TILE, payload: { unitIds: model.unitIds } })} data-testid="army-pillage" className="w-full mt-2 min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5" title="Burn the improvement here: it stops yielding until repaired; the stack spends its moves.">
           <Flame className="w-3.5 h-3.5" /> Pillage the {model.pillage.name} (+{model.pillage.gold} gold)

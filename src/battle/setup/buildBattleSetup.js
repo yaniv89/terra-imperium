@@ -12,6 +12,7 @@ import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
 import { validateFieldAttack, getFieldBattleContext } from '../../engine/fieldBattle';
+import { validateFleetAttack, getFleetBattleContext } from '../../engine/navalBattle';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap, TILE, LANDING_SEA_COLS } from './mapgen';
 import { BATTLE_TYPES, battleTypeOf } from './battleType';
@@ -107,10 +108,12 @@ export const buildSetupFromArmies = ({
   landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null
 }) => {
   const combatWidth = getCombatWidth(terrain);
+  const naval = battleType === 'naval';
   const type = battleType || battleTypeOf({ landing, sally, city, fortLevel, tileContext, fromTile });
-  const map = generateMap({ regionId, terrain, combatWidth, pointCount: deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext });
+  const map = generateMap({ regionId, terrain, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
-  const structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
+  // A sea battle has one structure: the defender's anchorage, an unwalled keep the AI steers for and the renderer leaves out.
+  const structures = naval ? buildStructures({ keepTile: map.keep, fortLevel: 0, isCapital: false }) : [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
   if (tileContext && tileContext.hpRatio < 1) structures.forEach((st) => { if (st.kind === 'keep' || st.kind === 'tower') st.hp = Math.max(1, Math.round(st.maxHp * tileContext.hpRatio)); });
   const points = map.points.map((p, i) => ({ id: `p_${deposits[i]}`, kind: 'deposit', resId: deposits[i], x: centre(p.x), y: centre(p.y), owner: 1, progress: 0, capturingSide: -1 }));
   // A landing's beachhead: a point on the sand the invaders must hold (battleType.js).
@@ -306,7 +309,33 @@ const buildFieldSetup = (state, pb) => {
   });
 };
 
+// A sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
+const buildNavalSetup = (state, pb) => {
+  const v = validateFleetAttack(state, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+  if (!v.ok) return null;
+  const attackerUnits = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
+  const defenderUnits = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
+  if (!attackerUnits.length || !defenderUnits.length) return null;
+  const ctx = getFleetBattleContext(state, { ...v, attackerUnits, defenderUnits });
+  return buildSetupFromArmies({
+    tileContext: tileContextOf(state, pb.tile, { fromTile: v.fromTile }),
+    fromTile: v.fromTile, battleType: 'naval',
+    regionId: pb.targetRegionId,
+    terrain: ctx.terrain,
+    seed: pb.seed,
+    attackerUnits, defenderUnits,
+    attackerAgeId: ctx.attackerAgeId, defenderAgeId: ctx.defenderAgeId,
+    generals: ctx.generals || {},
+    fortLevel: 0, isCapital: false, infrastructure: 0, deposits: [],
+    defenseReduction: 1, isAttackingFortification: false, attackerPenaltyMultiplier: 1,
+    attackerNationId: state.playerNationId, defenderNationId: v.defenderNationId,
+    controllers: ['player', 'ai'], difficultyId: state.difficultyId || 'prince',
+    powers: [[], []], reinforcements: [[], []], intel: { attackerSeesDefender: true }, regionBuildings: []
+  });
+};
+
 export const buildInvasionSetup = (state, pendingBattle) => {
+  if (pendingBattle?.kind === 'naval') return buildNavalSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'defense') return buildDefenseSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'field') return buildFieldSetup(state, pendingBattle);
   if (pendingBattle?.kind === 'amphibious') return buildAmphibiousSetup(state, pendingBattle);

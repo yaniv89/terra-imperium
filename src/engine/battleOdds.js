@@ -8,6 +8,7 @@ import { resolveBattle } from './battle';
 import { createRng } from '../utils/rng';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
+import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs } from './navalBattle';
 import { resolveSiegeControlDamage, hasMeleeUnitDeployed, isGarrisonBroken } from './siege';
 import { getCounterMultiplier, getRosterCombatMultiplier } from '../data/unitClasses';
 import { getTerrainCombatModifier } from '../data/terrain';
@@ -92,6 +93,15 @@ export const estimateFieldOdds = (state, fromRegionId, tile, samples = 200) => {
   const ctx = getFieldBattleContext(state, v);
   const r = simulate({ ...v, targetRegion: { control: 100 } }, getFieldResolveArgs(v, ctx), ctx, samples);
   return { ...r, capture: r.attacker, field: true };
+};
+
+/** The odds of a fleet attack from `fromTile` on the enemy fleets on `tile` (navalBattle.js). */
+export const estimateFleetOdds = (state, fromTile, tile, samples = 200) => {
+  const v = validateFleetAttack(state, fromTile, tile, { ignoreCost: true });
+  if (!v.ok) return null;
+  const ctx = getFleetBattleContext(state, v);
+  const r = simulate({ ...v, targetRegion: { control: 100 } }, getFleetResolveArgs(v, ctx), ctx, samples);
+  return { ...r, capture: r.attacker, field: true, naval: true };
 };
 
 export const estimateLandingOdds = (state, navalUnitId, targetRegionId, samples = 200) => {
