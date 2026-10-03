@@ -21,6 +21,7 @@ import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
 import { DOCTRINE_WONDERS, DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
+import { rulerBuildOrder } from './rulerBias';
 
 export const SETTLER_FROM_SIZE = 2;
 export const SETTLER_THINK_PERIOD = 3; // a city looks for a site one turn in three (the site search is the costly part)
@@ -31,7 +32,7 @@ export const WONDER_MIN_PRODUCTION = 6;
 export const MAX_WONDER_TURNS = 30;
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
-export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'infrastructure', 'defense', 'naval'];
+export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval']; // 'logistics' is the category id (buildings.js); it was listed as 'infrastructure' and the AI never built a Road Post from the template
 
 /** The nation-wide counts the choice reads, computed once a turn for every nation (the per-city
  * scans of units and cities were the cost of the phase): { settlers, outposts, landUnits }. */
@@ -73,7 +74,7 @@ export const chooseProduction = (state, city, ctx) => {
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) return item; // bestSites already holds the quality floor
   }
-  const order = buildingOrder(state.nations?.[nationId]?.doctrine);
+  const order = rulerBuildOrder(state.nations?.[nationId], buildingOrder(state.nations?.[nationId]?.doctrine)); // the ruler's favourite lines first (rulerBias.js)
   for (const category of order) {
     const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
     if (!BUILDING_CATEGORIES[category]?.tiers[tier]) continue;

@@ -1344,6 +1344,21 @@ discretion.
 
 ## J3. Progress log
 
+**C8, a ruler's traits steer the AI (2026-10-03).** `src/engine/rulerBias.js`. Every AI
+nation already had a real ruler with 0 to 2 traits (succession.js) that nothing read. Now the
+war roll is multiplied by the product of RULER_WAR_ROLL over the ruler's traits (warrior 1.5,
+tyrant 1.3, strategist 1.2, cruel, paranoid and genius 1.1; coward 0.5, diplomat 0.7, kind,
+sickly and lazy 0.8, just 0.9), clamped to 0.25 to 2.5 (aiLogic.js shouldDeclareWar), and the
+building template puts the ruler's favourite lines first (RULER_BUILD_LINES: a builder wants
+industry and logistics, a scholar science, a merchant economy and naval, a warrior the military
+line, and so on; aiProduction.js). A latent bug came out with it: the AI's template listed
+`infrastructure`, which is no building category, so no AI city ever built a Road Post from the
+template; it is `logistics` now. Balance over seeds 3, 11, 12 (150 turns, player Austria): wars
+23 to 25, conquests 8 to 4, cities changed hands 43 to 30, cities 3,417 to 3,351, 315 to 311 ms
+a turn, all within the spread between seeds. Generals keep their own four-axis skill model
+(generals.js); governors their skill of 1 to 3; an heir may govern (governors.js). Tests in
+rulerBias.test.js.
+
 **C6, trade at closed borders, closed as designed (2026-10-03).** The open item "trade routes
 blocked at closed borders for the AI" needs no code. A trade route exists only between trade
 pact partners (tradeRoutes.js), so the pact is the access; a caravan crosses a third nation's

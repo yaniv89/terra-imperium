@@ -22,6 +22,7 @@
 // favoring infantry, the real counter, not a scripted response to "cavalry" by name.
 
 import { opinionOf, warRollOpinionMult } from '../engine/opinion';
+import { rulerWarMult } from '../engine/rulerBias';
 import { DOCTRINES } from '../data/nations';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
@@ -297,7 +298,7 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
 const shouldDeclareWar = (nation, rng, aggressionMult = 1, coalitionMult = 1, opinionMult = (nation.hostility || 0) / 100 + 0.2) => {
   const doctrine = DOCTRINES[nation.doctrine] || DEFAULT_DOCTRINE;
   if (doctrine.warRollMult <= 0) return false;
-  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult;
+  const chance = BASE_WAR_ROLL_CHANCE * doctrine.warRollMult * aggressionMult * coalitionMult * opinionMult * rulerWarMult(nation); // the ruler's traits (rulerBias.js)
   return rng.next() < chance;
 };
 

@@ -20,7 +20,7 @@ describe('AI building templates (the doctrine order)', () => {
     const berlin = s.regions[getNationCapital('de')];
     const rich = { ...berlin, lastYields: { ...(berlin.lastYields || {}), production: 30 }, production: { current: null, queue: [], progress: 0 } };
     const pick = (doctrine) => {
-      const st = { ...s, regions: { ...s.regions, [berlin.id]: rich }, nations: { ...s.nations, de: { ...s.nations.de, doctrine } } };
+      const st = { ...s, regions: { ...s.regions, [berlin.id]: rich }, nations: { ...s.nations, de: { ...s.nations.de, doctrine, ruler: { ...s.nations.de.ruler, traits: [] } } } }; // a ruler without traits: the doctrine order alone (rulerBias.js)
       return chooseProduction(st, rich, { researched: [], ageId: 'bronze', citiesOwned: 1, turnNumber: 2, units: s.units, counts: { settlers: 1, outposts: 0, landUnits: 9 } });
     };
     const blitz = pick('blitz'); const cautious = pick('cautious');
