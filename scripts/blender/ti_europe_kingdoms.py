@@ -56,8 +56,8 @@ def make_materials():
     tm.mat_simple('ek_glass', ['#2c3644', '#3a4656', '#283039'], scale=40.0, bump=0.2, rough=0.35)
     tm.mat_simple('ek_gold', ['#a07a2a', '#c49a3a', '#8a6a24'], scale=30.0, rough=0.35, metal=0.7, bump=0.1)
     for n in ('ek_cobble', 'ek_cobble_fringe'):
-        tc.mat_paving(n, stone=('#8a857c', '#77736b', '#9a958b'), mortar='#56524b', slab=(0.02, 0.016))
-    tc.mat_paving('ek_cobble_square', stone=('#9d978b', '#8b867b', '#aaa498'), mortar='#625d55', slab=(0.026, 0.02))
+        tc.mat_paving(n, stone=('#88837a', '#7f7a72', '#918c82'), mortar='#605c55', slab=(0.034, 0.026))
+    tc.mat_paving('ek_cobble_square', stone=('#9a9488', '#928c80', '#a29c90'), mortar='#6a655d', slab=(0.04, 0.03))
 
 
 if not any(n == 'europe_kingdoms' for n, _ in tt.EXTRA_MATERIALS):
@@ -705,10 +705,10 @@ def replay(ms, rng, calls, size, east=False, override=None):
             k = kind or house_kind(name, w, d, kw)
             opts = dict(yaw=kw.get('yaw'))
             if k == 'common':
-                opts.update(gable_front=kw.get('gable_front'), roof=kw.get('roof', 'slate'), awning_w=kw.get('awning_w'),
+                opts.update(gable_front=kw.get('gable_front'), roof='slate', awning_w=kw.get('awning_w'),
                             barrels=kw.get('barrels', kw.get('jar_n', 1)) and 1, chimneys=kw.get('chimneys', 1))
             elif k == 'poor':
-                opts.update(roof=kw.get('roof', 'slate'))
+                opts.update(roof='slate')
             house(ms, rng, k, x, y, w, d, **opts)
         elif kind == 'church' or name in ('church', 'cathedral'):
             fn = onion_church if east else gothic_church

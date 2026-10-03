@@ -20,11 +20,11 @@ ITEMS = [
     ('walls-small', md.walls_small, None),
     ('walls-medium', md.walls_medium, None),
     ('walls-big', md.walls_big, None),
-    ('colony-camp', md.colony_camp, dict(rx=0.98, ry=0.88, square=None, power=5)),
-    ('field-1', md.field_1, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64)),
+    ('colony-camp', md.colony_camp, dict(rx=0.98, ry=0.88, square=None, power=5, mat='grass')),
+    ('field-1', md.field_1, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64, mat='md_tilled')),
     ('field-2', md.field_2, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64, mat='md_lawn')),
     ('field-3', md.field_3, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64, mat='md_lawn')),
-    ('field-4', md.field_4, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64)),
+    ('field-4', md.field_4, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64, mat='md_tilled')),
 ]
 
 if __name__ == '__main__':

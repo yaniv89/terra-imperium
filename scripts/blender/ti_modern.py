@@ -24,7 +24,7 @@ from ti_town import G, STOREY  # noqa: E402
 
 # ---- materials ----------------------------------------------------------------------------------
 
-GROUNDS = ['md_pave', 'md_asphalt', 'md_lawn']
+GROUNDS = ['md_pave', 'md_asphalt', 'md_lawn', 'md_tilled']
 NEW = ['md_render', 'md_render_win', 'md_brick', 'md_brick_win', 'md_glass', 'md_shop', 'md_roof', 'md_slate',
        'md_slate_dark', 'md_concrete', 'md_bunker', 'md_lime', 'md_steel', 'md_wire', 'md_glassroof', 'md_leaf',
        'md_hedge', 'md_turf', 'md_corrugated', 'md_prefab', 'md_marking', 'md_wheat', 'md_apple', 'md_poly',
@@ -217,8 +217,8 @@ def make_materials():
     s('md_corrugated', ['#6f767d', '#838a91', '#5f666d'], scale=12.0, stripes={'dir': 'X', 'scale': 260.0, 'distortion': 0.5}, bump=0.5)
     s('md_prefab', ['#cfccc4', '#dad7d0', '#c3c0b8'], scale=12.0, stripes={'dir': 'X', 'scale': 30.0, 'distortion': 0.3}, bump=0.3, dirt=True)
     s('md_marking', ['#e4e4de', '#f0f0ea'], scale=30.0, bump=0.0)
-    s('md_wheat', ['#8e6a22', '#c09538', '#ddb75a', '#a57f2e'], scale=70.0, stripes={'dir': 'Y', 'scale': 300.0, 'distortion': 14.0}, bump=0.8)
-    s('md_apple', ['#2a4a1f', '#416f29', '#b3261c', '#5a8634'], scale=55.0, bump=0.7)
+    s('md_wheat', ['#b8892c', '#d9aa45', '#ebc768', '#c99a38'], scale=70.0, stripes={'dir': 'Y', 'scale': 300.0, 'distortion': 14.0}, bump=0.8)
+    s('md_apple', ['#b8291d', '#2a4a1f', '#416f29', '#5a8634', '#3c6426', '#c4301f'], scale=70.0, bump=0.7)
     s('md_poly', ['#cfd5cf', '#e2e6e1', '#bcc6bd'], scale=8.0, stripes={'dir': 'Y', 'scale': 12.0, 'distortion': 0.2}, rough=0.4, bump=0.2)
     s('md_veg', ['#3a7026', '#5a9536', '#7cae48'], scale=90.0, bump=0.7)
     s('md_veg_red', ['#4f2033', '#6c2b44', '#3c5f28'], scale=90.0, bump=0.7)
@@ -231,7 +231,7 @@ def make_materials():
     s('md_wood', ['#9b7548', '#b18a58', '#87653e'], scale=10.0, stripes={'dir': 'X', 'scale': 90.0, 'distortion': 6.0}, bump=0.4)
     s('md_sandbag', ['#ad9568', '#c0a97c', '#98825a'], scale=40.0, bump=0.5)
     s('md_jerry', ['#d6d6d2', '#e4e4e0'], scale=20.0, bump=0.1)
-    s('md_mesh', ['#7c8186', '#8e9398', '#6e7378'], scale=40.0, stripes={'dir': 'Z', 'scale': 240.0, 'distortion': 0.2}, bump=0.4)
+    s('md_mesh', ['#9da2a6', '#b0b4b8', '#8d9297'], scale=40.0, stripes={'dir': 'Z', 'scale': 240.0, 'distortion': 0.2}, bump=0.4)
     s('md_soil', ['#5a3f2a', '#6e4e34', '#4c3523'], scale=40.0, bump=0.6)
     s('md_mulch', ['#5a3a24', '#704a2e', '#4a2f1c'], scale=60.0, bump=0.6)
     s('md_pipe', ['#2e3134', '#3b3e42'], scale=20.0, rough=0.5, bump=0.0)
@@ -244,6 +244,9 @@ def make_materials():
     lawn = ('#4f6e2a', '#5f7f30', '#6f8a3a', '#56752c')
     for n in ('md_lawn', 'md_lawn_fringe', 'md_lawn_square'):
         tm.mat_earth(n, colors=lawn)
+    tilled = ('#6a4a30', '#7c5a3a', '#8a6a48', '#634530')
+    for n in ('md_tilled', 'md_tilled_fringe', 'md_tilled_square'):
+        tm.mat_earth(n, colors=tilled)
 
 
 if not any(n == 'modern' for n, _ in tt.EXTRA_MATERIALS):
@@ -756,7 +759,7 @@ def planter(ms, f, x, y, w, d=0.06):
     ms.box('md_hedge', (w - 0.02, d - 0.02, 0.05), at=(x, y, G + 0.03), lod=0, frame=f, bevel=0.006)
 
 
-def palace_small(ms, rng):
+def _palace_small(ms, rng):
     """`palace-small`, the town hall (sheet: 20 m wide, 11 m; here 9.5 m wide to fit a small town's
     free centre, at the sheet's height): an off-white two-storey civic block on a pale stone
     plinth, five tall window bays between piers on the front, a flat roof with a parapet and two
@@ -803,7 +806,7 @@ def palace_small(ms, rng):
         flagpole(ms, f, sx * 0.21, -d / 2 - 0.08, 0.72)
 
 
-def palace(ms, rng):
+def _palace(ms, rng):
     """`palace`, the parliament (sheet: 40 by 28 m, 22 m to the dome's lantern; here 13.4 m wide
     to fit a town's free centre, at the sheet's heights): a limestone central block (16 m) with a
     portico of eight columns over three timber doors, a blue-grey ribbed metal dome on a drum with
@@ -885,23 +888,44 @@ def palace(ms, rng):
         rod(ms, 'md_steel', (sx * 0.28, -0.6, G + 0.06), (sx * 0.28, -0.42, z + 0.06), 0.004, segs=4, lod=0)
 
 
+def scaled(ms, rng, fn, sxy, sz):
+    """Build `fn` into its own Mesher and add its parts scaled by sxy across and sz in height."""
+    sub = tm.Mesher()
+    fn(sub, rng)
+    m = Matrix.Diagonal((sxy, sxy, sz, 1.0))
+    for bm, mat, lod, only in sub.parts:
+        bmesh.ops.transform(bm, matrix=m, verts=bm.verts)
+        ms.parts.append((bm, mat, lod, only))
+
+
+def palace_small(ms, rng):
+    """`palace-small`: the town hall widened to 11 m (the sheet's 20 m front would not fit a small
+    town's 12 m free centre) and kept to the 1.3x raised height of a two-storey building (9 m),
+    so it reads as the sheet's long low block rather than a tower."""
+    scaled(ms, rng, _palace_small, 1.15, 0.85)
+
+
+def palace(ms, rng):
+    """`palace`: the parliament at 12.2 m across (the free centre) and 16 m to the lantern (the
+    sheet's 22 m on a 12 m footprint stood like a tower; the dome stays the tallest part)."""
+    scaled(ms, rng, _palace, 0.9, 0.72)
+
+
 # ---- the shared file: earthwork, bunker and wire perimeters ------------------------------------
 
 RAISE = tb.WALL_RAISE
 
 
 def bunker(ms, f, r, h, slits=True):
-    """A weathered concrete pillbox (an octagon) in frame f, its firing slit facing -Y (out)."""
-    rot = (0, 0, 22.5)
-    ms.cyl('md_bunker', r, r * 0.93, h, at=(0, 0, 0), rot=rot, segs=8, lod=1, only=(0, 1), frame=f)
-    ms.cyl('md_bunker', r * 1.07, r * 1.02, 0.035, at=(0, 0, h - 0.01), rot=rot, segs=8, lod=1, frame=f)
-    ms.cyl('md_bunker', r * 1.04, r * 0.95, h + 0.02, at=(0, 0, 0), rot=rot, segs=6, lod=2, only=2, frame=f)
-    ms.box('dark', (r * 1.0, 0.02, 0.04), at=(0, -r * 0.93, h * 0.5), lod=1, frame=f)
+    """A weathered concrete pillbox in frame f: a block with rounded edges and a heavier roof
+    slab, a firing slit facing -Y (out), side slits and a door at the back."""
+    ms.box('md_bunker', (2 * r, 1.7 * r, h), at=(0, 0, 0), lod=2, bevel=0.03, taper=0.94, frame=f)
+    ms.box('md_bunker', (2 * r + 0.03, 1.7 * r + 0.03, 0.045), at=(0, 0, h - 0.02), lod=1, bevel=0.015, frame=f)
+    ms.box('dark', (r * 1.0, 0.02, 0.04), at=(0, -0.85 * r - 0.005, h * 0.5), lod=1, frame=f)
     if slits:
         for sx in (-1, 1):
-            sf = f @ Matrix.Rotation(math.radians(sx * 50), 4, 'Z')
-            ms.box('dark', (r * 0.5, 0.02, 0.035), at=(0, -r * 0.92, h * 0.5), lod=0, frame=sf)
-    ms.box('dark', (r * 0.45, 0.02, h * 0.6), at=(0, r * 0.93, 0.0), lod=0, frame=f)  # the door at the back
+            ms.box('dark', (0.02, r * 0.6, 0.035), at=(sx * (r + 0.004), 0, h * 0.5), lod=0, frame=f)
+    ms.box('dark', (r * 0.45, 0.02, h * 0.6), at=(0, 0.85 * r + 0.005, 0.0), lod=0, frame=f)  # the door at the back
 
 
 def earthwork_ring(ms, rng, R_in, R_out, berm, gate_w, bunkers, bk_r, bk_h, trench=False, n=(120, 56, 24), post_step=0.32):
@@ -935,7 +959,7 @@ def earthwork_ring(ms, rng, R_in, R_out, berm, gate_w, bunkers, bk_r, bk_h, tren
             if cap.normal.dot(Vector((math.cos(ang + sx * math.pi / 2), math.sin(ang + sx * math.pi / 2), 0))) < 0:
                 bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
             ms.add(bm, 'md_turf', lod, only=lod)
-    tb.footing(ms, R_out, R_in, n[1], apron=0.3)
+    tb.footing(ms, R_out, R_in, n[1], apron=0.12)
     ms.quad_strip('md_gravel', [(-gate_w / 2 + 0.03, -R_out - 0.12, G + 0.002), (gate_w / 2 - 0.03, -R_out - 0.12, G + 0.002),
                                 (gate_w / 2 - 0.03, -R_in + 0.1, G + 0.002), (-gate_w / 2 + 0.03, -R_in + 0.1, G + 0.002)], lod=1)
     # the wire: steel posts along the outer crest, two strands (LOD0), one (LOD1)
@@ -949,7 +973,7 @@ def earthwork_ring(ms, rng, R_in, R_out, berm, gate_w, bunkers, bk_r, bk_h, tren
             continue
         rr = math.radians(a)
         px, py = rp * math.cos(rr), rp * math.sin(rr)
-        ms.cyl('md_wire', 0.007, 0.006, ph + 0.02, at=(px, py, berm - 0.02), segs=4, lod=1)
+        ms.cyl('md_wire', 0.007, 0.006, ph + 0.02, at=(px, py, berm - 0.02), segs=4, lod=1 if i % 2 == 0 else 0)
     for zz, lod in ((berm + ph * 0.45, 0), (berm + ph * 0.9, 1)):
         t = 0.0025
         tb.sweep(ms, 'md_wire', [(rp + t, zz), (rp + t, zz + 2 * t), (rp - t, zz + 2 * t), (rp - t, zz)], a0, a1, n[lod], lod=lod)
@@ -975,20 +999,20 @@ def walls_small(ms, rng):
     """`walls-small` (46 m, a 40 m clear town): a 1.2 m grassed earth berm, four concrete
     bunkers (2 m on the crest) at the corners, steel posts with barbed wire, a 4 m timber
     barrier at the south gap. Heights raised 1.3x."""
-    earthwork_ring(ms, rng, 2.0, 2.3, G + 0.12 * RAISE, 0.4, (45, 135, 225, 315), 0.17, 0.2 * RAISE)
+    earthwork_ring(ms, rng, 2.0, 2.3, G + 0.12 * RAISE, 0.4, (45, 135, 225, 315), 0.2, 0.2 * RAISE)
 
 
 def walls_medium(ms, rng):
     """`walls-medium` (68 m, 60 m clear): a 1.5 m berm with a trench along its crest, six
     pillboxes (4 by 3 m, 2.5 m), posts with barbed wire, a 5 m barrier gap at the south."""
-    earthwork_ring(ms, rng, 3.0, 3.4, G + 0.15 * RAISE, 0.5, (0, 60, 120, 180, 237, 303), 0.19, 0.22 * RAISE, trench=True,
+    earthwork_ring(ms, rng, 3.0, 3.4, G + 0.15 * RAISE, 0.5, (0, 60, 120, 180, 237, 303), 0.22, 0.22 * RAISE, trench=True,
                    n=(144, 64, 28))
 
 
 def walls_big(ms, rng):
     """`walls-big` (90 m, 80 m clear): a 1.8 m berm with a crest trench, seven bunkers, posts and
     barbed wire, a 6 m barrier gap at the south."""
-    earthwork_ring(ms, rng, 4.0, 4.5, G + 0.18 * RAISE, 0.6, (0, 45, 90, 135, 180, 232, 308), 0.21, 0.24 * RAISE, trench=True,
+    earthwork_ring(ms, rng, 4.0, 4.5, G + 0.18 * RAISE, 0.6, (0, 45, 90, 135, 180, 232, 308), 0.24, 0.24 * RAISE, trench=True,
                    n=(160, 72, 32), post_step=0.38)
 
 
@@ -1038,7 +1062,6 @@ def colony_camp(ms, rng):
     prefab(ms, -0.5, 0.02, 0.3, 0.44, wall_h=0.28, rise=0.06, ridge_y=True)
     prefab(ms, 0.5, 0.02, 0.3, 0.44, wall_h=0.28, rise=0.06, ridge_y=True)
     tb.fire_ring(ms, rng, 0.02, -0.32, r=0.08)
-    w = tm.house_frame(0, 0, 0)
     for (cx, cy, s) in ((-0.62, -0.55, 0.075), (-0.54, -0.6, 0.065), (-0.62, -0.47, 0.06)):
         ms.box('md_wood', (s, s, s * 0.85), at=(cx, cy, G), rot_z=rng.uniform(-10, 10), lod=1, bevel=0.003)
     for k in range(5):
@@ -1127,7 +1150,7 @@ def field_3(ms, rng):
         ms.box('md_steel', (gx1 - gx0 - 0.02, 0.006, 0.006), at=((gx0 + gx1) / 2, y0, G + zr), lod=1 if k in (0, 3) else 0)
     ms.box('md_concrete', (0.26, 0.2, 0.012), at=(-0.55, 0.38, G), lod=1)
     ms.cyl('md_steel', 0.075, 0.075, 0.06, at=(-0.55, 0.39, G + 0.012), segs=16, lod=2)
-    ms.cyl('water', 0.068, 0.068, 0.004, at=(-0.55, 0.39, G + 0.068), segs=16, lod=1)
+    ms.cyl('shallows', 0.068, 0.068, 0.004, at=(-0.55, 0.39, G + 0.068), segs=16, lod=1)
     pipe(ms, [(-0.74, 0.5), (-0.66, 0.5), (-0.66, 0.42), (-0.62, 0.42)], r=0.006, z=G + 0.04, mat='md_pipe', lod=0)
 
 
@@ -1158,7 +1181,6 @@ def polytunnel(ms, x, y, w=0.4, length=1.0, h=0.22, n=12):
         ms.box('dark', (w * 0.4, 0.01, h * 0.75), at=(x, yy + sgn * 0.004, G), lod=1)
     for k in range(7):  # hoops
         yy = y - length / 2 + 0.02 + (length - 0.04) * k / 6
-        tb_prof = [(w / 2 + 0.003, 0)]
         bm = bmesh.new()
         ring = [(x + (w / 2 + 0.003) * math.cos(math.pi * i / n), G + (h + 0.003) * math.sin(math.pi * i / n)) for i in range(n + 1)]
         vs = [(bm.verts.new((px, yy - 0.004, pz)), bm.verts.new((px, yy + 0.004, pz))) for px, pz in ring]
@@ -1169,7 +1191,6 @@ def polytunnel(ms, x, y, w=0.4, length=1.0, h=0.22, n=12):
         if bm.faces[n // 2].normal.z < 0:
             bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
         ms.add(bm, 'md_steel', 0)
-        del tb_prof
     ms.box('md_wood', (w + 0.02, length + 0.02, 0.012), at=(x, y, G), lod=1)
 
 
@@ -1182,10 +1203,11 @@ def field_4(ms, rng):
         for i in range(4):  # beds at the front
             bx = x - 0.14 + 0.095 * i
             mat = 'md_veg_red' if i == 3 else 'md_veg'
-            ms.box('md_soil', (0.07, 0.16, 0.01), at=(bx, -0.4, G), lod=1)
-            for k in range(3):
-                ms.sphere(mat, 0.022, at=(bx, -0.45 + 0.05 * k, G + 0.016), scale=(1, 1, 0.65), u=6, v=4, lod=0)
-            obox(ms, mat, (0.05, 0.14, 0.02), at=(bx, -0.4, G + 0.005), lod=1, only=1)
+            ms.box('md_soil', (0.085, 0.2, 0.01), at=(bx, -0.4, G), lod=1)
+            for k in range(4):
+                for dx in (-0.02, 0.02):
+                    ms.sphere(mat, 0.02, at=(bx + dx, -0.47 + 0.047 * k, G + 0.016), scale=(1, 1, 0.7), u=6, v=4, lod=0)
+            obox(ms, mat, (0.07, 0.18, 0.022), at=(bx, -0.4, G + 0.005), lod=1, only=1)
     rect(ms, 'md_gravel', -0.05, -0.52, 0.05, 0.5, G + 0.002, lod=1)
     for sx in (-1, 1):
         rect(ms, 'md_soil', sx * 0.56 - 0.08, -0.5, sx * 0.56 + 0.08, 0.5, G + 0.002, lod=1)

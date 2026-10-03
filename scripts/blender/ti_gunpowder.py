@@ -875,7 +875,7 @@ def bastioned_walls(ms, rng, c, W, H, gw, g, f_, e, flag_top=None, curtain_guns=
     the outer foot and an earth apron inside (under the town's own ground) so no map shows
     between them."""
     Hs = H * 0.72
-    Hb = Hb or H * 1.06
+    Hb = Hb or H * 1.15
     bat = H * 0.18
     ext = g - bat - 0.05      # the curtains run on into the bastions, past their battered flanks
     L = c - ext
