@@ -106,7 +106,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       const tier = region.owner ? townTier(region) : { id: 'small' };
       const opts = { ageId: ageOf(state, owner), walls: (region.buildings?.categories?.defense ?? -1) >= 0, capital: state.nations[owner]?.capitalRegionId === id };
       // An artist model for this age and size replaces the procedural town once its file is in.
-      const assetUrl = townAssetUrl(opts.ageId, tier.id, [...id].reduce((h, c) => h + c.charCodeAt(0), 0));
+      const assetUrl = townAssetUrl(opts.ageId, tier.id, [...id].reduce((h, c) => h + c.charCodeAt(0), 0), owner);
       const asset = assetUrl ? t.assets.get(assetUrl) : null;
       if (assetUrl && !t.assets.has(assetUrl)) {
         t.assets.set(assetUrl, null);
