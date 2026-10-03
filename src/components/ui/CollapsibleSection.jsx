@@ -5,14 +5,23 @@
 // touching its own data flow. `summary` renders next to the title even while collapsed, so
 // collapsing a section never hides the one fact someone might be scanning for (current government
 // type, crown land %, techs researched, etc).
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { OPEN_SECTION } from '../panels/panelEvents';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
-const CollapsibleSection = ({ title, icon: Icon, summary, defaultOpen = false, children }) => {
+const CollapsibleSection = ({ title, icon: Icon, summary, defaultOpen = false, id = null, children }) => {
   const [open, setOpen] = useState(defaultOpen);
+  const ref = useRef(null);
+  // `id`: an ask from elsewhere (panelEvents openPanelTab('diplomacy')) opens this section and scrolls to it.
+  useEffect(() => {
+    if (!id) return undefined;
+    const onOpen = (e) => { if (e.detail !== id) return; setOpen(true); setTimeout(() => ref.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 0); };
+    window.addEventListener(OPEN_SECTION, onOpen);
+    return () => window.removeEventListener(OPEN_SECTION, onOpen);
+  }, [id]);
 
   return (
-    <div>
+    <div ref={ref} data-section={id || undefined}>
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-2 py-1 text-left"

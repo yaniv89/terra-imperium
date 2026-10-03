@@ -1,20 +1,20 @@
 // src/components/panels/ActionPanelTabs.jsx
-// The Empire/Military/Diplomacy/Tech/Space/Legacy tab row, split out of ActionPanel.jsx so
+// The Empire/Tech/Space/Legacy tab row, split out of ActionPanel.jsx so
 // App.jsx's mobile layout can position it independently of the panel content — pinned to the
 // bottom of the screen (thumb-reachable) instead of sitting above content, which requires
 // scrolling back up past the globe to reach after selecting a region. Desktop keeps the tabs
 // visually above the content exactly as before; only the DOM/flex-order relationship changed to
 // make that possible without duplicating this component per breakpoint.
 import React from 'react';
-import { Home, Swords, Flag, Beaker, Trophy, Satellite } from 'lucide-react';
+import { Home, Beaker, Trophy, Satellite } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { TabButton } from '../ui';
 
+// The Military and Diplomacy tabs are the Empire sheet's War and Relations sections now
+// (plans/civ-map-rework.md E4; panelEvents.js aliases the old ids).
 export const TABS = [
   { id: 'domestic', label: 'Empire', icon: Home },
-  { id: 'military', label: 'Military', icon: Swords },
-  { id: 'diplomacy', label: 'Diplomacy', icon: Flag },
   { id: 'tech', label: 'Tech', icon: Beaker },
   { id: 'space', label: 'Space', icon: Satellite },
   { id: 'legacy', label: 'Legacy', icon: Trophy }
@@ -23,16 +23,12 @@ export const TABS = [
 // The red count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
 export const getTabBadge = (state, tabId) => {
   switch (tabId) {
-    case 'military': {
-      // Show number of active invasions
-      const invasions = state.invasions.filter(i => i.active && !i.isPlayerAttacker).length;
-      return invasions > 0 ? invasions : null;
-    }
-    case 'diplomacy': {
-      // Show number of nations at war WITH THE PLAYER — n.isAtWar alone is "in a war with
-      // anyone", which would badge this tab for wars the player has nothing to do with.
+    case 'domestic': {
+      // Wars with the player (n.isAtWar alone is "in a war with anyone") plus enemy invasions
+      // under way: what the War and Relations sections hold.
+      const invasions = (state.invasions || []).filter(i => i.active && !i.isPlayerAttacker).length;
       const wars = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id)).length;
-      return wars > 0 ? wars : null;
+      return wars + invasions > 0 ? wars + invasions : null;
     }
     default:
       return null;

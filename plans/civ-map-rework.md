@@ -1935,6 +1935,17 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E4, the Military and Diplomacy tabs fold into the Empire sheet (2026-10-03).** Four tabs
+remain: Empire, Tech, Space, Legacy. The Empire sheet opens with the Overview, then War (the
+former Military panel: strength, supplies, maintenance, wars, officers, battle settings and
+reports) and Relations (the former Diplomacy panel: the peace offer and demand cards, the
+nation search and cards, cultural export, independence), then Court, Treasury, Government,
+Laws, Estates and Identity. `openPanelTab('military')` and `('diplomacy')` still work: they
+open the Empire tab and expand the matching section (`CollapsibleSection` takes an `id`), so
+the next prompt and the sheets need no change. The Empire tab's badge counts wars with the
+player plus enemy invasions under way. Nothing was cut: the two panels render inside their
+sections.
+
 **D5b, the modern movement table (2026-10-03).** Railways already stood (Rail Networks: RAIL_COST
 on roads). Mechanized Warfare now also gives land armies two more movement points a turn
 (`movePoints(unit, researched)`, settlers and aircraft aside; stackPace, the routes, the AI's
