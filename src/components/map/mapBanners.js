@@ -80,11 +80,16 @@ export const wonderBannerHtml = (m) => {
     + pips + '</svg>';
 };
 
+// The open event's city (plan C9): an amber exclamation.
+export const eventBannerHtml = () => '<svg class="map-banner-svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">'
+  + '<circle cx="12" cy="12" r="10.5" fill="#b45309" stroke="#fde68a" stroke-width="2" />'
+  + '<path d="M12 6 V13.5" stroke="#fffbeb" stroke-width="2.6" stroke-linecap="round" /><circle cx="12" cy="17.2" r="1.5" fill="#fffbeb" /></svg>';
+
 // A cluster: several banners that would overlap at this zoom.
 export const clusterBannerHtml = (count, own) => `<span class="map-banner-cluster${own ? ' own' : ''}">${count}</span>`;
 
 // Screen offsets so an army, a fleet and a battle in the same province do not cover each other.
-export const MARKER_OFFSET = { army: [0, -14], fleet: [16, 4], battle: [-16, 2], colony: [0, 10], wonder: [0, 0] };
+export const MARKER_OFFSET = { army: [0, -14], fleet: [16, 4], battle: [-16, 2], colony: [0, 10], wonder: [0, 0], event: [0, -22] };
 
 // Greedy screen-space clustering: markers closer than `radius` px join the first one placed.
 // `items` = [{ key, x, y, own, ... }] in priority order (own first). Returns
@@ -101,7 +106,7 @@ export const clusterScreenMarkers = (items, radius) => {
 };
 
 // The banner HTML for any placed marker (`kind` = army | fleet | battle), shared by both maps.
-export const markerHtml = (m, atWar) => (m.kind === 'wonder' ? wonderBannerHtml(m) : m.kind === 'colony' ? colonyBannerHtml(m) : m.kind === 'battle' ? battleBannerHtml(m)
+export const markerHtml = (m, atWar) => (m.kind === 'event' ? eventBannerHtml(m) : m.kind === 'wonder' ? wonderBannerHtml(m) : m.kind === 'colony' ? colonyBannerHtml(m) : m.kind === 'battle' ? battleBannerHtml(m)
   : m.kind === 'fleet' ? fleetBannerHtml(m, { atWar }) : armyBannerHtml(m, { atWar }));
 
 // Flatten a getMapMarkers() result into one list, own markers first. `showForeign` false keeps only
@@ -114,6 +119,7 @@ export const markerItems = (markers, showForeign) => {
   add(markers.battles, 'battle', true);
   add(markers.colonies || [], 'colony', true);
   add(markers.wonders || [], 'wonder', true);
+  add(markers.events || [], 'event', true);
   if (showForeign) { add(markers.armies, 'army', false); add(markers.fleets, 'fleet', false); add(markers.colonies || [], 'colony', false); add(markers.wonders || [], 'wonder', false); }
   return out;
 };

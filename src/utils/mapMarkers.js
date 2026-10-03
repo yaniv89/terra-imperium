@@ -100,7 +100,11 @@ export const getMapMarkers = (state) => {
     const ownerId = state.regions[p.regionId].owner;
     return { id: projectId, regionId: p.regionId, ownerId, own: ownerId === me, tier: p.tier || 1, tile: p.tile, name: GREAT_PROJECTS[projectId]?.name || projectId };
   }).filter((w) => w.own || sight.has(w.tile) || hasIntel(state, w.ownerId));
-  return { armies, fleets, battles, colonies, wonders };
+  // The open event's city (plan C9): one amber mark while the event sheet is up.
+  const ev = state.activeProceduralEvent;
+  const evCity = ev?.cityId ? state.regions[ev.cityId] : null;
+  const events = evCity && REGIONS_DATA[evCity.id] ? [{ id: `event:${ev.id || evCity.id}`, regionId: evCity.id, ownerId: evCity.owner, own: true, tile: evCity.tile, title: ev.title || 'An event' }] : [];
+  return { armies, fleets, battles, colonies, wonders, events };
 };
 
 // "12k", "850": short soldier counts for a banner.

@@ -1,8 +1,14 @@
 // src/components/modals/EventModal.jsx
-// Historical event modal with effect preview for each option
+// The event sheet (plans/civ-map-rework.md C9): an event with its options and the effect of
+// each, beside the map rather than over it. Docked on the right on a wide screen, a bottom
+// sheet on a phone (useIsMobile), never dimming the map: an event pinned to a city centres the
+// map on that city (marchEvents.js focusRegion) and marks it (mapMarkers.js events) while the
+// sheet is open. End Turn stays disabled until an option is chosen (GameHeader.jsx).
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, Calendar, TrendingUp, TrendingDown, Minus, MapPin } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { focusRegion } from '../map/marchEvents';
 import { describeEffects } from '../../engine/describeEffects';
 import { getOptionShortfall } from '../../engine/applyEventEffects';
 
@@ -27,7 +33,10 @@ const EffectBadge = ({ text, sign, tooltip }) => {
   );
 };
 
-const EventModal = ({ event, onResolve, resources, placeName = null }) => {
+const EventModal = ({ event, onResolve, resources, placeName = null, cityId = null }) => {
+  const isMobile = useIsMobile();
+  // Centre the map on the event's city while the sheet is open; release it after.
+  useEffect(() => { if (!event || !cityId) return undefined; focusRegion(cityId); return () => focusRegion(null); }, [event, cityId]);
   if (!event) return null;
   // An option the treasury can't cover is shown but not clickable — unless NO option is affordable,
   // in which case every option stays open and the engine charges what it can (-1 stability).
@@ -35,9 +44,11 @@ const EventModal = ({ event, onResolve, resources, placeName = null }) => {
   const anyAffordable = shortfalls.some((sf) => sf.length === 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div 
-        className="bg-slate-900 rounded-xl border-2 border-amber-500 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in duration-300 max-h-[90vh] flex flex-col"
+    <div className="fixed inset-x-0 bottom-0 top-[var(--header-height,4.5rem)] z-50 pointer-events-none" data-testid="event-sheet">
+      <div
+        className={isMobile
+          ? 'pointer-events-auto absolute inset-x-0 bottom-0 max-h-[60vh] rounded-t-2xl bg-slate-900 border-t-2 border-amber-500 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)] sheet-panel'
+          : 'pointer-events-auto absolute right-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(420px,48vw)] pl:pr-[env(safe-area-inset-right)] bg-slate-900 border-l-2 border-amber-500 shadow-2xl flex flex-col'}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -115,7 +126,7 @@ const EventModal = ({ event, onResolve, resources, placeName = null }) => {
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-slate-700 text-xs text-slate-500 text-center shrink-0">
-          Click an option to proceed. This event cannot be skipped.
+          Choose an option to go on: the turn waits for it. The map stays live behind.
         </div>
       </div>
     </div>

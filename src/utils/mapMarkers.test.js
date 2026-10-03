@@ -107,4 +107,11 @@ describe('map markers', () => {
     const seen = visibleTiles(st, 'fr').has(theirTile);
     expect(w.some((x) => x.id === 'great_pyramids')).toBe(seen);
   });
+  it('the open event marks its city while the sheet is up', () => {
+    const s = fresh();
+    const paris = Object.values(s.regions).find((r) => r.owner === 'fr');
+    expect(getMapMarkers(s).events).toEqual([]);
+    const ev = { ...s, activeProceduralEvent: { id: 'flood-1', title: 'The river floods', cityId: paris.id, options: [] } };
+    expect(getMapMarkers(ev).events).toEqual([{ id: 'event:flood-1', regionId: paris.id, ownerId: 'fr', own: true, tile: paris.tile, title: 'The river floods' }]);
+  });
 });

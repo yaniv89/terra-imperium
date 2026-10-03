@@ -13,3 +13,6 @@ export const selectTile = (tile) => window.dispatchEvent(new CustomEvent(SELECT_
 // Open the nation sheet for `nationId` (the region card's owner name, NationSheet.jsx).
 export const SELECT_NATION = 'ti:select-nation';
 export const selectNation = (nationId) => window.dispatchEvent(new CustomEvent(SELECT_NATION, { detail: nationId }));
+// Centre the map on a city while something about it is open (the event sheet); null releases it.
+export const FOCUS_REGION = 'ti:focus-region';
+export const focusRegion = (regionId) => window.dispatchEvent(new CustomEvent(FOCUS_REGION, { detail: regionId }));
