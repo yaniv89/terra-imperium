@@ -483,7 +483,20 @@ const Map2DView = ({
     const resources = zoomK >= RESOURCE_GLYPH_ZOOM;
     const r = 5.2 / zoomK; const fs = 8 / zoomK;
     const out = [];
-    landTilesWithin(hexWindow).forEach((t) => {
+    // Roads: a line between the centres of two touching tiles that both carry a road (a city
+    // centre counts as one), drawn under the glyphs.
+    const centres = new Set(Object.values(state.regions).map((c) => c.tile));
+    const onRoad = (t) => centres.has(t) || (!!ts[t]?.road && !ts[t]?.pillaged);
+    const seen = new Set();
+    const roads = [];
+    const within = landTilesWithin(hexWindow);
+    within.forEach((t) => { if (onRoad(t)) seen.add(t); });
+    seen.forEach((t) => {
+      const { lat, lon } = tiles.latLonOf(t); const [x0, y0] = projection([lon, lat]);
+      tiles.neighbors[t].forEach((n) => { if (n > t && seen.has(n)) { const p = tiles.latLonOf(n); const [x1, y1] = projection([p.lon, p.lat]); roads.push(`M${x0},${y0}L${x1},${y1}`); } });
+    });
+    if (roads.length) out.push(<path key="roads" d={roads.join('')} fill="none" stroke="#7c5a32" strokeWidth={1.6 / zoomK} strokeLinecap="round" opacity={0.85} pointerEvents="none" data-road-lines={roads.length} />);
+    within.forEach((t) => {
       const e = ts[t];
       const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
       const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' ? resId : null; // luxuries and strategics only: bonus resources sit on most tiles

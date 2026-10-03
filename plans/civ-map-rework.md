@@ -1344,6 +1344,13 @@ discretion.
 
 ## J3. Progress log
 
+**B5, roads on the flat map (2026-10-03).** The local-zoom layer draws a road as a line between
+the centres of two touching tiles that both carry a road (a city centre counts as one), under
+the improvement and district glyphs, for the tiles on screen. Rivers are in the Earth raster
+already. Still open in E6 and B5, as a decision: fog of war drawn on the map (a desaturated
+hatch over what no unit or city sees; today fog hides enemy armies and nothing else), which
+changes the look of the whole political globe for a game played as any of 240 real nations.
+
 **C3.4 and B5, districts as tiles and the local-zoom glyphs (2026-10-03).** `src/engine/
 districts.js`: a city's Science, Culture and Economy lines stand on a tile of its border once
 their first tier is built (a Library lays out a Campus, a Shrine a Temple Quarter, a Market a
