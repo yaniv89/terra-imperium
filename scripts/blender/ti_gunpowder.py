@@ -39,6 +39,25 @@ for _n in ('gp_cobble_fringe', 'gp_meadow_fringe'):
         tt.FRINGES.append(_n)
 
 
+def mat_fruit(name, leaves, fruit, scale=12.0, size=0.22):
+    """Foliage (noise-varied greens) dotted with fruit (Voronoi cells near their centres)."""
+    import bpy
+    mat = bpy.data.materials.new(name)
+    nt, bsdf = tm._nodes(mat)
+    n = tm._noise(nt, 40.0, 5.0, 0.6)
+    leaf = tm._ramp(nt, n.outputs['Fac'], [(0.3, leaves[0]), (0.5, leaves[1]), (0.7, leaves[2])])
+    vor = nt.nodes.new('ShaderNodeTexVoronoi')
+    vor.inputs['Scale'].default_value = scale
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    nt.links.new(tc.outputs['Object'], vor.inputs['Vector'])
+    dots = tm._ramp(nt, vor.outputs['Distance'], [(size, '#ffffff'), (size + 0.04, '#000000')])
+    col = tm._mix(nt, dots.outputs['Color'], leaf.outputs['Color'], tm._srgb(fruit))
+    nt.links.new(col, bsdf.inputs['Base Color'])
+    bsdf.inputs['Roughness'].default_value = 0.8
+    tm._bump(nt, bsdf, n.outputs['Fac'], 0.6, 0.003)
+    return mat
+
+
 def make_materials():
     tm.mat_mudwall('gp_brick', wash='#b07a62', brick='#a2503a', brick2='#8c4232', mortar='#c2ad94', wash_cover=0.0,
                    bond=(0.04, 0.014, 0.0022))
@@ -60,14 +79,14 @@ def make_materials():
     tm.mat_simple('gp_lead', ['#566476', '#677689', '#4b5869'], scale=14.0, rough=0.5, bump=0.2, metal=0.25,
                   stripes={'dir': 'Z', 'scale': 30.0, 'distortion': 1.0})
     tm.mat_simple('gp_plank', ['#6a5948', '#7e6b57', '#5a4b3c'], scale=8.0, stripes={'dir': 'X', 'scale': 140.0, 'distortion': 3.0}, bump=0.5)
-    tm.mat_mudwall('gp_sail', wash='#d8d0bc', brick='#d9d1bd', brick2='#cbc2ac', mortar='#3a2c20', wash_cover=0.0,
-                   bond=(0.03, 0.03, 0.005))
+    tm.mat_mudwall('gp_sail', wash='#e2dccb', brick='#e4ddcb', brick2='#d6cfbc', mortar='#7a6650', wash_cover=0.0,
+                   bond=(0.03, 0.03, 0.003))
     tm.mat_simple('gp_wheat', ['#8a6a24', '#c29c40', '#ddbb5c', '#a8842e'], scale=60.0, stripes={'dir': 'X', 'scale': 260.0, 'distortion': 14.0}, bump=0.8)
     tm.mat_simple('gp_potato', ['#2c5420', '#3d7029', '#4b8432', '#386426', '#d2c4dc'], scale=90.0, bump=0.7)
-    tm.mat_simple('gp_pear', ['#2d4c20', '#41662a', '#537a30', '#3a5a26', '#d4c03c'], scale=70.0, bump=0.6)
+    mat_fruit('gp_pear', ('#2a4a1e', '#3d6228', '#4f7430'), '#d8c23a')
     tm.mat_simple('gp_fence', ['#cdc6b6', '#dcd5c6', '#b6ae9e'], scale=14.0, stripes={'dir': 'Z', 'scale': 60.0, 'distortion': 3.0}, bump=0.3)
     tm.mat_simple('gp_clock', ['#e9e2d0', '#f1ece0'], scale=20.0, bump=0.0)
-    tm.mat_earth('gp_gravel', colors=('#a89878', '#b8a888', '#9c8c6c', '#c0b294'))
+    tm.mat_earth('gp_gravel', colors=('#a88e64', '#b89c70', '#9c8258', '#c0a67a'))
     for n in ('gp_cobble', 'gp_cobble_fringe'):
         tc.mat_paving(n, stone=('#9d988f', '#8a857c', '#aea99f'), mortar='#5c5852', slab=(0.022, 0.018))
     tc.mat_paving('gp_cobble_square', stone=('#b9b2a2', '#aaa393', '#c5beae'), mortar='#7a7468', slab=(0.07, 0.07))
@@ -80,7 +99,7 @@ if not any(n == 'gunpowder' for n, _ in tt.EXTRA_MATERIALS):
     tt.EXTRA_MATERIALS.append(('gunpowder', make_materials))
 
 COBBLED = dict(mat='gp_cobble', power=8)
-HOUSE_H = {1: 0.34, 2: 0.56, 3: 0.78}   # wall heights: 2.6, 4.3 and 6 m storeys raised 1.3x
+HOUSE_H = {1: 0.32, 2: 0.5, 3: 0.7}    # wall heights of 1, 2 and 3 storeys (2.5 to 2.7 m storeys raised 1.3x)
 
 
 # ---- small geometry helpers -------------------------------------------------------------------
@@ -184,6 +203,8 @@ def window(ms, F, x, z, ww=0.056, wh=0.12, shutters=None, glass_lod=1, frame=Tru
     """A sash window on a face frame: a sandstone surround, glass with glazing bars, shutters."""
     if frame:
         quad(ms, 'gp_sandstone', F, x, -0.003, z - 0.014, ww + 0.022, wh + 0.026, lod=0)
+        ms.box('gp_sandstone', (ww + 0.03, 0.018, 0.01), at=(x, -0.006, z - 0.02), lod=0, frame=F)          # the sill
+        ms.box('gp_sandstone', (ww + 0.03, 0.012, 0.016), at=(x, -0.005, z + wh + 0.006), lod=0, frame=F)  # the lintel
     quad(ms, 'gp_window', F, x, -0.005, z, ww, wh, lod=glass_lod)
     if shutters:
         sw = ww * 0.5
@@ -1081,14 +1102,14 @@ def pear_tree(ms, rng, x, y, top=0.25, stake=False):
     """A pear tree in a mulched basin: a short trunk, a round crown hung with pears (the material)."""
     ms.cyl('mud', 0.15, 0.14, 0.008, at=(x, y, G), segs=12, lod=1)
     ms.cyl('timber', 0.017, 0.012, 0.13, at=(x, y, G), segs=6, lod=1)
-    cr = 0.105
+    cr = 0.088
     zc = top - cr
     ms.sphere('gp_pear', cr, at=(x, y, zc), scale=(1.05, 1.05, 0.92), u=8, v=6, lod=0)
     for k in range(5):
         a = k * 2 * math.pi / 5 + rng.uniform(-0.3, 0.3)
-        ms.sphere('gp_pear', cr * 0.62, at=(x + 0.072 * math.cos(a), y + 0.072 * math.sin(a), zc - 0.02 + rng.uniform(-0.01, 0.02)), u=7, v=5, lod=0)
+        ms.sphere('gp_pear', cr * 0.62, at=(x + 0.062 * math.cos(a), y + 0.062 * math.sin(a), zc - 0.015 + rng.uniform(-0.01, 0.02)), u=7, v=5, lod=0)
     ms.sphere('gp_pear', cr * 1.05, at=(x, y, zc), scale=(1.05, 1.05, 0.9), u=7, v=5, lod=1, only=1)
-    ms.cyl('gp_pear', cr * 1.1, cr * 0.5, top - G - 0.1, at=(x, y, G + 0.1), segs=6, lod=2, only=2)
+    ms.cyl('gp_pear', cr * 1.1, cr * 0.5, top - G - 0.11, at=(x, y, G + 0.11), segs=6, lod=2, only=2)
     if stake:
         ms.box('timber', (0.014, 0.014, 0.17), at=(x + 0.04, y - 0.05, G), lod=0)
         ms.box('reed', (0.03, 0.03, 0.012), at=(x + 0.03, y - 0.04, G + 0.12), lod=0)
@@ -1097,9 +1118,9 @@ def pear_tree(ms, rng, x, y, top=0.25, stake=False):
 def field_2(ms, rng):
     """`field-2` (16 by 12 m): six pear trees in two rows in mulched basins on grass, two of them
     staked young trees, a cross of trodden paths."""
-    flat(ms, 'gp_gravel', [(-0.8, -0.03), (0.8, -0.03), (0.8, 0.05), (-0.8, 0.05)], G + 0.002, lod=1)
+    flat(ms, 'gp_gravel', [(-0.8, -0.01), (0.8, -0.01), (0.8, 0.04), (-0.8, 0.04)], G + 0.002, lod=1)
     for x0 in (-0.26, 0.24):
-        flat(ms, 'gp_gravel', [(x0 - 0.035, -0.6), (x0 + 0.035, -0.6), (x0 + 0.035, 0.6), (x0 - 0.035, 0.6)], G + 0.0025, lod=1)
+        flat(ms, 'gp_gravel', [(x0 - 0.025, -0.6), (x0 + 0.025, -0.6), (x0 + 0.025, 0.6), (x0 - 0.025, 0.6)], G + 0.0025, lod=1)
     k = 0
     for y in (0.3, -0.3):
         for x in (-0.52, 0.0, 0.52):
@@ -1124,7 +1145,7 @@ def field_3(ms, rng):
     ms.box('gp_sandstone', (0.22, 0.09, 0.055), at=(-0.46, 0.45, G), lod=1, bevel=0.005)
     ms.box('shallows', (0.19, 0.06, 0.004), at=(-0.46, 0.45, G + 0.05), lod=1)
     ms.sphere('stone', 0.035, at=(-0.27, 0.38, G + 0.004), scale=(1.4, 1.1, 0.5), u=8, v=5, lod=1)
-    flat(ms, 'gp_gravel', [(-0.42, 0.36), (-0.34, 0.4), (0.5, -0.56), (0.4, -0.58)], G + 0.002, lod=1)
+    flat(ms, 'gp_gravel', [(-0.4, 0.37), (-0.36, 0.4), (0.47, -0.56), (0.42, -0.58)], G + 0.002, lod=1)
     for cx, cy, r in ((-0.3, -0.3, 0.12), (0.32, 0.1, 0.1), (0.38, -0.32, 0.07)):
         flat(ms, 'gp_gravel', [(cx + r * math.cos(a * math.pi / 4) * (1 + 0.2 * (a % 2)), cy + r * 0.8 * math.sin(a * math.pi / 4))
                                for a in range(8)], G + 0.0025, lod=1)
@@ -1134,7 +1155,7 @@ def field_4(ms, rng):
     """`field-4` (16 by 10 m): five ridged rows of flowering potatoes running east-west, a ditch
     with a marker post along the west edge."""
     x0 = -0.68
-    ms.quad_strip('shallows', [(x0 - 0.03, -0.46, G + 0.002), (x0 + 0.03, -0.46, G + 0.002), (x0 + 0.03, 0.44, G + 0.002),
+    ms.quad_strip('water', [(x0 - 0.03, -0.46, G + 0.002), (x0 + 0.03, -0.46, G + 0.002), (x0 + 0.03, 0.44, G + 0.002),
                                (x0 - 0.03, 0.44, G + 0.002)], lod=2)
     for sx in (-1, 1):
         ms.box('mud', (0.018, 0.92, 0.014), at=(x0 + sx * 0.039, -0.01, G), lod=1)
@@ -1142,10 +1163,10 @@ def field_4(ms, rng):
     for i in range(5):
         y = -0.36 + 0.18 * i
         ms.box('mud', (1.3, 0.13, 0.022), at=(0.06, y, G), lod=2, taper=0.75)
-        ms.box('gp_potato', (1.26, 0.1, 0.045), at=(0.06, y, G + 0.012), lod=1, taper=0.7)
-        for k in range(11):
-            ms.sphere('gp_potato', 0.042, at=(-0.56 + 0.124 * k + rng.uniform(-0.02, 0.02), y + rng.uniform(-0.008, 0.008), G + 0.045),
-                      scale=(1.25, 1.0, 0.7), u=7, v=4, lod=0)
+        ms.box('gp_potato', (1.26, 0.11, 0.035), at=(0.06, y, G + 0.012), lod=1, taper=0.75)
+        for k in range(16):
+            ms.sphere('gp_potato', 0.034, at=(-0.56 + 0.082 * k + rng.uniform(-0.015, 0.015), y + (0.022 if k % 2 else -0.022), G + 0.04),
+                      scale=(1.2, 1.0, 0.75), u=6, v=4, lod=0)
 
 
 def houses(ms, rng, specs, palette='a', **kw):

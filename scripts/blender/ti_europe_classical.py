@@ -14,6 +14,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bpy  # noqa: E402,F401  (before bmesh)
 import bmesh  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 import ti_map as tm  # noqa: E402
@@ -30,13 +31,13 @@ tt.TO_FINAL.update({'euc_paving': 'Ground', 'euc_paving_fringe': 'Ground', 'euc_
 if 'euc_paving_fringe' not in tt.FRINGES:
     tt.FRINGES.append('euc_paving_fringe')
 
-PAVING = (('#a9a397', '#979187', '#b7b1a5'), '#6a665e', (0.045, 0.032))
+PAVING = (('#938d82', '#8a8479', '#9c968a'), '#6a665e', (0.05, 0.036))
 
 
 def make_materials():
     # 1. lime plaster, warm cream; 2. ochre plaster over Roman brick; the red-ochre dado band
     tm.mat_simple('euc_plaster', ['#e2d6bc', '#d6c7a6', '#ece2cd', '#cbb995'], scale=16.0, bump=0.25, dirt=True)
-    tm.mat_mudwall('euc_ochre', wash='#d7a659', brick='#a9573a', brick2='#8f4630', mortar='#c9b79a', wash_cover=0.42,
+    tm.mat_mudwall('euc_ochre', wash='#d7a659', brick='#a9573a', brick2='#8f4630', mortar='#c9b79a', wash_cover=0.66,
                    bond=(0.04, 0.013, 0.002))
     tm.mat_simple('euc_dado', ['#9b3d27', '#ad4b31', '#8a3322'], scale=20.0, bump=0.2)
     # 4. limestone ashlar, buff (the temple, the aqueduct, curbs and footings)
@@ -48,7 +49,7 @@ def make_materials():
     # 5. stone paving, grey-beige slabs; the square a lighter beige
     for n in ('euc_paving', 'euc_paving_fringe'):
         tc.mat_paving(n, stone=PAVING[0], mortar=PAVING[1], slab=PAVING[2])
-    tc.mat_paving('euc_paving_square', stone=('#c9bea6', '#b8ad96', '#d4cab3'), mortar='#857b69', slab=(0.07, 0.07))
+    tc.mat_paving('euc_paving_square', stone=('#b5aa94', '#a59a85', '#c0b59f'), mortar='#776e5e', slab=(0.045, 0.045))
 
 
 if not any(n == 'europe_classical' for n, _ in tt.EXTRA_MATERIALS):
@@ -82,14 +83,16 @@ def ring_roof(ms, f, w, d, z, rise, hole_w, hole_d, mat='tile', band=0.022, lod=
             j = (k + 1) % 4
             bm.faces.new((A[k], A[j], B[j], B[k]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)  # a closed ring: safe to orient
-    ms.add(bm, mat, lod, matrix=f.copy())
+    ms.add(bm, mat, min(lod, 1), matrix=f.copy())
+    if lod >= 2:  # LOD2: a plain hip in its place
+        hip(ms, f, w, d, z, rise, mat=mat, lod=2, cx=cx, cy=cy, only=2)
     # ridge caps along the ridge ring
     rw, rd = (W + hw) / 2, (D + hd) / 2
     for (px, py, sw, sd) in ((0, -rd, 2 * rw, 0.028), (0, rd, 2 * rw, 0.028), (-rw, 0, 0.028, 2 * rd), (rw, 0, 0.028, 2 * rd)):
         ms.box('tile_dark', (sw + 0.01, sd, 0.018), at=(cx + px, cy + py, z + rise - 0.01), lod=min(lod, 1), frame=f)
 
 
-def hip(ms, f, w, d, z, rise, mat='tile', lod=2, cx=0.0, cy=0.0):
+def hip(ms, f, w, d, z, rise, mat='tile', lod=2, cx=0.0, cy=0.0, only=None):
     """A plain tiled hip roof (no turned-up eaves) as one closed solid."""
     W, D = w / 2, d / 2
     r = max(0.0, W - D)
@@ -112,7 +115,7 @@ def hip(ms, f, w, d, z, rise, mat='tile', lod=2, cx=0.0, cy=0.0):
         for k in range(4):
             bm.faces.new((c[k], c[(k + 1) % 4], top))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    ms.add(bm, mat, lod, matrix=f.copy())
+    ms.add(bm, mat, lod, matrix=f.copy(), only=only)
 
 
 # ---- wall details -------------------------------------------------------------------------------

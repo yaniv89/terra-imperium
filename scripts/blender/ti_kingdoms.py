@@ -239,8 +239,8 @@ def make_materials_kg():
     tm.mat_simple('kg_garden', ['#3c5a24', '#58782e', '#6e5a36', '#4a6a28'], scale=70.0, stripes={'dir': 'X', 'scale': 200.0, 'distortion': 3.0}, bump=0.6)
     sand = ('#c4b496', '#b3a383', '#d0c2a6')
     for n in ('kg_sand', 'kg_sand_fringe'):
-        tc.mat_paving(n, stone=sand, mortar='#8a7a5e', slab=(0.022, 0.018))
-    tc.mat_paving('kg_sand_square', stone=('#d3c6aa', '#c4b597', '#ddd1b8'), mortar='#9a8a6c', slab=(0.05, 0.05))
+        tc.mat_paving(n, stone=sand, mortar='#8a7a5e', slab=(0.045, 0.034))
+    tc.mat_paving('kg_sand_square', stone=('#d3c6aa', '#c4b597', '#ddd1b8'), mortar='#9a8a6c', slab=(0.08, 0.08))
     soil = ('#6f5034', '#86613f', '#94704a', '#644830')  # the fields' darker tilled earth
     for n in ('kg_soil', 'kg_soil_fringe'):
         tm.mat_earth(n, colors=soil)

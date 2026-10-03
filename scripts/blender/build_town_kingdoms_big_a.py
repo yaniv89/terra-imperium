@@ -42,18 +42,17 @@ def row(ms, rng, x0, y0, x1, y1, n, yaw, **kw):
 
 def layout(ms, rng):
     # streets: south and north from the square, east and west, and a ring of lanes
-    tk.street(ms, [(0.15, -1.0), (0.2, -2.4), (0.05, -3.95)], 0.75)
-    tk.street(ms, [(0.0, 1.0), (-0.1, 2.2), (0.05, 3.95)], 0.5)
-    tk.street(ms, [(-1.1, 0.3), (-2.4, 0.55), (-3.95, 0.6)], 0.42)
-    tk.street(ms, [(1.1, 0.4), (2.4, 0.9), (3.95, 0.85)], 0.42)
-    tk.street(ms, [(-1.35, -1.35), (1.4, -1.35), (1.4, 1.3), (-1.35, 1.3), (-1.35, -1.35)], 0.36)
-    tk.street(ms, [(-2.4, 0.55), (-2.2, -1.9), (-0.9, -2.6)], 0.26)
-    tk.street(ms, [(2.4, 0.9), (2.35, -1.6), (1.0, -2.5)], 0.26)
+    tk.street(ms, [(0.15, -1.0), (0.2, -2.4), (0.05, -3.72)], 0.75)
+    tk.street(ms, [(0.0, 1.0), (-0.1, 2.2), (0.05, 3.72)], 0.5)
+    tk.street(ms, [(-1.1, 0.3), (-2.4, 0.55), (-3.72, 0.6)], 0.42)
+    tk.street(ms, [(1.1, 0.4), (2.4, 0.9), (3.72, 0.85)], 0.42)
+    tk.street(ms, [(-2.38, 0.3), (-2.2, -1.9), (-0.9, -2.6)], 0.26)
+    tk.street(ms, [(2.4, 0.66), (2.35, -1.6), (1.0, -2.5)], 0.26)
     # landmarks
-    tk.cathedral(ms, rng, -2.55, 3.05, top=2.8, s=0.95, yaw=-90, transept=True)
+    tk.cathedral(ms, rng, -2.25, 3.0, top=2.8, s=1.3, yaw=-90, transept=True)
     tk.keep_tower(ms, rng, 3.0, 3.05, w=1.0, d=1.0, h=2.0, yaw=180, flag=True)
-    tk.round_tower(ms, -3.5, -3.5, 0.3, 0.75, roof=0.4, face=-135)
-    tk.round_tower(ms, 3.5, -3.5, 0.3, 0.75, roof=0.4, face=-45)
+    tk.round_tower(ms, -3.45, -3.45, 0.36, 0.9, roof=0.52, face=-135)
+    tk.round_tower(ms, 3.45, -3.45, 0.36, 0.9, roof=0.52, face=-45)
     # the north-west quarter (south of the church)
     row(ms, rng, -3.45, 1.95, -0.85, 1.95, 4, 180)
     h(ms, rng, -1.2, 2.85, -90, w=0.62, d=0.7)
@@ -92,7 +91,14 @@ def layout(ms, rng):
         tk.market_stall(ms, rng, 1.75, y, yaw=-90, w=0.44, d=0.34)
     for x in (2.2, 2.7):
         tk.market_stall(ms, rng, x, -2.75, yaw=180, w=0.44, d=0.34)
-    tt.well(ms, -0.95, -0.95, yaw=10)
+    tt.well(ms, -0.9, -0.9, yaw=10)
+    # in-fill: the sheet's city is packed
+    h(ms, rng, 0.95, 1.25, 180, w=0.56, d=0.5)
+    h(ms, rng, 0.98, -1.1, -90, w=0.56, d=0.5)
+    h(ms, rng, -1.8, -1.12, 90, w=0.5, d=0.5)
+    h(ms, rng, 2.05, 2.1, 0, w=0.48, d=0.5, storeys=1)
+    h(ms, rng, -0.75, 1.45, 90, w=0.5, d=0.5)
+    h(ms, rng, 3.5, -3.0, -90, w=0.5, d=0.55, storeys=1)
     # gardens, fences and trees in the back plots
     for x, y, yaw in ((-3.2, 2.6, 0), (-1.95, -1.2, 90), (2.95, 2.45, 0), (-3.55, -2.75, 90), (1.95, -1.05, 90), (3.6, 0.15, 90)):
         tk.garden(ms, rng, x, y, 0.42, 0.3, yaw=yaw)
@@ -101,7 +107,8 @@ def layout(ms, rng):
     tk.wattle_fence(ms, [(-1.6, -3.9), (-0.6, -3.9)], h=0.08, step=0.3, lod=0)
     for x, y in ((-3.85, 3.85), (-3.85, 2.6), (-0.6, 1.25), (1.0, 1.15), (2.05, 3.6), (3.85, 2.2), (3.85, -0.9), (-3.85, -0.5),
                  (-1.15, -2.4), (1.5, -2.6), (-3.0, -2.95), (3.0, -2.9), (-1.6, 3.85), (2.3, 2.3), (-2.95, -1.4), (0.6, -3.85),
-                 (-1.6, -3.85), (3.85, 3.85)):
+                 (-1.6, -3.85), (3.85, 3.85), (-3.2, 1.6), (-0.55, 3.0), (1.25, 2.9), (2.2, 1.5), (-2.75, -0.55),
+                 (-1.25, -3.0), (1.45, -3.0), (3.1, -2.4), (-3.85, -3.0), (2.85, 0.35)):
         tk.tree(ms, x + rng.uniform(-0.05, 0.05), y + rng.uniform(-0.05, 0.05), h=rng.uniform(0.4, 0.52), r=rng.uniform(0.13, 0.18),
                 lod2=False)
     for x, y in ((-3.85, 1.45), (3.85, 1.4), (-2.2, 3.85)):

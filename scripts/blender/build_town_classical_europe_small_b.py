@@ -35,7 +35,7 @@ def layout(ms, rng):
         ec.europe_house(ms, rng, slot)
     for side in (-1, 1):
         for y in (0.25, -1.05):
-            tc.cypress(ms, side * 1.15, y + 0.5, h=rng.uniform(0.3, 0.36), r=0.045)
+            tc.cypress(ms, side * 1.15, y + 0.5, h=rng.uniform(0.3, 0.36), r=0.045, lod=1)
         tc.court_wall(ms, side * 1.08, -1.6, side * 1.08, -0.62, gaps=((0.5, 0.2),))
         tc.court_wall(ms, side * 1.08, -0.3, side * 1.08, 0.85, gaps=((0.45, 0.2),))
     tc.court_wall(ms, -1.95, -1.95, -1.95, 1.95)

@@ -21,7 +21,7 @@ GROUND = dict(gp.COBBLED, rx=2.0, ry=2.0, square=0.6)
 
 def layout(ms, rng):
     gp.town_hall(ms, rng, -1.05, 1.42, 0.92, 0.6, top=1.0, yaw=0, wall='gp_stucco', roof='gp_slate', storeys=2, kind='hip',
-                 tw=0.24, shaft=0.68, h=0.46)
+                 tw=0.24, shaft=0.66, h=0.42)
     gp.gp_house(ms, rng, 1.05, 1.38, 0.98, 0.7, yaw=0, wall='gp_stucco', roof='gp_tile', kind='hip', chimneys=2, dormers=0,
                 props=3, pots=2, rise=0.24)
     # the west side (fronts to the east)

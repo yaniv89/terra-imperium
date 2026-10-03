@@ -45,7 +45,7 @@ def layout(ms, rng):
     ms.quad_strip('euc_paving_square', [(-0.45, -2.95, G + 0.003), (0.05, -2.95, G + 0.003), (0.05, -0.7, G + 0.003), (-0.45, -0.7, G + 0.003)], lod=1)
     ec.roman_temple(ms, rng, -1.75, 1.85, 0.9, 1.3, top=1.2, columns=6, podium=0.16, yaw=0)
     for x, y in ((-2.45, 2.55), (-1.05, 2.6), (-2.5, 1.2)):
-        tc.cypress(ms, x, y, h=rng.uniform(0.35, 0.45), r=0.05)
+        tc.cypress(ms, x, y, h=rng.uniform(0.35, 0.45), r=0.05, lod=1)
     ec.aqueduct(ms, rng, 2.45, 0.45, length=1.9, depth=0.36, top=1.2, yaw=-90)
     for y in (1.15, 0.6, 0.05, -0.5):
         ec.stall(ms, 1.45, y, rng, yaw=-90)
@@ -57,7 +57,7 @@ def layout(ms, rng):
     world = tm.house_frame(0, 0, 0)
     for x, y in ((-1.0, 0.75), (-1.05, -0.75), (0.05, 1.05), (1.05, -1.6), (-0.75, -2.0), (-2.0, 0.05), (-1.6, -1.65),
                  (1.0, -1.75), (-1.75, 0.85), (2.75, 1.55), (-0.9, 1.9), (0.9, 1.9), (2.0, -2.7)):
-        tc.cypress(ms, x, y, h=rng.uniform(0.3, 0.42), r=0.045)
+        tc.cypress(ms, x, y, h=rng.uniform(0.3, 0.42), r=0.045, lod=1)
     for x, y in ((-2.8, -2.8), (2.8, -2.0), (0.15, 2.0), (-1.1, -2.0), (2.85, 2.85)):
         ec.potted(ms, world, x, y) if rng.random() < 0.5 else tc.shrub(ms, x, y, r=rng.uniform(0.06, 0.09))
     ec.amphorae(ms, world, 1.0, 1.55, rng, 4)

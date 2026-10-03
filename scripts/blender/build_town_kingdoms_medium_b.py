@@ -39,10 +39,10 @@ def house(ms, rng, x, y, w, d, yaw=None, two=None, **kw):
 
 
 def layout(ms, rng):
-    tk.street(ms, [(-0.55, -0.75), (-0.55, -2.95)], 0.55, mat='kg_sand_square')
-    tk.street(ms, [(0.7, 0.75), (1.0, 1.4), (1.0, 2.95)], 0.32, mat='kg_sand_square')
-    tk.street(ms, [(-0.75, 0.0), (-1.2, -0.1), (-2.95, -0.2)], 0.32, mat='kg_sand_square')
-    tk.street(ms, [(0.75, -0.2), (2.95, -0.35)], 0.3, mat='kg_sand_square')
+    tk.street(ms, [(-0.55, -0.75), (-0.55, -2.8)], 0.55, mat='kg_sand_square')
+    tk.street(ms, [(0.7, 0.75), (1.0, 1.4), (1.0, 2.8)], 0.32, mat='kg_sand_square')
+    tk.street(ms, [(-0.75, 0.0), (-1.2, -0.1), (-2.8, -0.2)], 0.32, mat='kg_sand_square')
+    tk.street(ms, [(0.75, -0.2), (2.8, -0.35)], 0.3, mat='kg_sand_square')
     tk.mosque(ms, rng, -1.95, 2.2, w=0.95, d=0.8, h=0.5, dome_r=0.26, minaret_at=(0.6, 0.32), minaret_top=1.8,
               minaret_w=0.24, yaw=0, porch_bays=4, mat='kg_whitewash', side_domes=True)
     for x, y in ((-2.55, 1.15), (-2.05, 1.15), (-1.55, 1.15), (-2.4, 0.55), (-1.9, 0.55)):

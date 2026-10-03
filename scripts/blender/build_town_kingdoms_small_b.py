@@ -19,8 +19,8 @@ GROUND = dict(tk.SANDY, rx=2.0, ry=2.0, square=0.6, n=72)
 
 
 def layout(ms, rng):
-    tk.street(ms, [(-0.2, -0.65), (-0.45, -1.3), (-0.9, -1.95)], 0.36, mat='kg_sand_square')
-    tk.street(ms, [(0.65, -0.1), (1.0, -0.2), (1.95, -0.2)], 0.3, mat='kg_sand_square')
+    tk.street(ms, [(-0.2, -0.65), (-0.45, -1.3), (-0.8, -1.82)], 0.36, mat='kg_sand_square')
+    tk.street(ms, [(0.65, -0.1), (1.0, -0.2), (1.84, -0.2)], 0.3, mat='kg_sand_square')
     tk.mosque(ms, rng, 1.25, 1.22, w=0.62, d=0.56, h=0.42, dome_r=0.17, minaret_at=(0.4, 0.26), minaret_top=1.0,
               minaret_w=0.17, yaw=0, porch_bays=3, mat='kg_whitewash')
     tk.court_house(ms, rng, -1.28, 1.3, 0.92, 0.9, yaw=0, mat='kg_ochre', court='palm')

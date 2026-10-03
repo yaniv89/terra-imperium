@@ -97,8 +97,8 @@ def _wall_brick(brick='#9b4a32', brick2='#86402c', mortar='#b9ab9a', bond=(0.03,
     return make
 
 
-def mat_facade(name, wall, cell_u=0.3, cell_z=STOREY, win_w=0.15, z0=0.13, z1=0.32, base=G,
-               glass=('#27323d', '#3d4c5b', '#62778a'), frame='#3b3e42', frame_w=0.012, dirt=True, rough=0.88):
+def mat_facade(name, wall, cell_u=0.28, cell_z=STOREY, win_w=0.12, z0=0.14, z1=0.31, base=G,
+               glass=('#34414d', '#4f6172', '#8195a6'), frame='#7d7f80', frame_w=0.01, dirt=True, rough=0.88):
     """A wall with a grid of windows painted by the material (so a facade costs two triangles):
     the wall colour from `wall(nt)`, windows `win_w` wide on a `cell_u` pitch along the facade
     (object x + y, so blocks stay axis-aligned), from z0 to z1 above `base` in every `cell_z`
@@ -186,7 +186,7 @@ def mat_stripes(name, colors, axis='X', scale=2.0, noise=20.0):
     return mat
 
 
-RENDER = ('#d3cec2', '#dfdbd1', '#e8e5dd', '#cbc5b8')
+RENDER = ('#d2cbbc', '#ddd6c8', '#e6e0d4', '#c8bfae')
 
 
 def make_materials():
@@ -249,6 +249,9 @@ def make_materials():
 if not any(n == 'modern' for n, _ in tt.EXTRA_MATERIALS):
     tt.EXTRA_MATERIALS.append(('modern', make_materials))
 
+FOOT = [1.0]        # a town file widens its blocks' footprints by this (the sheets' blocks are deep)
+LAWN = [0.0]        # a town file can ring every block with a lawn strip this wide
+FOOTPRINTS = []     # every block's (x, y, w, d) in world axes, for an overlap check
 PLAIN = {'md_render_win': 'md_render', 'md_brick_win': 'md_brick'}
 TOWN_GROUND = dict(mat='md_pave', power=4, n=64)
 Z_ROAD = G + 0.002      # asphalt over the paved ground
@@ -374,6 +377,12 @@ def block(ms, rng, x, y, w, d, storeys=3, wall='md_render_win', yaw=None, roof='
     concrete canopy, a glazed shopfront (with a team-grey awning) on the ground floor, balconies.
     Its front (-Y) faces `yaw` (default: toward the centre, snapped to an axis)."""
     yaw = facing(x, y) if yaw is None else yaw
+    w, d = w * FOOT[0], d * FOOT[0]
+    FOOTPRINTS.append((x, y, w, d) if yaw % 180 == 0 else (x, y, d, w))
+    if LAWN[0] > 0:  # a planted strip round the block (the sheets' green verges)
+        bx, by, bw, bd = FOOTPRINTS[-1]
+        m = LAWN[0]
+        rect(ms, 'md_lawn', bx - bw / 2 - m, by - bd / 2 - m, bx + bw / 2 + m, by + bd / 2 + m, Z_LAWN, lod=1)
     f = tm.house_frame(x, y, yaw)
     h = h or storeys * STOREY
     plain = PLAIN.get(wall, wall)
@@ -722,6 +731,16 @@ def stadium(ms, cx, cy, rx=1.0, ry=0.9, top=0.6):
 # ---- the shared file: palaces -------------------------------------------------------------------
 
 
+def obox(ms, mat, size, at=(0, 0, 0), frame=None, lod=1, only=None):
+    """Mesher.box for a part shown only at the listed LODs (`only`)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.translate(bm, vec=(0, 0, 0.5), verts=bm.verts)
+    bmesh.ops.scale(bm, vec=size, verts=bm.verts)
+    m = Matrix.Translation(Vector(at))
+    return ms.add(bm, mat, lod, matrix=m if frame is None else frame @ m, only=only)
+
+
 def window_row(ms, f, xs, y, z, w, h, lod=0, mat='md_shop'):
     for wx in xs:
         ms.box(mat, (w, 0.012, h), at=(wx, y, z), lod=lod, frame=f)
@@ -804,14 +823,14 @@ def palace(ms, rng):
         xs = [wx - ww / 2 + ww * (i + 0.5) / 4 for i in range(4)]
         for zz in (z + 0.1, z + 0.48, z + 0.84):
             window_row(ms, f, xs, -wd / 2 - 0.003, zz, 0.05, 0.22)
-        ms.box('md_shop', (ww * 0.9, 0.006, 0.022), at=(wx, -wd / 2 - 0.002, z + 0.2), lod=1, only=1, frame=f)
+        obox(ms, 'md_shop', (ww * 0.9, 0.006, 0.022), at=(wx, -wd / 2 - 0.002, z + 0.2), frame=f, lod=1, only=1)
         for zz in (z + 0.1, z + 0.48, z + 0.84):  # LOD1: one dark band per storey
-            ms.box('md_shop', (ww * 0.88, 0.008, 0.22), at=(wx, -wd / 2 - 0.003, zz), lod=1, only=1, frame=f)
+            obox(ms, 'md_shop', (ww * 0.88, 0.008, 0.22), at=(wx, -wd / 2 - 0.003, zz), frame=f, lod=1, only=1)
         sf = f @ Matrix.Translation(Vector((wx, 0, 0))) @ Matrix.Rotation(math.radians(90 * sx), 4, 'Z')
         ys = [-wd / 2 + wd * (i + 0.5) / 6 for i in range(6)]
         for zz in (z + 0.1, z + 0.48, z + 0.84):
             window_row(ms, sf, ys, -ww / 2 - 0.003, zz, 0.05, 0.22)
-            ms.box('md_shop', (wd * 0.9, 0.008, 0.22), at=(0, -ww / 2 - 0.003, zz), lod=1, only=1, frame=sf)
+            obox(ms, 'md_shop', (wd * 0.9, 0.008, 0.22), at=(0, -ww / 2 - 0.003, zz), frame=sf, lod=1, only=1)
         ms.box('md_lime', (ww + 0.012, wd + 0.012, 0.06), at=(wx, 0, z), lod=1, frame=f)
     # the central block
     cw, cd, chh = 0.62, 0.62, 1.56
@@ -911,9 +930,9 @@ def earthwork_ring(ms, rng, R_in, R_out, berm, gate_w, bunkers, bk_r, bk_h, tren
             ang = math.radians(aa)
             bm = bmesh.new()
             vs = [bm.verts.new((r * math.cos(ang), r * math.sin(ang), zz)) for r, zz in p]
-            bm.faces.new(vs if sx > 0 else list(reversed(vs)))
+            cap = bm.faces.new(vs if sx > 0 else list(reversed(vs)))
             bm.normal_update()
-            if bm.faces[0].normal.dot(Vector((math.cos(ang + sx * math.pi / 2), math.sin(ang + sx * math.pi / 2), 0))) < 0:
+            if cap.normal.dot(Vector((math.cos(ang + sx * math.pi / 2), math.sin(ang + sx * math.pi / 2), 0))) < 0:
                 bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
             ms.add(bm, 'md_turf', lod, only=lod)
     tb.footing(ms, R_out, R_in, n[1], apron=0.3)
@@ -1166,7 +1185,7 @@ def field_4(ms, rng):
             ms.box('md_soil', (0.07, 0.16, 0.01), at=(bx, -0.4, G), lod=1)
             for k in range(3):
                 ms.sphere(mat, 0.022, at=(bx, -0.45 + 0.05 * k, G + 0.016), scale=(1, 1, 0.65), u=6, v=4, lod=0)
-            ms.box(mat, (0.05, 0.14, 0.02), at=(bx, -0.4, G + 0.005), lod=1, only=1)
+            obox(ms, mat, (0.05, 0.14, 0.02), at=(bx, -0.4, G + 0.005), lod=1, only=1)
     rect(ms, 'md_gravel', -0.05, -0.52, 0.05, 0.5, G + 0.002, lod=1)
     for sx in (-1, 1):
         rect(ms, 'md_soil', sx * 0.56 - 0.08, -0.5, sx * 0.56 + 0.08, 0.5, G + 0.002, lod=1)

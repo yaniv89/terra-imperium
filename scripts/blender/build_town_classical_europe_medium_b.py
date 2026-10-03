@@ -51,7 +51,7 @@ def layout(ms, rng):
         for i, y in enumerate((1.0, -0.05, -1.1)):
             if side < 0 and i == 2:
                 continue
-            tc.cypress(ms, side * 1.95 if side < 0 else 2.05, y + 0.42, h=rng.uniform(0.3, 0.38), r=0.045)
+            tc.cypress(ms, side * 1.95 if side < 0 else 2.05, y + 0.42, h=rng.uniform(0.3, 0.38), r=0.045, lod=1)
     for x in (-2.35, -1.75, -1.15):
         for y in (-1.55, -2.25):
             ec.stall(ms, x, y, rng, yaw=180 if y < -2 else 0, w=0.42, d=0.32)
@@ -59,7 +59,7 @@ def layout(ms, rng):
     for x, y in ((-2.75, 2.8), (0.4, 2.8), (2.8, 1.6), (-0.6, -2.7), (2.8, -1.6), (-2.8, -0.6)):
         ec.potted(ms, world, x, y) if rng.random() < 0.5 else tc.shrub(ms, x, y, r=rng.uniform(0.07, 0.1))
     for x, y in ((-0.6, 1.0), (1.0, 0.45), (-1.0, -0.75), (0.95, -1.05), (-0.45, -1.2)):
-        tc.cypress(ms, x, y, h=rng.uniform(0.28, 0.38), r=0.045)
+        tc.cypress(ms, x, y, h=rng.uniform(0.28, 0.38), r=0.045, lod=1)
     ec.amphorae(ms, world, 1.2, -1.25, rng, 4)
     ec.amphorae(ms, world, -0.9, 1.35, rng, 3)
     tt.well(ms, 0.95, 0.95, yaw=20)

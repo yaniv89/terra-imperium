@@ -15,7 +15,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import bmesh  # noqa: E402  (ti_town imports bpy first)
+import bpy  # noqa: E402,F401  (before bmesh)
+import bmesh  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 import ti_map as tm  # noqa: E402
 import ti_town as tt  # noqa: E402

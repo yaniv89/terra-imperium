@@ -17,6 +17,8 @@ import ti_modern as md  # noqa: E402
 NAME = 'town-medium-a'
 GROUND = dict(md.TOWN_GROUND, rx=3.0, ry=3.0, square=None)
 R, B = 'md_render_win', 'md_brick_win'
+md.FOOT[0] = 1.25  # the sheets' blocks are deeper than a house
+md.LAWN[0] = 0.06
 
 
 def layout(ms, rng):
@@ -29,20 +31,20 @@ def layout(ms, rng):
     # the tower and the north-west blocks
     md.glass_tower(ms, -2.2, 1.9, [(0.56, 0.56, 1.8, 0, 0)], podium=(0.8, 0.8, 0.17))
     md.block(ms, rng, -1.3, 2.4, 0.62, 0.66, storeys=3, wall=R, yaw=0, units=2)
-    md.block(ms, rng, -0.58, 2.42, 0.6, 0.62, storeys=3, wall=B, yaw=0, units=2)
+    md.block(ms, rng, -0.58, 2.42, 0.6, 0.62, storeys=2, wall=B, yaw=0, units=2)
     md.block(ms, rng, -1.32, 1.5, 0.6, 0.62, storeys=2, wall=R, yaw=0, balcony=True)
     md.block(ms, rng, -0.55, 1.42, 0.62, 0.78, storeys=3, wall=B, yaw=0, roof='hip', rise=0.22)
-    md.block(ms, rng, 0.15, 1.42, 0.5, 0.72, storeys=3, wall=R, yaw=0, shop=True, awning=True)
+    md.block(ms, rng, 0.15, 1.42, 0.5, 0.72, storeys=2, wall=R, yaw=0, shop=True, awning=True)
     md.block(ms, rng, 0.72, 1.42, 0.5, 0.72, storeys=2, wall=B, yaw=0, units=1)
     md.block(ms, rng, 1.5, 1.45, 0.62, 0.62, storeys=3, wall=R, yaw=0, units=2, balcony=True)
     md.block(ms, rng, 2.35, 1.5, 0.6, 0.6, storeys=2, wall=R, yaw=0, units=2)
     # the station along the north-east
     md.station(ms, 1.25, 2.38, length=1.8, width=0.42, track_len=2.1)
     # the west
-    md.block(ms, rng, -2.45, 0.6, 0.78, 0.68, storeys=3, wall=R, yaw=90, units=2)
+    md.block(ms, rng, -2.45, 0.6, 0.78, 0.68, storeys=2, wall=R, yaw=90, units=2)
     md.block(ms, rng, -2.45, -0.35, 0.78, 0.68, storeys=3, wall=B, yaw=90, units=1)
     md.block(ms, rng, -2.45, -1.25, 0.72, 0.68, storeys=2, wall=R, yaw=90, balcony=True)
-    md.block(ms, rng, -1.4, 0.35, 0.86, 0.62, storeys=3, wall=B, yaw=90, roof='hip', rise=0.24)
+    md.block(ms, rng, -1.4, 0.35, 0.86, 0.62, storeys=2, wall=B, yaw=90, roof='hip', rise=0.24)
     md.block(ms, rng, -1.4, -0.75, 0.86, 0.62, storeys=3, wall=R, yaw=90, shop=True, awning=True)
     # the market on the east of the plaza
     for y in (0.6, 0.28, -0.04, -0.36, -0.68, -1.0, -1.32):
@@ -50,12 +52,12 @@ def layout(ms, rng):
     for x in (1.75, 2.08, 2.41):
         md.market_tent(ms, rng, x, -2.42, s=0.28)
     # the east
-    md.block(ms, rng, 1.85, 0.5, 0.75, 0.55, storeys=3, wall=R, yaw=-90, shop=True, awning=True)
+    md.block(ms, rng, 1.85, 0.5, 0.75, 0.55, storeys=2, wall=R, yaw=-90, shop=True, awning=True)
     md.block(ms, rng, 2.5, 0.5, 0.75, 0.58, storeys=3, wall=B, yaw=-90, units=2)
-    md.block(ms, rng, 1.85, -0.72, 0.8, 0.55, storeys=3, wall=R, yaw=-90, shop=True, awning=True)
+    md.block(ms, rng, 1.85, -0.72, 0.8, 0.55, storeys=2, wall=R, yaw=-90, shop=True, awning=True)
     md.block(ms, rng, 2.5, -0.72, 0.8, 0.58, storeys=2, wall=R, yaw=-90, units=2)
     md.block(ms, rng, 1.9, -1.72, 0.7, 0.56, storeys=3, wall=B, yaw=-90, balcony=True)
-    md.block(ms, rng, 2.55, -1.6, 0.6, 0.55, storeys=3, wall=R, yaw=180, units=1)
+    md.block(ms, rng, 2.55, -1.6, 0.6, 0.55, storeys=2, wall=R, yaw=180, units=1)
     md.block(ms, rng, 0.85, -1.9, 0.52, 0.5, storeys=2, wall=R, yaw=90, shop=True)
     # the south-west park and the south
     md.lawn(ms, -2.85, -2.75, -0.55, -1.75, hedges=('n',))

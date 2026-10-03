@@ -39,7 +39,7 @@ def layout(ms, rng):
     street(ms, 0.05, -0.65, 0.05, -1.95, 0.42)
     ec.roman_temple(ms, rng, -0.75, 1.3, 0.52, 0.74, top=0.75, columns=4, yaw=0)
     for x, y in ((-1.08, 1.62), (-0.4, 1.66), (-1.1, 0.95)):
-        tc.cypress(ms, x, y, h=rng.uniform(0.32, 0.42), r=0.045)
+        tc.cypress(ms, x, y, h=rng.uniform(0.32, 0.42), r=0.045, lod=1)
     for slot in SLOTS:
         ec.europe_house(ms, rng, slot)
     tt.well(ms, 1.0, -1.25, yaw=10)
@@ -50,7 +50,7 @@ def layout(ms, rng):
                  (1.8, -0.75), (-0.95, -1.6), (1.6, -1.5)):
         ec.potted(ms, world, x, y) if rng.random() < 0.5 else tc.shrub(ms, x, y, r=rng.uniform(0.05, 0.07))
     for x, y in ((1.8, 0.75), (-1.92, 0.25), (-1.92, -0.65), (0.75, 1.75), (1.85, 0.45)):
-        tc.cypress(ms, x, y, h=rng.uniform(0.3, 0.42), r=0.045)
+        tc.cypress(ms, x, y, h=rng.uniform(0.3, 0.42), r=0.045, lod=1)
     ec.amphorae(ms, world, 0.75, 0.65, rng, 4)
     ec.amphorae(ms, world, -1.0, -0.6, rng, 3)
 

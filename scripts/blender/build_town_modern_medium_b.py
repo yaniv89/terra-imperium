@@ -17,6 +17,8 @@ import ti_modern as md  # noqa: E402
 NAME = 'town-medium-b'
 GROUND = dict(md.TOWN_GROUND, rx=3.0, ry=3.0, square=None)
 R, B = 'md_render_win', 'md_brick_win'
+md.FOOT[0] = 1.25  # the sheets' blocks are deeper than a house
+md.LAWN[0] = 0.06
 
 
 def layout(ms, rng):
@@ -36,25 +38,25 @@ def layout(ms, rng):
         md.tree(ms, x, 2.7, h=0.58, r=0.15, lod2=True, rng=rng)
     # the north row
     md.block(ms, rng, -2.15, 2.0, 0.72, 0.9, storeys=3, wall=R, yaw=0, units=2)
-    md.block(ms, rng, -1.15, 1.85, 0.62, 0.8, storeys=3, wall=R, yaw=0, units=2)
+    md.block(ms, rng, -1.15, 1.85, 0.62, 0.8, storeys=2, wall=R, yaw=0, units=2)
     md.block(ms, rng, -0.5, 1.85, 0.62, 0.8, storeys=3, wall=R, yaw=0, units=3, balcony=True)
-    md.block(ms, rng, 0.42, 1.75, 0.66, 0.9, storeys=3, wall=B, yaw=0, units=2)
+    md.block(ms, rng, 0.42, 1.75, 0.66, 0.9, storeys=2, wall=B, yaw=0, units=2)
     md.block(ms, rng, 1.25, 1.7, 0.52, 0.85, storeys=2, wall=R, yaw=0, roof='gable', rise=0.24)
     md.block(ms, rng, 2.5, 1.0, 0.55, 0.52, storeys=2, wall=R, yaw=-90, roof='gable', rise=0.22)
     # the market down the west
     for y in (1.2, 0.75, 0.3, -0.15, -0.6, -1.05):
         md.market_tent(ms, rng, -2.62, y, s=0.32, yaw=90)
     md.block(ms, rng, -1.62, 0.55, 0.85, 0.8, storeys=3, wall=R, yaw=90, units=2)
-    md.block(ms, rng, -1.62, -0.6, 0.85, 0.8, storeys=3, wall=R, yaw=90, shop=True, awning=True)
+    md.block(ms, rng, -1.62, -0.6, 0.85, 0.8, storeys=2, wall=R, yaw=90, shop=True, awning=True)
     # the east
     md.block(ms, rng, 1.6, 0.35, 0.8, 0.7, storeys=3, wall=R, yaw=-90, units=2)
     md.block(ms, rng, 2.5, 0.12, 0.85, 0.52, storeys=2, wall=R, yaw=-90, roof='gable', rise=0.24)
-    md.block(ms, rng, 1.6, -1.15, 1.05, 0.7, storeys=3, wall=B, yaw=-90, units=2)
+    md.block(ms, rng, 1.6, -1.15, 1.05, 0.7, storeys=2, wall=B, yaw=-90, units=2)
     md.block(ms, rng, 2.5, -1.4, 0.95, 0.52, storeys=3, wall=R, yaw=-90, units=1, balcony=True)
     md.block(ms, rng, 0.95, -1.95, 0.55, 0.62, storeys=2, wall=R, yaw=90, units=1)
     # the south: the works and a block
     md.factory(ms, -2.05, -2.05, 1.0, 1.0, teeth=4, chimney=(-2.72, -1.45, 1.45))
-    md.block(ms, rng, -0.8, -2.0, 1.05, 0.85, storeys=3, wall=R, yaw=180, shop=True, awning=True)
+    md.block(ms, rng, -0.8, -2.0, 1.05, 0.85, storeys=2, wall=R, yaw=180, shop=True, awning=True)
     # lawns, hedges, trees
     md.lawn(ms, -2.95, -1.45, -2.4, -1.25)
     md.lawn(ms, 2.1, -2.35, 2.9, -2.0, hedges=('n',))
