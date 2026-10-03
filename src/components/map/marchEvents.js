@@ -10,3 +10,6 @@ export const SELECT_ARMY = 'ti:select-army';
 export const SELECT_TILE = 'ti:select-tile';
 export const selectArmy = (tile) => window.dispatchEvent(new CustomEvent(SELECT_ARMY, { detail: tile }));
 export const selectTile = (tile) => window.dispatchEvent(new CustomEvent(SELECT_TILE, { detail: tile }));
+// Open the nation sheet for `nationId` (the region card's owner name, NationSheet.jsx).
+export const SELECT_NATION = 'ti:select-nation';
+export const selectNation = (nationId) => window.dispatchEvent(new CustomEvent(SELECT_NATION, { detail: nationId }));
