@@ -72,19 +72,19 @@ def render(scene, path):
     bpy.ops.render.render(write_still=True)
 
 
-def main(blend, out_dir, concept=None):
+def main(blend, out_dir, concept=None, quick=False):
     os.makedirs(out_dir, exist_ok=True)
     bpy.ops.wm.open_mainfile(filepath=blend)
     scene = bpy.context.scene
     root = next(o for o in bpy.data.objects if o.type == 'EMPTY')
     name = root.name
-    ti.setup_render(scene, samples=48, transparent=False)
+    ti.setup_render(scene, samples=16 if quick else 48, transparent=False)
     sun = ti.setup_lights(scene, sun_dir=MAP_SUN)
     sun.data.use_shadow = False  # the game has no real-time shadows: only the baked AO shows
     target = Vector((0, 0, 0.35))
 
     # 1. the game camera at k 10, 40, 150 on grass and on nation blue
-    for bg_name, color in (('grass', GRASS), ('blue', BLUE)):
+    for bg_name, color in (() if quick else (('grass', GRASS), ('blue', BLUE))):
         bg = plane(color)
         for k in (10, 40, 150):
             show_lod(root, lod_at(k))
@@ -104,13 +104,16 @@ def main(blend, out_dir, concept=None):
     }
     for vname, d in views.items():
         aim = Vector((0, 0, {'front': 0.95, 'top': 0.0, 'beauty': 0.3}[vname]))
-        cam = ortho_cam(scene, aim, d, 4.6, (1024, 560 if vname == 'front' else 760))
+        lod0 = next(c for c in root.children if c.name == 'LOD0')
+        span = max(lod0.dimensions.x, lod0.dimensions.y)
+        cam = ortho_cam(scene, aim * (span / 4.0), d, max(4.6, span * 1.15), (1024, 560 if vname == 'front' else 760))
         render(scene, os.path.join(out_dir, '%s_view_%s.png' % (name, vname)))
         bpy.data.objects.remove(cam)
     bpy.data.objects.remove(bg)
 
     # 3. one contact sheet of the game-camera renders and one of the model against the concept
-    sheet(out_dir, ['%s_k%d_%s.png' % (name, k, b) for b in ('grass', 'blue') for k in (10, 40, 150)], 'sheet_game_camera.png', 3)
+    if not quick:
+        sheet(out_dir, ['%s_k%d_%s.png' % (name, k, b) for b in ('grass', 'blue') for k in (10, 40, 150)], 'sheet_game_camera.png', 3)
     parts = ['%s_view_beauty.png' % name, '%s_view_top.png' % name]
     sheet(out_dir, parts, 'sheet_views.png', 2)
     if concept:
@@ -175,4 +178,4 @@ def compare(out_dir, concept, name):
 
 if __name__ == '__main__':
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
-    main(argv[0], argv[1], argv[2] if len(argv) > 2 else None)
+    main(argv[0], argv[1], argv[2] if len(argv) > 2 and argv[2] != '-' else None, quick=len(argv) > 3 and argv[3] == 'quick')

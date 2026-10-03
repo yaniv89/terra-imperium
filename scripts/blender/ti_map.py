@@ -20,7 +20,7 @@ class Mesher:
     detail level that still shows it (0 = only LOD0, 2 = every LOD)."""
 
     def __init__(self):
-        self.parts = []  # (bmesh, material, max_lod)
+        self.parts = []  # (bmesh, material, max_lod, only_lod)
 
     @staticmethod
     def _m(at=(0, 0, 0), rot_z=0.0, rot=(0, 0, 0), scale=(1, 1, 1)):
@@ -29,10 +29,10 @@ class Mesher:
                 @ Matrix.Rotation(math.radians(rot[0]), 4, 'X')
                 @ Matrix.Scale(scale[0], 4, (1, 0, 0)) @ Matrix.Scale(scale[1], 4, (0, 1, 0)) @ Matrix.Scale(scale[2], 4, (0, 0, 1)))
 
-    def add(self, bm, mat, lod=2, matrix=None):
+    def add(self, bm, mat, lod=2, matrix=None, only=None):
         if matrix is not None:
             bmesh.ops.transform(bm, matrix=matrix, verts=bm.verts)
-        self.parts.append((bm, mat, lod))
+        self.parts.append((bm, mat, lod, only))
         return bm
 
     def box(self, mat, size, at=(0, 0, 0), rot_z=0.0, lod=2, bevel=0.0, taper=1.0, frame=None):
@@ -47,11 +47,15 @@ class Mesher:
                     v.co.x *= taper
                     v.co.y *= taper
         bmesh.ops.scale(bm, vec=size, verts=bm.verts)
-        if bevel > 0:
-            bmesh.ops.bevel(bm, geom=bm.edges[:] + bm.verts[:], offset=bevel, segments=1, affect='EDGES', profile=0.5)
         m = self._m(at, rot_z)
         if frame is not None:
             m = frame @ m
+        if bevel > 0:
+            if lod >= 2:  # LOD2 keeps the plain block: a bevel costs ~40 triangles nobody sees there
+                plain = bm.copy()
+                self.add(plain, mat, 2, m.copy(), only=2)
+                lod = 1
+            bmesh.ops.bevel(bm, geom=bm.edges[:] + bm.verts[:], offset=bevel, segments=1, affect='EDGES', profile=0.5)
         return self.add(bm, mat, lod, m)
 
     def cyl(self, mat, r1, r2, h, at=(0, 0, 0), rot=(0, 0, 0), segs=8, lod=2, frame=None, caps=True):
@@ -96,7 +100,7 @@ class Mesher:
             res = bmesh.ops.extrude_face_region(bm, geom=[f])
             moved = [g for g in res['geom'] if isinstance(g, bmesh.types.BMVert)]
             bmesh.ops.translate(bm, vec=(0, 0, -thickness), verts=moved)
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)  # a closed slab: safe to orient
         m = Matrix.Identity(4) if frame is None else frame
         return self.add(bm, mat, lod, m)
 
@@ -104,8 +108,8 @@ class Mesher:
         """Join every part visible at `lod` into one object with the given material order."""
         out = bmesh.new()
         me_tmp = bpy.data.meshes.new('_tmp')
-        for bm, mat, max_lod in self.parts:
-            if max_lod < lod:
+        for bm, mat, max_lod, only in self.parts:
+            if max_lod < lod or (only is not None and only != lod):
                 continue
             idx = materials.index(mat)
             bm.to_mesh(me_tmp)
@@ -116,7 +120,6 @@ class Mesher:
             for i in range(first, len(out.faces)):
                 out.faces[i].material_index = idx
         bpy.data.meshes.remove(me_tmp)
-        bmesh.ops.recalc_face_normals(out, faces=out.faces)
         me = bpy.data.meshes.new(name)
         out.to_mesh(me)
         out.free()
@@ -249,7 +252,7 @@ def mat_mudwall(name='mudwall', wash='#d9c6a2', brick='#a87b4f', mortar='#8c6a46
     br.inputs['Mortar'].default_value = _srgb(mortar)
     br.offset = 0.5
     nt.links.new(comb.outputs['Vector'], br.inputs['Vector'])
-    patch = _noise(nt, 9.0, 6.0, 0.6)
+    patch = _noise(nt, 24.0, 6.0, 0.62)
     mask = _ramp(nt, patch.outputs['Fac'], [(wash_cover - 0.04, '#000000'), (wash_cover + 0.02, '#ffffff')])
     washn = _noise(nt, 40.0, 5.0)
     washc = _ramp(nt, washn.outputs['Fac'], [(0.3, '#c9b48d'), (0.55, wash), (0.8, '#e6d8b9')])
