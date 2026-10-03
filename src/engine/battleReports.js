@@ -50,6 +50,7 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
     captured: !!report.captured,
     rounds: report.rounds ?? null,
     terrain: report.terrain ?? null,
+    battleType: report.battleType ?? null,
     timeline: report.timeline || null,
     sides: { attacker, defender },
     fallen: { attacker: menLost(attacker), defender: menLost(defender) },

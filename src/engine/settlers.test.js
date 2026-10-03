@@ -49,6 +49,8 @@ describe('settlers and outposts', () => {
   it('the player builds a settler, sends it, and the outpost becomes a city', () => {
     let s = quiet(createInitialState({ playerNationId: 'eg', rngSeed: 2 }));
     const cairoId = getNationCapital('eg');
+    // Egypt's free Dawn settler (scenarios.js) is set aside: this test builds one from the queue.
+    s = { ...s, units: Object.fromEntries(Object.entries(s.units).filter(([, u]) => !(u.ownerId === 'eg' && settlersOf({ [u.id]: u }, 'eg').length))) };
     const size0 = s.regions[cairoId].size;
     s = gameReducer(s, { type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId: cairoId, item: { kind: 'settler' } } });
     expect(s.regions[cairoId].production.current).toEqual({ kind: 'settler' });
@@ -125,7 +127,7 @@ describe('settlers and outposts', () => {
 
   it('AI cities queue settlers when they have room and then buildings, and the AI world fills in', () => {
     const s = quiet(createInitialState({ playerNationId: 'au', rngSeed: 5 }));
-    const cairo = s.regions[getNationCapital('eg')];
+    const cairo = s.regions[getNationCapital('ir')]; // a size-4 capital without a Dawn settler
     const thinkTurn = (SETTLER_THINK_PERIOD - (cairo.tile % SETTLER_THINK_PERIOD)) % SETTLER_THINK_PERIOD; // the site search runs one turn in a few
     const item = chooseProduction(s, cairo, { researched: [], ageId: 'bronze', citiesOwned: 1, units: s.units, turnNumber: thinkTurn });
     expect(item).toEqual({ kind: 'settler' });

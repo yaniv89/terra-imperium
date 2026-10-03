@@ -7,7 +7,7 @@ import { resolveTurn } from '../resolveTurn';
 import { HISTORICAL_EVENTS } from '../../data/events';
 import { NATION_COUNTS, generateStarts, applyScenario } from './emergentWorld';
 import { processEmergence } from '../emergence';
-import { SCENARIO_IDS } from '../../data/scenarios';
+import { SCENARIO_IDS, DAWN_SETTLER_NATIONS, UNPEOPLED_AT_DAWN } from '../../data/scenarios';
 
 describe('world scenarios on the tile grid', () => {
   it('the full world: 240 peoples, one city each at the Dawn start, every capital on its own land', () => {
@@ -22,7 +22,9 @@ describe('world scenarios on the tile grid', () => {
       expect(capital.tiles).toContain(capital.tile);
       expect(state.world.tileOwner[capital.tile]).toBe(capital.id);
     });
-    expect(Object.keys(state.units)).toHaveLength(240);
+    expect(Object.values(state.units).filter((u) => u.classId === 'infantry')).toHaveLength(240);
+    // The Dawn settlers: the five river peoples and every unpeopled land (scenarios.js).
+    expect(Object.values(state.units).filter((u) => u.classId === 'settler').length).toBe(DAWN_SETTLER_NATIONS.length + UNPEOPLED_AT_DAWN.size);
     assertGameState(state);
   });
 
@@ -48,7 +50,7 @@ describe('world scenarios on the tile grid', () => {
     expect(state.nations.fr).toBeDefined();
     for (const n of Object.values(state.nations)) {
       expect(Object.values(state.regions).filter((r) => r.owner === n.id)).toHaveLength(1);
-      expect(Object.values(state.units).filter((u) => u.ownerId === n.id)).toHaveLength(1);
+      expect(Object.values(state.units).filter((u) => u.ownerId === n.id && u.classId === 'infantry')).toHaveLength(1);
     }
     expect(Object.keys(generateStarts('fr', nationCount, 7).starts).sort()).toEqual(state.scenario.activeNationIds);
     expect(state.scenario.dormantNationIds).toHaveLength(240 - nationCount);

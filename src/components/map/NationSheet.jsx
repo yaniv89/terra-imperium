@@ -2,9 +2,10 @@
 // The nation sheet (plans/civ-map-rework.md E4): the nation at a glance, your standing with it,
 // and the Diplomacy tab's own actions (NationCard). Bottom sheet on a phone, a docked card on
 // desktop, like the army sheet. Opened by selectNation (marchEvents.js).
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { X, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { nationSheetModel } from './nationSheetModel';
 import NationCard from '../panels/NationCard';
@@ -12,7 +13,10 @@ import NationCard from '../panels/NationCard';
 const TONE = { good: 'text-emerald-300', bad: 'text-red-300', neutral: 'text-amber-200' };
 
 const NationSheet = ({ nationId, onClose, onSelectRegion }) => {
-  const { state } = useGame();
+  const { state, dispatch } = useGame();
+  // The guided start's "meet a neighbour" step is done once a foreign nation's sheet is open.
+  const guided = !!state.tutorial && !state.tutorial.done?.meet;
+  useEffect(() => { if (guided && nationId && nationId !== state.playerNationId) dispatch({ type: ActionTypes.MARK_TUTORIAL_STEP, payload: { stepId: 'meet' } }); }, [guided, nationId, state.playerNationId, dispatch]);
   const isMobile = useIsMobile();
   const m = useMemo(() => nationSheetModel(state, nationId), [state, nationId]);
   if (!m) return null;

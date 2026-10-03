@@ -31,6 +31,7 @@ describe('tile yields', () => {
     expect(canImprove(facts({ relief: 'hills' }), 'mine')).toBe(false);
     expect(canImprove(facts({ relief: 'hills' }), 'mine', ['military_bronze_casting'])).toBe(true);
     expect(canImprove(facts({ terrain: 'desert' }), 'farm')).toBe(false);
+    expect(canImprove(facts({ terrain: 'desert', feature: 'floodplain' }), 'farm')).toBe(true);
     expect(canImprove(facts({ resource: 'horses' }), 'pasture')).toBe(true);
     expect(canImprove(facts({ land: false, terrain: 'coast' }), 'fishing_boats', ['economy_bronze_trade_routes'])).toBe(true);
     Object.values(IMPROVEMENTS).forEach((imp) => expect(typeof imp.allowed).toBe('function'));

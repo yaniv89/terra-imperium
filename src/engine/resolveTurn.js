@@ -1,4 +1,5 @@
 import { applyArmyDesertion, DESERTION_SHARE, DESERTION_MORALE } from './armyDesertion';
+import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
 import { processEmergence } from './emergence';
 import { processAIOperations } from './aiOperations';
@@ -1191,6 +1192,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   };
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   if (next.pendingDefenses.length && state.battleSettings?.autoDefend === true) next = resolveAllDefensesAuto(next);
+  if (next.tutorial) next = advanceTutorial(next);
   mark('assembleNextState');
 
   // --- defeat (plan §M15, checked against THIS turn's resolved state) --- "GameStatus.DEFEAT is set
