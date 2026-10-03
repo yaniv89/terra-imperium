@@ -13,8 +13,8 @@ from `ti_bronze.py` and `gable_roof` from `ti_classical.py`) plus the new
 | town-small-b | modern-town-small-b.glb | asphalt square, 4 blocks, 2 gabled brick houses, glazed canopy, 11 m clock tower | 4,126 / 1,602 / 402 | 40 m | 11.6 m | 1.9 MB |
 | town-medium-a | modern-town-medium-a.glb | 20 m glass tower, station and tracks, 21 blocks, market tents, south street, park | 10,012 / 3,468 / 696 | 60 m | 21 m (mast) | 2.5 MB |
 | town-medium-b | modern-town-medium-b.glb | 18 m water tower in a green, sawtooth works and chimney, 14 blocks and gabled houses, market tents, north lawn | 7,644 / 2,738 / 870 | 60 m | 18 m | 2.3 MB |
-| town-big-a | modern-town-big-a.glb | BIG_A_ROW |
-| town-big-b | modern-town-big-b.glb | BIG_B_ROW |
+| town-big-a | modern-town-big-a.glb | 42 m glass tower, stadium, diagonal station, 18 m water tower, 27 blocks and gabled houses, market tents, five streets | 14,610 / 5,178 / 1,176 | 80 m | 43 m (mast) | 3.0 MB |
+| town-big-b | modern-town-big-b.glb | stepped 42 m skyscraper, water tower park, sawtooth works and 16 m chimney, covered market, bus shelter, 28 blocks | 14,058 / 5,106 / 1,186 | 80 m | 42 m | 2.9 MB |
 | palace-small | shared-modern.glb | town hall: two-storey civic block, five window bays, canopy, steps, two flags | 914 / 726 / 22 | 11.7 m | 8.8 m | |
 | palace | shared-modern.glb | parliament: portico of 8 columns, ribbed dome and lantern, two wings, forecourt, two flags | 2,532 / 1,400 / 204 | 12.2 m | 12.3 m | |
 | walls-small | shared-modern.glb | grassed berm, 4 bunkers, posts and barbed wire, timber barrier | 3,986 / 1,482 / 192 | 45 m | 4.4 m | |
@@ -66,5 +66,7 @@ No regional tradition is implied; the lead can pick by city as with the Bronze k
 
 ## Not matched
 - Window counts and mullion patterns are a regular grid, not each sheet building's own pattern.
+- The apples barely show red at map scale (the crown material mixes a little red into the green).
+- The stadium's outer wall hides most of its stands from the low preview camera.
 - Chain-link mesh reads as strands (an opaque mesh panel looked like a wall).
 - The big towns' station runs on a diagonal; its glass roof grid follows the world axes.
