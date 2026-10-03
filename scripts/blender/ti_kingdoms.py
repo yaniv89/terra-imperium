@@ -1293,7 +1293,7 @@ def stone_ring(ms, rng, R_out, R_in, H, gate_x, towers, tower_r, tower_h, gate_r
             tb.sweep(ms, 'kg_ringstone', [(R_out, H), (R_out, H + ph), (R_out - 0.04, H + ph), (R_out - 0.04, H)], a0, a1, steps, lod=lod, only=lod)
     tb.footing(ms, R_out, R_in, n[1], apron=0.35)
     t_half = [(a, math.degrees(math.asin(tower_r * 1.05 / R_out))) for a in towers]
-    tb.merlon_ring(ms, R_out - 0.02, H + 0.035, a0, a1, 0.1, t_half, size=(0.05, 0.04, 0.055), mat=mat)
+    tb.merlon_ring(ms, R_out - 0.02, H + 0.035, a0, a1, 0.12, t_half, size=(0.065, 0.045, 0.07), mat=mat)
     # a few slit windows along the outer face
     for i in range(int(math.radians(a1 - a0) * R_out / 0.9)):
         a = a0 + (a1 - a0) * (i + 0.5) / int(math.radians(a1 - a0) * R_out / 0.9)
@@ -1444,7 +1444,8 @@ def apple_tree(ms, rng, x, y, top=0.27, support=False):
 def field_2(ms, rng):
     """`field-2` (16 by 12 m): an apple orchard: six trees (2.5 m) in two rows on grass with
     mulched rings, trodden paths between them, stakes and ropes on two of the young trees."""
-    ms.quad_strip('kg_meadow_square', [(-0.8, -0.04, G + 0.002), (0.8, -0.04, G + 0.002), (0.8, 0.05, G + 0.002), (-0.8, 0.05, G + 0.002)], lod=1)
+    for xa, xb in ((-0.8, -0.3), (-0.22, 0.22), (0.3, 0.8)):  # pieces between the cross paths (overlaps bake dark)
+        ms.quad_strip('kg_meadow_square', [(xa, -0.04, G + 0.002), (xb, -0.04, G + 0.002), (xb, 0.05, G + 0.002), (xa, 0.05, G + 0.002)], lod=1)
     for x in (-0.26, 0.26):
         ms.quad_strip('kg_meadow_square', [(x - 0.04, -0.6, G + 0.002), (x + 0.04, -0.6, G + 0.002), (x + 0.04, 0.6, G + 0.002), (x - 0.04, 0.6, G + 0.002)], lod=1)
     for i, x in enumerate((-0.52, 0.0, 0.52)):

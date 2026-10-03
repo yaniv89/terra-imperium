@@ -1,17 +1,18 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { loadTiles } from './geo/tiles';
-import { buildScenarioStarts, landClaimedShare, SCENARIO_IDS, ringsFrom } from './scenarios';
+import { buildScenarioStarts, landClaimedShare, SCENARIO_IDS, ringsFrom, spreadCapitals } from './scenarios';
 
 let tiles;
 beforeAll(async () => { tiles = await loadTiles(); });
 
 describe('scenario starts on the world grid', () => {
-  it('Dawn: every nation has one city on its capital tile and claims about 10% of the land', () => {
+  it('Dawn: every nation has one city on its (spread) capital tile and claims about 10% of the land', () => {
     const { starts, claimedBy } = buildScenarioStarts(tiles, 'dawn');
     expect(Object.keys(starts).length).toBe(240);
+    const capitals = spreadCapitals(tiles, Object.keys(starts));
     Object.entries(starts).forEach(([id, s]) => {
       expect(s.cities.length, id).toBe(1);
-      expect(s.capital).toBe(tiles.capitals[id]);
+      expect(s.capital).toBe(capitals[id]);
       expect(s.tiles[0]).toBe(s.capital);
       expect(s.tiles.length, id).toBeGreaterThanOrEqual(1);
       s.tiles.forEach((t) => expect(claimedBy.get(t)).toBe(id));

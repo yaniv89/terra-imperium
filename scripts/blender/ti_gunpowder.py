@@ -396,7 +396,7 @@ def gp_house(ms, rng, x, y, w, d, yaw=None, wall='gp_brick', roof='gp_tile', kin
             dx = -w / 2 + w * (k + 0.5) / dormers
             dormer(ms, f, dx, -d / 2 + 0.05, zt - 0.01, mat=roof)
     elif kind == 'mansard':
-        rise = rise or 0.07
+        rise = rise or 0.1
         low = 0.15
         mansard(ms, f, w, d, zt, low, rise, mat=roof)
         for k in range(chimneys):
@@ -772,7 +772,7 @@ def frustum(ms, mat, base, top, z0, z1, lod=2, only=None):
     solid(ms, mat, verts, faces, lod=lod, only=only)
 
 
-def bastion(ms, rng, poly, H, Hs, bat=0.07, gun=None, sentry=False, platform=True, fringe=True, open_edges=1):
+def bastion(ms, rng, poly, H, Hs, bat=0.07, gun=None, sentry=False, platform=True, fringe=True, open_edges=1, gun_s=1.25):
     """An angled bastion on a counter-clockwise plan polygon: a battered stone scarp to Hs with a
     sandstone cordon, a turf parapet slope to H, a packed-earth gun platform and a cannon aimed
     along `gun` (an angle in degrees). The polygon's last `open_edges` edges (the gorge, facing
@@ -788,7 +788,7 @@ def bastion(ms, rng, poly, H, Hs, bat=0.07, gun=None, sentry=False, platform=Tru
         cx = sum(p[0] for p in poly) / len(poly)
         cy = sum(p[1] for p in poly) / len(poly)
         a = math.radians(gun)
-        cannon(ms, Matrix.Identity(4), cx + 0.05 * math.cos(a), cy + 0.05 * math.sin(a), H, math.degrees(a) + 90, s=1.25, lod=1)
+        cannon(ms, Matrix.Identity(4), cx + 0.08 * math.cos(a), cy + 0.08 * math.sin(a), H, math.degrees(a) + 90, s=gun_s, lod=1)
     if fringe:
         out = _inset(poly, -0.17)
         n = len(poly)
@@ -888,7 +888,7 @@ def bastioned_walls(ms, rng, c, W, H, gw, g, f_, e, flag_top=None, curtain_guns=
         curtain(ms, a, b, W, H, Hs, bat)
     for sx, sy in ((1, 1), (-1, 1), (-1, -1), (1, -1)):
         poly = corner_bastion(c, W, g, f_, e, sx, sy)
-        bastion(ms, rng, poly, Hb, Hs * 1.04, bat=bat, gun=math.degrees(math.atan2(sy, sx)))
+        bastion(ms, rng, poly, Hb, Hs * 1.04, bat=bat, gun=math.degrees(math.atan2(sy, sx)), gun_s=1.2 + c * 0.1)
     gatehouse(ms, rng, c, W, H, gw, flag_top=flag_top)
     for k in range(curtain_guns):  # cannon on the south curtain either side of the gate
         sx = -1 if k % 2 == 0 else 1
@@ -910,19 +910,19 @@ def bastioned_walls(ms, rng, c, W, H, gw, g, f_, e, flag_top=None, curtain_guns=
 def walls_small(ms, rng):
     """`walls-small` (49 m): a square bastioned trace of grey stone scarps under turf with four
     diamond bastions, each with a cannon, and a sandstone gatehouse with an arched timber gate."""
-    bastioned_walls(ms, rng, c=2.2, W=0.26, H=0.3 * tb.WALL_RAISE, gw=0.36, g=0.42, f_=0.0, e=0.25)
+    bastioned_walls(ms, rng, c=2.2, W=0.26, H=0.3 * tb.WALL_RAISE, gw=0.36, g=0.62, f_=0.0, e=0.34)
 
 
 def walls_medium(ms, rng):
     """`walls-medium` (69 m): a square trace with pentagonal bastions (flanks and faces), a cannon
     on each, a gatehouse with a team pennant."""
-    bastioned_walls(ms, rng, c=3.2, W=0.3, H=0.4 * tb.WALL_RAISE, gw=0.42, g=0.56, f_=0.2, e=0.25, flag_top=0.95)
+    bastioned_walls(ms, rng, c=3.2, W=0.3, H=0.4 * tb.WALL_RAISE, gw=0.42, g=0.85, f_=0.28, e=0.38, flag_top=0.95)
 
 
 def walls_big(ms, rng):
     """`walls-big` (91 m): a square trace with big diamond bastions and cannon, two more guns on
     the south curtain, a gatehouse with a team pennant."""
-    bastioned_walls(ms, rng, c=4.25, W=0.34, H=0.5 * tb.WALL_RAISE, gw=0.5, g=0.64, f_=0.05, e=0.3, flag_top=1.15,
+    bastioned_walls(ms, rng, c=4.22, W=0.32, H=0.5 * tb.WALL_RAISE, gw=0.5, g=1.0, f_=0.12, e=0.42, flag_top=1.15,
                     curtain_guns=2)
 
 
@@ -985,7 +985,7 @@ def palace_small(ms, rng):
     banner_pair(ms, F, (-0.09, 0.09), G + sh + 0.05, h=0.15, w=0.038)
     for k in range(4):
         ms.box('gp_sandstone', (0.24 - k * 0.03, 0.03, 0.012 * (4 - k)), at=(0, -d / 2 - 0.1 + 0.025 * k + 0.012, G), lod=1 if k == 0 else 0, frame=f)
-    mansard(ms, f, w, d, G + h, 0.13, 0.07, inset=0.07, mat='gp_slate')
+    mansard(ms, f, w, d, G + h, 0.14, 0.11, inset=0.08, mat='gp_slate')
     for k in range(3):
         dormer(ms, f, (k - 1) * 0.24, -d / 2 + 0.012, G + h + 0.01, w=0.075, h=0.09, mat='gp_slate', cheek='gp_sandstone')
     for sx in (-1, 1):
@@ -1006,12 +1006,12 @@ def palace(ms, rng):
     my = D / 2 - main_d / 2
     for sx in (-1, 1):  # two halves, so the pavilion breaks the roof between them
         gp_house(ms, rng, sx * (W / 4 + 0.06), my, W / 2 - 0.12, main_d, yaw=0, wall='gp_brick', roof='gp_slate', kind='mansard',
-                 storeys=2, h=h, shutters=None, chimneys=1, dormers=2, door=False, props=0, rise=0.06)
+                 storeys=2, h=h, shutters=None, chimneys=1, dormers=2, door=False, props=0, rise=0.1)
     # the wings
     wl = D - main_d + 0.02
     for sx in (-1, 1):
         gp_house(ms, rng, sx * (W / 2 - wing_w / 2), -D / 2 + wl / 2, wing_w, wl, yaw=0, wall='gp_brick', roof='gp_slate',
-                 kind='mansard', storeys=2, h=h, shutters=None, chimneys=1, dormers=1, door=False, props=0, rise=0.05)
+                 kind='mansard', storeys=2, h=h, shutters=None, chimneys=1, dormers=1, door=False, props=0, rise=0.09)
     # the forecourt
     flat(ms, 'gp_cobble_square', [(-W / 2 + wing_w, -D / 2), (W / 2 - wing_w, -D / 2), (W / 2 - wing_w, my - main_d / 2),
                                   (-W / 2 + wing_w, my - main_d / 2)], G + 0.004, lod=1)
