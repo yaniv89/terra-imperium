@@ -1,0 +1,9 @@
+5:14:30 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+5:14:30 PM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.10 /home/user/terra-imperium
+
+ ❯ src/engine/worldgen/emergentWorld.test.js (11 tests | 1 failed) 6741ms
+     × later starts give more cities and more land 5123ms
+ ❯ scripts/build-edge-engine.test.mjs (6 tests | 6 skipped) 10017ms

@@ -1,0 +1,61 @@
+{
+  "viewport": "desktop",
+  "area": "example",
+  "url": "http://localhost:5180/terra-imperium/",
+  "finishedAt": "2026-10-03T17:17:56.260Z",
+  "totals": {
+    "steps": 3,
+    "failedSteps": 0,
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "failedRequests": 0
+  },
+  "notes": [
+    "layout=desktop state={\"turnNumber\":1,\"year\":-2000,\"player\":\"fr\",\"gameStatus\":\"ACTIVE\"}",
+    "turn markers after End Turn: t2, t3"
+  ],
+  "steps": [
+    {
+      "name": "start screen",
+      "startedAt": "2026-10-03T17:17:20.405Z",
+      "ms": 1518,
+      "ok": true,
+      "error": null,
+      "screenshots": [
+        "screenshots/desktop/example/01-start-screen.png"
+      ],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "name": "new game France seed 7",
+      "startedAt": "2026-10-03T17:17:21.923Z",
+      "ms": 23616,
+      "ok": true,
+      "error": null,
+      "screenshots": [
+        "screenshots/desktop/example/02-game-started.png"
+      ],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": []
+    },
+    {
+      "name": "two turns",
+      "startedAt": "2026-10-03T17:17:45.539Z",
+      "ms": 10721,
+      "ok": true,
+      "error": null,
+      "screenshots": [
+        "screenshots/desktop/example/03-after-two-turns.png"
+      ],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": []
+    }
+  ]
+}
