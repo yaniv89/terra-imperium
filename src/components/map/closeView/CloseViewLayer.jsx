@@ -21,7 +21,7 @@ import { getMapMarkers } from '../../../utils/mapMarkers';
 import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
-import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrl, palaceFor, wallsFor, COLONY_CAMP, isCamp, instanceTownAsset, showLod, lodForZoom } from './townAssets';
+import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrl, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
 import { ARMY_SPOT, unitPx, tiltFor, lightRig } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
@@ -74,11 +74,11 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     };
     const trees = new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)]));
     const works = new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)]));
-    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
+    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
     return () => {
       const t = three.current;
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
-      t.towns.forEach((m) => scene.remove(m));
+      t.towns.forEach((m) => scene.remove(m)); t.fieldWorks.forEach((g) => scene.remove(g));
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
       townMaterial.dispose(); soldierMaterial.dispose();
       renderer.dispose();
@@ -112,6 +112,18 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     };
     const toScreen = (regionId) => toScreenLatLng(REGION_COORDINATES[regionId]);
 
+    // The age's shared file (palaces, walls, the camp, fields): loaded once, the objects by name.
+    const sharedFor = (ageId) => {
+      const url = sharedAssetUrl(ageId);
+      if (!url) return null;
+      if (!t.assets.has(url)) {
+        t.assets.set(url, null);
+        loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('shared model file failed, towns stand without palaces, walls, camps and fields:', e.message); });
+      }
+      return t.assets.get(url) || null;
+    };
+
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
     Object.keys(REGION_COORDINATES).forEach((id) => {
@@ -125,27 +137,23 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       // An artist model for this age and size replaces the procedural town once its file is in;
       // an outpost shows the age's colony camp instead.
       const camp = isCamp(region);
-      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, [...id].reduce((h, c) => h + c.charCodeAt(0), 0), owner);
+      const seed = [...id].reduce((h, c) => h + c.charCodeAt(0), 0);
+      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, owner);
       const asset = assetUrl ? t.assets.get(assetUrl) : null;
       if (assetUrl && !t.assets.has(assetUrl)) {
         t.assets.set(assetUrl, null);
         loadTownAsset(assetUrl).then((root) => { t.assets.set(assetUrl, root); setAssetsTick((n) => n + 1); })
           .catch((e) => { console.warn('town model failed, keeping the procedural town:', e.message); });
       }
-      // The camp, a capital's palace and the wall ring come from the age's shared file, once it is in.
-      const sharedUrl = camp || (asset && (opts.capital || opts.walls)) ? sharedAssetUrl(opts.ageId) : null;
-      if (sharedUrl && !t.assets.has(sharedUrl)) {
-        t.assets.set(sharedUrl, null);
-        loadAssetObjects(sharedUrl).then((objs) => { t.assets.set(sharedUrl, objs); setAssetsTick((n) => n + 1); })
-          .catch((e) => { console.warn('shared model file failed, towns stand without palaces, walls and camps:', e.message); });
-      }
-      const shared = sharedUrl ? t.assets.get(sharedUrl) : null;
+      // The camp, a capital's palace, the wall ring and the fields come from the age's shared file.
+      const shared = camp || asset ? sharedFor(opts.ageId) : null;
       const campRoot = camp ? shared?.[COLONY_CAMP] : null;
       const palaceRoot = asset && opts.capital ? shared?.[palaceFor(tier.id)] : null;
       const wallsRoot = asset && opts.walls ? shared?.[wallsFor(tier.id)] : null;
+      const fields = asset && shared ? fieldsAround(tier.id, seed, fieldCount(region)).filter((f) => shared[f.name]) : [];
       const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
-      const key = campRoot ? `${id}|camp|${sharedUrl}|${teamColor}`
-        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${palaceRoot ? palaceRoot.name : ''}|${wallsRoot ? wallsRoot.name : ''}`
+      const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}`
+        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${palaceRoot ? palaceRoot.name : ''}|${wallsRoot ? wallsRoot.name : ''}|${fields.map((f) => f.name).join(',')}`
           : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
       let mesh = t.towns.get(id);
@@ -155,6 +163,12 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
         mesh = model ? instanceTownAsset(model, teamColor) : new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
         if (asset && palaceRoot) mesh.add(instanceTownAsset(palaceRoot, teamColor));
         if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor));
+        fields.forEach((f) => {
+          const field = instanceTownAsset(shared[f.name], teamColor);
+          field.position.set(f.x, 0, f.z);
+          field.rotation.y = f.yaw;
+          mesh.add(field);
+        });
         mesh.userData.key = key;
         mesh.userData.asset = !!model;
         mesh.frustumCulled = false;
@@ -193,10 +207,42 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       const mesh = t.trees.get(tr.kind);
       if (mesh && mesh.count < MAX_TREES) put(mesh, tr.x, tr.y, s * tr.size, tr.turn, 0.85 + (tr.turn % 0.3));
     });
+    // Farms, pastures and plantations show the owner's age's field models once its shared file is
+    // in (two fields on a farm); a pillaged work, or one without models, stays procedural.
+    const seenFields = new Set();
+    const fieldWork = (w) => {
+      const names = !w.pillaged && FIELDS_FOR_WORK[w.kind];
+      const owner = names && state.regions[state.world?.tileOwner?.[w.tile]]?.owner;
+      const shared = owner ? sharedFor(ageOf(state, owner)) : null;
+      if (!shared || !names.every((n) => shared[n])) return false;
+      const key = `${names.join(',')}|${ageOf(state, owner)}`;
+      let g = t.fieldWorks.get(w.tile);
+      if (!g || g.userData.key !== key) {
+        if (g) scene.remove(g);
+        g = new Object3D();
+        names.forEach((n, i) => {
+          const field = instanceTownAsset(shared[n], '#888888');
+          field.position.set((i - (names.length - 1) / 2) * 1.75, 0, 0);
+          g.add(field);
+        });
+        g.userData.key = key;
+        t.fieldWorks.set(w.tile, g);
+        scene.add(g);
+      }
+      showLod(g, lodForZoom(k));
+      g.position.set(w.x + s * WORK_OFFSET.x, -(w.y + s * WORK_OFFSET.y), (w.y + s * WORK_OFFSET.y) * 0.05);
+      g.rotation.set(TILT, w.turn * 0.15, 0, 'XYZ');
+      g.scale.setScalar(s);
+      g.visible = true;
+      seenFields.add(w.tile);
+      return true;
+    };
     land.works.forEach((w) => {
+      if (fieldWork(w)) return;
       const mesh = t.works.get(w.kind);
       if (mesh && mesh.count < MAX_WORKS) put(mesh, w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y, s * 1.2, w.turn * 0.15, w.pillaged ? 0.45 : 1);
     });
+    t.fieldWorks.forEach((g, tile) => { if (!seenFields.has(tile)) g.visible = false; });
     [...t.trees.values(), ...t.works.values()].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
 
     // Armies: soldiers of the main unit type, beside the town, in the owner's colour.

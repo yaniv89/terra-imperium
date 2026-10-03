@@ -23,9 +23,12 @@ FRINGE_V = 0.05          # the atlas strip (v 0 to 0.05) that holds the ground's
 LANDMARK_TOP = 1.6       # the small town's 16 m landmark (flag tip), at the sheet's scale
 
 PROC = ['mudwall', 'mudwall_bare', 'pylon', 'roof', 'timber', 'painted', 'door', 'dark', 'thatch', 'reed',
-        'stone', 'terracotta', 'water', 'brick', 'log', 'limewash', 'plaster', 'linen', 'bronze', 'ash', 'team_cloth', 'earth',
-        'earth_fringe', 'earth_square']
-TO_FINAL = {'earth': 'Ground', 'earth_fringe': 'Ground', 'earth_square': 'Ground', 'team_cloth': 'Team'}
+        'stone', 'terracotta', 'water', 'brick', 'log', 'limewash', 'plaster', 'linen', 'bronze', 'ash', 'barley', 'flax',
+        'leaf', 'mud', 'shallows', 'team_cloth', 'earth', 'earth_fringe', 'earth_square', 'grass', 'grass_fringe']
+TO_FINAL = {'earth': 'Ground', 'earth_fringe': 'Ground', 'earth_square': 'Ground', 'grass': 'Ground', 'grass_fringe': 'Ground',
+            'team_cloth': 'Team'}
+FRINGES = ['earth_fringe', 'grass_fringe']  # the alpha-cut bands of the ground patches
+EXTRA_MATERIALS = []  # other ages' kits append (name, maker) here and their names to PROC
 EARTH = ('#ad7c4b', '#c4925c', '#cf9f68', '#a47144')
 
 
@@ -55,18 +58,28 @@ def make_materials():
                   stripes={'dir': 'Y', 'scale': 30.0, 'distortion': 2.0})
     tm.mat_simple('bronze', ['#7a5a26', '#a07834', '#5e4520'], scale=30.0, rough=0.45, bump=0.3)
     tm.mat_simple('ash', ['#231e1a', '#3a312a', '#4c4036'], scale=30.0, bump=0.3)
+    # fields: ripe barley in rows, green flax with blue flowers, fig leaves, wet bank mud
+    tm.mat_simple('barley', ['#7a5a22', '#b08a3c', '#d8b45a', '#9a7430'], scale=60.0, stripes={'dir': 'X', 'scale': 260.0, 'distortion': 14.0}, bump=0.8)
+    tm.mat_simple('flax', ['#355a24', '#4e7a30', '#5f8a38', '#7a8fd0'], scale=160.0, stripes={'dir': 'X', 'scale': 260.0, 'distortion': 12.0}, bump=0.7)
+    tm.mat_simple('shallows', ['#4a625c', '#5c766c', '#6a8078'], scale=14.0, rough=0.25, bump=0.0)
+    tm.mat_simple('leaf', ['#2f4f22', '#4a6e2c', '#5e8236', '#3b5a26'], scale=40.0, bump=0.6)
+    tm.mat_simple('mud', ['#6e4a2c', '#86603a', '#5e3f26'], scale=24.0, bump=0.5)
     tm.mat_team('team_cloth')
     tm.mat_earth('earth', colors=EARTH)
     tm.mat_earth('earth_fringe', colors=EARTH)
     tm.mat_earth('earth_square', colors=('#b48555', '#c89a64', '#d1a76f', '#ad7d4e'))
+    grass = ('#5c7428', '#7d8c34', '#a88a52', '#667c2a')  # pasture: grass with trodden earth
+    tm.mat_earth('grass', colors=grass)
+    tm.mat_earth('grass_fringe', colors=grass)
+    for _name, maker in EXTRA_MATERIALS:
+        maker()
 
 
 # ---- the ground patch ---------------------------------------------------------------------------
 
-def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42, power=2.0):
+def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42, power=2.0, mat='earth', n=96):
     """An irregular ellipse, 0.03 high; its outer band is the alpha-cut fringe. A `power` above 2
     squares it off (a superellipse, the camp's rough rectangle); `square` None leaves no centre."""
-    n = 96
     phases = [rng.uniform(0, 2 * math.pi) for _ in range(4)]
 
     def wobble(a):
@@ -81,26 +94,27 @@ def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42, power=2.0):
         inner.append((0.93 * rx * w * c, 0.93 * ry * w * sn))
     bm = bmesh.new()
     bm.faces.new([bm.verts.new((x, y, G)) for x, y in inner])
-    ms.add(bm, 'earth', lod=2)
+    ms.add(bm, mat, lod=2)
+    fringe = mat + '_fringe'
     bm = bmesh.new()
     vi = [bm.verts.new((x, y, G)) for x, y in inner]
     vo = [bm.verts.new((x, y, G * 0.4)) for x, y in outer]
     for i in range(n):
         j = (i + 1) % n
         bm.faces.new((vo[i], vo[j], vi[j], vi[i]))
-    ms.add(bm, 'earth_fringe', lod=2)
+    ms.add(bm, fringe, lod=2)
     bm = bmesh.new()  # a short skirt so the side never gaps (too small to see at the LOD2 zoom)
     vo = [bm.verts.new((x, y, G * 0.4)) for x, y in outer]
     vb = [bm.verts.new((x, y, 0.0)) for x, y in outer]
     for i in range(n):
         j = (i + 1) % n
         bm.faces.new((vb[i], vb[j], vo[j], vo[i]))
-    ms.add(bm, 'earth_fringe', lod=1)
+    ms.add(bm, fringe, lod=1)
     # the free centre (8 m): trodden, slightly lighter earth
     if square is None:
         return
     s = square
-    ms.quad_strip('earth_square', [(-s, -s, G + 0.004), (s, -s, G + 0.004), (s, s, G + 0.004), (-s, s, G + 0.004)], lod=1)
+    ms.quad_strip(mat + '_square' if mat + '_square' in PROC else 'earth_square', [(-s, -s, G + 0.004), (s, -s, G + 0.004), (s, s, G + 0.004), (-s, s, G + 0.004)], lod=1)
 
 
 # ---- small things -------------------------------------------------------------------------------
@@ -327,9 +341,9 @@ def fringe_uvs(obj):
     bm = bmesh.new()
     bm.from_mesh(me)
     uv = bm.loops.layers.uv.active
-    fr = PROC.index('earth_fringe')
+    fr = {PROC.index(m) for m in FRINGES}
     for face in bm.faces:
-        if face.material_index != fr:
+        if face.material_index not in fr:
             for loop in face.loops:
                 loop[uv].uv.y = FRINGE_V + 0.01 + loop[uv].uv.y * (1 - FRINGE_V - 0.01)
             continue
@@ -338,10 +352,12 @@ def fringe_uvs(obj):
             co = loop.vert.co
             x = co.x - SPACING * round(co.x / SPACING)
             a = (math.atan2(co.y, x) / (2 * math.pi)) % 1.0
-            t = 1.0 if co.z > top - 0.002 else 0.0  # the high (solid) edge at the strip's top, the low edge at its foot
+            # the high (solid) edge at the strip's top, the low edge at its foot; a patch's side skirt
+            # (top below G * 0.45) stays at the foot, cut away
+            t = 1.0 if co.z > top - 0.002 and top > G * 0.45 else 0.0
             loop[uv].uv = (0.005 + 0.99 * a, 0.004 + (FRINGE_V - 0.008) * t)
     for face in bm.faces:  # faces that wrap past u = 1 continue past 1 (the strip repeats)
-        if face.material_index != fr:
+        if face.material_index not in fr:
             continue
         us = [lp[uv].uv.x for lp in face.loops]
         if max(us) - min(us) > 0.5:

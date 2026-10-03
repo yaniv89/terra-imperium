@@ -1,7 +1,7 @@
 {
   "file": "shared-bronze.glb",
   "kind": "shared",
-  "bytes": 5463464,
+  "bytes": 6005352,
   "checks": {
     "footprint_within_5pct_palace-small": true,
     "height_within_5pct_palace-small": true,
@@ -22,6 +22,18 @@
     "footprint_within_5pct_colony-camp": true,
     "height_within_5pct_colony-camp": true,
     "nothing_below_ground_colony-camp": true,
+    "footprint_within_5pct_field-1": true,
+    "height_within_5pct_field-1": true,
+    "nothing_below_ground_field-1": true,
+    "footprint_within_5pct_field-2": true,
+    "height_within_5pct_field-2": true,
+    "nothing_below_ground_field-2": true,
+    "footprint_within_5pct_field-3": true,
+    "height_within_5pct_field-3": true,
+    "nothing_below_ground_field-3": true,
+    "footprint_within_5pct_field-4": true,
+    "height_within_5pct_field-4": true,
+    "nothing_below_ground_field-4": true,
     "lods_present_and_in_budget": true,
     "material_names": true,
     "no_emblem": true,
@@ -147,7 +159,7 @@
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 336,
+          "triangles": 360,
           "materials": [
             "Ground",
             "Town"
@@ -170,7 +182,7 @@
     "walls-medium": {
       "lods": {
         "LOD0": {
-          "triangles": 9268,
+          "triangles": 9258,
           "materials": [
             "Ground",
             "Town"
@@ -181,7 +193,7 @@
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 2292,
+          "triangles": 2402,
           "materials": [
             "Ground",
             "Town"
@@ -192,12 +204,12 @@
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 292,
+          "triangles": 300,
           "materials": [
             "Town"
           ],
-          "width": 6.376,
-          "depth": 6.576,
+          "width": 6.394,
+          "depth": 6.563,
           "height": 0.78,
           "min_height": 0
         }
@@ -214,7 +226,7 @@
     "walls-big": {
       "lods": {
         "LOD0": {
-          "triangles": 10568,
+          "triangles": 10608,
           "materials": [
             "Ground",
             "Team",
@@ -226,7 +238,7 @@
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 2472,
+          "triangles": 2272,
           "materials": [
             "Ground",
             "Team",
@@ -238,7 +250,7 @@
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 376,
+          "triangles": 384,
           "materials": [
             "Town"
           ],
@@ -304,6 +316,185 @@
       "missing_lods": [],
       "over_budget": [],
       "footprint": 1.996
+    },
+    "field-1": {
+      "lods": {
+        "LOD0": {
+          "triangles": 792,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.495,
+          "depth": 1.099,
+          "height": 0.119,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 360,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.495,
+          "depth": 1.099,
+          "height": 0.11,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 240,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.495,
+          "depth": 1.099,
+          "height": 0.11,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.006",
+        "LOD1.006",
+        "LOD2.006"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.495
+    },
+    "field-2": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3078,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.717,
+          "depth": 1.299,
+          "height": 0.27,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1158,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.717,
+          "depth": 1.299,
+          "height": 0.27,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 264,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.717,
+          "depth": 1.299,
+          "height": 0.28,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.007",
+        "LOD1.007",
+        "LOD2.007"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.717
+    },
+    "field-3": {
+      "lods": {
+        "LOD0": {
+          "triangles": 686,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.517,
+          "depth": 1.307,
+          "height": 0.145,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 654,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.517,
+          "depth": 1.307,
+          "height": 0.145,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 142,
+          "materials": [
+            "Ground"
+          ],
+          "width": 1.517,
+          "depth": 1.307,
+          "height": 0.03,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.008",
+        "LOD1.008",
+        "LOD2.008"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.517
+    },
+    "field-4": {
+      "lods": {
+        "LOD0": {
+          "triangles": 722,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.712,
+          "depth": 1.106,
+          "height": 0.107,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 386,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.712,
+          "depth": 1.106,
+          "height": 0.102,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 218,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.712,
+          "depth": 1.106,
+          "height": 0.102,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.009",
+        "LOD1.009",
+        "LOD2.009"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.712
     }
   },
   "materials": [
@@ -320,7 +511,7 @@
         2048,
         2048
       ],
-      "bytes": 88688
+      "bytes": 489010
     },
     {
       "name": "shared-bronze_base",
@@ -329,7 +520,7 @@
         2048,
         2048
       ],
-      "bytes": 916948
+      "bytes": 949880
     },
     {
       "name": "shared-bronze_orm",
@@ -338,7 +529,7 @@
         2048,
         2048
       ],
-      "bytes": 1204386
+      "bytes": 696316
     }
   ],
   "passed": true

@@ -1,4 +1,4 @@
-# Bronze Age towns, palaces, wall rings and the colony camp, built in Blender from the 2D sheets
+# Bronze Age towns, palaces, wall rings, the colony camp and fields, built in Blender from the 2D sheets
 
 Date: 2026-10-03. Sources: `plans/art/towns/bronze/<id>/approval.png` (GPT's concept sheets).
 Built by `scripts/blender/build_town_bronze_<size>_<variant>.py` on the shared kit
@@ -18,7 +18,11 @@ its 2048 atlas bake takes about 2 minutes (small) to 4 (medium) on four CPU core
 | walls-small (shared-bronze) | | log palisade on an earth berm, timber gate | 6,939 / 1,295 / 336 | 46 m | 5.5 m (gate) | |
 | walls-medium (shared-bronze) | | mud brick, merlons, lime-wash foot, 2 gate towers, 4 buttresses | 9,268 / 2,292 / 292 | 68 m | 8.5 m | |
 | walls-big (shared-bronze) | | plastered mud brick, 7 towers, gate towers with team flags | 10,568 / 2,472 / 376 | 90 m | 14 m (flags) | |
-| colony-camp (shared-bronze) | | reed hut, two linen tents, fire ring, supplies, stakes, flag | 3,830 / 1,850 / 436 | 20 x 18 m | 5.2 m | 5.5 MB (all six) |
+| colony-camp (shared-bronze) | | reed hut, two linen tents, fire ring, supplies, stakes, flag | 3,830 / 1,850 / 436 | 20 x 18 m | 5.2 m | |
+| field-1 (shared-bronze) | | eight strips of barley, ditch and sluice | 792 / 360 / 240 | 15 x 11 m | 1.2 m | |
+| field-2 (shared-bronze) | | six figs in watered basins, feeder channels | 3,078 / 1,158 / 264 | 17 x 13 m | 2.7 m | |
+| field-3 (shared-bronze) | | fenced pasture, trough, stone | 686 / 654 / 142 | 15 x 13 m | 1.5 m | |
+| field-4 (shared-bronze) | | six flax beds in standing water, banks, ditch | 722 / 386 / 218 | 17 x 11 m | 1.1 m | 6.0 MB (all ten) |
 
 Budgets (model brief): a whole town 60,000 / 10,000 / 1,500 triangles, a palace 15,000 / 3,000 /
 500, a wall ring 12,000 / 2,500 / 400, a file 12 MB. Every file passes
@@ -65,4 +69,16 @@ Levant at k 24). The medium towns need four buildings, so a fresh game shows onl
   Blender previews. Before, the lights were fixed on the screen, so every south face (the side
   the camera sees: house fronts, the outside of a wall ring) sat in the dark half of the sky.
   `ingame-walls-*.png` show Cairo with the small, medium and big ring and Ramallah as an outpost.
-- Fields (field-1 to field-4) are still to come.
+- Fields (field-1 to field-4, improvement budget 8,000 / 1,500 / 300) lie on a ring round every
+  artist-model town, outside its ground and wall, the south gate side left open: two fields, plus
+  one per food building tier, at most six (`fieldsAround` in townAssets.js). A farm tile shows
+  field-1 and field-4 side by side, a pasture field-3, a plantation field-2 (the owner's age);
+  pillaged works and the other works keep the procedural models. `ingame-fields-*.png`.
+- Crop beds are a few big blocks with shallow ridges, not thousands of tufts: every tiny part takes
+  its own atlas island and the tufts starved the shared atlas (they baked black).
+- Atlas packing, fixed for every file: Smart UV Project's own packing left 85 to 90% of each atlas
+  empty (thousands of small islands, and wall rings that unwrapped as whole circles with empty
+  middles). Rings are now built in 30 degree arcs and the islands are repacked with Blender's
+  packer (rotation, concave shapes). The same 2048 atlas now holds about three times the detail
+  (town-big-a: 33 to 98 texels per 10 m) and the files came out 10 to 15% smaller. All six towns
+  and the shared file were rebuilt with it; layouts and triangle counts are unchanged.

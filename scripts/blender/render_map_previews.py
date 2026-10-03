@@ -4,7 +4,7 @@
 # the LOD the game shows at that k; plus front, top and three-quarter views on the concept's grey
 # so the model can be laid next to the 2D sheet.
 #
-#   python scripts/blender/render_map_previews.py <model.blend> <out_dir> [concept.png]
+#   [ONLY=name,name] python scripts/blender/render_map_previews.py <model.blend> <out_dir> [concept.png|dir] [quick]
 import math
 import os
 import sys
@@ -83,7 +83,10 @@ def main(blend, out_dir, concept=None, quick=False):
     scene = bpy.context.scene
     roots = [o for o in bpy.data.objects if o.type == 'EMPTY' and o.parent is None]
     concept_dir = concept if concept and os.path.isdir(concept) else None
+    only = [n for n in os.environ.get('ONLY', '').split(',') if n]  # ONLY=field-1,field-2 renders just those
     for root in roots:
+        if only and root.name not in only:
+            continue
         for other in roots:  # one object at a time, at the origin
             for c in other.children:
                 c.hide_render = other is not root

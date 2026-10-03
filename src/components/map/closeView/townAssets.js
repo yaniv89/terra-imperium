@@ -33,6 +33,35 @@ export const sharedAssetUrl = (ageId) => SHARED_BY_AGE[ageId] || null;
 export const palaceFor = (tierId) => (tierId === 'small' ? 'palace-small' : 'palace');
 /** The wall ring just outside a town of this size (one gate at the front). */
 export const wallsFor = (tierId) => `walls-${tierId === 'big' || tierId === 'medium' ? tierId : 'small'}`;
+// ---- fields ------------------------------------------------------------------------------------
+// The age's field-1 to field-4 (crop, orchard, pasture, the age's own field) lie round a town on
+// a ring outside its ground and wall, and stand in for the farm, pasture and plantation works.
+const FIELD_ORDER = ['field-1', 'field-4', 'field-2', 'field-1', 'field-3', 'field-4'];
+// The ring's radius per town size, model units: the wall ring's outer edge plus half a field.
+const FIELD_RING = { small: 3.25, medium: 4.35, big: 5.45 };
+/** Field models for an improvement, or null (the procedural work stays). */
+export const FIELDS_FOR_WORK = { farm: ['field-1', 'field-4'], pasture: ['field-3'], plantation: ['field-2'] };
+/** How many fields a town lays out: two, plus one per food building tier, at most six. */
+export const fieldCount = (region) => Math.max(2, Math.min(6, 3 + (region?.buildings?.categories?.food ?? -1)));
+/**
+ * The fields round a town: [{ name, x, z, yaw }] in the town's model space (glTF: x east, z
+ * south, yaw about y). Spread over the ring with the front (south, where the gate is) left
+ * open, turned to run along the ring, the first slot and the kinds picked by `seed`.
+ */
+export const fieldsAround = (tierId, seed = 0, count = 2) => {
+  const r = FIELD_RING[tierId] || FIELD_RING.small;
+  const n = Math.max(0, Math.min(6, count));
+  const out = [];
+  const arc = 290; // degrees, from the south-east round the north to the south-west
+  const shift = ((seed % 7) - 3) * 2;
+  for (let i = 0; i < n; i++) {
+    const deg = -55 + shift + (arc * (i + 0.5)) / n + ((seed >> 3) % 3) - 1;
+    const a = (deg * Math.PI) / 180;
+    out.push({ name: FIELD_ORDER[(seed + i) % FIELD_ORDER.length], x: r * Math.cos(a), z: -r * Math.sin(a), yaw: a + Math.PI / 2 });
+  }
+  return out;
+};
+
 /** The shared object an outpost shows instead of a town. */
 export const COLONY_CAMP = 'colony-camp';
 /** An outpost (a settler's new city that is still growing) or a colony with no owner yet. */

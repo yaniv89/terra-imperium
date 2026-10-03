@@ -1,7 +1,7 @@
 {
   "file": "town-medium-a.glb",
   "kind": "town",
-  "bytes": 4221596,
+  "bytes": 3601984,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -81,7 +81,7 @@
         2048,
         2048
       ],
-      "bytes": 107866
+      "bytes": 278152
     },
     {
       "name": "town-medium-a_base",
@@ -90,7 +90,7 @@
         2048,
         2048
       ],
-      "bytes": 718318
+      "bytes": 626282
     },
     {
       "name": "town-medium-a_orm",
@@ -99,7 +99,7 @@
         2048,
         2048
       ],
-      "bytes": 1087590
+      "bytes": 389732
     }
   ],
   "passed": true

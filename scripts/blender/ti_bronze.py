@@ -337,10 +337,19 @@ def step_pyramid(ms, x, y, base=0.9, levels=4, h=0.18, yaw=None):
 WALL_RAISE = 1.3
 
 
-def sweep(ms, mat, profile, a0, a1, n, lod=2, only=None):
+def sweep(ms, mat, profile, a0, a1, n, lod=2, only=None, chunk=30.0):
     """A strip swept round the origin: `profile` is a polyline [(r, z), ...] turned from angle a0
     to a1 (degrees, 0 east, counter-clockwise) in n steps. Walk the profile with the outside on
-    the right (up the outer face, across the top, down the inner face)."""
+    the right (up the outer face, across the top, down the inner face). Built in loose arcs of
+    about `chunk` degrees: a whole ring unwraps as one big circle whose empty middle wastes most
+    of the atlas, short arcs pack as near-rectangles."""
+    pieces = max(1, round(abs(a1 - a0) / chunk))
+    if pieces > 1:
+        per = max(1, round(n / pieces))
+        for p in range(pieces):
+            b0, b1 = a0 + (a1 - a0) * p / pieces, a0 + (a1 - a0) * (p + 1) / pieces
+            sweep(ms, mat, profile, b0, b1, per, lod=lod, only=only, chunk=360.0)
+        return None
     bm = tt.bmesh.new()
     rows = []
     for j in range(n + 1):
@@ -475,7 +484,8 @@ def walls_small(ms, rng):
 
 
 def mud_wall_ring(ms, rng, R_out, R_in, H, gate_x, band, buttresses=(), towers=(), tower_size=0.6,
-                  tower_h=None, gate_towers=(0.6, 0.78), gate_flag=None, straps=False, n=(144, 72, 32), planks=True):
+                  tower_h=None, gate_towers=(0.6, 0.78), gate_flag=None, straps=False, n=(144, 72, 32), planks=True,
+                  mat='brick', banners=False, footing_on=True):
     """A mud-brick ring with a battered outer face, a lime or plaster band at its foot, merlons,
     a timber wall-walk, packed earth at the foot, two gate towers at the south (gate opening
     2 * gate_x wide), buttresses and towers at the given angles."""
@@ -488,13 +498,13 @@ def mud_wall_ring(ms, rng, R_out, R_in, H, gate_x, band, buttresses=(), towers=(
     for lod in (0, 1, 2):
         steps = n[lod]
         sweep(ms, band[0], [(R_out, 0.0), (R_out - 0.005, bh)], a0, a1, steps, lod=lod, only=lod)
-        sweep(ms, 'brick', [(R_out - 0.005, bh), (R_top, H)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, mat, [(R_out - 0.005, bh), (R_top, H)], a0, a1, steps, lod=lod, only=lod)
         sweep(ms, 'roof', [(R_top, H), (R_in + 0.01, H)], a0, a1, steps, lod=lod, only=lod)
-        sweep(ms, 'brick', [(R_in + 0.01, H), (R_in, 0.0)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, mat, [(R_in + 0.01, H), (R_in, 0.0)], a0, a1, steps, lod=lod, only=lod)
         if lod < 2:  # the outer parapet: a low band (with merlons on it at LOD0) and an inner rail
             ph = 0.03 if lod == 0 else 0.06
-            sweep(ms, 'brick', [(R_top, H), (R_top, H + ph), (R_top - 0.04, H + ph), (R_top - 0.04, H)], a0, a1, steps, lod=lod, only=lod)
-            sweep(ms, 'brick', [(R_in + 0.035, H), (R_in + 0.035, H + 0.035), (R_in + 0.01, H + 0.035), (R_in + 0.01, H)], a0, a1, steps, lod=lod, only=lod)
+            sweep(ms, mat, [(R_top, H), (R_top, H + ph), (R_top - 0.04, H + ph), (R_top - 0.04, H)], a0, a1, steps, lod=lod, only=lod)
+            sweep(ms, mat, [(R_in + 0.035, H), (R_in + 0.035, H + 0.035), (R_in + 0.01, H + 0.035), (R_in + 0.01, H)], a0, a1, steps, lod=lod, only=lod)
     walk_in = R_in + 0.045
     sweep(ms, 'timber', [(R_top - 0.045, H + 0.004), (walk_in, H + 0.004)], a0, a1, n[1], lod=1)
     # the walk's plank joints (LOD0)
@@ -506,24 +516,26 @@ def mud_wall_ring(ms, rng, R_out, R_in, H, gate_x, band, buttresses=(), towers=(
     footing(ms, R_out, R_in, n[1])
     t_half = math.degrees(math.asin(tower_size * 0.55 / R_out))
     skip = [(a, t_half) for a in towers] + [(a, math.degrees(math.asin(0.13 / R_out))) for a in buttresses]
-    merlon_ring(ms, R_top - 0.02, H + 0.03, a0, a1, 0.11, skip)
+    merlon_ring(ms, R_top - 0.02, H + 0.03, a0, a1, 0.11, skip, mat=mat)
     for a in buttresses:
         f = ring_frame(R_out - 0.02, a)
-        ms.box('brick', (0.2, 0.22, H * 0.92), at=(0, -0.08, 0), lod=1, frame=f, bevel=0.004, taper=0.82)
+        ms.box(mat, (0.2, 0.22, H * 0.92), at=(0, -0.08, 0), lod=1, frame=f, bevel=0.004, taper=0.82)
         ms.box(band[0], (0.206, 0.226, bh * 0.9), at=(0, -0.08, 0), lod=0, frame=f)
     th = tower_h or H * 1.3
     for a in towers:
         f = ring_frame((R_out + R_in) / 2 + 0.05, a)
-        wall_tower(ms, f, tower_size, tower_size * 0.95, th, rng, band=band)
+        wall_tower(ms, f, tower_size, tower_size * 0.95, th, rng, band=band, mat=mat)
     # the gate: two towers, the doors set back between them, a lintel and a timber bridge on top
     gy = -(R_out + R_in) / 2
     for sx in (-1, 1):
         f = tm.house_frame(sx * (gate_x + gtw / 2), gy - 0.03, 0)
-        wall_tower(ms, f, gtw, gtw * 0.95, gth, rng, flag_top=gate_flag, band=band)
+        wall_tower(ms, f, gtw, gtw * 0.95, gth, rng, flag_top=gate_flag, band=band, mat=mat)
+        if banners:  # a long team banner down the tower's face
+            banner(ms, f, 0, -gtw * 0.95 / 2 + 0.006, gth - 0.1, w=gtw * 0.32, h=gth * 0.45)
     gf = tm.house_frame(0, gy, 0)
     gh = H * 0.82
     gate_doors(ms, gf @ tm.Matrix.Translation(tm.Vector((0, 0.02, 0))), gw, gh - 0.02, straps=straps)
-    ms.box('brick', (gw + 0.04, R_out - R_in, H - gh + 0.02), at=(0, 0, gh), lod=2, frame=gf)
+    ms.box(mat, (gw + 0.04, R_out - R_in, H - gh + 0.02), at=(0, 0, gh), lod=2, frame=gf)
     ms.box('timber', (gw + 0.06, 0.05, 0.04), at=(0, -0.02, gh - 0.02), lod=1, frame=gf)
     ms.box('timber', (gw, R_out - R_in - 0.04, 0.01), at=(0, 0, H + 0.02), lod=1, frame=gf)
     for k in range(5):
@@ -544,7 +556,7 @@ def walls_big(ms, rng):
     flags at the south."""
     mud_wall_ring(ms, rng, R_out=4.3, R_in=3.97, H=0.6 * WALL_RAISE, gate_x=0.3, band=('plaster', 0.22),
                   towers=(0, 45, 90, 135, 180, 222, 318), tower_size=0.68, tower_h=0.78 * WALL_RAISE,
-                  gate_towers=(0.7, 0.84 * WALL_RAISE), gate_flag=1.4, straps=True, n=(128, 52, 32), planks=False)
+                  gate_towers=(0.7, 0.84 * WALL_RAISE), gate_flag=1.4, straps=True, n=(128, 48, 32), planks=False)
 
 
 # ---- the colony camp (an outpost a settler has just founded) ------------------------------------
@@ -625,11 +637,14 @@ def stakes(ms, rng, pts, h=(0.26, 0.42)):
         ms.cyl('timber', r * 0.92, 0.0, 0.05, at=(0, 0, G - 0.01 + sh), segs=6, lod=1, frame=f, caps=False)
 
 
-def colony_camp(ms, rng):
+def colony_camp(ms, rng, hut_fn=None):
     """`colony-camp` (18 by 16 m): a packed earth clearing with a thatched reed hut at the back, two
     linen tents, a stone fire ring, jars, crates, sacks, a bundle of logs, a half-built palisade of
     stakes along the west and north, and a team flag on a 4 m pole held by stones."""
-    hut(ms, 0.02, 0.45)
+    if hut_fn:
+        hut_fn(ms, rng, 0.02, 0.45)
+    else:
+        hut(ms, 0.02, 0.45)
     tent(ms, -0.55, -0.02)
     tent(ms, 0.55, -0.02)
     fire_ring(ms, rng, 0.05, -0.12)
@@ -649,3 +664,121 @@ def colony_camp(ms, rng):
     for k in range(5):
         a = 2 * math.pi * k / 5
         ms.sphere('stone', 0.03, at=(0.74 + 0.04 * math.cos(a), -0.58 + 0.04 * math.sin(a), G + 0.01), scale=(1.1, 1, 0.8), u=6, v=4, lod=1)
+
+
+# ---- fields (small ground patches the game lays round towns and on farm tiles) -----------------
+# Real heights (fields are almost flat); x east, y north; the patch is the alpha-cut ground.
+
+FIELD_GROUND = dict(square=None, power=10, n=48)
+
+
+def canal(ms, x0, x1, y, w=0.07, sluice=True):
+    """An irrigation ditch along x from x0 to x1: water between two mud banks, a timber sluice at
+    the west end."""
+    ms.quad_strip('shallows', [(x0, y - w / 2, G + 0.002), (x1, y - w / 2, G + 0.002), (x1, y + w / 2, G + 0.002), (x0, y + w / 2, G + 0.002)], lod=2)
+    for sy in (-1, 1):
+        ms.box('mud', (x1 - x0 + 0.02, 0.018, 0.014), at=((x0 + x1) / 2, y + sy * (w / 2 + 0.009), G), lod=1)
+    if sluice:
+        world = tm.house_frame(0, 0, 0)
+        for sy in (-1, 1):
+            ms.box('timber', (0.016, 0.016, 0.06), at=(x0 + 0.03, y + sy * (w / 2 + 0.01), G), lod=0, frame=world)
+        ms.box('timber', (0.016, w + 0.04, 0.014), at=(x0 + 0.03, y, G + 0.05), lod=0, frame=world)
+        ms.box('door', (0.012, w, 0.035), at=(x0 + 0.03, y, G), lod=0, frame=world)
+
+
+def crop_bed(ms, mat, x, y, w, d, h, rng=None, edge=True, rows=3):
+    """A bed of standing crop: at LOD0 a few ridged rows of slightly different heights (the
+    furrows between them read as rows of plants), at LOD1 and LOD2 one softened block; mud edging
+    at its foot. Kept to a few big blocks: thousands of tiny tufts would each take an atlas island
+    and starve the shared atlas."""
+    if rng:
+        ms.box(mat, (w, d, h * 0.75), at=(x, y, G), lod=0, taper=0.95)
+        for r in range(rows):  # shallow ridges on top: furrows without deep, dark gaps
+            rx = x - w / 2 + w * (r + 0.5) / rows
+            ms.box(mat, (w / rows * 0.95, d * rng.uniform(0.94, 0.98), h * rng.uniform(0.3, 0.42)), at=(rx, y, G + h * 0.7), lod=0, taper=0.55)
+        ms.add(_block(mat, x, y, w, d, h), mat, 2, only=(1, 2))
+    else:
+        ms.box(mat, (w, d, h), at=(x, y, G), lod=2, taper=0.9)
+    if edge:
+        ms.box('mud', (w + 0.025, d + 0.025, 0.012), at=(x, y, G), lod=0)
+
+
+def _block(mat, x, y, w, d, h):
+    """A plain tapered block as a loose bmesh (for parts shown only at some LODs)."""
+    bm = tt.bmesh.new()
+    tt.bmesh.ops.create_cube(bm, size=1.0)
+    tt.bmesh.ops.translate(bm, vec=(0, 0, 0.5), verts=bm.verts)
+    for v in bm.verts:
+        if v.co.z > 0.9:
+            v.co.x *= 0.9
+            v.co.y *= 0.9
+    tt.bmesh.ops.scale(bm, vec=(w, d, h), verts=bm.verts)
+    tt.bmesh.ops.translate(bm, vec=(x, y, G), verts=bm.verts)
+    return bm
+
+
+def field_1(ms, rng, crop='barley'):
+    """`field-1` (14 by 10 m): eight strips of ripe barley in rows, a ditch with a sluice along the
+    north edge."""
+    canal(ms, -0.62, 0.62, 0.41)
+    for i in range(8):
+        crop_bed(ms, crop, -0.56 + 0.16 * i, -0.07, 0.12, 0.76, rng.uniform(0.065, 0.08), rng)
+
+
+def fig_tree(ms, rng, x, y, top=0.25, leaf='leaf', basin='mud', trunk=0.016):
+    """A fig in a watered basin: a mud ring, water inside, a short trunk, a round leafy crown."""
+    ms.lathe(basin, [(0.1, G), (0.112, G + 0.016), (0.126, G + 0.016), (0.14, G)], at=(x, y, 0), segs=12, lod=0)
+    ms.cyl(basin, 0.135, 0.12, 0.012, at=(x, y, G), segs=8, lod=1, only=1)
+    ms.cyl('shallows', 0.1, 0.1, 0.004, at=(x, y, G + 0.013), segs=10, lod=1)
+    ms.cyl('timber', trunk, trunk * 0.7, 0.14, at=(x, y, G), segs=6, lod=1)
+    cr = 0.1
+    ms.cyl(leaf, cr * 1.1, cr * 0.7, top - G - 0.11, at=(x, y, G + 0.11), segs=6, lod=2, only=2)
+    ms.sphere(leaf, cr, at=(x, y, top - cr), scale=(1.05, 1.05, 0.9), u=8, v=5, lod=1, only=(0, 1))
+    for k in range(4):
+        a = k * math.pi / 2 + rng.uniform(-0.4, 0.4)
+        ms.sphere(leaf, cr * 0.7, at=(x + 0.07 * math.cos(a), y + 0.07 * math.sin(a), top - cr - 0.015), u=8, v=5, lod=0)
+
+
+def field_2(ms, rng, leaf='leaf', basin='mud', trunk=0.016):
+    """`field-2` (16 by 12 m): six figs in two rows, each in a watered basin, fed by short
+    channels from a ditch along the north edge."""
+    canal(ms, -0.7, 0.7, 0.5, sluice=False)
+    for x in (-0.48, 0.0, 0.48):
+        ms.quad_strip('shallows', [(x - 0.018, 0.3, G + 0.002), (x + 0.018, 0.3, G + 0.002), (x + 0.018, 0.47, G + 0.002), (x - 0.018, 0.47, G + 0.002)], lod=1)
+        for y in (0.2, -0.28):
+            fig_tree(ms, rng, x + rng.uniform(-0.02, 0.02), y + rng.uniform(-0.02, 0.02), top=rng.uniform(0.25, 0.28), leaf=leaf, basin=basin, trunk=trunk)
+
+
+def rail_fence(ms, pts, h=0.12, step=0.2):
+    """A split-rail fence along the polyline: posts and two rails per bay."""
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        length = math.hypot(x1 - x0, y1 - y0)
+        n = max(1, round(length / step))
+        yaw = math.degrees(math.atan2(y1 - y0, x1 - x0))
+        for i in range(n + 1):
+            px, py = x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n
+            ms.cyl('log', 0.012, 0.01, h, at=(px, py, G - 0.005), segs=6, lod=1)
+        for zr in (0.05, 0.1):
+            ms.box('log', (length, 0.012, 0.012), at=((x0 + x1) / 2, (y0 + y1) / 2, G + zr), rot_z=yaw, lod=1)
+
+
+def field_3(ms, rng, trough='timber'):
+    """`field-3` (14 by 12 m): a grazed pasture with trodden patches, a split-rail fence on the west
+    and north sides, a timber water trough and a few stones."""
+    rail_fence(ms, [(-0.66, -0.56), (-0.66, 0.56), (0.52, 0.56)])
+    ms.box(trough, (0.24, 0.08, 0.05), at=(-0.42, 0.45, G), lod=1, bevel=0.004)
+    ms.box('shallows', (0.21, 0.055, 0.004), at=(-0.42, 0.45, G + 0.044), lod=1)
+    ms.sphere('stone', 0.035, at=(-0.18, 0.45, G + 0.005), scale=(1.3, 1, 0.6), u=8, v=5, lod=1)
+
+
+def field_4(ms, rng):
+    """`field-4` (16 by 10 m): six raised beds of flowering flax with water standing in the channels
+    between them, a mud bank round the whole and a ditch with a sluice on the north."""
+    canal(ms, -0.72, 0.72, 0.41)
+    ms.quad_strip('shallows', [(-0.72, -0.44, G + 0.002), (0.72, -0.44, G + 0.002), (0.72, 0.35, G + 0.002), (-0.72, 0.35, G + 0.002)], lod=2)
+    for sx in (-1, 1):
+        ms.box('mud', (0.04, 0.84, 0.02), at=(sx * 0.74, -0.04, G), lod=1)
+    ms.box('mud', (1.52, 0.04, 0.02), at=(0, -0.46, G), lod=1)
+    ms.box('mud', (1.52, 0.03, 0.02), at=(0, 0.36, G), lod=1)
+    for i in range(6):
+        crop_bed(ms, 'flax', -0.6 + 0.24 * i, -0.05, 0.17, 0.74, rng.uniform(0.06, 0.075), rng)

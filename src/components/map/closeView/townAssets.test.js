@@ -2,7 +2,7 @@
 // happens once per file, and an instance tints only its Team cloth.
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
-import { townAssetUrl, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP } from './townAssets';
+import { townAssetUrl, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
   const root = new Group(); root.name = name;
@@ -91,5 +91,32 @@ describe('artist town models', () => {
     expect(isCamp({ owner: 'eg' })).toBe(false);
     expect(isCamp({ owner: 'eg', colony: { ownerId: 'eg' } })).toBe(false);
     expect(isCamp(undefined)).toBe(false);
+  });
+
+  it('lays two to six fields round a town, more with food buildings', () => {
+    expect(fieldCount({})).toBe(2);
+    expect(fieldCount({ buildings: { categories: { food: 0 } } })).toBe(3);
+    expect(fieldCount({ buildings: { categories: { food: 9 } } })).toBe(6);
+    expect(FIELDS_FOR_WORK.farm).toEqual(['field-1', 'field-4']);
+    expect(FIELDS_FOR_WORK.mine).toBeUndefined();
+  });
+
+  it('keeps the fields outside the town and its wall, off the south gate and apart', () => {
+    for (const [tier, wallR] of [['small', 2.3], ['medium', 3.4], ['big', 4.5]]) {
+      for (const seed of [0, 7, 123, 999]) {
+        const fs = fieldsAround(tier, seed, 6);
+        expect(fs).toHaveLength(6);
+        fs.forEach((f) => {
+          expect(Math.hypot(f.x, f.z)).toBeGreaterThan(wallR + 0.8);
+          expect(f.name).toMatch(/^field-[1-4]$/);
+          // the front (south, +z) stays open in front of the gate
+          const deg = (Math.atan2(-f.z, f.x) * 180) / Math.PI;
+          expect(Math.abs(deg + 90)).toBeGreaterThan(30);
+        });
+        for (let i = 0; i < fs.length; i++) {
+          for (let j = i + 1; j < fs.length; j++) expect(Math.hypot(fs[i].x - fs[j].x, fs[i].z - fs[j].z)).toBeGreaterThan(1.7);
+        }
+      }
+    }
   });
 });

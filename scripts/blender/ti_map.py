@@ -58,7 +58,7 @@ class Mesher:
             return self.add(bm, mat, 0, m)
         return self.add(bm, mat, lod, m)
 
-    def cyl(self, mat, r1, r2, h, at=(0, 0, 0), rot=(0, 0, 0), segs=8, lod=2, frame=None, caps=True):
+    def cyl(self, mat, r1, r2, h, at=(0, 0, 0), rot=(0, 0, 0), segs=8, lod=2, frame=None, caps=True, only=None):
         """A cylinder or cone, base at `at` (before rotation about its base)."""
         bm = bmesh.new()
         bmesh.ops.create_cone(bm, cap_ends=caps, cap_tris=False, segments=segs, radius1=r1, radius2=r2, depth=h)
@@ -66,9 +66,9 @@ class Mesher:
         m = self._m(at, 0, rot)
         if frame is not None:
             m = frame @ m
-        return self.add(bm, mat, lod, m)
+        return self.add(bm, mat, lod, m, only=only)
 
-    def sphere(self, mat, r, at=(0, 0, 0), scale=(1, 1, 1), u=8, v=6, lod=2, frame=None, cut_below=None):
+    def sphere(self, mat, r, at=(0, 0, 0), scale=(1, 1, 1), u=8, v=6, lod=2, frame=None, cut_below=None, only=None):
         """A UV sphere centred on `at`; `cut_below` (local z) keeps only the dome above it, capped."""
         bm = bmesh.new()
         bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, radius=r)
@@ -80,7 +80,7 @@ class Mesher:
         m = self._m(at, 0, (0, 0, 0), scale)
         if frame is not None:
             m = frame @ m
-        return self.add(bm, mat, lod, m)
+        return self.add(bm, mat, lod, m, only=only)
 
     def lathe(self, mat, profile, at=(0, 0, 0), segs=10, lod=0, frame=None):
         """A surface of revolution from [(radius, z), ...] bottom to top; closed at both ends."""
@@ -349,13 +349,19 @@ def mat_team(name='team_cloth'):
 
 # ---- baking the atlas -------------------------------------------------------------------------
 
-def smart_uv(obj, margin=0.003):
+def smart_uv(obj, margin=0.0008):
     for o in bpy.context.scene.objects:
         o.select_set(o == obj)
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=margin, area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
+    # Smart Project's own packing left most of the atlas empty (about 15% used with thousands of
+    # small islands); Blender's island packer, allowed to rotate and nest islands, fills it.
+    bpy.ops.uv.select_all(action='SELECT')
+    bpy.ops.uv.pack_islands(udim_source='CLOSEST_UDIM', rotate=True, rotate_method='CARDINAL', scale=True,
+                            merge_overlap=False, margin_method='FRACTION', margin=margin, pin=False,
+                            shape_method='CONCAVE')
     bpy.ops.object.mode_set(mode='OBJECT')
 
 

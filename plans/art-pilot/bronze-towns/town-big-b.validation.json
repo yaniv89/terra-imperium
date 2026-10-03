@@ -1,7 +1,7 @@
 {
   "file": "town-big-b.glb",
   "kind": "town",
-  "bytes": 6184756,
+  "bytes": 5402480,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -81,7 +81,7 @@
         2048,
         2048
       ],
-      "bytes": 37608
+      "bytes": 166554
     },
     {
       "name": "town-big-b_base",
@@ -90,7 +90,7 @@
         2048,
         2048
       ],
-      "bytes": 734312
+      "bytes": 625582
     },
     {
       "name": "town-big-b_orm",
@@ -99,7 +99,7 @@
         2048,
         2048
       ],
-      "bytes": 1199438
+      "bytes": 396942
     }
   ],
   "passed": true
