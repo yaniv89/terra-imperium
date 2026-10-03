@@ -22,7 +22,9 @@ import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
-import { getCityFeatures, getNationTerritories, getHexMeshWithin, cityLatLon, getTileFeature, tileAtLatLon } from '../../data/geo/cityFeatures';
+import { getCityFeatures, getNationTerritories, getHexMeshWithin, landTilesWithin, cityLatLon, getTileFeature, tileAtLatLon } from '../../data/geo/cityFeatures';
+import { DISTRICTS } from '../../engine/districts';
+import { RESOURCES_ON_TILES } from '../../data/tileYields';
 import { getTiles } from '../../data/geo/tiles';
 import { isSettler } from '../../engine/settlers';
 import { useMarch } from './MarchContext';
@@ -48,6 +50,8 @@ const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundCo
 const POLITICAL_ALPHA = 0.45;
 // The hex mesh shows from this zoom (B5's local view), city borders and names from this one.
 const HEX_FROM_ZOOM = 3;
+const RESOURCE_GLYPH_ZOOM = 5;
+const IMPROVEMENT_GLYPH = { farm: 'F', pasture: 'P', camp: 'H', mine: 'M', quarry: 'Q', lumber_camp: 'L', fishing_boats: 'B', plantation: 'N', oil_well: 'O', fort: 'W' };
 const CITY_DETAIL_ZOOM = 2.5;
 // Max raised from 8x to 40x (plan feedback: playing as a small nation like Israel, its provinces
 // stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
@@ -468,6 +472,30 @@ const Map2DView = ({
     });
     return null;
   }, [interactive, projection, lens, state, zoomK]);
+  // Improvements, districts and resources as small glyphs on their tiles at the local zoom (plan
+  // B5): a letter in a disc for an improvement, in a square for a district (districts.js), a
+  // small diamond for a resource; only the tiles on screen (landTilesWithin, the hex window).
+  const glyphElements = useMemo(() => {
+    if (!interactive || !projection || !hexWindow || zoomK < HEX_FROM_ZOOM) return null;
+    const tiles = getTiles();
+    const ts = state.world?.tileState || {};
+    const owner = state.world?.tileOwner || {};
+    const resources = zoomK >= RESOURCE_GLYPH_ZOOM;
+    const r = 5.2 / zoomK; const fs = 8 / zoomK;
+    const out = [];
+    landTilesWithin(hexWindow).forEach((t) => {
+      const e = ts[t];
+      const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
+      const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' ? resId : null; // luxuries and strategics only: bonus resources sit on most tiles
+      if (!e?.improvement && !e?.district && !res) return;
+      const { lat, lon } = tiles.latLonOf(t); const [x, y] = projection([lon, lat]);
+      const dim = e?.pillaged ? 0.45 : 1;
+      if (e?.district && DISTRICTS[e.district]) out.push(<g key={`d${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-district-glyph={t}><rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.25} fill="#c4b5fd" stroke="#312e81" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#1e1b4b">{DISTRICTS[e.district].glyph}</text></g>);
+      else if (e?.improvement && e.improvement !== 'road') out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text></g>);
+      if (res && !e?.improvement && !e?.district) out.push(<polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
+    });
+    return out;
+  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.
   const battleMarkElements = useMemo(() => {
     if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;
@@ -606,6 +634,7 @@ const Map2DView = ({
           {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
         </g>
         {lensElements && <g data-testid="lens-layer" data-lens={lens}>{lensElements}</g>}
+        {glyphElements}
         {battleMarkElements}
         {selectedTilePath && <path d={selectedTilePath} fill="rgba(255,255,255,0.15)" stroke="#ffffff" strokeWidth={1.6 / zoomK} pointerEvents="none" data-testid="selected-tile" />}
         {marchElements}

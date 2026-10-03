@@ -16,6 +16,7 @@ import { getResearched } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, tileYields, canImprove } from '../../data/tileYields';
+import { DISTRICTS } from '../../engine/districts';
 import {
   FOCUS, growthThreshold, housingOf, amenitiesOf, productionCost, canQueue, claimCandidates, buyTileCost, MAX_SIZE, allocateTiles, cityYields
 } from '../../engine/world/cities';
@@ -133,7 +134,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
             <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-emerald-900/30 border border-emerald-700/40' : 'bg-slate-800/60 border border-slate-700/60'}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-slate-100 truncate capitalize">{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
+                <div className="text-slate-100 truncate capitalize">{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
                 <div className="text-slate-400 flex gap-2">
                   <Yield icon={Wheat} value={y.food} title="Food" className="text-emerald-300" />
                   <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />

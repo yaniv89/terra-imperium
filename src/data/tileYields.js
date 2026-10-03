@@ -164,6 +164,7 @@ export const tileFacts = (tiles, id, dynamic = {}) => ({
   coastal: tiles.coastal[id] === 1,
   resource: tiles.resourceOf ? tiles.resourceOf(id) : null,
   improvement: dynamic.improvement || null,
+  district: dynamic.district || null, // districts.js
   pillaged: !!dynamic.pillaged,
   road: !!dynamic.road
 });
@@ -172,6 +173,7 @@ export const canImprove = (facts, improvementId, researched = []) => {
   const imp = IMPROVEMENTS[improvementId];
   if (!imp) return false;
   if (imp.requiresTech && !researched.includes(imp.requiresTech)) return false;
+  if (facts.district && improvementId !== 'road') return false; // a district stands there (districts.js)
   return !!imp.allowed(facts);
 };
 

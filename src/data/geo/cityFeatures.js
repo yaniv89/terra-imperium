@@ -125,6 +125,21 @@ export const getHexMesh = () => {
 /** The hex grid over the land cells inside a lat/lon window only (the flat map draws the mesh
  * for what is on screen: the whole world's mesh is one 50,000-segment path, too heavy to paint
  * at every pan). `west` may exceed `east` across the antimeridian. */
+/** The land tile ids inside a lat/lon window (`west` may exceed `east` across the antimeridian). */
+export const landTilesWithin = ({ south, north, west, east }) => {
+  const tiles = getTiles();
+  const ids = [];
+  const lat = tiles.lat; const lon = tiles.lon;
+  for (let i = 0; i < tiles.count; i++) {
+    if (!tiles.land[i]) continue;
+    const la = lat[i] / 1000; const lo = lon[i] / 1000;
+    if (la < south || la > north) continue;
+    if (west <= east ? (lo < west || lo > east) : (lo < west && lo > east)) continue;
+    ids.push(i);
+  }
+  return ids;
+};
+
 export const getHexMeshWithin = ({ south, north, west, east }) => {
   const tiles = getTiles();
   const ids = [];
