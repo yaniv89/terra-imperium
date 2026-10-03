@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
-import { nextPrompts, UNREST_PROMPT } from './nextPrompt';
+import { nextPrompts, endTurnWarnings, UNREST_PROMPT } from './nextPrompt';
 
 describe('next prompt', () => {
   it('lists what wants a decision, in order, and nothing when all is settled', () => {
@@ -25,5 +25,15 @@ describe('next prompt', () => {
     expect(nextPrompts(field).find((p) => p.kind === 'army')).toBeTruthy();
     const settled = { ...restless, regions: { ...restless.regions, [cap]: { ...restless.regions[cap], unrest: 0 } } };
     expect(nextPrompts({ ...settled, regions: Object.fromEntries(Object.entries(settled.regions).map(([id, c]) => [id, c.owner === 'fr' ? { ...c, production: { current: { kind: 'unit', classId: 'infantry' }, queue: [], progress: 0 } } : c])) })).toEqual([]);
+  });
+  it('the "warn me" setting counts the prompts that still wait, the guide aside; off, it counts nothing', () => {
+    const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const idle = { ...S, research: { ...S.research, current: null, auto: false } };
+    expect(endTurnWarnings(idle)).toBe(0);
+    const warn = { ...idle, battleSettings: { ...idle.battleSettings, warnEndTurn: true } };
+    expect(endTurnWarnings(warn)).toBe(nextPrompts(warn).length);
+    expect(endTurnWarnings(warn)).toBeGreaterThan(0);
+    const guided = { ...warn, tutorial: { startTurn: 1, done: {}, ended: false }, playerNationId: 'fr' };
+    expect(endTurnWarnings(guided)).toBe(nextPrompts(guided).filter((p) => p.kind !== 'guide').length);
   });
 });

@@ -1935,6 +1935,20 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E4 and E3, orders from the army sheet and the "warn me" gate (2026-10-03).** The army
+sheet now lists what the stack can attack from its tile (`attackTargets`): every enemy stack
+and enemy city on the six tiles around, with its strength, as an Attack or Assault button
+that opens the pre-battle modal (fight it yourself, auto-resolve or call it off), or dimmed
+with the reason (not at war, no moves left, cannot afford). It shows the siege the stack
+presses (`siegePressed`): the city's walls as HP, the siege strength a turn, encircled or
+not. Marching a part of the stack: with more than one unit each row has a checkbox and March
+takes only the ticked ones (the split); naming the army still tags the whole stack (the
+merge). Fortify is not an engine concept and was not faked. The Military settings gain "Warn
+me before End Turn while something still wants a decision": with it on and prompts waiting
+(the guide aside), the first tap arms End Turn for WARN_ARM_MS (4 s) as "End anyway? N
+waiting" and the second tap ends the turn; End Turn is never blocked (`endTurnWarnings`).
+Tests in armySheetModel.test.js and nextPrompt.test.js.
+
 **D5b, sea depths and the carrier's air units (2026-10-03).** `seaDepth` (fleets.js) classes
 every water tile: lake, coast (the coast terrain, open to everyone), shelf (ocean tiles beside
 the coast, 1,869 of them: open from the Classical age or with a tech that sails further) and

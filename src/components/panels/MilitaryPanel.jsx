@@ -115,6 +115,10 @@ const MilitaryPanel = () => {
           <span>Instant battles (skip the auto-resolve replay)</span>
           <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.instantBattles === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { instantBattles: e.target.checked } })} data-testid="instant-battles" />
         </label>
+        <label className="flex items-center justify-between gap-2 text-[12px] text-slate-200 min-h-[40px]">
+          <span>Warn me before End Turn while something still wants a decision</span>
+          <input type="checkbox" className="w-5 h-5" checked={state.battleSettings?.warnEndTurn === true} onChange={(e) => dispatch({ type: ActionTypes.SET_BATTLE_SETTINGS, payload: { warnEndTurn: e.target.checked } })} data-testid="warn-end-turn" />
+        </label>
       </div>
 
       <BattleReportList reports={state.battleReports || []} />

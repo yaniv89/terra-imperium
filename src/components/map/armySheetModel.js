@@ -16,6 +16,9 @@ import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { tileFacts, IMPROVEMENTS } from '../../data/tileYields';
 import { ALL_PERKS, canPromote, hasPerk, getRankForXp, XP_THRESHOLDS, RANK_ORDER } from '../../data/promotions';
 import { airUnitsInRange, AIR_RANGE } from '../../engine/airPower';
+import { validateFieldAttack, enemyStackAt } from '../../engine/fieldBattle';
+import { validateInvasion } from '../../engine/invasion';
+import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength } from '../../engine/sieges';
 
 export const ZONE_TEXT = {
   home: 'In friendly land: the meter fills every turn.',
@@ -77,6 +80,8 @@ export const armySheetModel = (state, tile) => {
     pillage: pillageTarget(state, tile, units),
     generals,
     airCover: airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,
+    targets: attackTargets(state, tile, units),
+    siege: siegePressed(state, tile, units),
     unitIds: units.map((u) => u.id)
   };
 };
@@ -90,4 +95,47 @@ export const pillageTarget = (state, tile, units) => {
   if (!raid) return null;
   const facts = tileFacts(getTiles(), tile, state.world?.tileState?.[tile]);
   return { name: IMPROVEMENTS[facts.improvement]?.name || facts.improvement, gold: raid.gold };
+};
+
+const ATTACK_REASON = { no_war: 'not at war', no_moves: 'no moves left', cost: 'cannot afford the attack', no_units: 'no unit beside it', not_adjacent: 'not beside it' };
+
+/** What the stack can attack from here: enemy stacks and enemy cities on the tiles around.
+ * [{ kind: 'army'|'city', tile, regionId, name, strength, ok, reason }]. */
+export const attackTargets = (state, tile, units) => {
+  if (!units.length) return [];
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const from = units[0].regionId;
+  const out = [];
+  tiles.neighbors[tile].forEach((n) => {
+    const cityId = state.world?.tileOwner?.[n];
+    const city = cityId ? state.regions[cityId] : null;
+    if (city && city.tile === n && city.owner !== me) {
+      const v = validateInvasion(state, from, cityId);
+      if (v.ok || ['no_moves', 'cost', 'no_war'].includes(v.reason)) out.push({ kind: 'city', tile: n, regionId: cityId, name: city.name, owner: state.nations[city.owner]?.name || city.owner, strength: Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.ownerId !== me && u.strength > 0).reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
+      return;
+    }
+    const enemy = enemyStackAt(state, n, me);
+    if (!enemy.length) return;
+    const v = validateFieldAttack(state, from, n);
+    if (v.ok || ['no_moves', 'cost'].includes(v.reason)) out.push({ kind: 'army', tile: n, regionId: null, name: `${state.nations[enemy[0].ownerId]?.name || 'Rebel'} army`, owner: state.nations[enemy[0].ownerId]?.name || 'Rebels', strength: enemy.reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
+  });
+  return out.sort((a, b) => a.tile - b.tile);
+};
+
+/** The enemy city this stack besieges (a city whose centre touches the tile), or null:
+ * { regionId, name, hp, maxHp, walls, encircled, strength }. */
+export const siegePressed = (state, tile, units) => {
+  if (!units.length) return null;
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  for (const n of tiles.neighbors[tile]) {
+    const cityId = state.world?.tileOwner?.[n];
+    const city = cityId ? state.regions[cityId] : null;
+    if (!city || city.tile !== n || city.owner === me) continue;
+    const mine = besiegersOf(state, city).get(me);
+    if (!mine?.length) continue;
+    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city)), maxHp: siegeMaxHp(city), walls: wallsOf(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
+  }
+  return null;
 };

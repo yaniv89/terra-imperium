@@ -13,6 +13,10 @@ import { isSettler } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
 
 export const UNREST_PROMPT = 50;
+export const WARN_ARM_MS = 4000;
+
+/** With the "warn me" setting on: how many prompts (the guide aside) still wait before End Turn; 0 otherwise. */
+export const endTurnWarnings = (state) => (state.battleSettings?.warnEndTurn ? nextPrompts(state).filter((p) => p.kind !== 'guide').length : 0);
 
 export const nextPrompts = (state) => {
   const me = state.playerNationId;
