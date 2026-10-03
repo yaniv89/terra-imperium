@@ -97,3 +97,26 @@ describe('a voyage', () => {
     expect(isBlockaded({ ...beside, wars: [] }, reach.c.id)).toBe(false);
   });
 });
+
+describe('sea depths (plan D5b)', () => {
+  it('classes every water tile as lake, coast, shelf or deep, and opens them by age or tech', async () => {
+    const { seaDepth, shelfOk, deepOk } = await import('./fleets');
+    const tiles = getTiles();
+    const counts = { lake: 0, coast: 0, shelf: 0, deep: 0 };
+    for (let i = 0; i < tiles.neighbors.length; i++) { const d = seaDepth(tiles, i); if (d) counts[d]++; else expect(tiles.land[i]).toBe(1); }
+    expect(counts.coast).toBeGreaterThan(2000);
+    expect(counts.shelf).toBeGreaterThan(1000);
+    expect(counts.deep).toBeGreaterThan(counts.shelf * 5);
+    const shelf = [...Array(tiles.neighbors.length).keys()].find((i) => seaDepth(tiles, i) === 'shelf');
+    const deep = [...Array(tiles.neighbors.length).keys()].find((i) => seaDepth(tiles, i) === 'deep');
+    expect(tiles.neighbors[shelf].some((n) => seaDepth(tiles, n) === 'coast')).toBe(true);
+    expect(tiles.neighbors[deep].every((n) => seaDepth(tiles, n) !== 'coast')).toBe(true);
+    expect(seaPassable(tiles, shelf, 'bronze')).toBe(false);
+    expect(seaPassable(tiles, shelf, 'bronze', false, true)).toBe(true); // a sailing tech
+    expect(seaPassable(tiles, shelf, 'classical')).toBe(true);
+    expect(seaPassable(tiles, deep, 'classical')).toBe(false);
+    expect(seaPassable(tiles, deep, 'classical', true)).toBe(true); // a tech that opens the ocean
+    expect(seaPassable(tiles, deep, 'gunpowder')).toBe(true);
+    expect(shelfOk('bronze')).toBe(false); expect(shelfOk('classical')).toBe(true); expect(deepOk('kingdoms')).toBe(false);
+  });
+});

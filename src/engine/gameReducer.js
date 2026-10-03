@@ -115,7 +115,7 @@ import { canFabricateClaim, claimableCities, startClaim, CLAIM_FABRICATE_TURNS }
 import { hasOpenBorders, openBordersAcceptance, setOpenBorders, applyDemand, DEMANDS } from './accords';
 import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_ASSIGN_TURNS } from './governors';
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
-import { NAVAL_LINES, navalCargo } from '../data/navalLines';
+import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
@@ -1393,8 +1393,11 @@ const reduceAction = (state, action) => {
       if (!landUnit || landUnit.ownerId !== state.playerNationId || landUnit.domain !== 'land' || landUnit.embarkedOn) return state;
       if (!navalUnit || navalUnit.ownerId !== state.playerNationId || navalUnit.domain !== 'naval') return state;
       if (landUnit.regionId !== navalUnit.regionId) return state;
-      const cargoCount = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId).length;
-      if (cargoCount >= navalUnit.transportCapacity) return state;
+      // Aircraft board a carrier by its air capacity (navalLines.js); troops by the ship's cargo.
+      const air = landUnit.classId === 'air';
+      const cargoCount = Object.values(state.units).filter(u => u.embarkedOn === navalUnitId && (u.classId === 'air') === air).length;
+      const capacity = air ? navalAir(navalUnit.navalLine || 'warship') : navalUnit.transportCapacity;
+      if (cargoCount >= capacity) return state;
       if (!canAfford(state.resources, costs)) return state;
       return {
         ...state,

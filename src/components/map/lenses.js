@@ -9,6 +9,7 @@
 //   estates    the countryside tiles each estate holds, tinted with a crest letter (estateLand.js)
 //   trade      the caravan path or sea link of every trade pact, red where plundered (plunder.js)
 import { getTiles } from '../../data/geo/tiles';
+import { airRanges } from '../../engine/airPower';
 import { tileFacts, tileYields } from '../../data/tileYields';
 import { ringsAround } from '../../engine/world/cities';
 import { getResearched } from '../../engine/nationState';
@@ -56,6 +57,9 @@ export const loyaltyColour = (loyalty) => `hsl(${Math.round(Math.max(0, Math.min
 export const loyaltyDiscs = (state) => Object.values(state.regions || {}).filter((c) => c.owner && c.tile != null).map((c) => ({ cityId: c.id, tile: c.tile, loyalty: loyaltyOf(c), colour: loyaltyColour(loyaltyOf(c)) }));
 
 /** Enemy land stacks at war with the player (and rebels): [{ tile, strength, edgeTile }] with a tile THREAT_RINGS away for the circle's radius. */
+/** Air bases and their reach, for the threat lens (airPower.js). */
+export const airCover = (state) => airRanges(state);
+
 export const threatStacks = (state) => {
   const tiles = getTiles();
   const me = state.playerNationId;

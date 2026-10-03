@@ -9,6 +9,7 @@
 // LAUNCH_INVASION (gameReducer.js) is now just these three around one resolveBattle call; the
 // tactical path swaps only the middle step for a simulated battle producing the same result shape.
 import { recordBattleReport } from './battleReports';
+import { withAirSupport, isAir } from './airPower';
 import { LogTypes } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
@@ -102,7 +103,8 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   if (!ignoreBattleLocks && !attackerUnits.every((u) => (u.movesLeft ?? 1) > 0)) return { ok: false, reason: 'no_moves' };
   // The garrison is whoever else stands there — never the player's own troops.
   const defenderUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId !== state.playerNationId);
-  return { ok: true, war, fromRegion, targetRegion, attackerUnits, defenderUnits };
+  // Aircraft in range of the city join each side (airPower.js); they stay at their base after.
+  return { ok: true, war, fromRegion, targetRegion, attackerUnits: withAirSupport(state, state.playerNationId, targetRegion.tile, attackerUnits), defenderUnits: withAirSupport(state, targetRegion.owner, targetRegion.tile, defenderUnits) };
 };
 
 export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, defenderUnits }) => {
@@ -186,7 +188,8 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
   // so resolveTurn.js's reinforcement/morale-recovery phase skips it.
   xpAttackers.forEach(u => {
     if (u.strength <= 0) { delete nextUnits[u.id]; return; }
-    nextUnits[u.id] = { ...u, regionId: captured ? targetRegionId : fromRegionId, tile: captured ? targetRegion.tile : unitTile(state, u), movesLeft: 0, lastBattleTurn: state.turnNumber };
+    const stays = isAir(u); // aircraft fly home
+    nextUnits[u.id] = { ...u, regionId: stays ? u.regionId : captured ? targetRegionId : fromRegionId, tile: stays ? unitTile(state, u) : captured ? targetRegion.tile : unitTile(state, u), movesLeft: 0, lastBattleTurn: state.turnNumber };
   });
   // A captured region's garrison doesn't remain a coherent defending force — on actual capture
   // the whole defending side is cleared, survivors and routed alike. A round that only damages

@@ -16,6 +16,7 @@
 // them from outside: both are this attack from different tiles. The AI's garrisons sally through
 // `aiSally` (aiOperations.js) when they are clearly stronger.
 import { getTiles } from '../data/geo/tiles';
+import { withAirSupport, isAir } from './airPower';
 import { getEffectiveAgeId } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { awardXp } from '../data/promotions';
@@ -57,7 +58,8 @@ export const validateFieldAttack = (state, fromRegionId, tile, { ignoreCost = fa
   if (!attackerUnits.length) return { ok: false, reason: 'no_units' };
   if (!ignoreBattleLocks && !attackerUnits.every((u) => (u.movesLeft ?? 1) > 0)) return { ok: false, reason: 'no_moves' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.launchInvasion)) return { ok: false, reason: 'cost' };
-  return { ok: true, tile, war, fromRegionId, attackerUnits, defenderUnits, defenderNationId, fromTile: unitTile(state, attackerUnits[0]) };
+  // Aircraft in range join each side (airPower.js) and fly home after.
+  return { ok: true, tile, war, fromRegionId, attackerUnits: withAirSupport(state, me, tile, attackerUnits), defenderUnits: withAirSupport(state, defenderNationId, tile, defenderUnits), defenderNationId, fromTile: unitTile(state, attackerUnits[0]) };
 };
 
 export const getFieldBattleContext = (state, v) => {
@@ -123,7 +125,7 @@ export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null
   defenders.forEach((u) => {
     if (u.strength <= 0) { delete units[u.id]; return; }
     const next = { ...units[u.id], ...u, routed: undefined, lastBattleTurn: state.turnNumber };
-    if (outcome === 'attacker') {
+    if (outcome === 'attacker' && !isAir(u)) {
       const to = retreated ?? retreatTile(state, v.tile, u, attackerTiles);
       if (to == null) { delete units[u.id]; destroyed += 1; return; }
       retreated = to;

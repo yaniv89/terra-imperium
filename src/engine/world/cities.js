@@ -327,7 +327,7 @@ export const tileCultureCost = (city, ring, costMult = 0) => Math.round((TILE_CO
 // (centre, maxRing) serves every turn: the claim step of 500 cities was a walk per candidate tile.
 const ringsMemo = new Map();
 export const ringsAround = (tiles, centre, maxRing) => {
-  const key = centre * 8 + maxRing;
+  const key = centre * 64 + maxRing; // rings up to 63 (AIR_RANGE is 8)
   let rings = ringsMemo.get(key);
   if (rings) return rings;
   rings = new Map([[centre, 0]]); let frontier = [centre];

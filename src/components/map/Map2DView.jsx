@@ -41,7 +41,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines, airCover } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -440,12 +440,14 @@ const Map2DView = ({
       ); });
     }
     if (lens === 'loyalty') return loyaltyDiscs(state).map((d) => { const [x, y] = at(d.tile); return <circle key={d.cityId} cx={x} cy={y} r={14 / Math.sqrt(zoomK)} fill={d.colour} fillOpacity={0.45} stroke={d.colour} strokeWidth={1 / zoomK} pointerEvents="none" data-lens-loyalty={d.cityId} />; });
-    if (lens === 'threat') return threatStacks(state).map((s) => { const [x, y] = at(s.tile); const [ex, ey] = at(s.edgeTile); const r = Math.max(6 / zoomK, Math.hypot(ex - x, ey - y)); return (
+    if (lens === 'threat') return [...airCover(state).map((a) => { const [x, y] = at(a.tile); const [ex, ey] = at(a.edgeTile); const r = Math.max(6 / zoomK, Math.hypot(ex - x, ey - y)); const c = a.own ? '#60a5fa' : '#f87171'; return (
+      <g key={`air:${a.tile}:${a.nationId}`} pointerEvents="none" data-lens-air={a.tile} data-own={a.own ? '1' : '0'}><circle cx={x} cy={y} r={r} fill={c} fillOpacity={0.08} stroke={c} strokeWidth={1 / zoomK} strokeDasharray={`${6 / zoomK} ${4 / zoomK}`} /><text x={x} y={y - 10 / zoomK} textAnchor="middle" fontSize={9 / zoomK} fontWeight="700" fill={c} stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke">{`✈ ${a.count}`}</text></g>); }),
+    ...threatStacks(state).map((s) => { const [x, y] = at(s.tile); const [ex, ey] = at(s.edgeTile); const r = Math.max(6 / zoomK, Math.hypot(ex - x, ey - y)); return (
       <g key={s.tile} pointerEvents="none" data-lens-threat={s.tile}>
         <circle cx={x} cy={y} r={r} fill="rgba(239,68,68,0.14)" stroke="rgba(239,68,68,0.6)" strokeWidth={1 / zoomK} strokeDasharray={`${4 / zoomK} ${3 / zoomK}`} />
         <text x={x} y={y - r - 2 / zoomK} textAnchor="middle" fontSize={10 / zoomK} fontWeight="700" fill="#fca5a5" stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke">{s.strength.toLocaleString()}</text>
       </g>
-    ); });
+    ); })];
     if (lens === 'supply') return supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />);
     if (lens === 'estates') return estateTints(state).map((t) => { const [x, y] = at(t.tile); return (
       <g key={t.tile} pointerEvents="none" data-lens-estate={t.tile} data-estate={t.estateId}>

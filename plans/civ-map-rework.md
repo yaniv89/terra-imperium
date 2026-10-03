@@ -1935,6 +1935,23 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**D5b, sea depths and the carrier's air units (2026-10-03).** `seaDepth` (fleets.js) classes
+every water tile: lake, coast (the coast terrain, open to everyone), shelf (ocean tiles beside
+the coast, 1,869 of them: open from the Classical age or with a tech that sails further) and
+deep (the open ocean, 15,328: the Age of Gunpowder or a tech that opens the ocean). The Dawn
+reach is unchanged, so the balance sim is identical to the base. `src/engine/airPower.js`: an
+aircraft (the Modern 'air' class) flies from a base, its own city or a carrier it is aboard,
+and every battle within AIR_RANGE (8) rings of the base gets it as the air squads of the sim,
+on its nation's side: invasions (validateInvasion), defences (getDefenseArmies) and field
+battles (validateFieldAttack). After the battle it stays at its base; on open ground or in a
+foreign city it covers nothing. A carrier boards two aircraft and no troops (EMBARK_UNIT reads
+the line's air capacity, `navalAir`); a cog takes troops and no aircraft. The threat lens, on
+the flat map and the globe, draws every air base's reach as a dashed circle (blue yours, red
+theirs) with the count; the army sheet says how many aircraft cover its tile. Also fixed:
+`ringsAround`'s memo key collided from ring 8 on (now rings up to 63). Tests in
+airPower.test.js and fleets.test.js. Still open in D5b: patrol and intercept, anti-air shooting
+down strikes, naval battles in the tactical sim, railways and the modern movement table.
+
 **E5, the lenses on the globe and the army sheet from a globe banner (2026-10-03).**
 `src/components/globe/lensLayer.js` paints the seven lenses into the globe's political canvas
 (politicalTexture.js, after the borders and the selection) from the same models the flat map
