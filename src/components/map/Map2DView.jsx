@@ -37,6 +37,8 @@ import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
 // The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
 const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
+// The ground under it (plans/playtest-1.md P1.3): a shader over the raster, sharp at any zoom.
+const CloseTerrainLayer = React.lazy(() => import('./closeView/CloseTerrainLayer'));
 export const CLOSE_ZOOM_K = 10;
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
@@ -59,9 +61,9 @@ const NAME_EARLY_ZOOM = 1.5; // your cities and every capital carry their name f
 // stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
 // already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
 // other change is needed for click accuracy at high zoom.
-const ZOOM_EXTENT = [1, 40];
+const ZOOM_EXTENT = [1, 200]; // up to the super zoom (plans/playtest-1.md P1.1)
 // Phones and tablets may zoom twice as far (plan §3): small provinces need it under a fingertip.
-const TOUCH_ZOOM_EXTENT = [1, 80];
+const TOUCH_ZOOM_EXTENT = [1, 200];
 const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 const ZOOM_STEP_SCALE = 1.6;
 // Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
@@ -410,6 +412,10 @@ const Map2DView = ({
 
   // Load the close view a little before it is needed, then keep it (one WebGL context for good).
   const [closeLoaded, setCloseLoaded] = useState(false);
+  // The close ground is drawn by CloseTerrainLayer once its world picture is in: the SVG then
+  // skips its own pictures and turns transparent over it.
+  const [terrainReady, setTerrainReady] = useState(false);
+  const closeGround = interactive && terrainReady && transform.k >= CLOSE_ZOOM_K;
   useEffect(() => { if (interactive && transform.k >= CLOSE_ZOOM_K * 0.7) setCloseLoaded(true); }, [interactive, transform.k]);
 
   // A tapped marker cluster: zoom in on it until its banners separate.
@@ -643,19 +649,19 @@ const Map2DView = ({
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      style={{ background: OCEAN_COLOR, display: 'block', touchAction: interactive ? 'none' : undefined }}
+      style={{ background: closeGround ? 'transparent' : OCEAN_COLOR, display: 'block', position: interactive ? 'relative' : undefined, touchAction: interactive ? 'none' : undefined }}
       onPointerDown={interactive ? onPointerDown : undefined}
       onPointerUp={interactive ? onPointerUp : undefined}
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-        {rasterRect && (
+        {rasterRect && !closeGround && (
           <image
             href={worldRasterUrl(worldRasterSizeFor(width, height))}
             x={rasterRect.x} y={rasterRect.y} width={rasterRect.width} height={rasterRect.height}
             preserveAspectRatio="none" pointerEvents="none" data-testid="world-raster"
           />
         )}
-        {rasterTiles.map((t) => <image key={t.key} href={rasterTileUrl(t.z, t.x, t.y)} x={t.rect.x} y={t.rect.y} width={t.rect.width} height={t.rect.height} preserveAspectRatio="none" pointerEvents="none" data-raster-tile={t.key} />)}
+        {!closeGround && rasterTiles.map((t) => <image key={t.key} href={rasterTileUrl(t.z, t.x, t.y)} x={t.rect.x} y={t.rect.y} width={t.rect.width} height={t.rect.height} preserveAspectRatio="none" pointerEvents="none" data-raster-tile={t.key} />)}
         <g data-testid="territories">
           {pathElements}
           {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" strokeLinecap="round" pointerEvents="none" data-testid="nation-borders" />}
@@ -676,7 +682,12 @@ const Map2DView = ({
   if (!interactive) return map;
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ background: OCEAN_COLOR }}>
+      {closeLoaded && (
+        <Suspense fallback={null}>
+          <CloseTerrainLayer rasterRect={rasterRect} worldUrl={worldRasterUrl(worldRasterSizeFor(width, height))} worldSize={worldRasterSizeFor(width, height)} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} onReady={setTerrainReady} />
+        </Suspense>
+      )}
       {map}
       {closeLoaded && (
         <Suspense fallback={null}>
