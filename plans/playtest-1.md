@@ -309,3 +309,13 @@ cities and turn time unchanged. The player sees it coming: the next prompt names
 succession three turns before the reign ends (no heir, or a claim under 20), opening the Court,
 where "Secure the succession" (200 gold, 2 DIP) raises the heir's claim by 30.
 
+**Wave 3 shipped (2026-10-03).** P3 the speed table (data/ages.js `GAME_SPEEDS`): years a turn
+by age, Fast 50/25/12/5/2 (about 440 turns), Normal 25/12/6/2/1 (about 920), Marathon
+10/5/3/1/1 (about 1,500). The pace follows the calendar, not the turn: research, production and
+growth cost REFERENCE_YEARS[age] / years[age] times their base (`speedCostMult`, by the tech's
+age for research and the nation's age for cities), so a tech, a granary or a size of growth
+takes the same span of history at every speed. The start screen names each speed's length.
+Checked at the same calendar year (424 CE): player techs 10 to 12 (old build 10 to 11), AI
+median 5 (5), cities 867 (817), turn time unchanged. Cities run about 6% ahead because settlers
+and outposts still move per turn; a per-year outpost pace is a follow-up if it shows in play.
+

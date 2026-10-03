@@ -18,7 +18,7 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
@@ -132,6 +132,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         ageId: getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge),
         turnNumber: newTurnNumber,
         citiesOwned: citiesOwned[nid] || 1,
+        speedMult: speedCostMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // the speed table (ages.js)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {}
       });

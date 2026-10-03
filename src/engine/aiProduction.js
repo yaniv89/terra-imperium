@@ -63,7 +63,7 @@ export const chooseProduction = (state, city, ctx) => {
   const units = ctx.units || state.units || {};
   const counts = ctx.counts || { settlers: settlersOf(units, nationId).length, outposts: outpostsOf(state.regions, nationId).length, landUnits: Object.values(units).filter((u) => u.ownerId === nationId && u.domain === 'land' && u.classId !== 'settler').length };
   const production = Math.max(1, city.lastYields?.production ?? city.dev?.production ?? city.size ?? 1);
-  const affordable = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned }) / production <= MAX_BUILD_TURNS;
+  const affordable = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult }) / production <= MAX_BUILD_TURNS * (ctx.speedMult || 1);
 
   const thinks = ((ctx.turnNumber || 0) + city.tile) % SETTLER_THINK_PERIOD === 0;
   // One settler decision per nation per turn: the first city that thinks searches for a site and
@@ -87,7 +87,7 @@ export const chooseProduction = (state, city, ctx) => {
       const liked = DOCTRINE_WONDERS[state.nations?.[nationId]?.doctrine] || [];
       const pick = liked.map((id) => options.find((o) => o.projectId === id)).find(Boolean) || options[0];
       const item = wonderItem(pick.projectId, pick.tier, pick.tile);
-      if (productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned }) / production <= MAX_WONDER_TURNS) return item;
+      if (productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned, speedMult: ctx.speedMult }) / production <= MAX_WONDER_TURNS * (ctx.speedMult || 1)) return item;
     }
   }
   if (counts.landUnits < ctx.citiesOwned * UNITS_PER_CITY && getAvailableClasses(ctx.ageId).includes('infantry')) {

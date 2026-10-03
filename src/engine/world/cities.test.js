@@ -136,3 +136,12 @@ describe('cities on the grid', () => {
     expect(sizeToPeople(8)).toBeGreaterThan(sizeToPeople(4) * 4);
   });
 });
+
+describe('the speed table scales costs (plans/playtest-1.md P3)', () => {
+  it('production and growth cost more at a slower speed', () => {
+    const item = { kind: 'building', category: 'food', tier: 0 };
+    expect(productionCost(item, { speedMult: 3 }) / productionCost(item)).toBeCloseTo(3, 1);
+    expect(productionCost({ kind: 'settler' }, { citiesOwned: 2, speedMult: 1.8 }) / productionCost({ kind: 'settler' }, { citiesOwned: 2 })).toBeCloseTo(1.8, 1);
+    expect(growthThreshold(3, 3) / growthThreshold(3)).toBeCloseTo(3, 1);
+  });
+});

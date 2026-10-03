@@ -107,7 +107,7 @@ describe('resolveTurn calendar advance', () => {
   });
 
   it('logs a milestone the exact turn the calendar age changes (App.jsx turns this into the banner/globe pulse)', () => {
-    const state = { ...createInitialState({ playerNationId: 'fr' }), year: -840, age: 'bronze' };
+    const state = { ...createInitialState({ playerNationId: 'fr' }), year: -800 - getYearsPerTurn('bronze', 'normal') + 5, age: 'bronze' }; // one turn short of the Classical Age at this speed
     const next = resolveTurn(state);
     expect(next.age).not.toBe(state.age);
     const ageLog = next.logs.find(l => l.message.includes('new era dawns'));

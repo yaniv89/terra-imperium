@@ -1,5 +1,7 @@
 // src/engine/wonders.test.js
 import { describe, it, expect } from 'vitest';
+import { productionCost } from './world/cities';
+import { speedCostMult } from '../data/ages';
 import { createInitialState, gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
 import { ActionTypes } from '../data/types';
@@ -72,7 +74,8 @@ describe('AI wonders (plan C9)', () => {
     const site = wonderSites(s0, paris, 'colosseum')[0] ?? wonderSites(s0, paris, 'great_pyramids')[0];
     const projectId = wonderSites(s0, paris, 'colosseum')[0] != null ? 'colosseum' : 'great_pyramids';
     const cost = wonderCost(1);
-    const queued = { ...paris, production: { current: { kind: 'wonder', projectId, tier: 1, tile: site, cost }, queue: [], progress: cost - 1 } };
+    const due = productionCost({ kind: 'wonder', cost }, { speedMult: speedCostMult(s0.gameSpeed, 'classical') }); // what the queue charges at this speed (ages.js speed table)
+    const queued = { ...paris, production: { current: { kind: 'wonder', projectId, tier: 1, tile: site, cost }, queue: [], progress: due - 1 } };
     const elsewhere = { ...s0, age: 'classical', regions: { ...s0.regions, [paris.id]: queued }, greatProjects: { [projectId]: { regionId: getNationCapital('de'), tier: 1, tile: null } } };
     const next = play(elsewhere);
     expect(next.greatProjects[projectId].regionId).toBe(getNationCapital('de'));
@@ -83,7 +86,7 @@ describe('AI wonders (plan C9)', () => {
     const berlin = s0.regions[getNationCapital('de')];
     const bSite = wonderSites(s0, berlin, projectId)[0];
     if (bSite == null) return;
-    const both = { ...s0, age: 'classical', regions: { ...s0.regions, [paris.id]: queued, [berlin.id]: { ...berlin, production: { current: { kind: 'wonder', projectId, tier: 1, tile: bSite, cost }, queue: [], progress: cost } } } };
+    const both = { ...s0, age: 'classical', regions: { ...s0.regions, [paris.id]: queued, [berlin.id]: { ...berlin, production: { current: { kind: 'wonder', projectId, tier: 1, tile: bSite, cost }, queue: [], progress: due } } } };
     const raced = play(both);
     const winner = [paris.id, berlin.id].sort()[0];
     expect(raced.greatProjects[projectId].regionId).toBe(winner);
