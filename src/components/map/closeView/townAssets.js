@@ -13,11 +13,13 @@ import { Color } from 'three';
 import { loadGltf } from '../../../battle/render/gltfUnitLoader';
 
 // { '../../../assets/map/towns/bronze-town-small-a.glb': '/terra-imperium/assets/bronze-town-small-a-abc123.glb' }
+// A file may carry a regional kit after the variant: bronze-town-small-a-europe.glb is layout a
+// built with the Europe kit (art spec section 3b).
 const FILES = import.meta.glob('../../../assets/map/towns/*.glb', { query: '?url', import: 'default', eager: true });
-const BY_KEY = {};
+const BY_KEY = {}; // 'bronze:small' -> { base: { a, b }, europe: { a, b }, ... }
 Object.entries(FILES).forEach(([path, url]) => {
-  const m = path.match(/\/([a-z]+)-town-(small|medium|big)-([ab])\.glb$/);
-  if (m) (BY_KEY[`${m[1]}:${m[2]}`] ||= {})[m[3]] = url;
+  const m = path.match(/\/([a-z]+)-town-(small|medium|big)-([ab])(?:-([a-z]+))?\.glb$/);
+  if (m) ((BY_KEY[`${m[1]}:${m[2]}`] ||= {})[m[4] || 'base'] ||= {})[m[3]] = url;
 });
 
 // { bronze: '/terra-imperium/assets/shared-bronze-abc123.glb' }
@@ -67,30 +69,32 @@ export const COLONY_CAMP = 'colony-camp';
 /** An outpost (a settler's new city that is still growing) or a colony with no owner yet. */
 export const isCamp = (region) => !!region && (!!region.outpost || (!region.owner && !!region.colony));
 
-// Until the regional kits arrive (art spec section 3b), each age's two variants carry two
-// traditions. Bronze: a is Mesopotamian, b Egyptian; nations of those lands get their own and
-// everyone else mixes both by city so neighbours differ. Classical: a is Roman, b Han Chinese;
-// East Asia builds b, everyone else a.
-export const TOWN_VARIANT_BY_NATION = {
-  eg: 'b', sd: 'b', ss: 'b', ly: 'b', er: 'b',
-  iq: 'a', sy: 'a', kw: 'a', ir: 'a', jo: 'a', il: 'a', ps: 'a', lb: 'a', tr: 'a', sa: 'a', bh: 'a', qa: 'a', ae: 'a', om: 'a', ye: 'a'
-};
-const EAST_ASIA = ['cn', 'tw', 'hk', 'mo', 'kr', 'kp', 'jp', 'mn', 'vn', 'la', 'kh', 'th', 'mm'];
+// Each age's two layouts carry two traditions until every region has its kit (art spec 3b).
+// Bronze: a is Mesopotamian, b Egyptian; the Nile builds b, the Levant a. Classical: a is Roman,
+// b Han; East and South-East Asia and Mongolia build b. Kingdoms: a is European, b Abbasid and
+// Andalusian; the Nile, the Levant and the Maghreb build b. Elsewhere, and in the Gunpowder and
+// Modern Ages, the city's seed mixes both so neighbours differ.
 export const TOWN_VARIANT_BY_AGE = {
-  bronze: { byNation: TOWN_VARIANT_BY_NATION },
-  classical: { byNation: Object.fromEntries(EAST_ASIA.map((id) => [id, 'b'])), others: 'a' }
+  bronze: { nile: 'b', levant: 'a' },
+  classical: { sinic: 'b', monsoon: 'b', steppe: 'b', others: 'a' },
+  kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', others: 'a' }
 };
 
-/** The model for a town of this age and size, or null. The nation's tradition picks the variant
- * when the age sets one; otherwise `seed` picks a or b when both exist. */
-export const townAssetUrl = (ageId, tierId, seed = 0, nationId = null) => {
-  const v = BY_KEY[`${ageId}:${tierId}`];
-  if (!v) return null;
+/** The variant ('a' or 'b') a city builds in this age on land of this style. */
+export const townVariant = (ageId, style, seed = 0) => {
   const rule = TOWN_VARIANT_BY_AGE[ageId];
-  const pinned = nationId && rule && v[rule.byNation[nationId] || rule.others];
-  if (pinned) return pinned;
-  if (v.a && v.b) return seed % 2 ? v.b : v.a;
-  return v.a || v.b;
+  return (rule && (rule[style] || rule.others)) || (seed % 2 ? 'b' : 'a');
+};
+
+/** The model for a town of this age and size, or null: the layout the land's tradition (or the
+ * seed) picks, built with the land's regional kit when that file exists, else the age's base kit.
+ * Falls back to the other layout when only one exists. */
+export const townAssetUrl = (ageId, tierId, seed = 0, style = null) => {
+  const kits = BY_KEY[`${ageId}:${tierId}`];
+  if (!kits) return null;
+  const v = townVariant(ageId, style, seed);
+  const pick = (k) => k && (k[v] || k.a || k.b);
+  return pick(style && kits[style]) || pick(kits.base) || null;
 };
 
 /** The level of detail the brief assigns to a zoom k: LOD2 below 20, LOD1 below 40, LOD0 above. */

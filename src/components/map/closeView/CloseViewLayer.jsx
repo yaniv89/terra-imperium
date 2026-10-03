@@ -24,6 +24,8 @@ import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrl, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
 import { ARMY_SPOT, unitPx, tiltFor, lightRig } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
+import { getTiles } from '../../../data/geo/tiles';
+import { styleOfLand } from '../../../data/architecture';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
@@ -138,7 +140,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       // an outpost shows the age's colony camp instead.
       const camp = isCamp(region);
       const seed = [...id].reduce((h, c) => h + c.charCodeAt(0), 0);
-      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, owner);
+      // the land's architecture style (the tile's country), whoever owns the city (art spec 3b)
+      const landNation = region.tile != null ? getTiles().countryOf(region.tile) : null;
+      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, styleOfLand(landNation || owner, opts.ageId));
       const asset = assetUrl ? t.assets.get(assetUrl) : null;
       if (assetUrl && !t.assets.has(assetUrl)) {
         t.assets.set(assetUrl, null);

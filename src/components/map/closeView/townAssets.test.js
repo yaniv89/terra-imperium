@@ -2,7 +2,8 @@
 // happens once per file, and an instance tints only its Team cloth.
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
-import { townAssetUrl, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
+import { styleOfLand } from '../../../data/architecture';
+import { townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
   const root = new Group(); root.name = name;
@@ -23,19 +24,25 @@ describe('artist town models', () => {
     expect(townAssetUrl('bronze', 'medium', 1)).toMatch(/bronze-town-medium-b/);
     expect(townAssetUrl('bronze', 'big', 0)).toMatch(/bronze-town-big-a/);
     expect(townAssetUrl('bronze', 'big', 1)).toMatch(/bronze-town-big-b/);
-    // the land's tradition wins over the seed: Egypt builds the Nile town, Iraq the Mesopotamian
-    expect(townAssetUrl('bronze', 'small', 0, 'eg')).toMatch(/bronze-town-small-b/);
-    expect(townAssetUrl('bronze', 'medium', 1, 'iq')).toMatch(/bronze-town-medium-a/);
-    expect(townAssetUrl('bronze', 'small', 1, 'fr')).toMatch(/bronze-town-small-b/);
-    expect(townAssetUrl('modern', 'small')).toBeNull();
+    // the land's tradition wins over the seed: the Nile builds the Egyptian town, the Levant the Mesopotamian
+    expect(townAssetUrl('bronze', 'small', 0, 'nile')).toMatch(/bronze-town-small-b/);
+    expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-a/);
+    expect(townAssetUrl('bronze', 'small', 1, 'westafrica')).toMatch(/bronze-town-small-b/);
+    expect(townAssetUrl('future', 'small')).toBeNull();
   });
 
-  it('gives East Asia the Han towns and everyone else the Roman ones in the Classical Age', () => {
-    expect(townAssetUrl('classical', 'medium', 0, 'cn')).toMatch(/classical-town-medium-b/);
-    expect(townAssetUrl('classical', 'small', 0, 'jp')).toMatch(/classical-town-small-b/);
-    expect(townAssetUrl('classical', 'medium', 1, 'it')).toMatch(/classical-town-medium-a/);
-    expect(townAssetUrl('classical', 'medium', 1, 'eg')).toMatch(/classical-town-medium-a/);
+  it('picks the layout by the land: Han in East Asia, Roman elsewhere in the Classical Age', () => {
+    expect(townAssetUrl('classical', 'medium', 0, styleOfLand('cn', 'classical'))).toMatch(/classical-town-medium-b/);
+    expect(townAssetUrl('classical', 'small', 0, styleOfLand('jp', 'classical'))).toMatch(/classical-town-small-b/);
+    expect(townAssetUrl('classical', 'medium', 1, styleOfLand('it', 'classical'))).toMatch(/classical-town-medium-a/);
+    expect(townAssetUrl('classical', 'medium', 1, styleOfLand('eg', 'classical'))).toMatch(/classical-town-medium-a/);
     expect(sharedAssetUrl('classical')).toMatch(/shared-classical/);
+    expect(townVariant('kingdoms', 'levant')).toBe('b');
+    expect(townVariant('kingdoms', 'europe')).toBe('a');
+    expect(townVariant('gunpowder', 'levant', 3)).toBe('b');
+    expect(townVariant('gunpowder', 'levant', 4)).toBe('a');
+    // a size with only one layout falls back to it whatever the tradition asks
+    expect(townAssetUrl('kingdoms', 'small', 0, 'levant')).toMatch(/kingdoms-town-small-/);
   });
 
   it('picks LOD2 below k 20, LOD1 below 40, LOD0 from 40', () => {
@@ -126,5 +133,16 @@ describe('artist town models', () => {
         }
       }
     }
+  });
+});
+
+describe('architecture regions', () => {
+  it('draws a city in the style of its land, settler lands only from the Gunpowder Age', () => {
+    expect(styleOfLand('fr', 'bronze')).toBe('europe');
+    expect(styleOfLand('eg', 'kingdoms')).toBe('nile');
+    expect(styleOfLand('us', 'kingdoms')).toBe('americas');
+    expect(styleOfLand('us', 'gunpowder')).toBe('europe');
+    expect(styleOfLand('au', 'bronze')).toBe('monsoon');
+    expect(styleOfLand('zz', 'bronze')).toBeNull();
   });
 });
