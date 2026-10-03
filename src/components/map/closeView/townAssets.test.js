@@ -89,7 +89,7 @@ describe('artist town models', () => {
     expect(palaceFor('medium')).toBe('palace');
     expect(palaceFor('big')).toBe('palace');
     expect(sharedAssetUrl('bronze')).toMatch(/shared-bronze/);
-    expect(sharedAssetUrl('modern')).toBeNull();
+    expect(sharedAssetUrl('future')).toBeNull();
   });
 
   it('rings each town size with its own wall ring', () => {
