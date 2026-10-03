@@ -74,12 +74,38 @@ For every system you touch:
 - For each finding, say how Civilization VI/VII or Total War (Rome II, Three Kingdoms,
   Warhammer III) handles it and propose a concrete change toward the north star.
 
-PART 3: FULL PLAYTHROUGH
-Play one campaign from turn 1 for at least 150 turns or to the end. Expand, research,
-build, fight at least 3 wars (win one, lose one, make peace in one), play at least 3
-manual battles, handle every event. Half on 844x390 phone, half on desktop. Keep a
-turn-by-turn journal: what you tried, what confused you, end-turn time, what broke,
-balance and pacing, how fun it was, and what the AI did around you.
+PART 3: PLAY THE GAME YOURSELF (gameplay testing, not UI testing)
+This part is about the game, not the interface. Play as a real player who wants to win,
+make your own strategic decisions, and judge whether the game is good.
+1. Main campaign in the browser: play from turn 1 for at least 150 turns or to the end.
+   Expand, research, build, fight at least 3 wars (win one, lose one, make peace in
+   one), play at least 3 manual tactical battles to the end, handle every event. Half
+   on 844x390 phone, half on desktop.
+2. Different strategies: play at least 3 shorter games (50+ turns each) with very
+   different nations, eras and plans: a peaceful builder, a warmonger, and a small
+   nation trying to survive next to a big one. Try at least one game on the hardest
+   difficulty and one on the easiest.
+3. Headless games through the engine: write a small script that plays the player side
+   through gameReducer and resolveTurn (fixed seeds, simple strategies such as
+   "expand max", "tech rush", "all-in war") for 200+ turns on several seeds. Use it to
+   find crashes, stalls, invariant breaks (assertGameState), dominant strategies and
+   whether the player can win or lose in each case.
+4. Judge the gameplay itself, for each game:
+   - Decisions: are there interesting choices each turn, or obvious best moves and
+     dead turns where you just press end turn?
+   - Goals: is it clear what to aim for now, next era and to win? Is victory reachable?
+   - Feedback: do you understand why you grew, lost a city, lost a battle, or why the
+     AI declared war?
+   - Challenge: is it too easy or too hard on each difficulty? Can you exploit the AI?
+   - Pacing: early, mid and late game, length of a turn, how 4300 years feel.
+   - Battles: do manual battles feel like Total War, do they reward skill over
+     auto-resolve, and do their results change the campaign in a way that matters?
+   - Fun: the moments that were exciting, the moments you were bored or frustrated,
+     and the moment you would have quit.
+Keep a turn-by-turn journal for each game: what you tried and why, what happened,
+what confused you, end-turn time, what broke, what the AI did around you, and a
+fun rating per 10 turns. Finish with a gameplay verdict and the top 10 gameplay changes
+(not UI changes) that would make it more fun, each with a fix direction (Part 4).
 
 SCREENSHOTS
 - Screenshot every screen, modal, state change and bug on every viewport, saved as
@@ -124,7 +150,10 @@ DELIVERABLES
    - North star scorecard (1-10 vs Civilization and Total War): city depth, map and
      exploration, tech and eras, diplomacy, AI, campaign army management, tactical
      depth, how much battles matter, pacing over 4300 years, replayability.
-   - Playthrough journal summary.
+   - Gameplay section: the verdict, decision quality, goals, challenge, pacing, how
+     much battles matter, fun curve per game, results of the headless strategy runs,
+     and the top 10 gameplay changes with fix directions. Full journals go in
+     qa-report/playthroughs/.
    - Automated check results.
 2. qa-report/FIX-PLAN.md: the work packages from Part 4, phased as quick wins,
    next sprint and larger redesigns, plus a north star roadmap toward "Civilization meets
