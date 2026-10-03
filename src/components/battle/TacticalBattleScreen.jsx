@@ -11,6 +11,7 @@ import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer } from '../../battle/input/gestures';
 import { Q, TICK_HZ, battleLimitTicks } from '../../battle/sim/constants';
 import BattleHud from './BattleHud';
+import { BattleRotateGate } from '../ui/RotateOverlay';
 import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
@@ -332,7 +333,7 @@ const TacticalBattleScreen = (props) => {
       </div>
     );
   }
-  return <TacticalBattleView {...props} />;
+  return <><TacticalBattleView {...props} /><BattleRotateGate /></>;
 };
 
 export default TacticalBattleScreen;

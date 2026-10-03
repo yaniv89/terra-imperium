@@ -8,9 +8,9 @@ describe('getLayoutMode', () => {
     expect(getLayoutMode(667, 375)).toBe('phone-landscape');
   });
 
-  it('phones held upright ask to rotate unless portrait was allowed', () => {
+  it('phones held upright get the portrait layout (the empire view with half sheets)', () => {
     expect(getLayoutMode(390, 844)).toBe('phone-portrait');
-    expect(getLayoutMode(390, 844, true)).toBe('tablet');
+    expect(getLayoutMode(430, 932)).toBe('phone-portrait');
   });
 
   it('tablets and narrow windows keep the tablet layout', () => {

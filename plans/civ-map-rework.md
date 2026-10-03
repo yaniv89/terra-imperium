@@ -1935,6 +1935,18 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E2, phone portrait plays the empire view (2026-10-03).** A phone held upright no longer meets
+a blocking "rotate your phone" screen: `phone-portrait` is a real layout (useLayoutMode.js, no
+more substitution by the tablet layout) that runs the bottom-bar shell, the map on top and half
+sheets below (`[data-layout="phone-portrait"] .sheet-panel { max-height: 52dvh }`). The rotate
+screen became a soft hint at the top ("Turn your phone sideways for the full map"), dismissed
+once per browser (`dismissRotateHint`, the same storage key as the old "play in portrait
+anyway"). The tactical battle is the one screen that insists: `BattleRotateGate` covers it
+with "Rotate your phone to fight" until the phone turns. Tests: useLayoutMode.test.js and the
+portrait e2e (the hint shows, dismisses, stays dismissed after a reload; the layout stays
+`phone-portrait`). Still open in E2: the tablet dock at 420 px with two sheets stacked, and the
+desktop's left city list rail.
+
 **E9, the guided Dawn start as Egypt (2026-10-03).** `src/engine/tutorial.js`: a guided game
 (`createInitialState({ guided: true })`, the start screen's "New here? Play the guided start as
 Egypt" button) carries `state.tutorial` and the next-prompt pill shows the guide's current step

@@ -1,7 +1,7 @@
 // e2e/landscape.spec.js
 // Phones play in landscape (src/hooks/useLayoutMode.js): a slim top bar, a tab rail on the right
-// edge with docked panels beside it, the map kept usable in the middle. A phone held upright is
-// asked to rotate, with a "play in portrait anyway" escape that keeps the older phone layout.
+// edge with docked panels beside it, the map kept usable in the middle. A phone held upright plays
+// the empire view (map on top, half sheets below) with a soft, dismissible hint to turn the phone.
 import { test, expect } from '@playwright/test';
 
 // See playability.spec.js: dispatchEvent avoids simulated pointer travel across the WebGL globe.
@@ -83,16 +83,19 @@ test.describe('phone held sideways', () => {
 test.describe('phone held upright', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-  test('asks to rotate, and "play in portrait anyway" is remembered', async ({ page }) => {
+  test('plays upright with a soft rotate hint that stays dismissed', async ({ page }) => {
     await page.goto('/');
-    const overlay = page.getByTestId('rotate-overlay');
-    await expect(overlay).toBeVisible();
-    await expect(overlay.getByText('Rotate your phone')).toBeVisible();
-    await click(overlay.getByRole('button', { name: 'Play in portrait anyway' }));
-    await expect(overlay).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Choose Your Nation' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('tablet');
+    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
+    const hint = page.getByTestId('rotate-hint');
+    await expect(hint).toBeVisible();
+    await expect(hint).toContainText('Turn your phone sideways');
+    await click(hint.getByRole('button', { name: 'Dismiss' }));
+    await expect(hint).toHaveCount(0);
+    // A reload resumes the autosaved game (the shell shows, not the start screen); the hint stays away.
     await page.reload();
-    await expect(page.getByTestId('rotate-overlay')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'End Turn' }).or(page.getByRole('heading', { name: 'Choose Your Nation' })).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('rotate-hint')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
   });
 });
