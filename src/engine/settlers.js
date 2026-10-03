@@ -11,7 +11,9 @@
 //               a city of size 1 that claims its ring but yields nothing and builds nothing
 //               until its progress reaches OUTPOST_DONE. Progress a turn is OUTPOST_PROGRESS x
 //               the terrain factor (open land 1, hills and forest 0.7, mountains, desert and
-//               arctic 0.4), so an outpost on open land is a city in 8 turns, in the desert in 18.
+//               arctic 0.4), so an outpost on open land is a city in 8 turns, in the desert in 18,
+//               at the reference pace; divided by the speed table's multiplier (ages.js
+//               speedCostMult) so an outpost takes the same span of years at every game speed.
 //   Slots       a nation runs at most OUTPOST_SLOTS_BY_AGE[age] outposts at once (the colony
 //               slots of before); a settler that arrives while every slot is taken waits.
 //   AI          an AI settler picks the best site in reach the turn it is built (scoreSite:
@@ -32,6 +34,7 @@ import { tileFacts, tileYields } from '../data/tileYields';
 import { legacyTerrainOf } from './world/registry';
 import { isWarBetween } from './diplomacy';
 import { settlingBarred } from './accords';
+import { speedCostMult } from '../data/ages';
 
 export const SETTLER_MOVES = 3;
 export const SETTLER_STRENGTH = 100;
@@ -254,7 +257,9 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
   const grown = Object.values(nextRegions).filter((c) => c.outpost);
   if (grown.length) nextRegions = { ...nextRegions };
   grown.forEach((c) => {
-    const progress = c.outpost.progress + OUTPOST_PROGRESS * terrainFactor(tiles, c.tile);
+    // Per calendar year, not per turn: the speed table's multiplier for the owner's age (ages.js),
+    // the same one production costs carry, so outposts keep pace with the rest of the city.
+    const progress = c.outpost.progress + (OUTPOST_PROGRESS * terrainFactor(tiles, c.tile)) / speedCostMult(state.gameSpeed, ageById(c.owner));
     if (progress >= OUTPOST_DONE) {
       nextRegions[c.id] = { ...c, outpost: null, size: Math.max(1, c.size) };
       logs.push({ nationId: c.owner, message: `${c.name} has grown from an outpost into a city.` });

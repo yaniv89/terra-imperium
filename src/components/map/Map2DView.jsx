@@ -45,6 +45,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
+import { WORK_KINDS } from './closeView/landscape';
 import { visibleRasterTiles, rasterTileUrl, baseRasterZoom } from '../../data/geo/rasterTiles';
 import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from './lenses';
 
@@ -520,11 +521,12 @@ const Map2DView = ({
       const { lat, lon } = tiles.latLonOf(t); const [x, y] = projection([lon, lat]);
       const dim = e?.pillaged ? 0.45 : 1;
       if (e?.district && DISTRICTS[e.district]) out.push(<g key={`d${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-district-glyph={t}><rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.25} fill="#c4b5fd" stroke="#312e81" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#1e1b4b">{DISTRICTS[e.district].glyph}</text></g>);
-      else if (e?.improvement && e.improvement !== 'road') out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text></g>);
+      // In the close view the work stands as a model (closeView/landscape.js): no letter over it.
+      else if (e?.improvement && e.improvement !== 'road' && !(closeGround && WORK_KINDS.includes(e.improvement))) out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text></g>);
       if (res && !e?.improvement && !e?.district) out.push(<polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
     });
     return out;
-  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens]);
+  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens, closeGround]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.
   const battleMarkElements = useMemo(() => {
     if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;

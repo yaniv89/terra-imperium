@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getTiles } from '../../../data/geo/tiles';
 import { landscapeOnScreen, landTilesOnScreen, treeKindOf, treeSpots, workOf, tileIsCleared, hash01, TREES_FROM_K, TREES_PER_HEX, CONIFER_LAT } from './landscape';
 import { tiltFor, TILT_CLOSE, TILT_SUPER, unitPx, SUPER_FROM_K } from './scale';
-import { waterness, snowiness, detailWeight, pxPerKm, DETAIL_SCALES_KM } from './terrainShader';
+import { waterness, snowiness, riverness, detailWeight, pxPerKm, DETAIL_SCALES_KM } from './terrainShader';
 import { visibleRasterTiles, RASTER_MAX_Z } from '../../../data/geo/rasterTiles';
 
 const tiles = getTiles();
@@ -72,6 +72,10 @@ describe('close terrain shader rules', () => {
     [[86, 130, 60], [214, 190, 140], [152, 128, 102], [168, 160, 152], [240, 243, 246]].forEach((c) => expect(waterness(...c)).toBe(0));
     expect(snowiness(232, 238, 244)).toBe(1); expect(snowiness(185, 190, 195)).toBeGreaterThan(0.5);
     [[86, 130, 60], [168, 160, 152], [214, 190, 140]].forEach((c) => expect(snowiness(...c)).toBe(0));
+  });
+  it('tells river water from the sea and lakes', () => {
+    [[93, 150, 175], [125, 164, 195]].forEach((c) => expect(riverness(...c)).toBeGreaterThan(0.95)); // river over grass, over sand
+    [[92, 160, 205], [81, 141, 180], [48, 104, 165], [18, 42, 92], [58, 118, 170]].forEach((c) => expect(riverness(...c)).toBeLessThan(0.05)); // seas and a lake
   });
   it('fades ground detail in by screen size', () => {
     const atClose = pxPerKm(780, 10, 2); const atSuper = pxPerKm(780, 200, 2);

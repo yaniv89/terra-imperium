@@ -359,3 +359,25 @@ the first real model, the Swordsmen pilot of plans/model-brief-for-claude.md.
 - Checked in the browser at a phone screen (844 x 390, 2x): Paris at zoom 15 and 200, the
   Normandy coast at 60, Brittany at 120 and 150, the Alps at 40 and 80. No console errors; a
   redraw after a view change takes about 25 to 50 ms under software rendering.
+
+**Wave 5 follow-ups (2026-10-03).**
+- Rivers in the close view narrow to their channel as you zoom in. River water is told from the
+  sea by colour (greener, since the river line was drawn over land: `riverness`). Its channel is
+  the ridge of the water class two pixels out, or the inside of a wide river, so a drawn river
+  loses about two pixels a bank. The Thames at zoom 80 and the Nile at 60 are clean thin lines.
+  The Seine at Paris stays broad where several drawn rivers meet.
+- Glacier outlines blend in a wider look (four samples 1.5 pixels out) and no longer step.
+- Works checked in the browser with farms, pastures, mines, quarries, plantations, a lumber
+  camp, a fort, an oil well and a camp around Paris (one pillaged, drawn darker). The map's
+  letter markers for works now hide in the close view, where the models stand.
+- Outposts grow per calendar year: their progress a turn is divided by the speed table's
+  multiplier (the one production costs carry). World cities, same seeds 3, 11 and 12:
+
+| Build | Year | Cities |
+|---|---|---|
+| Before the speed table | 550 CE | 870 to 878 |
+| Speed table (wave 3) | 526 CE | 901 to 917 |
+| This change | 526 CE | 885 to 891 |
+
+  About 2% ahead of the old pace remains, from settlers still walking 3 tiles a turn.
+  defense.test.js's legacy-mode assault test now plays up to 80 turns (the assault comes later).
