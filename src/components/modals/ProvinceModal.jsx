@@ -63,12 +63,16 @@ import { getSeaLanesWithinReach } from '../../data/navalReach';
 import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS } from '../../data/rebellion';
 import { ActionButton } from '../ui';
 import CityPanel from '../city/CityPanel';
+import CityBuildings from '../city/CityBuildings';
+import CityPolitics from '../city/CityPolitics';
 
 // City and Tiles are the city sheet (plans/civ-map-rework.md E4, src/components/city/CityPanel.jsx);
 // the older tabs keep the nation-level actions until they move into the empire sheet.
 const TABS = [
   { id: 'city', label: 'City' },
   { id: 'tiles', label: 'Tiles' },
+  { id: 'buildings', label: 'Buildings' },
+  { id: 'politics', label: 'Politics' },
   { id: 'overview', label: 'Overview' },
   { id: 'economy', label: 'Economy' },
   { id: 'military', label: 'Military' }
@@ -279,6 +283,8 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
         <div className="p-4 overflow-y-auto flex-1 space-y-4">
           {tab === 'city' && <CityPanel cityId={regionId} view="city" />}
           {tab === 'tiles' && <CityPanel cityId={regionId} view="tiles" />}
+          {tab === 'buildings' && <CityBuildings cityId={regionId} />}
+          {tab === 'politics' && <CityPolitics cityId={regionId} />}
           {tab === 'overview' && (
             <div className="space-y-3">
               {regionState.formerOwner && (
