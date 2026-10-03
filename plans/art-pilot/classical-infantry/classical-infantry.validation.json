@@ -1,0 +1,186 @@
+{
+  "unit": "classical-infantry",
+  "checks": {
+    "triangles_in_budget": true,
+    "head_top_1m": true,
+    "feet_on_ground": true,
+    "footprint": true,
+    "facing_minus_y": true,
+    "transforms_applied": true,
+    "bone_names": true,
+    "no_x_bones_in_game_model": true,
+    "every_vertex_weighted": true,
+    "rigid_weights": true,
+    "clips_present_and_sized": true,
+    "idle_not_tpose": true,
+    "nothing_below_ground": true,
+    "walk_feet_match_ground_speed": true,
+    "team_present": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "no_strong_blue_or_orange": true,
+    "team_coverage_15_to_30": true,
+    "glb_round_trip": true
+  },
+  "triangles": 1296,
+  "height_head_top": 1.0,
+  "height_max": 1.0737,
+  "min_z": -0.0,
+  "footprint": [
+    0.461,
+    0.243
+  ],
+  "missing_bones": [],
+  "clips": {
+    "Idle": {
+      "frames": 48,
+      "loop_gap": 0.0
+    },
+    "IdleAlt": {
+      "frames": 48,
+      "loop_gap": 0.0
+    },
+    "Walk": {
+      "frames": 24,
+      "loop_gap": 0.0
+    },
+    "Run": {
+      "frames": 16,
+      "loop_gap": 0.0
+    },
+    "Charge": {
+      "frames": 16,
+      "loop_gap": 0.0
+    },
+    "Attack": {
+      "frames": 24,
+      "loop_gap": 0.0
+    },
+    "Attack2": {
+      "frames": 30,
+      "loop_gap": 0.0
+    },
+    "Block": {
+      "frames": 24
+    },
+    "Hit": {
+      "frames": 10
+    },
+    "Death": {
+      "frames": 36
+    },
+    "DeathAlt": {
+      "frames": 36
+    },
+    "Victory": {
+      "frames": 40,
+      "loop_gap": 0.0
+    },
+    "Rout": {
+      "frames": 16,
+      "loop_gap": 0.0
+    }
+  },
+  "lowest_vertex_any_frame": -0.0082,
+  "lowest_vertex_per_clip": {
+    "Idle": [
+      -0.0,
+      48
+    ],
+    "IdleAlt": [
+      -0.0,
+      48
+    ],
+    "Walk": [
+      -0.0011,
+      2
+    ],
+    "Run": [
+      -0.0082,
+      14
+    ],
+    "Charge": [
+      -0.0082,
+      14
+    ],
+    "Attack": [
+      -0.002,
+      15
+    ],
+    "Attack2": [
+      -0.0035,
+      19
+    ],
+    "Block": [
+      -0.0008,
+      12
+    ],
+    "Hit": [
+      -0.0,
+      10
+    ],
+    "Death": [
+      -0.0038,
+      6
+    ],
+    "DeathAlt": [
+      -0.0002,
+      9
+    ],
+    "Victory": [
+      -0.0003,
+      9
+    ],
+    "Rout": [
+      -0.0075,
+      6
+    ]
+  },
+  "walk_ground_speed_m_s": [
+    1.217,
+    1.217
+  ],
+  "materials": [
+    "Team",
+    "Skin",
+    "Hair",
+    "Leather",
+    "LeatherDark",
+    "Bronze",
+    "Iron",
+    "Wood",
+    "Linen"
+  ],
+  "reserved_word_names": [],
+  "strong_team_hues_outside_team": [],
+  "team_coverage": 0.2946,
+  "glb_actions": [
+    "Attack",
+    "Attack2",
+    "Block",
+    "Charge",
+    "Death",
+    "DeathAlt",
+    "Hit",
+    "Idle",
+    "IdleAlt",
+    "Rout",
+    "Run",
+    "Victory",
+    "Walk"
+  ],
+  "glb_bones_ok": [],
+  "glb_materials": [
+    "Bronze",
+    "Hair",
+    "Iron",
+    "Leather",
+    "LeatherDark",
+    "Linen",
+    "Skin",
+    "Team",
+    "Wood"
+  ],
+  "glb_bytes": 576132,
+  "passed": true
+}
