@@ -1,4 +1,4 @@
-# Terra Imperium: the 2D image spec for every model and icon
+# Terra Imperium: the 2D image spec for every model and icon (v2)
 
 This document lists every 2D image the game needs from you, so that each one can be turned into
 a precise 3D model in Blender (towns, buildings, wonders, improvements, units, ships, aircraft)
@@ -6,11 +6,16 @@ or used directly as an icon on the 2D map and the globe. Every entry carries the
 id, the real-world reference, the real size, the views required and the file name to save it
 under. Nothing here is optional unless marked so.
 
-The two older briefs stay the technical reference for the Blender step and are not repeated
-here: `plans/town-art-brief.md` (town and building models: footprints, triangle budgets, the
-`Town` / `Ground` / `Team` materials, one GLB per age) and `plans/unit-art-brief.md` (unit
-models: the armature, bone names, animations, sprite bakes). This document is about the images
-that feed those steps.
+The technical side of the Blender step (budgets, textures, levels of detail, materials, rigs,
+exports, checks) is in one companion file, `plans/model-brief-for-claude.md`, written for the
+Claude session that will run Blender. This document is about the images that feed it.
+
+v2 changes from v1: detail follows the zoom. The game draws icons when zoomed out, real models
+only from the close zoom, and at the super zoom one town fills the screen, so the models are
+now textured and detailed (a town up to 60,000 triangles, a soldier 8,000) with lower levels of
+detail generated from them, not hand-built. The reference images are drawn larger (4096 for
+towns, wonders and ships) and the "must read at 22 pixels" rule is gone: a town must read at
+90 pixels and shine at 900.
 
 ---
 
@@ -19,22 +24,25 @@ that feed those steps.
 - **The world map** is a real Earth on a hex grid of 56,252 cells, 16,523 of them land, each
   hex about 106 km across. A city owns the hexes around it (up to two rings). Every nation is
   one of 240 real countries.
-- **Far zoom (the globe)** shows nation fills, borders, capitals as stars and city badges. Only
-  2D icons live here: city badges, army and fleet banners, wonder markers, event markers.
-- **Local zoom (the flat map)** shows the hexes with terrain, features, improvements, roads,
-  rivers and resources as 2D icons, armies as figures, cities as badges.
-- **Close zoom (flat map from 10x)** draws 3D models with three.js on top of the map: one town
-  model per city, sized by how many buildings the city has, with walls, a palace for a capital,
-  fields on improved tiles, a wonder on its tile, soldiers of the armies standing or marching.
-  Today the towns are built from coloured boxes in code (`src/components/map/closeView/
-  townModels.js`); your images replace them with real models.
+- **The zoom bands** (plans/playtest-1.md, P1.1) decide what is drawn:
+  - world (the globe): nation fills, borders, capitals as stars; icons only;
+  - region (flat map 1x to 3x): city badges, army and fleet banners, settler tents, marks;
+  - local (3x to 10x): the hexes, improvement and district glyphs, resources, roads; still icons;
+  - close (10x to 40x): rendered land with real relief and terrain textures, and 3D models: one
+    town per city sized by its buildings, walls, a palace for a capital, fields and works on
+    improved tiles, districts and wonders, a few soldiers per army, ships;
+  - super (40x to 200x): the same scene up close, a town filling the screen, where the models'
+    detail is seen.
+  Nothing off screen is drawn, so at the close and super zooms a screen holds a handful of towns
+  and stacks, and that is what the model budgets are set for.
 - **Battles** are real-time tactical fights on a generated battlefield: squads of 3D soldiers,
   horses, engines, tanks, seen from a fixed camera 41.5 degrees above the ground. Unit models
   come from `src/assets/units/`, built by `npm run import:models` from GLB files.
 - **Phones first.** The reference screen is 844 by 390 pixels, landscape. A town at the start of
-  the close view is 22 to 45 pixels wide; a soldier in a battle is 30 to 60 pixels tall. The
-  silhouette and two or three strong colours carry everything. Fine detail only matters when it
-  changes the overall read.
+  the close view is about 90 pixels wide and at the super zoom up to 900; a soldier in a battle
+  is 30 to 60 pixels tall and in the super zoom map view about 100. Design for both ends: a
+  silhouette and two or three strong colours that read at 90 pixels, and real material detail
+  (brick courses, roof tiles, weathering) that rewards the super zoom.
 - **Team colour.** Flags, banners, awnings, shields and uniform cloth take the owner's colour.
   Draw those parts in neutral light grey with their folds and wear, and mark them (section 2.4).
 
@@ -73,8 +81,10 @@ background `#7F7F7F`**, nothing cropped:
 | `scale.png` | the front view again with a drawn scale bar and the key dimensions written on | orthographic | width, depth, height in metres |
 | `materials.png` | the beauty view with numbered callouts | any | every material named: "1 lime-washed mud brick, 2 reed thatch, 3 team cloth, 4 bronze" |
 
-Resolution: **2048 by 2048** for towns, wonders and vehicles, **1024 by 2048** (portrait) for
-people, **1024 by 1024** for improvements and small props. PNG, sRGB. Views that do not fit a
+Resolution: **4096 by 4096** for towns, kits, landmarks, wonders and ships, **2048 by 4096**
+(portrait) for people, **2048 by 2048** for improvements, vehicles and small props. PNG, sRGB.
+The detail you draw is the detail the super zoom shows, so draw the brick courses, the roof
+tiles, the carved doors and the rigging. Views that do not fit a
 square still use the same pixel per metre as the others in that folder; write the scale on
 `scale.png` as "1 m = N px".
 
@@ -196,7 +206,7 @@ One folder per style per age: `plans/art/kits/<style>/<age>/`. In it:
 |---|---|
 | `houses.png` | three house types side by side in orthographic front and top (poor, common, rich): the wall material, the roof form, the door, the window pattern, the courtyard if the region has one |
 | `street.png` | a 3 by 3 house block from the game camera: the street surface, the spacing, the yard walls, the small props (a well, a shrine, jars, racks, a loom, a canoe) |
-| `roofscape.png` | the block straight from above at 22 pixels wide, then at 90 pixels: this is what a town is at map size; roof colour and rhythm must read here |
+| `roofscape.png` | the block straight from above at 90 pixels wide, then at 900: the first is the town at the start of the close zoom, the second the super zoom; roof colour and rhythm must read in the first, material and detail in the second |
 | `landmark-1/` and `landmark-2/` | two signature buildings of that region and age, each a full reference folder of section 2.1 |
 | `materials.png` | the palette: wall, roof, street, wood, trim, and the team cloth spots |
 
@@ -535,17 +545,18 @@ which come after the first pass of towns and icons and can land one region at a 
 
 ## 10. What happens to each image after you hand it over
 
-- A reference sheet becomes a model in Blender following the town brief (buildings, wonders,
-  improvements: one GLB per age with `LOD0`, `LOD1`, `LOD2` children, the `Town`, `Ground`,
-  `Team` and `Glass` materials, 2048 by 2048 WebP atlas) or the unit brief (units: a game GLB
-  with the brief's armature and bone names, the `TeamColor` and `Skin` materials, the walk,
-  attack, block or reload and death clips). Ships follow the town brief's material rules with a
-  `Team` material for sails and pennants and a single LOD chain.
+- A reference sheet becomes a textured model in Blender following
+  `plans/model-brief-for-claude.md`: a full-detail model (towns up to 60,000 triangles, a
+  soldier 8,000, a ship 12,000) with a baked texture atlas (colour with ambient occlusion, a
+  normal map, roughness), and the lower levels of detail generated from it by the pipeline.
+  Units get the brief's armature, bone names and animation clips. Buildings, kits, wonders,
+  improvements and ships use the `Town`, `Ground`, `Team` and `Glass` material names; units
+  `Team` and `Skin`.
 - Unit GLBs go into `src/assets/raw-models/` and `npm run import:models` builds the roster.
-  Town, building, wonder, improvement and ship GLBs go into `public/models/<age>.glb` and the
-  close view loads them by object name (the ids above), replacing the coloured boxes of
-  `townModels.js`.
+  Town kits, landmarks, wonders, improvements and ships go into `public/models/<age>-<style>.glb`
+  (shared models in `public/models/<age>.glb`) and the close view loads them by object name (the
+  ids above), replacing the coloured boxes of `townModels.js`.
 - Icons go into `public/icons/<set>/<id>.png` and the map reads them by id.
 - Every image is checked at phone size (844 by 390) on the three strongest nation colours before
-  it is accepted: if the silhouette does not read at 24 pixels (an icon) or 45 pixels (a town), it
-  goes back with a note.
+  it is accepted: an icon must read at 24 pixels, a town at 90, and the super zoom render of the
+  model must look like the beauty view.
