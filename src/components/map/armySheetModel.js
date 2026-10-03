@@ -14,6 +14,7 @@ import { mapEffectsFor } from '../../engine/techMapEffects';
 import { pillageTile } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { tileFacts, IMPROVEMENTS } from '../../data/tileYields';
+import { ALL_PERKS, canPromote, hasPerk, getRankForXp, XP_THRESHOLDS, RANK_ORDER } from '../../data/promotions';
 
 export const ZONE_TEXT = {
   home: 'In friendly land: the meter fills every turn.',
@@ -45,8 +46,13 @@ export const armySheetModel = (state, tile) => {
     moves: u.movesLeft ?? 0, movePoints: movePoints(u),
     general: u.commanderId ? state.hiredCommanders?.[u.commanderId]?.name || null : null,
     promotions: (u.promotions || []).length,
-    rank: u.rank || 'recruit'
+    rank: getRankForXp(u.xp || 0),
+    xp: u.xp || 0,
+    nextRankAt: XP_THRESHOLDS[RANK_ORDER[RANK_ORDER.indexOf(getRankForXp(u.xp || 0)) + 1]] || null,
+    generalId: u.commanderId || null,
+    perks: canPromote(u) ? ALL_PERKS.filter((p) => !hasPerk(u, p.id)).map((p) => ({ id: p.id, name: p.name, description: p.description })) : []
   }));
+  const generals = Object.entries(state.hiredCommanders || {}).filter(([, g]) => !g.assignedUnitId).map(([id, g]) => ({ id, name: g.name }));
   const groups = [];
   rows.forEach((r) => {
     const key = r.armyId || '';
@@ -68,6 +74,7 @@ export const armySheetModel = (state, tile) => {
     route: dest != null ? { to: dest, name: placeName(state, dest), turns: Math.max(1, Math.ceil(lead.route.length / Math.max(1, pace))) } : null,
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
     pillage: pillageTarget(state, tile, units),
+    generals,
     unitIds: units.map((u) => u.id)
   };
 };

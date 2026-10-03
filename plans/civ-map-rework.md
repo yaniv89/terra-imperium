@@ -1935,6 +1935,24 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E4, the empire sheet and the province modal's old tabs retired (2026-10-03).** The Domestic
+tab is now the Empire tab and opens with an Overview (`EmpireOverview.jsx` over
+`empireOverviewModel.js`, pure, tested): authority with every part and what a low value costs,
+the era goals strip with each goal's count against its target, the treasury with its income
+and each upkeep line, cities and people, wars, the current research with its turns. Court,
+Government, Laws, Estates and Identity follow as before. The province modal keeps only the
+city sheet's four tabs: the old Overview, Economy and Military tabs are gone. What they held
+moved: Gain Control, Quell Unrest, Population Policy, Move the Capital and Suppress the
+Rebellion are the crown card on the Politics tab (`crownActions`, with the conquered and
+devastated notes); the power-point development investments, infrastructure, defenses, climate
+resilience and the deposits are the Development list under the Buildings tab
+(`cityDevelopmentModel`); promotions and generals are on the army sheet per unit (rank, xp to
+the next rank, the free generals to assign, the perks once a rank is earned). The instant gold
+recruit button is gone from the UI: cities build units from their queue. Per-unit embark
+selects went with it: fleets carry armies by moving onto them (fleets.js). The modal fell from
+687 to 136 lines. Still open in E4: the Diplomacy panel dissolving into the nation sheet (the
+nation sheet already carries its card and actions) and the Military panel's wars and officers.
+
 **C3, the tech web and the research graph view (2026-10-03).** `CROSS_PREREQUISITES` in
 `src/data/techTree.js` adds 17 prerequisites across lines on top of each line's own chain
 (Siege Engineering needs Geometry, Gunpowder Weapons Natural Philosophy, Banking Houses

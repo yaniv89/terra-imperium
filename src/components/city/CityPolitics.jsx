@@ -3,10 +3,12 @@
 // shares, why unrest moves, the governor (seat one from here), the estates' land in this city, a
 // disaster in progress. Phone first: stacked cards, 44 px buttons.
 import React from 'react';
-import { Heart, Users, Flame, Crown, Landmark } from 'lucide-react';
+import { Heart, Users, Flame, Crown, Landmark, Scale } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
-import { cityPoliticsModel } from './cityPoliticsModel';
+import { cityPoliticsModel, crownActions, crownNotes } from './cityPoliticsModel';
+import { useEffects } from '../../context/EffectsContext';
+import { ActionButton } from '../ui';
 import { GOVERNOR_ASSIGN_TURNS } from '../../engine/governors';
 
 const Card = ({ icon: Icon, title, children, testId }) => (
@@ -18,11 +20,20 @@ const Card = ({ icon: Icon, title, children, testId }) => (
 const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
 
 const CityPolitics = ({ cityId }) => {
-  const { state, dispatch } = useGame();
+  const { state, dispatch, addLog } = useGame();
+  const { triggerEffect } = useEffects();
   const m = cityPoliticsModel(state, cityId);
   if (!m) return null;
+  const actions = crownActions(state, cityId);
+  const notes = crownNotes(state, cityId);
+  const act = (a) => {
+    if (!a.enabled) return addLog(a.reason ? `${a.label}: ${a.reason}.` : 'Not enough resources', 'action');
+    triggerEffect(a.id.replace(/([A-Z])/g, '_$1').toLowerCase(), { region: cityId });
+    dispatch({ type: a.actionType, payload: a.payload });
+  };
   return (
     <div className="space-y-2" data-testid="city-politics">
+      {notes.map((n) => <div key={n.id} className={`text-[11px] rounded-lg p-2 border ${n.tone === 'red' ? 'bg-red-950/50 border-red-800/60 text-red-200' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'}`} data-testid={`crown-note-${n.id}`}>{n.text}</div>)}
       <Card icon={Heart} title={`Loyalty ${m.loyalty} (settling at ${m.loyaltyTarget})`}>
         <div className="text-slate-400">{m.loyaltyParts.map((p) => `${p.label} ${signed(p.value)}`).join(' · ') || 'Nothing moves it.'}</div>
         <div className="text-slate-500">People: {m.culture.map((c) => `${c.name} ${c.share}%`).join(', ')}</div>
@@ -50,7 +61,12 @@ const CityPolitics = ({ cityId }) => {
       {m.estates.length > 0 && (
         <Card icon={Landmark} title="The estates here" testId="city-estates">
           {m.estates.map((e) => <div key={e.estateId} className="text-slate-400">{e.label}: {e.tiles} tile{e.tiles === 1 ? '' : 's'} ({e.worked} worked), {e.gives}.</div>)}
-          <div className="text-slate-500">Press 6 on the map to see their land. Seize Land on the Domestic tab takes it back.</div>
+          <div className="text-slate-500">Press 6 on the map to see their land. Seize Land on the Empire tab takes it back.</div>
+        </Card>
+      )}
+      {actions.length > 0 && (
+        <Card icon={Scale} title="The crown" testId="city-crown">
+          {actions.map((a) => <ActionButton key={a.id} icon={a.danger ? Flame : Scale} label={a.label} description={a.reason && !a.enabled ? `${a.description} (${a.reason})` : a.description} costs={a.costs} onClick={() => act(a)} disabled={!a.enabled} variant={a.danger ? 'danger' : undefined} resources={state.resources} size="small" />)}
         </Card>
       )}
       {m.disaster && <Card icon={Flame} title={`${m.disaster.kind[0].toUpperCase()}${m.disaster.kind.slice(1)} in progress`}><div className="text-slate-400">{m.disaster.turnsLeft} turn{m.disaster.turnsLeft === 1 ? '' : 's'} left.</div></Card>}

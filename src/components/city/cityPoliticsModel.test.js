@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState, gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
-import { cityPoliticsModel, cityBuildingsModel, unrestReasons, UNREST_RISE_PER_TURN, UNREST_FALL_PER_TURN } from './cityPoliticsModel';
+import { cityPoliticsModel, cityBuildingsModel, unrestReasons, crownActions, crownNotes, cityDevelopmentModel, UNREST_RISE_PER_TURN, UNREST_FALL_PER_TURN } from './cityPoliticsModel';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 
 describe('city politics model', () => {
@@ -39,5 +39,36 @@ describe('city politics model', () => {
     expect(cityBuildingsModel(queued, paris).find((r) => r.category === 'food').next.queued).toBe(true);
     const naval = rows.find((r) => r.category === 'naval');
     if (naval?.next && !naval.next.canBuild) expect(naval.next.needs).toBeTruthy();
+  });
+});
+
+describe('the crown in a city (the retired province tabs)', () => {
+  const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+  const paris = getNationCapital('fr');
+  it('lists the crown actions for an owned city, none for a foreign one, and each dispatches', () => {
+    const actions = crownActions(S, paris);
+    expect(actions.map((a) => a.id)).toEqual(['gainControl', 'quellUnrest', 'populationPolicy']);
+    expect(crownActions(S, getNationCapital('de'))).toEqual([]);
+    const rich = { ...S, resources: { ...S.resources, gold: 5000, adm: 500, dip: 500, mil: 500 } };
+    const gain = crownActions(rich, paris).find((a) => a.id === 'gainControl');
+    if (gain.enabled) expect(gameReducer(rich, { type: gain.actionType, payload: gain.payload }).regions[paris].control).toBeGreaterThan(S.regions[paris].control || 0);
+    const notes = crownNotes({ ...S, regions: { ...S.regions, [paris]: { ...S.regions[paris], devastation: 20, formerOwner: 'de' } } }, paris);
+    expect(notes.map((n) => n.id)).toEqual(['conquered', 'devastation']);
+    const dev = cityDevelopmentModel(rich, paris);
+    expect(dev.rows.map((r) => r.id)).toEqual(['dev:tax', 'dev:production', 'dev:manpower', 'infrastructure', 'defenses']);
+    const tax = dev.rows[0];
+    expect(tax.enabled).toBe(true);
+    expect(gameReducer(rich, { type: tax.actionType, payload: tax.payload }).regions[paris].dev.tax).toBe((S.regions[paris].dev?.tax || 0) + 1);
+    expect(cityDevelopmentModel(S, getNationCapital('de'))).toBeNull();
+  });
+  it('a second city can take the capital and a rebel-held city asks for a garrison', () => {
+    const other = Object.values(S.regions).find((c) => c.owner === 'de').id;
+    const s2 = { ...S, regions: { ...S.regions, [other]: { ...S.regions[other], owner: 'fr' } } };
+    expect(crownActions(s2, other).find((a) => a.id === 'moveCapital')).toBeTruthy();
+    const rebel = { ...s2, units: { ...s2.units, reb1: { id: 'reb1', ownerId: 'rebels', regionId: other, domain: 'land', classId: 'infantry', strength: 500, maxStrength: 500, morale: 50, spawnedTurn: 1 } } };
+    const suppress = crownActions(rebel, other).find((a) => a.id === 'suppressRebellion');
+    expect(suppress).toBeTruthy();
+    expect(suppress.enabled).toBe(false);
+    expect(suppress.reason).toBe('needs an army here');
   });
 });

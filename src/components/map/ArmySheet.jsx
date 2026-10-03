@@ -4,7 +4,7 @@
 // (march, cancel the route, rename the army, disband). A bottom sheet on a phone, a docked panel
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
-import { X, Flag, Shield, Pencil, Trash2, Flame } from 'lucide-react';
+import { X, Flag, Shield, Pencil, Trash2, Flame, Award } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { ActionTypes } from '../../data/types';
@@ -44,6 +44,21 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
                 <div className="min-w-0 flex-1">
                   <div className="text-slate-100 truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? ` · ${u.promotions} promotion${u.promotions === 1 ? '' : 's'}` : ''}</div>
                   <div className="text-slate-400">{u.strength}/{u.maxStrength} · morale {u.morale} · supply {u.supply}/{u.supplyMax} · moves {u.moves}/{u.movePoints}</div>
+                  <div className="text-slate-500 capitalize">{u.rank}{u.nextRankAt ? ` · ${u.xp}/${u.nextRankAt} xp` : ''}{u.general ? ` · ${u.general} commands` : ''}</div>
+                  {u.general
+                    ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-slate-400 underline min-h-[32px]">Recall the general</button>
+                    : model.generals.length > 0 && (
+                      <select aria-label={`General for ${u.name}`} defaultValue="" onChange={(e) => { if (e.target.value) { dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: e.target.value, unitId: u.id } }); e.target.value = ''; } }} className="mt-1 bg-slate-700 text-slate-200 rounded px-1.5 min-h-[32px] text-[11px]">
+                        <option value="" disabled>Assign a general…</option>
+                        {model.generals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                      </select>
+                    )}
+                  {u.perks.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1" data-testid="army-promote">
+                      <span className="text-purple-300 flex items-center gap-1"><Award className="w-3 h-3" /> Promote:</span>
+                      {u.perks.map((p) => <button key={p.id} type="button" title={p.description} onClick={() => dispatch({ type: ActionTypes.PROMOTE_UNIT, payload: { unitId: u.id, perkId: p.id } })} className="px-1.5 min-h-[32px] rounded bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 text-purple-200 text-[10px]">{p.name}</button>)}
+                    </div>
+                  )}
                 </div>
                 <button type="button" onClick={() => dispatch({ type: ActionTypes.DISBAND_UNIT, payload: { unitId: u.id } })} aria-label={`Disband ${u.name}`} className="p-2 rounded-lg min-w-[36px] min-h-[36px] text-red-300 hover:bg-slate-700"><Trash2 className="w-4 h-4" /></button>
               </li>

@@ -8,8 +8,9 @@
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
 import React from 'react';
-import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby, Globe2 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
+import EmpireOverview from './EmpireOverview';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
@@ -660,12 +661,16 @@ const DomesticPanel = () => {
 
   return (
     <div className="space-y-3">
+      <CollapsibleSection title="Overview" icon={Globe2} defaultOpen>
+        <EmpireOverview />
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
       <CollapsibleSection title="Court" icon={Crown} defaultOpen>
         {courtSection}
         {governorsSection}
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
-      <CollapsibleSection title="Empire" icon={ShieldAlert} defaultOpen>
+      <CollapsibleSection title="Treasury" icon={ShieldAlert}>
         {empireSection}
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
