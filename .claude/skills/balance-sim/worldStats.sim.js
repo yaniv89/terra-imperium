@@ -42,6 +42,7 @@ const snapshot = (s, t, counters, ms) => {
     pactMembers: nations.filter((n) => n.defensivePact).length, leaguesFormed: counters.leagues,
     vassals: vassals.length, avgLibertyDesire: +(vassals.reduce((a, n) => a + (n.libertyDesire || 0), 0) / Math.max(1, vassals.length)).toFixed(1),
     conquests: counters.conquests, devastatedProvinces: dev.length,
+    civilWarsStarted: counters.civilWars, inCivilWar: nations.filter((n) => n.civilWar?.active).length, rebelStacks: Object.values(s.units).filter((u) => u.ownerId === 'rebels').length,
     // The tile world (plans/civ-map-rework.md Part H): land claimed, cities, hands changed, flips.
     cities: regs.length, landClaimedPct: +(100 * Object.keys(s.world?.tileOwner || {}).filter((t) => getTiles().land[t] === 1).length / LAND_TILES).toFixed(1),
     citiesChangedHands: counters.changedHands, loyaltyFlips: counters.flips, freeCities: regs.filter((r) => r.owner === null && r.freeCity).length,
@@ -67,7 +68,8 @@ SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...(SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0 };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0 };
+    let inWar = new Set(Object.values(s.nations).filter((n) => n.civilWar?.active).map((n) => n.id));
     let last;
     let owners = Object.fromEntries(Object.values(s.regions).map((r) => [r.id, r.owner]));
     let t0 = performance.now(); let turnsSince = 0;
@@ -81,6 +83,10 @@ SEEDS.forEach((seed) => {
         if (/defensive league/.test(l.message)) counters.leagues += 1;
         if (/conquers|is conquered|storms/.test(l.message)) counters.conquests += 1;
       });
+      // Civil wars that began this turn (plans/playtest-1.md P4).
+      const nowInWar = new Set(Object.values(s.nations).filter((n) => n.civilWar?.active).map((n) => n.id));
+      nowInWar.forEach((id) => { if (!inWar.has(id)) counters.civilWars += 1; });
+      inWar = nowInWar;
       // Cities that changed hands this turn; the ones that did so without a conquest are loyalty flips.
       Object.values(s.regions).forEach((r) => {
         if (owners[r.id] !== undefined && owners[r.id] !== r.owner) { counters.changedHands += 1; if (!r.conquest || r.conquest.turn !== s.turnNumber) counters.flips += 1; }

@@ -4,7 +4,7 @@ import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
 import { drawLensLayer } from './lensLayer';
 import { LENS_IDS } from '../map/lenses';
-import { yieldLabels, loyaltyDiscs, supplyTints } from '../map/lenses';
+import { yieldLabels, loyaltyDiscs, supplyTints, supplyReach } from '../map/lenses';
 
 // A context that counts what the layer asks it to draw.
 const fakeCtx = () => {
@@ -27,6 +27,6 @@ describe('lenses on the globe', () => {
     const cap = s.regions[getNationCapital('fr')];
     const army = Object.values(s.units).find((u) => u.ownerId === 'fr' && u.domain === 'land');
     const field = { ...s, units: { ...s.units, [army.id]: { ...army, tile: cap.tiles.find((t) => t !== cap.tile) } } };
-    const sup = fakeCtx(); expect(drawLensLayer(sup.ctx, { state: field, lens: 'supply', projection, width: 2048 })).toBe(supplyTints(field).length); expect(sup.calls.fill).toBeGreaterThan(0);
+    const sup = fakeCtx(); expect(drawLensLayer(sup.ctx, { state: field, lens: 'supply', projection, width: 2048 })).toBe(supplyTints(field).length + supplyReach(field, { limit: 2500 }).length); expect(sup.calls.fill).toBeGreaterThan(0); // the line's reach and the armies' zones (plans/playtest-1.md P2.2)
   });
 });

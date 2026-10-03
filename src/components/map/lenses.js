@@ -16,7 +16,9 @@ import { getResearched } from '../../engine/nationState';
 import { loyaltyOf } from '../../engine/loyalty';
 import { isWarBetween } from '../../engine/diplomacy';
 import { unitTile } from '../../engine/armies';
-import { supplyZone } from '../../engine/supplyMeter';
+import { supplyZone, SUPPLY_LINE_RINGS } from '../../engine/supplyMeter';
+import { mapEffectsFor } from '../../engine/techMapEffects';
+import { getModifier } from '../../engine/modifiers/sheet';
 import { THREAT_RINGS } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { estateHoldings, ESTATE_COLOUR, ESTATE_CREST } from '../../engine/estateLand';
@@ -28,7 +30,7 @@ export const LENSES = [
   { id: 'yields', label: 'Yields', key: '2', hint: 'Food, production and gold on your tiles' },
   { id: 'loyalty', label: 'Loyalty', key: '3', hint: 'How loyal each city is' },
   { id: 'threat', label: 'Threat', key: '4', hint: 'Enemy armies and their reach' },
-  { id: 'supply', label: 'Supply', key: '5', hint: 'Where your armies are fed' },
+  { id: 'supply', label: 'Supply', key: '5', hint: 'How far your supply lines reach, and where your armies are fed' },
   { id: 'estates', label: 'Estates', key: '6', hint: 'The land your estates hold' },
   { id: 'trade', label: 'Trade', key: '7', hint: 'Your trade routes and the raiders on them' }
 ];
@@ -77,6 +79,25 @@ export const threatStacks = (state) => {
     const edgeTile = [...rings].find(([, d]) => d === THREAT_RINGS)?.[0] ?? tile;
     return { tile, strength, edgeTile };
   }).sort((a, b) => a.tile - b.tile);
+};
+
+/** The land beyond your border that your supply lines reach (supplyMeter.js lineReaches, seen
+ * from the border out): [{ tile, colour }], at most `limit` tiles, nearest rings first. A stack
+ * standing there drains at half the enemy-land rate. */
+export const supplyReach = (state, { limit = 4000, rings = SUPPLY_LINE_RINGS + mapEffectsFor(state, state.playerNationId).lineRings + Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total)) } = {}) => {
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const tileOwner = state.world?.tileOwner || {};
+  const own = (t) => { const c = tileOwner[t]; return c != null && state.regions[c]?.owner === me && !state.regions[c].occupiedBy; };
+  let frontier = []; const seen = new Set();
+  Object.keys(tileOwner).forEach((k) => { const t = Number(k); if (own(t)) { seen.add(t); frontier.push(t); } });
+  const out = [];
+  for (let d = 1; d <= rings && out.length < limit; d++) {
+    const next = [];
+    for (const t of frontier) for (const n of tiles.neighbors[t]) { if (seen.has(n) || tiles.land[n] !== 1) continue; seen.add(n); next.push(n); if (!own(n)) out.push({ tile: n, colour: d <= rings / 2 ? 'rgba(52,211,153,0.28)' : 'rgba(52,211,153,0.14)' }); }
+    frontier = next;
+  }
+  return out.slice(0, limit);
 };
 
 /** The tiles of the player's land armies with their supply zone: [{ tile, zone, colour }]. */

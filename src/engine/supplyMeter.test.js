@@ -10,6 +10,7 @@ import {
   SUPPLY_HUNGER_LOSS, STACK_OVER_LOSS, STACK_WIDTH_MULT, STARVE_STRENGTH, STARVE_MORALE
 } from './supplyMeter';
 import { visibleTiles, canSeeTile, SIGHT_LAND, SIGHT_ARMY } from './sight';
+import * as supplyMeter from './supplyMeter';
 
 const tiles = getTiles();
 const S = { ...createInitialState({ playerNationId: 'in', rngSeed: 3 }), units: {} };
@@ -96,5 +97,25 @@ describe('sight', () => {
     all.forEach((t) => expect(canSeeTile(scouted, t, 'in')).toBe(true));
     expect(visibleTiles(scouted, 'in')).toBe(visibleTiles(scouted, 'in'));
     expect(SIGHT_LAND).toBe(2);
+  });
+});
+
+describe('a readable supply (plans/playtest-1.md P2.2)', () => {
+  it('names the lever, counts the border distance and reaches further on a road', () => {
+    const { supplyReport, lineDistance, lineRingsAt, ROAD_LINE_BONUS, SUPPLY_LINE_RINGS, SUPPLY_LOW } = supplyMeter;
+    const home = unit('a', IN);
+    const r = supplyReport(S, home);
+    expect(r.zone).toBe('home'); expect(r.borderDistance).toBe(0); expect(r.hint).toMatch(/your own land|refills/);
+    const deepTile = S.regions[getNationCapital('us')].tile;
+    const deep = unit('d', getNationCapital('us'), { tile: deepTile, supply: 25 });
+    const usWar = atWar(S, 'us');
+    const rd = supplyReport(usWar, deep);
+    expect(rd.zone).toBe('enemy'); expect(rd.borderDistance).toBeNull(); expect(rd.turnsLeft).toBe(2); expect(rd.hint).toMatch(/no supply line reaches/);
+    expect(lineDistance(S, tiles, S.regions[IN].tile, 'in', 3)).toBe(0);
+    expect(lineRingsAt(S, deepTile, SUPPLY_LINE_RINGS)).toBe(SUPPLY_LINE_RINGS);
+    const road = { ...S, world: { ...S.world, tileState: { ...S.world.tileState, [deepTile]: { road: true } } } };
+    expect(lineRingsAt(road, deepTile, SUPPLY_LINE_RINGS)).toBe(SUPPLY_LINE_RINGS + ROAD_LINE_BONUS);
+    expect(SUPPLY_HOME_GAIN * 2).toBeGreaterThanOrEqual(SUPPLY_MAX); // home refills a stack in two turns
+    expect(SUPPLY_LOW).toBeLessThan(SUPPLY_MAX);
   });
 });

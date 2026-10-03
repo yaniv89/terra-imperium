@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
+  crisisCanErupt, inCivilWarCooldown, CIVIL_WAR_COOLDOWN_TURNS,
   nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, PRETENDER_MARKER
 } from './civilWar';
 import { createInitialState } from './gameReducer';
 import { createRng } from '../utils/rng';
+import { CIVIL_WAR_STABILITY_STREAK_TURNS } from '../data/actionCosts';
 import { addCities } from './testWorld';
 import { getOwnedRegionIds } from '../data/regions';
 import { REBEL_OWNER_ID } from '../data/rebellion';
@@ -21,10 +23,10 @@ describe('nextLowStabilityStreak / isStabilityCivilWarTrigger (plan §M15)', () 
     expect(nextLowStabilityStreak({ stability: -2, lowStabilityStreak: 2 })).toBe(0);
   });
 
-  it('triggers only once the streak reaches the plan\'s 3-turn threshold', () => {
-    expect(isStabilityCivilWarTrigger(2)).toBe(false);
-    expect(isStabilityCivilWarTrigger(3)).toBe(true);
-    expect(isStabilityCivilWarTrigger(4)).toBe(true);
+  it('triggers only once the streak reaches the threshold (five turns at the floor, plans/playtest-1.md P4)', () => {
+    expect(isStabilityCivilWarTrigger(CIVIL_WAR_STABILITY_STREAK_TURNS - 1)).toBe(false);
+    expect(isStabilityCivilWarTrigger(CIVIL_WAR_STABILITY_STREAK_TURNS)).toBe(true);
+    expect(isStabilityCivilWarTrigger(CIVIL_WAR_STABILITY_STREAK_TURNS + 1)).toBe(true);
   });
 });
 
@@ -129,5 +131,17 @@ describe('processCivilWarTurn (plan §M15)', () => {
     // Every pretender unit and its occupation marker are cleared as part of the regime change.
     expect(Object.values(final.units).some((u) => u.isPretender)).toBe(false);
     Object.values(final.regions).forEach((r) => { if (r.owner === 'us') expect(r.occupiedBy).not.toBe(PRETENDER_MARKER); });
+  });
+});
+
+describe('civil war gates (plans/playtest-1.md P4)', () => {
+  it('a crisis erupts only with a weak court and never within the cooldown', () => {
+    expect(crisisCanErupt({ legitimacy: 60, stability: 1 }, 100)).toBe(false);
+    expect(crisisCanErupt({ legitimacy: 30, stability: 1 }, 100)).toBe(true);
+    expect(crisisCanErupt({ legitimacy: 60, stability: -2 }, 100)).toBe(true);
+    expect(crisisCanErupt({ legitimacy: 30, stability: -2, civilWar: { active: true } }, 100)).toBe(false);
+    expect(crisisCanErupt({ legitimacy: 30, civilWarEndedTurn: 80 }, 100)).toBe(false);
+    expect(inCivilWarCooldown({ civilWarEndedTurn: 80 }, 80 + CIVIL_WAR_COOLDOWN_TURNS)).toBe(false);
+    expect(inCivilWarCooldown({}, 100)).toBe(false);
   });
 });

@@ -7,7 +7,7 @@
 import { geoPath } from 'd3-geo';
 import { getTiles } from '../../data/geo/tiles';
 import { cellFeature } from '../../data/geo/tileGeometry';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines, airCover } from '../map/lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from '../map/lenses';
 
 const pointOf = (tiles, projection, id) => {
   const ll = tiles.latLonOf(id);
@@ -60,6 +60,7 @@ export const drawLensLayer = (ctx, { state, lens, projection, width }) => {
       ctx.fillStyle = '#fecaca'; ctx.fillText(String(s.strength), x, y); drawn++;
     });
   } else if (lens === 'supply') {
+    supplyReach(state, { limit: 2500 }).forEach((t) => { fillTile(t.tile, t.colour); drawn++; });
     supplyTints(state).forEach((t) => { fillTile(t.tile, t.colour); drawn++; });
   } else if (lens === 'estates') {
     ctx.font = `700 ${Math.max(6, 7 * px)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

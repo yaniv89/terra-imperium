@@ -6,7 +6,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronRight, Lightbulb, BookOpen } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { nextPrompts } from './nextPrompt';
-import { openPanelTab } from '../panels/panelEvents';
+import { openPanelTab, OPEN_SECTION } from '../panels/panelEvents';
 import { selectArmy, selectTile } from '../map/marchEvents';
 
 const NextPrompt = () => {
@@ -25,8 +25,8 @@ const NextPrompt = () => {
       const cap = state.nations[me]?.capitalRegionId;
       return cap && window.__selectRegion?.(cap);
     }
-    if (p.tab) openPanelTab(p.tab);
-    else if (p.kind === 'army') selectArmy(p.tile);
+    if (p.tab) { openPanelTab(p.tab); if (p.section) window.dispatchEvent(new CustomEvent(OPEN_SECTION, { detail: p.section })); }
+    else if (p.kind === 'army' || p.kind === 'supply') selectArmy(p.tile);
     else if (p.kind === 'settler') selectTile(p.tile);
     else if (p.regionId) window.__selectRegion?.(p.regionId);
   };
