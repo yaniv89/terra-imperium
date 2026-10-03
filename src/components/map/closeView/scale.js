@@ -17,3 +17,12 @@ export const tiltFor = (k) => {
   const t = Math.max(0, Math.min(1, Math.log(Math.max(1, k) / SUPER_FROM_K) / Math.log(5)));
   return TILT_CLOSE + (TILT_SUPER - TILT_CLOSE) * t;
 };
+
+// The lights turn with the tilt so they keep one direction in the models' own space (glTF: y up,
+// +z the south side that faces the viewer): the sky straight above, the sun high in the south-west
+// as on the art sheets and the Blender previews. Fixed screen-space lights left every south face,
+// the side the camera sees, in the dark half of the sky light.
+const MODEL_SUN = (() => { const v = [-0.5, 0.7, 0.5]; const l = Math.hypot(...v); return v.map((c) => c / l); })();
+const tiltVector = ([x, y, z], tilt) => [x, y * Math.cos(tilt) - z * Math.sin(tilt), y * Math.sin(tilt) + z * Math.cos(tilt)];
+/** Screen-space directions for the sky (hemisphere up) and the sun at a tilt. */
+export const lightRig = (tilt) => ({ sky: tiltVector([0, 1, 0], tilt), sun: tiltVector(MODEL_SUN, tilt) });

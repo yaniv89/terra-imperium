@@ -89,11 +89,18 @@ def main(blend, out_dir, concept=None, quick=False):
                 c.hide_render = other is not root
         home = root.location.copy()
         root.location = (0, 0, 0)
-        render_object(scene, root, out_dir, os.path.join(concept_dir, root.name + '.png') if concept_dir else concept, quick)
+        render_object(scene, root, out_dir, concept_for(concept_dir, root.name) if concept_dir else concept, quick)
         root.location = home
     print('previews in', out_dir)
     sys.stdout.flush()
     os._exit(0)
+
+
+def concept_for(concept_dir, name):
+    """<name>.beauty.png (a beauty panel already cut from its sheet) or <name>.png (an approval
+    sheet in the standard layout, whose beauty panel compare() cuts out)."""
+    cut = os.path.join(concept_dir, name + '.beauty.png')
+    return cut if os.path.exists(cut) else os.path.join(concept_dir, name + '.png')
 
 
 def render_object(scene, root, out_dir, concept, quick):
@@ -120,7 +127,7 @@ def render_object(scene, root, out_dir, concept, quick):
     views = {
         'front': Vector((0, -1, 0.12)),
         'top': Vector((0, -0.0001, 1)),
-        'beauty': Vector((-0.5, -0.5, 0.7071)),
+        'beauty': Vector((-0.38, -0.78, 0.62)),  # the sheets' three-quarter view, the front toward the viewer
     }
     lod0 = next(c for c in root.children if is_lod(c, 0))
     span = max(lod0.dimensions.x, lod0.dimensions.y)
@@ -179,7 +186,7 @@ def compare(out_dir, concept, name):
     c = load(concept)
     h, w = c.shape[:2]
     # the sheet's beauty panel: bottom-left, about x 0.01-0.345, y 0.46-0.98 of the sheet
-    panel = c[int(h * 0.495):int(h * 0.975), int(w * 0.008):int(w * 0.345)]
+    panel = c if concept.endswith('.beauty.png') else c[int(h * 0.495):int(h * 0.975), int(w * 0.008):int(w * 0.345)]
     m = load(os.path.join(out_dir, '%s_view_beauty.png' % name))
     # nearest-neighbour scale the model render to the panel height
     th = panel.shape[0]

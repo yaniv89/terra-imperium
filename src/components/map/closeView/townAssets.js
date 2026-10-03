@@ -5,9 +5,10 @@
 // close view loads a file the first time a town of that age and size is on screen, clones it per
 // town (geometry and textures shared), shows the LOD for the zoom and tints Team in the owner's
 // colour. Until a file arrives, and for any (age, size) without one, the procedural town stays.
-// A capital adds its palace from the age's shared file, src/assets/map/shared/shared-{age}.glb
-// (palace-small for a small town, palace for a medium or big one), standing in the town's free
-// centre with the same transform.
+// The age's shared file, src/assets/map/shared/shared-{age}.glb, adds the rest with the town's
+// transform: a capital's palace in the free centre (palace-small for a small town, palace for a
+// medium or big one), the wall ring of the town's size round a town with a defense building, and
+// the colony camp that stands in place of a town on an outpost.
 import { Color } from 'three';
 import { loadGltf } from '../../../battle/render/gltfUnitLoader';
 
@@ -30,6 +31,12 @@ Object.entries(SHARED_FILES).forEach(([path, url]) => {
 export const sharedAssetUrl = (ageId) => SHARED_BY_AGE[ageId] || null;
 /** The palace a capital of this town size stands on its free centre. */
 export const palaceFor = (tierId) => (tierId === 'small' ? 'palace-small' : 'palace');
+/** The wall ring just outside a town of this size (one gate at the front). */
+export const wallsFor = (tierId) => `walls-${tierId === 'big' || tierId === 'medium' ? tierId : 'small'}`;
+/** The shared object an outpost shows instead of a town. */
+export const COLONY_CAMP = 'colony-camp';
+/** An outpost (a settler's new city that is still growing) or a colony with no owner yet. */
+export const isCamp = (region) => !!region && (!!region.outpost || (!region.owner && !!region.colony));
 
 // Until the regional kits arrive (art spec section 3b), the two variants carry two traditions:
 // a is Mesopotamian, b is Egyptian. Nations of those lands get their own; everyone else mixes

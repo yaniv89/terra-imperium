@@ -240,7 +240,8 @@ def _base_dirt(nt, color, height=0.06, dirt='#6b4f33', amount=0.55):
     return _mix(nt, clamp.outputs['Result'], color, _srgb(dirt))
 
 
-def mat_mudwall(name='mudwall', wash='#d9c6a2', brick='#a87b4f', mortar='#8c6a46', wash_cover=0.62):
+def mat_mudwall(name='mudwall', wash='#d9c6a2', brick='#a87b4f', mortar='#8c6a46', wash_cover=0.62,
+                bond=(0.04, 0.012, 0.0018), brick2='#946840'):
     """Lime-washed mud brick: a brick bond in object space, a wash that has flaked off in noisy
     patches, streaks, and dirt at the foot."""
     mat = bpy.data.materials.new(name)
@@ -258,11 +259,11 @@ def mat_mudwall(name='mudwall', wash='#d9c6a2', brick='#a87b4f', mortar='#8c6a46
     nt.links.new(sep.outputs['Z'], comb.inputs['Y'])
     br = nt.nodes.new('ShaderNodeTexBrick')
     br.inputs['Scale'].default_value = 1.0
-    br.inputs['Brick Width'].default_value = 0.04
-    br.inputs['Row Height'].default_value = 0.012
-    br.inputs['Mortar Size'].default_value = 0.0018
+    br.inputs['Brick Width'].default_value = bond[0]
+    br.inputs['Row Height'].default_value = bond[1]
+    br.inputs['Mortar Size'].default_value = bond[2]
     br.inputs['Color1'].default_value = _srgb(brick)
-    br.inputs['Color2'].default_value = _srgb('#946840')
+    br.inputs['Color2'].default_value = _srgb(brick2)
     br.inputs['Mortar'].default_value = _srgb(mortar)
     br.offset = 0.5
     nt.links.new(comb.outputs['Vector'], br.inputs['Vector'])

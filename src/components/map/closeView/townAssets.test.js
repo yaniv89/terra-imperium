@@ -2,7 +2,7 @@
 // happens once per file, and an instance tints only its Team cloth.
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
-import { townAssetUrl, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl } from './townAssets';
+import { townAssetUrl, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
   const root = new Group(); root.name = name;
@@ -75,5 +75,21 @@ describe('artist town models', () => {
     expect(palaceFor('big')).toBe('palace');
     expect(sharedAssetUrl('bronze')).toMatch(/shared-bronze/);
     expect(sharedAssetUrl('modern')).toBeNull();
+  });
+
+  it('rings each town size with its own wall ring', () => {
+    expect(wallsFor('small')).toBe('walls-small');
+    expect(wallsFor('medium')).toBe('walls-medium');
+    expect(wallsFor('big')).toBe('walls-big');
+    expect(wallsFor(undefined)).toBe('walls-small');
+  });
+
+  it('shows the colony camp on outposts and ownerless colonies, never on a grown city', () => {
+    expect(COLONY_CAMP).toBe('colony-camp');
+    expect(isCamp({ owner: 'eg', outpost: { progress: 10 } })).toBe(true);
+    expect(isCamp({ owner: null, colony: { ownerId: 'eg' } })).toBe(true);
+    expect(isCamp({ owner: 'eg' })).toBe(false);
+    expect(isCamp({ owner: 'eg', colony: { ownerId: 'eg' } })).toBe(false);
+    expect(isCamp(undefined)).toBe(false);
   });
 });

@@ -23,7 +23,8 @@ FRINGE_V = 0.05          # the atlas strip (v 0 to 0.05) that holds the ground's
 LANDMARK_TOP = 1.6       # the small town's 16 m landmark (flag tip), at the sheet's scale
 
 PROC = ['mudwall', 'mudwall_bare', 'pylon', 'roof', 'timber', 'painted', 'door', 'dark', 'thatch', 'reed',
-        'stone', 'terracotta', 'water', 'team_cloth', 'earth', 'earth_fringe', 'earth_square']
+        'stone', 'terracotta', 'water', 'brick', 'log', 'limewash', 'plaster', 'linen', 'bronze', 'ash', 'team_cloth', 'earth',
+        'earth_fringe', 'earth_square']
 TO_FINAL = {'earth': 'Ground', 'earth_fringe': 'Ground', 'earth_square': 'Ground', 'team_cloth': 'Team'}
 EARTH = ('#ad7c4b', '#c4925c', '#cf9f68', '#a47144')
 
@@ -42,6 +43,18 @@ def make_materials():
     tm.mat_simple('stone', ['#8a8070', '#a39a88', '#7a7062'], scale=26.0, bump=0.6)
     tm.mat_simple('terracotta', ['#8f4f2c', '#a8623a', '#b8784c'], scale=18.0, bump=0.2)
     tm.mat_simple('water', ['#1b2a2e', '#24363a'], scale=10.0, rough=0.2, bump=0.0)
+    # the wall rings: big sun-dried bricks, mostly bare, and a worn lime wash at the foot
+    tm.mat_mudwall('brick', wash='#e6c48f', brick='#d9a466', brick2='#c48f55', mortar='#94683e', wash_cover=0.32,
+                   bond=(0.075, 0.024, 0.0035))
+    tm.mat_mudwall('limewash', wash='#f0e9dc', brick='#d9a466', brick2='#c48f55', mortar='#94683e', wash_cover=0.6,
+                   bond=(0.075, 0.024, 0.0035))
+    # palisade logs: lighter than the beams and doors, the grain running up the log
+    tm.mat_simple('log', ['#7d5c3c', '#957250', '#6c4e33'], scale=10.0, stripes={'dir': 'X', 'scale': 90.0, 'distortion': 6.0}, bump=0.4)
+    tm.mat_simple('plaster', ['#d6c7a6', '#e2d6bb', '#cdbd9a'], scale=18.0, bump=0.25, dirt=True)
+    tm.mat_simple('linen', ['#c9c2b2', '#d8d2c4', '#bbb3a1'], scale=26.0, rough=0.9, bump=0.25,
+                  stripes={'dir': 'Y', 'scale': 30.0, 'distortion': 2.0})
+    tm.mat_simple('bronze', ['#7a5a26', '#a07834', '#5e4520'], scale=30.0, rough=0.45, bump=0.3)
+    tm.mat_simple('ash', ['#231e1a', '#3a312a', '#4c4036'], scale=30.0, bump=0.3)
     tm.mat_team('team_cloth')
     tm.mat_earth('earth', colors=EARTH)
     tm.mat_earth('earth_fringe', colors=EARTH)
@@ -50,8 +63,9 @@ def make_materials():
 
 # ---- the ground patch ---------------------------------------------------------------------------
 
-def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42):
-    """An irregular ellipse, 0.03 high; its outer band is the alpha-cut fringe."""
+def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42, power=2.0):
+    """An irregular ellipse, 0.03 high; its outer band is the alpha-cut fringe. A `power` above 2
+    squares it off (a superellipse, the camp's rough rectangle); `square` None leaves no centre."""
     n = 96
     phases = [rng.uniform(0, 2 * math.pi) for _ in range(4)]
 
@@ -61,8 +75,10 @@ def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42):
     for i in range(n):
         a = 2 * math.pi * i / n
         w = wobble(a)
-        outer.append((rx * w * math.cos(a), ry * w * math.sin(a)))
-        inner.append((0.93 * rx * w * math.cos(a), 0.93 * ry * w * math.sin(a)))
+        c, sn = math.cos(a), math.sin(a)
+        c, sn = math.copysign(abs(c) ** (2 / power), c), math.copysign(abs(sn) ** (2 / power), sn)
+        outer.append((rx * w * c, ry * w * sn))
+        inner.append((0.93 * rx * w * c, 0.93 * ry * w * sn))
     bm = bmesh.new()
     bm.faces.new([bm.verts.new((x, y, G)) for x, y in inner])
     ms.add(bm, 'earth', lod=2)
@@ -81,6 +97,8 @@ def ground_patch(ms, rng, rx=1.98, ry=1.84, square=0.42):
         bm.faces.new((vb[i], vb[j], vo[j], vo[i]))
     ms.add(bm, 'earth_fringe', lod=1)
     # the free centre (8 m): trodden, slightly lighter earth
+    if square is None:
+        return
     s = square
     ms.quad_strip('earth_square', [(-s, -s, G + 0.004), (s, -s, G + 0.004), (s, s, G + 0.004), (-s, s, G + 0.004)], lod=1)
 
@@ -299,9 +317,12 @@ def pennant(ms, f, x, y, z, yaw=-150, lod=1, w=0.2, h=0.12):
 
 # ---- atlas, LODs, export ------------------------------------------------------------------------
 
+SPACING = 12.0  # build_file lays the objects of a file this far apart in x for the one bake
+
+
 def fringe_uvs(obj):
     """Lay the ground fringe (and skirt) faces into the atlas strip v 0..FRINGE_V, u around the
-    ring; squeeze every other island into v FRINGE_V+0.01..1."""
+    ring (around each object's own origin); squeeze every other island into v FRINGE_V+0.01..1."""
     me = obj.data
     bm = bmesh.new()
     bm.from_mesh(me)
@@ -312,10 +333,12 @@ def fringe_uvs(obj):
             for loop in face.loops:
                 loop[uv].uv.y = FRINGE_V + 0.01 + loop[uv].uv.y * (1 - FRINGE_V - 0.01)
             continue
+        top = max(lp.vert.co.z for lp in face.loops)
         for loop in face.loops:
             co = loop.vert.co
-            a = (math.atan2(co.y, co.x) / (2 * math.pi)) % 1.0
-            t = 1.0 if co.z > G * 0.9 else 0.0  # inner edge (top) at the strip's top, outer at its foot
+            x = co.x - SPACING * round(co.x / SPACING)
+            a = (math.atan2(co.y, x) / (2 * math.pi)) % 1.0
+            t = 1.0 if co.z > top - 0.002 else 0.0  # the high (solid) edge at the strip's top, the low edge at its foot
             loop[uv].uv = (0.005 + 0.99 * a, 0.004 + (FRINGE_V - 0.008) * t)
     for face in bm.faces:  # faces that wrap past u = 1 continue past 1 (the strip repeats)
         if face.material_index != fr:
@@ -395,7 +418,7 @@ def build_file(file_name, items, out_dir, atlas=2048, seed=2000, write=True):
         layout(ms, rng)
         meshers.append(ms)
     # LOD0 of every object, placed side by side, joined for one unwrap and one bake
-    spacing = 12.0
+    spacing = SPACING
     parts0 = []
     for k, ms in enumerate(meshers):
         o = ms.build('_lod0_%d' % k, 0, PROC)

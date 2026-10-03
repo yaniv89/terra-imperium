@@ -328,3 +328,324 @@ def step_pyramid(ms, x, y, base=0.9, levels=4, h=0.18, yaw=None):
     ms.cyl('pylon', base * 0.16, 0.0, h * 1.1, at=(0, 0, z), rot=(0, 0, 45), segs=4, lod=1, frame=f)
     ms.box('door', (0.08, 0.012, 0.12), at=(0, -base / 2 * 0.97 - 0.004, G), lod=1, frame=f)
     return f
+
+
+# ---- wall rings (a ring just outside the town's footprint, one gate at the front, south) --------
+# Heights are raised 1.3x like the houses, so a wall stands to the eaves of the houses it guards
+# as on the sheets; diameters are the sheets' own.
+
+WALL_RAISE = 1.3
+
+
+def sweep(ms, mat, profile, a0, a1, n, lod=2, only=None):
+    """A strip swept round the origin: `profile` is a polyline [(r, z), ...] turned from angle a0
+    to a1 (degrees, 0 east, counter-clockwise) in n steps. Walk the profile with the outside on
+    the right (up the outer face, across the top, down the inner face)."""
+    bm = tt.bmesh.new()
+    rows = []
+    for j in range(n + 1):
+        a = math.radians(a0 + (a1 - a0) * j / n)
+        c, s = math.cos(a), math.sin(a)
+        rows.append([bm.verts.new((r * c, r * s, z)) for r, z in profile])
+    for j in range(n):
+        for i in range(len(profile) - 1):
+            bm.faces.new((rows[j][i], rows[j][i + 1], rows[j + 1][i + 1], rows[j + 1][i]))
+    bm.normal_update()
+    bm.faces.ensure_lookup_table()
+    # the face normal should point to the profile's right: (dz, -dr) in the (r, z) plane
+    (r0, z0), (r1, z1) = profile[0], profile[1]
+    am = math.radians(a0 + (a1 - a0) * 0.5 / n)
+    want = tm.Vector(((z1 - z0) * math.cos(am), (z1 - z0) * math.sin(am), -(r1 - r0)))
+    if bm.faces[0].normal.dot(want) < 0:
+        tt.bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    return ms.add(bm, mat, lod, only=only)
+
+
+def ring_frame(r, a_deg, z=0.0):
+    """A frame on the ring at angle a: local +X along the ring (counter-clockwise), -Y outward."""
+    a = math.radians(a_deg)
+    return tm.Matrix.Translation(tm.Vector((r * math.cos(a), r * math.sin(a), z))) @ tm.Matrix.Rotation(a + math.pi / 2, 4, 'Z')
+
+
+def footing(ms, r_out, r_in, n, lod=1, apron=0.5):
+    """Packed earth at the foot of a wall: a narrow alpha-cut band outside, and inside an apron of
+    earth (under the town's own ground where they meet, so no grass shows between the two) that
+    ends in an alpha-cut band."""
+    sweep(ms, 'earth_fringe', [(r_out + 0.2, 0.0), (r_out, G + 0.004)], 0, 360, n, lod=lod)
+    sweep(ms, 'earth', [(r_in, G * 0.6), (r_in - apron, G * 0.5)], 0, 360, n, lod=lod)
+    sweep(ms, 'earth_fringe', [(r_in - apron, G * 0.5), (r_in - apron - 0.14, G * 0.3)], 0, 360, n, lod=lod)
+
+
+def merlon_ring(ms, r, z, a0, a1, step, skip, size=(0.055, 0.04, 0.055), mat='brick'):
+    """Merlons along the outer edge of a wall top from a0 to a1, leaving out angles in `skip`
+    [(centre, half width)] (the towers)."""
+    n = max(2, int(math.radians(abs(a1 - a0)) * r / step))
+    for i in range(n):
+        a = a0 + (a1 - a0) * (i + 0.5) / n
+        if any(abs((a - c + 180) % 360 - 180) < hw for c, hw in skip):
+            continue
+        ms.box(mat, size, at=(0, 0, 0), lod=0, frame=ring_frame(r, a, z))
+
+
+def wall_tower(ms, f, w, d, h, rng, flag_top=None, slits=2, mat='brick', band=None):
+    """A square battered tower in frame f (front -Y): merlons, slit windows, a timber floor on top,
+    a lime or plaster band at its foot when `band` (material, height) is given."""
+    ms.box(mat, (w, d, h), at=(0, 0, 0), lod=2, frame=f, bevel=0.005, taper=0.94)
+    if band:
+        ms.box(band[0], (w + 0.006, d + 0.006, band[1]), at=(0, 0, 0), lod=1, frame=f)
+    tw, td = w * 0.94, d * 0.94
+    tt._parapet(ms, f, mat, 0, 0, tw, td, h)
+    merlons(ms, f, 0, 0, tw, td, h + 0.05, step=0.1, size=0.05, h=0.05, mat=mat)
+    ms.box('timber', (tw - 0.06, td - 0.06, 0.008), at=(0, 0, h), lod=1, frame=f)
+    for k in range(slits):
+        ms.box('dark', (0.03, 0.01, 0.08), at=(0, -d / 2 * (1 - 0.06 * (k + 1)) - 0.004, h * (0.45 + 0.3 * k)), lod=0, frame=f)
+    if flag_top:
+        ms.cyl('timber', 0.012, 0.009, flag_top - h, at=(0, td * 0.2, h), segs=6, lod=1, frame=f)
+        tt.pennant(ms, f, 0, td * 0.2, flag_top - 0.005, yaw=-160, w=0.2, h=0.13)
+
+
+def gate_doors(ms, f, w, h, straps=False):
+    """Two plank leaves with braces, in frame f, on the local y = 0 plane facing -Y."""
+    for sx in (-1, 1):
+        ms.box('door', (w / 2 - 0.004, 0.03, h), at=(sx * w / 4, 0, 0), lod=1, frame=f)
+        if straps:  # bronze straps with bosses
+            for k in range(3):
+                ms.box('bronze', (w / 2 - 0.03, 0.008, 0.02), at=(sx * w / 4, -0.018, h * (0.18 + 0.32 * k)), lod=0, frame=f)
+        else:  # a Z brace
+            bf = f @ tm.Matrix.Translation(tm.Vector((sx * w / 4, -0.017, h / 2))) @ tm.Matrix.Rotation(math.atan2(h * 0.7, w / 2) * sx, 4, 'Y')
+            ms.box('timber', (0.018, 0.006, math.hypot(h * 0.7, w / 2) * 0.95), at=(0, 0, -math.hypot(h * 0.7, w / 2) * 0.475), lod=0, frame=bf)
+            for zz in (0.12, 0.88):
+                ms.box('timber', (w / 2 - 0.03, 0.006, 0.018), at=(sx * w / 4, -0.017, h * zz - 0.009), lod=0, frame=f)
+
+
+def walls_small(ms, rng):
+    """`walls-small` (44 m): a palisade of sharpened logs lashed with two reed-fibre bands on a
+    packed earth berm, and a timber gatehouse at the south with plank doors and a railed top."""
+    R = 2.08
+    h = 0.3 * WALL_RAISE
+    berm = 0.045
+    gate_w = 0.4
+    half = math.degrees(math.asin((gate_w / 2 + 0.05) / R))
+    a0, a1 = -90 + half, 270 - half
+    # the berm: a raised ring of earth, alpha-cut on both slopes
+    sweep(ms, 'earth_fringe', [(R + 0.24, 0.0), (R + 0.12, berm)], 0, 360, 96, lod=1)
+    sweep(ms, 'earth', [(R + 0.12, berm), (R - 0.1, berm)], 0, 360, 96, lod=1, only=(0, 1))
+    sweep(ms, 'earth', [(R + 0.2, 0.01), (R - 0.1, berm)], 0, 360, 36, lod=2, only=2)
+    sweep(ms, 'earth_fringe', [(R - 0.1, berm), (R - 0.22, G * 0.6)], 0, 360, 96, lod=1)
+    # LOD0: the logs, one by one
+    n = int(math.radians(a1 - a0) * R / 0.036)
+    for i in range(n):
+        a = a0 + (a1 - a0) * (i + 0.5) / n
+        lh = h * rng.uniform(0.9, 1.06)
+        r = rng.uniform(0.016, 0.02)
+        f = ring_frame(R + rng.uniform(-0.006, 0.006), a, berm - 0.01) @ tm.Matrix.Rotation(math.radians(rng.uniform(-2, 2)), 4, 'X')
+        ms.cyl('log', r, r * 0.92, lh, at=(0, 0, 0), segs=5, lod=0, frame=f, caps=False)
+        ms.cyl('log', r * 0.92, 0.0, 0.05, at=(0, 0, lh), segs=5, lod=0, frame=f, caps=False)
+    for zb in (0.12, 0.27):  # reed lashings round the outside
+        sweep(ms, 'reed', [(R + 0.021, berm + zb), (R + 0.021, berm + zb + 0.014)], a0, a1, 120, lod=0)
+    # LOD1 and LOD2: the palisade as a band with a toothed top (LOD1) or a plain one (LOD2)
+    for lod, steps in ((1, 72), (2, 32)):
+        top = berm + h
+        sweep(ms, 'log', [(R + 0.018, berm - 0.01), (R + 0.018, top)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, 'log', [(R + 0.018, top), (R - 0.018, top)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, 'log', [(R - 0.018, top), (R - 0.018, berm - 0.01)], a0, a1, steps, lod=lod, only=lod)
+    bm = tt.bmesh.new()  # LOD1 teeth: a triangle on every 0.07 of the ring
+    nt = int(math.radians(a1 - a0) * R / 0.07)
+    for i in range(nt):
+        aa, ab = math.radians(a0 + (a1 - a0) * i / nt), math.radians(a0 + (a1 - a0) * (i + 1) / nt)
+        am = (aa + ab) / 2
+        rr = R + 0.0
+        v = [bm.verts.new((rr * math.cos(aa), rr * math.sin(aa), berm + h)), bm.verts.new((rr * math.cos(ab), rr * math.sin(ab), berm + h)),
+             bm.verts.new((rr * math.cos(am), rr * math.sin(am), berm + h + 0.05))]
+        bm.faces.new(v)
+    ms.add(bm, 'log', 1, only=1)
+    # the gatehouse: four posts, a lintel, a railed top, plank doors
+    gf = tm.house_frame(0, -R, 0)
+    gh = 0.35 * WALL_RAISE
+    for sx in (-1, 1):
+        for sy in (-0.05, 0.05):
+            ms.box('timber', (0.035, 0.035, gh + 0.06), at=(sx * (gate_w / 2 + 0.02), sy, berm - 0.01), lod=2, frame=gf)
+        ms.box('timber', (0.03, 0.13, 0.02), at=(sx * (gate_w / 2 + 0.02), 0, berm + gh - 0.06), lod=0, frame=gf)
+    for sy in (-0.05, 0.05):
+        ms.box('timber', (gate_w + 0.1, 0.03, 0.035), at=(0, sy, berm + gh - 0.02), lod=2, frame=gf)
+        ms.box('timber', (gate_w + 0.08, 0.016, 0.016), at=(0, sy, berm + gh + 0.04), lod=0, frame=gf)
+    ms.box('timber', (gate_w + 0.06, 0.12, 0.012), at=(0, 0, berm + gh - 0.012), lod=1, frame=gf)
+    gate_doors(ms, gf @ tm.Matrix.Translation(tm.Vector((0, 0.0, berm - 0.005))), gate_w, gh - 0.07)
+    tt.clutter(ms, gf, gate_w / 2 + 0.16, -0.12, rng, 3)
+
+
+def mud_wall_ring(ms, rng, R_out, R_in, H, gate_x, band, buttresses=(), towers=(), tower_size=0.6,
+                  tower_h=None, gate_towers=(0.6, 0.78), gate_flag=None, straps=False, n=(144, 72, 32), planks=True):
+    """A mud-brick ring with a battered outer face, a lime or plaster band at its foot, merlons,
+    a timber wall-walk, packed earth at the foot, two gate towers at the south (gate opening
+    2 * gate_x wide), buttresses and towers at the given angles."""
+    R_top = R_out - 0.03
+    bh = band[1]
+    gw = gate_x * 2
+    gtw, gth = gate_towers
+    half = math.degrees(math.asin((gate_x + gtw * 0.5) / ((R_out + R_in) / 2)))
+    a0, a1 = -90 + half, 270 - half
+    for lod in (0, 1, 2):
+        steps = n[lod]
+        sweep(ms, band[0], [(R_out, 0.0), (R_out - 0.005, bh)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, 'brick', [(R_out - 0.005, bh), (R_top, H)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, 'roof', [(R_top, H), (R_in + 0.01, H)], a0, a1, steps, lod=lod, only=lod)
+        sweep(ms, 'brick', [(R_in + 0.01, H), (R_in, 0.0)], a0, a1, steps, lod=lod, only=lod)
+        if lod < 2:  # the outer parapet: a low band (with merlons on it at LOD0) and an inner rail
+            ph = 0.03 if lod == 0 else 0.06
+            sweep(ms, 'brick', [(R_top, H), (R_top, H + ph), (R_top - 0.04, H + ph), (R_top - 0.04, H)], a0, a1, steps, lod=lod, only=lod)
+            sweep(ms, 'brick', [(R_in + 0.035, H), (R_in + 0.035, H + 0.035), (R_in + 0.01, H + 0.035), (R_in + 0.01, H)], a0, a1, steps, lod=lod, only=lod)
+    walk_in = R_in + 0.045
+    sweep(ms, 'timber', [(R_top - 0.045, H + 0.004), (walk_in, H + 0.004)], a0, a1, n[1], lod=1)
+    # the walk's plank joints (LOD0)
+    joints = int(math.radians(a1 - a0) * (R_top + R_in) / 2 / 0.09) if planks else 0
+    for i in range(joints):
+        a = a0 + (a1 - a0) * (i + 0.5) / joints
+        ms.box('dark', (0.006, R_top - walk_in - 0.05, 0.002), at=(0, 0, 0), lod=0,
+               frame=ring_frame((R_top + walk_in) / 2, a, H + 0.004))
+    footing(ms, R_out, R_in, n[1])
+    t_half = math.degrees(math.asin(tower_size * 0.55 / R_out))
+    skip = [(a, t_half) for a in towers] + [(a, math.degrees(math.asin(0.13 / R_out))) for a in buttresses]
+    merlon_ring(ms, R_top - 0.02, H + 0.03, a0, a1, 0.11, skip)
+    for a in buttresses:
+        f = ring_frame(R_out - 0.02, a)
+        ms.box('brick', (0.2, 0.22, H * 0.92), at=(0, -0.08, 0), lod=1, frame=f, bevel=0.004, taper=0.82)
+        ms.box(band[0], (0.206, 0.226, bh * 0.9), at=(0, -0.08, 0), lod=0, frame=f)
+    th = tower_h or H * 1.3
+    for a in towers:
+        f = ring_frame((R_out + R_in) / 2 + 0.05, a)
+        wall_tower(ms, f, tower_size, tower_size * 0.95, th, rng, band=band)
+    # the gate: two towers, the doors set back between them, a lintel and a timber bridge on top
+    gy = -(R_out + R_in) / 2
+    for sx in (-1, 1):
+        f = tm.house_frame(sx * (gate_x + gtw / 2), gy - 0.03, 0)
+        wall_tower(ms, f, gtw, gtw * 0.95, gth, rng, flag_top=gate_flag, band=band)
+    gf = tm.house_frame(0, gy, 0)
+    gh = H * 0.82
+    gate_doors(ms, gf @ tm.Matrix.Translation(tm.Vector((0, 0.02, 0))), gw, gh - 0.02, straps=straps)
+    ms.box('brick', (gw + 0.04, R_out - R_in, H - gh + 0.02), at=(0, 0, gh), lod=2, frame=gf)
+    ms.box('timber', (gw + 0.06, 0.05, 0.04), at=(0, -0.02, gh - 0.02), lod=1, frame=gf)
+    ms.box('timber', (gw, R_out - R_in - 0.04, 0.01), at=(0, 0, H + 0.02), lod=1, frame=gf)
+    for k in range(5):
+        ms.box('timber', (0.014, 0.014, 0.08), at=(-gw / 2 + gw * k / 4, -0.08, H + 0.03), lod=0, frame=gf)
+    ms.box('timber', (gw, 0.014, 0.014), at=(0, -0.08, H + 0.1), lod=0, frame=gf)
+
+
+def walls_medium(ms, rng):
+    """`walls-medium` (64 m): a battered mud-brick ring with merlons, a worn lime-wash band at the
+    foot, a timber wall-walk, four buttresses and a gate between two 6 m towers at the south."""
+    mud_wall_ring(ms, rng, R_out=3.2, R_in=2.96, H=0.45 * WALL_RAISE, gate_x=0.25, band=('limewash', 0.15),
+                  buttresses=(40, 140, 200, 340), gate_towers=(0.56, 0.6 * WALL_RAISE))
+
+
+def walls_big(ms, rng):
+    """`walls-big` (86 m): a plastered mud-brick ring with crenellations and a timber wall-walk,
+    seven towers round it, and a gate with bronze-strapped doors between two towers that fly team
+    flags at the south."""
+    mud_wall_ring(ms, rng, R_out=4.3, R_in=3.97, H=0.6 * WALL_RAISE, gate_x=0.3, band=('plaster', 0.22),
+                  towers=(0, 45, 90, 135, 180, 222, 318), tower_size=0.68, tower_h=0.78 * WALL_RAISE,
+                  gate_towers=(0.7, 0.84 * WALL_RAISE), gate_flag=1.4, straps=True, n=(128, 52, 32), planks=False)
+
+
+# ---- the colony camp (an outpost a settler has just founded) ------------------------------------
+
+def tent(ms, x, y, w=0.3, d=0.42, h=0.24, yaw=0.0):
+    """An A-frame linen tent, its ridge along local Y and its open flap at the front (-Y)."""
+    f = tm.house_frame(x, y, yaw)
+    bm = tt.bmesh.new()
+    ov = 0.02
+    p = [(-w / 2, -d / 2), (w / 2, -d / 2), (w / 2, d / 2), (-w / 2, d / 2)]
+    v = [bm.verts.new((px, py, G)) for px, py in p]
+    r0, r1 = bm.verts.new((0, -d / 2 - ov, G + h)), bm.verts.new((0, d / 2 + ov, G + h))
+    bm.faces.new((v[0], v[3], r1, r0))
+    bm.faces.new((v[2], v[1], r0, r1))
+    bm.faces.new((v[3], v[2], r1))
+    bm.faces.new((v[1], v[0], r0))
+    tt.bmesh.ops.recalc_face_normals(bm, faces=bm.faces)  # a closed prism: safe to orient
+    ms.add(bm, 'linen', 2, matrix=f)
+    bm = tt.bmesh.new()  # the dark opening on the front gable
+    o = [bm.verts.new((-w * 0.18, -d / 2 - 0.004, G)), bm.verts.new((w * 0.18, -d / 2 - 0.004, G)), bm.verts.new((0, -d / 2 - 0.004, G + h * 0.72))]
+    bm.faces.new((o[0], o[1], o[2]))
+    ms.add(bm, 'dark', 1, matrix=f)
+    for sy in (-d / 2 - ov, d / 2 + ov):
+        ms.cyl('timber', 0.007, 0.006, h + 0.04, at=(0, sy, G), segs=5, lod=0, frame=f)
+    for sx in (-1, 1):  # guy ropes to pegs
+        for sy in (-d / 2 - 0.05, d / 2 + 0.05):
+            ms.box('timber', (0.01, 0.01, 0.03), at=(sx * (w / 2 + 0.06), sy, G), lod=0, frame=f)
+
+
+def hut(ms, x, y, w=0.62, d=0.42, wall_h=0.22, top=0.39):
+    """A reed-walled hut with corner posts, a plank door and a steep thatched gable roof."""
+    f = tm.house_frame(x, y, 0)
+    ms.box('reed', (w, d, wall_h), at=(0, 0, G), lod=2, frame=f, bevel=0.004)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            ms.box('timber', (0.03, 0.03, wall_h + 0.02), at=(sx * (w / 2 - 0.005), sy * (d / 2 - 0.005), G), lod=1, frame=f)
+    ms.box('door', (0.11, 0.012, 0.17), at=(0.05, -d / 2 - 0.004, G), lod=1, frame=f)
+    rise = top - G - wall_h
+    ov = 0.06
+    run = d / 2 + ov
+    slope = math.atan2(rise + 0.03, run)
+    length = math.hypot(run, rise + 0.03)
+    for sy in (-1, 1):
+        rf = f @ tm.Matrix.Translation(tm.Vector((0, sy * run / 2, G + wall_h - 0.03 + (rise + 0.03) / 2))) @ tm.Matrix.Rotation(-slope * sy, 4, 'X')
+        ms.box('thatch', (w + 0.1, length + 0.02, 0.035), at=(0, 0, -0.0175), lod=2, frame=rf)
+    bm = tt.bmesh.new()  # the reed gables
+    for sx in (-w / 2, w / 2):
+        g = [bm.verts.new((sx, -d / 2, G + wall_h)), bm.verts.new((sx, d / 2, G + wall_h)), bm.verts.new((sx, 0, top - 0.01))]
+        bm.faces.new(g if sx > 0 else list(reversed(g)))
+    ms.add(bm, 'reed', 2, matrix=f)
+    ms.box('timber', (w + 0.14, 0.03, 0.03), at=(0, 0, top - 0.02), lod=1, frame=f)
+
+
+def fire_ring(ms, rng, x, y, r=0.085):
+    f = tm.house_frame(x, y, 0)
+    ms.cyl('ash', r * 0.85, r * 0.8, 0.008, at=(0, 0, G), segs=12, lod=1, frame=f)
+    for i in range(11):
+        a = 2 * math.pi * i / 11
+        ms.sphere('stone', 0.024, at=(r * math.cos(a), r * math.sin(a), G + 0.008), scale=(1.1, 0.9, 0.7), u=6, v=4, lod=0, frame=f)
+    for k in range(3):  # charred sticks
+        ms.cyl('timber', 0.008, 0.008, 0.11, at=(-0.05, 0, G + 0.012), rot=(0, 85, 0), segs=5, lod=0, frame=f @ tm.house_frame(0, 0, 60 * k))
+
+
+def log_bundle(ms, x, y, yaw, length=0.38):
+    f = tm.house_frame(x, y, yaw)
+    for k, (dx, dz) in enumerate(((-0.036, 0), (0, 0), (0.036, 0), (-0.018, 0.032), (0.018, 0.032), (0, 0.064))):
+        ms.cyl('timber', 0.018, 0.018, length, at=(dx, -length / 2, G + 0.018 + dz), rot=(-90, 0, 0), segs=6, lod=1 if k < 3 else 0, frame=f)
+    for sy in (-0.1, 0.1):
+        ms.box('reed', (0.11, 0.014, 0.1), at=(0, sy, G), lod=0, frame=f)
+
+
+def stakes(ms, rng, pts, h=(0.26, 0.42)):
+    for x, y in pts:
+        sh = rng.uniform(*h)
+        r = rng.uniform(0.016, 0.021)
+        f = tm.house_frame(x, y, rng.uniform(0, 360)) @ tm.Matrix.Rotation(math.radians(rng.uniform(-4, 4)), 4, 'X')
+        ms.cyl('timber', r, r * 0.92, sh, at=(0, 0, G - 0.01), segs=6, lod=1, frame=f, caps=False)
+        ms.cyl('timber', r * 0.92, 0.0, 0.05, at=(0, 0, G - 0.01 + sh), segs=6, lod=1, frame=f, caps=False)
+
+
+def colony_camp(ms, rng):
+    """`colony-camp` (18 by 16 m): a packed earth clearing with a thatched reed hut at the back, two
+    linen tents, a stone fire ring, jars, crates, sacks, a bundle of logs, a half-built palisade of
+    stakes along the west and north, and a team flag on a 4 m pole held by stones."""
+    hut(ms, 0.02, 0.45)
+    tent(ms, -0.55, -0.02)
+    tent(ms, 0.55, -0.02)
+    fire_ring(ms, rng, 0.05, -0.12)
+    world = tm.house_frame(0, 0, 0)
+    for k in range(7):  # the supplies
+        tt.jar(ms, world, -0.26 + rng.uniform(-0.07, 0.07), -0.4 + rng.uniform(-0.06, 0.06), rng.uniform(1.2, 1.7))
+    tt.crate(ms, world, -0.14, -0.48, 1.4, 10)
+    tt.crate(ms, world, -0.1, -0.42, 1.2, -15, z=G)
+    for k in range(3):
+        ms.sphere('linen', 0.035, at=(-0.1 + 0.05 * k, -0.36 + 0.02 * k, G + 0.03), scale=(1, 0.9, 1.1), u=8, v=5, lod=0)
+    log_bundle(ms, 0.34, -0.4, 40)
+    west = [(-0.86 + rng.uniform(-0.01, 0.01), -0.72 + 0.062 * i) for i in range(25)]
+    north = [(-0.8 + 0.062 * i, 0.8 + rng.uniform(-0.01, 0.01)) for i in range(28) if not (6 <= i <= 7 or 19 <= i <= 21)]
+    stakes(ms, rng, west + north)
+    ms.cyl('timber', 0.016, 0.012, 0.4 * WALL_RAISE - G, at=(0.74, -0.58, G), segs=6, lod=2)
+    tt.pennant(ms, world, 0.74, -0.58, 0.4 * WALL_RAISE - 0.005, yaw=-160, lod=2, w=0.24, h=0.15)
+    for k in range(5):
+        a = 2 * math.pi * k / 5
+        ms.sphere('stone', 0.03, at=(0.74 + 0.04 * math.cos(a), -0.58 + 0.04 * math.sin(a), G + 0.01), scale=(1.1, 1, 0.8), u=6, v=4, lod=1)
