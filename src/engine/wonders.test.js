@@ -58,7 +58,7 @@ describe('AI wonders (plan C9)', () => {
     expect(can.ok).toBe(true);
     expect(wonderOptions(s, giza, 'eg').some((o) => o.projectId === 'great_pyramids')).toBe(true);
     const { chooseProduction, WONDER_MIN_PRODUCTION, WONDER_THINK_PERIOD } = await import('./aiProduction');
-    const rich = { ...giza, lastYields: { ...(giza.lastYields || {}), production: WONDER_MIN_PRODUCTION * 3 }, buildings: { ...giza.buildings, categories: Object.fromEntries(['food', 'economy', 'culture', 'science', 'industry', 'military', 'infrastructure', 'defense', 'naval'].map((c) => [c, 9])) }, production: { current: null, queue: [], progress: 0 } };
+    const rich = { ...giza, lastYields: { ...(giza.lastYields || {}), production: WONDER_MIN_PRODUCTION * 3 }, buildings: { ...giza.buildings, categories: Object.fromEntries(['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval'].map((c) => [c, 9])) }, production: { current: null, queue: [], progress: 0 } };
     const turn = [...Array(WONDER_THINK_PERIOD).keys()].find((t) => (t + rich.tile) % WONDER_THINK_PERIOD === 0);
     const ctx = { researched: [], ageId: 'bronze', citiesOwned: 1, turnNumber: turn, units: s.units, counts: { settlers: 1, outposts: 0, landUnits: 9 } };
     const item = chooseProduction({ ...s, regions: { ...s.regions, [giza.id]: rich } }, rich, ctx);
