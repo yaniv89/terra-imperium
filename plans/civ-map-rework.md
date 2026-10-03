@@ -1935,6 +1935,14 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**B4, city borders capped at two rings (2026-10-03).** The user's call on "a city half the size
+of France": `BORDER_RING_BY_AGE` is 2 in every age (it grew to 5 by the Modern age); the two
+border techs (Geometry, Provincial Administration) still add a ring each, capped at
+BORDER_RING_MAX (3). Scenario starts keep their own claim rings. Balance over seeds 3, 11, 12
+is noise (land claimed 70.4% to 70.0% at turn 150, wars 31 to 38, conquests 9 to 5, cities
+changed hands 28 to 43). The finer grid (frequency 75, about 106 km hexes) follows as its own
+wave.
+
 **C6, the AI's accords (2026-10-03).** `src/engine/aiAccords.js` runs in the diplomacy phase:
 every AI_ACCORD_PERIOD (10) turns, on its own slot, an AI nation looks at the nations whose
 cities touch its own. Two AI nations at peace that each hold the other at
