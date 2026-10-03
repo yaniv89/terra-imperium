@@ -22,6 +22,7 @@ import { writeSoldierVariant } from './unitVariants';
 import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
 import { Q } from '../sim/constants';
+import { zonePerimeter } from './deployZone';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -561,6 +562,21 @@ export class BattleRenderer {
       this.scene.add(g);
       this.pointMeshes.set(p.id, g);
     });
+  }
+
+  // The deployment zone (plan E7): dots along the player's zone edge until Start; null clears it.
+  setDeployZone(zone, side = 0) {
+    if (this.zoneMesh) { this.scene.remove(this.zoneMesh); this.zoneMesh.geometry.dispose(); this.zoneMesh.material.dispose(); this.zoneMesh = null; }
+    if (!zone) return;
+    const dots = zonePerimeter(zone);
+    const mat = new MeshBasicMaterial({ color: side === 0 ? '#86efac' : '#93c5fd', transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, side: DoubleSide });
+    const mesh = new InstancedMesh(new PlaneGeometry(0.22, 0.22).rotateX(-Math.PI / 2), mat, dots.length);
+    const o = new Object3D();
+    const w = this.map.w; const h = this.map.h;
+    dots.forEach((d, i) => { const x = Math.max(0, Math.min(w - 0.01, d.x)); const z = Math.max(0, Math.min(h - 0.01, d.z)); o.position.set(x, this.heightAt(x, z) + 0.06, z); o.updateMatrix(); mesh.setMatrixAt(i, o.matrix); });
+    mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; mesh.renderOrder = 2;
+    this.scene.add(mesh);
+    this.zoneMesh = mesh;
   }
 
   buildOverlays() {

@@ -5,6 +5,7 @@
 // squad menu, pinch to zoom — plus a tactical pause that keeps accepting orders. It starts paused
 // (deployment): give opening orders, then press Start.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { deployZone } from '../../battle/sim/world';
 import { BattleRenderer } from '../../battle/render/BattleRenderer';
 import { createBattleClient } from '../../battle/worker/battleClient';
 import { createGestureRecognizer } from '../../battle/input/gestures';
@@ -60,6 +61,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     const wrap = wrapRef.current;
     const renderer = new BattleRenderer(canvas, setup, { playerSide });
     rendererRef.current = renderer;
+    if (!resume) renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide); // the zone shows until Start (plan E7)
     if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
     if (import.meta.env.DEV) window.__battleRenderer = renderer; // for debugging in the console
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
@@ -232,7 +234,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   // --- HUD actions -----------------------------------------------------------------------------
   const togglePause = () => {
     const c = clientRef.current; if (!c) return;
-    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); c.resume(); return; } // deployment → battle
+    if (!started) { startedRef.current = true; setStarted(true); setPaused(false); rendererRef.current?.setDeployZone(null); c.resume(); return; } // deployment → battle
     setPaused((p) => { if (p) c.resume(); else c.pause(); return !p; });
   };
   const toggleSound = () => { const on = !soundOn; audioRef.current?.setEnabled(on); setSoundOn(on); };
