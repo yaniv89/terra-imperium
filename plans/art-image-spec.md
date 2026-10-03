@@ -150,6 +150,172 @@ Age styles for the houses, so the towns differ at a glance:
 
 ---
 
+## 3b. Regional building kits (the same town, built the way that region builds)
+
+A Bronze Age village on the Nile, in the Indus valley, on the Yellow River and in Mesoamerica
+are not the same village. The game stands on a real Earth, so the towns follow the land: every
+city is drawn in the **architecture region** of the ground it stands on (the tile's modern
+country, `tiles.countryOf`), whoever owns it. A conquered city keeps its roofs and streets;
+only the flags, the palace and, in time, the big landmarks follow the conqueror (section 3b.5).
+
+### 3b.1 How it fits the town models
+
+Section 3's towns are **layouts**: where the lanes, the square, the free centre and the
+landmark spots sit for a small, medium and big town (variants a and b per age). A **kit** is
+what stands on those spots: the house types, the roof, the street surface, the small props, and
+two signature landmarks per age. The modeller builds every town as **layout x kit**, so 6
+layouts and 10 kits give 60 different towns per age from 16 sheets. Draw the kits, not whole
+towns.
+
+### 3b.2 The ten regions and their nations
+
+| Style id | Region | Nations (by game id) |
+|---|---|---|
+| `nile` | Nile and Horn | eg, sd, ss, et, er, dj, so, xs |
+| `levant` | Levant, Mesopotamia, Arabia, Persia | il, ps, lb, sy, jo, iq, ir, sa, ye, om, ae, qa, kw, bh, cy, xn, tr, am, az, ge, af |
+| `maghreb` | Maghreb and the Sahel | ma, eh, dz, tn, ly, mr, ml, ne, td, sn, gm, gw, bf |
+| `westafrica` | West and Central African forest and savanna | ng, gh, ci, tg, bj, lr, sl, gn, cm, cf, cg, cd, ga, gq, st, ao, cv |
+| `eastafrica` | East and Southern Africa | ke, tz, ug, rw, bi, mw, zm, zw, mz, bw, na, za, ls, sz, mg, km, mu, sc, sh |
+| `europe` | Europe, Russia, the Caucasus north, the Americas of European settlement | gb, ie, fr, es, pt, it, de, at, ch, nl, be, lu, dk, no, se, fi, is, ee, lv, lt, pl, cz, sk, hu, ro, md, bg, gr, mk, al, xk, rs, me, ba, hr, si, ua, by, ru, mt, sm, va, mc, ad, li, gi, je, gg, im, ax, fo, gl, pm, us, ca, au, nz, fk, gs, hm, tf, bm, nf, pn |
+| `steppe` | Central Asian steppe and plateau | kz, uz, tm, tj, kg, mn, bt, np |
+| `indic` | South Asia | in, pk, bd, lk, mv |
+| `sinic` | East Asia | cn, tw, hk, mo, jp, kr, kp |
+| `monsoon` | Southeast Asia and the Pacific | vn, kh, la, th, mm, my, sg, bn, id, tl, ph, pg, fj, nc, sb, vu, ws, as, to, tv, ki, nr, fm, mh, pw, gu, mp, pf, ck, nu, wf, wf |
+| `americas` | Mesoamerica, the Andes, the Caribbean, Amazonia | mx, gt, bz, sv, hn, ni, cr, pa, cu, ht, do, jm, pr, bs, tc, ky, tt, bb, gd, vc, lc, dm, ms, ag, kn, vi, bl, ai, vg, mf, sx, cw, aw, co, ve, ec, pe, bo, br, py, uy, ar, cl, gy, sr |
+
+That is eleven ids; `europe` carries the settler colonies because their towns were built in
+the European manner from the Gunpowder Age on, and before that those lands show the
+`americas` or `monsoon` kit (3b.5 handles the switch: a kit follows the land until an owner of
+another style has held the city for 50 turns).
+
+### 3b.3 What a kit sheet holds
+
+One folder per style per age: `plans/art/kits/<style>/<age>/`. In it:
+
+| File | What it shows |
+|---|---|
+| `houses.png` | three house types side by side in orthographic front and top (poor, common, rich): the wall material, the roof form, the door, the window pattern, the courtyard if the region has one |
+| `street.png` | a 3 by 3 house block from the game camera: the street surface, the spacing, the yard walls, the small props (a well, a shrine, jars, racks, a loom, a canoe) |
+| `roofscape.png` | the block straight from above at 22 pixels wide, then at 90 pixels: this is what a town is at map size; roof colour and rhythm must read here |
+| `landmark-1/` and `landmark-2/` | two signature buildings of that region and age, each a full reference folder of section 2.1 |
+| `materials.png` | the palette: wall, roof, street, wood, trim, and the team cloth spots |
+
+### 3b.4 The kits, age by age
+
+Houses and the two landmarks per age. Where the region's great building traditions differ
+between its nations, the landmarks say which one each follows.
+
+**`nile`**
+- bronze: mud-brick houses with flat roofs and reed shelters on top, whitewashed; landmarks: a pylon temple gate with flagpoles, a stepped mastaba tomb
+- classical: the same houses with a Greco-Egyptian front on the rich ones; landmarks: a hypostyle hall with papyrus columns, an Aksumite stela (Ethiopia)
+- kingdoms: Coptic and Fatimid Cairo: mashrabiya screens, a courtyard; landmarks: a mosque with a Mamluk minaret, a rock-hewn church (Lalibela)
+- gunpowder: Ottoman Cairo: stone ground floors, projecting wooden upper floors; landmarks: a khedival palace, a Nile sakia and granary
+- modern: concrete flats with rooftop water tanks and satellite dishes; landmarks: a Cairo tower, a dam spillway
+
+**`levant`**
+- bronze: Mesopotamian courtyard houses, mud brick, flat roofs; landmarks: a ziggurat with a triple stair, a city gate with glazed brick lions
+- classical: Persian and Hellenistic: stone, a columned porch; landmarks: an apadana with bull capitals, a Petra-style rock-cut tomb front
+- kingdoms: Abbasid and Seljuk: courtyard houses with iwans, wind catchers; landmarks: a great mosque with a spiral minaret, a caravanserai gate
+- gunpowder: Ottoman and Safavid: domes, tiled portals, wooden balconies; landmarks: a tiled mosque with twin minarets (Isfahan), a covered souk
+- modern: Gulf towers and courtyard villas; landmarks: a glass tower with a mashrabiya skin, an oil refinery flare stack
+
+**`maghreb`**
+- bronze: round stone and mud huts with thatch, a village wall; landmarks: a Berber granary citadel (agadir), a standing-stone shrine
+- classical: Carthaginian and Roman Africa: white cubes, a courtyard; landmarks: a Roman amphitheatre (El Jem), a Punic harbour mole
+- kingdoms: medina: white and ochre cubes, flat roofs, narrow lanes; landmarks: a kasbah tower with geometric brick, the Great Mosque of Djenné (mud, timber spikes)
+- gunpowder: a riad quarter with tiled courtyards; landmarks: a Saadian palace with zellij, a Sahelian mud mosque with a tall minaret
+- modern: Mediterranean white blocks with blue trim; landmarks: a Hassan II style mosque with a lighthouse minaret, a phosphate plant
+
+**`westafrica`**
+- bronze: round mud houses with conical thatch in a family compound wall; landmarks: a sacred grove shrine with carved posts, a chief's hall with a big thatch roof
+- classical: Nok and early Benin: rectangular mud houses, impluvium courtyards; landmarks: a Benin palace with bronze plaques on the pillars, an earthwork rampart gate
+- kingdoms: Asante and Yoruba: red-earth walls with white relief patterns, thatch and later shingle; landmarks: an Asante shrine house with relief walls, a walled market with a drum tower
+- gunpowder: coastal: a stone fort quarter, Brazilian-style merchant houses with shutters; landmarks: a slave-coast fort (Elmina) as a dark landmark, a Yoruba palace with carved veranda posts
+- modern: concrete and corrugated roofs, bright paint; landmarks: a cathedral with a huge dome (Yamoussoukro), a Lagos tower
+
+**`eastafrica`**
+- bronze: beehive houses of grass, a cattle kraal ring; landmarks: a stone-circle cattle shrine, a rock-art overhang
+- classical: Swahili-coast beginnings: coral-stone houses with carved doors; landmarks: a coral mosque with a pillar tomb, a Great Zimbabwe style granite tower
+- kingdoms: Great Zimbabwe and the Swahili towns: dry-stone walls, coral houses; landmarks: the Great Enclosure's conical tower and walls, a Swahili merchant house with a carved door
+- gunpowder: Omani Zanzibar: tall coral houses with balconies and carved doors; landmarks: the Zanzibar House of Wonders with iron columns, a Buganda royal reed palace
+- modern: Nairobi concrete, tin-roof suburbs; landmarks: a conference centre tower (KICC), a safari lodge with a thatch dome
+
+**`europe`**
+- bronze: timber longhouses with turf or thatch, a palisade; landmarks: a stone circle (Stonehenge), a Minoan palace with red columns (Greece and the Aegean)
+- classical: Roman: tile roofs, a forum; landmarks: a temple with columns, an aqueduct arch; variant for the north: a Celtic hillfort hall
+- kingdoms: timber frame and stone, steep slate; landmarks: a Gothic church with a spire, a stone keep; variant for the east: an onion-domed church (Russia)
+- gunpowder: brick and stucco, mansards, a clock tower; landmarks: a baroque church, a town hall with arcades; variant for the colonies: a clapboard church with a white spire
+- modern: glass, steel, a park; landmarks: an office tower, a railway station with an iron shed
+
+**`steppe`**
+- bronze: a yurt camp inside a wagon ring, a few mud huts at the river; landmarks: a kurgan burial mound with stone balbals, a horse corral with a watchtower
+- classical: Sogdian towns: mud brick with painted halls; landmarks: a Sogdian citadel on a mound, a Buddhist stupa (Bhutan, Nepal, the Silk Road)
+- kingdoms: Timurid: turquoise domes, tiled portals, caravanserais; landmarks: a Registan madrasa front, a Mongol ger palace with a wheeled hall
+- gunpowder: khanate towns: mud walls, a mosque with a short minaret, a bazaar; landmarks: a Buddhist monastery with white walls and red trim (Mongolia, Bhutan), a Khiva style tiled tower
+- modern: Soviet blocks and new glass; landmarks: a glass tower on a steppe square, a space launch gantry (Baikonur)
+
+**`indic`**
+- bronze: Indus Valley: baked-brick houses on a grid, drains, a bathing tank; landmarks: a great bath, a granary on a brick platform
+- classical: Mauryan and Gupta: timber and brick with carved balconies; landmarks: a stupa with a stone railing and gateways (Sanchi), a rock-cut chaitya front
+- kingdoms: Chola and Sultanate: stone, carved; landmarks: a temple gopuram tower in tiers, a Sultanate tomb with a dome
+- gunpowder: Mughal and Rajput: red sandstone and white marble; landmarks: a Mughal gateway with a dome and chhatris, a Rajput palace with jharokha balconies
+- modern: concrete, tea estates, tech parks; landmarks: a glass campus with a dome (Bangalore), a Mumbai tower with a sea link
+
+**`sinic`**
+- bronze: Shang: rammed-earth walls, timber halls with thatch, a walled courtyard; landmarks: a bronze-casting hall on a platform, an oracle shrine with a drum tower
+- classical: Han: courtyard houses with hip roofs, tiled; landmarks: a gate tower with a double eave, a Han watchtower (que)
+- kingdoms: Tang and Song: hip-and-gable roofs, grey tile, red pillars; landmarks: a pagoda in seven storeys, a drum tower (Japan: a pagoda and a castle tenshu; Korea: a palace hall with a dancheong-painted eave)
+- gunpowder: Ming and Qing: grey brick, courtyard quarters; landmarks: a city gate with a barbican, a temple with a glazed yellow roof (Japan: an Edo castle keep)
+- modern: Shanghai towers and tile-roof lanes; landmarks: a pearl tower, a high-speed rail station
+
+**`monsoon`**
+- bronze: stilt houses of bamboo and palm over water, a longhouse; landmarks: a Dong Son drum shrine, a megalith terrace (Pacific: a marae with carved posts)
+- classical: Funan and early Java: brick temples, stilt houses; landmarks: a Cham brick tower, a Borobudur style stepped stupa
+- kingdoms: Khmer and Majapahit: sandstone towers, moats, teak houses; landmarks: an Angkor style five-tower temple, a Burmese golden stupa (Shwedagon)
+- gunpowder: Ayutthaya and colonial ports: tiered roofs, shophouses; landmarks: a Thai prang with a spired roof hall, a Dutch colonial warehouse with a canal (Batavia)
+- modern: Singapore towers, Manila and Jakarta sprawl; landmarks: a tower with a rooftop garden, a Pacific stilt longhouse rebuilt in tin
+
+**`americas`**
+- bronze: Olmec and Norte Chico: earth platforms, thatch houses; landmarks: a colossal-head plaza, a sunken circular court (Caral)
+- classical: Maya and Moche: stone with plaster, corbel vaults; landmarks: a stepped pyramid with a temple top, a Moche adobe huaca with murals
+- kingdoms: Aztec and Inca: adobe and polished stone, terraces; landmarks: a twin-temple pyramid, an Inca gateway of fitted stone (Machu Picchu style)
+- gunpowder: Spanish and Portuguese colonial: whitewashed walls, tile roofs, a plaza with a church; landmarks: a baroque cathedral with twin towers, a hacienda with an arcade
+- modern: São Paulo and Mexico City concrete, favelas on the hills; landmarks: a Brasília style curved parliament, a stadium bowl
+
+### 3b.5 Palaces, walls and the conqueror
+
+- **Palaces follow the owner nation's style**, not the land: a Chinese court in a Persian
+  city builds a Chinese hall. Draw one `palace` and one `palace-small` per style for the
+  Kingdoms Age only (the age of its classic form); the Bronze, Classical, Gunpowder and Modern
+  palaces of section 3 stay shared, recoloured by the modeller to the kit's palette.
+- **Walls follow the land**: one `walls-medium` ring per style for the Kingdoms Age (a kasbah
+  wall, a Chinese crenellated wall with a gate tower, an Inca fitted wall, a timber-and-earth
+  Sahel wall, a Khmer laterite wall with a naga balustrade); the other ages share section 3's
+  rings.
+- **Cultural shift.** A city held for 50 turns by an owner of another style swaps its
+  landmarks (not its houses) for the owner's kit; after 100 turns the houses follow. The game
+  reads the city's culture record for this (`culture` in loyalty.js), so Cordoba under the
+  Umayyads grows minarets and keeps them long after. Nothing extra to draw: the modeller reuses
+  the kits.
+
+### 3b.6 Count and priority
+
+Eleven styles by five ages: 55 kit folders (a houses, street, roofscape and materials sheet
+each) and 110 landmark folders, plus 11 Kingdoms palaces, 11 small palaces and 11 wall rings.
+Draw `europe`, `levant`, `sinic` and `indic` first (two thirds of the players' likely starts and
+the four oldest urban traditions), then `nile`, `americas`, `monsoon`, `maghreb`, then the
+three African kits, then `steppe`.
+
+### 3b.7 What the game does with it
+
+`src/data/architecture.js` (to be written when the first kit lands): `STYLE_OF_COUNTRY`, the
+table above, and `styleOfCity(state, city)` = the land's style, or the owner's style once the
+city's culture record says the shift happened. The close view asks `styleOfCity` and loads
+`public/models/<age>-<style>.glb`, falling back to `europe` for a style not yet delivered, so
+the kits can land one at a time.
+
+---
+
 ## 4. Buildings (38 landmark models, placed in towns and shown on the city sheet)
 
 Every building the player can construct gets one small landmark model so that a city with a
@@ -353,6 +519,7 @@ for the whole set: a thick outline, two or three flat colours, no gradients, no 
 Deliver in this order so each batch can go into the game on its own:
 
 1. **Towns** (section 3): 90 sheets. Visible to every player on every turn.
+   Then the regional kits (section 3b), `europe`, `levant`, `sinic` and `indic` first.
 2. **Icons** (section 8): 133 images. Cheap, and they fix the look of the map at once.
 3. **Wonders** (section 5): 15 folders, 45 sheets.
 4. **Units** (section 7): 21 land, 5 settlers, 14 ships, 1 aircraft: 41 sheets.
@@ -360,7 +527,9 @@ Deliver in this order so each batch can go into the game on its own:
 6. **Improvements** (section 6): 11 ids, 20 sheets with the ancient and modern pairs and the
    five forts.
 
-Each "sheet" is the set of views of 2.1 (6 or 7 PNGs, 8 for people). About 270 sheets in all.
+Each "sheet" is the set of views of 2.1 (6 or 7 PNGs, 8 for people). About 270 sheets in all,
+plus the regional kits of section 3b (55 kit folders, 110 landmarks, 33 palaces and walls),
+which come after the first pass of towns and icons and can land one region at a time.
 
 ---
 
