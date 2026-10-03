@@ -1935,6 +1935,13 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**D5b, the modern movement table (2026-10-03).** Railways already stood (Rail Networks: RAIL_COST
+on roads). Mechanized Warfare now also gives land armies two more movement points a turn
+(`movePoints(unit, researched)`, settlers and aircraft aside; stackPace, the routes, the AI's
+marches and the army sheet pass the owner's techs) on top of its cheaper roads, and Highway
+Systems takes the hill penalty away as well as two points off mountains. Tests in
+techMapEffects.test.js. Still open in D5b: naval battles in the tactical sim.
+
 **D5b, air defence (2026-10-03).** airPower.js: every Support unit (the Modern age's Anti-Air)
 standing on the battle tile of the other side turns back ANTI_AIR_SHARE (0.2) of the aircraft
 that would join, and every aircraft of the other side on patrol whose base lies within
