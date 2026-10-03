@@ -15,6 +15,16 @@ import { getModifier, getRegionModifier, getNationBonusTotal } from '../../engin
 import { WAR_WEARINESS_FROM, WAR_WEARINESS_SCALE } from '../../engine/resolveTurn';
 import { canBuildTier, getBuildingTierCost } from '../../data/buildings';
 import { getResearched } from '../../engine/nationState';
+import { ActionTypes } from '../../data/types';
+import { ACTION_COSTS, CLIMATE_RESILIENCE_MAX } from '../../data/actionCosts';
+import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } from '../../data/rebellion';
+import { REGIONS_DATA } from '../../data/regions';
+import { getDepositsFor } from '../../data/deposits';
+import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
+import { getEffectiveAgeId } from '../../data/ages';
+import { DEVASTATION_DECAY } from '../../engine/aftermath';
+import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
+import { canAfford, getSupplyCapacity } from '../../utils/helpers';
 
 export const UNREST_CONTROL_THRESHOLD = 50;
 export const UNREST_RISE_PER_TURN = 3;
@@ -104,4 +114,51 @@ export const cityBuildingsModel = (state, cityId) => {
       next: next ? { name: next.name, cost: getBuildingTierCost(category, tier + 1), canBuild: coastal && canBuildTier(category, researched, tier + 1), queued: queued.has(`${category}:${tier + 1}`), needs: !coastal ? 'a coast' : !canBuildTier(category, researched, tier + 1) ? 'a technology' : null } : null
     };
   });
+};
+
+// --- The crown's actions in a city (the old province Overview tab, plan E4) -------------------
+// Each: { id, label, description, costs, enabled, reason, actionType, payload }. Pure.
+export const crownActions = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city || city.owner !== state.playerNationId) return [];
+  const me = state.playerNationId;
+  const rebels = Object.values(state.units || {}).filter((u) => u.ownerId === REBEL_OWNER_ID && u.regionId === cityId);
+  const garrison = Object.values(state.units || {}).some((u) => u.ownerId === me && u.domain === 'land' && u.regionId === cityId);
+  const capital = state.nations?.[me]?.capitalRegionId;
+  const out = [];
+  if (rebels.length) out.push({ id: 'suppressRebellion', label: `Suppress the rebellion (${rebels.length} rebel unit${rebels.length === 1 ? '' : 's'})`, description: city.formerOwner ? `${Math.max(0, REVOLT_SUCCESS_TURNS - ((state.turnNumber || 0) - (rebels[0].spawnedTurn ?? state.turnNumber)))} turn(s) before ${state.nations?.[city.formerOwner]?.name || city.formerOwner} reclaims it` : 'Rebels hold out here', costs: ACTION_COSTS.suppressRebellion, enabled: garrison && canAfford(state.resources, ACTION_COSTS.suppressRebellion), reason: !garrison ? 'needs an army here' : null, actionType: ActionTypes.SUPPRESS_REBELLION, payload: { regionId: cityId }, danger: true });
+  out.push({ id: 'gainControl', label: `Gain Control (${Math.round(city.control || 0)}%)`, description: 'Raise control here by 5', costs: ACTION_COSTS.gainControl, enabled: (city.control || 0) < 100 && canAfford(state.resources, ACTION_COSTS.gainControl), reason: (city.control || 0) >= 100 ? 'full control' : null, actionType: ActionTypes.GAIN_CONTROL, payload: { regionId: cityId } });
+  out.push({ id: 'quellUnrest', label: `Quell Unrest (${r1(city.unrest || 0)})`, description: 'Suppress unrest here by 30 before it spreads', costs: ACTION_COSTS.quellUnrest, enabled: (city.unrest || 0) > 0 && canAfford(state.resources, ACTION_COSTS.quellUnrest), reason: (city.unrest || 0) <= 0 ? 'no unrest' : null, actionType: ActionTypes.QUELL_UNREST, payload: { regionId: cityId } });
+  out.push({ id: 'populationPolicy', label: 'Population Policy', description: 'Invest in growth: more people, more gold and manpower here', costs: ACTION_COSTS.populationPolicy, enabled: canAfford(state.resources, ACTION_COSTS.populationPolicy), reason: null, actionType: ActionTypes.POPULATION_POLICY, payload: { regionId: cityId } });
+  if (capital && capital !== cityId) out.push({ id: 'moveCapital', label: 'Move the capital here', description: city.conquest ? 'Relocates the capital (-1 stability: conquered land)' : 'Relocates the capital', costs: ACTION_COSTS.moveCapital, enabled: !city.occupiedBy && canAfford(state.resources, ACTION_COSTS.moveCapital), reason: city.occupiedBy ? 'occupied' : null, actionType: ActionTypes.MOVE_CAPITAL, payload: { regionId: cityId } });
+  return out;
+};
+
+/** Notes the crown should see: conquered and at risk, devastated. */
+export const crownNotes = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city) return [];
+  const out = [];
+  if (city.formerOwner && city.owner === state.playerNationId) out.push({ id: 'conquered', tone: 'amber', text: `Conquered from ${state.nations?.[city.formerOwner]?.name || city.formerOwner}: it can revolt back until control reaches ${INTEGRATION_CONTROL_THRESHOLD}% (${Math.round(city.control || 0)}% now).` });
+  if ((city.devastation || 0) > 0) out.push({ id: 'devastation', tone: 'red', text: `Devastated by war: ${Math.round(city.devastation)}%. Income -${Math.round(city.devastation / 2)}% and slower growth; recovers about ${DEVASTATION_DECAY}% a turn without further fighting.` });
+  return out;
+};
+
+// --- Development (the old province Economy tab, plan E4): power-point investments ------------
+export const cityDevelopmentModel = (state, cityId) => {
+  const city = state.regions?.[cityId];
+  if (!city || city.owner !== state.playerNationId) return null;
+  const me = state.playerNationId;
+  const mult = getModifier(state, me, 'national.developmentCost').total;
+  const cost = getDevelopProvinceCost(city, mult);
+  const ageId = getEffectiveAgeId(state.age, state.techAgeId);
+  const deposits = getDepositsFor(REGIONS_DATA[cityId]?.startOwner || city.startOwner).map((resourceId) => ({
+    resourceId, name: EXTRACTION_BUILDINGS[resourceId]?.name || resourceId, built: !!city.buildings?.extraction?.[resourceId],
+    enabled: !city.buildings?.extraction?.[resourceId] && canBuildExtraction(resourceId, ageId) && canAfford(state.resources, ACTION_COSTS.developResourceSite)
+  }));
+  const rows = DEV_TYPE_IDS.map((devType) => ({ id: `dev:${devType}`, devType, label: `Develop ${devType[0].toUpperCase()}${devType.slice(1)} (${city.dev?.[devType] || 0})`, description: `+1 ${devType} development`, costs: { [DEV_TYPE_POOL[devType]]: cost }, enabled: (state.resources[DEV_TYPE_POOL[devType]] || 0) >= cost, actionType: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cityId, devType } }));
+  rows.push({ id: 'infrastructure', label: `Infrastructure (level ${city.currentInfrastructure || 0}, supply ${getSupplyCapacity(city.currentInfrastructure)})`, description: 'Raises supply capacity and output', costs: ACTION_COSTS.buildInfrastructure, enabled: (city.currentInfrastructure || 0) < 10 && canAfford(state.resources, ACTION_COSTS.buildInfrastructure), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
+  rows.push({ id: 'defenses', label: `Defenses (level ${city.defenseLevel || 0})`, description: 'Strengthens the city against invasion', costs: ACTION_COSTS.buildDefenses, enabled: (city.defenseLevel || 0) < 10 && canAfford(state.resources, ACTION_COSTS.buildDefenses), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
+  if (ageId === 'modern') rows.push({ id: 'resilience', label: `Climate resilience (${city.climateResilience || 0}/${CLIMATE_RESILIENCE_MAX})`, description: 'Less exposure to weather and harvest disasters', costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
+  return { rows, deposits, totalDev: getTotalDev(city) };
 };

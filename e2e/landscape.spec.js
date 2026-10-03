@@ -55,12 +55,12 @@ test.describe('phone held sideways', () => {
     await expect(page.getByRole('button', { name: 'Open event log' })).toHaveCount(1);
 
     // A tab docks its panel beside the rail; the map keeps at least 40% of the width.
-    await click(rail.getByRole('button', { name: 'Domestic' }));
+    await click(rail.getByRole('button', { name: 'Empire' }));
     await expect(page.getByTestId('landscape-dock')).toBeVisible();
     const docked = await box(rail);
     expect(844 - docked.width).toBeGreaterThanOrEqual(844 * 0.4);
     // Tapping the open tab again closes it.
-    await click(rail.getByRole('button', { name: 'Domestic' }));
+    await click(rail.getByRole('button', { name: 'Empire' }));
     await expect(page.getByTestId('landscape-dock')).toHaveCount(0);
 
     // The log opens as a side panel from the rail.

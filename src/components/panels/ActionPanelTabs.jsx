@@ -1,5 +1,5 @@
 // src/components/panels/ActionPanelTabs.jsx
-// The Domestic/Military/Diplomacy/Tech/Space/Legacy tab row, split out of ActionPanel.jsx so
+// The Empire/Military/Diplomacy/Tech/Space/Legacy tab row, split out of ActionPanel.jsx so
 // App.jsx's mobile layout can position it independently of the panel content — pinned to the
 // bottom of the screen (thumb-reachable) instead of sitting above content, which requires
 // scrolling back up past the globe to reach after selecting a region. Desktop keeps the tabs
@@ -12,7 +12,7 @@ import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { TabButton } from '../ui';
 
 export const TABS = [
-  { id: 'domestic', label: 'Domestic', icon: Home },
+  { id: 'domestic', label: 'Empire', icon: Home },
   { id: 'military', label: 'Military', icon: Swords },
   { id: 'diplomacy', label: 'Diplomacy', icon: Flag },
   { id: 'tech', label: 'Tech', icon: Beaker },

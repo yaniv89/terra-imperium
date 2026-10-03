@@ -29,4 +29,24 @@ describe('army sheet model', () => {
     expect(armySheetModel(walking, cap.tile).route.turns).toBe(2);
     expect(armySheetModel(s, 0)).toBeNull();
   });
+  it('shows promotions once a unit has earned a rank and the free generals to assign', () => {
+    const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const cap = s.regions[getNationCapital('fr')];
+    const id = stackOn(s, cap.tile)[0].id;
+    const fresh = armySheetModel(s, cap.tile).groups[0].units.find((u) => u.id === id);
+    expect(fresh.rank).toBe('recruit');
+    expect(fresh.perks).toEqual([]);
+    const veteran = { ...s, units: { ...s.units, [id]: { ...s.units[id], xp: 60 } }, hiredCommanders: { g1: { id: 'g1', name: 'Ney', nationId: 'fr', personality: 'bold' } } };
+    const m = armySheetModel(veteran, cap.tile);
+    const row = m.groups[0].units.find((u) => u.id === id);
+    expect(row.rank).toBe('regular');
+    expect(row.perks.length).toBeGreaterThan(0);
+    expect(m.generals).toEqual([{ id: 'g1', name: 'Ney' }]);
+    const promoted = gameReducer(veteran, { type: ActionTypes.PROMOTE_UNIT, payload: { unitId: id, perkId: row.perks[0].id } });
+    expect(armySheetModel(promoted, cap.tile).groups[0].units.find((u) => u.id === id).perks).toEqual([]);
+    const led = gameReducer(veteran, { type: ActionTypes.APPOINT_GENERAL, payload: { generalId: 'g1', unitId: id } });
+    const ledModel = armySheetModel(led, cap.tile);
+    expect(ledModel.groups[0].units.find((u) => u.id === id).general).toBe('Ney');
+    expect(ledModel.generals).toEqual([]);
+  });
 });
