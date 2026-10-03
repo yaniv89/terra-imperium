@@ -9,7 +9,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 
 const engine = { gameReducer, resolveTurn, assertGameState, ActionTypes };
 const fresh = seed => ({
-  ...createInitialState({ playerNationId: 'fr', rngSeed: seed }),
+  ...createInitialState({ playerNationId: 'au', rngSeed: seed }), // Australia: a passive France is besieged and taken within 30 turns (sieges conclude now)
   firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id => [id, true])),
   proceduralEventCooldown: 999999,
   battleSettings: { defaultMode: 'ask', autoDefend: true }

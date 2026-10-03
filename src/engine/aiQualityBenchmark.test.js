@@ -9,7 +9,8 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { getNationCapital } from '../data/regions';
 import { advanceCampaign } from '../../scripts/simulate.mjs';
 const engine={resolveTurn,gameReducer,ActionTypes,assertGameState};
-const fresh=(seed=7)=>({...createInitialState({playerNationId:'fr',rngSeed:seed}),firedEvents:Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id=>[id,true])),proceduralEventCooldown:999999,battleSettings:{autoDefend:true}});
+// Australia: a passive one-city player with neighbours (France) is besieged and taken within 30 turns now that sieges conclude (sieges.js), which ends these passive runs in a defeat.
+const fresh=(seed=7,playerNationId='au')=>({...createInitialState({playerNationId,rngSeed:seed}),firedEvents:Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map(id=>[id,true])),proceduralEventCooldown:999999,battleSettings:{autoDefend:true}});
 const run=(s,count)=>{for(let i=0;i<count;i++){s=advanceCampaign(engine,s);if(s.gameStatus!=='ACTIVE')break;}return s;};
 describe('AI correctness scenarios',()=>{
   it.each([7,4242,2026])('advances actual turns and preserves invariants for seed %i',seed=>{
@@ -18,7 +19,7 @@ describe('AI correctness scenarios',()=>{
     expect(Math.max(...Object.values(counts))/Object.keys(s.regions).length).toBeLessThan(.4);
   },30000);
   it('recruits a counter to a cavalry-heavy neighboring player',()=>{
-    let s=fresh();s.nations.de={...s.nations.de,doctrine:'isolationist',hostility:0,economy:{gold:10000,hr:10000,mil:1000,adm:0,dip:0,techPoints:0}};
+    let s=fresh(7,'fr');s.nations.de={...s.nations.de,doctrine:'isolationist',hostility:0,economy:{gold:10000,hr:10000,mil:1000,adm:0,dip:0,techPoints:0}};
     for(let i=0;i<6;i++)s.units['c'+i]={id:'c'+i,ownerId:'fr',regionId:getNationCapital('fr'),domain:'land',classId:'cavalry',strength:1000,maxStrength:1000,morale:100,movesLeft:1,promotions:[]};
     s=run(s,20);const army=Object.values(s.units).filter(u=>u.ownerId==='de');
     expect(army.length).toBeGreaterThan(0);expect(army.filter(u=>u.classId==='infantry').length/army.length).toBeGreaterThanOrEqual(.5);

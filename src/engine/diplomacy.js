@@ -455,7 +455,9 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
           const playerGarrisoned = targetRegion.owner === state.playerNationId && getGarrison(state, currentWar.goal.regionId).length > 0;
           // Within the player's sight (sight.js) an AI-against-AI city is taken by real sieges and
           // assaults (aiOperations.js, threat.js); the dice decide only out of sight.
-          const inSight = targetRegion.owner !== state.playerNationId && targetRegion.tile != null && canSeeTile(state, targetRegion.tile, state.playerNationId);
+          // `state.simAllInSight` (the balance sim's dice calibration, never set in play) treats every
+          // city as seen, so the whole world resolves by real sieges and the dice stay off.
+          const inSight = targetRegion.owner !== state.playerNationId && targetRegion.tile != null && (state.simAllInSight || canSeeTile(state, targetRegion.tile, state.playerNationId));
           const chance = inSight ? 0 : AI_CAPTURE_BASE_CHANCE * aggressorShare * (state.difficultyMultiplier || 1) * (playerGarrisoned ? PLAYER_DEFENDED_CAPTURE_MULT : 1);
           if (playerGarrisoned && rng.next() < chance) {
             const seed = Math.floor(rng.next() * 0xffffffff) >>> 0;

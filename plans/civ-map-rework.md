@@ -1369,8 +1369,8 @@ tests, 16 skipped). What it settled and what it found:
   world every capital borders its neighbours' capitals, so the old rule kept every AI on the
   defensive). Troops aboard a ship never join a land attack (they walked off with the flag set).
 - **Open balance items for workstream 13.** A passive player with neighbours loses its only city
-  by turn 42 (every bordering capital is a Tier-1 attacker, and one city is the whole nation):
-  the long-run harness plays Australia for now. The space-race affordability test is skipped
+  by turn 29 now that sieges conclude (every bordering capital is a Tier-1 attacker, and one
+  city is the whole nation): the long-run harness and the campaign audits play Australia. The space-race affordability test is skipped
   until yields are calibrated per age. Western Europe is saturated at Dawn (no free tile touches
   Paris), which matters for settlers (workstream 4).
 
@@ -1918,6 +1918,23 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**D6, the dice calibrated against the real sim (2026-10-03).** A probe ran 150 turns on three
+seeds twice, once as played and once with `state.simAllInSight` (a sim-only flag in
+diplomacy.js that treats every city as seen, so the dice stay off everywhere): the two runs
+were identical to the city. The out-of-sight capture roll (AI_CAPTURE_BASE_CHANCE) only runs
+for an aggressor WITHOUT an economy, and every AI nation has one, so in play every AI war
+already resolves by real sieges and assaults (aiOperations.js); the roll serves legacy fixtures
+only. The real finding was that sieges never concluded: one besieging unit did
+SIEGE_STRENGTH_OTHER 3 a turn against 480 to 520 HP with WALL_REGEN 5 from a palisade, so 264
+siege-turns on seed 7 took one city. SIEGE_STRENGTH_OTHER is now 15 and SIEGE_STRENGTH_SIEGE
+40 (a one-unit siege of a palisaded Dawn city takes about 50 turns, three units about 13,
+encirclement half that). Balance sim over 150 turns (seed 3, base against working tree): wars
+15 to 19, cities changing hands 10 to 25 (of about 950), conquests 1 to 4, flips 8 to 17,
+audit 0, turn time 263 to 274 ms. Part H asks for 20 to 40 wars per 150 turns and 1 to 3% of
+cities changing hands per 10 turns, about ten times today's rate: reaching it means more AI
+wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
+waits for the user's word.
+
 **AI building templates and raids on the player's routes (2026-10-03).** An AI city's queue now
 builds its lines in its nation's doctrine order (`buildingOrder`: DOCTRINE_BUILDING_PRIORITY
 first, the rest after; aiProduction.js), so a blitz nation raises barracks before granaries and
@@ -1925,7 +1942,7 @@ a cautious one walls first. In the war loop (aiOperations.js) a stack at war wit
 that has no city goal in reach (no front, or its route search failed) marches to the nearest
 tile of the player's land trade routes within AI_RAID_RINGS (8) (`nearestRouteTile`,
 plunder.js `playerRouteTiles`); standing on it cuts the route and takes PLUNDER_GOLD each turn.
-Tests in aiProduction.test.js and aiOperations.test.js. Still open in D6: the dice calibration.
+Tests in aiProduction.test.js and aiOperations.test.js. The dice calibration followed (next entry).
 
 **E7, the deployment zone drawn (2026-10-03).** `src/battle/render/deployZone.js` lists dots
 along the player's zone edge (ZONE_DOT_STEP 0.5 tiles) and `BattleRenderer.setDeployZone` lays
