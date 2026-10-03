@@ -1,0 +1,103 @@
+{
+  "file": "kingdoms-town-small-a-easteurope.glb",
+  "kind": "town",
+  "bytes": 2860808,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 10950,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 4.023,
+          "depth": 4.059,
+          "height": 1.502,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 3310,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 4.023,
+          "depth": 4.059,
+          "height": 1.436,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 622,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.372,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.059
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "kingdoms-town-small-a-easteurope_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 708696
+    },
+    {
+      "name": "kingdoms-town-small-a-easteurope_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 655982
+    },
+    {
+      "name": "kingdoms-town-small-a-easteurope_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 460552
+    }
+  ],
+  "passed": true
+}

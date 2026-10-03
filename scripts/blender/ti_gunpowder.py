@@ -706,7 +706,7 @@ def windmill(ms, x, y, top, yaw=0, r=0.2, sail_angle=45):
     hy = -bd / 2 - 0.04
     ms.cyl('timber', 0.026, 0.022, 0.05, at=(0, -bd / 2 + 0.01, zh), rot=(90, 0, 0), segs=8, lod=1, frame=f)
     c = abs(math.cos(math.radians(sail_angle)))
-    L = min((top - zh - 0.005) / c, (zh - G - 0.03) / c)
+    L = min((top - zh - 0.005) / c, (zh - G - 0.02) / (c + 0.16))  # the lower sails' lattice stays above ground
     for k in range(4):
         a = sail_angle + 90 * k
         sf = f @ _t(0, hy, zh) @ Matrix.Rotation(math.radians(a), 4, 'Y')
