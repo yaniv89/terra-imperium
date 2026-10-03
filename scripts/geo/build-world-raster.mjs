@@ -31,7 +31,7 @@ const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const W = 4096; const H = 2048;
 
 // ---- climate colours (sRGB, low elevation) ---------------------------------------------------
-const CLIMATE_COLOR = {
+export const CLIMATE_COLOR = {
   Af: [36, 88, 40], Am: [44, 96, 44], Aw: [108, 128, 56], As: [118, 132, 62],
   BWh: [218, 190, 134], BWk: [200, 182, 142], BSh: [176, 162, 98], BSk: [162, 152, 104],
   Cfa: [84, 130, 60], Cwa: [92, 132, 60], Cfb: [78, 124, 66], Cfc: [92, 122, 86], Cwb: [86, 126, 70], Cwc: [96, 120, 86],
@@ -42,7 +42,7 @@ const CLIMATE_COLOR = {
 };
 const DEFAULT_LAND = [120, 130, 90];
 
-const climateColorGrid = () => {
+export const climateColorGrid = () => {
   const lookup = KoppenLookup.getInstance();
   const cols = 720; const rows = 360;
   const grid = new Uint8Array(cols * rows * 3);
