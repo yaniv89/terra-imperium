@@ -1,6 +1,6 @@
-# Plan: Origins (5000 BCE) and the Future (to 2300 CE), a nine-age Terra Imperium
+# Plan: Origins (5000 BCE) and the Future (to 2500 CE), a nine-age Terra Imperium
 
-Date: 2026-10-03. Status: proposal for review, nothing implemented yet.
+Date: 2026-10-03. Status: approved with the decisions in section 17; Phase 0 in progress.
 Builds on `plans/civ-map-rework.md` (map, cities, research web C3, era goals C9.3, pacing I2) and
 `plans/playtest-1.md` P3 (the speed table).
 
@@ -21,7 +21,7 @@ ages carved out of today's Modern Age (one of them the Future you asked for).
 | 6 | Age of Gunpowder (`gunpowder`) | 1500 to 1900 | Reach. Oceans, colonies, standing armies |
 | 7 | Modern Age (`modern`) CHANGED | 1900 to 1990 | Industrialise. Oil, tanks, flight, the atom |
 | 8 | **Information Age** (`information`) NEW | 1990 to 2100 | **Connect.** Networks, precision weapons, drones, climate |
-| 9 | **Future Age** (`future`) NEW | 2100 to 2300 | **Ascend.** Fusion, orbit, exo-armies, the space victory |
+| 9 | **Future Age** (`future`) NEW | 2100 to 2500 | **Ascend.** Fusion, orbit, exo-armies then robot armies, the space victory |
 
 Why two ancient ages and not one:
 - 5000 to 2000 BCE is 3,000 years, longer than Bronze plus Classical together. One age would
@@ -36,11 +36,12 @@ Why a Future age **and** an Information age:
 - Today the Modern Age is 400 years at 1 year a turn. At Normal speed that is about 400 of the
   920 turns, **43% of the whole game in one age** with one unit roster. That is the biggest
   pacing problem in the timeline, and it exists today, before any new content.
-- Splitting it into Modern (1900-1990), Information (1990-2100) and Future (2100-2300) gives the
+- Splitting it into Modern (1900-1990), Information (1990-2100) and Future (2100-2500) gives the
   late game three rosters and three sets of goals, and the Future age finally gives a home to
   things that are bolted on today: helium-3, the Fusion Grid action (types.js notes there is no
   Future building line for it), space missions, satellites, the space victory.
-- The game ends at 2300 as today, so the total turn count stays about the same (section 2).
+- The game now ends at 2500 (decision 3). The Future runs at 3 years a turn, so the total turn
+  count still stays about the same as today (section 2).
 
 This mirrors Civilization VI's nine eras (Ancient to Future) closely enough that players will
 read the structure without explanation.
@@ -50,7 +51,7 @@ read the structure without explanation.
 | | Option | New content | Trade-offs |
 |---|---|---|---|
 | **1 (recommended)** | Nine ages as above | +4 ages: 40 techs, about 28 units, about 30 building tiers, 12 wonders, art for each | The full vision. Biggest content and art bill, done in phases (section 16), each phase shippable on its own |
-| 2 | Seven ages: one "Dawn Age" 5000-2000 BCE, one Future age 2100-2300 (Modern stays 1900-2100) | +2 ages | Half the content. The Dawn age is muddy (hunters and Sargon in one roster) and Modern stays long (200 turns at Normal) |
+| 2 | Seven ages: one "Dawn Age" 5000-2000 BCE, one Future age 2100-2500 (Modern stays 1900-2100) | +2 ages | Half the content. The Dawn age is muddy (hunters and Sargon in one roster) and Modern stays long (200 turns at Normal) |
 | 3 | Six ages: one ancient age, future techs folded into Modern | +1 age | Cheapest. Fixes nothing at the late end; the Modern age gets even longer in feel |
 
 Everything below assumes Option 1. Options 2 and 3 are subsets of it, so Phase 0 (the
@@ -121,19 +122,21 @@ From a survey of the codebase on 2026-10-03:
 
 | Speed | Neo | Cities | Bronze | Classical | Kingdoms | Gunpowder | Modern | Information | Future | Turns |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Fast | 100 | 60 | 50 | 25 | 12 | 5 | 2 | 2 | 4 | about 430 |
-| Normal | 60 | 30 | 25 | 12 | 6 | 2 | 1 | 1 | 2 | about 890 |
-| Marathon | 25 | 15 | 10 | 5 | 3 | 1 | 1 | 1 | 1 | about 1,660 |
+| Fast | 100 | 60 | 50 | 25 | 12 | 5 | 2 | 2 | 6 | about 445 |
+| Normal | 60 | 30 | 25 | 12 | 6 | 2 | 1 | 1 | 3 | about 930 |
+| Marathon | 25 | 15 | 10 | 5 | 3 | 1 | 1 | 1 | 2 | about 1,670 |
 
 Turns per age at Normal: Neolithic about 28, Age of Cities about 43, Bronze 48, Classical 108,
-Kingdoms 167, Gunpowder 200, Modern 90, Information 110, Future 100.
+Kingdoms 167, Gunpowder 200, Modern 90, Information 110, Future 133.
 
-- The ancient ages add about 70 turns at Normal; the Modern split removes about 100. A full game
-  stays about 900 turns, so the existing balance targets per age keep their meaning.
-- The Future runs at 2 years a turn: fewer, weightier turns, where a fusion plant or an orbital
-  station is a multi-turn project, and the endgame does not drag.
+- The ancient ages add about 70 turns at Normal; the Modern split and the 400-year Future
+  together take about 67 turns off today's 400 Modern turns. A full game stays about 930 turns,
+  so the existing balance targets per age keep their meaning.
+- The Future runs at 3 years a turn: fewer, weightier turns, where a fusion plant or an orbital
+  station is a multi-turn project, and the extra two centuries do not drag.
+- `END_YEAR` becomes 2500.
 - REFERENCE_YEARS (the balance anchor for speedCostMult) gets `neolithic: 80, copper: 50` and
-  `information: 2, future: 4`. Calibrated with the balance-sim skill, not guessed (section 15).
+  `information: 2, future: 6`. Calibrated with the balance-sim skill, not guessed (section 15).
 - Starting at Dawn (2000 BCE) stays possible, so a player who wants today's game loses nothing.
 
 ### 2.2 The year display
@@ -210,27 +213,98 @@ and Yangtze rivers and a few more, and hunter-gatherers nearly everywhere else.
 
 - The start screen gets a **Start** picker: **Origins (5000 BCE)**, **Dawn (2000 BCE)**, and the
   later starts that already exist in scenarios.js (Classical, Kingdoms, Gunpowder, Modern),
-  plus **Information (1990)** later. Default: Origins once Phase 2 ships, Dawn until then.
+  plus **Information (1990)** later. **Default: Origins** (decision 1) once Phase 2 ships, Dawn
+  until then.
 - `createInitialState` takes the year and age from the scenario (today it ignores them).
 - Later starts grant the techs of every earlier age (a "historical package" per culture group,
   so a 1500 CE Japan does not start with Colonial Trade).
 
-### 3.5 Historical names (optional, high delight)
+### 3.5 Historical names: the ancient empires (decision 2: yes)
 
-A nation's display name and its city names can follow the age. New data file
-`src/data/historicalNames.js`, keyed by nation id then age, falling back to the modern name:
+A nation's display name follows the age, so the map reads like the ancient world: Sumer and
+Kemet, the Hittites, the Kingdom of Israel, Rome, Han China. New data file
+`src/data/historicalNames.js`, keyed by nation id then age id, falling back to the modern name.
+The modern name is always shown in small text underneath (in the nation sheet, the diplomacy
+list and the tooltip) so nobody gets lost, and a setting turns historical names off.
 
-| Nation | Neolithic | Age of Cities | Bronze | Classical | Kingdoms |
+Rules:
+- Names change at the **nation's** age (its effective age), not the calendar, so a nation that
+  races ahead gets its next name early.
+- Only the Neolithic, Age of Cities, Bronze, Classical and Kingdoms ages get historical names.
+  From Gunpowder on, the modern name is used (with a few famous exceptions listed below, for
+  example the Ottomans), because by then most modern countries already existed in some form.
+- A player who conquers or unifies a famous capital does **not** take its name; names belong to
+  nations, not to tiles. An event can still offer "Proclaim yourself the heir of Rome" (+prestige)
+  to whoever holds Rome, Constantinople, Babylon or Jerusalem with high loyalty.
+- City names: the capital (and a few famous second cities) also gets an ancient name per age
+  (Ur, Memphis, Hattusa, Jerusalem, Babylon, Nineveh, Mohenjo-daro, Anyang). Extra cities use the
+  culture-group name lists that cityNames.js already has.
+- Nations without a famous ancient state use a people name by region in the Neolithic and Age
+  of Cities ("the Danubian peoples", "the Bantu peoples", "the Jomon"), then the modern name.
+
+The table for the main ancient empires (about 60 nations, hand-written; the rest come from the
+region rule above). `il` is the Kingdom of Israel, as you asked:
+
+| Nation (id) | Neolithic | Age of Cities | Bronze | Classical | Kingdoms |
 |---|---|---|---|---|---|
-| iq | Ubaid peoples | Sumer | Babylon | Babylonia (Persian/Seleucid) | Abbasid realm |
-| eg | Badari peoples | Kemet | Egypt | Ptolemaic Egypt | Egypt |
-| ir | Zagros peoples | Elam | Elam | Persia | Persia |
-| gr | Sesklo peoples | Aegean villages | Mycenae | Hellas | Byzantium (Greek) |
-| cn | Yangshao | Longshan | Shang | Han | Tang/Song |
+| Israel (il) | Ghassulian peoples | Canaan | **Kingdom of Israel** | **Kingdom of Judah**, then Judea | Israel |
+| Palestine (ps) | Ghassulian peoples | Canaan | Philistia | Philistia | Palestine |
+| Lebanon (lb) | Byblos villages | Byblos | Phoenicia | Phoenicia | Lebanon |
+| Syria (sy) | Halaf peoples | Ebla | Mitanni | Aram | Syria |
+| Jordan (jo) | Levantine villages | Canaan | Moab | Nabataea | Jordan |
+| Iraq (iq) | Ubaid peoples | **Sumer**, then Akkad | **Babylon** | Assyria, then Babylonia | Abbasid Caliphate |
+| Iran (ir) | Zagros peoples | **Elam** | Elam | **Persia** (Achaemenid) | Persia |
+| Turkey (tr) | Çatalhöyük peoples | Anatolian cities | **Hittite Empire** | Lydia | Seljuk Sultanate |
+| Egypt (eg) | Badari peoples | **Kemet** | **Egypt** (New Kingdom) | Ptolemaic Egypt | Egypt |
+| Sudan (sd) | Nile peoples | Ta-Seti | **Kush** | Meroë | Makuria |
+| Ethiopia (et) | Highland peoples | Punt | D'mt | **Aksum** | Abyssinia |
+| Yemen (ye) | Arabian peoples | Arabian peoples | Saba | **Saba** | Yemen |
+| Saudi Arabia (sa) | Arabian peoples | Arabian peoples | Dilmun | Nabataea | Arabia |
+| Bahrain (bh) | Gulf peoples | **Dilmun** | Dilmun | Tylos | Bahrain |
+| Oman (om) | Gulf peoples | **Magan** | Magan | Oman | Oman |
+| Armenia (am) | Shulaveri peoples | Kura-Araxes | Urartu | Armenia | Armenia |
+| Georgia (ge) | Shulaveri peoples | Kura-Araxes | Colchis | Iberia (Kartli) | Georgia |
+| Greece (gr) | Sesklo peoples | Aegean villages | **Mycenae** | **Hellas** | Byzantine Empire |
+| Cyprus (cy) | Khirokitia peoples | Alashiya | Alashiya | Cyprus | Cyprus |
+| Italy (it) | Italic villages | Remedello peoples | Villanovans | **Rome** | Italy |
+| Tunisia (tn) | Capsian peoples | Libyan peoples | Libyan peoples | **Carthage** | Ifriqiya |
+| Libya (ly) | Saharan peoples | Libyan peoples | Libu | Cyrenaica | Libya |
+| Morocco (ma) | Maghrebi peoples | Maghrebi peoples | Mauri | Mauretania | Morocco |
+| Spain (es) | Iberian villages | Los Millares | Tartessos | Hispania | Al-Andalus |
+| France (fr) | Carnac peoples | Megalith builders | Celts | Gaul | Francia |
+| United Kingdom (gb) | Stonehenge builders | Beaker peoples | Britons | Britannia | England |
+| Germany (de) | Danubian peoples | Corded Ware peoples | Germanic tribes | Germania | Holy Roman Empire |
+| Denmark (dk) | Ertebølle peoples | Funnelbeaker peoples | Nordic Bronze Age | Jutes and Danes | Denmark |
+| Ukraine (ua) | Cucuteni-Trypillia | Yamnaya | Cimmerians | Scythia | Kievan Rus' |
+| Russia (ru) | Forest peoples | Yamnaya | Sintashta | Sarmatia | Kievan Rus', then Muscovy |
+| Kazakhstan (kz) | Botai peoples | Botai | Andronovo | Saka | Kazakh Khanate |
+| Mongolia (mn) | Steppe peoples | Afanasievo | Steppe peoples | **Xiongnu** | **Mongol Empire** |
+| Afghanistan (af) | Mountain peoples | Mundigak | Bactria | Bactria | Ghurids |
+| Uzbekistan (uz) | Steppe peoples | Oxus peoples | Oxus civilisation | Sogdia | Khwarazm |
+| Pakistan (pk) | Mehrgarh peoples | **Harappa** | Harappa | Gandhara | Delhi Sultanate |
+| India (in) | Ganges peoples | Indus peoples | Vedic kingdoms | **Maurya Empire**, then Gupta | Chola |
+| Sri Lanka (lk) | Balangoda peoples | Island peoples | Tambapanni | Anuradhapura | Polonnaruwa |
+| China (cn) | Yangshao | Longshan | **Shang** | **Han** (Qin first) | Tang, then Song |
+| Korea (kr) | Jeulmun peoples | Jeulmun peoples | Gojoseon | Goguryeo | Goryeo |
+| Japan (jp) | Jōmon | Jōmon | Jōmon | Yayoi, then Yamato | Japan |
+| Vietnam (vn) | Hoabinhian peoples | Phung Nguyen | Văn Lang | Âu Lạc | Đại Việt |
+| Cambodia (kh) | Mekong peoples | Mekong peoples | Mekong peoples | Funan | **Khmer Empire** |
+| Indonesia (id) | Island peoples | Austronesians | Austronesians | Srivijaya | Majapahit |
+| Mexico (mx) | Archaic peoples | Archaic peoples | **Olmec** | Teotihuacan | **Aztec Empire** |
+| Guatemala (gt) | Archaic peoples | Archaic peoples | Early Maya | **Maya** | Maya |
+| Peru (pe) | Andean peoples | **Caral** (Norte Chico) | Chavín | Moche | **Inca Empire** |
+| Bolivia (bo) | Andean peoples | Andean peoples | Chiripa | Tiwanaku | Tiwanaku |
+| Nigeria (ng) | Forest peoples | Forest peoples | Nok | **Nok** | Ife, then Benin |
+| Mali (ml) | Saharan peoples | Saharan peoples | Tichitt | Djenné-Djenno | **Mali Empire** |
+| Mauritania (mr) | Saharan peoples | Saharan peoples | Tichitt | Tichitt | **Ghana Empire** |
+| Zimbabwe (zw) | San peoples | San peoples | Bantu peoples | Bantu peoples | **Great Zimbabwe** |
 
-Generated for the cradle nations by hand (about 40), the rest by culture group ("the
-Danubian peoples", "the Bantu peoples"), always with the modern name in small text underneath so
-nobody is lost. Toggle in settings. This is a content pass, not engine work.
+The exact ids and spellings are checked against `geo/countries-meta.json` when the file is
+written; any nation missing from this table falls back to the region rule. A few post-Kingdoms
+exceptions keep a historical name in the Gunpowder age: Ottoman Empire (tr), Mughal Empire (in),
+Safavid Persia (ir), Qing China (cn), Tsardom of Russia (ru).
+
+Names are data only: no mechanics read them, so they never affect saves or balance.
 
 ### 3.6 The world of 5000 BCE (climate)
 
@@ -288,8 +362,7 @@ just with renamed units.
 
 ### 4.3 Bronze to Gunpowder
 
-Unchanged, except: tin as an optional second Bronze resource (6.3), and every age table now
-comes from the registry.
+Unchanged, except that every age table now comes from the registry.
 
 ### 4.4 Modern Age (1900 to 1990): industrialise
 
@@ -315,7 +388,7 @@ Information age.
 5. **Drones**: the air class splits into fighters and drones (6.1); drones are cheap, fragile,
    and do not need an airbase in range.
 
-### 4.6 Future Age (2100 to 2300): ascend
+### 4.6 Future Age (2100 to 2500): ascend
 
 1. **Fusion**: a new **Energy** building line (8.1) ends with the Fusion Reactor, which needs
    helium-3 and removes oil dependence for the city (oil starvation no longer applies there).
@@ -330,9 +403,42 @@ Information age.
    riots). A real trade-off and the Future age's politics.
 4. **Future Tech**: after the last Future tech, a repeatable "Future Tech N" that adds score and
    a small science bonus, as in Civ, so research never stops mattering.
-5. **Sea level rise** (optional, late): if the carbon meter ends high, a few low coastal tiles
-   become marsh then sea between 2150 and 2300. Visible, dramatic, but touches tileOwner and
-   cities, so it is the last thing in the plan and can be cut.
+5. **Robot armies** (decision 5), see 4.7.
+6. **Sea level rise**: deferred (decision 4). Not in this plan.
+
+### 4.7 Robot armies (the second half of the Future)
+
+The Future age is now 400 years long, so it gets two military halves instead of one:
+
+- **2100 to about 2300: exo-armies.** Human soldiers in powered suits (the roster in 6.1).
+- **About 2300 to 2500: robot armies.** Two Future techs past the base tree, **Autonomous
+  Warfare** (military) and **Machine Consciousness** (science, needs Artificial Intelligence and
+  Quantum Computing), turn every land and air class into its robotic version (table in 6.1).
+  This is a **roster variant**: the unit keeps its class, promotions and place in the army, and
+  its name, model, stats and rules change, just like units already upgrade when an age changes.
+  Technically a `variant: { requiresTech, ... }` entry on the Future roster.
+
+What makes robots play differently (real trade-offs, not only bigger numbers):
+- **No manpower**: robots cost no HR to build or replace. They cost rare metals and helium-3,
+  and +40% production. A small nation can field a big army, so manpower stops being the limit
+  and industry takes its place.
+- **Never rout**: morale does not apply. They fight to the last hit point, so battles against
+  them are bloodier and longer.
+- **Vulnerable to EMP and cyber**: EMP stuns robots for twice as long as vehicles, and the Cyber
+  Jam power can also **turn one robot squad against its own side for 5 seconds** (a new power,
+  **Hijack**, Information-age cyber tech plus Machine Consciousness).
+- **No occupation**: robots cannot capture or hold cities on their own; a city taken by an
+  army without at least one human (exo-infantry or support) unit gets -2 loyalty a turn. That
+  keeps a reason to keep humans in the army.
+- **The Synthetics estate** gains +10 influence for every 10 robot units. If its loyalty falls
+  below 20, the "Machine Uprising" event chain can turn some robot units into a rebel army
+  (the same civil-war machinery that civilWar.js uses). High risk, high reward.
+- **Diplomacy**: the Planetary Council can vote on "Autonomous Weapons Ban" (no new robot units
+  for 50 years for signers); breaking it is a big opinion hit.
+
+Robot battlefield behaviour: perfect formation (no straggling), steady fire rate, sparks and
+smoke instead of blood, a red sensor glow in the nation colour, a mechanical death animation
+(collapse and power-down).
 
 ---
 
@@ -417,7 +523,10 @@ Information age.
 | Information | Genomics (moved) | **Artificial Intelligence** |
 | Future | **Quantum Computing** | **Synthetic Biology** |
 
-Plus the repeatable **Future Tech** after Synthetic Biology and Planetary Federation.
+Plus two late Future techs past the base tree, **Autonomous Warfare** (military, needs Powered
+Exoskeletons and Artificial Intelligence) and **Machine Consciousness** (science, needs Quantum
+Computing), which unlock the robot armies (4.7) and are not counted for the tech-age threshold,
+and the repeatable **Future Tech** after them.
 
 A known compromise: Irrigation Canals (really about 6000 BCE) stays in the Bronze Age, because
 moving it would leave a Bronze slot empty and its name gates plantations. The Age of Cities gets
@@ -527,6 +636,20 @@ facts (marked *):
 | **Information** | Mechanized Infantry (moved) | **Main Battle Tanks** | ATGM Teams (moved) | **Rocket Artillery** | **Missile Cruiser** | **SAM Battery** | **Drones** + **Stealth Fighters** |
 | **Future** | **Exo-Infantry** | **Hover Tanks** | **Railgun Teams** | **Plasma Artillery** | **Railgun Cruiser** | **Shield Projector** | **Drone Swarm** |
 
+**Robotic variants (late Future, after Autonomous Warfare, section 4.7)**
+
+| Class | Robotic unit | Notes |
+|---|---|---|
+| Infantry | **Combat Androids** | humanoid, steady, no morale |
+| Cavalry | **Mech Walkers** | four-legged assault walkers, ignore rough terrain |
+| Ranged | **Sentinel Drones** (ground) | tracked gun platforms, long range |
+| Siege | **Siege Automatons** | walking artillery, splash |
+| Support | **Repair Swarm** | heals robots in range instead of a supply aura; shield like the Shield Projector |
+| Air | **Autonomous Hunter-Killers** | fast, many, fragile |
+| Naval | **Autonomous Warships** | crewless, no morale |
+
+Robot power is Future power +8 (72), cost +40% production, zero manpower.
+
 Notes:
 - Existing unit names that move keep their names; "Mechanized Infantry" and "ATGM Teams" now
   appear in the Information age where they belong, and Modern gets 20th-century names.
@@ -558,7 +681,7 @@ Notes:
 |---|---|---|---|
 | (none) | Neolithic | | stone weapons need nothing |
 | Copper | Age of Cities (moved from Bronze) | deposits.js | recruits, Copper Mine |
-| Tin (optional) | Bronze | new deposits: Cornwall, Iberia, Bohemia, Afghanistan, Malaya, Yunnan | bronze recruits need copper **or** tin traded in: the first long-distance trade dependency |
+| Tin | deferred (decision 4) | | not in this plan |
 | Horses | Neolithic (revealed by Animal Husbandry) | tile resource | cavalry from the Bronze Age needs a horse tile or a trade pact with someone who has one |
 | Iron | Classical | as today | |
 | Coal | Gunpowder | tile resource (exists) | Factory and Coal Plant |
@@ -567,8 +690,7 @@ Notes:
 | Rare metals | Information (moved from space missions to tile deposits) | new deposits | tanks, drones, Tech Hub |
 | Helium-3 | Future | Lunar Base | Fusion Reactor, Future recruits |
 
-Tin is the most historically interesting and the most expensive to do well (trade routes must
-carry it). Recommended as a Phase 4 stretch, after the base ages ship.
+Tin is deferred (decision 4).
 
 ### 6.4 Fleets
 
@@ -621,7 +743,7 @@ carry it). Recommended as a Phase 4 stretch, after the base ages ship.
 | Gunpowder | as today (Artillery Barrage) |
 | Modern | Artillery Barrage, Air Strike, Nuclear Strike (needs uranium and Nuclear Physics) |
 | Information | Air Strike, Missiles, Satellite Sweep, **Cyber Jam** (enemy orders delayed 3 seconds), **Drone Strike** |
-| Future | **Orbital Strike** (big splash, long cooldown), **EMP** (vehicles and air stop for 5 seconds), Satellite Sweep |
+| Future | **Orbital Strike** (big splash, long cooldown), **EMP** (vehicles and air stop for 5 seconds, robots for 10), Satellite Sweep, **Hijack** (late Future: one enemy robot squad fights for you for 5 seconds) |
 
 ### 7.3 Battlefields
 
@@ -884,7 +1006,6 @@ today), each with a choice:
   Future ages on the globe (city glow by size), cheap and very readable.
 - Future age: a thin orbital ring around the globe once the first Orbital Station exists, and a
   small Moon marker for the Lunar Base. Pure presentation, high delight.
-- Optional: sea level rise (4.6) if built.
 
 ### 13.4 UI theming
 - **Age icons**: `plans/art-image-spec.md` asks for five; make nine (hand axe, copper ingot or
@@ -923,8 +1044,8 @@ today), each with a choice:
     `eraGoalProgress` and set from balance-sim)
   (The Neolithic war goal counts won raids, since cities cannot be taken yet.)
 - The last age gets scored at game end (2.3).
-- **Victory**: Space Ascendancy needs the Mars Colony (Future); the other victories are
-  unchanged. Score adds Future Tech x 15 like any tech.
+- **Victory**: Space Ascendancy needs the Mars Colony (Future); the score ending moves to 2500;
+  the other victories are unchanged. Score adds Future Tech x 15 like any tech.
 - **Achievements**: "First Farmer" (Agriculture first in the world), "Cradle of Civilisation"
   (first city of size 8), "Scribe" (first to Proto-Writing), "Ascended" (space victory).
 - A test (`endgameReachability.test.js` exists) proves every victory is still reachable.
@@ -950,7 +1071,8 @@ somewhere else.
 | ms per turn (PERF_CHECKS=1) | within the 80 ms budget, measured against the base commit on the same machine |
 
 Plus for the late game: Information age carbon meter crosses the first threshold around 2030
-in a typical game, the space victory is reachable by about 2250 for a leading nation, and the
+in a typical game, the space victory is reachable by about 2350 for a leading nation, robot
+armies appear around 2300, and the
 Future age has at least 3 nations at war at any time in a 240-nation game.
 
 ### 15.2 Tests
@@ -986,8 +1108,11 @@ Future age has at least 3 nations at war at any time in a 240-nation game.
 | **1. Age of Cities** | The `copper` age 3300-2000 BCE: 10 techs, roster, buildings, 3 wonders, governments, Unify, Border Stele, events; start scenario "Cities (3300 BCE)"; procedural art; save v9 | A new opening age | 3 to 4 sessions |
 | **2. Neolithic and Origins** | The `neolithic` age: Bands, hearths, forage, tribal camps, raids, contact, Green Sahara; Origins becomes the default start | The 5000 BCE game | 3 to 4 sessions |
 | **3. Information split** | Modern 1900-1990 and Information 1990-2100: moved techs and units, 10 new techs, carbon meter, cyber, World Congress, drones | The late game feels like three ages | 3 sessions |
-| **4. Future** | Future 2100-2300: techs, roster, shields and new powers in the sim, Energy and Space lines, Synthetics, Planetary Council, Future Tech, Mars Colony | The ending | 3 to 4 sessions |
-| **5. Art and polish** | GLB/recipe models for the new units, town models, wonder models, age icons and banners, audio families, historical names, tin, sea level rise (optional) | Looks and sounds finished | ongoing, can run in parallel from Phase 1 |
+| **4. Future** | Future 2100-2500 and END_YEAR 2500: techs, roster, shields and new powers in the sim, Energy and Space lines, Synthetics, Planetary Council, Future Tech, Mars Colony, then the robot armies (4.7) | The ending | 4 to 5 sessions |
+| **5. Art and polish** | GLB/recipe models for the new units and robots, town models, wonder models, age icons and banners, audio families | Looks and sounds finished | ongoing, can run in parallel from Phase 1 |
+
+Historical names (3.5) ship with the phase whose age they name: Age of Cities, Bronze and
+Classical names in Phase 1, Neolithic names in Phase 2, Kingdoms names with them.
 
 Why this order: Phase 0 is mandatory for any option and risk-free when the compare is identical.
 The ancient ages come before the future because **every** game plays the opening and only long
@@ -997,17 +1122,14 @@ the band start on top of it.
 
 ---
 
-## 17. Open questions for you
+## 17. Decisions (from the user, 2026-10-03)
 
-1. **Default start**: once Origins ships, should new games start at 5000 BCE by default, or
-   stay at Dawn with Origins as a choice? (I lean Origins default, Dawn one tap away.)
-2. **Historical names** (3.5): do you want Sumer and Kemet on the map in the ancient ages, or
-   keep the modern country names throughout?
-3. **End year**: keep 2300, or push the Future to 2500 for a longer endgame? (Recommend 2300.)
-4. **Tin** (6.3) and **sea level rise** (4.6): in or out? Both are the most expensive per unit
-   of fun; I would leave both for after Phase 4.
-5. **Synthetics estate** and **Technocracy / Corporate State**: comfortable with that flavour of
-   future, or would you rather keep the future closer to today's politics?
+1. **Default start: Origins (5000 BCE).** Dawn and the later starts stay in the Start picker.
+2. **Historical names: yes, the ancient empires**, including the Kingdom of Israel (3.5).
+3. **End year: extended to 2500.** The Future age runs 2100 to 2500 at 3 years a turn (Normal).
+4. **Tin and sea level rise: left out** of this plan.
+5. **Future flavour: yes** (Synthetics estate, Technocracy, Corporate State), **plus robotic
+   army units** (4.7).
 
 ---
 
