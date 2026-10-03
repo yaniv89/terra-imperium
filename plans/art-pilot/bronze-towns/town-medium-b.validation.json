@@ -1,7 +1,7 @@
 {
   "file": "town-medium-b.glb",
   "kind": "town",
-  "bytes": 4601852,
+  "bytes": 4327292,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -34,7 +34,7 @@
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 8190,
+          "triangles": 4670,
           "materials": [
             "Ground",
             "Team",

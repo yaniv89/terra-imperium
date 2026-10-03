@@ -1,7 +1,7 @@
 {
   "file": "town-small-b.glb",
   "kind": "town",
-  "bytes": 2886960,
+  "bytes": 2747196,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -34,14 +34,14 @@
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 4268,
+          "triangles": 2476,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
           "width": 3.975,
-          "depth": 3.836,
+          "depth": 3.838,
           "height": 1.6,
           "min_height": 0
         },

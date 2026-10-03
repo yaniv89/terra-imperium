@@ -21,7 +21,8 @@ describe('artist town models', () => {
     expect(townAssetUrl('bronze', 'small', 1)).toMatch(/bronze-town-small-b/);
     expect(townAssetUrl('bronze', 'medium', 0)).toMatch(/bronze-town-medium-a/);
     expect(townAssetUrl('bronze', 'medium', 1)).toMatch(/bronze-town-medium-b/);
-    expect(townAssetUrl('bronze', 'big')).toBeNull();
+    expect(townAssetUrl('bronze', 'big', 0)).toMatch(/bronze-town-big-a/);
+    expect(townAssetUrl('bronze', 'big', 1)).toMatch(/bronze-town-big-b/);
     // the land's tradition wins over the seed: Egypt builds the Nile town, Iraq the Mesopotamian
     expect(townAssetUrl('bronze', 'small', 0, 'eg')).toMatch(/bronze-town-small-b/);
     expect(townAssetUrl('bronze', 'medium', 1, 'iq')).toMatch(/bronze-town-medium-a/);
@@ -72,6 +73,7 @@ describe('artist town models', () => {
     expect(palaceFor('small')).toBe('palace-small');
     expect(palaceFor('medium')).toBe('palace');
     expect(palaceFor('big')).toBe('palace');
+    expect(sharedAssetUrl('bronze')).toMatch(/shared-bronze/);
     expect(sharedAssetUrl('modern')).toBeNull();
   });
 });
