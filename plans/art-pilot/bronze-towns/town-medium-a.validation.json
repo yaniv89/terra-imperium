@@ -1,7 +1,7 @@
 {
-  "file": "town-small-a.glb",
+  "file": "town-medium-a.glb",
   "kind": "town",
-  "bytes": 2624356,
+  "bytes": 4523612,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,42 +19,42 @@
     "file_size": true
   },
   "objects": {
-    "town-small-a": {
+    "town-medium-a": {
       "lods": {
         "LOD0": {
-          "triangles": 11520,
+          "triangles": 29164,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 3.975,
-          "depth": 3.706,
-          "height": 2.08,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 2.4,
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 3996,
+          "triangles": 7852,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 3.975,
-          "depth": 3.706,
-          "height": 2.08,
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 2.4,
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 1094,
+          "triangles": 838,
           "materials": [
             "Ground",
             "Town"
           ],
-          "width": 3.975,
-          "depth": 3.706,
-          "height": 1.602,
-          "min_height": 0
+          "width": 5.923,
+          "depth": 5.599,
+          "height": 1.962,
+          "min_height": 0.012
         }
       },
       "children": [
@@ -64,7 +64,7 @@
       ],
       "missing_lods": [],
       "over_budget": [],
-      "footprint": 3.975
+      "footprint": 5.923
     }
   },
   "materials": [
@@ -75,31 +75,31 @@
   "reserved_word_names": [],
   "images": [
     {
-      "name": "town-small-a_normal",
+      "name": "town-medium-a_normal",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 194516
+      "bytes": 107866
     },
     {
-      "name": "town-small-a_base",
+      "name": "town-medium-a_base",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 603496
+      "bytes": 718318
     },
     {
-      "name": "town-small-a_orm",
+      "name": "town-medium-a_orm",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 681474
+      "bytes": 1087590
     }
   ],
   "passed": true
