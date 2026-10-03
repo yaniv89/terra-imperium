@@ -217,6 +217,7 @@ const GameLayout = () => {
         onResolve={resolveEvent}
         resources={state.resources}
         placeName={state.activeProceduralEvent?.cityId ? state.regions[state.activeProceduralEvent.cityId]?.name || null : null}
+        cityId={state.activeProceduralEvent?.cityId || null}
       />
 
       {/* Game Over screen - overlays everything once the run ends */}

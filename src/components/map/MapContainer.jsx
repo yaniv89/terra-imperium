@@ -47,7 +47,7 @@ import ArmySheet from './ArmySheet';
 import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
-import { SELECT_ARMY, SELECT_TILE, SELECT_NATION } from './marchEvents';
+import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION } from './marchEvents';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -88,8 +88,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     const onArmy = (e) => { setSelectedArmy(e.detail); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
     const onTile = (e) => { setSelectedTile(e.detail); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
     const onNation = (e) => { setSelectedNation(e.detail); setSelectedTile(null); setSelectedArmy(null); setManageOpen(false); selectRegion(null); };
-    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation);
-    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); };
+    const onFocus = (e) => setEventFocus(e.detail || null);
+    window.addEventListener(SELECT_ARMY, onArmy); window.addEventListener(SELECT_TILE, onTile); window.addEventListener(SELECT_NATION, onNation); window.addEventListener(FOCUS_REGION, onFocus);
+    return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); window.removeEventListener(FOCUS_REGION, onFocus); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // the tile of one of your armies: its sheet (ArmySheet.jsx)
   const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
@@ -99,6 +100,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [eventFocus, setEventFocus] = useState(null); // the event sheet's city (marchEvents.js focusRegion)
   const isMobile = useIsMobile();
   const [viewportBounds, setViewportBounds] = useState(null);
   const [navigateTarget, setNavigateTarget] = useState(null);
@@ -108,7 +110,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const marchFrom = marchCtx?.march?.from;
   useEffect(() => { if (marchFrom) { setManageOpen(false); selectRegion(null); } }, [marchFrom, selectRegion]);
   const playerCapitalId = getNationCapital(state.playerNationId);
-  const focusRegionId = manageOpen ? selectedRegion : null;
+  const focusRegionId = manageOpen ? selectedRegion : eventFocus;
   const handleMiniMapNavigate = (lat, lng) => setNavigateTarget({ lat, lng });
 
   const handleModeChange = (next) => {

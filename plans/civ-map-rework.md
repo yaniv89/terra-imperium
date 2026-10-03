@@ -1935,6 +1935,14 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**C9, the event sheet beside the map (2026-10-03).** The event modal no longer dims the whole
+screen: `EventModal.jsx` is a sheet docked on the right on a wide screen and a bottom sheet
+on a phone (capped at 60vh), the map live behind it. An event pinned to a city centres the map
+on that city while the sheet is open (`focusRegion`, a window event MapContainer listens to,
+released on close) and marks it with an amber exclamation (`getMapMarkers` events,
+`eventBannerHtml`). End Turn still waits for the choice. Tests in mapMarkers.test.js; the
+playability e2e answers an event through the same amber-bordered sheet.
+
 **C9, wonders drawn on the map (2026-10-03).** A wonder that has a tile (rising or complete)
 is a marker on both maps (`getMapMarkers` wonders, `wonderBannerHtml`): a monument on a plinth
 in the owner's colour with a pip per tier, yours always, a foreign one in sight or with intel
