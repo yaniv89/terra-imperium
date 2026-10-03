@@ -7,7 +7,7 @@
 // The camera is orthographic in screen pixels, so a model sits exactly over its province as the
 // map pans; models are tilted toward the viewer for a three-quarter look. Loaded lazily: three.js
 // only arrives the first time the player zooms this close.
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   WebGLRenderer, Scene, OrthographicCamera, HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, InstancedMesh,
   InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color
@@ -20,6 +20,7 @@ import { getMapMarkers } from '../../../utils/mapMarkers';
 import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
+import { townAssetUrl, loadTownAsset, instanceTownAsset, showLod, lodForZoom } from './townAssets';
 import { ARMY_SPOT, unitPx } from './scale';
 
 // The tilt that shows roofs (radians about the screen x axis).
@@ -40,6 +41,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
   const { state } = useGame();
   const canvasRef = useRef(null);
   const three = useRef(null);
+  const [assetsTick, setAssetsTick] = useState(0); // bumps when an artist town file finishes loading
 
   // One renderer for the life of the map.
   useEffect(() => {
@@ -60,7 +62,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     scene.add(sun);
     const townMaterial = new MeshLambertMaterial({ vertexColors: true });
     const soldierMaterial = createSoldierMaterial();
-    three.current = { renderer, scene, camera, townMaterial, soldierMaterial, towns: new Map(), layers: new Map(), dirty: true, moving: false };
+    three.current = { renderer, scene, camera, townMaterial, soldierMaterial, towns: new Map(), layers: new Map(), assets: new Map(), dirty: true, moving: false };
     return () => {
       const t = three.current;
       t.towns.forEach((m) => scene.remove(m));
@@ -103,17 +105,28 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       const owner = region.owner || region.colony?.ownerId;
       const tier = region.owner ? townTier(region) : { id: 'small' };
       const opts = { ageId: ageOf(state, owner), walls: (region.buildings?.categories?.defense ?? -1) >= 0, capital: state.nations[owner]?.capitalRegionId === id };
-      const key = `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
+      // An artist model for this age and size replaces the procedural town once its file is in.
+      const assetUrl = townAssetUrl(opts.ageId, tier.id, [...id].reduce((h, c) => h + c.charCodeAt(0), 0));
+      const asset = assetUrl ? t.assets.get(assetUrl) : null;
+      if (assetUrl && !t.assets.has(assetUrl)) {
+        t.assets.set(assetUrl, null);
+        loadTownAsset(assetUrl).then((root) => { t.assets.set(assetUrl, root); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('town model failed, keeping the procedural town:', e.message); });
+      }
+      const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
+      const key = asset ? `${id}|asset|${assetUrl}|${teamColor}` : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
       let mesh = t.towns.get(id);
       if (!mesh || mesh.userData.key !== key) {
         if (mesh) scene.remove(mesh);
-        mesh = new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
+        mesh = asset ? instanceTownAsset(asset, teamColor) : new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
         mesh.userData.key = key;
+        mesh.userData.asset = !!asset;
         mesh.frustumCulled = false;
         t.towns.set(id, mesh);
         scene.add(mesh);
       }
+      if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
       mesh.scale.setScalar(s);
@@ -174,7 +187,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     t.layers.forEach((l) => { l.mesh.instanceMatrix.needsUpdate = true; l.mesh.instanceColor.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true; });
     t.moving = moving;
     t.dirty = true;
-  }, [active, projection, transform, width, height, state, markers]);
+  }, [active, projection, transform, width, height, state, markers, assetsTick]);
 
   // Draw: every frame while soldiers walk, otherwise only after a change.
   useEffect(() => {
