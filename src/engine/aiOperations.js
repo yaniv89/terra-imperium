@@ -1,4 +1,5 @@
 import { gameReducer } from './gameReducer';
+import { getResearched } from './nationState';
 import { ActionTypes } from '../data/types';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
 import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } from './colonies';
@@ -207,7 +208,7 @@ export const processAIOperations = (state, rng) => {
         if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue; // searched lately, nothing found
         const path = findTilePath(actor, at, target, nationId, { maxSteps: AI_MARCH_STEPS });
         if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
-        const pace = stackPace(stack);
+        const pace = stackPace(stack, getResearched(state, nationId));
         stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
         marching = true;
       }

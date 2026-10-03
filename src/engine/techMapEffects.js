@@ -5,7 +5,7 @@
 import { TECH_MAP_EFFECTS } from '../data/techMapEffects';
 import { getResearched } from './nationState';
 
-const EMPTY = Object.freeze({ sight: 0, navalMoves: 0, deepOcean: 0, borderRing: 0, tileCostMult: 0, granaryKeep: 0, claimRange: 0, governorRings: 0, stackCap: 0, supplyMax: 0, lineRings: 0, hillsCost: 0, mountainCost: 0, roadCost: 0 });
+const EMPTY = Object.freeze({ sight: 0, navalMoves: 0, deepOcean: 0, borderRing: 0, tileCostMult: 0, granaryKeep: 0, claimRange: 0, governorRings: 0, stackCap: 0, supplyMax: 0, lineRings: 0, hillsCost: 0, mountainCost: 0, roadCost: 0, movePoints: 0 });
 const memo = new WeakMap();
 
 /** The summed effects of a researched list: { sight, navalMoves, ... }. */

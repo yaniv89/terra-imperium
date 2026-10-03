@@ -98,7 +98,7 @@ export const planMarch = (state, fromId, target, unitIds = null, { naval = false
   const found = naval ? (to == null ? { reason: 'Unknown place.' } : findSeaPath(state, from, to, state.playerNationId)) : findRoute(state, from, target);
   if (!found.path) return { ok: false, reason: found.reason };
   const steps = found.path.slice(1);
-  const pace = naval ? units.reduce((m, u) => Math.min(m, fleetPace(state, u)), Infinity) : stackPace(units);
+  const pace = naval ? units.reduce((m, u) => Math.min(m, fleetPace(state, u)), Infinity) : stackPace(units, getResearched(state, units[0]?.ownerId));
   const stepTurns = naval ? steps.map((_, i) => Math.floor(i / pace) + 1) : scheduleSteps(state, from, steps, pace);
   const turns = stepTurns[stepTurns.length - 1];
   const me = state.playerNationId;

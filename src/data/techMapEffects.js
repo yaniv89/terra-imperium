@@ -18,6 +18,7 @@
 //   hillsCost      movement points added or removed on hills (armies.js)
 //   mountainCost   the same on mountains
 //   roadCost       added to the movement cost of a road tile (negative: faster)
+//   movePoints     +movement points a turn for land armies (armies.js movePoints; not settlers or aircraft)
 // Each entry's `label` is the line the research sheet shows.
 export const TECH_MAP_EFFECTS = {
   military_bronze_casting: { label: 'Armies see one tile further', sight: 1 },
@@ -25,7 +26,7 @@ export const TECH_MAP_EFFECTS = {
   military_feudal_levies: { label: 'Stacks hold two more units', stackCap: 2 },
   military_plate_armor: { label: 'Supply meter +20', supplyMax: 20 },
   military_standing_armies: { label: 'Supply lines reach two tiles further', lineRings: 2 },
-  military_mechanized_warfare: { label: 'Roads are crossed at a third of the cost', roadCost: -0.15 },
+  military_mechanized_warfare: { label: 'Roads at a third of the cost; land armies move two tiles further a turn', roadCost: -0.15, movePoints: 2 },
   economy_granary_storage: { label: 'A quarter of the food stays when a city grows', granaryKeep: 0.25 },
   economy_silk_road_trade: { label: 'Tiles cost 10% less culture to claim', tileCostMult: -0.1 },
   economy_banking_houses: { label: 'Fleets sail one tile further a turn', navalMoves: 1 },
@@ -35,7 +36,7 @@ export const TECH_MAP_EFFECTS = {
   infrastructure_paved_roads: { label: 'Roads are crossed faster', roadCost: -0.1 },
   infrastructure_postal_relay: { label: 'Supply lines reach two tiles further', lineRings: 2 },
   infrastructure_turnpike_roads: { label: 'Roads are crossed faster', roadCost: -0.1 },
-  infrastructure_highway_systems: { label: 'Mountains cost two movement points less', mountainCost: -2 },
+  infrastructure_highway_systems: { label: 'Mountains cost two movement points less, hills none', mountainCost: -2, hillsCost: -1 },
   governance_scribal_bureaucracy: { label: 'Claims reach one tile further', claimRange: 1 },
   governance_provincial_administration: { label: 'Borders may reach one ring further', borderRing: 1 },
   governance_royal_chancery: { label: 'A governor spans two more rings', governorRings: 2 },

@@ -49,9 +49,10 @@ const HARSH_TERRAIN = new Set(['mountains', 'desert', 'arctic']);
 const MAX_SEARCH = 8000;
 const KM_PER_RING = 170; // a safe upper bound of the grid spacing, for the A* heuristic
 
-export const movePoints = (unit) => (MOVE_POINTS[unit.classId] ?? DEFAULT_MOVE_POINTS) + (hasPerk(unit, 'forcedMarch') ? 1 : 0);
+// `researched`: the owner's techs (Mechanized Warfare moves land armies further; techMapEffects.js).
+export const movePoints = (unit, researched = []) => (MOVE_POINTS[unit.classId] ?? DEFAULT_MOVE_POINTS) + (hasPerk(unit, 'forcedMarch') ? 1 : 0) + (unit.domain !== 'naval' && unit.classId !== 'settler' && unit.classId !== 'air' ? mapEffectsOf(researched).movePoints : 0);
 // The pace of a stack: its slowest unit.
-export const stackPace = (units) => units.reduce((m, u) => Math.min(m, movePoints(u)), Infinity);
+export const stackPace = (units, researched = []) => units.reduce((m, u) => Math.min(m, movePoints(u, researched)), Infinity);
 
 /** Land an army may stand on at all. */
 export const passableTile = (tiles, tile) => tile != null && tile >= 0 && tiles.land[tile] === 1 && tiles.terrainOf(tile) !== 'snow' && tiles.featureOf(tile) !== 'ice';

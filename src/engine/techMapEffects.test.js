@@ -61,4 +61,16 @@ describe('tech map effects', () => {
     expect(claimRange(withTechs(['governance_scribal_bureaucracy']), 'fr')).toBe(CLAIM_RANGE_RINGS + 1);
     expect(stackCap(tiles, cap.tile, 2)).toBe(stackCap(tiles, cap.tile) + 2);
   });
+  it('Mechanized Warfare moves land armies two tiles further a turn, not settlers or aircraft (plan D5b)', async () => {
+    const { movePoints, stackPace, MOVE_POINTS } = await import('./armies');
+    const mech = ['military_mechanized_warfare'];
+    const inf = { classId: 'infantry', domain: 'land' }; const settler = { classId: 'settler', domain: 'land' }; const jet = { classId: 'air', domain: 'land' };
+    expect(movePoints(inf)).toBe(MOVE_POINTS.infantry);
+    expect(movePoints(inf, mech)).toBe(MOVE_POINTS.infantry + 2);
+    expect(movePoints(settler, mech)).toBe(MOVE_POINTS.settler);
+    expect(movePoints(jet, mech)).toBe(MOVE_POINTS.air);
+    expect(stackPace([inf, { classId: 'cavalry', domain: 'land' }], mech)).toBe(MOVE_POINTS.infantry + 2);
+    const { mapEffectsOf } = await import('./techMapEffects');
+    expect(mapEffectsOf(['infrastructure_highway_systems'])).toMatchObject({ mountainCost: -2, hillsCost: -1 });
+  });
 });

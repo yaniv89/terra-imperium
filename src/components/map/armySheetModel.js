@@ -8,7 +8,7 @@ import { getUnitDefinition, UNIT_CLASSES } from '../../data/unitClasses';
 import { unitTile, movePoints } from '../../engine/armies';
 import { supplyOf, supplyZone, SUPPLY_MAX } from '../../engine/supplyMeter';
 import { routeDestination, placeName } from '../../engine/routes';
-import { getTechAgeId } from '../../engine/nationState';
+import { getTechAgeId, getResearched } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
 
 import { pillageTile } from '../../engine/threat';
@@ -38,6 +38,7 @@ export const armySheetModel = (state, tile) => {
   if (!units.length) return null;
   const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, state.playerNationId));
   const max = SUPPLY_MAX + mapEffectsFor(state, state.playerNationId).supplyMax;
+  const researched = getResearched(state, state.playerNationId);
   const rows = units.map((u) => ({
     id: u.id,
     name: getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId,
@@ -47,7 +48,7 @@ export const armySheetModel = (state, tile) => {
     strength: u.strength, maxStrength: u.maxStrength || u.strength,
     morale: u.morale ?? 100,
     supply: supplyOf(u, max), supplyMax: max,
-    moves: u.movesLeft ?? 0, movePoints: movePoints(u),
+    moves: u.movesLeft ?? 0, movePoints: movePoints(u, researched),
     general: u.commanderId ? state.hiredCommanders?.[u.commanderId]?.name || null : null,
     promotions: (u.promotions || []).length,
     rank: getRankForXp(u.xp || 0),
