@@ -18,10 +18,11 @@ import { REGIONS_DATA } from '../../data/regions';
 import { getRegionTerrain } from '../../data/terrain';
 import { UNIT_CLASSES } from '../../data/unitClasses';
 import { ACTION_COSTS } from '../../data/actionCosts';
-import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds } from '../../engine/battleOdds';
+import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { scoutsEstimate } from './battleReportView';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { validateFieldAttack } from '../../engine/fieldBattle';
+import { validateFleetAttack } from '../../engine/navalBattle';
 import { legacyTerrainOf } from '../../engine/world/registry';
 import { getTiles } from '../../data/geo/tiles';
 import { describeAttackBlock } from '../../utils/attackAvailability';
@@ -60,30 +61,33 @@ const ArmyColumn = ({ title, tone, army, hidden }) => (
   </div>
 );
 
-// With `tile` it's a field battle (fieldBattle.js) against the enemy stack on that tile.
-const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = null, tile = null, onClose }) => {
+// With `tile` it's a field battle (fieldBattle.js) against the enemy stack on that tile; with
+// `fromTile` too it's a sea battle (navalBattle.js) between the fleets on the two tiles.
+const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = null, tile = null, fromTile = null, onClose }) => {
   const { state, dispatch, addLog } = useGame();
   const { triggerEffect } = useEffects();
   const landing = !!navalUnitId;
+  const fleet = tile != null && fromTile != null;
   const field = tile != null;
   const origin = landing ? state.units[navalUnitId]?.regionId : fromRegionId;
   const preferred = state.battleSettings?.defaultMode === 'command' ? 'command' : state.battleSettings?.defaultMode === 'auto' ? 'auto' : null;
   const [prefer, setPrefer] = useState(false);
 
   const v = landing ? validateAmphibious(state, navalUnitId, targetRegionId)
+    : fleet ? validateFleetAttack(state, fromTile, tile)
     : field ? validateFieldAttack(state, fromRegionId, tile)
     : validateInvasion(state, fromRegionId, targetRegionId);
   const blockedReason = describeAttackBlock(v);
-  const odds = useMemo(() => v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : field ? estimateFieldOdds(state, fromRegionId, tile, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)) : null,
-    [state, landing, field, tile, navalUnitId, fromRegionId, targetRegionId, v.ok]);
-  const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : ACTION_COSTS.launchInvasion);
+  const odds = useMemo(() => v.ok ? (landing ? estimateLandingOdds(state, navalUnitId, targetRegionId, 200) : fleet ? estimateFleetOdds(state, fromTile, tile, 200) : field ? estimateFieldOdds(state, fromRegionId, tile, 200) : estimateInvasionOdds(state, fromRegionId, targetRegionId, 200)) : null,
+    [state, landing, fleet, field, tile, fromTile, navalUnitId, fromRegionId, targetRegionId, v.ok]);
+  const affordable = canAfford(state.resources, landing ? ACTION_COSTS.amphibiousAssault : fleet ? ACTION_COSTS.navalEngagement : ACTION_COSTS.launchInvasion);
   // An enemy fleet off the beach must be fought at sea first, which is always auto-resolved.
   const blockedAtSea = landing && Object.values(state.units).some((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
   // The enemy garrison and the odds computed from it are intelligence: no intel, no numbers.
   const hasIntel = field ? true : canSeeRegionDetails(state, targetRegionId);
 
   const region = field ? null : state.regions[targetRegionId];
-  const terrain = field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
+  const terrain = fleet ? 'open water' : field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
   const fortTier = field ? 0 : (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
   const mine = summarizeArmy(v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [], state.hiredCommanders);
   const theirs = summarizeArmy(v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [], state.hiredCommanders);
@@ -99,6 +103,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     if (landing) {
       triggerEffect('amphibious_assault', { from: origin, to: targetRegionId });
       dispatch({ type: ActionTypes.AMPHIBIOUS_ASSAULT, payload: { navalUnitId, targetRegionId } });
+    } else if (fleet) {
+      dispatch({ type: ActionTypes.ATTACK_FLEET, payload: { fromTile, tile } });
     } else if (field) {
       dispatch({ type: ActionTypes.ATTACK_ARMY, payload: { fromRegionId, tile } });
     } else {
@@ -113,7 +119,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
     remember('command');
     dispatch(landing
       ? { type: ActionTypes.BEGIN_AMPHIBIOUS_BATTLE, payload: { navalUnitId, targetRegionId } }
-      : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: field ? { fromRegionId, tile } : { fromRegionId, targetRegionId } });
+      : { type: ActionTypes.BEGIN_TACTICAL_BATTLE, payload: fleet ? { fromTile, tile, naval: true } : field ? { fromRegionId, tile } : { fromRegionId, targetRegionId } });
     onClose();
   };
   const ring = (mode) => (preferred === mode ? ' ring-2 ring-amber-300/70' : '');
@@ -123,8 +129,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
       <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-slate-200 shadow-2xl space-y-3" data-testid="pre-battle">
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-base font-bold text-white">{field ? `Attack the army near ${getTiles().names[tile] || REGIONS_DATA[origin]?.name || 'the field'}` : `${landing ? 'Land on' : 'Attack'} ${REGIONS_DATA[targetRegionId]?.name}`}</div>
-            <div className="text-xs text-slate-400">{landing ? 'by sea from' : 'from'} {REGIONS_DATA[origin]?.name} · {field ? `${enemyName}'s army` : `held by ${enemyName}`}</div>
+            <div className="text-base font-bold text-white">{fleet ? `Attack the fleet at sea` : field ? `Attack the army near ${getTiles().names[tile] || REGIONS_DATA[origin]?.name || 'the field'}` : `${landing ? 'Land on' : 'Attack'} ${REGIONS_DATA[targetRegionId]?.name}`}</div>
+            <div className="text-xs text-slate-400">{fleet ? `your fleet beside it · ${enemyName}'s fleet` : <>{landing ? 'by sea from' : 'from'} {REGIONS_DATA[origin]?.name} · {field ? `${enemyName}'s army` : `held by ${enemyName}`}</>}</div>
           </div>
           <button type="button" onClick={onClose} className="p-2 -m-2 text-slate-400" aria-label="Close"><X className="w-5 h-5" /></button>
         </div>

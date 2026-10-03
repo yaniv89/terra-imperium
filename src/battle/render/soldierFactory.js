@@ -224,7 +224,29 @@ const truck = (bodyColor = C.olive) => [
 
 // ---- the roster, one model per (age, class) ----------------------------------------------------
 
+// Ships (plans/civ-map-rework.md D5b): placeholder hulls until the art of plans/art-image-spec.md
+// arrives. A hull along z (the bow at +z), a mast or a superstructure, a team pennant or flag.
+const hull = (length, beam, color = C.wood) => [
+  part(box(beam, 0.22, length), color, { at: [0, 0.16, 0] }),
+  part(box(beam * 0.7, 0.12, length * 0.2), color, { at: [0, 0.2, length * 0.55], rot: [0.5, 0, 0] }), // the bow
+  part(box(beam * 0.85, 0.08, length * 0.9), C.darkWood, { at: [0, 0.3, 0] })
+];
+const mast = (height, z = 0, sail = true) => [
+  part(cyl(0.025, 0.035, height, 6), C.darkWood, { at: [0, height / 2 + 0.3, z] }),
+  ...(sail ? [part(box(0.9, height * 0.55, 0.02), C.cloth, { at: [0, height * 0.62, z] })] : []),
+  part(box(0.02, 0.12, 0.22), '#ffffff', { at: [0, height + 0.3, z + 0.11], team: 1 })
+];
+const oars = (length) => [-1, 1].flatMap((s) => [-0.3, -0.1, 0.1, 0.3].map((f) => part(box(0.5, 0.02, 0.03), C.wood, { at: [s * 0.55, 0.22, f * length], rot: [0, 0, s * 0.35] })));
+const SHIPS = {
+  bronze: () => [...hull(2.0, 0.55), ...oars(2.0), ...mast(1.0)],
+  classical: () => [...hull(2.4, 0.55), ...oars(2.4), ...mast(1.1), part(box(0.25, 0.12, 0.3), C.bronze, { at: [0, 0.18, 1.32] })], // the ram
+  kingdoms: () => [...hull(2.2, 0.8), part(box(0.7, 0.4, 0.5), C.wood, { at: [0, 0.5, -0.8] }), ...mast(1.4, 0.1)], // a stern castle
+  gunpowder: () => [...hull(2.8, 0.85, C.darkWood), ...mast(1.5, 0.6), ...mast(1.6, -0.1), ...mast(1.3, -0.8), ...[-1, 1].flatMap((s) => [-0.6, -0.2, 0.2, 0.6].map((z) => part(box(0.08, 0.08, 0.08), C.black, { at: [s * 0.45, 0.35, z] })))], // gun ports
+  modern: () => [...hull(3.2, 0.6, '#8b939c'), part(box(0.4, 0.4, 0.9), '#6e757d', { at: [0, 0.5, 0.2] }), part(cyl(0.03, 0.03, 0.8, 6), C.darkSteel, { at: [0, 0.9, 0.2] }), part(cyl(0.04, 0.05, 0.6, 6), C.darkSteel, { at: [0, 0.42, 1.0], rot: [Math.PI / 2, 0, 0] }), part(box(0.02, 0.12, 0.22), '#ffffff', { at: [0, 1.3, 0.31], team: 1 })]
+};
+
 const MODELS = {
+  naval: SHIPS,
   infantry: {
     bronze: () => [...person('bronze'), ...spear(1.35), ...roundShield()],
     classical: () => [...person('classical', { skin: 1 }), ...sword(), ...towerShield()],
@@ -377,7 +399,7 @@ export const disposeSoldierCache = () => {
 };
 
 // How big each model stands in the world (tiles), and how a squad lays them out.
-export const MODEL_SCALE = { infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege: 0.82, support: 0.82, air: 1.2 };
+export const MODEL_SCALE = { infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege: 0.82, support: 0.82, air: 1.2, naval: 1.6 };
 
 // ---- the animated material ---------------------------------------------------------------------
 

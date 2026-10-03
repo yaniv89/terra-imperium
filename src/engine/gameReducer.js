@@ -1478,7 +1478,28 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.BEGIN_TACTICAL_BATTLE: {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
-      const { fromRegionId, targetRegionId, tile = null } = action.payload;
+      const { fromRegionId, targetRegionId, tile = null, fromTile = null, naval = false } = action.payload;
+      if (naval) {
+        // A commanded sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
+        const nv = validateFleetAttack(state, fromTile, tile);
+        if (!nv.ok) return refuseAttack(state, nv.reason, state.world?.tileOwner?.[tile] ?? null);
+        const nrng = createRng(state.rngSeed);
+        const nseed = Math.floor(nrng.next() * 0xffffffff) >>> 0;
+        const ncounter = (state.battleCounter || 0) + 1;
+        const anchor = state.world?.tileOwner?.[tile] ?? regionForTile(state, tile, state.playerNationId, nv.fromRegionId);
+        return {
+          ...state,
+          resources: applyCosts(state.resources, ACTION_COSTS.navalEngagement),
+          rngSeed: nrng.getSeed(),
+          battleCounter: ncounter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${ncounter}`, kind: 'naval', fromRegionId: nv.fromRegionId, fromTile, tile, targetRegionId: anchor, warId: nv.war?.id ?? null,
+            attackerNationId: state.playerNationId, defenderNationId: nv.defenderNationId, seed: nseed, startedTurn: state.turnNumber, playerSide: 'attacker',
+            attackerUnitIds: nv.attackerUnits.map((u) => u.id), defenderUnitIds: nv.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+          },
+          logs: [...state.logs, { year: state.year, message: 'Your fleet gives battle at sea; you take command.', type: LogTypes.COMBAT }]
+        };
+      }
       if (tile != null) {
         // A commanded field battle (fieldBattle.js): the stack beside `tile` against the enemy on it.
         const fv = validateFieldAttack(state, fromRegionId, tile);
@@ -1551,6 +1572,13 @@ const reduceAction = (state, action) => {
       // If peace was signed while the battle was being fought, the battle has no consequences.
       const war = state.wars.find((w) => w.id === pb.warId && w.active);
       const cleared = { ...state, pendingBattle: null };
+      if (pb.kind === 'naval') {
+        const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        if (!nv.ok || (pb.warId && !war)) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
+        return applyFleetResult(cleared, vv, safe, { rngSeed: state.rngSeed });
+      }
       if (pb.kind === 'field') {
         const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!fv.ok || (pb.warId && !war)) return cleared;
@@ -1592,6 +1620,15 @@ const reduceAction = (state, action) => {
       if (!pb) return state;
       const cleared = { ...state, pendingBattle: null };
       if (pb.kind === 'defense') return resolveDefenseAuto(cleared, pb.defenseId);
+      if (pb.kind === 'naval') {
+        const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        if (!nv.ok) return cleared;
+        const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)) };
+        if (!vv.attackerUnits.length || !vv.defenderUnits.length) return cleared;
+        const nctx = getFleetBattleContext(cleared, vv);
+        const battle = resolveBattle({ ...getFleetResolveArgs(vv, nctx), rng: createRng(pb.seed) });
+        return applyFleetResult(cleared, vv, battle, { rngSeed: state.rngSeed });
+      }
       if (pb.kind === 'field') {
         const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!fv.ok) return cleared;

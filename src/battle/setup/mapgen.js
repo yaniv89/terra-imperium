@@ -154,8 +154,37 @@ const paintSectors = (tiles, heightNoise, forestNoise, w, h, ctx, rng) => {
 // `landing`: an amphibious assault (T9). The attacker's (west) edge becomes open sea with a sand
 // beach in front of it; the invaders deploy on the sand and fall back to their boats.
 export const LANDING_SEA_COLS = 5;
-export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null }) => {
+// `naval` (plans/civ-map-rework.md D5b): the field is open sea, passable everywhere (OPEN tiles
+// are water for ships), with a few rock islets and, where the sea tile's neighbours are land, a
+// coast of sand and rock in that sector. No roads, no keep tiles, no points.
+export const NAVAL_ISLET_SHARE = 0.025;
+const generateNavalMap = ({ w, h, tileContext, rng }) => {
+  const heightNoise = valueNoise(rng, w, h, 10);
+  const tiles = new Uint8Array(w * h);
+  const rockAt = quantileAbove(heightNoise, NAVAL_ISLET_SHARE);
+  for (let i = 0; i < w * h; i++) if (heightNoise[i] >= rockAt) tiles[i] = TILE.ROCK;
+  if (tileContext?.sectors?.length) {
+    const cx = (w - 1) / 2; const cy = (h - 1) / 2; const half = Math.hypot(cx, cy);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const d = Math.hypot(x - cx, cy - y) / half; if (d < SECTOR_INNER + 0.14) continue;
+      const s = sectorAt(tileContext.sectors, ((Math.atan2(cy - y, x - cx) * 180) / Math.PI + 360) % 360);
+      if (!s || s.water) continue;
+      tiles[y * w + x] = d >= SECTOR_INNER + 0.24 ? TILE.ROCK : TILE.SAND; // the shore: sand you can beach on, then land
+    }
+  }
+  const midY = Math.floor(h / 2);
+  const keep = { x: w - 14, y: midY }; // the defender's anchorage (an objective for the AI, no walls, nothing drawn)
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < 12; x++) tiles[y * w + x] = TILE.OPEN;
+  carveDisc(tiles, w, h, keep.x, keep.y, 9, TILE.OPEN);
+  if (!reachable(tiles, w, h, 6, midY, keep.x - 4, keep.y)) carveLine(tiles, w, h, 6, midY, keep.x - 4, keep.y, 1, TILE.OPEN, { onlyImpassable: true });
+  const height = new Int16Array(w * h);
+  for (let i = 0; i < w * h; i++) height[i] = tiles[i] === TILE.ROCK ? 40 : tiles[i] === TILE.SAND ? 4 : 0;
+  return { w, h, tiles, height, keep, points: [], landing: false, naval: true, attackerEdge: 1, attackerZone: { x0: 1, y0: 2, x1: 11, y1: h - 3 } };
+};
+
+export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null, naval = false }) => {
   const { w, h } = getMapSize(combatWidth);
+  if (naval) return generateNavalMap({ w, h, tileContext, rng: createRng(hashString(tileContext ? `sea:tile:${tileContext.tile}` : `sea:${regionId}`)) });
   const tpl = TEMPLATES[terrain] || TEMPLATES.mixed;
   // On the tile world the ground is the tile's: the same tile is always the same battlefield.
   const rng = createRng(hashString(tileContext ? `map:tile:${tileContext.tile}` : `map:${regionId}`));

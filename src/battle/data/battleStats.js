@@ -37,6 +37,48 @@ export const AGE_OVERRIDES = {
 
 export const getBattleStats = (classId, ageId) => ({ ...(CLASS_BASE[classId] || CLASS_BASE.infantry), ...(AGE_OVERRIDES[ageId]?.[classId] || {}) });
 
+// Ships in a sea battle (plans/civ-map-rework.md D5b), by naval line (navalLines.js) and age: a
+// squad is one ship. Oared and sailing ships ram and board (melee); gunpowder broadsides and
+// modern guns fire at range. A transport fights badly and a raider lightly through the line's
+// combat multiplier in battle.js, not here. Ships never capture anything.
+const SHIP = { minRange: 0, soldiers: 1, canCapture: false, ship: true };
+export const NAVAL_LINE_STATS = {
+  warship: {
+    bronze: { ...SHIP, speed: T(2.0), range: MELEE_REACH, sight: 8, attackTicks: S(1.2), melee: true, charge: true },
+    classical: { ...SHIP, speed: T(2.3), range: MELEE_REACH, sight: 8, attackTicks: S(1.1), melee: true, charge: true },
+    kingdoms: { ...SHIP, speed: T(2.0), range: 3 * Q, sight: 9, attackTicks: S(1.4), melee: false },
+    gunpowder: { ...SHIP, speed: T(2.4), range: 6 * Q, sight: 10, attackTicks: S(2.0), melee: false },
+    modern: { ...SHIP, speed: T(4.0), range: 10 * Q, sight: 12, attackTicks: S(1.6), melee: false }
+  },
+  transport: {
+    bronze: { ...SHIP, speed: T(1.8), range: MELEE_REACH, sight: 7, attackTicks: S(1.4), melee: true },
+    classical: { ...SHIP, speed: T(2.0), range: MELEE_REACH, sight: 7, attackTicks: S(1.4), melee: true },
+    kingdoms: { ...SHIP, speed: T(1.8), range: 2 * Q, sight: 8, attackTicks: S(1.6), melee: false },
+    gunpowder: { ...SHIP, speed: T(2.0), range: 4 * Q, sight: 8, attackTicks: S(2.4), melee: false },
+    modern: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 9, attackTicks: S(2.0), melee: false }
+  },
+  raider: {
+    bronze: { ...SHIP, speed: T(2.8), range: MELEE_REACH, sight: 10, attackTicks: S(1.1), melee: true, charge: true },
+    classical: { ...SHIP, speed: T(2.8), range: MELEE_REACH, sight: 10, attackTicks: S(1.1), melee: true, charge: true },
+    kingdoms: { ...SHIP, speed: T(2.6), range: 3 * Q, sight: 11, attackTicks: S(1.3), melee: false },
+    gunpowder: { ...SHIP, speed: T(3.0), range: 5 * Q, sight: 12, attackTicks: S(1.8), melee: false },
+    modern: { ...SHIP, speed: T(3.4), range: 8 * Q, sight: 13, attackTicks: S(2.2), melee: false }
+  },
+  carrier: {
+    modern: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false }
+  }
+};
+const AGE_ORDER = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
+/** The stats of a ship squad: its line's entry for the age, else the nearest earlier age's. */
+export const getNavalStats = (line, ageId) => {
+  const byAge = NAVAL_LINE_STATS[line] || NAVAL_LINE_STATS.warship;
+  const i = Math.max(0, AGE_ORDER.indexOf(ageId));
+  for (let k = i; k >= 0; k--) if (byAge[AGE_ORDER[k]]) return byAge[AGE_ORDER[k]];
+  return byAge[AGE_ORDER.find((a) => byAge[a])];
+};
+/** The stats of any strategic unit in a battle: a ship by its line, anything else by its class. */
+export const getUnitBattleStats = (unit, ageId) => (unit?.classId === 'naval' ? getNavalStats(unit.navalLine && NAVAL_LINE_STATS[unit.navalLine] ? unit.navalLine : 'warship', ageId) : getBattleStats(unit?.classId, ageId));
+
 export const getSquadDisplayName = (classId, ageId) => UNIT_ROSTER[ageId]?.[classId]?.name || classId;
 
 // How many soldiers to draw for a squad at a given strength (cosmetic only, never simulated).
