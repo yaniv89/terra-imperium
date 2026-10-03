@@ -20,11 +20,12 @@ import { conquerRegion } from './conquest';
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
-// Version 7 is the tile world (plans/civ-map-rework.md, decision 5: a clean break). A save from the
-// region map cannot be converted, so migrateSave returns null for anything older and the app
-// starts a fresh game while keeping the raw save untouched.
-export const CURRENT_SAVE_VERSION = 7;
-export const OLDEST_LOADABLE_SAVE_VERSION = 7;
+// Version 7 was the tile world (plans/civ-map-rework.md, decision 5: a clean break). Version 8 is
+// the frequency-75 grid: every tile id changed, so a version 7 save cannot be converted either.
+// migrateSave returns null for anything older and the app starts a fresh game while keeping the
+// raw save untouched.
+export const CURRENT_SAVE_VERSION = 8;
+export const OLDEST_LOADABLE_SAVE_VERSION = 8;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this

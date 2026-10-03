@@ -22,10 +22,14 @@ import {
 // The Dawn world gives France one city with no room beside it, so the fixture founds two French
 // cities on the nearest free land (the first borders a foreign capital, the second borders the
 // first) and the war comes from whoever owns that foreign neighbour.
+// On the frequency-75 grid Dawn capitals sit about 8 rings apart, so the foreign neighbour is
+// founded beside the first French city (REINFORCE_RINGS reach) rather than found among the
+// capitals the registry bridges.
 const WORLD = (() => {
   const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 1 }), 'fr');
-  const second = addCity(first.state, 'fr', { near: first.cityId });
-  const border = getNeighborIds(first.cityId).find((id) => second.state.regions[id].owner !== 'fr');
+  const foe = addCity(first.state, 'de', { near: first.cityId });
+  const second = addCity(foe.state, 'fr', { near: first.cityId });
+  const border = getNeighborIds(first.cityId).includes(foe.cityId) ? foe.cityId : getNeighborIds(first.cityId).find((id) => second.state.regions[id].owner !== 'fr');
   return { state: second.state, FR_BORDER: first.cityId, FR_BACK: second.cityId, BE_REGION: border, AGG: second.state.regions[border].owner };
 })();
 const { FR_BORDER, BE_REGION, AGG } = WORLD;

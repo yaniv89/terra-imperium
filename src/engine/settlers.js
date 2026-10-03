@@ -32,14 +32,14 @@ import { legacyTerrainOf } from './world/registry';
 import { isWarBetween } from './diplomacy';
 import { settlingBarred } from './accords';
 
-export const SETTLER_MOVES = 2;
+export const SETTLER_MOVES = 3;
 export const SETTLER_STRENGTH = 100;
 export const OUTPOST_DONE = 100;
 export const OUTPOST_PROGRESS = 14;
 export const OUTPOST_TERRAIN_FACTOR = { mountains: 0.4, desert: 0.4, arctic: 0.4, hills: 0.7, forest: 0.7 };
 export const OUTPOST_SLOTS_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunpowder: 4, modern: 4 };
-export const MAX_SETTLE_RINGS = 12;   // how far a settler is sent at most
-export const AI_SETTLE_RINGS = 8;     // how far the AI looks for a site
+export const MAX_SETTLE_RINGS = 17;   // how far a settler is sent at most
+export const AI_SETTLE_RINGS = 11;    // how far the AI looks for a site
 export const SITE_SCORE_MIN = 4;      // a site's quality (its yields, before distance) below this is not worth a city
 export const SETTLER_RETRY_TURNS = 5;   // an AI settler without a target looks again this often
 export const SETTLER_GIVE_UP_TURNS = 15; // and is disbanded after this long without one

@@ -12,7 +12,9 @@ import { siegeMaxHp } from '../../engine/sieges';
 const tiles = getTiles();
 const S = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
-const coastalCity = Object.values(S.regions).find((c) => tiles.neighbors[c.tile].some((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) !== 'lake') && tiles.neighbors[c.tile].some((n) => tiles.land[n] === 1));
+// A city with a wide sea beside it (three or more water neighbours) and some land: the sea
+// sector's water share is then clear-cut whichever bearing the sea takes.
+const coastalCity = Object.values(S.regions).find((c) => tiles.neighbors[c.tile].filter((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) !== 'lake').length >= 3 && tiles.neighbors[c.tile].some((n) => tiles.land[n] === 1));
 const riverTile = [...Array(tiles.count).keys()].find((t) => tiles.land[t] === 1 && tiles.neighbors[t].some((n) => tiles.land[n] === 1 && tiles.riverBetween(t, n)));
 
 const sectorCells = (map, bearing, inner = SECTOR_INNER + 0.05) => {

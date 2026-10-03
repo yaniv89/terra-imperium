@@ -18,7 +18,7 @@ import { landUnitsByTile } from './sieges';
 import { unitTile } from './armies';
 import { lawRulesOf } from './lawRules';
 
-export const THREAT_RINGS = 4;
+export const THREAT_RINGS = 6;
 export const THREAT_DEFEND_RATIO = 0.8;
 export const RELIEF_RATIO = 1.2;
 export const RAID_GOLD = 20;

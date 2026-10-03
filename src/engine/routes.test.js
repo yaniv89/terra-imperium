@@ -11,7 +11,7 @@ import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST } from './routes';
-import { ROAD_COST, RIVER_CROSSING, TILE_COST_MOUNTAINS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
+import { ROAD_COST, RIVER_CROSSING, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
 import { validateInvasion } from './invasion';
 import { addCity } from './testWorld';
 import { assertGameState } from './stateAudit';
@@ -69,9 +69,9 @@ describe('tile step costs', () => {
   });
 
   it('moves at the pace of the slowest unit, plus Forced March', () => {
-    expect(stackPace([unit('a', P), unit('b', P, { classId: 'cavalry' })])).toBe(2);
-    expect(stackPace([unit('a', P, { classId: 'cavalry', promotions: ['forcedMarch'] })])).toBe(5);
-    expect(stackPace([unit('a', P, { classId: 'siege' })])).toBe(1);
+    expect(stackPace([unit('a', P), unit('b', P, { classId: 'cavalry' })])).toBe(MOVE_POINTS.infantry);
+    expect(stackPace([unit('a', P, { classId: 'cavalry', promotions: ['forcedMarch'] })])).toBe(MOVE_POINTS.cavalry + 1);
+    expect(stackPace([unit('a', P, { classId: 'siege' })])).toBe(MOVE_POINTS.siege);
   });
 
   it('schedules the steps a turn by banked points', () => {

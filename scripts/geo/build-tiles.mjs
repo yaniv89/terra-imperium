@@ -1,7 +1,7 @@
 // scripts/geo/build-tiles.mjs
 // Builds the Civ-style world grid (plans/civ-map-rework.md, Part B and workstream 1):
-// src/data/geo/tiles.json, one record per cell of a frequency-53 geodesic grid (28,092 cells of
-// about 18,000 km²), with land/sea, country, elevation, climate, terrain, relief, feature, river
+// src/data/geo/tiles.json, one record per cell of a frequency-75 geodesic grid (56,252 cells of
+// about 9,100 km², hexes about 106 km across; frequency 53 and 150 km hexes until 2026-10-03), with land/sea, country, elevation, climate, terrain, relief, feature, river
 // edges, a place name and the 240 capitals, plus a preview PNG for eyeballing.
 //
 // Inputs (all regenerable, gitignored under scripts/geo/.raw/; see fetch-tiles-raw.mjs):
@@ -36,7 +36,7 @@ const RAW = path.join(__dirname, '.raw');
 const GEO = path.join(__dirname, '../../src/data/geo');
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
-export const FREQUENCY = 53;
+export const FREQUENCY = 75;
 export const GRID_VERSION = 1;
 
 // ---------------------------------------------------------------------------------------------

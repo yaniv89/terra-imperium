@@ -1935,6 +1935,28 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**B2, the grid at frequency 75 (2026-10-03).** The user's second call on city size: the geodesic
+grid is rebuilt at frequency 75 (`scripts/geo/build-tiles.mjs`, 56,252 cells, 16,523 land,
+hexes about 106 km across instead of 150; the raw inputs come from `npm run fetch:tiles`, the
+build is deterministic). Every tile id changed, so save version 8 is a clean break (version 7
+refused like the region map). Reach and movement scaled by about 1.4 so the world keeps its
+pace in kilometres: NEAR_RINGS 4, BRIDGE_RINGS 17, SUPPLY_LINE_RINGS 8, SUPPLY_BASE_RINGS 28,
+GOVERNOR_GROUP_RINGS 8, REINFORCE_RINGS 4, FALLBACK_RINGS 17, PRESSURE_RINGS 13,
+MAX_SETTLE_RINGS 17, AI_SETTLE_RINGS 11, THREAT_RINGS 6, CLAIM_RANGE_RINGS 7, AI_RAID_RINGS 11,
+AIR_RANGE 11, RAIDER_REACH_RINGS 3, SETTLED_NEAR_RINGS 6, TRADE_ROUTE_MAX_TILES 56,
+MAX_SEA_STEPS 170, MOVE_POINTS infantry 3 / cavalry 6 / siege 2 / settler 3 / air 6,
+NAVAL_MOVES_BY_AGE 4/6/7/8/11; city borders stay at two rings (three with both techs) and
+MIN_CITY_SPACING rises to 3 rings so the city count stays near the old one. Measured over
+seeds 3, 11, 12 at turn 150 against the old grid: cities 980 to 1,160, land claimed 70% to
+56%, wars 38 to 60, conquests 5 to 5, cities changed hands 43 to 45, turn time 300 to 420 ms
+(1,266 cities and 439 ms at turn 200 on seed 3). Fixtures that assumed Dawn capitals touching
+now found their neighbour beside the city; the battlefield test picks a city with a wide sea.
+A latent bug the long passive run exposed and fixed: `reconcileTerritory` marked a nation
+without land eliminated but kept its vassal link (the audit's vassal_link), now cleared
+(worldLifecycle.js, tested). Still open: a performance pass for the larger grid (the loyalty
+pressure and sight scans grow with the ring counts squared), wonder and unit models at the
+new hex size, the plan's cell counts elsewhere in Part B.
+
 **B4, city borders capped at two rings (2026-10-03).** The user's call on "a city half the size
 of France": `BORDER_RING_BY_AGE` is 2 in every age (it grew to 5 by the Modern age); the two
 border techs (Geometry, Provincial Administration) still add a ring each, capped at

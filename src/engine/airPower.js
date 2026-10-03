@@ -10,7 +10,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { unitTile } from './armies';
 
-export const AIR_RANGE = 8;
+export const AIR_RANGE = 11;
 
 export const isAir = (u) => u?.classId === 'air';
 

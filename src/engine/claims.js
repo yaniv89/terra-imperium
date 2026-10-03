@@ -24,7 +24,7 @@ import { distanceKm } from '../data/geo/geodesic';
 import { ringsAround } from './world/cities';
 import { mapEffectsFor } from './techMapEffects';
 
-export const CLAIM_RANGE_RINGS = 5;
+export const CLAIM_RANGE_RINGS = 7;
 export const CLAIM_FABRICATE_TURNS = 5;
 export const CLAIM_AE_MULT = 0.5;
 export const CORE_AE_MULT = 0;

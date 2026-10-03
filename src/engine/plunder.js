@@ -18,7 +18,7 @@ import { ringsAround } from './world/cities';
 import { lawRulesOf } from './lawRules';
 
 export const PLUNDER_GOLD = 15;
-export const RAIDER_REACH_RINGS = 2;
+export const RAIDER_REACH_RINGS = 3;
 
 const hostileTo = (state, me, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, me, ownerId));
 

@@ -15,7 +15,7 @@ import { passableTile, unitTile } from './armies';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
 
-export const TRADE_ROUTE_MAX_TILES = 40;
+export const TRADE_ROUTE_MAX_TILES = 56;
 
 const enemyTilesCache = new WeakMap(); // state.units -> { wars, nationId, tiles: Set }
 /** The tiles enemy land armies of `nationId` stand on (nations at war with it, and rebels): a Set,

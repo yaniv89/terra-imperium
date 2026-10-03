@@ -23,7 +23,8 @@ export const reconcileTerritory = state => {
   for (const id of Object.keys(nations)) {
     const nation = nations[id];
     const land = getOwnedRegionIds(state.regions, id);
-    if (!land.length && id!==state.playerNationId && !nation.isEliminated)patch(id,{isEliminated:true,capitalRegionId:null});
+    // A dead nation is nobody's vassal and nobody's overlord (the audit's vassal_link rule).
+    if (!land.length && id!==state.playerNationId && !nation.isEliminated)patch(id,{isEliminated:true,capitalRegionId:null,isAtWar:false,vassalOf:null,vassalizedTurn:null,vassals:[]});
     if (land.length && (nation.isEliminated || !land.includes(nation.capitalRegionId))) {
       const capital = land.reduce((a, b) => getTotalDev(state.regions[b]) > getTotalDev(state.regions[a]) ? b : a);
       patch(id, { capitalRegionId: capital, isEliminated: false });

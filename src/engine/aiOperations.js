@@ -41,7 +41,7 @@ const routeStep = (regions, nationId, from, goals) => {
 export const ASSAULT_HP = 0.3;
 export const AI_MARCH_STEPS = 40;
 export const ROUTE_RETRY_TURNS = 3;
-export const AI_RAID_RINGS = 8; // a stack at war with the player with no city goal in reach raids a trade route this close // a stack that found no path to its goal waits this long before searching again
+export const AI_RAID_RINGS = 11; // a stack at war with the player with no city goal in reach raids a trade route this close // a stack that found no path to its goal waits this long before searching again
 
 // A besieged AI city's garrison sallies (fieldBattle.js) against the besiegers on one ring-1 tile
 // when it outweighs them by SALLY_RATIO; the player's besiegers get a battle report.

@@ -37,3 +37,20 @@ describe('territory and subject lifecycle',()=>{
     expect(auditGameState(s).some(i=>i.code==='vassal_cycle')).toBe(true);
   });
 });
+
+describe('a vassal that loses its last city', () => {
+  it('is eliminated with its vassal link cleared, and drops off its overlord\'s list', async () => {
+    const { createInitialState } = await import('./gameReducer');
+    const { auditGameState } = await import('./stateAudit');
+    const s = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const it0 = s.nations.it; const va = s.nations.va;
+    const linked = { ...s, nations: { ...s.nations, it: { ...it0, vassalOf: 'va', vassalizedTurn: 3 }, va: { ...va, vassals: ['it'] } } };
+    // Italy's cities all pass to the Vatican.
+    const regions = Object.fromEntries(Object.entries(linked.regions).map(([id, r]) => [id, r.owner === 'it' ? { ...r, owner: 'va' } : r]));
+    const out = reconcileTerritory({ ...linked, regions });
+    expect(out.nations.it.isEliminated).toBe(true);
+    expect(out.nations.it.vassalOf).toBeNull();
+    expect(out.nations.va.vassals).toEqual([]);
+    expect(auditGameState(out).filter((v) => v.code === 'vassal_link')).toEqual([]);
+  });
+});
