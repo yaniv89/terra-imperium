@@ -7,14 +7,18 @@
 //   settler   a settler with no destination
 //   army      an army in the field with moves left and no route (garrisons rest in their cities)
 //   unrest    a city whose unrest is UNREST_PROMPT or more
+//   guide     the guided start's current step (src/engine/tutorial.js), always first
 import { unitTile } from '../../engine/armies';
 import { isSettler } from '../../engine/settlers';
+import { tutorialPrompt } from '../../engine/tutorial';
 
 export const UNREST_PROMPT = 50;
 
 export const nextPrompts = (state) => {
   const me = state.playerNationId;
   const out = [];
+  const guide = tutorialPrompt(state);
+  if (guide) out.push(guide);
   if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: 'A peace offer awaits your answer', tab: 'diplomacy' });
   if (!state.research?.current && !state.research?.auto) out.push({ id: 'research', kind: 'research', label: 'Choose what to research', tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));

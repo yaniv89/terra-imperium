@@ -6,7 +6,7 @@ import { REGIONS_DATA } from '../../data/regions';
 // highest-leverage choice in the game, so it gets its own screen rather than a buried default.
 
 import React, { useMemo, useState } from 'react';
-import { Globe2, Search, Play } from 'lucide-react';
+import { Globe2, Search, Play, BookOpen } from 'lucide-react';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { GAME_SPEEDS } from '../../data/ages';
 import { DIFFICULTIES } from '../../data/difficulty';
@@ -130,6 +130,16 @@ const StartScreen = ({ onStart }) => {
           </div>
         </section>
 
+        <button
+          type="button"
+          onClick={() => onStart({ playerNationId: 'eg', gameSpeed, difficultyId, scenario: { mode: 'full', nationCount, seed }, guided: true })}
+          data-testid="guided-start"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-amber-700/60 hover:bg-amber-600/70 border border-amber-500/50 text-amber-100 transition-all active:scale-95"
+          title="Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight."
+        >
+          <BookOpen className="w-4 h-4" />
+          New here? Play the guided start as Egypt
+        </button>
         <button
           onClick={() => onStart({ playerNationId: selectedNationId, gameSpeed, difficultyId, scenario: {mode,nationCount,seed} })}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold text-base

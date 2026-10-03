@@ -10,6 +10,7 @@ import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost, canFoundCity } from './world/cities';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
+import { markTutorialStep } from './tutorial';
 import { getTiles } from '../data/geo/tiles';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
@@ -129,7 +130,7 @@ const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false } = {}) => {
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
@@ -445,7 +446,9 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  return syncWorldRegistry(applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 }));
+  const started = syncWorldRegistry(applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 }));
+  // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
+  return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
 
 // A player action the engine refuses still has to SAY why — a bare `return state` is invisible to
@@ -3081,11 +3084,14 @@ const reduceAction = (state, action) => {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from
       // meta-progression localStorage via the component layer — see GameProvider.resetGame below.
       // This keeps gameReducer a pure function of (state, action).
-      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed } = action.payload || {};
-      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed });
+      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided } = action.payload || {};
+      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided });
       const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
       return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
     }
+
+    case ActionTypes.MARK_TUTORIAL_STEP:
+      return markTutorialStep(state, action.payload?.stepId);
 
     default:
       return state;

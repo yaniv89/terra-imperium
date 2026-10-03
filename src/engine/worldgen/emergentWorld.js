@@ -7,6 +7,7 @@
 import { getTiles } from '../../data/geo/tiles';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID, SCENARIOS } from '../../data/scenarios';
 import { foundCity, emptyWorld, sizeToPeople } from '../world/cities';
+import { makeSettler } from '../settlers';
 import { createRng } from '../../utils/rng';
 import { distanceKm } from '../../data/geo/geodesic';
 
@@ -97,6 +98,8 @@ const buildCityWorld = (initial, scenarioId, nationIds) => {
         if (nationId !== initial.playerNationId) nations[nationId].economy = { ...initial.resources, supplies: 20 };
         const unitId = `start_${nationId}`;
         units[unitId] = { id: unitId, ownerId: nationId, regionId: cid, homeRegionId: cid, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null };
+        // The Dawn settlers of the five great river peoples (scenarios.js DAWN_SETTLER_NATIONS).
+        for (let k = 0; k < (starts[nationId].settlers || 0); k++) units[`settler_${nationId}${k ? k : ''}`] = makeSettler(`settler_${nationId}${k ? k : ''}`, regions[cid], nationId);
       }
     });
   });

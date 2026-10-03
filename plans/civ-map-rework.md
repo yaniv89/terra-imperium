@@ -1935,6 +1935,26 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E9, the guided Dawn start as Egypt (2026-10-03).** `src/engine/tutorial.js`: a guided game
+(`createInitialState({ guided: true })`, the start screen's "New here? Play the guided start as
+Egypt" button) carries `state.tutorial` and the next-prompt pill shows the guide's current step
+first, with a book icon and the hint as its title, for TUTORIAL_TURNS (10) turns: send the
+settlers along the Nile (done when they have a destination or a second city stands), build a
+farm on a floodplain of the capital (queued is enough), queue a Granary, research Irrigation
+Canals (the tree has no Mining; canals are the Nile's tech), meet a neighbour (done when a
+foreign nation's sheet opens, marked by MARK_TUTORIAL_STEP), fight your first battle (any
+battle report; the hint explains the river crossing, since no enemy stands across the Nile in
+ten turns and a forced river battle would be a lie). resolveTurn records the steps met each
+turn and ends the guide after its turns or when all is done, with a log line; a plain game
+has no `tutorial` key. Two things the guide exposed and fixed: Egypt (and the other four
+river peoples, and every unpeopled land) had `settlers: 1` in the scenario starts but the
+world builder never placed them, so the Dawn settler now stands on the capital tile
+(emergentWorld.js, `makeSettler`); and a farm was not allowed on a desert floodplain, so the
+Nile could never be farmed (tileYields.js: a floodplain or an oasis farms whatever its base
+terrain). Balance sim at turn 150, seed 3: 955 to 950 cities, 14 to 19 cities changed hands
+(noise). Tests in tutorial.test.js, settlers.test.js (the player test sets the free settler
+aside), emergentWorld.test.js (240 infantry plus the Dawn settlers), tileYields.test.js.
+
 **E4, the empire sheet and the province modal's old tabs retired (2026-10-03).** The Domestic
 tab is now the Empire tab and opens with an Overview (`EmpireOverview.jsx` over
 `empireOverviewModel.js`, pure, tested): authority with every part and what a low value costs,

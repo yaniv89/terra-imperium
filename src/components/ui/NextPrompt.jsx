@@ -3,7 +3,7 @@
 // place (a city card, an army sheet, the tile of idle settlers, the tech or diplomacy tab); the
 // chevron skips to the next one. 44 px tall; hidden when nothing is pending.
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronRight, Lightbulb } from 'lucide-react';
+import { ChevronRight, Lightbulb, BookOpen } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { nextPrompts } from './nextPrompt';
 import { openPanelTab } from '../panels/panelEvents';
@@ -17,6 +17,14 @@ const NextPrompt = () => {
   if (!prompts.length) return null;
   const p = prompts[Math.min(i, prompts.length - 1)];
   const go = () => {
+    if (p.kind === 'guide') {
+      const me = state.playerNationId;
+      if (p.target === 'tech' || p.target === 'diplomacy') return openPanelTab(p.target);
+      if (p.target === 'settler') { const s = Object.values(state.units).find((u) => u.ownerId === me && u.classId === 'settler'); if (s?.tile != null) return selectTile(s.tile); }
+      if (p.target === 'army') { const a = Object.values(state.units).find((u) => u.ownerId === me && u.domain === 'land' && u.classId !== 'settler'); if (a?.tile != null) return selectArmy(a.tile); }
+      const cap = state.nations[me]?.capitalRegionId;
+      return cap && window.__selectRegion?.(cap);
+    }
     if (p.tab) openPanelTab(p.tab);
     else if (p.kind === 'army') selectArmy(p.tile);
     else if (p.kind === 'settler') selectTile(p.tile);
@@ -24,8 +32,8 @@ const NextPrompt = () => {
   };
   return (
     <div className="flex items-stretch rounded-lg bg-amber-500/15 border border-amber-400/50 overflow-hidden shrink min-w-0" data-testid="next-prompt" data-kind={p.kind}>
-      <button type="button" onClick={go} className="flex items-center gap-1.5 px-2 min-h-[36px] sm:min-h-[44px] text-[11px] text-amber-100 hover:bg-amber-500/25 min-w-0" title={p.label}>
-        <Lightbulb className="w-3.5 h-3.5 shrink-0 text-amber-300" />
+      <button type="button" onClick={go} className="flex items-center gap-1.5 px-2 min-h-[36px] sm:min-h-[44px] text-[11px] text-amber-100 hover:bg-amber-500/25 min-w-0" title={p.hint ? `${p.label}. ${p.hint}` : p.label}>
+        {p.kind === 'guide' ? <BookOpen className="w-3.5 h-3.5 shrink-0 text-amber-300" /> : <Lightbulb className="w-3.5 h-3.5 shrink-0 text-amber-300" />}
         <span className="truncate max-w-[42vw] sm:max-w-[260px]">{p.label}</span>
         {prompts.length > 1 && <span className="text-amber-300/80 shrink-0">{Math.min(i, prompts.length - 1) + 1}/{prompts.length}</span>}
       </button>

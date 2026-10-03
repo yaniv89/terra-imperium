@@ -87,7 +87,8 @@ export const LUXURY_RESOURCES = Object.keys(RESOURCES_ON_TILES).filter((id) => R
 export const IMPROVEMENTS = {
   farm: {
     name: 'Farm', turns: 2, requiresTech: null,
-    allowed: (t) => t.land && t.relief !== 'mountains' && ['grassland', 'plains', 'tundra'].includes(t.terrain) && ['none', 'floodplain', 'marsh', 'oasis'].includes(t.feature) || ['wheat', 'rice', 'dates', 'reeds', 'papyrus'].includes(t.resource),
+    // A floodplain or an oasis farms whatever the base terrain (the Nile runs through desert).
+    allowed: (t) => t.land && t.relief !== 'mountains' && (['grassland', 'plains', 'tundra'].includes(t.terrain) && ['none', 'marsh'].includes(t.feature) || ['floodplain', 'oasis'].includes(t.feature)) || ['wheat', 'rice', 'dates', 'reeds', 'papyrus'].includes(t.resource),
     yields: { food: 1 }, upgrades: { infrastructure_canal_locks: { food: 1 }, science_genomics: { food: 1 } }
   },
   pasture: {

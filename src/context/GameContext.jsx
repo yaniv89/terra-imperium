@@ -180,6 +180,7 @@ export const GameProvider = ({ children }) => {
         gameSpeed: options.gameSpeed,
         scenario: options.scenario,
         rngSeed: options.scenario?.seed,
+        guided: !!options.guided,
         doctrineId: meta.selectedDoctrine,
         difficultyId: options.difficultyId || meta.difficulty
       }
