@@ -28,8 +28,8 @@ import { NAVAL_BOMBARD, navalBombards } from '../data/navalLines';
 import { isSettler } from './settlers';
 
 export const SIEGE_HP_BASE = 200;
-export const SIEGE_STRENGTH_SIEGE = 20;
-export const SIEGE_STRENGTH_OTHER = 3;
+export const SIEGE_STRENGTH_SIEGE = 40;
+export const SIEGE_STRENGTH_OTHER = 15;
 export const SIEGE_ENGINEERING_MULT = 1.5;
 export const SIEGE_ENGINEERING_TECH = 'military_siege_engineering';
 export const WALL_REGEN = 5;
