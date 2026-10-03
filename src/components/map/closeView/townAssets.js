@@ -122,23 +122,36 @@ export const loadAssetObjects = (url, load = loadGltf) => {
 /** Load a town file once; resolves to its root object (the node holding LOD0..LOD2). */
 export const loadTownAsset = (url, load = loadGltf) => loadAssetObjects(url, load).then((objs) => Object.values(objs)[0]);
 
-const teamMaterials = new Map(); // `${uuid}|${color}` -> material
-/** A town instance: shares the file's geometry and textures; Team takes `teamColor`. */
-export const instanceTownAsset = (root, teamColor) => {
+const instanceMaterials = new Map(); // `${uuid}|${team or tint}` -> material
+/** A town instance: shares the file's geometry and textures; Team takes `teamColor`, Ground is
+ * multiplied by `groundTint` ([r, g, b], groundBlend.js) to sit in the land under it. */
+export const instanceTownAsset = (root, teamColor, groundTint = null) => {
   const inst = root.clone(true);
   inst.position.set(0, 0, 0);
   inst.traverse((o) => {
     if (!o.isMesh) return;
     const swap = (m) => {
-      if (!m || m.name !== 'Team') return m;
-      const key = `${m.uuid}|${teamColor}`;
-      if (!teamMaterials.has(key)) {
-        const t = m.clone();
-        // the cloth is authored mid grey (#BFBFBF), so lift the tint to land on the nation colour
-        t.color = new Color(teamColor).multiplyScalar(1.3);
-        teamMaterials.set(key, t);
+      if (!m) return m;
+      if (m.name === 'Team') {
+        const key = `${m.uuid}|${teamColor}`;
+        if (!instanceMaterials.has(key)) {
+          const t = m.clone();
+          // the cloth is authored mid grey (#BFBFBF), so lift the tint to land on the nation colour
+          t.color = new Color(teamColor).multiplyScalar(1.3);
+          instanceMaterials.set(key, t);
+        }
+        return instanceMaterials.get(key);
       }
-      return teamMaterials.get(key);
+      if (m.name === 'Ground' && groundTint) {
+        const key = `${m.uuid}|g${groundTint.join(',')}`;
+        if (!instanceMaterials.has(key)) {
+          const t = m.clone();
+          t.color = new Color(groundTint[0], groundTint[1], groundTint[2]);
+          instanceMaterials.set(key, t);
+        }
+        return instanceMaterials.get(key);
+      }
+      return m;
     };
     o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material);
   });

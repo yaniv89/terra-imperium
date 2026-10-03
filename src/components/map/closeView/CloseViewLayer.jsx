@@ -26,6 +26,8 @@ import { ARMY_SPOT, unitPx, tiltFor, lightRig } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
 import { styleOfLand } from '../../../data/architecture';
+import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from './groundBlend';
+import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
@@ -42,11 +44,17 @@ const ageOf = (state, nationId) => {
 };
 const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
 
-const CloseViewLayer = ({ projection, transform, width, height, active }) => {
+const CloseViewLayer = ({ projection, transform, width, height, active, land = null }) => {
   const { state } = useGame();
   const canvasRef = useRef(null);
   const three = useRef(null);
   const [assetsTick, setAssetsTick] = useState(0); // bumps when an artist town file finishes loading
+  // The land mask and the world picture's colours (groundBlend.js), once the coastline is in.
+  const ground = useRef(null);
+  useEffect(() => {
+    if (!active || !land || ground.current) return;
+    loadGroundData(land, worldRasterUrl(2048)).then((d) => { ground.current = d; setAssetsTick((n) => n + 1); });
+  }, [active, land]);
 
   // One renderer for the life of the map.
   useEffect(() => {
@@ -77,6 +85,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     const trees = new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)]));
     const works = new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)]));
     three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
+    if (import.meta.env.DEV) window.__closeView = three.current; // for browser checks
     return () => {
       const t = three.current;
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
@@ -106,6 +115,11 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     const rig = lightRig(TILT);
     t.sky.position.set(...rig.sky);
     t.sun.position.set(...rig.sun);
+    // Where a screen point lies on the Earth, and whether that is land (fields, works and trees are
+    // never drawn in the sea); the tint that sets a model's ground into the land around it.
+    const latLonAt = (x, y) => projection.invert([(x - transform.x) / k, (y - transform.y) / k]);
+    const landAt = (x, y) => { const ll = latLonAt(x, y); return !ll || isLandAt(ground.current?.mask, ll[1], ll[0]); };
+    const tintAt = (lat, lon) => groundTint(sampleLandColour(ground.current?.raster, ground.current?.mask, lat, lon, 3));
     const toScreenLatLng = (c) => {
       const p = c && projection([c.lng, c.lat]);
       if (!p) return null;
@@ -156,22 +170,25 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       const wallsRoot = asset && opts.walls ? shared?.[wallsFor(tier.id)] : null;
       const fields = asset && shared ? fieldsAround(tier.id, seed, fieldCount(region)).filter((f) => shared[f.name]) : [];
       const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
-      const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}`
-        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${palaceRoot ? palaceRoot.name : ''}|${wallsRoot ? wallsRoot.name : ''}|${fields.map((f) => f.name).join(',')}`
+      const ll = REGION_COORDINATES[id];
+      const tint = (campRoot || asset) && ll ? tintAt(ll.lat, ll.lng) : null;
+      const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}|${tintKey(tint)}`
+        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.name : ''}|${wallsRoot ? wallsRoot.name : ''}|${fields.map((f) => f.name).join(',')}`
           : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
       let mesh = t.towns.get(id);
       if (!mesh || mesh.userData.key !== key) {
         if (mesh) scene.remove(mesh);
         const model = campRoot || asset;
-        mesh = model ? instanceTownAsset(model, teamColor) : new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
-        if (asset && palaceRoot) mesh.add(instanceTownAsset(palaceRoot, teamColor));
-        if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor));
-        fields.forEach((f) => {
-          const field = instanceTownAsset(shared[f.name], teamColor);
+        mesh = model ? instanceTownAsset(model, teamColor, tint) : new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
+        if (asset && palaceRoot) mesh.add(instanceTownAsset(palaceRoot, teamColor, tint));
+        if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor, tint));
+        mesh.userData.fields = fields.map((f) => {
+          const field = instanceTownAsset(shared[f.name], teamColor, tint);
           field.position.set(f.x, 0, f.z);
           field.rotation.y = f.yaw;
           mesh.add(field);
+          return { field, f };
         });
         mesh.userData.key = key;
         mesh.userData.asset = !!model;
@@ -180,6 +197,13 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
         scene.add(mesh);
       }
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
+      // a field whose middle or either end would lie in the sea stays hidden (the ring is in model
+      // units, so where it falls on the Earth changes with the zoom)
+      const lean = Math.sin(TILT);
+      (mesh.userData.fields || []).forEach(({ field, f }) => {
+        const ends = [0, -0.75, 0.75].map((u) => [f.x + u * Math.cos(f.yaw), f.z - u * Math.sin(f.yaw)]);
+        field.visible = ends.every(([fx, fz]) => landAt(at.x + fx * s, at.y + fz * s * lean));
+      });
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
       mesh.scale.setScalar(s);
@@ -209,7 +233,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     };
     land.trees.forEach((tr) => {
       const mesh = t.trees.get(tr.kind);
-      if (mesh && mesh.count < MAX_TREES) put(mesh, tr.x, tr.y, s * tr.size, tr.turn, 0.85 + (tr.turn % 0.3));
+      if (mesh && mesh.count < MAX_TREES && landAt(tr.x, tr.y)) put(mesh, tr.x, tr.y, s * tr.size, tr.turn, 0.85 + (tr.turn % 0.3));
     });
     // Farms, pastures and plantations show the owner's age's field models once its shared file is
     // in (two fields on a farm); a pillaged work, or one without models, stays procedural.
@@ -219,13 +243,15 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       const owner = names && state.regions[state.world?.tileOwner?.[w.tile]]?.owner;
       const shared = owner ? sharedFor(ageOf(state, owner)) : null;
       if (!shared || !names.every((n) => shared[n])) return false;
-      const key = `${names.join(',')}|${ageOf(state, owner)}`;
+      const ll = latLonAt(w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y);
+      const tint = ll ? tintAt(ll[1], ll[0]) : null;
+      const key = `${names.join(',')}|${ageOf(state, owner)}|${tintKey(tint)}`;
       let g = t.fieldWorks.get(w.tile);
       if (!g || g.userData.key !== key) {
         if (g) scene.remove(g);
         g = new Object3D();
         names.forEach((n, i) => {
-          const field = instanceTownAsset(shared[n], '#888888');
+          const field = instanceTownAsset(shared[n], '#888888', tint);
           field.position.set((i - (names.length - 1) / 2) * 1.75, 0, 0);
           g.add(field);
         });
@@ -242,6 +268,8 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       return true;
     };
     land.works.forEach((w) => {
+      // a work set off its tile centre must still stand on land (fishing boats belong at sea)
+      if (w.kind !== 'fishing_boats' && !landAt(w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y)) return;
       if (fieldWork(w)) return;
       const mesh = t.works.get(w.kind);
       if (mesh && mesh.count < MAX_WORKS) put(mesh, w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y, s * 1.2, w.turn * 0.15, w.pillaged ? 0.45 : 1);

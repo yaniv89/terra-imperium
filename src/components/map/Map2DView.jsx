@@ -739,7 +739,7 @@ const Map2DView = ({
       {map}
       {closeLoaded && (
         <Suspense fallback={null}>
-          <CloseViewLayer projection={projection} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} />
+          <CloseViewLayer projection={projection} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} land={land} />
         </Suspense>
       )}
       <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
