@@ -49,6 +49,7 @@ import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION } from './marchEvents';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 
@@ -93,10 +94,14 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
     return () => { window.removeEventListener(SELECT_ARMY, onArmy); window.removeEventListener(SELECT_TILE, onTile); window.removeEventListener(SELECT_NATION, onNation); window.removeEventListener(FOCUS_REGION, onFocus); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // the tile of one of your armies: its sheet (ArmySheet.jsx)
-  const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); selectRegion(null); };
+  // On a tablet the city card stays open under a tile or army sheet (E2: two sheets stacked).
+  const layoutMode = useLayoutMode();
+  const stacking = layoutMode === 'tablet';
+  const onSelectArmy = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } setSelectedArmy(tile); setSelectedTile(null); setManageOpen(false); if (!stacking) selectRegion(null); };
   const onSelectRegion = (id) => { if (marching && id) marchCtx.aimAt(id); else { if (id) { setSelectedTile(null); setSelectedArmy(null); setSelectedNation(null); } selectRegion(id); } };
   // In march mode any tile (sea included, for a fleet) is the target; otherwise only land opens the tile sheet.
-  const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } const land = tile != null && getTiles().land[tile] === 1 ? tile : null; setSelectedTile(land); if (land != null) { setManageOpen(false); setSelectedArmy(null); selectRegion(null); } };
+  const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } const land = tile != null && getTiles().land[tile] === 1 ? tile : null; setSelectedTile(land); if (land != null) { setManageOpen(false); setSelectedArmy(null); if (!stacking) selectRegion(null); } };
+  const stacked = stacking && !!selectedRegion && (selectedTile != null || selectedArmy != null);
   const [mode, setMode] = useState(readStoredMode);
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -119,7 +124,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" data-stacked={stacked ? '1' : undefined}>
       {mode === 'globe'
         ? (
           <GlobeContainer
@@ -162,8 +167,8 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
         position="panel-hud"
       />
       )}
-      {selectedTile != null && !selectedRegion && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
-      {selectedArmy != null && !selectedRegion && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
+      {selectedTile != null && (stacking || !selectedRegion) && <TileSheet tile={selectedTile} onClose={() => setSelectedTile(null)} onSelectRegion={onSelectRegion} />}
+      {selectedArmy != null && (stacking || !selectedRegion) && selectedTile == null && <ArmySheet tile={selectedArmy} onClose={() => setSelectedArmy(null)} onSelectRegion={onSelectRegion} />}
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
         <LensStrip lens={lens} onChange={setLens} />

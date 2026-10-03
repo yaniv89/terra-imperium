@@ -11,7 +11,7 @@ import { AGES } from '../../data/ages';
 import ResourceBar from './ResourceBar';
 import { getResearchView } from '../panels/researchView';
 import { openPanelTab } from '../panels/panelEvents';
-import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useLayoutMode, isLandscapeShell } from '../../hooks/useLayoutMode';
 import NextPrompt from './NextPrompt';
 import { endTurnWarnings, WARN_ARM_MS } from './nextPrompt';
 import { perTurnStrip } from '../city/cityRailModel';
@@ -230,7 +230,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
 
   // A phone held sideways: one slim row (about 44 px) so the map keeps the height. Nation, year,
   // the scrolling resource bar, End Turn and the overflow menu; the age name lives in the tooltip.
-  if (layoutMode === 'phone-landscape') {
+  if (isLandscapeShell(layoutMode)) {
     return (
       <header
         ref={headerRef}

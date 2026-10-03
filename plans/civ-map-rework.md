@@ -1344,6 +1344,18 @@ discretion.
 
 ## J3. Progress log
 
+**E2, the tablet shell (2026-10-03).** `useLayoutMode` now splits the middle sizes: a tablet or a
+narrow window held sideways (narrower than 1,024 px, wider than tall, not phone-sized) is
+`tablet` and plays the landscape shell of the phone (the slim top bar, the tab rail on the
+right, docked sheets), held upright it is `tablet-portrait` and keeps the bottom bar
+(`useIsMobile`). `isLandscapeShell(mode)` names the two shell modes; the `pl:` Tailwind variant
+matches both and a `tb:` variant the tablet alone. The tablet's dock is 420 px (`tb:w-[420px]`)
+and its side sheets 420 px (index.css). Two sheets stacked: on a tablet the city card stays open
+when a tile or army sheet opens from it; MapContainer sets `data-stacked` and the CSS gives the
+card the top half of the left edge and the sheet the bottom half (`.corner-card`,
+`.corner-card-second`). Tests in useLayoutMode.test.js; a tablet case (960 by 640) in the
+landscape e2e checks the shell, the dock width and that the map keeps 40% of the width.
+
 **D5b, fleet against fleet on sea tiles (2026-10-03).** `src/engine/navalBattle.js`: a stack of
 fleets on a tile (at sea, or in a port whose centre touches the water) attacks the enemy fleets
 on a neighbouring sea tile (ATTACK_FLEET, costs the naval engagement's 2 MIL, one attack per

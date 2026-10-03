@@ -1,8 +1,11 @@
 // src/hooks/useLayoutMode.js
 // One answer to "which layout is this screen?" for the whole app:
 //   'desktop'          1024 px and wider (and not a phone): side panels, full header
-//   'tablet'           narrower than 1024 but not phone-sized (a tablet, a narrow window): the
-//                      bottom tab bar and bottom sheets
+//   'tablet'           a tablet or a narrow window held sideways (narrower than 1024, wider than
+//                      tall, not phone-sized): the landscape shell of the phone with a wider dock
+//                      (420 px), and the city card and a tile or army sheet stacked on the left
+//   'tablet-portrait'  a tablet or a narrow window held upright: the bottom tab bar and bottom
+//                      sheets (useIsMobile)
 //   'phone-landscape'  a phone held sideways (short side <= 500 px): a slim top bar, a tab rail on
 //                      the right edge, docked side panels, the map kept in the middle
 //   'phone-portrait'   a phone held upright: the empire view plays with the map on top and half
@@ -25,8 +28,13 @@ export const getLayoutMode = (width, height) => {
   const phone = short <= PHONE_SHORT_SIDE_MAX && long <= PHONE_LONG_SIDE_MAX;
   if (phone && width > height) return 'phone-landscape';
   if (phone) return 'phone-portrait';
-  return width >= DESKTOP_MIN_WIDTH ? 'desktop' : 'tablet';
+  if (width >= DESKTOP_MIN_WIDTH) return 'desktop';
+  return width > height ? 'tablet' : 'tablet-portrait';
 };
+
+/** The landscape shell (a slim top bar, the tab rail on the right, docked sheets): a phone held
+ * sideways or a tablet held sideways. The `pl:` Tailwind variant matches the same two modes. */
+export const isLandscapeShell = (mode) => mode === 'phone-landscape' || mode === 'tablet';
 
 const listeners = new Set();
 

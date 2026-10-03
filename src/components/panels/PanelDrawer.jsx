@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronRight, ScrollText, X } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useLayoutMode, isLandscapeShell } from '../../hooks/useLayoutMode';
 import { useExclusivePanel } from '../../hooks/useExclusivePanel';
 import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
@@ -59,7 +59,7 @@ const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) =>
 const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
   const { state } = useGame();
   const isMobile = useIsMobile();
-  const isLandscapePhone = useLayoutMode() === 'phone-landscape';
+  const isLandscapePhone = isLandscapeShell(useLayoutMode()); // a phone or a tablet held sideways
   const [dockOpen, setDockOpen] = useState(false);
   const landscapeRef = useRef(null);
   const [collapsed, setCollapsed] = useState(readStoredCollapsed);
@@ -142,7 +142,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         className="fixed right-0 bottom-0 top-[var(--header-height,2.75rem)] z-20 flex pr-[env(safe-area-inset-right)] bg-slate-900/95 backdrop-blur-md border-l border-slate-700/70"
       >
         {dockOpen && (
-          <div data-testid="landscape-dock" className="w-[clamp(300px,40vw,380px)] flex flex-col border-r border-slate-800 shadow-2xl">
+          <div data-testid="landscape-dock" className="w-[clamp(300px,40vw,380px)] tb:w-[420px] flex flex-col border-r border-slate-800 shadow-2xl">
             <ActionPanel activeTab={activeTab} />
           </div>
         )}
