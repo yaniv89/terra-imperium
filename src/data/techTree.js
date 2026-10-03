@@ -104,6 +104,31 @@ const TECH_EFFECTS = {
 
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
+// The web (plans/civ-map-rework.md C3.1): a tech can also need a tech from another line, of the
+// same age or an earlier one, so the lines cross (Siege Engineering needs Iron Weapons and
+// Geometry). Name -> [name]. Resolved to ids in buildLine; research.js reads every prerequisite.
+export const CROSS_PREREQUISITES = {
+  'Siege Engineering': ['Geometry'],
+  'Plate Armor': ['Guild Charters'],
+  'Gunpowder Weapons': ['Natural Philosophy'],
+  'Standing Armies': ['Royal Chancery'],
+  'Mechanized Warfare': ['Industrial Capital'],
+  'Precision Guidance': ['Computing'],
+  'Silk Road Trade': ['Paved Roads'],
+  'Banking Houses': ['Provincial Administration'],
+  'Colonial Trade': ['Optics'],
+  'Global Markets': ['Rail Networks'],
+  'Aqueducts': ['Geometry'],
+  'Stone Bridges': ['Provincial Administration'],
+  'Rail Networks': ['Industrial Capital'],
+  'Provincial Administration': ['Paved Roads'],
+  'Constitutional Law': ['Scientific Method'],
+  'Digital Administration': ['Computing'],
+  'Scholastic Method': ['Scribal Bureaucracy']
+};
+const idOfName = (name) => { for (const [category, names] of Object.entries(CATEGORY_LINES)) if (names.includes(name)) return `${category}_${slug(name)}`; throw new Error(`Unknown tech ${name}`); };
+const crossPrerequisites = (name) => (CROSS_PREREQUISITES[name] || []).map(idOfName);
+
 const buildLine = (category, names) => {
   const techs = {};
   names.forEach((name, i) => {
@@ -120,7 +145,7 @@ const buildLine = (category, names) => {
       ageId,
       // Staggered within the age so the second tech isn't available the instant the age begins.
       yearAvailable: isSecondOfAge ? Math.round(age.startYear + (age.endYear - age.startYear) * 0.5) : age.startYear,
-      prerequisites: previousId ? [previousId] : [],
+      prerequisites: [...(previousId ? [previousId] : []), ...crossPrerequisites(name)],
       requiresAny: false,
       exclusiveWith: [],
       // Gold is gone from research cost (plan §M7) — techPoints only; the power-pool cost is

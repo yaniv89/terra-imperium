@@ -1935,6 +1935,19 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**C3, the tech web and the research graph view (2026-10-03).** `CROSS_PREREQUISITES` in
+`src/data/techTree.js` adds 17 prerequisites across lines on top of each line's own chain
+(Siege Engineering needs Geometry, Gunpowder Weapons Natural Philosophy, Banking Houses
+Provincial Administration, Rail Networks Industrial Capital, Digital Administration
+Computing, and so on), every one pointing at the same or an earlier year, so a nation that
+neglects science or statecraft stalls its army and its trade. `techGraph` in researchView.js
+lays the 50 techs out as a web (one row per line, one column per step, two columns per age,
+an edge per prerequisite, cross-line edges marked) and the research sheet draws it as an SVG
+behind a Web/Lines toggle: tap an available tech to research it, a locked one to queue it, a
+queued one to unqueue it. Research pace unchanged in the 150-turn sim (player 14 techs, AI
+median 6 to 7). Tests in techTree.test.js. Science from districts stays open: there are no
+district tiles yet, so science keeps coming from buildings and population.
+
 **AI building templates and raids on the player's routes (2026-10-03).** An AI city's queue now
 builds its lines in its nation's doctrine order (`buildingOrder`: DOCTRINE_BUILDING_PRIORITY
 first, the rest after; aiProduction.js), so a blitz nation raises barracks before granaries and
