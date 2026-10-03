@@ -93,7 +93,9 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
     if (tradeLaw) out.push({ id: 'tradeLaw', label: tradeLaw > 0 ? 'Your open markets' : 'Your trade barriers', value: tradeLaw });
   }
   if (b === state.playerNationId && A.hasMilitaryPact) out.push({ id: 'alliance', label: 'Allied', value: ALLIANCE });
-  if (A.openBordersWith?.[b] || B.openBordersWith?.[a]) out.push({ id: 'openBorders', label: 'Open borders', value: OPEN_BORDERS });
+  // Open borders warm the player's pacts only: between two AI nations they are passage, not
+  // affection (aiAccords.js opens most peaceful neighbours; the bonus there smothered every war).
+  if ((A.openBordersWith?.[b] || B.openBordersWith?.[a]) && (a === state.playerNationId || b === state.playerNationId)) out.push({ id: 'openBorders', label: 'Open borders', value: OPEN_BORDERS });
   if (A.defensivePact && B.defensivePact && A.defensivePact.against === B.defensivePact.against) out.push({ id: 'pact', label: 'Defensive pact together', value: DEFENSIVE_PACT });
   if ((B.marriageWith || []).includes(a) || (A.marriageWith || []).includes(b)) out.push({ id: 'marriage', label: 'Royal marriage', value: ROYAL_MARRIAGE });
   const axes = Object.keys(IDENTITY_AXES).filter((axis) => (leansPositive(A.identity, axis) && leansPositive(B.identity, axis)) || (leansNegative(A.identity, axis) && leansNegative(B.identity, axis)));

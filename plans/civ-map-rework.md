@@ -1935,6 +1935,26 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**C6, the AI's accords (2026-10-03).** `src/engine/aiAccords.js` runs in the diplomacy phase:
+every AI_ACCORD_PERIOD (10) turns, on its own slot, an AI nation looks at the nations whose
+cities touch its own. Two AI nations at peace that each hold the other at
+AI_OPEN_BORDERS_OPINION (8, the plain standing with no grievance; AI opinions of each other
+cluster there, so the player's bar of 20 would never be met) open their borders; a pair whose
+opinion sours below 0 closes them, a war closes them at once. Between two AI nations open
+borders are passage, not affection: the +10 opinion of the pact now applies to the player's
+pacts only (opinion.js), because with it nearly every AI neighbour pair was friends and wars
+fell by two thirds. A Tier-1 nation at least AI_DEMAND_RATIO (2) times as strong as a touching
+nation demands tribute (DEMAND_TRIBUTE_SHARE of its gold, DEMAND_TRIBUTE_MIN at least): an AI
+answers by the same score the player's demand uses (`applyDemand` with a demander; at that
+ratio it pays), the player gets `state.pendingDemand`, a card on the Diplomacy tab (Pay or
+Refuse, ANSWER_DEMAND) and a next prompt; silence for DEMAND_ANSWER_TURNS (3) counts as a
+refusal, which hands them the casus belli of accords.js. Measured over 150 turns (seed 3):
+412 open-border pairs, 48 demands, every one paid. Balance over seeds 3, 11, 12: wars 33 to 31,
+conquests 8 to 9, cities changed hands 31 to 28, cities 2,831 to 2,921 (settlers cross open
+borders), 266 to 277 ms a turn. Tests in aiAccords.test.js. Still open in C6: trade routes
+blocked at closed borders for the AI (AI trade is abstract today), a demand for a city or to
+stop settling from an AI.
+
 **C9, the event sheet beside the map (2026-10-03).** The event modal no longer dims the whole
 screen: `EventModal.jsx` is a sheet docked on the right on a wide screen and a bottom sheet
 on a phone (capped at 60vh), the map live behind it. An event pinned to a city centres the map

@@ -8,9 +8,11 @@
 //   army      an army in the field with moves left and no route (garrisons rest in their cities)
 //   unrest    a city whose unrest is UNREST_PROMPT or more
 //   guide     the guided start's current step (src/engine/tutorial.js), always first
+//   demand    an AI's tribute demand waits for an answer (src/engine/aiAccords.js)
 import { unitTile } from '../../engine/armies';
 import { isSettler } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
+import { demandWaiting } from '../../engine/aiAccords';
 
 export const UNREST_PROMPT = 50;
 export const WARN_ARM_MS = 4000;
@@ -24,6 +26,7 @@ export const nextPrompts = (state) => {
   const guide = tutorialPrompt(state);
   if (guide) out.push(guide);
   if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: 'A peace offer awaits your answer', tab: 'diplomacy' });
+  if (demandWaiting(state)) out.push({ id: 'demand', kind: 'demand', label: `${state.nations[state.pendingDemand.from].name} demands ${state.pendingDemand.amount} gold`, tab: 'diplomacy' });
   if (!state.research?.current && !state.research?.auto) out.push({ id: 'research', kind: 'research', label: 'Choose what to research', tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: `${c.name} has nothing to build`, regionId: c.id }); });

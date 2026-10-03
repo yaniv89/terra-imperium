@@ -116,6 +116,17 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       )}
+      {state.pendingDemand && state.nations[state.pendingDemand.from] && (
+        <div className="p-2 rounded bg-red-900/30 border border-red-600/50 flex items-center justify-between gap-2" data-testid="pending-demand">
+          <div className="text-xs text-red-200">
+            <span className="font-semibold">{state.nations[state.pendingDemand.from].name}</span> demands {state.pendingDemand.amount} gold in tribute (answer by turn {state.pendingDemand.until}; a refusal hands them a casus belli).
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <IconButton icon={HeartHandshake} label="Pay" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} />
+            <IconButton icon={Ban} label="Refuse" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } })} />
+          </div>
+        </div>
+      )}
       {playerNation?.vassalOf && (
         // Plan §M12/§M15: a vassal's own path out of subjection — liberty desire rises the
         // stronger the vassal grows relative to its overlord (resolveTurn.js), and clears the

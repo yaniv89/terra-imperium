@@ -1,4 +1,5 @@
 import { applyArmyDesertion, DESERTION_SHARE, DESERTION_MORALE } from './armyDesertion';
+import { processAIAccords } from './aiAccords';
 import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
 import { processEmergence } from './emergence';
@@ -955,6 +956,11 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const libertyDesire = nextLibertyDesire(nation.libertyDesire, target);
     if (libertyDesire !== nation.libertyDesire) nations[nId] = { ...nation, libertyDesire };
   });
+  // The AI's accords (aiAccords.js): open borders between friendly neighbours, tribute demands.
+  const accords = processAIAccords({ ...state, nations, regions, units, resources }, nations, { turn: state.turnNumber, sortedByMilitary: tieringSortedByMilitary });
+  Object.assign(nations, accords.nations);
+  accords.logs.forEach((l) => { if (!l.nationId) logs.push({ year: newYear, message: l.message, type: LogTypes.DIPLOMACY }); });
+  const pendingDemand = accords.pendingDemand;
   mark('diplomacy');
 
   // --- great projects (plan §M10, now plans/civ-map-rework.md C9.2) --- a wonder is built from a
@@ -1171,6 +1177,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     units,
     wars,
     pendingPeaceOffer,
+    pendingDemand,
     // Assaults on the player's garrisons (src/engine/defense.js), fought before the next turn —
     // dropped if their war ended this same turn.
     nextUnitSeq: operations.nextUnitSeq,

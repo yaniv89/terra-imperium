@@ -11,6 +11,7 @@ import { syncWorldRegistry } from './world/registry';
 import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost, canFoundCity } from './world/cities';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
 import { markTutorialStep } from './tutorial';
+import { answerDemand } from './aiAccords';
 import { getTiles } from '../data/geo/tiles';
 import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // src/engine/gameReducer.js
@@ -3095,6 +3096,12 @@ const reduceAction = (state, action) => {
 
     case ActionTypes.MARK_TUTORIAL_STEP:
       return markTutorialStep(state, action.payload?.stepId);
+
+    case ActionTypes.ANSWER_DEMAND: {
+      // An AI's tribute demand (aiAccords.js): pay it or refuse and hand them a casus belli.
+      const r = answerDemand(state, !!action.payload?.accept);
+      return r.message ? { ...r.state, logs: [...r.state.logs, { year: state.year, message: r.message, type: LogTypes.DIPLOMACY }] } : r.state;
+    }
 
     default:
       return state;
