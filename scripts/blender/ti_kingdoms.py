@@ -138,7 +138,7 @@ import bmesh  # noqa: E402
 import ti_bronze as tb  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
-KG = ['kg_ochre', 'kg_whitewash', 'kg_dome', 'kg_stone', 'kg_wallstone', 'kg_shingle', 'kg_planks', 'kg_turf',
+KG = ['kg_ringstone', 'kg_ochre', 'kg_whitewash', 'kg_dome', 'kg_stone', 'kg_wallstone', 'kg_shingle', 'kg_planks', 'kg_turf',
       'kg_rye', 'kg_apple', 'kg_wattle', 'kg_palm', 'kg_palmtrunk', 'kg_iron', 'kg_flag', 'kg_garden',
       'kg_sand', 'kg_sand_fringe', 'kg_sand_square', 'kg_soil', 'kg_soil_fringe', 'kg_soil_square',
       'kg_meadow', 'kg_meadow_fringe', 'kg_meadow_square']
@@ -168,7 +168,54 @@ def mat_fruit_leaf(name):
     return mat
 
 
+def mat_ringstone(name, stone=('#7c7871', '#5f5c57'), mortar='#8e897f', bond=(0.045, 0.024, 0.0032)):
+    """Masonry for walls swept round the origin: the brick bond laid on (arc length, z), so the
+    courses run evenly round a ring wall (an (x + y, z) bond smears into bands on a curve)."""
+    import bpy
+    mat = bpy.data.materials.new(name)
+    nt, bsdf = tm._nodes(mat)
+    tco = nt.nodes.new('ShaderNodeTexCoord')
+    sep = nt.nodes.new('ShaderNodeSeparateXYZ')
+    nt.links.new(tco.outputs['Object'], sep.inputs['Vector'])
+    at2 = nt.nodes.new('ShaderNodeMath')
+    at2.operation = 'ARCTAN2'
+    nt.links.new(sep.outputs['Y'], at2.inputs[0])
+    nt.links.new(sep.outputs['X'], at2.inputs[1])
+    flat = nt.nodes.new('ShaderNodeCombineXYZ')
+    nt.links.new(sep.outputs['X'], flat.inputs['X'])
+    nt.links.new(sep.outputs['Y'], flat.inputs['Y'])
+    ln = nt.nodes.new('ShaderNodeVectorMath')
+    ln.operation = 'LENGTH'
+    nt.links.new(flat.outputs['Vector'], ln.inputs[0])
+    arc = nt.nodes.new('ShaderNodeMath')
+    arc.operation = 'MULTIPLY'
+    nt.links.new(at2.outputs[0], arc.inputs[0])
+    nt.links.new(ln.outputs['Value'], arc.inputs[1])
+    comb = nt.nodes.new('ShaderNodeCombineXYZ')
+    nt.links.new(arc.outputs[0], comb.inputs['X'])
+    nt.links.new(sep.outputs['Z'], comb.inputs['Y'])
+    br = nt.nodes.new('ShaderNodeTexBrick')
+    br.inputs['Scale'].default_value = 1.0
+    br.inputs['Brick Width'].default_value = bond[0]
+    br.inputs['Row Height'].default_value = bond[1]
+    br.inputs['Mortar Size'].default_value = bond[2]
+    br.inputs['Color1'].default_value = tm._srgb(stone[0])
+    br.inputs['Color2'].default_value = tm._srgb(stone[1])
+    br.inputs['Mortar'].default_value = tm._srgb(mortar)
+    br.offset = 0.5
+    nt.links.new(comb.outputs['Vector'], br.inputs['Vector'])
+    n = tm._noise(nt, 30.0, 5.0, 0.6)
+    tint = tm._ramp(nt, n.outputs['Fac'], [(0.3, '#8a857c'), (0.7, '#6a665f')])
+    col = tm._mix(nt, 0.3, br.outputs['Color'], tint.outputs['Color'], 'OVERLAY')
+    col = tm._base_dirt(nt, col)
+    nt.links.new(col, bsdf.inputs['Base Color'])
+    bsdf.inputs['Roughness'].default_value = 0.92
+    tm._bump(nt, bsdf, br.outputs['Fac'], 0.35, 0.004)
+    return mat
+
+
 def make_materials_kg():
+    mat_ringstone('kg_ringstone')
     tm.mat_simple('kg_ochre', ['#cfae7c', '#dcbf90', '#c49d68', '#e3cca2'], scale=16.0, bump=0.25, dirt=True)
     tm.mat_simple('kg_whitewash', ['#e1d9c6', '#ebe5d6', '#d6ccb4', '#efe9dc'], scale=18.0, bump=0.2, dirt=True)
     tm.mat_simple('kg_dome', ['#e6e1d6', '#f0ece4', '#d9d3c6'], scale=12.0, bump=0.15)
@@ -1235,12 +1282,12 @@ def stone_ring(ms, rng, R_out, R_in, H, gate_x, towers, tower_r, tower_h, gate_r
     for lod in (0, 1, 2):
         steps = n[lod]
         outer = [(R_out + 0.02, 0.0), (R_out, 0.07), (R_out, H)] if lod < 2 else [(R_out, 0.0), (R_out, H)]
-        tb.sweep(ms, mat, outer, a0, a1, steps, lod=lod, only=lod)
+        tb.sweep(ms, 'kg_ringstone', outer, a0, a1, steps, lod=lod, only=lod)
         tb.sweep(ms, 'stone', [(R_out, H), (R_in, H)], a0, a1, steps, lod=lod, only=lod)
-        tb.sweep(ms, mat, [(R_in, H), (R_in, 0.0)], a0, a1, steps, lod=lod, only=lod)
+        tb.sweep(ms, 'kg_ringstone', [(R_in, H), (R_in, 0.0)], a0, a1, steps, lod=lod, only=lod)
         if lod < 2:
             ph = 0.035 if lod == 0 else 0.08
-            tb.sweep(ms, mat, [(R_out, H), (R_out, H + ph), (R_out - 0.04, H + ph), (R_out - 0.04, H)], a0, a1, steps, lod=lod, only=lod)
+            tb.sweep(ms, 'kg_ringstone', [(R_out, H), (R_out, H + ph), (R_out - 0.04, H + ph), (R_out - 0.04, H)], a0, a1, steps, lod=lod, only=lod)
     tb.footing(ms, R_out, R_in, n[1], apron=0.35)
     t_half = [(a, math.degrees(math.asin(tower_r * 1.05 / R_out))) for a in towers]
     tb.merlon_ring(ms, R_out - 0.02, H + 0.035, a0, a1, 0.1, t_half, size=(0.05, 0.04, 0.055), mat=mat)
