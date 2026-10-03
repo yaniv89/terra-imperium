@@ -18,6 +18,7 @@ import { ALL_PERKS, canPromote, hasPerk, getRankForXp, XP_THRESHOLDS, RANK_ORDER
 import { airUnitsInRange, AIR_RANGE } from '../../engine/airPower';
 import { validateFieldAttack, enemyStackAt } from '../../engine/fieldBattle';
 import { validateFleetAttack, enemyFleetsAt } from '../../engine/navalBattle';
+import { declareWarModel } from '../panels/warActions';
 import { fleetPace } from '../../engine/fleets';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
@@ -124,7 +125,7 @@ export const attackTargets = (state, tile, units) => {
     const city = cityId ? state.regions[cityId] : null;
     if (city && city.tile === n && city.owner !== me) {
       const v = validateInvasion(state, from, cityId);
-      if (v.ok || ['no_moves', 'cost', 'no_war'].includes(v.reason)) out.push({ kind: 'city', tile: n, regionId: cityId, name: city.name, owner: state.nations[city.owner]?.name || city.owner, strength: Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.ownerId !== me && u.strength > 0).reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
+      if (v.ok || ['no_moves', 'cost', 'no_war'].includes(v.reason)) out.push({ kind: 'city', tile: n, regionId: cityId, name: city.name, owner: state.nations[city.owner]?.name || city.owner, ownerId: city.owner, war: v.reason === 'no_war' ? declareWarModel(state, city.owner) : null, strength: Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.ownerId !== me && u.strength > 0).reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
       return;
     }
     const enemy = enemyStackAt(state, n, me);

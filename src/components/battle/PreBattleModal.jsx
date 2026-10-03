@@ -16,7 +16,9 @@ import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
 import { getRegionTerrain } from '../../data/terrain';
-import { UNIT_CLASSES } from '../../data/unitClasses';
+import { unitDisplayName } from '../../data/unitNames';
+import { getEffectiveAgeId } from '../../data/ages';
+import { getTechAgeId } from '../../engine/nationState';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { scoutsEstimate } from './battleReportView';
@@ -33,12 +35,12 @@ import { canAfford } from '../../utils/helpers';
 const pct = (v) => `${Math.round(v * 100)}%`;
 
 // "3 Pikemen · 1 Knights" and the total strength, for one side.
-export const summarizeArmy = (units, hiredCommanders = {}) => {
+export const summarizeArmy = (units, hiredCommanders = {}, ageId = 'bronze') => {
   const byClass = {};
   units.forEach((u) => { byClass[u.classId] = (byClass[u.classId] || 0) + 1; });
   const commanders = [...new Set(units.map((u) => u.commanderId).filter(Boolean))].map((id) => hiredCommanders[id]?.name || 'A general');
   return {
-    lines: Object.entries(byClass).map(([classId, n]) => ({ classId, n, name: UNIT_CLASSES[classId]?.name || classId })),
+    lines: Object.entries(byClass).map(([classId, n]) => ({ classId, n, name: unitDisplayName(ageId, classId, units.find((u) => u.classId === classId)?.navalLine) })),
     strength: units.reduce((s, u) => s + Math.max(0, u.strength), 0),
     commanders
   };
@@ -89,8 +91,8 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
   const region = field ? null : state.regions[targetRegionId];
   const terrain = fleet ? 'open water' : field ? legacyTerrainOf(getTiles(), tile) : getRegionTerrain(targetRegionId, REGIONS_DATA);
   const fortTier = field ? 0 : (region?.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
-  const mine = summarizeArmy(v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [], state.hiredCommanders);
-  const theirs = summarizeArmy(v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [], state.hiredCommanders);
+  const mine = summarizeArmy(v?.ok ? (landing ? v.embarkedLandUnits : v.attackerUnits) : [], state.hiredCommanders, getEffectiveAgeId(state.age, state.techAgeId));
+  const theirs = summarizeArmy(v?.ok ? (landing ? v.defenderLandUnits : v.defenderUnits) : [], state.hiredCommanders, v?.ok && v.defenderNationId && v.defenderNationId !== 'rebels' ? getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)) : state.age);
   const enemyName = field ? (v?.ok && v.defenderNationId !== 'rebels' ? state.nations[v.defenderNationId]?.name : 'the rebels') || 'the enemy' : state.nations[region?.owner]?.name || 'the enemy';
   // Known to be empty (you have intel): there's no battle to fight, the army just marches in.
   const knownEmpty = !field && hasIntel && v?.ok && (landing ? v.defenderLandUnits : v.defenderUnits).length === 0;

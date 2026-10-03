@@ -53,6 +53,7 @@ const HEX_FROM_ZOOM = 3;
 const RESOURCE_GLYPH_ZOOM = 5;
 const IMPROVEMENT_GLYPH = { farm: 'F', pasture: 'P', camp: 'H', mine: 'M', quarry: 'Q', lumber_camp: 'L', fishing_boats: 'B', plantation: 'N', oil_well: 'O', fort: 'W' };
 const CITY_DETAIL_ZOOM = 2.5;
+const NAME_EARLY_ZOOM = 1.5; // your cities and every capital carry their name from here (plans/playtest-1.md P5.5)
 // Max raised from 8x to 40x (plan feedback: playing as a small nation like Israel, its provinces
 // stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
 // already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
@@ -93,7 +94,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 // header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
-  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political'
+  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, selectedArmy = null, lens = 'political'
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -534,20 +535,25 @@ const Map2DView = ({
       const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
       const preview = l.kind === 'preview';
       const colour = preview ? '#fde68a' : l.halted ? '#f87171' : '#34d399';
+      // Only the selected stack's march is bright; the others stay faint (plans/playtest-1.md P1.6).
+      const faint = !preview && selectedArmy != null && l.points[0] !== selectedArmy;
+      const end = pts[pts.length - 1]; const prev = pts[pts.length - 2];
+      const ang = end && prev ? Math.atan2(end[1] - prev[1], end[0] - prev[0]) : 0;
+      const ah = 5 / Math.sqrt(zoomK);
+      const arrow = end ? [[end[0] + Math.cos(ang) * ah, end[1] + Math.sin(ang) * ah], [end[0] + Math.cos(ang + 2.5) * ah, end[1] + Math.sin(ang + 2.5) * ah], [end[0] + Math.cos(ang - 2.5) * ah, end[1] + Math.sin(ang - 2.5) * ah]].map((p) => p.join(',')).join(' ') : '';
+      const turns = l.marks.length ? l.marks[l.marks.length - 1].turn : null;
+      const label = l.halted ? 'halted' : turns != null ? `${turns} turn${turns === 1 ? '' : 's'}` : '';
       return (
         <g key={l.key} pointerEvents="none" data-march-line={l.kind}>
-          <path d={d} fill="none" stroke="rgba(15,23,42,0.7)" strokeWidth={w * 2} strokeLinejoin="round" strokeLinecap="round" />
-          <path d={d} fill="none" stroke={colour} strokeWidth={w} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={preview ? `${w * 3} ${w * 2}` : undefined} />
-          {l.marks.map((m) => { const p = pts[m.index]; if (!p) return null; const r = 6 / Math.sqrt(zoomK); return (
-            <g key={m.index} transform={`translate(${p[0]},${p[1]})`}>
-              <circle r={r} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.6} />
-              <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.2} fontWeight="700" fill="#0f172a">{m.turn}</text>
-            </g>); })}
-          {l.haltIndex > 0 && pts[l.haltIndex] && <circle cx={pts[l.haltIndex][0]} cy={pts[l.haltIndex][1]} r={5 / Math.sqrt(zoomK)} fill="none" stroke="#f87171" strokeWidth={w} />}
+          <path d={d} fill="none" stroke="rgba(15,23,42,0.55)" strokeWidth={w * 1.8} strokeLinejoin="round" strokeLinecap="round" opacity={faint ? 0.5 : 1} />
+          <path d={d} fill="none" stroke={colour} strokeWidth={w * 0.9} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={preview ? `${w * 3} ${w * 2}` : undefined} opacity={faint ? 0.5 : 1} />
+          {preview && l.marks.slice(0, -1).map((m) => { const p = pts[m.index]; if (!p) return null; return <circle key={m.index} cx={p[0]} cy={p[1]} r={1.6 / Math.sqrt(zoomK)} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.3} />; })}
+          {end && <polygon points={arrow} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.4} opacity={faint ? 0.5 : 1} />}
+          {end && !faint && <g transform={`translate(${end[0]},${end[1] - 9 / Math.sqrt(zoomK)})`} data-route-label={l.kind}><text textAnchor="middle" fontSize={9 / Math.sqrt(zoomK)} fontWeight="700" fill={l.halted ? '#fecaca' : '#fff'} stroke="rgba(15,23,42,0.85)" strokeWidth={2.2 / Math.sqrt(zoomK)} paintOrder="stroke">{label}</text></g>}
         </g>
       );
     });
-  }, [interactive, projection, marchLines, zoomK]);
+  }, [interactive, projection, marchLines, zoomK, selectedArmy]);
   // Settlers stand on tiles, not in cities: a tent per settler (yours, and others' near your land).
   const settlerElements = useMemo(() => {
     if (!interactive || !projection) return null;
@@ -597,7 +603,7 @@ const Map2DView = ({
           {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.38} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
           {city.disaster && <text x={-r * 0.95} y={-r * 0.6} textAnchor="middle" fontSize={r * 0.9} pointerEvents="none" data-disaster-badge={city.id}>{city.disaster.kind === 'flood' ? '≈' : city.disaster.kind === 'fire' ? '🔥' : '☠'}</text>}
           {zoomK >= CITY_DETAIL_ZOOM && <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="700" fill="#0f172a" pointerEvents="none">{city.size || 1}</text>}
-          {zoomK >= CITY_DETAIL_ZOOM && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
+          {(zoomK >= CITY_DETAIL_ZOOM || (zoomK >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
         </g>
       );
     });
