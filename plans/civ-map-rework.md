@@ -1918,6 +1918,13 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**E7, the deployment zone drawn (2026-10-03).** `src/battle/render/deployZone.js` lists dots
+along the player's zone edge (ZONE_DOT_STEP 0.5 tiles) and `BattleRenderer.setDeployZone` lays
+them on the ground as small decals that follow the terrain (green for the attacker, blue for
+the defender); the screen shows the zone from the first frame and clears it on Start. Checked
+in a real browser from the sandbox. The objective banner per type and the HUD already stood;
+the mini map of the field stays open.
+
 **E4, the nation sheet (2026-10-03).** `NationCard` (one nation's relation card with the
 Diplomacy tab's actions) moved out of DiplomacyPanel into its own file, and
 `src/components/map/NationSheet.jsx` over `nationSheetModel.js` (pure, tested) shows a nation at a
