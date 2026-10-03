@@ -15,6 +15,7 @@ import { pillageTile } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { tileFacts, IMPROVEMENTS } from '../../data/tileYields';
 import { ALL_PERKS, canPromote, hasPerk, getRankForXp, XP_THRESHOLDS, RANK_ORDER } from '../../data/promotions';
+import { airUnitsInRange, AIR_RANGE } from '../../engine/airPower';
 
 export const ZONE_TEXT = {
   home: 'In friendly land: the meter fills every turn.',
@@ -75,6 +76,7 @@ export const armySheetModel = (state, tile) => {
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
     pillage: pillageTarget(state, tile, units),
     generals,
+    airCover: airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,
     unitIds: units.map((u) => u.id)
   };
 };

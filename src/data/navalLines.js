@@ -23,6 +23,8 @@ const ageIndex = (ageId) => Math.max(0, AGE_ORDER.indexOf(ageId));
 export const navalLineOf = (unit) => (unit?.navalLine && NAVAL_LINES[unit.navalLine] ? unit.navalLine : 'warship');
 export const navalLinesFor = (ageId) => NAVAL_LINE_IDS.filter((id) => ageIndex(ageId) >= ageIndex(NAVAL_LINES[id].from));
 export const navalCargo = (line, ageId) => NAVAL_LINES[line]?.cargo[ageIndex(ageId)] ?? 1;
+/** Aircraft a ship of this line carries (the carrier's two; airPower.js). */
+export const navalAir = (line) => NAVAL_LINES[line]?.air ?? 0;
 export const navalName = (line, ageId) => NAVAL_LINES[line]?.names[ageIndex(ageId)] || 'Fleet';
 export const navalCombatMult = (line) => NAVAL_LINES[line]?.combat ?? 1;
 export const navalSightBonus = (line) => NAVAL_LINES[line]?.sight ?? 0;

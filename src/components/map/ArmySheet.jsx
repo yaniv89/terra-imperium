@@ -33,7 +33,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         </div>
         <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
       </div>
-      <div className="text-[11px] text-slate-300 mb-2" data-testid="army-supply">{model.zoneText}</div>
+      <div className="text-[11px] text-slate-300 mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? ` Air cover: ${model.airCover} aircraft within ${model.airRange} tiles join a battle here.` : ''}</div>
       {model.route && <div className="text-[11px] text-amber-200 mb-2" data-testid="army-route">Marching to {model.route.name}: about {model.route.turns} turn{model.route.turns === 1 ? '' : 's'}.</div>}
       {model.groups.map((g) => (
         <div key={g.key || 'none'} className="mb-2" data-testid="army-group">

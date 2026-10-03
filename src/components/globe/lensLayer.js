@@ -7,7 +7,7 @@
 import { geoPath } from 'd3-geo';
 import { getTiles } from '../../data/geo/tiles';
 import { cellFeature } from '../../data/geo/tileGeometry';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines } from '../map/lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines, airCover } from '../map/lenses';
 
 const pointOf = (tiles, projection, id) => {
   const ll = tiles.latLonOf(id);
@@ -43,6 +43,14 @@ export const drawLensLayer = (ctx, { state, lens, projection, width }) => {
       ctx.globalAlpha = 1; ctx.strokeStyle = d.colour; ctx.lineWidth = Math.max(1, px); ctx.stroke(); drawn++;
     });
   } else if (lens === 'threat') {
+    airCover(state).forEach((a) => {
+      const [x, y] = at(a.tile); const [ex, ey] = at(a.edgeTile);
+      const r = Math.max(4 * px, Math.hypot(ex - x, ey - y)); const c = a.own ? '#60a5fa' : '#f87171';
+      ctx.globalAlpha = 0.08; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1; ctx.strokeStyle = c; ctx.lineWidth = Math.max(1, px); ctx.setLineDash([5 * px, 3 * px]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.font = `700 ${Math.max(6, 7 * px)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = c; ctx.fillText(`✈ ${a.count}`, x, y - 8 * px); drawn++;
+    });
     threatStacks(state).forEach((s) => {
       const [x, y] = at(s.tile); const [ex, ey] = at(s.edgeTile);
       const r = Math.max(4 * px, Math.hypot(ex - x, ey - y));

@@ -11,6 +11,7 @@
 // they're stored on the defense record, never in state.units, and their losses come out of
 // militaryStrength afterwards.
 import { recordBattleReport } from './battleReports';
+import { withAirSupport } from './airPower';
 import { conquerRegion } from './conquest';
 import { applyBattleAftermath } from './aftermath';
 import { LogTypes } from '../data/types';
@@ -120,13 +121,16 @@ export const isUnitInPendingDefense = (state, unitId) =>
   (state.pendingDefenses || []).some((d) => d.defenderUnitIds.includes(unitId));
 
 // Both armies as they stand now. Units that died or left in the meantime are dropped.
-export const getDefenseArmies = (state, def) => ({
-  attackerUnits: [
-    ...def.attackerUnitIds.map((id) => state.units[id]).filter((u) => u && u.strength > 0 && u.ownerId === def.aggressorId),
-    ...(def.synthetic || []).map((u) => ({ ...u }))
-  ],
-  defenderUnits: def.defenderUnitIds.map((id) => state.units[id]).filter((u) => u && u.strength > 0 && u.regionId === def.regionId)
-});
+export const getDefenseArmies = (state, def) => {
+  const tile = state.regions[def.regionId]?.tile ?? null;
+  const real = def.attackerUnitIds.map((id) => state.units[id]).filter((u) => u && u.strength > 0 && u.ownerId === def.aggressorId);
+  const garrison = def.defenderUnitIds.map((id) => state.units[id]).filter((u) => u && u.strength > 0 && u.regionId === def.regionId);
+  // Aircraft in range join each side (airPower.js).
+  return {
+    attackerUnits: [...withAirSupport(state, def.aggressorId, tile, real), ...(def.synthetic || []).map((u) => ({ ...u }))],
+    defenderUnits: withAirSupport(state, state.regions[def.regionId]?.owner, tile, garrison)
+  };
+};
 
 // Every number resolveBattle needs beyond the unit lists, with the player as the defender.
 export const getDefenseBattleContext = (state, def) => {
