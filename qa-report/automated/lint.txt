@@ -1,0 +1,4 @@
+
+> terra-imperium@0.1.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+
