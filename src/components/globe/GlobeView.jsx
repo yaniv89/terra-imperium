@@ -64,7 +64,7 @@ let userDismissedAutoRotate = false;
 const visibleHalfAngleDeg = (altitude) => (Math.acos(1 / (1 + Math.max(altitude, 0.01))) * 180) / Math.PI;
 
 const GlobeView = ({ onAmbiguousTap = null,
-  width, height, selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null, onSelectTile = null
+  width, height, selectedRegion, onSelectRegion, focusRegionId = null, navigateTarget = null, onViewportChange = null, onSelectTile = null, onSelectArmy = null, lens = 'political'
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -209,7 +209,7 @@ const GlobeView = ({ onAmbiguousTap = null,
         c.width = geo.image?.naturalWidth || rasterSize; c.height = geo.image?.naturalHeight || rasterSize / 2;
         canvasRef.current = c;
       }
-      renderPoliticalCanvas({ canvas: canvasRef.current, baseImage: geo.image, state, fillFor, land: geo.land, warOwners: atWarNationIds, selected: selectedRegion });
+      renderPoliticalCanvas({ canvas: canvasRef.current, baseImage: geo.image, state, fillFor, land: geo.land, warOwners: atWarNationIds, selected: selectedRegion, lens });
       if (!textureRef.current) {
         const t = new CanvasTexture(canvasRef.current);
         t.colorSpace = SRGBColorSpace;
@@ -219,8 +219,9 @@ const GlobeView = ({ onAmbiguousTap = null,
       } else textureRef.current.needsUpdate = true;
     });
     return () => cancelAnimationFrame(frame);
+    // A lens other than political also follows the units (threat, supply) and the wars (trade).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geo, tileOwner, state.regions, fillFor, atWarNationIds, selectedRegion, material, rasterSize]);
+  }, [geo, tileOwner, state.regions, fillFor, atWarNationIds, selectedRegion, material, rasterSize, lens, lens !== 'political' ? state.units : null, lens !== 'political' ? state.wars : null]);
 
   // Far out (B5) only the player's own armies and battles show as markers. Checked on a light
   // poll: a threshold flip, not a per-frame value.
@@ -308,12 +309,13 @@ const GlobeView = ({ onAmbiguousTap = null,
     .map((m) => ({ ...m, ...(markerLatLng(m) || {}) }))
     .filter((m) => m.lat != null), 3 * 1.4 ** altStep), [markers, farView, altStep]);
   const markerCtx = useRef({});
-  markerCtx.current = { onSelectRegion, atWarNationIds };
+  markerCtx.current = { onSelectRegion, onSelectArmy, atWarNationIds, state };
   const markerElement = useCallback((item) => createMarkerElement(item, markerCtx.current.atWarNationIds.has(item.ownerId), (it) => {
     if (it.kind === 'cluster') {
       const pov = globeRef.current?.pointOfView?.();
       globeRef.current?.pointOfView({ lat: it.lat, lng: it.lng, altitude: Math.max(0.12, (pov?.altitude || 1) / 2.5) }, 500);
     } else if (it.kind === 'battle') openBattleReport(it.id);
+    else if (it.own && it.kind === 'army' && it.tile != null && markerCtx.current.onSelectArmy && markerCtx.current.state.regions[markerCtx.current.state.world?.tileOwner?.[it.tile]]?.tile !== it.tile) markerCtx.current.onSelectArmy(it.tile); // your army in the field: its sheet (a garrison on its city tile belongs to the city card)
     else markerCtx.current.onSelectRegion(it.regionId);
   }), []);
   const markerVisibility = useCallback((el, visible) => { el.style.display = visible ? '' : 'none'; }, []);

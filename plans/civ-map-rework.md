@@ -1935,6 +1935,17 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E5, the lenses on the globe and the army sheet from a globe banner (2026-10-03).**
+`src/components/globe/lensLayer.js` paints the seven lenses into the globe's political canvas
+(politicalTexture.js, after the borders and the selection) from the same models the flat map
+draws (lenses.js): yield labels at tile centres, loyalty discs, threat circles with the
+strength, supply and estate tile fills (the hex cell polygon in the raster's projection, with
+the estate's crest), trade routes as lines (dashed at sea, red when plundered, a dot on the
+raider). Sizes scale with the raster width. The lens strip now shows in both map modes and the
+globe repaints when the lens, the units or the wars change under a lens. Tapping one of your
+army banners on the globe in the field opens the army sheet, as on the flat map (a garrison on
+its city tile keeps opening the city card). Test: lensLayer.test.js with a counting context.
+
 **E2, phone portrait plays the empire view (2026-10-03).** A phone held upright no longer meets
 a blocking "rotate your phone" screen: `phone-portrait` is a real layout (useLayoutMode.js, no
 more substitution by the tablet layout) that runs the bottom-bar shell, the map on top and half

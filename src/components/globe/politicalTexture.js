@@ -5,8 +5,10 @@
 // so no hex edge shows along a coast. One canvas in equirectangular projection, the exact layout
 // of the raster, uploaded to the globe as a three.js CanvasTexture. Far out the globe is the
 // world view: nations, borders and capitals, nothing smaller (the flat map carries the local view).
+// The lenses (E5) paint over it from the same models as the flat map (lensLayer.js).
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import { getCityFeatures, getNationTerritories } from '../../data/geo/cityFeatures';
+import { drawLensLayer } from './lensLayer';
 
 export const POLITICAL_ALPHA = 0.45;
 
@@ -14,7 +16,7 @@ export const POLITICAL_ALPHA = 0.45;
  * same size. `fillFor(cityId)` gives a hex colour; `land` is the country feature list the
  * territories are clipped to; `warOwners` is a Set of nation ids whose borders are drawn red;
  * `selected` is the city id to outline. Returns the canvas. */
-export const renderPoliticalCanvas = ({ canvas, baseImage, state, fillFor, land, warOwners, selected }) => {
+export const renderPoliticalCanvas = ({ canvas, baseImage, state, fillFor, land, warOwners, selected, lens = 'political' }) => {
   const width = canvas.width; const height = canvas.height;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, width, height);
@@ -47,6 +49,8 @@ export const renderPoliticalCanvas = ({ canvas, baseImage, state, fillFor, land,
       ctx.beginPath(); path(f); ctx.stroke();
     }
   }
+  // The lens layer (E5, lensLayer.js) on top of borders and the selection.
+  drawLensLayer(ctx, { state, lens, projection, width });
   return { canvas, path };
 };
 
