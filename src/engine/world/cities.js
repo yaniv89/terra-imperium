@@ -29,6 +29,7 @@
 //
 // Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
 // object when nothing changed.
+import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
 import { AGE_ORDER } from '../../data/ages';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
@@ -259,15 +260,17 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const ring1 = city.siege ? new Set(tiles.neighbors[city.tile]) : null;
   const fields = city.underInvasion ? [] : ring1 ? worked.filter((t) => ring1.has(t)) : worked;
   const sum = fields.reduce((acc, t) => { const y = yieldsOfTile(tiles, world, t, researched); acc.food += y.food; acc.production += y.production; acc.gold += y.gold; return acc; }, { ...centre });
+  const districts = districtYields(tiles, world, city); // the Campus, Temple Quarter and Market Quarter on their tiles (districts.js)
+  sum.gold += districts.gold;
   const palace = city.isCapital ? PALACE_YIELDS : { gold: 0, production: 0, science: 0, culture: 0 };
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
   const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10;
   const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
-  const science = Math.round((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints')) * 10) / 10;
+  const science = Math.round((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * 10) / 10;
   const cultureTier = (city.buildings?.categories?.culture ?? -1) + 1;
-  const culture = Math.round((CULTURE_BASE + palace.culture + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier + (ctx.cultureBonus || 0)) * 10) / 10;
+  const culture = Math.round((CULTURE_BASE + palace.culture + CULTURE_PER_SIZE * city.size + CULTURE_PER_TIER * cultureTier + districts.culture + (ctx.cultureBonus || 0)) * 10) / 10;
   const strategic = {};
   worked.forEach((t) => { const s = strategicSupply(factsOf(tiles, world, t), researched); if (s) strategic[s.resource] = (strategic[s.resource] || 0) + s.amount; });
   const luxuries = new Set();
@@ -407,6 +410,8 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   const researched = ctx.researched || [];
   const ageId = ctx.ageId || 'bronze';
   let w = world;
+  // A pillaged district is rebuilt once DISTRICT_REPAIR_TURNS have passed (districts.js).
+  (city.tiles || []).forEach((t) => { const e = w.tileState[t]; if (e?.district && e.pillaged) { const r = repairedDistrict(e, ctx.turnNumber || 0); if (r !== e) w = writeTileState(w, t, r, inPlace); } });
   let c = city;
   const logs = []; const completed = [];
   if (c.outpost) return { city: c, world: w, yields: null, completed, logs }; // outposts are grown by settlers.js
@@ -449,6 +454,11 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     if (item.kind === 'building') {
       buildings = { ...buildings, categories: { ...buildings.categories, [item.category]: item.tier } };
       logs.push(`${c.name} completes a ${BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category}.`);
+      // The line's district stands on a tile of the border from its first tier (districts.js).
+      if (DISTRICTS[item.category] && !hasDistrict(w, next, item.category)) {
+        const site = districtSite(tiles, w, next, item.category);
+        if (site != null) { w = writeTileState(w, site, districtEntry(w.tileState[site], item.category), inPlace); logs.push(`${c.name} lays out its ${DISTRICTS[item.category].name}.`); }
+      }
     } else if (item.kind === 'improvement') {
       w = writeTileState(w, item.tile, { ...(w.tileState[item.tile] || {}), improvement: item.improvement, pillaged: false, ...(item.improvement === 'road' ? { road: true } : {}) }, inPlace);
       logs.push(`${c.name} builds a ${IMPROVEMENTS[item.improvement]?.name || item.improvement}.`);

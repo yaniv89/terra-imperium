@@ -66,12 +66,12 @@ export const besiegerStacksBeside = (state, tile, city, byTile = null) => {
 /** Pillages the improvement on `tile` for `nationId` when it is an enemy's: returns { tileState, gold } or null. */
 export const pillageTile = (state, nationId, tile, enemies) => {
   const entry = state.world?.tileState?.[tile];
-  if (!entry?.improvement || entry.pillaged) return null;
+  if (!(entry?.improvement || entry?.district) || entry.pillaged) return null; // an improvement or a district (districts.js)
   const cityId = state.world?.tileOwner?.[tile];
   const owner = cityId != null ? state.regions?.[cityId]?.owner : null;
   if (!owner || !enemies.has(owner)) return null;
   const gold = Math.round(RAID_GOLD * Math.max(0, 1 + (lawRulesOf(state.nations?.[nationId]).pillageGoldMult || 0))); // Chieftaincy doubles it (lawRules.js)
-  return { tileState: { ...state.world.tileState, [tile]: { ...entry, pillaged: true } }, gold, cityId };
+  return { tileState: { ...state.world.tileState, [tile]: { ...entry, pillaged: true, pillagedTurn: state.turnNumber || 0 } }, gold, cityId };
 };
 
 /** The tile a unit stands on (a land unit's tile, else its city's centre). */

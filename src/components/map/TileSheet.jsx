@@ -12,6 +12,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getResearched } from '../../engine/nationState';
 import { tileFacts, tileYields, IMPROVEMENTS } from '../../data/tileYields';
+import { DISTRICTS } from '../../engine/districts';
 import { canSettle, scoreSite, settlerPath, settlersOf, SETTLER_MOVES } from '../../engine/settlers';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { atSea } from '../../engine/fleets';
@@ -90,6 +91,7 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
         <Yield icon={Coins} value={`${y.gold} gold`} className="text-yellow-300" title="Gold" />
         {facts.resource && <span className="text-fuchsia-300 capitalize">{facts.resource}</span>}
         {facts.improvement && <span className="text-sky-300">{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
+        {facts.district && <span className="text-violet-300" data-testid="tile-district">{DISTRICTS[facts.district]?.name || facts.district}{facts.pillaged ? ' (pillaged)' : ''}</span>}
         {heldBy && <span className="text-violet-300" data-testid="tile-estate">Held by the {ESTATE_LABELS[heldBy] || heldBy}</span>}
       </div>
       {ownerCity ? (

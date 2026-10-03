@@ -1,3 +1,5 @@
+import { districtYields } from './districts';
+import { getTiles } from '../data/geo/tiles';
 import { ESTATE_PRIVILEGES, CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY, ESTATE_INTERACTION_COOLDOWN_TURNS } from '../data/estates';
 import { canDoEstateInteraction } from './estates';
 import { LAW_CATEGORIES, LAW_CATEGORY_IDS, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
@@ -87,6 +89,7 @@ const emptyAIPool = () => ({ gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil:
 // modifier sources (src/engine/modifiers/) already read generically for any nationId, so those are
 // included via the SAME getRegionModifier/getModifier calls calcIncome itself uses.
 export const calcAllNationIncomes = (state) => {
+  const tiles = getTiles(); // district yields read the grid (districts.js)
   const incomes = {};
   Object.values(state.regions).forEach((region) => {
     if (!region.owner || region.owner === state.playerNationId || region.occupiedBy) return;
@@ -113,6 +116,7 @@ export const calcAllNationIncomes = (state) => {
       if (built && hasDeposit(regData.startOwner, key)) entry[key] = (entry[key] || 0) + EXTRACTION_BASE_YIELD * controlMult * infraMult;
     });
     entry.gold += m['local.tradeIncome'] * controlMult;
+    entry.techPoints += districtYields(tiles, state.world, region).science * controlMult; // the Campus (districts.js); the player's rides lastYields.science
     incomes[region.owner] = entry;
   });
   Object.keys(incomes).forEach((nationId) => {

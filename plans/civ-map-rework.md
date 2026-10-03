@@ -1344,6 +1344,28 @@ discretion.
 
 ## J3. Progress log
 
+**C3.4 and B5, districts as tiles and the local-zoom glyphs (2026-10-03).** `src/engine/
+districts.js`: a city's Science, Culture and Economy lines stand on a tile of its border once
+their first tier is built (a Library lays out a Campus, a Shrine a Temple Quarter, a Market a
+Market Quarter) and the tile pays by what is around it, Civ VI's adjacency: a Campus
+DISTRICT_BASE (1) science +1 per mountain beside it (max 2) +1 on a river; a Temple Quarter 1
+culture +1 per wonder beside it +1 beside the centre; a Market Quarter 1 gold +1 on a river +1
+on the coast +1 on a road. The site is the best adjacency on a free land tile of the border,
+ring one first (`districtSite`), chosen when the tier completes in processCity; the tile keeps
+its terrain yields, takes no improvement (`canImprove`), can be pillaged like an improvement
+(threat.js, now recording the turn) and is rebuilt DISTRICT_REPAIR_TURNS (5) later. The yields
+ride cityYields (science, culture, and gold through the city's raw gold into dev.tax), so the
+player's research gets them through lastYields.science and the AI's through
+calcAllNationIncomes. The tile sheet and the city sheet's Tiles tab name the district. The flat
+map now draws tile glyphs from the hex zoom (plan B5's local view): a letter in a disc for an
+improvement, a letter in a violet square for a district, a small diamond for a luxury or
+strategic resource (bonus resources sit on most tiles and would carpet the map), only for the
+land tiles on screen (`landTilesWithin`). Checked in a browser at turn 12: Temple Quarters
+beside Cairo and Amman, resources around. Balance over seeds 3, 11, 12 (150 turns, player
+Austria): techs unchanged (player 12 to 13, AI median 8), cities and gold within 1%, wars 25
+to 15 across the three seeds (the AI's richer cities spend differently; within the swing the
+seeds show between any two runs), turn time unchanged. Tests in districts.test.js.
+
 **D5b, naval battles in the tactical sim (2026-10-03).** A fleet attack can now be commanded
 like a field battle. The battlefield is open sea (mapgen.js `naval`: every tile passable water,
 NAVAL_ISLET_SHARE (2.5%) of rock islets, and where the sea tile's neighbours are land, a shore
