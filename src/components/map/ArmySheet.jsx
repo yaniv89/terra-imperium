@@ -60,6 +60,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
                         {model.generals.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                       </select>
                     )}
+                  {u.air && <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: [u.id], patrol: !u.patrol } })} data-testid="army-patrol" className={`mt-1 px-2 min-h-[32px] rounded text-[11px] ${u.patrol ? 'bg-sky-700/70 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`} title="On patrol the aircraft intercept enemy strikes within six tiles of their base">{u.patrol ? 'On patrol' : 'Patrol'}</button>}
                   {u.perks.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1" data-testid="army-promote">
                       <span className="text-purple-300 flex items-center gap-1"><Award className="w-3 h-3" /> Promote:</span>

@@ -104,7 +104,7 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   // The garrison is whoever else stands there — never the player's own troops.
   const defenderUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'land' && u.classId !== 'settler' && u.ownerId !== state.playerNationId);
   // Aircraft in range of the city join each side (airPower.js); they stay at their base after.
-  return { ok: true, war, fromRegion, targetRegion, attackerUnits: withAirSupport(state, state.playerNationId, targetRegion.tile, attackerUnits), defenderUnits: withAirSupport(state, targetRegion.owner, targetRegion.tile, defenderUnits) };
+  return { ok: true, war, fromRegion, targetRegion, attackerUnits: withAirSupport(state, state.playerNationId, targetRegion.tile, attackerUnits, defenderUnits), defenderUnits: withAirSupport(state, targetRegion.owner, targetRegion.tile, defenderUnits, attackerUnits) };
 };
 
 export const getInvasionBattleContext = (state, { targetRegionId, targetRegion, defenderUnits }) => {

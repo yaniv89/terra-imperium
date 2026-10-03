@@ -1935,6 +1935,20 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**D5b, air defence (2026-10-03).** airPower.js: every Support unit (the Modern age's Anti-Air)
+standing on the battle tile of the other side turns back ANTI_AIR_SHARE (0.2) of the aircraft
+that would join, and every aircraft of the other side on patrol whose base lies within
+AIR_PATROL_RINGS (6) of the tile turns back PATROL_SHARE (0.25) more, up to MAX_TURNED_BACK
+(0.8); the aircraft turned back are the last by id and take no part. `SET_AIR_PATROL` sets or
+clears patrol on the player's aircraft and the army sheet shows a Patrol button on each
+aircraft. Invasions, defences and field battles pass each side's units as the other's opposing
+force. Tests in airPower.test.js. E2's tablet item is closed by the layouts as they stand: a
+tablet held sideways is 1,024 px or wider and gets the desktop shell with its dock and now the
+city rail; held upright it keeps the bottom bar and bottom sheets, which suit a portrait
+screen. E3's remaining prompts are covered: research done is "Choose what to research", and
+an event opens its own sheet and holds End Turn. Still open in D5b: naval battles in the
+tactical sim, railways and the modern movement table.
+
 **E2 desktop: the city list rail, yields per turn, Enter (2026-10-03).** `CityRail.jsx` over
 `cityRailModel.js` (pure, tested) docks a city list on the left of a desktop screen under the
 header: every city of the player biggest first (the capital first), its size, what it builds

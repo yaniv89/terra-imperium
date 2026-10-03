@@ -3097,6 +3097,16 @@ const reduceAction = (state, action) => {
     case ActionTypes.MARK_TUTORIAL_STEP:
       return markTutorialStep(state, action.payload?.stepId);
 
+    case ActionTypes.SET_AIR_PATROL: {
+      // Patrol (airPower.js): the aircraft intercept enemy strikes within AIR_PATROL_RINGS of their base.
+      const { unitIds = [], patrol = true } = action.payload || {};
+      const mine = unitIds.filter((id) => state.units[id]?.ownerId === state.playerNationId && state.units[id].classId === 'air');
+      if (!mine.length) return state;
+      const units = { ...state.units };
+      mine.forEach((id) => { units[id] = { ...units[id], patrol: !!patrol }; });
+      return { ...state, units };
+    }
+
     case ActionTypes.ANSWER_DEMAND: {
       // An AI's tribute demand (aiAccords.js): pay it or refuse and hand them a casus belli.
       const r = answerDemand(state, !!action.payload?.accept);
