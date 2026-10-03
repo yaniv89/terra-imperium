@@ -80,3 +80,27 @@ describe('air power (plan D5b)', () => {
     expect(gameReducer(cog, { type: ActionTypes.EMBARK_UNIT, payload: { landUnitId: 'i', navalUnitId: 'c' } }).units.i.embarkedOn).toBe('c');
   });
 });
+
+describe('air defence (plan D5b)', () => {
+  it('anti-air on the tile and patrols near it turn back a share of the joining aircraft', async () => {
+    const { turnedBackShare, interceptorsAt, ANTI_AIR_SHARE, PATROL_SHARE, MAX_TURNED_BACK, AIR_PATROL_RINGS } = await import('./airPower');
+    const jets = [1, 2, 3, 4, 5].map((i) => unit(`j${i}`, IN, { classId: 'air', tile: delhi }));
+    const base = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: 'pk', tile: theirs }), ...jets]));
+    expect(validateFieldAttack(base, IN, theirs).attackerUnits.map((u) => u.id)).toEqual(['a', 'j1', 'j2', 'j3', 'j4', 'j5']);
+    const flak = withUnits(base, [unit('f1', PK, { ownerId: 'pk', classId: 'support', tile: theirs }), unit('f2', PK, { ownerId: 'pk', classId: 'support', tile: theirs })]);
+    expect(turnedBackShare(flak, 'pk', theirs, [flak.units.e, flak.units.f1, flak.units.f2])).toBeCloseTo(2 * ANTI_AIR_SHARE);
+    expect(validateFieldAttack(flak, IN, theirs).attackerUnits.map((u) => u.id)).toEqual(['a', 'j1', 'j2', 'j3']); // 5 x 0.4 = 2 turned back
+    // A Pakistani patrol within reach of the tile turns back more; off patrol it does nothing.
+    const pkBase = S.regions[PK].tile;
+    const near = ringsAround(tiles, theirs, AIR_PATROL_RINGS).has(pkBase);
+    const patrol = withUnits(flak, [unit('p1', PK, { ownerId: 'pk', classId: 'air', tile: pkBase, patrol: true })]);
+    expect(interceptorsAt(patrol, 'pk', theirs).length).toBe(near ? 1 : 0);
+    expect(turnedBackShare(patrol, 'pk', theirs, [patrol.units.e, patrol.units.f1, patrol.units.f2])).toBeCloseTo(Math.min(MAX_TURNED_BACK, 2 * ANTI_AIR_SHARE + (near ? PATROL_SHARE : 0)));
+    const idle = { ...patrol, units: { ...patrol.units, p1: { ...patrol.units.p1, patrol: false } } };
+    expect(interceptorsAt(idle, 'pk', theirs)).toEqual([]);
+    // The patrol order is the player's, for aircraft only.
+    const ordered = gameReducer(base, { type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: ['j1', 'a'] } });
+    expect(ordered.units.j1.patrol).toBe(true); expect(ordered.units.a.patrol).toBeUndefined();
+    expect(gameReducer(ordered, { type: ActionTypes.SET_AIR_PATROL, payload: { unitIds: ['j1'], patrol: false } }).units.j1.patrol).toBe(false);
+  });
+});

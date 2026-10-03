@@ -54,6 +54,7 @@ export const armySheetModel = (state, tile) => {
     xp: u.xp || 0,
     nextRankAt: XP_THRESHOLDS[RANK_ORDER[RANK_ORDER.indexOf(getRankForXp(u.xp || 0)) + 1]] || null,
     generalId: u.commanderId || null,
+    air: u.classId === 'air', patrol: !!u.patrol,
     perks: canPromote(u) ? ALL_PERKS.filter((p) => !hasPerk(u, p.id)).map((p) => ({ id: p.id, name: p.name, description: p.description })) : []
   }));
   const generals = Object.entries(state.hiredCommanders || {}).filter(([, g]) => !g.assignedUnitId).map(([id, g]) => ({ id, name: g.name }));

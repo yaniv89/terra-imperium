@@ -127,8 +127,8 @@ export const getDefenseArmies = (state, def) => {
   const garrison = def.defenderUnitIds.map((id) => state.units[id]).filter((u) => u && u.strength > 0 && u.regionId === def.regionId);
   // Aircraft in range join each side (airPower.js).
   return {
-    attackerUnits: [...withAirSupport(state, def.aggressorId, tile, real), ...(def.synthetic || []).map((u) => ({ ...u }))],
-    defenderUnits: withAirSupport(state, state.regions[def.regionId]?.owner, tile, garrison)
+    attackerUnits: [...withAirSupport(state, def.aggressorId, tile, real, garrison), ...(def.synthetic || []).map((u) => ({ ...u }))],
+    defenderUnits: withAirSupport(state, state.regions[def.regionId]?.owner, tile, garrison, real)
   };
 };
 

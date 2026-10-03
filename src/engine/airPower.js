@@ -5,12 +5,20 @@
 // Every battle within that range (an invasion, a defence, a field battle) gets the aircraft as
 // the air squads of the existing sim, on the attacker's or the defender's side by nation; after
 // the battle they stay at their base. An aircraft standing on open ground between bases, or in a
-// foreign city, covers nothing. Pure.
+// foreign city, covers nothing. Air defence (D5b): every Support unit (Anti-Air in the Modern
+// age) on the battle tile of the other side turns back ANTI_AIR_SHARE of the aircraft that would
+// join, and every aircraft of the other side on patrol (`unit.patrol`, SET_AIR_PATROL) whose base
+// lies within AIR_PATROL_RINGS of the tile turns back PATROL_SHARE more, up to MAX_TURNED_BACK; the
+// aircraft turned back are the last by id and take no part. Pure.
 import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { unitTile } from './armies';
 
 export const AIR_RANGE = 11;
+export const AIR_PATROL_RINGS = 6;
+export const ANTI_AIR_SHARE = 0.2;
+export const PATROL_SHARE = 0.25;
+export const MAX_TURNED_BACK = 0.8;
 
 export const isAir = (u) => u?.classId === 'air';
 
@@ -37,9 +45,28 @@ export const airUnitsInRange = (state, nationId, tile, inBattle = []) => {
     .sort((a, b) => (a.id < b.id ? -1 : 1));
 };
 
-/** `units` plus the nation's aircraft in range of `tile`. */
-export const withAirSupport = (state, nationId, tile, units) => {
-  const air = airUnitsInRange(state, nationId, tile, units);
+/** The other side's patrolling aircraft whose base reaches `tile`. */
+export const interceptorsAt = (state, enemyNationId, tile) => {
+  if (!enemyNationId || tile == null) return [];
+  const rings = ringsAround(getTiles(), tile, AIR_PATROL_RINGS);
+  return Object.values(state.units || {}).filter((u) => u.ownerId === enemyNationId && isAir(u) && u.patrol && u.strength > 0 && rings.has(airBaseTile(state, u) ?? -1));
+};
+
+/** The share of joining aircraft turned back by `opposing` units on the tile and the other side's patrols. */
+export const turnedBackShare = (state, enemyNationId, tile, opposing = []) => {
+  const antiAir = opposing.filter((u) => u.classId === 'support' && u.strength > 0).length;
+  const patrols = interceptorsAt(state, enemyNationId, tile).length;
+  return Math.min(MAX_TURNED_BACK, ANTI_AIR_SHARE * antiAir + PATROL_SHARE * patrols);
+};
+
+/** `units` plus the nation's aircraft in range of `tile`, less those the other side turns back. */
+export const withAirSupport = (state, nationId, tile, units, opposing = []) => {
+  let air = airUnitsInRange(state, nationId, tile, units);
+  if (!air.length) return units;
+  const enemyNationId = opposing.find((u) => u.ownerId && u.ownerId !== nationId)?.ownerId || null;
+  const share = turnedBackShare(state, enemyNationId, tile, opposing);
+  const kept = air.length - Math.floor(air.length * share);
+  air = air.slice(0, kept);
   return air.length ? [...units, ...air] : units;
 };
 
