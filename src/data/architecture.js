@@ -31,11 +31,15 @@ const EARLY_AGES = new Set(['bronze', 'classical', 'kingdoms']);
 // sub-style that falls back to 'europe' wherever it has no model of its own.
 const EAST_EUROPE = new Set(['ru', 'ua', 'by', 'md', 'ro', 'bg', 'rs', 'mk', 'me']);
 const BEFORE_EAST = new Set(['bronze', 'classical']);
-export const STYLE_FALLBACK = { easteurope: 'europe' };
+// From the Gunpowder Age the lands of European settlement build the colonial variant of the
+// European kit (a clapboard church), falling back to Europe as well.
+const COLONIES = new Set(['us', 'ca', 'au', 'nz', 'bm', 'pm', 'gl', 'fk', 'gs', 'nf', 'pn', 'hm', 'tf']);
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe' };
 /** The style a city on this nation's land is drawn in, in this age. */
 export const styleOfLand = (nationId, ageId) => {
   if (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) return BEFORE_SETTLEMENT[nationId];
   if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
+  if (COLONIES.has(nationId)) return 'colonies';
   return styleOfNation(nationId);
 };
 /** A style and the styles it falls back to, most specific first: ['easteurope', 'europe']. */
