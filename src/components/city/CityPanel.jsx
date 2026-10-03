@@ -13,7 +13,7 @@ import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp } fro
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, speedCostMult } from '../../data/ages';
 import { getResearched } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
@@ -69,9 +69,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const yields = live?.yields || { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
   const housing = city ? housingOf(city, researched) : 0;
   const amen = city ? amenitiesOf(city, { luxuries: (city.lastYields?.luxuries || []).length }) : { need: 0, supply: 0, net: 0 };
-  const threshold = city ? growthThreshold(city.size) : 0;
+  const threshold = city ? growthThreshold(city.size, speedCostMult(state.gameSpeed, ageId)) : 0;
   const growthTurns = city && yields.food > 0 && city.size < MAX_SIZE ? Math.ceil(Math.max(0, threshold - city.food) / yields.food) : null;
-  const costCtx = { ageId, citiesOwned };
+  const costCtx = { ageId, citiesOwned, speedMult: speedCostMult(state.gameSpeed, ageId) };
   const turnsFor = (item, progress = 0) => Math.max(1, Math.ceil(Math.max(0, productionCost(item, costCtx) - progress) / Math.max(0.1, yields.production)));
 
   const options = useMemo(() => {

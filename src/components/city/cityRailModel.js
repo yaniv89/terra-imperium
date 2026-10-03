@@ -5,7 +5,7 @@
 // (`lastYields`) give the pace, so the list costs one pass, not an allocation per city. Pure.
 import { unitDisplayName } from '../../data/unitNames';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, speedCostMult } from '../../data/ages';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
@@ -32,11 +32,11 @@ export const cityRailModel = (state) => {
   const tiles = getTiles();
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
   const mine = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null);
-  const costCtx = { ageId, citiesOwned: mine.length };
+  const costCtx = { ageId, citiesOwned: mine.length, speedMult: speedCostMult(state.gameSpeed, ageId) };
   const capital = state.nations?.[me]?.capitalRegionId;
   return mine.map((c) => {
     const food = c.lastYields?.food ?? 0; const production = c.lastYields?.production ?? 0;
-    const growthTurns = c.outpost ? null : food > 0 && c.size < MAX_SIZE ? Math.max(1, Math.ceil(Math.max(0, growthThreshold(c.size) - (c.food || 0)) / food)) : null;
+    const growthTurns = c.outpost ? null : food > 0 && c.size < MAX_SIZE ? Math.max(1, Math.ceil(Math.max(0, growthThreshold(c.size, speedCostMult(state.gameSpeed, ageId)) - (c.food || 0)) / food)) : null;
     const item = c.production?.current || null;
     const buildTurns = item ? Math.max(1, Math.ceil(Math.max(0, productionCost(item, costCtx) - (c.production?.progress || 0)) / Math.max(0.1, production))) : null;
     return {

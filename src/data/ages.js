@@ -101,24 +101,27 @@ export const getAgesBehindResearchCostMultiplier = (agesBehind) => 1 + agesBehin
 
 // ============ GAME SPEED ============
 
+// The speed table (plans/playtest-1.md P3): the years each turn advances, by age and speed. The
+// pace of play follows the calendar, not the turn: research, production and growth cost
+// REFERENCE_YEARS[age] / years[age] times their base, so a Bronze tech, a granary or a size of
+// growth takes the same span of history at every speed (the balance was tuned at the reference
+// table, the old Normal). `turns` is the length of a full game, 2000 BCE to 2300 CE.
+const REFERENCE_YEARS = { bronze: 40, classical: 20, kingdoms: 10, gunpowder: 4, modern: 2 };
 export const GAME_SPEEDS = {
-  fast: { id: 'fast', name: 'Fast', multiplier: 2 },
-  normal: { id: 'normal', name: 'Normal', multiplier: 1 },
-  marathon: { id: 'marathon', name: 'Marathon', multiplier: 0.5 }
-};
-
-// Base (Normal-speed) years advanced per turn, shrinking as history speeds up. Speed is a flat
-// multiplier on top of this — see plan §3.
-const BASE_YEARS_PER_TURN = {
-  bronze: 40,
-  classical: 20,
-  kingdoms: 10,
-  gunpowder: 4,
-  modern: 2
+  fast: { id: 'fast', name: 'Fast', years: { bronze: 50, classical: 25, kingdoms: 12, gunpowder: 5, modern: 2 }, turns: 440, blurb: 'About 440 turns. 50 years a turn in the Bronze Age.' },
+  normal: { id: 'normal', name: 'Normal', years: { bronze: 25, classical: 12, kingdoms: 6, gunpowder: 2, modern: 1 }, turns: 920, blurb: 'About 920 turns. 25 years a turn in the Bronze Age.' },
+  marathon: { id: 'marathon', name: 'Marathon', years: { bronze: 10, classical: 5, kingdoms: 3, gunpowder: 1, modern: 1 }, turns: 1510, blurb: 'About 1,500 turns. 10 years a turn in the Bronze Age.' }
 };
 
 export const getYearsPerTurn = (ageId, speedId) => {
-  const base = BASE_YEARS_PER_TURN[ageId] ?? BASE_YEARS_PER_TURN.modern;
   const speed = GAME_SPEEDS[speedId] ?? GAME_SPEEDS.normal;
-  return base * speed.multiplier;
+  return speed.years[ageId] ?? speed.years.modern;
 };
+/** The cost multiplier of a speed on research, production and growth in an age: the reference
+ * years per turn over this speed's, so the pace per year of history is the same at every speed. */
+export const speedCostMult = (speedId, ageId = 'bronze') => {
+  const age = REFERENCE_YEARS[ageId] != null ? ageId : 'modern';
+  return REFERENCE_YEARS[age] / getYearsPerTurn(age, speedId);
+};
+/** The turns a full game takes at a speed, from the table itself. */
+export const gameLengthTurns = (speedId) => AGE_ORDER.reduce((sum, id) => sum + Math.ceil((AGES[id].endYear - AGES[id].startYear) / getYearsPerTurn(id, speedId)), 0);

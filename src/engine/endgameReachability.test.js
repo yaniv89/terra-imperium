@@ -226,7 +226,7 @@ describe('endgame reachability: the space-race ladder completes within the Moder
     let state = base;
     // The lab operates from the start of the Modern Age; its savings come from real turns.
     state = { ...state, year: AGES.modern.startYear, age: 'modern', techAgeId: 'modern' };
-    state = advanceUntil(state, s => s.year >= SATELLITE_UNLOCK_YEAR, 40);
+    state = advanceUntil(state, s => s.year >= SATELLITE_UNLOCK_YEAR, Math.ceil((SATELLITE_UNLOCK_YEAR - AGES.modern.startYear) / getYearsPerTurn('modern', 'normal')) + 2); // the speed table's own turn count (ages.js)
     expect(state.year, 'never reached the satellite-unlock year within the search budget').toBeGreaterThanOrEqual(SATELLITE_UNLOCK_YEAR);
 
     for (const mission of SPACE_MISSIONS) {

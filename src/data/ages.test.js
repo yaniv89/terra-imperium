@@ -11,7 +11,9 @@ import {
   getAgesBehind,
   getAgesBehindResearchCostMultiplier,
   GAME_SPEEDS,
-  getYearsPerTurn
+  getYearsPerTurn,
+  speedCostMult,
+  gameLengthTurns
 } from './ages';
 
 describe('AGES calendar coverage', () => {
@@ -88,11 +90,25 @@ describe('getAgesBehindResearchCostMultiplier', () => {
   });
 });
 
-describe('game speed', () => {
-  it('Fast is exactly double Marathon at every age', () => {
+describe('game speed (the speed table, plans/playtest-1.md P3)', () => {
+  it('Marathon moves the calendar slowest at every age and a full game is about 1,500 turns', () => {
     AGE_ORDER.forEach(ageId => {
-      expect(getYearsPerTurn(ageId, 'fast')).toBe(getYearsPerTurn(ageId, 'marathon') * 4);
+      expect(getYearsPerTurn(ageId, 'fast')).toBeGreaterThanOrEqual(getYearsPerTurn(ageId, 'normal'));
+      expect(getYearsPerTurn(ageId, 'normal')).toBeGreaterThanOrEqual(getYearsPerTurn(ageId, 'marathon'));
     });
+    expect(getYearsPerTurn('bronze', 'marathon')).toBe(10);
+    expect(getYearsPerTurn('bronze', 'normal')).toBe(25);
+    expect(gameLengthTurns('fast')).toBeGreaterThan(400); expect(gameLengthTurns('fast')).toBeLessThan(500);
+    expect(gameLengthTurns('normal')).toBeGreaterThan(850); expect(gameLengthTurns('normal')).toBeLessThan(1000);
+    expect(gameLengthTurns('marathon')).toBeGreaterThan(1400); expect(gameLengthTurns('marathon')).toBeLessThan(1600);
+    // The cost multiplier follows the turns: more turns per year, dearer techs and buildings, so
+    // the pace per year of history holds at every speed and age.
+    AGE_ORDER.forEach((ageId) => {
+      expect(speedCostMult('fast', ageId)).toBeLessThanOrEqual(speedCostMult('normal', ageId));
+      expect(speedCostMult('normal', ageId)).toBeLessThanOrEqual(speedCostMult('marathon', ageId));
+      ['fast', 'normal', 'marathon'].forEach((sp) => expect(speedCostMult(sp, ageId) * getYearsPerTurn(ageId, sp)).toBeCloseTo(speedCostMult('fast', ageId) * getYearsPerTurn(ageId, 'fast'), 6));
+    });
+    expect(speedCostMult('unknown', 'bronze')).toBe(speedCostMult('normal', 'bronze'));
   });
 
   it('Normal years-per-turn shrinks monotonically as ages advance', () => {
