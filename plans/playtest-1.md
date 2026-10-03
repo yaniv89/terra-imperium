@@ -1,166 +1,270 @@
-# Playtest 1: what you hit, what the code says, and the plan
+# Playtest 1: the plan (v2)
 
-Your first real play as Israel on the live site. Eleven points, each with what I found in the
-code, the fix and its size, then an order of work and the two decisions that are yours.
+What you hit in the first real play as Israel, what the code does today, and a detailed plan
+for all of it. v2 takes your three answers: detail only at the super zoom with icons when
+zoomed out and nothing drawn off screen; the globe is my call; and the speed table is
+explained in plain words (section 3) with the numbers I propose.
 
-## 1. Too many civil wars
+The plan is six workstreams (P1 to P6), each with its design, the files it touches, its tests
+and its size, then the order of work.
 
-**Found.** A civil war starts in two places: a succession crisis (`civilWar.js`,
-CIVIL_WAR_SUCCESSION_CRISIS_CHANCE on every succession that lands badly) and low stability.
-Nothing limits how often one nation can fall into one, and the balance harness does not count
-civil wars at all, so they were never measured. On the new map a ruler dies every 15 to 30
-turns and every succession rolls the crisis, so a mid-size nation sees one every few decades.
+---
 
-**Fix.** Count civil wars and rebellions in the balance harness (`worldStats.sim.js`), then
-tune: a cooldown of 40 turns per nation after a civil war, the crisis only when legitimacy is
-under 40 or stability under -1, the chance halved, and the player gets a warning event two
-turns before ("the succession is contested: pay 200 gold or raise legitimacy") instead of a
-surprise. Target from Part H: at most one civil war per nation per age. Size: a day, with the
-sim runs.
+## Decisions taken
 
-## 2. Could not find how to declare war
+- **The globe stays as the world view only.** Zoomed all the way out you see the sphere with
+  nation fills, capitals and the lenses; zooming in hands over to the flat map at the region
+  level, as the hand-over already does. The flat map is where the game is played and is the
+  default view after the start screen. The Globe button remains a toggle. Reason: the globe is
+  the one view that shows 240 nations at once, it costs nothing to keep, and removing it buys
+  nothing the flat map needs. If after P1 you still want it gone it is a one-day removal.
+- **Detail follows the zoom, not a global budget.** Your point is right: at the super zoom a
+  screen holds a handful of towns and a few stacks, and off-screen things are not drawn. So
+  the model budgets are set per zoom band by what that band shows (P1.4), and the battle keeps
+  its own LOD chain because a battle does put 200 soldiers on one screen.
 
-**Found.** Declare War lives only on the nation card (Empire tab, Relations, or the nation
-sheet from a border). An enemy city card and an army beside an enemy say "not at war" and stop.
+---
 
-**Fix.** Put the action where the intent is: a "Declare war on X" button on a foreign city
-card and on the tile sheet of an enemy army, the army sheet's greyed Attack button opens the
-war declaration with its cost, and the nation sheet gets the button in its header. The guided
-start's "battle" step points at it. Size: half a day.
+## P1. The map: zoom bands, crisp super zoom, what is drawn where
 
-## 3. How to supply an army
+### P1.1 Zoom bands
 
-**Found.** Supply is a meter on each unit: it fills in your land, holds in held enemy land,
-drains in the wild and in enemy land, less when a supply line reaches (your land within 8
-tiles over land, more with Road Posts and techs). The army sheet prints one line about the
-zone and nothing says where the line ends or how to extend it.
+One table decides everything the map draws. Zoom is the flat map's scale k (1 is the whole
+world across the screen; phones reach 80 today, desktops 40; both go to 200).
 
-**Fix.** The army sheet shows the meter with its change per turn and a sentence that names
-the lever: "Supply 42/100, -8 a turn. Your border is 11 tiles away; a supply line reaches 8.
-A Road Post in Haifa would reach 9, a march back to your land refills it." The Supply lens
-draws the line's reach as a tint from your border. A unit that stops in your land refills to
-full in two turns (today it climbs slowly). Size: one day.
+| Band | k | What you see | How it is drawn |
+|---|---|---|---|
+| World | the globe | nation fills, borders, capitals as stars, lens tints | the globe as today |
+| Region | 1 to 3 | nation fills, borders, city badges with size and name, army and fleet banners, settler tents, battle and wonder marks | SVG over the raster pyramid |
+| Local | 3 to 10 | the hexes, improvement and district glyphs, resources, roads, routes, every badge and banner | SVG over the raster pyramid, the hex mesh for the window on screen |
+| Close | 10 to 40 | rendered land: real relief, terrain textures, rivers, roads as paths, fields on improved tiles, town models, districts and wonders as models, armies as a few soldiers, fleets as ships | the three.js close view, culled to the screen |
+| Super | 40 to 200 | the same scene up close: a town fills the screen, you see the market, the walls, the soldiers walking, the ships' sails | the close view with the full-detail models |
 
-## 4. Why 1,500 triangles? How do mobile games look so good?
+Badges and banners stay the same size on screen in every band (they scale by 1/sqrt(k) as
+now), models scale with the land. Nothing outside the screen plus a one-tile margin is built
+or drawn in any band: the close view already culls by the viewport, the SVG layers use the
+hex window, and P1.3 adds the same to the raster.
 
-**Found.** The briefs set 800 to 1,500 triangles for a soldier and 3,000 to 12,000 for a town
-because of counts, not phones: a battle draws 12 soldiers per squad for 20 to 30 squads, and
-the close map draws 250 towns at once. A phone GPU draws 30 to 60 million triangles a second
-comfortably; 300 soldiers at 1,500 is 450,000 per frame, fine, but 300 at 20,000 is 6 million
-per frame at 60 fps, which is where phones throttle.
+### P1.2 Crisp mid zoom: a raster pyramid
 
-**How the good-looking mobile games do it.** Not with more triangles. Four things: textures
-with baked lighting and normal maps (a 2,000-triangle soldier with a 1K texture looks like
-20,000), levels of detail (the full model only for the 20 nearest, a 300-triangle version for
-the rest), instancing (one draw call for every copy of a model), and few unique things on
-screen. Our models today are flat colour per triangle with no textures, which is the real
-reason they look simple, and the unit pipeline rejects anything over 3,000.
+The flat map is one 4,096-pixel picture of the Earth: 11 picture pixels per hex, stretched
+30 times at k 40. Replace it with a tile pyramid, the way every web map works:
+- `scripts/geo/build-raster-pyramid.mjs` renders the same realistic Earth (the shaded relief,
+  the climate colours, the rivers, the coast) at zoom levels 0 to 7 into 256-pixel WebP tiles
+  (`public/map/tiles/{z}/{x}/{y}.webp`; z 7 is 32,768 pixels across the world, 90 picture
+  pixels per hex). The source is the terrarium elevation at zoom 7 and Natural Earth 2 HR
+  (21,600 wide) for colour, both already in the fetch script. About 25 MB in all, fetched on
+  demand, cached by the service worker.
+- `Map2DView.jsx` draws the tiles for the window on screen (the hex-window logic, in tile
+  coordinates) in an `<image>` layer under the provinces, picking z from k so a picture
+  pixel is never stretched more than 2x up to k 10.
+- The globe keeps `world-4096.webp`: it never zooms past the region band.
 
-**Fix.** Raise the budgets and add textures, keeping the counts in mind: soldiers LOD0 4,000
-triangles with a 1K atlas (baked ambient occlusion, a normal map), LOD1 1,200, LOD2 300;
-towns LOD0 40,000 with a 2K atlas (only 4 are on screen at full zoom), LOD1 8,000, LOD2
-1,000; ships 6,000 with a 1K atlas. The game loads textured GLBs already (gltfUnitLoader), the
-import script just needs the cap lifted and the atlas kept. The two briefs and the art spec
-get the new table. Size: one day of code, and it changes what you commission.
+Size: two days. Test: a Playwright shot at k 1, 3, 8 of the Levant compared for sharpness
+(the edge count of a Laplacian over the screenshot, a number in the test), and the tile cache
+size under 30 MB.
 
-## 5. Drop the globe, keep 2D, and super zoom without blur
+### P1.3 The rendered close view (k 10 and up)
 
-**Found.** The flat map is one 4,096 by 2,048 picture of the whole Earth. That is 11 pixels
-per degree, so a 106 km hex is about 11 picture pixels wide; at full zoom it is 350 screen
-pixels wide, stretched 30 times. No single picture fixes that: NASA's largest free Earth
-(21,600 wide) is still stretched 6 times at full zoom, and it weighs 100 MB.
+The land is drawn, not photographed, so it is sharp at any magnification. The battle renderer
+already does exactly this for a battlefield (terrainSurface.js: a mesh from a height grid with
+grass, sand, rock, forest, water painted per pixel by a ground shader). The close view gets
+the same over the hexes on screen:
 
-**Fix, in two layers.**
-1. **A tile pyramid for the mid zooms** (1x to 10x): the raster build cuts the Earth into
-   256-pixel tiles at zoom levels 0 to 6 from the 21,600-wide Natural Earth and Blue Marble
-   sources (about 20 MB in all, loaded on demand like a slippy map, cached by the service
-   worker). Crisp to 10x on a phone.
-2. **A rendered close view for 10x and up**, the way Civ and Humankind do it: the land is
-   drawn, not photographed. The battle renderer's terrain shader already builds a textured
-   mesh from height and terrain classes (terrainSurface.js); the close view gets the same
-   over the hexes on screen: real height from the terrarium tiles (zoom 8 to 10), grass,
-   sand, rock, forest and snow splats by the tile's climate, rivers as water, roads as
-   paths, fields on improved tiles, the town models, soldiers and ships on top. At that zoom
-   the picture is sharp at any magnification because it is geometry and tiling textures.
-   This is also what the art spec's models stand on.
+- **Relief.** Height per hex corner from the terrarium tiles at zoom 9 (about 300 m
+  samples), a mesh of the hexes in the window plus one ring, 12 vertices per hex, rebuilt
+  when the window moves by a hex. Mountains rise, hills roll, the coast drops to the sea.
+- **Ground.** The ground shader's palette by the tile's climate and feature: grass and
+  savanna, desert sand, tundra, snow and ice, forest and jungle floors, marsh, with a noise
+  break so no two hexes look alike. Rivers from the tile data as water channels cut into the
+  mesh, lakes and sea as the water plane. Roads as packed-earth paths (asphalt from the
+  Modern Age), between the centres of road tiles.
+- **Things on the land.** Fields and orchards on farm and plantation tiles, pens on
+  pastures, a pit and a headframe on a mine, a quarry face, a logging clearing, boats on a
+  fishing tile, a derrick on an oil well, a fort as a small keep: the art spec's improvement
+  models, placeholders until they land. Districts as their landmark models beside the town.
+  Wonders as their models. Towns as the layout-by-kit models of the art spec, placeholder
+  boxes until then. Armies as 1 to 3 soldiers per stack (the battle soldiers), fleets as
+  ships. The faint hex outline stays as a toggle.
+- **Zoom.** The same scene from k 10 to 200; the camera tilt grows with k so at super zoom
+  you look at the town from a low angle, which is where the kits' south faces matter.
+- **Performance.** Only the hexes on screen plus one ring: at k 10 on a phone that is about
+  120 hexes, at k 40 about 10, at k 200 one or two. Models come in three levels of detail
+  chosen by k, not by distance (every hex on screen is at the same scale). Everything is
+  instanced per model. Budget: 60 fps on a 2021 phone at every k.
 
-**The globe.** Keep it, as the world view only (zoomed out it is the best way to show 240
-nations on a sphere, it costs nothing to keep, and the lenses already run on it), and make the
-flat map the default where you play: start in 2D, the Globe button a toggle. Dropping the
-globe outright saves little and loses the one view that shows the whole world at once. Your
-call, see Decisions. Size: pyramid two days, rendered close view one to two weeks (it is the
-biggest item here and the one that changes the game's look the most).
+Size: two weeks. This is the item that changes the game's look the most, and it is what the
+art spec's models are for. Tests: the terrain mesh of a known hex (a mountain tile rises, a
+sea tile is flat at 0), the window culling (hexes drawn equal hexes on screen plus the ring),
+a screenshot at k 15, 50 and 150 with no console errors, frame time in the sandbox.
 
-## 6. The panel in your screenshot
+### P1.4 Model budgets by band
 
-**Found.** That is the lens strip (LensStrip.jsx): Political, Yields, Loyalty, Threat, Supply,
-Trade and Air cover, as icons with no labels, pinned over the map beside the mini map. On a
-phone it eats a quarter of the map and says nothing.
+With the bands fixed, the budgets follow what each band shows at once:
 
-**Fix.** One small pill showing the current lens by name ("Political"); tapping it opens the
-strip with labels and a one-line hint per lens, closing after a pick. The mini map folds the
-same way. Size: half a day.
+| Band | On screen | Towns (triangles) | Soldiers, ships | Textures |
+|---|---|---|---|---|
+| Close, k 10 | about 120 hexes, 30 to 60 towns | LOD2 1,500 | imposters | the age atlas |
+| Close, k 20 to 40 | 5 to 15 towns | LOD1 10,000 | LOD1 2,000 | 2K atlas with baked lighting and a normal map |
+| Super, k 40 to 200 | 1 to 4 towns, a few stacks | LOD0 60,000 | LOD0 8,000, ships 12,000 | 4K atlas for towns, 2K for soldiers and ships |
+| Battle | 200 to 300 soldiers | the battlefield's own buildings 20,000 | LOD0 6,000 for the 30 nearest squads, LOD1 1,500, imposters beyond | 2K atlases |
 
-## 7. Marathon still feels fast
+So the briefs change from "1,500 flat-colour triangles" to textured models at 8,000 to 60,000
+at the top level, with real levels of detail, which is how the games you have in mind look.
+The import script lifts its 3,000 cap, keeps the textures, and builds the imposters itself.
+The unit brief, the town brief and the art spec get this table. Size: one day of code plus the
+brief edits. This changes what you commission, so the briefs are updated before the first
+batch of art is made.
 
-**Found.** Years per turn are 40, 20, 10, 4, 2 by age at Normal speed; Marathon halves them, so
-the Bronze Age still moves 20 years a turn and 2000 BCE to 800 BCE is 60 turns. Nothing ties
-speed to research or growth, so Marathon is the same game with the calendar slowed.
+### P1.5 The lens strip and the mini map
 
-**Fix.** A real speed table: Normal 25, 12, 6, 2, 1 years a turn (the full game 520 turns),
-Marathon 10, 5, 3, 1, 1 (about 1,100 turns) with research, growth and production costs scaled
-by 1.6 so the pace of play matches the calendar, Fast as today. Ages advance by the year as
-now. The era goals and the Part H targets are restated per speed. Size: one day with sim runs.
-A decision below.
+The strip in your screenshot is the lens strip (Political, Yields, Loyalty, Threat, Supply,
+Trade, Air cover) as bare icons. It becomes one pill that names the current lens
+("Political") and, tapped, opens the strip with a label and a one-line hint per lens, closing
+after a pick. Keyboard 1 to 7 as now. The mini map folds the same way: a small globe button
+that opens it. Both sit bottom-left as now but cover a tenth of what they cover today. Size:
+half a day. Test: the landscape e2e checks the map keeps 85% of its width with both closed.
 
-## 8. Cities named "City 45912"
+### P1.6 Route marks
 
-**Found.** A settler founds a city with the tile's name, and most tiles have none, so the
-fallback is the tile number (cities.js `City ${tile}`).
+The march line today is a green line with a numbered disc at the end of every turn's march
+and a red ring at the halt, which clutters a short march and fights the badges. New look:
+- a soft path with a round cap and a small arrowhead at the destination;
+- one label only, at the destination: "3 turns" (or "halts: enemy fleet" in red);
+- the per-turn dots only while you are planning the march (the preview), as small ticks
+  without numbers, so you see the pace;
+- the lines of other stacks hidden unless the stack is selected; your own marches shown faint
+  until selected.
+Size: half a day. Test: the mapBanners and Map2DView tests for the elements drawn per state.
 
-**Fix.** A city name pool: Natural Earth's populated places (7,000 towns with coordinates and
-countries) assigned to the nearest free place within 150 km of the tile, else a name made from
-the founder's culture group (names.js already has syllable pools per group). Capitals keep
-their names. Size: half a day.
+---
 
-## 9. The Space tab before the Modern Age
+## P2. War at hand: declaring war, supply, the army sheet
 
-**Fix.** Hide the Space tab until the nation has researched its first Modern tech (and show a
-one-line log entry when it appears). Same rule for the space lines of the Empire sheet. Size:
-an hour.
+### P2.1 Declare war where the intent is
 
-## 10. A building you cannot build should say why
+Declare War lives only on the nation card (Relations, or the nation sheet from a border).
+Add it:
+- on a foreign city's card: "Declare war on Egypt (5 DIP)", with the justified or unjustified
+  cost and the opinion hit, confirm in a two-button sheet;
+- on the tile sheet of an enemy army and on the army sheet's greyed Attack button: the reason
+  "not at war" becomes a button that opens the same sheet;
+- in the nation sheet header, beside the opinion;
+- the guided start's battle step names it.
+The reducer path is the existing DECLARE_WAR. Size: half a day. Test: the nextPrompt and
+nationSheetModel tests, an e2e step in the guided start.
 
-**Found.** The city sheet already knows the reason ("a technology", "a coast") and shows a
-greyed button.
+### P2.2 Supply you can read
 
-**Fix.** Print the tech by name with a "Research" link that queues it, "needs a coast", or
-"needs tier N first". The same on improvements ("Mine: needs Bronze Casting") and units. Size:
-half a day.
+The meter fills in your land, holds in held enemy land, drains in the wild and in enemy land,
+less when a supply line reaches (your land within 8 tiles over land, more with Road Posts and
+techs). The sheet prints one line about the zone and nothing about the lever. New:
+- the army sheet shows the meter with its change per turn and names the lever: "Supply
+  42/100, -8 a turn here. Your border is 11 tiles away; a supply line reaches 8. A Road Post
+  in Haifa would reach 9. Marching back to your land refills it.";
+- the Supply lens tints the reach of your supply lines from your border, so you see where a
+  march stops being fed;
+- a stack that halts in your land refills to full in two turns (SUPPLY_HOME_GAIN raised),
+  and a supply line through a road reaches one tile further per road tile up to 3;
+- the next prompt gains "an army running out of supply" (under 30 and falling).
+Size: one day. Tests: supplyMeter.test.js for the new gains, armySheetModel for the text.
 
-## 11. "Infantry" in the Bronze Age
+### P2.3 The army sheet's missing orders
 
-**Found.** The roster names exist (Spearmen, Chariots, Archers, Battering Ram, War Galley) and
-the army sheet uses them, but the pre-battle modal, the battle report, the city rail and the
-production queue print the class name.
+Merge (two of your stacks on touching tiles: "Merge into this stack") and Split are the
+checkboxes already; add Fortify as a real rule this time: a stack that holds a tile for a
+full turn without moving gets +15% defence and a small camp drawn in the close view, lost on
+moving (D1's entrench). Size: one day. Tests: fieldBattle for the multiplier, aiOperations
+unchanged.
 
-**Fix.** One `unitDisplayName(ageId, classId, navalLine)` helper used by every label; the
-class name only in tooltips ("Spearmen, infantry"). Size: two hours.
+---
 
-## Order of work
+## P3. Pace: the speed table and the calendar
 
-1. The quick ones in one wave: 11 unit names, 9 Space tab, 10 build reasons, 6 lens pill,
-   8 city names, 2 declare war everywhere. One to two days.
-2. Civil wars measured and tuned (1), supply explained (3). Two days.
-3. Speed table (7) once you decide.
-4. Triangle budgets and textures (4), briefs and spec updated.
-5. The raster pyramid (5.1), then the rendered close view (5.2), the big one.
+**What a speed table is.** The game advances the calendar by a fixed number of years every
+turn, and that number depends on the age (history speeds up) and on the speed you chose at
+the start. That list of numbers is the speed table. Today it is 40 years a turn in the Bronze
+Age, then 20, 10, 4 and 2 at Normal; Marathon halves them, so the Bronze Age still jumps 20
+years a turn, which is why it felt fast. Nothing else changes with the speed: research,
+growth and production cost the same, so Marathon is the same game with a faster-looking
+calendar.
 
-## Decisions
+**The proposed table** (years a turn in each age, and the turns a full game takes):
 
-1. **The globe.** Keep it as the world view with 2D as the default (my recommendation), or
-   remove it.
-2. **Speed.** The table in 7, or your own numbers. Say how long you want a full game to be on
-   Marathon in turns, and I set the table from that.
-3. **Models.** Textured models at the higher budgets (4) change what you commission; say yes
-   before the first batch of art is made.
+| Speed | Bronze | Classical | Kingdoms | Gunpowder | Modern | Turns 2000 BCE to 2300 CE |
+|---|---|---|---|---|---|---|
+| Fast | 50 | 25 | 12 | 5 | 2 | about 400 |
+| Normal | 25 | 12 | 6 | 2 | 1 | about 900 |
+| Marathon | 10 | 5 | 3 | 1 | 1 | about 1,900 |
+
+and the pace of play scales with it: research, growth and production costs are multiplied by
+1 at Fast, 1.5 at Normal, 2.5 at Marathon, so a Bronze tech still takes about 8 turns at
+Fast and about 20 at Marathon, and the ages fall at the right centuries at every speed. The
+era goals, the AI's periods (research, accords, wonders) and the Part H targets are stated
+per speed. Saves keep their speed. Size: one day with sim runs at each speed. Tests:
+ages.test.js for the table, longRun at Marathon 150 turns, the age reached by turn per speed.
+
+If you want a different length, say the turns a Marathon game should take and I set the
+table from that.
+
+---
+
+## P4. Civil wars and the quiet world
+
+### P4.1 Measure first
+
+The balance harness never counted civil wars. Add to `worldStats.sim.js`: civil wars started,
+turns in civil war per nation, pretender captures, rebellions started, and the same for the
+player's nation. Run 150 turns over seeds 3, 11, 12 and print the per-age rate.
+
+### P4.2 Tune
+
+A civil war starts on a succession crisis (every succession rolls it) or on low stability.
+The rule becomes:
+- the crisis roll only when legitimacy is under 40 or stability under -1; half the chance;
+- a cooldown of 40 turns per nation after one ends;
+- at most one civil war per nation per age as the Part H target;
+- the player gets the warning event two turns ahead ("the succession is contested") with two
+  real outs: pay 200 gold to buy the pretender's faction, or appoint the heir regent (needs an
+  adult heir), each with an opinion and estate cost; the AI takes the gold out when it can.
+Size: one day with the sim. Tests: civilWar.test.js for the gates and the cooldown, the sim
+numbers in the log entry.
+
+---
+
+## P5. Names, labels and what the sheets say
+
+- **P5.1 City names.** Settler-founded cities take the tile's name, and most tiles have none,
+  so they fall back to "City 45912". A name pool from Natural Earth's populated places
+  (7,000 towns with coordinates and countries, in the raw fetch already) assigned to the
+  nearest free place within 150 km of the tile, else a generated name from the founder's
+  culture group (names.js has syllable pools per group). Capitals keep theirs. Size: half a
+  day. Test: 500 founded cities, no "City N", no duplicate within a nation.
+- **P5.2 Unit names.** The roster names exist (Spearmen, Chariots, Archers, Battering Ram,
+  War Galley) and the army sheet uses them, but the pre-battle modal, the battle report, the
+  city rail and the production queue print the class. One `unitDisplayName(ageId, classId,
+  navalLine)` helper for every label; the class only in a tooltip. Size: two hours.
+- **P5.3 The Space tab.** Hidden until the nation has researched its first Modern tech, with
+  a log line when it appears; the Empire sheet's space lines the same. Size: an hour.
+- **P5.4 Why a building cannot be built.** The sheet knows the reason; print the tech by name
+  with a "Research" link that queues it, "needs a coast", or "needs tier N first", on
+  buildings, improvements and units alike. Size: half a day.
+- **P5.5 The city badge.** The number inside the badge is the city's size; add the name
+  under it from the region band on phones too (today from k 2.5), and a tap shows the badge's
+  tooltip ("Suez, size 3, growing in 4 turns").
+
+---
+
+## P6. Order of work and sizes
+
+| Wave | Content | Size |
+|---|---|---|
+| 1 | P5 (names, labels, Space tab, build reasons), P1.5 lens pill and mini map, P1.6 route marks, P2.1 declare war | 2 days |
+| 2 | P2.2 supply, P2.3 fortify and merge, P4 civil wars measured and tuned | 3 days |
+| 3 | P3 the speed table | 1 day |
+| 4 | P1.2 the raster pyramid, P1.4 budgets and the brief edits | 3 days |
+| 5 | P1.3 the rendered close view and super zoom | 2 weeks |
+
+Every wave ships on the branch with lint, the unit suite, the e2e suite and, for P3 and P4,
+the balance sim; merge to main when you say. The art spec's models land into P1.3 as they
+arrive, placeholders first.
