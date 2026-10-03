@@ -26,7 +26,7 @@ export const nextPrompts = (state) => {
   const guide = tutorialPrompt(state);
   if (guide) out.push(guide);
   if (state.pendingPeaceOffer) out.push({ id: 'peace', kind: 'peace', label: 'A peace offer awaits your answer', tab: 'diplomacy' });
-  if (demandWaiting(state)) out.push({ id: 'demand', kind: 'demand', label: `${state.nations[state.pendingDemand.from].name} demands ${state.pendingDemand.amount} gold`, tab: 'diplomacy' });
+  if (demandWaiting(state)) { const d = state.pendingDemand; out.push({ id: 'demand', kind: 'demand', label: `${state.nations[d.from].name} demands ${d.kind === 'city' ? d.cityName || 'a city' : d.kind === 'stopSettling' ? 'a stop to your settling' : `${d.amount} gold`}`, tab: 'diplomacy' }); }
   if (!state.research?.current && !state.research?.auto) out.push({ id: 'research', kind: 'research', label: 'Choose what to research', tab: 'tech' });
   const cities = Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null && !c.outpost).sort((a, b) => (a.id < b.id ? -1 : 1));
   cities.forEach((c) => { if (!c.production?.current) out.push({ id: `city:${c.id}`, kind: 'city', label: `${c.name} has nothing to build`, regionId: c.id }); });

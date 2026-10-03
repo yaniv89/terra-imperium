@@ -1344,6 +1344,20 @@ discretion.
 
 ## J3. Progress log
 
+**C6, AI demands for a city or a stop to settling (2026-10-03).** `demandKind` (aiAccords.js)
+picks what a Tier-1 nation asks of a weaker neighbour: a city it holds a claim on (never the
+capital), else a stop to settling when its opinion lists `settledNear`, else tribute. The
+accepted effect is one function, `grantDemand` (accords.js), shared by the player's demand, an
+AI's demand on an AI and the player's answer: tribute moves gold between the treasury and the
+AI economies, a city transfers with aggressive expansion and the claim settled, a stop to
+settling sets `noSettleNear` for DEMAND_STOP_SETTLING_TURNS. `state.pendingDemand` carries the
+kind, the city and the amount; the Relations card says what is asked and its button reads Pay,
+Yield or Promise; the next prompt names the kind. Measured over 150 turns (seed 3, player
+Austria, every demand on the player paid): 113 tribute payments and 19 promises to stop
+settling between AI nations, no city handed over (a claim and a two-to-one edge rarely meet
+without a war already on). Tests in aiAccords.test.js. Still open in C6: trade routes blocked
+at closed borders for the AI (its trade is abstract today).
+
 **Workstream 3.3 (2026-10-02): the game state runs on the tile world.** Full suite green (2,116
 tests, 16 skipped). What it settled and what it found:
 

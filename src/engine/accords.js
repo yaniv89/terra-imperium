@@ -106,7 +106,6 @@ export const demandAcceptance = (state, targetId, kind, cityId = null, demanderI
  */
 export const applyDemand = (state, targetId, kind, cityId = null, demanderId = state.playerNationId) => {
   const me = demanderId;
-  const isPlayer = me === state.playerNationId;
   const turn = state.turnNumber || 1;
   const answer = demandAcceptance(state, targetId, kind, cityId, me);
   if (answer.reason) return { state, accepted: false, message: answer.reason };
@@ -114,19 +113,32 @@ export const applyDemand = (state, targetId, kind, cityId = null, demanderId = s
   const target = state.nations[targetId];
   let nations = { ...state.nations, [targetId]: { ...target, hostility: Math.min(100, (target.hostility || 0) + d.hostility) } };
   nations[me] = { ...nations[me], demandCooldowns: { ...(nations[me].demandCooldowns || {}), [targetId]: turn + DEMAND_COOLDOWN_TURNS } };
-  let regions = state.regions; let resources = state.resources;
   if (!answer.accepted) {
     nations[me] = { ...nations[me], demandCasusBelli: { ...(nations[me].demandCasusBelli || {}), [targetId]: turn + DEMAND_CB_TURNS } };
     return { state: { ...state, nations }, accepted: false, message: `${target.name} refuses: you have a casus belli against them for ${DEMAND_CB_TURNS} turns.` };
   }
+  const granted = grantDemand(state, nations, me, targetId, kind, cityId, state.resources);
+  return { state: { ...state, nations: granted.nations, regions: granted.regions, resources: granted.resources }, accepted: true, message: granted.message };
+};
+
+/** The effect of a demand that was accepted, whoever asked: { nations, regions, resources, message }.
+ * Gold moves between the treasury (the player's `resources`) and the AI economies. */
+export const grantDemand = (state, nations, me, targetId, kind, cityId, resources = state.resources) => {
+  const turn = state.turnNumber || 1;
+  const isPlayer = me === state.playerNationId;
+  const targetIsPlayer = targetId === state.playerNationId;
+  const target = nations[targetId];
+  let regions = state.regions;
   let message;
+  nations = { ...nations };
   if (kind === 'tribute') {
-    const pool = getPool({ ...state, nations }, targetId);
+    const pool = targetIsPlayer ? resources : getPool({ ...state, nations }, targetId);
     const amount = Math.max(0, Math.round(Math.max(DEMAND_TRIBUTE_MIN, (pool.gold || 0) * DEMAND_TRIBUTE_SHARE)));
-    nations[targetId] = { ...nations[targetId], economy: { ...(nations[targetId].economy || {}), gold: (nations[targetId].economy?.gold || 0) - amount } };
+    if (targetIsPlayer) resources = { ...resources, gold: (resources.gold || 0) - amount };
+    else nations[targetId] = { ...nations[targetId], economy: { ...(nations[targetId].economy || {}), gold: (nations[targetId].economy?.gold || 0) - amount } };
     if (isPlayer) resources = { ...resources, gold: (resources.gold || 0) + amount };
     else nations[me] = { ...nations[me], economy: { ...(nations[me].economy || {}), gold: (nations[me].economy?.gold || 0) + amount } };
-    message = `${target.name} pays ${amount} gold in tribute${isPlayer ? '' : ` to ${nations[me].name}`}.`;
+    message = targetIsPlayer ? `You pay ${nations[me].name} ${amount} gold in tribute.` : `${target.name} pays ${amount} gold in tribute${isPlayer ? '' : ` to ${nations[me].name}`}.`;
   } else if (kind === 'city') {
     const city = state.regions[cityId];
     const { region } = transferRegion(city, me, nations, { loyalty: LOYALTY_ON_FLIP, control: 100, unrest: 0, siege: null, lastFlipTurn: turn });
@@ -134,12 +146,12 @@ export const applyDemand = (state, targetId, kind, cityId = null, demanderId = s
     nations = applyAggressiveExpansion(nations, regions, cityId, targetId, me, aeMultFor({ nations, regions: state.regions }, me, city));
     if (nations[me].claims?.includes(cityId)) nations[me] = { ...nations[me], claims: nations[me].claims.filter((id) => id !== cityId) };
     nations = relocateLostCapital(nations, regions, targetId);
-    message = `${target.name} yields ${city.name} to you.`;
+    message = targetIsPlayer ? `You yield ${city.name} to ${nations[me].name}.` : `${target.name} yields ${city.name} to ${isPlayer ? 'you' : nations[me].name}.`;
   } else {
     nations[targetId] = { ...nations[targetId], noSettleNear: { ...(nations[targetId].noSettleNear || {}), [me]: turn + DEMAND_STOP_SETTLING_TURNS } };
-    message = `${target.name} agrees to found no city near yours for ${DEMAND_STOP_SETTLING_TURNS} turns.`;
+    message = targetIsPlayer ? `You promise ${nations[me].name} to found no city near theirs for ${DEMAND_STOP_SETTLING_TURNS} turns.` : `${target.name} agrees to found no city near ${isPlayer ? 'yours' : `${nations[me].name}'s`} for ${DEMAND_STOP_SETTLING_TURNS} turns.`;
   }
-  return { state: { ...state, nations, regions, resources }, accepted: true, message };
+  return { nations, regions, resources, message };
 };
 
 /** A refused demand's casus belli, while it lasts. */

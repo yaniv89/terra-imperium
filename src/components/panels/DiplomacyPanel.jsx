@@ -119,10 +119,10 @@ const DiplomacyPanel = () => {
       {state.pendingDemand && state.nations[state.pendingDemand.from] && (
         <div className="p-2 rounded bg-red-900/30 border border-red-600/50 flex items-center justify-between gap-2" data-testid="pending-demand">
           <div className="text-xs text-red-200">
-            <span className="font-semibold">{state.nations[state.pendingDemand.from].name}</span> demands {state.pendingDemand.amount} gold in tribute (answer by turn {state.pendingDemand.until}; a refusal hands them a casus belli).
+            <span className="font-semibold">{state.nations[state.pendingDemand.from].name}</span> {state.pendingDemand.kind === 'city' ? `demands ${state.pendingDemand.cityName || 'a city'}` : state.pendingDemand.kind === 'stopSettling' ? 'demands that you found no city near theirs for 50 turns' : `demands ${state.pendingDemand.amount} gold in tribute`} (answer by turn {state.pendingDemand.until}; a refusal hands them a casus belli).
           </div>
           <div className="flex gap-1 shrink-0">
-            <IconButton icon={HeartHandshake} label="Pay" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} />
+            <IconButton icon={HeartHandshake} label={state.pendingDemand.kind === 'tribute' ? 'Pay' : state.pendingDemand.kind === 'city' ? 'Yield' : 'Promise'} onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } })} />
             <IconButton icon={Ban} label="Refuse" onClick={() => dispatch({ type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } })} />
           </div>
         </div>

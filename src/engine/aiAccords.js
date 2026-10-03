@@ -8,15 +8,19 @@
 //                 baseline) open their borders to each other (setOpenBorders, both records); a
 //                 pair whose opinion fell under AI_CLOSE_BORDERS_OPINION closes them again (a war
 //                 closes them at once, declareWar).
-//   tribute       a Tier-1 nation at least AI_DEMAND_RATIO times as strong as a touching nation
-//                 demands tribute: from an AI by the same score the player's demand uses
+//   demands       a Tier-1 nation at least AI_DEMAND_RATIO times as strong as a touching nation
+//                 demands the city it holds a claim on (never a capital), else a stop to settling
+//                 when the other settled next to its cities, else tribute: from an AI by the same
+//                 score the player's demand uses
 //                 (applyDemand with a demander); from the player as `state.pendingDemand`, a
 //                 card on the Diplomacy tab (ANSWER_DEMAND) and a next prompt, counted as refused
 //                 after DEMAND_ANSWER_TURNS. A refusal gives the casus belli of accords.js.
 // Pure: returns the next nations, the logs and the pending demand.
 import { getTouchingIds } from '../data/regions';
 import { getNationTier } from '../utils/aiLogic';
-import { DEMAND_COOLDOWN_TURNS, DEMAND_CB_TURNS, DEMAND_TRIBUTE_SHARE, DEMAND_TRIBUTE_MIN, DEMANDS, hasOpenBorders, setOpenBorders, applyDemand, demandAcceptance } from './accords';
+import { DEMAND_COOLDOWN_TURNS, DEMAND_CB_TURNS, DEMAND_TRIBUTE_SHARE, DEMAND_TRIBUTE_MIN, DEMANDS, hasOpenBorders, setOpenBorders, applyDemand, demandAcceptance, grantDemand } from './accords';
+import { claimsAgainst } from './claims';
+import { opinionReasons } from './opinion';
 import { opinionOf } from './opinion';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { isWarBetween } from './diplomacy';
@@ -88,19 +92,31 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
       .filter((b) => !atWar(state, a, b) && !related(next, a, b) && !(cooldowns[b] != null && turn < cooldowns[b]) && power / Math.max(1, getEffectiveMilitaryPower(view(), b)) >= AI_DEMAND_RATIO)
       .sort((x, y) => getEffectiveMilitaryPower(view(), x) - getEffectiveMilitaryPower(view(), y))[0];
     if (!prey) return;
+    const { kind, cityId } = demandKind(view(), a, prey);
     if (prey === me) {
       if (pendingDemand) return;
-      pendingDemand = { from: a, kind: 'tribute', amount: tributeOf(view(), me), turn, until: turn + DEMAND_ANSWER_TURNS };
+      const cityName = cityId ? state.regions[cityId]?.name : null;
+      pendingDemand = { from: a, kind, cityId, cityName, amount: kind === 'tribute' ? tributeOf(view(), me) : 0, turn, until: turn + DEMAND_ANSWER_TURNS };
       next = { ...next, [a]: { ...next[a], demandCooldowns: { ...cooldowns, [me]: turn + DEMAND_COOLDOWN_TURNS } } };
-      logs.push({ year: state.year, message: `${next[a].name} demands ${pendingDemand.amount} gold in tribute. Answer on the Diplomacy tab within ${DEMAND_ANSWER_TURNS} turns, or they take it as a refusal.`, type: 'diplomacy' });
+      const ask = kind === 'city' ? `demands ${cityName}` : kind === 'stopSettling' ? 'demands that you found no city near theirs' : `demands ${pendingDemand.amount} gold in tribute`;
+      logs.push({ year: state.year, message: `${next[a].name} ${ask}. Answer under Relations on the Empire tab within ${DEMAND_ANSWER_TURNS} turns, or they take it as a refusal.`, type: 'diplomacy' });
       return;
     }
-    const r = applyDemand(view(), prey, 'tribute', null, a);
+    const r = applyDemand(view(), prey, kind, cityId, a);
     if (r.state === view()) return;
     next = r.state.nations;
     if (r.accepted) logs.push({ nationId: a, year: state.year, message: r.message, type: 'diplomacy' });
   });
   return { nations: next, logs, pendingDemand };
+};
+
+/** What `a` asks of `prey`: a claimed city (never the capital), a stop to settling next to its
+ * cities, or tribute. */
+export const demandKind = (state, a, prey) => {
+  const claimed = claimsAgainst(state, a, prey).find((c) => c.id !== state.nations[prey]?.capitalRegionId);
+  if (claimed) return { kind: 'city', cityId: claimed.id };
+  if (opinionReasons(state, a, prey).some((r) => r.id === 'settledNear')) return { kind: 'stopSettling', cityId: null };
+  return { kind: 'tribute', cityId: null };
 };
 
 /** The player's answer to a pending demand: { state, message }. */
@@ -111,9 +127,10 @@ export const answerDemand = (state, accept) => {
   const turn = state.turnNumber || 1;
   if (!from || from.isEliminated) return { state: { ...state, pendingDemand: null }, message: null };
   if (accept) {
-    const amount = Math.min(d.amount, Math.max(0, state.resources.gold || 0));
-    const nations = { ...state.nations, [d.from]: { ...from, economy: { ...(from.economy || {}), gold: (from.economy?.gold || 0) + amount }, hostility: Math.max(0, (from.hostility || 0) - 5) } };
-    return { state: { ...state, nations, resources: { ...state.resources, gold: (state.resources.gold || 0) - amount }, pendingDemand: null }, message: `You pay ${from.name} ${amount} gold in tribute.` };
+    if (d.kind === 'city' && state.regions[d.cityId]?.owner !== state.playerNationId) return { state: { ...state, pendingDemand: null }, message: `${d.cityName || 'The city'} is no longer yours to give.` };
+    const g = grantDemand(state, state.nations, d.from, state.playerNationId, d.kind, d.cityId, state.resources);
+    const nations = { ...g.nations, [d.from]: { ...g.nations[d.from], hostility: Math.max(0, (g.nations[d.from].hostility || 0) - 5) } };
+    return { state: { ...state, nations, regions: g.regions, resources: g.resources, pendingDemand: null }, message: g.message };
   }
   const nations = { ...state.nations, [d.from]: { ...from, demandCasusBelli: { ...(from.demandCasusBelli || {}), [state.playerNationId]: turn + DEMAND_CB_TURNS }, hostility: Math.min(100, (from.hostility || 0) + DEMANDS[d.kind].hostility) } };
   return { state: { ...state, nations, pendingDemand: null }, message: `You refuse ${from.name}: they hold a casus belli against you for ${DEMAND_CB_TURNS} turns.` };
