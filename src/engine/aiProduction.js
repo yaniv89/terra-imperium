@@ -45,6 +45,15 @@ export const nationCounts = (state) => {
 
 /** The item an AI city with an empty queue should build, or null. `ctx`: { researched, ageId,
  * citiesOwned, units, counts? (nationCounts(state)[nation]) }. */
+const settlerDecisions = new WeakMap(); // state.regions -> Set(nationId)
+const settlerDecidedThisTurn = (state, nationId) => {
+  let set = settlerDecisions.get(state.regions);
+  if (!set) { set = new Set(); settlerDecisions.set(state.regions, set); }
+  if (set.has(nationId)) return true;
+  set.add(nationId);
+  return false;
+};
+
 export const chooseProduction = (state, city, ctx) => {
   if (city.outpost || city.production?.current) return null;
   const tiles = getTiles();
@@ -56,7 +65,10 @@ export const chooseProduction = (state, city, ctx) => {
   const affordable = (item) => productionCost(item, { ageId: ctx.ageId, citiesOwned: ctx.citiesOwned }) / production <= MAX_BUILD_TURNS;
 
   const thinks = ((ctx.turnNumber || 0) + city.tile) % SETTLER_THINK_PERIOD === 0;
-  if (thinks && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId)) {
+  // One settler decision per nation per turn: the first city that thinks searches for a site and
+  // queues the settlers; its siblings build on (a search per city was 140 site searches a turn, and
+  // every sibling queued settlers of its own against the same empty count).
+  if (thinks && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId) && !settlerDecidedThisTurn(state, nationId)) {
     const site = bestSites(state, nationId, city.tile, ctx.ageId, { limit: 1 })[0];
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) return item; // bestSites already holds the quality floor

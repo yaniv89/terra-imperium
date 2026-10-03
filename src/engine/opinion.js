@@ -18,6 +18,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { IDENTITY_AXES, leansNegative, leansPositive } from '../data/identity';
 import { lawRulesOf } from './lawRules';
+import { ringsAround } from './world/cities';
 import {
   OPINION_MIN, OPINION_MAX, OPINION_BASELINE, GRUDGE_PER_HOSTILITY, BORDER_FREE_TILES, BORDER_PER_TILE, BORDER_MAX, SETTLED_NEAR_RINGS, SETTLED_NEAR,
   HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, RIVAL, VASSAL_OF_YOU,
@@ -29,11 +30,10 @@ const clamp = (v) => Math.max(OPINION_MIN, Math.min(OPINION_MAX, Math.round(v)))
 // tiles within SETTLED_NEAR_RINGS of it. Built once per turn, so the opinion of 240 nations costs
 // one pass over the cities instead of a breadth-first search per city pair.
 const cityIndexCache = new WeakMap(); // regions -> { byOwner: Map, nearSets: Map(cityId -> Set(tile)) }
-const ringSet = (tiles, from, max) => {
-  const seen = new Set([from]); let frontier = [from];
-  for (let d = 1; d <= max; d++) { const next = []; for (const t of frontier) for (const n of tiles.neighbors[t]) { if (!seen.has(n)) { seen.add(n); next.push(n); } } frontier = next; }
-  return seen;
-};
+// The tiles within `max` rings of a tile never change: cities.js memoises them for good, so a new
+// regions map (every turn) costs one lookup per city, not a breadth-first search (25 ms at 1,200
+// cities on the frequency-75 grid).
+const ringSet = (tiles, from, max) => ringsAround(tiles, from, max);
 const cityIndexOf = (regions, tiles) => {
   let idx = cityIndexCache.get(regions);
   if (idx) return idx;

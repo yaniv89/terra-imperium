@@ -118,6 +118,19 @@ const blockedTiles = (cities, tiles) => {
   blockedCache.set(cities, map);
   return map;
 };
+// A city founded into a cities map that is written in place (processSettlers): its ring joins the
+// cached index instead of a rebuild per founding.
+const noteFoundedCity = (cities, tiles, city) => {
+  const map = blockedCache.get(cities);
+  if (!map) return;
+  let frontier = [city.tile]; const seen = new Set(frontier);
+  map.set(city.tile, city.name);
+  for (let d = 1; d < MIN_CITY_SPACING; d++) {
+    const next = [];
+    frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); if (!map.has(n)) map.set(n, city.name); } }));
+    frontier = next;
+  }
+};
 
 export const canFoundCity = (world, tiles, tile, nationId) => {
   if (!tiles.land[tile]) return { ok: false, reason: 'A city needs land.' };
@@ -133,17 +146,20 @@ const cityFacts = (tiles, id) => ({ river: tiles.rivers[id] !== 0, coastal: tile
 
 /** Founds a city: the centre and every free workable ring-1 tile are claimed. Returns the new
  * world and the city. */
-export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn = 1, isCapital = false }) => {
+export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn = 1, isCapital = false, inPlace = false }) => {
   const id = cityId(tile);
   const claim = [tile, ...tiles.neighbors[tile].filter((n) => !world.tileOwner[n] && isWorkable(tiles, n))];
-  const tileOwner = { ...world.tileOwner };
+  // `inPlace`: the caller already copied the ownership and cities maps for the whole pass
+  // (processSettlers founds several outposts a turn; a copy of 9,000 tiles each was the cost).
+  const tileOwner = inPlace ? world.tileOwner : { ...world.tileOwner };
   // A city centre is always its own: if another city's border already covered this tile
   // (capitals of neighbouring peoples can start a tile apart), that city gives it up.
   let cities = world.cities;
   const previous = tileOwner[tile];
   if (previous && cities[previous]) {
     const p = cities[previous];
-    cities = { ...cities, [previous]: { ...p, tiles: p.tiles.filter((t) => t !== tile), worked: p.worked.filter((t) => t !== tile), locked: p.locked.filter((t) => t !== tile) } };
+    const trimmed = { ...p, tiles: p.tiles.filter((t) => t !== tile), worked: p.worked.filter((t) => t !== tile), locked: p.locked.filter((t) => t !== tile) };
+    if (inPlace) cities[previous] = trimmed; else cities = { ...cities, [previous]: trimmed };
   }
   claim.forEach((t) => { tileOwner[t] = id; });
   const facts = cityFacts(tiles, tile);
@@ -156,6 +172,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
     walls: 0, isCapital, water: facts.river || facts.coastal || facts.lake,
     outpost: null
   };
+  if (inPlace) { cities[id] = city; noteFoundedCity(cities, tiles, city); return { world, city }; }
   return { world: { ...world, cities: { ...cities, [id]: city }, tileOwner }, city };
 };
 

@@ -173,7 +173,8 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   });
   // Floods, fires and plagues by tile facts (cityDisasters.js).
   const disasterLogs = rollCityDisasters(regions, newTurnNumber);
-  let units = state.units;
+  // One copy of the units map for every unit finished this turn (a spread per unit was 12 ms).
+  let units = result.completed.some((item) => item.kind === 'settler' || item.kind === 'unit') ? { ...state.units } : state.units;
   let nextUnitSeq = state.nextUnitSeq || 0;
   const wonders = result.completed.filter((item) => item.kind === 'wonder').map((item) => ({ ...item, nationId: item.nationId }));
   result.completed.forEach((item) => {
@@ -182,12 +183,12 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
       const settler = makeSettler(id, regions[item.city], item.nationId);
       // An AI settler picks its site at once; the player's waits for SET_SETTLER_TARGET.
       const site = item.nationId !== state.playerNationId ? bestSites({ ...state, regions, units }, item.nationId, settler.tile, ctxFor(regions[item.city]).ageId, { limit: 1 })[0] : null;
-      units = { ...units, [id]: site ? { ...settler, target: site.tile } : settler };
+      units[id] = site ? { ...settler, target: site.tile } : settler;
       return;
     }
     if (item.kind !== 'unit') return;
     const id = `unit_${nextUnitSeq++}`;
-    units = { ...units, [id]: { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) } };
+    units[id] = { id, regionId: item.city, homeRegionId: item.city, tile: regions[item.city]?.tile ?? null, ownerId: item.nationId, domain: item.classId === 'naval' ? 'naval' : 'land', classId: item.classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null, ...(item.army ? { army: item.army } : {}), ...(item.classId === 'naval' ? { navalLine: item.navalLine || 'warship', transportCapacity: navalCargo(item.navalLine || 'warship', ctxFor(regions[item.city] || { owner: item.nationId }).ageId) } : {}) };
   });
   const logs = result.logs.filter((l) => l.nationId === state.playerNationId).map((l) => l.message);
   disasterLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
@@ -269,6 +270,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const { fallen, logs: siegeLogs } = processSieges(state, siegeRegions, siegeUnits, { turn: newTurnNumber });
     let siegeNations = state.nations; let siegeWars = state.wars; const pendingDefenses = [...(state.pendingDefenses || [])];
     const committed = new Set();
+    let changedHands = false; // only a city that changed owner needs the registry rebuilt (15 ms)
     fallen.forEach((f, i) => {
       const war = siegeWars.find((w) => w.active && ((w.aggressor === f.to && w.enemy === f.from) || (w.aggressor === f.from && w.enemy === f.to)));
       if (f.from === state.playerNationId && war && f.to !== REBEL_OWNER_ID) {
@@ -282,12 +284,15 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       if (f.to === REBEL_OWNER_ID) return; // rebels take no cities by siege (rebellion.js holds the revolt)
       const r = conquerRegion({ regions: siegeRegions, nations: siegeNations, turnNumber: newTurnNumber }, f.cityId, f.to, war || null);
       Object.assign(siegeRegions, r.regions); siegeRegions[f.cityId] = { ...r.regions[f.cityId], siege: null, buildings: siegeRegions[f.cityId].buildings };
-      siegeNations = r.nations;
+      siegeNations = r.nations; changedHands = true;
       siegeLogs.push({ nationId: f.from, message: `${siegeRegions[f.cityId].name} has fallen to ${state.nations[f.to]?.name || f.to} after a siege.` }, { nationId: f.to, message: `${siegeRegions[f.cityId].name} surrenders to your siege.` });
     });
     siegeLogs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.COMBAT }); });
     state = { ...state, regions: siegeRegions, units: siegeUnits, nations: siegeNations, pendingDefenses };
-    state = syncWorldRegistry(state);
+    // The registry (neighbours, capitals) only changes when a city changed hands: a rebuild every
+    // turn cost 15 ms (a breached city the rebels cannot take, or one the player must defend, is
+    // listed as fallen every turn without changing owner).
+    if (changedHands) state = syncWorldRegistry(state);
   }
   mark('sieges');
 
@@ -641,13 +646,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool };
-    const __u0 = performance.now(); nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits); (globalThis.__ai ||= { up: 0, think: 0, pre: 0 }).up += performance.now() - __u0;
+    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits);
     if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
-    const __t0 = performance.now(); const result = processAIEconomyTurn(aiEconState, regions, nId);
-    nations[nId] = result.nation; globalThis.__ai.think += performance.now() - __t0;
+    const result = processAIEconomyTurn(aiEconState, regions, nId);
+    nations[nId] = result.nation;
   });
   mark('aiEconomy');
 
