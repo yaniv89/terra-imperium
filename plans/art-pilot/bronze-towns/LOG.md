@@ -5,14 +5,19 @@ Built by `scripts/blender/build_town_bronze_<size>_<variant>.py` on the shared k
 (`ti_town.py`, `ti_bronze.py`, `ti_map.py`) with Blender 4.2's `bpy` module; a full build with
 its 2048 atlas bake takes about 2 minutes (small) to 4 (medium) on four CPU cores.
 
-| Town | Tradition | Landmark | LOD0 / LOD1 / LOD2 | Footprint | Height | File |
+| Object | Tradition | Landmark | LOD0 / LOD1 / LOD2 | Footprint | Height | File |
 |---|---|---|---|---|---|---|
-| small-a | Mesopotamian | stepped tower, NE | 13,196 / 3,984 / 550 | 40 m | 16 m | 2.8 MB |
-| small-b | Egyptian | pylon gate, NW | 13,992 / 4,268 / 586 | 40 m | 16 m | 2.9 MB |
-| medium-a | Mesopotamian | four-stage temple, NE, market | 29,164 / 7,852 / 838 | 59 m | 24 m | 4.5 MB |
-| medium-b | Egyptian | pylon, colonnade, obelisk, N, market | 29,398 / 8,190 / 862 | 59 m | 24 m | 4.6 MB |
+| town-small-a | Mesopotamian | stepped tower, NE | 13,196 / 2,096 / 550 | 40 m | 16 m | 2.7 MB |
+| town-small-b | Egyptian | pylon gate, NW | 13,992 / 2,476 / 586 | 40 m | 16 m | 2.7 MB |
+| town-medium-a | Mesopotamian | four-stage temple, NE, market | 29,164 / 3,980 / 838 | 59 m | 24 m | 4.2 MB |
+| town-medium-b | Egyptian | pylon, colonnade, obelisk, N, market | 29,398 / 4,670 / 862 | 59 m | 24 m | 4.3 MB |
+| town-big-a | Mesopotamian | ziggurat NE, watch tower NW, lion gate S, market | 53,632 / 7,408 / 1,210 | 79 m | 36 m | 6.5 MB |
+| town-big-b | Egyptian | pylon and obelisk NW, granaries N, step pyramid E, market | 49,192 / 7,600 / 1,362 | 79 m | 36 m | 6.2 MB |
+| palace-small (shared-bronze) | Mesopotamian | audience hall, porch, rooftop shrine | 2,192 / 484 / 36 | 7.6 m | 8 m | 1.8 MB (both) |
+| palace (shared-bronze) | Mesopotamian | ziggurat palace, three stairs | 3,020 / 1,060 / 84 | 11.6 m | 16 m | |
 
-Budgets (model brief, whole town): 60,000 / 10,000 / 1,500 triangles, 12 MB. Every town passes
+Budgets (model brief): a whole town 60,000 / 10,000 / 1,500 triangles, a palace 15,000 / 3,000 /
+500, a file 12 MB. Every town passes
 `validate_model.py` (`town-*.validation.json`, `manifest.json`): Town, Ground (alpha-cut) and Team
 materials, one 2048 WebP atlas set, nothing below ground.
 
@@ -33,4 +38,10 @@ Levant at k 24). The medium towns need four buildings, so a fresh game shows onl
 - All three maps are WebP (a 2048 PNG normal map alone would be about 6 MB).
 - Materials are procedural and baked, so walls read cleaner and the roofs carry less clutter
   than the painted sheets; the gap will close with CC0 textures or painted texture work.
-- The palace and walls are separate models still to come; capitals show the town without them.
+- Palaces live in the age's shared file (`src/assets/map/shared/shared-bronze.glb`), one atlas
+  for both, as the model brief's section 4.2 asks. A capital's town stands `palace-small` (small
+  town) or `palace` (medium, big) in its free centre; the palace follows the town's LOD and tint.
+  Palaces also follow their sheets' heights, in the warm ochre brick the sheets show.
+- Big towns fill their 80 m with two rings of larger houses and walled yards behind the outer
+  ring; bevels stay in LOD0 so LOD1 stays inside its budget.
+- Walls, the colony camp and fields are still to come (next in GPT's list).
