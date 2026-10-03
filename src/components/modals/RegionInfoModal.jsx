@@ -235,7 +235,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
     <div ref={mobileSheet ? sheetRef : undefined} className={
       mobileSheet
         ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl bg-slate-900 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-slate-700 shadow-2xl`
-        : `${isCornerCard ? `absolute ${cornerTopClass} left-2 z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
+        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} left-2 z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
            bg-slate-900 p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)]
            border border-slate-700 shadow-xl`
     }>

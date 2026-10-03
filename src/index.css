@@ -335,6 +335,31 @@ svg path {
   margin-right: env(safe-area-inset-right);
 }
 
+/* A tablet held sideways (E2): the same shell with a wider dock; side sheets 420 px wide. */
+[data-layout="tablet"] .sheet-backdrop {
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0;
+}
+[data-layout="tablet"] .sheet-panel {
+  width: min(420px, 50vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  margin-right: env(safe-area-inset-right);
+}
+/* Two sheets stacked on a tablet: the city card keeps the top half of the left edge and the tile
+   or army sheet opened from it takes the bottom half (MapContainer sets data-stacked). */
+[data-layout="tablet"] [data-stacked] .corner-card {
+  max-height: calc((100dvh - var(--header-height, 2.75rem)) / 2 - 1rem);
+}
+[data-layout="tablet"] [data-stacked] .corner-card-second {
+  top: calc(var(--header-height, 2.75rem) + (100dvh - var(--header-height, 2.75rem)) / 2);
+}
+
 /* Phone held upright (E2): the map on top, a half sheet below, so the globe stays in view while a
    city, tile or army sheet is open. */
 [data-layout="phone-portrait"] .sheet-panel {

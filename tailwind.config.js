@@ -53,7 +53,8 @@ export default {
     },
   },
   plugins: [
-    // `pl:` = phone held sideways (src/hooks/useLayoutMode.js sets <html data-layout>).
-    plugin(({ addVariant }) => { addVariant('pl', '[data-layout="phone-landscape"] &'); })
+    // `pl:` = the landscape shell: a phone or a tablet held sideways (src/hooks/useLayoutMode.js
+    // sets <html data-layout>); `tb:` = the tablet alone (its wider dock).
+    plugin(({ addVariant }) => { addVariant('pl', ':is([data-layout="phone-landscape"], [data-layout="tablet"]) &'); addVariant('tb', '[data-layout="tablet"] &'); })
   ],
 }

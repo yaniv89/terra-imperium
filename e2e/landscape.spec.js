@@ -99,3 +99,29 @@ test.describe('phone held upright', () => {
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
   });
 });
+
+test.describe('tablet held sideways', () => {
+  test.use({ viewport: { width: 960, height: 640 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('the landscape shell with a wider dock', async ({ page }) => {
+    test.setTimeout(120000);
+    const errors = [];
+    page.on('pageerror', (err) => errors.push(String(err)));
+    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; });
+    await page.goto('/');
+    await startGame(page);
+    expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('tablet');
+    const rail = page.getByTestId('landscape-rail');
+    await expect(rail).toBeVisible();
+    await click(rail.getByRole('button', { name: 'Empire' }));
+    const dock = page.getByTestId('landscape-dock');
+    await expect(dock).toBeVisible();
+    expect((await box(dock)).width).toBeGreaterThanOrEqual(400);
+    expect(960 - (await box(rail)).width).toBeGreaterThanOrEqual(960 * 0.4);
+    await click(rail.getByRole('button', { name: 'Empire' }));
+    await expect(dock).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(960);
+    expect(errors).toEqual([]);
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getLayoutMode } from './useLayoutMode';
+import { getLayoutMode, isLandscapeShell } from './useLayoutMode';
 
 describe('getLayoutMode', () => {
   it('phones held sideways get the landscape layout', () => {
@@ -13,9 +13,15 @@ describe('getLayoutMode', () => {
     expect(getLayoutMode(430, 932)).toBe('phone-portrait');
   });
 
-  it('tablets and narrow windows keep the tablet layout', () => {
-    expect(getLayoutMode(768, 1024)).toBe('tablet');
+  it('tablets and narrow windows held sideways get the landscape shell, held upright the bottom bar', () => {
     expect(getLayoutMode(1023, 700)).toBe('tablet');
+    expect(getLayoutMode(1024 - 1, 600)).toBe('tablet');
+    expect(getLayoutMode(768, 1024)).toBe('tablet-portrait');
+    expect(getLayoutMode(600, 900)).toBe('tablet-portrait');
+    expect(isLandscapeShell('tablet')).toBe(true);
+    expect(isLandscapeShell('phone-landscape')).toBe(true);
+    expect(isLandscapeShell('tablet-portrait')).toBe(false);
+    expect(isLandscapeShell('desktop')).toBe(false);
   });
 
   it('desktops, including short wide windows, stay desktop', () => {
