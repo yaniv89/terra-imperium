@@ -17,7 +17,7 @@ import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
 import { getRegionTerrain } from '../../data/terrain';
 import { unitDisplayName } from '../../data/unitNames';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, FIRST_AGE_ID } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
@@ -35,7 +35,7 @@ import { canAfford } from '../../utils/helpers';
 const pct = (v) => `${Math.round(v * 100)}%`;
 
 // "3 Pikemen · 1 Knights" and the total strength, for one side.
-export const summarizeArmy = (units, hiredCommanders = {}, ageId = 'bronze') => {
+export const summarizeArmy = (units, hiredCommanders = {}, ageId = FIRST_AGE_ID) => {
   const byClass = {};
   units.forEach((u) => { byClass[u.classId] = (byClass[u.classId] || 0) + 1; });
   const commanders = [...new Set(units.map((u) => u.commanderId).filter(Boolean))].map((id) => hiredCommanders[id]?.name || 'A general');

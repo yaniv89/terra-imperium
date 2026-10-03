@@ -11,6 +11,7 @@ import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { TECH_TREE } from '../../data/techTree';
 import { TabButton } from '../ui';
+import { isAgeAtLeast } from '../../data/ages';
 
 // The Military and Diplomacy tabs are the Empire sheet's War and Relations sections now
 // (plans/civ-map-rework.md E4; panelEvents.js aliases the old ids).
@@ -23,7 +24,7 @@ export const TABS = [
 
 // The tabs the player sees (plans/playtest-1.md P5.3): the Space tab only once the nation has
 // researched a Modern Age tech (the space race means nothing before that).
-export const spaceUnlocked = (state) => state.techAgeId === 'modern' || Object.keys(state.techTree || {}).some((id) => state.techTree[id]?.researched && TECH_TREE[id]?.ageId === 'modern');
+export const spaceUnlocked = (state) => isAgeAtLeast(state.techAgeId, 'modern') || Object.keys(state.techTree || {}).some((id) => state.techTree[id]?.researched && isAgeAtLeast(TECH_TREE[id]?.ageId, 'modern'));
 export const visibleTabs = (state) => TABS.filter((t) => t.id !== 'space' || spaceUnlocked(state));
 
 // The red count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).

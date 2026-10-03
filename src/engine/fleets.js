@@ -19,18 +19,18 @@
 // Pure; ties in the path search break on tile id.
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
-import { getEffectiveAgeId } from '../data/ages';
+import { getEffectiveAgeId, agesFrom } from '../data/ages';
 import { isWarBetween } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 
 export const NAVAL_MOVES_BY_AGE = { bronze: 4, classical: 6, kingdoms: 7, gunpowder: 8, modern: 11 }; // 106 km hexes
-export const DEEP_OK_FROM = ['gunpowder', 'modern'];
+export const DEEP_OK_FROM = agesFrom('gunpowder');
 // The shelf (ocean tiles beside the coast) opens from the Classical age, or earlier with a tech
 // that sails further (techMapEffects navalMoves); the deep ocean from the Age of Gunpowder or a
 // tech that opens the ocean (deepOcean).
-export const SHELF_OK_FROM = ['classical', 'kingdoms', 'gunpowder', 'modern'];
+export const SHELF_OK_FROM = agesFrom('classical');
 export const MAX_SEA_STEPS = 170;
 const MAX_SEARCH = 12000;
 const KM_PER_RING = 170;

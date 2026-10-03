@@ -24,43 +24,47 @@
 import { AGE_ORDER, AGES } from './ages';
 import { TechCategories } from './types';
 
+// Each line lists its techs by age, two per age, oldest first; the line's order is AGE_ORDER's.
+// A tech's age is where it is listed (moving a tech to another age keeps its id and saves).
 const CATEGORY_LINES = {
-  [TechCategories.MILITARY]: [
-    'Bronze Casting', 'Composite Bow',
-    'Iron Weapons', 'Siege Engineering',
-    'Feudal Levies', 'Plate Armor',
-    'Gunpowder Weapons', 'Standing Armies',
-    'Mechanized Warfare', 'Precision Guidance'
-  ],
-  [TechCategories.ECONOMY]: [
-    'Bronze Trade Routes', 'Granary Storage',
-    'Minted Coinage', 'Silk Road Trade',
-    'Guild Charters', 'Banking Houses',
-    'Joint-Stock Companies', 'Colonial Trade',
-    'Industrial Capital', 'Global Markets'
-  ],
-  [TechCategories.INFRASTRUCTURE]: [
-    'Irrigation Canals', 'Mudbrick Roads',
-    'Paved Roads', 'Aqueducts',
-    'Stone Bridges', 'Postal Relay',
-    'Canal Locks', 'Turnpike Roads',
-    'Rail Networks', 'Highway Systems'
-  ],
-  [TechCategories.GOVERNANCE]: [
-    'Code of Laws', 'Scribal Bureaucracy',
-    'Civic Assemblies', 'Provincial Administration',
-    'Feudal Charters', 'Royal Chancery',
-    'Bureaucratic Reform', 'Constitutional Law',
-    'Civil Service', 'Digital Administration'
-  ],
-  [TechCategories.SCIENCE]: [
-    'Cuneiform Records', 'Early Astronomy',
-    'Geometry', 'Natural Philosophy',
-    'Scholastic Method', 'Optics',
-    'Scientific Method', 'Calculus',
-    'Computing', 'Genomics'
-  ]
+  [TechCategories.MILITARY]: {
+    bronze: ['Bronze Casting', 'Composite Bow'],
+    classical: ['Iron Weapons', 'Siege Engineering'],
+    kingdoms: ['Feudal Levies', 'Plate Armor'],
+    gunpowder: ['Gunpowder Weapons', 'Standing Armies'],
+    modern: ['Mechanized Warfare', 'Precision Guidance']
+  },
+  [TechCategories.ECONOMY]: {
+    bronze: ['Bronze Trade Routes', 'Granary Storage'],
+    classical: ['Minted Coinage', 'Silk Road Trade'],
+    kingdoms: ['Guild Charters', 'Banking Houses'],
+    gunpowder: ['Joint-Stock Companies', 'Colonial Trade'],
+    modern: ['Industrial Capital', 'Global Markets']
+  },
+  [TechCategories.INFRASTRUCTURE]: {
+    bronze: ['Irrigation Canals', 'Mudbrick Roads'],
+    classical: ['Paved Roads', 'Aqueducts'],
+    kingdoms: ['Stone Bridges', 'Postal Relay'],
+    gunpowder: ['Canal Locks', 'Turnpike Roads'],
+    modern: ['Rail Networks', 'Highway Systems']
+  },
+  [TechCategories.GOVERNANCE]: {
+    bronze: ['Code of Laws', 'Scribal Bureaucracy'],
+    classical: ['Civic Assemblies', 'Provincial Administration'],
+    kingdoms: ['Feudal Charters', 'Royal Chancery'],
+    gunpowder: ['Bureaucratic Reform', 'Constitutional Law'],
+    modern: ['Civil Service', 'Digital Administration']
+  },
+  [TechCategories.SCIENCE]: {
+    bronze: ['Cuneiform Records', 'Early Astronomy'],
+    classical: ['Geometry', 'Natural Philosophy'],
+    kingdoms: ['Scholastic Method', 'Optics'],
+    gunpowder: ['Scientific Method', 'Calculus'],
+    modern: ['Computing', 'Genomics']
+  }
 };
+// The line as one list of { name, ageId }, in age order.
+const lineEntries = (byAge) => AGE_ORDER.flatMap((ageId) => (byAge[ageId] || []).map((name) => ({ name, ageId })));
 
 // Real per-tech effects (short hook names, same LEGACY_HOOK vocabulary traits/policies/wonders
 // already use), keyed by tech NAME so it reads next to CATEGORY_LINES above rather than by the
@@ -126,18 +130,20 @@ export const CROSS_PREREQUISITES = {
   'Digital Administration': ['Computing'],
   'Scholastic Method': ['Scribal Bureaucracy']
 };
-const idOfName = (name) => { for (const [category, names] of Object.entries(CATEGORY_LINES)) if (names.includes(name)) return `${category}_${slug(name)}`; throw new Error(`Unknown tech ${name}`); };
+const idOfName = (name) => { for (const [category, byAge] of Object.entries(CATEGORY_LINES)) if (lineEntries(byAge).some((e) => e.name === name)) return `${category}_${slug(name)}`; throw new Error(`Unknown tech ${name}`); };
 const crossPrerequisites = (name) => (CROSS_PREREQUISITES[name] || []).map(idOfName);
 
-const buildLine = (category, names) => {
+// The legacy techPoints cost kept on each tech as data (research.js prices techs by age instead).
+const LEGACY_TECH_POINTS_BY_AGE = { bronze: 10, classical: 25, kingdoms: 40, gunpowder: 55, modern: 70 };
+
+const buildLine = (category, byAge) => {
   const techs = {};
-  names.forEach((name, i) => {
-    const ageIndex = Math.floor(i / 2);
-    const ageId = AGE_ORDER[ageIndex];
+  const entries = lineEntries(byAge);
+  entries.forEach(({ name, ageId }, i) => {
     const age = AGES[ageId];
-    const isSecondOfAge = i % 2 === 1;
+    const isSecondOfAge = i > 0 && entries[i - 1].ageId === ageId;
     const id = `${category}_${slug(name)}`;
-    const previousId = i === 0 ? null : `${category}_${slug(names[i - 1])}`;
+    const previousId = i === 0 ? null : `${category}_${slug(entries[i - 1].name)}`;
     techs[id] = {
       id,
       name,
@@ -151,15 +157,15 @@ const buildLine = (category, names) => {
       // Gold is gone from research cost (plan §M7) — techPoints only; the power-pool cost is
       // computed separately (getTechPowerCost) since which POOL applies depends on category, not
       // a fixed resource key this object could name directly.
-      cost: { techPoints: 10 + ageIndex * 15 },
+      cost: { techPoints: LEGACY_TECH_POINTS_BY_AGE[ageId] },
       effects: TECH_EFFECTS[name] || {}
     };
   });
   return techs;
 };
 
-export const TECH_TREE = Object.entries(CATEGORY_LINES).reduce((acc, [category, names]) => {
-  return { ...acc, ...buildLine(category, names) };
+export const TECH_TREE = Object.entries(CATEGORY_LINES).reduce((acc, [category, byAge]) => {
+  return { ...acc, ...buildLine(category, byAge) };
 }, {});
 
 // How many of a given age's techs (across all 5 lines) must be researched before a nation's

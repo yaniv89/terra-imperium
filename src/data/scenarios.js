@@ -7,14 +7,13 @@
 // Pure data and pure functions over the loaded tiles (src/data/geo/tiles.js): the engine's
 // createInitialState turns a start spec into cities (workstream 3). Deterministic: ties break by
 // nation id and tile id, never by randomness.
-import { AGE_ORDER } from './ages';
 
 export const SCENARIOS = {
-  dawn: { id: 'dawn', name: 'Dawn of Civilization', year: -2000, age: 'bronze', ring: 1, extraCities: 0, description: 'Every people starts with one city. Settle the empty world.' },
-  classical: { id: 'classical', name: 'Classical Age', year: -800, age: 'classical', ring: 2, extraCities: 1, description: 'Cities and their hinterlands; most of the world is still open.' },
-  kingdoms: { id: 'kingdoms', name: 'Age of Kingdoms', year: 500, age: 'kingdoms', ring: 3, extraCities: 2, description: 'Realms with several cities each.' },
-  gunpowder: { id: 'gunpowder', name: 'Age of Gunpowder', year: 1500, age: 'gunpowder', ring: 4, extraCities: 3, description: 'Established states on the eve of the modern world.' },
-  modern: { id: 'modern', name: 'Modern Age', year: 1900, age: 'modern', ring: Infinity, extraCities: 6, description: 'Every tile is claimed; the modern borders.' }
+  dawn: { id: 'dawn', name: 'Dawn of Civilization', year: -2000, age: 'bronze', ring: 1, extraCities: 0, capitalBonus: 0, description: 'Every people starts with one city. Settle the empty world.' },
+  classical: { id: 'classical', name: 'Classical Age', year: -800, age: 'classical', ring: 2, extraCities: 1, capitalBonus: 1, description: 'Cities and their hinterlands; most of the world is still open.' },
+  kingdoms: { id: 'kingdoms', name: 'Age of Kingdoms', year: 500, age: 'kingdoms', ring: 3, extraCities: 2, capitalBonus: 2, description: 'Realms with several cities each.' },
+  gunpowder: { id: 'gunpowder', name: 'Age of Gunpowder', year: 1500, age: 'gunpowder', ring: 4, extraCities: 3, capitalBonus: 3, description: 'Established states on the eve of the modern world.' },
+  modern: { id: 'modern', name: 'Modern Age', year: 1900, age: 'modern', ring: Infinity, extraCities: 6, capitalBonus: 4, description: 'Every tile is claimed; the modern borders.' }
 };
 export const DEFAULT_SCENARIO_ID = 'dawn';
 export const SCENARIO_IDS = Object.keys(SCENARIOS);
@@ -37,8 +36,8 @@ export const UNPEOPLED_AT_DAWN = new Set(['is', 'nz', 'gl', 'fo', 'ax', 'pm', 'f
 export const capitalSizeFor = (scenario, nationId) => {
   if (UNPEOPLED_AT_DAWN.has(nationId)) return scenario.id === 'dawn' ? 1 : 2;
   const dawn = DAWN_CAPITAL_SIZE[nationId] || 2;
-  // Later starts begin bigger: +1 per age after the Bronze Age.
-  return dawn + AGE_ORDER.indexOf(scenario.age);
+  // Later starts begin bigger: +1 per age after the Bronze Age (explicit per scenario).
+  return dawn + (scenario.capitalBonus || 0);
 };
 
 // Ring distance from `from` over the grid, limited to `maxRing`, as a Map tile -> ring.

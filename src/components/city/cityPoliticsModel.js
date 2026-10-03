@@ -22,7 +22,7 @@ import { REBEL_OWNER_ID, REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD } f
 import { REGIONS_DATA } from '../../data/regions';
 import { getDepositsFor } from '../../data/deposits';
 import { EXTRACTION_BUILDINGS, canBuildExtraction } from '../../data/buildings';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, isAgeAtLeast } from '../../data/ages';
 import { DEVASTATION_DECAY } from '../../engine/aftermath';
 import { DEV_TYPE_IDS, DEV_TYPE_POOL, getDevelopProvinceCost, getTotalDev } from '../../engine/development';
 import { canAfford, getSupplyCapacity } from '../../utils/helpers';
@@ -160,6 +160,6 @@ export const cityDevelopmentModel = (state, cityId) => {
   const rows = DEV_TYPE_IDS.map((devType) => ({ id: `dev:${devType}`, devType, label: `Develop ${devType[0].toUpperCase()}${devType.slice(1)} (${city.dev?.[devType] || 0})`, description: `+1 ${devType} development`, costs: { [DEV_TYPE_POOL[devType]]: cost }, enabled: (state.resources[DEV_TYPE_POOL[devType]] || 0) >= cost, actionType: ActionTypes.DEVELOP_PROVINCE, payload: { regionId: cityId, devType } }));
   rows.push({ id: 'infrastructure', label: `Infrastructure (level ${city.currentInfrastructure || 0}, supply ${getSupplyCapacity(city.currentInfrastructure)})`, description: 'Raises supply capacity and output', costs: ACTION_COSTS.buildInfrastructure, enabled: (city.currentInfrastructure || 0) < 10 && canAfford(state.resources, ACTION_COSTS.buildInfrastructure), actionType: ActionTypes.BUILD_INFRASTRUCTURE, payload: { regionId: cityId } });
   rows.push({ id: 'defenses', label: `Defenses (level ${city.defenseLevel || 0})`, description: 'Strengthens the city against invasion', costs: ACTION_COSTS.buildDefenses, enabled: (city.defenseLevel || 0) < 10 && canAfford(state.resources, ACTION_COSTS.buildDefenses), actionType: ActionTypes.BUILD_DEFENSES, payload: { regionId: cityId } });
-  if (ageId === 'modern') rows.push({ id: 'resilience', label: `Climate resilience (${city.climateResilience || 0}/${CLIMATE_RESILIENCE_MAX})`, description: 'Less exposure to weather and harvest disasters', costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
+  if (isAgeAtLeast(ageId, 'modern')) rows.push({ id: 'resilience', label: `Climate resilience (${city.climateResilience || 0}/${CLIMATE_RESILIENCE_MAX})`, description: 'Less exposure to weather and harvest disasters', costs: ACTION_COSTS.buildClimateResilience, enabled: (city.climateResilience || 0) < CLIMATE_RESILIENCE_MAX && canAfford(state.resources, ACTION_COSTS.buildClimateResilience), actionType: ActionTypes.BUILD_CLIMATE_RESILIENCE, payload: { regionId: cityId } });
   return { rows, deposits, totalDev: getTotalDev(city) };
 };

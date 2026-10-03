@@ -8,7 +8,7 @@ import { buildSetupFromArmies } from '../../battle/setup/buildBattleSetup';
 import { TEMPLATES } from '../../battle/setup/mapgen';
 import { tileContextOf } from '../../battle/setup/tileContext';
 import { getTiles } from '../../data/geo/tiles';
-import { AGE_ORDER } from '../../data/ages';
+import { AGE_ORDER, isAgeAtLeast, isAgeBefore } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 
 const PRESETS = {
@@ -34,9 +34,9 @@ const GENERALS = {
 // The powers a sandbox army of that age would bring (the campaign derives these from real assets).
 const sandboxPowers = (ageId, units) => {
   const out = [{ id: 'rallyCry' }];
-  if (['bronze', 'classical', 'kingdoms'].includes(ageId)) out.push({ id: 'arrowStorm' });
-  if (['gunpowder', 'modern'].includes(ageId) && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
-  if (ageId === 'modern') out.push({ id: 'satelliteSweep' }, { id: 'missileTactical', uses: 2 }, { id: 'nuclearStrike', uses: 1 });
+  if (isAgeBefore(ageId, 'gunpowder')) out.push({ id: 'arrowStorm' });
+  if (isAgeAtLeast(ageId, 'gunpowder') && units.some((u) => u.classId === 'siege')) out.push({ id: 'artilleryBarrage' });
+  if (isAgeAtLeast(ageId, 'modern')) out.push({ id: 'satelliteSweep' }, { id: 'missileTactical', uses: 2 }, { id: 'nuclearStrike', uses: 1 });
   return out;
 };
 

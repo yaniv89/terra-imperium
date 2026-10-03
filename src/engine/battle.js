@@ -41,6 +41,7 @@ import {
 } from '../data/promotions';
 import { getGeneralDamageMultiplier, getGeneralDefenseMultiplier } from '../data/generals';
 import { navalLineOf, navalCombatMult } from '../data/navalLines';
+import { FIRST_AGE_ID } from '../data/ages';
 
 const RANGED_CLASSES = ['ranged', 'siege'];
 const MORALE_ROUT_THRESHOLD = 20;
@@ -214,7 +215,7 @@ const pursuitPhase = (winnerUnits, loserFront, generals, log) => {
 export const resolveBattle = ({
   attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {},
   attackerPenaltyMultiplier = 1, defenderDamageReductionMultiplier = 1,
-  attackerAgeId = 'bronze', defenderAgeId = 'bronze', battleType = 'field'
+  attackerAgeId = FIRST_AGE_ID, defenderAgeId = FIRST_AGE_ID, battleType = 'field'
 }) => {
   const combatWidth = getCombatWidth(terrain);
   const terrainMod = getTerrainCombatModifier(terrain);

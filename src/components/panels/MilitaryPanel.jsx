@@ -19,7 +19,7 @@ import { useEffects } from '../../context/EffectsContext';
 import { describeOutcome, formatMen, sidesFor } from '../battle/battleReportView';
 import { openBattleReport } from '../battle/battleReportEvents';
 import { computeSupplyFlow } from '../../engine/supplies';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, formatYear } from '../../data/ages';
 import { getNationCapital } from '../../data/regions';
 
 const MilitaryPanel = () => {
@@ -169,7 +169,7 @@ const BattleReportList = ({ reports }) => {
           <button key={r.id} onClick={() => openBattleReport(r.id)} className="w-full text-left rounded-md bg-slate-900/60 hover:bg-slate-900 px-2 py-1.5 min-h-[40px]">
             <div className="flex justify-between gap-2 text-[11px]">
               <span className={`truncate font-semibold ${result.tone === 'win' ? 'text-emerald-300' : result.tone === 'loss' ? 'text-red-300' : 'text-amber-300'}`}>{result.text}</span>
-              <span className="shrink-0 text-slate-500">{r.year < 0 ? `${-r.year} BCE` : `${r.year} CE`}</span>
+              <span className="shrink-0 text-slate-500">{formatYear(r.year)}</span>
             </div>
             <div className="text-[10px] text-slate-400">Fallen {formatMen(r.fallen[mine])} of yours · {formatMen(r.fallen[theirs])} of theirs</div>
           </button>

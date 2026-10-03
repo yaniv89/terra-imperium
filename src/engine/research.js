@@ -19,7 +19,7 @@
 import { applyBoosts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult } from '../data/ages';
+import { AGES, AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult, formatYear } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
 import { getModifier } from './modifiers/sheet';
@@ -66,7 +66,7 @@ export const canStartTech = (techId, researched, year, techDefs = TECH_TREE) => 
   const tech = techDefs[techId];
   if (!tech) return { ok: false, reason: 'Unknown tech' };
   if (researched.has(techId)) return { ok: false, reason: 'Already researched' };
-  if (tech.yearAvailable > year) return { ok: false, reason: `Available from ${tech.yearAvailable < 0 ? `${-tech.yearAvailable} BCE` : `${tech.yearAvailable} CE`}` };
+  if (tech.yearAvailable > year) return { ok: false, reason: `Available from ${formatYear(tech.yearAvailable)}` };
   const prereqs = tech.requiresAny ? tech.prerequisites.some((p) => researched.has(p)) : tech.prerequisites.every((p) => researched.has(p));
   if (!prereqs) return { ok: false, reason: `Needs ${tech.prerequisites.map((p) => techDefs[p]?.name || p).join(' and ')}` };
   const rival = (tech.exclusiveWith || []).find((id) => researched.has(id));

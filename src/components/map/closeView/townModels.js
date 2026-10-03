@@ -11,6 +11,7 @@
 // Units: one house is about 1 wide; the town is about TOWN_RADIUS[tier] x 2 across; y is up.
 import { BoxGeometry, ConeGeometry, CylinderGeometry, Color, Float32BufferAttribute } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { FIRST_AGE_ID, isAgeAtLeast, isAgeBefore } from '../../../data/ages';
 
 export const TOWN_TIERS = [
   { id: 'small', minBuildings: 0, houses: 5, radius: 1.7 },
@@ -18,7 +19,7 @@ export const TOWN_TIERS = [
   { id: 'big', minBuildings: 10, houses: 22, radius: 3.6 }
 ];
 
-const AGE_STYLE = {
+export const AGE_STYLE = {
   bronze: { wall: '#c9a46c', roof: '#a8834a', flatRoofs: true, stone: '#a88a5c', accent: '#7c5a32' },
   classical: { wall: '#ece6d6', roof: '#b5532f', flatRoofs: false, stone: '#d8d2c0', accent: '#8a3b22' },
   kingdoms: { wall: '#d9cfb6', roof: '#5b4636', flatRoofs: false, stone: '#8f8f8a', accent: '#3f4b5c' },
@@ -90,10 +91,10 @@ const wallRing = (parts, style, radius, bronze) => {
 };
 
 // The town geometry. `opts`: { ageId, walls, capital }. Pure and deterministic for the same input.
-export const buildTownGeometry = (regionId, tierId, { ageId = 'bronze', walls = false, capital = false } = {}) => {
+export const buildTownGeometry = (regionId, tierId, { ageId = FIRST_AGE_ID, walls = false, capital = false } = {}) => {
   const tier = TOWN_TIERS.find((t) => t.id === tierId) || TOWN_TIERS[0];
-  const style = AGE_STYLE[ageId] || AGE_STYLE.bronze;
-  const modern = ageId === 'modern';
+  const style = AGE_STYLE[ageId] || AGE_STYLE[FIRST_AGE_ID];
+  const modern = isAgeAtLeast(ageId, 'modern');
   const rand = seeded(`${regionId}|${tier.id}`);
   const parts = [];
   // Fields round the town (more of them for a small one, which is mostly farmland), then a
@@ -133,7 +134,7 @@ export const buildTownGeometry = (regionId, tierId, { ageId = 'bronze', walls = 
     const h = tall ? 1.2 + rand() * 1.6 : 0.45 + rand() * (tier.id === 'big' ? 0.5 : 0.3);
     house(parts, style, x, z, w, d, h, a + Math.PI / 2, 0.85 + rand() * 0.3, modern);
   }
-  if (walls) wallRing(parts, style, tier.radius + 0.15, ageId === 'bronze');
+  if (walls) wallRing(parts, style, tier.radius + 0.15, isAgeBefore(ageId, 'classical'));
   const geo = mergeGeometries(parts, false);
   geo.computeBoundingSphere();
   return geo;

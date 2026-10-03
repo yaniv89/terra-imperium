@@ -10,6 +10,7 @@ import { portWaters } from '../engine/fleets';
 import { visibleTiles } from '../engine/sight';
 import { canQueue } from '../engine/world/cities';
 import { NAVAL_LINES, NAVAL_LINE_IDS, navalLinesFor, navalCargo, navalName, navalLineOf, navalCombatMult, NAVAL_BOMBARD } from './navalLines';
+import { AGE_ORDER } from './ages';
 
 describe('naval lines', () => {
   it('four lines, by age, with cargo and names per age', () => {
@@ -23,7 +24,7 @@ describe('naval lines', () => {
     expect(navalCargo('raider', 'gunpowder')).toBe(0);
     expect(navalName('warship', 'gunpowder')).toBe('Frigate');
     expect(navalLineOf({ classId: 'naval' })).toBe('warship'); // an older record
-    NAVAL_LINE_IDS.forEach((id) => { expect(NAVAL_LINES[id].names).toHaveLength(5); expect(NAVAL_LINES[id].cargo).toHaveLength(5); });
+    NAVAL_LINE_IDS.forEach((id) => { expect(Object.keys(NAVAL_LINES[id].names)).toEqual(AGE_ORDER); expect(Object.keys(NAVAL_LINES[id].cargo)).toEqual(AGE_ORDER); });
   });
 
   it('a transport fights badly and a raider lightly; a warship bombards a besieged coast; raiders see further', () => {

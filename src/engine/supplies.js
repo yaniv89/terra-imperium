@@ -1,4 +1,5 @@
 import { getOwnedRegionIds, REGIONS_DATA } from '../data/regions';
+import { isAgeAtLeast, isAgeBefore } from '../data/ages';
 // src/engine/supplies.js
 // Army supplies: the production chain between raw metal and an army in the field. Supplies
 // (provisions, munitions, remounts) are a stock the player builds up and campaigns spend down.
@@ -25,7 +26,7 @@ export const HUNGER_MORALE = 10;
 // Marching (routes.js): every land unit that marched this turn eats this much more, double abroad.
 export const MARCH_SUPPLY_PER_UNIT = 0.5;
 
-export const industryMetalFor = (ageId) => (ageId === 'bronze' ? 'copper' : ageId === 'modern' ? 'oil' : 'iron');
+export const industryMetalFor = (ageId) => (isAgeBefore(ageId, 'classical') ? 'copper' : isAgeAtLeast(ageId, 'modern') ? 'oil' : 'iron');
 
 const round1 = (v) => Math.round(v * 10) / 10;
 

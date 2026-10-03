@@ -16,6 +16,7 @@ import {
 import { ESTATE_PRIVILEGES, LABOR_ESTATE_ID, ESTATE_TAKEOVER_INFLUENCE_THRESHOLD, ESTATE_TAKEOVER_LOYALTY_THRESHOLD } from '../data/estates';
 import { getAvailableGovernmentTypes, resetReformsForType } from '../data/government';
 import { addNationModifier } from './modifiers/timed';
+import { isAgeAtLeast } from '../data/ages';
 
 const nextProgress = (current, triggered) =>
   Math.max(0, Math.min(DISASTER_MAX_PROGRESS, (current || 0) + (triggered ? DISASTER_PROGRESS_STEP : -DISASTER_PROGRESS_STEP)));
@@ -31,7 +32,7 @@ const successionWarTriggered = (nation) =>
   nation.government?.type === 'monarchy' && !nation.heir && (nation.legitimacy ?? 50) < SUCCESSION_WAR_LEGITIMACY_THRESHOLD;
 
 const revolutionTriggered = (nation, ageId) =>
-  ageId === 'modern' && (nation.stability || 0) <= -2 && (nation.estates?.[LABOR_ESTATE_ID]?.loyalty ?? 100) < REVOLUTION_LABOR_LOYALTY_THRESHOLD;
+  isAgeAtLeast(ageId, 'modern') && (nation.stability || 0) <= -2 && (nation.estates?.[LABOR_ESTATE_ID]?.loyalty ?? 100) < REVOLUTION_LABOR_LOYALTY_THRESHOLD;
 
 // Plan: "Estate Takeover... at 100 the estate seizes power: ADM/DIP/MIL -2 for 20 turns, and forced
 // privileges." The estate that actually crossed the threshold (there may be more than one; the first

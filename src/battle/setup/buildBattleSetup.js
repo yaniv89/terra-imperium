@@ -22,6 +22,7 @@ import { unitTile } from '../../engine/armies';
 import { BUILDING_CATEGORIES, getCategoryTierName } from '../../data/buildings';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield).
@@ -99,7 +100,7 @@ const placeBuildings = (map, list) => {
 // without a whole game state.
 export const buildSetupFromArmies = ({
   regionId, terrain, seed, attackerUnits, defenderUnits,
-  attackerAgeId = 'bronze', defenderAgeId = 'bronze', generals = {},
+  attackerAgeId = FIRST_AGE_ID, defenderAgeId = FIRST_AGE_ID, generals = {},
   fortLevel = 0, isCapital = false, infrastructure = 0, deposits = [],
   defenseReduction = 1, isAttackingFortification = fortLevel > 0, attackerPenaltyMultiplier = 1,
   attackerNationId = 'attacker', defenderNationId = 'defender',

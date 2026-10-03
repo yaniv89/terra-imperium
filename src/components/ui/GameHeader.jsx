@@ -7,7 +7,7 @@ import { useReportInset } from '../../context/MapInsetsContext';
 import { Beaker, Globe2, Calendar, RotateCcw, FastForward, Download, Upload, Cloud, CloudOff, CloudCog, WifiOff, AlertTriangle, MoreVertical } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { GameStatus } from '../../data/types';
-import { AGES } from '../../data/ages';
+import { AGES, formatYear } from '../../data/ages';
 import ResourceBar from './ResourceBar';
 import { getResearchView } from '../panels/researchView';
 import { openPanelTab } from '../panels/panelEvents';
@@ -198,7 +198,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   const CloudIcon = cloudInfo.Icon;
   const playerNation = state.nations[state.playerNationId];
   const ageName = AGES[state.age]?.name || state.age;
-  const yearLabel = state.year < 0 ? `${-state.year} BCE` : `${state.year} CE`;
+  const yearLabel = formatYear(state.year);
 
   const handleExport = () => {
     const json = exportSave();

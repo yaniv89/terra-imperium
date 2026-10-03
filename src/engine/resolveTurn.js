@@ -18,7 +18,7 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult, isAgeAtLeast } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
@@ -529,7 +529,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const MORALE_RECOVERY_PER_TURN = 15;
   // Mechanised warfare runs on oil: modern tanks, aircraft and warships need a stock above zero.
   const FUEL_BURNING_CLASSES = new Set(['cavalry', 'air', 'naval']);
-  const playerOutOfOil = getEffectiveAgeId(newAge, state.techAgeId) === 'modern' && (resources.oil ?? 0) <= 0;
+  const playerOutOfOil = isAgeAtLeast(getEffectiveAgeId(newAge, state.techAgeId), 'modern') && (resources.oil ?? 0) <= 0;
   let groundedCount = 0;
   const ownerSupplyFlows = new Map();
   const unitsByOwnerAtStart = unitsByOwner(state.units); // one scan for every nation's supply flow
@@ -574,7 +574,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
     // Plan §M14: forcedMarch grants a second move; every other unit gets exactly one. With the oil
     // stock empty, the player's modern machines (tanks, aircraft, warships) stay where they are.
-    const outOfOil = isPlayer ? playerOutOfOil : getEffectiveAgeId(newAge, nation.tech?.ageId) === 'modern' && (nation.economy?.oil || 0) <= 0;
+    const outOfOil = isPlayer ? playerOutOfOil : isAgeAtLeast(getEffectiveAgeId(newAge, nation.tech?.ageId), 'modern') && (nation.economy?.oil || 0) <= 0;
     const grounded = outOfOil && FUEL_BURNING_CLASSES.has(u.classId);
     if (grounded && isPlayer) groundedCount += 1;
     const movesLeft = grounded ? 0 : 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
@@ -761,7 +761,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const estatesState = { ...state, nations, regions };
   Object.entries(nations).forEach(([nId, nation]) => {
     let estates = processEstatesTurn(estatesState, nId);
-    if (newAge === 'modern' && estates && !estates[LABOR_ESTATE_ID]) {
+    if (isAgeAtLeast(newAge, 'modern') && estates && !estates[LABOR_ESTATE_ID]) {
       estates = { ...estates, [LABOR_ESTATE_ID]: createInitialEstate() };
     }
     if (estates && estates !== nation.estates) nations[nId] = { ...nation, estates };

@@ -5,6 +5,7 @@
 // computeHitMultiplier (counters, promotions, generals, roster age, terrain) — never from here.
 import { UNIT_ROSTER } from '../../data/unitClasses';
 import { Q, secondsToTicks as S, tilesPerSecToQ as T } from '../sim/constants';
+import { AGE_ORDER } from '../../data/ages';
 
 const MELEE_REACH = Math.round(0.9 * Q);
 
@@ -68,7 +69,6 @@ export const NAVAL_LINE_STATS = {
     modern: { ...SHIP, speed: T(3.0), range: 11 * Q, sight: 14, attackTicks: S(2.4), melee: false }
   }
 };
-const AGE_ORDER = ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'];
 /** The stats of a ship squad: its line's entry for the age, else the nearest earlier age's. */
 export const getNavalStats = (line, ageId) => {
   const byAge = NAVAL_LINE_STATS[line] || NAVAL_LINE_STATS.warship;

@@ -5,7 +5,7 @@
 // (`lastYields`) give the pace, so the list costs one pass, not an allocation per city. Pure.
 import { unitDisplayName } from '../../data/unitNames';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId, speedCostMult } from '../../data/ages';
+import { getEffectiveAgeId, speedCostMult, FIRST_AGE_ID } from '../../data/ages';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { IMPROVEMENTS } from '../../data/tileYields';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
@@ -16,7 +16,7 @@ import { UNREST_PROMPT } from '../ui/nextPrompt';
 export const RAIL_STORAGE_KEY = 'terra-imperium-city-rail-collapsed';
 
 /** A short name for a build item. */
-export const shortItemLabel = (item, tiles = getTiles(), ageId = 'bronze') => {
+export const shortItemLabel = (item, tiles = getTiles(), ageId = FIRST_AGE_ID) => {
   if (!item) return null;
   if (item.kind === 'unit') return item.classId === 'naval' ? NAVAL_LINES[item.navalLine || 'warship']?.label || 'Ship' : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || item.category;

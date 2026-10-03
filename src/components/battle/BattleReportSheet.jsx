@@ -8,7 +8,7 @@ import { MapPin, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { describeOutcome, formatMen, nationName, regionName, sidesFor, unitName } from './battleReportView';
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, formatYear, FIRST_AGE_ID } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
 
 const OURS = '#3B82F6';
@@ -74,7 +74,7 @@ const StrengthChart = ({ entry }) => {
   );
 };
 
-const SideTable = ({ title, color, units, ageId = 'bronze' }) => (
+const SideTable = ({ title, color, units, ageId = FIRST_AGE_ID }) => (
   <div className="space-y-1">
     <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />{title}</div>
     {units.length === 0 && <div className="text-[11px] text-slate-500">No troops.</div>}
@@ -98,7 +98,7 @@ const BattleReportSheet = ({ entry, onClose, onShowRegion }) => {
   const { mine, theirs } = sidesFor(entry);
   const result = describeOutcome(entry);
   const total = (side) => entry.sides[side].reduce((s, u) => s + u.before, 0) * MEN_PER_STRENGTH;
-  const year = entry.year < 0 ? `${-entry.year} BCE` : `${entry.year} CE`;
+  const year = formatYear(entry.year);
   return (
     <div className="fixed inset-0 z-[72] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" onClick={onClose} data-testid="battle-report">
       <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[88dvh] flex flex-col bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl text-slate-200 shadow-2xl">

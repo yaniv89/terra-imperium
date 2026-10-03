@@ -13,7 +13,7 @@ import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp } fro
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { getTiles } from '../../data/geo/tiles';
-import { getEffectiveAgeId, speedCostMult } from '../../data/ages';
+import { getEffectiveAgeId, speedCostMult, FIRST_AGE_ID } from '../../data/ages';
 import { getResearched } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
@@ -37,7 +37,7 @@ const describeTile = (facts) => {
   return parts.join(', ');
 };
 
-const itemLabel = (item, tiles, ageId = 'bronze') => {
+const itemLabel = (item, tiles, ageId = FIRST_AGE_ID) => {
   if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;

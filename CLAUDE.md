@@ -27,6 +27,10 @@ The live site is GitHub Pages, built into `docs/`.
   battleReports.js (the player's last 30 battles), stateAudit.js (invariant checks), plus src/utils/aiLogic.js (AI recruitment and
   war decisions). Balance harness: scripts/simulate.mjs.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
+- Ages: `src/data/ages.js` is the age registry (plans/eras-origins-and-future.md). Never compare age
+  ids by hand or name the first/last age: use `isAgeAtLeast`, `isAgeBefore`, `FIRST_AGE_ID`,
+  `LAST_AGE_ID`, `formatYear`. `src/data/ageRegistry.test.js` lists every per-age table; adding an
+  age makes it name what is missing.
 - `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).
 - New map (plans/civ-map-rework.md, in progress on the features branch): `src/data/geo/tiles.json`
   is a frequency-75 geodesic hex grid (56,252 cells, 16,523 land, hexes about 106 km) built by `npm run build:tiles`

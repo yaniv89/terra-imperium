@@ -23,6 +23,7 @@ import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
 import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
+import { isAgeAtLeast } from '../../data/ages';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -113,7 +114,7 @@ export const makeSplatDecal = ({ seed = 1, size = 64 } = {}) => {
 
 // Troops bleed; machines (siege engines, aircraft, modern tanks and AA batteries) burn and smoke.
 export const isOrganic = (classId, ageId) => !(classId === 'siege' || classId === 'air' || classId === 'naval'
-  || (ageId === 'modern' && (classId === 'cavalry' || classId === 'support')));
+  || (isAgeAtLeast(ageId, 'modern') && (classId === 'cavalry' || classId === 'support')));
 
 const BLOOD_COLORS = ['#7f1010', '#991b1b', '#5c0a0a'];
 const SPLAT_LIFE = 28;   // seconds a blood pool stays on the ground (it shrinks away over the last few)
@@ -417,7 +418,7 @@ export class BattleRenderer {
     tuft.computeVertexNormals();
     place(tufts, tuft, { shadow: false, tint: 0.35 });
     // Houses: whitewashed or stone walls under a pitched roof, age-appropriate colours.
-    const modern = this.setup.sides[1].ageId === 'modern';
+    const modern = isAgeAtLeast(this.setup.sides[1].ageId, 'modern');
     const house = mergeGeometries([
       painted(new BoxGeometry(0.9, 0.7, 0.8).translate(0, 0.35, 0), modern ? '#b9b5ad' : '#d8cdb5'),
       painted(new ConeGeometry(0.72, 0.5, 4).rotateY(Math.PI / 4).scale(1, 1, 0.9).translate(0, 0.95, 0), modern ? '#5d6166' : '#9a4b32'),
@@ -429,7 +430,7 @@ export class BattleRenderer {
 
   buildStructures() {
     this.structureMeshes = new Map();
-    const modern = this.setup.sides[1].ageId === 'modern';
+    const modern = isAgeAtLeast(this.setup.sides[1].ageId, 'modern');
     const merlons = (g, mat, radius, y, count, size = 0.22) => {
       for (let i = 0; i < count; i++) {
         const a = (i / count) * Math.PI * 2;

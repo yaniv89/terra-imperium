@@ -4,9 +4,10 @@
 // report sheet and the Military tab's list.
 import { unitDisplayName } from '../../data/unitNames';
 import { REGIONS_DATA } from '../../data/regions';
+import { FIRST_AGE_ID } from '../../data/ages';
 
 export const regionName = (id) => (id && REGIONS_DATA[id]?.name) || id || 'the field';
-export const unitName = (classId, ageId = 'bronze', navalLine = null) => unitDisplayName(ageId, classId, navalLine) || 'Unit';
+export const unitName = (classId, ageId = FIRST_AGE_ID, navalLine = null) => unitDisplayName(ageId, classId, navalLine) || 'Unit';
 export const nationName = (state, id) => (id === 'rebels' ? 'Rebels' : state.nations?.[id]?.name || id || 'Unknown');
 
 // 'win' | 'loss' | 'draw', and a short headline.

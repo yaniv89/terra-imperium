@@ -30,7 +30,7 @@
 // Deterministic: no randomness at all; ties break by tile id and city id. Returns the same world
 // object when nothing changed.
 import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
-import { AGE_ORDER } from '../../data/ages';
+import { AGES, FIRST_AGE_ID } from '../../data/ages';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
@@ -70,7 +70,6 @@ export const SETTLER_BASE_COST = 60;
 export const SETTLER_COST_PER_CITY = 10;
 export const SETTLER_MIN_SIZE = 2;
 export const UNIT_BASE_COST = 40;
-export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const IMPROVEMENT_COST_PER_TURN = 10;
 // Tiles are about 150 km across, so one free tile between cities is already Civ's spacing.
@@ -286,11 +285,11 @@ export const amenitiesOf = (city, ctx = {}) => {
 
 // ---------------------------------------------------------------------------------------------
 // Production
-export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedMult = 1 } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * speedMult);
-const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
+export const productionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1, speedMult = 1 } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * speedMult);
+const baseProductionCost = (item, { ageId = FIRST_AGE_ID, citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
-    case 'unit': return Math.round(UNIT_BASE_COST * (1 + UNIT_COST_PER_AGE * AGE_ORDER.indexOf(ageId)) * (UNIT_CLASS_COST[item.classId] || 1));
+    case 'unit': return Math.round(UNIT_BASE_COST * (AGES[ageId]?.unitCostMult ?? AGES[FIRST_AGE_ID].unitCostMult) * (UNIT_CLASS_COST[item.classId] || 1));
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
     case 'army': { const next = nextTemplateUnit(item); return next ? baseProductionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
@@ -299,7 +298,7 @@ const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) =>
   }
 };
 
-export const canQueue = (city, tiles, world, item, { researched = [], ageId = 'bronze' } = {}) => {
+export const canQueue = (city, tiles, world, item, { researched = [], ageId = FIRST_AGE_ID } = {}) => {
   switch (item.kind) {
     case 'building': {
       const current = city.buildings?.categories?.[item.category] ?? -1;
@@ -366,7 +365,7 @@ export const ringsAround = (tiles, centre, maxRing) => {
 
 /** Tiles the city could claim next, best first: unowned, workable, adjacent to its land, inside
  * the age's ring. Each entry { tile, ring, cost, score }. */
-export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
+export const claimCandidates = (city, tiles, world, { ageId = FIRST_AGE_ID, researched = [] } = {}) => {
   const fx = mapEffectsOf(researched); // techs that push the border and cheapen tiles (techMapEffects.js)
   const maxRing = Math.min(BORDER_RING_MAX, (BORDER_RING_BY_AGE[ageId] || 2) + fx.borderRing);
   const own = new Set(city.tiles);
@@ -409,7 +408,7 @@ const writeTileState = (world, tile, entry, inPlace = false) => {
  */
 export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   const researched = ctx.researched || [];
-  const ageId = ctx.ageId || 'bronze';
+  const ageId = ctx.ageId || FIRST_AGE_ID;
   let w = world;
   // A pillaged district is rebuilt once DISTRICT_REPAIR_TURNS have passed (districts.js).
   (city.tiles || []).forEach((t) => { const e = w.tileState[t]; if (e?.district && e.pillaged) { const r = repairedDistrict(e, ctx.turnNumber || 0); if (r !== e) w = writeTileState(w, t, r, inPlace); } });

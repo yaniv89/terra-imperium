@@ -33,7 +33,7 @@ import { REGIONS_DATA, getOwnedRegionIds } from '../data/regions';
 import {
   BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, canBuildTier, getBuildingTierCost, getBuildingSlots, getUsedBuildingSlots
 } from '../data/buildings';
-import { AGE_ORDER } from '../data/ages';
+import { isAgeAtLeast } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
@@ -138,7 +138,7 @@ export const calcAllNationIncomes = (state) => {
 const tryAdoptOrReformGovernment = (state, nation) => {
   const ageId = state.age;
   if (!nation.government || nation.government.type === 'tribal') {
-    if (AGE_ORDER.indexOf(ageId) < AGE_ORDER.indexOf('classical')) return null;
+    if (!isAgeAtLeast(ageId, 'classical')) return null;
     const available = getAvailableGovernmentTypes(ageId, nation.identity).filter((t) => t.id !== 'tribal');
     if (available.length === 0) return null;
     const preferred = (DOCTRINE_GOVERNMENT[nation.doctrine] || []).map((id) => available.find((t) => t.id === id)).find(Boolean);

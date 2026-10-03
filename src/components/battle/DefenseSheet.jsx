@@ -5,7 +5,7 @@
 // defending) or Withdraw (fall back to a neighbouring province and give this one up). The turn can't end until every assault is fought. It can be tucked away to look at
 // the map, leaving a pill to bring it back. A bottom sheet on phones, a centred card on desktop.
 import { unitDisplayName } from '../../data/unitNames';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, FIRST_AGE_ID } from '../../data/ages';
 import React, { useMemo, useState } from 'react';
 import { Shield, Swords, Zap, ChevronDown, Undo2 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -15,7 +15,7 @@ import { estimateDefenseOdds, getDefenseArmies, getWithdrawalTarget } from '../.
 
 const pct = (v) => `${Math.round(v * 100)}%`;
 
-const forceSummary = (units, ageId = 'bronze') => {
+const forceSummary = (units, ageId = FIRST_AGE_ID) => {
   const counts = {};
   units.forEach((u) => { counts[u.classId] = (counts[u.classId] || 0) + 1; });
   return Object.entries(counts).map(([id, n]) => `${n} ${unitDisplayName(ageId, id)}`).join(' · ') || 'none';

@@ -30,6 +30,17 @@ Checks the base out in a temporary git worktree (sharing node_modules), runs the
 both, and prints both SUMMARY lines per seed. Use the commit before the change, or `origin/main`,
 as the base. Timings are only comparable within one compare run.
 
+## Nothing-changed check for refactors
+```bash
+TURNS=280 SEEDS=11 SPEED=fast npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/stateHash
+TURNS=120 SEEDS=12 EVERY=10 SPEED=normal JUMP=1850 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/balance-sim/stateHash
+```
+Prints `HASH seed=… turn=… year=… age=… <sha1>` of the WHOLE state (keys sorted) every EVERY
+turns. Run it on the base commit and on the working tree: identical lines prove a refactor plays
+bit-identically; the first differing line shows when they diverge. The first command walks all
+ages from 2000 BCE at Fast (about 2 minutes); JUMP=<year> starts the calendar late to cover the
+late ages quickly.
+
 ## Also in the repo
 `node scripts/simulate.mjs --games 5 --turns 150` (the M21 harness: N seeded games, aggregated
 metrics, passive response policy) and `auditGameState(state)` / `assertGameState(state)` in

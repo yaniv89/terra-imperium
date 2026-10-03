@@ -93,7 +93,7 @@ const LEG = { limb: LIMB.LEG_L, pivot: [HIP, 0] };
 const ARM_L = { limb: LIMB.ARM_L, pivot: [SHOULDER, 0] };
 const ARM_R = { limb: LIMB.ARM_R, pivot: [SHOULDER, 0] };
 
-const HELMETS = {
+export const HELMETS = {
   bronze: (y) => [part(dome(0.102), C.bronze, { at: [0, y, 0], scale: [1, 1.1, 1.1] })],
   classical: (y) => [part(dome(0.106), C.bronze, { at: [0, y, 0], scale: [1, 1, 1.1] }), part(oval(0.03, 0.11, 0.23), '#b3261e', { at: [0, y + 0.11, -0.01] }), ...[-1, 1].map(s => part(oval(0.025, 0.09, 0.07), C.bronze, { at: [s * 0.09, y - 0.04, 0.02] }))],
   kingdoms: (y) => [part(dome(0.106), C.steel, { at: [0, y, 0], scale: [1, 1.2, 1.1] }), part(box(0.018, 0.1, 0.015), C.steel, { at: [0, y - 0.04, 0.108] })],
@@ -245,7 +245,7 @@ const SHIPS = {
   modern: () => [...hull(3.2, 0.6, '#8b939c'), part(box(0.4, 0.4, 0.9), '#6e757d', { at: [0, 0.5, 0.2] }), part(cyl(0.03, 0.03, 0.8, 6), C.darkSteel, { at: [0, 0.9, 0.2] }), part(cyl(0.04, 0.05, 0.6, 6), C.darkSteel, { at: [0, 0.42, 1.0], rot: [Math.PI / 2, 0, 0] }), part(box(0.02, 0.12, 0.22), '#ffffff', { at: [0, 1.3, 0.31], team: 1 })]
 };
 
-const MODELS = {
+export const MODELS = {
   naval: SHIPS,
   infantry: {
     bronze: () => [...person('bronze'), ...spear(1.35), ...roundShield()],

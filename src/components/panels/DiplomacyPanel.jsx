@@ -22,7 +22,7 @@ import {
 } from '../../data/actionCosts';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { getNationCapital } from '../../data/regions';
-import { getEffectiveAgeId } from '../../data/ages';
+import { getEffectiveAgeId, isAgeAtLeast } from '../../data/ages';
 import { canAfford, formatNumber } from '../../utils/helpers';
 import { ActionButton } from '../ui';
 
@@ -77,7 +77,7 @@ const DiplomacyPanel = () => {
     triggerEffect('declare_independence', { region: getNationCapital(state.playerNationId) });
     dispatch({ type: ActionTypes.DECLARE_INDEPENDENCE, payload: {} });
   };
-  const isModernAge = getEffectiveAgeId(state.age, state.techAgeId) === 'modern';
+  const isModernAge = isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern');
   const playerNation = state.nations[state.playerNationId];
 
   // Sort nations: at war (with the player — n.isAtWar alone just means "in a war with someone",

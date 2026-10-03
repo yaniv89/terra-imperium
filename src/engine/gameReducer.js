@@ -56,7 +56,7 @@ import { applyPeace, getPeaceAcceptance } from './peace';
 import { levyUnit } from './aftermath';
 import { HISTORICAL_EVENTS } from '../data/events';
 import { EVENT_CHAINS } from '../data/eventChains';
-import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId } from '../data/ages';
+import { START_YEAR, END_YEAR, getCalendarAgeId, getEffectiveAgeId, formatYear, isAgeAtLeast } from '../data/ages';
 import { getRegionTerrain } from '../data/terrain';
 import { createEmptyResourcePool } from '../data/resources';
 import {
@@ -125,7 +125,6 @@ import { canQueueWonder, wonderItem } from './wonders';
 // the country-select start screen) or saved game is present yet.
 const DEFAULT_PLAYER_NATION_ID = 'us';
 
-const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 
 // ============ INITIAL STATE FACTORY ============
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
@@ -704,7 +703,7 @@ const reduceAction = (state, action) => {
       const region = state.regions[regionId];
       const costs = ACTION_COSTS.buildClimateResilience;
       if (!region || region.owner !== state.playerNationId || (region.climateResilience || 0) >= CLIMATE_RESILIENCE_MAX) return state;
-      if (getEffectiveAgeId(state.age, state.techAgeId) !== 'modern') return state;
+      if (!isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern')) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextLevel = (region.climateResilience || 0) + 1;
       return {
@@ -718,7 +717,7 @@ const reduceAction = (state, action) => {
     case ActionTypes.CULTURAL_EXPORT: {
       const nation = state.nations[state.playerNationId];
       const costs = ACTION_COSTS.culturalExport;
-      if (getEffectiveAgeId(state.age, state.techAgeId) !== 'modern') return state;
+      if (!isAgeAtLeast(getEffectiveAgeId(state.age, state.techAgeId), 'modern')) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextInfluence = (nation.culturalInfluence || 0) + CULTURAL_EXPORT_INFLUENCE_GAIN;
       const nextNations = {

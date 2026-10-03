@@ -6,10 +6,10 @@
 // simultaneous voices, and a stereo pan from where it happens on screen.
 // Haptics use Capacitor's Haptics plugin inside the native app, falling back to navigator.vibrate
 // on the web. Both follow one "sound & haptics" switch, remembered per device.
+import { isAgeAtLeast, FIRST_AGE_ID } from '../../data/ages';
 const STORAGE_KEY = 'terra-imperium-battle-audio';
 const MAX_VOICES = 14;
 const COOLDOWN_MS = { shot: 55, melee: 70, towerShot: 120, impact: 90, destroyed: 120, routed: 400, pointCaptured: 600, horn: 800, click: 30 };
-const GUN_AGES = new Set(['gunpowder', 'modern']);
 
 export const isBattleAudioEnabled = () => {
   try { return localStorage.getItem(STORAGE_KEY) !== 'off'; } catch { return true; }
@@ -33,7 +33,7 @@ export const haptic = (kind) => {
   } catch { /* haptics are a nicety; never let them break the battle */ }
 };
 
-export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 0 } = {}) => {
+export const createBattleAudio = ({ ageIds = [FIRST_AGE_ID, FIRST_AGE_ID], playerSide = 0 } = {}) => {
   let ctx = null; let master = null; let noise = null;
   let enabled = isBattleAudioEnabled();
   let voices = 0;
@@ -121,8 +121,8 @@ export const createBattleAudio = ({ ageIds = ['bronze', 'bronze'], playerSide = 
       events.forEach((e) => {
         const at = (sq) => (sq ? panOf(sq.x, sq.y) : 0);
         switch (e.type) {
-          case 'shot': { const src = view.squads[e.from]; play(GUN_AGES.has(ageIds[src?.side ?? 0]) ? 'shotGun' : 'shotBow', 'shot', at(src)); break; }
-          case 'towerShot': play(GUN_AGES.has(ageIds[1]) ? 'shotGun' : 'shotBow', 'towerShot', 0.3); break;
+          case 'shot': { const src = view.squads[e.from]; play(isAgeAtLeast(ageIds[src?.side ?? 0], 'gunpowder') ? 'shotGun' : 'shotBow', 'shot', at(src)); break; }
+          case 'towerShot': play(isAgeAtLeast(ageIds[1], 'gunpowder') ? 'shotGun' : 'shotBow', 'towerShot', 0.3); break;
           case 'melee': play('melee', 'melee', at(view.squads[e.to])); break;
           case 'impact': play('impact', 'impact', panOf(e.x, e.y), e.radius > 6 * 256); if (e.radius > 6 * 256) haptic('boom'); break;
           case 'destroyed': { const sq = view.squads[e.id]; play('destroyed', 'destroyed', at(sq)); if (sq?.side === playerSide) haptic('thud'); break; }

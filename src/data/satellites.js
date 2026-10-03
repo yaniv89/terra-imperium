@@ -16,7 +16,7 @@
 // rendering feature this task does not build — the data model, launch/strike actions and their
 // real gameplay effects are complete and tested; the globe visualization is out of scope here the
 // same way Task 23 scoped out AI counter-building until units existed to counter.
-import { getEffectiveAgeId } from './ages';
+import { getEffectiveAgeId, isAgeAtLeast } from './ages';
 
 export const SATELLITE_UNLOCK_YEAR = 1957; // Sputnik
 
@@ -59,7 +59,7 @@ export const SATELLITE_TYPE_IDS = Object.keys(SATELLITE_TYPES);
 // year satellites became possible — the same one-age-ahead-rush ceiling every other age-gated
 // system in this game shares still applies via getEffectiveAgeId itself.
 export const canLaunchSatellite = (calendarAgeId, techAgeId, year) =>
-  getEffectiveAgeId(calendarAgeId, techAgeId) === 'modern' && year >= SATELLITE_UNLOCK_YEAR;
+  isAgeAtLeast(getEffectiveAgeId(calendarAgeId, techAgeId), 'modern') && year >= SATELLITE_UNLOCK_YEAR;
 
 // Orbital debris (plan §10.4's "shared-commons problem"): every ASAT strike raises the WORLD's
 // debris level, degrading every nation's satellite effectiveness together — not just the target's

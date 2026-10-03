@@ -15,6 +15,7 @@
 //   Air, and Air no longer beats Naval or Support.
 // - Support (engineer/medic/supply train in early ages, Anti-Air battery in Modern) is otherwise
 //   non-combat: no counters of its own beyond the Air matchup above.
+import { AGES, FIRST_AGE_ID } from './ages';
 
 export const UNIT_CLASSES = {
   infantry: {
@@ -111,59 +112,59 @@ export const getSiegeMultiplier = (isAttackingFortification) =>
 // later-age unit is a straightforward upgrade over an earlier one of the same class; strength
 // (headcount) and morale/organization are runtime army state, not roster data — see the
 // Per-region armies task.
-const rosterEntry = (name, ageIndex) => ({
+const rosterEntry = (name, ageId) => ({
   name,
-  baseAttack: 10 + ageIndex * 8,
-  baseDefense: 8 + ageIndex * 6
+  baseAttack: AGES[ageId].unitAttack,
+  baseDefense: AGES[ageId].unitDefense
 });
 
 export const UNIT_ROSTER = {
   bronze: {
-    infantry: rosterEntry('Spearmen', 0),
-    cavalry: rosterEntry('Chariots', 0),
-    ranged: rosterEntry('Archers', 0),
-    siege: rosterEntry('Battering Ram', 0),
-    naval: rosterEntry('War Galley', 0)
+    infantry: rosterEntry('Spearmen', 'bronze'),
+    cavalry: rosterEntry('Chariots', 'bronze'),
+    ranged: rosterEntry('Archers', 'bronze'),
+    siege: rosterEntry('Battering Ram', 'bronze'),
+    naval: rosterEntry('War Galley', 'bronze')
   },
   classical: {
-    infantry: rosterEntry('Swordsmen', 1),
-    cavalry: rosterEntry('Heavy Cavalry', 1),
-    ranged: rosterEntry('Composite Archers', 1),
-    siege: rosterEntry('Ballista', 1),
-    naval: rosterEntry('Trireme', 1)
+    infantry: rosterEntry('Swordsmen', 'classical'),
+    cavalry: rosterEntry('Heavy Cavalry', 'classical'),
+    ranged: rosterEntry('Composite Archers', 'classical'),
+    siege: rosterEntry('Ballista', 'classical'),
+    naval: rosterEntry('Trireme', 'classical')
   },
   kingdoms: {
-    infantry: rosterEntry('Pikemen', 2),
-    cavalry: rosterEntry('Knights', 2),
-    ranged: rosterEntry('Longbowmen', 2),
-    siege: rosterEntry('Trebuchet', 2),
-    naval: rosterEntry('Longship', 2)
+    infantry: rosterEntry('Pikemen', 'kingdoms'),
+    cavalry: rosterEntry('Knights', 'kingdoms'),
+    ranged: rosterEntry('Longbowmen', 'kingdoms'),
+    siege: rosterEntry('Trebuchet', 'kingdoms'),
+    naval: rosterEntry('Longship', 'kingdoms')
   },
   gunpowder: {
-    infantry: rosterEntry('Musketeers', 3),
-    cavalry: rosterEntry('Dragoons', 3),
-    ranged: rosterEntry('Riflemen', 3),
-    siege: rosterEntry('Field Cannon', 3),
-    naval: rosterEntry('Frigate', 3)
+    infantry: rosterEntry('Musketeers', 'gunpowder'),
+    cavalry: rosterEntry('Dragoons', 'gunpowder'),
+    ranged: rosterEntry('Riflemen', 'gunpowder'),
+    siege: rosterEntry('Field Cannon', 'gunpowder'),
+    naval: rosterEntry('Frigate', 'gunpowder')
   },
   modern: {
-    infantry: rosterEntry('Mechanized Infantry', 4),
-    cavalry: rosterEntry('Tanks', 4),
-    ranged: rosterEntry('ATGM Teams', 4),
-    siege: rosterEntry('Artillery', 4),
-    naval: rosterEntry('Destroyer', 4),
-    air: rosterEntry('Fighter Jet', 4),
-    support: rosterEntry('Anti-Air Battery', 4)
+    infantry: rosterEntry('Mechanized Infantry', 'modern'),
+    cavalry: rosterEntry('Tanks', 'modern'),
+    ranged: rosterEntry('ATGM Teams', 'modern'),
+    siege: rosterEntry('Artillery', 'modern'),
+    naval: rosterEntry('Destroyer', 'modern'),
+    air: rosterEntry('Fighter Jet', 'modern'),
+    support: rosterEntry('Anti-Air Battery', 'modern')
   }
 };
 
 // Plan §M14: Support becomes a real recruitable class — flavor names change by age (a construction/
 // logistics role early on, hardening into dedicated Anti-Air once Air exists to shoot down), but the
 // class id and its counter (support beats air) stay the same throughout.
-UNIT_ROSTER.bronze.support = rosterEntry('Baggage Train', 0);
-UNIT_ROSTER.classical.support = rosterEntry('Engineers', 1);
-UNIT_ROSTER.kingdoms.support = rosterEntry('Pioneers', 2);
-UNIT_ROSTER.gunpowder.support = rosterEntry('Sappers', 3);
+UNIT_ROSTER.bronze.support = rosterEntry('Baggage Train', 'bronze');
+UNIT_ROSTER.classical.support = rosterEntry('Engineers', 'classical');
+UNIT_ROSTER.kingdoms.support = rosterEntry('Pioneers', 'kingdoms');
+UNIT_ROSTER.gunpowder.support = rosterEntry('Sappers', 'gunpowder');
 
 export const getUnitDefinition = (ageId, classId) => UNIT_ROSTER[ageId]?.[classId] || null;
 
@@ -187,7 +188,7 @@ export const getAvailableClasses = (ageId) => Object.keys(UNIT_ROSTER[ageId] || 
 // equal ages guaranteed by construction, not by a coincidental ratio.
 const ROSTER_REFERENCE_CLASS = 'infantry';
 export const getRosterCombatMultiplier = (attackerAgeId, defenderAgeId) => {
-  const attackerAttack = UNIT_ROSTER[attackerAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER.bronze[ROSTER_REFERENCE_CLASS].baseAttack;
-  const defenderAttack = UNIT_ROSTER[defenderAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER.bronze[ROSTER_REFERENCE_CLASS].baseAttack;
+  const attackerAttack = UNIT_ROSTER[attackerAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER[FIRST_AGE_ID][ROSTER_REFERENCE_CLASS].baseAttack;
+  const defenderAttack = UNIT_ROSTER[defenderAgeId]?.[ROSTER_REFERENCE_CLASS]?.baseAttack ?? UNIT_ROSTER[FIRST_AGE_ID][ROSTER_REFERENCE_CLASS].baseAttack;
   return attackerAttack / defenderAttack;
 };
