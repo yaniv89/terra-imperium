@@ -16,7 +16,8 @@ import { DISTRICTS } from '../../engine/districts';
 import { canSettle, scoreSite, settlerPath, settlersOf, SETTLER_MOVES } from '../../engine/settlers';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { atSea } from '../../engine/fleets';
-import { tileAccess } from '../../engine/armies';
+import { tileAccess, unitTile } from '../../engine/armies';
+import { declareWarModel } from '../panels/warActions';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
 import { estateHoldings } from '../../engine/estateLand';
 import { ESTATE_LABELS } from '../../data/estates';
@@ -53,6 +54,9 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
   // A fleet at sea beside this shore can land its troops here (fleets.js), on own, allied or free land.
   // An enemy army on this tile and your stacks beside it: a field battle (fieldBattle.js).
   const enemyHere = facts.land ? enemyStackAt(state, tile, me) : [];
+  // A foreign army at peace with you on this tile: name it, and offer the war (warActions.js).
+  const foreignHere = facts.land && !enemyHere.length ? Object.values(state.units).filter((u) => u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && u.ownerId !== me && u.ownerId !== 'rebels' && unitTile(state, u) === tile) : [];
+  const foreignWar = foreignHere.length ? declareWarModel(state, foreignHere[0].ownerId) : null;
   const attackSources = enemyHere.length
     ? [...new Set(Object.values(state.units).filter((u) => u.ownerId === me && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.tile != null && tiles.neighbors[u.tile].includes(tile)).map((u) => u.regionId))]
       .map((rid) => ({ regionId: rid, v: validateFieldAttack(state, rid, tile) }))
@@ -82,6 +86,12 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
               Attack with the army of {state.regions[regionId]?.name || regionId}{v.ok ? ` (${v.attackerUnits.length} unit${v.attackerUnits.length === 1 ? '' : 's'})` : v.reason === 'no_moves' ? ' (already moved)' : ''}
             </button>
           ))}
+        </div>
+      )}
+      {foreignWar && (
+        <div className="mb-2 space-y-1" data-testid="foreign-army-here">
+          <div className="text-xs text-amber-200 font-semibold">{foreignWar.name}&apos;s army here: {foreignHere.length} unit{foreignHere.length === 1 ? '' : 's'} (at peace)</div>
+          <button type="button" disabled={!foreignWar.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } })} title={foreignWar.note} data-testid="tile-declare-war" className="w-full min-h-[44px] rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1"><Swords className="w-3.5 h-3.5" /> {foreignWar.label}</button>
         </div>
       )}
       {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}

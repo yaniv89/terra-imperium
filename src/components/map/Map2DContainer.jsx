@@ -7,8 +7,7 @@ import Map2DView from './Map2DView';
 
 const Map2DContainer = ({
   selectedRegion, onSelectRegion, onAmbiguousTap = null, hudOffset = false, initialFocusRegionId = null, focusRegionId = null,
-  navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political'
-}) => {
+  navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political', selectedArmy = null }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -38,6 +37,7 @@ const Map2DContainer = ({
           navigateTarget={navigateTarget}
           onViewportChange={onViewportChange}
           selectedTile={selectedTile}
+          selectedArmy={selectedArmy}
           onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} lens={lens}
         />
       )}

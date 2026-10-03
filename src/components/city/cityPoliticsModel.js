@@ -3,6 +3,7 @@
 // panels render and the tests check: loyalty with its parts, the culture shares, why unrest moves
 // (the same inputs resolveTurn's unrest drift reads), the governor and who could be seated, the
 // estates' land in this city, the disaster in progress, and the building lines with their next tier.
+import { TECH_TREE } from '../../data/techTree';
 import { getTiles } from '../../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { TAX_RATES } from '../../data/taxRates';
@@ -111,7 +112,7 @@ export const cityBuildingsModel = (state, cityId) => {
     return {
       category, label: cat.label,
       built: cat.tiers.slice(0, tier + 1).map((t) => t.name),
-      next: next ? { name: next.name, cost: getBuildingTierCost(category, tier + 1), canBuild: coastal && canBuildTier(category, researched, tier + 1), queued: queued.has(`${category}:${tier + 1}`), needs: !coastal ? 'a coast' : !canBuildTier(category, researched, tier + 1) ? 'a technology' : null } : null
+      next: next ? { name: next.name, cost: getBuildingTierCost(category, tier + 1), canBuild: coastal && canBuildTier(category, researched, tier + 1), queued: queued.has(`${category}:${tier + 1}`), needs: !coastal ? 'a coast' : !canBuildTier(category, researched, tier + 1) ? (TECH_TREE[next.requiresTech]?.name || 'a technology') : null, needsTech: !coastal || canBuildTier(category, researched, tier + 1) ? null : next.requiresTech } : null
     };
   });
 };

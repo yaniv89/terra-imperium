@@ -83,7 +83,11 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       </div>
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
-          {model.targets.map((t) => (
+          {model.targets.map((t) => t.war ? (
+            <button key={`war:${t.tile}`} type="button" disabled={!t.war.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: t.war.nationId } })} data-testid="army-declare-war" title={t.war.note} className="w-full min-h-[44px] rounded-lg bg-amber-800/70 hover:bg-amber-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+              <Swords className="w-3.5 h-3.5" /> {t.war.label} ({Object.entries(t.war.costs).map(([k, v]) => `${v} ${k.toUpperCase()}`).join(', ')})
+            </button>
+          ) : (
             <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : t.kind === 'fleet' ? 'Fight the fleet beside you' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? `Assault ${t.name}` : `Attack the ${t.name}`} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
             </button>

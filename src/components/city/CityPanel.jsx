@@ -6,6 +6,8 @@
 // through the reducer's city cases (QUEUE_PRODUCTION, DEQUEUE_PRODUCTION, SET_CITY_FOCUS,
 // TOGGLE_TILE_LOCK, BUY_TILE), so the rules live in src/engine/world/cities.js, not here.
 // Phone first: 44 px rows, one column, nothing that needs a hover.
+import { TECH_TREE } from '../../data/techTree';
+import { unitDisplayName, unitClassLabel } from '../../data/unitNames';
 import React, { useMemo } from 'react';
 import { Lock, Unlock, X, Plus, Coins, Wheat, Hammer, Home, Smile, ArrowUp } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -14,7 +16,7 @@ import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getResearched } from '../../engine/nationState';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
-import { UNIT_CLASSES, getAvailableClasses } from '../../data/unitClasses';
+import { getAvailableClasses } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, tileYields, canImprove } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
 import {
@@ -35,13 +37,13 @@ const describeTile = (facts) => {
   return parts.join(', ');
 };
 
-const itemLabel = (item, tiles) => {
-  if (item.kind === 'unit') return item.classId === 'naval' ? `${NAVAL_LINES[item.navalLine || 'warship'].label} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : UNIT_CLASSES[item.classId]?.name || item.classId;
+const itemLabel = (item, tiles, ageId = 'bronze') => {
+  if (item.kind === 'unit') return item.classId === 'naval' ? `${unitDisplayName(ageId, 'naval', item.navalLine)} (${NAVAL_LINES[item.navalLine || 'warship'].role})` : unitDisplayName(ageId, item.classId);
   if (item.kind === 'building') return BUILDING_CATEGORIES[item.category]?.tiers[item.tier]?.name || `${item.category} ${item.tier + 1}`;
   if (item.kind === 'improvement') return `${IMPROVEMENTS[item.improvement]?.name || item.improvement} on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}`;
   if (item.kind === 'settler') return 'Settlers (takes one citizen, founds a city)';
   if (item.kind === 'wonder') return `${GREAT_PROJECTS[item.projectId]?.name || item.projectId} (tier ${item.tier})${item.tile != null ? ` on ${tiles.names?.[item.tile] || describeTile(tileFacts(tiles, item.tile))}` : ''}`;
-  if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); return next ? `${item.name}: ${UNIT_CLASSES[next]?.name || next} (${p.done + 1} of ${p.total})` : `${item.name} (${p.total} units)`; }
+  if (item.kind === 'army') { const next = nextTemplateUnit(item); const p = templateProgress(item); return next ? `${item.name}: ${unitDisplayName(ageId, next)} (${p.done + 1} of ${p.total})` : `${item.name} (${p.total} units)`; }
   return item.kind;
 };
 
@@ -94,7 +96,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
       if (!BUILDING_CATEGORIES[category].tiers[tier]) return;
       const item = { kind: 'building', category, tier };
-      out.push({ item, group: 'Buildings', ...check(item) });
+      const c = check(item);
+      const need = BUILDING_CATEGORIES[category].tiers[tier].requiresTech;
+      out.push({ item, group: 'Buildings', ...c, needsTech: !c.ok && need && !researched.includes(need) ? need : null, needsName: !c.ok && need && !researched.includes(need) ? TECH_TREE[need]?.name : null });
     });
     city.tiles.forEach((t) => {
       if (t === city.tile) return;
@@ -231,7 +235,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
               return (
                 <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
                   <div className="min-w-0 flex-1">
-                    <div className="text-slate-100 truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles)}</div>
+                    <div className="text-slate-100 truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
                     <div className="text-slate-400">{i === 0 ? `${Math.round(progress)}/${cost} · ` : `${cost} · `}{turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
                     {i === 0 && <div className="h-1 rounded bg-slate-700 mt-1"><div className="h-1 rounded bg-amber-400" style={{ width: `${Math.min(100, (progress / Math.max(1, cost)) * 100)}%` }} /></div>}
                   </div>
@@ -259,10 +263,10 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 return (
                   <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs border ${o.ok ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-900/60 border-slate-800 opacity-70'}`}>
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-100 truncate">{itemLabel(o.item, tiles)}</div>
-                      <div className="text-slate-400">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.reason}</div>
+                      <div className="text-slate-100 truncate">{itemLabel(o.item, tiles, ageId)}</div>
+                      <div className="text-slate-400">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-sky-300 min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
                     </div>
-                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-white disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles)}`} data-testid="queue-item">
+                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-white disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
                       {queue.length ? <Plus className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
                     </button>
                   </li>
@@ -293,7 +297,7 @@ const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
       <ul className="space-y-1 text-xs">
         {templates.map((t) => (
           <li key={t.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] bg-slate-800/40 border border-slate-700/60">
-            <div className="min-w-0 flex-1 truncate text-slate-100">{t.name} <span className="text-slate-400">({templateSize(t.composition)} units: {Object.entries(t.composition).map(([c, n]) => `${n} ${UNIT_CLASSES[c]?.name || c}`).join(', ')})</span></div>
+            <div className="min-w-0 flex-1 truncate text-slate-100">{t.name} <span className="text-slate-400">({templateSize(t.composition)} units: {Object.entries(t.composition).map(([c, n]) => `${n} ${unitDisplayName(ageId, c)}`).join(', ')})</span></div>
             <button type="button" onClick={() => edit(t)} className="text-slate-300 min-h-[32px] px-2">Edit</button>
             <button type="button" onClick={() => dispatch({ type: ActionTypes.DELETE_ARMY_TEMPLATE, payload: { id: t.id } })} aria-label={`Delete ${t.name}`} className="text-red-300 min-h-[32px] px-2">Delete</button>
           </li>
@@ -305,7 +309,7 @@ const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
           <div className="grid grid-cols-2 gap-1">
             {classes.map((c) => (
               <div key={c} className="flex items-center justify-between rounded bg-slate-800/60 px-2 min-h-[36px]">
-                <span className="text-slate-200">{UNIT_CLASSES[c]?.name || c}</span>
+                <span className="text-slate-200" title={unitClassLabel(c)}>{unitDisplayName(ageId, c)}</span>
                 <span className="flex items-center gap-1">
                   <button type="button" onClick={() => bump(c, -1)} className="min-w-[32px] min-h-[32px] rounded bg-slate-700 text-white" aria-label={`Fewer ${c}`}>-</button>
                   <span className="w-5 text-center text-white">{draft.composition[c] | 0}</span>

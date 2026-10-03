@@ -268,3 +268,24 @@ numbers in the log entry.
 Every wave ships on the branch with lint, the unit suite, the e2e suite and, for P3 and P4,
 the balance sim; merge to main when you say. The art spec's models land into P1.3 as they
 arrive, placeholders first.
+
+---
+
+## Progress
+
+**Wave 1 shipped (2026-10-03).** P5.2 `unitDisplayName` (data/unitNames.js) names every unit by
+its roster entry in the city rail, the city panel's queue and templates, the pre-battle modal,
+the defence sheet and the battle report (reports now keep a ship's line). P5.3 the Space tab
+appears only once a Modern tech is researched (`visibleTabs`, both tab bars). P5.4 a building or
+item you cannot build names the tech with a "Research it" link that queues it (city sheet
+Buildings and the build list). P5.1 `pickCityName` (engine/cityNames.js): a settler's city takes
+the tile's real name, else the nearest free named tile within 3 rings, else a name made in the
+founder's culture; 500 founded cities in the test, no "City N", no duplicate. P5.5 your cities
+and every capital carry their name from zoom 1.5. P1.5 the lens strip is a pill naming the
+current lens that opens a labelled list; the mini map folds behind a "World" button, closed by
+default on phones and remembered. P1.6 a march is a soft path with an arrowhead and one label at
+the end ("3 turns", "halted"); the preview keeps small ticks; other stacks' marches stay faint
+when one is selected. P2.1 `declareWarModel` (panels/warActions.js): Declare War on every
+foreign city card at peace, on the tile sheet of a foreign army at peace, and in place of the
+army sheet's greyed Assault button, all with the cost and the casus belli note.
+

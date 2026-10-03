@@ -36,7 +36,7 @@ export const validateTemplate = (template, ageId) => {
   if (size > TEMPLATE_MAX_UNITS) return { ok: false, reason: `At most ${TEMPLATE_MAX_UNITS} units.` };
   const available = new Set(getAvailableClasses(ageId));
   const missing = Object.keys(comp).filter((c) => (comp[c] | 0) > 0 && !available.has(c));
-  if (missing.length) return { ok: false, reason: `${missing.map((c) => UNIT_CLASSES[c]?.name || c).join(', ')} not available in this age.` };
+  if (missing.length) return { ok: false, reason: `${missing.map((c) => UNIT_CLASSES[c]?.name || c).join(', ')} not available in this age.` }; // the class here: the roster has no name for it in this age
   return { ok: true };
 };
 

@@ -25,6 +25,7 @@
 //               later settler and tile costs (cities.productionCost, tileCultureCost), and more
 //               cities mean more amenities to find (cities.amenitiesOf). Natives and loyalty
 //               pressure on far outposts arrive with C5 and C7.3.
+import { pickCityName } from './cityNames';
 import { getTiles } from '../data/geo/tiles';
 import { canFoundCity, foundCity, ringDistance, cityId, SETTLER_MIN_SIZE } from './world/cities';
 import { tileFacts, tileYields } from '../data/tileYields';
@@ -187,7 +188,8 @@ export const foundOutpost = (state, regions, world, settler, turn, inPlace = fal
   const nationId = settler.ownerId;
   const ok = canFoundCity({ cities: regions, tileOwner: world.tileOwner, tileState: world.tileState }, tiles, settler.tile, nationId);
   if (!ok.ok) return null;
-  const r = foundCity({ cities: regions, tileOwner: world.tileOwner, tileState: world.tileState }, tiles, { nationId, tile: settler.tile, size: 1, turn, isCapital: false, inPlace });
+  const name = pickCityName(regions, tiles, settler.tile, nationId); // a real name nearby or one of the founder's culture (cityNames.js)
+  const r = foundCity({ cities: regions, tileOwner: world.tileOwner, tileState: world.tileState }, tiles, { nationId, tile: settler.tile, name, size: 1, turn, isCapital: false, inPlace });
   const city = { ...r.city, founderId: nationId, owner: nationId, control: 100, currentPopulation: 1000, currentInfrastructure: 0, underInvasion: false, unrest: 0, defenseLevel: 0, climateResilience: 0, dev: { tax: 1, production: 1, manpower: 1 }, outpost: { progress: 0, startTurn: turn } };
   if (inPlace) { regions[city.id] = city; return { regions, world, city }; } // the pass's own copies, written in place
   const nextRegions = { ...r.world.cities, [city.id]: city };
