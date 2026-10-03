@@ -16,10 +16,21 @@ Object.entries(FILES).forEach(([path, url]) => {
   if (m) (BY_KEY[`${m[1]}:${m[2]}`] ||= {})[m[3]] = url;
 });
 
-/** The model for a town of this age and size, or null. `seed` picks variant a or b when both exist. */
-export const townAssetUrl = (ageId, tierId, seed = 0) => {
+// Until the regional kits arrive (art spec section 3b), the two variants carry two traditions:
+// a is Mesopotamian, b is Egyptian. Nations of those lands get their own; everyone else mixes
+// both by city so neighbours differ.
+export const TOWN_VARIANT_BY_NATION = {
+  eg: 'b', sd: 'b', ss: 'b', ly: 'b', er: 'b',
+  iq: 'a', sy: 'a', kw: 'a', ir: 'a', jo: 'a', il: 'a', ps: 'a', lb: 'a', tr: 'a', sa: 'a', bh: 'a', qa: 'a', ae: 'a', om: 'a', ye: 'a'
+};
+
+/** The model for a town of this age and size, or null. The nation's tradition picks the variant
+ * when one is set; otherwise `seed` picks a or b when both exist. */
+export const townAssetUrl = (ageId, tierId, seed = 0, nationId = null) => {
   const v = BY_KEY[`${ageId}:${tierId}`];
   if (!v) return null;
+  const pinned = nationId && v[TOWN_VARIANT_BY_NATION[nationId]];
+  if (pinned) return pinned;
   if (v.a && v.b) return seed % 2 ? v.b : v.a;
   return v.a || v.b;
 };

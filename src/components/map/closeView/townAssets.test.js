@@ -16,9 +16,16 @@ const fakeTown = () => {
 };
 
 describe('artist town models', () => {
-  it('finds the shipped Bronze Age small town and nothing for other ages', () => {
-    expect(townAssetUrl('bronze', 'small')).toMatch(/bronze-town-small-a/);
+  it('finds the shipped Bronze Age towns, picks a variant by seed, and nothing for other ages', () => {
+    expect(townAssetUrl('bronze', 'small', 0)).toMatch(/bronze-town-small-a/);
+    expect(townAssetUrl('bronze', 'small', 1)).toMatch(/bronze-town-small-b/);
+    expect(townAssetUrl('bronze', 'medium', 0)).toMatch(/bronze-town-medium-a/);
+    expect(townAssetUrl('bronze', 'medium', 1)).toMatch(/bronze-town-medium-b/);
     expect(townAssetUrl('bronze', 'big')).toBeNull();
+    // the land's tradition wins over the seed: Egypt builds the Nile town, Iraq the Mesopotamian
+    expect(townAssetUrl('bronze', 'small', 0, 'eg')).toMatch(/bronze-town-small-b/);
+    expect(townAssetUrl('bronze', 'medium', 1, 'iq')).toMatch(/bronze-town-medium-a/);
+    expect(townAssetUrl('bronze', 'small', 1, 'fr')).toMatch(/bronze-town-small-b/);
     expect(townAssetUrl('modern', 'small')).toBeNull();
   });
 
