@@ -57,7 +57,10 @@ export const SCIENCE_PER_SIZE = 0.5;
 // The capital's palace (C2): a flat income every nation starts with, so a one-city Dawn nation
 // can pay for its first army and still save a little.
 export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
-export const BORDER_RING_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunpowder: 4, modern: 5 };
+// A city's border reaches two rings in every age (the user's call: a five-ring city was half
+// the size of France); the two border techs add a ring each, capped at BORDER_RING_MAX.
+export const BORDER_RING_BY_AGE = { bronze: 2, classical: 2, kingdoms: 2, gunpowder: 2, modern: 2 };
+export const BORDER_RING_MAX = 3;
 export const TILE_COST_BASE = 20;
 export const TILE_COST_PER_RING = 10;
 export const TILE_COST_PER_TILE = 5;
@@ -344,7 +347,7 @@ export const ringsAround = (tiles, centre, maxRing) => {
  * the age's ring. Each entry { tile, ring, cost, score }. */
 export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
   const fx = mapEffectsOf(researched); // techs that push the border and cheapen tiles (techMapEffects.js)
-  const maxRing = (BORDER_RING_BY_AGE[ageId] || 2) + fx.borderRing;
+  const maxRing = Math.min(BORDER_RING_MAX, (BORDER_RING_BY_AGE[ageId] || 2) + fx.borderRing);
   const own = new Set(city.tiles);
   const out = new Map();
   const rings = ringsAround(tiles, city.tile, maxRing);
