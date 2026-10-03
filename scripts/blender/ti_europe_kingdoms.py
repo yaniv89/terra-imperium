@@ -589,8 +589,8 @@ def palace(ms, rng):
     pyramid roofs and team pennants, a crenellated gatehouse with an arched gate, a portcullis
     and two team banners at the front, a grey cloth awning over the court gallery."""
     f = tm.house_frame(0, 0, 0)
-    W, D = 1.3, 1.24
-    wg = 0.3                                    # the wings' depth
+    W, D = 1.16, 1.1
+    wg = 0.27                                   # the wings' depth
     h0, h1 = 0.36, 0.3
     ms.box('ek_cobble_square', (W + 0.12, D + 0.12, 0.014), at=(0, 0, G - 0.004), lod=1, frame=f)
     # the great hall (back)
@@ -655,7 +655,7 @@ def walls_medium(ms, rng):
     cones, a gatehouse of two taller round towers with team pennants round an arched gate with
     oak doors and a portcullis, and sloping buttresses along the outer face between the towers."""
     RAISE = tb.WALL_RAISE
-    R_out, R_in = 3.4, 3.16
+    R_out, R_in = 3.2, 2.98
     towers = (0, 50, 100, 145, 190, 235, 320)
     tk.stone_ring(ms, rng, R_out=R_out, R_in=R_in, H=0.6 * RAISE, gate_x=0.25, towers=towers, tower_r=0.3,
                   tower_h=0.8 * RAISE, gate_r=0.34, gate_h=0.95 * RAISE, banners=True, portcullis=True, stairs=((80, 1),),

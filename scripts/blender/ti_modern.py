@@ -213,12 +213,12 @@ def make_materials():
     mat_grid_xy('md_glassroof')
     s('md_leaf', ['#2c4520', '#3c5c27', '#527a30', '#33502a'], scale=40.0, bump=0.7)
     s('md_hedge', ['#2b4321', '#38572a', '#2a3f22'], scale=50.0, bump=0.6)
-    s('md_turf', ['#5a7430', '#6d8838', '#8a8448', '#4f682b'], scale=26.0, bump=0.5)
+    s('md_turf', ['#566d2e', '#6a8136', '#8a7f4a', '#4c6229'], scale=26.0, bump=0.5)
     s('md_corrugated', ['#6f767d', '#838a91', '#5f666d'], scale=12.0, stripes={'dir': 'X', 'scale': 260.0, 'distortion': 0.5}, bump=0.5)
     s('md_prefab', ['#cfccc4', '#dad7d0', '#c3c0b8'], scale=12.0, stripes={'dir': 'X', 'scale': 30.0, 'distortion': 0.3}, bump=0.3, dirt=True)
     s('md_marking', ['#e4e4de', '#f0f0ea'], scale=30.0, bump=0.0)
     s('md_wheat', ['#b8892c', '#d9aa45', '#ebc768', '#c99a38'], scale=70.0, stripes={'dir': 'Y', 'scale': 300.0, 'distortion': 14.0}, bump=0.8)
-    s('md_apple', ['#b8291d', '#2a4a1f', '#416f29', '#5a8634', '#3c6426', '#c4301f'], scale=70.0, bump=0.7)
+    s('md_apple', ['#b0281c', '#2a4a1f', '#416f29', '#5a8634', '#c4301f'], scale=70.0, bump=0.7)
     s('md_poly', ['#cfd5cf', '#e2e6e1', '#bcc6bd'], scale=8.0, stripes={'dir': 'Y', 'scale': 12.0, 'distortion': 0.2}, rough=0.4, bump=0.2)
     s('md_veg', ['#3a7026', '#5a9536', '#7cae48'], scale=90.0, bump=0.7)
     s('md_veg_red', ['#4f2033', '#6c2b44', '#3c5f28'], scale=90.0, bump=0.7)
@@ -906,9 +906,9 @@ def palace_small(ms, rng):
 
 
 def palace(ms, rng):
-    """`palace`: the parliament at 12.2 m across (the free centre) and 16 m to the lantern (the
+    """`palace`: the parliament at 12.2 m across (the free centre) and 12.8 m to the lantern (the
     sheet's 22 m on a 12 m footprint stood like a tower; the dome stays the tallest part)."""
-    scaled(ms, rng, _palace, 0.9, 0.72)
+    scaled(ms, rng, _palace, 0.9, 0.58)
 
 
 # ---- the shared file: earthwork, bunker and wire perimeters ------------------------------------
@@ -959,7 +959,11 @@ def earthwork_ring(ms, rng, R_in, R_out, berm, gate_w, bunkers, bk_r, bk_h, tren
             if cap.normal.dot(Vector((math.cos(ang + sx * math.pi / 2), math.sin(ang + sx * math.pi / 2), 0))) < 0:
                 bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
             ms.add(bm, 'md_turf', lod, only=lod)
-    tb.footing(ms, R_out, R_in, n[1], apron=0.12)
+    # packed earth at the foot: a narrow alpha-cut band outside (so the ring keeps the walls'
+    # outer size), a short apron inside
+    tb.sweep(ms, 'earth_fringe', [(R_out + 0.08, 0.0), (R_out, G + 0.004)], 0, 360, n[1], lod=1)
+    tb.sweep(ms, 'earth', [(R_in, G * 0.6), (R_in - 0.08, G * 0.5)], 0, 360, n[1], lod=1)
+    tb.sweep(ms, 'earth_fringe', [(R_in - 0.08, G * 0.5), (R_in - 0.18, G * 0.3)], 0, 360, n[1], lod=1)
     ms.quad_strip('md_gravel', [(-gate_w / 2 + 0.03, -R_out - 0.12, G + 0.002), (gate_w / 2 - 0.03, -R_out - 0.12, G + 0.002),
                                 (gate_w / 2 - 0.03, -R_in + 0.1, G + 0.002), (-gate_w / 2 + 0.03, -R_in + 0.1, G + 0.002)], lod=1)
     # the wire: steel posts along the outer crest, two strands (LOD0), one (LOD1)
@@ -996,24 +1000,24 @@ def earthwork_ring(ms, rng, R_in, R_out, berm, gate_w, bunkers, bk_r, bk_h, tren
 
 
 def walls_small(ms, rng):
-    """`walls-small` (46 m, a 40 m clear town): a 1.2 m grassed earth berm, four concrete
+    """`walls-small` (44.6 m with its earth fringe; the sheet's 46 m, 40 m clear): a 1.2 m grassed earth berm, four concrete
     bunkers (2 m on the crest) at the corners, steel posts with barbed wire, a 4 m timber
     barrier at the south gap. Heights raised 1.3x."""
-    earthwork_ring(ms, rng, 2.0, 2.3, G + 0.12 * RAISE, 0.4, (45, 135, 225, 315), 0.2, 0.2 * RAISE)
+    earthwork_ring(ms, rng, 1.9, 2.15, G + 0.12 * RAISE, 0.4, (45, 135, 225, 315), 0.25, 0.2 * RAISE)
 
 
 def walls_medium(ms, rng):
-    """`walls-medium` (68 m, 60 m clear): a 1.5 m berm with a trench along its crest, six
+    """`walls-medium` (67.6 m; the sheet's 68 m, 60 m clear): a 1.5 m berm with a trench along its crest, six
     pillboxes (4 by 3 m, 2.5 m), posts with barbed wire, a 5 m barrier gap at the south."""
-    earthwork_ring(ms, rng, 3.0, 3.4, G + 0.15 * RAISE, 0.5, (0, 60, 120, 180, 237, 303), 0.22, 0.22 * RAISE, trench=True,
+    earthwork_ring(ms, rng, 2.9, 3.3, G + 0.15 * RAISE, 0.5, (0, 60, 120, 180, 237, 303), 0.27, 0.22 * RAISE, trench=True,
                    n=(144, 64, 28))
 
 
 def walls_big(ms, rng):
-    """`walls-big` (90 m, 80 m clear): a 1.8 m berm with a crest trench, seven bunkers, posts and
+    """`walls-big` (89.6 m; the sheet's 90 m, 80 m clear): a 1.8 m berm with a crest trench, seven bunkers, posts and
     barbed wire, a 6 m barrier gap at the south."""
-    earthwork_ring(ms, rng, 4.0, 4.5, G + 0.18 * RAISE, 0.6, (0, 45, 90, 135, 180, 232, 308), 0.24, 0.24 * RAISE, trench=True,
-                   n=(160, 72, 32), post_step=0.38)
+    earthwork_ring(ms, rng, 3.9, 4.4, G + 0.18 * RAISE, 0.6, (0, 45, 90, 135, 180, 232, 308), 0.29, 0.24 * RAISE, trench=True,
+                   n=(160, 64, 32), post_step=0.45)
 
 
 # ---- the shared file: the outpost camp -----------------------------------------------------------
@@ -1050,7 +1054,8 @@ def chain_fence(ms, pts, h=0.26, step=0.24):
             ms.cyl('md_steel', 0.007, 0.007, h, at=(px, py, G - 0.005), segs=5, lod=1)
         mx, my = (x0 + x1) / 2, (y0 + y1) / 2
         ms.box('md_steel', (length, 0.008, 0.008), at=(mx, my, G + h - 0.012), rot_z=yaw, lod=1)
-        ms.box('md_mesh', (length, 0.003, h - 0.03), at=(mx, my, G + 0.01), rot_z=yaw, lod=1)
+        for zz in (0.03, 0.09, 0.15):  # the mesh, read at map scale as a few strands
+            ms.box('md_wire', (length, 0.004, 0.004), at=(mx, my, G + zz), rot_z=yaw, lod=1 if zz == 0.09 else 0)
 
 
 def colony_camp(ms, rng):

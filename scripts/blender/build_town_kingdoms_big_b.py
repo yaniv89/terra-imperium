@@ -22,32 +22,9 @@ NAME = 'town-big-b'
 GROUND = dict(tk.SANDY, rx=4.0, ry=4.0, square=0.7, n=72)
 
 
-def ch(ms, rng, x, y, w, d, yaw, **kw):
-    tk.court_house(ms, rng, x, y, w, d, yaw=yaw, mat=kw.pop('mat', rng.choice(mb.WALLS)),
-                   tiled_wing=kw.pop('tiled_wing', rng.random() < 0.4), court=kw.pop('court', rng.choice(('tree', 'palm', 'palm', 'fountain'))),
-                   **kw)
-
-
-def split(rng, a, b, lo=0.62, hi=0.95):
-    """Cut the span a..b into pieces between lo and hi long."""
-    n = max(1, round((b - a) / ((lo + hi) / 2)))
-    cuts = [a + (b - a) * (i + rng.uniform(-0.12, 0.12) * (0 < i < n)) / n for i in range(n + 1)]
-    return list(zip(cuts, cuts[1:]))
-
-
-def cluster(ms, rng, x0, y0, x1, y1, yaw, gap=0.06):
-    """Fill a rectangle with houses: a grid of plots, each a flat-roofed house or (a big, squarish
-    plot) a courtyard house, fronts turned by `yaw`."""
-    for cx0, cx1 in split(rng, x0, x1):
-        for cy0, cy1 in split(rng, y0, y1):
-            x, y = (cx0 + cx1) / 2, (cy0 + cy1) / 2
-            ww, dd = cx1 - cx0 - gap, cy1 - cy0 - gap
-            w, d = (dd, ww) if yaw in (90, -90) else (ww, dd)
-            if min(w, d) > 0.74 and rng.random() < 0.6:
-                ch(ms, rng, x, y, w, d, yaw)
-            else:
-                mb.house(ms, rng, x, y, w * rng.uniform(0.88, 1.0), d * rng.uniform(0.88, 1.0), yaw=yaw,
-                         awning_w=0.3 if rng.random() < 0.15 else None, stair=rng.choice((None, None, None, 1, -1)))
+ch = mb.ch
+split = mb.split
+cluster = mb.cluster
 
 
 def layout(ms, rng):

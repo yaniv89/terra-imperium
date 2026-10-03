@@ -23,9 +23,9 @@ GROUND = dict(gp.COBBLED, rx=4.0, ry=4.0, square=0.7, n=72)
 def layout(ms, rng):
     gp.domed_church(ms, rng, -2.6, 2.55, top=2.8, w=0.86, length=1.4, yaw=0)
     gp.town_hall(ms, rng, 2.6, 2.75, 1.4, 0.86, top=2.6, yaw=0, storeys=3, tw=0.36, shaft=0.66)
-    gp.windmill(ms, -3.1, -3.1, 1.5, yaw=-45, r=0.22)
+    gp.windmill(ms, -3.05, -3.05, 1.8, yaw=-45, r=0.27)
     gp.garden(ms, [(-3.95, -3.95), (-2.4, -3.95), (-2.4, -2.45), (-3.95, -2.45)])
-    gp.town_bastion(ms, rng, 3.1, -3.1, size=1.3, H=0.38, gun=-45)
+    gp.town_bastion(ms, rng, 3.0, -3.0, size=1.6, H=0.4, gun=-45)
     gp.houses(ms, rng, [
         # north, between the church and the hall
         (-1.35, 3.35, 0.66, 0.56, 0), (-0.45, 3.35, 0.7, 0.56, 0), (0.5, 3.35, 0.66, 0.56, 0), (1.38, 3.4, 0.5, 0.5, 0),

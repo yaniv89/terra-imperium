@@ -90,7 +90,7 @@ def make_materials():
     for n in ('gp_cobble', 'gp_cobble_fringe'):
         tc.mat_paving(n, stone=('#9d988f', '#8a857c', '#aea99f'), mortar='#5c5852', slab=(0.022, 0.018))
     tc.mat_paving('gp_cobble_square', stone=('#b9b2a2', '#aaa393', '#c5beae'), mortar='#7a7468', slab=(0.07, 0.07))
-    meadow = ('#8c7a48', '#a48c56', '#6f7c38', '#957f4c')
+    meadow = ('#9c8452', '#ae9460', '#7f8040', '#a38a56')
     tm.mat_earth('gp_meadow', colors=meadow)
     tm.mat_earth('gp_meadow_fringe', colors=meadow)
 
@@ -790,7 +790,7 @@ def bastion(ms, rng, poly, H, Hs, bat=0.07, gun=None, sentry=False, platform=Tru
         a = math.radians(gun)
         cannon(ms, Matrix.Identity(4), cx + 0.08 * math.cos(a), cy + 0.08 * math.sin(a), H, math.degrees(a) + 90, s=gun_s, lod=1)
     if fringe:
-        out = _inset(poly, -0.17)
+        out = _inset(poly, -0.1)
         n = len(poly)
         for i in range(n - open_edges):
             j = (i + 1) % n
@@ -819,7 +819,7 @@ def curtain(ms, a, b, W, H, Hs, bat=0.07, fringe=True):
          L, f=f, axis='X', lod=1)
     if fringe:
         bm = bmesh.new()
-        vs = [bm.verts.new(p) for p in ((0, 0, G + 0.004), (L, 0, G + 0.004), (L, -0.17, 0.0), (0, -0.17, 0.0))]
+        vs = [bm.verts.new(p) for p in ((0, 0, G + 0.004), (L, 0, G + 0.004), (L, -0.1, 0.0), (0, -0.1, 0.0))]
         face = bm.faces.new(vs)
         face.normal_update()
         if face.normal.z < 0:
@@ -908,21 +908,21 @@ def bastioned_walls(ms, rng, c, W, H, gw, g, f_, e, flag_top=None, curtain_guns=
 
 
 def walls_small(ms, rng):
-    """`walls-small` (49 m): a square bastioned trace of grey stone scarps under turf with four
-    diamond bastions, each with a cannon, and a sandstone gatehouse with an arched timber gate."""
-    bastioned_walls(ms, rng, c=2.2, W=0.26, H=0.3 * tb.WALL_RAISE, gw=0.36, g=0.62, f_=0.0, e=0.34)
+    """`walls-small` (51 m): a square bastioned trace of grey stone scarps under turf with four
+    angled bastions, each with a cannon, and a sandstone gatehouse with an arched timber gate."""
+    bastioned_walls(ms, rng, c=2.2, W=0.3, H=0.3 * tb.WALL_RAISE, gw=0.36, g=0.62, f_=0.18, e=0.26)
 
 
 def walls_medium(ms, rng):
-    """`walls-medium` (69 m): a square trace with pentagonal bastions (flanks and faces), a cannon
+    """`walls-medium` (70 m): a square trace with pentagonal bastions (flanks and faces), a cannon
     on each, a gatehouse with a team pennant."""
-    bastioned_walls(ms, rng, c=3.2, W=0.3, H=0.4 * tb.WALL_RAISE, gw=0.42, g=0.85, f_=0.28, e=0.38, flag_top=0.95)
+    bastioned_walls(ms, rng, c=3.2, W=0.34, H=0.4 * tb.WALL_RAISE, gw=0.42, g=0.85, f_=0.26, e=0.32, flag_top=0.95)
 
 
 def walls_big(ms, rng):
-    """`walls-big` (91 m): a square trace with big diamond bastions and cannon, two more guns on
+    """`walls-big` (90 m): a square trace with big angled bastions and cannon, two more guns on
     the south curtain, a gatehouse with a team pennant."""
-    bastioned_walls(ms, rng, c=4.22, W=0.32, H=0.5 * tb.WALL_RAISE, gw=0.5, g=1.0, f_=0.12, e=0.42, flag_top=1.15,
+    bastioned_walls(ms, rng, c=4.22, W=0.36, H=0.5 * tb.WALL_RAISE, gw=0.5, g=1.0, f_=0.28, e=0.4, flag_top=1.15,
                     curtain_guns=2)
 
 
@@ -1165,8 +1165,8 @@ def field_4(ms, rng):
         ms.box('mud', (1.3, 0.13, 0.022), at=(0.06, y, G), lod=2, taper=0.75)
         ms.box('gp_potato', (1.26, 0.11, 0.035), at=(0.06, y, G + 0.012), lod=1, taper=0.75)
         for k in range(16):
-            ms.sphere('gp_potato', 0.034, at=(-0.56 + 0.082 * k + rng.uniform(-0.015, 0.015), y + (0.022 if k % 2 else -0.022), G + 0.04),
-                      scale=(1.2, 1.0, 0.75), u=6, v=4, lod=0)
+            ms.sphere('gp_potato', 0.034, at=(-0.56 + 0.082 * k + rng.uniform(-0.015, 0.015), y + (0.022 if k % 2 else -0.022), G + 0.03),
+                      scale=(1.2, 1.0, 0.75), u=7, v=5, lod=0)
 
 
 def houses(ms, rng, specs, palette='a', **kw):

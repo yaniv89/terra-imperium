@@ -22,14 +22,16 @@ import ti_town as tt  # noqa: E402
 import ti_gunpowder as gp  # noqa: E402
 from ti_town import G  # noqa: E402
 
-NEW = ['gp_clapboard', 'gp_copper', 'gp_trim']
+NEW = ['gp_clapboard', 'gp_copper', 'gp_trim', 'gp_shingle']
 for _n in NEW:
     if _n not in tt.PROC:
         tt.PROC.append(_n)
 
 
 def make_materials():
-    tm.mat_simple('gp_clapboard', ['#dcd9d0', '#ebe8e1', '#cfccc2'], scale=10.0, bump=0.5,
+    tm.mat_mudwall('gp_shingle', wash='#5e6166', brick='#5f6268', brick2='#4f5257', mortar='#33353a', wash_cover=0.0,
+                   bond=(0.03, 0.013, 0.002))
+    tm.mat_simple('gp_clapboard', ['#e6e4de', '#f1f0ec', '#dad8d0'], scale=10.0, bump=0.5,
                   stripes={'dir': 'Z', 'scale': 160.0, 'distortion': 0.5}, dirt=True)
     tm.mat_simple('gp_copper', ['#4d6a64', '#5e7c74', '#6c7f78', '#55665f'], scale=16.0, rough=0.5, metal=0.2, bump=0.2,
                   stripes={'dir': 'Z', 'scale': 30.0, 'distortion': 1.0})
@@ -94,14 +96,14 @@ def kit_house(ms, rng, x, y, w, d, yaw=None, awning=None, typ=None, **_ignored):
     colonies = KIT['mode'] == 'colonies'
     if typ == 'poor':
         f = ORIG_HOUSE(ms, rng, x, y, w, d, yaw=yaw, wall='gp_clapboard' if colonies else 'gp_brick',
-                       roof='gp_slate' if colonies else 'gp_tile', kind='gable', storeys=1, h=0.38, rise=0.25,
+                       roof='gp_shingle' if colonies else 'gp_tile', kind='gable', storeys=1, h=0.38, rise=0.25,
                        shutters='gp_shutter', chimneys=1, dormers=0, awning=awning, props=props, pots=pots)
-        gp.dormer(ms, f, 0.0, -d / 2 + 0.06, G + 0.37, w=0.08, h=0.09, mat='gp_slate' if colonies else 'gp_tile',
+        gp.dormer(ms, f, 0.0, -d / 2 + 0.06, G + 0.37, w=0.08, h=0.09, mat='gp_shingle' if colonies else 'gp_tile',
                   cheek='gp_clapboard' if colonies else 'gp_brick')
         return f
     if typ == 'common':
         if colonies:  # a two-storey clapboard house under a side gable, chimneys at both ends
-            return ORIG_HOUSE(ms, rng, x, y, w, d, yaw=yaw, wall='gp_clapboard', roof='gp_slate', kind='gable', storeys=2,
+            return ORIG_HOUSE(ms, rng, x, y, w, d, yaw=yaw, wall='gp_clapboard', roof='gp_shingle', kind='gable', storeys=2,
                               rise=0.2, shutters='gp_shutter', chimneys=2, awning=awning, props=props, pots=pots)
         h = gp.HOUSE_H[st]
         dx = _door_x(w)
@@ -219,7 +221,7 @@ def clapboard_church(ms, rng, x, y, top, w=0.55, length=1.0, yaw=0, **_ignored):
         for sy in (-1, 1):
             ms.box('gp_trim', (0.026, 0.026, eave), at=(sx * (w / 2 - 0.01), sy * (length / 2 - 0.01), G), lod=0, frame=f)
     ms.box('gp_trim', (w + 0.02, length + 0.02, 0.02), at=(0, 0, G + eave - 0.02), lod=1, frame=f)
-    gp.gable(ms, f @ gp._rz(90), length, w, G + eave, rise, mat='gp_slate', wall='gp_clapboard', over=0.03)
+    gp.gable(ms, f @ gp._rz(90), length, w, G + eave, rise, mat='gp_shingle', wall='gp_clapboard', over=0.03)
     for sx in (-1, 1):
         F = f @ gp._rz(sx * 90) @ gp._t(0, -w / 2, 0)
         for k in range(4):

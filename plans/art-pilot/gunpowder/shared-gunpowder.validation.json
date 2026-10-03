@@ -1,0 +1,539 @@
+{
+  "file": "shared-gunpowder.glb",
+  "kind": "shared",
+  "bytes": 3941704,
+  "checks": {
+    "footprint_within_5pct_palace-small": true,
+    "height_within_5pct_palace-small": true,
+    "nothing_below_ground_palace-small": true,
+    "origin_centred": true,
+    "footprint_within_5pct_palace": true,
+    "height_within_5pct_palace": true,
+    "nothing_below_ground_palace": true,
+    "footprint_within_5pct_walls-small": true,
+    "height_within_5pct_walls-small": true,
+    "nothing_below_ground_walls-small": true,
+    "footprint_within_5pct_walls-medium": true,
+    "height_within_5pct_walls-medium": true,
+    "nothing_below_ground_walls-medium": true,
+    "footprint_within_5pct_walls-big": true,
+    "height_within_5pct_walls-big": true,
+    "nothing_below_ground_walls-big": true,
+    "footprint_within_5pct_colony-camp": true,
+    "height_within_5pct_colony-camp": true,
+    "nothing_below_ground_colony-camp": true,
+    "footprint_within_5pct_field-1": true,
+    "height_within_5pct_field-1": true,
+    "nothing_below_ground_field-1": true,
+    "footprint_within_5pct_field-2": true,
+    "height_within_5pct_field-2": true,
+    "nothing_below_ground_field-2": true,
+    "footprint_within_5pct_field-3": true,
+    "height_within_5pct_field-3": true,
+    "nothing_below_ground_field-3": true,
+    "footprint_within_5pct_field-4": true,
+    "height_within_5pct_field-4": true,
+    "nothing_below_ground_field-4": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1560,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.81,
+          "depth": 0.628,
+          "height": 0.779,
+          "min_height": 0.03
+        },
+        "LOD1": {
+          "triangles": 228,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.81,
+          "depth": 0.628,
+          "height": 0.74,
+          "min_height": 0.03
+        },
+        "LOD2": {
+          "triangles": 28,
+          "materials": [
+            "Town"
+          ],
+          "width": 0.81,
+          "depth": 0.55,
+          "height": 0.7,
+          "min_height": 0.03
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.81
+    },
+    "palace": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3916,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.21,
+          "depth": 0.97,
+          "height": 1.25,
+          "min_height": 0.03
+        },
+        "LOD1": {
+          "triangles": 840,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.21,
+          "depth": 0.97,
+          "height": 1.25,
+          "min_height": 0.03
+        },
+        "LOD2": {
+          "triangles": 196,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.21,
+          "depth": 0.97,
+          "height": 0.989,
+          "min_height": 0.03
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.21
+    },
+    "walls-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1098,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 5.141,
+          "depth": 5.17,
+          "height": 0.534,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 708,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 5.141,
+          "depth": 5.17,
+          "height": 0.534,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 300,
+          "materials": [
+            "Town"
+          ],
+          "width": 4.92,
+          "depth": 4.92,
+          "height": 0.46,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 5.17
+    },
+    "walls-medium": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1198,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.251,
+          "depth": 7.251,
+          "height": 0.95,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 808,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.251,
+          "depth": 7.251,
+          "height": 0.95,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 300,
+          "materials": [
+            "Town"
+          ],
+          "width": 7.04,
+          "depth": 7.04,
+          "height": 0.598,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 7.251
+    },
+    "walls-big": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1390,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 9.46,
+          "depth": 9.46,
+          "height": 1.15,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 808,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 9.46,
+          "depth": 9.46,
+          "height": 1.15,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 300,
+          "materials": [
+            "Town"
+          ],
+          "width": 9.24,
+          "depth": 9.24,
+          "height": 0.748,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 9.46
+    },
+    "colony-camp": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3486,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.97,
+          "depth": 1.783,
+          "height": 0.52,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1976,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.97,
+          "depth": 1.783,
+          "height": 0.52,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 418,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.97,
+          "depth": 1.783,
+          "height": 0.52,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.005",
+        "LOD1.005",
+        "LOD2.005"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.97
+    },
+    "field-1": {
+      "lods": {
+        "LOD0": {
+          "triangles": 792,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.513,
+          "depth": 1.092,
+          "height": 0.117,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 360,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.513,
+          "depth": 1.092,
+          "height": 0.11,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 240,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.513,
+          "depth": 1.092,
+          "height": 0.11,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.006",
+        "LOD1.006",
+        "LOD2.006"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.513
+    },
+    "field-2": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2836,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.705,
+          "depth": 1.288,
+          "height": 0.252,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 964,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.705,
+          "depth": 1.288,
+          "height": 0.254,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 262,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.705,
+          "depth": 1.288,
+          "height": 0.259,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.007",
+        "LOD1.007",
+        "LOD2.007"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.705
+    },
+    "field-3": {
+      "lods": {
+        "LOD0": {
+          "triangles": 582,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.528,
+          "depth": 1.308,
+          "height": 0.146,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 550,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.528,
+          "depth": 1.308,
+          "height": 0.146,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 142,
+          "materials": [
+            "Ground"
+          ],
+          "width": 1.528,
+          "depth": 1.308,
+          "height": 0.03,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.008",
+        "LOD1.008",
+        "LOD2.008"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.528
+    },
+    "field-4": {
+      "lods": {
+        "LOD0": {
+          "triangles": 4908,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.702,
+          "depth": 1.093,
+          "height": 0.13,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 384,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.702,
+          "depth": 1.093,
+          "height": 0.077,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 204,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 1.702,
+          "depth": 1.093,
+          "height": 0.052,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0.009",
+        "LOD1.009",
+        "LOD2.009"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.702
+    }
+  },
+  "materials": [
+    "Town",
+    "Team",
+    "Ground"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "shared-gunpowder_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 425714
+    },
+    {
+      "name": "shared-gunpowder_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 751130
+    },
+    {
+      "name": "shared-gunpowder_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 513122
+    }
+  ],
+  "passed": true
+}

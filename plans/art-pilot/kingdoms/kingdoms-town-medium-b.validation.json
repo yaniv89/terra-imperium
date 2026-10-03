@@ -1,0 +1,107 @@
+{
+  "file": "town-medium-b.glb",
+  "kind": "town",
+  "bytes": 3472144,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 26640,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.107,
+          "depth": 6.153,
+          "height": 1.819,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 3382,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.076,
+          "depth": 6.125,
+          "height": 1.75,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 714,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.036,
+          "depth": 6.09,
+          "height": 1.427,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.153
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "town-medium-b_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 368882
+    },
+    {
+      "name": "town-medium-b_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 722490
+    },
+    {
+      "name": "town-medium-b_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 408104
+    }
+  ],
+  "passed": true
+}

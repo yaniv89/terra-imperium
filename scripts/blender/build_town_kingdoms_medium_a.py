@@ -22,7 +22,7 @@ GROUND = dict(tk.COBBLED, rx=3.0, ry=3.0, square=0.62, n=80)
 def layout(ms, rng):
     tk.street(ms, [(0.25, -0.64), (0.25, -2.8)], 0.7)
     tk.street(ms, [(0.15, 0.64), (0.15, 2.8)], 0.36)
-    tk.cathedral(ms, rng, -2.05, 2.0, top=1.8, s=0.85, yaw=0, transept=True)
+    tk.cathedral(ms, rng, -1.85, 2.02, top=1.8, s=0.95, yaw=0, transept=True, tower_h=0.72)
     # the hall at the north-east: two jettied storeys, the gable to the square, a side wing
     tk.town_house(ms, rng, 2.0, 2.2, 1.1, 0.8, yaw=0, storeys=2, gable_front=False, chimneys=2, dormer=True, barrels=3, sign=True)
     tk.town_house(ms, rng, 1.2, 2.45, 0.5, 0.62, yaw=0, storeys=1, roof='slate', gable_front=True, chimneys=1)
@@ -31,7 +31,7 @@ def layout(ms, rng):
     tk.town_house(ms, rng, -0.3, 1.85, 0.5, 0.5, yaw=0, roof='slate', gable_front=True, storeys=2)
     tk.town_house(ms, rng, 0.62, 2.35, 0.6, 0.6, yaw=0, roof='thatch', gable_front=True)
     # the west side
-    for i, (y, roof, st, gf) in enumerate(((0.9, 'slate', 2, False), (0.0, 'slate', 1, True), (-0.9, 'thatch', 1, False),
+    for i, (y, roof, st, gf) in enumerate(((0.72, 'thatch', 1, False), (-0.1, 'slate', 1, True), (-0.95, 'slate', 2, False),
                                            (-1.95, 'slate', 2, True))):
         tk.town_house(ms, rng, -2.35, y, 0.86 if not gf else 0.62, 0.68, yaw=90, roof=roof, storeys=st, gable_front=gf,
                       chimneys=1 + (i % 2), barrels=2 if i == 2 else 0, awning_w=0.3 if i == 1 else None)
@@ -53,7 +53,7 @@ def layout(ms, rng):
     # gardens, fences and trees round the edges
     tk.garden(ms, rng, -2.65, -1.4, 0.4, 0.3, yaw=90)
     tk.garden(ms, rng, 2.7, -0.2, 0.36, 0.3, yaw=90)
-    tk.garden(ms, rng, -1.6, 2.75, 0.4, 0.26)
+    tk.garden(ms, rng, -2.6, 2.6, 0.3, 0.26, yaw=90)
     tk.wattle_fence(ms, [(-2.9, -2.9), (-1.7, -2.9)], h=0.08, step=0.25, lod=0)
     tk.wattle_fence(ms, [(0.65, -2.9), (2.9, -2.9), (2.9, -2.0)], h=0.08, step=0.25, lod=0)
     tk.wattle_fence(ms, [(2.9, 0.65), (2.9, 1.7)], h=0.08, step=0.25, lod=0)

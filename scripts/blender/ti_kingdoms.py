@@ -643,7 +643,7 @@ def lancet(ms, f, x, y, z, w, h, mat='dark', lod=0, side=False):
     ms.add(bm, mat, lod, matrix=f)
 
 
-def cathedral(ms, rng, x, y, top=2.8, s=1.0, yaw=None, transept=True):
+def cathedral(ms, rng, x, y, top=2.8, s=1.0, yaw=None, transept=True, tower_h=None):
     """A gothic stone church: an aisled nave under a steep slate roof (lean-to aisle roofs, buttresses,
     lancet windows), a transept, a polygonal apse at the back, a square west tower with corner
     buttresses, belfry lancets, a pinnacled parapet and a tall slate spire (`top` is the cross tip),
@@ -690,7 +690,7 @@ def cathedral(ms, rng, x, y, top=2.8, s=1.0, yaw=None, transept=True):
     # the west tower
     tw = 0.36 * s
     tyy = ny - nd / 2 - tw / 2 + 0.04 * s
-    th = 1.0 * s
+    th = tower_h or 1.0 * s
     ms.box('rubble', (tw, tw, th), at=(0, tyy, G), lod=2, frame=f)
     for sx in (-1, 1):
         for sy in (-1, 1):
