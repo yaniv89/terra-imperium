@@ -35,6 +35,8 @@ import { getNationColor } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
+import { townTier } from './closeView/townTiers';
+import { unitPx } from './closeView/scale';
 // The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
 const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
 // The ground under it (plans/playtest-1.md P1.3): a shader over the raster, sharp at any zoom.
@@ -604,11 +606,13 @@ const Map2DView = ({
       const { lat, lon } = tiles.latLonOf(u.tile);
       const [x, y] = projection([lon, lat]);
       const own = u.ownerId === state.playerNationId;
-      const r = 5 / Math.sqrt(zoomK);
+      // over the close view's art the tent stays small (12 px at most) and loses its idle ring
+      const close = zoomK >= CLOSE_ZOOM_K;
+      const r = close ? Math.min(5 / Math.sqrt(zoomK), 6 / zoomK) : 5 / Math.sqrt(zoomK);
       return (
         <g key={u.id} transform={`translate(${x},${y})`} data-settler={u.id} data-own={own ? "true" : "false"} onClick={(e) => { e.stopPropagation(); onSelectTile?.(u.tile); }} style={{ cursor: 'pointer' }}>
           <polygon points={`0,${-r} ${r},${r * 0.8} ${-r},${r * 0.8}`} fill={own ? '#fde68a' : '#e2e8f0'} stroke={own ? '#92400e' : '#334155'} strokeWidth={1.2 / Math.sqrt(zoomK)} />
-          {own && u.target == null && <circle r={r * 1.6} fill="none" stroke="#fde68a" strokeWidth={1 / Math.sqrt(zoomK)} strokeDasharray={`${3 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}`} />}
+          {own && u.target == null && !close && <circle r={r * 1.6} fill="none" stroke="#fde68a" strokeWidth={1 / Math.sqrt(zoomK)} strokeDasharray={`${3 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}`} />}
         </g>
       );
     });
@@ -619,6 +623,7 @@ const Map2DView = ({
   const badgeElements = useMemo(() => {
     if (!interactive || !projection) return null;
     const out = [];
+    const townsDrawn = zoomK >= CLOSE_ZOOM_K;
     Object.values(state.regions).forEach((city) => {
       const ll = cityLatLon(state, city.id);
       if (!ll) return;
@@ -634,6 +639,21 @@ const Map2DView = ({
       };
       const walls = wallsOf(city);
       const sw = 1.6 / Math.sqrt(zoomK);
+      // From the close zoom the town model is the city: no disc or rings over the art, only the
+      // name and the warnings, with an invisible disc that still takes the tap.
+      if (townsDrawn) {
+        out.push(
+          <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} data-close-badge="1" onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
+            <circle r={r} fill="rgba(0,0,0,0)" />
+            {city.siege && <text y={-r - sw * 2.5} textAnchor="middle" fontSize={r * 0.9} fontWeight="700" fill="#fb923c" stroke="rgba(0,0,0,0.7)" strokeWidth={sw * 0.8} paintOrder="stroke" pointerEvents="none" data-siege-badge={city.id}>⚔</text>}
+            {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.3} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
+            {city.disaster && <text x={-r * 0.95} y={-r * 0.6} textAnchor="middle" fontSize={r * 0.9} pointerEvents="none" data-disaster-badge={city.id}>{city.disaster.kind === 'flood' ? '≈' : city.disaster.kind === 'fire' ? '🔥' : '☠'}</text>}
+            {/* under the town's front edge (and its wall): the models stand over anything drawn above */}
+            <text y={(((city.owner ? townTier(city).modelRadius : 1) + 0.35) * unitPx(zoomK) * 0.8 + 12) / zoomK} textAnchor="middle" fontSize={12 / zoomK} fontWeight="700" fill={city.id === selectedRegion ? '#fde68a' : '#fff'} stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>
+          </g>
+        );
+        return;
+      }
       out.push(
         <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
           <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} strokeDasharray={city.outpost ? `${2 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}` : undefined} />

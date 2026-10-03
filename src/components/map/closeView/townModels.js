@@ -12,11 +12,9 @@
 import { BoxGeometry, ConeGeometry, CylinderGeometry, Color, Float32BufferAttribute } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-export const TOWN_TIERS = [
-  { id: 'small', minBuildings: 0, houses: 5, radius: 1.7 },
-  { id: 'medium', minBuildings: 4, houses: 11, radius: 2.6 },
-  { id: 'big', minBuildings: 10, houses: 22, radius: 3.6 }
-];
+import { TOWN_TIERS } from './townTiers';
+
+export { TOWN_TIERS, countBuildings, townTier } from './townTiers';
 
 const AGE_STYLE = {
   bronze: { wall: '#c9a46c', roof: '#a8834a', flatRoofs: true, stone: '#a88a5c', accent: '#7c5a32' },
@@ -26,18 +24,6 @@ const AGE_STYLE = {
   modern: { wall: '#c3c6cc', roof: '#4b5563', flatRoofs: true, stone: '#9ca3af', accent: '#60a5fa' }
 };
 
-// How many buildings a province has: each built category counts its tier + 1, each mine 1.
-export const countBuildings = (region) => {
-  const cats = region?.buildings?.categories || {};
-  const fromCats = Object.values(cats).reduce((sum, t) => sum + (t >= 0 ? t + 1 : 0), 0);
-  const mines = Object.values(region?.buildings?.extraction || {}).filter(Boolean).length;
-  return fromCats + mines;
-};
-
-export const townTier = (region) => {
-  const n = countBuildings(region);
-  return [...TOWN_TIERS].reverse().find((t) => n >= t.minBuildings);
-};
 
 // A small seeded generator (mulberry32) from the region id.
 const seeded = (key) => {
