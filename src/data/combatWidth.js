@@ -14,7 +14,8 @@ export const COMBAT_WIDTH_BY_TERRAIN = {
   island: 4,
   hills: 4,
   mountains: 3,
-  arctic: 3
+  arctic: 3,
+  sea: 5 // open water (navalBattle.js)
 };
 
 const DEFAULT_COMBAT_WIDTH = 4;

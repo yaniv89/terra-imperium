@@ -21,6 +21,7 @@ import { landUnitsByTile } from './sieges';
 import { threatenedCities, besiegerStacksBeside, pillageTile, RELIEF_RATIO } from './threat';
 import { playerRouteTiles } from './plunder';
 import { ringsAround } from './world/cities';
+import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO } from './navalBattle';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -239,8 +240,27 @@ export const processAINavalOperations = state => {
     const apply=action=>{
       const before=actor(),after=gameReducer(before,action);
       if(after===before)return false;
-      next={...next,regions:after.regions,units:after.units,wars:after.wars,rngSeed:after.rngSeed,nextUnitSeq:after.nextUnitSeq,hiredCommanders:after.hiredCommanders,nations:{...after.nations,[id]:{...after.nations[id],economy:after.resources}},logs:after.logs};
+      // The reducer ran as this nation: a battle report it wrote names the AI as "the player". Keep
+      // only the battles the real player fought, seen from their side (battleReports.js).
+      const me=state.playerNationId;
+      const fresh=(after.battleReports||[]).slice(0,(after.battleReportSeq||0)-(before.battleReportSeq||0)).filter(b=>b.attackerNationId===me||b.defenderNationId===me).map(b=>({...b,playerSide:b.attackerNationId===me?'attacker':'defender'}));
+      const reports=fresh.length?[...fresh,...(next.battleReports||[])].slice(0,(after.battleReports||[]).length||fresh.length):next.battleReports;
+      next={...next,regions:after.regions,units:after.units,wars:after.wars,world:after.world,rngSeed:after.rngSeed,nextUnitSeq:after.nextUnitSeq,hiredCommanders:after.hiredCommanders,nations:{...after.nations,[id]:{...after.nations[id],economy:after.resources}},logs:after.logs,battleReports:reports,battleReportSeq:after.battleReportSeq,lastBattleReport:fresh.length?after.lastBattleReport:next.lastBattleReport};
       return true;
+    };
+    const aiFleetAttack=(fleet)=>{
+      const tiles=getTiles();
+      const from=unitTile(next,fleet);
+      if(from==null)return false;
+      const mine=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='naval'&&u.strength>0&&unitTile(next,u)===from);
+      const power=mine.reduce((s,u)=>s+u.strength,0);
+      for(const n of tiles.neighbors[from]){
+        if(tiles.land[n]===1)continue;
+        const foe=enemyFleetsAt({...next,playerNationId:id},n,id);
+        if(!foe.length || foe.reduce((s,u)=>s+u.strength,0)*AI_FLEET_ATTACK_RATIO>power)continue;
+        return apply({type:ActionTypes.ATTACK_FLEET,payload:{fromTile:from,tile:n}});
+      }
+      return false;
     };
     const coast=Object.keys(next.regions).filter(r=>enemies.has(next.regions[r].owner)&&isCoastal(r)).sort();
     const ports=getOwnedRegionIds(next.regions,id).filter(isCoastal).sort();
@@ -253,6 +273,8 @@ export const processAINavalOperations = state => {
     }
     for(const fleet of fleets.sort((a,b)=>a.id.localeCompare(b.id))){
       if((fleet.movesLeft ?? 0)<=0 || isUnitInBattle(next,fleet.id))continue;
+      // An enemy fleet on a sea tile beside this one, weaker by AI_FLEET_ATTACK_RATIO: a sea battle (navalBattle.js).
+      if(aiFleetAttack(fleet))continue;
       const target=coast.find(t=>isReachableBySea(fleet.regionId,t,next.age)||getNeighborIds(fleet.regionId).includes(t));
       if(!target)continue;
       const cargo=Object.values(next.units).filter(u=>u.ownerId===id&&u.domain==='land'&&u.regionId===fleet.regionId&&!u.embarkedOn&&u.movesLeft>0&&!isUnitInBattle(next,u.id));

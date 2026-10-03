@@ -24,7 +24,8 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const marching = picked ? model.unitIds.filter((id) => picked.has(id)) : model.unitIds;
   const togglePick = (id) => setPicked((p) => { const next = new Set(p || model.unitIds); if (next.has(id)) next.delete(id); else next.add(id); return next.size === model.unitIds.length ? null : next; });
   const tiles = getTiles();
-  const where = tiles.names[tile] || model.base || 'the field';
+  const where = tiles.names[tile] || (model.naval ? 'open water' : model.base || 'the field');
+  const sail = () => { startMarch(model.regionId, { naval: true, unitIds: marching }); onClose?.(); };
   const rename = () => { if (renaming?.trim()) dispatch({ type: ActionTypes.RENAME_ARMY, payload: { unitIds: model.unitIds, name: renaming.trim() } }); setRenaming(null); };
   const body = (
     <>
@@ -32,8 +33,8 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         <div className="flex items-center gap-2 min-w-0">
           <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
           <div className="min-w-0">
-            <div className="font-bold text-white truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : `Army at ${where}`}</div>
-            <div className="text-slate-500 text-[10px]">{model.soldiers.toLocaleString()} soldiers · {where}{model.base ? ` · based at ` : ''}{model.base && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
+            <div className="font-bold text-white truncate text-sm">{model.groups.length === 1 && model.groups[0].key ? model.groups[0].name : `${model.naval ? 'Fleet' : 'Army'} at ${where}`}</div>
+            <div className="text-slate-500 text-[10px]">{model.soldiers.toLocaleString()} {model.naval ? 'crew' : 'soldiers'} · {where}{model.base ? ` · based at ` : ''}{model.base && <button type="button" onClick={() => onSelectRegion?.(model.regionId)} className="underline">{model.base}</button>}</div>
           </div>
         </div>
         <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
@@ -50,7 +51,7 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
                 {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={`March ${u.name}`} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
                 <div className="min-w-0 flex-1">
                   <div className="text-slate-100 truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? ` · ${u.promotions} promotion${u.promotions === 1 ? '' : 's'}` : ''}</div>
-                  <div className="text-slate-400">{u.strength}/{u.maxStrength} · morale {u.morale} · supply {u.supply}/{u.supplyMax} · moves {u.moves}/{u.movePoints}</div>
+                  <div className="text-slate-400">{u.strength}/{u.maxStrength} · morale {u.morale}{model.naval ? ` · aboard ${u.cargo}` : ` · supply ${u.supply}/${u.supplyMax}`} · moves {u.moves}/{u.movePoints}</div>
                   <div className="text-slate-500 capitalize">{u.rank}{u.nextRankAt ? ` · ${u.xp}/${u.nextRankAt} xp` : ''}{u.general ? ` · ${u.general} commands` : ''}</div>
                   {u.general
                     ? <button type="button" onClick={() => dispatch({ type: ActionTypes.APPOINT_GENERAL, payload: { generalId: u.generalId, unitId: null } })} className="text-slate-400 underline min-h-[32px]">Recall the general</button>
@@ -77,13 +78,13 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       <div className="flex gap-2 mt-1">
         {model.route
           ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold">Halt the march</button>
-          : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { startMarch(model.regionId, { unitIds: marching }); onClose?.(); }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> March{picked ? ` ${marching.length} of ${model.unitIds.length}` : ''}…</button>}
+          : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { if (model.naval) sail(); else { startMarch(model.regionId, { unitIds: marching }); onClose?.(); } }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> {model.naval ? 'Sail' : 'March'}{picked ? ` ${marching.length} of ${model.unitIds.length}` : ''}…</button>}
         <button type="button" onClick={() => setRenaming(model.groups[0].key ? model.groups[0].name : '')} aria-label="Name this army" className="min-h-[44px] px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200"><Pencil className="w-4 h-4" /></button>
       </div>
       {model.targets.length > 0 && (
         <div className="mt-2 space-y-1" data-testid="army-targets">
           {model.targets.map((t) => (
-            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => (t.kind === 'fleet' ? dispatch({ type: ActionTypes.ATTACK_FLEET, payload: { fromTile: tile, tile: t.tile } }) : setAttack(t))} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : t.kind === 'fleet' ? 'Fight the fleet beside you (quick battle)' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
               <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? `Assault ${t.name}` : `Attack the ${t.name}`} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
             </button>
           ))}

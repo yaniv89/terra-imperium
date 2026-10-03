@@ -17,38 +17,47 @@ import { tileFacts, IMPROVEMENTS } from '../../data/tileYields';
 import { ALL_PERKS, canPromote, hasPerk, getRankForXp, XP_THRESHOLDS, RANK_ORDER } from '../../data/promotions';
 import { airUnitsInRange, AIR_RANGE } from '../../engine/airPower';
 import { validateFieldAttack, enemyStackAt } from '../../engine/fieldBattle';
+import { validateFleetAttack, enemyFleetsAt } from '../../engine/navalBattle';
+import { fleetPace } from '../../engine/fleets';
+import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
 import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength } from '../../engine/sieges';
 
 export const ZONE_TEXT = {
+  sea: 'At sea. Tap a shore to land the troops aboard; an enemy fleet beside you can be attacked.',
   home: 'In friendly land: the meter fills every turn.',
   held: 'Holding enemy land: the meter holds.',
   wild: 'In the wilderness: the meter drains slowly.',
   enemy: 'In enemy land: the meter drains; a supply line from your border would slow it.'
 };
 
-/** The player's land units standing on `tile`. */
-export const stackOn = (state, tile) => Object.values(state.units)
-  .filter((u) => u.ownerId === state.playerNationId && u.domain !== 'naval' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && unitTile(state, u) === tile)
-  .sort((a, b) => (a.id < b.id ? -1 : 1));
+/** The player's land units standing on `tile`; on a sea tile, the fleets there (navalBattle.js). */
+export const stackOn = (state, tile) => {
+  const naval = tile != null && tile >= 0 && getTiles().land[tile] !== 1;
+  return Object.values(state.units)
+    .filter((u) => u.ownerId === state.playerNationId && (naval ? u.domain === 'naval' : u.domain !== 'naval') && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && unitTile(state, u) === tile)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+};
 
 export const armySheetModel = (state, tile) => {
   const tiles = getTiles();
   const units = stackOn(state, tile);
   if (!units.length) return null;
+  const naval = units[0].domain === 'naval';
   const ageId = getEffectiveAgeId(state.age, getTechAgeId(state, state.playerNationId));
   const max = SUPPLY_MAX + mapEffectsFor(state, state.playerNationId).supplyMax;
   const researched = getResearched(state, state.playerNationId);
   const rows = units.map((u) => ({
     id: u.id,
-    name: getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId,
+    name: naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId,
+    cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
     army: u.army?.name || null,
     armyId: u.army?.id || null,
     strength: u.strength, maxStrength: u.maxStrength || u.strength,
     morale: u.morale ?? 100,
     supply: supplyOf(u, max), supplyMax: max,
-    moves: u.movesLeft ?? 0, movePoints: movePoints(u, researched),
+    moves: u.movesLeft ?? 0, movePoints: naval ? fleetPace(state, u) : movePoints(u, researched),
     general: u.commanderId ? state.hiredCommanders?.[u.commanderId]?.name || null : null,
     promotions: (u.promotions || []).length,
     rank: getRankForXp(u.xp || 0),
@@ -66,12 +75,13 @@ export const armySheetModel = (state, tile) => {
     if (!g) { g = { key, name: r.army || 'Unassigned units', units: [] }; groups.push(g); }
     g.units.push(r);
   });
-  const zone = supplyZone(state, tiles, units[0]);
+  const zone = naval ? { zone: 'sea' } : supplyZone(state, tiles, units[0]);
   const lead = units.find((u) => u.route?.length) || null;
   const dest = lead ? routeDestination(lead) : null;
   const pace = lead ? (lead.routePace || 1) : 0;
   return {
     tile,
+    naval,
     regionId: units[0].regionId,
     base: state.regions[units[0].regionId]?.name || null,
     soldiers: units.reduce((s, u) => s + u.strength, 0),
@@ -79,11 +89,11 @@ export const armySheetModel = (state, tile) => {
     zone: zone.zone, zoneText: ZONE_TEXT[zone.zone] || '',
     route: dest != null ? { to: dest, name: placeName(state, dest), turns: Math.max(1, Math.ceil(lead.route.length / Math.max(1, pace))) } : null,
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
-    pillage: pillageTarget(state, tile, units),
+    pillage: naval ? null : pillageTarget(state, tile, units),
     generals,
-    airCover: airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,
-    targets: attackTargets(state, tile, units),
-    siege: siegePressed(state, tile, units),
+    airCover: naval ? 0 : airUnitsInRange(state, state.playerNationId, tile, units).length, airRange: AIR_RANGE,
+    targets: naval ? fleetTargets(state, tile, units) : attackTargets(state, tile, units),
+    siege: naval ? null : siegePressed(state, tile, units),
     unitIds: units.map((u) => u.id)
   };
 };
@@ -121,6 +131,22 @@ export const attackTargets = (state, tile, units) => {
     if (!enemy.length) return;
     const v = validateFieldAttack(state, from, n);
     if (v.ok || ['no_moves', 'cost'].includes(v.reason)) out.push({ kind: 'army', tile: n, regionId: null, name: `${state.nations[enemy[0].ownerId]?.name || 'Rebel'} army`, owner: state.nations[enemy[0].ownerId]?.name || 'Rebels', strength: enemy.reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
+  });
+  return out.sort((a, b) => a.tile - b.tile);
+};
+
+/** What a fleet stack can attack from here: enemy fleets on the sea tiles around (navalBattle.js).
+ * The same shape as attackTargets, kind 'fleet'. */
+export const fleetTargets = (state, tile, units) => {
+  if (!units.length) return [];
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const out = [];
+  tiles.neighbors[tile].forEach((n) => {
+    const enemy = enemyFleetsAt(state, n, me);
+    if (!enemy.length) return;
+    const v = validateFleetAttack(state, tile, n);
+    if (v.ok || ['no_moves', 'cost'].includes(v.reason)) out.push({ kind: 'fleet', tile: n, regionId: null, name: `${state.nations[enemy[0].ownerId]?.name || 'Enemy'} fleet`, owner: state.nations[enemy[0].ownerId]?.name || 'Enemy', strength: enemy.reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
   });
   return out.sort((a, b) => a.tile - b.tile);
 };
