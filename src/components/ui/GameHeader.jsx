@@ -13,6 +13,7 @@ import { getResearchView } from '../panels/researchView';
 import { openPanelTab } from '../panels/panelEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import NextPrompt from './NextPrompt';
+import { endTurnWarnings, WARN_ARM_MS } from './nextPrompt';
 
 // plan §M0.5's header cloud status icon: guest/idle (not signed in — nothing to sync), synced,
 // syncing, offline (queued, will retry), conflict/error (needs attention, red).
@@ -89,11 +90,19 @@ const ResearchPill = ({ state, compact }) => {
 };
 
 // End Turn and Fast Forward: the same two buttons in every layout.
-const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => (
+const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
+  // The "warn me" setting (E3): with prompts still waiting, the first tap arms the button for a
+  // few seconds and says how many; the second tap ends the turn. End Turn is never blocked.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
+  const warnings = endTurnWarnings(state);
+  const endTurn = () => { if (warnings > 0 && !armed) { setArmed(true); return; } setArmed(false); advanceTurn(); };
+  return (
   <>
     {!isGameOver && <NextPrompt />}
     <button
-      onClick={advanceTurn}
+      onClick={endTurn}
+      data-armed={armed ? '1' : '0'}
       disabled={state.activeEventId !== null || isGameOver}
       className={`
         px-3 sm:px-4 py-1.5 sm:py-2 pl:px-3 pl:py-1.5 pl:text-xs rounded-lg font-bold text-xs sm:text-sm
@@ -106,7 +115,7 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => (
     >
       {/* Always labeled — this is the single most-repeated action in the game and must never
           degrade to an unlabeled color block on a narrow screen. */}
-      <span className="whitespace-nowrap">End Turn</span>
+      <span className="whitespace-nowrap">{armed ? `End anyway? ${warnings} waiting` : 'End Turn'}</span>
       {state.pendingDefenses?.length > 0 && (
         <span className="ml-0.5 px-1.5 rounded-full bg-red-500 text-[10px] leading-4" title="Your regions are under attack — fight the assaults first">{state.pendingDefenses.length}</span>
       )}
@@ -129,7 +138,8 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => (
       <FastForward className="w-4 h-4" />
     </button>
   </>
-);
+  );
+};
 
 const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
   const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();

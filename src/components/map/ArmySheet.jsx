@@ -4,7 +4,8 @@
 // (march, cancel the route, rename the army, disband). A bottom sheet on a phone, a docked panel
 // on a wider screen, like the tile sheet.
 import React, { useMemo, useState } from 'react';
-import { X, Flag, Shield, Pencil, Trash2, Flame, Award } from 'lucide-react';
+import { X, Flag, Shield, Pencil, Trash2, Flame, Award, Swords, Castle } from 'lucide-react';
+import PreBattleModal from '../battle/PreBattleModal';
 import { useGame } from '../../context/GameContext';
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { ActionTypes } from '../../data/types';
@@ -17,7 +18,11 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
   const isMobile = useIsMobile();
   const model = useMemo(() => armySheetModel(state, tile), [state, tile]);
   const [renaming, setRenaming] = useState(null);
+  const [picked, setPicked] = useState(null); // unit ids chosen to march (null: the whole stack)
+  const [attack, setAttack] = useState(null); // a target of the pre-battle modal
   if (!model) return null;
+  const marching = picked ? model.unitIds.filter((id) => picked.has(id)) : model.unitIds;
+  const togglePick = (id) => setPicked((p) => { const next = new Set(p || model.unitIds); if (next.has(id)) next.delete(id); else next.add(id); return next.size === model.unitIds.length ? null : next; });
   const tiles = getTiles();
   const where = tiles.names[tile] || model.base || 'the field';
   const rename = () => { if (renaming?.trim()) dispatch({ type: ActionTypes.RENAME_ARMY, payload: { unitIds: model.unitIds, name: renaming.trim() } }); setRenaming(null); };
@@ -35,12 +40,14 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       </div>
       <div className="text-[11px] text-slate-300 mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? ` Air cover: ${model.airCover} aircraft within ${model.airRange} tiles join a battle here.` : ''}</div>
       {model.route && <div className="text-[11px] text-amber-200 mb-2" data-testid="army-route">Marching to {model.route.name}: about {model.route.turns} turn{model.route.turns === 1 ? '' : 's'}.</div>}
+      {model.siege && <div className="text-[11px] text-orange-200 mb-2 flex items-center gap-1.5" data-testid="army-siege"><Castle className="w-3.5 h-3.5 shrink-0" />Besieging {model.siege.name}: walls {model.siege.hp}/{model.siege.maxHp}{model.siege.walls ? ` (${model.siege.walls} wall${model.siege.walls === 1 ? '' : 's'})` : ''}, {model.siege.strength} siege strength a turn{model.siege.encircled ? ', encircled: it starves' : ''}.</div>}
       {model.groups.map((g) => (
         <div key={g.key || 'none'} className="mb-2" data-testid="army-group">
           <div className="text-[11px] font-semibold text-slate-200 mb-1">{g.name} <span className="text-slate-500">({g.units.length})</span></div>
           <ul className="space-y-1">
             {g.units.map((u) => (
               <li key={u.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] text-xs bg-slate-800/60 border border-slate-700/60">
+                {model.unitIds.length > 1 && !model.route && <input type="checkbox" aria-label={`March ${u.name}`} checked={!picked || picked.has(u.id)} onChange={() => togglePick(u.id)} className="w-5 h-5 shrink-0" data-testid="army-pick" />}
                 <div className="min-w-0 flex-1">
                   <div className="text-slate-100 truncate">{u.name}{u.general ? ` · ${u.general}` : ''}{u.promotions ? ` · ${u.promotions} promotion${u.promotions === 1 ? '' : 's'}` : ''}</div>
                   <div className="text-slate-400">{u.strength}/{u.maxStrength} · morale {u.morale} · supply {u.supply}/{u.supplyMax} · moves {u.moves}/{u.movePoints}</div>
@@ -69,9 +76,21 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
       <div className="flex gap-2 mt-1">
         {model.route
           ? <button type="button" onClick={() => dispatch({ type: ActionTypes.CANCEL_ROUTE, payload: { unitIds: model.unitIds } })} className="flex-1 min-h-[44px] rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold">Halt the march</button>
-          : <button type="button" disabled={!model.canMarch} onClick={() => { startMarch(model.regionId, { unitIds: model.unitIds }); onClose?.(); }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> March…</button>}
+          : <button type="button" disabled={!model.canMarch || !marching.length} onClick={() => { startMarch(model.regionId, { unitIds: marching }); onClose?.(); }} data-testid="army-march" className="flex-1 min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5"><Flag className="w-3.5 h-3.5" /> March{picked ? ` ${marching.length} of ${model.unitIds.length}` : ''}…</button>}
         <button type="button" onClick={() => setRenaming(model.groups[0].key ? model.groups[0].name : '')} aria-label="Name this army" className="min-h-[44px] px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200"><Pencil className="w-4 h-4" /></button>
       </div>
+      {model.targets.length > 0 && (
+        <div className="mt-2 space-y-1" data-testid="army-targets">
+          {model.targets.map((t) => (
+            <button key={`${t.kind}:${t.tile}`} type="button" disabled={!t.ok} onClick={() => setAttack(t)} data-testid={`army-attack-${t.kind}`} title={t.ok ? (t.kind === 'city' ? 'Assault the city' : 'Attack the army') : t.reason} className="w-full min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+              <Swords className="w-3.5 h-3.5" /> {t.kind === 'city' ? `Assault ${t.name}` : `Attack the ${t.name}`} ({t.strength.toLocaleString()}){t.ok ? '' : ` · ${t.reason}`}
+            </button>
+          ))}
+        </div>
+      )}
+      {attack && (attack.kind === 'city'
+        ? <PreBattleModal fromRegionId={model.regionId} targetRegionId={attack.regionId} onClose={() => setAttack(null)} />
+        : <PreBattleModal fromRegionId={model.regionId} tile={attack.tile} onClose={() => setAttack(null)} />)}
       {model.pillage && (
         <button type="button" onClick={() => dispatch({ type: ActionTypes.PILLAGE_TILE, payload: { unitIds: model.unitIds } })} data-testid="army-pillage" className="w-full mt-2 min-h-[44px] rounded-lg bg-red-800/70 hover:bg-red-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5" title="Burn the improvement here: it stops yielding until repaired; the stack spends its moves.">
           <Flame className="w-3.5 h-3.5" /> Pillage the {model.pillage.name} (+{model.pillage.gold} gold)
