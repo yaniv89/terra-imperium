@@ -49,14 +49,28 @@ Recommended default: **Standard, 35 major nations.**
 
 ## 2. World modes
 
-| Mode | Major nations | Independent cities at Dawn | Land per major (rough) |
-|---|---|---|---|
-| Small | 20 | about 185 | about 530 hexes |
-| **Standard (default)** | **35** | **about 170** | **about 300 hexes** |
-| Large | 50 | about 155 | about 210 hexes |
+| Mode | Major nations | Independent cities at Dawn | Independents per major | Land per major (rough) |
+|---|---|---|---|---|
+| Small | 20 | **100** (of about 147 possible) | 5 | about 640 hexes |
+| **Standard (default)** | **35** | **all, about 132** | 3.8 | about 345 hexes |
+| Large | 50 | **all, about 117** | 2.3 | about 240 hexes |
 
-(About 14,600 usable land hexes; independents hold about 19 hexes each at Dawn, the ~35
-"unpeopled at Dawn" islands start empty. Land per major is what is left, before conquest.)
+Counted from the data (2026-10-03): 235 peoples have a capital tile, **68** of them are
+"unpeopled at Dawn" (islands and remote land), so about **167 peoples** have a city in 2000 BCE.
+Usable land is about 14,600 hexes; an independent holds about 19 (its two rings).
+
+**The ideal ratio is about 4 to 5 independents per major**: enough raiders to defend against
+and cities to take early, without independents ruling the map.
+- **Standard and Large keep every remaining people** as an independent (3.8 and 2.3 per major).
+- **Small keeps 100**, not all 147: at 7.4 per major the 20 majors would spend the early game
+  fending off raiders everywhere, and Small is the "few big empires" mode that needs empty land
+  to settle. The 100 are picked by `HISTORY_WEIGHT` plus spread (the same score as the majors,
+  section below), so famous peoples stay; the roughly 47 left out (mostly small peoples in dense
+  areas: the Balkans, the Gulf, the Caribbean) start as open land to settle.
+- **In every mode** the 68 island peoples appear later as independents when their land was
+  settled historically (4.6), if nobody has claimed it by then. The count rises a little in the
+  mid game, then falls as majors conquer independents.
+- To be confirmed by the W1 balance-sim (section 10); the counts are one table to tune.
 
 **Who is a major.** Today's pick is pure geographic spread, which can hand a 20-nation world to
 20 remote islands. New rule: `score = (distance to the nearest chosen capital) x (1 +
@@ -66,8 +80,9 @@ HISTORY_WEIGHT[nation])`, seeded tie-breaks, the player always in.
 - So a Small world still has Egypt, Mesopotamia and China most of the time, spread across
   continents, and each game differs.
 
-**Everyone else** becomes an independent city on its capital tile (Dawn size table, capped at 3).
-The `UNPEOPLED_AT_DAWN` islands stay dormant and appear later as independents.
+**Everyone else** (up to the mode's independent count) becomes an independent city on its capital
+tile (Dawn size table, capped at 3). The `UNPEOPLED_AT_DAWN` islands stay dormant and appear later
+as independents (4.6).
 
 **Start screen:** a World size picker (Small, Standard, Large) replaces full/emergent.
 **Old full-world saves** keep loading and playing: mode `full` stays in the engine, new games
@@ -296,7 +311,7 @@ emergent saves load and play as before (their nations have no `kind`, so nothing
 
 | Phase | What | Size |
 |---|---|---|
-| **W1. World modes and passive independents** | Small/Standard/Large; major pick with history weight; independents as one-city `kind: 'independent'` records that never expand; `canFight` and conquer without war; the nation-loop guards; start screen picker; tests; balance-sim | 2 sessions |
+| **W1. World modes and passive independents** | Small/Standard/Large with the section 2 counts; major and independent pick with history weight; independents as one-city `kind: 'independent'` records that never expand; breakaway cities become independents (14.4); `canFight` and conquer without war; the nation-loop guards; start screen picker; the names data of section 14 (generated, then reviewed by the user); tests; balance-sim | 2 to 3 sessions |
 | **W2. Independent AI** | Personalities, garrison, raids, sack, grudges, tribute demands; battle-lab check that a raid battle plays in the tactical sim | 2 to 3 sessions |
 | **W3. Interactions and major AI** | Tribute both ways, trade, mercenaries, raze, peaceful submission; AI majors conquer independents, defend and pay tribute; every major Tier 1 | 2 sessions |
 | **W4. UI and art** | Hatched borders, personality shields, raid markers, the independent sheet, warnings | 1 to 2 sessions |
@@ -317,4 +332,99 @@ Age of Cities designs build on independents. W4 can follow or run alongside.
    and **sack** weakly defended cities (gold, -1 size, a building damaged; never a capture).
 5. **Peaceful joining: yes** (4.5).
 
+6. **Independent counts**: Small 100, Standard and Large every remaining people (section 2).
+7. **Names**: new names for the major nations by age and for independents and free cities
+   (section 14).
+
 **Do not start yet** (the user, 2026-10-03): implementation waits for the go-ahead.
+
+---
+
+## 14. Names: the major nations, independents and free cities
+
+Names are data only: no rule reads them, so they never touch saves or balance. One module,
+`src/data/polityNames.js`, answers `polityName(state, nationId)` and `cityName(state, cityId)`
+for every screen, log line and map label. It builds on the nine-age plan's historical names
+(`plans/eras-origins-and-future.md` 3.5, decided: the ancient empires, including the Kingdom
+of Israel).
+
+### 14.1 Major nations
+- The name follows the nation's **effective age**: Sumer, then Babylon, then Babylonia, then the
+  Abbasid Caliphate, then Iraq. The table lives in `src/data/historicalNames.js`
+  (nation id -> age -> name), hand-written for the ~60 famous peoples (the nine-age plan's
+  table), generated for the rest.
+- From the Gunpowder age on, the modern name is used, with a few exceptions kept historical
+  (Ottoman Empire, Mughal Empire, Safavid Persia, Qing China, Tsardom of Russia).
+- The modern name always shows in small text under the historical one (nation sheet,
+  diplomacy list, tooltip). A setting turns historical names off.
+- **A major that conquers a lot does not rename itself** automatically. One event per age can
+  offer a title to a nation that holds a famous capital with high loyalty ("Proclaim yourself
+  heir of Rome", "Take the title King of Kings"): prestige plus the new name, the player's
+  choice.
+
+### 14.2 Independents
+An independent's name is **its people's name for the age** plus a **form** that follows its
+personality and the age:
+
+| Personality | Neolithic and Age of Cities | Bronze to Kingdoms | Gunpowder | Modern to Future |
+|---|---|---|---|---|
+| Tribal | the {People} clans | the {People} tribes | the {People} confederacy | the {People} autonomous region |
+| Raiders, land | the {People} warbands | the {People} horde | the {People} horde | {People} militias |
+| Raiders, sea | {People} sea raiders | {People} sea raiders | the {People} corsairs | {People} pirates |
+| Mercantile | the traders of {City} | the free city of {City} | the merchant republic of {City} | the city-state of {City} |
+| Fortress | the {People} highlanders | {City} stronghold | the {People} free state | the {People} free state |
+
+Examples at Dawn (Bronze Age), Standard mode, if these peoples are not majors:
+| Nation id | Personality | Name shown | Under it |
+|---|---|---|---|
+| ua | Raiders, land | the Cimmerian horde | Ukraine |
+| kz | Raiders, land | the Andronovo horde | Kazakhstan |
+| lb | Mercantile | the free city of Byblos | Lebanon |
+| ps | Tribal | the Philistine tribes | Palestine |
+| cy | Mercantile | the free city of Alashiya | Cyprus |
+| dk | Raiders, sea | Nordic sea raiders | Denmark |
+| am | Fortress | Urartian stronghold (from the Classical age: Armenia) | Armenia |
+| ge | Fortress | the Colchian highlanders | Georgia |
+| bh | Mercantile | the free city of Dilmun | Bahrain |
+| af | Fortress | Bactrian stronghold | Afghanistan |
+| ml | Tribal | the Tichitt tribes | Mali |
+| bo | Fortress | the Chiripa highlanders | Bolivia |
+
+(Israel, if not a major, reads "the Canaanite tribes" before the Bronze Age and the Kingdom of
+Israel's people as "the Israelite tribes" in the Bronze Age, following the decided table.)
+
+### 14.3 Peoples without a famous ancient name
+About 100 of the 235 peoples have no well-known ancient state. They get a **people name by
+region and age**, generated from their culture group and location and then reviewed: "the
+Danubian peoples", "the Bantu peoples", "the Andean peoples", "the Jomon". The modern name
+always shows underneath.
+
+### 14.4 Free cities (breakaway cities)
+Today a city whose loyalty hits 0 with no one to join becomes an ownerless free city
+(loyalty.js). In these modes it becomes a **new independent** instead, so it can be fought,
+raided and traded with like any other:
+- A new polity id `free_<cityId>`, personality from its terrain (as 3.3), the garrison it had.
+- Named by age: "the free city of {City}" (Bronze to Kingdoms), "the commune of {City}"
+  (Kingdoms in Europe), "the republic of {City}" (Gunpowder), "the free state of {City}"
+  (Modern on). Rebel-held cities from a civil war keep their rebel name until it ends.
+- It keeps its culture shares, so its old owner and its people's majors see it as "our people"
+  (the existing opinion reason), and peaceful joining (4.5) works for them first.
+
+### 14.5 City names
+- Capitals and famous second cities take an **ancient name per age** where one is known (Ur,
+  Memphis, Byblos, Hattusa, Jerusalem, Babylon, Nineveh, Mohenjo-daro, Anyang, Mycenae), in the
+  same data file, then their modern name later (Byzantium, then Constantinople, then Istanbul).
+- Every other city keeps today's naming (cityNames.js: the tile's name or the culture group's
+  list).
+
+### 14.6 How the full list gets made
+- A generator script (`scripts/names/build-polity-names.mjs`) fills every nation x age from the
+  hand-written table, the regional people names and the forms above, and writes
+  `src/data/historicalNames.js`. It also prints a review sheet (one row per nation) for the user.
+- The user reviews the sheet; corrections go into the hand-written table and the script is
+  rerun. Nothing is shipped unreviewed.
+- Rules: neutral wording, no names of living people, the modern name always visible, and the
+  Israel and Palestine names exactly as in the decided table.
+- A test checks every nation has a name for every age (through the age registry), and that no
+  two polities show the same name at the same age.
+
