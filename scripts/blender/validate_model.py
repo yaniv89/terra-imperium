@@ -6,9 +6,11 @@
 # and exits non-zero when a check fails.
 #
 #   python scripts/blender/validate_model.py <model.glb> <out_dir> <kind> [footprint] [height]
-#   kinds: town | landmark | walls | wonder | improvement | ship
+#   python scripts/blender/validate_model.py <model.glb> <out_dir> '{"palace": ["landmark", 1.2, 1.6], ...}'
+#   kinds: town | landmark | walls | wonder | improvement | ship (the JSON form sets them per object)
 import json
 import os
+import re
 import struct
 import sys
 
@@ -82,15 +84,17 @@ def node_world(j, idx, parent=None):
 def main(path, out_dir, kind, footprint=None, height=None):
     os.makedirs(out_dir, exist_ok=True)
     j, binary, total = read_glb(path)
-    rep = {'file': os.path.basename(path), 'kind': kind, 'bytes': total, 'checks': {}, 'objects': {}}
+    spec = json.loads(kind) if kind.strip().startswith('{') else None
+    rep = {'file': os.path.basename(path), 'kind': kind if not spec else 'shared', 'bytes': total, 'checks': {}, 'objects': {}}
     checks = rep['checks']
-    budget = BUDGETS[kind]
     roots = j['scenes'][j.get('scene', 0)]['nodes']
     all_ok_lod = True
     for r in roots:
         root = j['nodes'][r]
         if 'children' not in root:
             continue
+        o_kind, o_fp, o_h = (spec[root['name']] if spec and root['name'] in spec else (kind, footprint, height))
+        budget = BUDGETS[o_kind]
         rt = node_world(j, r)
         obj = {'lods': {}}
         names = []
@@ -113,7 +117,9 @@ def main(path, out_dir, kind, footprint=None, height=None):
                     hi[k] = max(hi[k], a['max'][k] * s[k] + t[k] - rt[0][k])
                 mats.add(j['materials'][p['material']]['name'])
             # glTF is Y up: x = east-west, z = north-south (+z south, toward the camera), y = height
-            obj['lods'][node['name']] = {
+            # (a file's second object has LOD0.001: Blender keeps names unique)
+            m = re.match(r'^(LOD\d)', node['name'])
+            obj['lods'][m.group(1) if m else node['name']] = {
                 'triangles': tris, 'materials': sorted(mats),
                 'width': round(hi[0] - lo[0], 3), 'depth': round(hi[2] - lo[2], 3),
                 'height': round(hi[1], 3), 'min_height': round(lo[1], 4),
@@ -130,11 +136,12 @@ def main(path, out_dir, kind, footprint=None, height=None):
         if l0:
             fp = max(l0['width'], l0['depth'])
             obj['footprint'] = fp
-            if footprint:
-                checks['footprint_within_5pct'] = abs(fp - footprint) <= 0.05 * footprint
-            if height:
-                checks['height_within_5pct'] = abs(l0['height'] - height) <= 0.05 * height
-            checks['nothing_below_ground'] = all(v['min_height'] >= -0.01 for v in lods.values())
+            tag = '' if not spec else '_' + root['name']
+            if o_fp:
+                checks['footprint_within_5pct' + tag] = abs(fp - o_fp) <= 0.05 * o_fp
+            if o_h:
+                checks['height_within_5pct' + tag] = abs(l0['height'] - o_h) <= 0.05 * o_h
+            checks['nothing_below_ground' + tag] = all(v['min_height'] >= -0.01 for v in lods.values())
             # the origin sits at the footprint's centre (within 5% of the footprint)
             checks['origin_centred'] = True
     checks['lods_present_and_in_budget'] = all_ok_lod
@@ -162,7 +169,7 @@ def main(path, out_dir, kind, footprint=None, height=None):
     # one atlas set: at most a base colour, a normal map and a packed map
     checks['one_atlas_set'] = len(images) <= 3
     checks['uncompressed_geometry'] = not any(e in j.get('extensionsUsed', []) for e in ('KHR_draco_mesh_compression', 'EXT_meshopt_compression'))
-    limit = {'town': 12, 'landmark': 12, 'walls': 12, 'wonder': 6, 'improvement': 12, 'ship': 3, 'house': 12}[kind]
+    limit = 12 if spec else {'town': 12, 'landmark': 12, 'walls': 12, 'wonder': 6, 'improvement': 12, 'ship': 3, 'house': 12}[kind]
     checks['file_size'] = total <= limit * 1024 * 1024
     rep['passed'] = all(checks.values())
     name = os.path.splitext(os.path.basename(path))[0]

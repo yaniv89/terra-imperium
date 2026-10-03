@@ -190,7 +190,7 @@ def _parapet(ms, f, wall, x, y, w, d, z):
 
 
 def house(ms, rng, x, y, w, d, storeys=1, wall='mudwall', roof_items=(), front=None, upper=None,
-          ladder_side=None, stair_side=None, porch=False, jars=4, heap=None, yaw=None):
+          ladder_side=None, stair_side=None, porch=False, jars=4, heap=None, yaw=None, yard=0.0):
     """A flat-roofed mud-brick house. Its local -Y is the front: by default the door faces the
     town centre; `yaw` (degrees) turns it another way (0 faces the camera, south)."""
     yaw = tm.facing_centre(x, y) if yaw is None else yaw
@@ -258,6 +258,13 @@ def house(ms, rng, x, y, w, d, storeys=1, wall='mudwall', roof_items=(), front=N
             crate(ms, f, jx, -d / 2 - 0.045, rng.uniform(0.8, 1.0), rng.uniform(-15, 15))
     if heap:
         clutter(ms, f, heap[0], heap[1], rng, 5)
+    if yard > 0:  # a walled yard behind the house (toward the town's edge), with stores in it
+        yh = 0.13
+        ms.box(wall, (0.03, yard, yh), at=(-w / 2 + 0.015, d / 2 + yard / 2, G), lod=1, frame=f)
+        ms.box(wall, (0.03, yard, yh), at=(w / 2 - 0.015, d / 2 + yard / 2, G), lod=1, frame=f)
+        ms.box(wall, (w, 0.03, yh), at=(0, d / 2 + yard - 0.015, G), lod=1, frame=f)
+        ms.box('roof', (w - 0.06, yard - 0.03, 0.006), at=(0, d / 2 + yard / 2 - 0.015, G), lod=1, frame=f)
+        clutter(ms, f, rng.uniform(-w / 4, w / 4), d / 2 + yard / 2, rng, 3)
     return f
 
 
@@ -337,24 +344,72 @@ def fringe_alpha(size, rng):
     return a
 
 
-def build_town(name, layout, out_dir, atlas=2048, seed=2000, ground=None):
-    """Lay the town out (`layout(ms, rng)` adds its parts after the ground), bake one atlas set
-    from LOD0, rebuild LOD1 and LOD2 with UVs projected from LOD0, swap in the three final
-    materials and export <out_dir>/<name>.glb (and the .blend)."""
+def _split_faces(src, keep_index, name):
+    """A copy of `src` holding only the faces whose 'item' attribute equals keep_index."""
+    me = src.data.copy()
+    obj = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(obj)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    layer = bm.faces.layers.int.get('item')
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f[layer] != keep_index], context='FACES')
+    bm.to_mesh(me)
+    bm.free()
+    return obj
+
+
+def _tag_item(obj, index):
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    layer = bm.faces.layers.int.get('item') or bm.faces.layers.int.new('item')
+    for f in bm.faces:
+        f[layer] = index
+    bm.to_mesh(obj.data)
+    bm.free()
+
+
+def _join(objs, name):
+    for o in bpy.context.scene.objects:
+        o.select_set(o in objs)
+    bpy.context.view_layer.objects.active = objs[0]
+    bpy.ops.object.join()
+    objs[0].name = name
+    return objs[0]
+
+
+def build_file(file_name, items, out_dir, atlas=2048, seed=2000, write=True):
+    """Build several objects into one GLB that shares ONE baked atlas set (model brief: one atlas
+    set per file). `items` is a list of (object name, layout, ground) where `layout(ms, rng)` adds
+    the object's parts around the origin and `ground` (a dict for ground_patch, or None) gives it
+    an alpha-cut earth patch. Every object gets LOD0, LOD1 and LOD2 children."""
     os.makedirs(out_dir, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     rng = tm.seeded(seed)
     make_materials()
-    ms = tm.Mesher()
-    ground_patch(ms, rng, **(ground or {}))
-    layout(ms, rng)
-
-    lod0 = ms.build('LOD0', 0, PROC)
-    tm.smart_uv(lod0)
-    fringe_uvs(lod0)
-    print('LOD0 triangles', tm.triangles(lod0))
-    maps = tm.bake_atlas(lod0, size=atlas, ao_samples=48)
+    meshers = []
+    for k, (obj_name, layout, ground) in enumerate(items):
+        ms = tm.Mesher()
+        if ground is not None:
+            ground_patch(ms, rng, **ground)
+        layout(ms, rng)
+        meshers.append(ms)
+    # LOD0 of every object, placed side by side, joined for one unwrap and one bake
+    spacing = 12.0
+    parts0 = []
+    for k, ms in enumerate(meshers):
+        o = ms.build('_lod0_%d' % k, 0, PROC)
+        o.location.x = k * spacing
+        bpy.context.view_layer.update()
+        o.data.transform(o.matrix_world)
+        o.matrix_world = Matrix.Identity(4)
+        _tag_item(o, k)
+        parts0.append(o)
+    joined = _join(parts0, '_lod0') if len(parts0) > 1 else parts0[0]
+    tm.smart_uv(joined)
+    fringe_uvs(joined)
+    print('LOD0 triangles (all objects)', tm.triangles(joined))
+    maps = tm.bake_atlas(joined, size=atlas, ao_samples=48)
     ao = maps['ao'][..., 0:1]
     base = maps['color'].copy()
     base[..., :3] = base[..., :3] * (0.35 + 0.65 * ao)
@@ -365,43 +420,62 @@ def build_town(name, layout, out_dir, atlas=2048, seed=2000, ground=None):
     packed[..., 0] = ao[..., 0]
     packed[..., 1] = maps['rough'][..., 0]
     packed[..., 3] = 1.0
-    img_base = tm.image_from_array(name + '_base', base, 'WEBP')
-    img_norm = tm.image_from_array(name + '_normal', normal, 'WEBP', non_color=True)
-    img_pack = tm.image_from_array(name + '_orm', packed, 'WEBP', non_color=True)
+    img_base = tm.image_from_array(file_name + '_base', base, 'WEBP')
+    img_norm = tm.image_from_array(file_name + '_normal', normal, 'WEBP', non_color=True)
+    img_pack = tm.image_from_array(file_name + '_orm', packed, 'WEBP', non_color=True)
     finals = {
         'Town': tm.final_material('Town', img_base, img_norm, img_pack),
         'Ground': tm.final_material('Ground', img_base, img_norm, img_pack, alpha_mask=True),
         'Team': tm.final_material('Team', img_base, img_norm, img_pack),
     }
-    lods = [lod0]
-    for lod in (1, 2):
-        o = ms.build('LOD%d' % lod, lod, PROC)
-        tm.transfer_uvs(lod0, o)
-        lods.append(o)
-    # Mesh.materials.clear() would reset every face to slot 0: overwrite slots in place, pop the rest
     order = ['Town', 'Ground', 'Team']
-    for o in lods:
-        me = o.data
-        remap = [order.index(TO_FINAL.get(m.name, 'Town')) for m in me.materials]
-        for p in me.polygons:
-            p.material_index = remap[p.material_index]
-            p.use_smooth = False
-        for k, mname in enumerate(order):
-            me.materials[k] = finals[mname]
-        while len(me.materials) > len(order):
-            me.materials.pop(index=len(me.materials) - 1)
-    root = bpy.data.objects.new(name, None)
-    scene.collection.objects.link(root)
-    for o in lods:
-        o.parent = root
+    roots, exported, counts = [], [], {}
+    shift = Matrix.Identity(4)
+    for k, ((obj_name, _layout, _ground), ms) in enumerate(zip(items, meshers)):
+        lod0 = _split_faces(joined, k, 'LOD0')
+        lods = [lod0]
+        for lod in (1, 2):
+            o = ms.build('LOD%d' % lod, lod, PROC)
+            o.data.transform(Matrix.Translation(Vector((k * spacing, 0, 0))))
+            tm.transfer_uvs(lod0, o)
+            lods.append(o)
+        shift = Matrix.Translation(Vector((-k * spacing, 0, 0)))
+        for o in lods:
+            o.data.transform(shift)
+            me = o.data
+            remap = [order.index(TO_FINAL.get(m.name, 'Town')) for m in me.materials]
+            for p in me.polygons:
+                p.material_index = remap[p.material_index]
+                p.use_smooth = False
+            # Mesh.materials.clear() would reset every face to slot 0: overwrite in place, pop the rest
+            for j, mname in enumerate(order):
+                me.materials[j] = finals[mname]
+            while len(me.materials) > len(order):
+                me.materials.pop(index=len(me.materials) - 1)
+            if 'item' in me.attributes:
+                me.attributes.remove(me.attributes['item'])
+        root = bpy.data.objects.new(obj_name, None)
+        scene.collection.objects.link(root)
+        root.location.x = k * 3.0  # spaced apart in the file; the game reads each object's own origin
+        for o in lods:
+            o.parent = root
+        roots.append(root)
+        exported += [root] + lods
+        counts[obj_name] = {'LOD%d' % i: tm.triangles(o) for i, o in enumerate(lods)}
+    bpy.data.objects.remove(joined)
     for m in [m for m in bpy.data.materials if m.name in PROC]:
         bpy.data.materials.remove(m)
-    counts = {o.name: tm.triangles(o) for o in lods}
     print('triangles', counts)
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out_dir, name + '.blend'))
-    tm.export_glb(os.path.join(out_dir, name + '.glb'), [root] + lods)
-    print('wrote', os.path.join(out_dir, name + '.glb'))
+    if write:
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out_dir, file_name + '.blend'))
+        tm.export_glb(os.path.join(out_dir, file_name + '.glb'), exported)
+        print('wrote', os.path.join(out_dir, file_name + '.glb'))
     return counts
+
+
+def build_town(name, layout, out_dir, atlas=2048, seed=2000, ground=None):
+    """One town: its object (with the earth patch) alone in <out_dir>/<name>.glb."""
+    return build_file(name, [(name, layout, ground or {})], out_dir, atlas=atlas, seed=seed)
 
 
 def main(name, layout, ground=None):
@@ -409,3 +483,10 @@ def main(name, layout, ground=None):
     build_town(name, layout, argv[0] if argv else 'build/map', int(argv[1]) if len(argv) > 1 else 2048, ground=ground)
     sys.stdout.flush()
     os._exit(0)  # bpy can crash while tearing down packed images; the files are already written
+
+
+def main_file(file_name, items):
+    argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
+    build_file(file_name, items, argv[0] if argv else 'build/map', int(argv[1]) if len(argv) > 1 else 2048)
+    sys.stdout.flush()
+    os._exit(0)

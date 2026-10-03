@@ -5,6 +5,9 @@
 // close view loads a file the first time a town of that age and size is on screen, clones it per
 // town (geometry and textures shared), shows the LOD for the zoom and tints Team in the owner's
 // colour. Until a file arrives, and for any (age, size) without one, the procedural town stays.
+// A capital adds its palace from the age's shared file, src/assets/map/shared/shared-{age}.glb
+// (palace-small for a small town, palace for a medium or big one), standing in the town's free
+// centre with the same transform.
 import { Color } from 'three';
 import { loadGltf } from '../../../battle/render/gltfUnitLoader';
 
@@ -15,6 +18,18 @@ Object.entries(FILES).forEach(([path, url]) => {
   const m = path.match(/\/([a-z]+)-town-(small|medium|big)-([ab])\.glb$/);
   if (m) (BY_KEY[`${m[1]}:${m[2]}`] ||= {})[m[3]] = url;
 });
+
+// { bronze: '/terra-imperium/assets/shared-bronze-abc123.glb' }
+const SHARED_FILES = import.meta.glob('../../../assets/map/shared/shared-*.glb', { query: '?url', import: 'default', eager: true });
+const SHARED_BY_AGE = {};
+Object.entries(SHARED_FILES).forEach(([path, url]) => {
+  const m = path.match(/\/shared-([a-z]+)\.glb$/);
+  if (m) SHARED_BY_AGE[m[1]] = url;
+});
+/** The age's shared file (palaces, walls, camps, fields), or null. */
+export const sharedAssetUrl = (ageId) => SHARED_BY_AGE[ageId] || null;
+/** The palace a capital of this town size stands on its free centre. */
+export const palaceFor = (tierId) => (tierId === 'small' ? 'palace-small' : 'palace');
 
 // Until the regional kits arrive (art spec section 3b), the two variants carry two traditions:
 // a is Mesopotamian, b is Egyptian. Nations of those lands get their own; everyone else mixes
@@ -38,20 +53,27 @@ export const townAssetUrl = (ageId, tierId, seed = 0, nationId = null) => {
 /** The level of detail the brief assigns to a zoom k: LOD2 below 20, LOD1 below 40, LOD0 above. */
 export const lodForZoom = (k) => (k < 20 ? 2 : k < 40 ? 1 : 0);
 
-const roots = new Map(); // url -> Promise<Object3D>
-/** Load a town file once; resolves to its root object (the node holding LOD0..LOD2). */
-export const loadTownAsset = (url, load = loadGltf) => {
-  if (!roots.has(url)) {
-    roots.set(url, load(url).then((gltf) => {
-      let root = null;
-      gltf.scene.traverse((o) => { if (!root && o.children.some((c) => c.name === 'LOD0')) root = o; });
-      if (!root) throw new Error(`${url}: no object with LOD children`);
-      root.traverse((o) => { if (o.isMesh) o.frustumCulled = false; });
-      return root;
-    }).catch((e) => { roots.delete(url); throw e; }));
+// A level-of-detail node: LOD0..LOD2, or LOD0001 for a file's second object (Blender's LOD0.001
+// after three.js strips the dot from node names).
+const LOD_NAME = /^LOD(\d)/;
+const lodOf = (o) => { const m = LOD_NAME.exec(o.name || ''); return m ? Number(m[1]) : null; };
+
+const files = new Map(); // url -> Promise<{ [object name]: Object3D }>
+/** Load a model file once; resolves to its objects (every node holding LOD children), by name. */
+export const loadAssetObjects = (url, load = loadGltf) => {
+  if (!files.has(url)) {
+    files.set(url, load(url).then((gltf) => {
+      const out = {};
+      gltf.scene.traverse((o) => { if (lodOf(o) === null && o.children.some((c) => lodOf(c) === 0)) out[o.name] = o; });
+      if (!Object.keys(out).length) throw new Error(`${url}: no object with LOD children`);
+      Object.values(out).forEach((root) => root.traverse((o) => { if (o.isMesh) o.frustumCulled = false; }));
+      return out;
+    }).catch((e) => { files.delete(url); throw e; }));
   }
-  return roots.get(url);
+  return files.get(url);
 };
+/** Load a town file once; resolves to its root object (the node holding LOD0..LOD2). */
+export const loadTownAsset = (url, load = loadGltf) => loadAssetObjects(url, load).then((objs) => Object.values(objs)[0]);
 
 const teamMaterials = new Map(); // `${uuid}|${color}` -> material
 /** A town instance: shares the file's geometry and textures; Team takes `teamColor`. */
@@ -76,8 +98,7 @@ export const instanceTownAsset = (root, teamColor) => {
   return inst;
 };
 
-/** Show one LOD of an instance. */
+/** Show one LOD of an instance (and of anything placed in it, such as a palace). */
 export const showLod = (inst, lod) => {
-  const want = `LOD${lod}`;
-  inst.children.forEach((c) => { c.visible = c.name === want; });
+  inst.traverse((o) => { const l = lodOf(o); if (l !== null) o.visible = l === lod; });
 };

@@ -20,7 +20,7 @@ import { getMapMarkers } from '../../../utils/mapMarkers';
 import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
-import { townAssetUrl, loadTownAsset, instanceTownAsset, showLod, lodForZoom } from './townAssets';
+import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrl, palaceFor, instanceTownAsset, showLod, lodForZoom } from './townAssets';
 import { ARMY_SPOT, unitPx } from './scale';
 
 // The tilt that shows roofs (radians about the screen x axis).
@@ -113,13 +113,22 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
         loadTownAsset(assetUrl).then((root) => { t.assets.set(assetUrl, root); setAssetsTick((n) => n + 1); })
           .catch((e) => { console.warn('town model failed, keeping the procedural town:', e.message); });
       }
+      // A capital's palace comes from the age's shared file, once that file is in too.
+      const sharedUrl = asset && opts.capital ? sharedAssetUrl(opts.ageId) : null;
+      if (sharedUrl && !t.assets.has(sharedUrl)) {
+        t.assets.set(sharedUrl, null);
+        loadAssetObjects(sharedUrl).then((objs) => { t.assets.set(sharedUrl, objs); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('shared model file failed, capitals stand without a palace:', e.message); });
+      }
+      const palaceRoot = sharedUrl ? t.assets.get(sharedUrl)?.[palaceFor(tier.id)] : null;
       const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
-      const key = asset ? `${id}|asset|${assetUrl}|${teamColor}` : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
+      const key = asset ? `${id}|asset|${assetUrl}|${teamColor}|${palaceRoot ? palaceRoot.name : ''}` : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
       let mesh = t.towns.get(id);
       if (!mesh || mesh.userData.key !== key) {
         if (mesh) scene.remove(mesh);
         mesh = asset ? instanceTownAsset(asset, teamColor) : new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
+        if (asset && palaceRoot) mesh.add(instanceTownAsset(palaceRoot, teamColor));
         mesh.userData.key = key;
         mesh.userData.asset = !!asset;
         mesh.frustumCulled = false;

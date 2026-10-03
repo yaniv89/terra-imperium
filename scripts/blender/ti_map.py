@@ -51,11 +51,11 @@ class Mesher:
         if frame is not None:
             m = frame @ m
         if bevel > 0:
-            if lod >= 2:  # LOD2 keeps the plain block: a bevel costs ~40 triangles nobody sees there
+            if lod >= 1:  # LOD1 and LOD2 keep the plain block: a bevel costs ~40 triangles unseen there
                 plain = bm.copy()
-                self.add(plain, mat, 2, m.copy(), only=2)
-                lod = 1
+                self.add(plain, mat, lod, m.copy(), only=tuple(range(1, lod + 1)))
             bmesh.ops.bevel(bm, geom=bm.edges[:] + bm.verts[:], offset=bevel, segments=1, affect='EDGES', profile=0.5)
+            return self.add(bm, mat, 0, m)
         return self.add(bm, mat, lod, m)
 
     def cyl(self, mat, r1, r2, h, at=(0, 0, 0), rot=(0, 0, 0), segs=8, lod=2, frame=None, caps=True):
@@ -64,6 +64,20 @@ class Mesher:
         bmesh.ops.create_cone(bm, cap_ends=caps, cap_tris=False, segments=segs, radius1=r1, radius2=r2, depth=h)
         bmesh.ops.translate(bm, vec=(0, 0, h / 2), verts=bm.verts)
         m = self._m(at, 0, rot)
+        if frame is not None:
+            m = frame @ m
+        return self.add(bm, mat, lod, m)
+
+    def sphere(self, mat, r, at=(0, 0, 0), scale=(1, 1, 1), u=8, v=6, lod=2, frame=None, cut_below=None):
+        """A UV sphere centred on `at`; `cut_below` (local z) keeps only the dome above it, capped."""
+        bm = bmesh.new()
+        bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, radius=r)
+        if cut_below is not None:
+            res = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, cut_below), plane_no=(0, 0, 1), clear_inner=True)
+            edges = [e for e in res['geom_cut'] if isinstance(e, bmesh.types.BMEdge)]
+            if edges:
+                bmesh.ops.holes_fill(bm, edges=edges)
+        m = self._m(at, 0, (0, 0, 0), scale)
         if frame is not None:
             m = frame @ m
         return self.add(bm, mat, lod, m)
@@ -109,7 +123,7 @@ class Mesher:
         out = bmesh.new()
         me_tmp = bpy.data.meshes.new('_tmp')
         for bm, mat, max_lod, only in self.parts:
-            if max_lod < lod or (only is not None and only != lod):
+            if max_lod < lod or (only is not None and lod not in (only if isinstance(only, tuple) else (only,))):
                 continue
             idx = materials.index(mat)
             bm.to_mesh(me_tmp)

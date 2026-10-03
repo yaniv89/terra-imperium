@@ -2,18 +2,18 @@
 // happens once per file, and an instance tints only its Team cloth.
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
-import { townAssetUrl, lodForZoom, loadTownAsset, instanceTownAsset, showLod } from './townAssets';
+import { townAssetUrl, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl } from './townAssets';
 
-const fakeTown = () => {
-  const root = new Group(); root.name = 'town-small-a';
-  ['LOD0', 'LOD1', 'LOD2'].forEach((n) => {
+const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
+  const root = new Group(); root.name = name;
+  lodNames.forEach((n) => {
     const town = Object.assign(new MeshStandardMaterial(), { name: 'Town' });
     const team = Object.assign(new MeshStandardMaterial({ color: '#ffffff' }), { name: 'Team' });
     const m = new Mesh(new BoxGeometry(1, 1, 1), [town, team]); m.name = n; root.add(m);
   });
-  const scene = new Group(); scene.add(root);
-  return { scene };
+  return root;
 };
+const fakeTown = () => { const scene = new Group(); scene.add(fakeObject('town-small-a')); return { scene }; };
 
 describe('artist town models', () => {
   it('finds the shipped Bronze Age towns, picks a variant by seed, and nothing for other ages', () => {
@@ -52,5 +52,26 @@ describe('artist town models', () => {
     expect(mesh.material[1].color.r).toBeGreaterThan(mesh.material[1].color.g);
     showLod(inst, 1);
     expect(inst.children.map((c) => c.visible)).toEqual([false, true, false]);
+  });
+
+  it('reads a shared file with several objects, whose later LODs arrive as LOD0001', async () => {
+    const scene = new Group();
+    scene.add(fakeObject('palace-small'), fakeObject('palace', ['LOD0001', 'LOD1001', 'LOD2001']));
+    const objs = await loadAssetObjects('test://shared.glb', async () => ({ scene }));
+    expect(Object.keys(objs).sort()).toEqual(['palace', 'palace-small']);
+    // a palace placed in a town follows the town's LOD switch
+    const town = instanceTownAsset(fakeObject('town'), '#00ff00');
+    town.add(instanceTownAsset(objs.palace, '#00ff00'));
+    showLod(town, 2);
+    const visible = [];
+    town.traverse((o) => { if (o.isMesh && o.visible) visible.push(o.name); });
+    expect(visible).toEqual(['LOD2', 'LOD2001']);
+  });
+
+  it('gives a small capital the small palace and a bigger one the full palace', () => {
+    expect(palaceFor('small')).toBe('palace-small');
+    expect(palaceFor('medium')).toBe('palace');
+    expect(palaceFor('big')).toBe('palace');
+    expect(sharedAssetUrl('modern')).toBeNull();
   });
 });
