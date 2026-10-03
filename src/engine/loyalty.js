@@ -136,7 +136,7 @@ export const pressureOf = (state, city) => {
 };
 
 /** The loyalty target of a city today, with its parts. */
-export const loyaltyTarget = (state, city, units = state.units, nations = state.nations, byTile = null) => {
+export const loyaltyTarget = (state, city, units = state.units, nations = state.nations, byTile = null, cache = null) => {
   const culture = cultureOf(city);
   const share = city.owner ? (culture[city.owner] || 0) : 0;
   const onCentre = byTile ? (byTile.get(city.tile) || []).filter((u) => u.ownerId === city.owner) : Object.values(units).filter((u) => u.ownerId === city.owner && u.domain === 'land' && !u.embarkedOn && !isSettler(u) && u.strength > 0 && unitTile(state, u) === city.tile);
@@ -147,10 +147,10 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const owner = nations[city.owner];
   const capitalLost = owner && owner.capitalRegionId && state.regions[owner.capitalRegionId] && state.regions[owner.capitalRegionId].owner !== city.owner ? LOYALTY_CAPITAL_LOST : 0;
   const maxOther = Object.entries(culture).reduce((m, [id, v]) => (id !== city.owner && v > m ? v : m), 0);
-  const rules = lawRulesOf(owner); // laws and reforms (lawRules.js): Tolerance, Codified Law, Martial Law...
+  const rules = cache ? (cache.rules.get(city.owner) || cache.rules.set(city.owner, lawRulesOf(owner)).get(city.owner)) : lawRulesOf(owner); // laws and reforms (lawRules.js): Tolerance, Codified Law, Martial Law...
   const rawShare = share < LOYALTY_SHARE_FLOOR ? 0 : Math.max(0, Math.min(100, 50 + LOYALTY_LEAD_SCALE * (share - maxOther)));
   const fromShare = rules.tolerance ? Math.max(LOYALTY_NEUTRAL, rawShare) : rawShare;
-  const governor = city.owner ? governorEffects(nations === state.nations ? state : { ...state, nations }, city.owner, city.id, turn).loyalty : 0;
+  const governor = city.owner ? governorEffects(cache ? cache.view : nations === state.nations ? state : { ...state, nations }, city.owner, city.id, turn).loyalty : 0;
   const law = rules.loyaltyBonus || 0;
   const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor + law)));
   return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor, law };
@@ -175,6 +175,7 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
   const neighbours = pressureNeighbours(tiles, cities, index); // once a turn: the lists are kept across turns
   const view = { ...state, regions, units, nations, turnNumber: turn };
   const byTile = landUnitsByTile(view, units);
+  const cache = { rules: new Map(), view }; // one law-rules sum per nation and one state view for the whole pass
   const flips = []; const logs = [];
   cities.forEach((city) => {
     // Pressure is costly over hundreds of cities: each city's shares drift every CULTURE_PERIOD
@@ -191,7 +192,7 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
       return;
     }
     const culture = pressure ? drift(cultureOf(city), pressure, CULTURE_DRIFT * CULTURE_PERIOD) : cultureOf(city);
-    const target = loyaltyTarget(view, { ...city, culture }, units, nations, byTile).total;
+    const target = loyaltyTarget(view, { ...city, culture }, units, nations, byTile, cache).total;
     const current = loyaltyOf(city);
     const loyalty = current < target ? Math.min(target, current + LOYALTY_STEP) : Math.max(target, current - LOYALTY_STEP);
     regions[city.id] = { ...city, culture, loyalty };

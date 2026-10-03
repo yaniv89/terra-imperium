@@ -59,20 +59,28 @@ export const outpostSlots = (ageId) => OUTPOST_SLOTS_BY_AGE[ageId] || 1;
 export const settlersOf = (units, nationId) => Object.values(units).filter((u) => isSettler(u) && u.ownerId === nationId);
 
 // Land a settler of `nationId` may walk across: free, its own, an ally's, or an enemy's.
-const passable = (state, tiles, tile, nationId) => {
+// `memo` (a Map per search, keyed by the city that owns the tile) spares the war scan per tile.
+const passable = (state, tiles, tile, nationId, memo = null) => {
   if (!tiles.land[tile] || tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return false;
   const cityHere = state.world?.tileOwner?.[tile];
   if (!cityHere) return true;
+  if (memo && memo.has(cityHere)) return memo.get(cityHere);
   const owner = state.regions[cityHere]?.owner;
-  if (!owner || owner === nationId) return true;
-  const n = state.nations[owner];
-  if (n?.vassalOf === nationId || state.nations[nationId]?.vassalOf === owner || n?.openBordersWith?.[nationId]) return true; // open borders (accords.js)
-  return (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, owner));
+  let ok;
+  if (!owner || owner === nationId) ok = true;
+  else {
+    const n = state.nations[owner];
+    ok = n?.vassalOf === nationId || state.nations[nationId]?.vassalOf === owner || !!n?.openBordersWith?.[nationId] // open borders (accords.js)
+      || (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, owner));
+  }
+  if (memo) memo.set(cityHere, ok);
+  return ok;
 };
 
 /** Shortest land path from `from` to `to` for a settler (tile ids, excluding `from`), or null.
  * Breadth first over passable tiles within `maxSteps`. */
 export const settlerPath = (state, from, to, nationId, maxSteps = MAX_SETTLE_RINGS * 2) => {
+  const memo = new Map(); // passability per owning city, once per search
   if (from === to) return [];
   const tiles = getTiles();
   const prev = new Map([[from, null]]);
@@ -82,7 +90,7 @@ export const settlerPath = (state, from, to, nationId, maxSteps = MAX_SETTLE_RIN
     for (const t of frontier) {
       for (const n of tiles.neighbors[t]) {
         if (prev.has(n)) continue;
-        if (n !== to && !passable(state, tiles, n, nationId)) continue;
+        if (n !== to && !passable(state, tiles, n, nationId, memo)) continue;
         if (n === to && !tiles.land[n]) continue;
         prev.set(n, t);
         if (n === to) {
@@ -119,20 +127,33 @@ export const siteDistancePenalty = (state, tile, fromTile = null, distance = nul
 };
 /** The site's worth on its own, without the walk: the AI settles a site of quality SITE_SCORE_MIN
  * or more however far it is (within reach), and ranks the candidates by score. */
+// Memoised per world object (one a turn): the settlers, the AI's build choice and the player's
+// site list scan the same land, and a tile's own yields depend on its tile state alone.
+const siteQualityCache = new WeakMap(); // world -> Map tile -> quality
+const ownYieldCache = new WeakMap(); // tileState -> Map tile -> food x1.2 + production + gold
 export const siteQuality = (state, tile) => {
   const tiles = getTiles();
-  const tileState = state.world?.tileState || {};
-  const tileOwner = state.world?.tileOwner || {};
+  const world = state.world || {};
+  let byTile = siteQualityCache.get(world);
+  if (!byTile) { byTile = new Map(); siteQualityCache.set(world, byTile); }
+  const hit = byTile.get(tile);
+  if (hit !== undefined) return hit;
+  const tileState = world.tileState || {};
+  const tileOwner = world.tileOwner || {};
   const facts = tileFacts(tiles, tile, tileState[tile]);
-  if (!facts.land) return -Infinity;
+  if (!facts.land) { byTile.set(tile, -Infinity); return -Infinity; }
+  let ownMemo = ownYieldCache.get(tileState);
+  if (!ownMemo) { ownMemo = new Map(); ownYieldCache.set(tileState, ownMemo); }
+  const own = (t) => { let v = ownMemo.get(t); if (v === undefined) { const y = tileYields(tileFacts(tiles, t, tileState[t])); v = y.food * 1.2 + y.production + y.gold; ownMemo.set(t, v); } return v; };
   let score = 0;
-  const own = (t) => { const y = tileYields(tileFacts(tiles, t, tileState[t])); return y.food * 1.2 + y.production + y.gold; };
   score += own(tile);
   tiles.neighbors[tile].forEach((n) => { if (!tileOwner[n]) score += own(n) * 0.5; });
   if (facts.resource) score += 3;
   if (facts.river) score += 2;
   if (facts.coastal) score += 1.5;
-  return Math.round(score * 10) / 10;
+  const q = Math.round(score * 10) / 10;
+  byTile.set(tile, q);
+  return q;
 };
 
 /** The best legal sites for a settler standing on `fromTile`, best first: [{ tile, score, quality, steps }]. */
@@ -142,6 +163,7 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   const seen = new Set([fromTile]);
   let frontier = [fromTile];
   const out = [];
+  const memo = new Map();
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
       if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok && !settlingBarred(state, nationId, t)) {
@@ -150,7 +172,7 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
       }
     }
     const next = [];
-    for (const t of frontier) for (const n of tiles.neighbors[t]) { if (!seen.has(n) && passable(state, tiles, n, nationId)) { seen.add(n); next.push(n); } }
+    for (const t of frontier) for (const n of tiles.neighbors[t]) { if (!seen.has(n) && passable(state, tiles, n, nationId, memo)) { seen.add(n); next.push(n); } }
     frontier = next.sort((a, b) => a - b);
   }
   return out.sort((a, b) => b.score - a.score || a.steps - b.steps || a.tile - b.tile).slice(0, limit);
@@ -160,13 +182,14 @@ const terrainFactor = (tiles, tile) => OUTPOST_TERRAIN_FACTOR[legacyTerrainOf(ti
 
 /** Founds an outpost for the settler's nation on the settler's tile. Returns the new regions,
  * world and city, or null when the site is not legal. The settler is gone. */
-export const foundOutpost = (state, regions, world, settler, turn) => {
+export const foundOutpost = (state, regions, world, settler, turn, inPlace = false) => {
   const tiles = getTiles();
   const nationId = settler.ownerId;
   const ok = canFoundCity({ cities: regions, tileOwner: world.tileOwner, tileState: world.tileState }, tiles, settler.tile, nationId);
   if (!ok.ok) return null;
-  const r = foundCity({ cities: regions, tileOwner: world.tileOwner, tileState: world.tileState }, tiles, { nationId, tile: settler.tile, size: 1, turn, isCapital: false });
+  const r = foundCity({ cities: regions, tileOwner: world.tileOwner, tileState: world.tileState }, tiles, { nationId, tile: settler.tile, size: 1, turn, isCapital: false, inPlace });
   const city = { ...r.city, founderId: nationId, owner: nationId, control: 100, currentPopulation: 1000, currentInfrastructure: 0, underInvasion: false, unrest: 0, defenseLevel: 0, climateResilience: 0, dev: { tax: 1, production: 1, manpower: 1 }, outpost: { progress: 0, startTurn: turn } };
+  if (inPlace) { regions[city.id] = city; return { regions, world, city }; } // the pass's own copies, written in place
   const nextRegions = { ...r.world.cities, [city.id]: city };
   // Cities the founding took tiles from are already updated in r.world.cities; keep their records.
   Object.keys(nextRegions).forEach((id) => { if (id !== city.id && regions[id]) nextRegions[id] = { ...regions[id], tiles: r.world.cities[id].tiles, worked: r.world.cities[id].worked, locked: r.world.cities[id].locked }; });
@@ -208,7 +231,9 @@ export const processSettlers = (state, regions, units, world, ageById, turn) => 
       const ageId = ageById(settler.ownerId);
       const can = canSettle(view(), settler.tile, settler.ownerId, ageId);
       if (can.ok) {
-        const founded = foundOutpost(view(), nextRegions, nextWorld, settler, turn);
+        // The turn's regions and world are this pass's own copies: foundings write in place (one
+        // copy of 9,000 tiles per founding was the cost of the pass).
+        const founded = foundOutpost(view(), nextRegions, nextWorld, settler, turn, true);
         if (founded) {
           nextRegions = founded.regions; nextWorld = founded.world;
           delete nextUnits[u.id];

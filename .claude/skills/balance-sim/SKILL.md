@@ -43,3 +43,8 @@ src/engine/stateAudit.js for invariant checks inside any test.
 - The AI world is quiet by design (only Tier-1 AI nations declare wars): about 10 wars per 150
   turns is normal. Systems that need wars (pacts, independence) mostly show up around the player.
 - Report to the user as a small before/after table and say plainly what got better or worse.
+
+
+Note: the passive player defaults to France (`PLAYER=fr`), a one-city nation with neighbours that
+often falls to a siege around turn 100 on the frequency-75 grid, which ends the run early (the
+SUMMARY then carries the real turn and status). Use `PLAYER=au` for full-length runs.

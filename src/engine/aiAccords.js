@@ -30,11 +30,17 @@ export const DEMAND_ANSWER_TURNS = 3;
 const atWar = (state, a, b) => (state.wars || []).some((w) => w.active && isWarBetween(w, a, b));
 const related = (nations, a, b) => nations[a]?.vassalOf === b || nations[b]?.vassalOf === a;
 
-/** The nations whose cities touch one of `nationId`'s cities, sorted. */
+/** The nations whose cities touch one of `nationId`'s cities, sorted. The cities-by-nation
+ * index is kept per regions map, so a turn's slot nations share one scan. */
+const byOwnerCache = new WeakMap(); // regions -> Map nationId -> [city]
+const citiesByOwner = (regions) => {
+  let m = byOwnerCache.get(regions);
+  if (!m) { m = new Map(); Object.values(regions).forEach((c) => { if (!c.owner) return; const l = m.get(c.owner); if (l) l.push(c); else m.set(c.owner, [c]); }); byOwnerCache.set(regions, m); }
+  return m;
+};
 export const touchingNations = (state, nationId) => {
   const out = new Set();
-  Object.values(state.regions || {}).forEach((c) => {
-    if (c.owner !== nationId) return;
+  (citiesByOwner(state.regions || {}).get(nationId) || []).forEach((c) => {
     getTouchingIds(c.id).forEach((id) => { const o = state.regions[id]?.owner; if (o && o !== nationId && state.nations?.[o] && !state.nations[o].isEliminated) out.add(o); });
   });
   return [...out].sort();

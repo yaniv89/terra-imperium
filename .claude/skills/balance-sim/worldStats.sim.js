@@ -86,8 +86,10 @@ SEEDS.forEach((seed) => {
         if (owners[r.id] !== undefined && owners[r.id] !== r.owner) { counters.changedHands += 1; if (!r.conquest || r.conquest.turn !== s.turnNumber) counters.flips += 1; }
         owners[r.id] = r.owner;
       });
-      if (t % EVERY === 0 || t === TURNS) {
-        last = snapshot(s, t, counters, (performance.now() - t0) / turnsSince);
+      if (t % EVERY === 0 || t === TURNS || s.gameStatus !== GameStatus.ACTIVE) {
+        // The game ending early (a passive France falls to a siege around turn 100) still prints a
+        // final snapshot with its real status, not the last round number's.
+        last = snapshot(s, t, counters, (performance.now() - t0) / Math.max(1, turnsSince));
         console.log(`STATS seed=${seed} ${Object.entries(last).map(([k, v]) => `${k}=${v}`).join(' ')}`);
         t0 = performance.now(); turnsSince = 0;
       }

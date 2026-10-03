@@ -1935,6 +1935,27 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**Workstream 13, wave 7: performance on the frequency-75 grid (2026-10-03).** Profiled by phase
+at turn 150 (1,181 cities, 1,338 units): the cities phase was 117 ms, the AI economy 30, the
+loyalty pass 27, the diplomacy phase 33 and the siege block 19. What changed: the opinion
+index's "settled next to my cities" rings come from the memoised `ringsAround` instead of a
+breadth-first search per city on every new regions map (25 ms a turn gone from the AI growth
+phase); the siege block rebuilds the registry only when a city changed hands (a breached city
+nobody could take was listed as fallen every turn, 15 ms); the AI's build choice decides on
+settlers once per nation per turn instead of once per city (137 site searches a turn fell to
+about 24, and a nation no longer queued settlers in every city against the same empty count);
+site quality is memoised per world object and passability per search; a founding in the
+settlers pass writes into the pass's own copies (`foundCity` and `foundOutpost` take
+`inPlace`, the too-close index grows incrementally) instead of copying 9,000 tiles per
+outpost; finished units join one copy of the units map; the loyalty pass sums each nation's
+law rules once and shares one state view; stray timing counters left in the AI economy block
+were removed. Turn time at turn 150 over seeds 3, 11, 12 (passive Australia): 382 to 271 ms;
+over 200 turns on seed 3: 439 to 356 ms. Balance within noise (wars 27 to 34, conquests 2 to
+5, cities changed hands 42 to 55, cities 1,146 to 1,138). The balance harness now prints a
+real final snapshot when a run ends early (a passive France often falls around turn 100).
+What remains in the turn: processCities 44 ms (tile allocation 12, claims 10), loyalty 26
+(culture pressure 9, targets 9), AI economy 29 (incomes 11), civil wars and disasters 16.
+
 **B2, the grid at frequency 75 (2026-10-03).** The user's second call on city size: the geodesic
 grid is rebuilt at frequency 75 (`scripts/geo/build-tiles.mjs`, 56,252 cells, 16,523 land,
 hexes about 106 km across instead of 150; the raw inputs come from `npm run fetch:tiles`, the
