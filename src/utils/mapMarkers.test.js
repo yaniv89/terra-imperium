@@ -93,4 +93,18 @@ describe('map markers', () => {
     expect(shortMen(2500000)).toBe('2.5M');
     expect([sizeBand(500), sizeBand(1000), sizeBand(3000)]).toEqual(['small', 'medium', 'large']);
   });
+  it('wonders show on their tile: yours always, a foreign one only in sight or with intel', () => {
+    const s = fresh();
+    const paris = Object.values(s.regions).find((r) => r.owner === 'fr');
+    const berlin = Object.values(s.regions).find((r) => r.owner === 'de');
+    const tiles = getTiles();
+    const mineTile = paris.tiles.find((t) => t !== paris.tile && tiles.land[t] === 1);
+    const theirTile = berlin.tiles.find((t) => t !== berlin.tile && tiles.land[t] === 1);
+    const st = { ...s, greatProjects: { great_wall: { regionId: paris.id, tier: 2, tile: mineTile }, great_pyramids: { regionId: berlin.id, tier: 1, tile: theirTile }, hanging_gardens: { regionId: berlin.id, tier: 1, tile: null } } };
+    const w = getMapMarkers(st).wonders;
+    expect(w.find((x) => x.id === 'great_wall')).toMatchObject({ own: true, tier: 2, tile: mineTile, regionId: paris.id, name: 'The Great Wall' });
+    expect(w.some((x) => x.id === 'hanging_gardens')).toBe(false); // no tile yet: nothing to draw
+    const seen = visibleTiles(st, 'fr').has(theirTile);
+    expect(w.some((x) => x.id === 'great_pyramids')).toBe(seen);
+  });
 });

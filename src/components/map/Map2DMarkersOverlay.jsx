@@ -21,6 +21,7 @@ const describe = (m) => {
   const where = REGIONS_DATA[m.regionId]?.name || m.regionId;
   if (m.kind === 'battle') return `Battle at ${where}: open the report`;
   if (m.kind === 'colony') return `${m.own ? 'Your' : 'A foreign'} colony in ${where}, ${Math.round(m.progress || 0)}% grown`;
+  if (m.kind === 'wonder') return `${m.name} (tier ${m.tier}) at ${where}${m.own ? ', yours' : ''}`;
   if (!m.own) return `${m.kind === 'fleet' ? 'Foreign fleet' : 'Foreign army'} in ${where}`;
   return m.kind === 'fleet' ? `Your fleet in ${where}` : `Your army in ${where}, ${m.men} soldiers${m.supply != null && m.supply < 30 ? `, supply ${m.supply}` : ''}`;
 };

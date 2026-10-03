@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { armyBannerHtml, clusterGlobeItems, clusterScreenMarkers, markerItems, moraleColor } from './mapBanners';
+import { armyBannerHtml, clusterGlobeItems, clusterScreenMarkers, markerItems, markerHtml, moraleColor, wonderBannerHtml } from './mapBanners';
 
 const markers = {
   armies: [{ id: 'a', regionId: 'fr-75', own: true, men: 12000, morale: 80, mainClass: 'infantry', canMove: true }, { id: 'b', regionId: 'es-z', own: false, ownerId: 'es', band: null }],
@@ -28,5 +28,13 @@ describe('map banners', () => {
     const g = clusterGlobeItems([{ key: 'a', kind: 'army', own: true, lat: 48, lng: 2 }, { key: 'b', kind: 'army', own: true, lat: 48.5, lng: 2.5 }, { key: 'c', kind: 'army', own: false, lat: 40, lng: -3 }], 3);
     expect(g[0]).toMatchObject({ kind: 'cluster', count: 2, ownCluster: true });
     expect(g[1].key).toBe('c');
+  });
+  it('a wonder is a monument banner with a pip per tier, yours always, foreign ones only when zoomed in', () => {
+    const own = wonderBannerHtml({ own: true, tier: 2, ownerId: 'fr' });
+    expect(own).toContain('<svg'); expect((own.match(/#fde68a/g) || []).length).toBe(2);
+    const markers = { armies: [], fleets: [], battles: [], colonies: [], wonders: [{ id: 'great_pyramids', regionId: 'c1', ownerId: 'eg', own: false, tier: 1, tile: 5, name: 'The Great Pyramids' }, { id: 'great_wall', regionId: 'c2', ownerId: 'fr', own: true, tier: 3, tile: 9, name: 'The Great Wall' }] };
+    expect(markerItems(markers, false).map((m) => m.key)).toEqual(['wonder:great_wall']);
+    expect(markerItems(markers, true).map((m) => m.key)).toEqual(['wonder:great_wall', 'wonder:great_pyramids']);
+    expect(markerHtml(markers.wonders[1], false)).toContain('<svg');
   });
 });
