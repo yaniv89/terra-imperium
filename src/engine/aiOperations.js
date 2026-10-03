@@ -18,6 +18,8 @@ import { applyCosts, canAfford } from '../utils/helpers';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { landUnitsByTile } from './sieges';
 import { threatenedCities, besiegerStacksBeside, pillageTile, RELIEF_RATIO } from './threat';
+import { playerRouteTiles } from './plunder';
+import { ringsAround } from './world/cities';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -38,7 +40,8 @@ const routeStep = (regions, nationId, from, goals) => {
 // (sieges.js); it assaults when it outweighs the garrison or the walls are under ASSAULT_HP.
 export const ASSAULT_HP = 0.3;
 export const AI_MARCH_STEPS = 40;
-export const ROUTE_RETRY_TURNS = 3; // a stack that found no path to its goal waits this long before searching again
+export const ROUTE_RETRY_TURNS = 3;
+export const AI_RAID_RINGS = 8; // a stack at war with the player with no city goal in reach raids a trade route this close // a stack that found no path to its goal waits this long before searching again
 
 // A besieged AI city's garrison sallies (fieldBattle.js) against the besiegers on one ring-1 tile
 // when it outweighs them by SALLY_RATIO; the player's besiegers get a battle report.
@@ -64,6 +67,16 @@ export const aiSally = (state, nationId, rng) => {
       logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => by.has(state.playerNationId))] };
   }
   return next;
+};
+
+/** The nearest tile of the player's land trade routes within `rings` of `tile`, or null. */
+export const nearestRouteTile = (state, tile, rings) => {
+  const routes = playerRouteTiles(state);
+  if (!routes.size) return null;
+  const near = ringsAround(getTiles(), tile, rings);
+  let best = null; let bestD = Infinity;
+  routes.forEach((t) => { const d = near.get(t); if (d !== undefined && (d < bestD || (d === bestD && t < best))) { best = t; bestD = d; } });
+  return best;
 };
 
 export const processAIOperations = (state, rng) => {
@@ -180,12 +193,20 @@ export const processAIOperations = (state, rng) => {
             logs: next.regions[raid.cityId]?.owner === state.playerNationId ? [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} pillages the land of ${next.regions[raid.cityId].name} (${tiles.names[at] || 'a tile'}).` }] : next.logs };
           continue;
         }
-        if (!goal || next.regions[goal]?.tile == null) continue;
         const actor = { ...next, playerNationId: nationId };
         const failed = stack[0].routeFailed;
-        if (failed && failed.goal === goal && failed.until > state.turnNumber) continue; // searched lately, nothing found
-        const path = findTilePath(actor, at, next.regions[goal].tile, nationId, { maxSteps: AI_MARCH_STEPS });
-        if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
+        // A city goal first; with none in reach and the player among the enemies, the nearest tile
+        // of the player's trade routes (plunder.js): standing on it cuts and plunders the route.
+        let target = goal && next.regions[goal]?.tile != null ? next.regions[goal].tile : null;
+        let goalKey = goal || null;
+        if ((!target || (failed && failed.goal === goal && failed.until > state.turnNumber)) && enemies.has(state.playerNationId)) {
+          const raid = nearestRouteTile(next, at, AI_RAID_RINGS);
+          if (raid != null && raid !== at) { target = raid; goalKey = `raid:${raid}`; }
+        }
+        if (target == null) continue;
+        if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue; // searched lately, nothing found
+        const path = findTilePath(actor, at, target, nationId, { maxSteps: AI_MARCH_STEPS });
+        if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
         const pace = stackPace(stack);
         stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });
         marching = true;

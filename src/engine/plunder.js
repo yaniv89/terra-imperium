@@ -90,3 +90,14 @@ export const plunderedRoutes = (state) => {
 
 /** Gold a plunderer takes from one route, doubled by Chieftaincy (lawRules.js pillageGoldMult). */
 export const plunderGoldFor = (state, nationId) => Math.round(PLUNDER_GOLD * Math.max(0, 1 + (lawRulesOf(state.nations?.[nationId]).pillageGoldMult || 0)));
+
+/** Every tile of the player's open land trade routes (a raider's targets): a Set. */
+export const playerRouteTiles = (state) => {
+  const out = new Set();
+  Object.values(state.nations || {}).forEach((n) => {
+    if (n.isPlayer || !n.hasTradeAgreement || n.isEliminated) return;
+    const r = getTradeRoute(state, n.id);
+    if (r.ok && r.kind === 'land') r.tiles.forEach((t) => out.add(t));
+  });
+  return out;
+};

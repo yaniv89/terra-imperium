@@ -1918,6 +1918,15 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**AI building templates and raids on the player's routes (2026-10-03).** An AI city's queue now
+builds its lines in its nation's doctrine order (`buildingOrder`: DOCTRINE_BUILDING_PRIORITY
+first, the rest after; aiProduction.js), so a blitz nation raises barracks before granaries and
+a cautious one walls first. In the war loop (aiOperations.js) a stack at war with the player
+that has no city goal in reach (no front, or its route search failed) marches to the nearest
+tile of the player's land trade routes within AI_RAID_RINGS (8) (`nearestRouteTile`,
+plunder.js `playerRouteTiles`); standing on it cuts the route and takes PLUNDER_GOLD each turn.
+Tests in aiProduction.test.js and aiOperations.test.js. Still open in D6: the dice calibration.
+
 **E7, the deployment zone drawn (2026-10-03).** `src/battle/render/deployZone.js` lists dots
 along the player's zone edge (ZONE_DOT_STEP 0.5 tiles) and `BattleRenderer.setDeployZone` lays
 them on the ground as small decals that follow the terrain (green for the attacker, blue for
