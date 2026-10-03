@@ -84,3 +84,39 @@ describe('AI accords (plan C6)', () => {
     assertGameState(s);
   });
 });
+
+describe('AI demands for a city and a stop to settling (plan C6)', () => {
+  it('a claim turns the demand into one for the city; the player can yield it, refuse it, or promise to stop settling', async () => {
+    const { demandKind } = await import('./aiAccords');
+    const { addCity } = await import('./testWorld');
+    const bully = touchingNations(S, 'au')[0];
+    if (!bully) return;
+    // A second Australian city the bully claims (never the capital).
+    const added = addCity(S, 'au', { near: S.nations.au.capitalRegionId });
+    let s = added.state;
+    s = { ...s, nations: { ...s.nations, [bully]: { ...s.nations[bully], claims: [added.cityId], militaryStrength: 50000 }, au: { ...s.nations.au, militaryStrength: 100 } }, units: {} };
+    expect(demandKind(s, bully, 'au')).toEqual({ kind: 'city', cityId: added.cityId });
+    const t2 = onSlot(s, bully);
+    const pressed = { ...s, turnNumber: t2 };
+    const r = processAIAccords(pressed, pressed.nations, { turn: t2, sortedByMilitary: getSortedByMilitary(pressed) });
+    expect(r.pendingDemand).toMatchObject({ from: bully, kind: 'city', cityId: added.cityId });
+    const withDemand = { ...pressed, nations: r.nations, pendingDemand: r.pendingDemand };
+    expect(nextPrompts(withDemand).find((p) => p.kind === 'demand').label).toContain(s.regions[added.cityId].name);
+    const yielded = gameReducer(withDemand, { type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } });
+    expect(yielded.regions[added.cityId].owner).toBe(bully);
+    expect(yielded.pendingDemand).toBeNull();
+    expect(yielded.nations[bully].claims).not.toContain(added.cityId);
+    assertGameState(yielded);
+    const refused = gameReducer(withDemand, { type: ActionTypes.ANSWER_DEMAND, payload: { accept: false } });
+    expect(refused.regions[added.cityId].owner).toBe('au');
+    expect(hasDemandCasusBelli(refused, bully, 'au')).toBe(true);
+    // Without a claim, a nation settled next to is asked to stop; the promise bars its sites.
+    const noClaim = { ...withDemand, pendingDemand: null, nations: { ...withDemand.nations, [bully]: { ...withDemand.nations[bully], claims: [] } } };
+    const kind = demandKind(noClaim, bully, 'au');
+    expect(['stopSettling', 'tribute']).toContain(kind.kind);
+    const stop = { ...noClaim, pendingDemand: { from: bully, kind: 'stopSettling', cityId: null, amount: 0, turn: t2, until: t2 + 3 } };
+    const promised = gameReducer(stop, { type: ActionTypes.ANSWER_DEMAND, payload: { accept: true } });
+    expect(promised.nations.au.noSettleNear[bully]).toBe(t2 + 50);
+    expect(promised.logs[promised.logs.length - 1].message).toMatch(/promise/);
+  });
+});
