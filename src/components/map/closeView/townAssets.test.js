@@ -30,6 +30,14 @@ describe('artist town models', () => {
     expect(townAssetUrl('modern', 'small')).toBeNull();
   });
 
+  it('gives East Asia the Han towns and everyone else the Roman ones in the Classical Age', () => {
+    expect(townAssetUrl('classical', 'medium', 0, 'cn')).toMatch(/classical-town-medium-b/);
+    expect(townAssetUrl('classical', 'small', 0, 'jp')).toMatch(/classical-town-small-b/);
+    expect(townAssetUrl('classical', 'medium', 1, 'it')).toMatch(/classical-town-medium-a/);
+    expect(townAssetUrl('classical', 'medium', 1, 'eg')).toMatch(/classical-town-medium-a/);
+    expect(sharedAssetUrl('classical')).toMatch(/shared-classical/);
+  });
+
   it('picks LOD2 below k 20, LOD1 below 40, LOD0 from 40', () => {
     expect([10, 19.9, 20, 39, 40, 150].map(lodForZoom)).toEqual([2, 2, 1, 1, 0, 0]);
   });

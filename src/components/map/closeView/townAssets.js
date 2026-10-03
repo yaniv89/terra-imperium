@@ -67,20 +67,27 @@ export const COLONY_CAMP = 'colony-camp';
 /** An outpost (a settler's new city that is still growing) or a colony with no owner yet. */
 export const isCamp = (region) => !!region && (!!region.outpost || (!region.owner && !!region.colony));
 
-// Until the regional kits arrive (art spec section 3b), the two variants carry two traditions:
-// a is Mesopotamian, b is Egyptian. Nations of those lands get their own; everyone else mixes
-// both by city so neighbours differ.
+// Until the regional kits arrive (art spec section 3b), each age's two variants carry two
+// traditions. Bronze: a is Mesopotamian, b Egyptian; nations of those lands get their own and
+// everyone else mixes both by city so neighbours differ. Classical: a is Roman, b Han Chinese;
+// East Asia builds b, everyone else a.
 export const TOWN_VARIANT_BY_NATION = {
   eg: 'b', sd: 'b', ss: 'b', ly: 'b', er: 'b',
   iq: 'a', sy: 'a', kw: 'a', ir: 'a', jo: 'a', il: 'a', ps: 'a', lb: 'a', tr: 'a', sa: 'a', bh: 'a', qa: 'a', ae: 'a', om: 'a', ye: 'a'
 };
+const EAST_ASIA = ['cn', 'tw', 'hk', 'mo', 'kr', 'kp', 'jp', 'mn', 'vn', 'la', 'kh', 'th', 'mm'];
+export const TOWN_VARIANT_BY_AGE = {
+  bronze: { byNation: TOWN_VARIANT_BY_NATION },
+  classical: { byNation: Object.fromEntries(EAST_ASIA.map((id) => [id, 'b'])), others: 'a' }
+};
 
 /** The model for a town of this age and size, or null. The nation's tradition picks the variant
- * when one is set; otherwise `seed` picks a or b when both exist. */
+ * when the age sets one; otherwise `seed` picks a or b when both exist. */
 export const townAssetUrl = (ageId, tierId, seed = 0, nationId = null) => {
   const v = BY_KEY[`${ageId}:${tierId}`];
   if (!v) return null;
-  const pinned = nationId && v[TOWN_VARIANT_BY_NATION[nationId]];
+  const rule = TOWN_VARIANT_BY_AGE[ageId];
+  const pinned = nationId && rule && v[rule.byNation[nationId] || rule.others];
   if (pinned) return pinned;
   if (v.a && v.b) return seed % 2 ? v.b : v.a;
   return v.a || v.b;
