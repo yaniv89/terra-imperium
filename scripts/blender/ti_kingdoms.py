@@ -168,7 +168,7 @@ def mat_fruit_leaf(name):
     return mat
 
 
-def mat_ringstone(name, stone=('#7c7871', '#5f5c57'), mortar='#8e897f', bond=(0.045, 0.024, 0.0032)):
+def mat_ringstone(name, stone=('#6e6b66', '#56534e'), mortar='#7d786f', bond=(0.045, 0.024, 0.0032)):
     """Masonry for walls swept round the origin: the brick bond laid on (arc length, z), so the
     courses run evenly round a ring wall (an (x + y, z) bond smears into bands on a curve)."""
     import bpy
@@ -222,10 +222,10 @@ def make_materials_kg():
     tm.mat_mudwall('kg_stone', wash='#b8ab92', brick='#b3a78f', brick2='#9d917b', mortar='#7a7062', wash_cover=0.0,
                    bond=(0.06, 0.03, 0.004))
     # the castle and wall masonry: grey stones in pale lime mortar
-    tm.mat_mudwall('kg_wallstone', wash='#7a766f', brick='#7c7871', brick2='#5f5c57', mortar='#8e897f', wash_cover=0.0,
+    tm.mat_mudwall('kg_wallstone', wash='#7a766f', brick='#6e6b66', brick2='#56534e', mortar='#7d786f', wash_cover=0.0,
                    bond=(0.045, 0.024, 0.0032))
-    tm.mat_mudwall('kg_shingle', wash='#6a5d4c', brick='#6f6150', brick2='#5a4f42', mortar='#3a322a', wash_cover=0.0,
-                   bond=(0.014, 0.008, 0.0016))
+    tm.mat_simple('kg_shingle', ['#5a4e40', '#74675a', '#4c4136', '#6a6050'], scale=40.0,
+                  stripes={'dir': 'Z', 'scale': 140.0, 'distortion': 1.5}, bump=0.6)
     tm.mat_mudwall('kg_planks', wash='#4e3e2e', brick='#54432f', brick2='#47392a', mortar='#2a2018', wash_cover=0.0,
                    bond=(0.022, 2.0, 0.0022))
     tm.mat_earth('kg_turf', colors=('#3f5a22', '#55702c', '#7a6a40', '#4a6526'))
@@ -1189,9 +1189,12 @@ def palace_small(ms, rng):
     X-braced door under a steep shingle roof, a team pennant over the ridge, a timber stair with
     rails up the south slope. 11 m across, 10 m to the flag."""
     R0, R1, MH = 0.56, 0.37, 0.22
-    prof = [(R0, G - 0.004), (R0 - 0.035, G + 0.03), (R0 - 0.09, G + 0.085), (R1 + 0.09, G + 0.15), (R1 + 0.035, G + MH - 0.012), (R1, G + MH)]
+    prof = []
+    for i in range(9):  # a smooth shoulder: a cosine profile from the foot to the plateau
+        t = i / 8
+        prof.append((R0 - (R0 - R1) * t, G - 0.004 + (MH + 0.004) * (0.5 - 0.5 * math.cos(math.pi * t))))
     lathe2(ms, 'kg_turf', prof, segs=28, lod=0)
-    lathe2(ms, 'kg_turf', prof[::2] + [prof[-1]], segs=14, lod=1, only=1)
+    lathe2(ms, 'kg_turf', prof[::2], segs=14, lod=1, only=1)
     ms.cyl('kg_turf', R0, R1, MH + 0.004, at=(0, 0, G - 0.004), segs=8, lod=2, only=2)
     top = G + MH
     # the palisade, open at the south for the stair
