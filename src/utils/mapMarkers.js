@@ -8,6 +8,7 @@
 //   player could plausibly see them: in or next to the player's land (or next to a player army),
 //   in an ally's or vassal's land, or anywhere of a nation the player has intel on. Elsewhere: fog.
 import { REGIONS_DATA, getNeighborIds } from '../data/regions';
+import { GREAT_PROJECTS } from '../data/greatProjects';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { MEN_PER_STRENGTH } from '../engine/aftermath';
 import { hasIntel } from '../engine/intel';
@@ -94,7 +95,12 @@ export const getMapMarkers = (state) => {
     const c = state.regions[id].colony;
     return { id, regionId: id, ownerId: c.ownerId, own: c.ownerId === me, progress: c.progress };
   }).filter((c) => c.own || sight.has(state.regions[c.regionId]?.tile) || hasIntel(state, c.ownerId));
-  return { armies, fleets, battles, colonies };
+  // Wonders on their tiles (plan C9): yours always, others where you can see or have intel.
+  const wonders = Object.entries(state.greatProjects || {}).filter(([, p]) => p && p.tile != null && state.regions[p.regionId]).map(([projectId, p]) => {
+    const ownerId = state.regions[p.regionId].owner;
+    return { id: projectId, regionId: p.regionId, ownerId, own: ownerId === me, tier: p.tier || 1, tile: p.tile, name: GREAT_PROJECTS[projectId]?.name || projectId };
+  }).filter((w) => w.own || sight.has(w.tile) || hasIntel(state, w.ownerId));
+  return { armies, fleets, battles, colonies, wonders };
 };
 
 // "12k", "850": short soldier counts for a banner.

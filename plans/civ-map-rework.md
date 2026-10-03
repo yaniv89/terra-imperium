@@ -1935,6 +1935,13 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**C9, wonders drawn on the map (2026-10-03).** A wonder that has a tile (rising or complete)
+is a marker on both maps (`getMapMarkers` wonders, `wonderBannerHtml`): a monument on a plinth
+in the owner's colour with a pip per tier, yours always, a foreign one in sight or with intel
+and only at the zoom that shows foreign banners; tapping it opens the city card. Models at
+close zoom wait for art: the CC0 import pipeline (`npm run import:models`) can take them when
+the user supplies the packs. Tests in mapBanners.test.js and mapMarkers.test.js.
+
 **E4 and E3, orders from the army sheet and the "warn me" gate (2026-10-03).** The army
 sheet now lists what the stack can attack from its tile (`attackTargets`): every enemy stack
 and enemy city on the six tiles around, with its strength, as an Attack or Assault button
