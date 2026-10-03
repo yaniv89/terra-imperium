@@ -3,6 +3,7 @@
 // once from the state: science per turn, the current tech with its progress and turns left, the
 // queue with when each would finish, and a tech's effect in plain words. Pure.
 import { boostOf } from '../../engine/boosts';
+import { TechCategories } from '../../data/types';
 import { TECH_TREE } from '../../data/techTree';
 import { AGES, AGE_ORDER } from '../../data/ages';
 import { calcIncome } from '../../utils/helpers';
@@ -86,3 +87,39 @@ export const getResearchView = (state) => {
 };
 
 export const formatTurns = (n) => (n === Infinity ? 'no science' : `${n} turn${n === 1 ? '' : 's'}`);
+
+// The research web (plan C3.1): one column per step of a line (two per age), one row per line,
+// every prerequisite an edge. Pure; TechPanel draws it as an SVG.
+export const GRAPH_COL_W = 150;
+export const GRAPH_ROW_H = 64;
+export const GRAPH_NODE_W = 132;
+export const GRAPH_NODE_H = 44;
+export const techGraph = (state) => {
+  const lines = Object.values(TechCategories);
+  const science = getSciencePerTurn(state);
+  const nodes = [];
+  const byId = new Map();
+  lines.forEach((category, row) => {
+    Object.values(TECH_TREE).filter((t) => t.category === category).sort((a, b) => a.yearAvailable - b.yearAvailable).forEach((tech, col) => {
+      const info = techInfo(state, tech.id, science);
+      const node = { id: tech.id, name: tech.name, category, row, col, ageId: tech.ageId, x: col * GRAPH_COL_W, y: row * GRAPH_ROW_H, status: info.researched ? 'researched' : info.current ? 'current' : info.queuedAt >= 0 ? 'queued' : info.canStart ? 'available' : 'locked', turns: info.turns, cost: info.cost, reason: info.reason };
+      nodes.push(node); byId.set(tech.id, node);
+    });
+  });
+  const edges = [];
+  // A prerequisite in the same column (same year, another line) is drawn vertically between the
+  // node edges; every other one runs from the right edge of the prerequisite to the left edge.
+  nodes.forEach((n) => (TECH_TREE[n.id].prerequisites || []).forEach((p) => {
+    const from = byId.get(p);
+    if (!from) return;
+    const edge = { from: from.id, to: n.id, cross: from.row !== n.row };
+    if (from.col === n.col) {
+      const down = n.row > from.row;
+      Object.assign(edge, { x1: from.x + GRAPH_NODE_W / 2, y1: from.y + (down ? GRAPH_NODE_H : 0), x2: n.x + GRAPH_NODE_W / 2, y2: n.y + (down ? 0 : GRAPH_NODE_H) });
+    } else Object.assign(edge, { x1: from.x + GRAPH_NODE_W, y1: from.y + GRAPH_NODE_H / 2, x2: n.x, y2: n.y + GRAPH_NODE_H / 2 });
+    edges.push(edge);
+  }));
+  const cols = Math.max(...nodes.map((n) => n.col)) + 1;
+  const ages = AGE_ORDER.map((ageId, i) => ({ ageId, name: AGES[ageId]?.name || ageId, x: i * 2 * GRAPH_COL_W, width: 2 * GRAPH_COL_W }));
+  return { nodes, edges, width: cols * GRAPH_COL_W, height: lines.length * GRAPH_ROW_H, ages, rows: lines };
+};

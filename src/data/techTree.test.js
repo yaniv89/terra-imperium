@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { TECH_TREE, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from './techTree';
+import { TECH_TREE, CROSS_PREREQUISITES, getTechsByCategory, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from './techTree';
+import { techGraph } from '../components/panels/researchView';
+import { createInitialState } from '../engine/gameReducer';
 import { canStartTech, RESEARCH_AGE_BASE } from '../engine/research';
 import { AGE_ORDER } from './ages';
 import { TechCategories } from './types';
@@ -91,6 +93,34 @@ describe('real TECH_TREE content integrity', () => {
     });
   });
 
+  it('the tech web (plan C3): every cross prerequisite is a tech of another line and an earlier or same year', () => {
+    const byName = Object.fromEntries(Object.values(TECH_TREE).map((t) => [t.name, t]));
+    const crossCount = Object.values(CROSS_PREREQUISITES).reduce((n, list) => n + list.length, 0);
+    expect(crossCount).toBeGreaterThanOrEqual(15);
+    Object.entries(CROSS_PREREQUISITES).forEach(([name, needs]) => {
+      const tech = byName[name];
+      expect(tech, name).toBeDefined();
+      needs.forEach((needName) => {
+        const need = byName[needName];
+        expect(need, `${name} needs unknown ${needName}`).toBeDefined();
+        expect(need.category, `${name} -> ${needName} must cross lines`).not.toBe(tech.category);
+        expect(need.yearAvailable, `${name} -> ${needName} must not point forward`).toBeLessThanOrEqual(tech.yearAvailable);
+        expect(tech.prerequisites).toContain(need.id);
+      });
+    });
+    // No cycles: every prerequisite chain ends.
+    const seen = new Set();
+    const walk = (id, stack) => { expect(stack.has(id), `cycle at ${id}`).toBe(false); if (seen.has(id)) return; stack.add(id); TECH_TREE[id].prerequisites.forEach((p) => walk(p, stack)); stack.delete(id); seen.add(id); };
+    Object.keys(TECH_TREE).forEach((id) => walk(id, new Set()));
+  });
+
+  it('a tech with a cross prerequisite needs the other line too (Siege Engineering needs Geometry)', () => {
+    const siege = TECH_TREE.military_siege_engineering;
+    const own = siege.prerequisites.filter((p) => TECH_TREE[p].category === 'military');
+    expect(canStartTech(siege.id, new Set(own), 3000).ok).toBe(false);
+    expect(canStartTech(siege.id, new Set(siege.prerequisites), 3000).ok).toBe(true);
+  });
+
   it('yearAvailable strictly increases along each category\'s chain', () => {
     Object.values(TechCategories).forEach(category => {
       const chain = Object.values(TECH_TREE)
@@ -139,5 +169,25 @@ describe('getTechsByCategory', () => {
       const years = categories[category].techs.map(t => t.yearAvailable);
       expect(years).toEqual([...years].sort((a, b) => a - b));
     });
+  });
+});
+
+describe('techGraph (the research web view)', () => {
+  it('lays out 5 rows of 10 columns with one edge per prerequisite and the cross edges marked', () => {
+    const state = createInitialState({ playerNationId: 'fr', rngSeed: 11 });
+    const graph = techGraph(state);
+    expect(graph.nodes.length).toBe(50);
+    expect(graph.rows.length).toBe(5);
+    expect(new Set(graph.nodes.map((n) => n.col)).size).toBe(10);
+    const prereqCount = Object.values(TECH_TREE).reduce((n, t) => n + t.prerequisites.length, 0);
+    expect(graph.edges.length).toBe(prereqCount);
+    const crossCount = Object.values(CROSS_PREREQUISITES).reduce((n, list) => n + list.length, 0);
+    expect(graph.edges.filter((e) => e.cross).length).toBe(crossCount);
+    graph.edges.forEach((e) => expect(e.x2 > e.x1 || (e.x1 === e.x2 && e.y1 !== e.y2), `${e.from} -> ${e.to} runs forward or vertically`).toBe(true));
+    expect(graph.ages.length).toBe(5);
+    expect(graph.width).toBe(graph.ages[4].x + graph.ages[4].width);
+    const statuses = new Set(graph.nodes.map((n) => n.status));
+    expect(statuses.has('locked')).toBe(true);
+    expect(graph.nodes.filter((n) => n.status === 'available' || n.status === 'current').length).toBeGreaterThan(0);
   });
 });

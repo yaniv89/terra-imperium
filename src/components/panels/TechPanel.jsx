@@ -4,7 +4,7 @@
 // nothing: science pays for it at the end of each turn, and the rest carries into the next one.
 // "Research" makes a tech the target (queuing its missing earlier techs first); "Queue" adds it
 // after what's already planned. Fund Scholars and Research Focus feed the same science.
-import React from 'react';
+import React, { useState } from 'react';
 import { Beaker, BookOpen, GraduationCap, Check, Lock, X, ListPlus, Sparkles } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { useEffects } from '../../context/EffectsContext';
@@ -16,7 +16,7 @@ import { getAgesBehind, getAgesBehindResearchCostMultiplier } from '../../data/a
 import { canAfford } from '../../utils/helpers';
 import { FOCUS_SCIENCE_BONUS } from '../../engine/research';
 import { ActionButton, CollapsibleSection } from '../ui';
-import { describeTech, formatTurns, getResearchView, getSciencePerTurn, techInfo } from './researchView';
+import { describeTech, formatTurns, getResearchView, getSciencePerTurn, techInfo, techGraph, GRAPH_NODE_W, GRAPH_NODE_H } from './researchView';
 
 export const CATEGORY_LABELS = {
   [TechCategories.MILITARY]: 'Military',
@@ -64,6 +64,7 @@ const TechPanel = () => {
   const categories = getTechsByCategory();
   const view = getResearchView(state);
   const science = getSciencePerTurn(state);
+  const [web, setWeb] = useState(false); // the research web (plan C3.1) or the lines as lists
   const agesBehind = getAgesBehind(state.age, state.techAgeId);
   const agesBehindMult = getAgesBehindResearchCostMultiplier(agesBehind);
 
@@ -89,7 +90,9 @@ const TechPanel = () => {
   return (
     <div className="space-y-3" data-testid="research-tab">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-white font-bold text-lg"><Beaker size={20} className="text-purple-400" /> Research</div>
+        <div className="flex items-center gap-2 text-white font-bold text-lg"><Beaker size={20} className="text-purple-400" /> Research
+          <button type="button" onClick={() => setWeb((v) => !v)} className={`ml-2 min-h-[36px] px-2.5 rounded-lg text-[11px] font-semibold border ${web ? 'bg-purple-700/60 border-purple-400 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}`} data-testid="research-web-toggle">{web ? 'Lines' : 'Web'}</button>
+        </div>
         <div className="text-right">
           <div className="text-sm font-bold text-purple-300 font-mono">+{science} science/turn</div>
           {view.bank > 0 && <div className="text-[10px] text-slate-400">{view.bank} banked</div>}
@@ -133,6 +136,29 @@ const TechPanel = () => {
         </label>
       </div>
 
+      {web && (() => {
+        const g = techGraph(state);
+        const fill = { researched: '#065f46', current: '#6d28d9', queued: '#1e3a8a', available: '#1f2937', locked: '#0f172a' };
+        const stroke = { researched: '#34d399', current: '#c4b5fd', queued: '#93c5fd', available: '#94a3b8', locked: '#334155' };
+        const act = (n) => { if (n.status === 'available') research(n.id); else if (n.status === 'locked') queue(n.id); else if (n.status === 'queued') unqueue(n.id); };
+        return (
+          <div className="overflow-x-auto rounded-lg border border-slate-700 bg-slate-900/60" data-testid="research-web">
+            <svg width={g.width + 16} height={g.height + 36} viewBox={`-8 -28 ${g.width + 16} ${g.height + 36}`} role="img" aria-label="The research web">
+              {g.ages.map((a) => <text key={a.ageId} x={a.x + a.width / 2} y={-12} textAnchor="middle" fontSize="11" fill="#94a3b8">{a.name}</text>)}
+              {g.ages.map((a, i) => i > 0 && <line key={`v${a.ageId}`} x1={a.x - 9} y1={-24} x2={a.x - 9} y2={g.height} stroke="#1e293b" strokeDasharray="3 3" />)}
+              {g.edges.map((e) => <path key={`${e.from}-${e.to}`} d={`M ${e.x1} ${e.y1} C ${e.x1 + 24} ${e.y1}, ${e.x2 - 24} ${e.y2}, ${e.x2} ${e.y2}`} fill="none" stroke={e.cross ? '#f59e0b' : '#475569'} strokeWidth={e.cross ? 1.5 : 1} opacity={0.9} />)}
+              {g.nodes.map((n) => (
+                <g key={n.id} transform={`translate(${n.x} ${n.y})`} onClick={() => act(n)} style={{ cursor: 'pointer' }} data-testid={`web-${n.id}`} data-status={n.status}>
+                  <rect width={GRAPH_NODE_W} height={GRAPH_NODE_H} rx="8" fill={fill[n.status]} stroke={stroke[n.status]} strokeWidth={n.status === 'current' ? 2 : 1} />
+                  <text x={8} y={18} fontSize="11" fontWeight="700" fill="#f1f5f9">{n.name.length > 20 ? `${n.name.slice(0, 19)}…` : n.name}</text>
+                  <text x={8} y={34} fontSize="10" fill="#cbd5e1">{n.status === 'researched' ? 'done' : n.status === 'current' ? `researching · ${formatTurns(n.turns)}` : n.status === 'queued' ? 'queued' : n.status === 'available' ? `${n.cost} science · ${formatTurns(n.turns)}` : 'locked'}</text>
+                </g>
+              ))}
+            </svg>
+            <div className="px-2 py-1 text-[10px] text-slate-500">Tap an available tech to research it, a locked one to queue it. Amber lines cross between lines.</div>
+          </div>
+        );
+      })()}
       {agesBehind > 0 && (
         <div className="text-[11px] text-amber-400 rounded-lg border border-amber-700/40 p-2">
           {agesBehind} age{agesBehind === 1 ? '' : 's'} behind the calendar: research costs +{Math.round((agesBehindMult - 1) * 100)}%, and your units fight at a disadvantage against anyone more advanced.
