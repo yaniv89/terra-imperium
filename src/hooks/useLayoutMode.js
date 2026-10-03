@@ -5,8 +5,9 @@
 //                      bottom tab bar and bottom sheets
 //   'phone-landscape'  a phone held sideways (short side <= 500 px): a slim top bar, a tab rail on
 //                      the right edge, docked side panels, the map kept in the middle
-//   'phone-portrait'   a phone held upright: the game asks to be rotated (RotateOverlay), unless the
-//                      player chose to play in portrait anyway, which uses the 'tablet' layout
+//   'phone-portrait'   a phone held upright: the empire view plays with the map on top and half
+//                      sheets below (the bottom-bar layout, useIsMobile), with a soft hint to turn
+//                      the phone (RotateOverlay); battles ask to rotate for real
 // The mode is also written to <html data-layout="…"> so CSS can follow it: the `pl:` Tailwind
 // variant (tailwind.config.js) and the .sheet-backdrop / .sheet-panel rules in index.css.
 import { useSyncExternalStore } from 'react';
@@ -15,25 +16,21 @@ export const PHONE_SHORT_SIDE_MAX = 500;
 // A wide but short desktop window is not a phone.
 const PHONE_LONG_SIDE_MAX = 1000;
 const DESKTOP_MIN_WIDTH = 1024;
-export const PORTRAIT_OK_STORAGE_KEY = 'terra-imperium-portrait-ok';
+// The rotate hint, once dismissed, stays dismissed per browser.
+export const ROTATE_HINT_STORAGE_KEY = 'terra-imperium-portrait-ok';
 
-export const getLayoutMode = (width, height, portraitOk = false) => {
+export const getLayoutMode = (width, height) => {
   const short = Math.min(width, height);
   const long = Math.max(width, height);
   const phone = short <= PHONE_SHORT_SIDE_MAX && long <= PHONE_LONG_SIDE_MAX;
   if (phone && width > height) return 'phone-landscape';
-  if (phone) return portraitOk ? 'tablet' : 'phone-portrait';
+  if (phone) return 'phone-portrait';
   return width >= DESKTOP_MIN_WIDTH ? 'desktop' : 'tablet';
 };
 
-const readPortraitOk = () => {
-  try { return localStorage.getItem(PORTRAIT_OK_STORAGE_KEY) === '1'; } catch { return false; }
-};
-
-let portraitOk = typeof window !== 'undefined' ? readPortraitOk() : false;
 const listeners = new Set();
 
-const compute = () => (typeof window === 'undefined' ? 'desktop' : getLayoutMode(window.innerWidth, window.innerHeight, portraitOk));
+const compute = () => (typeof window === 'undefined' ? 'desktop' : getLayoutMode(window.innerWidth, window.innerHeight));
 
 let current = compute();
 const publish = () => {
@@ -63,10 +60,15 @@ const subscribe = (listener) => {
 
 export const useLayoutMode = () => useSyncExternalStore(subscribe, () => current, () => 'desktop');
 
-// "Play in portrait anyway": remembered per browser, switches a phone held upright to the
-// tablet layout (the game's original phone layout) instead of the rotate screen.
-export const allowPortrait = () => {
-  portraitOk = true;
-  try { localStorage.setItem(PORTRAIT_OK_STORAGE_KEY, '1'); } catch { /* storage disabled: lasts this session */ }
-  publish();
+// The rotate hint (RotateOverlay): shown on a phone held upright until dismissed, remembered per
+// browser. Dismissing changes no layout: portrait plays the empire view either way.
+let hintDismissed = (() => { try { return typeof localStorage !== 'undefined' && localStorage.getItem(ROTATE_HINT_STORAGE_KEY) === '1'; } catch { return false; } })();
+const hintListeners = new Set();
+export const isRotateHintDismissed = () => hintDismissed;
+export const dismissRotateHint = () => {
+  hintDismissed = true;
+  try { localStorage.setItem(ROTATE_HINT_STORAGE_KEY, '1'); } catch { /* storage disabled: lasts this session */ }
+  hintListeners.forEach((l) => l());
 };
+const subscribeHint = (l) => { hintListeners.add(l); return () => hintListeners.delete(l); };
+export const useRotateHintDismissed = () => useSyncExternalStore(subscribeHint, () => hintDismissed, () => true);

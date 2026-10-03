@@ -335,6 +335,12 @@ svg path {
   margin-right: env(safe-area-inset-right);
 }
 
+/* Phone held upright (E2): the map on top, a half sheet below, so the globe stays in view while a
+   city, tile or army sheet is open. */
+[data-layout="phone-portrait"] .sheet-panel {
+  max-height: 52dvh;
+}
+
 /* Map markers (plan §4a): army, fleet and battle banners on the flat map and the globe
    (src/components/map/mapBanners.js). Positioned by the overlay; drawn at screen scale. */
 .map-banner {
