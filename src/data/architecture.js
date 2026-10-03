@@ -27,5 +27,20 @@ export const styleOfNation = (nationId) => (nationId && BY_NATION[nationId]) || 
 // before that they show the land's own kit (section 3b.2).
 const BEFORE_SETTLEMENT = { us: 'americas', ca: 'americas', bm: 'americas', pm: 'americas', gl: 'americas', fk: 'americas', gs: 'americas', au: 'monsoon', nz: 'monsoon', nf: 'monsoon', pn: 'monsoon', hm: 'monsoon', tf: 'monsoon' };
 const EARLY_AGES = new Set(['bronze', 'classical', 'kingdoms']);
+// From the Kingdoms Age the Orthodox east of Europe builds its own churches (onion domes): a
+// sub-style that falls back to 'europe' wherever it has no model of its own.
+const EAST_EUROPE = new Set(['ru', 'ua', 'by', 'md', 'ro', 'bg', 'rs', 'mk', 'me']);
+const BEFORE_EAST = new Set(['bronze', 'classical']);
+export const STYLE_FALLBACK = { easteurope: 'europe' };
 /** The style a city on this nation's land is drawn in, in this age. */
-export const styleOfLand = (nationId, ageId) => (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) || styleOfNation(nationId);
+export const styleOfLand = (nationId, ageId) => {
+  if (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) return BEFORE_SETTLEMENT[nationId];
+  if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
+  return styleOfNation(nationId);
+};
+/** A style and the styles it falls back to, most specific first: ['easteurope', 'europe']. */
+export const styleChain = (style) => {
+  const out = [];
+  for (let s = style; s && !out.includes(s); s = STYLE_FALLBACK[s]) out.push(s);
+  return out;
+};

@@ -11,6 +11,7 @@
 // the colony camp that stands in place of a town on an outpost.
 import { Color } from 'three';
 import { loadGltf } from '../../../battle/render/gltfUnitLoader';
+import { styleChain } from '../../../data/architecture';
 
 // { '../../../assets/map/towns/bronze-town-small-a.glb': '/terra-imperium/assets/bronze-town-small-a-abc123.glb' }
 // A file may carry a regional kit after the variant: bronze-town-small-a-europe.glb is layout a
@@ -22,15 +23,24 @@ Object.entries(FILES).forEach(([path, url]) => {
   if (m) ((BY_KEY[`${m[1]}:${m[2]}`] ||= {})[m[4] || 'base'] ||= {})[m[3]] = url;
 });
 
-// { bronze: '/terra-imperium/assets/shared-bronze-abc123.glb' }
+// { bronze: { base: '/terra-imperium/assets/shared-bronze-abc123.glb' }, kingdoms: { base, europe } }
+// A regional shared file (shared-kingdoms-europe.glb) holds what that region's kit replaces
+// (its palaces, its walls); everything else comes from the age's base file.
 const SHARED_FILES = import.meta.glob('../../../assets/map/shared/shared-*.glb', { query: '?url', import: 'default', eager: true });
 const SHARED_BY_AGE = {};
 Object.entries(SHARED_FILES).forEach(([path, url]) => {
-  const m = path.match(/\/shared-([a-z]+)\.glb$/);
-  if (m) SHARED_BY_AGE[m[1]] = url;
+  const m = path.match(/\/shared-([a-z]+)(?:-([a-z]+))?\.glb$/);
+  if (m) (SHARED_BY_AGE[m[1]] ||= {})[m[2] || 'base'] = url;
 });
-/** The age's shared file (palaces, walls, camps, fields), or null. */
-export const sharedAssetUrl = (ageId) => SHARED_BY_AGE[ageId] || null;
+/** The age's base shared file (palaces, walls, camps, fields), or null. */
+export const sharedAssetUrl = (ageId) => SHARED_BY_AGE[ageId]?.base || null;
+/** The shared files a town of this style reads, the base last: later files fill what earlier
+ * ones lack. */
+export const sharedAssetUrls = (ageId, style = null) => {
+  const files = SHARED_BY_AGE[ageId];
+  if (!files?.base) return [];
+  return [...styleChain(style).map((s) => files[s]).filter(Boolean), files.base];
+};
 /** The palace a capital of this town size stands on its free centre. */
 export const palaceFor = (tierId) => (tierId === 'small' ? 'palace-small' : 'palace');
 /** The wall ring just outside a town of this size (one gate at the front). */
@@ -94,7 +104,8 @@ export const townAssetUrl = (ageId, tierId, seed = 0, style = null) => {
   if (!kits) return null;
   const v = townVariant(ageId, style, seed);
   const pick = (k) => k && (k[v] || k.a || k.b);
-  return pick(style && kits[style]) || pick(kits.base) || null;
+  for (const st of styleChain(style)) { const url = pick(kits[st]); if (url) return url; }
+  return pick(kits.base) || null;
 };
 
 /** The level of detail the brief assigns to a zoom k: LOD2 below 20, LOD1 below 40, LOD0 above. */

@@ -21,7 +21,7 @@ import { getMapMarkers } from '../../../utils/mapMarkers';
 import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
-import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrl, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
+import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
 import { ARMY_SPOT, unitPx, tiltFor, lightRig } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
@@ -128,16 +128,22 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     };
     const toScreen = (regionId) => toScreenLatLng(REGION_COORDINATES[regionId]);
 
-    // The age's shared file (palaces, walls, the camp, fields): loaded once, the objects by name.
-    const sharedFor = (ageId) => {
-      const url = sharedAssetUrl(ageId);
-      if (!url) return null;
+    // The age's shared files (palaces, walls, the camp, fields): each loaded once, the objects by
+    // name; a region's file (its own palaces and walls) over the age's base file.
+    const loadShared = (url) => {
       if (!t.assets.has(url)) {
         t.assets.set(url, null);
         loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); setAssetsTick((n) => n + 1); })
           .catch((e) => { console.warn('shared model file failed, towns stand without palaces, walls, camps and fields:', e.message); });
       }
       return t.assets.get(url) || null;
+    };
+    const sharedFor = (ageId, style = null) => {
+      const urls = sharedAssetUrls(ageId, style);
+      if (!urls.length) return null;
+      const parts = urls.map(loadShared);
+      if (!parts[parts.length - 1]) return null; // the base file is not in yet
+      return parts.length === 1 ? parts[0] : Object.assign({}, ...parts.filter(Boolean).reverse());
     };
 
     // Towns: every province on screen with an owner or a colony.
@@ -156,7 +162,8 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       const seed = [...id].reduce((h, c) => h + c.charCodeAt(0), 0);
       // the land's architecture style (the tile's country), whoever owns the city (art spec 3b)
       const landNation = region.tile != null ? getTiles().countryOf(region.tile) : null;
-      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, styleOfLand(landNation || owner, opts.ageId));
+      const style = styleOfLand(landNation || owner, opts.ageId);
+      const assetUrl = camp ? null : townAssetUrl(opts.ageId, tier.id, seed, style);
       const asset = assetUrl ? t.assets.get(assetUrl) : null;
       if (assetUrl && !t.assets.has(assetUrl)) {
         t.assets.set(assetUrl, null);
@@ -164,7 +171,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
           .catch((e) => { console.warn('town model failed, keeping the procedural town:', e.message); });
       }
       // The camp, a capital's palace, the wall ring and the fields come from the age's shared file.
-      const shared = camp || asset ? sharedFor(opts.ageId) : null;
+      const shared = camp || asset ? sharedFor(opts.ageId, style) : null;
       const campRoot = camp ? shared?.[COLONY_CAMP] : null;
       const palaceRoot = asset && opts.capital ? shared?.[palaceFor(tier.id)] : null;
       const wallsRoot = asset && opts.walls ? shared?.[wallsFor(tier.id)] : null;
@@ -173,7 +180,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       const ll = REGION_COORDINATES[id];
       const tint = (campRoot || asset) && ll ? tintAt(ll.lat, ll.lng) : null;
       const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}|${tintKey(tint)}`
-        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.name : ''}|${wallsRoot ? wallsRoot.name : ''}|${fields.map((f) => f.name).join(',')}`
+        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.uuid : ''}|${wallsRoot ? wallsRoot.uuid : ''}|${fields.map((f) => f.name).join(',')}`
           : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
       let mesh = t.towns.get(id);

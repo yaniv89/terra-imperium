@@ -2,8 +2,8 @@
 // happens once per file, and an instance tints only its Team cloth.
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
-import { styleOfLand } from '../../../data/architecture';
-import { townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
+import { styleOfLand, styleChain } from '../../../data/architecture';
+import { sharedAssetUrls, townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
   const root = new Group(); root.name = name;
@@ -144,5 +144,14 @@ describe('architecture regions', () => {
     expect(styleOfLand('us', 'gunpowder')).toBe('europe');
     expect(styleOfLand('au', 'bronze')).toBe('monsoon');
     expect(styleOfLand('zz', 'bronze')).toBeNull();
+    // the Orthodox east has its own churches from the Kingdoms Age, falling back to Europe
+    expect(styleOfLand('ru', 'classical')).toBe('europe');
+    expect(styleOfLand('ru', 'kingdoms')).toBe('easteurope');
+    expect(styleChain('easteurope')).toEqual(['easteurope', 'europe']);
+    expect(styleChain(null)).toEqual([]);
+    expect(townAssetUrl('bronze', 'small', 0, 'easteurope')).toMatch(/bronze-town-small-/);
+    // the base shared file always comes last; an age without one has none
+    expect(sharedAssetUrls('bronze', 'europe').slice(-1)[0]).toMatch(/shared-bronze\.glb|shared-bronze-/);
+    expect(sharedAssetUrls('future')).toEqual([]);
   });
 });
