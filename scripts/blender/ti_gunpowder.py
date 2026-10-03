@@ -488,8 +488,8 @@ def town_hall(ms, rng, x, y, w, d, top, yaw=0, wall='gp_brick', roof='gp_slate',
     """A town hall: a brick block with sandstone dressings and a mansard or hip roof with dormers,
     a clock tower rising from the middle of its front to `top`."""
     f = gp_house(ms, rng, x, y, w, d, yaw=yaw, wall=wall, roof=roof, kind=kind, storeys=storeys, shutters=None,
-                 chimneys=2, dormers=max(2, int(w / 0.28)), door=False, props=0, rise=0.12 if kind == 'mansard' else 0.22, h=h)
-    tf = f @ _t(0, -d / 2 + tw * 0.35, 0)
+                 chimneys=2, dormers=max(2, int(w / 0.28)), door=False, props=0, rise=0.12 if kind == 'mansard' else 0.15, h=h)
+    tf = f @ _t(0, -d / 2 - tw * 0.22, 0)
     clock_tower(ms, tf, top, w=tw, body=wall, shaft=shaft)
     for k in range(4):
         if k % 2:
@@ -1146,3 +1146,20 @@ def field_4(ms, rng):
         for k in range(11):
             ms.sphere('gp_potato', 0.042, at=(-0.56 + 0.124 * k + rng.uniform(-0.02, 0.02), y + rng.uniform(-0.008, 0.008), G + 0.045),
                       scale=(1.25, 1.0, 0.7), u=7, v=4, lod=0)
+
+
+def houses(ms, rng, specs, palette='a', **kw):
+    """Lay out houses from (x, y, w, d, yaw) specs, each in a look the rng picks for the palette."""
+    for x, y, w, d, yaw in specs:
+        styled(ms, rng, x, y, w, d, yaw=yaw, palette=palette, props=rng.randint(1, 3), pots=rng.randint(0, 2),
+               awning=(rng.uniform(-0.1, 0.1), 0.3) if rng.random() < 0.18 else None, **kw)
+
+
+def trees(ms, rng, pts, h=(0.34, 0.46), r=(0.1, 0.15), lod2=True):
+    for x, y in pts:
+        tree(ms, x, y, h=rng.uniform(*h), r=rng.uniform(*r), mat=rng.choice(['leaf', 'shrub']), lod2=lod2)
+
+
+def lamps(ms, pts):
+    for x, y in pts:
+        lamp(ms, x, y)

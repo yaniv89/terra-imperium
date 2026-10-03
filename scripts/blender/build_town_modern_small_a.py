@@ -35,6 +35,8 @@ def layout(ms, rng):
     md.block(ms, rng, 1.4, 0.12, 0.7, 0.66, storeys=2, units=2, stair=False)
     md.block(ms, rng, 1.36, -0.86, 0.7, 0.66, storeys=2, units=1)
     # lawns and hedges round the plots, the corner greens
+    md.lawn(ms, -1.82, -1.3, -1.06, 1.4)
+    md.lawn(ms, 1.02, -1.3, 1.84, 1.62)
     md.lawn(ms, -1.96, -1.96, -0.52, -1.32, hedges=('n',))
     md.lawn(ms, 0.52, -1.96, 1.96, -1.32, hedges=('n',))
     md.lawn(ms, -1.96, -1.3, -1.82, 1.4, hedges=('e',))

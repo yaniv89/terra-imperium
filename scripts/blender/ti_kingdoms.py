@@ -140,13 +140,15 @@ from mathutils import Vector  # noqa: E402
 
 KG = ['kg_ochre', 'kg_whitewash', 'kg_dome', 'kg_stone', 'kg_wallstone', 'kg_shingle', 'kg_planks', 'kg_turf',
       'kg_rye', 'kg_apple', 'kg_wattle', 'kg_palm', 'kg_palmtrunk', 'kg_iron', 'kg_flag', 'kg_garden',
-      'kg_sand', 'kg_sand_fringe', 'kg_sand_square']
+      'kg_sand', 'kg_sand_fringe', 'kg_sand_square', 'kg_soil', 'kg_soil_fringe', 'kg_soil_square',
+      'kg_meadow', 'kg_meadow_fringe', 'kg_meadow_square']
 for _n in KG:
     if _n not in tt.PROC:
         tt.PROC.append(_n)
-tt.TO_FINAL.update({'kg_sand': 'Ground', 'kg_sand_fringe': 'Ground', 'kg_sand_square': 'Ground'})
-if 'kg_sand_fringe' not in tt.FRINGES:
-    tt.FRINGES.append('kg_sand_fringe')
+for _g in ('kg_sand', 'kg_soil', 'kg_meadow'):
+    tt.TO_FINAL.update({_g: 'Ground', _g + '_fringe': 'Ground', _g + '_square': 'Ground'})
+    if _g + '_fringe' not in tt.FRINGES:
+        tt.FRINGES.append(_g + '_fringe')
 
 
 def mat_fruit_leaf(name):
@@ -157,9 +159,9 @@ def mat_fruit_leaf(name):
     leaf = bsdf.inputs['Base Color'].links[0].from_socket
     coord = nt.nodes.new('ShaderNodeTexCoord')
     vor = nt.nodes.new('ShaderNodeTexVoronoi')
-    vor.inputs['Scale'].default_value = 34.0
+    vor.inputs['Scale'].default_value = 26.0
     nt.links.new(coord.outputs['Object'], vor.inputs['Vector'])
-    dots = tm._ramp(nt, vor.outputs['Distance'], [(0.0, '#ffffff'), (0.16, '#ffffff'), (0.2, '#000000')])
+    dots = tm._ramp(nt, vor.outputs['Distance'], [(0.0, '#ffffff'), (0.27, '#ffffff'), (0.31, '#000000')])
     pick = tm._ramp(nt, vor.outputs['Color'], [(0.0, '#a8231c'), (0.55, '#b8321e'), (0.62, '#d6b23a'), (1.0, '#c9a432')])
     col = tm._mix(nt, dots.outputs['Color'], leaf, pick.outputs['Color'])
     nt.links.new(col, bsdf.inputs['Base Color'])
@@ -173,8 +175,8 @@ def make_materials_kg():
     tm.mat_mudwall('kg_stone', wash='#b8ab92', brick='#b3a78f', brick2='#9d917b', mortar='#7a7062', wash_cover=0.0,
                    bond=(0.06, 0.03, 0.004))
     # the castle and wall masonry: grey stones in pale lime mortar
-    tm.mat_mudwall('kg_wallstone', wash='#8f8a82', brick='#8d8880', brick2='#77736c', mortar='#b7b0a2', wash_cover=0.0,
-                   bond=(0.055, 0.028, 0.005))
+    tm.mat_mudwall('kg_wallstone', wash='#8a857c', brick='#8a857d', brick2='#6e6a63', mortar='#a39d91', wash_cover=0.0,
+                   bond=(0.045, 0.024, 0.0032))
     tm.mat_mudwall('kg_shingle', wash='#6a5d4c', brick='#6f6150', brick2='#5a4f42', mortar='#3a322a', wash_cover=0.0,
                    bond=(0.03, 0.016, 0.0025))
     tm.mat_mudwall('kg_planks', wash='#4e3e2e', brick='#54432f', brick2='#47392a', mortar='#2a2018', wash_cover=0.0,
@@ -192,6 +194,14 @@ def make_materials_kg():
     for n in ('kg_sand', 'kg_sand_fringe'):
         tc.mat_paving(n, stone=sand, mortar='#8a7a5e', slab=(0.022, 0.018))
     tc.mat_paving('kg_sand_square', stone=('#d3c6aa', '#c4b597', '#ddd1b8'), mortar='#9a8a6c', slab=(0.05, 0.05))
+    soil = ('#6f5034', '#86613f', '#94704a', '#644830')  # the fields' darker tilled earth
+    for n in ('kg_soil', 'kg_soil_fringe'):
+        tm.mat_earth(n, colors=soil)
+    tm.mat_earth('kg_soil_square', colors=('#9a7a52', '#a8885e', '#b09066', '#94744c'))  # trodden paths
+    meadow = ('#4f6c26', '#66822e', '#7c8a3c', '#587426')  # the orchard's and pasture's grass
+    for n in ('kg_meadow', 'kg_meadow_fringe'):
+        tm.mat_earth(n, colors=meadow)
+    tm.mat_earth('kg_meadow_square', colors=('#8a7048', '#9a7c50', '#a48658', '#86694a'))
 
 
 if not any(n == 'kingdoms_kg' for n, _ in tt.EXTRA_MATERIALS):
@@ -1033,7 +1043,7 @@ def palace(ms, rng):
     f = tm.house_frame(0, 0, 0)
     mat = 'kg_wallstone'
     bw, bd, by = 0.82, 0.76, 0.05
-    H, TH, tw = 1.26, 1.5, 0.28
+    H, TH, tw = 1.0, 1.24, 0.3
     ms.box(mat, (bw + 0.05, bd + 0.05, 0.1), at=(0, by, G), lod=1, frame=f, taper=0.95)
     ms.box(mat, (bw, bd, H), at=(0, by, G), lod=2, frame=f)
     for zz in (0.33, 0.62):
@@ -1056,7 +1066,7 @@ def palace(ms, rng):
             for sy in (-1, 1):
                 ms.box(mat, (0.022, 0.02, 0.035), at=(cx - tw / 2 + 0.05 + k * 0.09, cy + sy * (tw / 2 + 0.01), G + TH - 0.09), lod=0, frame=f)
                 ms.box(mat, (0.02, 0.022, 0.035), at=(cx + sy * (tw / 2 + 0.01), cy - tw / 2 + 0.05 + k * 0.09, G + TH - 0.09), lod=0, frame=f)
-        ms.box('timber', (tw - 0.02, tw - 0.02, 0.006), at=(cx, cy, G + TH), lod=1, frame=f)
+        ms.box('stone', (tw - 0.02, tw - 0.02, 0.006), at=(cx, cy, G + TH), lod=1, frame=f)
         tb.merlons(ms, f, cx, cy, tw + 0.04, tw + 0.04, G + TH, step=0.075, size=0.042, h=0.065, mat=mat)
         # windows on the two outer faces
         for k, (fx, fy, rot) in enumerate(((0, -1, 0), (1 if cx > 0 else -1, 0, -90 if cx > 0 else 90), (0, 1, 180))):
@@ -1304,12 +1314,12 @@ def camp_hut(ms, rng, x, y):
     """The camp's hut: a small half-timbered cottage, its gable to the front, under a steep straw
     thatch with crossed gable finials (3.5 m, raised like the houses)."""
     f = tm.house_frame(x, y, 0)
-    w, d, h = 0.46, 0.5, 0.22
+    w, d, h = 0.46, 0.5, 0.19
     ms.box('rubble', (w + 0.02, d + 0.02, 0.04), at=(0, 0, G), lod=1, frame=f)
     ms.box('lime', (w, d, h), at=(0, 0, G + 0.03), lod=1, frame=f)
     frame_members(ms, f, w, d, G + 0.03, h, lod1=True)
     rf = f @ Matrix.Rotation(math.radians(90), 4, 'Z')
-    rise = 0.24
+    rise = 0.21
     tc.gable_roof(ms, rf, d, w, G + 0.03 + h, rise, over=0.06, mat='thatch', gable='lime', thick=0.04, lod=1, ridge='thatch')
     lod2_block(ms, rf, d, w, h + 0.03, rise=rise, mat='lime')
     zr = G + 0.03 + h + rise
@@ -1361,9 +1371,9 @@ def apple_tree(ms, rng, x, y, top=0.27, support=False):
 def field_2(ms, rng):
     """`field-2` (16 by 12 m): an apple orchard: six trees (2.5 m) in two rows on grass with
     mulched rings, trodden paths between them, stakes and ropes on two of the young trees."""
-    ms.quad_strip('earth_square', [(-0.8, -0.04, G + 0.002), (0.8, -0.04, G + 0.002), (0.8, 0.05, G + 0.002), (-0.8, 0.05, G + 0.002)], lod=1)
+    ms.quad_strip('kg_meadow_square', [(-0.8, -0.04, G + 0.002), (0.8, -0.04, G + 0.002), (0.8, 0.05, G + 0.002), (-0.8, 0.05, G + 0.002)], lod=1)
     for x in (-0.26, 0.26):
-        ms.quad_strip('earth_square', [(x - 0.04, -0.6, G + 0.002), (x + 0.04, -0.6, G + 0.002), (x + 0.04, 0.6, G + 0.002), (x - 0.04, 0.6, G + 0.002)], lod=1)
+        ms.quad_strip('kg_meadow_square', [(x - 0.04, -0.6, G + 0.002), (x + 0.04, -0.6, G + 0.002), (x + 0.04, 0.6, G + 0.002), (x - 0.04, 0.6, G + 0.002)], lod=1)
     for i, x in enumerate((-0.52, 0.0, 0.52)):
         for j, y in enumerate((0.3, -0.3)):
             apple_tree(ms, rng, x + rng.uniform(-0.02, 0.02), y + rng.uniform(-0.02, 0.02), top=rng.uniform(0.25, 0.28),
@@ -1380,8 +1390,8 @@ def field_3(ms, rng):
     for (x0, y0, x1, y1) in ((-0.4, 0.38, 0.5, -0.55), (-0.2, -0.1, -0.5, -0.4)):
         dx, dy = x1 - x0, y1 - y0
         ln = math.hypot(dx, dy)
-        nx, ny = -dy / ln * 0.035, dx / ln * 0.035
-        ms.quad_strip('earth_square', [(x0 + nx, y0 + ny, G + 0.002), (x0 - nx, y0 - ny, G + 0.002), (x1 - nx, y1 - ny, G + 0.002), (x1 + nx, y1 + ny, G + 0.002)], lod=1)
+        nx, ny = -dy / ln * 0.05, dx / ln * 0.05
+        ms.quad_strip('kg_meadow_square', [(x0 + nx, y0 + ny, G + 0.002), (x0 - nx, y0 - ny, G + 0.002), (x1 - nx, y1 - ny, G + 0.002), (x1 + nx, y1 + ny, G + 0.002)], lod=1)
 
 
 def field_4(ms, rng):
@@ -1395,3 +1405,28 @@ def field_4(ms, rng):
     ms.box('timber', (0.04, 0.04, 0.1), at=(-0.74, 0.45, G), lod=1)
     for i in range(6):
         tb.crop_bed(ms, 'flax', -0.6 + 0.24 * i, -0.05, 0.17, 0.74, rng.uniform(0.055, 0.065), rng)
+
+
+def arcade_hall(ms, rng, x, y, w, d, yaw=None, bays=4, mat='kg_ochre', h=None, porch=0.14, rise=0.2):
+    """A market hall (funduq): a tall plastered block under a terracotta hip roof with a
+    horseshoe arcade porch across its front under a tiled lean-to, windows above."""
+    f = tm.house_frame(x, y, tm.facing_centre(x, y) if yaw is None else yaw)
+    h = h or STOREY * 1.7
+    ms.box('kg_stone', (w + 0.02, d + 0.02, 0.05), at=(0, 0, G), lod=1, frame=f)
+    ms.box(mat, (w, d, h), at=(0, 0, G), lod=1, frame=f)
+    tile_roof(ms, f, 0, 0, w, d, G + h, rise=rise)
+    lod2_block(ms, f, w, d, h + rise * 0.6, mat='tile')
+    ph = h * 0.5
+    arcade(ms, f, mat, -w / 2, w / 2, -d / 2 - porch, G, ph, bays, depth=0.045, lod=0)
+    box_only(ms, 1, mat, (w, porch + 0.045, ph), at=(0, -d / 2 - porch / 2 + 0.0225, G), frame=f)
+    pf = f @ Matrix.Translation((0, -d / 2 - porch / 2, G + ph + 0.03)) @ Matrix.Rotation(math.radians(-14), 4, 'X')
+    ms.box('tile', (w + 0.04, porch + 0.08, 0.018), at=(0, 0, 0), lod=1, frame=pf)
+    for i in range(bays):
+        bx = -w / 2 + w * (i + 0.5) / bays
+        arch_face(ms, f, 'dark', bx, -d / 2 - 0.003, G + h * 0.66, 0.03, 0.1, lod=0, n=6)
+    for sx in (-1, 1):
+        kf = f @ Matrix.Rotation(math.radians(90 * sx), 4, 'Z')
+        for i in range(max(1, int(d / 0.35))):
+            by = -d / 2 + d * (i + 0.5) / max(1, int(d / 0.35))
+            arch_face(ms, kf, 'dark', by * sx, -w / 2 - 0.003, G + h * 0.55, 0.03, 0.1, lod=0, n=6)
+    return f

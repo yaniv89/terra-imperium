@@ -21,11 +21,11 @@ ITEMS = [
     ('walls-small', tk.walls_small, None),
     ('walls-medium', tk.walls_medium, None),
     ('walls-big', tk.walls_big, None),
-    ('colony-camp', tk.colony_camp, dict(rx=0.98, ry=0.88, square=None, power=5, mat='grass')),
-    ('field-1', tk.field_1, dict(tb.FIELD_GROUND, rx=0.74, ry=0.54)),
-    ('field-2', tk.field_2, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64, mat='grass')),
-    ('field-3', tk.field_3, dict(tb.FIELD_GROUND, rx=0.74, ry=0.64, mat='grass')),
-    ('field-4', tk.field_4, dict(tb.FIELD_GROUND, rx=0.84, ry=0.54)),
+    ('colony-camp', tk.colony_camp, dict(rx=0.98, ry=0.88, square=None, power=5)),
+    ('field-1', tk.field_1, dict(tb.FIELD_GROUND, rx=0.74, ry=0.54, mat='kg_soil')),
+    ('field-2', tk.field_2, dict(tb.FIELD_GROUND, rx=0.84, ry=0.64, mat='kg_meadow')),
+    ('field-3', tk.field_3, dict(tb.FIELD_GROUND, rx=0.74, ry=0.64, mat='kg_meadow')),
+    ('field-4', tk.field_4, dict(tb.FIELD_GROUND, rx=0.84, ry=0.54, mat='kg_soil')),
 ]
 
 if __name__ == '__main__':
