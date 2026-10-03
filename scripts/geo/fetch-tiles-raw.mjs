@@ -2,6 +2,8 @@
 // Downloads the raw inputs of build-tiles.mjs into scripts/geo/.raw/ (gitignored, regenerable):
 // Natural Earth vector layers (public domain) and the 256 zoom-4 terrarium elevation tiles
 // (Mapzen/Tilezen, see CREDITS.md). Run once: node scripts/geo/fetch-tiles-raw.mjs
+// With --pyramid it also fetches what build-raster-pyramid.mjs needs: the 1:10M land and the
+// 1,024 zoom-5 elevation tiles (about 75 MB).
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -37,3 +39,16 @@ for (let x = 0; x < 16; x++) {
   }
 }
 console.log(`elevation tiles: fetched ${fetched}, have 256`);
+if (process.argv.includes('--pyramid')) {
+  const got = await fetchTo(`${NE}/ne_10m_land.geojson`, path.join(RAW, 'ne', 'ne_10m_land.geojson'));
+  console.log(`${got ? 'fetched' : 'have'} ne_10m_land.geojson`);
+  await mkdir(path.join(RAW, 'terrarium5'), { recursive: true });
+  const jobs = [];
+  for (let x = 0; x < 32; x++) for (let y = 0; y < 32; y++) jobs.push([x, y]);
+  let got5 = 0;
+  for (let i = 0; i < jobs.length; i += 16) {
+    const done = await Promise.all(jobs.slice(i, i + 16).map(([x, y]) => fetchTo(`https://elevation-tiles-prod.s3.amazonaws.com/terrarium/5/${x}/${y}.png`, path.join(RAW, 'terrarium5', `${x}-${y}.png`))));
+    got5 += done.filter(Boolean).length;
+  }
+  console.log(`zoom-5 elevation tiles: fetched ${got5}, have 1024`);
+}

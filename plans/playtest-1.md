@@ -319,3 +319,19 @@ Checked at the same calendar year (424 CE): player techs 10 to 12 (old build 10 
 median 5 (5), cities 867 (817), turn time unchanged. Cities run about 6% ahead because settlers
 and outposts still move per turn; a per-year outpost pace is a follow-up if it shows in play.
 
+**Wave 4 shipped (2026-10-03).** P1.2 the raster pyramid: `scripts/geo/build-raster-pyramid.mjs`
+(`npm run build:pyramid`, sources with `node scripts/geo/fetch-tiles-raw.mjs --pyramid`) renders
+the same realistic Earth at 16,384 x 8,192 (about 2.4 km a pixel, 44 pixels a hex) from the
+zoom-5 elevation and the 1:10M coastline, one band at a time, then halves it down: 2,730 WebP
+tiles in public/map/tiles, 14 MB, built in under 4 minutes. `rasterTiles.js` picks the level
+whose pixels match the screen and lists only the tiles on screen; the flat map draws them over
+its base picture (77 tiles at zoom 8 on a phone, 20 at zoom 30, all fetched, no errors). The
+Levant at zoom 8 shows the coast, Cyprus, the Sea of Galilee, the Dead Sea and the Nile delta
+sharp where the old picture was blocks. Past zoom 20 the 2.4 km tiles stretch again; the
+rendered close view (wave 5) takes over there. Resource glyphs now show only on claimed land
+and the ring around it (everywhere under the Yields lens): the Sahara was a carpet of them.
+P1.4 the soldier triangle budget is 8,000 (a warning, never a rejection). The loader still
+flattens a model's texture into one colour per triangle for the instanced soldier shader; a
+textured soldier material (the atlas sampled in the shader, LOD1 and imposters) is built with
+the first real model, the Swordsmen pilot of plans/model-brief-for-claude.md.
+

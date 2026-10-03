@@ -43,6 +43,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
+import { visibleRasterTiles, rasterTileUrl, baseRasterZoom } from '../../data/geo/rasterTiles';
 import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
@@ -342,6 +343,12 @@ const Map2DView = ({
   // dependency because stroke width is divided by it. Before this, each frame of a d3 pan
   // transition re-rendered all 4,482 paths — janky on a phone and the dominant cost of every pan.
   const zoomK = transform.k;
+  // The raster pyramid over the base picture (rasterTiles.js): the level that matches the zoom,
+  // only the tiles on screen. Keyed on the tile set, so panning inside a tile re-renders nothing.
+  const rasterTileList = interactive && rasterRect ? visibleRasterTiles({ raster: rasterRect, transform, width, height, dpr: Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1), baseZ: baseRasterZoom(worldRasterSizeFor(width, height)) }) : [];
+  const rasterTileKey = rasterTileList.map((t) => t.key).join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rasterTiles = useMemo(() => rasterTileList, [rasterTileKey, rasterRect]);
   const pathElements = useMemo(() => {
     if (!pathsById) return null;
     return (
@@ -500,7 +507,9 @@ const Map2DView = ({
     within.forEach((t) => {
       const e = ts[t];
       const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
-      const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' ? resId : null; // luxuries and strategics only: bonus resources sit on most tiles
+      // Luxuries and strategics only (bonus resources sit on most tiles), and only on claimed land
+      // and the ring around it unless the Yields lens is on: open desert stays clean.
+      const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' && (lens === 'yields' || owner[t] != null || tiles.neighbors[t].some((n) => owner[n] != null)) ? resId : null;
       if (!e?.improvement && !e?.district && !res) return;
       const { lat, lon } = tiles.latLonOf(t); const [x, y] = projection([lon, lat]);
       const dim = e?.pillaged ? 0.45 : 1;
@@ -509,7 +518,7 @@ const Map2DView = ({
       if (res && !e?.improvement && !e?.district) out.push(<polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
     });
     return out;
-  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId]);
+  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.
   const battleMarkElements = useMemo(() => {
     if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;
@@ -646,6 +655,7 @@ const Map2DView = ({
             preserveAspectRatio="none" pointerEvents="none" data-testid="world-raster"
           />
         )}
+        {rasterTiles.map((t) => <image key={t.key} href={rasterTileUrl(t.z, t.x, t.y)} x={t.rect.x} y={t.rect.y} width={t.rect.width} height={t.rect.height} preserveAspectRatio="none" pointerEvents="none" data-raster-tile={t.key} />)}
         <g data-testid="territories">
           {pathElements}
           {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" strokeLinecap="round" pointerEvents="none" data-testid="nation-borders" />}
