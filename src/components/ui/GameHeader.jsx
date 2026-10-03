@@ -14,6 +14,9 @@ import { openPanelTab } from '../panels/panelEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import NextPrompt from './NextPrompt';
 import { endTurnWarnings, WARN_ARM_MS } from './nextPrompt';
+import { perTurnStrip } from '../city/cityRailModel';
+import { calcNationBalance } from '../../engine/economy';
+import { calcIncome } from '../../utils/helpers';
 
 // plan §M0.5's header cloud status icon: guest/idle (not signed in — nothing to sync), synced,
 // syncing, offline (queued, will retry), conflict/error (needs attention, red).
@@ -89,6 +92,16 @@ const ResearchPill = ({ state, compact }) => {
   );
 };
 
+// The desktop's yields per turn (E2): gold net, science, manpower, supplies, beside the research pill.
+const PerTurnStrip = ({ state }) => {
+  const rows = perTurnStrip(state, calcNationBalance(state, state.playerNationId), calcIncome(state));
+  return (
+    <div className="hidden lg:flex items-center gap-1.5 text-[11px]" data-testid="per-turn-strip">
+      {rows.map((r) => <span key={r.id} title={r.title} className={`px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800/60 font-mono ${r.id === 'gold' ? (r.value >= 0 ? 'text-emerald-300' : 'text-red-300') : 'text-slate-300'}`}>{r.label} {r.value > 0 ? '+' : ''}{r.value}</span>)}
+    </div>
+  );
+};
+
 // End Turn and Fast Forward: the same two buttons in every layout.
 const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
   // The "warn me" setting (E3): with prompts still waiting, the first tap arms the button for a
@@ -97,6 +110,13 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
   const warnings = endTurnWarnings(state);
   const endTurn = () => { if (warnings > 0 && !armed) { setArmed(true); return; } setArmed(false); advanceTurn(); };
+  // Enter ends the turn (through the same gate) when nothing is being typed and no modal holds it.
+  const canEnd = !isGameOver && state.activeEventId === null;
+  useEffect(() => {
+    const onKey = (e) => { if (e.key !== 'Enter' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return; if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target?.tagName || '')) return; if (!canEnd) return; e.preventDefault(); endTurn(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   return (
   <>
     {!isGameOver && <NextPrompt />}
@@ -267,6 +287,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
             {ageName}
           </div>
           <ResearchPill state={state} />
+          <PerTurnStrip state={state} />
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

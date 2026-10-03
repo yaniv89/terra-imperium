@@ -1935,6 +1935,18 @@ cities changing hands per 10 turns, about ten times today's rate: reaching it me
 wars (the Tier-1 war roll) and more decisive sieges, a change in how the world feels that
 waits for the user's word.
 
+**E2 desktop: the city list rail, yields per turn, Enter (2026-10-03).** `CityRail.jsx` over
+`cityRailModel.js` (pure, tested) docks a city list on the left of a desktop screen under the
+header: every city of the player biggest first (the capital first), its size, what it builds
+and in how many turns (from last turn's yields, one pass), growth in N turns, and the flags
+that want a look (nothing queued, besieged, starving, restless, an outpost); tapping a row
+opens the city card; the rail collapses to a tab (remembered per browser) and the C key
+toggles it; it reports its width so the map centres in the space left. The header's top row
+gains the per-turn strip (`perTurnStrip`): gold net with income and upkeep in the title,
+science, manpower and supplies a turn. Enter ends the turn through the "warn me" gate when
+nothing is being typed and no event holds the turn. Phones and tablets are untouched. Still
+open in E2: the tablet dock at 420 px with two sheets stacked.
+
 **Workstream 13, wave 7: performance on the frequency-75 grid (2026-10-03).** Profiled by phase
 at turn 150 (1,181 cities, 1,338 units): the cities phase was 117 ms, the AI economy 30, the
 loyalty pass 27, the diplomacy phase 33 and the siege block 19. What changed: the opinion

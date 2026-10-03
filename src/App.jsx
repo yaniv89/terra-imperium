@@ -27,6 +27,7 @@ import { getSupabaseClient, isCloudSaveConfigured } from './services/supabaseCli
 import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
 import RotateOverlay from './components/ui/RotateOverlay';
+import CityRail from './components/city/CityRail';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
@@ -191,6 +192,9 @@ const GameLayout = () => {
 
       {/* Translucent HUD header, floating over the map's top edge. */}
       <GameHeader onReset={handleReset} onOpenSettings={() => setShowAccount(true)} cloudStatus={client ? cloudSync.status : null} />
+
+      {/* Desktop: the city list rail on the left (plans/civ-map-rework.md E2). */}
+      <CityRail onSelectRegion={handleSelectRegion} />
 
       {/* Empire-management tabs/content: a collapsible right-docked drawer on desktop, a bottom
           tab bar + on-demand sheet on mobile (PanelDrawer.jsx) — floating over the map instead of
