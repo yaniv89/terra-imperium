@@ -8,9 +8,12 @@
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
 import React from 'react';
-import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby, Globe2 } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby, Globe2, Swords, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import EmpireOverview from './EmpireOverview';
+import MilitaryPanel from './MilitaryPanel';
+import DiplomacyPanel from './DiplomacyPanel';
+import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
@@ -659,10 +662,19 @@ const DomesticPanel = () => {
     </div>
   );
 
+  const warsNow = Object.values(state.nations).filter((n) => !n.isPlayer && isAtWarWithPlayer(state, n.id));
   return (
     <div className="space-y-3">
       <CollapsibleSection title="Overview" icon={Globe2} defaultOpen>
         <EmpireOverview />
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection id="war" title="War" icon={Swords} summary={warsNow.length ? `at war with ${warsNow.length}` : 'at peace'}>
+        <MilitaryPanel />
+      </CollapsibleSection>
+      <div className="border-t border-slate-800" />
+      <CollapsibleSection id="relations" title="Relations" icon={Flag} summary={`${Object.values(state.nations).filter((n) => !n.isPlayer && n.hasTradeAgreement).length} trade pacts`}>
+        <DiplomacyPanel />
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
       <CollapsibleSection title="Court" icon={Crown} defaultOpen>

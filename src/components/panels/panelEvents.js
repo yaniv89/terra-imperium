@@ -2,4 +2,12 @@
 // Open a tab of the action panel from anywhere (the research choice sheet, the top bar's research
 // pill) without threading callbacks through the tree. PanelDrawer.jsx listens.
 export const OPEN_TAB = 'ti:open-tab';
-export const openPanelTab = (tabId) => window.dispatchEvent(new CustomEvent(OPEN_TAB, { detail: tabId }));
+// The Military and Diplomacy tabs folded into the Empire sheet (plans/civ-map-rework.md E4): an
+// ask for either opens the Empire tab and expands its War or Relations section.
+export const TAB_ALIAS = { military: 'domestic', diplomacy: 'domestic' };
+export const SECTION_OF_TAB = { military: 'war', diplomacy: 'relations' };
+export const OPEN_SECTION = 'ti:open-section';
+export const openPanelTab = (tabId) => {
+  window.dispatchEvent(new CustomEvent(OPEN_TAB, { detail: TAB_ALIAS[tabId] || tabId }));
+  if (SECTION_OF_TAB[tabId]) window.dispatchEvent(new CustomEvent(OPEN_SECTION, { detail: SECTION_OF_TAB[tabId] }));
+};
