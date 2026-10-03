@@ -1114,6 +1114,10 @@ Future age has at least 3 nations at war at any time in a 240-nation game.
 Historical names (3.5) ship with the phase whose age they name: Age of Cities, Bronze and
 Classical names in Phase 1, Neolithic names in Phase 2, Kingdoms names with them.
 
+**World structure first:** `plans/independent-cities.md` (20, 35 or 50 major nations, the rest
+as independent cities that raid) changes who exists on the map; its phases W1 to W3 come before
+Phase 1 below, because Origins and the Age of Cities build on independents.
+
 Why this order: Phase 0 is mandatory for any option and risk-free when the compare is identical.
 The ancient ages come before the future because **every** game plays the opening and only long
 games reach 2100. The Age of Cities comes before the Neolithic because it is closer to today's
