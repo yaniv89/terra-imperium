@@ -1918,6 +1918,18 @@ window events MapContainer listens to) and the chevron skips to the next. End Tu
 blocked. Still open in E3: the "warn me" toggle, the event and research-done prompts (both
 already open their own sheets), the Egypt onboarding of E9 as a chain of prompts.
 
+**E4, the city sheet's Buildings and Politics tabs (2026-10-03).**
+`src/components/city/cityPoliticsModel.js` (pure, tested) and `CityPolitics.jsx` /
+`CityBuildings.jsx`, hosted by the province modal as two more tabs beside City and Tiles. Politics:
+loyalty with its parts (people, garrison, amenities, conquered, capital lost, governor, laws) and
+where it settles, the culture shares by nation, why unrest moves each turn (control, national
+stability, buildings here, taxes, war weariness, amenities short, integration, a governor's
+order; the same inputs resolveTurn's drift reads), the governor of the city's group with seat
+and recall from the city itself, the estates' land in this city and what it gives, a disaster in
+progress. Buildings: every line with what stands, the next tier with its production cost, what
+it needs (a coast, a technology) and a one-tap queue. Still open in E4: the nation sheet, the
+empire sheet, and the province modal's old Overview, Economy and Military tabs.
+
 **C9.2 and E4, the gold great-project path retired (2026-10-02).** A wonder is built from a
 city's production queue on a tile of its border, by the player and the AI alike (wonders.js);
 the old path (START_GREAT_PROJECT and UPGRADE_GREAT_PROJECT for gold and ADM, the
