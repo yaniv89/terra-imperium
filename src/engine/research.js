@@ -7,7 +7,7 @@
 // Switching keeps the progress made on each tech. Picking a tech further down a line queues the
 // missing earlier ones first.
 //
-//   cost = RESEARCH_AGE_BASE[age] / game speed x (1 + research cost modifiers and diffusion)
+//   cost = RESEARCH_AGE_BASE[age] x the speed's cost multiplier x (1 + research cost modifiers and diffusion)
 //          x the ages-behind multiplier
 //
 // Diffusion (techDiffusion.js) is Civ V's catch-up: cheaper when neighbours already know it,
@@ -19,7 +19,7 @@
 import { applyBoosts } from './boosts';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { TECH_TREE, getTechsForAge, TECH_AGE_ADVANCEMENT_THRESHOLD } from '../data/techTree';
-import { AGES, AGE_ORDER, GAME_SPEEDS, getAgesBehind, getAgesBehindResearchCostMultiplier } from '../data/ages';
+import { AGES, AGE_ORDER, getAgesBehind, getAgesBehindResearchCostMultiplier, speedCostMult } from '../data/ages';
 import { DOCTRINE_TECH_CATEGORY_PRIORITY } from '../data/nations';
 import { LogTypes } from '../data/types';
 import { getModifier } from './modifiers/sheet';
@@ -54,10 +54,10 @@ export const getResearchCost = (state, nationId, techId) => {
   const tech = TECH_TREE[techId];
   if (!tech) return Infinity;
   const base = RESEARCH_AGE_BASE[tech.ageId] ?? RESEARCH_AGE_BASE.modern;
-  const speed = GAME_SPEEDS[state.gameSpeed]?.multiplier || 1;
+  const speed = speedCostMult(state.gameSpeed, tech.ageId); // the speed table (ages.js): the same span of history per tech at every speed
   const mult = withDiffusion(state, nationId, techId, getModifier(state, nationId, 'national.researchCost').total);
   const behind = getAgesBehindResearchCostMultiplier(getAgesBehind(state.age, techAgeOf(state, nationId)));
-  return Math.max(1, Math.round((base / speed) * (1 + mult) * behind));
+  return Math.max(1, Math.round(base * speed * (1 + mult) * behind));
 };
 
 // Can this tech be researched now? (Its year has come, its line's earlier tech is known, and no

@@ -18,7 +18,7 @@ import { invalidateRegionsCache } from '../data/regions';
 // infantry/armor/air model this replaced.
 
 import { GameStatus, LogTypes } from '../data/types';
-import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR } from '../data/ages';
+import { AGES, getCalendarAgeId, getYearsPerTurn, END_YEAR, speedCostMult } from '../data/ages';
 import { createEmptyResourcePool } from '../data/resources';
 import { pickNextEvent } from '../data/events';
 import { pickProceduralEvent } from '../data/proceduralEvents';
@@ -72,7 +72,7 @@ import { GREAT_PROJECTS } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
 import {
-  nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn
+  nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, crisisCanErupt, inCivilWarCooldown
 } from './civilWar';
 import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
 import { getTotalDev } from './development';
@@ -132,6 +132,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         ageId: getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge),
         turnNumber: newTurnNumber,
         citiesOwned: citiesOwned[nid] || 1,
+        speedMult: speedCostMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // the speed table (ages.js)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
         greatProjects: state.greatProjects || {}
       });
@@ -577,7 +578,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const grounded = outOfOil && FUEL_BURNING_CLASSES.has(u.classId);
     if (grounded && isPlayer) groundedCount += 1;
     const movesLeft = grounded ? 0 : 1 + (hasPerk(u, 'forcedMarch') ? 1 : 0);
-    units[u.id] = { ...u, ...patch, movesLeft };
+    // Fortify (fieldBattle.js isFortified): the turn a stack stays on its tile is remembered.
+    const heldSince = u.tile != null && u.prevTile === u.tile && !foughtThisTurn ? (u.heldSince ?? newTurnNumber) : newTurnNumber;
+    units[u.id] = { ...u, ...patch, movesLeft, prevTile: u.tile ?? null, heldSince };
   });
   if (groundedCount) logs.push({ year: newYear, message: `No oil: ${groundedCount} of your mechanised unit${groundedCount > 1 ? 's are' : ' is'} out of fuel and cannot move this turn. Build Oil Wells or trade for oil.`, type: LogTypes.CRISIS });
   mark('reinforcementAndMorale');
@@ -696,7 +699,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // Crisis chain... a pretender rebel spawns with 40% chance" — the plan named this chance back in
     // M3 but nothing existed yet to spawn into (civil war IS that "pretender rebel" substrate, so
     // this is where the M3 comment's own deferred 40% roll is finally wired, not a new mechanic).
-    if (result.crisis && !nation.civilWar?.active && rng.next() < CIVIL_WAR_SUCCESSION_CRISIS_CHANCE) {
+    if (result.crisis && crisisCanErupt(nations[nId], newTurnNumber) && rng.next() < CIVIL_WAR_SUCCESSION_CRISIS_CHANCE) {
       const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
       if (started) {
         Object.assign(regions, started.regions);
@@ -784,6 +787,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       Object.keys(units).forEach((id) => { if (units[id].isPretender && !result.units[id]) delete units[id]; });
       Object.assign(units, result.units);
       nations[nId] = result.nation;
+      if (result.result === 'crushed' || result.result === 'lost') nations[nId] = { ...nations[nId], civilWarEndedTurn: newTurnNumber }; // the cooldown (civilWar.js)
       if (result.result === 'crushed') {
         logs.push({ year: newYear, message: `${nations[nId].name} crushes the pretender uprising. (+1 stability, +10 legitimacy)`, type: LogTypes.CRISIS });
       } else if (result.result === 'lost') {
@@ -793,7 +797,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
 
     const lowStabilityStreak = nextLowStabilityStreak(nations[nId], authorityRisksCivilWar({ ...state, regions, nations }, nId));
-    const shouldStart = triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak);
+    const shouldStart = (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber);
     if (shouldStart) {
       const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
       if (started) {

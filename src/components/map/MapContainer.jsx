@@ -53,6 +53,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 
+export const MINIMAP_STORAGE_KEY = 'terra-imperium-minimap-open';
 const MODE_STORAGE_KEY = 'terra-imperium-map-mode';
 const readStoredMode = () => {
   try {
@@ -79,6 +80,9 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const [selectedArmy, setSelectedArmy] = useState(null);
   const [selectedNation, setSelectedNation] = useState(null); // the nation sheet (NationSheet.jsx)
   const [lens, setLens] = useState('political'); // lenses.js; keys 1 to 5 on a keyboard
+  // The mini map folds behind a small button (plans/playtest-1.md P1.5), closed by default on a phone.
+  const [miniOpen, setMiniState] = useState(() => { try { const v = localStorage.getItem(MINIMAP_STORAGE_KEY); if (v != null) return v === '1'; } catch { /* storage off */ } return typeof window === 'undefined' ? true : window.innerWidth >= 1024; });
+  const setMini = (v) => { setMiniState(v); try { localStorage.setItem(MINIMAP_STORAGE_KEY, v ? '1' : '0'); } catch { /* storage off */ } };
   useEffect(() => {
     const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) setLens(l.id); };
     window.addEventListener('keydown', onKey);
@@ -152,6 +156,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
             selectedTile={selectedTile}
             onSelectTile={onSelectTile}
             onSelectArmy={onSelectArmy}
+            selectedArmy={selectedArmy}
             lens={lens}
           />
         )}
@@ -172,8 +177,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {selectedNation && !selectedRegion && selectedTile == null && selectedArmy == null && <NationSheet nationId={selectedNation} onClose={() => setSelectedNation(null)} onSelectRegion={onSelectRegion} />}
       <div className="absolute left-2 z-10 flex flex-col items-start gap-2 bottom-[calc(var(--panel-bar-height,4rem)+0.5rem)] lg:bottom-2 pl:bottom-2 pl:left-[max(env(safe-area-inset-left),0.5rem)]">
         <LensStrip lens={lens} onChange={setLens} />
-        <MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} />
-        <MapLegend />
+        {miniOpen
+          ? <div className="relative"><MiniMap onOpen={() => setModalOpen(true)} viewportBounds={viewportBounds} onNavigate={handleMiniMapNavigate} /><button type="button" onClick={() => setMini(false)} aria-label="Hide the mini map" data-testid="minimap-hide" className="absolute -top-2 -right-2 min-w-[28px] min-h-[28px] rounded-full bg-slate-900/95 border border-slate-700 text-slate-300 text-xs pointer-events-auto">×</button></div>
+          : <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[36px] px-2.5 rounded-full bg-slate-900/90 border border-slate-700 shadow-xl text-[11px] font-semibold text-slate-200 pointer-events-auto">World</button>}
+        {miniOpen && <MapLegend />}
       </div>
       <MapModeToggle mode={mode} onChange={handleModeChange} />
       <MarchBar onSelectRegion={selectRegion} />

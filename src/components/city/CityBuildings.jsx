@@ -35,7 +35,7 @@ const CityBuildings = ({ cityId }) => {
         <li key={r.category} className="flex items-center gap-2 rounded-lg px-2 py-1.5 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
           <div className="min-w-0 flex-1">
             <div className="text-slate-100">{r.label}</div>
-            <div className="text-slate-400 truncate">{r.built.length ? r.built.join(', ') : 'nothing yet'}{r.next ? ` · next ${r.next.name} (${r.next.cost})` : ' · complete'}{r.next?.needs ? ` · needs ${r.next.needs}` : ''}</div>
+            <div className="text-slate-400 truncate">{r.built.length ? r.built.join(', ') : 'nothing yet'}{r.next ? ` · next ${r.next.name} (${r.next.cost})` : ' · complete'}{r.next?.needs ? ` · needs ${r.next.needs}` : ''}{r.next?.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-sky-300 min-h-[24px]" data-testid="research-for-building">Research it</button>}</div>
           </div>
           {r.next && mine && (r.next.queued
             ? <span className="text-emerald-300 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> queued</span>

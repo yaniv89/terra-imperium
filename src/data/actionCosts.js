@@ -134,6 +134,7 @@ export const ACTION_COSTS = {
   // The royal family (src/engine/succession.js): marry a noble at court, or adopt a relative as heir.
   marryNoble: { gold: 60 },
   adoptHeir: { adm: 50 },
+  secureSuccession: { gold: 200, dip: 2 }, // buys the pretender faction: the heir's claim +SECURE_SUCCESSION_CLAIM (plans/playtest-1.md P4)
   breakAlliance: { dip: 0 },
   insult: { dip: 0 },
   assignDiplomat: { dip: 5 },
@@ -407,8 +408,9 @@ export const CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY = 2;
 // a pretender army is just a rebel army with a cause — but mark the regions they seize with
 // `occupiedBy` (the same "someone else holds this militarily, ownership hasn't changed" field M13
 // wars use) so "holds >= 50% of your regions" is a plain count, not a second tracking structure.
-export const CIVIL_WAR_STABILITY_STREAK_TURNS = 3; // plan: "3 consecutive turns at stability -3"
-export const CIVIL_WAR_SUCCESSION_CRISIS_CHANCE = 0.4; // plan §M3's own "40% chance" pretender spawn, finally wired
+export const SECURE_SUCCESSION_CLAIM = 30;
+export const CIVIL_WAR_STABILITY_STREAK_TURNS = 5; // five consecutive turns at the floor (plans/playtest-1.md P4; was 3)
+export const CIVIL_WAR_SUCCESSION_CRISIS_CHANCE = 0.2; // a contested succession erupts one time in five, and only with a weak court (civilWar.js crisisCanErupt; was 0.4)
 export const CIVIL_WAR_PRETENDER_REGION_SHARE = 0.15;
 export const CIVIL_WAR_PRETENDER_STRENGTH_SHARE = 0.15; // vs. the nation's own real fielded strength
 export const CIVIL_WAR_HOLD_SHARE_TO_LOSE = 0.5;

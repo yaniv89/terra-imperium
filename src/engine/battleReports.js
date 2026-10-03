@@ -15,6 +15,7 @@ export const BATTLE_REPORT_HISTORY = 30;
 const sideOf = (units, beforeOf) => (units || []).map((u) => ({
   id: u.id,
   classId: u.classId,
+  navalLine: u.navalLine || undefined,
   domain: u.domain,
   before: Math.max(0, Math.round(beforeOf(u))),
   after: Math.max(0, Math.round(u.strength || 0)),

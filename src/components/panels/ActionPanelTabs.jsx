@@ -9,6 +9,7 @@ import React from 'react';
 import { Home, Beaker, Trophy, Satellite } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
+import { TECH_TREE } from '../../data/techTree';
 import { TabButton } from '../ui';
 
 // The Military and Diplomacy tabs are the Empire sheet's War and Relations sections now
@@ -19,6 +20,11 @@ export const TABS = [
   { id: 'space', label: 'Space', icon: Satellite },
   { id: 'legacy', label: 'Legacy', icon: Trophy }
 ];
+
+// The tabs the player sees (plans/playtest-1.md P5.3): the Space tab only once the nation has
+// researched a Modern Age tech (the space race means nothing before that).
+export const spaceUnlocked = (state) => state.techAgeId === 'modern' || Object.keys(state.techTree || {}).some((id) => state.techTree[id]?.researched && TECH_TREE[id]?.ageId === 'modern');
+export const visibleTabs = (state) => TABS.filter((t) => t.id !== 'space' || spaceUnlocked(state));
 
 // The red count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
 export const getTabBadge = (state, tabId) => {
@@ -40,7 +46,7 @@ const ActionPanelTabs = ({ activeTab, onTabChange }) => {
 
   return (
     <div className="flex border-b border-slate-700 bg-slate-800/50">
-      {TABS.map(tab => (
+      {visibleTabs(state).map(tab => (
         <TabButton
           key={tab.id}
           icon={tab.icon}

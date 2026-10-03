@@ -19,7 +19,7 @@
 import { Vector3, Vector4, Matrix4, Color, Box3, BufferGeometry, Float32BufferAttribute, AnimationMixer } from 'three';
 import { LIMB, PART } from './soldierFactory';
 
-export const DEFAULT_TRIANGLE_BUDGET = 3000; // per soldier; ×hundreds of instances on a phone GPU
+export const DEFAULT_TRIANGLE_BUDGET = 8000; // per soldier at full detail (plans/model-brief-for-claude.md section 2): the battle draws the nearest squads at this and the rest as LOD1 and imposters
 
 const DEFAULT_TAGS = {
   team: /team|tabard|tunic|surcoat|banner|flag|faction|cloak|cape|livery|plume/i,
@@ -152,7 +152,7 @@ const applyPose = (root, animations, restClip) => {
  * @param {boolean} [opts.quadruped=false]  a mount: front/hind legs drive the horse bones
  * @param {'auto'|false} [opts.segment='auto']  static (unskinned, unnamed) humanoids: split limbs by position
  * @param {object}  [opts.tags]  RegExps over material/node names: { team, skin, emblem }
- * @param {number}  [opts.triangleBudget=3000]
+ * @param {number}  [opts.triangleBudget=8000]
  * @param {string}  [opts.teamFrom]  a bone/node name (e.g. 'torso'): its dominant colour becomes the
  *                                   team colour everywhere — for palette-textured models (Kenney) whose
  *                                   materials carry no name to tag by

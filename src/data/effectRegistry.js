@@ -48,6 +48,7 @@ export const EFFECT_REGISTRY = {
   hire_advisor: { scene: 'promotion', palette: P('#a78bfa', '#ede9fe'), icon: 'quill', label: 'Advisor hired' },
   marry_noble: { scene: 'promotion', palette: P('#ec4899', '#fce7f3'), icon: 'heart', label: 'Royal wedding' },
   adopt_heir: { scene: 'promotion', palette: P('#38bdf8', '#e0f2fe'), icon: 'crown', label: 'Heir named' },
+  secure_succession: { scene: 'promotion', palette: P('#fbbf24', '#fef3c7'), icon: 'crown', label: 'Succession secured' },
   suppress_rebellion: { scene: 'suppress', palette: P('#f87171', '#fef2f2') },
   embark_unit: { scene: 'march', palette: P('#22d3ee', '#ecfeff'), boats: true, count: 3 },
   disembark_unit: { scene: 'march', palette: P('#2dd4bf', '#f0fdfa'), count: 3 },

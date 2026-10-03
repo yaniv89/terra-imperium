@@ -6,7 +6,9 @@ import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getUnitDefinition, UNIT_CLASSES } from '../../data/unitClasses';
 import { unitTile, movePoints } from '../../engine/armies';
-import { supplyOf, supplyZone, SUPPLY_MAX } from '../../engine/supplyMeter';
+import { supplyOf, supplyZone, supplyReport, SUPPLY_MAX, SUPPLY_LINE_RINGS } from '../../engine/supplyMeter';
+import { isFortified } from '../../engine/fieldBattle';
+import { getModifier } from '../../engine/modifiers/sheet';
 import { routeDestination, placeName } from '../../engine/routes';
 import { getTechAgeId, getResearched } from '../../engine/nationState';
 import { mapEffectsFor } from '../../engine/techMapEffects';
@@ -18,6 +20,7 @@ import { ALL_PERKS, canPromote, hasPerk, getRankForXp, XP_THRESHOLDS, RANK_ORDER
 import { airUnitsInRange, AIR_RANGE } from '../../engine/airPower';
 import { validateFieldAttack, enemyStackAt } from '../../engine/fieldBattle';
 import { validateFleetAttack, enemyFleetsAt } from '../../engine/navalBattle';
+import { declareWarModel } from '../panels/warActions';
 import { fleetPace } from '../../engine/fleets';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
@@ -76,6 +79,9 @@ export const armySheetModel = (state, tile) => {
     g.units.push(r);
   });
   const zone = naval ? { zone: 'sea' } : supplyZone(state, tiles, units[0]);
+  const report = naval ? null : supplyReport(state, units[0], { lineRings: SUPPLY_LINE_RINGS + mapEffectsFor(state, state.playerNationId).lineRings + Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total)), max });
+  const fortified = !naval && units.every((u) => isFortified(u, state.turnNumber));
+  const mergeFrom = naval ? [] : mergeSources(state, tile, units);
   const lead = units.find((u) => u.route?.length) || null;
   const dest = lead ? routeDestination(lead) : null;
   const pace = lead ? (lead.routePace || 1) : 0;
@@ -86,7 +92,8 @@ export const armySheetModel = (state, tile) => {
     base: state.regions[units[0].regionId]?.name || null,
     soldiers: units.reduce((s, u) => s + u.strength, 0),
     groups,
-    zone: zone.zone, zoneText: ZONE_TEXT[zone.zone] || '',
+    zone: zone.zone, zoneText: report ? `Supply ${Math.round(report.supply)}/${report.max}, ${report.delta >= 0 ? '+' : ''}${report.delta} a turn${report.turnsLeft != null ? ` (${report.turnsLeft} turn${report.turnsLeft === 1 ? '' : 's'} left)` : ''}. ${report.hint}` : ZONE_TEXT[zone.zone] || '',
+    supplyReport: report, fortified, mergeFrom,
     route: dest != null ? { to: dest, name: placeName(state, dest), turns: Math.max(1, Math.ceil(lead.route.length / Math.max(1, pace))) } : null,
     canMarch: units.some((u) => (u.movesLeft ?? 0) > 0 && !u.route?.length),
     pillage: naval ? null : pillageTarget(state, tile, units),
@@ -96,6 +103,20 @@ export const armySheetModel = (state, tile) => {
     siege: naval ? null : siegePressed(state, tile, units),
     unitIds: units.map((u) => u.id)
   };
+};
+
+/** Your other stacks on the tiles around, with moves left: the sheet offers to march them in
+ * (plans/playtest-1.md P2.3 merge). [{ tile, name, regionId, unitIds }]. */
+export const mergeSources = (state, tile, units) => {
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const here = new Set(units.map((u) => u.id));
+  const out = [];
+  tiles.neighbors[tile].forEach((n) => {
+    const stack = Object.values(state.units).filter((u) => u.ownerId === me && u.domain === 'land' && !u.embarkedOn && u.classId !== 'settler' && u.strength > 0 && !here.has(u.id) && unitTile(state, u) === n && (u.movesLeft ?? 0) > 0 && !u.route?.length);
+    if (stack.length) out.push({ tile: n, name: tiles.names[n] || state.regions[state.world?.tileOwner?.[n]]?.name || 'the next tile', regionId: stack[0].regionId, unitIds: stack.map((u) => u.id) });
+  });
+  return out;
 };
 
 /** The improvement the stack could pillage here (an enemy's, unburnt), or null: { name }. */
@@ -124,7 +145,7 @@ export const attackTargets = (state, tile, units) => {
     const city = cityId ? state.regions[cityId] : null;
     if (city && city.tile === n && city.owner !== me) {
       const v = validateInvasion(state, from, cityId);
-      if (v.ok || ['no_moves', 'cost', 'no_war'].includes(v.reason)) out.push({ kind: 'city', tile: n, regionId: cityId, name: city.name, owner: state.nations[city.owner]?.name || city.owner, strength: Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.ownerId !== me && u.strength > 0).reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
+      if (v.ok || ['no_moves', 'cost', 'no_war'].includes(v.reason)) out.push({ kind: 'city', tile: n, regionId: cityId, name: city.name, owner: state.nations[city.owner]?.name || city.owner, ownerId: city.owner, war: v.reason === 'no_war' ? declareWarModel(state, city.owner) : null, strength: Object.values(state.units).filter((u) => u.regionId === cityId && u.domain === 'land' && u.ownerId !== me && u.strength > 0).reduce((s, u) => s + u.strength, 0), ok: !!v.ok, reason: v.ok ? null : ATTACK_REASON[v.reason] || v.reason });
       return;
     }
     const enemy = enemyStackAt(state, n, me);

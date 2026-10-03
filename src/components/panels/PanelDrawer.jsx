@@ -24,7 +24,7 @@ import { useExclusivePanel } from '../../hooks/useExclusivePanel';
 import { useGame } from '../../context/GameContext';
 import { useAutoPeek } from '../../hooks/useAutoPeek';
 import { useReportInset } from '../../context/MapInsetsContext';
-import ActionPanelTabs, { TABS, getTabBadge } from './ActionPanelTabs';
+import ActionPanelTabs, { visibleTabs, getTabBadge } from './ActionPanelTabs';
 import { OPEN_TAB } from './panelEvents';
 import ActionPanel from './ActionPanel';
 
@@ -147,7 +147,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
           </div>
         )}
         <nav className="w-[3.75rem] shrink-0 flex flex-col gap-0.5 p-1 overflow-y-auto scrollbar-none pb-[max(env(safe-area-inset-bottom),0.25rem)]">
-          {TABS.map((tab) => (
+          {visibleTabs(state).map((tab) => (
             <RailButton
               key={tab.id}
               icon={tab.icon}

@@ -103,7 +103,8 @@ const StartScreen = ({ onStart }) => {
                     : 'bg-slate-800/60 border-slate-700 hover:bg-slate-700/60 text-slate-300'
                 }`}
               >
-                {speed.name}
+                <span className="block font-semibold">{speed.name}</span>
+                <span className="block text-[10px] text-slate-400 leading-tight">{speed.blurb}</span>
               </button>
             ))}
           </div>

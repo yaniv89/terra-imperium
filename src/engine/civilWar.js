@@ -43,6 +43,13 @@ import {
 } from '../data/actionCosts';
 
 export const PRETENDER_MARKER = 'pretenders';
+// Plans/playtest-1.md P4: a nation falls into no second civil war for CIVIL_WAR_COOLDOWN_TURNS
+// after one ends, and a succession crisis only erupts when the court is weak.
+export const CIVIL_WAR_COOLDOWN_TURNS = 40;
+export const CRISIS_LEGITIMACY_MAX = 40;
+export const CRISIS_STABILITY_MAX = -1;
+export const inCivilWarCooldown = (nation, turn) => nation?.civilWarEndedTurn != null && turn - nation.civilWarEndedTurn < CIVIL_WAR_COOLDOWN_TURNS;
+export const crisisCanErupt = (nation, turn) => !nation?.civilWar?.active && !inCivilWarCooldown(nation, turn) && ((nation?.legitimacy ?? 50) < CRISIS_LEGITIMACY_MAX || (nation?.stability || 0) <= CRISIS_STABILITY_MAX);
 export const STABILITY_MIN_FOR_CIVIL_WAR = -3;
 export const PRETENDER_SPREAD_CHANCE = 0.25; // per pretender stack per turn
 export const PRETENDER_SPLIT_STRENGTH_SHARE = 0.6; // a spreading stack's offshoot, vs. its parent

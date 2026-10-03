@@ -13,6 +13,10 @@ import { unitTile } from '../../engine/armies';
 import { isSettler } from '../../engine/settlers';
 import { tutorialPrompt } from '../../engine/tutorial';
 import { demandWaiting } from '../../engine/aiAccords';
+import { supplyOf, supplyZone, SUPPLY_LOW } from '../../engine/supplyMeter';
+import { getTiles } from '../../data/geo/tiles';
+import { getSuccessionStyle } from '../../engine/succession';
+export const SUCCESSION_WARN_TURNS = 3;
 
 export const UNREST_PROMPT = 50;
 export const WARN_ARM_MS = 4000;
@@ -42,5 +46,15 @@ export const nextPrompts = (state) => {
     out.push({ id: `army:${t}`, kind: 'army', label: 'An army in the field can still move', tile: t });
   });
   cities.forEach((c) => { if ((c.unrest || 0) >= UNREST_PROMPT) out.push({ id: `unrest:${c.id}`, kind: 'unrest', label: `${c.name} is restless (unrest ${Math.round(c.unrest)})`, regionId: c.id }); });
+  // A contested succession (civilWar.js): the reign ends within SUCCESSION_WARN_TURNS and the heir's claim is weak or there is none.
+  const pn = state.nations[state.playerNationId];
+  if (pn?.ruler?.reignEndsTurn != null && getSuccessionStyle(pn.government) === 'hereditary' && pn.ruler.reignEndsTurn - (state.turnNumber || 0) <= SUCCESSION_WARN_TURNS && (!pn.heir || pn.heir.claim < 20)) out.push({ id: 'succession', kind: 'succession', label: pn.heir ? `${pn.heir.name}'s claim is weak: the succession is contested` : 'No heir: the succession is contested', tab: 'domestic', section: 'court' });
+  // An army running out of supply (supplyMeter.js): under SUPPLY_LOW and falling.
+  const lowSeen = new Set();
+  units.forEach((u) => {
+    if (u.domain !== 'land' || u.embarkedOn || isSettler(u) || !(u.strength > 0) || u.tile == null) return;
+    const t = unitTile(state, u); if (lowSeen.has(t)) return;
+    if (supplyOf(u) < SUPPLY_LOW && supplyZone(state, getTiles(), u).delta < 0) { lowSeen.add(t); out.push({ id: `supply:${t}`, kind: 'supply', label: `An army is running out of supply (${Math.round(supplyOf(u))})`, tile: t }); }
+  });
   return out;
 };

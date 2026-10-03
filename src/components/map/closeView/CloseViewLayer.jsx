@@ -3,7 +3,8 @@
 // land as 3D models, drawn by three.js on a transparent canvas over the SVG provinces. Towns are
 // sized by the province's buildings (townModels.js); armies are 1 to 3 soldiers of their main unit
 // type and age, the very models and walk cycle of the tactical battles (soldierFactory.js),
-// walking while they march. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
+// walking while they march. Trees stand in forest and jungle hexes and a small work on every
+// improved tile (landscape.js); the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
 // The camera is orthographic in screen pixels, so a model sits exactly over its province as the
 // map pans; models are tilted toward the viewer for a three-quarter look. Loaded lazily: three.js
 // only arrives the first time the player zooms this close.
@@ -21,10 +22,12 @@ import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrl, palaceFor, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx } from './scale';
+import { ARMY_SPOT, unitPx, tiltFor } from './scale';
+import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
+import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 
-// The tilt that shows roofs (radians about the screen x axis).
-const TILT = 0.95;
+const TREE_KINDS = ['conifer', 'broad', 'palm'];
+const MAX_WORKS = 400;
 const SOLDIER_SIZE = 2.4; // soldiers are drawn larger than true scale so they read at map size
 const MAX_SOLDIERS = 240;
 const EDGE = 80;
@@ -62,9 +65,20 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     scene.add(sun);
     const townMaterial = new MeshLambertMaterial({ vertexColors: true });
     const soldierMaterial = createSoldierMaterial();
-    three.current = { renderer, scene, camera, townMaterial, soldierMaterial, towns: new Map(), layers: new Map(), assets: new Map(), dirty: true, moving: false };
+    // Trees and works: one instanced mesh per kind, filled each layout.
+    const instanced = (geometry, max) => {
+      const mesh = new InstancedMesh(geometry, townMaterial, max);
+      mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(DynamicDrawUsage);
+      mesh.count = 0; mesh.frustumCulled = false;
+      scene.add(mesh);
+      return mesh;
+    };
+    const trees = new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)]));
+    const works = new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)]));
+    three.current = { renderer, scene, camera, townMaterial, soldierMaterial, towns: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
     return () => {
       const t = three.current;
+      t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
       t.towns.forEach((m) => scene.remove(m));
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
       townMaterial.dispose(); soldierMaterial.dispose();
@@ -87,6 +101,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
     camera.updateProjectionMatrix();
     const k = transform.k;
     const s = unitPx(k);
+    const TILT = tiltFor(k);
     const toScreenLatLng = (c) => {
       const p = c && projection([c.lng, c.lat]);
       if (!p) return null;
@@ -142,6 +157,36 @@ const CloseViewLayer = ({ projection, transform, width, height, active }) => {
       mesh.visible = true;
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
+
+    // The land: trees in the woods, a work on each improved tile (landscape.js).
+    const lsTmp = new Object3D(); const lsColor = new Color();
+    const project = (lat, lon) => {
+      const p = projection([lon, lat]);
+      return p ? { x: p[0] * k + transform.x, y: p[1] * k + transform.y } : null;
+    };
+    const cityTiles = new Set(Object.values(state.regions).map((r) => r.tile).filter((x) => x != null));
+    const land = landscapeOnScreen({ toScreen: project, width, height, k, world: state.world, cityTiles });
+    t.trees.forEach((m) => { m.count = 0; });
+    t.works.forEach((m) => { m.count = 0; });
+    const put = (mesh, x, y, scale, turn, shade) => {
+      const i = mesh.count;
+      lsTmp.position.set(x, -y, y * 0.05);
+      lsTmp.rotation.set(TILT, turn, 0, 'XYZ');
+      lsTmp.scale.setScalar(scale);
+      lsTmp.updateMatrix();
+      mesh.setMatrixAt(i, lsTmp.matrix);
+      mesh.setColorAt(i, lsColor.setScalar(shade));
+      mesh.count += 1;
+    };
+    land.trees.forEach((tr) => {
+      const mesh = t.trees.get(tr.kind);
+      if (mesh && mesh.count < MAX_TREES) put(mesh, tr.x, tr.y, s * tr.size, tr.turn, 0.85 + (tr.turn % 0.3));
+    });
+    land.works.forEach((w) => {
+      const mesh = t.works.get(w.kind);
+      if (mesh && mesh.count < MAX_WORKS) put(mesh, w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y, s * 1.2, w.turn * 0.15, w.pillaged ? 0.45 : 1);
+    });
+    [...t.trees.values(), ...t.works.values()].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
 
     // Armies: soldiers of the main unit type, beside the town, in the owner's colour.
     t.layers.forEach((l) => { l.mesh.count = 0; });

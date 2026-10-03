@@ -384,10 +384,10 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               </div>
             );
           })()}
-          {!atWarWithOwner && hasMilitaryOption && (
+          {!atWarWithOwner && !isPlayerOwned && !!ownerNation && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 space-y-1.5" data-testid="peace-gate">
               <div className="text-[11px] text-amber-200">
-                You&apos;re at peace with {ownerNation.name}. Invading means war — declare it first, then attack.
+                You&apos;re at peace with {ownerNation.name}.{hasMilitaryOption ? ' Invading means war: declare it first, then attack.' : ' To take this city, declare war and march an army to it.'}
                 {breaksTruce && <span className="block text-red-300 mt-0.5">This breaks your truce: stability, prestige and your neighbours&apos; trust will suffer.</span>}
               </div>
               <ActionButton

@@ -1672,7 +1672,7 @@ describe('Research tab actions', () => {
     it('costs more science the further the tech age has fallen behind the calendar', () => {
       const baseline = richState();
       const behind = { ...baseline, age: 'gunpowder', techAgeId: 'bronze' }; // 3 ages behind -> +90%
-      expect(getResearchCost(behind, 'fr', 'military_bronze_casting')).toBe(Math.round(getResearchCost(baseline, 'fr', 'military_bronze_casting') * 1.9));
+      expect(Math.abs(getResearchCost(behind, 'fr', 'military_bronze_casting') - getResearchCost(baseline, 'fr', 'military_bronze_casting') * 1.9)).toBeLessThanOrEqual(1); // rounding of the speed table's multiplier (ages.js)
     });
 
     it('the second tech of a line follows once the first is researched and its year has come', () => {

@@ -221,7 +221,7 @@ describe('pre-battle choice is never skipped by accident', () => {
     // Play turns in the legacy mode until the enemy assaults: the assault must wait for the player.
     let s = { ...baseState(), battleSettings: { defaultMode: 'auto' } };
     let asked = false;
-    for (let i = 0; i < 40 && !asked; i++) {
+    for (let i = 0; i < 80 && !asked; i++) {
       s = resolveTurn(s);
       asked = (s.pendingDefenses || []).length > 0;
       if (s.activeEventId || s.activeProceduralEvent || s.pendingPeaceOffer) s = { ...s, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null };

@@ -8,6 +8,8 @@ import { MapPin, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { describeOutcome, formatMen, nationName, regionName, sidesFor, unitName } from './battleReportView';
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
+import { getEffectiveAgeId } from '../../data/ages';
+import { getTechAgeId } from '../../engine/nationState';
 
 const OURS = '#3B82F6';
 const THEIRS = '#F97316';
@@ -72,13 +74,13 @@ const StrengthChart = ({ entry }) => {
   );
 };
 
-const SideTable = ({ title, color, units }) => (
+const SideTable = ({ title, color, units, ageId = 'bronze' }) => (
   <div className="space-y-1">
     <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-300"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />{title}</div>
     {units.length === 0 && <div className="text-[11px] text-slate-500">No troops.</div>}
     {units.map((u) => (
       <div key={u.id} className="flex justify-between gap-2 text-[11px] text-slate-400">
-        <span className="truncate">{unitName(u.classId)}{u.after <= 0 ? ' (destroyed)' : u.routed ? ' (routed)' : ''}</span>
+        <span className="truncate">{unitName(u.classId, ageId, u.navalLine)}{u.after <= 0 ? ' (destroyed)' : u.routed ? ' (routed)' : ''}</span>
         <span className="font-mono tabular-nums shrink-0">{formatMen(u.before * MEN_PER_STRENGTH)} → {formatMen(u.after * MEN_PER_STRENGTH)}</span>
       </div>
     ))}
@@ -91,6 +93,7 @@ const LossBar = ({ fallen, total, color }) => (
 
 const BattleReportSheet = ({ entry, onClose, onShowRegion }) => {
   const { state } = useGame();
+  const ageOf = (nationId) => (nationId && nationId !== 'rebels' && state.nations[nationId] ? getEffectiveAgeId(state.age, getTechAgeId(state, nationId)) : state.age);
   if (!entry) return null;
   const { mine, theirs } = sidesFor(entry);
   const result = describeOutcome(entry);
@@ -123,8 +126,8 @@ const BattleReportSheet = ({ entry, onClose, onShowRegion }) => {
             )}
           </div>
           <StrengthChart entry={entry} />
-          <SideTable title="Your units" color={OURS} units={entry.sides[mine]} />
-          <SideTable title="Their units" color={THEIRS} units={entry.sides[theirs]} />
+          <SideTable title="Your units" color={OURS} units={entry.sides[mine]} ageId={ageOf(state.playerNationId)} />
+          <SideTable title="Their units" color={THEIRS} units={entry.sides[theirs]} ageId={ageOf(entry[mine === "attacker" ? "defenderNationId" : "attackerNationId"])} />
         </div>
         {entry.targetRegionId && onShowRegion && (
           <div className="p-3 border-t border-slate-800 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">

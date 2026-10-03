@@ -4,20 +4,21 @@
 // how to fight it: Auto-resolve (instant), Command (the tactical battle, with the player
 // defending) or Withdraw (fall back to a neighbouring province and give this one up). The turn can't end until every assault is fought. It can be tucked away to look at
 // the map, leaving a pill to bring it back. A bottom sheet on phones, a centred card on desktop.
+import { unitDisplayName } from '../../data/unitNames';
+import { getEffectiveAgeId } from '../../data/ages';
 import React, { useMemo, useState } from 'react';
 import { Shield, Swords, Zap, ChevronDown, Undo2 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
-import { UNIT_CLASSES } from '../../data/unitClasses';
 import { estimateDefenseOdds, getDefenseArmies, getWithdrawalTarget } from '../../engine/defense';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
 
-const forceSummary = (units) => {
+const forceSummary = (units, ageId = 'bronze') => {
   const counts = {};
   units.forEach((u) => { counts[u.classId] = (counts[u.classId] || 0) + 1; });
-  return Object.entries(counts).map(([id, n]) => `${n} ${UNIT_CLASSES[id]?.name || id}`).join(' · ') || 'none';
+  return Object.entries(counts).map(([id, n]) => `${n} ${unitDisplayName(ageId, id)}`).join(' · ') || 'none';
 };
 
 const DefenseRow = ({ def, state, dispatch }) => {
@@ -33,9 +34,9 @@ const DefenseRow = ({ def, state, dispatch }) => {
         <div className="text-[11px] text-slate-400 shrink-0">control {region?.control ?? '?'}%</div>
       </div>
       <div className="text-[11px] text-slate-300 leading-snug">
-        <span className="text-orange-300">{enemy}:</span> {forceSummary(armies.attackerUnits)}
+        <span className="text-orange-300">{enemy}:</span> {forceSummary(armies.attackerUnits, getEffectiveAgeId(state.age, state.techAgeId))}
         <br />
-        <span className="text-blue-300">Your garrison:</span> {forceSummary(armies.defenderUnits)}
+        <span className="text-blue-300">Your garrison:</span> {forceSummary(armies.defenderUnits, getEffectiveAgeId(state.age, state.techAgeId))}
       </div>
       {!odds.undefended && (
         <div className="space-y-1">

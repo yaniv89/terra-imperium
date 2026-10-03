@@ -37,13 +37,17 @@ import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
 // The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
 const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
+// The ground under it (plans/playtest-1.md P1.3): a shader over the raster, sharp at any zoom.
+const CloseTerrainLayer = React.lazy(() => import('./closeView/CloseTerrainLayer'));
 export const CLOSE_ZOOM_K = 10;
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines, airCover } from './lenses';
+import { WORK_KINDS } from './closeView/landscape';
+import { visibleRasterTiles, rasterTileUrl, baseRasterZoom } from '../../data/geo/rasterTiles';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -53,13 +57,14 @@ const HEX_FROM_ZOOM = 3;
 const RESOURCE_GLYPH_ZOOM = 5;
 const IMPROVEMENT_GLYPH = { farm: 'F', pasture: 'P', camp: 'H', mine: 'M', quarry: 'Q', lumber_camp: 'L', fishing_boats: 'B', plantation: 'N', oil_well: 'O', fort: 'W' };
 const CITY_DETAIL_ZOOM = 2.5;
+const NAME_EARLY_ZOOM = 1.5; // your cities and every capital carry their name from here (plans/playtest-1.md P5.5)
 // Max raised from 8x to 40x (plan feedback: playing as a small nation like Israel, its provinces
 // stayed too small/overlapping to reliably tell apart and click even at old max zoom). Stroke width
 // already divides by transform.k and SVG hit-testing already scales with the <g transform>, so no
 // other change is needed for click accuracy at high zoom.
-const ZOOM_EXTENT = [1, 40];
+const ZOOM_EXTENT = [1, 200]; // up to the super zoom (plans/playtest-1.md P1.1)
 // Phones and tablets may zoom twice as far (plan §3): small provinces need it under a fingertip.
-const TOUCH_ZOOM_EXTENT = [1, 80];
+const TOUCH_ZOOM_EXTENT = [1, 200];
 const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 const ZOOM_STEP_SCALE = 1.6;
 // Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
@@ -93,7 +98,7 @@ const linearViewInterpolate = (a, b) => (t) => [a[0] + (b[0] - a[0]) * t, a[1] +
 // header for the shared contract GlobeView.jsx also reports in.
 const Map2DView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
-  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political'
+  initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, selectedArmy = null, lens = 'political'
 }) => {
   const { state } = useGame();
   const { effects } = useEffects();
@@ -341,6 +346,12 @@ const Map2DView = ({
   // dependency because stroke width is divided by it. Before this, each frame of a d3 pan
   // transition re-rendered all 4,482 paths — janky on a phone and the dominant cost of every pan.
   const zoomK = transform.k;
+  // The raster pyramid over the base picture (rasterTiles.js): the level that matches the zoom,
+  // only the tiles on screen. Keyed on the tile set, so panning inside a tile re-renders nothing.
+  const rasterTileList = interactive && rasterRect ? visibleRasterTiles({ raster: rasterRect, transform, width, height, dpr: Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1), baseZ: baseRasterZoom(worldRasterSizeFor(width, height)) }) : [];
+  const rasterTileKey = rasterTileList.map((t) => t.key).join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rasterTiles = useMemo(() => rasterTileList, [rasterTileKey, rasterRect]);
   const pathElements = useMemo(() => {
     if (!pathsById) return null;
     return (
@@ -402,6 +413,10 @@ const Map2DView = ({
 
   // Load the close view a little before it is needed, then keep it (one WebGL context for good).
   const [closeLoaded, setCloseLoaded] = useState(false);
+  // The close ground is drawn by CloseTerrainLayer once its world picture is in: the SVG then
+  // skips its own pictures and turns transparent over it.
+  const [terrainReady, setTerrainReady] = useState(false);
+  const closeGround = interactive && terrainReady && transform.k >= CLOSE_ZOOM_K;
   useEffect(() => { if (interactive && transform.k >= CLOSE_ZOOM_K * 0.7) setCloseLoaded(true); }, [interactive, transform.k]);
 
   // A tapped marker cluster: zoom in on it until its banners separate.
@@ -452,7 +467,7 @@ const Map2DView = ({
         <text x={x} y={y - r - 2 / zoomK} textAnchor="middle" fontSize={10 / zoomK} fontWeight="700" fill="#fca5a5" stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke">{s.strength.toLocaleString()}</text>
       </g>
     ); })];
-    if (lens === 'supply') return supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />);
+    if (lens === 'supply') return [...supplyReach(state).map((t) => <path key={`r${t.tile}`} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-reach={t.tile} />), ...supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />)];
     if (lens === 'estates') return estateTints(state).map((t) => { const [x, y] = at(t.tile); return (
       <g key={t.tile} pointerEvents="none" data-lens-estate={t.tile} data-estate={t.estateId}>
         <path d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" />
@@ -499,16 +514,19 @@ const Map2DView = ({
     within.forEach((t) => {
       const e = ts[t];
       const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
-      const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' ? resId : null; // luxuries and strategics only: bonus resources sit on most tiles
+      // Luxuries and strategics only (bonus resources sit on most tiles), and only on claimed land
+      // and the ring around it unless the Yields lens is on: open desert stays clean.
+      const res = resId && RESOURCES_ON_TILES[resId]?.kind !== 'bonus' && (lens === 'yields' || owner[t] != null || tiles.neighbors[t].some((n) => owner[n] != null)) ? resId : null;
       if (!e?.improvement && !e?.district && !res) return;
       const { lat, lon } = tiles.latLonOf(t); const [x, y] = projection([lon, lat]);
       const dim = e?.pillaged ? 0.45 : 1;
       if (e?.district && DISTRICTS[e.district]) out.push(<g key={`d${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-district-glyph={t}><rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.25} fill="#c4b5fd" stroke="#312e81" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#1e1b4b">{DISTRICTS[e.district].glyph}</text></g>);
-      else if (e?.improvement && e.improvement !== 'road') out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text></g>);
+      // In the close view the work stands as a model (closeView/landscape.js): no letter over it.
+      else if (e?.improvement && e.improvement !== 'road' && !(closeGround && WORK_KINDS.includes(e.improvement))) out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text></g>);
       if (res && !e?.improvement && !e?.district) out.push(<polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
     });
     return out;
-  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId]);
+  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens, closeGround]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.
   const battleMarkElements = useMemo(() => {
     if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;
@@ -534,20 +552,25 @@ const Map2DView = ({
       const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
       const preview = l.kind === 'preview';
       const colour = preview ? '#fde68a' : l.halted ? '#f87171' : '#34d399';
+      // Only the selected stack's march is bright; the others stay faint (plans/playtest-1.md P1.6).
+      const faint = !preview && selectedArmy != null && l.points[0] !== selectedArmy;
+      const end = pts[pts.length - 1]; const prev = pts[pts.length - 2];
+      const ang = end && prev ? Math.atan2(end[1] - prev[1], end[0] - prev[0]) : 0;
+      const ah = 5 / Math.sqrt(zoomK);
+      const arrow = end ? [[end[0] + Math.cos(ang) * ah, end[1] + Math.sin(ang) * ah], [end[0] + Math.cos(ang + 2.5) * ah, end[1] + Math.sin(ang + 2.5) * ah], [end[0] + Math.cos(ang - 2.5) * ah, end[1] + Math.sin(ang - 2.5) * ah]].map((p) => p.join(',')).join(' ') : '';
+      const turns = l.marks.length ? l.marks[l.marks.length - 1].turn : null;
+      const label = l.halted ? 'halted' : turns != null ? `${turns} turn${turns === 1 ? '' : 's'}` : '';
       return (
         <g key={l.key} pointerEvents="none" data-march-line={l.kind}>
-          <path d={d} fill="none" stroke="rgba(15,23,42,0.7)" strokeWidth={w * 2} strokeLinejoin="round" strokeLinecap="round" />
-          <path d={d} fill="none" stroke={colour} strokeWidth={w} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={preview ? `${w * 3} ${w * 2}` : undefined} />
-          {l.marks.map((m) => { const p = pts[m.index]; if (!p) return null; const r = 6 / Math.sqrt(zoomK); return (
-            <g key={m.index} transform={`translate(${p[0]},${p[1]})`}>
-              <circle r={r} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.6} />
-              <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.2} fontWeight="700" fill="#0f172a">{m.turn}</text>
-            </g>); })}
-          {l.haltIndex > 0 && pts[l.haltIndex] && <circle cx={pts[l.haltIndex][0]} cy={pts[l.haltIndex][1]} r={5 / Math.sqrt(zoomK)} fill="none" stroke="#f87171" strokeWidth={w} />}
+          <path d={d} fill="none" stroke="rgba(15,23,42,0.55)" strokeWidth={w * 1.8} strokeLinejoin="round" strokeLinecap="round" opacity={faint ? 0.5 : 1} />
+          <path d={d} fill="none" stroke={colour} strokeWidth={w * 0.9} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={preview ? `${w * 3} ${w * 2}` : undefined} opacity={faint ? 0.5 : 1} />
+          {preview && l.marks.slice(0, -1).map((m) => { const p = pts[m.index]; if (!p) return null; return <circle key={m.index} cx={p[0]} cy={p[1]} r={1.6 / Math.sqrt(zoomK)} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.3} />; })}
+          {end && <polygon points={arrow} fill={colour} stroke="rgba(15,23,42,0.8)" strokeWidth={w * 0.4} opacity={faint ? 0.5 : 1} />}
+          {end && !faint && <g transform={`translate(${end[0]},${end[1] - 9 / Math.sqrt(zoomK)})`} data-route-label={l.kind}><text textAnchor="middle" fontSize={9 / Math.sqrt(zoomK)} fontWeight="700" fill={l.halted ? '#fecaca' : '#fff'} stroke="rgba(15,23,42,0.85)" strokeWidth={2.2 / Math.sqrt(zoomK)} paintOrder="stroke">{label}</text></g>}
         </g>
       );
     });
-  }, [interactive, projection, marchLines, zoomK]);
+  }, [interactive, projection, marchLines, zoomK, selectedArmy]);
   // Settlers stand on tiles, not in cities: a tent per settler (yours, and others' near your land).
   const settlerElements = useMemo(() => {
     if (!interactive || !projection) return null;
@@ -597,7 +620,7 @@ const Map2DView = ({
           {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.38} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
           {city.disaster && <text x={-r * 0.95} y={-r * 0.6} textAnchor="middle" fontSize={r * 0.9} pointerEvents="none" data-disaster-badge={city.id}>{city.disaster.kind === 'flood' ? '≈' : city.disaster.kind === 'fire' ? '🔥' : '☠'}</text>}
           {zoomK >= CITY_DETAIL_ZOOM && <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="700" fill="#0f172a" pointerEvents="none">{city.size || 1}</text>}
-          {zoomK >= CITY_DETAIL_ZOOM && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
+          {(zoomK >= CITY_DETAIL_ZOOM || (zoomK >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
         </g>
       );
     });
@@ -628,18 +651,19 @@ const Map2DView = ({
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
-      style={{ background: OCEAN_COLOR, display: 'block', touchAction: interactive ? 'none' : undefined }}
+      style={{ background: closeGround ? 'transparent' : OCEAN_COLOR, display: 'block', position: interactive ? 'relative' : undefined, touchAction: interactive ? 'none' : undefined }}
       onPointerDown={interactive ? onPointerDown : undefined}
       onPointerUp={interactive ? onPointerUp : undefined}
     >
       <g transform={`translate(${transform.x},${transform.y}) scale(${transform.k})`}>
-        {rasterRect && (
+        {rasterRect && !closeGround && (
           <image
             href={worldRasterUrl(worldRasterSizeFor(width, height))}
             x={rasterRect.x} y={rasterRect.y} width={rasterRect.width} height={rasterRect.height}
             preserveAspectRatio="none" pointerEvents="none" data-testid="world-raster"
           />
         )}
+        {!closeGround && rasterTiles.map((t) => <image key={t.key} href={rasterTileUrl(t.z, t.x, t.y)} x={t.rect.x} y={t.rect.y} width={t.rect.width} height={t.rect.height} preserveAspectRatio="none" pointerEvents="none" data-raster-tile={t.key} />)}
         <g data-testid="territories">
           {pathElements}
           {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" strokeLinecap="round" pointerEvents="none" data-testid="nation-borders" />}
@@ -660,7 +684,12 @@ const Map2DView = ({
   if (!interactive) return map;
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ background: OCEAN_COLOR }}>
+      {closeLoaded && (
+        <Suspense fallback={null}>
+          <CloseTerrainLayer rasterRect={rasterRect} worldUrl={worldRasterUrl(worldRasterSizeFor(width, height))} worldSize={worldRasterSizeFor(width, height)} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} onReady={setTerrainReady} />
+        </Suspense>
+      )}
       {map}
       {closeLoaded && (
         <Suspense fallback={null}>

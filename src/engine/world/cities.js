@@ -77,7 +77,7 @@ export const IMPROVEMENT_COST_PER_TURN = 10;
 export const MIN_CITY_SPACING = 3; // rings between city centres; 2 on the 150 km grid, 3 on the 106 km grid keeps the city count near the old one
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
-export const growthThreshold = (size) => Math.round(15 + 6 * size + size ** 1.8);
+export const growthThreshold = (size, speedMult = 1) => Math.round((15 + 6 * size + size ** 1.8) * speedMult); // the speed table (ages.js speedCostMult)
 // The first two citizens are content for free, so a young city never starts restless.
 export const amenityNeed = (size) => Math.max(0, Math.floor((size - 2) / AMENITY_NEED_PER_CITIZENS));
 
@@ -286,13 +286,14 @@ export const amenitiesOf = (city, ctx = {}) => {
 
 // ---------------------------------------------------------------------------------------------
 // Production
-export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
+export const productionCost = (item, { ageId = 'bronze', citiesOwned = 1, speedMult = 1 } = {}) => Math.round(baseProductionCost(item, { ageId, citiesOwned }) * speedMult);
+const baseProductionCost = (item, { ageId = 'bronze', citiesOwned = 1 } = {}) => {
   switch (item.kind) {
     case 'building': return getBuildingTierCost(item.category, item.tier) ?? 9999;
     case 'unit': return Math.round(UNIT_BASE_COST * (1 + UNIT_COST_PER_AGE * AGE_ORDER.indexOf(ageId)) * (UNIT_CLASS_COST[item.classId] || 1));
     case 'improvement': return (IMPROVEMENTS[item.improvement]?.turns || 2) * IMPROVEMENT_COST_PER_TURN;
     case 'settler': return SETTLER_BASE_COST + SETTLER_COST_PER_CITY * citiesOwned;
-    case 'army': { const next = nextTemplateUnit(item); return next ? productionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
+    case 'army': { const next = nextTemplateUnit(item); return next ? baseProductionCost({ kind: 'unit', classId: next }, { ageId, citiesOwned }) : 0; } // the next piece of the army (armyTemplates.js)
     case 'wonder': return item.cost || 100; // stamped by wonders.js wonderItem at queue time (no import: the registry would cycle)
     default: return item.cost || 9999;
   }
@@ -433,7 +434,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     if (size >= housing + 2) gain = 0; else if (size >= housing) gain *= GROWTH_AT_CAP;
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
     food = c.food + gain;
-    const threshold = growthThreshold(size);
+    const threshold = growthThreshold(size, ctx.speedMult || 1);
     if (food >= threshold && size < MAX_SIZE) { size += 1; food -= threshold * (1 - Math.min(0.5, mapEffectsOf(researched).granaryKeep)); logs.push(`${c.name} grows to size ${size}.`); } // granaries keep a share (techMapEffects.js)
   }
   // 3. Unrest from amenities.
@@ -448,7 +449,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let next = { ...c, size, food: Math.round(food * 10) / 10, unrest, worked };
   for (let guard = 0; guard < 6 && production.current; guard++) {
     const item = production.current;
-    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1 });
+    const cost = productionCost(item, { ageId, citiesOwned: ctx.citiesOwned || 1, speedMult: ctx.speedMult || 1 });
     if (production.progress < cost) break;
     production = { ...production, progress: production.progress - cost };
     if (item.kind === 'building') {
