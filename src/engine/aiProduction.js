@@ -4,8 +4,9 @@
 // queue is empty:
 //   1. A settler, when the city is size SETTLER_FROM_SIZE or more, the nation has no settler on
 //      the road, an outpost slot is free, and a site worth SITE_SCORE_MIN is within reach.
-//   2. The next tier of a building line, in BUILDING_PRIORITY order, that the city can build and
-//      finish within MAX_BUILD_TURNS at its current production.
+//   2. The next tier of a building line, in the nation's doctrine order (DOCTRINE_BUILDING_PRIORITY,
+//      the AI's building template; BUILDING_PRIORITY without a doctrine), that the city can build
+//      and finish within MAX_BUILD_TURNS at its current production.
 //   3. A wonder (wonders.js, plan C9), one turn in WONDER_THINK_PERIOD, when the city makes at
 //      least WONDER_MIN_PRODUCTION a turn and could finish it within MAX_WONDER_TURNS: the
 //      doctrine's preferred wonder first (DOCTRINE_WONDERS), else the first the city may start.
@@ -19,7 +20,7 @@ import { getAvailableClasses } from '../data/unitClasses';
 import { canQueue, productionCost } from './world/cities';
 import { bestSites, outpostsOf, outpostSlots, settlersOf } from './settlers';
 import { wonderOptions, wonderItem } from './wonders';
-import { DOCTRINE_WONDERS } from '../data/nations';
+import { DOCTRINE_WONDERS, DOCTRINE_BUILDING_PRIORITY } from '../data/nations';
 
 export const SETTLER_FROM_SIZE = 2;
 export const SETTLER_THINK_PERIOD = 3; // a city looks for a site one turn in three (the site search is the costly part)
@@ -28,6 +29,8 @@ export const UNITS_PER_CITY = 1;
 export const WONDER_THINK_PERIOD = 5;
 export const WONDER_MIN_PRODUCTION = 6;
 export const MAX_WONDER_TURNS = 30;
+/** The building lines in the order a doctrine builds them, every line once (the template). */
+export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
 export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'infrastructure', 'defense', 'naval'];
 
 /** The nation-wide counts the choice reads, computed once a turn for every nation (the per-city
@@ -58,7 +61,8 @@ export const chooseProduction = (state, city, ctx) => {
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) return item; // bestSites already holds the quality floor
   }
-  for (const category of BUILDING_PRIORITY) {
+  const order = buildingOrder(state.nations?.[nationId]?.doctrine);
+  for (const category of order) {
     const tier = (city.buildings?.categories?.[category] ?? -1) + 1;
     if (!BUILDING_CATEGORIES[category]?.tiers[tier]) continue;
     const item = { kind: 'building', category, tier };

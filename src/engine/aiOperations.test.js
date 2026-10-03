@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest';
 import { createInitialState } from './gameReducer';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
-import { getNeighborIds } from '../data/regions';
+import { getNeighborIds, getNationCapital } from '../data/regions';
 import { createRng } from '../utils/rng';
 import { addCity } from './testWorld';
 import { getTiles } from '../data/geo/tiles';
@@ -112,5 +112,30 @@ describe('operational AI',()=>{
     const {s,interior}=setup();for(const id of getNeighborIds(interior))s.regions[id]={...s.regions[id],owner:'it'};
     const next=processAIOperations(s,createRng(7));
     expect(next.units.a.regionId).toBe(interior);expect(Object.keys(next.units)).toEqual(['a']);
+  });
+});
+
+describe('raids on the player\'s trade routes (plan D6)', () => {
+  it('a stack at war with the player with no city goal in reach marches to the nearest route tile', async () => {
+    const { getTradeRoute } = await import('./tradeRoutes');
+    const { nearestRouteTile, AI_RAID_RINGS } = await import('./aiOperations');
+    const s0 = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
+    const s = { ...s0, nations: { ...s0.nations, de: { ...s0.nations.de, hasTradeAgreement: true } } };
+    const route = getTradeRoute(s, 'de');
+    expect(route.ok).toBe(true);
+    const tiles = getTiles();
+    // A route tile on free land with a free land neighbour: the raider stands on that neighbour.
+    const wild = route.tiles.find((t) => s.world.tileOwner[t] == null && tiles.neighbors[t].some((n) => tiles.land[n] === 1 && s.world.tileOwner[n] == null && !route.tiles.includes(n)));
+    if (wild == null) return; // nothing free along this route on this seed
+    const stand = tiles.neighbors[wild].find((n) => tiles.land[n] === 1 && s.world.tileOwner[n] == null && !route.tiles.includes(n));
+    const nearest = nearestRouteTile(s, stand, AI_RAID_RINGS);
+    expect(route.tiles).toContain(nearest); expect(tiles.neighbors[stand]).toContain(nearest); // a route tile one step away (the lowest id when two touch)
+    // Poland shares no border with France: no front, no city goal, only the raid.
+    const raider = { id: 'raid1', ownerId: 'pl', regionId: getNationCapital('pl'), homeRegionId: getNationCapital('pl'), tile: stand, domain: 'land', classId: 'cavalry', strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1 };
+    const war = { ...s, units: { ...s.units, raid1: raider }, wars: [{ id: 'w', aggressor: 'pl', enemy: 'fr', active: true, startTurn: 1 }], pendingDefenses: [], logs: [] };
+    if (getNeighborIds(getNationCapital('pl')).some((id) => war.regions[id]?.owner === 'fr')) return;
+    const next = processAIOperations(war, createRng(3));
+    const u = next.units.raid1;
+    expect(u.tile === nearest || (u.route && u.route[u.route.length - 1] === nearest) || u.routeFailed?.goal === `raid:${nearest}`).toBe(true);
   });
 });
