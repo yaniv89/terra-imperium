@@ -1,7 +1,8 @@
 # Full QA, UX and design audit: agent prompt
 
-Paste the block below into a new session. A reusable Playwright harness from the first attempt is
-in `qa-report/harness/` on branch `qa/full-audit-2026-10-03` (read its README.md first).
+Paste the block below into a new session. Everything is audited on branch `claude/bronze-towns`.
+A Playwright harness started in the first attempt is in `qa-report/harness/` on branch
+`qa/full-audit-2026-10-03` (based on main, not checked end to end): copy it over and verify it first.
 
 ```text
 ROLE
@@ -25,7 +26,13 @@ READ FIRST
   untested.
 
 SETUP
-- Work on branch qa/full-audit-<date>. Never touch main.
+- The build under test is branch claude/bronze-towns (the close view with era town models,
+  ground blending and regional architecture). Check it out, then create
+  qa/bronze-towns-audit-<date> from it for the report. Never touch main and never commit
+  to claude/bronze-towns itself.
+- Copy qa-report/harness/ from origin/qa/full-audit-2026-10-03
+  (`git checkout origin/qa/full-audit-2026-10-03 -- qa-report/harness`), check it still
+  works on this branch, and fix it if not.
 - Run `npx vite` and drive the app with Playwright using Chromium at
   /opt/pw-browsers/chromium (never run "playwright install").
 - Always pass a fixed rngSeed so every run reproduces.
@@ -120,6 +127,41 @@ Run `npm run lint`, `npx vitest run`, `npm run build` (then restore docs/ with
 `git checkout -- docs`), the Playwright e2e suite and an axe-core scan of the main
 screens. Add e2e tests for critical flows that lack coverage.
 
+PART 3B: ART AND TERRAIN BLEND INSPECTION
+Judge how the art sits in the world, on desktop and 844x390, at every zoom level from
+the globe down to the close view. Read first: plans/art-image-spec.md,
+plans/town-art-brief.md, plans/unit-art-brief.md, plans/art-pilot/*/LOG.md and
+manifest.json, src/components/map/closeView/ (CloseViewLayer.jsx, groundBlend.js,
+occupancy.js, scale.js, townAssets.js, townModels.js, townTiers.js) and
+src/data/architecture.js.
+1. Towns on terrain: for every era kit that exists (bronze, classical, kingdoms,
+   gunpowder, modern) and every architecture style (nile, levant, maghreb, westafrica,
+   eastafrica, europe, easteurope, colonies, steppe, indic, sinic, monsoon, americas),
+   find or create a city and screenshot it close up. Check: is the town ground tinted
+   into the land under it, or is there a visible pad, seam, hard edge or colour jump?
+   Do buildings float above, sink into or clip through the ground? Does it look right on
+   every terrain (desert, grassland, forest, snow, tundra, jungle, hills, mountains,
+   coast and river)? Is the style correct for the land (architecture.js rules, fallbacks
+   for missing kits, the before-settlement rule for the Americas and Oceania)?
+2. Layout and occupancy: towns, works, fields, walls, camps and trees each on their own
+   ground, nothing overlapping, nothing in the sea, the city spacing rule respected
+   (also for emerging peoples).
+3. Scale and tiers: town size tiers (small, medium, big) match city size, scale is
+   consistent between towns, units, trees and the hex grid, and the change between
+   globe, flat map and close view does not pop or jump.
+4. Units on the map and in battles: models, team colours, readability at phone size,
+   and how they sit on the battlefield terrain from mapgen.js.
+5. Look and feel: lighting, shadows, colour palette, consistency between kits, how the
+   realistic Earth raster and the faint hex overlay work with the models, day and
+   distance fog, and whether the whole picture matches the art spec.
+6. Cost: frame rate, draw calls and memory with many towns on screen (desktop and
+   emulated phone), load time and size of the .glb files, any visible loading pop-in.
+   Note which models are too heavy and what to decimate or compress.
+For every art issue give a before screenshot, the cause (model, material, blend
+shader, placement code or data) and a concrete fix direction (Part 4), for example a
+different blend radius, a skirt or decal under the town, a tint from the tile colour, a
+model change in the Blender script under scripts/blender/, or a LOD.
+
 PART 4: FIX DIRECTION FOR EVERY FINDING
 Every bug, UX issue, mechanics finding and AI finding must carry a fix direction, not
 just a description:
@@ -150,6 +192,8 @@ DELIVERABLES
    - North star scorecard (1-10 vs Civilization and Total War): city depth, map and
      exploration, tech and eras, diplomacy, AI, campaign army management, tactical
      depth, how much battles matter, pacing over 4300 years, replayability.
+   - Art and terrain blend section: per era and style, with screenshots and a grid of
+     terrain x kit showing pass or issue, and the performance numbers.
    - Gameplay section: the verdict, decision quality, goals, challenge, pacing, how
      much battles matter, fun curve per game, results of the headless strategy runs,
      and the top 10 gameplay changes with fix directions. Full journals go in
@@ -160,7 +204,8 @@ DELIVERABLES
    Total War". Each package must be copy-pasteable as the prompt for a fixing session.
 3. qa-report/index.html: browsable gallery of every screenshot with its analysis,
    filterable by viewport, area and severity, working at phone width too.
-4. Commit and push the branch. Do not merge to main. Do not change game code in the
+4. Commit and push qa/bronze-towns-audit-<date>. Do not merge to main or into
+   claude/bronze-towns. Do not change game code in the
    audit itself; fixes happen later, one work package per session on its own branch.
 
 RULES
