@@ -80,8 +80,8 @@ export const settlingBarred = (state, nationId, tile) => {
 };
 
 /** The target's answer to a demand of `kind` from the player: { accepted, score, ratio, opinion, base, reason }. */
-export const demandAcceptance = (state, targetId, kind, cityId = null) => {
-  const me = state.playerNationId;
+export const demandAcceptance = (state, targetId, kind, cityId = null, demanderId = state.playerNationId) => {
+  const me = demanderId;
   const d = DEMANDS[kind];
   const target = state.nations?.[targetId];
   if (!d || !target || target.isEliminated) return { accepted: false, score: -Infinity, reason: 'No such demand.' };
@@ -95,7 +95,7 @@ export const demandAcceptance = (state, targetId, kind, cityId = null) => {
     if (target.capitalRegionId === cityId) return { accepted: false, score: -Infinity, reason: 'No nation gives up its capital.' };
   }
   const ratio = Math.min(DEMAND_RATIO_CAP, getEffectiveMilitaryPower(state, me) / Math.max(1, getEffectiveMilitaryPower(state, targetId)));
-  const opinion = opinionOf(state, targetId);
+  const opinion = opinionOf(state, targetId, me);
   const score = Math.round(DEMAND_STRENGTH_WEIGHT * (ratio - 1) + opinion / 4 - d.base);
   return { accepted: score >= 0, score, ratio: Math.round(ratio * 100) / 100, opinion, base: d.base, reason: null };
 };
@@ -104,10 +104,11 @@ export const demandAcceptance = (state, targetId, kind, cityId = null) => {
  * Applies a demand the player made: returns { state, accepted, message } with the target's
  * resentment, the cooldown, the effect when accepted and the casus belli when refused.
  */
-export const applyDemand = (state, targetId, kind, cityId = null) => {
-  const me = state.playerNationId;
+export const applyDemand = (state, targetId, kind, cityId = null, demanderId = state.playerNationId) => {
+  const me = demanderId;
+  const isPlayer = me === state.playerNationId;
   const turn = state.turnNumber || 1;
-  const answer = demandAcceptance(state, targetId, kind, cityId);
+  const answer = demandAcceptance(state, targetId, kind, cityId, me);
   if (answer.reason) return { state, accepted: false, message: answer.reason };
   const d = DEMANDS[kind];
   const target = state.nations[targetId];
@@ -123,8 +124,9 @@ export const applyDemand = (state, targetId, kind, cityId = null) => {
     const pool = getPool({ ...state, nations }, targetId);
     const amount = Math.max(0, Math.round(Math.max(DEMAND_TRIBUTE_MIN, (pool.gold || 0) * DEMAND_TRIBUTE_SHARE)));
     nations[targetId] = { ...nations[targetId], economy: { ...(nations[targetId].economy || {}), gold: (nations[targetId].economy?.gold || 0) - amount } };
-    resources = { ...resources, gold: (resources.gold || 0) + amount };
-    message = `${target.name} pays ${amount} gold in tribute.`;
+    if (isPlayer) resources = { ...resources, gold: (resources.gold || 0) + amount };
+    else nations[me] = { ...nations[me], economy: { ...(nations[me].economy || {}), gold: (nations[me].economy?.gold || 0) + amount } };
+    message = `${target.name} pays ${amount} gold in tribute${isPlayer ? '' : ` to ${nations[me].name}`}.`;
   } else if (kind === 'city') {
     const city = state.regions[cityId];
     const { region } = transferRegion(city, me, nations, { loyalty: LOYALTY_ON_FLIP, control: 100, unrest: 0, siege: null, lastFlipTurn: turn });
