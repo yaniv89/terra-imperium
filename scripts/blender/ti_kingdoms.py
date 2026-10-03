@@ -175,13 +175,13 @@ def make_materials_kg():
     tm.mat_mudwall('kg_stone', wash='#b8ab92', brick='#b3a78f', brick2='#9d917b', mortar='#7a7062', wash_cover=0.0,
                    bond=(0.06, 0.03, 0.004))
     # the castle and wall masonry: grey stones in pale lime mortar
-    tm.mat_mudwall('kg_wallstone', wash='#8a857c', brick='#8a857d', brick2='#6e6a63', mortar='#a39d91', wash_cover=0.0,
+    tm.mat_mudwall('kg_wallstone', wash='#7a766f', brick='#7c7871', brick2='#5f5c57', mortar='#8e897f', wash_cover=0.0,
                    bond=(0.045, 0.024, 0.0032))
     tm.mat_mudwall('kg_shingle', wash='#6a5d4c', brick='#6f6150', brick2='#5a4f42', mortar='#3a322a', wash_cover=0.0,
-                   bond=(0.03, 0.016, 0.0025))
+                   bond=(0.014, 0.008, 0.0016))
     tm.mat_mudwall('kg_planks', wash='#4e3e2e', brick='#54432f', brick2='#47392a', mortar='#2a2018', wash_cover=0.0,
                    bond=(0.022, 2.0, 0.0022))
-    tm.mat_earth('kg_turf', colors=('#4f6e2a', '#6a8434', '#7d7a44', '#5d7a2c'))
+    tm.mat_earth('kg_turf', colors=('#3f5a22', '#55702c', '#7a6a40', '#4a6526'))
     tm.mat_simple('kg_rye', ['#8a6a2a', '#c09a48', '#dcbc66', '#a8843a'], scale=60.0, stripes={'dir': 'X', 'scale': 260.0, 'distortion': 14.0}, bump=0.8)
     mat_fruit_leaf('kg_apple')
     tm.mat_simple('kg_wattle', ['#5a4430', '#7a5c3e', '#4a3826'], scale=20.0, stripes={'dir': 'Z', 'scale': 240.0, 'distortion': 5.0}, bump=0.6)
@@ -390,14 +390,39 @@ def palm(ms, rng, x, y, h=0.5, fronds=8, lod2=False):
 
 
 def street(ms, pts, w, mat='cobble_square'):
-    """A paved street along a polyline (lighter cobbles on the town's ground), LOD0 and LOD1."""
-    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
-        dx, dy = x1 - x0, y1 - y0
-        length = math.hypot(dx, dy)
-        nx, ny = -dy / length * w / 2, dx / length * w / 2
-        ex, ey = dx / length * w / 2, dy / length * w / 2  # run on past the joint so corners close
-        ms.quad_strip(mat, [(x0 + nx - ex, y0 + ny - ey, G + 0.003), (x0 - nx - ex, y0 - ny - ey, G + 0.003),
-                            (x1 - nx + ex, y1 - ny + ey, G + 0.003), (x1 + nx + ex, y1 + ny + ey, G + 0.003)], lod=1)
+    """A paved street along a polyline (lighter cobbles on the town's ground), LOD0 and LOD1: one
+    strip with mitred joints (overlapping coplanar pieces would bake dark). A closed polyline
+    (last point = first) makes a ring."""
+    closed = len(pts) > 3 and abs(pts[0][0] - pts[-1][0]) < 1e-6 and abs(pts[0][1] - pts[-1][1]) < 1e-6
+    p = pts[:-1] if closed else list(pts)
+    n = len(p)
+
+    def unit(a, b):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ln = math.hypot(dx, dy)
+        return dx / ln, dy / ln
+    left = []
+    for i in range(n):
+        if closed or 0 < i < n - 1:
+            d0 = unit(p[i - 1], p[i])
+            d1 = unit(p[i], p[(i + 1) % n])
+        elif i == 0:
+            d0 = d1 = unit(p[0], p[1])
+        else:
+            d0 = d1 = unit(p[-2], p[-1])
+        n0, n1 = (-d0[1], d0[0]), (-d1[1], d1[0])
+        mx, my = n0[0] + n1[0], n0[1] + n1[1]
+        ml = math.hypot(mx, my)
+        mx, my = mx / ml, my / ml
+        k = (w / 2) / max(0.3, mx * n1[0] + my * n1[1])
+        left.append((mx * k, my * k))
+    bm = bmesh.new()
+    L = [bm.verts.new((p[i][0] + left[i][0], p[i][1] + left[i][1], G + 0.003)) for i in range(n)]
+    R = [bm.verts.new((p[i][0] - left[i][0], p[i][1] - left[i][1], G + 0.003)) for i in range(n)]
+    for i in range(n if closed else n - 1):
+        j = (i + 1) % n
+        bm.faces.new((R[i], R[j], L[j], L[i]))
+    ms.add(bm, mat, 1)
 
 
 def barrel(ms, f, x, y, z=G, s=1.0):
@@ -773,8 +798,6 @@ def flat_house(ms, rng, x, y, w, d, yaw=None, storeys=1, mat='kg_ochre', upper=N
         if tiled:
             ms.box(mat, (uw, ud, uh), at=(ux, uy, top), lod=1, frame=f)
             tile_roof(ms, f, ux, uy, uw, ud, top + uh)
-            # the low lower roof around keeps its parapet
-            ms.box('roof', (w - 0.03, d - 0.03, 0.01), at=(0, 0, top), lod=0, frame=f)
             lod2_block(ms, f, uw, ud, top + uh - G + 0.06, x=ux, y=uy, mat='tile')
         else:
             flat_block(ms, f, mat, ux, uy, uw, ud, uh, z0=top, roof_items=roof_items, rng=rng, lod2=False)
@@ -859,7 +882,7 @@ def court_house(ms, rng, x, y, w, d, yaw=None, mat='kg_ochre', tiled_wing=False,
     ms.box(mat, (cw, 0.035, 0.03), at=(cx, d / 2 - bd - 0.0175, G), lod=0, frame=f)  # the court's back step
     # the courtyard floor and what grows in it
     cd = d - bd - 0.035
-    ms.box('kg_sand_square' if False else 'stone', (cw - 0.04, cd - 0.02, 0.006), at=(cx, -d / 2 + 0.035 + cd / 2, G), lod=0, frame=f)
+    ms.box('kg_sand_square', (cw - 0.04, cd - 0.02, 0.006), at=(cx, -d / 2 + 0.035 + cd / 2, G), lod=0, frame=f)
     ccx, ccy = cx, -d / 2 + 0.035 + cd / 2
     world = f
     if court == 'tree':
@@ -962,7 +985,7 @@ def mosque(ms, rng, x, y, w=0.62, d=0.6, h=0.46, dome_r=0.2, minaret_at=(0.3, 0.
             lod2_block(ms, f, 0.12, courtyard, h * 0.55, x=sx * (w / 2 - 0.06), y=cy, mat=mat)
         ms.box(mat, (w, 0.04, h * 0.5), at=(0, cy - courtyard / 2 + 0.02, G), lod=1, frame=f)
         arch_face(ms, f, 'door', 0, cy - courtyard / 2 - 0.003, G, 0.06, 0.16, lod=0, n=8)
-        ms.box('stone', (w - 0.24, courtyard - 0.04, 0.006), at=(0, cy, G), lod=0, frame=f)
+        ms.box('kg_sand_square', (w - 0.24, courtyard - 0.04, 0.006), at=(0, cy, G), lod=0, frame=f)
         fountain(ms, f, 0, cy, r=0.08)
     mx, my = minaret_at
     minaret(ms, f, mx, my, minaret_top, w=minaret_w, mat=mat)
@@ -1011,7 +1034,7 @@ def caravanserai(ms, rng, x, y, w=1.9, d=1.8, yaw=None, mat='kg_ochre', wing=0.4
     arch_face(ms, f, 'door', 0, -d / 2 - 0.006, G, 0.08, 0.2, lod=1, n=8)
     screen_box(ms, f, 0, -d / 2, G + h * 0.62, 0.36, h=0.18)
     cd = d - 2 * wing
-    ms.box('stone', (w - 2 * wing - 0.02, cd - 0.02, 0.006), at=(0, 0, G), lod=0, frame=f)
+    ms.box('kg_sand_square', (w - 2 * wing - 0.02, cd - 0.02, 0.006), at=(0, 0, G), lod=0, frame=f)
     if court == 'tree':
         p = f.translation
         tree(ms, p.x, p.y, h=0.5, r=0.16, lod2=False)
@@ -1118,15 +1141,15 @@ def palace_small(ms, rng):
     logs round its top, a plank-walled timber keep with corner posts, shuttered windows and an
     X-braced door under a steep shingle roof, a team pennant over the ridge, a timber stair with
     rails up the south slope. 11 m across, 10 m to the flag."""
-    R0, R1, MH = 0.53, 0.32, 0.22
+    R0, R1, MH = 0.56, 0.37, 0.22
     prof = [(R0, G - 0.004), (R0 - 0.035, G + 0.03), (R0 - 0.09, G + 0.085), (R1 + 0.09, G + 0.15), (R1 + 0.035, G + MH - 0.012), (R1, G + MH)]
     lathe2(ms, 'kg_turf', prof, segs=28, lod=0)
     lathe2(ms, 'kg_turf', prof[::2] + [prof[-1]], segs=14, lod=1, only=1)
     ms.cyl('kg_turf', R0, R1, MH + 0.004, at=(0, 0, G - 0.004), segs=8, lod=2, only=2)
     top = G + MH
     # the palisade, open at the south for the stair
-    Rp = 0.29
-    half = 12.0
+    Rp = 0.34
+    half = 11.0
     a0, a1 = -90 + half, 270 - half
     n = int(math.radians(a1 - a0) * Rp / 0.028)
     ph = 0.15
@@ -1145,7 +1168,7 @@ def palace_small(ms, rng):
         ms.cyl('timber', 0.018, 0.016, ph + 0.06, at=(gx, -Rp * math.cos(math.radians(half)), top - 0.01), segs=6, lod=1)
     # the keep
     f = tm.house_frame(0, 0.02, 0)
-    w, d, h = 0.42, 0.32, 0.4
+    w, d, h = 0.5, 0.38, 0.34
     ms.box('rubble', (w + 0.02, d + 0.02, 0.03), at=(0, 0, top - 0.01), lod=1, frame=f)
     ms.box('kg_planks', (w, d, h), at=(0, 0, top + 0.02), lod=2, frame=f)
     for sx in (-1, 1):
@@ -1155,7 +1178,7 @@ def palace_small(ms, rng):
         ms.box('timber', (w + 0.01, 0.02, 0.025), at=(0, sy * (d / 2 + 0.004), top + 0.02), lod=0, frame=f)
         ms.box('timber', (w + 0.01, 0.02, 0.022), at=(0, sy * (d / 2 + 0.004), top + 0.02 + h - 0.022), lod=0, frame=f)
     z = top + 0.02 + h
-    rise = 0.2
+    rise = 0.22
     tc.gable_roof(ms, f, w, d, z, rise, over=0.05, mat='kg_shingle', gable='kg_planks', thick=0.026, lod=2, ridge='timber')
     # door with an X brace and iron hinges, windows with shutters
     ms.box('door', (0.11, 0.012, 0.19), at=(0, -d / 2 - 0.006, top + 0.03), lod=1, frame=f)
@@ -1197,7 +1220,7 @@ def palace_small(ms, rng):
 
 # ---- the shared file: wall rings -----------------------------------------------------------------
 
-def stone_ring(ms, rng, R_out, R_in, H, gate_x, towers, tower_r, tower_h, gate_r, gate_h, roof_k=1.3,
+def stone_ring(ms, rng, R_out, R_in, H, gate_x, towers, tower_r, tower_h, gate_r, gate_h, roof_k=1.65,
                banners=False, portcullis=False, stairs=(), n=(128, 56, 28)):
     """A grey stone curtain wall ring on a packed-earth footing: a crenellated parapet and a stone
     wall-walk, round towers with corbelled tops and conical slate roofs at `towers` (degrees, 0
@@ -1287,7 +1310,7 @@ def walls_small(ms, rng):
     slate cones (east, north-east, north-west, west), two round gate towers flanking an arched
     timber gate at the south."""
     stone_ring(ms, rng, R_out=2.2, R_in=2.06, H=0.45 * RAISE, gate_x=0.2, towers=(0, 61, 119, 180),
-               tower_r=0.22, tower_h=0.62 * RAISE, gate_r=0.25, gate_h=0.66 * RAISE, n=(112, 48, 24))
+               tower_r=0.25, tower_h=0.62 * RAISE, gate_r=0.28, gate_h=0.7 * RAISE, n=(112, 48, 24))
 
 
 def walls_medium(ms, rng):
@@ -1295,7 +1318,7 @@ def walls_medium(ms, rng):
     gatehouse of two 10 m round towers hung with team banners, an arched gate with a portcullis,
     a stair up to the wall-walk by the north tower."""
     stone_ring(ms, rng, R_out=3.25, R_in=3.02, H=0.6 * RAISE, gate_x=0.25, towers=(41, 90, 139, 190, 350),
-               tower_r=0.28, tower_h=0.8 * RAISE, gate_r=0.32, gate_h=1.0 * RAISE, banners=True, portcullis=True,
+               tower_r=0.32, tower_h=0.8 * RAISE, gate_r=0.36, gate_h=1.0 * RAISE, banners=True, portcullis=True,
                stairs=((104, 1),), n=(128, 56, 28))
 
 
@@ -1304,7 +1327,7 @@ def walls_big(ms, rng):
     of two 13 m round towers with team banners, an arched gate with a portcullis, stairs up to the
     wall-walk by the north-west and north-east towers."""
     stone_ring(ms, rng, R_out=4.3, R_in=4.0, H=0.8 * RAISE, gate_x=0.3, towers=(0, 45, 90, 135, 180, 225, 315),
-               tower_r=0.33, tower_h=1.1 * RAISE, gate_r=0.37, gate_h=1.3 * RAISE, banners=True, portcullis=True,
+               tower_r=0.38, tower_h=1.1 * RAISE, gate_r=0.42, gate_h=1.3 * RAISE, banners=True, portcullis=True,
                stairs=((122, 1), (58, -1)), n=(144, 56, 32))
 
 

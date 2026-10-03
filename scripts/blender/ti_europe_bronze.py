@@ -118,7 +118,7 @@ def make_materials():
     tm.mat_simple('eu_daub', ['#b48a52', '#c9a062', '#d3ad72', '#a98049'], scale=26.0, bump=0.4, dirt=True)
     tm.mat_simple('eu_lime', ['#d2a453', '#dfb766', '#e8c47c', '#c99b4b'], scale=16.0, bump=0.25, dirt=True)
     # roofs (sheet 2: reed thatch #D6B067; sheet 3: turf #6F7F56)
-    mat_thatch('eu_straw', ['#6e4f24', '#a17a3c', '#c49a52', '#d2aa62'])
+    mat_thatch('eu_straw', ['#634520', '#8f6a36', '#ad8546', '#bd9452'])
     mat_thatch('eu_reed', ['#4f3d26', '#75603e', '#927a52', '#a68d60'], course=0.04)
     tm.mat_simple('eu_turf', ['#3d4a20', '#56652f', '#66753a', '#5a5432'], scale=55.0, bump=0.8)
     # wood (sheet 5: oak #7A6A52; sheet 6: willow #7E6B4E with carved oak trim)

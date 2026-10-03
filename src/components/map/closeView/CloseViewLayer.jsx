@@ -27,6 +27,7 @@ import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landsca
 import { getTiles } from '../../../data/geo/tiles';
 import { styleOfLand } from '../../../data/architecture';
 import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from './groundBlend';
+import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 
@@ -42,6 +43,8 @@ const ageOf = (state, nationId) => {
   if (nationId === state.playerNationId) return getEffectiveAgeId(state.age, state.techAgeId);
   return getEffectiveAgeId(state.age, state.nations[nationId]?.tech?.ageId);
 };
+// The ground a field takes, model units (a field is about 1.6 by 1.2: the disc round its middle).
+const FIELD_DISC = 0.8;
 const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
 
 const CloseViewLayer = ({ projection, transform, width, height, active, land = null }) => {
@@ -146,6 +149,11 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       return parts.length === 1 ? parts[0] : Object.assign({}, ...parts.filter(Boolean).reverse());
     };
 
+    // Ground claimed this frame: towns, then works, then the fields round towns; nothing overlaps.
+    const lean = Math.sin(TILT);
+    const occ = createOccupancy(lean);
+    const ringFields = []; // [{ mesh, at }] placed once the works have claimed their ground
+
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
     Object.keys(REGION_COORDINATES).forEach((id) => {
@@ -204,13 +212,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
         scene.add(mesh);
       }
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
-      // a field whose middle or either end would lie in the sea stays hidden (the ring is in model
-      // units, so where it falls on the Earth changes with the zoom)
-      const lean = Math.sin(TILT);
-      (mesh.userData.fields || []).forEach(({ field, f }) => {
-        const ends = [0, -0.75, 0.75].map((u) => [f.x + u * Math.cos(f.yaw), f.z - u * Math.sin(f.yaw)]);
-        field.visible = ends.every(([fx, fz]) => landAt(at.x + fx * s, at.y + fz * s * lean));
-      });
+      // the town's ground (and its wall ring) is claimed first; its fields come after the works
+      occ.claim(at.x, at.y, ((campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0)) * s);
+      if (mesh.userData.fields?.length) ringFields.push({ mesh, at });
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
       mesh.scale.setScalar(s);
@@ -238,10 +242,6 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       mesh.setColorAt(i, lsColor.setScalar(shade));
       mesh.count += 1;
     };
-    land.trees.forEach((tr) => {
-      const mesh = t.trees.get(tr.kind);
-      if (mesh && mesh.count < MAX_TREES && landAt(tr.x, tr.y)) put(mesh, tr.x, tr.y, s * tr.size, tr.turn, 0.85 + (tr.turn % 0.3));
-    });
     // Farms, pastures and plantations show the owner's age's field models once its shared file is
     // in (two fields on a farm); a pillaged work, or one without models, stays procedural.
     const seenFields = new Set();
@@ -276,12 +276,31 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     };
     land.works.forEach((w) => {
       // a work set off its tile centre must still stand on land (fishing boats belong at sea)
-      if (w.kind !== 'fishing_boats' && !landAt(w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y)) return;
+      const wx = w.x + s * WORK_OFFSET.x; const wy = w.y + s * WORK_OFFSET.y;
+      if (w.kind !== 'fishing_boats' && !landAt(wx, wy)) return;
+      // and clear of the towns and the works already placed
+      const names = !w.pillaged && FIELDS_FOR_WORK[w.kind];
+      const disc = names ? (names.length > 1 ? 1.9 : FIELD_DISC) : 0.75;
+      if (!occ.take(wx, wy, disc * s)) return;
       if (fieldWork(w)) return;
       const mesh = t.works.get(w.kind);
       if (mesh && mesh.count < MAX_WORKS) put(mesh, w.x + s * WORK_OFFSET.x, w.y + s * WORK_OFFSET.y, s * 1.2, w.turn * 0.15, w.pillaged ? 0.45 : 1);
     });
     t.fieldWorks.forEach((g, tile) => { if (!seenFields.has(tile)) g.visible = false; });
+    // The fields round towns: shown where they are on land and clear of everything placed so far
+    // (the ring is in model units, so where it falls on the Earth changes with the zoom).
+    ringFields.forEach(({ mesh, at }) => {
+      mesh.userData.fields.forEach(({ field, f }) => {
+        const ends = [0, -0.75, 0.75].map((u) => [f.x + u * Math.cos(f.yaw), f.z - u * Math.sin(f.yaw)]);
+        field.visible = ends.every(([fx, fz]) => landAt(at.x + fx * s, at.y + fz * s * lean))
+          && occ.take(at.x + f.x * s, at.y + f.z * s * lean, FIELD_DISC * s);
+      });
+    });
+    // Trees last, on free land only.
+    land.trees.forEach((tr) => {
+      const mesh = t.trees.get(tr.kind);
+      if (mesh && mesh.count < MAX_TREES && landAt(tr.x, tr.y) && occ.free(tr.x, tr.y, 0.12 * s * tr.size)) put(mesh, tr.x, tr.y, s * tr.size, tr.turn, 0.85 + (tr.turn % 0.3));
+    });
     [...t.trees.values(), ...t.works.values()].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
 
     // Armies: soldiers of the main unit type, beside the town, in the owner's colour.

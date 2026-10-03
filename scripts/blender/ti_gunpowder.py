@@ -461,7 +461,7 @@ def tower_top(ms, f, w, z, top, cap='gp_slate', belfry='gp_sandstone', bulb=True
     ms.sphere('bronze', 0.014, at=(0, 0, zl + lh + 0.06), u=6, v=4, lod=0, frame=f)
 
 
-def clock_tower(ms, f, top, w=0.24, body='gp_sandstone', cap='gp_slate', shaft=0.62, door=True, clock_r=None):
+def clock_tower(ms, f, top, w=0.24, body='gp_sandstone', cap='gp_slate', shaft=0.62, door=True, clock_r=None, bulb=True):
     """A square clock tower in frame f (base at G): quoins, bands, an arched door, slit windows,
     clocks on four faces under the cornice, the belfry and its cap up to `top`."""
     sh = (top - G) * shaft
@@ -480,7 +480,7 @@ def clock_tower(ms, f, top, w=0.24, body='gp_sandstone', cap='gp_slate', shaft=0
             window(ms, F, 0, G + sh * 0.42, ww=0.04, wh=min(0.12, sh * 0.18), glass_lod=0)
     if door:
         arched_door(ms, faces_of(f, w, w)[0][0], 0, 0, 0.09, min(0.15, sh * 0.25), 0.045)
-    tower_top(ms, f, w, G + sh + 0.02, top, cap=cap)
+    tower_top(ms, f, w, G + sh + 0.02, top, cap=cap, bulb=bulb)
 
 
 def town_hall(ms, rng, x, y, w, d, top, yaw=0, wall='gp_brick', roof='gp_slate', storeys=3, kind='mansard', tw=0.3, shaft=0.58,
@@ -547,7 +547,7 @@ def dome(ms, f, x, y, z, r, rz, drum_h, mat='gp_lead', drum='gp_stucco', lantern
     ms.box('gp_iron', (0.05, 0.008, 0.008), at=(x, y, top - 0.04), lod=0, frame=f)
 
 
-def domed_church(ms, rng, x, y, top, w=0.62, length=1.0, yaw=0):
+def domed_church(ms, rng, x, y, top, w=0.62, length=1.0, yaw=0, dome_mat='gp_lead'):
     """A baroque church: a cream nave under a slate gable, a sandstone front with pilasters, a
     pediment, an arched door and an oculus, low side chapels, and over the crossing at the back a
     drum and a lead dome with a lantern and cross reaching `top`."""
@@ -590,7 +590,7 @@ def domed_church(ms, rng, x, y, top, w=0.62, length=1.0, yaw=0):
     r = cw * 0.42
     drum_h = s * 0.13
     rz = s * 0.2
-    dome(ms, f, 0, yc, G + ch + 0.04, r, rz, drum_h, top=top, lantern=s * 0.09)
+    dome(ms, f, 0, yc, G + ch + 0.04, r, rz, drum_h, top=top, lantern=s * 0.09, mat=dome_mat)
     # the front: a sandstone frontispiece with pilasters, entablature, pediment, door, oculus
     fy = -length / 2
     fw = w + 0.06
