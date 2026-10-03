@@ -315,7 +315,7 @@ const GlobeView = ({ onAmbiguousTap = null,
       const pov = globeRef.current?.pointOfView?.();
       globeRef.current?.pointOfView({ lat: it.lat, lng: it.lng, altitude: Math.max(0.12, (pov?.altitude || 1) / 2.5) }, 500);
     } else if (it.kind === 'battle') openBattleReport(it.id);
-    else if (it.own && it.kind === 'army' && it.tile != null && markerCtx.current.onSelectArmy && markerCtx.current.state.regions[markerCtx.current.state.world?.tileOwner?.[it.tile]]?.tile !== it.tile) markerCtx.current.onSelectArmy(it.tile); // your army in the field: its sheet (a garrison on its city tile belongs to the city card)
+    else if (it.own && (it.kind === 'army' || it.kind === 'fleet') && it.tile != null && markerCtx.current.onSelectArmy && markerCtx.current.state.regions[markerCtx.current.state.world?.tileOwner?.[it.tile]]?.tile !== it.tile) markerCtx.current.onSelectArmy(it.tile); // your army in the field: its sheet (a garrison on its city tile belongs to the city card)
     else markerCtx.current.onSelectRegion(it.regionId);
   }), []);
   const markerVisibility = useCallback((el, visible) => { el.style.display = visible ? '' : 'none'; }, []);

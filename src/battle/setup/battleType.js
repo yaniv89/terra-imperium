@@ -36,7 +36,8 @@ export const BATTLE_TYPES = {
   ambush: { label: 'Ambush', attacker: `Survive the first ${AMBUSH_SECONDS / 60} minutes, then rout them`, defender: `Cost the attacker ${Math.round(AMBUSH_LOSS * 100)}% in the first ${AMBUSH_SECONDS / 60} minutes`, limitTicks: FIELD_BATTLE_TICKS },
   assault: { label: 'Siege assault', attacker: 'Breach the keep and hold it for 30 seconds', defender: 'Hold to the clock', limitTicks: SIEGE_BATTLE_TICKS },
   sally: { label: 'Sally', attacker: `Burn ${SALLY_ENGINES} siege engines or the camp`, defender: 'Hold the camp', limitTicks: FIELD_BATTLE_TICKS },
-  landing: { label: 'Landing', attacker: `Hold the beachhead for ${LANDING_HOLD_SECONDS} seconds`, defender: 'Push them back into the sea', limitTicks: FIELD_BATTLE_TICKS }
+  landing: { label: 'Landing', attacker: `Hold the beachhead for ${LANDING_HOLD_SECONDS} seconds`, defender: 'Push them back into the sea', limitTicks: FIELD_BATTLE_TICKS },
+  naval: { label: 'Sea battle', attacker: 'Sink or scatter the enemy fleet', defender: 'Hold the waters', limitTicks: FIELD_BATTLE_TICKS } // quick battle only today (navalBattle.js)
 };
 
 /** The battle type for a situation: { landing, sally, city (a city battle), fortLevel, tileContext, fromTile }. */

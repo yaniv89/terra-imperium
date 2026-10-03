@@ -2,6 +2,7 @@ import { orderMarch, cancelRoute, placeName } from './routes';
 import { normalizeUnitTiles, regionForTile, tileAccess, passableTile, unitTile } from './armies';
 import { atSea, touchesCoastOf } from './fleets';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
+import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
 import { abandonColony, foundColony, validateColony } from './colonies';
 import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
@@ -1444,6 +1445,19 @@ const reduceAction = (state, action) => {
       const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
       return applyFieldResult(paid, v, battle, { rngSeed: rng.getSeed() });
+    }
+
+    case ActionTypes.ATTACK_FLEET: {
+      // A sea battle (navalBattle.js), auto-resolved: the fleets on `fromTile` attack the enemy
+      // fleets on the neighbouring sea tile `tile`.
+      const { fromTile, tile } = action.payload || {};
+      const v = validateFleetAttack(state, fromTile, tile);
+      if (!v.ok) return refuseAttack(state, v.reason, state.world?.tileOwner?.[tile] ?? null);
+      const ctx = getFleetBattleContext(state, v);
+      const rng = createRng(state.rngSeed);
+      const battle = resolveBattle({ ...getFleetResolveArgs(v, ctx), rng });
+      const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.navalEngagement) };
+      return applyFleetResult(paid, v, battle, { rngSeed: rng.getSeed() });
     }
 
     case ActionTypes.LAUNCH_INVASION: {

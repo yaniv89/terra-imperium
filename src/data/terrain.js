@@ -79,7 +79,8 @@ export const TERRAIN_COMBAT_MODIFIERS = {
   forest: { attackerMult: 0.9, attritionMult: 1 },
   mountains: { attackerMult: 0.75, attritionMult: 1.1 }, // defender +25%, attacker -10% (rounded together), attrition +10%
   desert: { attackerMult: 1, attritionMult: 1.2 },
-  arctic: { attackerMult: 1, attritionMult: 1.25 }
+  arctic: { attackerMult: 1, attritionMult: 1.25 },
+  sea: { attackerMult: 1, attritionMult: 1 } // open water (navalBattle.js)
 };
 
 export const getTerrainCombatModifier = (terrain) => TERRAIN_COMBAT_MODIFIERS[terrain] || TERRAIN_COMBAT_MODIFIERS.mixed;

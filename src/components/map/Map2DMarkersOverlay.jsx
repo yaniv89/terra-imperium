@@ -67,7 +67,7 @@ const Map2DMarkersOverlay = ({ projection, transform, width, height, onSelectReg
           if (!single) { onZoomTo?.(c.regionId); return; }
           if (c.kind === 'battle') openBattleReport(c.id);
           else if (!c.own && c.kind === 'army' && c.tile != null && onSelectTile) onSelectTile(c.tile); // a foreign army: its tile (attack it from the tile sheet)
-          else if (c.own && c.kind === 'army' && c.tile != null && onSelectArmy && state.regions[state.world?.tileOwner?.[c.tile]]?.tile !== c.tile) onSelectArmy(c.tile); // your army in the field: its sheet (a garrison on its city tile belongs to the city card)
+          else if (c.own && (c.kind === 'army' || c.kind === 'fleet') && c.tile != null && onSelectArmy && state.regions[state.world?.tileOwner?.[c.tile]]?.tile !== c.tile) onSelectArmy(c.tile); // your army in the field: its sheet (a garrison on its city tile belongs to the city card)
           else onSelectRegion?.(c.regionId);
         };
         return (

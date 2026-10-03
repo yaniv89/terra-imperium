@@ -1344,6 +1344,24 @@ discretion.
 
 ## J3. Progress log
 
+**D5b, fleet against fleet on sea tiles (2026-10-03).** `src/engine/navalBattle.js`: a stack of
+fleets on a tile (at sea, or in a port whose centre touches the water) attacks the enemy fleets
+on a neighbouring sea tile (ATTACK_FLEET, costs the naval engagement's 2 MIL, one attack per
+stack a turn). The quick battle is resolveBattle on open water (terrain `sea`, combat width 5,
+no terrain penalty, battle type `naval`; a transport fights badly and a raider lightly as
+before). After it a sunk ship takes everything aboard down with it, the winners stay with their
+moves spent, a beaten defender falls back one sea tile away from the attackers or is sunk when
+no free water is left, the war's battle score records a decisive result and the report lists a
+naval battle with a mark on the tile. Fleets finally have a sheet: tapping your fleet banner at
+sea opens the army sheet in its naval shape (ships with crew and cargo, Sail, the enemy fleets
+beside you as Attack buttons; a march that halts before an enemy fleet now ends there). AI
+fleets at war attack an enemy fleet beside them when they outweigh it by
+AI_FLEET_ATTACK_RATIO (1.25), before any landing. A reducer run as an AI nation used to write
+battle reports from the AI's side; aiOperations now keeps only the real player's battles, seen
+from their side, and carries the world (the battle mark) through. Tests in navalBattle.test.js.
+Still open in D5b: naval battles in the tactical sim (ships as squads on a water field need
+ship models and a water sim; the quick battle stands in).
+
 **C6, AI demands for a city or a stop to settling (2026-10-03).** `demandKind` (aiAccords.js)
 picks what a Tier-1 nation asks of a weaker neighbour: a city it holds a claim on (never the
 capital), else a stop to settling when its opinion lists `settledNear`, else tribute. The
