@@ -1,6 +1,87 @@
 {
+  "shared-bronze.glb": {
+    "bytes": 1788464,
+    "objects": {
+      "palace-small": {
+        "LOD0": {
+          "triangles": 2192,
+          "width": 0.761,
+          "depth": 0.765,
+          "height": 0.8,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 484,
+          "width": 0.758,
+          "depth": 0.765,
+          "height": 0.8,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 36,
+          "width": 0.64,
+          "depth": 0.62,
+          "height": 0.61,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "palace": {
+        "LOD0": {
+          "triangles": 3020,
+          "width": 1.159,
+          "depth": 1.181,
+          "height": 1.59,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1060,
+          "width": 1.16,
+          "depth": 1.181,
+          "height": 1.59,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 84,
+          "width": 1.16,
+          "depth": 0.98,
+          "height": 1.54,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
   "town-small-a.glb": {
-    "bytes": 2809152,
+    "bytes": 2661892,
     "objects": {
       "town-small-a": {
         "LOD0": {
@@ -15,7 +96,7 @@
           ]
         },
         "LOD1": {
-          "triangles": 3984,
+          "triangles": 2096,
           "width": 3.975,
           "depth": 3.706,
           "height": 1.6,
@@ -53,7 +134,7 @@
     ]
   },
   "town-small-b.glb": {
-    "bytes": 2886960,
+    "bytes": 2747196,
     "objects": {
       "town-small-b": {
         "LOD0": {
@@ -68,9 +149,9 @@
           ]
         },
         "LOD1": {
-          "triangles": 4268,
+          "triangles": 2476,
           "width": 3.975,
-          "depth": 3.836,
+          "depth": 3.838,
           "height": 1.6,
           "materials": [
             "Ground",
@@ -106,7 +187,7 @@
     ]
   },
   "town-medium-a.glb": {
-    "bytes": 4523612,
+    "bytes": 4221596,
     "objects": {
       "town-medium-a": {
         "LOD0": {
@@ -121,7 +202,7 @@
           ]
         },
         "LOD1": {
-          "triangles": 7852,
+          "triangles": 3980,
           "width": 5.923,
           "depth": 5.599,
           "height": 2.4,
@@ -159,7 +240,7 @@
     ]
   },
   "town-medium-b.glb": {
-    "bytes": 4601852,
+    "bytes": 4327292,
     "objects": {
       "town-medium-b": {
         "LOD0": {
@@ -174,7 +255,7 @@
           ]
         },
         "LOD1": {
-          "triangles": 8190,
+          "triangles": 4670,
           "width": 5.923,
           "depth": 5.599,
           "height": 2.4,
@@ -189,6 +270,112 @@
           "width": 5.923,
           "depth": 5.599,
           "height": 2.274,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "town-big-a.glb": {
+    "bytes": 6529704,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 53632,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 3.6,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7408,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 3.6,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1210,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 2.992,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "town-big-b.glb": {
+    "bytes": 6184756,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 49192,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 3.6,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7600,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 3.6,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1362,
+          "width": 7.93,
+          "depth": 7.492,
+          "height": 3.474,
           "materials": [
             "Ground",
             "Town"
