@@ -289,3 +289,23 @@ when one is selected. P2.1 `declareWarModel` (panels/warActions.js): Declare War
 foreign city card at peace, on the tile sheet of a foreign army at peace, and in place of the
 army sheet's greyed Assault button, all with the cost and the casus belli note.
 
+**Wave 2 shipped (2026-10-03).** P2.2 `supplyReport` (supplyMeter.js) on the army sheet: the
+meter, this turn's change, the turns left, the distance to your border, the line's reach and the
+lever ("a Road Post at the border or a road under the army reaches 10; taking the city here
+would hold the meter"); a stack on an unburnt road is reached by a line ROAD_LINE_BONUS (2)
+tiles further; home land refills a stack in two turns (SUPPLY_HOME_GAIN 20 to 50); the Supply
+lens tints the land your lines reach from your border (`supplyReach`, both maps); the next
+prompt warns of an army under SUPPLY_LOW (30) and falling. P2.3 fortify: a stack that stood on
+its tile through a whole turn without fighting (`heldSince`, set in the movement phase) takes
+FORTIFY_REDUCTION (15%) less damage in a field battle until it moves, and the sheet says so;
+merge: the sheet offers to march your stacks from the touching tiles in. P4 the harness counts
+civil wars started, nations in civil war and rebel stacks: the base world had 99 to 170 civil
+wars in 150 turns over 240 nations, which is what you saw. Now a succession crisis erupts only
+with a weak court (legitimacy under 40 or stability at -1 or below), one time in five (was two
+in five), the stability trigger needs five turns at the floor (was three), and no nation falls
+into a second civil war for 40 turns after one ends: 21 to 28 civil wars per game over the same
+seeds. The nations freed of them fight more (wars 15 to 30, conquests 3 to 7 over three seeds),
+cities and turn time unchanged. The player sees it coming: the next prompt names a contested
+succession three turns before the reign ends (no heir, or a claim under 20), opening the Court,
+where "Secure the succession" (200 gold, 2 DIP) raises the heir's claim by 30.
+

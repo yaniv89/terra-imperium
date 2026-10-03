@@ -34,6 +34,9 @@ import { battleTypeOf, RIVER_ATTACK_MULT } from '../battle/setup/battleType';
 import { tileContextOf } from '../battle/setup/tileContext';
 
 export const FORT_REDUCTION = 0.75;      // damage taken by a stack on a tile with a Fort
+export const FORTIFY_REDUCTION = 0.85;   // damage taken by a stack that held its tile a full turn (plans/playtest-1.md P2.3)
+/** A unit that stood on its tile through a whole turn and has no march under way. */
+export const isFortified = (u, turn) => u?.heldSince != null && (turn || 0) - u.heldSince >= 1 && !u.route?.length;
 export { RIVER_ATTACK_MULT };            // attacking across a river (battleType.js, shared with the tactical sim)
 export const RETREAT_RINGS = 1;
 
@@ -81,7 +84,7 @@ export const getFieldBattleContext = (state, v) => {
     attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
     defenderAgeId: v.defenderNationId === REBEL_OWNER_ID ? state.age : getEffectiveAgeId(state.age, getTechAgeId(state, v.defenderNationId)),
     attackerPenaltyMultiplier: 1,
-    defenderDamageReductionMultiplier: fort ? FORT_REDUCTION : 1
+    defenderDamageReductionMultiplier: (fort ? FORT_REDUCTION : 1) * (v.defenderUnits.length && v.defenderUnits.every((u) => isFortified(u, state.turnNumber)) ? FORTIFY_REDUCTION : 1)
   };
 };
 

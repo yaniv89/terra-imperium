@@ -24,11 +24,13 @@ import { tileAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 
 export const SUPPLY_MAX = 100;
-export const SUPPLY_HOME_GAIN = 20;
+export const SUPPLY_HOME_GAIN = 50; // home land refills a stack in two turns (plans/playtest-1.md P2.2)
 export const SUPPLY_WILD_LOSS = 10;
 export const SUPPLY_ENEMY_LOSS = 20;
 export const SUPPLY_LINE_LOSS = 10;
 export const SUPPLY_LINE_RINGS = 8;
+export const ROAD_LINE_BONUS = 2; // a stack on a road is reached by a line two tiles further
+export const SUPPLY_LOW = 30; // the next prompt warns under this while the meter falls
 export const SUPPLY_HUNGER_LOSS = 10;
 export const STACK_WIDTH_MULT = 2;
 export const STACK_OVER_LOSS = 10;
@@ -39,6 +41,25 @@ export const supplyOf = (unit, max = SUPPLY_MAX) => (unit.supply == null ? max :
 
 /** How many land units of one nation a tile holds without supply trouble. */
 export const stackCap = (tiles, tile, extra = 0) => getCombatWidth(legacyTerrainOf(tiles, tile)) * STACK_WIDTH_MULT + extra;
+
+// The ring distance over land from `tile` to the nearest own land of `nationId`, or null past
+// `maxRings` (0 on own land).
+export const lineDistance = (state, tiles, tile, nationId, maxRings) => {
+  const tileOwner = state.world?.tileOwner || {};
+  const owned = (t) => { const c = tileOwner[t]; return c != null && state.regions[c]?.owner === nationId && !state.regions[c].occupiedBy; };
+  let frontier = [tile]; const seen = new Set(frontier);
+  for (let d = 0; d <= maxRings; d++) {
+    const next = [];
+    for (const t of frontier) {
+      if (owned(t)) return d;
+      for (const n of tiles.neighbors[t]) if (!seen.has(n) && tiles.land[n]) { seen.add(n); next.push(n); }
+    }
+    frontier = next;
+  }
+  return null;
+};
+/** The line's reach from `tile`: the base rings plus ROAD_LINE_BONUS on an unburnt road. */
+export const lineRingsAt = (state, tile, rings) => rings + (state.world?.tileState?.[tile]?.road && !state.world?.tileState?.[tile]?.pillaged ? ROAD_LINE_BONUS : 0);
 
 // Own land of `nationId` within `rings` of `tile`, over land (a supply line).
 const lineReaches = (state, tiles, tile, nationId, rings) => {
@@ -65,7 +86,26 @@ export const supplyZone = (state, tiles, unit, { lineRings = SUPPLY_LINE_RINGS }
   if (access === 'own' || access === 'friend') return { zone: 'home', delta: SUPPLY_HOME_GAIN };
   if (access === 'held' || tiles.neighbors[tile].some((n) => tileAccess(state, n, unit.ownerId) === 'held')) return { zone: 'held', delta: 0 };
   if (access === 'wild' || access === 'closed') return { zone: 'wild', delta: -SUPPLY_WILD_LOSS };
-  return { zone: 'enemy', delta: lineReaches(state, tiles, tile, unit.ownerId, lineRings) ? -SUPPLY_LINE_LOSS : -SUPPLY_ENEMY_LOSS };
+  return { zone: 'enemy', delta: lineReaches(state, tiles, tile, unit.ownerId, lineRingsAt(state, tile, lineRings)) ? -SUPPLY_LINE_LOSS : -SUPPLY_ENEMY_LOSS };
+};
+
+/** What the army sheet says about a stack's supply (plans/playtest-1.md P2.2): the meter, this
+ * turn's change, the distance to your border, the line's reach and the lever to pull. */
+export const supplyReport = (state, unit, { lineRings = SUPPLY_LINE_RINGS, max = SUPPLY_MAX } = {}) => {
+  const tiles = getTiles();
+  const tile = unitTile(state, unit);
+  const { zone, delta } = supplyZone(state, tiles, unit, { lineRings });
+  const reach = tile != null ? lineRingsAt(state, tile, lineRings) : lineRings;
+  const borderDistance = tile != null ? lineDistance(state, tiles, tile, unit.ownerId, reach + 6) : 0;
+  const supply = supplyOf(unit, max);
+  const turnsLeft = delta < 0 ? Math.ceil(supply / -delta) : null;
+  let hint;
+  if (zone === 'home') hint = supply >= max ? 'Fully supplied in your own land.' : 'In your land: the meter refills, full in two turns.';
+  else if (zone === 'held') hint = 'Holding enemy land you have taken: the meter holds.';
+  else if (zone === 'wild') hint = 'In the wilderness: the meter drains slowly. A march home refills it.';
+  else if (delta === -SUPPLY_LINE_LOSS) hint = `A supply line from your border (${borderDistance} tile${borderDistance === 1 ? '' : 's'} away, a line reaches ${reach}) feeds this stack at half cost. A Road Post or a road would reach further.`;
+  else hint = borderDistance == null ? `Far beyond your border: no supply line reaches here (a line reaches ${reach} tiles). March back or take a city to hold.` : `Your border is ${borderDistance} tiles away and a line reaches only ${reach}: the stack drains fast. A Road Post at the border or a road under the army reaches ${reach + ROAD_LINE_BONUS}; taking the city here would hold the meter.`;
+  return { supply, max, delta, zone, borderDistance, reach, turnsLeft, hint };
 };
 
 /** Land units of one nation per tile (settlers and cargo aside). */

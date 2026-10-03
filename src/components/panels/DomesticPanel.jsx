@@ -19,8 +19,7 @@ import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
 import {
   ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD,
-  FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS
-} from '../../data/actionCosts';
+  FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS, SECURE_SUCCESSION_CLAIM } from '../../data/actionCosts';
 import {
   GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
 } from '../../data/government';
@@ -299,6 +298,11 @@ const DomesticPanel = () => {
               <Baby size={10} className="text-sky-300 shrink-0" />
               Heir: {heir.name}{heir.adopted ? ' (adopted)' : ''} (claim {heir.claim}) · ADM {heir.adm} · DIP {heir.dip} · MIL {heir.mil}
               {heir.claim < 20 && <span className="text-amber-400"> — weak claim, crisis risk</span>}
+            </div>
+          )}
+          {heir && heir.claim < 20 + SECURE_SUCCESSION_CLAIM && (
+            <div className="mt-2">
+              <ActionButton icon={Crown} label="Secure the succession" description={`Pay the great houses: ${heir.name}'s claim +${SECURE_SUCCESSION_CLAIM}, no crisis when the reign ends (turn ${ruler.reignEndsTurn})`} costs={ACTION_COSTS.secureSuccession} onClick={() => dispatch({ type: ActionTypes.SECURE_SUCCESSION })} disabled={!canAfford(state.resources, ACTION_COSTS.secureSuccession)} size="small" data-testid="secure-succession" />
             </div>
           )}
           {hereditary && !heir && (
@@ -677,7 +681,7 @@ const DomesticPanel = () => {
         <DiplomacyPanel />
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
-      <CollapsibleSection title="Court" icon={Crown} defaultOpen>
+      <CollapsibleSection id="court" title="Court" icon={Crown} defaultOpen>
         {courtSection}
         {governorsSection}
       </CollapsibleSection>

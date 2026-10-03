@@ -79,8 +79,7 @@ import {
   BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
   TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
   VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
-  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD
-} from '../data/actionCosts';
+  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD, SECURE_SUCCESSION_CLAIM } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { replayBattle } from '../battle/sim/replay';
@@ -2710,6 +2709,21 @@ const reduceAction = (state, action) => {
         rngSeed: rng.getSeed(),
         nations: { ...state.nations, [state.playerNationId]: { ...player, ruler: { ...player.ruler, consort } } },
         logs: [...state.logs, { year: state.year, message: `${player.ruler.name} marries ${consort.name}, of a noble house of the realm.`, type: LogTypes.DIPLOMACY }]
+      };
+    }
+
+    case ActionTypes.SECURE_SUCCESSION: {
+      // The warning's way out (plans/playtest-1.md P4): gold and favours buy the heir's claim up,
+      // so the succession no longer rolls a crisis (succession.js: a crisis needs a claim under 20).
+      const player = state.nations[state.playerNationId];
+      if (!player.heir) return reject(state, 'No heir to secure.');
+      if (player.heir.claim >= 20 + SECURE_SUCCESSION_CLAIM) return reject(state, 'The succession is already secure.');
+      if (!canAfford(state.resources, ACTION_COSTS.secureSuccession)) return reject(state, 'Not enough gold and DIP to secure the succession.');
+      return {
+        ...state,
+        resources: applyCosts(state.resources, ACTION_COSTS.secureSuccession),
+        nations: { ...state.nations, [state.playerNationId]: { ...player, heir: { ...player.heir, claim: Math.min(100, player.heir.claim + SECURE_SUCCESSION_CLAIM) } } },
+        logs: [...state.logs, { year: state.year, message: `${player.heir.name}'s claim is secured (+${SECURE_SUCCESSION_CLAIM}): the great houses have been paid.`, type: LogTypes.MILESTONE }]
       };
     }
 

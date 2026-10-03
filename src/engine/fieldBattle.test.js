@@ -5,7 +5,7 @@ import { ActionTypes } from '../data/types';
 import { getNationCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
 import { createRng } from '../utils/rng';
-import { validateFieldAttack, getFieldBattleContext, applyFieldResult, enemyStackAt, RIVER_ATTACK_MULT, FORT_REDUCTION } from './fieldBattle';
+import { validateFieldAttack, getFieldBattleContext, applyFieldResult, enemyStackAt, RIVER_ATTACK_MULT, FORT_REDUCTION, FORTIFY_REDUCTION, isFortified } from './fieldBattle';
 import { estimateFieldOdds } from './battleOdds';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { aiSally } from './aiOperations';
@@ -120,5 +120,20 @@ describe('field attacks', () => {
     const outweighed = { ...besieged, units: { ...besieged.units, a: { ...besieged.units.a, strength: 1000 }, a2: { ...besieged.units.a, id: 'a2', strength: 1000 } } };
     const nope = aiSally(outweighed, 'pk', createRng(5));
     expect(nope.battleReports?.length || 0).toBe(0);
+  });
+});
+
+describe('fortify (plans/playtest-1.md P2.3)', () => {
+  it('a stack that held its tile a full turn takes less damage; a march or a move clears it', () => {
+    const turn = 10;
+    expect(isFortified({ heldSince: 9 }, turn)).toBe(true);
+    expect(isFortified({ heldSince: 10 }, turn)).toBe(false);
+    expect(isFortified({ heldSince: 5, route: [1, 2] }, turn)).toBe(false);
+    expect(isFortified({}, turn)).toBe(false);
+    const war = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: 'pk', tile: theirs, heldSince: S.turnNumber - 2 })]));
+    const v = validateFieldAttack(war, IN, theirs);
+    expect(getFieldBattleContext(war, v).defenderDamageReductionMultiplier).toBeCloseTo(FORTIFY_REDUCTION, 5);
+    const fresh = atWar(withUnits(S, [unit('a', IN, { tile: ours }), unit('e', PK, { ownerId: 'pk', tile: theirs, heldSince: S.turnNumber })]));
+    expect(getFieldBattleContext(fresh, validateFieldAttack(fresh, IN, theirs)).defenderDamageReductionMultiplier).toBe(1);
   });
 });

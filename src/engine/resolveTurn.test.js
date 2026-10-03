@@ -1,3 +1,4 @@
+import { CIVIL_WAR_STABILITY_STREAK_TURNS } from '../data/actionCosts';
 import { describe, it, expect } from 'vitest';
 import { resolveTurn } from './resolveTurn';
 import { SUPPLY_MAX, SUPPLY_ENEMY_LOSS, SUPPLY_HOME_GAIN, STARVE_STRENGTH } from './supplyMeter';
@@ -1188,10 +1189,10 @@ describe('resolveTurn capitals (plan §M15)', () => {
 });
 
 describe('resolveTurn civil war trigger (plan §M15)', () => {
-  it('descends into civil war after 3 consecutive turns at the stability floor', () => {
+  it('descends into civil war after the streak of turns at the stability floor (five, plans/playtest-1.md P4)', () => {
     let state = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < CIVIL_WAR_STABILITY_STREAK_TURNS - 1; i++) {
       state = resolveTurn(state);
       expect(state.nations.fr.civilWar).toBeNull();
       state = { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, stability: -3 } } };

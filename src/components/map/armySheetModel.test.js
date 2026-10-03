@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createInitialState, gameReducer } from '../../engine/gameReducer';
 import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
-import { armySheetModel, stackOn, attackTargets, siegePressed, ZONE_TEXT } from './armySheetModel';
+import { armySheetModel, stackOn, attackTargets, siegePressed } from './armySheetModel';
 import { getTiles } from '../../data/geo/tiles';
 
 describe('army sheet model', () => {
@@ -16,7 +16,8 @@ describe('army sheet model', () => {
     expect(stackOn(s, cap.tile).map((u) => u.id)).toEqual(m.unitIds);
     expect(m.groups[0].name).toBe('Unassigned units');
     expect(m.zone).toBe('home');
-    expect(m.zoneText).toBe(ZONE_TEXT.home);
+    expect(m.zoneText).toMatch(/^Supply \d+\/\d+, \+\d+ a turn\. /); // the readable report (plans/playtest-1.md P2.2)
+    expect(m.supplyReport.zone).toBe('home'); expect(m.fortified).toBe(false); expect(Array.isArray(m.mergeFrom)).toBe(true);
     expect(m.route).toBeNull();
     expect(m.soldiers).toBe(mine.reduce((x, u) => x + u.strength, 0));
     m.groups[0].units.forEach((u) => { expect(u.supply).toBeGreaterThan(0); expect(u.movePoints).toBeGreaterThan(0); });

@@ -43,7 +43,7 @@ import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../../utils/mapRegionStyle';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, estateTints, tradeLines, airCover } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -453,7 +453,7 @@ const Map2DView = ({
         <text x={x} y={y - r - 2 / zoomK} textAnchor="middle" fontSize={10 / zoomK} fontWeight="700" fill="#fca5a5" stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke">{s.strength.toLocaleString()}</text>
       </g>
     ); })];
-    if (lens === 'supply') return supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />);
+    if (lens === 'supply') return [...supplyReach(state).map((t) => <path key={`r${t.tile}`} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-reach={t.tile} />), ...supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />)];
     if (lens === 'estates') return estateTints(state).map((t) => { const [x, y] = at(t.tile); return (
       <g key={t.tile} pointerEvents="none" data-lens-estate={t.tile} data-estate={t.estateId}>
         <path d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" />

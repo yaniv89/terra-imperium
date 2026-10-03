@@ -40,6 +40,14 @@ const ArmySheet = ({ tile, onClose, onSelectRegion }) => {
         <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
       </div>
       <div className="text-[11px] text-slate-300 mb-2" data-testid="army-supply">{model.zoneText}{model.airCover ? ` Air cover: ${model.airCover} aircraft within ${model.airRange} tiles join a battle here.` : ''}</div>
+      {model.fortified && <div className="text-[11px] text-emerald-200 mb-2" data-testid="army-fortified">Fortified: this stack held its ground a full turn and takes 15% less damage here until it moves.</div>}
+      {model.mergeFrom?.length > 0 && (
+        <div className="mb-2 space-y-1" data-testid="army-merge">
+          {model.mergeFrom.map((m) => (
+            <button key={m.tile} type="button" onClick={() => dispatch({ type: ActionTypes.SET_ROUTE, payload: { fromRegionId: m.regionId, toTile: tile, unitIds: m.unitIds } })} className="w-full min-h-[40px] rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-semibold">Merge {m.unitIds.length} unit{m.unitIds.length === 1 ? '' : 's'} from {m.name} into this stack</button>
+          ))}
+        </div>
+      )}
       {model.route && <div className="text-[11px] text-amber-200 mb-2" data-testid="army-route">Marching to {model.route.name}: about {model.route.turns} turn{model.route.turns === 1 ? '' : 's'}.</div>}
       {model.siege && <div className="text-[11px] text-orange-200 mb-2 flex items-center gap-1.5" data-testid="army-siege"><Castle className="w-3.5 h-3.5 shrink-0" />Besieging {model.siege.name}: walls {model.siege.hp}/{model.siege.maxHp}{model.siege.walls ? ` (${model.siege.walls} wall${model.siege.walls === 1 ? '' : 's'})` : ''}, {model.siege.strength} siege strength a turn{model.siege.encircled ? ', encircled: it starves' : ''}.</div>}
       {model.groups.map((g) => (
