@@ -1,6 +1,7 @@
 # Plan: Emergent worlds and independent cities
 
-Date: 2026-10-03. Status: proposal for review, nothing implemented yet.
+Date: 2026-10-03. Status: approved with the decisions in section 13; not started (the user asked
+to wait).
 Companion to `plans/eras-origins-and-future.md` (the nine ages). This plan changes the shape of the
 world, so it comes before that plan's Phase 1 (section 12).
 
@@ -195,12 +196,12 @@ nation.indep = {
   for 20 turns, or at least 5 times its military strength and opinion >= 40, it offers to join.
   Same path as a free city joining (loyalty.js), with no aggressive expansion.
 
-### 4.6 Awakening (open question, section 13)
-Optional: an independent that has held its size cap for 30 turns, inside its historical window
-(the nine-age plan's historical names give the window: Rome in the Classical age, the Mongols in
-the Kingdoms age), becomes a **major nation**: it gains research, settlers and the full AI, and
-the world grows by one. At most one awakening every 50 turns and never more than mode + 10
-majors. This replaces today's emergence (a dormant people appearing from nowhere every 50 turns).
+### 4.6 No awakening (decision 2)
+**Independents stay independent forever.** The set of major nations is fixed at the start; the
+world only shrinks (conquest) and never adds a major. Today's emergence (a dormant people
+founding a new major every 50 turns, emergence.js) is **removed** for these modes. The
+"unpeopled at Dawn" islands instead appear as new **independents** when their land was settled
+historically (Polynesia, Iceland, Madagascar...), on a year table, if their tile is still free.
 
 ---
 
@@ -210,7 +211,7 @@ majors. This replaces today's emergence (a dormant people appearing from nowhere
 |---|---|
 | **Conquer** | No war declaration, no casus belli. Normal siege and assault. Aggressive expansion x0.5. The city's loyalty starts low (foreign culture). Same-culture independents +40 grudge. |
 | **Raid** | Pillage its tiles with your units: gold and food for you, +20 grudge. |
-| **Raze** | After conquering it: keep or raze. Raze removes the city and frees its tiles; +60 grudge from its culture group; -20 opinion with majors who traded with it. Allowed for any size (open question, section 13). |
+| **Raze** | After conquering it: keep or raze, **any size** (decision 3). Razing takes time by size: the city loses `RAZE_SIZE_PER_TURN` = 1 size a turn and is gone at 0, so a size-2 village burns in 2 turns and a size-9 city in 9. While burning it yields nothing, cannot be sold or traded, and can be **retaken** by anyone (its old owner or a neighbour), which stops the razing. When it is gone its tiles are freed. +60 grudge from its culture group at the start; -20 opinion with majors who traded with it. The same rule applies to razing a major's city you conquered. |
 | **Pay tribute** | Gold a turn for a set time: it never raids you meanwhile. |
 | **Demand tribute** | If your nearby strength is at least 3 times its own: it pays you, or refuses (+grudge). |
 | **Trade** (mercantile) | A trade pact: gold both ways, the route can be plundered. |
@@ -299,18 +300,21 @@ emergent saves load and play as before (their nations have no `kind`, so nothing
 | **W2. Independent AI** | Personalities, garrison, raids, sack, grudges, tribute demands; battle-lab check that a raid battle plays in the tactical sim | 2 to 3 sessions |
 | **W3. Interactions and major AI** | Tribute both ways, trade, mercenaries, raze, peaceful submission; AI majors conquer independents, defend and pay tribute; every major Tier 1 | 2 sessions |
 | **W4. UI and art** | Hatched borders, personality shields, raid markers, the independent sheet, warnings | 1 to 2 sessions |
-| **W5. Awakening** (if wanted) | Independents become majors in their historical window; replaces emergence.js | 1 session |
+| ~~W5. Awakening~~ | Dropped (decision 2): independents stay independent; emergence.js is replaced by late island settlement as independents (part of W1) | |
 
 Order: W1 to W3 **before** the nine-age plan's Phase 1 (Age of Cities), because the Origins and
-Age of Cities designs build on independents. W4 and W5 can follow or run alongside.
+Age of Cities designs build on independents. W4 can follow or run alongside.
 
 ---
 
-## 13. Questions for the user
-1. **Default world size**: Standard 35?
-2. **Awakening** (4.6): can a strong independent become a major nation in its historical era
-   (Rome, the Mongols), or do independents stay independent forever?
-3. **Raze**: allowed for any city size, or only small cities (size 3 or less)?
-4. **Sack**: should raiders be able to beat a weakly defended city and sack it (gold, -1 size,
-   a building damaged; never a capture), or only pillage tiles and routes?
-5. **Peaceful joining**: should friendly independents be able to join you without a fight?
+## 13. Decisions (from the user, 2026-10-03)
+
+1. **Default world size: Standard, 35 major nations.**
+2. **Independents stay independent forever**: no awakening (4.6). The majors are fixed at the
+   start; today's emergence of new majors is removed in these modes.
+3. **Raze: any size**, taking longer for bigger cities (one size a turn, section 5).
+4. **Raids: all options**: pillage tiles, cut trade routes, capture settlers and burn outposts,
+   and **sack** weakly defended cities (gold, -1 size, a building damaged; never a capture).
+5. **Peaceful joining: yes** (4.5).
+
+**Do not start yet** (the user, 2026-10-03): implementation waits for the go-ahead.
