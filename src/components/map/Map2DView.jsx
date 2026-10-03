@@ -51,7 +51,12 @@ import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, esta
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
-const POLITICAL_ALPHA = 0.45;
+const POLITICAL_ALPHA = 0.45; // the tint the old filled territories used (the non-interactive minimap keeps it)
+// Territories carry no fill on the interactive map (the art shows untouched), only a band of the
+// owner's colour inside the border; transparent, not 'none', so a tap still selects the territory.
+const TERRITORY_FILL = 'rgba(0,0,0,0)';
+const NATION_BAND_PX = 4;
+const PLAYER_BAND_COLOR = '#4ade80';
 // The hex mesh shows from this zoom (B5's local view), city borders and names from this one.
 const HEX_FROM_ZOOM = 3;
 const RESOURCE_GLYPH_ZOOM = 5;
@@ -130,13 +135,14 @@ const Map2DView = ({
     if (width <= 0 || height <= 0) return null;
     return geoEquirectangular().fitSize([width, height], { type: 'Sphere' });
   }, [width, height]);
-  // Nation borders (B4): the outline of each nation's land.
-  const nationBorderPath = useMemo(() => {
-    if (!projection) return null;
+  // Nation borders (B4): the outline of each nation's land, per nation for the coloured bands.
+  const nationOutlines = useMemo(() => {
+    if (!projection) return [];
     const pathGen = geoPath(projection);
-    return getNationTerritories(state, land).map((f) => pathGen(f)).filter(Boolean).join(' ');
+    return getNationTerritories(state, land).map((f) => ({ owner: f.properties.owner, d: pathGen(f) })).filter((n) => n.d);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projection, tileOwner, land, state.regions]);
+  const nationBorderPath = useMemo(() => nationOutlines.map((n) => n.d).join(' ') || null, [nationOutlines]);
   // The hex mesh for the part of the world on screen (plus a margin), rebuilt when the view
   // moves by about a cell or zooms a step; the whole world's mesh is far too heavy to paint.
   const hexWindow = useMemo(() => {
@@ -357,8 +363,9 @@ const Map2DView = ({
     return (
       [...pathsById.entries()].map(([gameRegionId, d]) => {
         if (!d) return null;
-        // Translucent over the terrain raster (plans/civ-map-rework.md B4b): the land shows through.
-        const fill = withAlpha(getRegionFillColor(state.regions, state.playerNationId, gameRegionId), POLITICAL_ALPHA);
+        // No fill: the land and the town art show untouched; ownership is the coloured band just
+        // inside each nation's border (nationBandElements). The transparent fill keeps taps.
+        const fill = interactive ? TERRITORY_FILL : withAlpha(getRegionFillColor(state.regions, state.playerNationId, gameRegionId), POLITICAL_ALPHA);
         const stroke = interactive
           ? getRegionStrokeColor(state.regions, state.playerNationId, gameRegionId, selectedRegion, atWarNationIds)
           : 'rgba(0,0,0,0.4)';
@@ -405,11 +412,29 @@ const Map2DView = ({
       <g pointerEvents="none" data-testid="war-borders">
         {enemy.map(([id, d]) => <path key={`wb-${id}`} d={d} fill="none" stroke="#ef4444" strokeWidth={band} strokeLinejoin="round" />)}
         {enemy.map(([id, d]) => (
-          <path key={`wf-${id}`} d={d} fill={withAlpha(getRegionFillColor(state.regions, state.playerNationId, id), POLITICAL_ALPHA)} stroke={id === selectedRegion ? '#2563eb' : 'rgba(127,29,29,0.55)'} strokeWidth={id === selectedRegion ? 1.5 / zoomK : hair} />
+          <path key={`wf-${id}`} d={d} fill={TERRITORY_FILL} stroke={id === selectedRegion ? '#2563eb' : 'rgba(127,29,29,0.55)'} strokeWidth={id === selectedRegion ? 1.5 / zoomK : hair} />
         ))}
       </g>
     );
-  }, [pathsById, atWarNationIds, state.regions, state.playerNationId, selectedRegion, zoomK]);
+  }, [pathsById, atWarNationIds, state.regions, selectedRegion, zoomK]);
+
+  // Ownership as a band of the nation's colour just inside its border, NATION_BAND_PX wide on screen
+  // at every zoom: each outline is stroked twice as wide and clipped to its own land, so two
+  // neighbours show their two colours side by side along the shared border.
+  const bandIdBase = React.useId().replace(/:/g, '');
+  const nationBandElements = useMemo(() => {
+    if (!interactive || !nationOutlines.length) return null;
+    const colourOf = (owner) => (owner === state.playerNationId ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8');
+    return (
+      <g pointerEvents="none" data-testid="nation-bands">
+        <defs>{nationOutlines.map((n) => <clipPath key={n.owner} id={`${bandIdBase}-${n.owner}`}><path d={n.d} /></clipPath>)}</defs>
+        {nationOutlines.map((n) => (
+          <path key={n.owner} d={n.d} fill="none" stroke={colourOf(n.owner)} strokeWidth={(2 * NATION_BAND_PX) / zoomK} strokeLinejoin="round"
+            clipPath={`url(#${bandIdBase}-${n.owner})`} opacity={0.9} data-nation-band={n.owner} />
+        ))}
+      </g>
+    );
+  }, [interactive, nationOutlines, state.playerNationId, zoomK, bandIdBase]);
 
   // Load the close view a little before it is needed, then keep it (one WebGL context for good).
   const [closeLoaded, setCloseLoaded] = useState(false);
@@ -666,6 +691,7 @@ const Map2DView = ({
         {!closeGround && rasterTiles.map((t) => <image key={t.key} href={rasterTileUrl(t.z, t.x, t.y)} x={t.rect.x} y={t.rect.y} width={t.rect.width} height={t.rect.height} preserveAspectRatio="none" pointerEvents="none" data-raster-tile={t.key} />)}
         <g data-testid="territories">
           {pathElements}
+          {nationBandElements}
           {nationBorderPath && <path d={nationBorderPath} fill="none" stroke="rgba(2,6,23,0.85)" strokeWidth={(zoomK < 3 ? 1.1 : 0.9) / zoomK} strokeLinejoin="round" strokeLinecap="round" pointerEvents="none" data-testid="nation-borders" />}
           {warBorderElements}
           {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
