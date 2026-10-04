@@ -100,8 +100,8 @@ def make_materials():
     tm.mat_simple('snb_platform', ['#8c6c45', '#a68355', '#b39264', '#957450'], scale=18.0, bump=0.5, dirt=True,
                   stripes={'dir': 'Z', 'scale': 45.0, 'distortion': 1.2})
     # thatch (straw, golden tan #B89660) and reed (the sheds and poor huts, greyer)
-    mat_thatch('snb_thatch', ['#6a4e2a', '#94743f', '#b0904f', '#c09f5c'])
-    mat_thatch('snb_reed', ['#5a4a30', '#7f6a46', '#998256', '#a99262'], course=0.04)
+    mat_thatch('snb_thatch', ['#4f3a22', '#6e5634', '#8a6f45', '#9c8152'])
+    mat_thatch('snb_reed', ['#4a3d2a', '#665640', '#7e6c4e', '#8c7a58'], course=0.04)
     # dark weathered timber (posts, frames) and the plank door
     tm.mat_simple('snb_timber', ['#3c3026', '#53443a', '#615043', '#47392d'], scale=8.0,
                   stripes={'dir': 'X', 'scale': 70.0, 'distortion': 6.0}, bump=0.4)
@@ -327,6 +327,15 @@ def bush(ms, x, y, s=1.0):
     ms.sphere('snb_leaf', 0.05 * s, at=(x, y, G + 0.03 * s), scale=(1, 1, 0.75), u=6, v=4, lod=0)
 
 
+def corner_bushes(ms, rng, f, w, d, n=2):
+    """Green bushes at a few of a plot's corners, outside its fence or wall (roofscape sheet)."""
+    corners = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
+    rng.shuffle(corners)
+    for sx, sy in corners[:n]:
+        p = f @ Vector((sx * (w / 2 + 0.02), sy * (d / 2 + 0.02), 0))
+        bush(ms, p.x, p.y, rng.uniform(0.8, 1.25))
+
+
 def garden_bed(ms, f, x, y, w, d, lod=1):
     ms.box('snb_garden', (w, d, 0.014), at=(x, y, G), lod=lod, frame=f, bevel=0.003)
 
@@ -459,6 +468,7 @@ def poor_house(ms, rng, x, y, w, d, yaw=None, yard=0.0, side=None, garden=True, 
         fx0, fx1, fy0, fy1 = -w / 2 + 0.02, w / 2 - 0.02, -d / 2 - 0.02, d / 2 - 0.01
         cx = hx / (fx1 - fx0) + 0.5
         fence(ms, f, [(fx0, fy1), (fx0, fy0), (fx1, fy0), (fx1, fy1), (fx0, fy1)], h=0.075, gaps=((1, cx, 0.1),))
+        corner_bushes(ms, rng, f, w, d)
     if yard > 0:
         _yard(ms, rng, f, w, d, yard)
     return f
@@ -480,6 +490,9 @@ def _yard(ms, rng, f, w, d, yard):
     else:
         woodpile(ms, -w * 0.15, ym, 0, f=f)
         big_jar(ms, f, w * 0.28, ym, 0.9)
+    for sx in (-1, 1):
+        if rng.random() < 0.6:
+            bush(ms, *(f @ Vector((sx * (w / 2 - 0.05), y1 - 0.05, 0)))[:2], s=rng.uniform(0.8, 1.2))
     if rng.random() < 0.35:
         p = f @ Vector((rng.choice((-1, 1)) * (w / 2 - 0.07), y1 - 0.07, 0))
         tree(ms, p.x, p.y, rng.uniform(0.75, 0.95), lod=1)
@@ -530,7 +543,6 @@ def common_house(ms, rng, x, y, w, d, yaw=None, yard=0.0, awning=False, front_fe
     hy = D - t - hd / 2 + 0.01
     hf = f @ Matrix.Translation(Vector((0, hy, 0)))
     ms.box('snb_stone', (w - 2 * t - 0.03, hd - 0.04, 0.03), at=(0, 0, G - 0.005), lod=1, frame=hf, bevel=0.003)
-    obox(ms, 'snb_earth', (w - 2 * t, d - 2 * t, wh), at=(0, -hy, G), frame=hf, lod=2, only=2)  # LOD2: the walled block
     hall(ms, rng, hf, w - 2 * t + 0.02, hd, G + 0.025, 0.19, 0.24, door_x=rng.uniform(-0.1, 0.1) * w)
     _steps(ms, hf, 0.0, -(hd - 0.04) / 2, 0.1, 0.025, n=2, run=0.02, cheeks=False, lod=0)
     # the side sheds (lean-to thatch on posts, open to the court)
@@ -555,6 +567,7 @@ def common_house(ms, rng, x, y, w, d, yaw=None, yard=0.0, awning=False, front_fe
         big_jar(ms, f, w * 0.15, -D + 0.17, 0.9)
     if awning:
         tt.front_shade(ms, f, gx, -D - 0.005, 0.2, depth=0.1, z=0.15, mat='team_cloth')
+    corner_bushes(ms, rng, f, w + 0.03, d + 0.03)
     if front_fence:
         fy = -D - 0.1
         fence(ms, f, [(-W + 0.02, -D + 0.005), (-W + 0.02, fy), (W - 0.02, fy), (W - 0.02, -D + 0.005)], h=0.075,
@@ -825,7 +838,8 @@ def drum_tower(ms, f, x, y, z, s=1.0, top=1.4, base=G):
     floor3 = z + (eave - z) * 0.74
     for sx in (-1, 1):
         for sy in (-1, 1):
-            ms.box('snb_post', (0.034, 0.034, eave - z + 0.01), at=(sx * a, sy * a, z), lod=2, frame=tf)
+            ms.box('snb_post', (0.034, 0.034, eave - z + 0.01), at=(sx * a, sy * a, z), lod=1, frame=tf)
+    obox(ms, 'snb_post', (2 * a, 2 * a, eave - z), at=(0, 0, z), frame=tf, lod=2, only=2)
     for zz in (floor2, floor3, eave - 0.03):  # ring beams
         for sy in (-1, 1):
             ms.box('snb_timber', (2 * a + 0.06, 0.026, 0.026), at=(0, sy * a, zz), lod=1, frame=tf)
@@ -840,7 +854,7 @@ def drum_tower(ms, f, x, y, z, s=1.0, top=1.4, base=G):
             bf = tf @ rot @ Matrix.Translation(Vector((0, -a - 0.012, (lo + hi) / 2))) @ Matrix.Rotation(sgn * ang, 4, 'Y')
             ms.box('snb_timber', (0.016, 0.014, L), at=(0, 0, -L / 2), lod=1, frame=bf)
     # the plank-clad middle storey
-    ms.box('snb_plank', (2 * a, 2 * a, floor3 - floor2 - 0.01), at=(0, 0, floor2 + 0.02), lod=2, frame=tf)
+    ms.box('snb_plank', (2 * a, 2 * a, floor3 - floor2 - 0.01), at=(0, 0, floor2 + 0.02), lod=1, frame=tf)
     ms.box('snb_timber', (2 * a + 0.08, 2 * a + 0.08, 0.02), at=(0, 0, floor3), lod=1, frame=tf)  # the drum floor
     railing(ms, tf, [(-a - 0.03, -a - 0.03), (a + 0.03, -a - 0.03), (a + 0.03, a + 0.03), (-a - 0.03, a + 0.03), (-a - 0.03, -a - 0.03)],
             floor3 + 0.02, h=0.05, mat='snb_timber', step=0.09)

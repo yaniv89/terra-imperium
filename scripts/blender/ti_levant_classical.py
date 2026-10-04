@@ -112,7 +112,8 @@ def parapet(ms, f, w, d, z, mat='lvc_pale', cx=0.0, cy=0.0, h=0.045, t=0.022, lo
     under the cornice along the front (`beams` = count, None picks one by width)."""
     if court:
         cw, cd, ccy = court
-        ring(ms, f, 'lvc_roof', w - 0.02, d - 0.02, cw + 0.02, cd + 0.02, z, 0.008, lod=2, cx=cx, cy=cy, ccy=ccy)
+        ring(ms, f, 'lvc_roof', w - 0.02, d - 0.02, cw + 0.02, cd + 0.02, z, 0.008, lod=1, cx=cx, cy=cy, ccy=ccy)
+        box_only(ms, 'lvc_roof', (w - 0.02, d - 0.02, 0.008), (cx, cy, z), f, (2,))
     else:
         ms.box('lvc_roof', (w - 0.02, d - 0.02, 0.008), at=(cx, cy, z), lod=2, frame=f)
     if court:  # the cornice
@@ -158,7 +159,7 @@ def potted(ms, f, x, y, r=0.034, s=0.95):
     ms.sphere('shrub', r, at=(x, y, G + 0.085 * s + r * 0.55), scale=(1, 1, 0.85), u=7, v=5, lod=0, frame=f)
 
 
-def bush(ms, f, x, y, r=0.05, lod=1):
+def bush(ms, f, x, y, r=0.05, lod=0):
     """A shrub at local (x, y) of frame f."""
     p = f @ Vector((x, y, 0))
     tc.shrub(ms, p.x, p.y, r=r, lod=lod)
@@ -197,7 +198,7 @@ def reed_shade(ms, f, x, y, w=0.14, depth=0.11, z=0.22):
 def olive(ms, rng, x, y, h=0.26, r=0.085, lod=1):
     """An olive tree: a short leaning trunk and a grey-green crown of two or three lumps."""
     ms.cyl('timber', 0.02, 0.014, h * 0.45, at=(x, y, G), rot=(rng.uniform(-8, 8), rng.uniform(-8, 8), 0), segs=6, lod=min(lod, 1))
-    ms.sphere('olive', r, at=(x, y, G + h - r * 0.55), scale=(1, 1, 0.7), u=8, v=5, lod=1)
+    ms.sphere('olive', r, at=(x, y, G + h - r * 0.55), scale=(1, 1, 0.7), u=7, v=4, lod=1)
     for k in range(3):
         a = rng.uniform(0, 2 * math.pi) + k * 2.1
         ms.sphere('olive', r * rng.uniform(0.6, 0.75), at=(x + r * 0.6 * math.cos(a), y + r * 0.6 * math.sin(a), G + h - r * rng.uniform(0.55, 0.9)),
@@ -295,8 +296,9 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning=True, jar_n=2, cloth=True
     cw, cd = w * 0.5, bd * 0.46
     ccy = 0.03
     ring(ms, f, 'lvc_ashlar', w, bd, cw + 0.02, cd + 0.02, G, 0.035, lod=1, cy=by, ccy=ccy, grow=0.012)
-    ring(ms, f, 'lvc_ashlar', w, bd, cw, cd, G, h * 0.55, lod=2, cy=by, ccy=ccy)
-    ring(ms, f, 'lvc_plaster', w, bd, cw, cd, G + h * 0.55, h * 0.45, lod=2, cy=by, ccy=ccy)
+    ring(ms, f, 'lvc_ashlar', w, bd, cw, cd, G, h * 0.55, lod=1, cy=by, ccy=ccy)
+    ring(ms, f, 'lvc_plaster', w, bd, cw, cd, G + h * 0.55, h * 0.45, lod=1, cy=by, ccy=ccy)
+    box_only(ms, 'lvc_ashlar', (w, bd, h), (0, by, G), f, (2,))  # LOD2: one block
     ring(ms, f, 'lvc_pale', w, bd, cw + 0.02, cd + 0.02, G + h * 0.55 - 0.006, 0.012, lod=0, cy=by, ccy=ccy, grow=0.008)  # the course line
     parapet(ms, f, w, bd, G + h, mat='lvc_pale', cy=by, court=(cw, cd, ccy))
     # the court: paving, an olive tree, the cloth over half of it, an inner parapet

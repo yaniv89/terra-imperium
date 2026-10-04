@@ -51,10 +51,10 @@ for _g in GROUNDS:
         tt.FRINGES.append(_g + '_fringe')
 
 WHITE = ('#e4e1d9', '#ece9e2', '#dcd8ce', '#f1eee8')
-CREAM = ('#d9c7a5', '#e2d2b4', '#cfbb96', '#e8dbc0')
+CREAM = ('#e2d3b4', '#eadfc6', '#dacaa8', '#f0e6d2')
 
 
-def mat_lattice(name, cell=0.05, bar=0.09, bar_cols=('#8a6a3e', '#a07c4a', '#b48f58'), gap='#2a231c', rough=0.55):
+def mat_lattice(name, cell=0.05, bar=0.09, bar_cols=('#a27a46', '#b88d55', '#c99f66'), gap='#3a3027', rough=0.55):
     """A geometric mashrabiya screen painted by the material: bars along four directions (0, 90,
     45 and 135 degrees, the diagonals offset half a cell) on facade coordinates (x + y, z), so the
     crossings make eight-pointed stars; bronze bars over the dark shadow behind."""
@@ -127,7 +127,7 @@ if not any(n == 'levant-modern' for n, _ in tt.EXTRA_MATERIALS):
 
 ORIG = {'block': md.block, 'house': md.house, 'tree': md.tree, 'flat': md.flat}
 SWAP = {'md_pave_square': 'lvm_pave_square', 'md_pave': 'lvm_pave'}
-KIT = {'rich_share': 0.25}
+KIT = {'rich_share': 0.12}
 
 
 def _t(x, y, z=0.0):
@@ -198,13 +198,13 @@ def palm(ms, x, y, h=0.6, r=0.13, lod2=False, rng=None):
         for k in range(n):
             a = a0 + 2 * math.pi * k / n
             ca, sa = math.cos(a), math.sin(a)
-            L = r * 1.25 * (0.9 + 0.2 * ((k * 7) % 3) / 2)
+            L = r * 1.6 * (0.9 + 0.2 * ((k * 7) % 3) / 2)
             if segs == 2:
                 pts = [(0.0, 0.0), (L * 0.5, 0.05), (L, -0.06)]
-                wid = [0.012, 0.04, 0.0]
+                wid = [0.014, 0.055, 0.0]
             else:
                 pts = [(0.0, 0.0), (L, -0.03)]
-                wid = [0.02, 0.0]
+                wid = [0.035, 0.0]
             prev = None
             for (rr, dz), wd in zip(pts, wid):
                 cx, cy = ct.x + ca * rr, ct.y + sa * rr
@@ -384,7 +384,7 @@ def kit_block(ms, rng, x, y, w, d, storeys=3, wall='md_render_win', yaw=None, ro
     if typ is None:
         if storeys <= 1:
             typ = 'poor'
-        elif wall == 'md_brick_win' or rng.random() < KIT['rich_share']:
+        elif rng.random() < (0.45 if wall == 'md_brick_win' else KIT['rich_share']):
             typ = 'rich'
         else:
             typ = 'common'
@@ -564,7 +564,7 @@ def flare_stack(ms, rng, x, y, w, d, top_z=3.5, compact=False):
         ms.cyl('lvm_yellow', 0.077, 0.077, 0.04, at=(0, 0, zz + 0.008), segs=10, lod=1, frame=S, caps=False)
         ms.cyl('lvm_yellow', 0.077, 0.077, 0.006, at=(0, 0, zz + 0.048), segs=10, lod=0, frame=S, caps=False)
     # the ladder on the stack's south face
-    ms.box('lvm_yellow', (0.03, 0.006, top_z - frame_top - 0.2), at=(0, -r0 - 0.012, frame_top), lod=0, frame=S)
+    ms.box('md_steel', (0.016, 0.005, top_z - frame_top - 0.2), at=(0, -r0 - 0.008, frame_top), lod=0, frame=S)
     ms.box('md_steel', (0.03, 0.03, frame_top - deck_z), at=(0, -r0 - 0.02, deck_z), lod=0, frame=S)
     # vessels behind their railing at the east, pipes along the pad
     vx = w * 0.22
@@ -593,7 +593,7 @@ def flare_stack(ms, rng, x, y, w, d, top_z=3.5, compact=False):
 # ---- applying the kit -----------------------------------------------------------------------------
 
 
-def apply(landmarks=None, rich_share=0.25):
+def apply(landmarks=None, rich_share=0.12):
     """Swap the base layout's houses, trees and paving for the kit's; `landmarks` maps a ti_modern
     builder name ('glass_tower', 'water_tower', 'factory', 'clock_tower') to a replacement fn."""
     KIT['rich_share'] = rich_share
@@ -605,7 +605,7 @@ def apply(landmarks=None, rich_share=0.25):
         setattr(md, name, fn)
 
 
-def main(base_name, layout, ground, landmarks=None, rich_share=0.25):
+def main(base_name, layout, ground, landmarks=None, rich_share=0.12):
     """Build `modern-<base_name>-levant.glb` (its object keeps the layout's name).
     argv: <out_dir> [atlas_px]."""
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
