@@ -655,7 +655,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
     const powerIncome = getPowerIncome(aiEconState, nId);
     const pool = { ...nation.economy };
-    pool.gold += income.gold * turns;
+    pool.gold += income.gold; // the other turns' gold is credited turn by turn in settleAIUpkeep
     pool.hr += income.hr * turns;
     pool.techPoints += income.techPoints * turns;
     const ownedUnits = unitsByOwnerNow.get(nId) || [];
@@ -670,7 +670,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // so no AI nation ever researched anything.
     ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p] * turns, POWER_POOL_CAP); });
     nations[nId] = { ...nation, economy: pool, lodSettledTurn: newTurnNumber };
-    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits, turns);
+    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits, turns, income.gold);
     if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
