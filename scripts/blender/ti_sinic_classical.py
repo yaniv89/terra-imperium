@@ -41,19 +41,19 @@ def make_materials():
     # cream lime plaster (slightly cooler than the Roman cream)
     tm.mat_simple('snc_plaster', ['#ddd5c3', '#e8e1d1', '#d2c8b2', '#efe9dc'], scale=16.0, bump=0.2, dirt=True)
     # grey brick (dados, the gate tower and the que), fine courses
-    tm.mat_mudwall('snc_brick', wash='#8d8d88', brick='#83837f', brick2='#6f706d', mortar='#a9a69d', wash_cover=0.0,
+    tm.mat_mudwall('snc_brick', wash='#7a7b78', brick='#767774', brick2='#646562', mortar='#4e4f4c', wash_cover=0.0,
                    bond=(0.034, 0.012, 0.0018))
     # grey ceramic roof tile: courses down the slope, a dark grey ridge
-    tm.mat_mudwall('snc_tile', wash='#55595c', brick='#5a5e62', brick2='#484c50', mortar='#2f3235', wash_cover=0.0,
-                   bond=(0.022, 0.012, 0.0025))
-    tm.mat_simple('snc_ridge', ['#3a3d40', '#45494c', '#303336'], scale=30.0, bump=0.3)
+    tm.mat_mudwall('snc_tile', wash='#45494d', brick='#484c50', brick2='#3b3f43', mortar='#232628', wash_cover=0.0,
+                   bond=(0.012, 0.024, 0.0025))
+    tm.mat_simple('snc_ridge', ['#2c2f32', '#36393c', '#25282a'], scale=30.0, bump=0.3)
     # red-brown lacquered timber (posts, beams, brackets)
     tm.mat_simple('snc_lacquer', ['#7c2f20', '#8e3a26', '#6c271a'], scale=10.0,
                   stripes={'dir': 'Z', 'scale': 60.0, 'distortion': 2.0}, bump=0.2)
     # stone blocks: the plinths, steps, arch rings, the platform
     tm.mat_mudwall('snc_stone', wash='#a8a397', brick='#a7a195', brick2='#938e83', mortar='#6f6b63', wash_cover=0.0,
                    bond=(0.07, 0.035, 0.003))
-    tm.mat_simple('snc_blossom', ['#c9566a', '#e08aa0', '#b7413f', '#d9a0ae'], scale=50.0, bump=0.6)
+    tm.mat_simple('snc_blossom', ['#b8606c', '#cf8f98', '#a8483f', '#c99aa0'], scale=50.0, bump=0.6)
     # the ground: tan stone slabs over packed earth; the square a grey stone
     for n in ('snc_paving', 'snc_paving_fringe'):
         tc.mat_paving(n, stone=PAVING[0], mortar=PAVING[1], slab=PAVING[2])
@@ -527,7 +527,7 @@ def gate_tower(ms, rng, x, y, w=1.4, d=1.0, top=1.2, yaw=0.0, banners=True):
     # the hall on the platform
     hw, hd = pw * 0.8, pd * 0.72
     zh = zp + 0.012
-    h1 = (top - H) * 0.36
+    h1 = (top - H) * 0.43
     ms.box('snc_stone', (hw + 0.06, hd + 0.06, 0.015), at=(0, 0, zp), lod=1, frame=f)
     ms.box('snc_plaster', (hw, hd, h1), at=(0, 0, zh), lod=2, frame=f)
     nf = 6 if w > 1.0 else 5
@@ -552,18 +552,18 @@ def gate_tower(ms, rng, x, y, w=1.4, d=1.0, top=1.2, yaw=0.0, banners=True):
     # the lower eave all round, then the upper storey and its bracket band
     z1 = zh + h1
     uw, ud = hw * 0.82, hd * 0.8
-    over1 = 0.1 * (w / 1.4) + 0.02
+    over1 = 0.08 * (w / 1.4) + 0.02
     curl1 = 0.04 * (w / 1.4) + 0.01
     lw, ld = hw / 2 + over1, hd / 2 + over1
     ze1 = z1 - 0.01
-    zi1 = z1 + 0.07 * (top / 1.2)
+    zi1 = z1 + 0.05 * (top / 1.2)
     ring_solid(ms, f, [(lw, ld, ze1 - 0.02, curl1), (lw, ld, ze1, curl1), (uw / 2, ud / 2, zi1, 0.0),
                        (uw / 2, ud / 2, ze1 - 0.02, 0.0)], 'snc_tile', lod=2)
     for sx in (-1, 1):
         for sy in (-1, 1):
             beam(ms, 'snc_ridge', (sx * lw, sy * ld, ze1 + curl1 + 0.01), (sx * uw / 2, sy * ud / 2, zi1 + 0.008), w=0.016, h=0.016,
                  lod=0, frame=f)
-    h2 = (top - H) * 0.24
+    h2 = (top - H) * 0.2
     ms.box('snc_plaster', (uw, ud, h2 + (zi1 - ze1)), at=(0, 0, ze1), lod=2, frame=f)
     z2 = zi1
     for k, (L, D2) in enumerate(((uw, ud), (ud, uw), (uw, ud), (ud, uw))):
