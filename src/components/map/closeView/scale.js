@@ -73,10 +73,12 @@ export const townGapUnits = (projection, tiles, tile, isTown) => {
 
 // Where an army's soldiers stand, in model units from the province centre (screen x, screen y).
 export const ARMY_SPOT = { x: 2.4, y: 1.6 };
-// How far the models lean toward the viewer (radians about the screen x axis): the three-quarter
-// look of the close view, lower still in the super zoom (plans/playtest-1.md P1.1), from k 40 to 200.
-export const TILT_CLOSE = 0.95;
-export const TILT_SUPER = 1.2;
+// How far the models lean toward the viewer (radians about the screen x axis, 0 = seen from the
+// side, pi/2 = straight down). About 35 degrees: a low three-quarter look, so towers, walls and
+// roofs show their sides and read as 3D models; a touch lower still in the super zoom (from k 40
+// to 200). The old values (0.95 and 1.2) looked near top-down, almost 2D.
+export const TILT_CLOSE = 0.62;
+export const TILT_SUPER = 0.58;
 export const tiltFor = (k) => {
   const t = Math.max(0, Math.min(1, Math.log(Math.max(1, k) / SUPER_FROM_K) / Math.log(5)));
   return TILT_CLOSE + (TILT_SUPER - TILT_CLOSE) * t;
