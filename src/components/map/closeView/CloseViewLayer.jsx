@@ -4,14 +4,15 @@
 // sized by the province's buildings (townModels.js); armies are 1 to 3 soldiers of their main unit
 // type and age, the very models and walk cycle of the tactical battles (soldierFactory.js),
 // walking while they march. Trees stand in forest and jungle hexes and a small work on every
-// improved tile (landscape.js); the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
+// improved tile (landscape.js); a city's buildings stand round its town as landmark models
+// (buildingModels.js, drawn instanced by buildingLayer.js); the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
 // The camera is orthographic in screen pixels, so a model sits exactly over its province as the
 // map pans; models are tilted toward the viewer for a three-quarter look. Loaded lazily: three.js
 // only arrives the first time the player zooms this close.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   WebGLRenderer, Scene, OrthographicCamera, HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, InstancedMesh,
-  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color
+  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4
 } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
@@ -30,6 +31,8 @@ import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from 
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
+import { pickBuildingModels, buildingSpots, assignSpots, BUILDING_DISC } from './buildingModels';
+import { createBuildingLayer } from './buildingLayer';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
@@ -87,13 +90,15 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     };
     const trees = new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)]));
     const works = new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)]));
-    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
+    const buildings = createBuildingLayer(scene);
+    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, buildings, dirty: true, moving: false };
     if (import.meta.env.DEV) window.__closeView = three.current; // for browser checks
     return () => {
       const t = three.current;
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
       t.towns.forEach((m) => scene.remove(m)); t.fieldWorks.forEach((g) => scene.remove(g));
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
+      t.buildings.dispose();
       townMaterial.dispose(); soldierMaterial.dispose();
       renderer.dispose();
       three.current = null;
@@ -153,6 +158,17 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     const lean = Math.sin(TILT);
     const occ = createOccupancy(lean);
     const ringFields = []; // [{ mesh, at, s }] placed once the works have claimed their ground
+    const townBuildings = []; // [{ mesh, at, s, picks, teamColor, tint }] placed once every town has claimed its ground
+    // A landmark file: loaded once, its root object handed to the instanced layer.
+    const buildingReady = ({ id, url }) => {
+      if (t.buildings.hasModel(url)) return true;
+      if (!t.assets.has(url)) {
+        t.assets.set(url, null);
+        loadAssetObjects(url).then((objs) => { t.buildings.setModel(url, objs[id] || Object.values(objs)[0]); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('building model failed, the town stands without it:', e.message); });
+      }
+      return false;
+    };
 
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
@@ -222,12 +238,37 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       const ts = townUnitPx(k, radius, room * k, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
+      // the city's landmarks (its highest building tiers with a model file) round an artist town
+      const picks = asset ? pickBuildingModels(region, style, tier.id).filter(buildingReady) : [];
+      if (picks.length) {
+        mesh.userData.spots ||= buildingSpots(tier.id, seed, fields);
+        townBuildings.push({ mesh, at, s: ts, picks, teamColor, tint });
+      }
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
       mesh.scale.setScalar(ts);
       mesh.visible = true;
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
+
+    // Landmarks: each on the first free spot round its town (on land, and outside the wall only
+    // where nothing else stands), with the town's scale, tilt and level of detail.
+    t.buildings.begin(lodForZoom(k));
+    const spotMatrix = new Matrix4(); const placed = new Matrix4();
+    townBuildings.forEach(({ mesh, at, s: ts, picks, teamColor, tint }) => {
+      mesh.updateMatrix();
+      const accept = (spot) => {
+        const sx = at.x + spot.x * ts; const sy = at.y + spot.z * ts * lean;
+        const r = BUILDING_DISC * ts * 0.8;
+        if (![[0, 0], [r, 0], [-r, 0], [0, r * lean], [0, -r * lean]].every(([dx, dy]) => landAt(sx + dx, sy + dy))) return false;
+        return spot.inner || occ.take(sx, sy, BUILDING_DISC * ts);
+      };
+      assignSpots(picks, mesh.userData.spots, accept).forEach(({ model, spot }) => {
+        spotMatrix.makeRotationY(spot.yaw).setPosition(spot.x, 0, spot.z);
+        t.buildings.add(model.url, placed.multiplyMatrices(mesh.matrix, spotMatrix), teamColor, tint);
+      });
+    });
+    t.buildings.end();
 
     // The land: trees in the woods, a work on each improved tile (landscape.js).
     const lsTmp = new Object3D(); const lsColor = new Color();
