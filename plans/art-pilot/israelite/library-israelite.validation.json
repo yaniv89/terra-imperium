@@ -1,7 +1,7 @@
 {
   "file": "library-israelite.glb",
   "kind": "landmark",
-  "bytes": 500252,
+  "bytes": 500244,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "library-israelite": {
+    "library": {
       "lods": {
         "LOD0": {
           "triangles": 2172,

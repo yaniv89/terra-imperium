@@ -119,12 +119,13 @@ Converted with `scripts/blender/import_model.py` from `plans/art/buildings/*-isr
 the game yet (the lead does that).
 
 ```
-python scripts/blender/import_model.py <buildings>/<id>/model.glb src/assets/map/buildings/<id>.glb <id> landmark
+python scripts/blender/import_model.py <buildings>/<id>-israelite/model.glb src/assets/map/buildings/<id>-israelite.glb <id> landmark
 python scripts/blender/import_model.py <wonders>/<id>/model.glb src/assets/map/wonders/<id>.glb tier1,tier2,tier3 wonder
 ```
 
-- Buildings: `src/assets/map/buildings/<id>.glb`, one root named as the file (for example
-  `granary-israelite`) with LOD0 to LOD2, kind landmark (15,000 / 3,000 / 500).
+- Buildings: `src/assets/map/buildings/<id>-israelite.glb`, one root named after the bare id (for
+  example `granary` in `granary-israelite.glb`, as buildingModels.js expects) with LOD0 to LOD2,
+  kind landmark (15,000 / 3,000 / 500).
 - Wonders: `src/assets/map/wonders/<id>.glb` with the roots `tier1`, `tier2`, `tier3`, each with
   LOD0 to LOD2 (Blender names the later tiers' LODs LOD0.001 and so on, as in the shared files), one
   shared atlas, kind wonder (60,000 / 10,000 / 1,500). The tiers share one frame: their joint

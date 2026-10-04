@@ -1,7 +1,7 @@
 {
   "file": "irrigation-israelite.glb",
   "kind": "landmark",
-  "bytes": 155688,
+  "bytes": 155680,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "irrigation-israelite": {
+    "irrigation": {
       "lods": {
         "LOD0": {
           "triangles": 426,

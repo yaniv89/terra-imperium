@@ -1,7 +1,7 @@
 {
   "file": "shrine-israelite.glb",
   "kind": "landmark",
-  "bytes": 240348,
+  "bytes": 240336,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "shrine-israelite": {
+    "shrine": {
       "lods": {
         "LOD0": {
           "triangles": 728,

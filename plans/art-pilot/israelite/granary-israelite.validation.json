@@ -1,7 +1,7 @@
 {
   "file": "granary-israelite.glb",
   "kind": "landmark",
-  "bytes": 336820,
+  "bytes": 336808,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "granary-israelite": {
+    "granary": {
       "lods": {
         "LOD0": {
           "triangles": 1261,
