@@ -2,11 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 20,
-  "built_awaiting_upload": 20,
-  "remaining_to_upload": 330,
+  "uploaded_and_download_verified": 40,
+  "built_awaiting_upload": 0,
+  "remaining_to_upload": 310,
   "completed_checkpoints": [
-    "01"
+    "01",
+    "02"
   ],
   "items": [
     {
@@ -154,140 +155,140 @@
       "section": "kits",
       "description": "classical Israelite roofscape; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/kits/israelite/classical/materials",
       "section": "kits",
       "description": "classical Israelite materials; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/kits/israelite/classical/landmark-1",
       "section": "kits",
       "description": "Galilean synagogue (Capernaum/Gamla/Kfar Baram)",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/kits/israelite/classical/landmark-2",
       "section": "kits",
       "description": "Herodian Phasael tower",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/towns/classical/palace-small-israelite",
       "section": "towns",
       "description": "classical regional palace; archaeological form in theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/towns/classical/palace-israelite",
       "section": "towns",
       "description": "classical regional palace; archaeological form in theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/towns/classical/walls-medium-israelite",
       "section": "towns",
       "description": "classical Israelite wall kit",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/granary-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/barracks-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/shrine-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/copper_mine-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/irrigation-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/market-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/library-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/harbor-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/workshop-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/buildings/scriptorium-israelite",
       "section": "buildings",
       "description": "kingdoms archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/wonders/solomons_temple",
       "section": "wonders",
       "description": "Three separate tier objects in one file; archaeological reconstruction",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/wonders/masada",
       "section": "wonders",
       "description": "Three separate tier objects in one file; archaeological reconstruction",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/houses",
       "section": "kits",
       "description": "kingdoms Israelite houses; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_verified"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/street",
