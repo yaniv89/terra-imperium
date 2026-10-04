@@ -1,7 +1,7 @@
 {
-  "file": "town-small-a-colonies.glb",
+  "file": "town-small-b-colonies.glb",
   "kind": "town",
-  "bytes": 3195216,
+  "bytes": 2966020,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,10 +19,10 @@
     "file_size": true
   },
   "objects": {
-    "town-small-a": {
+    "town-small-b": {
       "lods": {
         "LOD0": {
-          "triangles": 13130,
+          "triangles": 11404,
           "materials": [
             "Ground",
             "Team",
@@ -34,7 +34,7 @@
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 3232,
+          "triangles": 3156,
           "materials": [
             "Ground",
             "Team",
@@ -46,7 +46,7 @@
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 654,
+          "triangles": 598,
           "materials": [
             "Ground",
             "Town"
@@ -75,31 +75,31 @@
   "reserved_word_names": [],
   "images": [
     {
-      "name": "town-small-a-colonies_normal",
+      "name": "town-small-b-colonies_normal",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 744670
+      "bytes": 692792
     },
     {
-      "name": "town-small-a-colonies_base",
+      "name": "town-small-b-colonies_base",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 826864
+      "bytes": 779964
     },
     {
-      "name": "town-small-a-colonies_orm",
+      "name": "town-small-b-colonies_orm",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 440122
+      "bytes": 439844
     }
   ],
   "passed": true

@@ -1,7 +1,7 @@
 {
-  "file": "town-small-a-colonies.glb",
+  "file": "town-small-b.glb",
   "kind": "town",
-  "bytes": 3195216,
+  "bytes": 2987664,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,22 +19,22 @@
     "file_size": true
   },
   "objects": {
-    "town-small-a": {
+    "town-small-b": {
       "lods": {
         "LOD0": {
-          "triangles": 13130,
+          "triangles": 11072,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
+          "width": 4.023,
           "depth": 4.059,
-          "height": 1.1,
+          "height": 1.084,
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 3232,
+          "triangles": 2860,
           "materials": [
             "Ground",
             "Team",
@@ -42,18 +42,18 @@
           ],
           "width": 4.022,
           "depth": 4.059,
-          "height": 1.08,
+          "height": 1.079,
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 654,
+          "triangles": 546,
           "materials": [
             "Ground",
             "Town"
           ],
           "width": 4.022,
           "depth": 4.059,
-          "height": 1.08,
+          "height": 0.75,
           "min_height": 0.012
         }
       },
@@ -75,31 +75,31 @@
   "reserved_word_names": [],
   "images": [
     {
-      "name": "town-small-a-colonies_normal",
+      "name": "town-small-b_normal",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 744670
+      "bytes": 693054
     },
     {
-      "name": "town-small-a-colonies_base",
+      "name": "town-small-b_base",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 826864
+      "bytes": 830850
     },
     {
-      "name": "town-small-a-colonies_orm",
+      "name": "town-small-b_orm",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 440122
+      "bytes": 457272
     }
   ],
   "passed": true

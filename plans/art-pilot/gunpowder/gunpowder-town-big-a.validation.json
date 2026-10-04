@@ -1,7 +1,7 @@
 {
-  "file": "town-small-a-colonies.glb",
+  "file": "town-big-a.glb",
   "kind": "town",
-  "bytes": 3195216,
+  "bytes": 6495152,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,42 +19,42 @@
     "file_size": true
   },
   "objects": {
-    "town-small-a": {
+    "town-big-a": {
       "lods": {
         "LOD0": {
-          "triangles": 13130,
+          "triangles": 49743,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.1,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 2.8,
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 3232,
+          "triangles": 7577,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.08,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 2.8,
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 654,
+          "triangles": 1268,
           "materials": [
             "Ground",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.08,
-          "min_height": 0.012
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 2.227,
+          "min_height": 0
         }
       },
       "children": [
@@ -64,7 +64,7 @@
       ],
       "missing_lods": [],
       "over_budget": [],
-      "footprint": 4.059
+      "footprint": 8.117
     }
   },
   "materials": [
@@ -75,31 +75,31 @@
   "reserved_word_names": [],
   "images": [
     {
-      "name": "town-small-a-colonies_normal",
+      "name": "town-big-a_normal",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 744670
+      "bytes": 654338
     },
     {
-      "name": "town-small-a-colonies_base",
+      "name": "town-big-a_base",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 826864
+      "bytes": 884660
     },
     {
-      "name": "town-small-a-colonies_orm",
+      "name": "town-big-a_orm",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 440122
+      "bytes": 547740
     }
   ],
   "passed": true

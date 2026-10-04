@@ -1,7 +1,7 @@
 {
-  "file": "town-small-a-colonies.glb",
+  "file": "kingdoms-town-big-b-europe.glb",
   "kind": "town",
-  "bytes": 3195216,
+  "bytes": 5310088,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,41 +19,42 @@
     "file_size": true
   },
   "objects": {
-    "town-small-a": {
+    "town-big-b": {
       "lods": {
         "LOD0": {
-          "triangles": 13130,
+          "triangles": 37554,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.1,
+          "width": 8.059,
+          "depth": 8.125,
+          "height": 2.39,
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 3232,
+          "triangles": 6276,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.08,
+          "width": 8.062,
+          "depth": 8.117,
+          "height": 2.3,
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 654,
+          "triangles": 802,
           "materials": [
             "Ground",
+            "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.08,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 2.3,
           "min_height": 0.012
         }
       },
@@ -64,7 +65,7 @@
       ],
       "missing_lods": [],
       "over_budget": [],
-      "footprint": 4.059
+      "footprint": 8.125
     }
   },
   "materials": [
@@ -75,31 +76,31 @@
   "reserved_word_names": [],
   "images": [
     {
-      "name": "town-small-a-colonies_normal",
+      "name": "kingdoms-town-big-b-europe_normal",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 744670
+      "bytes": 670548
     },
     {
-      "name": "town-small-a-colonies_base",
+      "name": "kingdoms-town-big-b-europe_base",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 826864
+      "bytes": 727854
     },
     {
-      "name": "town-small-a-colonies_orm",
+      "name": "kingdoms-town-big-b-europe_orm",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 440122
+      "bytes": 545724
     }
   ],
   "passed": true

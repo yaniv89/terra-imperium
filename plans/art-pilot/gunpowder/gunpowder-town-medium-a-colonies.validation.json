@@ -1,7 +1,7 @@
 {
-  "file": "town-small-a-colonies.glb",
+  "file": "town-medium-a-colonies.glb",
   "kind": "town",
-  "bytes": 3195216,
+  "bytes": 4414300,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,41 +19,41 @@
     "file_size": true
   },
   "objects": {
-    "town-small-a": {
+    "town-medium-a": {
       "lods": {
         "LOD0": {
-          "triangles": 13130,
+          "triangles": 27622,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.1,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 2,
           "min_height": 0
         },
         "LOD1": {
-          "triangles": 3232,
+          "triangles": 5246,
           "materials": [
             "Ground",
             "Team",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.08,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.98,
           "min_height": 0
         },
         "LOD2": {
-          "triangles": 654,
+          "triangles": 954,
           "materials": [
             "Ground",
             "Town"
           ],
-          "width": 4.022,
-          "depth": 4.059,
-          "height": 1.08,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.98,
           "min_height": 0.012
         }
       },
@@ -64,7 +64,7 @@
       ],
       "missing_lods": [],
       "over_budget": [],
-      "footprint": 4.059
+      "footprint": 6.088
     }
   },
   "materials": [
@@ -75,31 +75,31 @@
   "reserved_word_names": [],
   "images": [
     {
-      "name": "town-small-a-colonies_normal",
+      "name": "town-medium-a-colonies_normal",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 744670
+      "bytes": 751370
     },
     {
-      "name": "town-small-a-colonies_base",
+      "name": "town-medium-a-colonies_base",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 826864
+      "bytes": 824040
     },
     {
-      "name": "town-small-a-colonies_orm",
+      "name": "town-medium-a-colonies_orm",
       "mime": "image/webp",
       "size": [
         2048,
         2048
       ],
-      "bytes": 440122
+      "bytes": 479540
     }
   ],
   "passed": true
