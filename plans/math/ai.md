@@ -94,7 +94,30 @@ threshold sign a white peace when both would accept one (their estimates converg
 every 5 turns after 25 turns of war. With 10 turns this ended too many wars and cut Tier-1 rolls
 (nations at war are Tier 1), dropping war counts by a third; 25 keeps them in range.
 
-## Balance (compare.sh against ee575e7, 150 turns, PLAYER=au, same machine, same run)
+## Balance, paired over 8 seeds (the main result)
+
+After merging `claude/bronze-towns` (grid-math, sim-stats): `PLAYER=au compare.sh
+origin/claude/bronze-towns 150 11-18`, so only this branch's changes differ. Means per run,
+diff = head - base, paired 95% t interval:
+
+| Metric | Base | Head | Diff | 95% interval |
+|---|---|---|---|---|
+| warsTotal | 7.38 | 7.13 | -0.25 | [-2.96, 2.46] |
+| conquests | 0.50 | 0.38 | -0.13 | [-1.07, 0.82] |
+| citiesChangedHands | 5.00 | 4.50 | -0.50 | [-4.08, 3.08] |
+| vassals | 0.63 | 0.63 | 0 | [-0.77, 0.77] |
+| maxProvinceShare | 0.0176 | 0.0178 | +0.0001 | [-0.0011, 0.0013] |
+| avgUnrest | 6.10 | 6.21 | +0.11 | [-1.44, 1.67] |
+| avgWarExhaustion | 0.25 | 0.43 | +0.17 | [-0.31, 0.66] |
+| playerGold | 2280 | 2290 | +10.0 | [6.18, 13.8] * |
+| msPerTurn (parallel runs) | 319 | 328 | +8.9 | [-0.85, 18.6] |
+
+The only starred difference is the player's gold (+0.4%). War counts, conquests and runaway
+metrics are unchanged within the intervals: the quiet world stays quiet. Time per turn is not
+significant (parallel runs share the CPU); the earlier sequential compare below showed 287 -> 274.
+nonFinite and auditViolations are 0 on every seed.
+
+## Earlier balance run (compare.sh against ee575e7, 150 turns, PLAYER=au, same machine, same run)
 
 | Seed | Wars base -> new | Conquests | Cities changed hands | Vassals | Avg unrest | ms/turn |
 |---|---|---|---|---|---|---|
