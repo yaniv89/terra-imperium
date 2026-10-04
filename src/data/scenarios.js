@@ -54,52 +54,45 @@ export const ringsFrom = (tiles, from, maxRing) => {
   return dist;
 };
 
-// Start capitals far enough apart that their towns never stand on each other: real capitals can
-// lie under 100 km apart (Jerusalem, Ramallah, Amman), closer than one 106 km hex. Bigger nations
-// (more land tiles) keep their real capital; a smaller one within START_SPACING_MIN - 1 rings of a
-// capital already placed moves to the nearest tile of its own land that is START_SPACING rings
-// clear (the settling rule), or failing that START_SPACING_MIN; a land with no such tile (the
-// micro-states) keeps its real capital, and its bigger neighbour moves instead where its land
-// has room. Deterministic, so every game starts the same.
+// Start capitals obey the settling rule (MIN_CITY_SPACING, 3 rings: no other city within 2 rings),
+// as far as each nation's own land allows: real capitals can lie under 100 km apart, closer than
+// one 106 km hex (Jerusalem, Ramallah, Amman). Bigger nations (more land tiles) are placed first
+// and keep their real capital when it is clear; a capital that is not moves to the nearest tile of
+// its own land that is. A land with no such tile (Luxembourg, Liechtenstein, the small islands)
+// keeps its real capital, and then a bigger neighbour shifts up to BIG_MOVE_RINGS within its own
+// land when that clears it. Moved capitals keep their real names (buildScenarioStarts).
+// Deterministic, so every game starts the same.
 export const START_SPACING = 3;
-export const START_SPACING_MIN = 2;
-const SPREAD_SEARCH_RINGS = 4; // how far a small land's capital may move
-const BIG_MOVE_RINGS = 2; // how far a bigger neighbour's may (Rome stays by the Vatican rather than go four rings south)
+const BIG_MOVE_RINGS = 3;
 export const spreadCapitals = (tiles, ids) => {
   const size = (id) => (tiles.countryTiles?.[id] || []).length;
   const order = [...ids].sort((a, b) => size(b) - size(a) || (a < b ? -1 : 1));
-  const placed = [];
   const out = {};
-  const clearOf = (tile, rings) => {
-    const near = ringsFrom(tiles, tile, rings - 1);
-    return !placed.some((t) => near.has(t));
-  };
   const livable = (t) => tiles.land[t] === 1 && tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice';
+  const clearOf = (tile, others) => { const near = ringsFrom(tiles, tile, START_SPACING - 1); return !others.some((o) => near.has(o)); };
+  // the nation's own livable tiles, nearest to `from` first (ring distance over the whole grid)
+  const ownByDistance = (id, from, maxRing) => {
+    const dist = ringsFrom(tiles, from, maxRing);
+    return (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t)).sort((a, b) => dist.get(a) - dist.get(b) || a - b);
+  };
+  const placed = [];
   order.forEach((id) => {
     const real = tiles.capitals[id];
-    let tile = real;
-    if (!clearOf(real, START_SPACING_MIN)) {
-      const dist = ringsFrom(tiles, real, SPREAD_SEARCH_RINGS);
-      const own = (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t))
-        .sort((a, b) => dist.get(a) - dist.get(b) || a - b);
-      tile = own.find((t) => clearOf(t, START_SPACING)) ?? own.find((t) => clearOf(t, START_SPACING_MIN)) ?? real;
-    }
+    const tile = clearOf(real, placed) ? real : ownByDistance(id, real, 40).find((t) => clearOf(t, placed)) ?? real;
     out[id] = tile;
     placed.push(tile);
   });
-  // Pass 2: where a small land had no room to move, its bigger neighbour moves instead when its
-  // own land has a tile clear of every capital.
-  const relocate = (id, others) => {
-    const dist = ringsFrom(tiles, out[id], BIG_MOVE_RINGS);
-    const own = (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t)).sort((a, b) => dist.get(a) - dist.get(b) || a - b);
-    const clear = (t, rings) => { const near = ringsFrom(tiles, t, rings - 1); return !others.some((o) => near.has(o)); };
-    return own.find((t) => clear(t, START_SPACING)) ?? own.find((t) => clear(t, START_SPACING_MIN)) ?? null;
-  };
-  order.forEach((big) => {
-    const near = ringsFrom(tiles, out[big], START_SPACING_MIN - 1);
-    if (!order.some((o) => o !== big && near.has(out[o]))) return;
-    const t = relocate(big, order.filter((o) => o !== big).map((o) => out[o]));
-    if (t != null) out[big] = t;
+  // Pass 2: a capital still crowded (its small land had no room) asks its bigger neighbours to
+  // shift within their own land.
+  order.forEach((small) => {
+    const others = () => order.filter((o) => o !== small).map((o) => out[o]);
+    if (clearOf(out[small], others())) return;
+    const near = ringsFrom(tiles, out[small], START_SPACING - 1);
+    order.filter((big) => big !== small && size(big) > size(small) && near.has(out[big])).forEach((big) => {
+      const rest = order.filter((o) => o !== big).map((o) => out[o]);
+      const t = ownByDistance(big, out[big], BIG_MOVE_RINGS).find((x) => clearOf(x, rest));
+      if (t != null) out[big] = t;
+    });
   });
   return out;
 };
