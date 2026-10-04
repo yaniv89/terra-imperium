@@ -34,14 +34,14 @@ tt.TO_FINAL.update({'snc_paving': 'Ground', 'snc_paving_fringe': 'Ground', 'snc_
 if 'snc_paving_fringe' not in tt.FRINGES:
     tt.FRINGES.append('snc_paving_fringe')
 
-PAVING = (('#a8977a', '#9a8a6e', '#b5a588'), '#77684f', (0.05, 0.036))
+PAVING = (('#a39579', '#968a70', '#b0a387'), '#776b55', (0.05, 0.036))
 
 
 def make_materials():
     # cream lime plaster (slightly cooler than the Roman cream)
     tm.mat_simple('snc_plaster', ['#ddd5c3', '#e8e1d1', '#d2c8b2', '#efe9dc'], scale=16.0, bump=0.2, dirt=True)
     # grey brick (dados, the gate tower and the que), fine courses
-    tm.mat_mudwall('snc_brick', wash='#7a7b78', brick='#767774', brick2='#646562', mortar='#4e4f4c', wash_cover=0.0,
+    tm.mat_mudwall('snc_brick', wash='#7a7b78', brick='#80817e', brick2='#6e6f6c', mortar='#5a5b58', wash_cover=0.0,
                    bond=(0.034, 0.012, 0.0018))
     # grey ceramic roof tile: courses down the slope, a dark grey ridge
     tm.mat_mudwall('snc_tile', wash='#45494d', brick='#484c50', brick2='#3b3f43', mortar='#232628', wash_cover=0.0,
@@ -208,12 +208,10 @@ def paved_strip(ms, x0, y0, x1, y1, w):
 def tree(ms, rng, x, y, h=0.32, r=0.09, blossom=False):
     """A round-crowned courtyard tree (ti_classical's broadleaf), now and then in red or pink
     blossom as on the street sheet."""
-    if not blossom:
-        tc.broadleaf(ms, x, y, h=h, r=r)
-        return
+    mat = 'snc_blossom' if blossom else 'shrub'
     ms.cyl('timber', 0.014, 0.01, h * 0.45, at=(x, y, G), segs=6, lod=1)
-    ms.sphere('snc_blossom', r, at=(x, y, G + h - r * 0.8), scale=(1, 1, 0.85), u=8, v=5, lod=1, only=(0, 1))
-    ms.cyl('snc_blossom', r * 0.95, r * 0.6, r * 1.5, at=(x, y, G + h - r * 1.6), segs=6, lod=2, only=2)
+    ms.sphere(mat, r, at=(x, y, G + h - r * 0.8), scale=(1, 1, 0.85), u=8, v=5, lod=1, only=(0, 1))
+    ms.cyl(mat, r * 0.95, r * 0.6, r * 1.5, at=(x, y, G + h - r * 1.6), segs=5, lod=2, only=2)
 
 
 def jars(ms, f, x, y, rng, n=3):
@@ -499,7 +497,11 @@ def gate_tower(ms, rng, x, y, w=1.4, d=1.0, top=1.2, yaw=0.0, banners=True):
         for sy in (-1, 1):
             ms.box('snc_stone', (0.05, 0.03, top * 0.25 - 0.03), at=(sx * (aw / 2 + 0.025), sy * (yd(zb + 0.1) - 0.005), zb), lod=1, frame=f)
     z_spring = zb + H * 0.42
-    _arch_block(ms, f, aw, z_spring, zt, D, yd(zt))
+    _arch_block(ms, f, aw, z_spring, zt, D, yd(zt), lod=1)
+    hexa(ms, 'snc_brick', [(-aw / 2, -yd(z_spring), z_spring), (aw / 2, -yd(z_spring), z_spring), (aw / 2, yd(z_spring), z_spring),
+                           (-aw / 2, yd(z_spring), z_spring), (-aw / 2, -yd(zt), zt), (aw / 2, -yd(zt), zt), (aw / 2, yd(zt), zt),
+                           (-aw / 2, yd(zt), zt)], lod=2, frame=f)
+    ms.parts[-1] = ms.parts[-1][:3] + (2,)  # the LOD2 stand-in over the passage
     ms.box('dark', (aw, d * 0.6, 0.004), at=(0, 0, G + 0.002), lod=1, frame=f)  # the passage floor in shade
     # the stone voussoir ring round the arch on both faces
     r = aw / 2 + 0.025
@@ -558,7 +560,9 @@ def gate_tower(ms, rng, x, y, w=1.4, d=1.0, top=1.2, yaw=0.0, banners=True):
     ze1 = z1 - 0.01
     zi1 = z1 + 0.05 * (top / 1.2)
     ring_solid(ms, f, [(lw, ld, ze1 - 0.02, curl1), (lw, ld, ze1, curl1), (uw / 2, ud / 2, zi1, 0.0),
-                       (uw / 2, ud / 2, ze1 - 0.02, 0.0)], 'snc_tile', lod=2)
+                       (uw / 2, ud / 2, ze1 - 0.02, 0.0)], 'snc_tile', lod=1)
+    ms.box('snc_tile', (2 * lw, 2 * ld, zi1 - ze1 + 0.02), at=(0, 0, ze1 - 0.02), lod=2, frame=f, taper=uw / (2 * lw))
+    ms.parts[-1] = ms.parts[-1][:3] + (2,)  # the LOD2 stand-in for the lower eave
     for sx in (-1, 1):
         for sy in (-1, 1):
             beam(ms, 'snc_ridge', (sx * lw, sy * ld, ze1 + curl1 + 0.01), (sx * uw / 2, sy * ud / 2, zi1 + 0.008), w=0.016, h=0.016,
@@ -577,9 +581,9 @@ def gate_tower(ms, rng, x, y, w=1.4, d=1.0, top=1.2, yaw=0.0, banners=True):
                 cx = -L / 2 + L * (i + 0.5) / (n - 1)
                 lattice(ms, rf, cx, -D2 / 2, z2 + h2 * 0.3, w=L / (n - 1) * 0.5, h=h2 * 0.4)
         # the bracket band under the eave (dougong as a stepped red band)
-        ms.box('snc_lacquer', (L + 0.04, 0.03, 0.03), at=(0, -D2 / 2 - 0.012, z2 + h2 - 0.03), lod=1, frame=rf)
+        ms.box('snc_lacquer', (L + 0.04, 0.03, 0.03), at=(0, -D2 / 2 - 0.012, z2 + h2 - 0.04), lod=1, frame=rf)
         for i in range(n):
-            ms.box('snc_lacquer', (0.03, 0.05, 0.02), at=(-L / 2 + L * i / (n - 1), -D2 / 2 - 0.02, z2 + h2 - 0.012), lod=0, frame=rf)
+            ms.box('snc_lacquer', (0.03, 0.04, 0.02), at=(-L / 2 + L * i / (n - 1), -D2 / 2 - 0.016, z2 + h2 - 0.04), lod=0, frame=rf)
     zr = z2 + h2
     rise = G + top - zr
     han_roof(ms, f, uw, ud, zr, rise, over=0.09 * (w / 1.4) + 0.03, curl=curl1 + 0.01, lod=2, horns=0.06 * (top / 1.2))
