@@ -10,6 +10,10 @@ The live site is GitHub Pages, built into `docs/`.
 - Automate rather than hand the user manual work.
 - Plain English in messages to the user, no em dashes.
 
+## Roadmap
+- The current roadmap (ancient world, independents, nine ages, map quality) is `plans/ROADMAP.md`:
+  read it first when continuing that work.
+
 ## Project skills (in .claude/skills/, use them without being asked)
 - `add-mechanic`: before adding or changing any macro game rule, formula or per-turn system.
 - `balance-sim`: whole-world headless runs and before/after comparisons for balance changes.
