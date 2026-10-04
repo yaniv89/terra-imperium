@@ -97,16 +97,19 @@ export const townVariant = (ageId, style, seed = 0) => {
   return (rule && (rule[style] || rule.others)) || (seed % 2 ? 'b' : 'a');
 };
 
-/** The model for a town of this age and size, or null: the layout the land's tradition (or the
- * seed) picks, built with the land's regional kit when that file exists, else the age's base kit.
+/** The model for a town of this age and size, or null: the land's regional kit when that file
+ * exists (layout a or b by the seed), else the age's base kit in the layout the land's tradition
+ * (or the seed) picks.
  * Falls back to the other layout when only one exists. */
 export const townAssetUrl = (ageId, tierId, seed = 0, style = null) => {
   const kits = BY_KEY[`${ageId}:${tierId}`];
   if (!kits) return null;
-  const v = townVariant(ageId, style, seed);
-  const pick = (k) => k && (k[v] || k.a || k.b);
-  for (const st of styleChain(style)) { const url = pick(kits[st]); if (url) return url; }
-  return pick(kits.base) || null;
+  // A regional kit builds both layouts in its own tradition, so the city's seed picks between
+  // them; the age's tradition rule only steers the base towns.
+  const pick = (k, v) => k && (k[v] || k.a || k.b);
+  const own = seed % 2 ? 'b' : 'a';
+  for (const st of styleChain(style)) { const url = pick(kits[st], own); if (url) return url; }
+  return pick(kits.base, townVariant(ageId, style, seed)) || null;
 };
 
 /** The level of detail the brief assigns to a zoom k: LOD2 below 20, LOD1 below 40, LOD0 above. */

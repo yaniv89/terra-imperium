@@ -24,24 +24,28 @@ describe('artist town models', () => {
     expect(townAssetUrl('bronze', 'medium', 1)).toMatch(/bronze-town-medium-b/);
     expect(townAssetUrl('bronze', 'big', 0)).toMatch(/bronze-town-big-a/);
     expect(townAssetUrl('bronze', 'big', 1)).toMatch(/bronze-town-big-b/);
-    // the land's tradition wins over the seed: the Nile builds the Egyptian town, the Levant the Mesopotamian
-    expect(townAssetUrl('bronze', 'small', 0, 'nile')).toMatch(/bronze-town-small-b/);
-    expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-a/);
-    expect(townAssetUrl('bronze', 'small', 1, 'westafrica')).toMatch(/bronze-town-small-b/);
+    // without a kit of its own the land's tradition picks the base layout over the seed
+    expect(townAssetUrl('bronze', 'small', 0, 'steppe')).toMatch(/bronze-town-small-a\.glb/);
+    expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-a\.glb/);
+    // a region with its own kit builds both of its layouts, by the seed
+    expect(townAssetUrl('bronze', 'small', 0, 'nile')).toMatch(/bronze-town-small-a-nile/);
+    expect(townAssetUrl('bronze', 'small', 1, 'westafrica')).toMatch(/bronze-town-small-b-westafrica/);
     expect(townAssetUrl('future', 'small')).toBeNull();
   });
 
   it('picks the layout by the land: Han in East Asia, Roman elsewhere in the Classical Age', () => {
-    expect(townAssetUrl('classical', 'medium', 0, styleOfLand('cn', 'classical'))).toMatch(/classical-town-medium-b/);
-    expect(townAssetUrl('classical', 'small', 0, styleOfLand('jp', 'classical'))).toMatch(/classical-town-small-b/);
-    expect(townAssetUrl('classical', 'medium', 1, styleOfLand('it', 'classical'))).toMatch(/classical-town-medium-a/);
-    expect(townAssetUrl('classical', 'medium', 1, styleOfLand('eg', 'classical'))).toMatch(/classical-town-medium-a/);
+    expect(townAssetUrl('classical', 'medium', 0, styleOfLand('mn', 'classical'))).toMatch(/classical-town-medium-b\.glb/);
+    expect(townAssetUrl('classical', 'medium', 0, styleOfLand('cn', 'classical'))).toMatch(/classical-town-medium-a-sinic/);
+    expect(townAssetUrl('classical', 'small', 1, styleOfLand('jp', 'classical'))).toMatch(/classical-town-small-b-sinic/);
+    expect(townAssetUrl('classical', 'medium', 1, 'eastafrica')).toMatch(/classical-town-medium-a\.glb/);
+    expect(townAssetUrl('classical', 'medium', 1, styleOfLand('eg', 'classical'))).toMatch(/classical-town-medium-b-nile/);
     expect(sharedAssetUrl('classical')).toMatch(/shared-classical/);
     expect(townVariant('kingdoms', 'levant')).toBe('b');
     expect(townVariant('kingdoms', 'europe')).toBe('a');
     expect(townVariant('kingdoms', 'andalus')).toBe('b');
     expect(townVariant('kingdoms', 'steppe')).toBe('b');
-    expect(townAssetUrl('kingdoms', 'small', 0, 'andalus')).toMatch(/kingdoms-town-small-b-levant/);
+    expect(townAssetUrl('kingdoms', 'small', 0, 'andalus')).toMatch(/kingdoms-town-small-a-levant/);
+    expect(townAssetUrl('kingdoms', 'small', 1, 'andalus')).toMatch(/kingdoms-town-small-b-levant/);
     expect(townVariant('gunpowder', 'levant', 3)).toBe('b');
     expect(townVariant('gunpowder', 'levant', 4)).toBe('a');
     // a size with only one layout falls back to it whatever the tradition asks
