@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   declareWar, assignDefaultWarGoal, buildWarGoal, checkWarGoal, hasCasusBelli, isWarBetween, isAtWarWithPlayer, resolveWarProgress,
-  isInTruce, setTruce, getTradePactCapacity, recordBattle, getOccupationScore, updateTickScore, computeWarScore, refreshWarFlags
+  isInTruce, setTruce, getTradePactCapacity, recordBattle, getOccupationScore, updateTickScore, computeWarScore, refreshWarFlags,
+  CONVERGE_MIN_TURNS
 } from './diplomacy';
 import { createInitialState } from '../context/GameContext';
 import { getNationCapital } from '../data/regions';
@@ -338,6 +339,17 @@ describe('resolveWarProgress (Task 32 + plan §M13: occupation, war score, and t
     expect(result.wars[0]).toEqual(war); // nothing moved: no capture roll, no attrition, score stays 0
     expect(result.regions).toBe(withWar.regions);
     expect(result.nations).toBe(withWar.nations);
+  });
+
+  it('two worn AI nations at a stalemate sign a white peace once both would accept it (bargaining model)', () => {
+    const { state } = aiWarState({ goal: { type: 'destroy_military', threshold: 1 } });
+    const turn = 40; // a multiple of CONVERGE_PERIOD, CONVERGE_MIN_TURNS after the start
+    const worn = { ...state, turnNumber: turn, wars: state.wars.map((w) => ({ ...w, startTurn: turn - CONVERGE_MIN_TURNS - 5 })),
+      nations: { ...state.nations, mx: { ...state.nations.mx, economy: { gold: 0 }, warExhaustion: 70 }, ca: { ...state.nations.ca, economy: { gold: 0 }, warExhaustion: 70 } } };
+    const result = resolveWarProgress(worn, worn.regions, worn.nations, worn.wars, neverRolls);
+    expect(result.wars[0].active).toBe(false);
+    const fresh = { ...worn, nations: { ...worn.nations, mx: { ...worn.nations.mx, warExhaustion: 0 }, ca: { ...worn.nations.ca, warExhaustion: 0 } } };
+    expect(resolveWarProgress(fresh, fresh.regions, fresh.nations, fresh.wars, neverRolls).wars[0].active).toBe(true);
   });
 
   it('leaves an inactive war untouched', () => {
