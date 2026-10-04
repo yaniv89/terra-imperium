@@ -106,19 +106,20 @@ const susceptible = (c) => c.owner && !c.outpost && c.tile != null;
 
 /**
  * The plague step of a turn on the working `regions` (mutated in place). `ctx`: { units,
- * tileOwner, researchedOf(nationId), state (for the player's trade routes) }.
+ * tileOwner, researchedOf(nationId), state (for the player's trade routes), seed (state.rngSeed) }.
  * Returns logs [{ nationId, message }].
  */
 export const spreadPlague = (regions, turn, ctx = {}) => {
   const tiles = getTiles();
   const ids = Object.keys(regions);
   const logs = [];
+  const seed = ctx.seed ?? 0; // the game's seed: each game gets its own outbreaks
   const infected = ids.filter((id) => regions[id].plague?.i > 0);
   // Rare spontaneous outbreaks (none in a city still immune).
   ids.forEach((id) => {
     const c = regions[id];
     if (!susceptible(c) || (c.size || 1) < SEED_MIN_SIZE || c.plague?.i > 0) return;
-    if (hash(`${id}|${turn}|plague`) < SEED_CHANCE * (c.size / SEED_MIN_SIZE) * Math.max(0, 1 - (c.plague?.r || 0))) {
+    if (hash(`${seed}|${id}|${turn}|plague`) < SEED_CHANCE * (c.size / SEED_MIN_SIZE) * Math.max(0, 1 - (c.plague?.r || 0))) {
       regions[id] = seedPlague(c, turn);
       logs.push({ nationId: c.owner, message: `Plague breaks out in ${c.name}.` });
     }
@@ -193,7 +194,7 @@ export const spreadPlague = (regions, turn, ctx = {}) => {
   [...pressure.keys()].sort().forEach((id) => {
     const c = regions[id];
     if (!susceptible(c) || c.plague?.i > 0) return;
-    if (hash(`${id}|${turn}|plagueJump`) >= jumpChance(pressure.get(id), c.plague?.r || 0)) return;
+    if (hash(`${seed}|${id}|${turn}|plagueJump`) >= jumpChance(pressure.get(id), c.plague?.r || 0)) return;
     regions[id] = seedPlague(c, turn, JUMP_I);
     logs.push({ nationId: c.owner, message: `Plague reaches ${c.name}.` });
   });
