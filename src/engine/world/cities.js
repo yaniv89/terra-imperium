@@ -415,12 +415,31 @@ export const buyTileCost = (city, candidate) => candidate.cost * BUY_TILE_MULT;
 
 // `inPlace`: the caller owns `world.tileOwner` (processCities copies it once a turn), so the claim
 // is written into it; a spread of the 4,000-key ownership map per claim was the cities phase's cost.
+// Copy-on-write for the turn's pass: processCities hands the cities the turn's own world object
+// with the ownership and tile-state maps still shared with the previous state; the first write
+// to either copies it (once a turn), and a turn that writes nothing copies nothing.
+// Which maps are private belongs to one pass (a Set on the pass's world under PRIVATE): a map made
+// private this turn is shared state next turn and must be copied again before a write.
+const PRIVATE = Symbol('privateMaps');
+const ownMap = (world, key) => {
+  const mine = world[PRIVATE] || (world[PRIVATE] = new Set());
+  if (!mine.has(world[key])) { world[key] = { ...world[key] }; mine.add(world[key]); }
+  return world[key];
+};
+/** The turn's working world with private (writable) ownership and tile-state maps, for settlers.js
+ * to found outposts into in place. `pass`: the world processCities returned this turn, whose
+ * already copied maps are reused. */
+export const privateWorld = (world, pass = null) => {
+  const w = { ...world, [PRIVATE]: new Set(pass?.[PRIVATE] || []) };
+  ownMap(w, 'tileOwner'); ownMap(w, 'tileState');
+  return w;
+};
 const claimTile = (world, city, tile, inPlace = false) => {
-  if (inPlace) { world.tileOwner[tile] = city.id; return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
+  if (inPlace) { ownMap(world, 'tileOwner')[tile] = city.id; return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
   return { world: { ...world, tileOwner: { ...world.tileOwner, [tile]: city.id } }, city: { ...city, tiles: [...city.tiles, tile] } };
 };
 const writeTileState = (world, tile, entry, inPlace = false) => {
-  if (inPlace) { world.tileState[tile] = entry; return world; }
+  if (inPlace) { ownMap(world, 'tileState')[tile] = entry; return world; }
   return { ...world, tileState: { ...world.tileState, [tile]: entry } };
 };
 
@@ -544,7 +563,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
 /** Every city of the world, in id order. `ctxFor(city)` gives the per-nation context. */
 export const processCities = (world, tiles, ctxFor) => {
   // One copy of the ownership and tile state maps for the whole pass; the cities write into it.
-  let w = { ...world, tileOwner: { ...world.tileOwner }, tileState: { ...world.tileState } };
+  let w = { ...world, [PRIVATE]: new Set() };
   const cities = {};
   const results = {};
   const logs = []; const completed = [];

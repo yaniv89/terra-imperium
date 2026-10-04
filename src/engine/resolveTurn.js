@@ -43,7 +43,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { processCities, sizeToPeople } from './world/cities';
+import { processCities, sizeToPeople, privateWorld } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
@@ -198,9 +198,10 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   const afterCities = { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } };
   const hasSettlers = Object.values(units).some(isSettler) || Object.values(regions).some((c) => c.outpost);
   if (!hasSettlers) return { state: afterCities, logs, wonders };
-  const settled = processSettlers(afterCities, regions, units, afterCities.world, (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
+  // Outposts are founded into the turn's own maps (copied here if the cities pass wrote nothing).
+  const settled = processSettlers(afterCities, regions, units, privateWorld(afterCities.world, result.world), (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
   settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
-  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: settled.world }, logs, wonders };
+  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: { tileOwner: settled.world.tileOwner, tileState: settled.world.tileState } }, logs, wonders };
 };
 
 export const resolveTurn = (incomingState, { onPhase } = {}) => {
