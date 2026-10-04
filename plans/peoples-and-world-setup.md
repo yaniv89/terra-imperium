@@ -405,10 +405,34 @@ israelite 1. Several peoples share each theme, as asked.
 - The **adjective** (Akkadian, Elamite, Kanesh-ite is wrong: "Kaneshite" is fine, but each entry
   gets a hand-written adjective to avoid that) is in the data, used by logs and titles.
 - The **modern land** always shows under the name ("in modern Iraq").
-- Cities: the capital takes the listed ancient name; other cities use the theme's name lists
-  (cityNames.js), so Akkad's second city is not called "Basra" in 1800 BCE.
+- Cities: see 4.6.
 - Colours: a new palette of 150 colours, neighbours never similar (the build script checks the
   contrast of every pair of capitals within 10 hexes).
+
+### 4.6 City names
+**Today** (`src/engine/cityNames.js`): a new city takes the map's place name on its tile (a
+modern name, so an Akkadian city in 1800 BCE could be "Basra"), else a nearby one, else a
+made-up mash of two personal names from the modern country's culture group.
+
+**New:** every people has its **own list of 20 real historical city names**, capital first, then
+its great cities, then real ancient place names of its homeland (draft lists, researched on the
+web, in `plans/data/cities/*.json`, 3,000 names, reviewed before they ship).
+A city founded by a people takes, in order:
+1. **The next unused name from the founder's own list.** Akkad founds Sippar, then Nippur;
+   the Kingdom of Israel founds Samaria, Megiddo, Hazor, Shechem...
+2. When the list is used up (a big empire past 20 cities): **an ancient name of the place
+   itself**, from a gazetteer of ancient sites placed on tiles (the Pleiades gazetteer, CC BY,
+   covers the Mediterranean and the Near East with tens of thousands of placed names; other
+   regions use the peoples' lists of their neighbours whose capital is nearest that tile).
+3. Last: a name **generated from the founder's own list** (syllables of its real names, not of a
+   modern culture group), so a Sumerian-sounding name for Akkad, never a Slavic one.
+- **Conquest keeps the name**: Hazor stays Hazor under Akkad (the conqueror can rename a city it
+  holds, an action with a small loyalty cost).
+- **Independents** keep their capital's name; a free city keeps the name it had.
+- **Famous renamings** follow history only for the few cities that have them, by age, in the
+  same data (for example Marakanda to Samarkand, Pataliputra to Patna, Velzna to Volsinii).
+- A test checks every people has 20 names, no name repeats inside a list, and no two peoples'
+  capitals share a name.
 
 ---
 
