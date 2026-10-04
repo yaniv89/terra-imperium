@@ -86,9 +86,9 @@ export const isCamp = (region) => !!region && (!!region.outpost || (!region.owne
 // Samarkand) build b. Elsewhere, and in the Gunpowder and
 // Modern Ages, the city's seed mixes both so neighbours differ.
 export const TOWN_VARIANT_BY_AGE = {
-  bronze: { nile: 'b', levant: 'a' },
+  bronze: { nile: 'b', levant: 'a', israelite: 'a' },
   classical: { sinic: 'b', japan: 'b', korea: 'b', monsoon: 'b', steppe: 'b', others: 'a' },
-  kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', andalus: 'b', steppe: 'b', others: 'a' }
+  kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', andalus: 'b', steppe: 'b', israelite: 'b', others: 'a' }
 };
 
 /** The variant ('a' or 'b') a city builds in this age on land of this style. */

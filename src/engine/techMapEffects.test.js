@@ -10,10 +10,11 @@ import { IMPROVEMENTS } from '../data/tileYields';
 import { UNIT_CLASSES } from '../data/unitClasses';
 import { mapEffectsOf, mapEffectsFor, mapEffectLabel } from './techMapEffects';
 import { visibleTiles } from './sight';
-import { fleetPace, seaPassable } from './fleets';
+import { fleetPace, fleetAge, seaPassable, NAVAL_KM_BY_AGE } from './fleets';
+import { ringsForKm } from '../data/geo/gridScale';
 import { tileStepCost, TILE_COST_MOUNTAINS } from './armies';
-import { claimCandidates, tileCultureCost, BORDER_RING_BY_AGE } from './world/cities';
-import { claimRange, CLAIM_RANGE_RINGS } from './claims';
+import { claimCandidates, tileCultureCost, BORDER_KM_BY_AGE } from './world/cities';
+import { claimRange, CLAIM_RANGE_KM } from './claims';
 import { stackCap } from './supplyMeter';
 
 const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
@@ -33,7 +34,7 @@ describe('tech map effects', () => {
   it('sums the researched techs and is memoised on the list', () => {
     const list = ['science_optics', 'military_bronze_casting', 'science_natural_philosophy'];
     const fx = mapEffectsOf(list);
-    expect(fx.sight).toBe(2);
+    expect(fx.sight).toBe(204); // km: two rings at frequency 75
     expect(fx.mountainCost).toBe(-1);
     expect(mapEffectsOf(list)).toBe(fx);
     expect(mapEffectsOf([]).sight).toBe(0);
@@ -44,9 +45,10 @@ describe('tech map effects', () => {
     const seen = visibleTiles(S, 'fr').size;
     const far = withTechs(['science_optics', 'military_bronze_casting']);
     expect(visibleTiles(far, 'fr').size).toBeGreaterThan(seen);
-    expect(mapEffectsFor(far, 'fr').sight).toBe(2);
+    expect(mapEffectsFor(far, 'fr').sight).toBe(204);
     const fleet = { id: 'f', ownerId: 'fr', domain: 'naval', classId: 'naval', regionId: getNationCapital('fr') };
-    expect(fleetPace(withTechs(['science_early_astronomy']), fleet)).toBe(fleetPace(S, fleet) + 1);
+    expect(fleetPace(withTechs(['science_early_astronomy']), fleet)).toBe(ringsForKm(NAVAL_KM_BY_AGE[fleetAge(S, 'fr')] + 102));
+    expect(fleetPace(withTechs(['science_early_astronomy']), fleet)).toBeGreaterThan(fleetPace(S, fleet));
     const ocean = Array.from({ length: tiles.count }, (_, i) => i).find((t) => tiles.terrainOf(t) === 'ocean');
     expect(seaPassable(tiles, ocean, 'bronze')).toBe(false);
     expect(seaPassable(tiles, ocean, 'bronze', true)).toBe(true);
@@ -56,20 +58,22 @@ describe('tech map effects', () => {
     const cap = S.regions[getNationCapital('fr')];
     const world = { cities: S.regions, tileOwner: S.world.tileOwner, tileState: S.world.tileState };
     const wide = claimCandidates({ ...cap, tiles: [cap.tile] }, tiles, world, { ageId: 'bronze', researched: ['governance_provincial_administration'] });
-    wide.forEach((c) => expect(c.ring).toBeLessThanOrEqual(BORDER_RING_BY_AGE.bronze + 1));
+    wide.forEach((c) => expect(c.ring).toBeLessThanOrEqual(ringsForKm(BORDER_KM_BY_AGE.bronze + 102)));
     expect(tileCultureCost(cap, 2, -0.1)).toBeLessThan(tileCultureCost(cap, 2));
-    expect(claimRange(withTechs(['governance_scribal_bureaucracy']), 'fr')).toBe(CLAIM_RANGE_RINGS + 1);
+    expect(claimRange(withTechs(['governance_scribal_bureaucracy']), 'fr')).toBe(ringsForKm(CLAIM_RANGE_KM + 102));
     expect(stackCap(tiles, cap.tile, 2)).toBe(stackCap(tiles, cap.tile) + 2);
   });
   it('Mechanized Warfare moves land armies two tiles further a turn, not settlers or aircraft (plan D5b)', async () => {
-    const { movePoints, stackPace, MOVE_POINTS } = await import('./armies');
+    const { movePoints, stackPace, MOVE_POINTS, MOVE_KM } = await import('./armies');
+    const plusMech = ringsForKm(MOVE_KM.infantry + 204); // two rings' km at frequency 75
     const mech = ['military_mechanized_warfare'];
     const inf = { classId: 'infantry', domain: 'land' }; const settler = { classId: 'settler', domain: 'land' }; const jet = { classId: 'air', domain: 'land' };
     expect(movePoints(inf)).toBe(MOVE_POINTS.infantry);
-    expect(movePoints(inf, mech)).toBe(MOVE_POINTS.infantry + 2);
+    expect(movePoints(inf, mech)).toBe(plusMech);
+    expect(plusMech).toBeGreaterThanOrEqual(MOVE_POINTS.infantry + 2);
     expect(movePoints(settler, mech)).toBe(MOVE_POINTS.settler);
     expect(movePoints(jet, mech)).toBe(MOVE_POINTS.air);
-    expect(stackPace([inf, { classId: 'cavalry', domain: 'land' }], mech)).toBe(MOVE_POINTS.infantry + 2);
+    expect(stackPace([inf, { classId: 'cavalry', domain: 'land' }], mech)).toBe(plusMech);
     const { mapEffectsOf } = await import('./techMapEffects');
     expect(mapEffectsOf(['infrastructure_highway_systems'])).toMatchObject({ mountainCost: -2, hillsCost: -1 });
   });

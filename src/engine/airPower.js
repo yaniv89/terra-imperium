@@ -13,9 +13,12 @@
 import { getTiles } from '../data/geo/tiles';
 import { ringsAround } from './world/cities';
 import { unitTile } from './armies';
+import { ringsForKm } from '../data/geo/gridScale';
 
-export const AIR_RANGE = 11;
-export const AIR_PATROL_RINGS = 6;
+export const AIR_RANGE_KM = 1122; // km (11 rings at frequency 75)
+export const AIR_RANGE = ringsForKm(AIR_RANGE_KM);
+export const AIR_PATROL_KM = 612; // km (6 rings at frequency 75)
+export const AIR_PATROL_RINGS = ringsForKm(AIR_PATROL_KM);
 export const ANTI_AIR_SHARE = 0.2;
 export const PATROL_SHARE = 0.25;
 export const MAX_TURNED_BACK = 0.8;

@@ -20,11 +20,12 @@
 //                   tribute       DEMAND_TRIBUTE_SHARE of their treasury, at least DEMAND_TRIBUTE_MIN
 //                   city          a city you hold a claim on changes hands peacefully (claims.js
 //                                 settles the claim; aggressive expansion at the claim's rate)
-//                   stopSettling  they found no city within SETTLED_NEAR_RINGS of yours for
+//                   stopSettling  they found no city within SETTLED_NEAR_KM of yours for
 //                                 DEMAND_STOP_SETTLING_TURNS (`nation.noSettleNear[yourId]`)
 // Pure of randomness.
 import { getTiles } from '../data/geo/tiles';
-import { SETTLED_NEAR_RINGS } from '../data/opinion';
+import { SETTLED_NEAR_KM } from '../data/opinion';
+import { ringsForKm } from '../data/geo/gridScale';
 import { ringsAround } from './world/cities';
 import { getEffectiveMilitaryPower } from './aiEconomy';
 import { opinionOf } from './opinion';
@@ -82,7 +83,7 @@ export const settlingBarred = (state, nationId, tile) => {
   return Object.entries(promises).some(([toId, until]) => {
     if (turn > until) return false;
     const centres = centresOf(state.regions || {});
-    for (const t of ringsAround(tiles, tile, SETTLED_NEAR_RINGS).keys()) if ((centres.get(t) || []).some((c) => c.owner === toId)) return true;
+    for (const t of ringsAround(tiles, tile, ringsForKm(SETTLED_NEAR_KM)).keys()) if ((centres.get(t) || []).some((c) => c.owner === toId)) return true;
     return false;
   });
 };

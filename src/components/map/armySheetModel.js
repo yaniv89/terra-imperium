@@ -25,6 +25,7 @@ import { fleetPace } from '../../engine/fleets';
 import { navalLineOf, navalName } from '../../data/navalLines';
 import { validateInvasion } from '../../engine/invasion';
 import { besiegersOf, siegeHpOf, siegeMaxHp, wallsOf, isEncircled, siegeStrength } from '../../engine/sieges';
+import { ringsForKm, ringsFromF75 } from '../../data/geo/gridScale';
 
 export const ZONE_TEXT = {
   sea: 'At sea. Tap a shore to land the troops aboard; an enemy fleet beside you can be attacked.',
@@ -79,7 +80,7 @@ export const armySheetModel = (state, tile) => {
     g.units.push(r);
   });
   const zone = naval ? { zone: 'sea' } : supplyZone(state, tiles, units[0]);
-  const report = naval ? null : supplyReport(state, units[0], { lineRings: SUPPLY_LINE_RINGS + mapEffectsFor(state, state.playerNationId).lineRings + Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total)), max });
+  const report = naval ? null : supplyReport(state, units[0], { lineRings: SUPPLY_LINE_RINGS + ringsForKm(mapEffectsFor(state, state.playerNationId).lineRings, { min: 0 }) + ringsFromF75(Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total))), max });
   const fortified = !naval && units.every((u) => isFortified(u, state.turnNumber));
   const mergeFrom = naval ? [] : mergeSources(state, tile, units);
   const lead = units.find((u) => u.route?.length) || null;

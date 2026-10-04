@@ -23,8 +23,10 @@ import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 import { ringsAround } from './world/cities';
 import { mapEffectsFor } from './techMapEffects';
+import { ringsForKm } from '../data/geo/gridScale';
 
-export const CLAIM_RANGE_RINGS = 7;
+export const CLAIM_RANGE_KM = 714; // km (7 rings at frequency 75)
+export const CLAIM_RANGE_RINGS = ringsForKm(CLAIM_RANGE_KM);
 export const CLAIM_FABRICATE_TURNS = 5;
 export const CLAIM_AE_MULT = 0.5;
 export const CORE_AE_MULT = 0;
@@ -54,7 +56,7 @@ export const claimsAgainst = (state, nationId, targetId) =>
   Object.values(state.regions || {}).filter((c) => c.owner === targetId && claimOn(state, nationId, c)).sort((a, b) => (a.id < b.id ? -1 : 1));
 
 /** Rings from a city to the nearest tile `nationId` owns, Infinity beyond `max`. */
-export const claimRange = (state, nationId) => CLAIM_RANGE_RINGS + mapEffectsFor(state, nationId).claimRange; // techs that reach further (techMapEffects.js)
+export const claimRange = (state, nationId) => ringsForKm(CLAIM_RANGE_KM + mapEffectsFor(state, nationId).claimRange); // techs that reach further (techMapEffects.js)
 export const ringsToBorder = (state, city, nationId, max = claimRange(state, nationId)) => {
   if (city.tile == null) return Infinity;
   const tileOwner = state.world?.tileOwner || {};

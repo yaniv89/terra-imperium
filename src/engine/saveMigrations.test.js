@@ -92,12 +92,12 @@ describe('migrateSave (version 7: the tile world, a clean break with the region 
     expect(twice.state).toEqual(once.state);
   });
 
-  it('refuses every save from the region map (versions 1 to 6) rather than guessing', () => {
-    expect(OLDEST_LOADABLE_SAVE_VERSION).toBe(8); // version 7 (the frequency-53 grid) cannot be converted: every tile id changed
+  it('refuses every save from the region map (versions 1 to 6) and the older grids (7 to 9) rather than guessing', () => {
+    // versions 7 (frequency 53), 8 and 9 (frequency 75) cannot be converted: every tile id changed
+    expect(OLDEST_LOADABLE_SAVE_VERSION).toBe(10);
     expect(migrateSave(saveV1Fixture)).toBeNull();
     const fresh = createInitialState({ playerNationId: 'fr' });
-    expect(migrateSave({ version: 6, state: fresh })).toBeNull();
-    expect(migrateSave({ version: 7, state: fresh })).toBeNull();
+    [6, 7, 8, 9].forEach((v) => expect(migrateSave({ version: v, state: fresh }), `version ${v}`).toBeNull());
     expect(migrateSave(fresh)).toBeNull(); // a bare state without an envelope counts as version 1
   });
 
@@ -126,10 +126,11 @@ describe('saveProblem (the save v7 screen)', () => {
     const state = createInitialState({ playerNationId: 'fr', rngSeed: 1 });
     expect(saveProblem({ version: CURRENT_SAVE_VERSION, state })).toBeNull();
     expect(saveProblem({ version: 6, state })).toBe('tooOld');
+    [7, 8, 9].forEach((v) => expect(saveProblem({ version: v, state }), `version ${v}`).toBe('oldGrid'));
     expect(saveProblem({ version: CURRENT_SAVE_VERSION + 1, state })).toBe('tooNew');
     expect(saveProblem({ version: CURRENT_SAVE_VERSION, state: { hello: 1 } })).toBe('corrupt');
     expect(saveProblem(null)).toBe('corrupt');
     expect(saveProblem('text')).toBe('corrupt');
-    ['tooOld', 'tooNew', 'corrupt'].forEach((k) => expect(SAVE_PROBLEM_TEXT[k]).toBeTruthy());
+    ['tooOld', 'oldGrid', 'tooNew', 'corrupt'].forEach((k) => expect(SAVE_PROBLEM_TEXT[k]).toBeTruthy());
   });
 });

@@ -45,13 +45,17 @@ const PACIFIC = new Set(['fj', 'nc', 'sb', 'vu', 'ws', 'as', 'to', 'tv', 'ki', '
 // In the Kingdoms Age al-Andalus held most of Iberia: Spain and Portugal build the Andalusian
 // courtyard town, which takes the Levant's Abbasid kit until a kit of its own exists.
 const ANDALUS = new Set(['es', 'pt', 'gi']);
-export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon', andalus: 'levant' };
+// The land of Israel builds the Israelite theme (plans/art/israelite-theme.md) in every age,
+// falling back to the Levant kit wherever it has no model of its own.
+const ISRAELITE = new Set(['il']);
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon', andalus: 'levant', israelite: 'levant' };
 /** The style a city on this nation's land is drawn in, in this age. */
 export const styleOfLand = (nationId, ageId) => {
   if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
   if (SUB_SINIC[nationId]) return SUB_SINIC[nationId];
   if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';
   if (ageId === 'kingdoms' && ANDALUS.has(nationId)) return 'andalus';
+  if (ISRAELITE.has(nationId)) return 'israelite';
   const base = (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) || (COLONIES.has(nationId) ? 'colonies' : styleOfNation(nationId));
   return base === 'monsoon' && PACIFIC.has(nationId) ? 'pacific' : base;
 };

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getTiles } from '../../../data/geo/tiles';
 import { landscapeOnScreen, landTilesOnScreen, treeKindOf, treeSpots, workOf, tileIsCleared, hash01, TREES_FROM_K, TREES_PER_HEX, CONIFER_LAT } from './landscape';
-import { tiltFor, TILT_CLOSE, TILT_SUPER, unitPx, SUPER_FROM_K, townUnitPx, ROOM_FILL, TIER_SCALE, townRoomUnits } from './scale';
+import { tiltFor, TILT_CLOSE, TILT_SUPER, unitPx, SUPER_FROM_K, townUnitPx, ROOM_FILL, TIER_SCALE, townRoomUnits, HEX } from './scale';
 import { waterness, snowiness, riverness, detailWeight, pxPerKm, DETAIL_SCALES_KM } from './terrainShader';
 import { visibleRasterTiles, RASTER_MAX_Z } from '../../../data/geo/rasterTiles';
 
@@ -60,7 +60,7 @@ describe('close view landscape', () => {
     expect(tiltFor(90)).toBeGreaterThan(TILT_CLOSE); expect(tiltFor(90)).toBeLessThan(TILT_SUPER);
   });
   it('grows the models with the zoom, more slowly in the super zoom so towns stay inside their hex', () => {
-    expect(unitPx(20)).toBeCloseTo(11); expect(unitPx(SUPER_FROM_K)).toBeCloseTo(22);
+    expect(unitPx(20)).toBeCloseTo(11 * HEX); expect(unitPx(SUPER_FROM_K)).toBeCloseTo(22 * HEX); // HEX: the hex's size vs frequency 75
     expect(unitPx(200)).toBeGreaterThan(unitPx(100));
     expect(unitPx(200) / 200).toBeLessThan(unitPx(SUPER_FROM_K) / SUPER_FROM_K * 0.7);
     // bigger towns drawn bigger; the room to the coast caps the scale

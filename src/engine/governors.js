@@ -17,8 +17,10 @@ import { createRng } from '../utils/rng';
 import { ringsAround } from './world/cities';
 import { getOwnedRegionIds } from '../data/regions';
 import { mapEffectsFor } from './techMapEffects';
+import { ringsForKm } from '../data/geo/gridScale';
 
-export const GOVERNOR_GROUP_RINGS = 8;
+export const GOVERNOR_GROUP_KM = 816; // km (8 rings at frequency 75)
+export const GOVERNOR_GROUP_RINGS = ringsForKm(GOVERNOR_GROUP_KM);
 export const GOVERNOR_GROUP_MAX = 6;
 export const GOVERNOR_ASSIGN_TURNS = 2;
 export const GOVERNOR_FOOD = 1;
@@ -46,7 +48,7 @@ const groupsEntry = (state, nationId) => {
   if (quick && quick.capitalId === state.nations?.[nationId]?.capitalRegionId) return quick.entry;
   const capitalId = state.nations?.[nationId]?.capitalRegionId;
   const ids = getOwnedRegionIds(regions, nationId);
-  const rings = GOVERNOR_GROUP_RINGS + mapEffectsFor(state, nationId).governorRings; // techs that widen a governor's reach (techMapEffects.js)
+  const rings = ringsForKm(GOVERNOR_GROUP_KM + mapEffectsFor(state, nationId).governorRings); // techs that widen a governor's reach (techMapEffects.js)
   const key = `${nationId}|${capitalId}|${rings}|${ids.length}|${ids.join(',')}`;
   const hit = groupsMemo.get(key);
   if (hit) { perNation.set(nationId, { capitalId, entry: hit }); return hit; }

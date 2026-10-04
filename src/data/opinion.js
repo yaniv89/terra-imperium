@@ -8,10 +8,14 @@ export const OPINION_MIN = -100;
 export const OPINION_MAX = 100;
 export const OPINION_BASELINE = 8;           // a stranger's standing (keeps the AI war roll where it was)
 export const GRUDGE_PER_HOSTILITY = 0.6;     // opinion lost per point of hostility
+// Border lengths count tiles of BORDER_TILE_KM (one tile at frequency 75): the engine turns a
+// shared border of n tiles into n x spacing / BORDER_TILE_KM, so a border of the same km rubs the
+// same on any grid.
+export const BORDER_TILE_KM = 102;
 export const BORDER_FREE_TILES = 5;          // shared border tiles before they rub
 export const BORDER_PER_TILE = -1;
 export const BORDER_MAX = -20;
-export const SETTLED_NEAR_RINGS = 6;
+export const SETTLED_NEAR_KM = 612;          // km (6 rings at frequency 75), as rings in the engine
 export const SETTLED_NEAR = -15;             // decays 1 a turn after the founding
 export const HOLDS_MY_CULTURE = -10;         // per city of my people you hold
 export const CLAIM_ON_MY_CITY = -10;

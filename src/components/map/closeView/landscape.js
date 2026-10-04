@@ -11,8 +11,9 @@
 //           the map already, so they have no work.
 // Model units: a hex is about HEX_UNITS across (the towns' scale, unitPx in scale.js).
 import { getTiles } from '../../../data/geo/tiles';
+import { hexSizeVsF75 } from '../../../data/geo/gridScale';
 
-export const TREES_FROM_K = 14;
+export const TREES_FROM_K = 14 / hexSizeVsF75(); // 14 at frequency 75: trees come with the close view's look, not a fixed zoom
 export const TREES_PER_HEX = 22;
 export const MAX_TREES = 4000;
 export const CONIFER_LAT = 48;
@@ -21,8 +22,9 @@ export const HEX_UNITS = 4;
 export const SUPER_TREE_COUNT = 3;
 export const SUPER_TREE_SIZE = 0.75;
 export const superShare = (k) => Math.max(0, Math.min(1, Math.log(Math.max(1, k) / 40) / Math.log(5)));
-// The radius trees are spread over, in degrees of latitude (a hex is about 106 km, 0.95 deg).
-const SPREAD_DEG = 0.42;
+// The radius trees are spread over, in degrees of latitude: 0.42 on the frequency-75 grid (a hex
+// about 102 km, 0.92 deg), scaled with the hex.
+const SPREAD_DEG = 0.42 * hexSizeVsF75();
 export const WORK_KINDS = ['farm', 'pasture', 'camp', 'mine', 'quarry', 'plantation', 'lumber_camp', 'oil_well', 'fort', 'fishing_boats'];
 
 let landCache = null;

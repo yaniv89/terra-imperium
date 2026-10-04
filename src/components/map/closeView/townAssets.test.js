@@ -170,6 +170,11 @@ describe('architecture regions', () => {
     expect(sharedAssetUrls('kingdoms', 'easteurope')[0]).toMatch(/shared-kingdoms-europe/);
     expect(styleOfLand('ru', 'kingdoms')).toBe('easteurope');
     expect(styleOfLand('es', 'kingdoms')).toBe('andalus');
+    expect(styleOfLand('il', 'bronze')).toBe('israelite');
+    expect(styleOfLand('il', 'modern')).toBe('israelite');
+    expect(styleChain('israelite')).toEqual(['israelite', 'levant']);
+    // until Israelite Kingdoms towns exist, Israel builds the Levant's
+    expect(townAssetUrl('kingdoms', 'small', 0, 'israelite')).toMatch(/kingdoms-town-small-a-levant/);
     expect(styleOfLand('es', 'gunpowder')).toBe('europe');
     expect(styleOfLand('pt', 'classical')).toBe('europe');
     expect(styleChain('easteurope')).toEqual(['easteurope', 'europe']);

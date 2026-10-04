@@ -1,0 +1,2163 @@
+{
+  "source": "plans/art/ITEMS.md Part B + Part C",
+  "target_items": 350,
+  "in_game_count_from_source": 402,
+  "uploaded_and_download_verified": 40,
+  "built_awaiting_upload": 0,
+  "remaining_to_upload": 310,
+  "completed_checkpoints": [
+    "01",
+    "02"
+  ],
+  "items": [
+    {
+      "path": "plans/art/kits/steppe/modern/landmark-1",
+      "section": "kits",
+      "description": "steppe / modern / landmark-1: a glass tower on a steppe square",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/steppe/modern/landmark-2",
+      "section": "kits",
+      "description": "steppe / modern / landmark-2: a space launch gantry (Baikonur)",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/steppe/modern/materials",
+      "section": "kits",
+      "description": "steppe / modern / materials",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/indic/gunpowder/materials",
+      "section": "kits",
+      "description": "indic / gunpowder / materials",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/bronze/houses",
+      "section": "kits",
+      "description": "bronze Israelite houses; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/bronze/street",
+      "section": "kits",
+      "description": "bronze Israelite street; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/bronze/roofscape",
+      "section": "kits",
+      "description": "bronze Israelite roofscape; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/bronze/materials",
+      "section": "kits",
+      "description": "bronze Israelite materials; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/bronze/landmark-1",
+      "section": "kits",
+      "description": "Six-chamber city gate (Megiddo/Hazor/Gezer)",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/bronze/landmark-2",
+      "section": "kits",
+      "description": "Three-aisle pillared storehouse",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/palace-small-israelite",
+      "section": "towns",
+      "description": "bronze regional palace; archaeological form in theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/palace-israelite",
+      "section": "towns",
+      "description": "bronze regional palace; archaeological form in theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/walls-medium-israelite",
+      "section": "towns",
+      "description": "bronze Israelite wall kit",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/colony-camp-israelite",
+      "section": "towns",
+      "description": "bronze regional camp",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/field-1-israelite",
+      "section": "towns",
+      "description": "Shared early-age field asset; retain reuse across early ages",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/field-2-israelite",
+      "section": "towns",
+      "description": "Shared early-age field asset; retain reuse across early ages",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/field-3-israelite",
+      "section": "towns",
+      "description": "Shared early-age field asset; retain reuse across early ages",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/bronze/field-4-israelite",
+      "section": "towns",
+      "description": "Shared early-age field asset; retain reuse across early ages",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/classical/houses",
+      "section": "kits",
+      "description": "classical Israelite houses; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/classical/street",
+      "section": "kits",
+      "description": "classical Israelite street; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/classical/roofscape",
+      "section": "kits",
+      "description": "classical Israelite roofscape; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/classical/materials",
+      "section": "kits",
+      "description": "classical Israelite materials; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/classical/landmark-1",
+      "section": "kits",
+      "description": "Galilean synagogue (Capernaum/Gamla/Kfar Baram)",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/classical/landmark-2",
+      "section": "kits",
+      "description": "Herodian Phasael tower",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/classical/palace-small-israelite",
+      "section": "towns",
+      "description": "classical regional palace; archaeological form in theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/classical/palace-israelite",
+      "section": "towns",
+      "description": "classical regional palace; archaeological form in theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/towns/classical/walls-medium-israelite",
+      "section": "towns",
+      "description": "classical Israelite wall kit",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/granary-israelite",
+      "section": "buildings",
+      "description": "bronze archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/barracks-israelite",
+      "section": "buildings",
+      "description": "bronze archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/shrine-israelite",
+      "section": "buildings",
+      "description": "bronze archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/copper_mine-israelite",
+      "section": "buildings",
+      "description": "bronze archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/irrigation-israelite",
+      "section": "buildings",
+      "description": "classical archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/market-israelite",
+      "section": "buildings",
+      "description": "classical archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/library-israelite",
+      "section": "buildings",
+      "description": "classical archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/harbor-israelite",
+      "section": "buildings",
+      "description": "classical archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/workshop-israelite",
+      "section": "buildings",
+      "description": "classical archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/buildings/scriptorium-israelite",
+      "section": "buildings",
+      "description": "kingdoms archaeological building; see theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/wonders/solomons_temple",
+      "section": "wonders",
+      "description": "Three separate tier objects in one file; archaeological reconstruction",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/wonders/masada",
+      "section": "wonders",
+      "description": "Three separate tier objects in one file; archaeological reconstruction",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/kingdoms/houses",
+      "section": "kits",
+      "description": "kingdoms Israelite houses; see authoritative theme brief",
+      "source": "ITEMS.md Part C and israelite-theme.md",
+      "delivery_status": "uploaded_verified"
+    },
+    {
+      "path": "plans/art/kits/israelite/kingdoms/street",
+      "section": "kits",
+      "description": "kingdoms Israelite street; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/kingdoms/roofscape",
+      "section": "kits",
+      "description": "kingdoms Israelite roofscape; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/kingdoms/materials",
+      "section": "kits",
+      "description": "kingdoms Israelite materials; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/kingdoms/landmark-1",
+      "section": "kits",
+      "description": "Byzantine-period synagogue (Bet Alpha/Hammat Tiberias)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/kingdoms/landmark-2",
+      "section": "kits",
+      "description": "Jerusalem medieval citadel tower",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/gunpowder/houses",
+      "section": "kits",
+      "description": "gunpowder Israelite houses; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/gunpowder/street",
+      "section": "kits",
+      "description": "gunpowder Israelite street; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/gunpowder/roofscape",
+      "section": "kits",
+      "description": "gunpowder Israelite roofscape; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/gunpowder/materials",
+      "section": "kits",
+      "description": "gunpowder Israelite materials; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/gunpowder/landmark-1",
+      "section": "kits",
+      "description": "Great domed synagogue (Hurva 1864)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/gunpowder/landmark-2",
+      "section": "kits",
+      "description": "Ottoman city gate",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/modern/houses",
+      "section": "kits",
+      "description": "modern Israelite houses; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/modern/street",
+      "section": "kits",
+      "description": "modern Israelite street; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/modern/roofscape",
+      "section": "kits",
+      "description": "modern Israelite roofscape; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/modern/materials",
+      "section": "kits",
+      "description": "modern Israelite materials; see authoritative theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/modern/landmark-1",
+      "section": "kits",
+      "description": "Round, triangular and square office towers",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/israelite/modern/landmark-2",
+      "section": "kits",
+      "description": "Kibbutz water tower",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/kingdoms/palace-small-israelite",
+      "section": "towns",
+      "description": "kingdoms regional palace; archaeological form in theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/kingdoms/palace-israelite",
+      "section": "towns",
+      "description": "kingdoms regional palace; archaeological form in theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/gunpowder/walls-medium-israelite",
+      "section": "towns",
+      "description": "gunpowder Israelite wall kit",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/modern/colony-camp-israelite",
+      "section": "towns",
+      "description": "modern regional camp",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/farm-israelite",
+      "section": "improvements",
+      "description": "50m patch, improvement object and Ground; see theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/plantation-israelite",
+      "section": "improvements",
+      "description": "50m patch, improvement object and Ground; see theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/pasture-israelite",
+      "section": "improvements",
+      "description": "50m patch, improvement object and Ground; see theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/fishing_boats-israelite",
+      "section": "improvements",
+      "description": "50m patch, improvement object and Ground; see theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/bronze/fort-bronze-israelite",
+      "section": "improvements",
+      "description": "50m patch, improvement object and Ground; see theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/modern/fort-modern-israelite",
+      "section": "improvements",
+      "description": "50m patch, improvement object and Ground; see theme brief",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/europe/modern/houses",
+      "section": "kits",
+      "description": "Regional europe modern houses",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/europe/modern/street",
+      "section": "kits",
+      "description": "Regional europe modern street",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/europe/modern/roofscape",
+      "section": "kits",
+      "description": "Regional europe modern roofscape",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/europe/modern/materials",
+      "section": "kits",
+      "description": "Regional europe modern materials",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/europe/modern/landmark-1",
+      "section": "kits",
+      "description": "Regional europe modern landmark-1",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/europe/modern/landmark-2",
+      "section": "kits",
+      "description": "Regional europe modern landmark-2",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/levant/bronze/houses",
+      "section": "kits",
+      "description": "Regional levant bronze houses",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/levant/bronze/street",
+      "section": "kits",
+      "description": "Regional levant bronze street",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/levant/bronze/roofscape",
+      "section": "kits",
+      "description": "Regional levant bronze roofscape",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/levant/bronze/materials",
+      "section": "kits",
+      "description": "Regional levant bronze materials",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/levant/bronze/landmark-1",
+      "section": "kits",
+      "description": "Regional levant bronze landmark-1",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/levant/bronze/landmark-2",
+      "section": "kits",
+      "description": "Regional levant bronze landmark-2",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/gunpowder/houses",
+      "section": "kits",
+      "description": "Regional indic gunpowder houses",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/gunpowder/street",
+      "section": "kits",
+      "description": "Regional indic gunpowder street",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/gunpowder/roofscape",
+      "section": "kits",
+      "description": "Regional indic gunpowder roofscape",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/gunpowder/landmark-1",
+      "section": "kits",
+      "description": "Regional indic gunpowder landmark-1",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/gunpowder/landmark-2",
+      "section": "kits",
+      "description": "Regional indic gunpowder landmark-2",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/modern/houses",
+      "section": "kits",
+      "description": "Regional indic modern houses",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/modern/street",
+      "section": "kits",
+      "description": "Regional indic modern street",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/modern/roofscape",
+      "section": "kits",
+      "description": "Regional indic modern roofscape",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/modern/landmark-1",
+      "section": "kits",
+      "description": "Regional indic modern landmark-1",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/modern/landmark-2",
+      "section": "kits",
+      "description": "Regional indic modern landmark-2",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/classical/palace-small",
+      "section": "towns",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/classical/palace",
+      "section": "towns",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/wheat",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/rice",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/cattle",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/sheep",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/deer",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/fish",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/whales",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/bananas",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/dates",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/stone",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/timber",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/reeds",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/horses",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/copper",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/iron",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/coal",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/oil",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/uranium",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/gold",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/silver",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/gems",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/salt",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/furs",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/honey",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/spices",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/dyes",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/sugar",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/cotton",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/silk",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/tea",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/wine",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/olives",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/incense",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/papyrus",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/resources/rubber",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/farm",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/pasture",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/camp",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/mine",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/quarry",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/lumber_camp",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/fishing_boats",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/plantation",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/oil_well",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/road",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/improvements/fort",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/granary",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/irrigation",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/farm_estate",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/crop_rotation_farm",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/mechanized_farm",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/market",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/bazaar",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/bank",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/stock_exchange",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/barracks",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/drill_yard",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/military_academy",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/war_college",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/library",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/scriptorium",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/university",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/research_lab",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/workshop",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/manufactory",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/factory",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/shrine",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/temple",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/civic_center",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/harbor",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/shipyard",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/naval_base",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/carrier_dock",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/road_post",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/highway",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/rail_depot",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/copper_mine",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/iron_foundry",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/oil_well",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/great_pyramids",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/hanging_gardens",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/great_wall",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/great_library",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/colosseum",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/lighthouse",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/grand_bazaar",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/great_cathedral",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/forbidden_city",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/royal_observatory",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/arsenal",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/palace_of_versailles",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/space_program",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/international_exchange",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/wonders/atomic_research_center",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/infantry",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/cavalry",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/ranged",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/siege",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/support",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/air",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/units/settler",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ships/warship",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ships/transport",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ships/raider",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ships/carrier",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-small-bronze",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-medium-bronze",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-big-bronze",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-small-classical",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-medium-classical",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-big-classical",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-small-kingdoms",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-medium-kingdoms",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-big-kingdoms",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-small-gunpowder",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-medium-gunpowder",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-big-gunpowder",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-small-modern",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-medium-modern",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/cities/city-big-modern",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ages/bronze",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ages/classical",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ages/kingdoms",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ages/gunpowder",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/ages/modern",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/markers/capital",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/markers/wonder",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/markers/event",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/markers/battle",
+      "section": "icons",
+      "description": "256px colour plus white silhouette mask; 24px readability",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/great_pyramids",
+      "section": "wonders",
+      "description": "Giza. 1: one pyramid in rough steps with ramps; 2: cased in white limestone with a causeway; 3: three pyramids and the Sphinx",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/hanging_gardens",
+      "section": "wonders",
+      "description": "Babylon. 1: a stepped brick terrace; 2: planted terraces with a water screw; 3: the full tiered garden with cascades and cedars",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/great_wall",
+      "section": "wonders",
+      "description": "an early rammed-earth wall. 1: a stretch of earth wall; 2: brick-faced with a watchtower; 3: a long crenellated wall with two towers climbing a ridge",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/great_library",
+      "section": "wonders",
+      "description": "Alexandria. 1: a colonnaded hall; 2: a second hall and a garden; 3: the full complex with a domed reading room and statues",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/colosseum",
+      "section": "wonders",
+      "description": "Rome. 1: the arena with one storey of arches; 2: three storeys; 3: the full ring with the attic, awnings (team) and the surrounding plaza",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/lighthouse",
+      "section": "wonders",
+      "description": "Pharos. 1: the square base; 2: the octagonal middle; 3: the round lantern with a fire and a statue, on a mole",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/grand_bazaar",
+      "section": "wonders",
+      "description": "Istanbul. 1: one covered street; 2: a cross of covered streets with domes; 3: the whole roofscape of domes, gates and caravanserai",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/great_cathedral",
+      "section": "wonders",
+      "description": "Chartres or Cologne. 1: the nave in scaffolding; 2: the nave and transept with a rose window; 3: twin spires and flying buttresses",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/forbidden_city",
+      "section": "wonders",
+      "description": "Beijing. 1: the Meridian Gate and a courtyard; 2: the Hall of Supreme Harmony on its marble terraces; 3: the full axis of halls inside the moat and wall",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/royal_observatory",
+      "section": "wonders",
+      "description": "Greenwich or Jantar Mantar. 1: an octagonal tower; 2: a dome with a telescope; 3: a second dome, a meridian line and a time ball",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/arsenal",
+      "section": "wonders",
+      "description": "Venice. 1: a walled dock with one shed; 2: covered slipways and a rope walk; 3: the great gate with lions, cranes and a ship on the stocks",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/palace_of_versailles",
+      "section": "wonders",
+      "description": "Versailles. 1: the central block; 2: the two wings; 3: the parterre gardens, fountains and the Grand Canal",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/space_program",
+      "section": "wonders",
+      "description": "Cape Canaveral. 1: a launch pad and a gantry; 2: a vehicle assembly building; 3: a rocket on the pad with a crawler and a control centre",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/international_exchange",
+      "section": "wonders",
+      "description": "a trading tower (think the Bund or Canary Wharf). 1: a podium hall; 2: a glass tower; 3: twin towers with a sky bridge and a plaza",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/wonders/atomic_research_center",
+      "section": "wonders",
+      "description": "a reactor site. 1: a lab block; 2: a reactor dome; 3: the dome, two cooling towers and a containment ring",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/granary",
+      "section": "buildings",
+      "description": "Egyptian beehive granaries or a Mesopotamian grain store with ramps",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/irrigation",
+      "section": "buildings",
+      "description": "a stone channel with sluice gates and a small water wheel (noria)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/farm_estate",
+      "section": "buildings",
+      "description": "a manor farm: barn, dovecote, walled yard",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/crop_rotation_farm",
+      "section": "buildings",
+      "description": "a Georgian model farm: brick barns, a threshing floor, a hedge",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/mechanized_farm",
+      "section": "buildings",
+      "description": "grain silos, a combine shed, a pivot irrigation arm",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/market",
+      "section": "buildings",
+      "description": "an agora or forum with stalls under awnings (team colour)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/bazaar",
+      "section": "buildings",
+      "description": "a covered bazaar with domes and arcades",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/bank",
+      "section": "buildings",
+      "description": "a neoclassical bank with a portico",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/stock_exchange",
+      "section": "buildings",
+      "description": "a glass tower with a ticker band (no text)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/barracks",
+      "section": "buildings",
+      "description": "a mud-brick compound with a training yard and spear racks",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/drill_yard",
+      "section": "buildings",
+      "description": "a Roman castra block: a parade ground, a stone barracks, standards (team)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/military_academy",
+      "section": "buildings",
+      "description": "an 18th century academy: a brick quad with a cannon",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/war_college",
+      "section": "buildings",
+      "description": "a modern campus block with a radar mast and flags",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/library",
+      "section": "buildings",
+      "description": "the Library of Celsus front: two storeys of columns and niches",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/scriptorium",
+      "section": "buildings",
+      "description": "a monastery cloister with a scriptorium wing",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/university",
+      "section": "buildings",
+      "description": "a college quad with a chapel and a dome (Oxford, Salamanca)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/research_lab",
+      "section": "buildings",
+      "description": "a low glass and concrete lab with a dish on the roof",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/workshop",
+      "section": "buildings",
+      "description": "a potter's and smith's yard: kilns, a chimney, a water wheel",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/manufactory",
+      "section": "buildings",
+      "description": "a brick mill with a tall chimney and a water wheel or beam engine",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/factory",
+      "section": "buildings",
+      "description": "a sawtooth-roof factory with two chimneys and a yard",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/shrine",
+      "section": "buildings",
+      "description": "a small stepped shrine with an altar and standards (team)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/temple",
+      "section": "buildings",
+      "description": "a peripteral temple on a podium (variant b in the big town: a Chinese temple hall)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/civic_center",
+      "section": "buildings",
+      "description": "a civic hall with a plaza, a fountain and flags (team)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/harbor",
+      "section": "buildings",
+      "description": "a stone quay with a breakwater, a warehouse and two moored boats",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/shipyard",
+      "section": "buildings",
+      "description": "slipways with a hull in frame, a crane, a rope walk",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/naval_base",
+      "section": "buildings",
+      "description": "a dry dock, a sea wall with cannon, a signal mast",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/carrier_dock",
+      "section": "buildings",
+      "description": "a concrete pier with cranes and a radar tower",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/road_post",
+      "section": "buildings",
+      "description": "a waystation: a courtyard, stables, a cistern",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/highway",
+      "section": "buildings",
+      "description": "a paved road segment with a milestone and a stone bridge",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/rail_depot",
+      "section": "buildings",
+      "description": "a railway station with a platform canopy and a goods shed",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/copper_mine",
+      "section": "buildings",
+      "description": "an open pit with ladders, a smelting hearth, ore baskets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/iron_foundry",
+      "section": "buildings",
+      "description": "a bloomery furnace with bellows and a charcoal pile",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/farm",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/modern/farm",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/mine",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/modern/mine",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/fishing_boats",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/modern/fishing_boats",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/road",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/modern/road",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/pasture",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/camp",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/quarry",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/lumber_camp",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/plantation",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/ancient/oil_well",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/bronze/fort-bronze",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/classical/fort-classical",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/kingdoms/fort-kingdoms",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/gunpowder/fort-gunpowder",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/improvements/modern/fort-modern",
+      "section": "improvements",
+      "description": "",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/towns/classical/town-big",
+      "section": "towns",
+      "description": "classical / town-big (city)",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/steppe/modern/houses",
+      "section": "kits",
+      "description": "steppe / modern / houses (Soviet blocks and new glass)",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/steppe/modern/street",
+      "section": "kits",
+      "description": "steppe / modern / street",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/steppe/modern/roofscape",
+      "section": "kits",
+      "description": "steppe / modern / roofscape",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/kits/indic/modern/materials",
+      "section": "kits",
+      "description": "indic / modern / materials",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/cathedral",
+      "section": "buildings",
+      "description": "cathedral (Cathedral / Mosque, kingdoms): two sheets: `cathedral-a` a Gothic cathedral with a spire, `cathedral-b` a mosque with a dome and two minarets",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/buildings/oil_well",
+      "section": "buildings",
+      "description": "oil_well (Oil Well, modern): a pumpjack and a storage tank (the same model as the `oil_well` improvement",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/icons/buildings/cathedral",
+      "section": "icons",
+      "description": "icons/buildings/cathedral",
+      "source": "ITEMS.md Part B",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-infantry-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-ranged-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-cavalry-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-infantry-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-ranged-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-cavalry-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-siege-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-infantry-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-cavalry-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-bronze-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-modern-israelite",
+      "section": "units",
+      "description": "Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-infantry",
+      "section": "units",
+      "description": "Sumerian or New Kingdom Egyptian spearmen: a bronze or leather cap, a large hide or wicker shield, a bronze-tipped spear 2.2 m, a linen kilt, bare feet or sandals, a dagger",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-cavalry",
+      "section": "units",
+      "description": "an Egyptian or Hittite light chariot: two horses, a driver and an archer, a wicker cab on two six-spoke wheels, 2.2 m long. Draw the chariot, the team and the two crew as separate figures on `pose.png`",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-ranged",
+      "section": "units",
+      "description": "Egyptian archers: a self bow 1.5 m, a quiver on the back, a linen kilt, a headcloth, no armour",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-siege",
+      "section": "units",
+      "description": "an Assyrian wheeled ram: a timber frame with a hide roof, a beam with a bronze head, four wheels, about 6 m long and 2.2 m high, with three crew",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/bronze-support",
+      "section": "units",
+      "description": "a two-ox cart with sacks, jars and a tarpaulin, a drover with a staff",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-infantry",
+      "section": "units",
+      "description": "Roman legionaries of the Principate: lorica segmentata, a Gallic helmet, a curved rectangular scutum (team colour face), a gladius, a pilum beside the figure",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-cavalry",
+      "section": "units",
+      "description": "Companion or Roman auxiliary cavalry: a horseman in a muscle cuirass or mail, a Boeotian helmet, a long lance (xyston) 3.5 m, a round shield, a saddle cloth, no stirrups",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-ranged",
+      "section": "units",
+      "description": "Scythian or Cretan archers: a composite recurve bow 1.2 m, a gorytos quiver on the hip, a pointed cap, a tunic and trousers",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-siege",
+      "section": "units",
+      "description": "a Roman torsion ballista on a stand, 1.9 m high, two torsion springs, a winch, a bolt, two crew",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/classical-support",
+      "section": "units",
+      "description": "Roman engineers: a tunic, a dolabra pick, a pack with stakes and a basket, a measuring rod",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/kingdoms-infantry",
+      "section": "units",
+      "description": "Swiss or Flemish pikemen of the 1300s: a kettle hat, a padded gambeson or brigandine, a 4.5 m pike held at the slope, a short sword, hose",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/kingdoms-cavalry",
+      "section": "units",
+      "description": "a mid 1300s knight: a bascinet with a visor, mail and plate, a heater shield (team), a 3.5 m lance with a pennon (team), a caparisoned horse (team cloth)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/kingdoms-ranged",
+      "section": "units",
+      "description": "English longbowmen: a 1.9 m yew bow, arrows pushed through the belt, a padded jack, a kettle hat or a hood, a buckler and a sword",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/kingdoms-siege",
+      "section": "units",
+      "description": "a counterweight trebuchet 4.5 m high with the arm down, a sling, a counterweight box, a timber frame, three crew",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/kingdoms-support",
+      "section": "units",
+      "description": "medieval pioneers: a hood, a leather apron, a mattock, a wicker gabion, a bundle of fascines",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/gunpowder-infantry",
+      "section": "units",
+      "description": "1700s line infantry: a tricorne, a long coat with turnbacks (team colour facings), a flintlock musket 1.5 m with a bayonet, a cartridge box, gaiters",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/gunpowder-cavalry",
+      "section": "units",
+      "description": "1700s dragoons: a tricorne or a helmet with a crest, a coat (team facings), a carbine on a sling, a sabre, a horse with a saddle roll",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/gunpowder-ranged",
+      "section": "units",
+      "description": "1800s riflemen: a shako or a forage cap, a short dark green or grey jacket, a rifle 1.2 m, a powder horn, a sword bayonet",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/gunpowder-siege",
+      "section": "units",
+      "description": "a 12-pounder field gun on a two-wheel carriage with a limber, 1.5 m high, three crew with a rammer and a linstock",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/gunpowder-support",
+      "section": "units",
+      "description": "1700s sappers: a leather cap, an apron, a pick and shovel, a gabion, a powder keg",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-infantry",
+      "section": "units",
+      "description": "present-day infantry: a helmet with cover, a plate carrier and pouches, camouflage (the team colour on a shoulder patch and the helmet band), an assault rifle 0.9 m, boots",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-cavalry",
+      "section": "units",
+      "description": "a present-day main battle tank: 2.5 m high, about 10 m long with the gun, a turret with a 120 mm gun, tracks, side skirts, a commander's hatch (team colour as a turret stripe)",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-ranged",
+      "section": "units",
+      "description": "a two-man anti-tank team: a tripod-mounted guided missile launcher, the gunner kneeling, the loader with a missile tube",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-siege",
+      "section": "units",
+      "description": "a towed 155 mm howitzer in the firing position, 2.6 m high, split trails, a muzzle brake, three crew",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-support",
+      "section": "units",
+      "description": "a towed twin 35 mm anti-aircraft gun on a four-wheel carriage, with a radar trailer, three crew",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/modern-air",
+      "section": "units",
+      "description": "a present-day multirole fighter (a generic twin-tail delta or swept wing, no real type), 16 m long, 10 m wingspan, two missiles under the wings, drawn also with the landing gear up",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-bronze",
+      "section": "units",
+      "description": "Age-specific family and wagon/truck",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-classical",
+      "section": "units",
+      "description": "Age-specific family and wagon/truck",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-kingdoms",
+      "section": "units",
+      "description": "Age-specific family and wagon/truck",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-gunpowder",
+      "section": "units",
+      "description": "Age-specific family and wagon/truck",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/units/settler-modern",
+      "section": "units",
+      "description": "Age-specific family and wagon/truck",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/warship-bronze",
+      "section": "ships",
+      "description": "an Egyptian or Minoan war galley: 25 m, one bank of oars, a square sail, a raised fighting platform, a ram",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/warship-classical",
+      "section": "ships",
+      "description": "an Athenian trireme: 37 m, three banks of oars, a bronze ram, eyes on the bow, two steering oars",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/warship-kingdoms",
+      "section": "ships",
+      "description": "a 1300s cog: 24 m, a single square sail, high fore and stern castles, a stern rudder, clinker planking",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/warship-gunpowder",
+      "section": "ships",
+      "description": "a 1790s frigate: 45 m, three masts, a single gun deck with 14 gunports a side, a figurehead",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/warship-modern",
+      "section": "ships",
+      "description": "a present-day destroyer: 150 m, a forward 5 inch gun, a vertical launch block, a radar mast, a helicopter deck aft",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/transport-classical",
+      "section": "ships",
+      "description": "a Roman corbita: 25 m, a round hull, a square mainsail and a small bow sail (artemon), a swan-neck sternpost, a deckhouse aft",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/transport-kingdoms",
+      "section": "ships",
+      "description": "a 1480s carrack: 30 m, three masts, a high stern castle, a lateen mizzen",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/transport-gunpowder",
+      "section": "ships",
+      "description": "a 1600s galleon: 45 m, a beakhead, a square tuck stern, two gun decks lightly armed",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/transport-modern",
+      "section": "ships",
+      "description": "a present-day landing ship: 120 m, a flat bow with doors and a ramp, a tall bridge aft, a vehicle deck",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/raider-classical",
+      "section": "ships",
+      "description": "a Phoenician bireme: 25 m, two banks of oars, a ram, a small sail",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/raider-kingdoms",
+      "section": "ships",
+      "description": "a Viking longship: 28 m, one square sail, a dragon prow, shields along the gunwale (team), 16 oars a side",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/raider-gunpowder",
+      "section": "ships",
+      "description": "a Baltimore clipper schooner: 30 m, two raked masts, sharp lines, four guns a side",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/raider-modern",
+      "section": "ships",
+      "description": "a present-day attack submarine: 100 m, a sail with planes, drawn surfaced",
+      "delivery_status": "pending"
+    },
+    {
+      "path": "plans/art/ships/carrier-modern",
+      "section": "ships",
+      "description": "a present-day aircraft carrier: 300 m, an angled deck, an island, four jets on the deck",
+      "delivery_status": "pending"
+    }
+  ],
+  "note": "Delivery status is separate from game integration. ITEMS.md Part A assets are excluded; source in-game counts are unchanged."
+}

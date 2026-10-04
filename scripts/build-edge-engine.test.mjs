@@ -28,7 +28,7 @@ describe('the Deno-bound engine bundle behaves identically to its source', () =>
     // Cache-bust: re-importing the same path across test files/runs would otherwise hit Node's
     // ESM module cache and silently return a stale bundle from a previous run.
     bundled = await import(`${pathToFileURL(BUNDLE_PATH).href}?t=${Date.now()}`);
-  });
+  }, 60000); // the bundle carries the whole grid (8 MB at frequency 100); 10 s was too tight
 
   it('produces a real, non-empty ESM file', async () => {
     const contents = await readFile(BUNDLE_PATH, 'utf8');
