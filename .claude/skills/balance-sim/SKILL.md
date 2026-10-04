@@ -34,6 +34,7 @@ Roughly 0.1-0.3 s per turn, so 150 turns x 2 seeds takes a few minutes. Keys:
   - leadChanges (times the nation with the most cities changed), zipfSlope (rank-size slope of
     the 50 biggest cities; Zipf's law is about -1, near 0 means every city is alike)
   - devastatedShare, unclaimedShare: the per-city versions of devastatedProvinces and unclaimedProvinces
+  - plagueCitiesNow (cities with the plague mark now), plagueCitiesStruck (distinct cities struck so far)
 
 ## Before vs after (paired seeds, with confidence intervals)
 ```bash

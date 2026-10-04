@@ -31,6 +31,8 @@ const auditCount = (s) => { const r = auditGameState(s); return Array.isArray(r)
 const isLand = (tile) => getTiles().land[tile] === 1;
 const checkpoints = () => { const c = []; for (let t = EVERY; t <= TURNS; t += EVERY) c.push(t); return c; };
 
+const isPlagued = (r) => r.disaster?.kind === 'plague' || (r.plague?.i || 0) > 0;
+
 const snapshot = (s, t, counters, ms, lives) => {
   const regs = Object.values(s.regions);
   const nations = Object.values(s.nations);
@@ -71,6 +73,9 @@ const snapshot = (s, t, counters, ms, lives) => {
     devastatedShare: +(dev.length / Math.max(1, regs.length)).toFixed(3), unclaimedShare: +((counts.null || 0) / Math.max(1, regs.length)).toFixed(3),
     ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: PLAYER }),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
+    // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
+    // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
+    plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
     nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };
@@ -79,7 +84,7 @@ SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...(SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
-    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0 };
+    const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.
     const lives = []; const open = {};
     Object.values(s.nations).forEach((n) => { if (!n.isEliminated) { open[n.id] = { born: 0, died: null }; lives.push(open[n.id]); } });
@@ -110,6 +115,7 @@ SEEDS.forEach((seed) => {
       Object.values(s.regions).forEach((r) => {
         if (owners[r.id] !== undefined && owners[r.id] !== r.owner) { counters.changedHands += 1; if (!r.conquest || r.conquest.turn !== s.turnNumber) counters.flips += 1; }
         owners[r.id] = r.owner;
+        if (isPlagued(r)) counters.plagued.add(r.id);
       });
       // Lead changes: the nation with the most cities (ties keep the old leader).
       const byOwner = {}; Object.values(s.regions).forEach((r) => { if (r.owner != null) byOwner[r.owner] = (byOwner[r.owner] || 0) + 1; });
