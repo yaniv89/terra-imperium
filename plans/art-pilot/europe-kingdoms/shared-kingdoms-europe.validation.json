@@ -1,0 +1,203 @@
+{
+  "file": "shared-kingdoms-europe.glb",
+  "kind": "shared",
+  "bytes": 3236204,
+  "checks": {
+    "footprint_within_5pct_palace-small": true,
+    "height_within_5pct_palace-small": true,
+    "nothing_below_ground_palace-small": true,
+    "origin_centred": true,
+    "footprint_within_5pct_palace": true,
+    "height_within_5pct_palace": true,
+    "nothing_below_ground_palace": true,
+    "footprint_within_5pct_walls-medium": true,
+    "height_within_5pct_walls-medium": true,
+    "nothing_below_ground_walls-medium": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1666,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.064,
+          "depth": 0.908,
+          "height": 1.28,
+          "min_height": 0.025
+        },
+        "LOD1": {
+          "triangles": 342,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.068,
+          "depth": 0.878,
+          "height": 1.24,
+          "min_height": 0.025
+        },
+        "LOD2": {
+          "triangles": 82,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.003,
+          "depth": 0.826,
+          "height": 1.2,
+          "min_height": 0.025
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.064
+    },
+    "palace": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3573,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.296,
+          "depth": 1.22,
+          "height": 1.93,
+          "min_height": 0.026
+        },
+        "LOD1": {
+          "triangles": 681,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.296,
+          "depth": 1.22,
+          "height": 1.93,
+          "min_height": 0.026
+        },
+        "LOD2": {
+          "triangles": 322,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.296,
+          "depth": 1.213,
+          "height": 1.78,
+          "min_height": 0.03
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.296
+    },
+    "walls-medium": {
+      "lods": {
+        "LOD0": {
+          "triangles": 6945,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.857,
+          "depth": 6.922,
+          "height": 1.869,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1645,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.847,
+          "depth": 6.899,
+          "height": 1.809,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 372,
+          "materials": [
+            "Town"
+          ],
+          "width": 6.765,
+          "depth": 6.922,
+          "height": 1.809,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.922
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "shared-kingdoms-europe_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 817470
+    },
+    {
+      "name": "shared-kingdoms-europe_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 782404
+    },
+    {
+      "name": "shared-kingdoms-europe_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 583490
+    }
+  ],
+  "passed": true
+}
