@@ -11,12 +11,12 @@ One 2048 WebP atlas set per file.
 
 | File | Landmarks | LOD0 / LOD1 / LOD2 | Footprint | Height | Size |
 |---|---|---|---|---|---|
-| gunpowder-town-small-a-levant.glb | covered souk, mosque (12 m) | 12,928 / 3,484 / 762 | 40 m | 12 m | see json |
-| gunpowder-town-small-b-levant.glb | mosque (12 m), hammam | 11,822 / 3,204 / 658 | 40 m | 12 m | see json |
+| gunpowder-town-small-a-levant.glb | covered souk, mosque (12 m) | 12,928 / 3,484 / 762 | 40 m | 12 m | 3.0 MB |
+| gunpowder-town-small-b-levant.glb | mosque (12 m), hammam | 11,822 / 3,204 / 658 | 40 m | 12 m | 2.8 MB |
 | gunpowder-town-medium-a-levant.glb | mosque (20 m), covered souk | 24,434 / 5,972 / 1,038 | 60 m | 20 m | 3.9 MB |
 | gunpowder-town-medium-b-levant.glb | covered souk, mosque (20 m), hammam | 24,592 / 6,028 / 1,110 | 60 m | 20 m | 4.0 MB |
 | gunpowder-town-big-a-levant.glb | mosque (28 m), covered souk, hammam, bastion | 39,933 / 9,567 / 1,030 | 80 m | 28 m | 5.4 MB |
-| gunpowder-town-big-b-levant.glb | mosque (28 m, turned to the square), covered souk, hammam, bastion | 37,912 / 8,718 / 958 | 80 m | 28 m | see json |
+| gunpowder-town-big-b-levant.glb | mosque (28 m, turned to the square), covered souk, hammam, bastion | 37,912 / 8,718 / 958 | 80 m | 28 m | 5.1 MB |
 
 Every file passes `validate_model.py` (`*.validation.json` in `/tmp/claude-0/out/levant/`).
 Previews: `*-kit-vs-model.png` (the street sheet beside the model), `*-beauty-test.png`.
