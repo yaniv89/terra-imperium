@@ -233,7 +233,8 @@ const yieldsOfTile = (tiles, world, id, researched) => {
 
 export const housingOf = (city, researched = []) => {
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
-  let h = HOUSING_BASE + (city.water ? HOUSING_WATER : 0) + foodTier;
+  // marketHousing: market access and capital rank (world/market.js), set each turn.
+  let h = HOUSING_BASE + (city.water ? HOUSING_WATER : 0) + foodTier + (city.marketHousing || 0);
   Object.entries(HOUSING_TECHS).forEach(([tech, n]) => { if (researched.includes(tech)) h += n; });
   return h;
 };
@@ -309,7 +310,7 @@ export const cityYields = (city, tiles, world, worked, researched = [], ctx = {}
   const palace = city.isCapital ? PALACE_YIELDS : { gold: 0, production: 0, science: 0, culture: 0 };
   const foodTier = (city.buildings?.categories?.food ?? -1) + 1;
   const dm = disasterMults(city, ctx.turnNumber); // a flood or a fire (cityDisasters.js)
-  const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10;
+  const food = Math.round((sum.food * dm.food + foodTier + (ctx.foodBonus || 0) + (city.marketFood || 0) - FOOD_PER_CITIZEN * city.size) * 10) / 10; // marketFood: world/market.js
   const production = Math.round((sum.production + palace.production) * (1 + tierEffect(city, 'industry', 'local.productionIncome') + (ctx.productionMult || 0)) * dm.production * 10) / 10;
   const gold = Math.round(((sum.gold + palace.gold) * (1 + tierEffect(city, 'economy', 'local.taxIncome') + (ctx.goldMult || 0)) + tierEffect(city, 'economy', 'local.flatGold') + tierEffect(city, 'industry', 'local.flatGold') + tierEffect(city, 'naval', 'local.tradeIncome')) * 10) / 10;
   const science = Math.round((SCIENCE_PER_SIZE * city.size + palace.science + tierEffect(city, 'science', 'local.techPoints') + districts.science) * 10) / 10;

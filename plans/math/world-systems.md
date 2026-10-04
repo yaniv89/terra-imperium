@@ -126,6 +126,62 @@ no nation lost more than 1. Economies are not crippled.
 An earlier run showed the same outbreak in every game: the rolls hashed city id and turn but not
 the game. Fixed in dfa9cbe: the rolls include `state.rngSeed` (test in plague.test.js).
 
+## Zipf: central places and market access (`src/engine/world/market.js`, commit 64aab2b)
+
+The lead's note: city sizes far too even (zipf slope -0.14 on the top 50 cities' people; real
+cities about -1). Asked: uneven carrying capacity from market access plus a capital bonus.
+
+**Rule.** Market access = sum over cities within 900 km of size / (1 + (km / 300)^2), the city
+itself not counted (an isolated city gains nothing). Then, each turn from start-of-turn sizes:
+- housing + min(6, floor(access / 5));
+- a capital + 1 + floor((cities owned - 1) / 2) housing (at most 4) and floor((cities owned - 1)
+  / 2) food (at most 4): its provinces feed it;
+- central places (Christaller): cities ranked world-wide by access + 2 x own size; rank k gains
+  floor(12 / sqrt(k)) housing and floor(8 / sqrt(k)) food (top city +12 and +8, 4th +6 and +4,
+  about the 64th +1 food, nothing further down). Small cities are untouched, never starved.
+Stored as `city.marketHousing` / `city.marketFood`; the city sheet shows "market +N". Cost: cities
+x nearby cities through a cube-cell index on the unit sphere (plain arithmetic), km-based.
+
+**Why central places.** A diagnostic of the top 50 cities at turn 150 showed only about 4% of
+cities at their housing cap: growth is time-limited (the threshold rises as 15 + 6s + s^1.8 while
+food rises about linearly), so cities converge. Variants tried (4 seeds, 150 turns, base 05aa5b1):
+
+| variant | zipf at 150 | at 300 (2 seeds) |
+|---|---|---|
+| base | -0.14 | -0.21 |
+| access housing (per 5, max 6), capital housing | -0.23 | |
+| stronger access housing (per 3, max 10) | -0.26 | |
+| + market food above the median access | -0.27 | -0.16 (flatter than base) |
+| central places 12 / 8 (kept) | -0.28 | -0.26 |
+| central places 20 / 16 | -0.31 | |
+
+Bounded bonuses spread evenly over a region lift a whole band and converge again by turn 300;
+a rank hierarchy keeps a few great cities. Doubling it buys little (-0.31) at a larger balance
+cost (+4% cities, lower unrest everywhere).
+
+**8-seed paired compare** (`compare.sh b22b52f 150 11-18`, turn 150):
+
+| metric | base | head | diff | 95% CI | |
+|---|---|---|---|---|---|
+| zipfSlope | -0.14 | -0.28 | -0.13 | [-0.15, -0.12] | * |
+| giniCities | 0.41 | 0.42 | +0.007 | [0.005, 0.009] | * |
+| giniPopulation | 0.36 | 0.43 | +0.066 | [0.062, 0.070] | * |
+| cities | 838.5 | 856.4 | +17.9 | [9.1, 26.7] | * |
+| landClaimedPct | 40.1 | 41.1 | +0.97 | [0.59, 1.36] | * |
+| warsTotal | 7.63 | 5.38 | -2.25 | [-6.04, 1.54] | |
+| civilWarsStarted | 27.3 | 23.5 | -3.75 | [-9.97, 2.47] | |
+| rebelStacks | 50.4 | 37.9 | -12.5 | [-24.7, -0.25] | * |
+| avgUnrest | 6.65 | 5.80 | -0.85 | [-2.15, 0.45] | |
+| effectiveNations | 126.5 | 124.7 | -1.86 | [-3.03, -0.69] | * |
+| playerGold | 2468 | 2551 | +84 | [72, 95] | * |
+| msPerTurn (parallel) | 285 | 295 | +10 | [-7, 28] | |
+
+**What it would take to reach -0.6 to -1.** The slope is on people (about size^2.8): -0.6 needs
+the top city about 2.3 times the 50th's size (around 16 against 7), -1 about 4 times. With the
+current growth threshold no city passes about 9 by turn 150. The lever is the threshold itself
+(cities.js growthThreshold, core city balance shared with every session): for example a threshold
+linear in size for cities with a central-place rank, or a smaller s^1.8 term. Not done here.
+
 ## Earlier numbers (pre-perf merge base b5120d7): paired, 8 seeds
 
 `PLAYER=au compare.sh origin/claude/bronze-towns 150 11-18` (base b5120d7, which already has
