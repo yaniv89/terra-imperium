@@ -11,6 +11,9 @@
 #
 #   python scripts/blender/assemble_kit_towns.py <kit_dir> <age> <style> <out_dir> [atlas]
 #   python scripts/blender/assemble_kit_towns.py shared <kit_dir> <style> <out_dir> [atlas]
+#   python scripts/blender/assemble_kit_towns.py shared-towns <towns_age_dir> <age> <style> <out_dir> [atlas]
+#     (plans/art/towns/bronze, bronze, israelite: shared-bronze-israelite.glb from the delivered
+#     palace-small, palace, walls-medium, colony-camp and field-1..4 folders that exist)
 #   ONLY=small-a,big-b limits the towns built; NO_LANDMARKS=1 builds houses-only towns.
 #   kit_dir is the style folder (plans/art/kits/nile); towns land in <out_dir>/<age>-town-<size>-<v>-<style>.glb
 #   (and .blend beside it), the shared file in <out_dir>/shared-kingdoms-<style>.glb.
@@ -324,11 +327,20 @@ class Part:
         self.tris = 0
 
 
+ROLES = ('town', 'team', 'ground')
+
+
+def _role(mat):
+    """A kit material's role: a name holding 'team' is Team, 'ground' is Ground, the rest Town."""
+    name = mat.name.lower() if mat else ''
+    return 'team' if 'team' in name else 'ground' if 'ground' in name else 'town'
+
+
 def _split_roles(me, mats):
     """{role: bmesh} keeping only the faces of each material role."""
     out = {}
-    for role in ('town', 'team'):
-        idx = [i for i, m in enumerate(mats) if (m == 'team') == (role == 'team')]
+    for role in ROLES:
+        idx = [i for i, m in enumerate(mats) if m == role]
         bm = bmesh.new()
         bm.from_mesh(me)
         bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.material_index not in idx], context='FACES')
@@ -359,7 +371,7 @@ def _decimated(obj, ratio):
 
 def load_kit(paths, lod1_ratio=None, lod2_tris=None, lod2_box=()):
     """Import GLBs {key: path}; returns ({object name: Part}, {key: image}). Imported objects are
-    removed again (they would shade the AO bake). Material roles: a name holding 'team' is Team."""
+    removed again (they would shade the AO bake). Material roles: see _role."""
     parts, images = {}, {}
     for key, path in paths.items():
         before = set(bpy.data.objects)
@@ -375,7 +387,7 @@ def load_kit(paths, lod1_ratio=None, lod2_tris=None, lod2_box=()):
             me = o.data
             if me.uv_layers:
                 me.uv_layers[0].name = 'orig'
-            mats = ['team' if m and 'team' in m.name.lower() else 'town' for m in me.materials]
+            mats = [_role(m) for m in me.materials]
             for m in me.materials:
                 for n in (m.node_tree.nodes if m and m.use_nodes else []):
                     if n.type == 'TEX_IMAGE' and n.image and key not in images:
@@ -479,12 +491,14 @@ tm.smart_uv = _smart_uv_keep_orig
 tm.transfer_uvs = _transfer_uvs_no_orig
 
 
-def register_materials(names, ground=None, team=()):
+def register_materials(names, ground=None, team=(), kit_ground=()):
     for n in names:
         if n not in tt.PROC:
             tt.PROC.append(n)
         if n in team:
             tt.TO_FINAL[n] = 'Team'
+        if n in kit_ground:  # a delivered ground: baked like the rest, exported as Ground
+            tt.TO_FINAL[n] = 'Ground'
     if ground:
         base, colours = ground
         for n in (base, base + '_fringe', base + '_square'):
@@ -501,6 +515,8 @@ def add_part(ms, part, frame, scale=1.0):
     for lod, store in ((0, part.lod0), (1, part.lod1), (2, part.lod2)):
         for role, bm in store.items():
             mat = 'nl_%s_%s' % (part.key, role)
+            if mat not in tt.PROC:  # a ground role only the shared-towns mode registers: bake it as Town
+                mat = 'nl_%s_town' % part.key
             ms.add(bm.copy(), mat, lod=2, matrix=m, only=(lod,))
 
 
@@ -680,10 +696,74 @@ def build_shared(kit_dir, style, out_dir, atlas=2048):
     return {file_name: dict(triangles=counts, height=round(height, 3))}
 
 
+# The objects of an age's shared file as delivered one per folder (plans/art/towns/<age>/<name>-<style>):
+# kind (budget class), LOD1 and LOD2 triangle targets. Missing objects fall back in the game to the
+# base shared file of the age.
+TOWN_OBJECTS = [('palace-small', 3000, 400), ('palace', 3000, 400), ('walls-medium', 2300, 380),
+                ('colony-camp', 2900, 480), ('field-1', 1450, 290), ('field-2', 1450, 290),
+                ('field-3', 1450, 290), ('field-4', 1450, 290)]
+
+
+def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
+    """shared-<age>-<style>.glb from <towns_dir>/<name>-<style>/model.glb for each object present.
+    Camps and fields keep their delivered ground (material role 'ground', exported as Ground)."""
+    found = [(n, l1, l2) for n, l1, l2 in TOWN_OBJECTS
+             if os.path.exists(os.path.join(towns_dir, '%s-%s' % (n, style), 'model.glb'))]
+    key_of = {n: n.replace('-', '') for n, _a, _b in found}
+    paths = {key_of[n]: os.path.join(towns_dir, '%s-%s' % (n, style), 'model.glb') for n, _a, _b in found}
+    budgets = {key_of[n]: (l1, l2) for n, l1, l2 in found}
+    tris_by_key = {}
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    for key, path in paths.items():  # triangle totals per file first (walls: ring, gate and tower)
+        bpy.ops.import_scene.gltf(filepath=path)
+        n = 0
+        for o in bpy.context.scene.objects:
+            if o.type == 'MESH':
+                o.data.calc_loop_triangles()
+                n += len(o.data.loop_triangles)
+        tris_by_key[key] = n
+        for o in list(bpy.context.scene.objects):
+            bpy.data.objects.remove(o)
+    state = {}
+
+    def kit_maker():
+        parts, images = load_kit(paths, lambda p: min(1.0, budgets[p.key][0] * 0.95 / tris_by_key[p.key]),
+                                 lambda p: budgets[p.key][1] * p.tris / tris_by_key[p.key])
+        for key, img in images.items():
+            for role in ROLES:
+                kit_material('nl_%s_%s' % (key, role), img)
+        state['parts'] = parts
+    keys = list(paths)
+    register_materials(['nl_%s_%s' % (k, r) for k in keys for r in ROLES], team=['nl_%s_team' % k for k in keys],
+                       kit_ground=['nl_%s_ground' % k for k in keys])
+    tt.EXTRA_MATERIALS[:] = [(n, m) for n, m in tt.EXTRA_MATERIALS if n != 'assemble_kit'] + [('assemble_kit', kit_maker)]
+
+    def single(key):
+        def layout(ms, rng):
+            for p in state['parts'].values():
+                if p.key == key:
+                    add_part(ms, p, Matrix.Identity(4))
+        return layout
+
+    def walls(ms, rng):
+        ring = [p for p in state['parts'].values() if p.key == 'wallsmedium']
+        across = max(max(p.dims[0], p.dims[1]) for p in ring)
+        s = WALLS_ACROSS / across
+        for p in ring:  # the ring, its gate (south, -Y) and its tower, scaled across only
+            add_part(ms, p, Matrix.Diagonal((s, s, 1.0, 1.0)))
+    items = [(n, walls if n == 'walls-medium' else single(key_of[n]), None) for n, _a, _b in found]
+    file_name = 'shared-%s-%s' % (age, style)
+    counts = tt.build_file(file_name, items, out_dir, atlas=atlas, seed=seed_for(style, age, 'shared'), write=False)
+    height = finish(out_dir, file_name)
+    return {file_name: dict(triangles=counts, height=round(height, 3))}
+
+
 if __name__ == '__main__':
     import json
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
-    if argv and argv[0] == 'shared':
+    if argv and argv[0] == 'shared-towns':
+        res = build_shared_objects(argv[1], argv[2], argv[3], argv[4], int(argv[5]) if len(argv) > 5 else 2048)
+    elif argv and argv[0] == 'shared':
         res = build_shared(argv[1], argv[2], argv[3], int(argv[4]) if len(argv) > 4 else 2048)
     else:
         only = [n for n in os.environ.get('ONLY', '').split(',') if n]

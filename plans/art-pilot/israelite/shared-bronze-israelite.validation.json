@@ -1,0 +1,454 @@
+{
+  "file": "shared-bronze-israelite.glb",
+  "kind": "shared",
+  "bytes": 4641136,
+  "checks": {
+    "footprint_within_5pct_palace-small": true,
+    "height_within_5pct_palace-small": true,
+    "nothing_below_ground_palace-small": true,
+    "origin_centred": true,
+    "footprint_within_5pct_palace": true,
+    "height_within_5pct_palace": true,
+    "nothing_below_ground_palace": true,
+    "footprint_within_5pct_walls-medium": true,
+    "height_within_5pct_walls-medium": true,
+    "nothing_below_ground_walls-medium": true,
+    "footprint_within_5pct_colony-camp": true,
+    "height_within_5pct_colony-camp": true,
+    "nothing_below_ground_colony-camp": true,
+    "footprint_within_5pct_field-1": true,
+    "height_within_5pct_field-1": true,
+    "nothing_below_ground_field-1": true,
+    "footprint_within_5pct_field-2": true,
+    "height_within_5pct_field-2": true,
+    "nothing_below_ground_field-2": true,
+    "footprint_within_5pct_field-3": true,
+    "height_within_5pct_field-3": true,
+    "nothing_below_ground_field-3": true,
+    "footprint_within_5pct_field-4": true,
+    "height_within_5pct_field-4": true,
+    "nothing_below_ground_field-4": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 841,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.79,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 841,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.79,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 400,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.8,
+          "depth": 0.8,
+          "height": 0.79,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.8
+    },
+    "palace": {
+      "lods": {
+        "LOD0": {
+          "triangles": 909,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.36,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 909,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.36,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 400,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.2,
+          "height": 1.36,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.2
+    },
+    "walls-medium": {
+      "lods": {
+        "LOD0": {
+          "triangles": 6625,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 2184,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 6.8,
+          "depth": 6.755,
+          "height": 0.767,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 379,
+          "materials": [
+            "Town"
+          ],
+          "width": 6.794,
+          "depth": 6.629,
+          "height": 0.676,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.8
+    },
+    "colony-camp": {
+      "lods": {
+        "LOD0": {
+          "triangles": 994,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 0.4,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 994,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 0.4,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 480,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.733,
+          "depth": 1.475,
+          "height": 0.4,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.003",
+        "LOD1.003",
+        "LOD2.003"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.733
+    },
+    "field-1": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1061,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1061,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 290,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.004",
+        "LOD1.004",
+        "LOD2.004"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.451
+    },
+    "field-2": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2887,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1377,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 290,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.305,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.005",
+        "LOD1.005",
+        "LOD2.005"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.451
+    },
+    "field-3": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3983,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.32,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1377,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.32,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 290,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.32,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.006",
+        "LOD1.006",
+        "LOD2.006"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.451
+    },
+    "field-4": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1031,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.339,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1031,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.339,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 290,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.451,
+          "depth": 1.213,
+          "height": 0.338,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.007",
+        "LOD1.007",
+        "LOD2.007"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.451
+    }
+  },
+  "materials": [
+    "Town",
+    "Team",
+    "Ground"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "shared-bronze-israelite_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 7538
+    },
+    {
+      "name": "shared-bronze-israelite_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 388690
+    },
+    {
+      "name": "shared-bronze-israelite_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 555190
+    }
+  ],
+  "passed": true
+}
