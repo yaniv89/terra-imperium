@@ -244,7 +244,7 @@ def plan_town(size, variant, dims_of, seed, landmarks=True, single=False, cap=No
     for rings in (cfg['rings'], cfg.get('fallback'), cfg.get('fallback2')):  # the rich-house layout first, then denser ones
         if rings is None:
             continue
-        for k in range(8):  # a few seeded arrangements: the first with enough houses wins
+        for k in range(16):  # a few seeded arrangements: the first with enough houses wins
             start0 = 90.0 + rng.uniform(-8, 8) + (12 if variant == 'b' else 0)
             houses = lay_rings(rings, variant, dims_of, placed, limit, free, hi, start0, random.Random(seed + 7 + k))
             if len(houses) > len(best):
@@ -254,6 +254,11 @@ def plan_town(size, variant, dims_of, seed, landmarks=True, single=False, cap=No
         if len(best) >= lo:
             break
     houses = best
+    base_cap = cfg['lm_cap']
+    if len(houses) < lo and lms and (cap or base_cap)[0] > base_cap[0] * 0.85:
+        # still short: the landmarks a little smaller (at most twice, 10% each), then lay it out again
+        c = cap or base_cap
+        return plan_town(size, variant, dims_of, seed, landmarks, single, (c[0] * 0.9, c[1] * 0.9))
     if not (lo <= len(houses) <= hi):
         print('WARNING %s-%s: %d houses (wanted %d to %d)' % (size, variant, len(houses), lo, hi))
     return lms, houses, props_for(placed, houses, free, limit, rng)
@@ -542,7 +547,12 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
         def kit_maker(state=state):
             # runs inside build_file's make_materials, after its factory reset: import the kit here
             def lod1_ratio(p):
-                return 1.0 if p.tris < 200 else (0.45 if p.name.startswith('house') else 0.5)
+                # about half of a light kit object; heavy kits (houses of 1,000+ triangles) are cut to
+                # a fixed target so a big town's LOD1 stays inside its 10,000
+                if p.tris < 200:
+                    return 1.0
+                house = p.name.startswith('house')
+                return min(0.45 if house else 0.5, (240 if house else 800) / p.tris) if p.tris > 600 else (0.45 if house else 0.5)
 
             def lod2_tris(p):
                 return 110
