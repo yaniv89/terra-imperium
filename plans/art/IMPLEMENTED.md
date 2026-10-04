@@ -1,6 +1,6 @@
 # Art in the game: the running count
 
-Counted from the model files in the game (`src/assets/map/towns/*.glb`, `src/assets/map/shared/*.glb`)
+Every item by name, one by one: `plans/art/ITEMS.md`. Counted from the model files in the game (`src/assets/map/towns/*.glb`, `src/assets/map/shared/*.glb`)
 on 2026-10-04, in the item ids of `plans/art-image-spec.md`. One item = one id in the spec (an id
 with variants a and b counts once). Give this file to GPT with each batch so its count matches.
 
@@ -14,9 +14,9 @@ with variants a and b counts once). Give this file to GPT with each batch so its
 | 3b.5 Kingdoms palaces and walls per region (palace-small, palace, walls-medium x 11) | 33 | 33 | 0 |
 | 4. Buildings | 34 | 0 | 34 |
 | 5. Wonders (3 tiers each) | 15 | 0 | 15 |
-| 6. Tile improvements (sheets) | 20 | 0 | 20 |
-| 7. Units and ships | 41 | 0 | 41 |
-| 8. Icons | 133 | 0 | 133 |
+| 6. Tile improvements (sheets) | 19 | 0 | 19 |
+| 7. Units, settlers and ships | 45 | 0 | 45 |
+| 8. Icons | 130 | 0 | 130 |
 | **Spec total** | **678** | **402** | **276** |
 | Israelite theme (`plans/art/israelite-theme.md`) | 74 | 0 | 74 |
 | **With the Israelite theme** | **752** | **402** | **350** |
@@ -79,4 +79,5 @@ westafrica, eastafrica, steppe, indic, sinic, monsoon, americas.
 ## Not started
 
 Section 4 buildings (34), section 5 wonders (15, three tiers each), section 6 tile improvements
-(20 sheets), section 7 units and ships (41), section 8 icons (133), and the Israelite theme (74).
+(19 sheets), section 7 units, settlers and ships (45), section 8 icons (130), and the Israelite
+theme (74). (The spec's own estimates said 20, 41 and 133; the counts here are from its tables.)
