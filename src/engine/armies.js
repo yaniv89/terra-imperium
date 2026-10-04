@@ -22,7 +22,7 @@
 //                 world connected).
 // Pure and deterministic; ties in the path search break on tile id.
 import { getTiles } from '../data/geo/tiles';
-import { distanceKm } from '../data/geo/geodesic';
+import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { hasPerk } from '../data/promotions';
 import { isWarBetween } from './diplomacy';
@@ -37,17 +37,18 @@ export const ROAD_COST = 0.5;
 export const RAIL_COST = 0.25;
 export const ENEMY_TILE_COST = 2;
 export const BANK_CAP = 4;
-export const MAX_ROUTE_STEPS = 60;
+// Distances and search budgets are kilometres and km² turned into rings and tiles of the loaded
+// grid (gridScale.js), so a denser grid keeps the same reach; the values match frequency 75.
+export const MAX_ROUTE_STEPS = ringsForKm(6100);   // 60 steps at frequency 75
 export const ENEMY_PATH_PENALTY = 6; // each enemy tile on the way to somewhere else counts this much more
 export const MARCH_ATTRITION = 0.03;  // of strength, per step into mountains, desert or arctic land
 export const BRIDGE_TECH = 'infrastructure_stone_bridges';
 export const RAIL_TECH = 'infrastructure_rail_networks';
-export const SUPPLY_BASE_RINGS = 28;  // how far a unit on free land looks for its nation's nearest city
+export const SUPPLY_BASE_RINGS = ringsForKm(2860);  // how far a unit on free land looks for its nation's nearest city (28 rings)
 const SLOW_FEATURES = new Set(['forest', 'jungle', 'marsh']);
 const SLOW_TERRAIN = new Set(['desert', 'tundra']);
 const HARSH_TERRAIN = new Set(['mountains', 'desert', 'arctic']);
-const MAX_SEARCH = 8000;
-const KM_PER_RING = 170; // a safe upper bound of the grid spacing, for the A* heuristic
+const MAX_SEARCH = cellsForAreaKm2(72_540_000); // 8000 tiles at frequency 75
 
 // `researched`: the owner's techs (Mechanized Warfare moves land armies further; techMapEffects.js).
 export const movePoints = (unit, researched = []) => (MOVE_POINTS[unit.classId] ?? DEFAULT_MOVE_POINTS) + (hasPerk(unit, 'forcedMarch') ? 1 : 0) + (unit.domain !== 'naval' && unit.classId !== 'settler' && unit.classId !== 'air' ? mapEffectsOf(researched).movePoints : 0);
@@ -88,12 +89,18 @@ export const tileAccess = (state, tile, nationId = state.playerNationId) => {
   return city == null ? 'wild' : regionAccess(state, city, nationId);
 };
 
+// A step onto an unpillaged road: the rail cost with Rail Networks, else the road cost with the
+// mover's road techs (never under 0.2).
+const roadStepCost = (researched, fx = mapEffectsOf(researched)) => (researched.includes(RAIL_TECH) ? RAIL_COST : Math.max(0.2, ROAD_COST + fx.roadCost));
+/** The cheapest step `researched` allows anywhere: a road (every other tile costs at least 1). */
+export const cheapestStep = (researched = []) => Math.min(1, roadStepCost(researched));
+
 /** Movement points to step from `from` onto `to`. `researched`: the mover's tech ids. */
 export const tileStepCost = (state, tiles, from, to, access = 'wild', researched = []) => {
   const road = state.world?.tileState?.[to];
   const fx = mapEffectsOf(researched); // techs that ease the ground (techMapEffects.js)
   let cost;
-  if (road?.road && !road.pillaged) cost = researched.includes(RAIL_TECH) ? RAIL_COST : Math.max(0.2, ROAD_COST + fx.roadCost);
+  if (road?.road && !road.pillaged) cost = roadStepCost(researched, fx);
   else if (tiles.reliefOf(to) === 'mountains') cost = Math.max(1, TILE_COST_MOUNTAINS + fx.mountainCost);
   else {
     cost = 1;
@@ -151,8 +158,10 @@ export const findTilePath = (state, from, to, nationId = state.playerNationId, {
     const owner = state.nations[state.regions[state.world?.tileOwner?.[to]]?.owner];
     return { reason: `No access to ${owner?.name || 'that land'}: declare war or form an alliance.` };
   }
-  const minStep = researched.includes(RAIL_TECH) ? RAIL_COST : ROAD_COST;
-  const h = (t) => (distanceKm(tiles.centres[t], tiles.centres[to]) / KM_PER_RING) * minStep;
+  // A* guess: the fewest steps the distance allows (gridScale.js, from the measured longest step)
+  // times the cheapest step there is, a road with the mover's techs. Never above the true cost.
+  const minStep = cheapestStep(researched);
+  const h = (t) => minStepsBetween(t, to, tiles) * minStep;
   const dist = new Map([[from, 0]]);
   const prev = new Map();
   const heap = [[h(from), 0, from]];
@@ -203,8 +212,8 @@ export const regionForTile = (state, tile, nationId, fallback = null) => {
   return nearestCity(state, getTiles(), tile, nationId) ?? fallback;
 };
 
-export const REINFORCE_RINGS = 4;   // how far from a city's centre idle troops can join its battle
-export const FALLBACK_RINGS = 17;   // how far a beaten garrison looks for a city of its own to fall back to
+export const REINFORCE_RINGS = ringsForKm(410);   // how far from a city's centre idle troops can join its battle (4 rings)
+export const FALLBACK_RINGS = ringsForKm(1740);   // how far a beaten garrison looks for a city of its own to fall back to (17 rings)
 
 /** Land units of `nationId` standing within `rings` of `centre` (the centre itself excluded),
  * sorted by id: the troops near a battle, a city or a siege. Settlers and cargo never count. */

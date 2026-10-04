@@ -5,6 +5,7 @@
 // tiles are open to everyone, deep ocean needs the Age of Gunpowder, as in the old sea lanes.
 import { REGIONS_DATA } from './regions';
 import { getTiles } from './geo/tiles';
+import { kmPerRing, ringsForKm } from './geo/gridScale';
 
 export const NAVAL_REACH_KM = {
   bronze: 200,
@@ -13,7 +14,6 @@ export const NAVAL_REACH_KM = {
   gunpowder: 5000,
   modern: Infinity
 };
-const KM_PER_TILE = 147;
 const DEEP_OK_FROM = ['gunpowder', 'modern'];
 
 export const isCoastal = (regionId) => !!REGIONS_DATA[regionId]?.isCoastal;
@@ -38,7 +38,9 @@ const seaReach = (regionId, ageId) => {
   if (perAge.has(ageId)) return perAge.get(ageId);
   const tiles = getTiles();
   // Whole tiles only, so a lane's km never exceeds the age's reach (one tile at Bronze).
-  const maxTiles = NAVAL_REACH_KM[ageId] === Infinity ? 400 : Math.max(1, Math.floor((NAVAL_REACH_KM[ageId] || 0) / KM_PER_TILE));
+  // One tile is the measured spacing of the grid (gridScale.js); the open-ended Modern reach stops
+  // at about 40,900 km of water (400 tiles at frequency 75).
+  const maxTiles = NAVAL_REACH_KM[ageId] === Infinity ? ringsForKm(40_900) : Math.max(1, Math.floor((NAVAL_REACH_KM[ageId] || 0) / kmPerRing()));
   const deepOk = DEEP_OK_FROM.includes(ageId);
   const dist = new Map();
   let frontier = coastTilesOf(regionId);
@@ -65,7 +67,7 @@ export const getSeaLanesWithinReach = (regionId, ageId) => {
     if (r.id === regionId || !r.isCoastal) return;
     let best = Infinity;
     coastTilesOf(r.id).forEach((t) => { const d = reach.get(t); if (d != null && d < best) best = d; });
-    if (best < Infinity) out.push({ to: r.id, km: best * KM_PER_TILE });
+    if (best < Infinity) out.push({ to: r.id, km: best * kmPerRing() });
   });
   return out.sort((a, b) => a.km - b.km || (a.to < b.to ? -1 : 1));
 };
