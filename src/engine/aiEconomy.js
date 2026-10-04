@@ -88,11 +88,14 @@ const emptyAIPool = () => ({ gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil:
 // path is never at risk of a regression from this milestone. Building/government/law/identity
 // modifier sources (src/engine/modifiers/) already read generically for any nationId, so those are
 // included via the SAME getRegionModifier/getModifier calls calcIncome itself uses.
-export const calcAllNationIncomes = (state) => {
+// `only` (a Set of nation ids, optional): the nations whose income is wanted this turn (world/lod.js
+// settles far nations every few turns); every other nation's regions are skipped.
+export const calcAllNationIncomes = (state, only = null) => {
   const tiles = getTiles(); // district yields read the grid (districts.js)
   const incomes = {};
   Object.values(state.regions).forEach((region) => {
     if (!region.owner || region.owner === state.playerNationId || region.occupiedBy) return;
+    if (only && !only.has(region.owner)) return;
     const regData = REGIONS_DATA[region.id];
     if (!regData) return;
     const dev = region.dev || seedDevelopment(region.id);
@@ -347,10 +350,12 @@ export const applyAIRecruitCost = (nation, state, ageId) => {
   return { ...nation, economy: applyCosts(pool, costs) };
 };
 
-export const settleAIUpkeep = (state, nationId, income, ownedUnits = null) => {
+// `turns`: how many turns this settlement covers (world/lod.js: a far, quiet nation settles every
+// few turns, paying every turn's expenses at once).
+export const settleAIUpkeep = (state, nationId, income, ownedUnits = null, turns = 1) => {
   const nation = state.nations[nationId];
   const balance = calcNationBalance(state, nationId, income, ownedUnits);
-  const expenses = Object.values(balance.expenses).reduce((a,b)=>a+b,0);
+  const expenses = Object.values(balance.expenses).reduce((a,b)=>a+b,0) * turns;
   const gold = (nation.economy.gold || 0) - expenses;
   if (gold >= 0) return { ...nation, economy: { ...nation.economy, gold }, lastNetIncome: balance.net };
   const loans = nation.loans || [];

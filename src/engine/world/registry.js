@@ -70,15 +70,18 @@ export const legacyTerrainOf = (tiles, tile) => {
 // trade and AI fronts working on the Dawn world, where only 10% of the land is claimed.
 export const NEAR_RINGS = 4;
 export const BRIDGE_RINGS = 17;
-// City centres never move, so the ring distance between two tiles is memoised for good.
+// City centres never move, so the ring distance between two tiles is memoised for good (one map
+// per ring limit, keyed by a number: a string key per lookup was a third of the rebuild).
 const ringCache = new Map();
 const ringsBetween = (tiles, from, to, maxRing) => {
   if (from === to) return 0;
-  const key = `${from}|${to}|${maxRing}`;
-  const hit = ringCache.get(key);
+  let memo = ringCache.get(maxRing);
+  if (!memo) { memo = new Map(); ringCache.set(maxRing, memo); }
+  const key = from * tiles.count + to;
+  const hit = memo.get(key);
   if (hit !== undefined) return hit;
   const d = ringsBetweenRaw(tiles, from, to, maxRing);
-  ringCache.set(key, d);
+  memo.set(key, d);
   return d;
 };
 const ringsBetweenRaw = (tiles, from, to, maxRing) => {
@@ -91,66 +94,93 @@ const ringsBetweenRaw = (tiles, from, to, maxRing) => {
   return Infinity;
 };
 
-// Neighbour lists depend only on which cities exist, their land and their owners: cached on that
-// key, so a turn that changes sizes and yields alone rebuilds nothing expensive.
-let neighbourCache = { key: null, byCity: null, touchingByCity: null };
+// Static facts of a tile, memoised for good: the tiles within NEAR_RINGS of a centre, its old
+// terrain word, its lat/lon, and whether it touches the sea (a lake does not count).
+const nearTilesMemo = new Map();
+const nearTilesOf = (tiles, centre) => {
+  let hit = nearTilesMemo.get(centre);
+  if (hit) return hit;
+  const out = []; let frontier = [centre]; const seen = new Set(frontier);
+  for (let d = 1; d <= NEAR_RINGS; d++) {
+    const next = [];
+    for (const id of frontier) for (const n of tiles.neighbors[id]) { if (!seen.has(n)) { seen.add(n); next.push(n); out.push(n); } }
+    frontier = next;
+  }
+  hit = Int32Array.from(out);
+  nearTilesMemo.set(centre, hit);
+  return hit;
+};
+const centreFacts = new Map();
+const centreFactsOf = (tiles, tile) => {
+  let hit = centreFacts.get(tile);
+  if (!hit) { const { lat, lon } = tiles.latLonOf(tile); hit = { lat, lon, terrain: legacyTerrainOf(tiles, tile) }; centreFacts.set(tile, hit); }
+  return hit;
+};
+let seaTouch = null; // Int8Array: -1 unknown, 0 no, 1 yes
+const touchesSea = (tiles, t) => {
+  if (!seaTouch || seaTouch.length !== tiles.count) seaTouch = new Int8Array(tiles.count).fill(-1);
+  if (seaTouch[t] < 0) seaTouch[t] = tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake') ? 1 : 0;
+  return seaTouch[t] === 1;
+};
+// Scratch buffers, one slot per tile, reused by every rebuild: the city index owning a tile and
+// the city index centred on it (-1 for none).
+let ownerBuf = null; let centreBuf = null; let markBuf = null;
 
+// Rebuilt from scratch on every call, in time linear in the claimed tiles plus the cities: the
+// ownership and centre lookups are flat typed arrays, everything static about a tile is memoised.
 export const buildRegistry = (regions) => {
   const tiles = getTiles();
   const out = { regions: {}, coordinates: {}, capitals: {} };
-  const owners = {};
   const cities = Object.values(regions).filter((c) => c && c.tile != null);
-  cities.forEach((city) => { (city.tiles || [city.tile]).forEach((t) => { owners[t] = city.id; }); });
-  // Cities by tile bucket for the distance rules (a 2-degree bucket index like geodesic.js's).
-  const index = buildRadiusIndex(cities.map((c) => tiles.centres[c.tile]));
-  const nearCities = (city, rings) => {
-    const { lat, lon } = tiles.latLonOf(city.tile);
-    const km = rings * 150 + 60;
-    const found = index.within(lat, lon, km).map((i) => cities[i]).filter((c) => c.id !== city.id);
-    return found.filter((c) => ringsBetween(tiles, city.tile, c.tile, rings) <= rings);
-  };
+  if (!ownerBuf || ownerBuf.length !== tiles.count) { ownerBuf = new Int32Array(tiles.count); centreBuf = new Int32Array(tiles.count); }
+  ownerBuf.fill(-1); centreBuf.fill(-1);
+  // Per city: the indices of its neighbours and of the cities it touches, deduplicated with two
+  // stamp arrays (no Set of strings per city).
+  if (!markBuf || markBuf.length < 2 * cities.length) markBuf = new Int32Array(2 * cities.length + 64);
+  markBuf.fill(-1);
+  const touchMark = markBuf.subarray(cities.length);
+  cities.forEach((city, i) => { const own = city.tiles || [city.tile]; for (let k = 0; k < own.length; k++) ownerBuf[own[k]] = i; centreBuf[city.tile] = i; });
   const byNation = {};
   cities.forEach((c) => { (byNation[c.owner] ||= []).push(c); });
-  const geoKey = cities.map((c) => `${c.id}:${c.owner}:${c.founderId || ''}:${(c.tiles || [c.tile]).length}:${c.isCapital ? 1 : 0}`).join('|');
-  const cachedNeighbours = neighbourCache.key === geoKey ? neighbourCache.byCity : null;
-  const neighboursOut = {};
-  const touchingOut = {};
-  cities.forEach((city) => {
-    const neighbors = new Set(cachedNeighbours ? cachedNeighbours[city.id] : []);
+  const neighbourLists = cities.map(() => []);
+  const indexOf = new Map(cities.map((c, i) => [c.id, i]));
+  cities.forEach((city, i) => {
+    const neighbors = neighbourLists[i];
+    const add = (o) => { if (markBuf[o] !== i) { markBuf[o] = i; neighbors.push(o); } };
     // `touching`: cities whose land touches this one's (no near rule, no bridge): what a land
     // attack from inside a city needs (invasion.js); wars, trade and diffusion keep `neighbors`.
-    const touching = new Set(cachedNeighbours ? neighbourCache.touchingByCity[city.id] : []);
+    const touching = [];
     const nation = city.founderId || city.owner;
-    if (!cachedNeighbours) {
-    (city.tiles || [city.tile]).forEach((t) => tiles.neighbors[t].forEach((n) => {
-      const o = owners[n];
-      if (o && o !== city.id) { neighbors.add(o); touching.add(o); }
-    }));
-    nearCities(city, NEAR_RINGS).forEach((c) => neighbors.add(c.id));
+    const own = city.tiles || [city.tile];
+    for (let k = 0; k < own.length; k++) {
+      const ns = tiles.neighbors[own[k]];
+      for (let j = 0; j < ns.length; j++) { const o = ownerBuf[ns[j]]; if (o >= 0 && o !== i) { add(o); if (touchMark[o] !== i) { touchMark[o] = i; touching.push(cities[o].id); } } }
+    }
+    // Cities whose centres are within NEAR_RINGS rings of this one's.
+    const near = nearTilesOf(tiles, city.tile);
+    for (let k = 0; k < near.length; k++) { const o = centreBuf[near[k]]; if (o >= 0 && o !== i) add(o); }
     // The bridge links a people's CAPITAL to the nearest city of each neighbouring people, one
     // link per pair of peoples, so a nation's other cities can still be "interior".
     if (city.isCapital) (COUNTRY_ADJACENCY[nation] || []).forEach((other) => {
       const candidates = (byNation[other] || []).filter((c) => (c.founderId || c.owner) === other);
       let best = null; let bestD = Infinity;
       candidates.forEach((c) => { const d = ringsBetween(tiles, city.tile, c.tile, BRIDGE_RINGS); if (d < bestD) { bestD = d; best = c; } });
-      if (best) { neighbors.add(best.id); }
+      if (best) add(indexOf.get(best.id));
     });
-    }
-    const { lat, lon } = tiles.latLonOf(city.tile);
+    const { lat, lon, terrain } = centreFactsOf(tiles, city.tile);
     // Coastal when the city's land touches the sea (a lake does not count) through its centre or
     // through a tile of the founder's own country: on a 147 km grid Bern's first ring reaches a
     // Lombard tile that touches the Ligurian Sea, which must not make Switzerland a sea power.
-    const coastal = (city.tiles || [city.tile]).some((t) => tiles.land[t] === 1 && (t === city.tile || tiles.countryOf(t) === nation)
-      && tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake'));
+    const coastal = own.some((t) => tiles.land[t] === 1 && (t === city.tile || tiles.countryOf(t) === nation) && touchesSea(tiles, t));
     out.regions[city.id] = {
       id: city.id,
       ownerNow: city.owner,
       name: city.name,
       startOwner: city.founderId || city.owner,
       population: sizeToPeople(city.size || 1),
-      neighbors: [...neighbors].sort(),
-      touching: [...touching].sort(),
-      terrain: legacyTerrainOf(tiles, city.tile),
+      neighbors: null,
+      touching: touching.sort(),
+      terrain,
       isCoastal: coastal,
       isCapital: !!city.isCapital,
       resources: { gold: city.size || 1, hr: city.size || 1 },
@@ -158,7 +188,7 @@ export const buildRegistry = (regions) => {
       infrastructure: 0,
       strategicValue: city.size || 1,
       description: city.name,
-      includes: city.tiles || [city.tile],
+      includes: own,
       tile: city.tile,
       gdpMillions: (city.size || 1) * 10
     };
@@ -168,21 +198,20 @@ export const buildRegistry = (regions) => {
   // A landlocked city with no neighbour at all (Brasília or Canberra at the Dawn start) links to
   // the nearest city anywhere, so no city is cut off from the world before armies walk tiles. A
   // coastal one (an island, Tokyo) is reached by sea instead (src/data/navalReach.js).
-  cities.forEach((city) => {
-    const r = out.regions[city.id];
-    if (cachedNeighbours || r.neighbors.length || r.isCoastal) return;
+  cities.forEach((city, i) => {
+    if (neighbourLists[i].length || out.regions[city.id].isCoastal) return;
     let best = null; let bestD = Infinity;
     cities.forEach((c) => {
       if (c.id === city.id) return;
       const d = distanceKm(tiles.centres[city.tile], tiles.centres[c.tile]);
       if (d < bestD || (d === bestD && c.id < best)) { bestD = d; best = c.id; }
     });
-    if (best) r.neighbors.push(best);
+    if (best) neighbourLists[i].push(indexOf.get(best));
   });
   // Symmetric: the bridge rule picks one nearest city per side, so close the pairs.
-  Object.values(out.regions).forEach((r) => r.neighbors.forEach((n) => { const other = out.regions[n]; if (other && !other.neighbors.includes(r.id)) other.neighbors.push(r.id); }));
-  Object.values(out.regions).forEach((r) => r.neighbors.sort());
-  if (!cachedNeighbours) { Object.values(out.regions).forEach((r) => { neighboursOut[r.id] = r.neighbors; touchingOut[r.id] = r.touching; }); neighbourCache = { key: geoKey, byCity: neighboursOut, touchingByCity: touchingOut }; }
+  const forward = neighbourLists.map((l) => l.slice());
+  forward.forEach((list, i) => list.forEach((o) => { if (!neighbourLists[o].includes(i)) neighbourLists[o].push(i); }));
+  cities.forEach((city, i) => { out.regions[city.id].neighbors = neighbourLists[i].map((o) => cities[o].id).sort(); });
   return out;
 };
 

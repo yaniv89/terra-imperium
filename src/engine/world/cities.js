@@ -102,10 +102,17 @@ const isWorkable = (tiles, id) => tiles.land[id] === 1 || ['coast', 'lake'].incl
 
 // Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings), cached per cities map:
 // the AI asks about hundreds of sites a turn, and a ring walk per city per site was the cost.
+// A new cities map with the same cities (sizes and yields change every turn, centres and names
+// almost never) reuses the last index: the key is the cities' centres and names in map order.
 const blockedCache = new WeakMap();
+let lastBlocked = { key: null, map: null };
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
   if (map) return map;
+  const list = Object.values(cities);
+  let key = '';
+  for (let i = 0; i < list.length; i++) key += `${list[i].tile}:${list[i].name}|`;
+  if (lastBlocked.key === key) { blockedCache.set(cities, lastBlocked.map); return lastBlocked.map; }
   map = new Map();
   Object.values(cities).forEach((city) => {
     let frontier = [city.tile]; const seen = new Set(frontier);
@@ -117,13 +124,16 @@ const blockedTiles = (cities, tiles) => {
     }
   });
   blockedCache.set(cities, map);
+  lastBlocked = { key, map };
   return map;
 };
 // A city founded into a cities map that is written in place (processSettlers): its ring joins the
 // cached index instead of a rebuild per founding.
 const noteFoundedCity = (cities, tiles, city) => {
-  const map = blockedCache.get(cities);
+  let map = blockedCache.get(cities);
   if (!map) return;
+  // The index may be shared with other cities maps that do not hold the new city: write a copy.
+  if (lastBlocked.map === map) { map = new Map(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null }; }
   let frontier = [city.tile]; const seen = new Set(frontier);
   map.set(city.tile, city.name);
   for (let d = 1; d < MIN_CITY_SPACING; d++) {
@@ -219,9 +229,23 @@ const focusScore = (y, focus) => {
 
 /** Which tiles the city works this turn: locked tiles first, then enough food not to starve, then
  * the focus score. Returns tile ids (the centre is always worked and not listed). */
+// The last allocation per city, reused while its inputs are the same objects: the candidate tiles'
+// yield records (memoised above, so equal identity means equal yields), size, focus, locks and the
+// centre. Most cities change none of them in a turn, and the two sorts were the cost.
+const allocMemo = new Map(); // city id -> { candidates, ys, size, focus, locked, centre, chosen }
 export const allocateTiles = (city, tiles, world, researched = [], blocked = new Set()) => {
   const candidates = city.tiles.filter((t) => t !== city.tile && !blocked.has(t) && isWorkable(tiles, t));
-  const yields = new Map(candidates.map((t) => [t, yieldsOfTile(tiles, world, t, researched)]));
+  const ys = candidates.map((t) => yieldsOfTile(tiles, world, t, researched));
+  const centreY = yieldsOfTile(tiles, world, city.tile, researched);
+  const memo = allocMemo.get(city.id);
+  if (memo && memo.size === city.size && memo.focus === city.focus && memo.locked === city.locked && memo.centre === centreY
+    && memo.candidates.length === candidates.length && candidates.every((t, i) => memo.candidates[i] === t && memo.ys[i] === ys[i])) return memo.chosen.slice();
+  const chosen = allocateFresh(city, tiles, world, researched, candidates, ys);
+  allocMemo.set(city.id, { candidates, ys, size: city.size, focus: city.focus, locked: city.locked, centre: centreY, chosen: chosen.slice() });
+  return chosen;
+};
+const allocateFresh = (city, tiles, world, researched, candidates, ys) => {
+  const yields = new Map(candidates.map((t, i) => [t, ys[i]]));
   const chosen = [];
   const locked = city.locked.filter((t) => yields.has(t)).sort((a, b) => a - b);
   locked.forEach((t) => { if (chosen.length < city.size) chosen.push(t); });
@@ -499,7 +523,9 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
 
   // 5. Culture and borders.
   let cultureBank = c.cultureBank + y.culture;
-  const candidates = claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched });
+  // No tile costs less than a ring-1 one: below that the candidate search cannot claim anything.
+  const affordable = cultureBank >= tileCultureCost(c, 1, mapEffectsOf(researched).tileCostMult);
+  const candidates = affordable ? claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched }) : [];
   let claimed = [];
   if (candidates.length) {
     const best = candidates[0];

@@ -31,6 +31,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 import { buildRadiusIndex } from './world/registry';
+import { settlesThisTurn } from './world/lod';
 import { amenitiesOf } from './world/cities';
 import { transferRegion } from './regionTransfer';
 import { relocateLostCapital } from './conquest';
@@ -168,7 +169,9 @@ const bordering = (state, tiles, city) => {
  * The loyalty phase of a turn on the turn's working `regions` and `nations` (mutated in place).
  * Returns { flips: [{ cityId, from, to }], logs: [{ nationId, message }] }.
  */
-export const applyLoyalty = (state, regions, units, nations, turn) => {
+// `periodOf(nationId)` (optional, world/lod.js): a far nation at peace has its cities' loyalty
+// settled every `period` turns, moving `period` steps at once; culture keeps its own schedule.
+export const applyLoyalty = (state, regions, units, nations, turn, periodOf = null) => {
   const tiles = getTiles();
   const cities = Object.values(regions).filter((c) => c.tile != null);
   const index = buildRadiusIndex(cities.map((c) => tiles.centres[c.tile]));
@@ -191,11 +194,16 @@ export const applyLoyalty = (state, regions, units, nations, turn) => {
       if (best) flips.push({ cityId: city.id, from: null, to: best });
       return;
     }
+    const period = periodOf ? periodOf(city.owner) : 1;
+    const settles = settlesThisTurn(city.owner, period, turn);
+    if (!settles && !pressure) return; // a far city between settlements: nothing moves this turn
     const culture = pressure ? drift(cultureOf(city), pressure, CULTURE_DRIFT * CULTURE_PERIOD) : cultureOf(city);
+    if (!settles) { regions[city.id] = { ...city, culture }; return; }
     const target = loyaltyTarget(view, { ...city, culture }, units, nations, byTile, cache).total;
     const current = loyaltyOf(city);
-    const loyalty = current < target ? Math.min(target, current + LOYALTY_STEP) : Math.max(target, current - LOYALTY_STEP);
-    regions[city.id] = { ...city, culture, loyalty };
+    const step = LOYALTY_STEP * period;
+    const loyalty = current < target ? Math.min(target, current + step) : Math.max(target, current - step);
+    if (culture !== city.culture || loyalty !== city.loyalty) regions[city.id] = { ...city, culture, loyalty };
     const settling = (city.lastFlipTurn != null && turn - city.lastFlipTurn < FLIP_COOLDOWN_TURNS) || (city.founded > 1 && turn - city.founded < FOUNDING_GRACE_TURNS);
     if (loyalty <= 0 && !settling && nations[city.owner]?.capitalRegionId !== city.id) { // a nation's current capital never flips (a stale isCapital flag on a taken city does not count)
       const near = bordering(view, tiles, city);
