@@ -11,12 +11,14 @@ import { getNationColor } from '../../data/nationColors';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { townTier } from './closeView/townTiers';
-import { unitPx } from './closeView/scale';
+import { townUnitPx, hexInnerUnits } from './closeView/scale';
+import { getTiles } from '../../data/geo/tiles';
 
 const EDGE_PX = 80;
 // The banner hangs just under the town's front edge (and its wall ring): the ground is about
-// `modelRadius` units across each way, foreshortened by the tilt.
-export const bannerOffsetPx = (modelRadius, k) => (modelRadius + 0.35) * unitPx(k) * 0.8 + 6;
+// `modelRadius` units across each way at `pxPerUnit` (the town's hex-capped scale), foreshortened
+// by the tilt.
+export const bannerOffsetPx = (modelRadius, pxPerUnit) => (modelRadius + 0.35) * pxPerUnit * 0.8 + 6;
 
 const CityBanners = ({ projection, transform, width, height, onSelect, selectedRegion = null, playerColor }) => {
   const { state } = useGame();
@@ -30,7 +32,9 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
     if (!p) return;
     const x = p[0] * k + transform.x;
     const radius = city.owner && !city.outpost ? townTier(city).modelRadius : 1;
-    const y = p[1] * k + transform.y + bannerOffsetPx(radius, k);
+    // the same hex cap as the town itself (CloseViewLayer), walls included
+    const capRadius = radius + ((city.buildings?.categories?.defense ?? -1) >= 0 ? 0.3 : 0);
+    const y = p[1] * k + transform.y + bannerOffsetPx(radius, townUnitPx(k, capRadius, hexInnerUnits(projection, getTiles(), city.tile) * k));
     if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;
     const owner = city.owner || city.colony?.ownerId;
     const own = owner === state.playerNationId;

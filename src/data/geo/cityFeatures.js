@@ -45,6 +45,9 @@ const landIndex = (land) => {
   return idx;
 };
 
+// How many territory polygons fell back to their raw hex shape because clipping failed (tests).
+export const clipStats = { fallbacks: 0 };
+
 // A territory's polygons cut to the coastline. A territory across the antimeridian (its unwrapped
 // longitudes run past 180) is left as it is: the land polygons are split there.
 const clipToLand = (multi, land) => {
@@ -56,22 +59,27 @@ const clipToLand = (multi, land) => {
     const near = idx.filter((l) => overlaps(l.box, box)).map((l) => l.poly);
     // No coastline here at all: an island too small for the land data keeps its hex shape.
     if (!near.length) { out.push(poly); return; }
+    // Hex corners carry float noise that trips the clipper (Moscow's ring against a plain inland
+    // square): snap to a millionth of a degree (about 10 cm) and drop repeated points first.
+    const clean = poly.map((ring) => ring.map(([x, y]) => [Math.round(x * 1e6) / 1e6, Math.round(y * 1e6) / 1e6])
+      .filter((p, i, a) => !i || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1]));
     let cut;
     try {
-      cut = polygonClipping.intersection([poly], near);
+      cut = polygonClipping.intersection([clean], near);
     } catch {
       // The land comes in 10 degree pieces (hexCoast.js) and the clipper can trip where a
       // territory meets two pieces along their shared edge: cut against each piece on its own.
       cut = [];
       for (const piece of near) {
-        try { cut.push(...polygonClipping.intersection([poly], [piece])); } catch (e) {
+        try { cut.push(...polygonClipping.intersection([clean], [piece])); } catch (e) {
           if (!clipToLand.warned) { clipToLand.warned = true; console.warn('Territory clipping failed, drawing hex shapes', e); }
           cut = null;
           break;
         }
       }
     }
-    if (cut && cut.length) toD3Winding(cut).forEach((p) => out.push(p)); else out.push(poly);
+    if (cut && cut.length) toD3Winding(cut).forEach((p) => out.push(p));
+    else { if (!cut) clipStats.fallbacks += 1; out.push(poly); }
   });
   return out;
 };

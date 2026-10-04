@@ -1,10 +1,10 @@
 // src/data/geo/cityFeatures.test.js
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../regions';
 import { loadLandFeatures } from './loadWorldFeatures';
 import { geoArea } from 'd3-geo';
-import { getCityFeatures, getNationTerritories, cityAtLatLon, cityLatLon, getHexMesh } from './cityFeatures';
+import { getCityFeatures, getNationTerritories, clipStats, cityAtLatLon, cityLatLon, getHexMesh } from './cityFeatures';
 
 const ringArea = (ring) => { let a = 0; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] + ring[i][0]) * (ring[j][1] - ring[i][1]); return Math.abs(a) / 2; };
 const area = (f) => f.geometry.coordinates.reduce((s, poly) => s + ringArea(poly[0]) - poly.slice(1).reduce((h, r) => h + ringArea(r), 0), 0);
@@ -37,11 +37,12 @@ describe('city features from state', () => {
 
   it('clips every territory to the coast without falling back to hex shapes', async () => {
     const land = await loadLandFeatures();
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    getCityFeatures({ ...state, world: { ...state.world, tileOwner: { ...state.world.tileOwner } } }, land);
-    expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
-  });
+    [['fr', 1], ['eg', 7], ['ru', 3]].forEach(([playerNationId, rngSeed]) => {
+      clipStats.fallbacks = 0;
+      getCityFeatures(createInitialState({ playerNationId, rngSeed }), land);
+      expect(clipStats.fallbacks, `${playerNationId} ${rngSeed}`).toBe(0);
+    });
+  }, 60000);
 
   it('builds one territory per nation whose land is the union of its cities', async () => {
     const land = await loadLandFeatures();

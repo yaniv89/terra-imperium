@@ -22,7 +22,7 @@ import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx, tiltFor, lightRig } from './scale';
+import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, hexInnerUnits } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
 import { styleOfLand } from '../../../data/architecture';
@@ -152,7 +152,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     // Ground claimed this frame: towns, then works, then the fields round towns; nothing overlaps.
     const lean = Math.sin(TILT);
     const occ = createOccupancy(lean);
-    const ringFields = []; // [{ mesh, at }] placed once the works have claimed their ground
+    const ringFields = []; // [{ mesh, at, s }] placed once the works have claimed their ground
 
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
@@ -213,11 +213,14 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       }
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
       // the town's ground (and its wall ring) is claimed first; its fields come after the works
-      occ.claim(at.x, at.y, ((campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0)) * s);
-      if (mesh.userData.fields?.length) ringFields.push({ mesh, at });
+      // the town (and its wall ring) never wider than its own hex
+      const radius = (campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0);
+      const ts = townUnitPx(k, radius, hexInnerUnits(projection, getTiles(), region.tile) * k);
+      occ.claim(at.x, at.y, radius * ts);
+      if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       mesh.position.set(at.x, -at.y, at.y * 0.05);
       mesh.rotation.set(TILT, 0, 0);
-      mesh.scale.setScalar(s);
+      mesh.scale.setScalar(ts);
       mesh.visible = true;
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
@@ -289,11 +292,12 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     t.fieldWorks.forEach((g, tile) => { if (!seenFields.has(tile)) g.visible = false; });
     // The fields round towns: shown where they are on land and clear of everything placed so far
     // (the ring is in model units, so where it falls on the Earth changes with the zoom).
-    ringFields.forEach(({ mesh, at }) => {
+    // (the fields are children of the town, so they share its hex-capped scale `ts`)
+    ringFields.forEach(({ mesh, at, s: ts }) => {
       mesh.userData.fields.forEach(({ field, f }) => {
         const ends = [0, -0.75, 0.75].map((u) => [f.x + u * Math.cos(f.yaw), f.z - u * Math.sin(f.yaw)]);
-        field.visible = ends.every(([fx, fz]) => landAt(at.x + fx * s, at.y + fz * s * lean))
-          && occ.take(at.x + f.x * s, at.y + f.z * s * lean, FIELD_DISC * s);
+        field.visible = ends.every(([fx, fz]) => landAt(at.x + fx * ts, at.y + fz * ts * lean))
+          && occ.take(at.x + f.x * ts, at.y + f.z * ts * lean, FIELD_DISC * ts);
       });
     });
     // Trees last, on free land only.

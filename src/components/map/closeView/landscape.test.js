@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getTiles } from '../../../data/geo/tiles';
 import { landscapeOnScreen, landTilesOnScreen, treeKindOf, treeSpots, workOf, tileIsCleared, hash01, TREES_FROM_K, TREES_PER_HEX, CONIFER_LAT } from './landscape';
-import { tiltFor, TILT_CLOSE, TILT_SUPER, unitPx, SUPER_FROM_K } from './scale';
+import { tiltFor, TILT_CLOSE, TILT_SUPER, unitPx, SUPER_FROM_K, townUnitPx, HEX_FILL } from './scale';
 import { waterness, snowiness, riverness, detailWeight, pxPerKm, DETAIL_SCALES_KM } from './terrainShader';
 import { visibleRasterTiles, RASTER_MAX_Z } from '../../../data/geo/rasterTiles';
 
@@ -63,6 +63,10 @@ describe('close view landscape', () => {
     expect(unitPx(20)).toBeCloseTo(11); expect(unitPx(SUPER_FROM_K)).toBeCloseTo(22);
     expect(unitPx(200)).toBeGreaterThan(unitPx(100));
     expect(unitPx(200) / 200).toBeLessThan(unitPx(SUPER_FROM_K) / SUPER_FROM_K * 0.7);
+    // a town never wider than its hex: the scale is capped by the hex's inner radius on screen
+    expect(townUnitPx(120, 4, 100)).toBeCloseTo((HEX_FILL * 100) / 4);
+    expect(townUnitPx(20, 2, 400)).toBeCloseTo(unitPx(20));
+    expect(townUnitPx(20, 2, 0)).toBeCloseTo(unitPx(20));
   });
 });
 
