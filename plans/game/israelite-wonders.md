@@ -59,8 +59,8 @@ zoom, Team tinted in the owner's colour, ground tinted into the land. Scale foll
 `townUnitPx` with the model's measured radius (up to 120 m), capped by the coast and by half the
 gap to the next town; a wonder tile with a model counts as a town for that gap, so a city and
 its wonder never grow into each other. With no files nothing changes (the banner and the flat
-map's star stay). The art branch (art/maghreb-westafrica) had not delivered solomons_temple.glb
-and masada.glb when this was built; the browser check used block-out stand-ins, not committed.
+map's star stay). The model files themselves come from the art branch (art/maghreb-westafrica)
+and are not part of this branch.
 
 ## 5. UI
 
@@ -75,4 +75,16 @@ them never sees them in its list; the reason text says "Only a city on Israel's 
   Cairo no, a conqueror of Jerusalem yes, the player never for an AI city), the build through
   the turn (tile mark, prestige, the next tier), and each effect on its own city only.
 - src/components/map/closeView/wonderAssets.test.js, src/components/city/wonderIcons.test.js.
-- Balance: see the commit message for the compare table (PLAYER=au, 150 turns, seeds 11-14).
+- Balance (`PLAYER=au compare.sh a1b70b6 150 11-14`): no metric significant; nonFinite and
+  auditViolations 0 on every seed. The runs are not bit-identical: AI Israel builds Solomon's
+  Temple (AI parity, aiProduction.js), which changes Jerusalem's queue, and the world drifts
+  from there by chaos (wars 7.5 to 5.75, CI [-9.4, 5.9]; plague cities up, CI crossing 0). A
+  control run with the AI barred from national wonders (temporary patch, seeds 11-12) was
+  identical to base on all 55 metrics, so the wonders themselves move nothing outside Israel.
+- Browser: first block-out stand-ins, then the delivered models from art/maghreb-westafrica
+  (copied in for the check only, not committed), on tiles 82473 and 82474 beside Jerusalem at
+  zoom 40, 60 and 100, tier 1 and tier 3: the built tier shows, LODs switch, the scale stays
+  inside the hex, no page errors.
+- Art note for the model branch: both files stand on a large round ground disc in the `Town`
+  material, which reads near black on the desert. Naming that disc's material `Ground` (as the
+  towns do) lets the close view tint it into the land (groundBlend.js), or the disc can go.
