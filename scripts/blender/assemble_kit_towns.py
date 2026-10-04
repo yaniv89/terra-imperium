@@ -66,6 +66,7 @@ LANDMARKS = {
 }
 # Modern landmarks may stand up to 50 m in the big town (art spec 3b): its height cap is raised.
 MODERN_BIG_CAP = (1.9, 5.0)
+LOD1_BUDGET = 10000  # a whole town's LOD1 triangles (brief: 60,000 / 10,000 / 1,500)
 TOWNS = [(s, v) for s in ('small', 'medium', 'big') for v in ('a', 'b')]
 
 
@@ -537,12 +538,12 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
         tag = '%s-%s' % (size, variant)
         if only and tag not in only:
             continue
-        state = {}
+        state = {'lod1': 1.0}  # lod1: how much harder than usual LOD1 is decimated (dense kits)
 
         def kit_maker(state=state):
             # runs inside build_file's make_materials, after its factory reset: import the kit here
             def lod1_ratio(p):
-                return 1.0 if p.tris < 200 else (0.45 if p.name.startswith('house') else 0.5)
+                return 1.0 if p.tris < 200 else (0.45 if p.name.startswith('house') else 0.5) * state['lod1']
 
             def lod2_tris(p):
                 return 110
@@ -593,7 +594,14 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
                         landmarks=[(n, round(s, 2)) for n, _b, s in lms])
             print('layout', name, info)
         file_name = '%s-town-%s-%s-%s' % (age, size, variant, style)
-        counts = tt.build_file(file_name, [(name, layout, ground)], out_dir, atlas=atlas, seed=seed, write=False)
+        for _ in range(3):
+            counts = tt.build_file(file_name, [(name, layout, ground)], out_dir, atlas=atlas, seed=seed, write=False)
+            lod1 = counts[name]['LOD1']
+            if lod1 <= LOD1_BUDGET * 0.97:
+                break
+            # a dense kit (the 2048-atlas deliveries): decimate LOD1 harder and build again
+            state['lod1'] *= LOD1_BUDGET * 0.92 / lod1
+            print('LOD1 %d over the %d budget: rebuilding at x%.2f' % (lod1, LOD1_BUDGET, state['lod1']))
         height = finish(out_dir, file_name)
         results[file_name] = dict(info, triangles=counts[name], height=round(height, 3))
     return results

@@ -37,7 +37,8 @@ describe('artist town models', () => {
     expect(townAssetUrl('classical', 'medium', 0, styleOfLand('mn', 'classical'))).toMatch(/classical-town-medium-b\.glb/);
     expect(townAssetUrl('classical', 'medium', 0, styleOfLand('cn', 'classical'))).toMatch(/classical-town-medium-a-sinic/);
     expect(townAssetUrl('classical', 'small', 1, styleOfLand('jp', 'classical'))).toMatch(/classical-town-small-b-sinic/);
-    expect(townAssetUrl('classical', 'medium', 1, 'eastafrica')).toMatch(/classical-town-medium-a\.glb/);
+    expect(townAssetUrl('classical', 'medium', 1, null)).toMatch(/classical-town-medium-a\.glb/);
+    expect(townAssetUrl('classical', 'medium', 1, 'eastafrica')).toMatch(/classical-town-medium-b-eastafrica/);
     expect(townAssetUrl('classical', 'medium', 1, styleOfLand('eg', 'classical'))).toMatch(/classical-town-medium-b-nile/);
     expect(sharedAssetUrl('classical')).toMatch(/shared-classical/);
     expect(townVariant('kingdoms', 'levant')).toBe('b');

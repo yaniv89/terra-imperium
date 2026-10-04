@@ -1,0 +1,107 @@
+{
+  "file": "classical-town-medium-b-eastafrica.glb",
+  "kind": "town",
+  "bytes": 4284036,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 24012,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.914,
+          "depth": 6.055,
+          "height": 2.28,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 9251,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.914,
+          "depth": 6.055,
+          "height": 2.28,
+          "min_height": -0.0
+        },
+        "LOD2": {
+          "triangles": 626,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.914,
+          "depth": 6.055,
+          "height": 2,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.055
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-medium-b-eastafrica_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 13204
+    },
+    {
+      "name": "classical-town-medium-b-eastafrica_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 339776
+    },
+    {
+      "name": "classical-town-medium-b-eastafrica_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 401350
+    }
+  ],
+  "passed": true
+}
