@@ -1,0 +1,107 @@
+{
+  "file": "modern-town-big-a-steppe.glb",
+  "kind": "town",
+  "bytes": 5943488,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-big-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 38388,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.898,
+          "depth": 7.956,
+          "height": 4.202,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 7360,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.898,
+          "depth": 7.956,
+          "height": 4.202,
+          "min_height": -0.0
+        },
+        "LOD2": {
+          "triangles": 726,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.898,
+          "depth": 7.956,
+          "height": 3.923,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 7.956
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "modern-town-big-a-steppe_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 9524
+    },
+    {
+      "name": "modern-town-big-a-steppe_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 322896
+    },
+    {
+      "name": "modern-town-big-a-steppe_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 529672
+    }
+  ],
+  "passed": true
+}
