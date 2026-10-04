@@ -120,7 +120,7 @@ def make_materials():
                    bond=(0.03, 0.016, 0.002))
     tm.mat_simple('snb_plank', ['#4c4036', '#5f5246', '#6e6155', '#544538'], scale=7.0,
                   stripes={'dir': 'X', 'scale': 60.0, 'distortion': 2.0}, bump=0.4)
-    tm.mat_simple('snb_fence', ['#3e3226', '#5a4836', '#6c5842', '#2e251c'], scale=10.0,
+    tm.mat_simple('snb_fence', ['#5a4836', '#75604a', '#8a7356', '#4a3b2c'], scale=10.0,
                   stripes={'dir': 'X', 'scale': 160.0, 'distortion': 1.0}, bump=0.6)  # staked fence panels
     tm.mat_simple('snb_pot', ['#6a3e2a', '#84513a', '#94604a'], scale=16.0, bump=0.2)
     tm.mat_simple('snb_black', ['#262220', '#36302b', '#2c2724'], scale=14.0, bump=0.2)
@@ -163,7 +163,7 @@ def _solid(ms, mat, verts, faces, frame, lod=2, only=None):
 
 # ---- roofs --------------------------------------------------------------------------------------
 
-def hipgable_roof(ms, f, w, d, z, rise, mat='snb_thatch', k=0.42, band=0.035, axis='x', lod=2, gable_mat='snb_bamboo'):
+def hipgable_roof(ms, f, w, d, z, rise, mat='snb_thatch', k=0.42, band=0.035, axis='x', lod=2, gable_mat='snb_bamboo', gable_lod=0):
     """The Shang hip-and-gable thatch over a w x d eave footprint (eave top at z), its ridge along
     the frame's X (or Y): hips rise from the eaves to a level line `k` of the way up the half depth,
     then a small upright gable (woven bamboo) runs to the ridge. One closed solid. Returns the
@@ -189,7 +189,7 @@ def hipgable_roof(ms, f, w, d, z, rise, mat='snb_thatch', k=0.42, band=0.035, ax
         gv = [(s * (xg + 0.002), -dg * 0.94, zg + 0.004), (s * (xg + 0.002), dg * 0.94, zg + 0.004),
               (s * (xg + 0.002), 0, zt - 0.012), (s * (xg + 0.008), -dg * 0.94, zg + 0.004),
               (s * (xg + 0.008), dg * 0.94, zg + 0.004), (s * (xg + 0.008), 0, zt - 0.012)]
-        _solid(ms, gable_mat, gv, [(0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)], f, lod=1)
+        _solid(ms, gable_mat, gv, [(0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)], f, lod=gable_lod)
     return f, xg
 
 
@@ -210,17 +210,17 @@ def gable_roof(ms, f, w, d, z, rise, mat='snb_thatch', band=0.035, lod=2, gable_
     return f, W
 
 
-def ridge(ms, f, r, z, pegs=4, over=0.03, cross=0.09, bundle=0.016, lod=1):
+def ridge(ms, f, r, z, pegs=4, over=0.03, cross=0.09, bundle=0.016, lod=1, ends=0):
     """The tied ridge (materials sheet): a straw bundle along the ridge, a timber ridge pole on it
     held by pairs of crossed pegs, and crossed poles standing up at both ends."""
     length = 2 * r + 2 * over
-    ms.cyl('snb_thatch', bundle, bundle, 2 * r + 0.01, at=(-r - 0.005, 0, z - bundle * 0.3), rot=(0, 90, 0), segs=6, lod=lod, frame=f)
-    ms.cyl('snb_timber', 0.009, 0.009, length, at=(-length / 2, 0, z + bundle * 0.7), rot=(0, 90, 0), segs=6, lod=lod, frame=f)
+    ms.cyl('snb_thatch', bundle, bundle, 2 * r + 0.01, at=(-r - 0.005, 0, z - bundle * 0.3), rot=(0, 90, 0), segs=6, lod=0, frame=f)
+    ms.cyl('snb_timber', 0.009, 0.009, length, at=(-length / 2, 0, z + bundle * 0.7), rot=(0, 90, 0), segs=4 if lod >= 1 else 6, lod=lod, frame=f)
     for kk in range(pegs):
         px = -r + 0.02 + (2 * r - 0.04) * kk / max(1, pegs - 1)
         crossed(ms, f, px, z + bundle * 0.5, 0.05, 32, t=0.007, lod=0)
     for px in (-r - over * 0.4, r + over * 0.4):
-        crossed(ms, f, px, z + bundle * 0.5, cross, 28, t=0.009, lod=lod, up=0.55)
+        crossed(ms, f, px, z + bundle * 0.5, cross, 28, t=0.009, lod=ends, up=0.55)
 
 
 def crossed(ms, f, x, z, length, ang, t=0.008, lod=0, up=0.42):
@@ -233,7 +233,7 @@ def crossed(ms, f, x, z, length, ang, t=0.008, lod=0, up=0.42):
 
 # ---- small things -------------------------------------------------------------------------------
 
-def fence(ms, f, pts, h=0.09, step=0.14, gaps=(), lod=1, posts=True):
+def fence(ms, f, pts, h=0.09, step=0.4, gaps=(), lod=1, posts=True):
     """A staked fence along the polyline `pts` in frame f: a panel of close stakes (the material
     carries them) with a heavier post every `step` at LOD0. `gaps` are (segment, centre fraction,
     width) openings."""
@@ -265,13 +265,15 @@ def fence(ms, f, pts, h=0.09, step=0.14, gaps=(), lod=1, posts=True):
 
 
 def pot(ms, f, x, y, s=1.0, z=G, mat='snb_pot'):
-    tt.jar(ms, f, x, y, s, z=z, mat=mat)
+    """A clay or bronze pot (a lighter lathe than the shared jar)."""
+    p = [(0.0, 0.0), (0.02 * s, 0.002), (0.032 * s, 0.035 * s), (0.016 * s, 0.075 * s), (0.018 * s, 0.084 * s), (0.0, 0.084 * s)]
+    ms.lathe(mat, [(r, zz + z) for r, zz in p], at=(x, y, 0), segs=7, lod=0, frame=f)
 
 
 def big_jar(ms, f, x, y, s=1.0, z=G):
     """A big dark storage jar (street sheet)."""
-    p = [(0.0, 0.0), (0.03, 0.002), (0.05, 0.04), (0.052, 0.07), (0.035, 0.1), (0.028, 0.108), (0.0, 0.108)]
-    ms.lathe('snb_black', [(r * s, zz * s + z) for r, zz in p], at=(x, y, 0), segs=10, lod=0, frame=f)
+    p = [(0.0, 0.0), (0.03, 0.002), (0.052, 0.055), (0.03, 0.104), (0.0, 0.104)]
+    ms.lathe('snb_black', [(r * s, zz * s + z) for r, zz in p], at=(x, y, 0), segs=8, lod=0, frame=f)
 
 
 def bits(ms, f, x, y, rng, n=4):
@@ -348,7 +350,7 @@ def _walls(ms, f, bw, bd, h, z, post_step, door_x, door_w, wall='snb_earth', pos
     ms.box(wall, (bw, bd, h), at=(0, 0, z), lod=lod, frame=f, bevel=0.003)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            ms.box(post, (corner, corner, h + 0.006), at=(sx * (bw / 2 - corner * 0.3), sy * (bd / 2 - corner * 0.3), z), lod=1, frame=f)
+            ms.box(post, (corner, corner, h + 0.006), at=(sx * (bw / 2 - corner * 0.3), sy * (bd / 2 - corner * 0.3), z), lod=0, frame=f)
     n = max(2, round(bw / post_step))
     for sy in (-1, 1):
         for i in range(1, n):
@@ -374,7 +376,6 @@ def _door(ms, f, x, y, w, h, z=G, jamb='snb_timber'):
 
 def _window(ms, f, x, y, z, w=0.05, h=0.045, face=-1):
     ms.box('snb_mat', (w, 0.008, h), at=(x, y + face * 0.004, z), lod=0, frame=f)
-    ms.box('snb_timber', (w + 0.014, 0.01, 0.008), at=(x, y + face * 0.005, z - 0.006), lod=0, frame=f)
 
 
 def _steps(ms, f, x, y0, w, h, z=G, n=5, run=0.03, mat='snb_stone', cheeks=True, lod=1, toward=-1):
@@ -402,7 +403,7 @@ def platform(ms, f, w, d, h, x=0.0, y=0.0, mat='snb_platform', lod=2, posts=0.0)
                 ms.box('snb_post', (0.016, 0.016, h + 0.02), at=(x + sx * (w / 2 + 0.006), y - d / 2 + d * i / n, G - 0.01), lod=0, frame=f)
 
 
-def railing(ms, f, pts, z, h=0.05, mat='snb_red', step=0.08, gaps=(), lod=0):
+def railing(ms, f, pts, z, h=0.05, mat='snb_red', step=0.11, gaps=(), lod=0):
     """A low lacquered railing along a polyline: a top rail, a mid rail and balusters."""
     for si, ((x0, y0), (x1, y1)) in enumerate(zip(pts, pts[1:])):
         length = math.hypot(x1 - x0, y1 - y0)
@@ -478,7 +479,7 @@ def _yard(ms, rng, f, w, d, yard):
     """A staked yard behind the house (toward the town's edge) with a garden bed, a shed, pots or
     a woodpile, and now and then a tree."""
     y0, y1 = d / 2 - 0.01, d / 2 + yard
-    fence(ms, f, [(-w / 2 + 0.02, y0), (-w / 2 + 0.02, y1), (w / 2 - 0.02, y1), (w / 2 - 0.02, y0)], h=0.085, step=0.16)
+    fence(ms, f, [(-w / 2 + 0.02, y0), (-w / 2 + 0.02, y1), (w / 2 - 0.02, y1), (w / 2 - 0.02, y0)], h=0.085)
     ym = (y0 + y1) / 2
     r = rng.random()
     if r < 0.4:
@@ -503,7 +504,7 @@ def hall(ms, rng, f, w, d, z, wall_h, rise, door_x=0.0, windows=True, back_windo
     between dark posts, a plank double door, reed-mat windows, the hip-and-gable thatch."""
     over = 0.05
     bw, bd = w - 2 * over, d - 2 * over
-    _walls(ms, f, bw, bd, wall_h, z, 0.11, door_x, 0.09)
+    _walls(ms, f, bw, bd, wall_h, z, 0.16, door_x, 0.09)
     _door(ms, f, door_x, -bd / 2, 0.085, wall_h * 0.72, z=z)
     if windows:
         for wx in (-bw * 0.32, bw * 0.32):
@@ -512,7 +513,7 @@ def hall(ms, rng, f, w, d, z, wall_h, rise, door_x=0.0, windows=True, back_windo
     if back_window:
         _window(ms, f, rng.uniform(-0.2, 0.2) * bw, bd / 2, z + wall_h * 0.4, face=1)
     rf, r = hipgable_roof(ms, f, w, d, z + wall_h + 0.006, rise, 'snb_thatch', k=k)
-    ridge(ms, rf, r, z + wall_h + 0.006 + rise, pegs=ridge_pegs or max(3, round(2 * r / 0.07)))
+    ridge(ms, rf, r, z + wall_h + 0.006 + rise, pegs=ridge_pegs or max(2, round(2 * r / 0.13)))
     return bw, bd
 
 
@@ -534,7 +535,7 @@ def common_house(ms, rng, x, y, w, d, yaw=None, yard=0.0, awning=False, front_fe
             ms.box('snb_earth', (b - a, t, wh), at=((a + b) / 2, -D + t / 2, G), lod=1, frame=f, bevel=0.003)
     # the gatehouse: two posts, plank leaves, a little hip-and-gable thatch
     for sx in (-1, 1):
-        ms.box('snb_timber', (0.018, 0.018, wh + 0.04), at=(gx + sx * (gw / 2 + 0.005), -D + t / 2, G), lod=1, frame=f)
+        ms.box('snb_timber', (0.018, 0.018, wh + 0.04), at=(gx + sx * (gw / 2 + 0.005), -D + t / 2, G), lod=0, frame=f)
     ms.box('snb_door', (gw, 0.01, wh - 0.01), at=(gx, -D + t / 2, G), lod=1, frame=f)
     gf = f @ Matrix.Translation(Vector((gx, -D + t / 2, 0)))
     hipgable_roof(ms, gf, gw + 0.11, 0.1, G + wh + 0.04, 0.075, k=0.4, band=0.022, lod=1)
@@ -554,7 +555,7 @@ def common_house(ms, rng, x, y, w, d, yaw=None, yard=0.0, awning=False, front_fe
             cy = -D + t + 0.04 + sd / 2
             sf = f @ Matrix.Translation(Vector((cx, cy, 0))) @ Matrix.Rotation(math.radians(90 * sx), 4, 'Z')
             # local frame: X along the shed (along the plot's depth), -Y toward the court
-            ms.box('snb_earth', (sd - 0.02, sw * 0.6, 0.12), at=(0, sw * 0.18, G), lod=1, frame=sf)
+            ms.box('snb_earth', (sd - 0.02, sw * 0.6, 0.12), at=(0, sw * 0.18, G), lod=0, frame=sf)
             for px in (-sd / 2 + 0.02, 0.0, sd / 2 - 0.02):
                 ms.box('snb_timber', (0.014, 0.014, 0.12), at=(px, -sw / 2 + 0.02, G), lod=0, frame=sf)
             rf, r = hipgable_roof(ms, sf, sd + 0.04, sw + 0.04, G + 0.13, 0.12, k=0.4, band=0.025, lod=1)
@@ -605,16 +606,16 @@ def rich_house(ms, rng, x, y, w, d, yaw=None, porch=False, yard=0.0, awning=Fals
     ny = max(2, round(vd / 0.12))
     for i in range(nx + 1):
         for sy in (-1, 1):
-            ms.box('snb_red', (0.02, 0.02, 0.25), at=(-vw / 2 + vw * i / nx, sy * vd / 2, z), lod=1, frame=hf)
+            ms.box('snb_red', (0.02, 0.02, 0.25), at=(-vw / 2 + vw * i / nx, sy * vd / 2, z), lod=1 if sy < 0 and i % 2 == 0 else 0, frame=hf)
     for j in range(1, ny):
         for sx in (-1, 1):
-            ms.box('snb_red', (0.02, 0.02, 0.25), at=(sx * vw / 2, -vd / 2 + vd * j / ny, z), lod=1, frame=hf)
+            ms.box('snb_red', (0.02, 0.02, 0.25), at=(sx * vw / 2, -vd / 2 + vd * j / ny, z), lod=0, frame=hf)
     ms.box('snb_timber', (vw + 0.02, vd + 0.02, 0.016), at=(0, 0, z + 0.24), lod=1, frame=hf)  # the plate
     sw = min(0.2, w * 0.24)
     railing(ms, hf, [(-sw / 2, -vd / 2), (-vw / 2, -vd / 2), (-vw / 2, vd / 2), (vw / 2, vd / 2), (vw / 2, -vd / 2), (sw / 2, -vd / 2)], z,
-            h=0.045, step=0.07)
+            h=0.045, step=0.11)
     rf, r = hipgable_roof(ms, hf, pw + 0.06, pd + 0.02, z + 0.256, 0.3, 'snb_thatch', k=0.4, band=0.04)
-    ridge(ms, rf, r, z + 0.256 + 0.3, pegs=max(4, round(2 * r / 0.07)), cross=0.11, bundle=0.02)
+    ridge(ms, rf, r, z + 0.256 + 0.3, pegs=max(3, round(2 * r / 0.12)), cross=0.11, bundle=0.02)
     _steps(ms, f, 0.0, py - pd / 2, sw, ph, n=5, run=0.022)
     if porch:  # a gabled gate porch on red posts over the foot of the steps
         yy = py - pd / 2 - 5 * 0.022 - 0.03
@@ -628,7 +629,7 @@ def rich_house(ms, rng, x, y, w, d, yaw=None, porch=False, yard=0.0, awning=Fals
         pot(ms, f, (sw / 2 + 0.06 + 0.05 * k), py - pd / 2 - 0.035, 1.0, mat='snb_bronze' if k == 0 else 'snb_pot')
     if front > 0.04:
         fy = -d / 2 - front
-        fence(ms, f, [(-w / 2, py - pd / 2 + 0.02), (-w / 2, fy), (w / 2, fy), (w / 2, py - pd / 2 + 0.02)], h=0.08, step=0.12,
+        fence(ms, f, [(-w / 2, py - pd / 2 + 0.02), (-w / 2, fy), (w / 2, fy), (w / 2, py - pd / 2 + 0.02)], h=0.08,
               gaps=((1, 0.5, 0.16),))
         bush(ms, *(f @ Vector((-w * 0.36, fy + 0.06, 0)))[:2])
         bush(ms, *(f @ Vector((w * 0.36, fy + 0.06, 0)))[:2], s=0.8)
@@ -687,8 +688,8 @@ def gate(ms, rng, x, y, yaw=0.0, width=0.5, h=0.34):
         lf = f @ Matrix.Translation(Vector((sx * (width / 2 - 0.01), -0.06, G))) @ Matrix.Rotation(math.radians(sx * -70), 4, 'Z')
         ms.box('snb_door', (0.012, width / 2 - 0.02, h * 0.7), at=(0, -(width / 2 - 0.02) / 2, 0), lod=1, frame=lf)
     ms.box('snb_timber', (width + 0.12, 0.16, 0.03), at=(0, 0, G + h), lod=1, frame=f)
-    rf, r = hipgable_roof(ms, f, width + 0.24, 0.26, G + h + 0.04, 0.16, k=0.42, band=0.03)
-    ridge(ms, rf, r, G + h + 0.2, pegs=4, cross=0.09)
+    rf, r = hipgable_roof(ms, f, width + 0.24, 0.26, G + h + 0.04, 0.16, k=0.42, band=0.03, gable_lod=1)
+    ridge(ms, rf, r, G + h + 0.2, pegs=4, cross=0.09, ends=1)
     px = -(width / 2 + 0.58)
     ms.cyl('snb_timber', 0.01, 0.008, 0.4, at=(px, 0, G + 0.24), segs=6, lod=1, frame=f)
     tt.pennant(ms, f, px, 0, G + 0.635, yaw=-160, w=0.2, h=0.12)
@@ -729,8 +730,8 @@ def vessel(ms, f, x, y, z, s=1.0):
     for k in range(3):
         a = 2 * math.pi * k / 3 + 0.5
         ms.box('snb_bronze', (0.008 * s, 0.008 * s, 0.03 * s), at=(x + 0.02 * s * math.cos(a), y + 0.02 * s * math.sin(a), z), lod=0, frame=f)
-    p = [(0.0, 0.0), (0.024, 0.004), (0.034, 0.02), (0.034, 0.042), (0.0, 0.042)]
-    ms.lathe('snb_bronze', [(r * s, zz * s + z + 0.026 * s) for r, zz in p], at=(x, y, 0), segs=9, lod=0, frame=f)
+    p = [(0.0, 0.0), (0.03, 0.006), (0.034, 0.042), (0.0, 0.042)]
+    ms.lathe('snb_bronze', [(r * s, zz * s + z + 0.026 * s) for r, zz in p], at=(x, y, 0), segs=8, lod=0, frame=f)
     for sx in (-1, 1):
         ms.box('snb_bronze', (0.006 * s, 0.014 * s, 0.018 * s), at=(x + sx * 0.026 * s, y, z + 0.068 * s), lod=0, frame=f)
 
@@ -776,7 +777,7 @@ def casting_hall(ms, rng, x, y, w=1.8, d=1.2, yaw=None, top=1.0):
     for i in range(1, nx):  # tie beams across
         ms.box('snb_timber', (0.02, hd, 0.022), at=(-hw / 2 + hw * i / nx, 0, z + post_h - 0.02), lod=0, frame=hf)
     rf, r = gable_roof(ms, hf, hw + 0.16, hd + 0.3, z + post_h, rise, band=0.045, inset=0.08)
-    ridge(ms, rf, r - 0.03, z + post_h + rise, pegs=max(4, round(2 * r / 0.1)), cross=0.16, bundle=0.024)
+    ridge(ms, rf, r - 0.03, z + post_h + rise, pegs=max(4, round(2 * r / 0.1)), cross=0.16, bundle=0.024, ends=1)
     # the poles held down across the slopes (top view)
     for px in (-hw * 0.18, hw * 0.18):
         for sy in (-1, 1):
@@ -789,7 +790,7 @@ def casting_hall(ms, rng, x, y, w=1.8, d=1.2, yaw=None, top=1.0):
     # the staked fence on the platform's sides and back
     e = 0.025
     fence(ms, f, [(-w / 2 + e, -d / 2 + 0.12), (-w / 2 + e, d / 2 - e), (w / 2 - e, d / 2 - e), (w / 2 - e, -d / 2 + 0.12)],
-          h=0.12 * hs, step=0.12)
+          h=0.12 * hs, step=0.24)
     # the furnace and the work floor
     zf = z + 0.002
     furnace(ms, hf, -hw * 0.22, 0.02, zf, s=max(0.75, hs))
@@ -894,7 +895,7 @@ def oracle_shrine(ms, rng, x, y, w=1.8, d=1.5, yaw=None, top=1.4):
     hx = -w / 2 + 0.05 + hw / 2
     hy = -d / 2 + 0.16 * max(0.7, s) + hd / 2
     hf = f @ Matrix.Translation(Vector((hx, hy, 0)))
-    wall_h = 0.27 * hs
+    wall_h = 0.23 * hs
     iw, idp = hw - 0.16, hd - 0.18
     ms.box('snb_plank', (iw, idp, wall_h), at=(0, 0.02, z), lod=2, frame=hf, bevel=0.003)
     n = max(3, round(iw / 0.12))
@@ -910,8 +911,8 @@ def oracle_shrine(ms, rng, x, y, w=1.8, d=1.5, yaw=None, top=1.4):
         ms.box('snb_post', (0.026, 0.026, wall_h), at=(sx * vw / 2, 0, z), lod=1, frame=hf)
     ms.box('snb_timber', (vw + 0.03, vd + 0.03, 0.022), at=(0, 0, z + wall_h - 0.01), lod=1, frame=hf)
     rise = 0.6 * hs - ph - wall_h - 0.01
-    rf, r = hipgable_roof(ms, hf, hw + 0.08, hd + 0.1, z + wall_h + 0.01, rise, k=0.4, band=0.04)
-    ridge(ms, rf, r, z + wall_h + 0.01 + rise, pegs=max(4, round(2 * r / 0.08)), cross=0.13, bundle=0.022)
+    rf, r = hipgable_roof(ms, hf, hw + 0.08, hd + 0.1, z + wall_h + 0.01, rise, k=0.4, band=0.04, gable_lod=1)
+    ridge(ms, rf, r, z + wall_h + 0.01 + rise, pegs=max(4, round(2 * r / 0.08)), cross=0.13, bundle=0.022, ends=1)
     # the veranda's things: cauldrons either side of the door, the altar table with the shell
     vy = -vd / 2 + 0.05
     for vx in (-vw * 0.38, -vw * 0.2, vw * 0.2, vw * 0.38):

@@ -107,7 +107,7 @@ def make_materials():
     s('lvm_roof', ['#cbc2b0', '#d6cebd', '#c0b6a2'], scale=12.0, bump=0.2)
     s('lvm_canvas', ['#d8c9a6', '#e3d6b8', '#cbbb96'], scale=16.0, bump=0.3)
     s('lvm_pool', ['#2f8fb5', '#47aacb', '#6cc2d8'], scale=10.0, rough=0.2, bump=0.1)
-    s('lvm_frond', ['#3b5a22', '#557a2c', '#6c8f36', '#45652a'], scale=50.0, stripes={'dir': 'X', 'scale': 60.0, 'distortion': 2.0}, bump=0.6)
+    s('lvm_frond', ['#2c461a', '#3b5c22', '#4b6e28', '#33501e'], scale=50.0, stripes={'dir': 'X', 'scale': 60.0, 'distortion': 2.0}, bump=0.6)
     s('lvm_trunk', ['#6b5a44', '#7d6a50', '#5a4a37'], scale=20.0, stripes={'dir': 'Z', 'scale': 30.0, 'distortion': 0.5}, bump=0.7)
     s('lvm_bronze', ['#6b5639', '#7c6544', '#5d4a31'], scale=14.0, rough=0.45, metal=0.5, bump=0.1)
     s('lvm_louver', ['#5f5a52', '#77716a', '#4d4943'], scale=10.0, stripes={'dir': 'Z', 'scale': 40.0, 'distortion': 0.1}, bump=0.5)
