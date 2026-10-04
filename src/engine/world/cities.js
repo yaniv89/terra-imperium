@@ -38,6 +38,7 @@ import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
 import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTemplates';
 import { navalLinesFor } from '../../data/navalLines';
+import { noteOwnerCopy, noteOwnerWrite } from './tileIndex';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -165,6 +166,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
   // `inPlace`: the caller already copied the ownership and cities maps for the whole pass
   // (processSettlers founds several outposts a turn; a copy of 9,000 tiles each was the cost).
   const tileOwner = inPlace ? world.tileOwner : { ...world.tileOwner };
+  if (!inPlace) noteOwnerCopy(world.tileOwner, tileOwner);
   // A city centre is always its own: if another city's border already covered this tile
   // (capitals of neighbouring peoples can start a tile apart), that city gives it up.
   let cities = world.cities;
@@ -174,7 +176,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
     const trimmed = { ...p, tiles: p.tiles.filter((t) => t !== tile), worked: p.worked.filter((t) => t !== tile), locked: p.locked.filter((t) => t !== tile) };
     if (inPlace) cities[previous] = trimmed; else cities = { ...cities, [previous]: trimmed };
   }
-  claim.forEach((t) => { tileOwner[t] = id; });
+  claim.forEach((t) => { tileOwner[t] = id; noteOwnerWrite(tileOwner, t); });
   const facts = cityFacts(tiles, tile);
   const city = {
     id, name: name || tiles.names[tile] || `City ${tile}`, ownerId: nationId, founderId: nationId, tile, founded: turn,
@@ -423,7 +425,7 @@ export const buyTileCost = (city, candidate) => candidate.cost * BUY_TILE_MULT;
 const PRIVATE = Symbol('privateMaps');
 const ownMap = (world, key) => {
   const mine = world[PRIVATE] || (world[PRIVATE] = new Set());
-  if (!mine.has(world[key])) { world[key] = { ...world[key] }; mine.add(world[key]); }
+  if (!mine.has(world[key])) { const base = world[key]; world[key] = { ...base }; mine.add(world[key]); if (key === 'tileOwner') noteOwnerCopy(base, world[key]); }
   return world[key];
 };
 /** The turn's working world with private (writable) ownership and tile-state maps, for settlers.js
@@ -435,7 +437,7 @@ export const privateWorld = (world, pass = null) => {
   return w;
 };
 const claimTile = (world, city, tile, inPlace = false) => {
-  if (inPlace) { ownMap(world, 'tileOwner')[tile] = city.id; return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
+  if (inPlace) { ownMap(world, 'tileOwner')[tile] = city.id; noteOwnerWrite(world.tileOwner, tile); return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
   return { world: { ...world, tileOwner: { ...world.tileOwner, [tile]: city.id } }, city: { ...city, tiles: [...city.tiles, tile] } };
 };
 const writeTileState = (world, tile, entry, inPlace = false) => {

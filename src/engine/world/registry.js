@@ -97,12 +97,13 @@ const ringsBetweenRaw = (tiles, from, to, maxRing) => {
 // Static facts of a tile, memoised for good: the tiles within NEAR_RINGS of a centre, its old
 // terrain word, its lat/lon, and whether it touches the sea (a lake does not count).
 const nearTilesMemo = new Map();
+const bridgeMemo = new Map(); // `${capital tile}|${people}` -> { sig, bestId }
 const centreFacts = new Map();
 let seaTouch = null; // Int8Array: -1 unknown, 0 no, 1 yes
 let staticFor = null; // the grid the memos above belong to
 const forGrid = (tiles) => {
   if (staticFor === tiles) return;
-  staticFor = tiles; ringCache.clear(); nearTilesMemo.clear(); centreFacts.clear(); seaTouch = new Int8Array(tiles.count).fill(-1);
+  staticFor = tiles; ringCache.clear(); nearTilesMemo.clear(); bridgeMemo.clear(); centreFacts.clear(); seaTouch = new Int8Array(tiles.count).fill(-1);
 };
 const nearTilesOf = (tiles, centre) => {
   let hit = nearTilesMemo.get(centre);
@@ -166,11 +167,20 @@ export const buildRegistry = (regions) => {
     for (let k = 0; k < near.length; k++) { const o = centreBuf[near[k]]; if (o >= 0 && o !== i) add(o); }
     // The bridge links a people's CAPITAL to the nearest city of each neighbouring people, one
     // link per pair of peoples, so a nation's other cities can still be "interior".
+    // Memoised per (capital, people) on the candidates' ids: it changes only when that people
+    // founds, loses or wins back a city.
     if (city.isCapital) (COUNTRY_ADJACENCY[nation] || []).forEach((other) => {
       const candidates = (byNation[other] || []).filter((c) => (c.founderId || c.owner) === other);
-      let best = null; let bestD = Infinity;
-      candidates.forEach((c) => { const d = ringsBetween(tiles, city.tile, c.tile, BRIDGE_RINGS); if (d < bestD) { bestD = d; best = c; } });
-      if (best) add(indexOf.get(best.id));
+      const memoKey = `${city.tile}|${other}`;
+      let sig = ''; for (let k = 0; k < candidates.length; k++) sig += `${candidates[k].id},${candidates[k].tile};`;
+      let hit = bridgeMemo.get(memoKey);
+      if (!hit || hit.sig !== sig) {
+        let best = null; let bestD = Infinity;
+        candidates.forEach((c) => { const d = ringsBetween(tiles, city.tile, c.tile, BRIDGE_RINGS); if (d < bestD) { bestD = d; best = c; } });
+        hit = { sig, bestId: best ? best.id : null };
+        bridgeMemo.set(memoKey, hit);
+      }
+      if (hit.bestId != null) add(indexOf.get(hit.bestId));
     });
     const { lat, lon, terrain } = centreFactsOf(tiles, city.tile);
     // Coastal when the city's land touches the sea (a lake does not count) through its centre or
