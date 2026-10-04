@@ -1,0 +1,106 @@
+{
+  "file": "kingdoms-town-small-a-japan.glb",
+  "kind": "town",
+  "bytes": 3051884,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 14350,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.66,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 3248,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.628,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 532,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.66,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.059
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "kingdoms-town-small-a-japan_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 707302
+    },
+    {
+      "name": "kingdoms-town-small-a-japan_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 624378
+    },
+    {
+      "name": "kingdoms-town-small-a-japan_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 466520
+    }
+  ],
+  "passed": true
+}

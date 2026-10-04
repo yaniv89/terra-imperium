@@ -14,7 +14,7 @@ import ti_sinic_kingdoms as sk  # noqa: E402
 
 STYLE, SIZE, VARIANT = 'korea', 'medium', 'a'
 # call index -> the kit piece standing there: a landmark kind, 'skip', a house kind, or (kind, dict of x, y, s, top, yaw)
-OVERRIDE = {2: 'korea', 3: 'drum'}
+OVERRIDE = {2: ('korea', dict(x=-1.9, y=1.92)), 3: 'drum'}
 
 if __name__ == '__main__':
     sk.town_main(STYLE, SIZE, VARIANT, OVERRIDE)

@@ -1091,7 +1091,7 @@ def palace_small(ms, rng):
     terrace at the back with red pillars, lattice doors, grey cloth valances and a hip-and-gable
     roof; a paved court with trees. Built to fit the 12 m free centre (11 x 9 m)."""
     f = tm.house_frame(0, 0, 0)
-    W, D = 1.1, 0.9
+    W, D = 1.02, 0.86
     ms.box('snk_paving_square', (W - 0.04, D - 0.04, 0.008), at=(0, 0, G), lod=1, frame=f)
     wh = 0.22
     court_wall(ms, f, -W / 2, -D / 2, W / 2, -D / 2, h=wh, gaps=((0.5, 0.2),), lod=2)
@@ -1144,7 +1144,7 @@ def palace(ms, rng):
     balustraded terrace at the back, both with red pillars and hip-and-gable roofs; paved courts
     with pines. Built to fit the free centre (13 x 13 m)."""
     f = tm.house_frame(0, 0, 0)
-    W, D = 1.3, 1.3
+    W, D = 1.2, 1.18
     ms.box('snk_paving_square', (W - 0.04, D - 0.04, 0.008), at=(0, 0, G), lod=1, frame=f)
     wh = 0.3
     t = 0.07
@@ -1184,12 +1184,12 @@ def palace(ms, rng):
     # the main hall on the high terrace at the back
     bf = f @ Matrix.Translation(Vector((0, D / 2 - 0.27, 0)))
     tz = 0.2
-    ms.box('snk_balus', (0.8, 0.4, tz), at=(0, 0, G), lod=2, frame=bf)
-    balustrade(ms, bf, [(-0.4, -0.2), (-0.09, -0.2)], G + tz, h=0.04)
-    balustrade(ms, bf, [(0.09, -0.2), (0.4, -0.2)], G + tz, h=0.04)
+    ms.box('snk_balus', (0.74, 0.4, tz), at=(0, 0, G), lod=2, frame=bf)
+    balustrade(ms, bf, [(-0.37, -0.2), (-0.09, -0.2)], G + tz, h=0.04)
+    balustrade(ms, bf, [(0.09, -0.2), (0.37, -0.2)], G + tz, h=0.04)
     wedge(ms, 'snk_balus', bf, -0.09, 0.09, -0.2 - 0.22, -0.2 + 0.005, G, 0.004, tz, lod=1)
     zb = G + tz
-    hw, hd, hh = 0.64, 0.28, 0.34
+    hw, hd, hh = 0.6, 0.28, 0.34
     ms.box('snk_plaster', (hw, hd, hh), at=(0, 0.02, zb), lod=2, frame=bf)
     ms.box('snk_lacquer', (hw * 0.92, 0.01, hh * 0.84), at=(0, -hd / 2 + 0.024, zb), lod=0, frame=bf)
     for i in range(7):
@@ -1209,8 +1209,8 @@ def palace(ms, rng):
     balustrade(ms, bf, [(-uw / 2 - 0.02, -ud / 2), (uw / 2 + 0.02, -ud / 2)], z2, h=0.035, mat='snk_lacquer')
     curved_roof(ms, bf, uw + 0.04, ud + 0.04, z2 + 0.16, 0.24, over=0.1, curl=0.06, kind='xie', lod=2, horns=0.06, cy=0.02)
     for sx in (-1, 1):
-        pine(ms, sx * 0.32, -0.38, h=0.32, r=0.08)
-        pine(ms, sx * 0.4, 0.14, h=0.28, r=0.07)
+        pine(ms, sx * 0.3, -0.36, h=0.32, r=0.07)
+        pine(ms, sx * 0.34, 0.12, h=0.28, r=0.06)
     return f
 
 
@@ -1220,7 +1220,7 @@ def walls_medium(ms, rng):
     two team banners and a two-storey gate pavilion): a square ring 6.6 units across outside, the
     gate in the south, raised 1.3x like the other wall rings."""
     RAISE = tb.WALL_RAISE
-    R = 3.3  # outer half width
+    R = 3.18  # outer half width
     t = 0.24
     H = 0.6 * RAISE
     f = tm.house_frame(0, 0, 0)
