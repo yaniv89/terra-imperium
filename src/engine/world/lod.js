@@ -28,10 +28,12 @@ const hash = (str) => {
 };
 /** Does this nation settle on `turn`? Same offset as aiEconomy.js thinksThisTurn. */
 export const settlesThisTurn = (nationId, period, turn) => period <= 1 || (turn + hash(nationId)) % period === 0;
-/** How many turns a settlement on `turn` covers: every turn since the nation's last one (1 for a
- * nation that has never been sliced, so old saves and new nations start on the per-turn path). */
-export const turnsToSettle = (nation, turn) => {
+/** How many turns a settlement on `turn` covers: every turn since the nation's last one. With no
+ * record yet (a new game, whose first resolved turn is 2, or a save from before this field) it
+ * covers the turns since the start, at most one `period`. */
+export const turnsToSettle = (nation, turn, period = 1) => {
   const last = nation?.lodSettledTurn;
-  if (last == null || last >= turn) return 1;
+  if (last == null) return Math.max(1, Math.min(period, turn - 1));
+  if (last >= turn) return 1;
   return turn - last;
 };

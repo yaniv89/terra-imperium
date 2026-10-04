@@ -114,7 +114,7 @@ const isWorkable = (tiles, id) => {
 // and a new map with the same cities (sizes and yields change every turn, centres and names almost
 // never) reuses the last index: the key is the sorted centres and names.
 const blockedCache = new WeakMap();
-let lastBlocked = { key: null, map: null };
+let lastBlocked = { key: null, map: null, set: null };
 const markBlocked = (map, tiles, city) => {
   let frontier = [city.tile]; const seen = new Set(frontier);
   const claim = (t) => { const prev = map.get(t); if (!prev || prev.tile > city.tile) map.set(t, { tile: city.tile, name: city.name }); };
@@ -128,13 +128,23 @@ const markBlocked = (map, tiles, city) => {
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
   if (map) return map;
-  const list = Object.values(cities).map((c) => `${c.tile}:${c.name}`).sort();
+  const all = Object.values(cities);
+  const list = all.map((c) => `${c.tile}:${c.name}`).sort();
   const key = list.join('|');
   if (lastBlocked.key === key) { blockedCache.set(cities, lastBlocked.map); return lastBlocked.map; }
-  map = new Map();
-  Object.values(cities).forEach((city) => markBlocked(map, tiles, city));
+  // Only cities were added since the last index (the usual turn: a few outposts founded): copy it
+  // and mark the new ones. The lower-centre rule makes the result the same as a full build.
+  const prev = lastBlocked.set;
+  const set = new Set(list);
+  if (prev && prev.size <= set.size && [...prev].every((k) => set.has(k))) {
+    map = new Map(lastBlocked.map);
+    all.forEach((city) => { if (!prev.has(`${city.tile}:${city.name}`)) markBlocked(map, tiles, city); });
+  } else {
+    map = new Map();
+    all.forEach((city) => markBlocked(map, tiles, city));
+  }
   blockedCache.set(cities, map);
-  lastBlocked = { key, map };
+  lastBlocked = { key, map, set };
   return map;
 };
 // A city founded into a cities map that is written in place (processSettlers): its ring joins the
@@ -142,7 +152,7 @@ const blockedTiles = (cities, tiles) => {
 const noteFoundedCity = (cities, tiles, city) => {
   let map = blockedCache.get(cities);
   if (!map) return;
-  if (lastBlocked.map === map) { map = new Map(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null }; }
+  if (lastBlocked.map === map) { map = new Map(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null, set: null }; }
   markBlocked(map, tiles, city);
 };
 

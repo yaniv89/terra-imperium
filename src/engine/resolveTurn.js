@@ -651,7 +651,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if (!nation.economy) return; // a legacy/test fixture with no seeded economy stays on the old abstract-only path
     const tier = tiers.get(nId);
     if (!settling.has(nId)) return;
-    const turns = turnsToSettle(nation, newTurnNumber);
+    const turns = turnsToSettle(nation, newTurnNumber, lodPeriod(tier, nation));
     const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
     const powerIncome = getPowerIncome(aiEconState, nId);
     const pool = { ...nation.economy };

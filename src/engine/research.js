@@ -194,7 +194,8 @@ export const applyResearchTurn = (state) => {
       ...nation,
       research: r.research,
       economy: { ...nation.economy, techPoints: r.stock },
-      tech: { researched: [...(nation.tech?.researched || []), ...r.completed], ageId: r.techAgeId }
+      // The same researched list while nothing completed: its identity keys the tile-yield memos.
+      tech: r.completed.length || !nation.tech ? { researched: [...(nation.tech?.researched || []), ...r.completed], ageId: r.techAgeId } : (nation.tech.ageId === r.techAgeId ? nation.tech : { ...nation.tech, ageId: r.techAgeId })
     };
   });
   return nations ? { ...next, nations } : next;
