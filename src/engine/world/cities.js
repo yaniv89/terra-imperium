@@ -33,6 +33,7 @@
 // object when nothing changed.
 import { DISTRICTS, districtSite, districtEntry, districtYields, hasDistrict, repairedDistrict } from '../districts';
 import { AGE_ORDER } from '../../data/ages';
+import { ringsForKm, gridSpacing, foundingDisk } from '../../data/geo/gridScale';
 import { BUILDING_CATEGORIES, getBuildingTierCost, canBuildTier, createEmptyRegionBuildings } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { tileFacts, tileYields, canImprove, IMPROVEMENTS, strategicSupply, RESOURCES_ON_TILES } from '../../data/tileYields';
@@ -61,13 +62,24 @@ export const SCIENCE_PER_SIZE = 0.5;
 // The capital's palace (C2): a flat income every nation starts with, so a one-city Dawn nation
 // can pay for its first army and still save a little.
 export const PALACE_YIELDS = { gold: 4, production: 2, science: 2, culture: 1 };
-// A city's border reaches two rings in every age (the user's call: a five-ring city was half
-// the size of France); the two border techs add a ring each, capped at BORDER_RING_MAX.
-export const BORDER_RING_BY_AGE = { bronze: 2, classical: 2, kingdoms: 2, gunpowder: 2, modern: 2 };
-export const BORDER_RING_MAX = 3;
+// A city's border reaches about 200 km in every age (the user's call: a five-ring city on the
+// 150 km grid was half the size of France); the two border techs add about 100 km each
+// (techMapEffects borderRing, in km), capped at BORDER_KM_MAX. In km, as rings of the loaded grid
+// (gridScale.js): 2 and 3 rings at frequency 75, 3 and 4 at frequency 100.
+export const BORDER_KM_BY_AGE = { bronze: 204, classical: 204, kingdoms: 204, gunpowder: 204, modern: 204 };
+export const BORDER_KM_MAX = 306;
+export const BORDER_RING_BY_AGE = Object.fromEntries(Object.entries(BORDER_KM_BY_AGE).map(([age, km]) => [age, ringsForKm(km)]));
+export const BORDER_RING_MAX = ringsForKm(BORDER_KM_MAX);
+const borderRingFor = (ageId, extraKm) => Math.min(BORDER_RING_MAX, ringsForKm((BORDER_KM_BY_AGE[ageId] || BORDER_KM_BY_AGE.bronze) + extraKm));
+// Culture buys land, not tiles: the costs below are for TILE_COST_AREA_KM2 of land (one tile of the
+// frequency-75 grid they were tuned on). On a denser grid a tile costs its share of that area, the
+// ring term counts km (ring x spacing) and the per-owned-tile term counts owned area, so a city
+// buys the same km² for the same culture on any grid.
 export const TILE_COST_BASE = 20;
 export const TILE_COST_PER_RING = 10;
 export const TILE_COST_PER_TILE = 5;
+export const TILE_COST_AREA_KM2 = 9067;
+const TILE_COST_RING_KM = 102;
 export const BUY_TILE_MULT = 3;
 export const SETTLER_BASE_COST = 60;
 export const SETTLER_COST_PER_CITY = 10;
@@ -76,8 +88,10 @@ export const UNIT_BASE_COST = 40;
 export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const IMPROVEMENT_COST_PER_TURN = 10;
-// Tiles are about 150 km across, so one free tile between cities is already Civ's spacing.
-export const MIN_CITY_SPACING = 3; // rings between city centres; 2 on the 150 km grid, 3 on the 106 km grid keeps the city count near the old one
+// Rings between city centres: about 300 km, so the city count stays near the old one on any grid
+// (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid).
+export const MIN_CITY_SPACING_KM = 306;
+export const MIN_CITY_SPACING = ringsForKm(MIN_CITY_SPACING_KM);
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
 // size^1.8 for sizes 0..MAX_SIZE as literals: a fractional power may differ in the last bit between
@@ -174,11 +188,12 @@ export const canFoundCity = (world, tiles, tile, nationId) => {
 
 const cityFacts = (tiles, id) => ({ river: tiles.rivers[id] !== 0, coastal: tiles.coastal[id] === 1, lake: tiles.neighbors[id].some((n) => tiles.terrainOf(n) === 'lake') });
 
-/** Founds a city: the centre and every free workable ring-1 tile are claimed. Returns the new
- * world and the city. */
+/** Founds a city: the centre and every free workable tile of its founding disk (gridScale.js
+ * foundingDisk: ring 1 at frequency 75, ring 1 and the six near ring-2 tiles at frequency 100, the
+ * same land either way) are claimed. Returns the new world and the city. */
 export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn = 1, isCapital = false, inPlace = false }) => {
   const id = cityId(tile);
-  const claim = [tile, ...tiles.neighbors[tile].filter((n) => !world.tileOwner[n] && isWorkable(tiles, n))];
+  const claim = [tile, ...foundingDisk(tiles, tile).slice(1).filter((n) => !world.tileOwner[n] && isWorkable(tiles, n))];
   // `inPlace`: the caller already copied the ownership and cities maps for the whole pass
   // (processSettlers founds several outposts a turn; a copy of 9,000 tiles each was the cost).
   const tileOwner = inPlace ? world.tileOwner : { ...world.tileOwner };
@@ -390,7 +405,12 @@ export const toggleLock = (city, tile) => (city.locked.includes(tile) ? { ...cit
 
 // ---------------------------------------------------------------------------------------------
 // Borders
-export const tileCultureCost = (city, ring, costMult = 0) => Math.round((TILE_COST_BASE + TILE_COST_PER_RING * ring + TILE_COST_PER_TILE * city.tiles.length) * Math.max(0.5, 1 + costMult));
+export const tileCultureCost = (city, ring, costMult = 0) => {
+  const { meanKm, cellKm2 } = gridSpacing();
+  const area = cellKm2 / TILE_COST_AREA_KM2; // 1 at frequency 75
+  const raw = TILE_COST_BASE + TILE_COST_PER_RING * ring * (meanKm / TILE_COST_RING_KM) + TILE_COST_PER_TILE * city.tiles.length * area;
+  return Math.round(raw * area * Math.max(0.5, 1 + costMult));
+};
 
 // The rings around a centre, Map tile -> ring, up to maxRing. The grid is static, so one walk per
 // (centre, maxRing) serves every turn: the claim step of 500 cities was a walk per candidate tile.
@@ -413,7 +433,7 @@ export const ringsAround = (tiles, centre, maxRing) => {
  * the age's ring. Each entry { tile, ring, cost, score }. */
 export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
   const fx = mapEffectsOf(researched); // techs that push the border and cheapen tiles (techMapEffects.js)
-  const maxRing = Math.min(BORDER_RING_MAX, (BORDER_RING_BY_AGE[ageId] || 2) + fx.borderRing);
+  const maxRing = borderRingFor(ageId, fx.borderRing);
   const own = new Set(city.tiles);
   const out = new Map();
   const rings = ringsAround(tiles, city.tile, maxRing);

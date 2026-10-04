@@ -35,15 +35,19 @@ import { legacyTerrainOf } from './world/registry';
 import { isWarBetween } from './diplomacy';
 import { settlingBarred } from './accords';
 import { speedCostMult } from '../data/ages';
+import { ringsForKm, kmPerRing, F75_RING_KM } from '../data/geo/gridScale';
 
-export const SETTLER_MOVES = 3;
+export const SETTLER_KM = 306; // km (3 rings at frequency 75)
+export const SETTLER_MOVES = ringsForKm(SETTLER_KM);
 export const SETTLER_STRENGTH = 100;
 export const OUTPOST_DONE = 100;
 export const OUTPOST_PROGRESS = 14;
 export const OUTPOST_TERRAIN_FACTOR = { mountains: 0.4, desert: 0.4, arctic: 0.4, hills: 0.7, forest: 0.7 };
 export const OUTPOST_SLOTS_BY_AGE = { bronze: 2, classical: 3, kingdoms: 3, gunpowder: 4, modern: 4 };
-export const MAX_SETTLE_RINGS = 17;   // how far a settler is sent at most
-export const AI_SETTLE_RINGS = 11;    // how far the AI looks for a site
+export const MAX_SETTLE_KM = 1734; // km (17 rings at frequency 75)
+export const MAX_SETTLE_RINGS = ringsForKm(MAX_SETTLE_KM);   // how far a settler is sent at most
+export const AI_SETTLE_KM = 1122; // km (11 rings at frequency 75)
+export const AI_SETTLE_RINGS = ringsForKm(AI_SETTLE_KM);    // how far the AI looks for a site
 export const SITE_SCORE_MIN = 4;      // a site's quality (its yields, before distance) below this is not worth a city
 export const SETTLER_RETRY_TURNS = 5;   // an AI settler without a target looks again this often
 export const SETTLER_GIVE_UP_TURNS = 15; // and is disbanded after this long without one
@@ -122,12 +126,15 @@ export const canSettle = (state, tile, nationId, ageId) => {
 };
 
 /** How good a city site is: the centre and its ring's food, production and gold, a resource, a
- * river, the coast (the site's QUALITY), minus 0.6 a ring of distance (`distance` when the caller
+ * river, the coast (the site's QUALITY), minus 0.6 per ring of distance at frequency 75 (per 102 km) (`distance` when the caller
  * already walked it). Pure of state except ownership. */
 export const scoreSite = (state, tile, fromTile = null, distance = null) => siteQuality(state, tile) - siteDistancePenalty(state, tile, fromTile, distance);
+// 0.6 per 102 km of walk (a ring at frequency 75), so the AI weighs distance in km on any grid.
+const SITE_PENALTY_PER_F75_RING = 0.6;
+const sitePenaltyPerRing = () => SITE_PENALTY_PER_F75_RING * (kmPerRing() / F75_RING_KM);
 export const siteDistancePenalty = (state, tile, fromTile = null, distance = null) => {
-  if (distance != null) return distance * 0.6;
-  return fromTile != null ? ringDistance(getTiles(), fromTile, tile, MAX_SETTLE_RINGS) * 0.6 : 0;
+  if (distance != null) return distance * sitePenaltyPerRing();
+  return fromTile != null ? ringDistance(getTiles(), fromTile, tile, MAX_SETTLE_RINGS) * sitePenaltyPerRing() : 0;
 };
 /** The site's worth on its own, without the walk: the AI settles a site of quality SITE_SCORE_MIN
  * or more however far it is (within reach), and ranks the candidates by score. */
@@ -168,11 +175,12 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   let frontier = [fromTile];
   const out = [];
   const memo = new Map();
+  const perRing = sitePenaltyPerRing();
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
       if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok && !settlingBarred(state, nationId, t)) {
         const quality = siteQuality(state, t);
-        if (quality >= SITE_SCORE_MIN) out.push({ tile: t, score: Math.round((quality - d * 0.6) * 10) / 10, quality, steps: d });
+        if (quality >= SITE_SCORE_MIN) out.push({ tile: t, score: Math.round((quality - d * perRing) * 10) / 10, quality, steps: d });
       }
     }
     const next = [];

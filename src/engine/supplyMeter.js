@@ -5,7 +5,7 @@
 //   held      enemy land it occupies, or next to a city it holds: no change
 //   wild      free land: -SUPPLY_WILD_LOSS
 //   enemy     enemy land: -SUPPLY_ENEMY_LOSS; -SUPPLY_LINE_LOSS when a supply line reaches it (own
-//             land within SUPPLY_LINE_RINGS tiles, more with the supply range modifiers)
+//             land within SUPPLY_LINE_RINGS tiles (SUPPLY_LINE_KM), more with the supply range modifiers)
 // A nation whose supplies stock is empty (supplies.js `hungry`) loses SUPPLY_HUNGER_LOSS more
 // everywhere outside home. A stack above the tile's cap (combat width x STACK_WIDTH_MULT units
 // of one nation) loses STACK_OVER_LOSS more: big stacks eat the land bare.
@@ -22,14 +22,17 @@ import { legacyTerrainOf } from './world/registry';
 import { isSettler } from './settlers';
 import { tileAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
+import { ringsForKm } from '../data/geo/gridScale';
 
 export const SUPPLY_MAX = 100;
 export const SUPPLY_HOME_GAIN = 50; // home land refills a stack in two turns (plans/playtest-1.md P2.2)
 export const SUPPLY_WILD_LOSS = 10;
 export const SUPPLY_ENEMY_LOSS = 20;
 export const SUPPLY_LINE_LOSS = 10;
-export const SUPPLY_LINE_RINGS = 8;
-export const ROAD_LINE_BONUS = 2; // a stack on a road is reached by a line two tiles further
+export const SUPPLY_LINE_KM = 816; // km (8 rings at frequency 75)
+export const SUPPLY_LINE_RINGS = ringsForKm(SUPPLY_LINE_KM);
+export const ROAD_LINE_BONUS_KM = 204; // a stack on a road is reached by a line about 200 km further
+export const ROAD_LINE_BONUS = ringsForKm(ROAD_LINE_BONUS_KM);
 export const SUPPLY_LOW = 30; // the next prompt warns under this while the meter falls
 export const SUPPLY_HUNGER_LOSS = 10;
 export const STACK_WIDTH_MULT = 2;
@@ -136,7 +139,7 @@ export const applySupplyMeter = (state, units, { hungryFor = () => false, attrit
     if (!state.nations[u.ownerId]) return; // rebels live off the land
     const fx = fxOf(u.ownerId);
     const max = SUPPLY_MAX + fx.supplyMax;
-    const { zone, delta } = supplyZone(state, tiles, u, { lineRings: lineRingsFor(u.ownerId) + fx.lineRings });
+    const { zone, delta } = supplyZone(state, tiles, u, { lineRings: lineRingsFor(u.ownerId) + ringsForKm(fx.lineRings, { min: 0 }) });
     let change = delta;
     if (zone !== 'home') {
       if (hungryFor(u.ownerId)) change -= SUPPLY_HUNGER_LOSS;

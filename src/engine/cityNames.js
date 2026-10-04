@@ -7,8 +7,10 @@
 import { ringsAround } from './world/cities';
 import { generateGivenName } from '../data/names';
 import { createRng } from '../utils/rng';
+import { ringsForKm } from '../data/geo/gridScale';
 
-export const CITY_NAME_RINGS = 3;
+export const CITY_NAME_KM = 306; // km (3 rings at frequency 75)
+export const CITY_NAME_RINGS = ringsForKm(CITY_NAME_KM);
 
 const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; };
 const half = (name, first) => { const n = name.length; const cut = Math.max(2, Math.round(n / 2)); return first ? name.slice(0, cut) : name.slice(n - cut).toLowerCase(); };

@@ -1,12 +1,18 @@
 // src/components/map/closeView/scale.js
 // The close view's sizes, shared with the banner overlay (kept free of three.js so the overlay
 // does not pull the 3D engine into the main bundle).
+import { hexSizeVsF75 } from '../../../data/geo/gridScale';
+
 // Pixels per model unit at zoom k.
 // Linear up to the super zoom, then slower (power SUPER_GROWTH), so in the super zoom a town
 // stays inside its hex and the land around it shows (plans/playtest-1.md P1.1).
+// Model sizes follow the hex: HEX (0.75 at frequency 100, hexSizeVsF75) shrinks every model so a
+// hex stays HEX_UNITS model units across on any grid; the close view opens HEX times later
+// (CLOSE_ZOOM_K in Map2DView), so at its first zoom a town looks as it did on the 106 km grid.
+export const HEX = hexSizeVsF75();
 export const SUPER_FROM_K = 40;
 export const SUPER_GROWTH = 0.7;
-export const unitPx = (k) => (k <= SUPER_FROM_K ? Math.max(2, k * 0.55) : SUPER_FROM_K * 0.55 * (k / SUPER_FROM_K) ** SUPER_GROWTH);
+export const unitPx = (k) => HEX * (k <= SUPER_FROM_K ? Math.max(2, k * 0.55) : SUPER_FROM_K * 0.55 * (k / SUPER_FROM_K) ** SUPER_GROWTH);
 // Bigger towns read bigger: a medium town is drawn 12% and a big one 25% above its model's size.
 export const TIER_SCALE = { small: 1, medium: 1.12, big: 1.25 };
 // A town never reaches into the sea: its pixels per model unit are capped so its radius (with its

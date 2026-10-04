@@ -16,9 +16,11 @@ import { isFleet, portWaters } from './fleets';
 import { navalLineOf } from '../data/navalLines';
 import { ringsAround } from './world/cities';
 import { lawRulesOf } from './lawRules';
+import { ringsForKm } from '../data/geo/gridScale';
 
 export const PLUNDER_GOLD = 15;
-export const RAIDER_REACH_RINGS = 3;
+export const RAIDER_REACH_KM = 306; // km (3 rings at frequency 75)
+export const RAIDER_REACH_RINGS = ringsForKm(RAIDER_REACH_KM);
 
 const hostileTo = (state, me, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, me, ownerId));
 

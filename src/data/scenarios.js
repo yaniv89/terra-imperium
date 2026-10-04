@@ -8,13 +8,14 @@
 // createInitialState turns a start spec into cities (workstream 3). Deterministic: ties break by
 // nation id and tile id, never by randomness.
 import { AGE_ORDER } from './ages';
+import { ringsForKm, foundingDisk } from './geo/gridScale';
 
 export const SCENARIOS = {
-  dawn: { id: 'dawn', name: 'Dawn of Civilization', year: -2000, age: 'bronze', ring: 1, extraCities: 0, description: 'Every people starts with one city. Settle the empty world.' },
-  classical: { id: 'classical', name: 'Classical Age', year: -800, age: 'classical', ring: 2, extraCities: 1, description: 'Cities and their hinterlands; most of the world is still open.' },
-  kingdoms: { id: 'kingdoms', name: 'Age of Kingdoms', year: 500, age: 'kingdoms', ring: 3, extraCities: 2, description: 'Realms with several cities each.' },
-  gunpowder: { id: 'gunpowder', name: 'Age of Gunpowder', year: 1500, age: 'gunpowder', ring: 4, extraCities: 3, description: 'Established states on the eve of the modern world.' },
-  modern: { id: 'modern', name: 'Modern Age', year: 1900, age: 'modern', ring: Infinity, extraCities: 6, description: 'Every tile is claimed; the modern borders.' }
+  dawn: { id: 'dawn', name: 'Dawn of Civilization', year: -2000, age: 'bronze', ringKm: 102, extraCities: 0, description: 'Every people starts with one city. Settle the empty world.' },
+  classical: { id: 'classical', name: 'Classical Age', year: -800, age: 'classical', ringKm: 204, extraCities: 1, description: 'Cities and their hinterlands; most of the world is still open.' },
+  kingdoms: { id: 'kingdoms', name: 'Age of Kingdoms', year: 500, age: 'kingdoms', ringKm: 306, extraCities: 2, description: 'Realms with several cities each.' },
+  gunpowder: { id: 'gunpowder', name: 'Age of Gunpowder', year: 1500, age: 'gunpowder', ringKm: 408, extraCities: 3, description: 'Established states on the eve of the modern world.' },
+  modern: { id: 'modern', name: 'Modern Age', year: 1900, age: 'modern', ringKm: Infinity, extraCities: 6, description: 'Every tile is claimed; the modern borders.' }
 };
 export const DEFAULT_SCENARIO_ID = 'dawn';
 export const SCENARIO_IDS = Object.keys(SCENARIOS);
@@ -62,8 +63,12 @@ export const ringsFrom = (tiles, from, maxRing) => {
 // keeps its real capital, and then a bigger neighbour shifts up to BIG_MOVE_RINGS within its own
 // land when that clears it. Moved capitals keep their real names (buildScenarioStarts).
 // Deterministic, so every game starts the same.
-export const START_SPACING = 3;
-const BIG_MOVE_RINGS = 3;
+// Both in km, as rings of the grid (3 at frequency 75, 4 at frequency 100): the same km as the
+// settling rule (MIN_CITY_SPACING_KM in world/cities.js).
+export const START_SPACING_KM = 306;
+const BIG_MOVE_KM = 306;
+const OWN_SEARCH_KM = 4080; // how far a crowded capital looks for a clear tile of its own land
+export const startSpacing = (tiles) => ringsForKm(START_SPACING_KM, { tiles });
 const spreadCache = new WeakMap();
 export const spreadCapitals = (tiles, ids) => {
   const key = [...ids].sort().join(',');
@@ -79,6 +84,7 @@ const spreadCapitalsUncached = (tiles, ids) => {
   const order = [...ids].sort((a, b) => size(b) - size(a) || (a < b ? -1 : 1));
   const out = {};
   const livable = (t) => tiles.land[t] === 1 && tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice';
+  const START_SPACING = startSpacing(tiles);
   const clearOf = (tile, others) => { const near = ringsFrom(tiles, tile, START_SPACING - 1); return !others.some((o) => near.has(o)); };
   // the nation's own livable tiles, nearest to `from` first (ring distance over the whole grid)
   // whether a city founded on `tile` would touch the sea through its own land (the registry's
@@ -96,7 +102,7 @@ const spreadCapitalsUncached = (tiles, ids) => {
   const blocked = new Set();
   order.forEach((id) => {
     const real = tiles.capitals[id];
-    const tile = !blocked.has(real) ? real : ownByDistance(id, real, 40).find((t) => !blocked.has(t)) ?? real;
+    const tile = !blocked.has(real) ? real : ownByDistance(id, real, ringsForKm(OWN_SEARCH_KM, { tiles })).find((t) => !blocked.has(t)) ?? real;
     out[id] = tile;
     ringsFrom(tiles, tile, START_SPACING - 1).forEach((_, t) => blocked.add(t));
   });
@@ -108,7 +114,7 @@ const spreadCapitalsUncached = (tiles, ids) => {
     const near = ringsFrom(tiles, out[small], START_SPACING - 1);
     order.filter((big) => big !== small && size(big) > size(small) && near.has(out[big])).forEach((big) => {
       const rest = order.filter((o) => o !== big).map((o) => out[o]);
-      const t = ownByDistance(big, out[big], BIG_MOVE_RINGS).find((x) => clearOf(x, rest));
+      const t = ownByDistance(big, out[big], ringsForKm(BIG_MOVE_KM, { tiles })).find((x) => clearOf(x, rest));
       if (t != null) out[big] = t;
     });
   });
@@ -116,16 +122,19 @@ const spreadCapitalsUncached = (tiles, ids) => {
 };
 
 // Extra city sites inside a nation's modern territory: its most populous named tiles, at least
-// 3 tiles apart from every other city, nearest the capital first on ties.
+// START_SPACING_KM apart from every other city, nearest the capital first on ties (searched within
+// EXTRA_SITE_KM of the capital).
+const EXTRA_SITE_KM = 1224;
 const extraCitySites = (tiles, nationId, capital, count, claimedBy) => {
   if (count <= 0) return [];
   const own = tiles.countryTiles[nationId] || [];
   const named = own.filter((id) => id !== capital && tiles.names[id] && tiles.land[id] && !tiles.lake?.[id]);
   const chosen = [];
-  const farEnough = (id) => [capital, ...chosen].every((c) => !ringsFrom(tiles, c, 2).has(id));
+  const near = startSpacing(tiles) - 1;
+  const farEnough = (id) => [capital, ...chosen].every((c) => !ringsFrom(tiles, c, near).has(id));
   // Deterministic order: tile id, which the build fixed; the name list has no population, so the
   // capital-distance order below is the tie-break that matters.
-  const byDistance = named.map((id) => ({ id, ring: ringsFrom(tiles, capital, 12).get(id) ?? 99 })).sort((a, b) => a.ring - b.ring || a.id - b.id);
+  const byDistance = named.map((id) => ({ id, ring: ringsFrom(tiles, capital, ringsForKm(EXTRA_SITE_KM, { tiles })).get(id) ?? 999 })).sort((a, b) => a.ring - b.ring || a.id - b.id);
   for (const { id } of byDistance) {
     if (chosen.length >= count) break;
     if (claimedBy.has(id) || !farEnough(id)) continue;
@@ -166,19 +175,22 @@ export const buildScenarioStarts = (tiles, scenarioId = DEFAULT_SCENARIO_ID, nat
   });
   // Pass 2: rings, one ring at a time for everyone (round robin keeps neighbours fair), own
   // country first, then any unclaimed land for a city with nothing else around it.
-  const maxRing = scenario.ring === Infinity ? 0 : scenario.ring;
+  // The scenario's claim radius in km as rings of the grid: Dawn's 102 km is ring 1 on any grid
+  // (1 at frequency 75, 1 at frequency 100), the founding claim of foundCity.
+  const maxRing = scenario.ringKm === Infinity ? 0 : ringsForKm(scenario.ringKm, { tiles });
   for (let ring = 1; ring <= maxRing; ring++) {
     ids.forEach((id) => {
       starts[id].cities.forEach(({ tile }) => {
-        const dist = ringsFrom(tiles, tile, ring);
-        const ownFirst = [...dist.entries()].filter(([t, d]) => d === ring && tiles.land[t] && !claimedBy.has(t)).map(([t]) => t).sort((a, b) => a - b);
+        // the first step is the founding disk (the land foundCity claims), later steps whole rings
+        const shell = ring === 1 ? foundingDisk(tiles, tile).slice(1) : [...ringsFrom(tiles, tile, ring).entries()].filter(([, d]) => d === ring).map(([t]) => t);
+        const ownFirst = shell.filter((t) => tiles.land[t] && !claimedBy.has(t)).sort((a, b) => a - b);
         const own = ownFirst.filter((t) => tiles.countryOf(t) === id);
         const take = own.length ? own : (ring === 1 ? ownFirst : []);
         take.forEach((t) => { claimedBy.set(t, id); starts[id].tiles.push(t); });
       });
     });
   }
-  if (scenario.ring === Infinity) {
+  if (scenario.ringKm === Infinity) {
     ids.forEach((id) => (tiles.countryTiles[id] || []).forEach((t) => { if (!claimedBy.has(t)) { claimedBy.set(t, id); starts[id].tiles.push(t); } }));
   }
   ids.forEach((id) => {

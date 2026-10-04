@@ -14,7 +14,11 @@ const S = createInitialState({ playerNationId: 'fr', rngSeed: 3 });
 const mk = (p, cls) => cls.map((classId, i) => ({ id: `${p}${i}`, classId, strength: 1000, maxStrength: 1000, morale: 100, promotions: [], commanderId: null, domain: 'land' }));
 // A city with a wide sea beside it (three or more water neighbours) and some land: the sea
 // sector's water share is then clear-cut whichever bearing the sea takes.
-const coastalCity = Object.values(S.regions).find((c) => tiles.neighbors[c.tile].filter((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) !== 'lake').length >= 3 && tiles.neighbors[c.tile].some((n) => tiles.land[n] === 1));
+// Its sea lies due east (within 30 degrees), where the field's outer band is widest and no army
+// deploys, so the check does not depend on which coast the grid's first such city faces.
+const eastSea = (ctx) => ctx.sectors.find((s) => s.water && !s.lake && Math.abs((((s.bearing + 180) % 360) + 360) % 360 - 180) <= 30);
+const coastalCity = Object.values(S.regions).sort((a, b) => a.tile - b.tile).find((c) => tiles.neighbors[c.tile].filter((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) !== 'lake').length >= 3 && tiles.neighbors[c.tile].some((n) => tiles.land[n] === 1)
+  && eastSea(tileContextOf(S, c.tile, { city: c })));
 const riverTile = [...Array(tiles.count).keys()].find((t) => tiles.land[t] === 1 && tiles.neighbors[t].some((n) => tiles.land[n] === 1 && tiles.riverBetween(t, n)));
 
 const sectorCells = (map, bearing, inner = SECTOR_INNER + 0.05) => {
@@ -42,7 +46,9 @@ describe('the battlefield from a tile', () => {
 
   it('puts the sea in a water neighbour\'s sector, with a beach, and rivers on their edges with fords', () => {
     const ctx = tileContextOf(S, coastalCity.tile, { city: coastalCity });
-    const sea = ctx.sectors.find((s) => s.water && !s.lake);
+    // the sea due east (coastalCity): on the wide field the north and south sectors end before
+    // the water band (SECTOR_INNER + 0.22), and the west is the attacker's deployment ground
+    const sea = eastSea(ctx);
     const map = generateMap({ regionId: coastalCity.id, terrain: ctx.terrain, combatWidth: 4, tileContext: ctx });
     const cells = sectorCells(map, sea.bearing, SECTOR_INNER + 0.25);
     expect(cells.filter((t) => t === TILE.WATER).length).toBeGreaterThan(cells.length * 0.5);

@@ -102,6 +102,7 @@ import { rollCityDisasters } from './cityDisasters';
 import { spreadPlague, seedPlagueNear, PLAGUE_EVENT_ORIGINS } from './plague';
 import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
+import { ringsFromF75 } from '../data/geo/gridScale';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -504,7 +505,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // scan would cost a turn budget for a value that is 0 for all of them); the supply line reach
   // grows with the player's national.supplyRange.
   const playerAttritionMult = Math.max(0, 1 + getModifier(state, state.playerNationId, 'national.attrition').total);
-  const playerLineRings = SUPPLY_LINE_RINGS + Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total));
+  const playerLineRings = SUPPLY_LINE_RINGS + ringsFromF75(Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total))); // the modifier counts frequency-75 tiles
   const hungryNations = new Set();
   if (supplyFlow.hungry) hungryNations.add(state.playerNationId);
   const meter = applySupplyMeter(state, units, {

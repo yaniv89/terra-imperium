@@ -9,6 +9,7 @@ import { geoEquirectangular, geoPath } from 'd3-geo';
 import { zoom as d3zoom, zoomIdentity } from 'd3-zoom';
 import { select } from 'd3-selection';
 import { loadTiles } from '../../data/geo/tiles';
+import { hexSizeVsF75 } from '../../data/geo/gridScale';
 import { buildTerritories, buildBorders, buildHexMesh, cellFeature } from '../../data/geo/tileGeometry';
 import { buildScenarioStarts, SCENARIOS, SCENARIO_IDS, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import { WORLD_NATIONS } from '../../data/worldNations';
@@ -16,7 +17,7 @@ import { loadLandFeatures } from '../../data/geo/loadWorldFeatures';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 
 const POLITICAL_ALPHA = 0.45;
-const HEX_FROM_ZOOM = 3;
+const HEX_FROM_ZOOM = 3 / hexSizeVsF75();
 
 const useSize = () => {
   const ref = useRef(null);

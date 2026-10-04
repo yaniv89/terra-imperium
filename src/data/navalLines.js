@@ -14,8 +14,8 @@ export const NAVAL_BOMBARD = 10;
 export const NAVAL_LINES = {
   warship: { id: 'warship', label: 'Warship', role: 'Fights fleets, blockades, bombards a besieged coast.', from: 'bronze', names: ['War Galley', 'Trireme', 'Cog', 'Frigate', 'Destroyer'], cargo: [1, 1, 2, 2, 2], air: 0, combat: 1, sight: 0, bombard: true },
   transport: { id: 'transport', label: 'Transport', role: 'Carries an army; weak in a fight.', from: 'classical', names: ['Longship', 'Longship', 'Carrack', 'Galleon', 'Landing ship'], cargo: [3, 3, 4, 5, 6], air: 0, combat: 0.4, sight: 0, bombard: false },
-  raider: { id: 'raider', label: 'Raider', role: 'Plunders sea trade; sees far; carries nothing.', from: 'classical', names: ['Bireme', 'Bireme', 'Corsair', 'Privateer', 'Submarine'], cargo: [0, 0, 0, 0, 0], air: 0, combat: 0.8, sight: 1, bombard: false },
-  carrier: { id: 'carrier', label: 'Carrier', role: 'Holds two air units; sees far.', from: 'modern', names: ['Carrier', 'Carrier', 'Carrier', 'Carrier', 'Carrier'], cargo: [0, 0, 0, 0, 0], air: 2, combat: 0.6, sight: 1, bombard: false }
+  raider: { id: 'raider', label: 'Raider', role: 'Plunders sea trade; sees far; carries nothing.', from: 'classical', names: ['Bireme', 'Bireme', 'Corsair', 'Privateer', 'Submarine'], cargo: [0, 0, 0, 0, 0], air: 0, combat: 0.8, sight: 102, bombard: false },
+  carrier: { id: 'carrier', label: 'Carrier', role: 'Holds two air units; sees far.', from: 'modern', names: ['Carrier', 'Carrier', 'Carrier', 'Carrier', 'Carrier'], cargo: [0, 0, 0, 0, 0], air: 2, combat: 0.6, sight: 102, bombard: false }
 };
 export const NAVAL_LINE_IDS = Object.keys(NAVAL_LINES);
 
@@ -27,5 +27,6 @@ export const navalCargo = (line, ageId) => NAVAL_LINES[line]?.cargo[ageIndex(age
 export const navalAir = (line) => NAVAL_LINES[line]?.air ?? 0;
 export const navalName = (line, ageId) => NAVAL_LINES[line]?.names[ageIndex(ageId)] || 'Fleet';
 export const navalCombatMult = (line) => NAVAL_LINES[line]?.combat ?? 1;
+// Extra sight in km (sight.js adds it to SIGHT_FLEET_KM; 102 km is one ring at frequency 75).
 export const navalSightBonus = (line) => NAVAL_LINES[line]?.sight ?? 0;
 export const navalBombards = (unit) => !!NAVAL_LINES[navalLineOf(unit)]?.bombard;

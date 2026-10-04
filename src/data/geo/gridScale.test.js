@@ -90,16 +90,16 @@ describe('the A* guess is admissible on the real grid', () => {
   });
 });
 
-describe('a denser grid needs no hand edits', () => {
-  it('frequency 100: spacing, rings for a km rule and the A* bound follow the grid', () => {
-    const f75 = gridSpacing(tiles);
-    const grid = buildGrid(100);
-    expect(grid.centres.length).toBe(cellCount(100));
-    const f100 = gridSpacing(grid);
-    expect(f100.meanKm).toBeLessThan(f75.meanKm);
-    // The same 410 km rule asks for more rings of smaller hexes.
-    expect(ringsForKm(410, { tiles: grid })).toBeGreaterThanOrEqual(ringsForKm(410));
-    expect(Math.abs(ringsForKm(410, { tiles: grid }) * f100.meanKm - 410)).toBeLessThanOrEqual(f100.meanKm / 2);
+describe('another grid needs no hand edits', () => {
+  it('a coarser grid (frequency 50): spacing, rings for a km rule and the A* bound follow the grid', () => {
+    const shipped = gridSpacing(tiles);
+    const grid = buildGrid(50);
+    expect(grid.centres.length).toBe(cellCount(50));
+    const coarse = gridSpacing(grid);
+    expect(coarse.meanKm).toBeGreaterThan(shipped.meanKm);
+    // The same 410 km rule asks for fewer rings of bigger hexes.
+    expect(ringsForKm(410, { tiles: grid })).toBeLessThanOrEqual(ringsForKm(410));
+    expect(Math.abs(ringsForKm(410, { tiles: grid }) * coarse.meanKm - 410)).toBeLessThanOrEqual(coarse.meanKm / 2);
     // Admissible there too.
     const d = hops(grid, 12345);
     let over = 0;

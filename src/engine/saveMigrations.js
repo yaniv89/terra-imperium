@@ -16,19 +16,23 @@
 import { createInitialState } from './gameReducer';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { conquerRegion } from './conquest';
-import { getTiles } from '../data/geo/tiles';
-import { applyLandChanges } from './world/landChanges';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
 // matching numbered step to MIGRATIONS at the same time, keyed by the version it upgrades FROM.
 // Version 7 was the tile world (plans/civ-map-rework.md, decision 5: a clean break). Version 8 is
 // the frequency-75 grid: every tile id changed, so a version 7 save cannot be converted either.
-// migrateSave returns null for anything older and the app starts a fresh game while keeping the
-// raw save untouched. Version 9 keeps every tile id and opens the real straits (Gibraltar, Kerch
-// and others, plans/math/straits.md): migrate8to9 repairs what stood on the tiles that changed.
-export const CURRENT_SAVE_VERSION = 9;
-export const OLDEST_LOADABLE_SAVE_VERSION = 8;
+// Version 9 kept every tile id and opened the real straits (plans/math/straits.md). Version 10 is
+// the frequency-100 grid (plans/math/grid-f100.md): every tile id changed again, so versions 7 to 9
+// cannot be converted either (a clean break, 'oldGrid'). migrateSave returns null for anything
+// older and the app starts a fresh game while keeping the raw save untouched. A later land-flag
+// change that keeps tile ids can repair saves with world/landChanges.js (applyLandChanges), as
+// the version 8 to 9 step did.
+export const CURRENT_SAVE_VERSION = 10;
+export const OLDEST_LOADABLE_SAVE_VERSION = 10;
+// The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
+// to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
+export const FIRST_TILE_SAVE_VERSION = 7;
 
 // M2 replaced the single `resources.actionPoints` pool (and the separate `diplomacyPoints`
 // currency) with three power pools, `adm`/`dip`/`mil` — plain backfill can't invent this
@@ -230,17 +234,7 @@ const migrate5to6 = (state) => {
   return { ...renamed, nations, regions, logs: [...logs, note] };
 };
 
-// The straits rebuild (scripts/geo/build-tiles.mjs STRAIT_LINES and the inlet pass): the tiles
-// whose land flag differs between the version 8 grid and the version 9 grid. Gibraltar (47716),
-// Kerch (46090), Helsinki (46255), St Petersburg (46075), estuaries and Arctic inlets became
-// water; the old one-cell strait patches the new lines do not need went back to land.
-export const V9_LAND_CHANGES = {
-  toWater: [1166, 1224, 1282, 1283, 1341, 1342, 1396, 1451, 3713, 3714, 4950, 4951, 12751, 23447, 24279, 24280, 25700, 25773, 32551, 34147, 35115, 35235, 35342, 35652, 35857, 35984, 36064, 38335, 38336, 45746, 46075, 46090, 46255, 47716],
-  toLand: [4949, 5031, 45610, 46556, 51900]
-};
-const migrate8to9 = (state) => applyLandChanges(state, V9_LAND_CHANGES, getTiles());
-
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 8: migrate8to9 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -322,6 +316,7 @@ export const backfillDefaults = (state) => {
 // bug fix) may still be able to read it.
 /**
  * Why `migrateSave(payload)` would refuse this save: 'tooOld' (the province map, before version
+ * FIRST_TILE_SAVE_VERSION), 'oldGrid' (an older, coarser hex grid, before
  * OLDEST_LOADABLE_SAVE_VERSION: a clean break), 'tooNew' (a later build), 'corrupt' (not a save),
  * or null when it loads. Read-only; the save v7 screen (OldSaveNotice.jsx) and the import alert
  * name the reason.
@@ -333,12 +328,14 @@ export const saveProblem = (payload) => {
   const state = hasEnvelope ? payload.state : payload;
   if (!isPlainObject(state) || !state.playerNationId || !isPlainObject(state.regions) || !isPlainObject(state.nations)) return 'corrupt';
   if (version > CURRENT_SAVE_VERSION) return 'tooNew';
-  if (version < OLDEST_LOADABLE_SAVE_VERSION) return 'tooOld';
+  if (version < FIRST_TILE_SAVE_VERSION) return 'tooOld';
+  if (version < OLDEST_LOADABLE_SAVE_VERSION) return 'oldGrid';
   for (let v = version; v < CURRENT_SAVE_VERSION; v++) if (!MIGRATIONS[v]) return 'corrupt';
   return null;
 };
 export const SAVE_PROBLEM_TEXT = {
   tooOld: 'This save is from the old province map. The tile world is a clean break, so it cannot be loaded here.',
+  oldGrid: 'This save is from the earlier map with fewer, larger hexes. The map now has about 100,000 smaller hexes and every tile changed, so the save cannot be converted.',
   tooNew: 'This save is from a newer build than this one. Update the game to load it.',
   corrupt: 'This file is not a Terra Imperium save, or it is damaged.'
 };
@@ -354,7 +351,7 @@ export const migrateSave = (payload) => {
     return null;
   }
   if (version > CURRENT_SAVE_VERSION) return null;
-  if (version < OLDEST_LOADABLE_SAVE_VERSION) return null; // the region-map era: a clean break
+  if (version < OLDEST_LOADABLE_SAVE_VERSION) return null; // the province map or an older grid: a clean break
 
   while (version < CURRENT_SAVE_VERSION) {
     const step = MIGRATIONS[version];

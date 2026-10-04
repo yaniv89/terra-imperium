@@ -10,9 +10,9 @@ let tiles;
 beforeAll(async () => { tiles = await loadTiles(); });
 
 describe('world grid', () => {
-  it('is a frequency-75 geodesic grid with 12 pentagons', () => {
-    expect(tiles.count).toBe(cellCount(75));
-    expect(tiles.count).toBe(56252);
+  it('is a geodesic grid of its frequency (75 or finer) with 12 pentagons', () => {
+    expect(tiles.frequency).toBeGreaterThanOrEqual(75);
+    expect(tiles.count).toBe(cellCount(tiles.frequency));
     const pentagons = tiles.neighbors.filter((ns) => ns.length === 5).length;
     expect(pentagons).toBe(12);
     expect(tiles.neighbors.every((ns) => ns.length === 5 || ns.length === 6)).toBe(true);

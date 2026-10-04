@@ -58,3 +58,41 @@ export const minStepsBetween = (a, b, tiles = getTiles()) => (distanceKm(tiles.c
 /** An area in km² as a number of tiles (at least `min`): search budgets that cover the same piece
  * of the world on any grid. */
 export const cellsForAreaKm2 = (km2, { min = 1, tiles = getTiles() } = {}) => Math.max(min, Math.round(km2 / gridSpacing(tiles).cellKm2));
+
+/** The km of one ring on the frequency-75 grid the game was tuned on. Only for data that still
+ * counts "tiles" (modifier totals such as national.supplyRange, a few bonuses): new rules are
+ * written in km. */
+export const F75_RING_KM = 102;
+
+/** `n` rings of the frequency-75 grid as rings of the loaded grid (0 stays 0): for data written in
+ * tiles. Same as ringsForKm(n x 102 km). */
+export const ringsFromF75 = (n, { tiles = getTiles() } = {}) => (n ? Math.sign(n) * ringsForKm(Math.abs(n) * F75_RING_KM, { min: 0, tiles }) : 0);
+
+/** A hex's size relative to the frequency-75 grid (0.75 at frequency 100), from the frequency
+ * alone (spacing goes as 1 / frequency), so the UI can scale zoom thresholds and model sizes
+ * without measuring the grid. Render-only: the engine uses the measured spacing above. */
+export const hexSizeVsF75 = (tiles = getTiles()) => 75 / (tiles.frequency || 75);
+
+/** The land a new city claims, in km²: the 7-tile ring 1 of the frequency-75 grid (9,067 km² a
+ * tile). Founding claims land, not a tile count (plans/math/grid-f100.md), so a denser grid keeps
+ * the same start territories while the culture costs (world/cities.js) stay per area. */
+export const FOUNDING_AREA_KM2 = 63_470;
+
+/** The founding disk around `centre`: the centre, then whole shells (ring 1; the six ring-2 tiles
+ * that touch two ring-1 tiles, the hex's nearer corners; the rest of ring 2) until the area is the
+ * closest to FOUNDING_AREA_KM2: ring 1 at frequency 75 (7 tiles), ring 1 and the near ring-2 tiles
+ * at frequency 100 (13 tiles). Ordered centre first, then by shell and tile id. Pure grid
+ * topology, so it is the same on every engine. */
+export const foundingDisk = (tiles, centre, areaKm2 = FOUNDING_AREA_KM2) => {
+  const cell = gridSpacing(tiles).cellKm2;
+  const ring1 = [...tiles.neighbors[centre]].sort((a, b) => a - b);
+  const inRing1 = new Set(ring1);
+  const ring2 = new Map(); // tile -> how many ring-1 tiles it touches
+  ring1.forEach((t) => tiles.neighbors[t].forEach((n) => { if (n !== centre && !inRing1.has(n)) ring2.set(n, (ring2.get(n) || 0) + 1); }));
+  const near2 = [...ring2.keys()].filter((t) => ring2.get(t) >= 2).sort((a, b) => a - b);
+  const far2 = [...ring2.keys()].filter((t) => ring2.get(t) < 2).sort((a, b) => a - b);
+  const shells = [[centre, ...ring1], [centre, ...ring1, ...near2], [centre, ...ring1, ...near2, ...far2]];
+  let best = shells[0];
+  shells.forEach((s) => { if (Math.abs(s.length * cell - areaKm2) < Math.abs(best.length * cell - areaKm2)) best = s; });
+  return best;
+};

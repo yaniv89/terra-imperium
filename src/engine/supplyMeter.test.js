@@ -9,7 +9,8 @@ import {
   applySupplyMeter, supplyZone, stackCap, supplyOf, SUPPLY_MAX, SUPPLY_HOME_GAIN, SUPPLY_WILD_LOSS, SUPPLY_ENEMY_LOSS, SUPPLY_LINE_LOSS,
   SUPPLY_HUNGER_LOSS, STACK_OVER_LOSS, STACK_WIDTH_MULT, STARVE_STRENGTH, STARVE_MORALE
 } from './supplyMeter';
-import { visibleTiles, canSeeTile, SIGHT_LAND, SIGHT_ARMY } from './sight';
+import { visibleTiles, canSeeTile, SIGHT_LAND, SIGHT_ARMY, SIGHT_LAND_KM } from './sight';
+import { ringsForKm } from '../data/geo/gridScale';
 import * as supplyMeter from './supplyMeter';
 
 const tiles = getTiles();
@@ -83,7 +84,7 @@ describe('the supply phase', () => {
 });
 
 describe('sight', () => {
-  it('sees its land and two rings around it, and around its armies', () => {
+  it('sees its land and SIGHT_LAND_KM around it, and around its armies', () => {
     const seen = visibleTiles(S, 'in');
     const centre = S.regions[IN].tile;
     expect(seen.has(centre)).toBe(true);
@@ -96,7 +97,7 @@ describe('sight', () => {
     for (let d = 0; d < SIGHT_ARMY; d++) { const n = []; ring.forEach((t) => tiles.neighbors[t].forEach((x) => { if (!all.has(x)) { all.add(x); n.push(x); } })); ring = n; }
     all.forEach((t) => expect(canSeeTile(scouted, t, 'in')).toBe(true));
     expect(visibleTiles(scouted, 'in')).toBe(visibleTiles(scouted, 'in'));
-    expect(SIGHT_LAND).toBe(2);
+    expect(SIGHT_LAND).toBe(ringsForKm(SIGHT_LAND_KM));
   });
 });
 

@@ -2,7 +2,7 @@
 // Start capitals spread so towns never stand on each other (scenarios.js spreadCapitals).
 import { describe, it, expect } from 'vitest';
 import { getTiles } from './geo/tiles';
-import { spreadCapitals, ringsFrom, START_SPACING, buildScenarioStarts } from './scenarios';
+import { spreadCapitals, ringsFrom, startSpacing, buildScenarioStarts } from './scenarios';
 
 describe('start capitals', () => {
   const tiles = getTiles();
@@ -16,7 +16,8 @@ describe('start capitals', () => {
     ['fr', 'de', 'cn', 'us', 'ru', 'eg'].forEach((id) => expect(out[id]).toBe(tiles.capitals[id]));
   });
 
-  it('keeps every capital 3 rings from every other unless its own land has no room', () => {
+  it('keeps every capital START_SPACING_KM from every other unless its own land has no room', () => {
+    const START_SPACING = startSpacing(tiles);
     const size = (id) => (tiles.countryTiles[id] || []).length;
     const crowded = new Set();
     ids.forEach((id) => {
@@ -34,8 +35,9 @@ describe('start capitals', () => {
 
   it('a moved capital keeps its real name', () => {
     const { starts } = buildScenarioStarts(tiles, 'dawn');
-    expect(starts.il.capital).not.toBe(tiles.capitals.il);
-    expect(starts.il.cities[0].name).toBe(tiles.names[tiles.capitals.il]);
+    const moved = ids.filter((id) => starts[id] && starts[id].capital !== tiles.capitals[id] && tiles.names[tiles.capitals[id]]);
+    expect(moved.length).toBeGreaterThan(0);
+    moved.forEach((id) => expect(starts[id].cities[0].name, id).toBe(tiles.names[tiles.capitals[id]]));
     expect(starts.fr.cities[0].name).toBeUndefined(); // unmoved: the tile's own name
   });
 });

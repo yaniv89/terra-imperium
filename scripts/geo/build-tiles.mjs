@@ -1,7 +1,8 @@
 // scripts/geo/build-tiles.mjs
 // Builds the Civ-style world grid (plans/civ-map-rework.md, Part B and workstream 1):
-// src/data/geo/tiles.json, one record per cell of a frequency-75 geodesic grid (56,252 cells of
-// about 9,100 km², hexes about 106 km across; frequency 53 and 150 km hexes until 2026-10-03), with land/sea, country, elevation, climate, terrain, relief, feature, river
+// src/data/geo/tiles.json, one record per cell of a frequency-100 geodesic grid (100,002 cells of
+// about 5,100 km², about 77 km between neighbours; frequency 75 and 102 km until 2026-10-04,
+// frequency 53 and 150 km hexes until 2026-10-03), with land/sea, country, elevation, climate, terrain, relief, feature, river
 // edges, a place name and the 240 capitals, plus a preview PNG for eyeballing.
 //
 // Inputs (all regenerable, gitignored under scripts/geo/.raw/; see fetch-tiles-raw.mjs):
@@ -36,7 +37,7 @@ const RAW = path.join(__dirname, '.raw');
 const GEO = path.join(__dirname, '../../src/data/geo');
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
-export const FREQUENCY = 75;
+export const FREQUENCY = 100;
 export const GRID_VERSION = 1;
 
 // ---------------------------------------------------------------------------------------------
@@ -204,7 +205,7 @@ const classify = ({ id, land, lat, elevMean, elevMax, rough, koppen, regionClass
 // are contiguous, so the carved cells always form a connected channel, at any grid frequency.
 // Keep the end points in water that is wide at every frequency (the line carves nothing there).
 // A line carves only when its two ends are not already joined by sea: where the grid keeps a
-// strait open by itself (the Danish straits at frequency 75), no land is lost to it.
+// strait open by itself (the Danish straits at frequency 75 and 100), no land is lost to it.
 export const STRAIT_LINES = [
   { name: 'Gibraltar', line: [[35.9, -6.6], [35.95, -5.75], [35.97, -5.45], [36.1, -4.8], [36.3, -4.0]] },
   { name: 'Dardanelles', line: [[39.85, 25.9], [40.05, 26.2], [40.2, 26.4], [40.4, 26.7], [40.6, 27.2]] },
@@ -484,8 +485,13 @@ export const buildTiles = ({ log = console.log } = {}) => {
   placesFc.features.forEach((f) => {
     const [lon, lat] = f.geometry.coordinates;
     let id = cellIndex.nearest(lat, lon);
-    // A town on a strait (Istanbul, Tangier) keeps its name on the nearest bank.
-    if (opened.has(id)) id = cellIndex.nearest(lat, lon, 7).find((j) => land[j] && !lake[j]) ?? -1;
+    // A town on a strait (Istanbul, Tangier) or whose nearest cell is sea (a port: Mumbai,
+    // Singapore, Çanakkale) keeps its name on the nearest land among its 7 nearest cells; a name
+    // with no land that close stays on its sea cell (never on a cell a strait opened).
+    if (opened.has(id) || !land[id]) {
+      const bank = cellIndex.nearest(lat, lon, 7).find((j) => land[j] && !lake[j]);
+      id = bank ?? (opened.has(id) ? -1 : id);
+    }
     const pop = f.properties.pop_max || 0;
     if (id >= 0 && pop >= namePop[id]) { namePop[id] = pop; names[id] = f.properties.name; }
   });
