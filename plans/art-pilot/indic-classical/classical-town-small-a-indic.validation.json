@@ -1,0 +1,106 @@
+{
+  "file": "classical-town-small-a-indic.glb",
+  "kind": "town",
+  "bytes": 3453464,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 17874,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.077,
+          "depth": 4.059,
+          "height": 0.934,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 5012,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.081,
+          "depth": 4.059,
+          "height": 0.884,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 814,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.884,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.077
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-small-a-indic_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 627670
+    },
+    {
+      "name": "classical-town-small-a-indic_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 787760
+    },
+    {
+      "name": "classical-town-small-a-indic_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 466226
+    }
+  ],
+  "passed": true
+}
