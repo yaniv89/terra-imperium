@@ -147,7 +147,7 @@ describe('building models: a real GLB through the instanced layer', () => {
     const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
     const objs = await loadAssetObjects('test://real-granary', () => loader.parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.length), ''));
     const root = buildingRoot(objs, 'granary', REAL);
-    expect(root.name).toBe('granary-israelite');
+    expect(root.name).toBe('granary'); // roots are named after the bare id (art 38ace92)
     const lods = prepareBuildingModel(root);
     expect(lods).toHaveLength(3);
     lods.forEach((parts) => {
