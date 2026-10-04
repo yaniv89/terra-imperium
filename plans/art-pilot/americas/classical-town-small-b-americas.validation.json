@@ -1,0 +1,106 @@
+{
+  "file": "classical-town-small-b-americas.glb",
+  "kind": "town",
+  "bytes": 1131684,
+  "checks": {
+    "footprint_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3644,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 3.953,
+          "depth": 3.964,
+          "height": 0.962,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1760,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 3.953,
+          "depth": 3.964,
+          "height": 0.962,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 466,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 3.953,
+          "depth": 3.964,
+          "height": 0.962,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 3.964
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-small-b-americas_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 44744
+    },
+    {
+      "name": "classical-town-small-b-americas_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 412840
+    },
+    {
+      "name": "classical-town-small-b-americas_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 273024
+    }
+  ],
+  "passed": true
+}

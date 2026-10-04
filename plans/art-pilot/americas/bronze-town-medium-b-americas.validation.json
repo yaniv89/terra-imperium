@@ -1,0 +1,106 @@
+{
+  "file": "bronze-town-medium-b-americas.glb",
+  "kind": "town",
+  "bytes": 1481328,
+  "checks": {
+    "footprint_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 6396,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.004,
+          "depth": 5.99,
+          "height": 1.05,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 3326,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.004,
+          "depth": 5.99,
+          "height": 1.05,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 624,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.004,
+          "depth": 5.99,
+          "height": 0.95,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.004
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "bronze-town-medium-b-americas_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 19692
+    },
+    {
+      "name": "bronze-town-medium-b-americas_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 421122
+    },
+    {
+      "name": "bronze-town-medium-b-americas_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 336220
+    }
+  ],
+  "passed": true
+}
