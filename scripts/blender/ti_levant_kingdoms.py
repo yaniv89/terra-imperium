@@ -40,15 +40,15 @@ if 'lvk_sand_fringe' not in tt.FRINGES:
 
 def make_materials():
     # the houses: cream lime plaster, its shaded recesses, and the poor houses' mud brick under a worn mud wash
-    tm.mat_simple('lvk_plaster', ['#e7dabd', '#ddceac', '#efe5cd', '#d5c5a1'], scale=16.0, bump=0.25, dirt=True)
-    tm.mat_simple('lvk_niche', ['#bfae8c', '#c9b998', '#b3a282'], scale=16.0, bump=0.2, dirt=False)
+    tm.mat_simple('lvk_plaster', ['#e2d1aa', '#d8c59c', '#eadbb9', '#cfba90'], scale=16.0, bump=0.25, dirt=True)
+    tm.mat_simple('lvk_niche', ['#9e8763', '#a8916b', '#927b58'], scale=16.0, bump=0.2, dirt=False)
     tm.mat_mudwall('lvk_mud', wash='#c39d6b', brick='#b58f5e', brick2='#a07c50', mortar='#8e6d47', wash_cover=0.55,
                    bond=(0.05, 0.022, 0.004))
     tm.mat_simple('lvk_mudroof', ['#b9946a', '#c6a275', '#aa875f'], scale=18.0, bump=0.3, dirt=True)
     # the mosque: buff baked brick in fine courses; the gate, the walls and the palace foot: sandstone ashlar
-    tm.mat_mudwall('lvk_brick', wash='#c9a76e', brick='#c8a268', brick2='#b18d59', mortar='#d9c398', wash_cover=0.0,
+    tm.mat_mudwall('lvk_brick', wash='#b8915a', brick='#b98f58', brick2='#a07a48', mortar='#cdb284', wash_cover=0.0,
                    bond=(0.036, 0.014, 0.003))
-    tm.mat_mudwall('lvk_ashlar', wash='#d3ba8b', brick='#d1b786', brick2='#bea274', mortar='#e2d1a8', wash_cover=0.0,
+    tm.mat_mudwall('lvk_ashlar', wash='#cdb181', brick='#cbae7c', brick2='#b6976a', mortar='#ddc99d', wash_cover=0.0,
                    bond=(0.065, 0.032, 0.004))
     tm.mat_simple('lvk_trim', ['#e2cfa4', '#ead9b2', '#d6c194'], scale=20.0, bump=0.3)
     tm.mat_mudwall('lvk_stone', wash='#a39d92', brick='#a8a297', brick2='#918b80', mortar='#bdb7ab', wash_cover=0.0,
@@ -395,7 +395,7 @@ def house(ms, rng, kind, x, y, w, d, **kw):
 
 # ---- landmark 1: the great mosque with the spiral minaret ---------------------------------------
 
-def spiral_minaret(ms, f, x, y, r0, r1, top, turns=3.5):
+def spiral_minaret(ms, f, x, y, r0, r1, top, turns=4.5):
     """The spiral minaret (Samarra): a tapering brick core wound round by a ramp with a parapet band,
     on a round plinth, an arcaded lantern at the top."""
     z0 = G
@@ -407,7 +407,7 @@ def spiral_minaret(ms, f, x, y, r0, r1, top, turns=3.5):
     ms.cyl('lvk_brick', r0 * 1.12, r1 * 0.7, top - z0, at=(x, y, z0), segs=6, lod=2, only=2, frame=f, caps=False)
     zs, ze = z0 + 0.07, zc - 0.03
     pitch = (ze - zs) / turns
-    hb = pitch * 0.5
+    hb = pitch * 0.38
     for lod, per in ((0, 18), (1, 8)):
         n = int(turns * per)
         bm = bmesh.new()
@@ -417,7 +417,7 @@ def spiral_minaret(ms, f, x, y, r0, r1, top, turns=3.5):
             a = 2 * math.pi * turns * t - math.pi / 2
             zz = zs + (ze - zs) * t
             rc = r0 + (r1 - r0) * (zz - z0) / (zc - z0)
-            rw = 0.035 + 0.06 * (r0 / 0.28) * (1 - 0.5 * t)
+            rw = 0.022 + 0.035 * (r0 / 0.28) * (1 - 0.5 * t)
             ri, ro = rc - 0.004, rc + rw
             zb = max(z0, zz - hb)
             c, s = math.cos(a), math.sin(a)
@@ -463,9 +463,9 @@ def mosque(ms, rng, x, y, s=1.0, top=2.4, yaw=None, minaret_side=-1):
     foot(f, W + 0.3 * s, D + 0.2 * s, 0, 0, tag='mosque')
     ms.box('lvk_sand_square', (W + 0.24 * s, D + 0.2 * s, 0.014), at=(0, -0.04 * s, G - 0.004), lod=1, frame=f)
     ms.box('lvk_stone', (W + 0.02, D + 0.02, 0.06 * s), at=(0, 0, G), lod=1, frame=f)
-    fr, cd = 0.22 * D, 0.4 * D
+    fr, cd = 0.22 * D, 0.44 * D
     br = D - fr - cd
-    cw = 0.5 * W
+    cw = 0.56 * W
     sr = (W - cw) / 2
     cy = -D / 2 + fr + cd / 2
     zf = zw * 0.94
@@ -475,7 +475,7 @@ def mosque(ms, rng, x, y, s=1.0, top=2.4, yaw=None, minaret_side=-1):
         ms.box('lvk_brick', (sr, cd + 0.01, zf), at=(sx * (W / 2 - sr / 2), cy, G), lod=1, frame=f)
     tk.lod2_block(ms, f, W, D, zw + 0.06 * s, mat='lvk_lead')
     # the lead roofs, a raised clerestory over the back middle
-    rise = 0.07 * s
+    rise = 0.055 * s
     lead_roof(ms, f, 0, D / 2 - br / 2, W, br, G + zw, rise * 1.2)
     lead_roof(ms, f, 0, -D / 2 + fr / 2, W, fr, G + zf, rise)
     for sx in (-1, 1):
@@ -536,16 +536,19 @@ def mosque(ms, rng, x, y, s=1.0, top=2.4, yaw=None, minaret_side=-1):
 
 # ---- landmark 2: the caravanserai gate ----------------------------------------------------------
 
-def muqarnas(ms, f, x, y, z, a, h, tiers=3):
-    """Stalactite vaulting in the hood of a niche: tiers of small pointed cells stepping out."""
+def muqarnas(ms, f, x, y, z, a, h, tiers=4):
+    """Stalactite vaulting in the hood of a niche: tiers of small pointed cells stepping out, each
+    with a shaded hollow."""
     for t in range(tiers):
-        n = 5 - t
-        cw = 2 * a * (0.86 - 0.18 * t) / n
-        zz = z + h * (0.08 + 0.3 * t)
+        n = 7 - t
+        span = a * (0.92 - 0.2 * t)
+        cw = 2 * span / n
+        zz = z + h * (0.04 + 0.22 * t)
+        dy = 0.008 * (tiers - t)
         for i in range(n):
-            cx = x - a * (0.86 - 0.18 * t) + cw * (i + 0.5)
-            ms.box('lvk_trim', (cw * 0.92, 0.018 * (tiers - t), h * 0.28), at=(cx, y - 0.009 * (tiers - t), zz), lod=0, frame=f)
-            pointed(ms, f, 'lvk_niche', cx, y - 0.018 * (tiers - t) - 0.001, zz, cw * 0.4, h * 0.24, n=3)
+            cx = x - span + cw * (i + 0.5)
+            ms.box('lvk_trim', (cw * 0.94, dy, h * 0.2), at=(cx, y - dy / 2, zz), lod=0, frame=f)
+            pointed(ms, f, 'lvk_niche', cx, y - dy - 0.001, zz, cw * 0.36, h * 0.17, n=3)
 
 
 def gate_tower(ms, f, x, y, tw, th, mat='lvk_ashlar', lod=1, slits=2):
@@ -564,7 +567,7 @@ def caravanserai_gate(ms, rng, x, y, s=1.0, top=1.6, yaw=None):
     moulded frame with muqarnas in its hood and a carved timber door below, an open pointed
     passage at the back, a flat roof, a timber lean-to shelter on the east side, steps in front."""
     f = tm.house_frame(x, y, tm.facing_centre(x, y) if yaw is None else yaw)
-    W, D = 1.8 * s, 1.0 * s
+    W, D = 1.8 * s, 0.85 * s
     tw = 0.34 * s
     th = top - G - 0.055
     zw = th * 0.8
@@ -574,7 +577,7 @@ def caravanserai_gate(ms, rng, x, y, s=1.0, top=1.6, yaw=None):
     ms.box('lvk_roof', (W - 0.06, D - 0.06, 0.006), at=(0, 0, G + zw), lod=0, frame=f)
     tb.merlons(ms, f, 0, 0, W - 0.04, D - 0.04, G + zw, step=0.08, size=0.04, h=0.055, mat='lvk_ashlar')
     for sx in (-1, 1):
-        gate_tower(ms, f, sx * (W / 2 - tw / 2), -D / 2 + tw / 2 - 0.03 * s, tw, th, lod=2)
+        gate_tower(ms, f, sx * (W / 2 - tw / 2), -D / 2 + tw / 2 - 0.07 * s, tw, th, lod=2)
         gate_tower(ms, f, sx * (W / 2 - tw / 2), D / 2 - tw / 2, tw * 0.9, th * 0.97, lod=1, slits=0)
     # the front: the moulded frame, the niche with muqarnas, the door
     yf = -D / 2 - 0.004
@@ -582,6 +585,9 @@ def caravanserai_gate(ms, rng, x, y, s=1.0, top=1.6, yaw=None):
     ah = zw * 0.84
     ms.box('lvk_ashlar', (W - 2 * tw, 0.03, zw), at=(0, -D / 2 + 0.0, G), lod=0, frame=f)
     yf = -D / 2 - 0.016
+    fw, fh = a * 2.5, min(zw - 0.05, ah * 1.12)
+    for (bx, bz, bw_, bh_) in ((-fw / 2, 0, 0.03, fh), (fw / 2, 0, 0.03, fh), (0, fh - 0.03, fw + 0.03, 0.03)):
+        ms.box('lvk_trim', (bw_, 0.014, bh_), at=(bx, yf + 0.004, G + bz), lod=0, frame=f)
     pointed(ms, f, 'lvk_trim', 0, yf, G, a * 1.14, ah * 1.06, lod=0)
     pointed(ms, f, 'lvk_niche', 0, yf - 0.003, G, a, ah, lod=1)
     muqarnas(ms, f, 0, yf - 0.004, G + ah * 0.42, a * 0.95, ah * 0.5)
@@ -595,7 +601,7 @@ def caravanserai_gate(ms, rng, x, y, s=1.0, top=1.6, yaw=None):
     pointed(ms, bf, 'lvk_trim', 0, -D / 2 - 0.004, G, a * 0.7, ah * 0.72, lod=0)
     pointed(ms, bf, 'dark', 0, -D / 2 - 0.006, G, a * 0.55, ah * 0.62, lod=1)
     # the east lean-to shelter
-    ef = f @ Matrix.Rotation(math.radians(-90), 4, 'Z')
+    ef = f @ Matrix.Rotation(math.radians(90), 4, 'Z')
     tt.front_shade(ms, ef, 0.1 * s, -W / 2, 0.36 * s, depth=0.18 * s, z=0.24, mat='reed')
     ms.box('door', (0.07, 0.01, 0.15), at=(0.1 * s, -W / 2 - 0.004, G), lod=0, frame=ef)
     jar(ms, ef, 0.25 * s, -W / 2 - 0.05, 1.0)
@@ -863,7 +869,7 @@ def landmark_rect(kind, x, y, s, yaw):
         W, D = 1.9 * s, 1.8 * s
         r0 = max(0.17, 0.28 * s)
         return _rect(x - r0 * 0.6, y + 0.05 * s, W / 2 + r0 * 0.6 + 0.05, D / 2 + 0.12 * s, yaw)
-    W, D = 1.8 * s, 1.0 * s
+    W, D = 1.8 * s, 0.85 * s
     return _rect(x + 0.1 * s, y, W / 2 + 0.2 * s, D / 2 + 0.08 * s, yaw)
 
 

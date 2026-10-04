@@ -300,7 +300,7 @@ def court_house(ms, rng, x, y, w, d, yaw=None, storeys=2, rich=False, flat=False
         ring_hip(ms, f, w, d, cw, cd, zr, rise)
         gp.hip(ms, f, w, d, zr, rise * 0.8, mat='lvg_rooftile', lod=2, only=2)
         if rich:
-            ms.cyl('lvg_tileblue', 0.07, 0.07, rise + 0.05, at=(0, d / 2 - fd / 2, zr), segs=10, lod=1, frame=f)
+            ms.cyl('lvg_tileblue', 0.07, 0.07, rise * 0.6 + 0.05, at=(0, d / 2 - fd / 2, zr + rise * 0.4), segs=10, lod=1, frame=f)
             ms.sphere('lvg_turq', 0.075, at=(0, d / 2 - fd / 2, zr + rise + 0.05), scale=(1, 1, 1.15), u=10, v=5, lod=0,
                       frame=f, cut_below=0.0)
             ms.sphere('lvg_turq', 0.075, at=(0, d / 2 - fd / 2, zr + rise + 0.05), scale=(1, 1, 1.15), u=6, v=3, lod=1,
@@ -443,11 +443,11 @@ def mosque(ms, rng, x, y, top, w=1.2, d=1.2, yaw=0, **_ignored):
     NF = f @ _t(0, yN - dh / 2, 0)
     iw = min(0.36, w * 0.28)
     tiled_portal(ms, NF, 0, iw, min(hh * 1.5, s * 0.36), depth=0.04, lod=1, door_w=min(0.08, iw * 0.3))
-    cw = min(w * 0.5, dh * 1.15)
-    dr = cw * 0.44
+    cw = min(w * 0.56, dh * 1.3)
+    dr = cw * 0.46
     drum_h = s * 0.05
     H = dr * 1.08 * 1.75
-    ch = max(hh + 0.12, s * 0.8 - H - drum_h)
+    ch = max(hh + 0.12, min(s * 0.42, s * 0.8 - H - drum_h))
     ms.box('lvg_ashlar', (cw, cw, ch), at=(0, yN + 0.02, G), lod=2, frame=f, bevel=0.004)
     ms.box('lvg_tileblue', (cw + 0.01, cw + 0.01, 0.035), at=(0, yN + 0.02, G + ch - 0.05), lod=0, frame=f)
     for FF, length, side in gp.faces_of(f @ _t(0, yN + 0.02, 0), cw, cw):

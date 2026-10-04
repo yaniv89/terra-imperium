@@ -36,7 +36,7 @@ if 'lvc_paving_fringe' not in tt.FRINGES:
     tt.FRINGES.append('lvc_paving_fringe')
 
 # grey-beige cobbles with dusty joints (street sheet; "stone paving" of the materials sheet)
-PAVING = (('#b3a487', '#a6977a', '#c0b194'), '#86735a', (0.06, 0.05))
+PAVING = (('#b3a487', '#a6977a', '#c0b194'), '#978668', (0.06, 0.05))
 
 
 def make_materials():
@@ -68,7 +68,7 @@ def make_materials():
                   stripes={'dir': 'X', 'scale': 160.0, 'distortion': 2.0}, bump=0.7)
     for n in ('lvc_paving', 'lvc_paving_fringe'):
         tc.mat_paving(n, stone=PAVING[0], mortar=PAVING[1], slab=PAVING[2])
-    tc.mat_paving('lvc_paving_square', stone=('#bcae92', '#ad9f84', '#c8bb9f'), mortar='#8a785e', slab=(0.05, 0.045))
+    tc.mat_paving('lvc_paving_square', stone=('#bcae92', '#ad9f84', '#c8bb9f'), mortar='#9b8a6c', slab=(0.05, 0.045))
 
 
 if not any(n == 'levant_classical' for n, _ in tt.EXTRA_MATERIALS):
@@ -115,7 +115,10 @@ def parapet(ms, f, w, d, z, mat='lvc_pale', cx=0.0, cy=0.0, h=0.045, t=0.022, lo
         ring(ms, f, 'lvc_roof', w - 0.02, d - 0.02, cw + 0.02, cd + 0.02, z, 0.008, lod=2, cx=cx, cy=cy, ccy=ccy)
     else:
         ms.box('lvc_roof', (w - 0.02, d - 0.02, 0.008), at=(cx, cy, z), lod=2, frame=f)
-    ms.box(mat, (w + 0.024, d + 0.024, 0.018), at=(cx, cy, z - 0.014), lod=1, frame=f)  # the cornice
+    if court:  # the cornice
+        ring(ms, f, mat, w, d, court[0] + 0.02, court[1] + 0.02, z - 0.014, 0.018, lod=1, cx=cx, cy=cy, ccy=court[2], grow=0.024)
+    else:
+        ms.box(mat, (w + 0.024, d + 0.024, 0.018), at=(cx, cy, z - 0.014), lod=1, frame=f)
     for (px, py, pw, pd) in ((0, -d / 2 + t / 2, w, t), (0, d / 2 - t / 2, w, t), (-w / 2 + t / 2, 0, t, d - 2 * t),
                              (w / 2 - t / 2, 0, t, d - 2 * t)):
         ms.box(mat, (pw, pd, h), at=(cx + px, cy + py, z), lod=lod, frame=f)
@@ -291,10 +294,10 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning=True, jar_n=2, cloth=True
     by = pd / 2  # the block's centre (the porch takes the front strip)
     cw, cd = w * 0.5, bd * 0.46
     ccy = 0.03
-    ms.box('lvc_ashlar', (w + 0.012, bd + 0.012, 0.035), at=(0, by, G), lod=1, frame=f)
+    ring(ms, f, 'lvc_ashlar', w, bd, cw + 0.02, cd + 0.02, G, 0.035, lod=1, cy=by, ccy=ccy, grow=0.012)
     ring(ms, f, 'lvc_ashlar', w, bd, cw, cd, G, h * 0.55, lod=2, cy=by, ccy=ccy)
     ring(ms, f, 'lvc_plaster', w, bd, cw, cd, G + h * 0.55, h * 0.45, lod=2, cy=by, ccy=ccy)
-    ms.box('lvc_pale', (w + 0.008, bd + 0.008, 0.012), at=(0, by, G + h * 0.55 - 0.006), lod=0, frame=f)  # the course line
+    ring(ms, f, 'lvc_pale', w, bd, cw + 0.02, cd + 0.02, G + h * 0.55 - 0.006, 0.012, lod=0, cy=by, ccy=ccy, grow=0.008)  # the course line
     parapet(ms, f, w, bd, G + h, mat='lvc_pale', cy=by, court=(cw, cd, ccy))
     # the court: paving, an olive tree, the cloth over half of it, an inner parapet
     ms.box('lvc_paving_square', (cw + 0.01, cd + 0.01, 0.006), at=(0, by + ccy, G), lod=1, frame=f)
