@@ -60,8 +60,16 @@ same atlas and exported as the final alpha-masked Ground material (the town and 
 still bake such faces as Town, so their output is unchanged).
 
 ## What did not match, and why
-- The delivered ground of the camp and fields is a dark brown-grey, and the camp tents are dark:
-  that is the delivered colour (the delivery's own previews show the same).
+- The delivered ground of the camp and fields was a dark brown-grey (mean HSV value 0.15) and the
+  tents dark (0.11). In the game the close view multiplies Ground by the land's tint
+  (groundBlend.js), so they showed as near-black discs. Fixed in the shared-towns mode: each
+  object's Ground is baked from a re-toned copy of its atlas whose texels under the Ground faces
+  average the base files' level (shared-bronze.glb camp and fields, measured after the bake:
+  value 0.355 to 0.395, saturation about 0.315), and the camp's Town (the tents) is lifted to at
+  least 0.28 before the bake. Result after the bake: Ground value 0.361 to 0.386, saturation
+  0.312 to 0.322; camp Town 0.27 (base camp 0.32). The pattern (rows, trees, terraces, tents) is
+  unchanged and stays Town. The field crops stay as delivered (Town value 0.09 to 0.14, the base
+  fields 0.23 to 0.38). Any later shared file with a delivered Ground gets the same rule.
 - The camp is 17 m across against the base camp's 20 m, and the fields 14.5 by 12 m; kept as
   delivered (the brief's field size is 14 to 16 by 10 to 12 m).
 - The small towns' landmarks are scaled to about 0.55; house counts sit at the low end (small 7,
