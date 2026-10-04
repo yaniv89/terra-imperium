@@ -69,6 +69,14 @@ The importer makes the two lighter levels (LOD1, LOD2) itself; you do not need t
 Keep big flat faces simple and spend triangles where the silhouette shows: roofs, towers,
 domes, battlements, chimneys.
 
+### 1.7 The map is hexes, the models are round
+The game map is a grid of hexes on a globe, shown only as a faint overlay on a realistic Earth.
+The hexes turn to different angles over the globe and a few are pentagons, so **never shape a
+model or its ground to a hexagon or a square**. Every model must fit inside the circle a tile
+holds (the footprints in section 3), and any ground that is part of an item (fields, the camp,
+tile improvements) ends in a **round, irregular, soft edge** that fades into the land, never a
+straight edge or a corner.
+
 ---
 
 ## 2. Folders and file names
@@ -155,8 +163,9 @@ you want a different one.
 - Building landmarks (section 4): one object `landmark`, rules of 3.3.
 - Wonders (section 5): one file with three objects `tier1`, `tier2`, `tier3` at the same
   origin, up to 120 m across (12 units), 60,000 triangles each.
-- Tile improvements (section 6): one object `improvement` on a 50 x 50 m patch (5 x 5 units)
-  with its own `Ground`, 8,000 triangles.
+- Tile improvements (section 6): one object `improvement` on a round patch of its own `Ground`
+  that fits inside a 50 m circle (5 units across), with an irregular soft edge (section 1.7),
+  8,000 triangles.
 
 ---
 
