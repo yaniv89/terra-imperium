@@ -460,6 +460,19 @@ def swatch_colours(path):
     return tuple(out)
 
 
+# The game multiplies Ground by the land's tint, so a town's ground must be light and neutral like the
+# base shared files' (their ground averages about 0.70 in sRGB). mat_earth bakes about 1.1 to 1.15 times as
+# bright as the colours it is given, so the swatch tones are scaled, hue kept, to this mean.
+GROUND_SWATCH_LUM = 0.61
+
+
+def ground_colours(colours, target=GROUND_SWATCH_LUM):
+    rgb = [[int(c[i:i + 2], 16) / 255 for i in (1, 3, 5)] for c in colours]
+    lum = sum(sum(p) for p in rgb) / (3 * len(rgb))
+    k = target / max(lum, 1e-3)
+    return tuple('#%02x%02x%02x' % tuple(int(max(0, min(1, v * k)) * 255) for v in p) for p in rgb)
+
+
 # ---- hooks into ti_town.build_file (wrappers; ti_map / ti_town stay untouched) --------------------
 # build_file unwraps the joined LOD0 with Smart UV on the active layer and gives LOD1/LOD2 the
 # atlas UVs by data transfer. The kit parts carry their original UVs as 'orig' (their materials
@@ -579,7 +592,7 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
             for key, img in images.items():
                 kit_material('nl_%s_town' % key, img)
                 kit_material('nl_%s_team' % key, img)
-            colours = swatch_colours(street) if os.path.exists(street) else tt.EARTH
+            colours = ground_colours(swatch_colours(street) if os.path.exists(street) else tt.EARTH)
             tm.mat_earth('nl_street', colors=colours)
             tm.mat_earth('nl_street_fringe', colors=colours)
             lighter = tuple('#%02x%02x%02x' % tuple(min(255, int(int(c[i:i + 2], 16) * 1.06)) for i in (1, 3, 5)) for c in colours)
