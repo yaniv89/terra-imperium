@@ -6,16 +6,28 @@ const interior = feature => {
   const insideRing=(x,y,r)=>{let hit=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[i],b=r[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])hit=!hit;}return hit;};
   const xs=outer.map(p=>p[0]),ys=outer.map(p=>p[1]);
   const loX=Math.min(...xs),hiX=Math.max(...xs),loY=Math.min(...ys),hiY=Math.max(...ys);
-  let best=null,clearance=-1;
+  const samples=[];
   for(let k=0;k<20;k++)for(let i=0;i<20;i++){
     const x=loX+(hiX-loX)*(i+.5)/20,y=loY+(hiY-loY)*(k+.5)/20;
     if(insideRing(x,y,outer)&&!rings.slice(1).some(r=>insideRing(x,y,r))){
       const distance=Math.min(...outer.slice(1).map((b,j)=>{const a=outer[j],dx=b[0]-a[0],dy=b[1]-a[1];const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy || 1)));return Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy);}));
-      if(distance>clearance){clearance=distance;best={lat:y,lng:x};}
+      samples.push({lat:y,lng:x,distance});
     }
   }
-  if(best)return best;
-  throw new Error('No interior sample found');
+  if(!samples.length)throw new Error('No interior sample found');
+  // the deepest points first: the caller skips any that another city's town or banner covers
+  return samples.sort((a,b)=>b.distance-a.distance);
+};
+// The deepest interior point not under another city's banner or tap disc (from the close zoom a
+// town and its banner sit over the land and rightly take the tap).
+const clearPoint=async(page,feature,id)=>{
+  const bounds=await page.getByTestId('flat-map').boundingBox();
+  for(const point of interior(feature).slice(0,40)){
+    const p=await page.evaluate(point=>window.__map2DTest.project(point.lat,point.lng),point);
+    const covered=await page.evaluate(({x,y,id})=>{const el=document.elementFromPoint(x,y);const other=el?.closest('[data-city-banner],[data-city-badge]');return !!other&&(other.dataset.cityBanner||other.dataset.cityBadge)!==id;},{x:bounds.x+p.x,y:bounds.y+p.y,id});
+    if(!covered)return {x:bounds.x+p.x,y:bounds.y+p.y,point};
+  }
+  throw new Error(`every interior point of ${id} is under another city`);
 };
 test('actual globe pointer hits preserve selected province at two zoom levels',async({page})=>{
   test.setTimeout(240000);
@@ -29,7 +41,7 @@ test('actual globe pointer hits preserve selected province at two zoom levels',a
   const sample=await page.evaluate(()=>window.__mapTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
   expect(sample.length).toBeGreaterThan(0);
   for(const feature of sample){
-    const point=interior(feature),id=feature.properties.gameRegionId;
+    const point=interior(feature)[0],id=feature.properties.gameRegionId;
     for(const zoom of [.25,.65]){
       await page.evaluate(({point,zoom})=>window.__mapTest.focus(point.lat,point.lng,zoom),{point,zoom});
       await page.waitForTimeout(1000);
@@ -56,12 +68,11 @@ test('2D province fills select their own region at two zoom levels',async({page}
   await page.waitForFunction(()=>window.__map2DTest?.features?.length>0);
   const features=await page.evaluate(()=>window.__map2DTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
   for(const feature of features)for(const zoom of [10,30]){
-    const point=interior(feature),id=feature.properties.gameRegionId;
-    await page.evaluate(({point,zoom})=>window.__map2DTest.focus(point.lat,point.lng,zoom),{point,zoom});
+    const id=feature.properties.gameRegionId,deepest=interior(feature)[0];
+    await page.evaluate(({point,zoom})=>window.__map2DTest.focus(point.lat,point.lng,zoom),{point:deepest,zoom});
     await page.waitForTimeout(100);
-    const p=await page.evaluate(point=>window.__map2DTest.project(point.lat,point.lng),point);
-    const bounds=await page.getByTestId('flat-map').boundingBox();
-    await page.mouse.click(bounds.x+p.x,bounds.y+p.y);
+    const {x,y}=await clearPoint(page,feature,id);
+    await page.mouse.click(x,y);
     await expect.poll(()=>page.evaluate(()=>window.__map2DTest.selected)).toBe(id);
     await page.getByRole('button',{name:'Close',exact:true}).click();
     await expect.poll(()=>page.evaluate(()=>window.__map2DTest.selected)).toBeNull();
