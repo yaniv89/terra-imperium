@@ -105,17 +105,26 @@ interval, `*` = the interval excludes 0:
 - Population, plague and war heat run every turn for every city and nation; the perf LOD only
   spaces out nation economy and loyalty, so they behave the same under it.
 
-### Plague over 8 seeds (head, 150 turns)
+### Plague over 8 seeds (head dfa9cbe, 150 turns)
 
-Per seed: cities struck, most sick at once, city sizes lost to plague, longest outbreak in one
-city. Every outbreak ends: no city stayed sick longer than 15 turns; the 7 to 9 still sick at
-turn 150 belong to outbreaks then under way. Worst seed (18): 20 cities struck, 11 at once,
-3 sizes lost in the whole world, the hardest-hit nation lost 2 sizes. Economies are not crippled
-(sizes lost per seed 0 to 4, against about 2,440 city sizes in the world).
+| seed | cities struck | most sick at once | sizes lost (world) | worst nation | longest in one city |
+|---|---|---|---|---|---|
+| 11 | 35 | 16 | 8 | 1 | 14 |
+| 12 | 3 | 2 | 0 | 0 | 10 |
+| 13 | 0 | 0 | 0 | 0 | 0 |
+| 14 | 7 | 5 | 2 | 1 | 12 |
+| 15 | 0 | 0 | 0 | 0 | 0 |
+| 16 | 41 | 28 | 7 | 1 | 12 |
+| 17 | 50 | 18 | 10 | 1 | 15 |
+| 18 | 1 | 1 | 0 | 0 | 0 |
 
-These runs showed the same outbreak in every game: the spontaneous and jump rolls hashed city id
-and turn but not the game. Fixed: the rolls now include `state.rngSeed`, so each game gets its own
-plagues (test in plague.test.js).
+Heavy-tailed, as epidemics are: some centuries quiet, some with a great plague. Every outbreak
+ends (no city sick longer than 15 turns; seed 16's turn-150 count of 28 is an outbreak then at its
+peak). Worst seed (17): 50 cities struck, 10 city sizes lost in the whole world (of about 2,420),
+no nation lost more than 1. Economies are not crippled.
+
+An earlier run showed the same outbreak in every game: the rolls hashed city id and turn but not
+the game. Fixed in dfa9cbe: the rolls include `state.rngSeed` (test in plague.test.js).
 
 ## Earlier numbers (pre-perf merge base b5120d7): paired, 8 seeds
 
