@@ -26,7 +26,8 @@ import {
 import { templatesOf, nextTemplateUnit, templateProgress, templateSize } from '../../engine/armyTemplates';
 import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { wonderOptions, wonderItem } from '../../engine/wonders';
-import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { GREAT_PROJECTS, cityWonderTotal } from '../../data/greatProjects';
+import { wonderIcon } from './wonderIcons';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -65,8 +66,8 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const live = useMemo(() => {
     if (!city) return null;
     const worked = allocateTiles(city, tiles, world, researched);
-    return { worked, yields: cityYields(city, tiles, world, worked, researched, { luxuries: (city.lastYields?.luxuries || []).length }) };
-  }, [city, tiles, world, researched]);
+    return { worked, yields: cityYields(city, tiles, world, worked, researched, { luxuries: (city.lastYields?.luxuries || []).length, cultureBonus: cityWonderTotal(state.greatProjects, city.id, 'local.culture') }) };
+  }, [city, tiles, world, researched, state.greatProjects]);
   const yields = live?.yields || { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
   const housing = city ? housingOf(city, researched) : 0;
   const amen = city ? amenitiesOf(city, { luxuries: (city.lastYields?.luxuries || []).length }) : { need: 0, supply: 0, net: 0 };
@@ -263,10 +264,13 @@ const CityPanel = ({ cityId, view = 'city' }) => {
             <ul className="space-y-1">
               {rows.map((o) => {
                 const cost = productionCost(o.item, costCtx);
+                const WonderIcon = o.item.kind === 'wonder' ? wonderIcon(o.item.projectId) : null;
                 return (
                   <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs border ${o.ok ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-900/60 border-slate-800 opacity-70'}`}>
+                    {WonderIcon && <WonderIcon className="w-4 h-4 shrink-0 text-yellow-200" aria-hidden="true" />}
                     <div className="min-w-0 flex-1">
                       <div className="text-slate-100 truncate">{itemLabel(o.item, tiles, ageId)}</div>
+                      {o.item.kind === 'wonder' && <div className="text-slate-500 text-[10px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
                       <div className="text-slate-400">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-sky-300 min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
                     </div>
                     <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-white disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">

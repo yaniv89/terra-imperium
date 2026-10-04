@@ -6,6 +6,7 @@
 // `getNationSheet(state, nationId)` layers the contextual (state-dependent) sources on top and is
 // cached per (state, nationId) pair for the lifetime of that one state object.
 import { staticSources, contextSources, regionSources } from './sources';
+import { cityWonderLines } from '../../data/greatProjects';
 import { LEGACY_HOOK } from './registry';
 
 const staticCache = new WeakMap(); // nation -> { key -> Line[] }
@@ -94,10 +95,12 @@ export const getRegionModifierTotals = (state, regionId, keys) => {
   const region = state.regions?.[regionId];
   const grouped = region ? regionStaticSheet(region) : null;
   const timed = state.regionModifiers?.[regionId] || [];
+  const wonder = cityWonderLines(state.greatProjects, regionId);
   const out = {};
   keys.forEach((key) => {
     let total = 0;
     if (grouped) { const lines = grouped.get(key); if (lines) for (let i = 0; i < lines.length; i++) total += lines[i].value; }
+    if (wonder.length) wonder.forEach((l) => { if (l.key === key) total += l.value; });
     if (timed.length) timed.forEach((mod) => { if (mod.mods?.[key]) total += mod.mods[key]; });
     out[key] = total;
   });
@@ -109,7 +112,8 @@ export const getRegionModifier = (state, regionId, key) => {
   const buildingLines = region ? (regionStaticSheet(region).get(key) || []) : [];
   const timedEntries = (state.regionModifiers?.[regionId] || []).filter((mod) => mod.mods?.[key]);
   const timedLines = timedEntries.map((mod) => ({ key, value: mod.mods[key], sourceType: mod.sourceType || 'event', sourceId: mod.sourceId || mod.id, label: mod.label }));
-  const breakdown = [...buildingLines, ...timedLines];
+  const wonderLines = cityWonderLines(state.greatProjects, regionId).filter((l) => l.key === key); // its own national wonder (greatProjects.js)
+  const breakdown = [...buildingLines, ...wonderLines, ...timedLines];
   return { total: breakdown.reduce((sum, l) => sum + l.value, 0), breakdown };
 };
 

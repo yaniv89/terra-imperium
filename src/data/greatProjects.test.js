@@ -14,11 +14,16 @@ const RECOGNIZED_HOOKS = [
 ];
 
 describe('GREAT_PROJECTS data integrity', () => {
-  it('has exactly 15 projects, 3 per age', () => {
-    expect(GREAT_PROJECT_IDS.length).toBe(15);
+  it('has exactly 15 world projects, 3 per age, plus national ones tied to a homeland', () => {
+    const world = Object.values(GREAT_PROJECTS).filter((p) => !p.national);
+    expect(world.length).toBe(15);
     AGE_ORDER.forEach((ageId) => {
-      expect(Object.values(GREAT_PROJECTS).filter((p) => p.ageId === ageId).length, ageId).toBe(3);
+      expect(world.filter((p) => p.ageId === ageId).length, ageId).toBe(3);
     });
+    const national = Object.values(GREAT_PROJECTS).filter((p) => p.national);
+    expect(national.map((p) => p.id).sort()).toEqual(['masada', 'solomons_temple']);
+    national.forEach((p) => { expect(p.homeland, p.id).toBeTruthy(); expect(p.siteRule).toBe('homeland'); });
+    expect(GREAT_PROJECT_IDS.length).toBe(world.length + national.length);
   });
 
   it('every project has exactly 3 tiers, each with a completionPrestige and an effects object', () => {
@@ -54,7 +59,8 @@ describe('GREAT_PROJECTS data integrity', () => {
   it('no project is effect-free at any tier (every project gives a real, ongoing bonus beyond one-time prestige)', () => {
     Object.values(GREAT_PROJECTS).forEach((project) => {
       project.tiers.forEach((tier, i) => {
-        expect(Object.keys(tier.effects).length, `${project.id}/tier${i + 1}`).toBeGreaterThan(0);
+        // a national wonder acts on its own city (cityEffects) instead of the nation
+        expect(Object.keys(tier.effects).length + Object.keys(tier.cityEffects || {}).length, `${project.id}/tier${i + 1}`).toBeGreaterThan(0);
       });
     });
   });

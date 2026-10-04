@@ -40,6 +40,11 @@ export const MODIFIER_KEYS = {
   'local.supplyRange': { scope: 'region', unit: 'flat', label: 'Local Supply Range' },
   'local.fortLevel': { scope: 'region', unit: 'flat', label: 'Fort Level' },
   'local.stabilityBonus': { scope: 'region', unit: 'flat', label: 'Local Stability' },
+  // A city's own national wonder (greatProjects.js cityEffects): culture a turn, loyalty target,
+  // siege HP of its walls (pct).
+  'local.culture': { scope: 'region', unit: 'flat', label: 'Local Culture' },
+  'local.loyalty': { scope: 'region', unit: 'flat', label: 'Local Loyalty' },
+  'local.wallHp': { scope: 'region', unit: 'pct', label: 'Wall Siege HP' },
   // Plan §M6.1: Develop Province's national.developmentCost sibling for buildings — sourced by the
   // Architect ruler trait (M3), which this milestone rewires from its old goldMult stand-in now
   // that the real hook exists.

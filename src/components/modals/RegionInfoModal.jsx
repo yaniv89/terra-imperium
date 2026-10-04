@@ -26,6 +26,7 @@ import { UNIT_CLASSES } from '../../data/unitClasses';
 import { getRankForXp } from '../../data/promotions';
 import { getDepositsFor } from '../../data/deposits';
 import { GREAT_PROJECTS } from '../../data/greatProjects';
+import { wonderIcon } from '../city/wonderIcons';
 import { getTotalDev } from '../../engine/development';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { describeAttackBlock } from '../../utils/attackAvailability';
@@ -480,7 +481,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
                 <ProgressBar value={loyalty} color="dynamic" size="small" />
                 <div className="text-[10px] text-slate-500 mt-0.5">
                   {culture.map(([id, v]) => `${state.nations[id]?.name || id} ${Math.round(v * 100)}%`).join(' · ')}
-                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}{t.law ? ` · laws ${t.law > 0 ? '+' : ''}${t.law}` : ''}
+                  {` · people ${t.fromShare}`}{t.garrison ? ` · garrison +${t.garrison}` : ''}{t.amenities ? ` · amenities ${t.amenities > 0 ? '+' : ''}${t.amenities}` : ''}{t.conquered ? ` · conquered ${t.conquered}` : ''}{t.capitalLost ? ` · capital lost ${t.capitalLost}` : ''}{t.governor ? ` · governor ${t.governor > 0 ? '+' : ''}${t.governor}` : ''}{t.law ? ` · laws ${t.law > 0 ? '+' : ''}${t.law}` : ''}{t.wonder ? ` · wonder +${t.wonder}` : ''}
                 </div>
               </div>
             );
@@ -612,7 +613,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           <div className="space-y-1">
             {projectsHere.map(({ projectId, tier }) => (
               <div key={projectId} className="flex items-center justify-between bg-slate-800/60 rounded px-2 py-1.5">
-                <span className="text-yellow-200 font-semibold truncate">{GREAT_PROJECTS[projectId]?.name || projectId}</span>
+                <span className="text-yellow-200 font-semibold truncate inline-flex items-center gap-1.5">{React.createElement(wonderIcon(projectId), { className: 'w-3.5 h-3.5 shrink-0', 'aria-hidden': true })}{GREAT_PROJECTS[projectId]?.name || projectId}</span>
                 <TierPips filled={tier} total={GREAT_PROJECTS[projectId]?.tiers?.length || 3} />
               </div>
             ))}

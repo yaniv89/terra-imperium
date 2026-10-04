@@ -8,6 +8,7 @@
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
 import React from 'react';
+import { wonderIcon } from '../city/wonderIcons';
 import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby, Globe2, Swords, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import EmpireOverview from './EmpireOverview';
@@ -172,7 +173,7 @@ const DomesticPanel = () => {
         return (
           <div key={projectId} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-white">{project.name}</span>
+              <span className="text-white inline-flex items-center gap-1.5">{React.createElement(wonderIcon(projectId), { className: 'w-3.5 h-3.5 shrink-0 text-yellow-200', 'aria-hidden': true })}{project.name}</span>
               <span className="text-slate-400">{status}</span>
             </div>
             <div className="text-slate-500">{project.description}</div>

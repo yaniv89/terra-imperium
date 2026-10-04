@@ -70,7 +70,8 @@ export const cityPoliticsModel = (state, cityId) => {
     { id: 'conquered', label: 'Recently conquered', value: t.conquered },
     { id: 'capitalLost', label: 'Capital lost', value: t.capitalLost },
     { id: 'governor', label: 'Governor', value: t.governor },
-    { id: 'law', label: 'Laws', value: t.law }
+    { id: 'law', label: 'Laws', value: t.law },
+    { id: 'wonder', label: 'Wonder', value: t.wonder }
   ].filter((p) => p.value);
   const culture = Object.entries(cultureOf(city)).sort((a, b) => b[1] - a[1]).map(([id, share]) => ({ nationId: id, name: state.nations?.[id]?.name || id, share: Math.round(share * 100) }));
   const group = city.owner ? groupOfCity(state, city.owner, cityId) : null;

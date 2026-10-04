@@ -185,7 +185,7 @@ export const siegePressed = (state, tile, units) => {
     if (!city || city.tile !== n || city.owner === me) continue;
     const mine = besiegersOf(state, city).get(me);
     if (!mine?.length) continue;
-    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city)), maxHp: siegeMaxHp(city), walls: wallsOf(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
+    return { regionId: cityId, name: city.name, hp: Math.round(siegeHpOf(city, state.greatProjects)), maxHp: siegeMaxHp(city, state.greatProjects), walls: wallsOf(city), encircled: isEncircled(state, city, me), strength: Math.round(siegeStrength(state, me, mine)) };
   }
   return null;
 };
