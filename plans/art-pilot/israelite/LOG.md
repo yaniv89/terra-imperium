@@ -66,3 +66,38 @@ still bake such faces as Town, so their output is unchanged).
   delivered (the brief's field size is 14 to 16 by 10 to 12 m).
 - The small towns' landmarks are scaled to about 0.55; house counts sit at the low end (small 7,
   medium 12, big 23).
+
+# Israelite Classical (checkpoint 02)
+
+Inputs: `kits/israelite/classical` (houses and street from checkpoint-01; roofscape, materials,
+landmark-1 and landmark-2 from `plans/art/downloads/blender-remaining/checkpoint-02/`) and
+`towns/classical/*-israelite` (palace-small, palace, walls-medium). Built on the merged
+frequency-100 branch; the art and map tests pass there (44).
+
+```
+python scripts/blender/assemble_kit_towns.py <kits>/israelite classical israelite <out_dir> 2048
+python scripts/blender/assemble_kit_towns.py shared-towns <towns>/classical classical israelite <out_dir> 2048
+```
+
+Outputs: `src/assets/map/towns/classical-town-<size>-<v>-israelite.glb` (6) and
+`src/assets/map/shared/shared-classical-israelite.glb` (palace-small, palace, walls-medium; the
+camp, fields and the small and big walls fall back to shared-classical.glb). All pass
+`validate_model.py`; no town needed the LOD1 retry.
+
+| File | Houses (poor/common/rich) | Landmarks (scale) | LOD0 / LOD1 / LOD2 triangles | Footprint | Height | Size (packed) | Valid |
+|---|---|---|---|---|---|---|---|
+| classical-town-big-a-israelite.glb | 23 (14/7/2) | landmark-1 (0.99), landmark-2 (1.00) | 35387 / 7569 / 736 | 7.92 | 2.30 | 1.7 MB | pass |
+| classical-town-big-b-israelite.glb | 23 (13/8/2) | landmark-2 (1.00), landmark-1 (0.99) | 36060 / 7568 / 736 | 7.94 | 2.30 | 1.7 MB | pass |
+| classical-town-medium-a-israelite.glb | 12 (9/2/1) | landmark-1 (0.83), landmark-2 (1.00) | 19532 / 4934 / 626 | 5.94 | 2.30 | 1.3 MB | pass |
+| classical-town-medium-b-israelite.glb | 12 (9/2/1) | landmark-2 (1.00), landmark-1 (0.83) | 19388 / 4934 / 626 | 5.93 | 2.30 | 1.3 MB | pass |
+| classical-town-small-a-israelite.glb | 7 (6/1/0) | landmark-1 (0.52) | 10977 / 3011 / 466 | 4.01 | 0.77 | 1.0 MB | pass |
+| classical-town-small-b-israelite.glb | 7 (6/1/0) | landmark-2 (0.70) | 10461 / 2935 / 466 | 3.98 | 1.60 | 1.0 MB | pass |
+| shared-classical-israelite.glb: palace-small | - | - | 1061 / 1061 / 400 | 0.80 | 0.79 | 1.1 MB | pass |
+| shared-classical-israelite.glb: palace | - | - | 1342 / 1342 / 400 | 1.20 | 1.44 | 1.1 MB | pass |
+| shared-classical-israelite.glb: walls-medium | - | - | 3741 / 2183 / 379 | 6.80 | 0.77 | 1.1 MB | pass |
+
+Reads as: fieldstone courtyard houses with parapets and outside stairs (Jerusalem Upper City,
+Capernaum); a crenellated ashlar tower and a gabled hall as the landmarks. palace-small is a
+two-storey ashlar tower house on a paved terrace; the palace a round fortress-palace on a
+battered mound with corner towers (14.4 m, kept as delivered); walls-medium an ashlar ring with
+the gate at the south. The small towns' landmarks are scaled to 0.52 and 0.70.
