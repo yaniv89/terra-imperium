@@ -39,6 +39,13 @@ export const indexBuildingFiles = (files) => {
 const FILES = import.meta.glob('../../../assets/map/buildings/*.glb', { query: '?url', import: 'default', eager: true });
 const BY_ID = indexBuildingFiles(FILES);
 
+/** The object to draw from a loaded file: the one named after the file (granary-israelite), the
+ * bare id (granary), or the file's only object. */
+export const buildingRoot = (objs, id, url) => {
+  const file = (url || '').match(/\/([a-z_]+(?:-[a-z]+)?)(?:-[\w]{6,})?\.glb/)?.[1];
+  return (file && objs[file]) || objs[id] || Object.values(objs)[0];
+};
+
 /** The file for a building model on land of this style: its style chain first, then the base
  * file, or null (nothing is drawn). */
 export const buildingModelUrl = (id, style = null, index = BY_ID) => {
@@ -86,8 +93,9 @@ export const pickBuildingModels = (region, style = null, tierId = 'small', index
 };
 
 // ---- placement -----------------------------------------------------------------------------------
-// Model units (10 m): a landmark is 10 to 20 m across, the disc round it BUILDING_DISC.
-export const BUILDING_DISC = 0.7;
+// Model units (10 m): a landmark is 10 to 20 m across (the Israelite ones 15 to 18 m by 10 to 14),
+// the disc round it BUILDING_DISC.
+export const BUILDING_DISC = 0.8;
 // The town's square ground reaches TOWN_HALF each way; the wall ring's outer edge WALL_OUTER (the
 // shared files' walls-small, -medium and -big; the same ring with or without walls, so a town
 // that builds its walls later keeps its landmarks where they stood).
@@ -120,7 +128,7 @@ export const buildingSpots = (tierId, seed = 0, fields = []) => {
     const a = (deg * Math.PI) / 180;
     return { x: r * Math.cos(a), z: -r * Math.sin(a), yaw: 0, inner, deg };
   };
-  const inner = (INNER_ANGLES[tierId] || INNER_ANGLES.small).map((d) => spot(d + shift, half - BUILDING_DISC - 0.05, true));
+  const inner = (INNER_ANGLES[tierId] || INNER_ANGLES.small).map((d) => spot(d + shift, half - BUILDING_DISC + 0.05, true));
   const rOut = wall + 0.1 + BUILDING_DISC;
   const fieldAngles = fields.map((f) => (Math.atan2(-f.z, f.x) * 180) / Math.PI);
   const fieldR = fields.length ? Math.hypot(fields[0].x, fields[0].z) : 0;
