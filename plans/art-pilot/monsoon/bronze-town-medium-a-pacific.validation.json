@@ -1,0 +1,107 @@
+{
+  "file": "bronze-town-medium-a-pacific.glb",
+  "kind": "town",
+  "bytes": 1620540,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 9100,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.98,
+          "depth": 5.976,
+          "height": 1.218,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 3485,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.98,
+          "depth": 5.976,
+          "height": 1.218,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 526,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.98,
+          "depth": 5.976,
+          "height": 1.218,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 5.98
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "bronze-town-medium-a-pacific_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 15830
+    },
+    {
+      "name": "bronze-town-medium-a-pacific_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 393594
+    },
+    {
+      "name": "bronze-town-medium-a-pacific_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 311938
+    }
+  ],
+  "passed": true
+}
