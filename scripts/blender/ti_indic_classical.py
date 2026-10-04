@@ -575,12 +575,12 @@ def rich_house(ms, rng, x, y, w, d, yaw=None, garden=True, terrace=None):
     # the pavilion storey at the back with its own hip and finial
     pw, pd = wm * 0.34, dm * 0.24
     py = cy + dm / 2 - pd / 2 - 0.03
-    ph = STOREY * 0.62
+    ph = STOREY * 0.4
     ms.box('inc_plaster', (pw, pd, ph + 0.1), at=(mx, py, G + h - 0.06), lod=2, frame=f)
     ms.box('inc_timber', (pw + 0.01, pd + 0.01, 0.014), at=(mx, py, G + h + 0.04), lod=1, frame=f)
-    window(ms, f, mx, py - pd / 2, G + h + 0.1, w=0.07, h=0.08)
-    hip(ms, f, pw, pd, G + h + ph + 0.04, 0.12, over=0.04, cx=mx, cy=py, lod=2)
-    finial(ms, f, mx, py, G + h + ph + 0.16)
+    window(ms, f, mx, py - pd / 2, G + h + 0.08, w=0.07, h=0.07)
+    hip(ms, f, pw, pd, G + h + ph + 0.04, 0.1, over=0.04, cx=mx, cy=py, lod=2)
+    finial(ms, f, mx, py, G + h + ph + 0.14)
     if terrace:
         th = h * 0.62
         ms.box('inc_sandstone', (tw + 0.012, dm * 0.7 + 0.012, 0.03), at=(tx, cy + dm * 0.15, G), lod=1, frame=f)
