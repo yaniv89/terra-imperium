@@ -1,15 +1,22 @@
 // scripts/art/glbInfo.mjs
 // Reads the JSON chunk of a binary glTF file (no dependencies), for the model packing script
 // and its test.
-import { readdirSync, readFileSync } from 'node:fs';
+import { closeSync, openSync, readdirSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 
-/** The glTF JSON of a .glb file. */
+/** The glTF JSON of a .glb file (reads only the header and the JSON chunk, not the buffers). */
 export const readGlbJson = (path) => {
-  const b = readFileSync(path);
-  if (b.readUInt32LE(0) !== 0x46546c67) throw new Error(`${path}: not a binary glTF file`);
-  const length = b.readUInt32LE(12);
-  return JSON.parse(b.subarray(20, 20 + length).toString('utf8'));
+  const fd = openSync(path, 'r');
+  try {
+    const head = Buffer.alloc(20);
+    readSync(fd, head, 0, 20, 0);
+    if (head.readUInt32LE(0) !== 0x46546c67) throw new Error(`${path}: not a binary glTF file`);
+    const json = Buffer.alloc(head.readUInt32LE(12));
+    readSync(fd, json, 0, json.length, 20);
+    return JSON.parse(json.toString('utf8'));
+  } finally {
+    closeSync(fd);
+  }
 };
 
 /** Whether the file's meshes are already meshopt-compressed (packed by pack-map-models.mjs). */

@@ -223,6 +223,9 @@ describe('pre-battle choice is never skipped by accident', () => {
     let asked = false;
     for (let i = 0; i < 80 && !asked; i++) {
       s = resolveTurn(s);
+      // keep the aggressor on the legacy dice path (resolveTurn backfills an economy, after which
+      // only a real AI march could assault, and that depends on where the capitals start)
+      s = { ...s, nations: { ...s.nations, [AGG]: { ...s.nations[AGG], economy: undefined } } };
       asked = (s.pendingDefenses || []).length > 0;
       if (s.activeEventId || s.activeProceduralEvent || s.pendingPeaceOffer) s = { ...s, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null };
     }
