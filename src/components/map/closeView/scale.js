@@ -7,31 +7,38 @@
 export const SUPER_FROM_K = 40;
 export const SUPER_GROWTH = 0.7;
 export const unitPx = (k) => (k <= SUPER_FROM_K ? Math.max(2, k * 0.55) : SUPER_FROM_K * 0.55 * (k / SUPER_FROM_K) ** SUPER_GROWTH);
-// A town never grows past its own hex: its pixels per model unit are capped so its radius (with
-// its wall ring) stays within HEX_FILL of the hex's inner radius on screen. Big towns at the super
-// zoom were drawn about twice as wide as their hex and spilled over the coast.
-export const HEX_FILL = 0.9;
-export const townUnitPx = (k, radiusUnits, hexInnerPx) =>
-  (hexInnerPx > 0 && radiusUnits > 0 ? Math.min(unitPx(k), (HEX_FILL * hexInnerPx) / radiusUnits) : unitPx(k));
-/** A tile's inner radius in projection units (multiply by the zoom k for pixels): half the
- * distance to its nearest neighbour's centre, cached per projection. */
-const innerCache = new WeakMap();
-export const hexInnerUnits = (projection, tiles, tile) => {
+// Bigger towns read bigger: a medium town is drawn 12% and a big one 25% above its model's size.
+export const TIER_SCALE = { small: 1, medium: 1.12, big: 1.25 };
+// A town never reaches into the sea: its pixels per model unit are capped so its radius (with its
+// wall ring) stays within ROOM_FILL of its `room`, the distance from its centre to the nearest
+// coast (half way to the nearest water hex), at most ROOM_MAX_HEXES hex spacings over land.
+export const ROOM_FILL = 0.95;
+export const ROOM_MAX_HEXES = 1.5;
+export const townUnitPx = (k, radiusUnits, roomPx, tierScale = 1) => {
+  const natural = unitPx(k) * tierScale;
+  return roomPx > 0 && radiusUnits > 0 ? Math.min(natural, (ROOM_FILL * roomPx) / radiusUnits) : natural;
+};
+/** A town's room in projection units (multiply by the zoom k for pixels): from its tile's centre
+ * to the nearest coast, or ROOM_MAX_HEXES spacings inland. Cached per projection. */
+const roomCache = new WeakMap();
+export const townRoomUnits = (projection, tiles, tile) => {
   if (!projection || tile == null) return 0;
-  let m = innerCache.get(projection);
-  if (!m) { m = new Map(); innerCache.set(projection, m); }
+  let m = roomCache.get(projection);
+  if (!m) { m = new Map(); roomCache.set(projection, m); }
   if (m.has(tile)) return m.get(tile);
   const at = (t) => { const { lat, lon } = tiles.latLonOf(t); return projection([lon, lat]); };
   const c = at(tile);
-  let best = Infinity;
-  (tiles.neighbors[tile] || []).forEach((n) => {
-    const p = at(n);
-    // a neighbour across the map's edge projects to the far side: skip it
-    if (c && p && Math.abs(p[0] - c[0]) < 50) best = Math.min(best, Math.hypot(p[0] - c[0], p[1] - c[1]) / 2);
-  });
-  const r = Number.isFinite(best) ? best : 0;
-  m.set(tile, r);
-  return r;
+  const dist = (t) => { const p = at(t); return c && p && Math.abs(p[0] - c[0]) < 50 ? Math.hypot(p[0] - c[0], p[1] - c[1]) : Infinity; };
+  const spacing = Math.min(...(tiles.neighbors[tile] || []).map(dist));
+  if (!Number.isFinite(spacing)) { m.set(tile, 0); return 0; }
+  let room = ROOM_MAX_HEXES * spacing;
+  // water within two rings: the coast lies about half a spacing short of a water hex's centre
+  const ring1 = tiles.neighbors[tile] || [];
+  const near = new Set([...ring1, ...ring1.flatMap((n) => tiles.neighbors[n] || [])]);
+  near.forEach((t) => { if (t !== tile && tiles.land[t] !== 1) room = Math.min(room, dist(t) - spacing / 2); });
+  room = Math.max(room, spacing / 4);
+  m.set(tile, room);
+  return room;
 };
 
 // Where an army's soldiers stand, in model units from the province centre (screen x, screen y).

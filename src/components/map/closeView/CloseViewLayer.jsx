@@ -22,7 +22,7 @@ import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, hexInnerUnits } from './scale';
+import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, TIER_SCALE } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
 import { styleOfLand } from '../../../data/architecture';
@@ -213,9 +213,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       }
       if (mesh.userData.asset) showLod(mesh, lodForZoom(k));
       // the town's ground (and its wall ring) is claimed first; its fields come after the works
-      // the town (and its wall ring) never wider than its own hex
+      // bigger towns drawn bigger, and no town reaching into the sea
       const radius = (campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0);
-      const ts = townUnitPx(k, radius, hexInnerUnits(projection, getTiles(), region.tile) * k);
+      const ts = townUnitPx(k, radius, townRoomUnits(projection, getTiles(), region.tile) * k, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       mesh.position.set(at.x, -at.y, at.y * 0.05);

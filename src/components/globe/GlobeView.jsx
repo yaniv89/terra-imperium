@@ -209,7 +209,7 @@ const GlobeView = ({ onAmbiguousTap = null,
         c.width = geo.image?.naturalWidth || rasterSize; c.height = geo.image?.naturalHeight || rasterSize / 2;
         canvasRef.current = c;
       }
-      renderPoliticalCanvas({ canvas: canvasRef.current, baseImage: geo.image, state, fillFor, land: geo.land, warOwners: atWarNationIds, selected: selectedRegion, lens });
+      renderPoliticalCanvas({ canvas: canvasRef.current, baseImage: geo.image, state, fillFor, warOwners: atWarNationIds, selected: selectedRegion, lens });
       if (!textureRef.current) {
         const t = new CanvasTexture(canvasRef.current);
         t.colorSpace = SRGBColorSpace;
@@ -324,7 +324,7 @@ const GlobeView = ({ onAmbiguousTap = null,
   useEffect(() => {
     if(window.__E2E_MAP_TEST__ !== true || !globeRef.current || !geo)return undefined;
     window.__mapTest={
-      features:getCityFeatures(state,geo.land).map((f)=>({...f,properties:{...f.properties,owner:state.regions[f.properties.gameRegionId]?.owner||null}})),
+      features:getCityFeatures(state).map((f)=>({...f,properties:{...f.properties,owner:state.regions[f.properties.gameRegionId]?.owner||null}})),
       selected:selectedRegion,
       focus:(lat,lng,altitude)=>{const g=globeRef.current;g.controls().autoRotate=false;g.pointOfView({lat,lng,altitude},0);g.controls().update();g.camera().updateMatrixWorld();},
       project:(lat,lng)=>globeRef.current.getScreenCoords(lat,lng,0.002)

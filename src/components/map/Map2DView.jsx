@@ -117,8 +117,9 @@ const Map2DView = ({
   const appliedInitialFocusRef = useRef(false);
   const [transform, setTransform] = useState(zoomIdentity);
 
-  // The coast (hexCoast.js: along hex edges, softened) cuts every territory; until it has
-  // loaded the raw hex territories show.
+  // The land (hexCoast.js: the coast along hex edges, softened) for the close view's art mask.
+  // Territories are whole hexes: a city's coast and lake hexes are its land too (worked for food
+  // and gold), drawn with no objects on them.
   const [land, setLand] = useState(null);
   useEffect(() => {
     let cancelled = false;
@@ -129,7 +130,7 @@ const Map2DView = ({
   // on the tileOwner object's identity).
   const tileOwner = state.world?.tileOwner || null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const polygons = useMemo(() => getCityFeatures(state, land), [tileOwner, land]);
+  const polygons = useMemo(() => getCityFeatures(state), [tileOwner]);
 
   // The whole sphere, so the raster and every path share one pixel space at every zoom.
   const projection = useMemo(() => {
@@ -140,7 +141,7 @@ const Map2DView = ({
   const nationOutlines = useMemo(() => {
     if (!projection) return [];
     const pathGen = geoPath(projection);
-    return getNationTerritories(state, land).map((f) => ({ owner: f.properties.owner, d: pathGen(f) })).filter((n) => n.d);
+    return getNationTerritories(state).map((f) => ({ owner: f.properties.owner, d: pathGen(f) })).filter((n) => n.d);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projection, tileOwner, land, state.regions]);
   const nationBorderPath = useMemo(() => nationOutlines.map((n) => n.d).join(' ') || null, [nationOutlines]);
