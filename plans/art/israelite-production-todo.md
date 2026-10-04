@@ -1,0 +1,80 @@
+# Israelite theme — 74 pending art items
+
+Authoritative source: https://github.com/yaniv89/terra-imperium/blob/claude/bronze-towns/plans/art/israelite-theme.md
+
+Current 40-item batch continues unchanged. Add this theme as a separate queue in the brief’s section 9 order. Units last. Each item needs notes.md naming its archaeological site. Town fields are shared early-age assets, counted once; draft storage under bronze, reuse in early ages.
+
+- [ ] plans/art/kits/israelite/bronze/houses — bronze Israelite houses; see authoritative theme brief
+- [ ] plans/art/kits/israelite/bronze/street — bronze Israelite street; see authoritative theme brief
+- [ ] plans/art/kits/israelite/bronze/roofscape — bronze Israelite roofscape; see authoritative theme brief
+- [ ] plans/art/kits/israelite/bronze/materials — bronze Israelite materials; see authoritative theme brief
+- [ ] plans/art/kits/israelite/bronze/landmark-1 — Six-chamber city gate (Megiddo/Hazor/Gezer)
+- [ ] plans/art/kits/israelite/bronze/landmark-2 — Three-aisle pillared storehouse
+- [ ] plans/art/kits/israelite/classical/houses — classical Israelite houses; see authoritative theme brief
+- [ ] plans/art/kits/israelite/classical/street — classical Israelite street; see authoritative theme brief
+- [ ] plans/art/kits/israelite/classical/roofscape — classical Israelite roofscape; see authoritative theme brief
+- [ ] plans/art/kits/israelite/classical/materials — classical Israelite materials; see authoritative theme brief
+- [ ] plans/art/kits/israelite/classical/landmark-1 — Galilean synagogue (Capernaum/Gamla/Kfar Baram)
+- [ ] plans/art/kits/israelite/classical/landmark-2 — Herodian Phasael tower
+- [ ] plans/art/kits/israelite/kingdoms/houses — kingdoms Israelite houses; see authoritative theme brief
+- [ ] plans/art/kits/israelite/kingdoms/street — kingdoms Israelite street; see authoritative theme brief
+- [ ] plans/art/kits/israelite/kingdoms/roofscape — kingdoms Israelite roofscape; see authoritative theme brief
+- [ ] plans/art/kits/israelite/kingdoms/materials — kingdoms Israelite materials; see authoritative theme brief
+- [ ] plans/art/kits/israelite/kingdoms/landmark-1 — Byzantine-period synagogue (Bet Alpha/Hammat Tiberias)
+- [ ] plans/art/kits/israelite/kingdoms/landmark-2 — Jerusalem medieval citadel tower
+- [ ] plans/art/kits/israelite/gunpowder/houses — gunpowder Israelite houses; see authoritative theme brief
+- [ ] plans/art/kits/israelite/gunpowder/street — gunpowder Israelite street; see authoritative theme brief
+- [ ] plans/art/kits/israelite/gunpowder/roofscape — gunpowder Israelite roofscape; see authoritative theme brief
+- [ ] plans/art/kits/israelite/gunpowder/materials — gunpowder Israelite materials; see authoritative theme brief
+- [ ] plans/art/kits/israelite/gunpowder/landmark-1 — Great domed synagogue (Hurva 1864)
+- [ ] plans/art/kits/israelite/gunpowder/landmark-2 — Ottoman city gate
+- [ ] plans/art/kits/israelite/modern/houses — modern Israelite houses; see authoritative theme brief
+- [ ] plans/art/kits/israelite/modern/street — modern Israelite street; see authoritative theme brief
+- [ ] plans/art/kits/israelite/modern/roofscape — modern Israelite roofscape; see authoritative theme brief
+- [ ] plans/art/kits/israelite/modern/materials — modern Israelite materials; see authoritative theme brief
+- [ ] plans/art/kits/israelite/modern/landmark-1 — Round, triangular and square office towers
+- [ ] plans/art/kits/israelite/modern/landmark-2 — Kibbutz water tower
+- [ ] plans/art/towns/bronze/palace-small-israelite — bronze regional palace; archaeological form in theme brief
+- [ ] plans/art/towns/bronze/palace-israelite — bronze regional palace; archaeological form in theme brief
+- [ ] plans/art/towns/classical/palace-small-israelite — classical regional palace; archaeological form in theme brief
+- [ ] plans/art/towns/classical/palace-israelite — classical regional palace; archaeological form in theme brief
+- [ ] plans/art/towns/kingdoms/palace-small-israelite — kingdoms regional palace; archaeological form in theme brief
+- [ ] plans/art/towns/kingdoms/palace-israelite — kingdoms regional palace; archaeological form in theme brief
+- [ ] plans/art/towns/bronze/walls-medium-israelite — bronze Israelite wall kit
+- [ ] plans/art/towns/classical/walls-medium-israelite — classical Israelite wall kit
+- [ ] plans/art/towns/gunpowder/walls-medium-israelite — gunpowder Israelite wall kit
+- [ ] plans/art/towns/bronze/colony-camp-israelite — bronze regional camp
+- [ ] plans/art/towns/modern/colony-camp-israelite — modern regional camp
+- [ ] plans/art/towns/bronze/field-1-israelite — Shared early-age field asset; retain reuse across early ages
+- [ ] plans/art/towns/bronze/field-2-israelite — Shared early-age field asset; retain reuse across early ages
+- [ ] plans/art/towns/bronze/field-3-israelite — Shared early-age field asset; retain reuse across early ages
+- [ ] plans/art/towns/bronze/field-4-israelite — Shared early-age field asset; retain reuse across early ages
+- [ ] plans/art/buildings/granary-israelite — bronze archaeological building; see theme brief
+- [ ] plans/art/buildings/barracks-israelite — bronze archaeological building; see theme brief
+- [ ] plans/art/buildings/shrine-israelite — bronze archaeological building; see theme brief
+- [ ] plans/art/buildings/copper_mine-israelite — bronze archaeological building; see theme brief
+- [ ] plans/art/buildings/irrigation-israelite — classical archaeological building; see theme brief
+- [ ] plans/art/buildings/market-israelite — classical archaeological building; see theme brief
+- [ ] plans/art/buildings/library-israelite — classical archaeological building; see theme brief
+- [ ] plans/art/buildings/harbor-israelite — classical archaeological building; see theme brief
+- [ ] plans/art/buildings/workshop-israelite — classical archaeological building; see theme brief
+- [ ] plans/art/buildings/scriptorium-israelite — kingdoms archaeological building; see theme brief
+- [ ] plans/art/wonders/solomons_temple — Three separate tier objects in one file; archaeological reconstruction
+- [ ] plans/art/wonders/masada — Three separate tier objects in one file; archaeological reconstruction
+- [ ] plans/art/improvements/ancient/farm-israelite — 50m patch, improvement object and Ground; see theme brief
+- [ ] plans/art/improvements/ancient/plantation-israelite — 50m patch, improvement object and Ground; see theme brief
+- [ ] plans/art/improvements/ancient/pasture-israelite — 50m patch, improvement object and Ground; see theme brief
+- [ ] plans/art/improvements/ancient/fishing_boats-israelite — 50m patch, improvement object and Ground; see theme brief
+- [ ] plans/art/improvements/bronze/fort-bronze-israelite — 50m patch, improvement object and Ground; see theme brief
+- [ ] plans/art/improvements/modern/fort-modern-israelite — 50m patch, improvement object and Ground; see theme brief
+- [ ] bronze-infantry-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] bronze-ranged-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] bronze-cavalry-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] classical-infantry-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] classical-ranged-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] classical-cavalry-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] classical-siege-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] modern-infantry-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] modern-cavalry-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] settler-bronze-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
+- [ ] settler-modern-israelite — Follow unit-art-brief v3 rig, bones, clips, archetypes and budgets
