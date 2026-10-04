@@ -17,8 +17,10 @@ import { ringsAround } from './world/cities';
 import { landUnitsByTile } from './sieges';
 import { unitTile } from './armies';
 import { lawRulesOf } from './lawRules';
+import { ringsForKm } from '../data/geo/gridScale';
 
-export const THREAT_RINGS = 6;
+export const THREAT_KM = 612; // km (6 rings at frequency 75)
+export const THREAT_RINGS = ringsForKm(THREAT_KM);
 export const THREAT_DEFEND_RATIO = 0.8;
 export const RELIEF_RATIO = 1.2;
 export const RAID_GOLD = 20;

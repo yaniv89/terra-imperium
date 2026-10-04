@@ -11,11 +11,16 @@ import { unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { navalLineOf, navalSightBonus } from '../data/navalLines';
 
-// In km as rings of the loaded grid (gridScale.js): 2, 2, 1 and 2 rings at frequency 75.
-export const SIGHT_LAND = ringsForKm(200);
-export const SIGHT_ARMY = ringsForKm(200);
-export const SIGHT_HILLS_BONUS = ringsForKm(100);
-export const SIGHT_FLEET = ringsForKm(200);
+// In km; a reach is summed in km (tech and naval-line bonuses are km too) and turned into rings
+// of the loaded grid once (gridScale.js): 2, 2, 1 and 2 rings at frequency 75, 3, 3, 1, 3 at 100.
+export const SIGHT_LAND_KM = 200;
+export const SIGHT_ARMY_KM = 200;
+export const SIGHT_HILLS_BONUS_KM = 100;
+export const SIGHT_FLEET_KM = 200;
+export const SIGHT_LAND = ringsForKm(SIGHT_LAND_KM);
+export const SIGHT_ARMY = ringsForKm(SIGHT_ARMY_KM);
+export const SIGHT_HILLS_BONUS = ringsForKm(SIGHT_HILLS_BONUS_KM);
+export const SIGHT_FLEET = ringsForKm(SIGHT_FLEET_KM);
 
 const cache = new WeakMap(); // state.units -> { regions, nationId, set }
 
@@ -49,12 +54,12 @@ export const visibleTiles = (state, nationId = state.playerNationId) => {
   const friends = friendsOf(state, nationId);
   const landSeeds = [];
   Object.values(state.regions).forEach((c) => { if (friends.has(c.owner) && c.tile != null) landSeeds.push(...(c.tiles || [c.tile])); });
-  grow(tiles, landSeeds, SIGHT_LAND + extra, set);
+  grow(tiles, landSeeds, ringsForKm(SIGHT_LAND_KM + extra), set);
   Object.values(state.units).forEach((u) => {
     if (u.ownerId !== nationId || u.embarkedOn) return;
     const t = unitTile(state, u);
     if (t == null) return;
-    const rings = extra + (u.domain === 'naval' ? SIGHT_FLEET + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS : 0));
+    const rings = ringsForKm(extra + (u.domain === 'naval' ? SIGHT_FLEET_KM + navalSightBonus(navalLineOf(u)) : SIGHT_ARMY_KM + (tiles.reliefOf(t) === 'hills' ? SIGHT_HILLS_BONUS_KM : 0)));
     grow(tiles, [t], rings, set);
   });
   cache.set(state.units, { regions: state.regions, nations: state.nations, techTree: state.techTree, nationId, set });

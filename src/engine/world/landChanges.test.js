@@ -1,68 +1,68 @@
-// The version 8 -> 9 save repair (plans/math/straits.md): a save from the grid before the straits
-// opened has Helsinki centred on a tile that is now the Gulf of Finland.
+// The land-change save repair (world/landChanges.js, plans/math/straits.md): when a rebuild that
+// keeps tile ids turns land into water (a strait opens) or water into land, a save's cities,
+// roads and units on those tiles are moved or cleared. Version 9 used it; version 10 (the
+// frequency-100 grid) is a clean break, so the test builds its own change list on the shipped
+// grid: a coast tile beside the Finnish capital plays a tile that "became water".
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../gameReducer';
-import { migrateSave, V9_LAND_CHANGES, CURRENT_SAVE_VERSION } from '../saveMigrations';
 import { applyLandChanges } from './landChanges';
 import { getTiles } from '../../data/geo/tiles';
 import { auditGameState } from '../stateAudit';
 
 const tiles = getTiles();
-const OLD_HELSINKI = 46255; // land on the version 8 grid, water now
+const fresh = createInitialState({ playerNationId: 'fi', rngSeed: 21 });
+const [cityId, city] = Object.entries(fresh.regions).find(([, r]) => r.owner === 'fi' && r.isCapital);
+// a sea tile next to the capital's land (the old centre) and a land tile of its own (where an old
+// save's fleet sat)
+const OLD_CENTRE = city.tiles.flatMap((t) => tiles.neighbors[t]).find((n) => tiles.land[n] !== 1 && tiles.terrainOf(n) === 'coast');
+const NOW_LAND = city.tiles.find((t) => t !== city.tile && tiles.land[t] === 1);
+const CHANGES = { toWater: [OLD_CENTRE], toLand: [NOW_LAND] };
 
-// A version 8 save: the Finnish capital back on its old tile, with a road there, a fleet on a
-// tile that is land now and an army on a tile that is water now.
-const v8Save = () => {
-  const fresh = createInitialState({ playerNationId: 'fi', rngSeed: 21 });
-  const [cityId, city] = Object.entries(fresh.regions).find(([, r]) => r.owner === 'fi' && r.isCapital);
-  const tilesOwned = city.tiles.includes(OLD_HELSINKI) ? city.tiles : [...city.tiles, OLD_HELSINKI];
-  const tileOwner = { ...fresh.world.tileOwner, [OLD_HELSINKI]: cityId };
+// An old save: the capital centred on OLD_CENTRE with a road there, an army on it and a fleet on
+// NOW_LAND.
+const oldSave = () => {
+  const tileOwner = { ...fresh.world.tileOwner, [OLD_CENTRE]: cityId };
   const units = { ...fresh.units };
   const fiUnits = Object.values(units).filter((u) => u.ownerId === 'fi');
   const army = fiUnits.find((u) => u.domain !== 'naval');
-  if (army) units[army.id] = { ...army, tile: OLD_HELSINKI };
-  const nowLand = V9_LAND_CHANGES.toLand[0];
-  units.fleet_test = { ...(army || fiUnits[0]), id: 'fleet_test', domain: 'naval', classId: army?.classId, tile: nowLand, regionId: cityId };
+  if (army) units[army.id] = { ...army, tile: OLD_CENTRE };
+  units.fleet_test = { ...(army || fiUnits[0]), id: 'fleet_test', domain: 'naval', classId: army?.classId, tile: NOW_LAND, regionId: cityId };
   return {
-    cityId,
-    state: {
-      ...fresh,
-      units,
-      regions: { ...fresh.regions, [cityId]: { ...city, tile: OLD_HELSINKI, tiles: tilesOwned } },
-      world: { ...fresh.world, tileOwner, tileState: { ...fresh.world.tileState, [OLD_HELSINKI]: { road: true } } }
-    }
+    ...fresh,
+    units,
+    regions: { ...fresh.regions, [cityId]: { ...city, tile: OLD_CENTRE, tiles: [OLD_CENTRE, ...city.tiles.filter((t) => t !== OLD_CENTRE)] } },
+    world: { ...fresh.world, tileOwner, tileState: { ...fresh.world.tileState, [OLD_CENTRE]: { road: true } } }
   };
 };
 
 describe('land changes after a grid rebuild', () => {
-  it('lists only tiles whose flag really changed on the shipped grid', () => {
-    V9_LAND_CHANGES.toWater.forEach((t) => expect(tiles.land[t], `tile ${t}`).not.toBe(1));
-    V9_LAND_CHANGES.toLand.forEach((t) => expect(tiles.land[t], `tile ${t}`).toBe(1));
+  it('has a coast tile and a land tile to play with', () => {
+    expect(OLD_CENTRE).toBeDefined();
+    expect(NOW_LAND).toBeDefined();
   });
 
   it('moves a city off a tile that became water, keeps its name, and clears what stood there', () => {
-    const { state, cityId } = v8Save();
-    const loaded = migrateSave({ version: 8, state: JSON.parse(JSON.stringify(state)) });
-    expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
-    const city = loaded.state.regions[cityId];
-    expect(tiles.land[city.tile]).toBe(1);
-    expect(city.name).toBe(state.regions[cityId].name);
-    expect(city.tiles).toContain(city.tile);
-    expect(loaded.state.world.tileOwner[city.tile]).toBe(cityId);
-    expect(loaded.state.world.tileState[OLD_HELSINKI]).toBeUndefined();
-    // The old centre is coast now: still the city's to work.
-    expect(loaded.state.world.tileOwner[OLD_HELSINKI]).toBe(cityId);
-    Object.values(loaded.state.units).forEach((u) => {
+    const state = oldSave();
+    const fixed = applyLandChanges(JSON.parse(JSON.stringify(state)), CHANGES, tiles);
+    const c = fixed.regions[cityId];
+    expect(tiles.land[c.tile]).toBe(1);
+    expect(c.name).toBe(state.regions[cityId].name);
+    expect(c.tiles).toContain(c.tile);
+    expect(fixed.world.tileOwner[c.tile]).toBe(cityId);
+    expect(fixed.world.tileState[OLD_CENTRE]).toBeUndefined();
+    // The old centre is coast: still the city's to work.
+    expect(fixed.world.tileOwner[OLD_CENTRE]).toBe(cityId);
+    Object.values(fixed.units).forEach((u) => {
       if (u.tile == null || u.embarkedOn) return;
-      if (u.domain === 'naval') expect(tiles.land[u.tile] !== 1 || loaded.state.regions[u.regionId]?.tile === u.tile, u.id).toBe(true);
+      if (u.domain === 'naval') expect(tiles.land[u.tile] !== 1 || fixed.regions[u.regionId]?.tile === u.tile, u.id).toBe(true);
       else expect(tiles.land[u.tile], u.id).toBe(1);
     });
-    const issues = auditGameState(loaded.state).filter((i) => /tile|city/.test(i.code || i.kind || ''));
+    const issues = auditGameState(fixed).filter((i) => /tile|city/.test(i.code || i.kind || ''));
     expect(issues).toEqual([]);
   });
 
   it('changes nothing in a save that has nothing on the changed tiles', () => {
-    const fresh = createInitialState({ playerNationId: 'fr', rngSeed: 22 });
-    expect(applyLandChanges(fresh, V9_LAND_CHANGES, tiles)).toBe(fresh);
+    const other = createInitialState({ playerNationId: 'fr', rngSeed: 22 });
+    expect(applyLandChanges(other, CHANGES, tiles)).toBe(other);
   });
 });

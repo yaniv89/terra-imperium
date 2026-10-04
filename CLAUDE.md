@@ -29,7 +29,7 @@ The live site is GitHub Pages, built into `docs/`.
 - Modifiers: src/engine/modifiers/ (`getModifier` = full sheet; `getNationBonusTotal` = static only).
 - `src/data/`: static game data (2,028 balanced regions, nations, techTree, buildings, resources).
 - New map (plans/civ-map-rework.md, in progress on the features branch): `src/data/geo/tiles.json`
-  is a frequency-75 geodesic hex grid (56,252 cells, 16,523 land, hexes about 106 km) built by `npm run build:tiles`
+  is a frequency-100 geodesic hex grid (100,002 cells, 29,250 land, about 77 km between neighbours; plans/math/grid-f100.md) built by `npm run build:tiles`
   from Natural Earth, Köppen climate and terrain tiles (`npm run fetch:tiles` first, raw data is
   gitignored). `src/data/geo/geodesic.js` is the grid math, `tiles.js` the loader, `tileGeometry.js`
   turns ownership into GeoJSON territories, borders and the hex mesh, `src/data/scenarios.js` the
@@ -41,7 +41,10 @@ The live site is GitHub Pages, built into `docs/`.
   old static readers (`REGIONS_DATA`, `getNeighborIds`, `getNationCapital`) from the last synced
   state. Tests that need more cities use `src/engine/testWorld.js` (`addCity`, `addCities`,
   `borderPair`); tests that build their own `regions` map must pass real city ids (`cap('fr')`).
-  Save version 8 is a clean break (7 was the frequency-53 grid). Settlers and outposts: `src/engine/settlers.js`; what AI cities
+  Save version 10 is a clean break (7 was the frequency-53 grid, 8 and 9 frequency 75). Distances are
+  rules in km, never rings: write `ringsForKm(km)` (src/data/geo/gridScale.js; tech reach bonuses in
+  src/data/techMapEffects.js are km too), movement is km a turn (armies.js MOVE_KM), a new city claims
+  `foundingDisk` (the same land on any grid) and culture tile costs are per area. Settlers and outposts: `src/engine/settlers.js`; what AI cities
   build: `src/engine/aiProduction.js`. Armies on tiles (unit.tile, move points, tile costs, A*
   routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js;
   the supply meter: supplyMeter.js; tile sight (fog): sight.js; fleets on sea tiles: fleets.js; sieges (walls, HP,

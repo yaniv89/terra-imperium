@@ -3,7 +3,7 @@
 // when it stands on a city's centre tile (its `regionId`), and AT SEA when its `tile` is a water
 // tile (its `regionId` stays its last port, the record every older reader keeps using). Cargo
 // rides along: an embarked unit's tile is its carrier's.
-//   Pace       NAVAL_MOVES_BY_AGE water tiles a turn by the owner's effective age (3 at Dawn, 8
+//   Pace       NAVAL_MOVES_BY_AGE water tiles a turn (NAVAL_KM_BY_AGE in km) by the owner's effective age (3 at Dawn, 8
 //              in the Modern age); every water tile costs 1.
 //   Depth      coast and shelf tiles ('coast') are open to everyone; the deep ocean ('ocean')
 //              opens with the Age of Gunpowder (DEEP_OK_FROM, the old sea-lane rule); lakes never.
@@ -25,7 +25,11 @@ import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 
-export const NAVAL_MOVES_BY_AGE = { bronze: 4, classical: 6, kingdoms: 7, gunpowder: 8, modern: 11 }; // 106 km hexes
+// A fleet's pace in km a turn by age, turned into water tiles of the loaded grid (gridScale.js):
+// 4, 6, 7, 8, 11 tiles at frequency 75 and 5, 8, 9, 11, 15 at frequency 100. Tech bonuses
+// (techMapEffects navalMoves) are km too and are added before the conversion.
+export const NAVAL_KM_BY_AGE = { bronze: 409, classical: 613, kingdoms: 715, gunpowder: 818, modern: 1124 };
+export const NAVAL_MOVES_BY_AGE = Object.fromEntries(Object.entries(NAVAL_KM_BY_AGE).map(([age, km]) => [age, ringsForKm(km)]));
 export const DEEP_OK_FROM = ['gunpowder', 'modern'];
 // The shelf (ocean tiles beside the coast) opens from the Classical age, or earlier with a tech
 // that sails further (techMapEffects navalMoves); the deep ocean from the Age of Gunpowder or a
@@ -37,7 +41,7 @@ const MAX_SEARCH = cellsForAreaKm2(108_810_000);       // 12000 tiles at frequen
 
 export const isFleet = (u) => u?.domain === 'naval';
 export const fleetAge = (state, nationId) => getEffectiveAgeId(state.age, getTechAgeId(state, nationId));
-export const fleetPace = (state, unit) => (NAVAL_MOVES_BY_AGE[fleetAge(state, unit.ownerId)] || 3) + mapEffectsFor(state, unit.ownerId).navalMoves; // techs that sail further (techMapEffects.js)
+export const fleetPace = (state, unit) => ringsForKm((NAVAL_KM_BY_AGE[fleetAge(state, unit.ownerId)] || NAVAL_KM_BY_AGE.bronze) + mapEffectsFor(state, unit.ownerId).navalMoves); // techs that sail further (techMapEffects.js)
 export const deepOk = (ageId, deepTech = false) => deepTech || DEEP_OK_FROM.includes(ageId);
 export const shelfOk = (ageId, shelfTech = false) => shelfTech || SHELF_OK_FROM.includes(ageId) || deepOk(ageId);
 

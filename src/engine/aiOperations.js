@@ -26,6 +26,7 @@ import { estimateBattle } from './lanchester';
 import { getTotalDev } from './development';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
 import { getCapital } from '../data/regions';
+import { ringsForKm } from '../data/geo/gridScale';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -45,9 +46,11 @@ const routeStep = (regions, nationId, from, goals) => {
 // the most valuable enemy city next door by the registry), halts before the city and besieges it
 // (sieges.js); it assaults when it outweighs the garrison or the walls are under ASSAULT_HP.
 export const ASSAULT_HP = 0.3;
-export const AI_MARCH_STEPS = 40;
+export const AI_MARCH_KM = 4080; // km (40 rings at frequency 75)
+export const AI_MARCH_STEPS = ringsForKm(AI_MARCH_KM);
 export const ROUTE_RETRY_TURNS = 3;
-export const AI_RAID_RINGS = 11; // a stack at war with the player with no city goal in reach raids a trade route this close // a stack that found no path to its goal waits this long before searching again
+export const AI_RAID_KM = 1122; // km (11 rings at frequency 75)
+export const AI_RAID_RINGS = ringsForKm(AI_RAID_KM); // a stack at war with the player with no city goal in reach raids a trade route this close // a stack that found no path to its goal waits this long before searching again
 
 // Battle decisions read the Lanchester estimate (lanchester.js: terrain, walls, forts, rivers,
 // unit matchups and ages, calibrated against the real auto-resolve) instead of a raw strength

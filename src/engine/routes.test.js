@@ -55,7 +55,7 @@ describe('tile step costs', () => {
   it('prices a step by relief, cover, rivers, roads and enemy land', () => {
     const open = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'flat' && tiles.featureOf(t) === 'none' && tiles.terrainOf(t) === 'grassland');
     const mountain = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'mountains');
-    const hillForest = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'hills' && tiles.featureOf(t) === 'forest');
+    const hillForest = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'hills' && tiles.featureOf(t) === 'forest' && ['grassland', 'plains'].includes(tiles.terrainOf(t)));
     expect(tileStepCost(S, tiles, null, open)).toBe(1);
     expect(tileStepCost(S, tiles, null, mountain)).toBe(TILE_COST_MOUNTAINS);
     expect(tileStepCost(S, tiles, null, hillForest)).toBe(3);
@@ -140,8 +140,10 @@ describe('marching', () => {
   });
 
   it('a step into the mountains costs strength', () => {
-    const M = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'mountains' && !S.world.tileOwner[t] && tiles.neighbors[t].some((n) => free(S, n) && tiles.reliefOf(n) !== 'mountains'));
-    const beside = tiles.neighbors[M].find((n) => free(S, n) && tiles.reliefOf(n) !== 'mountains');
+    // a plain mountain step (no river on the edge, no desert or tundra), so the bank of 4 pays it
+    const step = (t, n) => free(S, n) && tiles.reliefOf(n) !== 'mountains' && tileStepCost(S, tiles, n, t) === TILE_COST_MOUNTAINS;
+    const M = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'mountains' && !S.world.tileOwner[t] && tiles.neighbors[t].some((n) => step(t, n)));
+    const beside = tiles.neighbors[M].find((n) => step(M, n));
     const near = withUnits(S, [unit('m', P, { tile: beside, route: [M], routePace: 2, routeBank: 2 })]);
     const units = { ...near.units };
     advanceMarches(near, units, {});

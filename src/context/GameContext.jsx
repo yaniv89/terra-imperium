@@ -191,7 +191,7 @@ export const GameProvider = ({ children }) => {
     return JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }, null, 2);
   }, [state]);
 
-  // Returns true, or the reason it could not load ('tooOld', 'tooNew', 'corrupt'; saveMigrations.js).
+  // Returns true, or the reason it could not load ('tooOld', 'oldGrid', 'tooNew', 'corrupt'; saveMigrations.js).
   const importSave = useCallback((jsonText) => {
     try {
       const parsed = JSON.parse(jsonText);

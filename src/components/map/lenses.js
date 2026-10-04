@@ -24,6 +24,7 @@ import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { estateHoldings, ESTATE_COLOUR, ESTATE_CREST } from '../../engine/estateLand';
 import { getTradeRoute } from '../../engine/tradeRoutes';
 import { plunderedRoutes } from '../../engine/plunder';
+import { ringsForKm, ringsFromF75 } from '../../data/geo/gridScale';
 
 export const LENSES = [
   { id: 'political', label: 'Political', key: '1', hint: 'Borders and cities' },
@@ -84,7 +85,7 @@ export const threatStacks = (state) => {
 /** The land beyond your border that your supply lines reach (supplyMeter.js lineReaches, seen
  * from the border out): [{ tile, colour }], at most `limit` tiles, nearest rings first. A stack
  * standing there drains at half the enemy-land rate. */
-export const supplyReach = (state, { limit = 4000, rings = SUPPLY_LINE_RINGS + mapEffectsFor(state, state.playerNationId).lineRings + Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total)) } = {}) => {
+export const supplyReach = (state, { limit = 4000, rings = SUPPLY_LINE_RINGS + ringsForKm(mapEffectsFor(state, state.playerNationId).lineRings, { min: 0 }) + ringsFromF75(Math.max(0, Math.round(getModifier(state, state.playerNationId, 'national.supplyRange').total))) } = {}) => {
   const tiles = getTiles();
   const me = state.playerNationId;
   const tileOwner = state.world?.tileOwner || {};

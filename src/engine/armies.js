@@ -4,7 +4,8 @@
 // city of its owner (its supply base and the record every older reader of "which province is this
 // unit in" keeps using). Fleets sit on their port's centre tile until the naval wave.
 //
-//   Move points   MOVE_POINTS by class a turn (foot 2, cavalry 4, siege 1), +1 with Forced March.
+//   Move points   MOVE_POINTS by class a turn (MOVE_KM in km: foot 306, cavalry 613, siege 204), more
+//                 with Forced March.
 //                 Unspent points bank up to BANK_CAP so a slow army still crosses a mountain.
 //   Tile cost     entering a tile: 1 on open land, +1 for hills, +1 for forest, jungle or marsh,
 //                 +1 for desert or tundra, mountains TILE_COST_MOUNTAINS (4); a river crossing
@@ -29,8 +30,15 @@ import { isWarBetween } from './diplomacy';
 import { legacyTerrainOf } from './world/registry';
 import { mapEffectsOf } from './techMapEffects';
 
-export const MOVE_POINTS = { infantry: 3, ranged: 3, cavalry: 6, siege: 2, support: 3, settler: 3, air: 6 }; // 106 km hexes (frequency 75): about the same reach in km as 2/4/1 on the 150 km grid
-export const DEFAULT_MOVE_POINTS = 2;
+// A turn's march in km by class, turned into movement points of the loaded grid (gridScale.js), so
+// an army covers about the same ground on any grid: 3/3/6/2 points at frequency 75, 4/4/8/3 at
+// frequency 100. Tile costs stay per tile (hills 2, mountains 4...), so rough ground costs the
+// same share of a turn per km. Forced March and techs add km (FORCED_MARCH_KM, techMapEffects).
+export const MOVE_KM = { infantry: 306, ranged: 306, cavalry: 613, siege: 204, support: 306, settler: 306, air: 613 };
+export const DEFAULT_MOVE_KM = 204;
+export const FORCED_MARCH_KM = 102;
+export const MOVE_POINTS = Object.fromEntries(Object.entries(MOVE_KM).map(([k, km]) => [k, ringsForKm(km)]));
+export const DEFAULT_MOVE_POINTS = ringsForKm(DEFAULT_MOVE_KM);
 export const TILE_COST_MOUNTAINS = 4;
 export const RIVER_CROSSING = 1;
 export const ROAD_COST = 0.5;
@@ -51,7 +59,7 @@ const HARSH_TERRAIN = new Set(['mountains', 'desert', 'arctic']);
 const MAX_SEARCH = cellsForAreaKm2(72_540_000); // 8000 tiles at frequency 75
 
 // `researched`: the owner's techs (Mechanized Warfare moves land armies further; techMapEffects.js).
-export const movePoints = (unit, researched = []) => (MOVE_POINTS[unit.classId] ?? DEFAULT_MOVE_POINTS) + (hasPerk(unit, 'forcedMarch') ? 1 : 0) + (unit.domain !== 'naval' && unit.classId !== 'settler' && unit.classId !== 'air' ? mapEffectsOf(researched).movePoints : 0);
+export const movePoints = (unit, researched = []) => ringsForKm((MOVE_KM[unit.classId] ?? DEFAULT_MOVE_KM) + (hasPerk(unit, 'forcedMarch') ? FORCED_MARCH_KM : 0) + (unit.domain !== 'naval' && unit.classId !== 'settler' && unit.classId !== 'air' ? mapEffectsOf(researched).movePoints : 0));
 // The pace of a stack: its slowest unit.
 export const stackPace = (units, researched = []) => units.reduce((m, u) => Math.min(m, movePoints(u, researched)), Infinity);
 

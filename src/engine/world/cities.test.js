@@ -2,8 +2,9 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { loadTiles } from '../../data/geo/tiles';
 import {
   emptyWorld, foundCity, canFoundCity, allocateTiles, cityYields, housingOf, processCity, processCities, queueItem,
-  canQueue, productionCost, claimCandidates, growthThreshold, setFocus, toggleLock, FOOD_PER_CITIZEN, MIN_CITY_SPACING, sizeToPeople
+  canQueue, productionCost, claimCandidates, growthThreshold, setFocus, toggleLock, FOOD_PER_CITIZEN, MIN_CITY_SPACING, MIN_CITY_SPACING_KM, sizeToPeople
 } from './cities';
+import { ringsForKm } from '../../data/geo/gridScale';
 
 let tiles;
 beforeAll(async () => { tiles = await loadTiles(); });
@@ -23,7 +24,7 @@ describe('cities on the grid', () => {
     const okFar = canFoundCity(world, tiles, far, 'eg');
     // Either far enough, or the reason is the spacing rule.
     expect(okFar.ok || /Too close/.test(okFar.reason)).toBe(true);
-    expect(MIN_CITY_SPACING).toBe(3);
+    expect(MIN_CITY_SPACING).toBe(ringsForKm(MIN_CITY_SPACING_KM)); // 3 rings at frequency 75, 4 at 100
   });
 
   it('works its best tiles by focus, never starving when food is reachable', () => {

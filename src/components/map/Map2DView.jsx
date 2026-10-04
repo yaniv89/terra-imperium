@@ -26,6 +26,7 @@ import { getCityFeatures, getNationTerritories, getHexMeshWithin, landTilesWithi
 import { DISTRICTS } from '../../engine/districts';
 import { RESOURCES_ON_TILES } from '../../data/tileYields';
 import { getTiles } from '../../data/geo/tiles';
+import { hexSizeVsF75 } from '../../data/geo/gridScale';
 import { isSettler } from '../../engine/settlers';
 import { useMarch } from './MarchContext';
 import { wallsOf } from '../../engine/sieges';
@@ -40,7 +41,8 @@ import CityBanners from './CityBanners';
 const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
 // The ground under it (plans/playtest-1.md P1.3): a shader over the raster, sharp at any zoom.
 const CloseTerrainLayer = React.lazy(() => import('./closeView/CloseTerrainLayer'));
-export const CLOSE_ZOOM_K = 10;
+// 10 on the frequency-75 grid; a denser grid's smaller hexes need a closer zoom for the same look.
+export const CLOSE_ZOOM_K = 10 / hexSizeVsF75();
 import Map2DEffectsOverlay from './Map2DEffectsOverlay';
 import { getEffectPeekDuration } from '../../hooks/useAutoPeek';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
@@ -59,8 +61,8 @@ const TERRITORY_FILL = 'rgba(0,0,0,0)';
 const NATION_BAND_PX = 4;
 const PLAYER_BAND_COLOR = '#4ade80';
 // The hex mesh shows from this zoom (B5's local view), city borders and names from this one.
-const HEX_FROM_ZOOM = 3;
-const RESOURCE_GLYPH_ZOOM = 5;
+const HEX_FROM_ZOOM = 3 / hexSizeVsF75();
+const RESOURCE_GLYPH_ZOOM = 5 / hexSizeVsF75();
 const IMPROVEMENT_GLYPH = { farm: 'F', pasture: 'P', camp: 'H', mine: 'M', quarry: 'Q', lumber_camp: 'L', fishing_boats: 'B', plantation: 'N', oil_well: 'O', fort: 'W' };
 const CITY_DETAIL_ZOOM = 2.5;
 const NAME_EARLY_ZOOM = 1.5; // your cities and every capital carry their name from here (plans/playtest-1.md P5.5)
