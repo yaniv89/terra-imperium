@@ -18,7 +18,7 @@
 //              workstream 6's.
 // Pure; ties in the path search break on tile id.
 import { getTiles } from '../data/geo/tiles';
-import { distanceKm } from '../data/geo/geodesic';
+import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
 import { getEffectiveAgeId } from '../data/ages';
 import { isWarBetween } from './diplomacy';
 import { getTechAgeId } from './nationState';
@@ -31,9 +31,9 @@ export const DEEP_OK_FROM = ['gunpowder', 'modern'];
 // that sails further (techMapEffects navalMoves); the deep ocean from the Age of Gunpowder or a
 // tech that opens the ocean (deepOcean).
 export const SHELF_OK_FROM = ['classical', 'kingdoms', 'gunpowder', 'modern'];
-export const MAX_SEA_STEPS = 170;
-const MAX_SEARCH = 12000;
-const KM_PER_RING = 170;
+// A voyage's reach and the search budget in km and km² of the loaded grid (gridScale.js).
+export const MAX_SEA_STEPS = ringsForKm(17_400);        // 170 steps at frequency 75
+const MAX_SEARCH = cellsForAreaKm2(108_810_000);       // 12000 tiles at frequency 75
 
 export const isFleet = (u) => u?.domain === 'naval';
 export const fleetAge = (state, nationId) => getEffectiveAgeId(state.age, getTechAgeId(state, nationId));
@@ -115,7 +115,7 @@ export const findSeaPath = (state, from, to, nationId = state.playerNationId) =>
   const starts = fromPort ? portWaters(state, tiles, fromPort).filter((t) => seaPassable(tiles, t, ageId, deepTech, shelfTech)) : [from];
   if (!starts.length) return { reason: 'No water in reach of that port.' };
   const goal = toPort ? new Set(portWaters(state, tiles, toPort)) : null;
-  const h = (t) => distanceKm(tiles.centres[t], tiles.centres[to]) / KM_PER_RING;
+  const h = (t) => minStepsBetween(t, to, tiles); // every step costs 1: the fewest steps the distance allows
   const dist = new Map(); const prev = new Map(); const heap = [];
   starts.forEach((t) => { dist.set(t, fromPort ? 1 : 0); prev.set(t, fromPort ? from : null); heapPush(heap, [h(t), dist.get(t), t]); });
   let end = null; let visited = 0;

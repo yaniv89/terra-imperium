@@ -28,6 +28,7 @@
 import { REGIONS_DATA, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
 import { getEffectiveAgeId } from '../data/ages';
+import { powExact } from '../utils/exactMath';
 import { getPool, getTechAgeId } from './nationState';
 import { canAfford, applyCosts } from '../utils/helpers';
 import { isUnitInBattle } from './invasion';
@@ -92,7 +93,7 @@ export const colonySlots = (state, nationId) => {
 
 export const foundingCost = (state, nationId) => {
   const provinces = getOwnedRegionIds(state.regions, nationId).length;
-  return { gold: Math.round(FOUND_GOLD_BASE + FOUND_GOLD_PER * provinces ** FOUND_GOLD_EXP), adm: FOUND_ADM_BASE + Math.floor(provinces / FOUND_ADM_PER_PROVINCES) };
+  return { gold: Math.round(FOUND_GOLD_BASE + FOUND_GOLD_PER * powExact(provinces, FOUND_GOLD_EXP)), adm: FOUND_ADM_BASE + Math.floor(provinces / FOUND_ADM_PER_PROVINCES) };
 };
 
 export const settlersFrom = (region) => Math.max(SETTLER_MIN, Math.round((region?.currentPopulation || 0) * SETTLER_SHARE));

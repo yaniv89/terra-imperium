@@ -2,6 +2,7 @@
 // A nation record for every one of the 240 countries in the geo data — symmetric, so any one of
 // them can be the player's starting nation (src/context/GameContext.jsx's createInitialState).
 // Every nation starts neutral toward every other; there is no scripted starting conflict.
+import { log10Exact } from '../utils/exactMath';
 import { RelationStatus } from './types';
 import { DOCTRINE_BY_CULTURE_GROUP } from './nations';
 import { getCultureGroup } from './names';
@@ -33,7 +34,7 @@ const colorForCountry = (index) => {
 
 // Population/GDP -> a rough military-strength proxy, log-scaled so India/China don't dwarf every
 // other nation by three orders of magnitude the way raw population would.
-const militaryFromPopulation = (population) => Math.round(2000 * Math.log10(Math.max(population, 1000)));
+const militaryFromPopulation = (population) => Math.round(2000 * log10Exact(Math.max(population, 1000)));
 
 let colorIndex = 0;
 const buildNation = (countryId, meta) => {

@@ -9,7 +9,7 @@
 // rendering, so only centres and neighbours need to be shipped. Everything is deterministic
 // (no randomness, integer-keyed dedupe), so the tile ids are stable for a given frequency and
 // orientation.
-
+import { sinCosDeg, asinExact } from '../../utils/exactMath.js';
 
 // Icosahedron with a vertex at each pole: the 12 vertices are the two poles and two rings of five
 // at latitude ±atan(1/2). `rotation` turns the whole solid about the polar axis by that many
@@ -64,6 +64,13 @@ export const toLatLon = ([x, y, z]) => ({
 export const fromLatLon = (lat, lon) => {
   const la = (lat * Math.PI) / 180; const lo = (lon * Math.PI) / 180;
   return [Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la)];
+};
+
+// The same unit vector with trigonometry that agrees to the last bit on every JavaScript engine
+// (exactMath.js). The tile centres the engine measures distances with are built with it.
+export const fromLatLonExact = (lat, lon) => {
+  const [sLa, cLa] = sinCosDeg(lat); const [sLo, cLo] = sinCosDeg(lon);
+  return [cLa * cLo, cLa * sLo, sLa];
 };
 
 export const cellCount = (frequency) => 10 * frequency * frequency + 2;
@@ -143,11 +150,13 @@ export const cellPolygon = (centres, neighbors, id) => {
   });
 };
 
-// Great-circle distance in km between two unit vectors.
+// Great-circle distance in km between two unit vectors, from the chord: 2 R asin(|a - b| / 2).
+// Unlike acos of the dot product it is accurate for neighbouring tiles and gives the same last bit
+// on every engine (exactMath.js), so the engine may compare and weigh with it.
 export const EARTH_RADIUS_KM = 6371;
 export const distanceKm = (a, b) => {
-  const dot = Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]));
-  return Math.acos(dot) * EARTH_RADIUS_KM;
+  const dx = a[0] - b[0]; const dy = a[1] - b[1]; const dz = a[2] - b[2];
+  return 2 * EARTH_RADIUS_KM * asinExact(Math.sqrt(dx * dx + dy * dy + dz * dz) / 2);
 };
 
 // A coarse lat/lon bucket index for nearest-cell queries (used by the build and by the client's
