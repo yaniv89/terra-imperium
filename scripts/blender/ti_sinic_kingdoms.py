@@ -86,6 +86,7 @@ if not any(n == 'sinic_kingdoms' for n, _ in tt.EXTRA_MATERIALS):
 
 PAVED = dict(mat='snk_paving', power=8)
 STYLE = {'post': 'snk_lacquer', 'wall': 'snk_plaster', 'lattice': 'snk_timber'}  # 'japan' swaps the red for cedar
+DETAIL = {'big': False}  # a big town's houses carry fewer small parts (the 60,000 triangle budget)
 
 
 def set_style(style):
@@ -166,7 +167,7 @@ def _loop(shape, W, D, z, curl, detail):
                 rm = R * math.cos(math.radians(22.5))
                 pts.append((rm * math.cos(a1), rm * math.sin(a1), z))
         return pts
-    us = {2: (1.0, 0.55, 0.0, -0.55), 1: (1.0, 0.0), 0: (1.0,)}[detail]
+    us = {2: (1.0, 0.55, 0.0, -0.55), 3: (1.0, 0.55, -0.55), 1: (1.0, 0.0), 0: (1.0,)}[detail]
     lift = {1.0: 1.0, 0.55: 0.17, 0.0: 0.0, -0.55: 0.17}
     # walk counter-clockwise from the front-left corner
     for side in range(4):
@@ -186,14 +187,15 @@ def _loop(shape, W, D, z, curl, detail):
 
 def curved_roof(ms, f, w, d, z0, rise, over=0.08, curl=0.05, sag=1.7, mat='snk_tile', lod=2, cx=0.0, cy=0.0, kind='hip',
                 top=None, gable=0.5, thick=0.022, shape='rect', ornaments=True, horns=0.0, finial=False, ridge_mat='snk_ridge',
-                gable_mat='snk_lacquer', lod1_simple=True, only=None):
+                gable_mat='snk_lacquer', lod1_simple=True, only=None, light=False, droop=0.3):
     """A grey-tiled Chinese roof over a w x d block whose walls end at z0: concave slopes (steep at
     the ridge, flat at the eaves), deep eaves whose corners turn up by `curl`, a ridge, hip ridges
     and ridge-end ornaments. `kind`: 'hip' (a ridge along local X, a pyramid when square), 'xie'
     (hip-and-gable: hipped up to `gable` of the rise, then upright gable ends in `gable_mat`),
     'gable' (gable ends from the eaves), 'skirt' (a pent roof round a wall that goes on up: `top`
     = the wall's half extents (or radius), the roof ends there at z0 + rise), 'point' (a pyramid).
-    shape 'oct' makes the eight-sided pagoda roofs (w = across the walls)."""
+    shape 'oct' makes the eight-sided pagoda roofs (w = across the walls). `light` (the houses) uses
+    fewer rings and a four-cornered LOD1."""
     W, D = w / 2 + over, d / 2 + over
     if shape == 'oct':
         W = D = w / 2 / math.cos(math.radians(22.5)) + over
@@ -219,6 +221,7 @@ def curved_roof(ms, f, w, d, z0, rise, over=0.08, curl=0.05, sag=1.7, mat='snk_t
     run = max(0.02, D - Dt)
     pw = min(0.85, over / run) ** sag
     ze = min(z0 - 0.004, (z0 + 0.004 - zt * pw) / (1 - pw))
+    ze = max(ze, z0 - droop * over)  # a pent roof's wall line is near its eave: never hang the eave far below the wall
 
     def zf(t):
         return ze + (zt - ze) * t ** sag
@@ -259,9 +262,9 @@ def curved_roof(ms, f, w, d, z0, rise, over=0.08, curl=0.05, sag=1.7, mat='snk_t
     if only is not None:
         build(1, 0 if 2 in only else 1, max(only), only)
     elif lod1_simple:
-        build(3, 2, 0, (0,))
+        build(2 if light else 3, 3 if light else 2, 0, (0,))
         if lod >= 1:
-            build(1, 1, 1, (1,))
+            build(1, 0 if light else 1, 1, (1,))
         if lod >= 2:
             build(1, 0, 2, (2,))
     else:
@@ -289,12 +292,12 @@ def curved_roof(ms, f, w, d, z0, rise, over=0.08, curl=0.05, sag=1.7, mat='snk_t
             ms.add(bm, gable_mat, 1 if lod >= 2 else 0, matrix=f.copy())
     rl = min(lod, 1)
     if kind in ('hip', 'xie', 'gable') and Wt > 0.02:
-        ms.box(ridge_mat, (2 * Wt + 0.02, 0.03, 0.028), at=(cx, cy, zt - 0.014), lod=rl, frame=f)
+        ms.box(ridge_mat, (2 * Wt + 0.02, 0.03, 0.028), at=(cx, cy, zt - 0.014), lod=0 if light else rl, frame=f)
     if not ornaments:
         return zt
     # hip ridges along the corners of the slope
     if shape == 'rect' and kind != 'gable':
-        steps = 3
+        steps = 1 if light else 3
         for sx in (-1, 1):
             for sy in (-1, 1):
                 prev = None
@@ -306,7 +309,7 @@ def curved_roof(ms, f, w, d, z0, rise, over=0.08, curl=0.05, sag=1.7, mat='snk_t
                     if prev is not None:
                         beam(ms, ridge_mat, prev, p, w=0.014, h=0.014, lod=0, frame=f)
                     prev = p
-    if kind in ('hip', 'xie', 'gable') and Wt > 0.02:
+    if kind in ('hip', 'xie', 'gable') and Wt > 0.02 and not light:
         hz = max(0.03, horns)
         for sx in (-1, 1):  # ridge-end ornaments (chiwei) curling up
             ms.box(ridge_mat, (0.02, 0.028, hz), at=(cx + sx * (Wt + 0.004), cy, zt - 0.01), lod=0, frame=f, taper=0.75)
@@ -320,9 +323,7 @@ def lattice(ms, f, x, y, z, w=0.08, h=0.07, face=-1, mat=None):
     """A lattice window or door panel on a wall face at local y."""
     mat = mat or STYLE['lattice']
     ms.box('dark', (w, 0.008, h), at=(x, y + face * 0.002, z), lod=0, frame=f)
-    for k in (-1, 0, 1):
-        ms.box(mat, (0.006, 0.006, h), at=(x + k * w / 4, y + face * 0.006, z), lod=0, frame=f)
-    ms.box(mat, (w, 0.006, 0.006), at=(x, y + face * 0.006, z + h / 2), lod=0, frame=f)
+    ms.box(mat, (0.006, 0.006, h), at=(x, y + face * 0.006, z), lod=0, frame=f)
     ms.box(mat, (w + 0.012, 0.01, 0.01), at=(x, y + face * 0.005, z + h), lod=0, frame=f)
 
 
@@ -361,20 +362,26 @@ def ring_pts(r, n=8, rot=22.5):
     return [(r * math.cos(math.radians(rot + 360 * k / n)), r * math.sin(math.radians(rot + 360 * k / n))) for k in range(n)]
 
 
+def jar(ms, f, x, y, s=1.0, z=G):
+    """A big glazed storage jar (the street sheet's), cheaper than ti_town's."""
+    ms.cyl('terracotta', 0.026 * s, 0.034 * s, 0.035 * s, at=(x, y, z), segs=7, lod=0, frame=f)
+    ms.cyl('terracotta', 0.034 * s, 0.018 * s, 0.03 * s, at=(x, y, z + 0.035 * s), segs=7, lod=0, frame=f)
+
+
 def jars(ms, f, x, y, rng, n=3):
     for _ in range(n):
-        tt.jar(ms, f, x + rng.uniform(-0.05, 0.05), y + rng.uniform(-0.03, 0.03), rng.uniform(1.0, 1.35))
+        jar(ms, f, x + rng.uniform(-0.05, 0.05), y + rng.uniform(-0.03, 0.03), rng.uniform(1.0, 1.3))
 
 
 def tree(ms, rng, x, y, h=0.34, r=0.09, blossom=False, lod2=False):
     """A round-crowned courtyard tree, or one of the street sheet's red-leaved ornamental trees."""
-    if not blossom:
-        tc.broadleaf(ms, x, y, h=h, r=r)
-        return
-    ms.cyl('timber', 0.013, 0.009, h * 0.5, at=(x, y, G), segs=6, lod=1)
-    ms.sphere('snk_blossom', r, at=(x, y, G + h - r * 0.8), scale=(1, 1, 0.8), u=8, v=5, lod=0)
-    ms.sphere('snk_blossom', r * 0.6, at=(x + r * 0.5, y - r * 0.3, G + h - r * 1.3), u=6, v=4, lod=0)
-    ms.sphere('snk_blossom', r, at=(x, y, G + h - r * 0.9), scale=(1, 1, 0.8), u=6, v=4, lod=1, only=1)
+    mat = 'snk_blossom' if blossom else 'shrub'
+    ms.cyl('timber', 0.013, 0.009, h * 0.5, at=(x, y, G), segs=5, lod=1)
+    ms.sphere(mat, r, at=(x, y, G + h - r * 0.8), scale=(1, 1, 0.8), u=7, v=5, lod=0)
+    ms.sphere(mat, r * 0.6, at=(x + r * 0.5, y - r * 0.3, G + h - r * 1.3), u=6, v=3, lod=0)
+    ms.sphere(mat, r, at=(x, y, G + h - r * 0.9), scale=(1, 1, 0.8), u=6, v=3, lod=1, only=1)
+    if lod2:
+        ms.cyl(mat, r, 0.0, h - 0.06, at=(x, y, G + 0.04), segs=4, lod=2, only=2, caps=False)
 
 
 def pine(ms, x, y, h=0.4, r=0.1):
@@ -410,11 +417,11 @@ def court_wall(ms, f, x0, y0, x1, y1, h=0.17, t=0.035, gaps=(), lod=1, wall=None
 # ---- houses -------------------------------------------------------------------------------------
 
 def hall(ms, f, w, d, h, cx=0.0, cy=0.0, rise=0.2, n=None, kind='xie', over=0.07, curl=0.045, plinth=0.04, lod=2,
-         windows=True, doors=True, back=True, horns=0.0, roof=True):
+         windows=True, doors=True, back=True, horns=0.0, roof=True, light=False):
     """A hall on a stone plinth: plaster walls with a brick dado behind a row of red pillars under a
     beam (a shallow porch), a double door and lattice windows in the front, a curved roof."""
     hf = f @ Matrix.Translation(Vector((cx, cy, 0)))
-    ms.box('snk_stone', (w + 0.08, d + 0.08, plinth), at=(0, 0, G), lod=min(lod, 1), frame=hf)
+    ms.box('snk_stone', (w + 0.08, d + 0.08, plinth), at=(0, 0, G), lod=0 if light else min(lod, 1), frame=hf)
     z = G + plinth
     ms.box(STYLE['wall'], (w, d, h), at=(0, 0, z), lod=lod, frame=hf)
     ms.box('snk_brick', (w + 0.004, d + 0.004, h * 0.16), at=(0, 0, z), lod=0, frame=hf)
@@ -422,20 +429,20 @@ def hall(ms, f, w, d, h, cx=0.0, cy=0.0, rise=0.2, n=None, kind='xie', over=0.07
     fy = -d / 2 - 0.03
     for i in range(n):
         px = -w / 2 + 0.01 + (w - 0.02) * i / (n - 1)
-        ms.box(STYLE['post'], (0.024, 0.024, h), at=(px, fy, z), lod=1 if i in (0, n - 1) or n <= 4 else 0, frame=hf)
-    ms.box(STYLE['post'], (w + 0.03, 0.03, 0.03), at=(0, fy, z + h - 0.03), lod=1, frame=hf)
+        ms.box(STYLE['post'], (0.024, 0.024, h), at=(px, fy, z), lod=0 if light else (1 if i in (0, n - 1) or n <= 4 else 0), frame=hf)
+    ms.box(STYLE['post'], (w + 0.03, 0.03, 0.03), at=(0, fy, z + h - 0.03), lod=0 if light else 1, frame=hf)
     if doors:
         ms.box(STYLE['post'], (w * 0.9, 0.01, h * 0.84), at=(0, -d / 2 - 0.003, z), lod=0, frame=hf)
-        dbl_door(ms, hf, 0, -d / 2 - 0.008, w=min(0.13, w * 0.3), h=h * 0.72, z=z)
+        dbl_door(ms, hf, 0, -d / 2 - 0.008, w=min(0.13, w * 0.3), h=h * 0.72, z=z, lod=0 if light else 1)
         if windows:
             for k in (-1, 1):
-                for wx in ((0.22 * w, 0.38 * w) if w > 0.6 else (0.3 * w,)):
+                for wx in ((0.22 * w, 0.38 * w) if w > 0.6 and not DETAIL['big'] else (0.3 * w,)):
                     lattice(ms, hf, k * wx, -d / 2 - 0.01, z + h * 0.3, w=min(0.08, w * 0.14), h=h * 0.42)
         steps(ms, hf, 0, -d / 2 - 0.04, min(0.22, w * 0.4), plinth, n=2, run=0.025)
-    if back and windows:
+    if back and windows and not light:
         lattice(ms, hf, 0, d / 2 + 0.002, z + h * 0.4, w=0.08, h=h * 0.3, face=1)
     if roof:
-        return curved_roof(ms, hf, w + 0.06, d + 0.06, z + h, rise, over=over, curl=curl, lod=lod, kind=kind, horns=horns)
+        return curved_roof(ms, hf, w + 0.06, d + 0.06, z + h, rise, over=over, curl=curl, lod=lod, kind=kind, horns=horns, light=light)
     return z + h
 
 
@@ -462,7 +469,7 @@ def poor_house(ms, rng, x, y, w, d, yaw=None, awning=True, **_):
         lattice(ms, hf, wx, -bd / 2, G + 0.13, w=0.07, h=0.07, mat='snk_timber')
     rise = 0.16
     curved_roof(ms, hf, bw, bd, G + h, rise, over=0.05, curl=0.02, sag=1.3, kind='gable', lod=1, ornaments=True,
-                gable_mat='snk_brick')
+                gable_mat='snk_brick', light=True)
     tk.lod2_block(ms, hf, bw, bd, h, rise=rise, mat='snk_tile')
     # the lean-to shed of planks on the side away from the yard
     sw = min(0.16, w - bw - 0.04) if w - bw > 0.1 else 0.0
@@ -505,7 +512,7 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning_w=None, **_):
     hd = min(0.3, d * 0.44)
     hw = w * (0.66 if w > 0.5 else 0.8)
     h = STOREY * 0.88
-    zt = hall(ms, f, hw, hd, h, cy=d / 2 - hd / 2 - 0.04, rise=0.2, kind='xie', n=4 if hw < 0.5 else 5, lod=1)
+    zt = hall(ms, f, hw, hd, h, cy=d / 2 - hd / 2 - 0.04, rise=0.2, kind='xie', n=4 if hw < 0.5 else 5, lod=1, light=True)
     tk.lod2_block(ms, f, hw + 0.1, hd + 0.1, h + 0.04, y=d / 2 - hd / 2 - 0.04, rise=zt - G - h - 0.04, mat='snk_tile')
     ww = min(0.18, (w - hw) / 2 + 0.06) if w > 0.5 else 0.0
     wd = d - hd - 0.16
@@ -518,13 +525,15 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning_w=None, **_):
         wh = STOREY * 0.66
         ms.box(STYLE['wall'], (wd, ww, wh), at=(0, 0, G), lod=1, frame=sf)
         ms.box('snk_brick', (wd + 0.004, ww + 0.004, wh * 0.22), at=(0, 0, G), lod=0, frame=sf)
-        for i in range(3):
-            ms.box(STYLE['post'], (0.02, 0.02, wh), at=(-wd / 2 + 0.01 + (wd - 0.02) * i / 2, -ww / 2 - 0.006, G), lod=0, frame=sf)
+        for i in range(2):
+            ms.box(STYLE['post'], (0.02, 0.02, wh), at=(-wd / 2 + 0.01 + (wd - 0.02) * i, -ww / 2 - 0.006, G), lod=0, frame=sf)
         lattice(ms, sf, -wd * 0.2, -ww / 2 - 0.004, G + wh * 0.3, w=0.07, h=wh * 0.45)
         ms.box('snk_timber', (0.07, 0.01, wh * 0.7), at=(wd * 0.22, -ww / 2 - 0.004, G), lod=0, frame=sf)
-        curved_roof(ms, sf, wd, ww, G + wh, 0.12, over=0.04, curl=0.02, sag=1.3, kind='gable', lod=1, gable_mat=STYLE['wall'])
+        curved_roof(ms, sf, wd, ww, G + wh, 0.12, over=0.04, curl=0.02, sag=1.3, kind='gable', lod=1, gable_mat=STYLE['wall'], light=True)
     # the court and the front wall with the gate
-    ms.box('snk_paving_square', (w - 0.06, d - hd - 0.1, 0.006), at=(0, -0.03 - hd / 2, G), lod=1, frame=f)
+    pv = [f @ Vector((px, py, G + 0.004)) for px, py in ((-w / 2 + 0.03, -d / 2 + 0.03), (w / 2 - 0.03, -d / 2 + 0.03),
+                                                           (w / 2 - 0.03, d / 2 - hd - 0.06), (-w / 2 + 0.03, d / 2 - hd - 0.06))]
+    ms.quad_strip('snk_paving_square', [tuple(v) for v in pv], lod=1)
     gw = 0.14
     court_wall(ms, f, -w / 2, -d / 2, w / 2, -d / 2, h=0.17, gaps=((0.5, gw),), lod=1)
     for sx in (-1, 1):
@@ -532,10 +541,9 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning_w=None, **_):
             court_wall(ms, f, sx * w / 2, -d / 2, sx * w / 2, d / 2 - hd - 0.04, h=0.17, lod=1)
     gf = f @ Matrix.Translation(Vector((0, -d / 2, 0)))
     for sx in (-1, 1):
-        ms.box(STYLE['post'], (0.02, 0.02, 0.2), at=(sx * gw / 2, 0, G), lod=1, frame=gf)
-    dbl_door(ms, gf, 0, 0.012, w=gw - 0.02, h=0.17, z=G)
-    curved_roof(ms, gf, gw + 0.04, 0.06, G + 0.2, 0.06, over=0.035, curl=0.018, kind='gable', lod=0, ornaments=False,
-                gable_mat=STYLE['post'])
+        ms.box(STYLE['post'], (0.02, 0.02, 0.2), at=(sx * gw / 2, 0, G), lod=0, frame=gf)
+    dbl_door(ms, gf, 0, 0.012, w=gw - 0.02, h=0.17, z=G, lod=0)
+    ms.box('snk_tile', (gw + 0.08, 0.1, 0.03), at=(0, 0, G + 0.2), lod=0, frame=gf, taper=0.5)
     steps(ms, gf, 0, -0.05, gw, 0.03, n=2, run=0.025)
     cdy = -d / 2 + 0.06 + wd / 2
     if w > 0.55 and wd > 0.2:
@@ -545,7 +553,8 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning_w=None, **_):
     else:
         p = f @ Vector((w * 0.18, cdy, 0))
         tc.shrub(ms, p.x, p.y, r=0.055, lod=0)
-    jars(ms, f, w * 0.3, -d / 2 + 0.1, rng, 2)
+    if not DETAIL['big']:
+        jars(ms, f, w * 0.3, -d / 2 + 0.1, rng, 1)
     if awning_w:
         tc.awning(ms, f, -w * 0.25, -d / 2 - 0.02, min(awning_w, w * 0.4), depth=0.12, z=0.17)
     return f
@@ -568,7 +577,7 @@ def rich_house(ms, rng, x, y, w, d, yaw=None, **_):
     for sx in (-1, 1):
         ms.box(STYLE['post'], (0.022, 0.022, 0.22), at=(sx * gw * 0.36, -0.056, G), lod=0, frame=gf)
     dbl_door(ms, gf, 0, -0.05, w=gw * 0.5, h=0.18, z=G)
-    curved_roof(ms, gf, gw, 0.1, G + 0.22, 0.09, over=0.045, curl=0.025, kind='xie', lod=0)
+    curved_roof(ms, gf, gw, 0.1, G + 0.22, 0.09, over=0.045, curl=0.025, kind='xie', lod=0, light=True)
     steps(ms, gf, 0, -0.11, gw * 0.6, 0.035, n=3, run=0.022)
     # the main hall: terrace, ground storey, skirt roof, upper storey, top roof
     hw, hd = w * 0.62, min(0.34, d * 0.4)
@@ -595,13 +604,13 @@ def rich_house(ms, rng, x, y, w, d, yaw=None, **_):
     z2 = z1 + h1
     uw, ud = hw * 0.74, hd * 0.7
     curved_roof(ms, hf, hw + 0.04, hd + 0.04, z2, 0.1, over=0.07, curl=0.04, kind='skirt', top=(uw / 2, ud / 2), lod=1,
-                ornaments=True)
+                ornaments=True, light=True)
     h2 = STOREY * 0.62
     ms.box(STYLE['wall'], (uw, ud, h2), at=(0, 0, z2), lod=1, frame=hf)
     balustrade(ms, hf, [(-uw / 2 - 0.02, -ud / 2 - 0.02), (uw / 2 + 0.02, -ud / 2 - 0.02)], z2 + 0.1, h=0.035, mat=STYLE['post'])
     for i in range(5):
         lattice(ms, hf, -uw * 0.36 + uw * 0.18 * i, -ud / 2 - 0.004, z2 + 0.13, w=0.06, h=h2 * 0.42)
-    zt = curved_roof(ms, hf, uw + 0.04, ud + 0.04, z2 + h2, 0.2, over=0.08, curl=0.05, kind='xie', lod=1, horns=0.05)
+    zt = curved_roof(ms, hf, uw + 0.04, ud + 0.04, z2 + h2, 0.2, over=0.08, curl=0.05, kind='xie', lod=1, horns=0.05, light=True)
     tk.lod2_block(ms, hf, hw + 0.1, hd + 0.1, z2 + h2 - G, rise=zt - z2 - h2, mat='snk_tile')
     # side halls facing the court
     sd = d - hd - 0.3
@@ -611,7 +620,7 @@ def rich_house(ms, rng, x, y, w, d, yaw=None, **_):
             sf = f @ Matrix.Translation(Vector((sx * (w / 2 - sw / 2 - 0.04), -d / 2 + 0.14 + sd / 2, 0))) @ \
                 Matrix.Rotation(math.radians(-90 * sx), 4, 'Z')
             zz = hall(ms, sf, sd, sw, STOREY * 0.62, rise=0.11, kind='gable', n=3, windows=False, lod=1, over=0.04, curl=0.02,
-                      back=False)
+                      back=False, light=True)
         ms.box('snk_paving_square', (w - 2 * sw - 0.14, sd, 0.006), at=(0, -d / 2 + 0.14 + sd / 2, G), lod=1, frame=f)
         for sx in (-1, 1):
             p = f @ Vector((sx * (w / 2 - sw - 0.14), -d / 2 + 0.2, 0))
@@ -686,7 +695,7 @@ def watchtower(ms, x, y, s=1.0, face=0.0):
     b, h = 0.5 * s, 0.75 * s
     ms.box('snk_stone', (b + 0.04, b + 0.04, 0.03), at=(0, 0, G - 0.01), lod=1, frame=f)
     ms.box('snk_brick', (b, b, h), at=(0, 0, G), lod=2, frame=f, taper=0.9)
-    tb.merlons(ms, f, 0, 0, b * 0.9, b * 0.9, G + h, step=0.07, size=0.03, h=0.04, mat='snk_brick')
+    tb.merlons(ms, f, 0, 0, b * 0.9, b * 0.9, G + h, step=0.1, size=0.035, h=0.04, mat='snk_brick')
     for k in range(4):
         rf = f @ Matrix.Rotation(math.radians(90 * k), 4, 'Z')
         ms.box('dark', (0.02, 0.01, 0.05), at=(0, -b * 0.47, G + h * 0.6), lod=0, frame=rf)
@@ -754,7 +763,7 @@ def pagoda(ms, rng, x, y, s=1.0, top=2.7, yaw=0.0):
     r = r1 * 0.86
     for i in range(6):
         hh = 2.3 * k
-        octa_rail(ms, f, r + 0.5 * k, zz, h=0.8 * k, mat='snk_lacquer', lod=0)
+        balustrade(ms, f, ring_pts(r + 0.5 * k), zz, h=0.8 * k, mat='snk_lacquer', post_step=0.12, lod=0, rail_lod=0, closed=True, t=0.01)
         ms.cyl('snk_white', r / math.cos(math.radians(22.5)), r / math.cos(math.radians(22.5)), hh + 0.7 * k, at=(0, 0, zz - 0.4 * k),
                rot=(0, 0, 22.5), segs=8, lod=1, frame=f)
         ms.cyl('snk_lacquer', (r + 0.55 * k) / math.cos(math.radians(22.5)), (r + 0.55 * k) / math.cos(math.radians(22.5)), 0.25 * k,
@@ -769,10 +778,10 @@ def pagoda(ms, rng, x, y, s=1.0, top=2.7, yaw=0.0):
         rl = 2 if i in (1, 3) else 1
         if i == 5:
             zt = curved_roof(ms, f, 2 * r, 2 * r, zr, 1.9 * k, over=1.6 * k, curl=0.6 * k, shape='oct', kind='point', lod=2,
-                             thick=0.15 * k, ornaments=False, sag=1.4)
+                             thick=0.15 * k, ornaments=False, sag=1.4, light=True)
         else:
             curved_roof(ms, f, 2 * r, 2 * r, zr, 0.7 * k, over=1.6 * k, curl=0.6 * k, shape='oct', kind='skirt', top=(rn, 0), lod=rl,
-                        thick=0.15 * k, ornaments=False, sag=1.5)
+                        thick=0.15 * k, ornaments=False, sag=1.5, light=True)
         zz = zr + 0.7 * k
         r = rn
     ms.cyl('snk_white', r1 * 0.95, r1 * 0.62, zz - z - h1, at=(0, 0, z + h1), segs=8, lod=2, only=2, frame=f)
@@ -867,7 +876,7 @@ def drum_tower(ms, rng, x, y, s=1.0, top=1.5, yaw=0.0):
     for sx in (-1, 1):
         ms.box('snk_timber', (0.5 * k, pd + 0.6 * k, 0.8 * k), at=(sx * pw / 2, 0, zf + ph), lod=1, frame=f)
     zr = zf + ph + 0.8 * k
-    zt = curved_roof(ms, f, pw + 0.4 * k, pd + 0.4 * k, zr, G + top - zr - 0.6 * k, over=2.0 * k, curl=0.9 * k, kind='xie', gable=0.5,
+    zt = curved_roof(ms, f, pw + 0.4 * k, pd + 0.4 * k, zr, G + top - zr - 0.6 * k, over=1.35 * k, curl=0.65 * k, kind='xie', gable=0.5,
                      lod=2, horns=0.9 * k, thick=0.3 * k)
     # the small cross gable on the front slope
     cf = f @ Matrix.Translation(Vector((0, -pd / 2 - 0.4 * k, 0))) @ Matrix.Rotation(math.radians(90), 4, 'Z')
@@ -1121,7 +1130,7 @@ def palace_small(ms, rng):
     for k in (-1, 1):
         lattice(ms, hf, k * 0.17, -hd / 2 + 0.002, z + 0.1, w=0.08, h=0.14)
         ms.box('team_cloth', (0.1, 0.006, 0.07), at=(k * 0.17, -hd / 2 - 0.045, z + hh - 0.1), lod=1, frame=hf)
-    curved_roof(ms, hf, hw + 0.04, hd + 0.06, z + hh, 0.85 - (z + hh) - 0.03, over=0.09, curl=0.05, kind='xie', lod=2, horns=0.05)
+    curved_roof(ms, hf, hw + 0.04, hd + 0.06, z + hh, 0.22, over=0.09, curl=0.05, kind='xie', lod=2, horns=0.05)
     for sx in (-1, 1):
         tree(ms, rng, sx * 0.25, -0.12, h=0.3, r=0.07, blossom=sx > 0)
         tc.shrub(ms, sx * 0.42, D / 2 - 0.08, r=0.04, lod=0)
@@ -1190,7 +1199,15 @@ def palace(ms, rng):
     for kx in (-1, 1):
         for wx in (0.15, 0.25):
             lattice(ms, bf, kx * wx, -hd / 2 + 0.02, zb + 0.1, w=0.07, h=0.15)
-    curved_roof(ms, bf, hw + 0.04, hd + 0.06, zb + hh, 1.6 - (zb + hh) - 0.03, over=0.1, curl=0.06, kind='xie', lod=2, horns=0.06)
+    uw, ud = hw * 0.78, hd * 0.72
+    curved_roof(ms, bf, hw + 0.04, hd + 0.06, zb + hh, 0.08, over=0.09, curl=0.05, kind='skirt', top=(uw / 2, ud / 2), lod=2,
+                cy=0.02)
+    z2 = zb + hh + 0.08
+    ms.box('snk_plaster', (uw, ud, 0.16), at=(0, 0.02, z2), lod=2, frame=bf)
+    for i in range(5):
+        lattice(ms, bf, -uw * 0.36 + uw * 0.18 * i, -ud / 2 + 0.018, z2 + 0.03, w=0.06, h=0.09)
+    balustrade(ms, bf, [(-uw / 2 - 0.02, -ud / 2), (uw / 2 + 0.02, -ud / 2)], z2, h=0.035, mat='snk_lacquer')
+    curved_roof(ms, bf, uw + 0.04, ud + 0.04, z2 + 0.16, 0.24, over=0.1, curl=0.06, kind='xie', lod=2, horns=0.06, cy=0.02)
     for sx in (-1, 1):
         pine(ms, sx * 0.32, -0.38, h=0.32, r=0.08)
         pine(ms, sx * 0.4, 0.14, h=0.28, r=0.07)
@@ -1207,7 +1224,7 @@ def walls_medium(ms, rng):
     t = 0.24
     H = 0.6 * RAISE
     f = tm.house_frame(0, 0, 0)
-    gw = 0.62  # the gatehouse width
+    gw = 1.1  # the gatehouse width
     # the four curtains (the south one either side of the gatehouse)
     segs = [((-R, -R + t / 2), (-gw / 2, -R + t / 2)), ((gw / 2, -R + t / 2), (R, -R + t / 2)),
             ((R - t / 2, -R), (R - t / 2, R)), ((R, R - t / 2), (-R, R - t / 2)), ((-R + t / 2, R), (-R + t / 2, -R))]
@@ -1229,41 +1246,41 @@ def walls_medium(ms, rng):
     # corner towers with pavilions
     for sx in (-1, 1):
         for sy in (-1, 1):
-            cf = f @ Matrix.Translation(Vector((sx * (R - 0.25), sy * (R - 0.25), 0)))
-            b, h = 0.62, 0.78 * RAISE
+            cf = f @ Matrix.Translation(Vector((sx * (R - 0.3), sy * (R - 0.3), 0)))
+            b, h = 0.78, 0.8 * RAISE
             ms.box('snk_stone', (b + 0.06, b + 0.06, 0.06), at=(0, 0, G - 0.02), lod=1, frame=cf)
             ms.box('snk_brick', (b, b, h), at=(0, 0, G - 0.01), lod=2, frame=cf, taper=0.9)
             tb.merlons(ms, cf, 0, 0, b * 0.88, b * 0.88, G + h - 0.01, step=0.09, size=0.04, h=0.05, mat='snk_brick')
-            pw, ph = 0.34, 0.2
+            pw, ph = 0.46, 0.22
             for qx in (-1, 1):
                 for qy in (-1, 1):
                     ms.box('snk_lacquer', (0.025, 0.025, ph), at=(qx * pw / 2, qy * pw / 2, G + h), lod=1, frame=cf)
             ms.box('snk_timber', (pw - 0.03, pw - 0.03, ph * 0.75), at=(0, 0, G + h), lod=1, frame=cf)
-            curved_roof(ms, cf, pw, pw, G + h + ph, 0.2, over=0.1, curl=0.05, kind='point', lod=2, finial=True, thick=0.025)
+            curved_roof(ms, cf, pw, pw, G + h + ph, 0.24, over=0.12, curl=0.06, kind='point', lod=2, finial=True, thick=0.025)
     # the gatehouse and its pavilion
-    gd = t + 0.22
+    gd = t + 0.3
     gf = f @ Matrix.Translation(Vector((0, -R + t / 2, 0)))
     gh = H + 0.06
     ms.box('snk_stone', (gw + 0.08, gd + 0.06, 0.06), at=(0, 0, G - 0.02), lod=1, frame=gf)
     ms.box('snk_brick', (gw, gd, gh), at=(0, 0, G - 0.01), lod=2, frame=gf)
     tb.merlons(ms, gf, 0, 0, gw, gd, G + gh - 0.01, step=0.1, size=0.04, h=0.05, mat='snk_brick')
-    tk.arch_face(ms, gf, 'dark', 0, -gd / 2 - 0.004, G, 0.11, 0.26, lod=1, horseshoe=False, n=6)
-    tk.arch_face(ms, gf, 'snk_timber', 0, -gd / 2 - 0.007, G, 0.09, 0.24, lod=0, horseshoe=False, n=6)
-    tk.arch_face(ms, gf, 'dark', 0, gd / 2 + 0.004, G, 0.11, 0.26, lod=1, horseshoe=False, n=6)
+    tk.arch_face(ms, gf, 'dark', 0, -gd / 2 - 0.004, G, 0.15, 0.34, lod=1, horseshoe=False, n=6)
+    tk.arch_face(ms, gf, 'snk_timber', 0, -gd / 2 - 0.007, G, 0.13, 0.32, lod=0, horseshoe=False, n=6)
+    tk.arch_face(ms, gf, 'dark', 0, gd / 2 + 0.004, G, 0.15, 0.34, lod=1, horseshoe=False, n=6)
     for sx in (-1, 1):
-        ms.box('team_cloth', (0.08, 0.006, 0.34), at=(sx * 0.21, -gd / 2 - 0.005, G + gh - 0.42), lod=1, frame=gf)
+        ms.box('team_cloth', (0.12, 0.006, 0.42), at=(sx * 0.34, -gd / 2 - 0.005, G + gh - 0.5), lod=1, frame=gf)
     z = G + gh
     pw, pd = gw * 0.82, gd * 0.8
-    ms.box('snk_timber', (pw, pd, 0.2), at=(0, 0, z), lod=2, frame=gf)
-    for i in range(5):
-        ms.box('snk_lacquer', (0.022, 0.022, 0.2), at=(-pw / 2 + pw * i / 4, -pd / 2 - 0.01, z), lod=0, frame=gf)
-    balustrade(ms, gf, [(-pw / 2 - 0.03, -pd / 2 - 0.03), (pw / 2 + 0.03, -pd / 2 - 0.03)], z, h=0.05, mat='snk_lacquer')
-    curved_roof(ms, gf, pw, pd, z + 0.2, 0.08, over=0.08, curl=0.045, kind='skirt', top=(pw * 0.38, pd * 0.36), lod=2, thick=0.022)
-    z2 = z + 0.28
-    ms.box('snk_timber', (pw * 0.76, pd * 0.72, 0.14), at=(0, 0, z2), lod=2, frame=gf)
-    for i in range(4):
-        ms.box('dark', (0.06, 0.008, 0.06), at=(-pw * 0.27 + pw * 0.18 * i, -pd * 0.36 - 0.003, z2 + 0.04), lod=0, frame=gf)
-    curved_roof(ms, gf, pw * 0.76, pd * 0.72, z2 + 0.14, 0.2, over=0.1, curl=0.05, kind='xie', lod=2, horns=0.04, thick=0.025)
+    ms.box('snk_timber', (pw, pd, 0.26), at=(0, 0, z), lod=2, frame=gf)
+    for i in range(7):
+        ms.box('snk_lacquer', (0.026, 0.026, 0.26), at=(-pw / 2 + pw * i / 6, -pd / 2 - 0.012, z), lod=0, frame=gf)
+    balustrade(ms, gf, [(-pw / 2 - 0.03, -pd / 2 - 0.03), (pw / 2 + 0.03, -pd / 2 - 0.03)], z, h=0.06, mat='snk_lacquer')
+    curved_roof(ms, gf, pw, pd, z + 0.26, 0.1, over=0.11, curl=0.06, kind='skirt', top=(pw * 0.38, pd * 0.36), lod=2, thick=0.025)
+    z2 = z + 0.36
+    ms.box('snk_timber', (pw * 0.76, pd * 0.72, 0.18), at=(0, 0, z2), lod=2, frame=gf)
+    for i in range(6):
+        ms.box('dark', (0.07, 0.008, 0.08), at=(-pw * 0.3 + pw * 0.12 * i, -pd * 0.36 - 0.003, z2 + 0.05), lod=0, frame=gf)
+    curved_roof(ms, gf, pw * 0.76, pd * 0.72, z2 + 0.18, 0.26, over=0.13, curl=0.065, kind='xie', lod=2, horns=0.05, thick=0.03)
     # a stair up the inside by the west tower
     for i in range(8):
         ms.box('snk_brick', (0.07, 0.12, H * (i + 1) / 8), at=(-R + t + 0.06, -R + 0.8 + 0.07 * i, G - 0.01), lod=0, frame=f)
@@ -1342,6 +1359,7 @@ def replay(ms, rng, calls, size, override=None, style='sinic'):
     kind ('pagoda', 'drum', 'jpagoda', 'tenshu', 'korea'), 'skip', a house kind, or (kind, dict)
     with x, y, s, top, yaw. Base pieces that a landmark covers are left out."""
     set_style(style)
+    DETAIL['big'] = size == 'big'
     override = override or {}
     del REC[:]
     lms = []
