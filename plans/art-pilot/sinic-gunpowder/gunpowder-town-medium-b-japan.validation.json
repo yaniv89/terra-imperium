@@ -1,7 +1,7 @@
 {
   "file": "gunpowder-town-medium-b-japan.glb",
   "kind": "town",
-  "bytes": 3602496,
+  "bytes": 3590100,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -81,7 +81,7 @@
         2048,
         2048
       ],
-      "bytes": 364156
+      "bytes": 352118
     },
     {
       "name": "gunpowder-town-medium-b-japan_base",
@@ -90,7 +90,7 @@
         2048,
         2048
       ],
-      "bytes": 541106
+      "bytes": 538086
     },
     {
       "name": "gunpowder-town-medium-b-japan_orm",
@@ -99,7 +99,7 @@
         2048,
         2048
       ],
-      "bytes": 425064
+      "bytes": 427724
     }
   ],
   "passed": true

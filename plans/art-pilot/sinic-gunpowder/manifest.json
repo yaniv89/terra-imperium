@@ -1,6 +1,6 @@
 {
   "gunpowder-town-big-a-japan.glb": {
-    "bytes": 5303160,
+    "bytes": 5300936,
     "objects": {
       "town-big-a": {
         "LOD0": {
@@ -106,7 +106,7 @@
     ]
   },
   "gunpowder-town-big-b-japan.glb": {
-    "bytes": 4849168,
+    "bytes": 4859892,
     "objects": {
       "town-big-b": {
         "LOD0": {
@@ -212,7 +212,7 @@
     ]
   },
   "gunpowder-town-medium-a-japan.glb": {
-    "bytes": 3683520,
+    "bytes": 3684808,
     "objects": {
       "town-medium-a": {
         "LOD0": {
@@ -318,7 +318,7 @@
     ]
   },
   "gunpowder-town-medium-b-japan.glb": {
-    "bytes": 3602496,
+    "bytes": 3590100,
     "objects": {
       "town-medium-b": {
         "LOD0": {
@@ -424,7 +424,7 @@
     ]
   },
   "gunpowder-town-small-a-japan.glb": {
-    "bytes": 2696484,
+    "bytes": 2683736,
     "objects": {
       "town-small-a": {
         "LOD0": {
@@ -530,7 +530,7 @@
     ]
   },
   "gunpowder-town-small-b-japan.glb": {
-    "bytes": 2667800,
+    "bytes": 2642492,
     "objects": {
       "town-small-b": {
         "LOD0": {

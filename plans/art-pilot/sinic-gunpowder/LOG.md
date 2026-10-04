@@ -17,7 +17,12 @@ did (`plans/art-pilot/europe-gunpowder/LOG.md`). Code: `scripts/blender/ti_sinic
 | gunpowder-town-medium-b-sinic.glb | barbican (hall), temple (windmill) | 32,407 / 5,245 / 924 | 60 m | 12.7 m | 4.4 MB |
 | gunpowder-town-big-a-sinic.glb | temple, barbican, shrine, bastion | 54,992 / 8,788 / 954 | 80 m | 14.5 m | 6.6 MB |
 | gunpowder-town-big-b-sinic.glb | temple, barbican, shrine, bastion | 48,767 / 7,787 / 898 | 80 m | 13.0 m | 6.0 MB |
-JAPAN_ROWS
+| gunpowder-town-small-a-japan.glb | keep (NW), grey temple (NE spot) | 15,336 / 2,816 / 924 | 40 m | 12.0 m | 2.7 MB |
+| gunpowder-town-small-b-japan.glb | keep (north spot), grey shrine (windmill) | 15,232 / 3,424 / 878 | 40 m | 9.5 m | 2.6 MB |
+| gunpowder-town-medium-a-japan.glb | grey temple (church), keep (hall) | 27,758 / 4,612 / 1,158 | 60 m | 15.5 m | 3.7 MB |
+| gunpowder-town-medium-b-japan.glb | keep (hall), grey temple (windmill) | 27,186 / 4,440 / 1,184 | 60 m | 15.8 m | 3.6 MB |
+| gunpowder-town-big-a-japan.glb | grey temple, keep, shrine, bastion | 44,951 / 7,095 / 1,230 | 80 m | 18.0 m | 5.3 MB |
+| gunpowder-town-big-b-japan.glb | grey temple, keep, shrine, bastion | 39,862 / 6,512 / 1,158 | 80 m | 16.1 m | 4.9 MB |
 
 Every file passes `validate_model.py` (`*.validation.json` here). The height spec given to the
 validator is the model's own measured height: the landmarks were scaled to fit the layouts (below),
@@ -75,8 +80,9 @@ sheet, the barbican, the temple and the keep beside the towns).
   upturned blocks; the painted brackets are a blue-green band.
 - The barbican's plan is a half ellipse on a straight back; the sheet's back stair wings are two
   timber ramps.
-- The keep's tiers are boxes, so its eaves read heavier than the sheet's; the walls were raised
-  after the first preview to show more white.
+- The keep's tiers are boxes and its eaves still read heavier than the sheet's; the plaster walls
+  were raised and the eaves made shallower after the first preview to show more white. No
+  boarded oriel windows on the first tier.
 
 ## For the lead
 - New sub-style: `japan` (the Japan region's Gunpowder towns use `gunpowder-town-<size>-<v>-japan.glb`).
