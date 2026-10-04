@@ -4,7 +4,9 @@ Authoritative scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 l
 
 **Uploaded and download-verified: 60 / 350. Remaining to upload: 290.**
 
-Built but not yet uploaded: 0. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
+Built but not yet uploaded: 20. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
+
+**Quality review: 60 uploaded items require revision; 0 accepted. 350 items remain to finish.** Upload verification alone does not establish visual quality. Production is paused for corrected comparison renders: remove duplicated AO, correct dark world lighting, revise distinctive architecture, and verify water blending.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |
 |---|---:|---:|---|
