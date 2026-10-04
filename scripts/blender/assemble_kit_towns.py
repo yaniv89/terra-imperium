@@ -64,6 +64,8 @@ LANDMARKS = {
     ('big', 'a'): [('landmark-1', 118), ('landmark-2', 60)],
     ('big', 'b'): [('landmark-2', 124), ('landmark-1', 66)],
 }
+# Modern landmarks may stand up to 50 m in the big town (art spec 3b): its height cap is raised.
+MODERN_BIG_CAP = (1.9, 5.0)
 TOWNS = [(s, v) for s in ('small', 'medium', 'big') for v in ('a', 'b')]
 
 
@@ -222,14 +224,20 @@ def forecourt(b, free):
     return Box(mid * math.cos(a), mid * math.sin(a), b.yaw, b.hw * 0.8, depth / 2)
 
 
-def plan_town(size, variant, dims_of, seed, landmarks=True):
+def landmark_specs(size, variant, single=False):
+    """(name, angle) per landmark; a kit with one landmark puts it alone at the north."""
+    specs = LANDMARKS[(size, variant)]
+    return [('landmark-1', 90 if variant == 'a' else 100)] if single else specs
+
+
+def plan_town(size, variant, dims_of, seed, landmarks=True, single=False, cap=None):
     """The whole layout: landmarks [(name, Box, scale)], houses [(type, Box)], props [(kind, Box)]."""
     cfg = SIZES[size]
     rng = random.Random(seed)
     R = cfg['R'] * GROUND_SCALE
     limit = R * cfg.get('edge', EDGE)
     free = cfg['free']
-    lms = place_landmarks(LANDMARKS[(size, variant)], dims_of, limit, free, cfg['lm_cap'], out=cfg.get('lm_out', False)) if landmarks else []
+    lms = place_landmarks(landmark_specs(size, variant, single), dims_of, limit, free, cap or cfg['lm_cap'], out=cfg.get('lm_out', False)) if landmarks else []
     placed = [b for _n, b, _s in lms] + [forecourt(b, free) for _n, b, _s in lms if cfg.get('lm_out')]
     lo, hi = cfg['count']
     best = []
@@ -519,7 +527,9 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
         p = os.path.join(age_dir, k, 'model.glb')
         if landmarks and os.path.exists(p):
             paths[k.replace('-', '')] = p
-    landmarks = landmarks and len(paths) == 3
+    # a kit with only landmark-1 (the Pacific marae) gets it alone in every town
+    single = landmarks and list(paths) == ['houses', 'landmark1']
+    landmarks = landmarks and (len(paths) == 3 or single)
     street = os.path.join(age_dir, 'materials', 'street-surface.png')
     os.makedirs(out_dir, exist_ok=True)
     results = {}
@@ -560,10 +570,11 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
             parts = state['parts']
             dims = {k: parts['house-' + k].dims for k in ('poor', 'common', 'rich')}
             if landmarks:
-                for k in ('landmark-1', 'landmark-2'):
+                for k in ('landmark-1',) if single else ('landmark-1', 'landmark-2'):
                     p = next(p for p in parts.values() if p.key == k.replace('-', ''))
                     dims[k] = p.dims + (p.height,)
-            lms, houses, props = plan_town(size, variant, dims, seed, landmarks)
+            lms, houses, props = plan_town(size, variant, dims, seed, landmarks, single,
+                                           cap=MODERN_BIG_CAP if (age, size) == ('modern', 'big') else None)
             for lname, b, s in lms:
                 part = next(p for p in parts.values() if p.key == lname.replace('-', ''))
                 add_part(ms, part, tm.house_frame(b.x, b.y, b.yaw), s)

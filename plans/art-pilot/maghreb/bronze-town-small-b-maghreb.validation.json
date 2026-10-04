@@ -1,0 +1,107 @@
+{
+  "file": "bronze-town-small-b-maghreb.glb",
+  "kind": "town",
+  "bytes": 1273360,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 4104,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.016,
+          "depth": 3.967,
+          "height": 0.728,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1442,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.016,
+          "depth": 3.967,
+          "height": 0.728,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 456,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.016,
+          "depth": 3.967,
+          "height": 0.728,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.016
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "bronze-town-small-b-maghreb_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 39284
+    },
+    {
+      "name": "bronze-town-small-b-maghreb_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 456926
+    },
+    {
+      "name": "bronze-town-small-b-maghreb_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 386834
+    }
+  ],
+  "passed": true
+}

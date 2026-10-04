@@ -1,0 +1,198 @@
+{
+  "file": "shared-kingdoms-monsoon.glb",
+  "kind": "shared",
+  "bytes": 1015192,
+  "checks": {
+    "footprint_within_5pct_palace-small": true,
+    "height_within_5pct_palace-small": true,
+    "nothing_below_ground_palace-small": true,
+    "origin_centred": true,
+    "footprint_within_5pct_palace": true,
+    "height_within_5pct_palace": true,
+    "nothing_below_ground_palace": true,
+    "footprint_within_5pct_walls-medium": true,
+    "height_within_5pct_walls-medium": true,
+    "nothing_below_ground_walls-medium": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 236,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.8,
+          "depth": 0.645,
+          "height": 0.8,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 236,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.8,
+          "depth": 0.645,
+          "height": 0.8,
+          "min_height": -0.0
+        },
+        "LOD2": {
+          "triangles": 236,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 0.8,
+          "depth": 0.645,
+          "height": 0.8,
+          "min_height": -0.0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 0.8
+    },
+    "palace": {
+      "lods": {
+        "LOD0": {
+          "triangles": 260,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.01,
+          "height": 1.35,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 260,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.01,
+          "height": 1.35,
+          "min_height": -0.0
+        },
+        "LOD2": {
+          "triangles": 260,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.2,
+          "depth": 1.01,
+          "height": 1.35,
+          "min_height": -0.0
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.2
+    },
+    "walls-medium": {
+      "lods": {
+        "LOD0": {
+          "triangles": 1600,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 6.8,
+          "depth": 6.83,
+          "height": 0.754,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1600,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 6.8,
+          "depth": 6.83,
+          "height": 0.754,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 378,
+          "materials": [
+            "Town"
+          ],
+          "width": 6.794,
+          "depth": 6.83,
+          "height": 0.774,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.83
+    }
+  },
+  "materials": [
+    "Town",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "shared-kingdoms-monsoon_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 7538
+    },
+    {
+      "name": "shared-kingdoms-monsoon_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 383202
+    },
+    {
+      "name": "shared-kingdoms-monsoon_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 260714
+    }
+  ],
+  "passed": true
+}
