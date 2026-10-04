@@ -2,16 +2,17 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 60,
-  "quality_accepted": 0,
+  "uploaded_and_download_verified": 80,
+  "quality_accepted": 20,
   "uploaded_requiring_quality_revision": 60,
-  "remaining_to_finish": 350,
+  "remaining_to_finish": 330,
   "built_awaiting_upload": 20,
-  "remaining_to_upload": 290,
+  "remaining_to_upload": 270,
   "completed_checkpoints": [
     "01",
     "02",
-    "03"
+    "03",
+    "06"
   ],
   "items": [
     {
@@ -658,121 +659,121 @@
       "path": "plans/art/icons/resources/stone",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/timber",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/reeds",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/horses",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/copper",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/iron",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/coal",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/oil",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/uranium",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/gold",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/silver",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/gems",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/salt",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/furs",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/honey",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/spices",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/dyes",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/sugar",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/cotton",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/silk",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/tea",
