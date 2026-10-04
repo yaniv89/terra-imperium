@@ -37,10 +37,14 @@ const COLONIES = new Set(['us', 'ca', 'au', 'nz', 'bm', 'pm', 'gl', 'fk', 'gs', 
 // In the Classical Age the lands beyond Rome's frontier (Ireland and Britain, Germany,
 // Scandinavia, the Baltic and the north-east) build round the Celtic hillfort hall.
 const EUROPE_NORTH = new Set(['ie', 'gb', 'im', 'de', 'dk', 'no', 'se', 'fi', 'is', 'fo', 'ax', 'nl', 'pl', 'lt', 'lv', 'ee', 'by', 'ua', 'ru']);
-export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe' };
+// Japan and Korea build their own landmarks within the Sinic kit (a pagoda and castle tenshu, a
+// palace hall), falling back to it.
+const SUB_SINIC = { jp: 'japan', kr: 'korea', kp: 'korea' };
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic' };
 /** The style a city on this nation's land is drawn in, in this age. */
 export const styleOfLand = (nationId, ageId) => {
   if (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) return BEFORE_SETTLEMENT[nationId];
+  if (SUB_SINIC[nationId]) return SUB_SINIC[nationId];
   if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';
   if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
   if (COLONIES.has(nationId)) return 'colonies';

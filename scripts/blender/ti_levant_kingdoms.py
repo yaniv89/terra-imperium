@@ -646,7 +646,7 @@ def palace_small(ms, rng):
     pool(ms, f, 0, 0, 0.08, cd * 0.62, z=z)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            palm(ms, rng, sx * 0.13, sy * cd * 0.28, h=0.42, fronds=7)
+            palm(ms, rng, sx * 0.13, sy * cd * 0.28, h=0.68, fronds=7)
     # the front: portal, balconies, windows
     pishtaq(ms, f, 0, -d / 2, z, 0.34, H + 0.12, depth=0.05, tile=True, steps=3)
     for sx in (-1, 1):
@@ -662,6 +662,8 @@ def palace_small(ms, rng):
     ms.box('door', (0.08, 0.01, 0.16), at=(0.25, d / 2 + 0.004, z), lod=0, frame=f)
     # the roof: the wind catcher, the terrace cloth, the pennant
     badgir(ms, f, w / 2 - 0.1, d / 2 - 0.1, z + H, s=0.16, h=1.2 - z - H - 0.02, slots=3)
+    tk.box_only(ms, 2, 'lvk_plaster', (0.16, 0.16, 1.2 - z - H), at=(w / 2 - 0.1, d / 2 - 0.1, z + H), frame=f)
+    tk.box_only(ms, 2, 'lvk_plaster', (sw, cd, H), at=(-(w / 2 - sw / 2), 0, z), frame=f)
     cloth_shade(ms, f, -0.12, d / 2 - bd / 2, 0.36, 0.18, z + H + 0.16, tilt=0)
     ms.cyl('timber', 0.008, 0.006, 0.26, at=(w / 2 - 0.05, -d / 2 + 0.06, z + H), segs=5, lod=1, frame=f)
     tt.pennant(ms, f, w / 2 - 0.05, -d / 2 + 0.06, z + H + 0.26, w=0.16, h=0.09)
@@ -735,10 +737,11 @@ def palace(ms, rng):
     ms.cyl('lvk_stone', 0.03, 0.02, 0.07, at=(0, -d / 2 + fd + cd / 2, z + 0.02), segs=8, lod=0, frame=f)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            palm(ms, rng, sx * 0.24, -d / 2 + fd + cd / 2 + sy * cd * 0.3, h=0.42, fronds=7)
+            palm(ms, rng, sx * 0.24, -d / 2 + fd + cd / 2 + sy * cd * 0.3, h=0.85, fronds=7)
     # the roof: wind catchers, cloth shades
     for sx in (-1, 1):
         badgir(ms, f, sx * (w / 2 - 0.12), d / 2 - 0.12, z + H, s=0.17, h=1.8 - z - H - 0.02, slots=3)
+        tk.box_only(ms, 2, 'lvk_plaster', (0.17, 0.17, 1.8 - z - H), at=(sx * (w / 2 - 0.12), d / 2 - 0.12, z + H), frame=f)
         cloth_shade(ms, f, sx * (w / 2 - sw / 2), -d / 2 + fd + cd / 2, 0.18, 0.26, z + H + 0.17, tilt=0)
         cloth_shade(ms, f, sx * 0.32, d / 2 - bd / 2, 0.22, 0.18, z + H + 0.17, tilt=0)
         for k in range(2):
@@ -806,8 +809,8 @@ def walls_medium(ms, rng):
     for sx in (-1, 1):
         gf = tm.house_frame(sx * (gate_x + gtw / 2), gy - 0.04, 0)
         square_tower(ms, gf, gtw, gth)
-        ms.cyl('timber', 0.009, 0.007, 0.3, at=(0, 0.05, gth), segs=5, lod=1, frame=gf)
-        tt.pennant(ms, gf, 0, 0.05, gth + 0.3, w=0.2, h=0.11, yaw=-160 if sx > 0 else -150)
+        ms.cyl('timber', 0.011, 0.008, 0.42, at=(0, 0.05, gth), segs=5, lod=1, frame=gf)
+        tt.pennant(ms, gf, 0, 0.05, gth + 0.42, w=0.3, h=0.17, yaw=-160 if sx > 0 else -150)
         tk.banner_pointed(ms, gf, 0, -gtw / 2, gth * 0.78, w=0.12, h=gth * 0.4)
         ms.box('dark', (0.04, 0.006, 0.07), at=(0, -gtw / 2 - 0.003, gth * 0.84), lod=0, frame=gf)
     gw = 2 * gate_x

@@ -143,6 +143,9 @@ describe('architecture regions', () => {
     expect(styleOfLand('us', 'kingdoms')).toBe('americas');
     expect(styleOfLand('us', 'gunpowder')).toBe('colonies');
     expect(styleChain('colonies')).toEqual(['colonies', 'europe']);
+    expect(styleOfLand('jp', 'kingdoms')).toBe('japan');
+    expect(styleChain('korea')).toEqual(['korea', 'sinic']);
+    expect(styleOfLand('cn', 'kingdoms')).toBe('sinic');
     expect(styleOfLand('au', 'bronze')).toBe('monsoon');
     expect(styleOfLand('zz', 'bronze')).toBeNull();
     // the Orthodox east has its own churches from the Kingdoms Age, falling back to Europe

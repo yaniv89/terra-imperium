@@ -86,7 +86,7 @@ export const isCamp = (region) => !!region && (!!region.outpost || (!region.owne
 // Modern Ages, the city's seed mixes both so neighbours differ.
 export const TOWN_VARIANT_BY_AGE = {
   bronze: { nile: 'b', levant: 'a' },
-  classical: { sinic: 'b', monsoon: 'b', steppe: 'b', others: 'a' },
+  classical: { sinic: 'b', japan: 'b', korea: 'b', monsoon: 'b', steppe: 'b', others: 'a' },
   kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', others: 'a' }
 };
 

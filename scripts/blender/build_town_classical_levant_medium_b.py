@@ -40,7 +40,7 @@ SLOTS = [
 
 def layout(ms, rng):
     lc.rock_tomb(ms, rng, 2.25, 2.4, 1.3, 0.72, top=1.25, yaw=0, facade=0.92)
-    lc.apadana(ms, rng, -1.85, -2.3, 1.0, 0.78, top=1.15, columns=6, yaw=180)
+    lc.apadana(ms, rng, -1.95, -2.3, 1.0, 0.78, top=1.15, columns=6, yaw=90)
     lc.yard_wall(ms, -2.9, 1.75, -0.9, 1.75, gaps=((0.5, 0.26),))
     lc.yard_wall(ms, 0.4, 1.8, 1.55, 1.8, gaps=((0.5, 0.22),))
     lc.yard_wall(ms, -1.75, -1.3, -1.75, 1.5, gaps=((0.15, 0.2), (0.55, 0.2), (0.88, 0.2)))
