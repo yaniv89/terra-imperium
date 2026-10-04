@@ -17,6 +17,17 @@ export const loadSubregionTopology = async () => {
   return topology;
 };
 
+// The land the map draws: the coast along hex edges, softened (hexCoast.js, built into
+// hexLand.json by scripts/geo/build-hex-coast.mjs), so every hex is all land or all water. The flat
+// map and the globe clip territories to it and the close view masks its art with it.
+let cachedLandFeatures = null;
+export const loadLandFeatures = async () => {
+  if (cachedLandFeatures) return cachedLandFeatures;
+  const { default: collection } = await import('./hexLand.json');
+  cachedLandFeatures = collection.features;
+  return cachedLandFeatures;
+};
+
 export const loadCountryFeatures = async () => {
   if (cachedCountryFeatures) return cachedCountryFeatures;
 

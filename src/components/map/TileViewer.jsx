@@ -12,7 +12,7 @@ import { loadTiles } from '../../data/geo/tiles';
 import { buildTerritories, buildBorders, buildHexMesh, cellFeature } from '../../data/geo/tileGeometry';
 import { buildScenarioStarts, SCENARIOS, SCENARIO_IDS, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import { WORLD_NATIONS } from '../../data/worldNations';
-import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
+import { loadLandFeatures } from '../../data/geo/loadWorldFeatures';
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 
 const POLITICAL_ALPHA = 0.45;
@@ -43,7 +43,7 @@ const TileViewer = () => {
   const [transform, setTransform] = useState(zoomIdentity);
   const [selected, setSelected] = useState(null);
 
-  useEffect(() => { loadTiles().then(setTiles); loadCountryFeatures().then(setLand); }, []);
+  useEffect(() => { loadTiles().then(setTiles); loadLandFeatures().then(setLand); }, []);
   const starts = useMemo(() => (tiles ? buildScenarioStarts(tiles, scenarioId) : null), [tiles, scenarioId]);
 
   const projection = useMemo(() => {

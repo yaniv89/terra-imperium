@@ -1,9 +1,9 @@
 // src/components/map/closeView/groundBlend.js
 // Fitting the art into the land under it, everywhere on the map:
-//   Land mask   the real coastline (the map's country outlines) drawn once into a land/sea
-//               picture, equirectangular; fields, farm works and trees are only drawn where it
-//               says land, so nothing stands in the sea (the 106 km hex tiles are far too coarse
-//               for a coastline).
+//   Land mask   the map's coastline (hexCoast.js: along hex edges, softened, the same land the
+//               Earth raster is painted from) drawn once into a land/sea picture,
+//               equirectangular; fields, farm works and trees are only drawn where it says
+//               land, so nothing stands in the sea.
 //   Ground tint the colour of the world picture under a town, land pixels only, turned into a
 //               multiplier for the models' Ground material (earth, paving, fields, wall
 //               footings), three quarters of the way toward the land: green earth in Europe, pale in the tundra,
@@ -71,7 +71,7 @@ export const groundTint = (land, blend = GROUND_BLEND) => {
 export const tintKey = (tint) => (tint ? tint.join(',') : '');
 
 let loading = null;
-/** Build the land mask from the country features and read the world picture, once (browser). */
+/** Build the land mask from the land features and read the world picture, once (browser). */
 export const loadGroundData = (features, rasterUrl) => {
   if (loading) return loading;
   loading = new Promise((resolve) => {

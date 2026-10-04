@@ -21,7 +21,7 @@ import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { REGIONS_DATA } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
-import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
+import { loadLandFeatures } from '../../data/geo/loadWorldFeatures';
 import { getCityFeatures, getNationTerritories, getHexMeshWithin, landTilesWithin, cityLatLon, getTileFeature, tileAtLatLon } from '../../data/geo/cityFeatures';
 import { DISTRICTS } from '../../engine/districts';
 import { RESOURCES_ON_TILES } from '../../data/tileYields';
@@ -117,12 +117,12 @@ const Map2DView = ({
   const appliedInitialFocusRef = useRef(false);
   const [transform, setTransform] = useState(zoomIdentity);
 
-  // The real coastline cuts every territory (B4b: never a hex edge along a coast); until it has
+  // The coast (hexCoast.js: along hex edges, softened) cuts every territory; until it has
   // loaded the raw hex territories show.
   const [land, setLand] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    loadCountryFeatures().then((f) => { if (!cancelled) setLand(f); });
+    loadLandFeatures().then((f) => { if (!cancelled) setLand(f); });
     return () => { cancelled = true; };
   }, []);
   // Territories follow ownership: rebuilt only when a tile changes hands (cityFeatures.js caches

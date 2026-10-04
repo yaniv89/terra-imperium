@@ -7,8 +7,9 @@
 //   level z has 2^(z+1) x 2^z tiles of 256 px (equirectangular, so it lines up with the map's
 //   own projection); MAX_Z = 5 is the full resolution.
 //   public/map/tiles/{z}/{x}-{y}.webp, plus public/map/tiles/meta.json { maxZ, tile }.
-// Sources (scripts/geo/.raw): terrarium elevation at zoom 5 (1,024 tiles, terrarium5/), Natural
-// Earth 1:10M land (ne_10m_land.geojson), the 1:10M lakes, glaciers and rivers already used.
+// Sources (scripts/geo/.raw): terrarium elevation at zoom 5 (1,024 tiles, terrarium5/), the land
+// from src/data/geo/hexLand.json (the hex coast; run build-hex-coast.mjs first), the Natural Earth
+// 1:10M glaciers and rivers.
 // Fetch them with: node scripts/geo/fetch-tiles-raw.mjs --pyramid
 // Memory stays small: the full level is rendered one 256-pixel band at a time.
 // Run: node scripts/geo/build-raster-pyramid.mjs   (a few minutes)
@@ -24,6 +25,7 @@ const { PNG } = require('pngjs');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAW = path.join(__dirname, '.raw');
+const HEX_LAND = path.join(__dirname, '../../src/data/geo/hexLand.json');
 const OUT = path.join(__dirname, '../../public/map/tiles');
 export const MAX_Z = 5;
 export const TILE = 256;
@@ -90,6 +92,15 @@ const bandMask = async (pathData, y0, rows) => {
   for (let i = 0; i < W * rows; i++) mask[i] = data[i * 4] > 127 ? 1 : 0;
   return mask;
 };
+// Land stays at least 2 m up, the sea at least 80 m down (see the band loop): sunk real islands
+// would otherwise show as pale ghosts of land.
+export const clampToCoast = (e, isLand) => (isLand ? Math.max(e, 2) : Math.min(e, -80));
+// A river overlay (PNG with alpha) with its alpha cleared off the land mask.
+const landOnly = async (png, land, rows) => {
+  const { data } = await sharp(png, { limitInputPixels: false }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let i = 0; i < W * rows; i++) if (!land[i]) data[i * 4 + 3] = 0;
+  return sharp(data, { raw: { width: W, height: rows, channels: 4 }, limitInputPixels: false }).png().toBuffer();
+};
 const bandRivers = (strokes, y0, rows) => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${rows}" viewBox="0 ${y0} ${W} ${rows}">${strokes}</svg>`), { limitInputPixels: false }).png().toBuffer();
 
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -133,8 +144,9 @@ export const buildRasterPyramid = async () => {
   const t0 = Date.now();
   const elevation = loadElevation5();
   const climate = climateColorGrid();
-  const landPaths = toPaths(readJson(path.join(RAW, 'ne', 'ne_10m_land.geojson')).features);
-  const lakePaths = toPaths(readJson(path.join(RAW, 'ne', 'ne_10m_lakes.geojson')).features, (f) => (f.properties.scalerank ?? 10) <= 8);
+  // The coast follows the hexes (src/data/geo/hexCoast.js): every hex all land or all water, so
+  // lakes too are whole water hexes and the land paths are the game's own hexLand.json.
+  const landPaths = toPaths(readJson(HEX_LAND).features);
   const icePaths = toPaths(readJson(path.join(RAW, 'ne', 'ne_10m_glaciated_areas.geojson')).features);
   const riverStrokes = toRiverStrokes(readJson(path.join(RAW, 'ne', 'ne_10m_rivers_lake_centerlines.geojson')).features);
   log(`sources ready (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
@@ -144,18 +156,23 @@ export const buildRasterPyramid = async () => {
   const cols = 2 ** (MAX_Z + 1); const rowsOfTiles = 2 ** MAX_Z;
   for (let ty = 0; ty < rowsOfTiles; ty++) {
     const y0 = ty * TILE;
-    const [land, lakes, ice, rivers] = await Promise.all([bandMask(landPaths, y0, TILE), bandMask(lakePaths, y0, TILE), bandMask(icePaths, y0, TILE), bandRivers(riverStrokes, y0, TILE)]);
-    // Elevation for the band and one row above and below (the gradient).
+    // The land for the band and one row above and below (the elevation gradient needs them).
+    const [landExt, ice, riversRaw] = await Promise.all([bandMask(landPaths, y0 - 1, TILE + 2), bandMask(icePaths, y0, TILE), bandRivers(riverStrokes, y0, TILE)]);
+    const land = landExt.subarray(W);
+    // Rivers only on land: the hex coast leaves some river mouths in the sea.
+    const rivers = await landOnly(riversRaw, land, TILE);
+    // Elevation for the band and one row above and below, held above sea level on land and below
+    // it at sea, so the real coastline leaves no ghost edge inside a hex.
     const er = new Float32Array(W * (TILE + 2));
     for (let r = -1; r <= TILE; r++) {
       const lat = 90 - ((Math.max(0, Math.min(H - 1, y0 + r)) + 0.5) / H) * 180;
-      for (let x = 0; x < W; x++) er[(r + 1) * W + x] = elevation.sample(lat, ((x + 0.5) / W) * 360 - 180);
+      for (let x = 0; x < W; x++) er[(r + 1) * W + x] = clampToCoast(elevation.sample(lat, ((x + 0.5) / W) * 360 - 180), landExt[(r + 1) * W + x] === 1);
     }
     const rgb = new Uint8Array(W * TILE * 3);
     for (let r = 0; r < TILE; r++) {
       for (let x = 0; x < W; x++) {
         const i = r * W + x; const row = (r + 1) * W;
-        const c = shadePixel({ climate, isLand: land[i] === 1, isLake: lakes[i] === 1, isIce: ice[i] === 1 }, x, y0 + r,
+        const c = shadePixel({ climate, isLand: land[i] === 1, isLake: false, isIce: ice[i] === 1 }, x, y0 + r,
           er[row + x], er[row + ((x - 1 + W) % W)], er[row + ((x + 1) % W)], er[r * W + x], er[(r + 2) * W + x]);
         const o = i * 3;
         rgb[o] = Math.max(0, Math.min(255, Math.round(c[0]))); rgb[o + 1] = Math.max(0, Math.min(255, Math.round(c[1]))); rgb[o + 2] = Math.max(0, Math.min(255, Math.round(c[2])));

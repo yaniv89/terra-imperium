@@ -13,7 +13,7 @@ import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
 import { REGION_COORDINATES } from '../../data/regionCoordinates';
 import { cityAtLatLon, getCityFeatures, tileAtLatLon } from '../../data/geo/cityFeatures';
-import { loadCountryFeatures } from '../../data/geo/loadWorldFeatures';
+import { loadLandFeatures } from '../../data/geo/loadWorldFeatures';
 import { renderPoliticalCanvas, loadImage } from './politicalTexture';
 import { tapCandidates, tapRingPoints } from '../../utils/regionClickAssist';
 import { useEffects } from '../../context/EffectsContext';
@@ -117,7 +117,7 @@ const GlobeView = ({ onAmbiguousTap = null,
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadCountryFeatures(), loadImage(worldRasterUrl(rasterSize))])
+    Promise.all([loadLandFeatures(), loadImage(worldRasterUrl(rasterSize))])
       .then(([land, image]) => { if (!cancelled) setGeo({ land, image }); })
       .catch(() => { if (!cancelled) setGeo({ land: [], image: null }); });
     return () => { cancelled = true; };

@@ -5,8 +5,8 @@
 // texture. Written to public/map/world-4096.webp (desktop flat map and globe) and
 // public/map/world-2048.webp (phones).
 //
-// Inputs (scripts/geo/.raw, see fetch-tiles-raw.mjs): terrarium elevation tiles (zoom 4),
-// Natural Earth land, lakes, glaciers and rivers, Köppen climate at 0.5°. Everything is derived
+// Inputs (scripts/geo/.raw, see fetch-tiles-raw.mjs): terrarium elevation tiles (zoom 4), the
+// hex coast (src/data/geo/hexLand.json, build-hex-coast.mjs), Natural Earth glaciers and rivers, Köppen climate at 0.5°. Everything is derived
 // per pixel: a climate colour (bilinear across the 0.5° cells, so no blocks), hypsometric tints
 // and a snow line with elevation, hillshade from the elevation gradient, bathymetry in the sea,
 // rivers drawn on top. Deterministic.
@@ -148,15 +148,16 @@ export const buildWorldRaster = async ({ log = console.log } = {}) => {
   const t0 = Date.now();
   const elevation = loadElevation();
   const climate = climateColorGrid();
-  const landFc = readJson(path.join(RAW, 'ne', 'ne_50m_land.geojson'));
-  const lakesFc = readJson(path.join(RAW, 'ne', 'ne_10m_lakes.geojson'));
+  // The coast follows the hexes (src/data/geo/hexCoast.js): every hex all land or all water, so
+  // lakes too are whole water hexes and the land is the game's own hexLand.json.
+  const landFc = readJson(path.join(__dirname, '../../src/data/geo/hexLand.json'));
   const glacierFc = readJson(path.join(RAW, 'ne', 'ne_10m_glaciated_areas.geojson'));
   const riversFc = readJson(path.join(RAW, 'ne', 'ne_10m_rivers_lake_centerlines.geojson'));
-  const [land, lakes, glacier] = await Promise.all([
+  const [land, glacier] = await Promise.all([
     rasterMask(geoToSvgPaths(landFc.features)),
-    rasterMask(geoToSvgPaths(lakesFc.features, (f) => (f.properties.scalerank ?? 10) <= 5)),
     rasterMask(geoToSvgPaths(glacierFc.features))
   ]);
+  const lakes = new Uint8Array(W * H);
   log(`masks ready (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 
   // Elevation sampled on the equirectangular grid once (bilinear in mercator space), so the
@@ -166,7 +167,9 @@ export const buildWorldRaster = async ({ log = console.log } = {}) => {
     const lat = 90 - ((y + 0.5) / H) * 180;
     for (let x = 0; x < W; x++) {
       const lon = ((x + 0.5) / W) * 360 - 180;
-      elev[y * W + x] = elevation.sample(lat, lon);
+      // held above sea level on land and 80 m below it at sea: no ghost of the real coast in a hex
+      const e = elevation.sample(lat, lon);
+      elev[y * W + x] = land[y * W + x] ? Math.max(e, 2) : Math.min(e, -80);
     }
   }
   log(`elevation sampled (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
@@ -225,7 +228,11 @@ export const buildWorldRaster = async ({ log = console.log } = {}) => {
     }
   }
   log(`terrain rendered (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
-  const rivers = await riverOverlay(riversFc.features);
+  // Rivers only on land: the hex coast leaves some river mouths in the sea.
+  const riverPng = await riverOverlay(riversFc.features);
+  const { data: riverRgba } = await sharp(riverPng).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let i = 0; i < W * H; i++) if (!land[i]) riverRgba[i * 4 + 3] = 0;
+  const rivers = await sharp(riverRgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
   const image = sharp(Buffer.from(rgb.buffer), { raw: { width: W, height: H, channels: 3 } }).composite([{ input: rivers }]);
   const png = await image.png().toBuffer();
   mkdirSync(OUT, { recursive: true });

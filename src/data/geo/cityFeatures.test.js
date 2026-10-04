@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../regions';
-import { loadCountryFeatures } from './loadWorldFeatures';
+import { loadLandFeatures } from './loadWorldFeatures';
 import { geoArea } from 'd3-geo';
 import { getCityFeatures, getNationTerritories, cityAtLatLon, cityLatLon, getHexMesh } from './cityFeatures';
 
@@ -20,7 +20,7 @@ describe('city features from state', () => {
   });
 
   it('cuts coastal territories to the coastline and keeps islands the land data lacks', async () => {
-    const land = await loadCountryFeatures();
+    const land = await loadLandFeatures();
     const raw = Object.fromEntries(getCityFeatures(state).map((f) => [f.id, f]));
     const clipped = Object.fromEntries(getCityFeatures(state, land).map((f) => [f.id, f]));
     // Tokyo's ring reaches into the Pacific: the clipped land is smaller than the hex blob.
@@ -36,7 +36,7 @@ describe('city features from state', () => {
   });
 
   it('builds one territory per nation whose land is the union of its cities', async () => {
-    const land = await loadCountryFeatures();
+    const land = await loadLandFeatures();
     const nations = getNationTerritories(state, land);
     const owners = new Set(Object.values(state.regions).map((r) => r.owner));
     expect(nations.length).toBe(owners.size);
