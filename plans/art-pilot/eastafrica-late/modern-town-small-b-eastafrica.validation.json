@@ -1,0 +1,105 @@
+{
+  "file": "modern-town-small-b-eastafrica.glb",
+  "kind": "town",
+  "bytes": 1880076,
+  "checks": {
+    "footprint_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 9071,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.026,
+          "depth": 3.943,
+          "height": 0.633,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 2720,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.026,
+          "depth": 3.943,
+          "height": 0.635,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 456,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 4.026,
+          "depth": 3.943,
+          "height": 0.633,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.026
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "modern-town-small-b-eastafrica_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 18582
+    },
+    {
+      "name": "modern-town-small-b-eastafrica_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 277052
+    },
+    {
+      "name": "modern-town-small-b-eastafrica_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 304130
+    }
+  ],
+  "passed": true
+}
