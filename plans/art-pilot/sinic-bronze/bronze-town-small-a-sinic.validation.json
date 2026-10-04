@@ -1,0 +1,105 @@
+{
+  "file": "bronze-town-small-a-sinic.glb",
+  "kind": "town",
+  "bytes": 2877800,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 14153,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.967,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 2804,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.967,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 574,
+          "materials": [
+            "Ground",
+            "Town"
+          ],
+          "width": 3.975,
+          "depth": 3.706,
+          "height": 0.896,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 3.975
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "bronze-town-small-a-sinic_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 595212
+    },
+    {
+      "name": "bronze-town-small-a-sinic_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 624514
+    },
+    {
+      "name": "bronze-town-small-a-sinic_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 454710
+    }
+  ],
+  "passed": true
+}
