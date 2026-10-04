@@ -48,6 +48,7 @@ import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
 import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
+import { applyMarketHousing } from './world/market';
 import { getTiles } from '../data/geo/tiles';
 import { getResearched, getTechAgeId } from './nationState';
 import { getEffectiveAgeId } from '../data/ages';
@@ -168,6 +169,9 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
     if (item) cities[city.id] = { ...city, production: { ...city.production, current: item, idleUntil: undefined } };
     else { let nextThink = newTurnNumber + 1; while ((nextThink + city.tile) % SETTLER_THINK_PERIOD !== 0) nextThink += 1; cities[city.id] = { ...city, production: { ...city.production, idleUntil: nextThink } }; }
   });
+  // Uneven carrying capacity from market access and capital rank (world/market.js).
+  const marketCities = { ...cities };
+  if (applyMarketHousing(marketCities, tiles)) cities = marketCities;
   const world = { cities, tileOwner: state.world.tileOwner || {}, tileState: state.world.tileState || {} };
   const result = processCities(world, tiles, ctxFor);
   const regions = {};

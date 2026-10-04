@@ -200,7 +200,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         <div className="bg-slate-800/60 rounded-lg p-2">
           <div className="text-slate-400 flex items-center gap-1"><Home className="w-3 h-3" />Housing</div>
           <div className={`font-semibold text-base ${city.size >= housing ? 'text-amber-300' : 'text-white'}`}>{city.size}/{housing}</div>
-          <div className="text-slate-500 text-[10px]">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}</div>
+          <div className="text-slate-500 text-[10px]">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
         </div>
         <div className="bg-slate-800/60 rounded-lg p-2">
           <div className="text-slate-400 flex items-center gap-1"><Smile className="w-3 h-3" />Amenities</div>
