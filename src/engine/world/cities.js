@@ -38,6 +38,7 @@ import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
 import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTemplates';
 import { navalLinesFor } from '../../data/navalLines';
+import { noteOwnerCopy, noteOwnerWrite } from './tileIndex';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -102,39 +103,61 @@ export const ringDistance = (tiles, from, to, maxRing = 6) => {
   return Infinity;
 };
 
-const isWorkable = (tiles, id) => tiles.land[id] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(id));
+// Static per tile: memoised in a flat array (1 workable, 2 not, 0 not yet asked).
+let workableMemo = null; let workableFor = null;
+const isWorkable = (tiles, id) => {
+  if (workableFor !== tiles) { workableFor = tiles; workableMemo = new Uint8Array(tiles.count); }
+  let v = workableMemo[id];
+  if (!v) { v = tiles.land[id] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(id)) ? 1 : 2; workableMemo[id] = v; }
+  return v === 1;
+};
 
-// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings), cached per cities map:
-// the AI asks about hundreds of sites a turn, and a ring walk per city per site was the cost.
+// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings): tile -> the name of the
+// blocking city. Where two cities block a tile, the one with the lower centre tile names it, so the
+// index is the same whatever order the cities were visited or founded in. Cached per cities map,
+// and a new map with the same cities (sizes and yields change every turn, centres and names almost
+// never) reuses the last index: the key is the sorted centres and names.
 const blockedCache = new WeakMap();
+let lastBlocked = { key: null, map: null, set: null };
+const markBlocked = (map, tiles, city) => {
+  let frontier = [city.tile]; const seen = new Set(frontier);
+  const claim = (t) => { const prev = map.get(t); if (!prev || prev.tile > city.tile) map.set(t, { tile: city.tile, name: city.name }); };
+  claim(city.tile);
+  for (let d = 1; d < MIN_CITY_SPACING; d++) {
+    const next = [];
+    frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); claim(n); } }));
+    frontier = next;
+  }
+};
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
   if (map) return map;
-  map = new Map();
-  Object.values(cities).forEach((city) => {
-    let frontier = [city.tile]; const seen = new Set(frontier);
-    map.set(city.tile, city.name);
-    for (let d = 1; d < MIN_CITY_SPACING; d++) {
-      const next = [];
-      frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); if (!map.has(n)) map.set(n, city.name); } }));
-      frontier = next;
-    }
-  });
+  const all = Object.values(cities);
+  const list = all.map((c) => `${c.tile}:${c.name}`).sort();
+  const key = list.join('|');
+  if (lastBlocked.key === key) { blockedCache.set(cities, lastBlocked.map); return lastBlocked.map; }
+  // Only cities were added since the last index (the usual turn: a few outposts founded): copy it
+  // and mark the new ones. The lower-centre rule makes the result the same as a full build.
+  const prev = lastBlocked.set;
+  const set = new Set(list);
+  if (prev && prev.size <= set.size && [...prev].every((k) => set.has(k))) {
+    map = new Map(lastBlocked.map);
+    all.forEach((city) => { if (!prev.has(`${city.tile}:${city.name}`)) markBlocked(map, tiles, city); });
+  } else {
+    map = new Map();
+    all.forEach((city) => markBlocked(map, tiles, city));
+  }
   blockedCache.set(cities, map);
+  lastBlocked = { key, map, set };
   return map;
 };
 // A city founded into a cities map that is written in place (processSettlers): its ring joins the
-// cached index instead of a rebuild per founding.
+// cached index instead of a rebuild per founding (on a copy when the index is shared).
 const noteFoundedCity = (cities, tiles, city) => {
-  const map = blockedCache.get(cities);
+  let map = blockedCache.get(cities);
   if (!map) return;
-  let frontier = [city.tile]; const seen = new Set(frontier);
-  map.set(city.tile, city.name);
-  for (let d = 1; d < MIN_CITY_SPACING; d++) {
-    const next = [];
-    frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); if (!map.has(n)) map.set(n, city.name); } }));
-    frontier = next;
-  }
+  if (lastBlocked.map === map) { map = new Map(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null, set: null }; }
+  markBlocked(map, tiles, city);
 };
 
 export const canFoundCity = (world, tiles, tile, nationId) => {
@@ -143,7 +166,7 @@ export const canFoundCity = (world, tiles, tile, nationId) => {
   const owner = world.tileOwner[tile];
   if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, reason: 'This land belongs to another nation.' };
   const near = blockedTiles(world.cities, tiles).get(tile);
-  if (near) return { ok: false, reason: `Too close to ${near}.` };
+  if (near) return { ok: false, reason: `Too close to ${near.name}.` };
   return { ok: true };
 };
 
@@ -157,6 +180,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
   // `inPlace`: the caller already copied the ownership and cities maps for the whole pass
   // (processSettlers founds several outposts a turn; a copy of 9,000 tiles each was the cost).
   const tileOwner = inPlace ? world.tileOwner : { ...world.tileOwner };
+  if (!inPlace) noteOwnerCopy(world.tileOwner, tileOwner);
   // A city centre is always its own: if another city's border already covered this tile
   // (capitals of neighbouring peoples can start a tile apart), that city gives it up.
   let cities = world.cities;
@@ -166,7 +190,7 @@ export const foundCity = (world, tiles, { nationId, tile, name, size = 1, turn =
     const trimmed = { ...p, tiles: p.tiles.filter((t) => t !== tile), worked: p.worked.filter((t) => t !== tile), locked: p.locked.filter((t) => t !== tile) };
     if (inPlace) cities[previous] = trimmed; else cities = { ...cities, [previous]: trimmed };
   }
-  claim.forEach((t) => { tileOwner[t] = id; });
+  claim.forEach((t) => { tileOwner[t] = id; noteOwnerWrite(tileOwner, t); });
   const facts = cityFacts(tiles, tile);
   const city = {
     id, name: name || tiles.names[tile] || `City ${tile}`, ownerId: nationId, founderId: nationId, tile, founded: turn,
@@ -223,9 +247,23 @@ const focusScore = (y, focus) => {
 
 /** Which tiles the city works this turn: locked tiles first, then enough food not to starve, then
  * the focus score. Returns tile ids (the centre is always worked and not listed). */
+// The last allocation per city, reused while its inputs are the same objects: the candidate tiles'
+// yield records (memoised above, so equal identity means equal yields), size, focus, locks and the
+// centre. Most cities change none of them in a turn, and the two sorts were the cost.
+const allocMemo = new Map(); // city id -> { candidates, ys, size, focus, locked, centre, chosen }
 export const allocateTiles = (city, tiles, world, researched = [], blocked = new Set()) => {
   const candidates = city.tiles.filter((t) => t !== city.tile && !blocked.has(t) && isWorkable(tiles, t));
-  const yields = new Map(candidates.map((t) => [t, yieldsOfTile(tiles, world, t, researched)]));
+  const ys = candidates.map((t) => yieldsOfTile(tiles, world, t, researched));
+  const centreY = yieldsOfTile(tiles, world, city.tile, researched);
+  const memo = allocMemo.get(city.id);
+  if (memo && memo.size === city.size && memo.focus === city.focus && memo.locked === city.locked && memo.centre === centreY
+    && memo.candidates.length === candidates.length && candidates.every((t, i) => memo.candidates[i] === t && memo.ys[i] === ys[i])) return memo.chosen.slice();
+  const chosen = allocateFresh(city, tiles, world, researched, candidates, ys);
+  allocMemo.set(city.id, { candidates, ys, size: city.size, focus: city.focus, locked: city.locked, centre: centreY, chosen: chosen.slice() });
+  return chosen;
+};
+const allocateFresh = (city, tiles, world, researched, candidates, ys) => {
+  const yields = new Map(candidates.map((t, i) => [t, ys[i]]));
   const chosen = [];
   const locked = city.locked.filter((t) => yields.has(t)).sort((a, b) => a - b);
   locked.forEach((t) => { if (chosen.length < city.size) chosen.push(t); });
@@ -393,12 +431,31 @@ export const buyTileCost = (city, candidate) => candidate.cost * BUY_TILE_MULT;
 
 // `inPlace`: the caller owns `world.tileOwner` (processCities copies it once a turn), so the claim
 // is written into it; a spread of the 4,000-key ownership map per claim was the cities phase's cost.
+// Copy-on-write for the turn's pass: processCities hands the cities the turn's own world object
+// with the ownership and tile-state maps still shared with the previous state; the first write
+// to either copies it (once a turn), and a turn that writes nothing copies nothing.
+// Which maps are private belongs to one pass (a Set on the pass's world under PRIVATE): a map made
+// private this turn is shared state next turn and must be copied again before a write.
+const PRIVATE = Symbol('privateMaps');
+const ownMap = (world, key) => {
+  const mine = world[PRIVATE] || (world[PRIVATE] = new Set());
+  if (!mine.has(world[key])) { const base = world[key]; world[key] = { ...base }; mine.add(world[key]); if (key === 'tileOwner') noteOwnerCopy(base, world[key]); }
+  return world[key];
+};
+/** The turn's working world with private (writable) ownership and tile-state maps, for settlers.js
+ * to found outposts into in place. `pass`: the world processCities returned this turn, whose
+ * already copied maps are reused. */
+export const privateWorld = (world, pass = null) => {
+  const w = { ...world, [PRIVATE]: new Set(pass?.[PRIVATE] || []) };
+  ownMap(w, 'tileOwner'); ownMap(w, 'tileState');
+  return w;
+};
 const claimTile = (world, city, tile, inPlace = false) => {
-  if (inPlace) { world.tileOwner[tile] = city.id; return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
+  if (inPlace) { ownMap(world, 'tileOwner')[tile] = city.id; noteOwnerWrite(world.tileOwner, tile); return { world, city: { ...city, tiles: [...city.tiles, tile] } }; }
   return { world: { ...world, tileOwner: { ...world.tileOwner, [tile]: city.id } }, city: { ...city, tiles: [...city.tiles, tile] } };
 };
 const writeTileState = (world, tile, entry, inPlace = false) => {
-  if (inPlace) { world.tileState[tile] = entry; return world; }
+  if (inPlace) { ownMap(world, 'tileState')[tile] = entry; return world; }
   return { ...world, tileState: { ...world.tileState, [tile]: entry } };
 };
 
@@ -503,7 +560,9 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
 
   // 5. Culture and borders.
   let cultureBank = c.cultureBank + y.culture;
-  const candidates = claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched });
+  // No tile costs less than a ring-1 one: below that the candidate search cannot claim anything.
+  const affordable = cultureBank >= tileCultureCost(c, 1, mapEffectsOf(researched).tileCostMult);
+  const candidates = affordable ? claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched }) : [];
   let claimed = [];
   if (candidates.length) {
     const best = candidates[0];
@@ -520,7 +579,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
 /** Every city of the world, in id order. `ctxFor(city)` gives the per-nation context. */
 export const processCities = (world, tiles, ctxFor) => {
   // One copy of the ownership and tile state maps for the whole pass; the cities write into it.
-  let w = { ...world, tileOwner: { ...world.tileOwner }, tileState: { ...world.tileState } };
+  let w = { ...world, [PRIVATE]: new Set() };
   const cities = {};
   const results = {};
   const logs = []; const completed = [];

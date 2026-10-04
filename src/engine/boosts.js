@@ -9,11 +9,30 @@ import { TECH_TREE } from '../data/techTree';
 import { BOOSTS, BOOST_SHARE } from '../data/boosts';
 import { getResearchCost } from './research';
 
+// Cities by owner and the nations besieging a city, once per regions map: a scan of every city
+// per nation was 240 x 700 reads a turn.
+const byOwnerCache = new WeakMap(); // regions -> { byOwner: Map(nationId -> [city]), besiegers: Set }
+const citiesIndex = (regions) => {
+  let hit = byOwnerCache.get(regions);
+  if (hit) return hit;
+  hit = { byOwner: new Map(), besiegers: new Set() };
+  Object.values(regions).forEach((c) => {
+    if (c.siege?.by) hit.besiegers.add(c.siege.by);
+    if (c.tile == null) return;
+    let list = hit.byOwner.get(c.owner);
+    if (!list) { list = []; hit.byOwner.set(c.owner, list); }
+    list.push(c);
+  });
+  byOwnerCache.set(regions, hit);
+  return hit;
+};
+
 /** The map facts of a nation, as the boost table reads them. */
 export const nationFacts = (state, nationId) => {
   const tiles = getTiles();
   const tileState = state.world?.tileState || {};
-  const cities = Object.values(state.regions || {}).filter((c) => c.owner === nationId && c.tile != null);
+  const index = citiesIndex(state.regions || {});
+  const cities = index.byOwner.get(nationId) || [];
   const f = { cities: cities.length, maxSize: 0, resources: new Set(), river: false, coastal: false, forest: false, hills: false, hillsResource: false, roads: 0, riverTiles: 0, harbour: false, scienceBuildings: 0, scienceBuilding: false, trade: false, atWar: false, sieged: false, wonders: 0 };
   const n = state.nations?.[nationId];
   f.trade = nationId === state.playerNationId ? Object.values(state.nations || {}).some((o) => o.hasTradeAgreement) : !!n?.hasTradeAgreement;
@@ -34,7 +53,7 @@ export const nationFacts = (state, nationId) => {
       if (tileState[t]?.road && !tileState[t]?.pillaged) f.roads += 1;
     });
   });
-  f.sieged = Object.values(state.regions || {}).some((c) => c.siege?.by === nationId);
+  f.sieged = index.besiegers.has(nationId);
   return f;
 };
 

@@ -67,6 +67,13 @@ const withBorders = (nation, otherId, open) => {
 export const setOpenBorders = (nations, a, b, open) => ({ ...nations, [a]: withBorders(nations[a], b, open), [b]: withBorders(nations[b], a, open) });
 
 /** True while `nationId` promised `toId` not to settle near its cities and `tile` lies within reach of one. */
+// City centres by tile, once per regions map: the settler's site search asks for hundreds of tiles.
+const centresCache = new WeakMap(); // regions -> Map tile -> [city]
+const centresOf = (regions) => {
+  let m = centresCache.get(regions);
+  if (!m) { m = new Map(); Object.values(regions).forEach((c) => { if (c.tile != null) (m.get(c.tile) || m.set(c.tile, []).get(c.tile)).push(c); }); centresCache.set(regions, m); }
+  return m;
+};
 export const settlingBarred = (state, nationId, tile) => {
   const promises = state.nations?.[nationId]?.noSettleNear;
   if (!promises) return false;
@@ -74,8 +81,9 @@ export const settlingBarred = (state, nationId, tile) => {
   const tiles = getTiles();
   return Object.entries(promises).some(([toId, until]) => {
     if (turn > until) return false;
-    const near = ringsAround(tiles, tile, SETTLED_NEAR_RINGS);
-    return Object.values(state.regions || {}).some((c) => c.owner === toId && c.tile != null && near.has(c.tile));
+    const centres = centresOf(state.regions || {});
+    for (const t of ringsAround(tiles, tile, SETTLED_NEAR_RINGS).keys()) if ((centres.get(t) || []).some((c) => c.owner === toId)) return true;
+    return false;
   });
 };
 

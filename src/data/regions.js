@@ -72,19 +72,25 @@ export const getBorderingNationIds = (regions, nationId) => {
     borderingNationsIndexCache.set(regions, perNation);
   }
   if (perNation.has(nationId)) return perNation.get(nationId);
-
-  const owned = new Set(getOwnedRegionIds(regions, nationId));
-  const bordering = new Set();
-  owned.forEach((regionId) => {
-    getNeighborIds(regionId).forEach((neighborId) => {
-      if (owned.has(neighborId)) return;
-      const neighborOwner = regions[neighborId]?.owner;
-      if (neighborOwner && neighborOwner !== nationId) bordering.add(neighborOwner);
+  // Every nation at once on the first miss (one walk of the regions, in the same order each
+  // nation's own walk used): the AI asks for nearly all 240 nations in a turn.
+  if (!perNation.complete) {
+    const sets = new Map();
+    Object.keys(regions).forEach((regionId) => {
+      const owner = regions[regionId]?.owner;
+      if (!owner) return;
+      let bordering = sets.get(owner);
+      if (!bordering) { bordering = new Set(); sets.set(owner, bordering); }
+      getNeighborIds(regionId).forEach((neighborId) => {
+        const neighborOwner = regions[neighborId]?.owner;
+        if (neighborOwner && neighborOwner !== owner) bordering.add(neighborOwner);
+      });
     });
-  });
-  const result = Array.from(bordering);
-  perNation.set(nationId, result);
-  return result;
+    sets.forEach((bordering, owner) => { if (!perNation.has(owner)) perNation.set(owner, Array.from(bordering)); });
+    perNation.complete = true;
+  }
+  if (!perNation.has(nationId)) perNation.set(nationId, []);
+  return perNation.get(nationId);
 };
 
 // Shortest hop count (BFS over the static adjacency graph — not current ownership, so this is a
