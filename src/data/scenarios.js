@@ -64,23 +64,41 @@ export const ringsFrom = (tiles, from, maxRing) => {
 // Deterministic, so every game starts the same.
 export const START_SPACING = 3;
 const BIG_MOVE_RINGS = 3;
+const spreadCache = new WeakMap();
 export const spreadCapitals = (tiles, ids) => {
+  const key = [...ids].sort().join(',');
+  const cached = spreadCache.get(tiles)?.get(key);
+  if (cached) return { ...cached };
+  const result = spreadCapitalsUncached(tiles, ids);
+  if (!spreadCache.has(tiles)) spreadCache.set(tiles, new Map());
+  spreadCache.get(tiles).set(key, result);
+  return { ...result };
+};
+const spreadCapitalsUncached = (tiles, ids) => {
   const size = (id) => (tiles.countryTiles?.[id] || []).length;
   const order = [...ids].sort((a, b) => size(b) - size(a) || (a < b ? -1 : 1));
   const out = {};
   const livable = (t) => tiles.land[t] === 1 && tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice';
   const clearOf = (tile, others) => { const near = ringsFrom(tiles, tile, START_SPACING - 1); return !others.some((o) => near.has(o)); };
   // the nation's own livable tiles, nearest to `from` first (ring distance over the whole grid)
+  // whether a city founded on `tile` would touch the sea through its own land (the registry's
+  // coastal rule): a moved capital must not give a landlocked nation a coast (Austria's ring on
+  // the coarse grid reaches a tile by the Gulf of Trieste)
+  const seaward = (id, tile) => [tile, ...tiles.neighbors[tile]].some((t) => tiles.land[t] === 1 && (t === tile || tiles.countryOf(t) === id)
+    && tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake'));
   const ownByDistance = (id, from, maxRing) => {
     const dist = ringsFrom(tiles, from, maxRing);
-    return (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t)).sort((a, b) => dist.get(a) - dist.get(b) || a - b);
+    const inland = !seaward(id, tiles.capitals[id] ?? from);
+    return (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t) && !(inland && seaward(id, t)))
+      .sort((a, b) => dist.get(a) - dist.get(b) || a - b);
   };
-  const placed = [];
+  // tiles within START_SPACING - 1 rings of a placed capital (ring distance is symmetric)
+  const blocked = new Set();
   order.forEach((id) => {
     const real = tiles.capitals[id];
-    const tile = clearOf(real, placed) ? real : ownByDistance(id, real, 40).find((t) => clearOf(t, placed)) ?? real;
+    const tile = !blocked.has(real) ? real : ownByDistance(id, real, 40).find((t) => !blocked.has(t)) ?? real;
     out[id] = tile;
-    placed.push(tile);
+    ringsFrom(tiles, tile, START_SPACING - 1).forEach((_, t) => blocked.add(t));
   });
   // Pass 2: a capital still crowded (its small land had no room) asks its bigger neighbours to
   // shift within their own land.

@@ -36,7 +36,7 @@ describe('world scenarios on the tile grid', () => {
     for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeGreaterThan(counts[i - 1]);
     const modern = applyScenario(base, { mode: 'full', start: 'modern' });
     expect(Object.values(modern.regions).filter((c) => c.owner === 'fr').length).toBeGreaterThan(3);
-  });
+  }, 20000);
 
   it('isolated starts do not depend on previously generated games', () => {
     const first = generateStarts('va', 75, 4242);

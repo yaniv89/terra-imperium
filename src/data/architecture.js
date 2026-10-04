@@ -40,15 +40,16 @@ const EUROPE_NORTH = new Set(['ie', 'gb', 'im', 'de', 'dk', 'no', 'se', 'fi', 'i
 // Japan and Korea build their own landmarks within the Sinic kit (a pagoda and castle tenshu, a
 // palace hall), falling back to it.
 const SUB_SINIC = { jp: 'japan', kr: 'korea', kp: 'korea' };
-export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic' };
+// The Pacific islands build round a marae within the Monsoon kit, falling back to it.
+const PACIFIC = new Set(['fj', 'nc', 'sb', 'vu', 'ws', 'as', 'to', 'tv', 'ki', 'nr', 'fm', 'mh', 'pw', 'gu', 'mp', 'pf', 'ck', 'nu', 'wf', 'pg', 'nz', 'nf', 'pn']);
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon' };
 /** The style a city on this nation's land is drawn in, in this age. */
 export const styleOfLand = (nationId, ageId) => {
-  if (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) return BEFORE_SETTLEMENT[nationId];
+  if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
   if (SUB_SINIC[nationId]) return SUB_SINIC[nationId];
   if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';
-  if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
-  if (COLONIES.has(nationId)) return 'colonies';
-  return styleOfNation(nationId);
+  const base = (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) || (COLONIES.has(nationId) ? 'colonies' : styleOfNation(nationId));
+  return base === 'monsoon' && PACIFIC.has(nationId) ? 'pacific' : base;
 };
 /** A style and the styles it falls back to, most specific first: ['easteurope', 'europe']. */
 export const styleChain = (style) => {
