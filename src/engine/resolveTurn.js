@@ -178,7 +178,7 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   // Floods, fires and plagues by tile facts (cityDisasters.js).
   const disasterLogs = rollCityDisasters(regions, newTurnNumber);
   // Plague spreads between cities along land, sea lanes, trade routes and armies (plague.js, SIR).
-  disasterLogs.push(...spreadPlague(regions, newTurnNumber, { units: state.units, tileOwner: result.world.tileOwner, researchedOf: (nid) => getResearched(state, nid), state }));
+  disasterLogs.push(...spreadPlague(regions, newTurnNumber, { units: state.units, tileOwner: result.world.tileOwner, researchedOf: (nid) => getResearched(state, nid), state, seed: state.rngSeed }));
   // One copy of the units map for every unit finished this turn (a spread per unit was 12 ms).
   let units = result.completed.some((item) => item.kind === 'settler' || item.kind === 'unit') ? { ...state.units } : state.units;
   let nextUnitSeq = state.nextUnitSeq || 0;

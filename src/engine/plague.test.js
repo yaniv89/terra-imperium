@@ -120,6 +120,15 @@ describe('spreadPlague on real tiles', () => {
   });
 });
 
+describe('outbreaks differ between games', () => {
+  it('the spontaneous seed rolls depend on the game seed', () => {
+    const tiles = getTiles();
+    const make = () => { const r = {}; tiles.countryTiles.fr.slice(0, 400).filter((_, k) => k % 4 === 0).forEach((t, k) => { r[`x${k}`] = { id: `x${k}`, name: `X${k}`, owner: 'fr', tile: t, size: 8, food: 0, currentPopulation: sizeToPeople(8) }; }); return r; };
+    const firstOutbreak = (seed) => { for (let t = 1; t < 3000; t++) { const r = make(); spreadPlague(r, t, { seed }); const hit = Object.keys(r).find((id) => r[id].plague?.i > 0); if (hit) return `${t}:${hit}`; } return null; };
+    expect(firstOutbreak(1)).not.toBe(firstOutbreak(2));
+  });
+});
+
 describe('plague through resolveTurn', () => {
   it('a seeded outbreak runs its course in the turn, the same way every time', async () => {
     const { createInitialState } = await import('../context/GameContext');
