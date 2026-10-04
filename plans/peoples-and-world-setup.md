@@ -72,27 +72,40 @@ needed for the pool.
 
 ---
 
-## 2. World sizes: Small 24, Standard 36, Large 48
+## 2. World sizes: Small 24, Standard 36, Large 42 (measured)
 
-My counts, with the reasoning (about 14,600 usable land hexes; a city needs about 9 to 15
-hexes; an independent holds about 19):
+**Measured on the real grid (2026-10-04):** the 150 capitals were snapped to the hex grid and
+the major picker (4.3) was run over 20 seeds per size. For each major: the land it would get
+(usable land split by nearest capital, minus the independents' two rings), its nearest major
+rival, and how many independents sit within 8 hexes.
 
-| Size | Major nations | Independents at start | Per major | Land per major (rough) | The game it makes |
-|---|---|---|---|---|---|
-| **Small** | **24** | 96 | 4 | about 530 hexes | Few big empires: lots of room to settle, conquest-led |
-| **Standard** (default) | **36** | about 107 (+7 later) | 3 | about 345 hexes | Room for 15 to 25 cities each, 4 to 6 major neighbours |
-| **Large** | **48** | about 95 (+7 later) | 2 | about 250 hexes | Crowded and historical, diplomacy-heavy |
+| Majors | Land per major (median) | Nearest rival (median) | Nobody within 20 hexes | Squeezed (under 80 hexes) |
+|---|---|---|---|---|
+| 24 | 364 hexes | 10.4 hexes | 11% | 3% |
+| 30 | 285 | 9.5 | 8% | 7% |
+| **36** | **227** | **8.8** | **7%** | **10%** |
+| 40 | 208 | 8.2 | 6% | 13% |
+| 42 | 197 | 8.3 | 4% | 15% |
+| 48 | 165 | 8.2 | 4% | 20% |
 
-- **Why not 20 for Small** (the earlier number): 20 majors leave about 640 hexes each, so most of
-  the early game nobody meets anybody. 24 still gives the "big empires" feel without empty years.
-- **Why 36 for Standard**: the approved 35, rounded to 36 so the three sizes step evenly
-  (24, 36, 48) and every major fits on one screen of the diplomacy list.
-- **Why not more than 48**: past about 50 the diplomacy list becomes a spreadsheet on a phone,
-  and land per major drops under 250 hexes, the crowded feel we are leaving behind.
-- **Independents** come from the same pool (section 4): Standard and Large use every remaining
-  people; Small uses 96 (4 per major), the rest of its pool is open land.
-- Everything is one table (`WORLD_SIZES`) and will be checked by the W1 balance-sim
-  (independents eaten by 1 CE, raids per turn, cities per major, runaway, ms per turn).
+**The counts:**
+
+| Size | Major nations | Independents at start | The game it makes |
+|---|---|---|---|
+| **Small** | **24** | 96 | Big empires and room to settle; a few lonely corners (11%) |
+| **Standard** (default) | **36** | all the rest, about 107 (+7 later) | The balance point: few isolated (7%), few squeezed (10%) |
+| **Large** | **42** | all the rest, about 101 (+7 later) | Crowded and historical; 15% start squeezed, which is the point of Large |
+
+- **48 was too many**: one major in five would start squeezed under 80 hexes (mostly in Europe
+  and the Near East). 42 keeps Large crowded without that.
+- **The picker mattered more than the counts.** Spreading majors as far apart as possible (the
+  first idea) left a typical nation's nearest rival 15 hexes away and a quarter of them with
+  nobody within 20 hexes: the empty, boring world. A history-weighted pick with a minimum gap of
+  6 hexes (4.3) halves that distance and cuts the lonely nations to 7%.
+- All 150 capitals sit at least 3 hexes apart on the real grid (0 clashes). Haida's islands are
+  too small for the grid (it snapped 222 km away): its capital moves to the mainland coast.
+- Everything is one table (`WORLD_SIZES`), rechecked by the W1 balance-sim with independents
+  and their AI running.
 
 ---
 
@@ -105,7 +118,7 @@ Replaces today's "World scenario" dropdown and the "Active nations" dropdown in
 ```
  World size
  ( ) Small        (•) Standard          ( ) Large
-     24 nations       36 nations            48 nations
+     24 nations       36 nations            42 nations
      Big empires,     Recommended           Crowded, more
      room to settle                         diplomacy
 ```
@@ -136,7 +149,7 @@ Replaces today's "World scenario" dropdown and the "Active nations" dropdown in
 ## 4. The peoples pool: 150 peoples
 
 ### 4.1 The rules it follows
-- **150 peoples**, down from 240: enough for Large (48 majors plus about 95 independents plus 7
+- **150 peoples**, down from 240: enough for Large (42 majors plus about 101 independents plus 7
   late arrivals) and every corner of the inhabited world, few enough to be curated by hand.
 - **No Civilization nations.** Every name was checked against the civilizations of
   Civilization I to VII (and their obvious synonyms: no Egypt, Sumer, Babylon, Assyria, Persia,
@@ -150,7 +163,11 @@ Replaces today's "World scenario" dropdown and the "Active nations" dropdown in
 - **Real and researched.** Every people was found by web search (sources kept in the research
   notes; Wikipedia, Britannica, UNESCO, Iranica, the Met). Before shipping, the list is checked
   once more against Civ VII's newest add-ons, which keep adding civilizations.
-- **The Kingdom of Israel is pinned**: always in the world in every size, as a major nation.
+- **The Kingdom of Israel is always in the world**, in every size: drawn as a major like everyone
+  else (it has weight A, so usually), otherwise it is an independent. It gets no other advantage.
+- **Every nation starts equal** (decision, 2026-10-04): one city of the same size, the same army
+  and treasury, no extra settlers. Today's Dawn size table (Egypt, China and Iraq at size 5) and
+  the river peoples' extra settler are removed for these modes; independents start the same way.
 - **Spacing**: no two capitals closer than 3 hexes (about 320 km), the city spacing rule. The
   coordinates below were picked to respect it (that is why Uruk, Lagash, Philistia, Moab, Lycia,
   Ba, Chavín, Chimor and others did not make it: they sit too close to a stronger neighbour). The
@@ -162,17 +179,17 @@ Replaces today's "World scenario" dropdown and the "Active nations" dropdown in
   land. This is a game, and the names were chosen to be memorable and distinct.
 
 ### 4.2 Weights and late arrivals
-- **Weight A** (3x) are the cradles and great ancient powers: the likely majors. 53 peoples, so
-  Large is mostly A, Standard and Small a spread of A and B.
+- **Weight A** (3x) are the cradles and great ancient powers: the likely majors (53 peoples).
 - **Weight B** (1.5x) and **C** (1x) are the rest; C are mostly peoples without a famous state.
 - **Late arrivals** (7): lands settled after 2000 BCE appear as independents in their year if
   the land is still free: Lapita (1600 BCE), Bau (1000 BCE), Dorset (500 BCE), Merina (500 CE),
   Latte (800 CE), Saudeleur (1100 CE), Kalinago (1200 CE).
 
 ### 4.3 Who becomes a major
-The player's people, then the Kingdom of Israel, then repeatedly the people with the best
-`(distance to the nearest chosen capital) x weight`, seeded tie-breaks. So every size spreads its
-majors over the continents, favours the great powers and still differs every game.
+The player's people first. Then, repeatedly, among the peoples at least **6 hexes** from every
+major already chosen, the one with the best `weight x a seeded roll between 0.5 and 1.5`. So the
+great powers are likely but not certain, majors are never packed together, they are not pushed
+to the far corners either (measured in section 2), and every game differs.
 
 ### 4.4 The pool (capital coordinates approximate; the build script snaps them to tiles)
 
@@ -180,7 +197,7 @@ majors over the continents, favours the great powers and still differs every gam
 
 | # | People | Capital | Lat, lon | Land | Theme | W |
 |---|---|---|---|---|---|---|
-| 1 | **Kingdom of Israel** | Jerusalem | 31.78, 35.23 | il | israelite | pinned |
+| 1 | **Kingdom of Israel** | Jerusalem | 31.78, 35.23 | il | israelite | A (always present) |
 | 2 | Ugarit | Ugarit | 35.60, 35.78 | sy | levant | B |
 | 3 | Mari | Mari | 34.55, 40.89 | sy | levant | B |
 | 4 | Akkad | Kish (Agade's site is lost) | 32.54, 44.60 | iq | levant | A |
@@ -362,7 +379,7 @@ majors over the continents, favours the great powers and still differs every gam
 | 140 | Hohokam | Snaketown | 33.18, -111.92 | us | americas | B |
 | 141 | Chaco | Pueblo Bonito | 36.06, -107.96 | us | americas | B |
 | 142 | Calusa | Calos | 26.42, -81.86 | us | americas | C |
-| 143 | Haida | Kiusta | 54.18, -133.03 | ca | americas | C |
+| 143 | Haida | the Skeena mouth (Kiusta's islands are too small for the grid) | 54.20, -130.10 | ca | americas | C |
 | 144 | Dorset | Igloolik | 69.37, -81.80 | ca | americas | C (late, 500 BCE) |
 
 **Oceania (6)**
@@ -426,7 +443,8 @@ israelite 1. Several peoples share each theme, as asked.
   the grid, checks the 3-hex spacing (nudges by one hex or fails with the pair), checks colour
   contrast between neighbours, writes `src/data/geo/peopleCapitals.json`.
 - `WORLD_SIZES` (new, `src/data/worldSizes.js`): `{ small: { majors: 24, independents: 96 },
-  standard: { majors: 36, independents: 'all' }, large: { majors: 48, independents: 'all' } }`.
+  standard: { majors: 36, independents: 'all' }, large: { majors: 42, independents: 'all' } }`,
+  `MAJOR_MIN_GAP_HEXES = 6`.
 
 ### 6.2 Engine
 - The nation records come from `peoples.js` instead of `countries-meta.json`'s 240 countries
@@ -557,8 +575,8 @@ build scripts, so it can run **in parallel** with W0 to W4 on its own branch.
 
 ---
 
-## 8. Questions for the user
-1. **Israel as a major**: pinned as a major nation in every world size, or only guaranteed to
-   exist (a major when drawn, otherwise an independent)?
-2. **Counts**: Small 24, Standard 36, Large 48. Good?
-3. **The list**: any people you want in or out? The cut list (section 5) can swap in.
+## 8. Decisions (from the user, 2026-10-04)
+1. **Every nation starts equal with one city** (section 4.1): same size, army and treasury, no
+   head starts. The Kingdom of Israel is always in the world but gets no other advantage.
+2. **World sizes: decided by measurement** (section 2): Small 24, Standard 36, Large 42.
+3. The peoples list stands as written unless the user asks for a change.

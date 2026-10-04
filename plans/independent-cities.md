@@ -3,7 +3,7 @@
 Date: 2026-10-03. Status: approved with the decisions in section 13; not started (the user asked
 to wait).
 Companion to `plans/eras-origins-and-future.md` (the nine ages).
-**Update 2026-10-04:** world sizes are now Small 24, Standard 36, Large 48 with independents from
+**Update 2026-10-04:** world sizes are now Small 24, Standard 36, Large 42 (measured) with independents from
 the 150-people pool; see `plans/peoples-and-world-setup.md` (phase W0, before W1). Section 2's
 table below is superseded by it. This plan changes the shape of the
 world, so it comes before that plan's Phase 1 (section 12).
@@ -84,7 +84,8 @@ HISTORY_WEIGHT[nation])`, seeded tie-breaks, the player always in.
   continents, and each game differs.
 
 **Everyone else** (up to the mode's independent count) becomes an independent city on its capital
-tile (Dawn size table, capped at 3). The `UNPEOPLED_AT_DAWN` islands stay dormant and appear later
+tile, the same size as every other city (every nation and independent starts equal, decided
+2026-10-04). The `UNPEOPLED_AT_DAWN` islands stay dormant and appear later
 as independents (4.6).
 
 **Start screen:** a World size picker (Small, Standard, Large) replaces full/emergent.
