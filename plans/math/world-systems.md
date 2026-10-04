@@ -75,7 +75,37 @@ Branch `math/world-systems`, from `ee575e7` (the brief). Session `world-systems`
   roll of about 0.5 to 2.4% a turn that is under 0.15 extra wars per Tier-1 neighbour, a branching
   ratio well below 1. The nation sheet shows "Wars nearby: +N% war chance".
 
-## Numbers after merging claude/bronze-towns (paired, 8 seeds)
+## Numbers on the fully merged base (grid-math, sim-stats, ai, straits, perf): paired, 8 seeds
+
+`PLAYER=au compare.sh 4a3fbda 150 11-18`, head 05aa5b1. Turn 150, mean over 8 seeds, 95% paired
+interval, `*` = the interval excludes 0:
+
+| metric | base | head | diff | 95% CI | |
+|---|---|---|---|---|---|
+| warsTotal | 8.13 | 8.13 | 0 | [-3.22, 3.22] | |
+| conquests | 0.75 | 0.63 | -0.13 | [-0.95, 0.70] | |
+| civilWarsStarted | 32.1 | 27.4 | -4.75 | [-10.4, 0.90] | |
+| avgUnrest | 6.94 | 6.69 | -0.25 | [-1.91, 1.41] | |
+| cities | 845.8 | 838.6 | -7.13 | [-17.9, 3.61] | |
+| landClaimedPct | 40.5 | 40.1 | -0.39 | [-0.84, 0.06] | |
+| playerGold | 2290 | 2465 | +175 | [167, 183] | * |
+| playerTechs | 10.6 | 10.0 | -0.63 | [-1.25, -0.003] | * |
+| giniCities | 0.42 | 0.41 | -0.005 | [-0.009, -0.001] | * |
+| giniPopulation | 0.36 | 0.37 | +0.010 | [0.005, 0.015] | * |
+| effectiveNations | 124.5 | 126.5 | +1.96 | [0.67, 3.25] | * |
+| maxProvinceShare | 0.0178 | 0.0173 | -0.0005 | [-0.0018, 0.0008] | |
+| zipfSlope | -0.13 | -0.14 | -0.013 | [-0.048, 0.023] | |
+| survival at 150 | 1.00 | 1.00 | 0 | | |
+
+- **Wars unchanged** (8.13 both): the contagion stays as it is (the 2-seed 3 -> 12 on seed 11 was
+  path variance plus a cluster; paired over 8 seeds there is no change). The world stays quiet.
+- **Player techs -0.6**: Australia is isolated, so it now gets less diffusion discount than its
+  old "bordering holders" count gave (the Japan-before-1853 effect the rule is meant to have).
+- **Player gold +7.6%**: its city reaches size 4 sooner.
+- Population, plague and war heat run every turn for every city and nation; the perf LOD only
+  spaces out nation economy and loyalty, so they behave the same under it.
+
+## Earlier numbers (pre-perf merge base b5120d7): paired, 8 seeds
 
 `PLAYER=au compare.sh origin/claude/bronze-towns 150 11-18` (base b5120d7, which already has
 grid-math, sim-stats and ai, so their changes are not counted here). Turn 150, mean over 8 seeds,
