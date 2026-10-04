@@ -774,12 +774,12 @@ def palace(ms, rng):
     floors open in pointed arcades under tiled hip roofs, a gate block in the middle of the front
     with a cusped portal up steps between team banners, a great hall at the back with an open
     domed pavilion over it, a court with a pool and a small domed pavilion in it, potted trees.
-    Built at 13 x 13 m to fit the capital's free centre."""
+    Built at 12 x 12 m to fit the capital's free centre."""
     f = tm.house_frame(0, 0, 0)
-    W, D = 1.3, 1.3
+    W, D = 1.12, 1.1
     ms.box('ink_granite', (W + 0.04, D + 0.04, 0.05), at=(0, 0, G), lod=1, frame=f)
     z = G + 0.05
-    rd = 0.26
+    rd = 0.24
     h0, h1 = 0.32, 0.28
     H = h0 + h1
     # the four ranges
@@ -815,8 +815,8 @@ def palace(ms, rng):
             tiled_pavilion(ms, f, tx, ty, z + th, 0.22, 0.15, roof=0.14, lod=1)
             tk.box_only(ms, 2, 'ink_tile', (0.3, 0.3, 0.26), at=(tx, ty, z + th), frame=f, taper=0.15)
     # the gate block
-    gw, gd = 0.4, rd + 0.1
-    gy = -D / 2 + rd / 2 - 0.05
+    gw, gd = 0.36, rd + 0.06
+    gy = -D / 2 + rd / 2 - 0.03
     gh = H + 0.12
     ms.box('ink_sandstone', (gw, gd, gh), at=(0, gy, z), lod=2, frame=f, bevel=0.003)
     ms.box('ink_carved', (gw + 0.02, gd + 0.02, 0.03), at=(0, gy, z + gh), lod=0, frame=f)
@@ -826,11 +826,11 @@ def palace(ms, rng):
     pointed(ms, f, 'door', 0, gy - gd / 2 - 0.007, z, 0.06, 0.26, lod=0)
     for sx in (-1, 1):
         chhatri(ms, f, sx * (gw / 2 - 0.06), gy - 0.05, z + gh + 0.03, 0.045, lod=1)
-    steps(ms, f, 0, gy - gd / 2, 0.36, 4, run=0.035, z=z)
+    steps(ms, f, 0, gy - gd / 2, 0.3, 3, run=0.03, z=z)
     for sx in (-1, 1):
-        for bx in (0.3, 0.48):
+        for bx in (0.27, 0.42):
             tk.banner_pointed(ms, f, sx * bx, -D / 2, z + H - 0.03, w=0.07, h=0.26)
-        potted(ms, f, sx * 0.24, -D / 2 - 0.1, 1.3)
+        potted(ms, f, sx * 0.22, -D / 2 - 0.06, 1.2)
     # the great hall's domed pavilion at the back
     hy = D / 2 - rd / 2
     pz_ = z + H + 0.06
@@ -852,12 +852,12 @@ def palace(ms, rng):
         chhatri(ms, f, sx * 0.3, hy, pz_ + 0.12, 0.05, lod=1)
     # the court: paving, the pool and its domed pavilion
     ms.box('ink_earth_square', (W - 2 * rd, D - 2 * rd, 0.006), at=(0, 0, z), lod=0, frame=f)
-    ms.box('ink_sandstone', (0.44, 0.44, 0.03), at=(0, 0, z), lod=1, frame=f)
-    ms.box('water', (0.4, 0.4, 0.004), at=(0, 0, z + 0.029), lod=0, frame=f)
+    ms.box('ink_sandstone', (0.36, 0.36, 0.03), at=(0, 0, z), lod=1, frame=f)
+    ms.box('water', (0.32, 0.32, 0.004), at=(0, 0, z + 0.029), lod=0, frame=f)
     chhatri(ms, f, 0, 0, z + 0.03, 0.075, lod=1)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            potted(ms, f, sx * 0.3, sy * 0.3, 1.2, z=z)
+            potted(ms, f, sx * 0.24, sy * 0.24, 1.1, z=z)
     return f
 
 
@@ -895,10 +895,10 @@ def walls_medium(ms, rng):
     towers topped by chhatris, team banners either side. Built as a ring of 68 m (the brief's
     medium wall) with the gate at the south."""
     RAISE = tb.WALL_RAISE
-    R_out, R_in = 3.22, 3.0
+    R_out, R_in = 3.18, 2.96
     H = 0.6 * RAISE
     gate_x = 0.26
-    tr, th = 0.34, 0.8 * RAISE
+    tr, th = 0.31, 0.8 * RAISE
     towers = (95, 45, 0, -40, 220, 180, 135)
     chh_at = (95, 0, 180)
     Rm = (R_out + R_in) / 2
@@ -938,7 +938,7 @@ def walls_medium(ms, rng):
         ms.box('dark', (0.022, 0.01, 0.07), at=(0, -0.004, H * 0.6), lod=0, frame=rf)
         ms.box('ink_wallstone', (0.04, 0.03, H - 0.2), at=(0.25, -0.01, 0.17), lod=0, frame=rf)  # pilaster strips
     for a in towers:
-        rf = tb.ring_frame(Rm + 0.06, a)
+        rf = tb.ring_frame(Rm, a)
         bastion(ms, rf, tr, th, chh=a in chh_at)
     # the gate
     gy = -Rm

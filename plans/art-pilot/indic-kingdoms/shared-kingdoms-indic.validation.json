@@ -1,0 +1,201 @@
+{
+  "file": "shared-kingdoms-indic.glb",
+  "kind": "shared",
+  "bytes": 3732788,
+  "checks": {
+    "footprint_within_5pct_palace-small": true,
+    "height_within_5pct_palace-small": true,
+    "nothing_below_ground_palace-small": true,
+    "origin_centred": true,
+    "footprint_within_5pct_palace": true,
+    "height_within_5pct_palace": true,
+    "nothing_below_ground_palace": true,
+    "footprint_within_5pct_walls-medium": true,
+    "height_within_5pct_walls-medium": true,
+    "nothing_below_ground_walls-medium": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "palace-small": {
+      "lods": {
+        "LOD0": {
+          "triangles": 2387,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.07,
+          "depth": 1.018,
+          "height": 1.19,
+          "min_height": 0.03
+        },
+        "LOD1": {
+          "triangles": 465,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.07,
+          "depth": 0.885,
+          "height": 1.14,
+          "min_height": 0.03
+        },
+        "LOD2": {
+          "triangles": 134,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.07,
+          "depth": 0.86,
+          "height": 1.12,
+          "min_height": 0.03
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.07
+    },
+    "palace": {
+      "lods": {
+        "LOD0": {
+          "triangles": 4633,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 1.24,
+          "depth": 1.31,
+          "height": 1.586,
+          "min_height": 0.03
+        },
+        "LOD1": {
+          "triangles": 835,
+          "materials": [
+            "Team",
+            "Town"
+          ],
+          "width": 1.24,
+          "depth": 1.225,
+          "height": 1.424,
+          "min_height": 0.03
+        },
+        "LOD2": {
+          "triangles": 236,
+          "materials": [
+            "Town"
+          ],
+          "width": 1.22,
+          "depth": 1.21,
+          "height": 1.4,
+          "min_height": 0.08
+        }
+      },
+      "children": [
+        "LOD0.001",
+        "LOD1.001",
+        "LOD2.001"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 1.31
+    },
+    "walls-medium": {
+      "lods": {
+        "LOD0": {
+          "triangles": 9191,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.834,
+          "depth": 6.784,
+          "height": 1.388,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1760,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.793,
+          "depth": 6.774,
+          "height": 1.325,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 326,
+          "materials": [
+            "Town"
+          ],
+          "width": 6.81,
+          "depth": 6.632,
+          "height": 1.09,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0.002",
+        "LOD1.002",
+        "LOD2.002"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.834
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "shared-kingdoms-indic_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 768836
+    },
+    {
+      "name": "shared-kingdoms-indic_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 972184
+    },
+    {
+      "name": "shared-kingdoms-indic_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 643502
+    }
+  ],
+  "passed": true
+}

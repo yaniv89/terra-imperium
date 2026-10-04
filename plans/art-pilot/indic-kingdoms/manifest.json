@@ -1,0 +1,439 @@
+{
+  "kingdoms-town-small-a-indic.glb": {
+    "bytes": 2823908,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 14922,
+          "width": 4.104,
+          "depth": 4.059,
+          "height": 1.732,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2568,
+          "width": 4.063,
+          "depth": 4.059,
+          "height": 1.625,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 398,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.48,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-small-b-indic.glb": {
+    "bytes": 3186728,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 17617,
+          "width": 4.199,
+          "depth": 4.086,
+          "height": 1.201,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2977,
+          "width": 4.163,
+          "depth": 4.086,
+          "height": 1.148,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 432,
+          "width": 4.025,
+          "depth": 4.059,
+          "height": 1.044,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-medium-a-indic.glb": {
+    "bytes": 3776724,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 28040,
+          "width": 6.093,
+          "depth": 6.156,
+          "height": 2.14,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4845,
+          "width": 6.086,
+          "depth": 6.142,
+          "height": 2.008,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 768,
+          "width": 6.036,
+          "depth": 6.09,
+          "height": 1.828,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-medium-b-indic.glb": {
+    "bytes": 4347076,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 33637,
+          "width": 6.112,
+          "depth": 6.119,
+          "height": 2.14,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5721,
+          "width": 6.064,
+          "depth": 6.094,
+          "height": 2.008,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 794,
+          "width": 6.036,
+          "depth": 6.09,
+          "height": 1.828,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-big-a-indic.glb": {
+    "bytes": 6497420,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 56174,
+          "width": 8.187,
+          "depth": 8.154,
+          "height": 2.616,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 9726,
+          "width": 8.139,
+          "depth": 8.134,
+          "height": 2.454,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1274,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 2.234,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "kingdoms-town-big-b-indic.glb": {
+    "bytes": 5632348,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 47751,
+          "width": 8.174,
+          "depth": 8.151,
+          "height": 2.616,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7836,
+          "width": 8.12,
+          "depth": 8.117,
+          "height": 2.454,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 918,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 2.234,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "shared-kingdoms-indic.glb": {
+    "bytes": 3732788,
+    "objects": {
+      "palace-small": {
+        "LOD0": {
+          "triangles": 2387,
+          "width": 1.07,
+          "depth": 1.018,
+          "height": 1.19,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 465,
+          "width": 1.07,
+          "depth": 0.885,
+          "height": 1.14,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 134,
+          "width": 1.07,
+          "depth": 0.86,
+          "height": 1.12,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "palace": {
+        "LOD0": {
+          "triangles": 4633,
+          "width": 1.24,
+          "depth": 1.31,
+          "height": 1.586,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 835,
+          "width": 1.24,
+          "depth": 1.225,
+          "height": 1.424,
+          "materials": [
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 236,
+          "width": 1.22,
+          "depth": 1.21,
+          "height": 1.4,
+          "materials": [
+            "Town"
+          ]
+        }
+      },
+      "walls-medium": {
+        "LOD0": {
+          "triangles": 9191,
+          "width": 6.834,
+          "depth": 6.784,
+          "height": 1.388,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1760,
+          "width": 6.793,
+          "depth": 6.774,
+          "height": 1.325,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 326,
+          "width": 6.81,
+          "depth": 6.632,
+          "height": 1.09,
+          "materials": [
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}
