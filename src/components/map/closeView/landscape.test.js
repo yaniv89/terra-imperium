@@ -57,7 +57,7 @@ describe('close view landscape', () => {
   it('tilts the models lower in the super zoom', () => {
     expect(tiltFor(10)).toBe(TILT_CLOSE); expect(tiltFor(40)).toBe(TILT_CLOSE);
     expect(tiltFor(200)).toBeCloseTo(TILT_SUPER);
-    expect(tiltFor(90)).toBeGreaterThan(TILT_CLOSE); expect(tiltFor(90)).toBeLessThan(TILT_SUPER);
+    expect(tiltFor(90)).toBeLessThan(Math.max(TILT_CLOSE, TILT_SUPER)); expect(tiltFor(90)).toBeGreaterThan(Math.min(TILT_CLOSE, TILT_SUPER));
   });
   it('grows the models with the zoom, more slowly in the super zoom so towns stay inside their hex', () => {
     expect(unitPx(20)).toBeCloseTo(11 * HEX); expect(unitPx(SUPER_FROM_K)).toBeCloseTo(22 * HEX); // HEX: the hex's size vs frequency 75
