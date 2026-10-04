@@ -8,7 +8,11 @@
 # depth) matches `footprint` units.
 #
 #   python scripts/blender/import_model.py <in.glb|in.blend> <out.glb> <name> <kind> [footprint]
-#   kind: landmark | house | town | walls  (sets the triangle budgets)
+#   python scripts/blender/import_model.py <in.glb> <out.glb> tier1,tier2,tier3 wonder [footprint]
+#   kind: landmark | house | town | walls | improvement | wonder  (sets the triangle budgets)
+#   Several comma-separated names keep those objects of the file apart: one root each (named as
+#   the object), each with its own LODs, all in one frame (centred on their joint footprint), so a
+#   wonder's three tiers stay aligned.
 import math
 import os
 import sys
@@ -18,7 +22,7 @@ import bpy  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 
 BUDGETS = {'town': (60000, 10000, 1500), 'landmark': (15000, 3000, 500), 'walls': (12000, 2500, 400),
-           'house': (2500, 600, 120), 'improvement': (8000, 1500, 300)}
+           'house': (2500, 600, 120), 'improvement': (8000, 1500, 300), 'wonder': (60000, 10000, 1500)}
 
 
 def tris(o):
@@ -116,31 +120,100 @@ def decimated(src, name, target):
     return o
 
 
-def main(src, out, name, kind, footprint=None):
-    budget = BUDGETS[kind]
-    o = load(src)
-    scale = normalise(o, footprint)
-    merge_materials(o)
-    lod0 = decimated(o, 'LOD0', budget[0])
-    lod1 = decimated(o, 'LOD1', budget[1])
-    lod2 = decimated(o, 'LOD2', budget[2])
+def load_objects(path, names):
+    """Import a GLB and return its mesh objects named `names` (each joined with its own children
+    meshes, transforms applied), in that order."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=path)
+    out = []
+    for name in names:
+        top = bpy.data.objects.get(name)
+        if top is None:
+            raise SystemExit('no object %s in %s' % (name, path))
+        group = [o for o in [top] + list(top.children_recursive) if o.type == 'MESH']
+        for o in group:
+            if material_role(o.name) == 'Team':
+                for slot in o.material_slots:
+                    if slot.material and material_role(slot.material.name) != 'Team':
+                        slot.material.name = 'team_' + slot.material.name
+            o.data = o.data.copy()
+            o.data.transform(o.matrix_world)
+        for o in group:
+            o.parent = None
+            o.matrix_world = Matrix.Identity(4)
+        if len(group) > 1:
+            bpy.ops.object.select_all(action='DESELECT')
+            for o in group:
+                o.select_set(True)
+            bpy.context.view_layer.objects.active = group[0]
+            bpy.ops.object.join()
+        o = bpy.context.view_layer.objects.active if len(group) > 1 else group[0]
+        o.name = '_src_' + name
+        out.append(o)
+    for o in [o for o in bpy.context.scene.objects if o not in out]:
+        bpy.data.objects.remove(o)
+    return out
+
+
+def normalise_together(objs, footprint=None):
+    """normalise() for several objects in one frame: their joint footprint centred at the origin,
+    the lowest base on the ground, one optional uniform scale."""
+    vs = [v.co for o in objs for v in o.data.vertices]
+    lo = Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs)))
+    hi = Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs)))
+    s = footprint / max(hi.x - lo.x, hi.y - lo.y) if footprint else 1.0
+    centre = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
+    for o in objs:
+        o.data.transform(Matrix.Scale(s, 4) @ Matrix.Translation(-centre))
+    return s
+
+
+def with_lods(o, name, budget, suffix=''):
+    """Root `name` with LOD0..LOD2 children cut from `o` (removed afterwards)."""
+    lods = [decimated(o, 'LOD%d%s' % (i, suffix), budget[i]) for i in range(3)]
     bpy.data.objects.remove(o)
     root = bpy.data.objects.new(name, None)
     bpy.context.scene.collection.objects.link(root)
-    for c in (lod0, lod1, lod2):
+    for c in lods:
         c.parent = root
         for p in c.data.polygons:
             p.use_smooth = False
+    return root, lods
+
+
+def main(src, out, name, kind, footprint=None):
+    budget = BUDGETS[kind]
+    names = name.split(',')
+    if len(names) > 1:
+        objs = load_objects(src, names)
+        scale = normalise_together(objs, footprint)
+        for o in objs:
+            merge_materials(o)
+        made = [with_lods(o, n, budget, '' if k == 0 else '.%03d' % k) for k, (o, n) in enumerate(zip(objs, names))]
+        report(out, scale, made)
+        return
+    o = load(src)
+    scale = normalise(o, footprint)
+    merge_materials(o)
+    root, (lod0, lod1, lod2) = with_lods(o, name, budget)
+    report(out, scale, [(root, [lod0, lod1, lod2])])
+
+
+def report(out, scale, made):
+    """Export the roots and their LODs, save the .blend beside it and print the counts."""
     bpy.ops.object.select_all(action='DESELECT')
-    for c in (root, lod0, lod1, lod2):
-        c.select_set(True)
+    for root, lods in made:
+        root.select_set(True)
+        for c in lods:
+            c.select_set(True)
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, export_apply=True,
                               export_cameras=False, export_lights=False, export_image_format='WEBP',
                               export_image_quality=90, export_yup=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.splitext(out)[0] + '.blend')
-    print('imported', name, 'scale', round(scale, 4), {c.name: tris(c) for c in (lod0, lod1, lod2)},
-          'size', [round(v, 2) for v in lod0.dimensions])
+    for root, lods in made:
+        print('imported', root.name, 'scale', round(scale, 4), {c.name: tris(c) for c in lods},
+              'size', [round(v, 2) for v in lods[0].dimensions])
 
 
 if __name__ == '__main__':
