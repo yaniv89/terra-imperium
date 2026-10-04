@@ -25,7 +25,7 @@ describe('artist town models', () => {
     expect(townAssetUrl('bronze', 'big', 0)).toMatch(/bronze-town-big-a/);
     expect(townAssetUrl('bronze', 'big', 1)).toMatch(/bronze-town-big-b/);
     // without a kit of its own the land's tradition picks the base layout over the seed
-    expect(townAssetUrl('bronze', 'small', 0, 'steppe')).toMatch(/bronze-town-small-a\.glb/);
+    expect(townAssetUrl('bronze', 'small', 0, 'levant')).toMatch(/bronze-town-small-a\.glb/);
     expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-a\.glb/);
     // a region with its own kit builds both of its layouts, by the seed
     expect(townAssetUrl('bronze', 'small', 0, 'nile')).toMatch(/bronze-town-small-a-nile/);
@@ -34,7 +34,9 @@ describe('artist town models', () => {
   });
 
   it('picks the layout by the land: Han in East Asia, Roman elsewhere in the Classical Age', () => {
-    expect(townAssetUrl('classical', 'medium', 0, styleOfLand('mn', 'classical'))).toMatch(/classical-town-medium-b\.glb/);
+    // Mongolia keeps the Han layout rule for the base towns, and now has the Steppe kit of its own
+    expect(townVariant('classical', styleOfLand('mn', 'classical'))).toBe('b');
+    expect(townAssetUrl('classical', 'medium', 0, styleOfLand('mn', 'classical'))).toMatch(/classical-town-medium-a-steppe/);
     expect(townAssetUrl('classical', 'medium', 0, styleOfLand('cn', 'classical'))).toMatch(/classical-town-medium-a-sinic/);
     expect(townAssetUrl('classical', 'small', 1, styleOfLand('jp', 'classical'))).toMatch(/classical-town-small-b-sinic/);
     expect(townAssetUrl('classical', 'medium', 1, null)).toMatch(/classical-town-medium-a\.glb/);
