@@ -42,12 +42,16 @@ const EUROPE_NORTH = new Set(['ie', 'gb', 'im', 'de', 'dk', 'no', 'se', 'fi', 'i
 const SUB_SINIC = { jp: 'japan', kr: 'korea', kp: 'korea' };
 // The Pacific islands build round a marae within the Monsoon kit, falling back to it.
 const PACIFIC = new Set(['fj', 'nc', 'sb', 'vu', 'ws', 'as', 'to', 'tv', 'ki', 'nr', 'fm', 'mh', 'pw', 'gu', 'mp', 'pf', 'ck', 'nu', 'wf', 'pg', 'nz', 'nf', 'pn']);
-export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon' };
+// In the Kingdoms Age al-Andalus held most of Iberia: Spain and Portugal build the Andalusian
+// courtyard town, which takes the Levant's Abbasid kit until a kit of its own exists.
+const ANDALUS = new Set(['es', 'pt', 'gi']);
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon', andalus: 'levant' };
 /** The style a city on this nation's land is drawn in, in this age. */
 export const styleOfLand = (nationId, ageId) => {
   if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
   if (SUB_SINIC[nationId]) return SUB_SINIC[nationId];
   if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';
+  if (ageId === 'kingdoms' && ANDALUS.has(nationId)) return 'andalus';
   const base = (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) || (COLONIES.has(nationId) ? 'colonies' : styleOfNation(nationId));
   return base === 'monsoon' && PACIFIC.has(nationId) ? 'pacific' : base;
 };

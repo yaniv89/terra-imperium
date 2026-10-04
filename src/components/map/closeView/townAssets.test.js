@@ -39,6 +39,9 @@ describe('artist town models', () => {
     expect(sharedAssetUrl('classical')).toMatch(/shared-classical/);
     expect(townVariant('kingdoms', 'levant')).toBe('b');
     expect(townVariant('kingdoms', 'europe')).toBe('a');
+    expect(townVariant('kingdoms', 'andalus')).toBe('b');
+    expect(townVariant('kingdoms', 'steppe')).toBe('b');
+    expect(townAssetUrl('kingdoms', 'small', 0, 'andalus')).toMatch(/kingdoms-town-small-b-levant/);
     expect(townVariant('gunpowder', 'levant', 3)).toBe('b');
     expect(townVariant('gunpowder', 'levant', 4)).toBe('a');
     // a size with only one layout falls back to it whatever the tradition asks
@@ -159,6 +162,9 @@ describe('architecture regions', () => {
     expect(townAssetUrl('classical', 'medium', 0, 'europenorth')).toMatch(/classical-town-medium-a-europe\./);
     expect(sharedAssetUrls('kingdoms', 'easteurope')[0]).toMatch(/shared-kingdoms-europe/);
     expect(styleOfLand('ru', 'kingdoms')).toBe('easteurope');
+    expect(styleOfLand('es', 'kingdoms')).toBe('andalus');
+    expect(styleOfLand('es', 'gunpowder')).toBe('europe');
+    expect(styleOfLand('pt', 'classical')).toBe('europe');
     expect(styleChain('easteurope')).toEqual(['easteurope', 'europe']);
     expect(styleChain(null)).toEqual([]);
     expect(townAssetUrl('bronze', 'small', 0, 'easteurope')).toMatch(/bronze-town-small-/);

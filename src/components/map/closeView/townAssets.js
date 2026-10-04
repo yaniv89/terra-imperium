@@ -82,12 +82,13 @@ export const isCamp = (region) => !!region && (!!region.outpost || (!region.owne
 // Each age's two layouts carry two traditions until every region has its kit (art spec 3b).
 // Bronze: a is Mesopotamian, b Egyptian; the Nile builds b, the Levant a. Classical: a is Roman,
 // b Han; East and South-East Asia and Mongolia build b. Kingdoms: a is European, b Abbasid and
-// Andalusian; the Nile, the Levant and the Maghreb build b. Elsewhere, and in the Gunpowder and
+// Andalusian; the Nile, the Levant, the Maghreb, Iberia (al-Andalus) and Central Asia (Bukhara,
+// Samarkand) build b. Elsewhere, and in the Gunpowder and
 // Modern Ages, the city's seed mixes both so neighbours differ.
 export const TOWN_VARIANT_BY_AGE = {
   bronze: { nile: 'b', levant: 'a' },
   classical: { sinic: 'b', japan: 'b', korea: 'b', monsoon: 'b', steppe: 'b', others: 'a' },
-  kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', others: 'a' }
+  kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', andalus: 'b', steppe: 'b', others: 'a' }
 };
 
 /** The variant ('a' or 'b') a city builds in this age on land of this style. */
