@@ -1,6 +1,6 @@
 // src/data/greatProjects.js
 // Plan §M10: Great Projects replace the old flat, empire-wide, instant-purchase World Wonders
-// (src/data/wonders.js, deleted). 15 projects (3 per age), each tied to a specific REGION (a site
+// (src/data/wonders.js, deleted). 15 world projects (3 per age, plus the national ones below), each tied to a specific REGION (a site
 // rule — the plan's own examples: "a capital", "a region with Irrigation", "coastal with Harbor")
 // with 3 upgrade tiers, built from a city's production queue (src/engine/wonders.js; the old gold queue is gone —
 // buildings.js's own construction stayed instant, see that file's header comment, so this is fresh
@@ -39,7 +39,18 @@
 // invaders, ship cost/naval morale, a mission-time discount, a missile-cost discount) — each gets a
 // modest real bonus from an already-wired hook instead, as a stand-in, so building one is never a
 // pure dead end; every such trim/substitution is noted inline in that project's own `description`.
+//
+// NATIONAL wonders (plans/game/israelite-wonders.md): a project with a `homeland` (a country code
+// of the hex grid) can only be built by a city whose centre stands on that country's land, on a
+// wonder tile of that land too (siteRule 'homeland'; wonders.js wonderSites). The rule is the
+// LAND, not the builder: like every project its owner is whoever holds the city, so a captured
+// Jerusalem keeps its temple for the captor. Such a project acts on ITS CITY: a tier's
+// `cityEffects` ({ 'local.culture', 'local.loyalty', 'local.fortLevel', 'local.wallHp' }) feed
+// that city's culture (resolveTurn's city context), loyalty target (loyalty.js), siege HP
+// (sieges.js) and the region modifier sheet (local.fortLevel: assaults in invasion.js and
+// defense.js, the tactical keep). cityWonderLines below is the one reader.
 import { REGIONS_DATA } from './regions';
+import { getTiles } from './geo/tiles';
 import { isCoastal } from './navalReach';
 import { getTotalDev } from '../engine/development';
 
@@ -58,7 +69,9 @@ export const SITE_RULES = {
   coastalNavalBase: (region, regionId) => isCoastal(regionId) && buildingTier(region, 'naval') >= 2,
   researchLab: (region) => buildingTier(region, 'science') >= 3,
   stockExchange: (region) => buildingTier(region, 'economy') >= 3,
-  factory: (region) => buildingTier(region, 'industry') >= 2
+  factory: (region) => buildingTier(region, 'industry') >= 2,
+  // a national wonder: the city's centre stands on its homeland (the tile's country)
+  homeland: (region, regionId, project) => !!project?.homeland && region?.tile != null && getTiles().countryOf(region.tile) === project.homeland
 };
 
 export const GREAT_PROJECTS = {
@@ -114,6 +127,24 @@ export const GREAT_PROJECTS = {
       { effects: { goldMult: 0.1 }, completionPrestige: 10 },
       { effects: { goldMult: 0.1 }, completionPrestige: 20 },
       { effects: { goldMult: 0.1 }, completionPrestige: 30 }
+    ]
+  },
+  solomons_temple: {
+    id: 'solomons_temple', name: "Solomon's Temple", ageId: 'bronze', siteRule: 'homeland', homeland: 'il', homelandLabel: "Israel's land", national: true,
+    description: "A national wonder of Israel: only a city on Israel's land can build it, on hills of that land. The First Temple and the royal quarter. Its city gains +2/+3/+4 culture and +5/+10/+15 loyalty.",
+    tiers: [
+      { effects: {}, cityEffects: { 'local.culture': 2, 'local.loyalty': 5 }, completionPrestige: 10 },
+      { effects: {}, cityEffects: { 'local.culture': 3, 'local.loyalty': 10 }, completionPrestige: 20 },
+      { effects: {}, cityEffects: { 'local.culture': 4, 'local.loyalty': 15 }, completionPrestige: 30 }
+    ]
+  },
+  masada: {
+    id: 'masada', name: 'Masada', ageId: 'classical', siteRule: 'homeland', homeland: 'il', homelandLabel: "Israel's land", national: true,
+    description: "A national wonder of Israel: only a city on Israel's land can build it, on desert of that land. Herod's fortress on the mesa. Its city's walls hold +50/+100/+150% siege HP and it gains +2/+4/+6 fort level against assaults.",
+    tiers: [
+      { effects: {}, cityEffects: { 'local.fortLevel': 2, 'local.wallHp': 0.5 }, completionPrestige: 10 },
+      { effects: {}, cityEffects: { 'local.fortLevel': 4, 'local.wallHp': 1 }, completionPrestige: 20 },
+      { effects: {}, cityEffects: { 'local.fortLevel': 6, 'local.wallHp': 1.5 }, completionPrestige: 30 }
     ]
   },
   grand_bazaar: {
@@ -221,6 +252,32 @@ export const getGreatProjectOwner = (state, projectId) => {
 
 export const meetsSiteRule = (project, region, regionId) => {
   const check = SITE_RULES[project?.siteRule];
-  return check ? check(region, regionId) : false;
+  return check ? check(region, regionId, project) : false;
 };
+
+// A city's own wonder effects (the `cityEffects` of the tier built there): modifier lines, keyed
+// by city id, built once per `state.greatProjects` object (it is replaced, never mutated, when a
+// wonder is built or raised), so a reader per city per turn costs a Map lookup.
+const NO_LINES = [];
+const cityLinesCache = new WeakMap();
+const cityLinesOf = (greatProjects) => {
+  let byCity = cityLinesCache.get(greatProjects);
+  if (!byCity) {
+    byCity = new Map();
+    Object.entries(greatProjects).forEach(([projectId, entry]) => {
+      const project = GREAT_PROJECTS[projectId];
+      const fx = entry?.tier ? project?.tiers[entry.tier - 1]?.cityEffects : null;
+      if (!fx || entry.regionId == null) return;
+      const lines = byCity.get(entry.regionId) || [];
+      Object.entries(fx).forEach(([key, value]) => lines.push({ key, value, sourceType: 'greatProject', sourceId: projectId, label: project.name }));
+      byCity.set(entry.regionId, lines);
+    });
+    cityLinesCache.set(greatProjects, byCity);
+  }
+  return byCity;
+};
+/** The modifier lines a city's own wonders give it: [{ key, value, sourceType, sourceId, label }]. */
+export const cityWonderLines = (greatProjects, cityId) => (greatProjects && cityId != null ? cityLinesOf(greatProjects).get(cityId) || NO_LINES : NO_LINES);
+/** The total of one city-wonder key for a city (0 when it has none). */
+export const cityWonderTotal = (greatProjects, cityId, key) => cityWonderLines(greatProjects, cityId).reduce((s, l) => (l.key === key ? s + l.value : s), 0);
 

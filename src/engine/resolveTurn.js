@@ -70,7 +70,7 @@ import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
-import { GREAT_PROJECTS } from '../data/greatProjects';
+import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
 import {
@@ -147,9 +147,12 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   // A governed city (governors.js) adds its governor's food, production and culture to the nation's context.
   // The clergy's land returns culture to the city whose countryside it holds (estateLand.js).
   const clergyCulture = estateLandEffects(state).cultureByCity;
+  // A city's own national wonder adds its culture (greatProjects.js cityEffects, Solomon's Temple).
   const ctxFor = (city) => {
     let base = nationCtx(city.owner);
     if (city.owner === state.playerNationId && clergyCulture[city.id]) base = { ...base, cultureBonus: (base.cultureBonus || 0) + clergyCulture[city.id] };
+    const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');
+    if (wonderCulture) base = { ...base, cultureBonus: (base.cultureBonus || 0) + wonderCulture };
     if (!city.owner || !state.nations[city.owner]?.governors || city.id == null) return base;
     const g = governorEffects(state, city.owner, city.id, newTurnNumber);
     if (!g.governed) return base;

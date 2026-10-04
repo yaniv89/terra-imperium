@@ -7,7 +7,8 @@
 // built on the same tile by the city that holds it. On completion the tile carries `wonder`
 // (tileState), `state.greatProjects[projectId] = { regionId, tier, tile }` as before (the
 // modifiers and the owner derive from the site city), and the owner gains the tier's prestige.
-// The city rules of greatProjects.js (a capital, a building) still gate who may start one. Pure.
+// The city rules of greatProjects.js (a capital, a building) still gate who may start one. A
+// national wonder (a project with a `homeland`) also takes its tile on that country's land. Pure.
 import { getTiles } from '../data/geo/tiles';
 import { tileFacts } from '../data/tileYields';
 import { getAgeIndex } from '../data/ages';
@@ -25,7 +26,8 @@ export const WONDER_TILE_RULES = {
 export const WONDER_TILE_RULE = {
   great_pyramids: 'desert', hanging_gardens: 'river', great_wall: 'hills', great_library: 'any', colosseum: 'flat', lighthouse: 'coastal',
   grand_bazaar: 'any', great_cathedral: 'any', forbidden_city: 'flat', royal_observatory: 'hills', arsenal: 'coastal', palace_of_versailles: 'flat',
-  space_program: 'flat', international_exchange: 'any', atomic_research_center: 'any'
+  space_program: 'flat', international_exchange: 'any', atomic_research_center: 'any',
+  solomons_temple: 'hills', masada: 'desert'
 };
 
 export const wonderTileRule = (projectId) => WONDER_TILE_RULES[WONDER_TILE_RULE[projectId] || 'any'];
@@ -35,8 +37,9 @@ export const wonderCost = (tier) => (GREAT_PROJECT_TIER_COST[tier - 1]?.turns ||
 export const wonderSites = (state, city, projectId) => {
   const tiles = getTiles();
   const rule = wonderTileRule(projectId);
+  const homeland = GREAT_PROJECTS[projectId]?.homeland;
   const tileState = state.world?.tileState || {};
-  return (city.tiles || []).filter((t) => t !== city.tile && tiles.land[t] === 1 && !tileState[t]?.wonder && rule.ok(tileFacts(tiles, t, tileState[t]))).sort((a, b) => a - b);
+  return (city.tiles || []).filter((t) => t !== city.tile && tiles.land[t] === 1 && !tileState[t]?.wonder && (!homeland || tiles.countryOf(t) === homeland) && rule.ok(tileFacts(tiles, t, tileState[t]))).sort((a, b) => a - b);
 };
 
 /** Can `city` queue tier `tier` of `projectId` now? { ok, reason, tile }. */
@@ -50,9 +53,9 @@ export const canQueueWonder = (state, city, projectId, tier = 1, nationId = stat
   const entry = state.greatProjects?.[projectId];
   if (tier === 1) {
     if (entry) return { ok: false, reason: 'Already built elsewhere.' };
-    if (!meetsSiteRule(project, city, city.id)) return { ok: false, reason: 'The city does not meet its rule.' };
+    if (!meetsSiteRule(project, city, city.id)) return { ok: false, reason: project.homeland ? `Only a city on ${project.homelandLabel || 'its homeland'} can build it.` : 'The city does not meet its rule.' };
     const sites = wonderSites(state, city, projectId);
-    if (!sites.length) return { ok: false, reason: `Needs ${wonderTileRule(projectId).label} in the city's border.` };
+    if (!sites.length) return { ok: false, reason: `Needs ${wonderTileRule(projectId).label}${project.homeland ? ` on ${project.homelandLabel || 'its homeland'}` : ''} in the city's border.` };
     return { ok: true, tile: sites[0] };
   }
   if (!entry || entry.regionId !== city.id) return { ok: false, reason: 'Not built here.' };

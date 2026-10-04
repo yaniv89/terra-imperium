@@ -4,14 +4,15 @@
 // sized by the province's buildings (townModels.js); armies are 1 to 3 soldiers of their main unit
 // type and age, the very models and walk cycle of the tactical battles (soldierFactory.js),
 // walking while they march. Trees stand in forest and jungle hexes and a small work on every
-// improved tile (landscape.js); the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
+// improved tile (landscape.js); a built wonder stands on its own tile as its tier's model
+// (wonderAssets.js); the ground under it all is CloseTerrainLayer. Zoomed out, the banners and icons take over again (Map2DMarkersOverlay).
 // The camera is orthographic in screen pixels, so a model sits exactly over its province as the
 // map pans; models are tilted toward the viewer for a three-quarter look. Loaded lazily: three.js
 // only arrives the first time the player zooms this close.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   WebGLRenderer, Scene, OrthographicCamera, HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, InstancedMesh,
-  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color
+  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Box3
 } from 'three';
 import { useGame } from '../../../context/GameContext';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
@@ -30,6 +31,7 @@ import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from 
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
+import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
@@ -87,12 +89,12 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     };
     const trees = new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)]));
     const works = new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)]));
-    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
+    three.current = { renderer, scene, camera, sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(), trees, works, dirty: true, moving: false };
     if (import.meta.env.DEV) window.__closeView = three.current; // for browser checks
     return () => {
       const t = three.current;
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
-      t.towns.forEach((m) => scene.remove(m)); t.fieldWorks.forEach((g) => scene.remove(g));
+      t.towns.forEach((m) => scene.remove(m)); t.wonders.forEach((m) => scene.remove(m)); t.fieldWorks.forEach((g) => scene.remove(g));
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
       townMaterial.dispose(); soldierMaterial.dispose();
       renderer.dispose();
@@ -158,6 +160,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     const seen = new Set();
     // town tiles, so no town grows into its neighbour (townGapUnits)
     const townTiles = new Set(Object.values(state.regions).filter((r) => (r.owner || r.colony) && r.tile != null).map((r) => r.tile));
+    // a wonder with a model counts too: a town and the wonder beside it never grow into each other
+    const wonders = wonderPlacements(state, getTiles()).filter((w) => wonderAssetUrl(w.projectId));
+    wonders.forEach((w) => townTiles.add(w.tile));
     const isTown = (t) => townTiles.has(t);
     Object.keys(REGION_COORDINATES).forEach((id) => {
       const region = state.regions[id];
@@ -228,6 +233,50 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       mesh.visible = true;
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
+
+    // Wonders on their own tiles (wonderAssets.js): the built tier's model at the towns' scale,
+    // in the owner's colour, on land only. Without a file the banner and the star stay alone.
+    const seenWonders = new Set();
+    wonders.forEach((w) => {
+      const url = wonderAssetUrl(w.projectId);
+      if (!t.assets.has(url)) {
+        t.assets.set(url, null);
+        loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('wonder model failed, the wonder keeps its banner:', e.message); });
+      }
+      const root = wonderTierObject(t.assets.get(url), w.tier);
+      if (!root) return;
+      const { lat, lon } = getTiles().latLonOf(w.tile);
+      const at = toScreenLatLng({ lat, lng: lon });
+      if (!at || !landAt(at.x, at.y)) return;
+      const teamColor = w.ownerId === state.playerNationId ? PLAYER_COLOR : (getNationColor(w.ownerId) || '#64748b');
+      const tint = tintAt(lat, lon);
+      const key = `${root.uuid}|${teamColor}|${tintKey(tint)}`;
+      let mesh = t.wonders.get(w.tile);
+      if (!mesh || mesh.userData.key !== key) {
+        if (mesh) scene.remove(mesh);
+        mesh = instanceTownAsset(root, teamColor, tint);
+        // its ground radius from the model itself (up to 120 m across), measured untransformed
+        const box = new Box3().setFromObject(mesh);
+        const r = box.isEmpty() ? WONDER_RADIUS : Math.max(Math.abs(box.min.x), Math.abs(box.max.x), Math.abs(box.min.z), Math.abs(box.max.z));
+        mesh.userData.radius = Math.max(1, Math.min(WONDER_RADIUS * 1.5, r || WONDER_RADIUS));
+        mesh.userData.key = key;
+        mesh.frustumCulled = false;
+        t.wonders.set(w.tile, mesh);
+        scene.add(mesh);
+      }
+      showLod(mesh, lodForZoom(k));
+      const radius = mesh.userData.radius;
+      const room = Math.min(townRoomUnits(projection, getTiles(), w.tile), townGapUnits(projection, getTiles(), w.tile, isTown));
+      const ws = townUnitPx(k, radius, room * k);
+      occ.claim(at.x, at.y, radius * ws);
+      mesh.position.set(at.x, -at.y, at.y * 0.05);
+      mesh.rotation.set(TILT, 0, 0);
+      mesh.scale.setScalar(ws);
+      mesh.visible = true;
+      seenWonders.add(w.tile);
+    });
+    t.wonders.forEach((mesh, tile) => { if (!seenWonders.has(tile)) mesh.visible = false; });
 
     // The land: trees in the woods, a work on each improved tile (landscape.js).
     const lsTmp = new Object3D(); const lsColor = new Color();

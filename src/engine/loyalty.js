@@ -16,7 +16,9 @@
 //              centre (up to LOYALTY_GARRISON_CAP), + the amenities balance (capped either way),
 //              - LOYALTY_CONQUERED while the conquest is younger than CONQUERED_TURNS,
 //              - LOYALTY_CAPITAL_LOST while the owner's capital is in enemy hands,
-//              + the governor's term (governors.js: +2 + skill governed, -5 in an ungoverned group).
+//              + the governor's term (governors.js: +2 + skill governed, -5 in an ungoverned group),
+//              + the city's own national wonder (greatProjects.js cityEffects 'local.loyalty':
+//              Solomon's Temple).
 //   Movement   loyalty moves LOYALTY_STEP a turn toward the target.
 //   Flip       at 0 a city that is not a capital flips to the nation with the most pressure among
 //              those whose land borders it, else becomes a FREE CITY (owner null, `freeCity`): it
@@ -40,6 +42,7 @@ import { isSettler } from './settlers';
 import { landUnitsByTile } from './sieges';
 import { governorEffects } from './governors';
 import { lawRulesOf } from './lawRules';
+import { cityWonderTotal } from '../data/greatProjects';
 
 // Culture reaches PRESSURE_KM (13 rings at frequency 75) and falls off by the ring distance on
 // the loaded grid (gridScale.js): one ring is the measured neighbour spacing, not a fixed km.
@@ -154,8 +157,9 @@ export const loyaltyTarget = (state, city, units = state.units, nations = state.
   const fromShare = rules.tolerance ? Math.max(LOYALTY_NEUTRAL, rawShare) : rawShare;
   const governor = city.owner ? governorEffects(cache ? cache.view : nations === state.nations ? state : { ...state, nations }, city.owner, city.id, turn).loyalty : 0;
   const law = rules.loyaltyBonus || 0;
-  const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor + law)));
-  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor, law };
+  const wonder = city.owner ? cityWonderTotal(state.greatProjects, city.id, 'local.loyalty') : 0;
+  const total = Math.max(0, Math.min(100, Math.round(fromShare + garrison + amenities + conquered + capitalLost + governor + law + wonder)));
+  return { total, share, maxOther, fromShare: Math.round(fromShare), garrison, amenities, conquered, capitalLost, governor, law, wonder };
 };
 
 // Nations whose land touches this city's tiles.

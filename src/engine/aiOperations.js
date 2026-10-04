@@ -203,7 +203,7 @@ export const processAIOperations = (state, rng) => {
         const v = validateInvasion(actor, from, target);
         if (!v.ok) continue;
         const city = next.regions[target];
-        const wallsDown = !!city.siege && city.siege.hp < ASSAULT_HP * siegeMaxHp(city);
+        const wallsDown = !!city.siege && city.siege.hp < ASSAULT_HP * siegeMaxHp(city, next.greatProjects);
         const ctx = getInvasionBattleContext(actor, v);
         // Not worth an assault yet: the stack holds its tile, which keeps the siege on (sieges.js).
         if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) continue;
