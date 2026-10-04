@@ -946,11 +946,11 @@ def edo_castle(ms, rng, x, y, base=1.3, top=1.5, yaw=0.0, **_ignored):
         ms.box('sng_granite', (0.16 * s + 0.05, 0.04, 0.012 * (4 - k)), at=(0, -0.1 - 0.035 * (4 - k) + 0.035, G), lod=0, frame=F)
     # the tiers
     widths = [base - 2 * bt + 0.02, (base - 2 * bt) * 0.84, (base - 2 * bt) * 0.7, (base - 2 * bt) * 0.58, (base - 2 * bt) * 0.48]
-    th = (top - hb) / 5.4
+    th = (top - hb) / 5.3
     z = G + hb
     for i, tw in enumerate(widths):
         td = tw * (0.86 if i < 4 else 0.8)
-        wh = th * (0.62 if i < 4 else 0.7)
+        wh = th * (0.8 if i < 4 else 0.85)
         ms.box('sng_plaster', (tw, td, wh), at=(0, 0, z), lod=2, frame=f)
         if i == 0:  # the dark boarded lower band of the first tier
             ms.box('sng_board', (tw + 0.008, td + 0.008, wh * 0.38), at=(0, 0, z), lod=1, frame=f)
@@ -971,9 +971,9 @@ def edo_castle(ms, rng, x, y, base=1.3, top=1.5, yaw=0.0, **_ignored):
         if i < 4:
             nw = widths[i + 1]
             nd = nw * (0.86 if i + 1 < 4 else 0.8)
-            over = 0.1 * s + 0.03
+            over = 0.07 * s + 0.02
             ze = zr - 0.004
-            zi = zr + th * 0.3
+            zi = zr + th * 0.2
             eave_ring(ms, f, tw / 2 + over, td / 2 + over, nw / 2, nd / 2, ze, zi, 0.035 * s + 0.01)
             # chidori gables on the front and sides of the lower roofs
             if i in (0, 2):

@@ -1,0 +1,638 @@
+{
+  "gunpowder-town-big-a-japan.glb": {
+    "bytes": 5303160,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 44951,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.802,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7095,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.802,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1230,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.745,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-a-sinic.glb": {
+    "bytes": 6574076,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 54992,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.45,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 8788,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.409,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 954,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.395,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-b-japan.glb": {
+    "bytes": 4849168,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 39862,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.613,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 6512,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.613,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1158,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.561,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-big-b-sinic.glb": {
+    "bytes": 6016748,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 48767,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.298,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 7787,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.263,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 898,
+          "width": 8.049,
+          "depth": 8.117,
+          "height": 1.249,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-a-japan.glb": {
+    "bytes": 3683520,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 27758,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.55,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4612,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.55,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1158,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.5,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-a-sinic.glb": {
+    "bytes": 4382100,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 31945,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.247,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5387,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.214,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 882,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.2,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-b-japan.glb": {
+    "bytes": 3602496,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 27186,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.575,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4440,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.575,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 1184,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.525,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-medium-b-sinic.glb": {
+    "bytes": 4407980,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 32407,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.267,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 5245,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.234,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 924,
+          "width": 6.033,
+          "depth": 6.088,
+          "height": 1.219,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-a-japan.glb": {
+    "bytes": 2696484,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 15336,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.197,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2816,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.197,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 924,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 1.157,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-a-sinic.glb": {
+    "bytes": 3134320,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 15657,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.963,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3275,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.941,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 648,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.927,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-b-japan.glb": {
+    "bytes": 2667800,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 15232,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.945,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3424,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.945,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 878,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.912,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "gunpowder-town-small-b-sinic.glb": {
+    "bytes": 3199720,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 16413,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.81,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4147,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.794,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 618,
+          "width": 4.022,
+          "depth": 4.059,
+          "height": 0.78,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}
