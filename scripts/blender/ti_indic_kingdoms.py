@@ -131,13 +131,38 @@ def faces4(f, w, d):
     return out
 
 
+def hip(ms, f, w, d, z0, rise, over=0.035, lod=1, mat='ink_tile'):
+    """A terracotta hip roof over a w x d block (walls stop at z0), its ridge along local X: one
+    closed solid (ti_classical's hip_roof without the upturned corners), the ridge tiles at LOD0."""
+    W, D = w / 2 + over, d / 2 + over
+    ze = z0 - over * 0.3
+    r = max(0.0, W - D)
+    bm = bmesh.new()
+    c = [bm.verts.new((sx * W, sy * D, ze)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    if r > 0.001:
+        R0, R1 = bm.verts.new((-r, 0, z0 + rise)), bm.verts.new((r, 0, z0 + rise))
+        bm.faces.new((c[0], c[1], R1, R0))
+        bm.faces.new((c[2], c[3], R0, R1))
+        bm.faces.new((c[1], c[2], R1))
+        bm.faces.new((c[3], c[0], R0))
+    else:
+        top = bm.verts.new((0, 0, z0 + rise))
+        for i in range(4):
+            bm.faces.new((c[i], c[(i + 1) % 4], top))
+    bm.faces.new(list(reversed(c)))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)  # a closed solid: safe to orient
+    ms.add(bm, mat, lod, matrix=f)
+    if r > 0.001:
+        ms.box('ink_ridge', (2 * r + 0.02, 0.03, 0.02), at=(0, 0, z0 + rise - 0.008), lod=0, frame=f)
+
+
 def tile_hip(ms, f, x, y, w, d, z, rise, over=0.035, lod=1):
     """A terracotta hip roof over a w x d block (the ridge along the longer side)."""
     rf = f @ Matrix.Translation(Vector((x, y, 0)))
     if d > w:
         rf = rf @ Matrix.Rotation(math.radians(90), 4, 'Z')
         w, d = d, w
-    tc.hip_roof(ms, rf, w, d, z, rise, over=over, curl=0.0, mat='ink_tile', lod=lod, ornaments=False)
+    hip(ms, rf, w, d, z, rise, over=over, lod=lod)
 
 
 def tile_gable(ms, f, x, y, w, d, z, rise, gable='ink_lime', over=0.03, lod=1):
@@ -233,7 +258,9 @@ def chhatri(ms, f, x, y, z, r, mat='ink_sandstone', dome='ink_dome', lod=1, post
         a = math.radians(45 + 360 * k / posts)
         ms.box(mat, (r * 0.22, r * 0.22, ph), at=(x + r * 0.95 * math.cos(a), y + r * 0.95 * math.sin(a), z + r * 0.25), lod=0, frame=f)
     ms.box(mat, (2.3 * r, 2.3 * r, r * 0.18), at=(x, y, z + r * 0.25 + ph), lod=lod, frame=f)
-    onion_dome(ms, f, x, y, z + r * 0.43 + ph, r * 0.95, mat=dome, lod=lod, segs=10)
+    onion_dome(ms, f, x, y, z + r * 0.43 + ph, r * 0.95, mat=dome, lod=0, segs=10)
+    if lod >= 1:  # LOD1 (and up): a 6-sided cone stands in for the dome
+        ms.cyl(dome, r * 0.95, 0.0, r * 1.2, at=(x, y, z + r * 0.43 + ph), segs=6, lod=1, only=1, frame=f, caps=False)
     if lod >= 1:
         tk.box_only(ms, 0 if lod == 0 else (1,), mat, (r * 1.6, r * 1.6, ph), at=(x, y, z + r * 0.25), frame=f)
 
@@ -248,7 +275,7 @@ def tiled_pavilion(ms, f, x, y, z, w, h, roof=None, mat='ink_sandstone', lod=1):
             ms.box(mat, (0.03, 0.03, h), at=(x + sx * (w / 2 - 0.02), y + sy * (w / 2 - 0.02), z + 0.03), lod=0, frame=f)
     tk.box_only(ms, (1, 2) if lod >= 2 else (1,), mat, (w * 0.8, w * 0.8, h), at=(x, y, z + 0.03), frame=f)
     rf = f @ Matrix.Translation(Vector((x, y, 0)))
-    tc.hip_roof(ms, rf, w, w, z + 0.03 + h, roof, over=0.05, curl=0.0, mat='ink_tile', lod=lod, ornaments=False)
+    hip(ms, rf, w, w, z + 0.03 + h, roof, over=0.05, lod=lod)
     finial(ms, f, x, y, z + 0.03 + h + roof - 0.01, s=1.2)
 
 
@@ -259,7 +286,7 @@ def porch(ms, f, x, y, w, depth, h, n=4, mat='ink_sandstone', roof=True, lod=1):
         px = x - w / 2 + 0.02 + (w - 0.04) * i / (n - 1)
         ms.box(mat, (0.026, 0.026, h), at=(px, y - depth + 0.016, G), lod=0, frame=f)
         ms.box(mat, (0.04, 0.04, 0.016), at=(px, y - depth + 0.016, G + h - 0.016), lod=0, frame=f)
-    ms.box(mat, (w + 0.01, depth, 0.03), at=(x, y - depth / 2, G + h), lod=lod, frame=f)
+    ms.box(mat, (w + 0.01, depth, 0.03), at=(x, y - depth / 2, G + h), lod=0, frame=f)
     if roof:
         pf = f @ Matrix.Translation(Vector((x, y - depth / 2, G + h + 0.04))) @ Matrix.Rotation(math.radians(-16), 4, 'X')
         ms.box('ink_tile', (w + 0.05, depth + 0.06, 0.018), at=(0, 0, 0), lod=lod, frame=pf)
@@ -316,7 +343,7 @@ def poor_house(ms, rng, x, y, w, d, yaw=None, **_):
     vw = w * (0.6 if up else 0.8)
     vx = -side * (w - vw) / 2 * 0.6 if up else 0.0
     porch(ms, f, vx, vy, vw, 0.1, h * 0.72, n=3, mat='timber')
-    ms.box('door', (0.075, 0.012, 0.16), at=(vx, vy - 0.004, G), lod=1, frame=f)
+    ms.box('door', (0.075, 0.012, 0.16), at=(vx, vy - 0.004, G), lod=0, frame=f)
     window(ms, f, vx + vw * 0.3, vy, G + 0.15)
     # the yard
     yd = d - bd
@@ -409,7 +436,7 @@ def common_house(ms, rng, x, y, w, d, yaw=None, awning_w=None, **_):
         ms.box('ink_plaster', (uw, bd * 0.5, uh + 0.08), at=(ux, by + bd * 0.2, G + h - 0.04), lod=1, frame=f)
         tile_hip(ms, f, ux, by + bd * 0.2, uw, bd * 0.5, G + h + uh + 0.04, 0.1)
         porch(ms, f, 0, by - bd / 2, w * 0.7, 0.09, h * 0.72, n=4)
-        ms.box('door', (0.08, 0.012, 0.17), at=(0, by - bd / 2 - 0.004, G), lod=1, frame=f)
+        ms.box('door', (0.08, 0.012, 0.17), at=(0, by - bd / 2 - 0.004, G), lod=0, frame=f)
         for wxx in (-w * 0.25, w * 0.25):
             window(ms, f, wxx, by - bd / 2, G + 0.15)
         steps(ms, f, 0, -d / 2 + 0.02, 0.14, 1)
@@ -691,7 +718,7 @@ def palace_small(ms, rng):
     ms.box('ink_sandstone', (tw_, tw_, 0.18), at=(0, ty, tz), lod=2, frame=f)
     window(ms, f, 0, ty - tw_ / 2, tz + 0.05, w=0.05, h=0.08)
     rise = 1.12 - tz - 0.18
-    tc.hip_roof(ms, f @ Matrix.Translation(Vector((0, ty, 0))), tw_, tw_, tz + 0.18, rise, over=0.06, curl=0.0, mat='ink_tile', lod=2, ornaments=False)
+    hip(ms, f @ Matrix.Translation(Vector((0, ty, 0))), tw_, tw_, tz + 0.18, rise, over=0.06, lod=2)
     finial(ms, f, 0, ty, tz + 0.18 + rise - 0.01, s=1.0)
     # the verandas either side of the front
     vw = (w - cw) / 2 - 0.02
@@ -1053,14 +1080,14 @@ def replay(ms, rng, calls, size, override=None):
             tk.stone_wall(ms, *args, **kw)
         elif name in ('tree', 'broadleaf', 'palm'):
             tree_n += 1
-            if name == 'palm' or tree_n % 2 == 0:
+            if name == 'palm' or tree_n % 3 != 0:
                 tk.palm(ms, rng, args[0], args[1], h=kw.get('h', 0.45) * 1.05, fronds=7)
             else:
                 tk.tree(ms, args[0], args[1], h=kw.get('h', 0.4) * 0.95, r=kw.get('r', 0.13) * 1.0, lod2=False)
         elif name in ('conifer', 'cypress'):
             tk.palm(ms, rng, args[0], args[1], h=kw.get('h', 0.45), fronds=7)
         elif name == 'shrub':
-            tc.shrub(ms, *args, **kw)
+            tc.shrub(ms, args[0], args[1], r=kw.get('r', 0.07), lod=0)
         elif name == 'well':
             stepwell_well(ms, args[0], args[1])
         elif name == 'fountain':
