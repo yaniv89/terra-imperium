@@ -29,6 +29,7 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { worldHealth, kaplanMeier, mean, sd, tCritical95 } from './simStats.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -62,7 +63,8 @@ export const buildSimEngine = async () => {
         "export { HISTORICAL_EVENTS } from '../src/data/events.js';",
         "export { migrateSave, CURRENT_SAVE_VERSION } from '../src/engine/saveMigrations.js';",
         "export { getNeighborIds } from '../src/data/regions.js';",
-        "export { WORLD_NATIONS } from '../src/data/worldNations.js';"
+        "export { WORLD_NATIONS } from '../src/data/worldNations.js';",
+        "export { getTiles } from '../src/data/geo/tiles.js';"
       ].join('\n'),
       resolveDir: __dirname,
       loader: 'js'
@@ -116,6 +118,9 @@ const runGame = (engine, playerNationId, seed, turns) => {
   let turnTimeMsTotal = 0;
   let completedTurns = 0;
   const turnTimes=[];
+  // Nation lives for Kaplan-Meier survival (a revived nation starts a new life).
+  const lives = []; const openLives = {};
+  Object.values(state.nations).forEach((n) => { if (!n.isEliminated) { openLives[n.id] = { born: 0, died: null }; lives.push(openLives[n.id]); } });
   let lastOwnerById = {};
   Object.values(state.regions).forEach((r) => { lastOwnerById[r.id] = r.owner; });
 
@@ -142,6 +147,11 @@ const runGame = (engine, playerNationId, seed, turns) => {
       if (n.civilWar?.active && !seenCivilWarNations.has(nationId)) seenCivilWarNations.add(nationId);
     });
 
+    Object.values(next.nations).forEach((n) => {
+      if (n.isEliminated && openLives[n.id]) { openLives[n.id].died = t + 1; delete openLives[n.id]; }
+      else if (!n.isEliminated && !openLives[n.id]) { openLives[n.id] = { born: t + 1, died: null }; lives.push(openLives[n.id]); }
+    });
+
     Object.values(next.regions).forEach((r) => {
       if (lastOwnerById[r.id] !== undefined && lastOwnerById[r.id] !== r.owner) regionOwnershipChanges++;
       lastOwnerById[r.id] = r.owner;
@@ -151,7 +161,15 @@ const runGame = (engine, playerNationId, seed, turns) => {
     if (state.gameStatus !== 'ACTIVE') break;
   }
 
+  const tiles = engine.getTiles ? engine.getTiles() : null;
+  let landTiles = 0; if (tiles) for (let i = 0; i < tiles.count; i++) if (tiles.land[i] === 1) landTiles += 1;
+  const health = worldHealth(state, { isLand: tiles ? (t) => tiles.land[t] === 1 : null, landTiles: landTiles || null, playerId: playerNationId });
+  const km = kaplanMeier(lives, [turns]);
+
   return {
+    ...health,
+    survival: km.at[turns],
+    medianNationLife: km.median,
     finalTurn: state.turnNumber,
     completedTurns,
     finalYear: state.year,
@@ -197,6 +215,18 @@ const main = async () => {
   console.log(`Civil wars:           total ${sum('civilWars')}, avg/game ${avg('civilWars').toFixed(1)}`);
   console.log(`Region hand-changes:  total ${sum('regionOwnershipChanges')}, avg/game ${avg('regionOwnershipChanges').toFixed(1)}`);
   console.log(`Mean turn time:       ${avg('meanTurnMs').toFixed(2)}ms (plan §M0.4 budget: 80ms)`);
+  // Runaway and health measures (scripts/simStats.mjs) as mean and 95% t interval across games.
+  // Games here are independent (different seeds and players), so the interval is unpaired; for a
+  // before/after verdict use the balance-sim compare.sh, which pairs seeds.
+  const ci = (key) => {
+    const xs = results.map((r) => r[key]).filter((v) => Number.isFinite(v));
+    if (!xs.length) return '-';
+    const half = xs.length >= 2 ? tCritical95(xs.length - 1) * sd(xs) / Math.sqrt(xs.length) : NaN;
+    return Number.isFinite(half) ? `${mean(xs).toFixed(3)} ± ${half.toFixed(3)}` : mean(xs).toFixed(3);
+  };
+  console.log('\nRunaway and health (mean ± 95% CI across games):');
+  ['nationsAlive', 'survival', 'giniCities', 'giniPopulation', 'giniWealth', 'giniLand', 'hhiLand', 'effectiveNations', 'topLandShare', 'zipfSlope']
+    .forEach((key) => console.log(`  ${key.padEnd(18)}${ci(key)}`));
   console.log('\nPer-game results:');
   results.forEach((r, i) => {
     console.log(`  #${i + 1}: turn ${r.finalTurn} (${r.finalYear}), status ${r.finalStatus}, ` +
