@@ -257,14 +257,14 @@ def wall_run(ms, f, x0, y0, x1, y1, h=0.15, t=0.032, wall='sng_brick', coping='s
     ms.box(wall, (L, t, h), at=(0, 0, G), lod=lod, frame=wf)
     if plaster_band:
         ms.box('sng_plaster', (L - 0.01, t + 0.004, h * 0.55), at=(0, 0, G + h * 0.3), lod=0, frame=wf)
-    ms.box(coping, (L + 0.012, t + 0.03, 0.02), at=(0, 0, G + h), lod=min(lod, 1), frame=wf, taper=0.55)
+    ms.box(coping, (L + 0.012, t + 0.03, 0.02), at=(0, 0, G + h), lod=0, frame=wf, taper=0.55)
 
 
 def small_gate(ms, f, x, y, w=0.13, h=0.17, roof=True, lod=1, posts='sng_lattice'):
     """A gate in a front wall at local (x, y): plank doors between posts under a small tiled gable."""
     dbl_door(ms, f, x, y, w=w * 0.75, h=h * 0.85, lod=lod)
     for sx in (-1, 1):
-        ms.box(posts, (0.022, 0.03, h), at=(x + sx * w / 2, y, G), lod=lod, frame=f)
+        ms.box(posts, (0.022, 0.03, h), at=(x + sx * w / 2, y, G), lod=0, frame=f)
     if roof:
         gable_tile(ms, f @ _t(x, y, 0), w + 0.03, 0.07, G + h, 0.05, over=0.025, lod=lod, gable='sng_lattice')
 
@@ -295,15 +295,15 @@ def hall_block(ms, f, w, d, h, cx=0.0, cy=0.0, posts=4, post_mat='sng_lattice', 
     and lattice panels on the front, a door, under a grey hip roof with upturned corners (or a
     gable with plaster ends)."""
     hf = f @ _t(cx, cy, 0)
-    ms.box('stone', (w + 0.03, d + 0.03, 0.025), at=(0, 0, G), lod=min(lod, 1), frame=hf)
+    ms.box('stone', (w + 0.03, d + 0.03, 0.025), at=(0, 0, G), lod=0, frame=hf)
     z = G + 0.02
     ms.box('sng_plaster', (w, d, h), at=(0, 0, z), lod=lod, frame=hf)
     ms.box('sng_brick', (w + 0.006, d + 0.006, h * 0.28), at=(0, 0, z), lod=0, frame=hf)
     fy = -d / 2 - 0.004
     for i in range(posts):
         px = -w / 2 + 0.012 + (w - 0.024) * i / (posts - 1)
-        ms.box(post_mat, (0.022, 0.02, h), at=(px, fy, z), lod=min(lod, 1) if i in (0, posts - 1) else 0, frame=hf)
-    ms.box(post_mat, (w + 0.01, 0.02, 0.022), at=(0, fy, z + h - 0.022), lod=min(lod, 1), frame=hf)
+        ms.box(post_mat, (0.022, 0.02, h), at=(px, fy, z), lod=0, frame=hf)
+    ms.box(post_mat, (w + 0.01, 0.02, 0.022), at=(0, fy, z + h - 0.022), lod=0, frame=hf)
     if door:
         dbl_door(ms, hf, 0, -d / 2, w=0.1, h=h * 0.68, z=z)
     if windows:
@@ -346,7 +346,7 @@ def poor_house(ms, rng, x, y, w, d, yaw=None, awning=None, **_ignored):
     hx = side * (w - hw) / 2
     hy = (d - hd) / 2
     hf = f @ _t(hx, hy, 0)
-    ms.box('sng_brick', (hw + 0.012, hd + 0.012, 0.07), at=(0, 0, G), lod=1, frame=hf)
+    ms.box('sng_brick', (hw + 0.012, hd + 0.012, 0.07), at=(0, 0, G), lod=0, frame=hf)
     ms.box('sng_plaster', (hw, hd, h), at=(0, 0, G), lod=1, frame=hf)
     for sx in (-1, 1):
         ms.box('timber', (0.02, 0.02, h), at=(sx * hw / 2, -hd / 2, G), lod=0, frame=hf)
@@ -375,6 +375,12 @@ def poor_house(ms, rng, x, y, w, d, yaw=None, awning=None, **_ignored):
     else:
         jars(ms, hf, side * hw * 0.3, -hd / 2 - 0.05, rng, 2)
     return f
+
+
+def court_tree(ms, x, y, h=0.3, r=0.075):
+    """A small round-crowned court tree, shown at LOD0 only (the court is hidden at LOD1)."""
+    ms.cyl('timber', 0.012, 0.009, h * 0.45, at=(x, y, G), segs=5, lod=0)
+    ms.sphere('shrub', r, at=(x, y, G + h - r * 0.8), scale=(1, 1, 0.85), u=7, v=4, lod=0)
 
 
 def tb_fence(ms, f, x0, y0, x1, y1, h=0.09):
@@ -426,12 +432,12 @@ def court_house(ms, rng, x, y, w, d, yaw=None, rich=False, awning=None, **_ignor
             ms.box('stone', (0.16 - 0.04 * k, 0.03, 0.012 * (k + 1)), at=(0, -0.08 + 0.022 * k, G), lod=0, frame=gf)
         for sx in (-1, 1):
             p = f @ Vector((sx * w * 0.2, fy + 0.03 + wd * 0.45, 0))
-            tc.broadleaf(ms, p.x, p.y, h=0.3, r=0.075)
+            court_tree(ms, p.x, p.y, h=0.3, r=0.075)
     else:
         small_gate(ms, f, gx, fy, w=gw, h=wh + 0.03)
         p = f @ Vector((-gx * 0.6 - sides[0] * w * 0.1, fy + 0.03 + wd * 0.5, 0))
         if rng.random() < 0.6:
-            tc.broadleaf(ms, p.x, p.y, h=0.28, r=0.07)
+            court_tree(ms, p.x, p.y, h=0.28, r=0.07)
         else:
             jars(ms, f, -sides[0] * w * 0.12, fy + wd * 0.5, rng, 2)
     if awning:
@@ -606,7 +612,7 @@ def kit_barrel(ms, f, x, y, s=1.0, z=G):
 
 # ---- landmark 1: the barbican gate ----------------------------------------------------------------
 
-def _d_plan(w, d, n=12):
+def _d_plan(w, d, n=10):
     """The barbican's D plan (counter-clockwise): a straight back at +d/2, the sides down to the
     springing, a half ellipse round the front."""
     ry = min(d * 0.62, w / 2)
@@ -663,7 +669,7 @@ def tower_hall(ms, f, hw, hd, zh, height, wall_mat='sng_lacquer', roof_mat='sng_
     zi1 = z1 + height * 0.1
     if paint:
         ms.box('sng_paint', (hw + 0.02, hd + 0.02, 0.025 * s), at=(0, 0, z1 - 0.03 * s), lod=0, frame=f)
-    eave_ring(ms, f, lw, ld, uw / 2, ud / 2, ze1, zi1, curl1, mat=roof_mat, lod=lod_hi)
+    eave_ring(ms, f, lw, ld, uw / 2, ud / 2, ze1, zi1, curl1, mat=roof_mat, lod=min(lod_hi, 1))
     h2 = height * 0.24
     ms.box(wall_mat, (uw, ud, h2 + (zi1 - ze1)), at=(0, 0, ze1), lod=lod_hi, frame=f)
     z2 = zi1
@@ -865,7 +871,8 @@ def temple(ms, rng, x, y, w=1.6, d=1.0, top=1.1, yaw=0.0, roof='sng_yellow', pav
     curl1 = 0.05 * sc + 0.01
     uw, ud = mw * 0.78, md * 0.7
     zi = z1 + top * 0.1
-    eave_ring(ms, hf, mw / 2 + over1, md / 2 + over1, uw / 2, ud / 2, z1 - 0.01, zi, curl1, mat=roof, ridge=ridge)
+    eave_ring(ms, hf, mw / 2 + over1, md / 2 + over1, uw / 2, ud / 2, z1 - 0.01, zi, curl1, mat=roof, ridge=ridge, lod=1)
+    block_lod2(ms, hf, mw + 2 * over1, md + 2 * over1, 0.0, zi - z1, roof=roof, z0=z1 - 0.01)
     h2 = top * 0.1
     ms.box('sng_lacquer', (uw, ud, h2 + (zi - z1)), at=(0, 0, z1), lod=2, frame=hf)
     ms.box('sng_paint', (uw + 0.02, ud + 0.02, 0.035 * sc + 0.01), at=(0, 0, zi + h2 - 0.035 * sc - 0.01), lod=1, frame=hf)

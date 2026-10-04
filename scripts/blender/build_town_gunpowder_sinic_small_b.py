@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ti_sinic_gunpowder as sg  # noqa: E402
 import build_town_gunpowder_small_b as base  # noqa: E402
 
-REPLACE = None
+REPLACE = lambda mode: {(0.0, 1.42): lambda ms, rng: sg.hall_landmark(ms, rng, 0.0, 1.4, 0.72, 0.6)}
 
 if __name__ == '__main__':
     sg.main(base.NAME, base.layout, base.GROUND, replace=REPLACE)
