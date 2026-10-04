@@ -6,14 +6,16 @@
 // (intel.js) still reveals a whole nation. The greyed "seen before" memory and the darkened map
 // arrive with the lenses of workstream 12. Pure; cached on the state's units and cities.
 import { getTiles } from '../data/geo/tiles';
+import { ringsForKm } from '../data/geo/gridScale';
 import { unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { navalLineOf, navalSightBonus } from '../data/navalLines';
 
-export const SIGHT_LAND = 2;
-export const SIGHT_ARMY = 2;
-export const SIGHT_HILLS_BONUS = 1;
-export const SIGHT_FLEET = 2;
+// In km as rings of the loaded grid (gridScale.js): 2, 2, 1 and 2 rings at frequency 75.
+export const SIGHT_LAND = ringsForKm(200);
+export const SIGHT_ARMY = ringsForKm(200);
+export const SIGHT_HILLS_BONUS = ringsForKm(100);
+export const SIGHT_FLEET = ringsForKm(200);
 
 const cache = new WeakMap(); // state.units -> { regions, nationId, set }
 

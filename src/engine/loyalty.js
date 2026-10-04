@@ -29,7 +29,7 @@
 // Ripples: conquest at distance costs garrisons (anti-snowball), culture feeds the "my people"
 // opinion reason (opinion.js), free cities are land to settle. Pure of randomness.
 import { getTiles } from '../data/geo/tiles';
-import { distanceKm } from '../data/geo/geodesic';
+import { ringsApart, ringsForKm, kmPerRing } from '../data/geo/gridScale';
 import { buildRadiusIndex } from './world/registry';
 import { settlesThisTurn } from './world/lod';
 import { amenitiesOf } from './world/cities';
@@ -41,8 +41,10 @@ import { landUnitsByTile } from './sieges';
 import { governorEffects } from './governors';
 import { lawRulesOf } from './lawRules';
 
-export const PRESSURE_RINGS = 13;
-export const KM_PER_RING = 147;
+// Culture reaches PRESSURE_KM (13 rings at frequency 75) and falls off by the ring distance on
+// the loaded grid (gridScale.js): one ring is the measured neighbour spacing, not a fixed km.
+export const PRESSURE_KM = 1330;
+export const PRESSURE_RINGS = ringsForKm(PRESSURE_KM);
 export const CULTURE_DRIFT = 0.05;
 export const CULTURE_PERIOD = 3;        // a city's shares drift every third turn (by CULTURE_PERIOD x CULTURE_DRIFT)
 export const SELF_WEIGHT = 0.6;
@@ -82,12 +84,11 @@ const pressureNeighbours = (tiles, cities, index) => {
     neighbourLists.delete(t);
   });
   added.forEach((city) => {
-    const { lat, lon } = tiles.latLonOf(city.tile);
     const list = [];
-    index.within(lat, lon, PRESSURE_RINGS * KM_PER_RING + 60).forEach((i) => {
+    index.near(tiles.centres[city.tile], PRESSURE_RINGS * kmPerRing(tiles) + 1).forEach((i) => {
       const other = cities[i];
       if (other.tile === city.tile) return;
-      const rings = distanceKm(tiles.centres[city.tile], tiles.centres[other.tile]) / KM_PER_RING;
+      const rings = ringsApart(city.tile, other.tile, tiles);
       if (rings > PRESSURE_RINGS) return;
       const weight = 1 / ((1 + rings) * (1 + rings));
       list.push({ tile: other.tile, weight });

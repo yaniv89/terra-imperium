@@ -239,6 +239,13 @@ describe('processAIWarDecisions', () => {
     expect(result.logs[0].message).toContain('Belgium');
   });
 
+  it('a nation that rolls but expects to lose every war declares none (warOdds.js EV <= 0)', () => {
+    // be (500) borders de (5000) and fr (2000): both wars have a negative expected value.
+    const state = warState();
+    const result = processAIWarDecisions(state, state.nations, state.wars, ['be'], hawkishRng);
+    expect(result.wars.filter((w) => w.aggressor === 'be')).toHaveLength(0);
+  });
+
   it('declares no wars when every roll fails', () => {
     const state = warState();
     const result = processAIWarDecisions(state, state.nations, state.wars, ['de'], dovishRng);
@@ -360,8 +367,9 @@ describe('processAIWarDecisions', () => {
   // Plan §M12: a coalition member never breaks a truce with the runaway leader — isInTruce
   // (src/engine/diplomacy.js) excludes it from pickWarTarget's candidates entirely, so it falls
   // back to its normal weakest-neighbor targeting (fr) instead of striking the leader (de).
-  it('a coalition member honoring a truce with the leader attacks its normal weakest neighbor instead', () => {
-    const state = warState({ de: { militaryStrength: 100000 }, be: { truces: { de: 10 } } });
+  it('a coalition member honoring a truce with the leader attacks a neighbour worth the war instead', () => {
+    // be outweighs fr (6000 to 2000), so a war on fr has a positive expected value (warOdds.js).
+    const state = warState({ de: { militaryStrength: 100000 }, be: { truces: { de: 10 }, militaryStrength: 6000 } });
     const result = processAIWarDecisions({ ...state, turnNumber: 5 }, state.nations, state.wars, ['be'], hawkishRng);
     expect(result.wars).toEqual([expect.objectContaining({ aggressor: 'be', enemy: 'fr' })]);
   });

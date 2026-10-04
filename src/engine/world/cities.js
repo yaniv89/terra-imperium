@@ -78,7 +78,11 @@ export const IMPROVEMENT_COST_PER_TURN = 10;
 export const MIN_CITY_SPACING = 3; // rings between city centres; 2 on the 150 km grid, 3 on the 106 km grid keeps the city count near the old one
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
-export const growthThreshold = (size, speedMult = 1) => Math.round((15 + 6 * size + size ** 1.8) * speedMult); // the speed table (ages.js speedCostMult)
+// size^1.8 for sizes 0..MAX_SIZE as literals: a fractional power may differ in the last bit between
+// browsers (plans/math-ideas.md, 10.3), a table cannot. Off the table (never in play) it is computed.
+const SIZE_POW_1_8 = [0, 1, 3.4822022531844965, 7.224674055842076, 12.125732532083186, 18.11949159194239, 25.157776275776854, 33.20293475662357, 42.22425314473262, 52.1959152131576, 63.09573444801933, 74.90431440274533, 87.60446523262164, 101.18078258651313, 115.61933422185243, 130.90742080935482, 147.0333894396205, 163.98648555908667, 181.75673356228435, 200.33483917103592, 219.71210866122357, 239.88038131399546, 260.8319723864797, 282.5596245505919, 305.05646622205796, 328.31597555047097, 352.3319491017267, 377.0984744614325, 402.6099061390259, 428.8608442694522, 455.84611570090647];
+const sizePow18 = (size) => SIZE_POW_1_8[size] ?? size ** 1.8; // determinism-ok: off-table fallback
+export const growthThreshold = (size, speedMult = 1) => Math.round((15 + 6 * size + sizePow18(size)) * speedMult); // the speed table (ages.js speedCostMult)
 // The first two citizens are content for free, so a young city never starts restless.
 export const amenityNeed = (size) => Math.max(0, Math.floor((size - 2) / AMENITY_NEED_PER_CITIZENS));
 
@@ -593,4 +597,6 @@ export const processCities = (world, tiles, ctxFor) => {
 
 // People from size (C2), city and countryside together: 1,000 x size^2.8 (size 2 is 7,000, size 5
 // is 90,000, size 12 is 1.1 million, size 30 is 14 million), the curve Civilization uses.
-export const sizeToPeople = (size) => Math.round(1000 * Math.max(1, size) ** 2.8);
+// Sizes 0..MAX_SIZE as literals (same reason as SIZE_POW_1_8).
+const PEOPLE_BY_SIZE = [1000, 1000, 6964, 21674, 48503, 90597, 150947, 232421, 337794, 469763, 630957, 823947, 1051254, 1315350, 1618671, 1963611, 2352534, 2787770, 3271621, 3806362, 4394242, 5037488, 5738303, 6498871, 7321355, 8207899, 9160631, 10181659, 11273077, 12436964, 13675383];
+export const sizeToPeople = (size) => PEOPLE_BY_SIZE[size] ?? Math.round(1000 * Math.max(1, size) ** 2.8); // determinism-ok: off-table fallback

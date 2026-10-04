@@ -1,4 +1,5 @@
 // src/data/rebellion.js
+import { log10Exact } from '../utils/exactMath';
 import { REGIONS_DATA } from './regions';
 // Rebellion (plan §9): low stability doesn't just sit there as a number — past a threshold it
 // spawns an actual hostile army in the region, fought and won or lost like any other unit,
@@ -24,7 +25,7 @@ export const REBEL_MAX_GROWTH_MULT = 3;
 // same reason applies: real population figures need compressing into a playable band rather than
 // producing a rebel army bigger than the garrison that could ever realistically hold it.
 export const getRebelSpawnStrength = (region) =>
-  Math.round(300 + 100 * Math.log10(Math.max(region.currentPopulation || 1, 1)));
+  Math.round(300 + 100 * log10Exact(Math.max(region.currentPopulation || 1, 1)));
 
 // --- Revolts in CONQUERED territory: an end condition for rebellion, not just an army to grind ---
 // A region taken by conquest (LAUNCH_INVASION, AMPHIBIOUS_ASSAULT, SETTLE_COLONIZE) carries
