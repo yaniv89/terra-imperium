@@ -1,0 +1,107 @@
+{
+  "file": "classical-town-big-b-israelite.glb",
+  "kind": "town",
+  "bytes": 5760272,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-big-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 36060,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.942,
+          "depth": 7.919,
+          "height": 2.3,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 7568,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.942,
+          "depth": 7.919,
+          "height": 2.3,
+          "min_height": -0.0
+        },
+        "LOD2": {
+          "triangles": 736,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 7.942,
+          "depth": 7.919,
+          "height": 1.916,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 7.942
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-big-b-israelite_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 10592
+    },
+    {
+      "name": "classical-town-big-b-israelite_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 417122
+    },
+    {
+      "name": "classical-town-big-b-israelite_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 503688
+    }
+  ],
+  "passed": true
+}
