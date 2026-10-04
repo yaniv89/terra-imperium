@@ -200,10 +200,10 @@ to the far corners either (measured in section 2), and every game differs.
 | 1 | **Kingdom of Israel** | Jerusalem | 31.78, 35.23 | il | israelite | A (always present) |
 | 2 | Ugarit | Ugarit | 35.60, 35.78 | sy | levant | B |
 | 3 | Mari | Mari | 34.55, 40.89 | sy | levant | B |
-| 4 | Akkad | Kish (Agade's site is lost) | 32.54, 44.60 | iq | levant | A |
+| 4 | Akkad | Kish | 32.54, 44.60 | iq | levant | A |
 | 5 | Elam | Anshan | 29.98, 52.40 | ir | levant | A |
 | 6 | Media | Hagmatana | 34.80, 48.52 | ir | levant | A |
-| 7 | Kanesh | Kanesh (Kültepe) | 38.85, 35.63 | tr | levant | A |
+| 7 | Kanesh | Kanesh | 38.85, 35.63 | tr | levant | A |
 | 8 | Lydia | Sardis | 38.49, 28.04 | tr | levant | A |
 | 9 | Phrygia | Gordion | 39.65, 31.98 | tr | levant | B |
 | 10 | Pontus | Sinope | 42.02, 35.15 | tr | levant | B |
@@ -241,14 +241,14 @@ to the far corners either (measured in section 2), and every game differs.
 | 32 | Dacia | Sarmizegetusa | 45.62, 23.31 | ro | europe | A |
 | 33 | Rasenna | Velzna | 42.72, 12.11 | it | europe | A |
 | 34 | The Nuragi | Barumini | 39.70, 8.99 | it | europe | C |
-| 35 | Tartessos | Tartessos (near Huelva) | 37.26, -6.95 | es | europe | A |
+| 35 | Tartessos | Tartessos | 37.26, -6.95 | es | europe | A |
 | 36 | Celtiberia | Numantia | 41.81, -2.44 | es | europe | B |
 | 37 | Lusitania | Conimbriga | 40.10, -8.49 | pt | europe | B |
 | 38 | Arverni | Gergovia | 45.71, 3.12 | fr | europe | B |
 | 39 | Belgae | Durocortorum | 49.25, 4.03 | fr | europe | B |
 | 40 | Noricum | Noreia | 47.00, 14.40 | at | europe | B |
 | 41 | Marcomannia | Marobudum | 50.00, 14.40 | cz | europe | B |
-| 42 | Cherusci | the Weser hills | 52.00, 9.00 | de | europe | C |
+| 42 | Cherusci | Tulifurdum | 52.00, 9.00 | de | europe | C |
 | 43 | Durotriges | Maiden Castle | 50.70, -2.47 | gb | europe | C |
 | 44 | Brigantes | Stanwick | 54.50, -1.73 | gb | europe | A |
 | 45 | Ulaid | Emain Macha | 54.35, -6.70 | gb | europe | B |
@@ -257,9 +257,9 @@ to the far corners either (measured in section 2), and every game differs.
 | 48 | Rygir | Avaldsnes | 59.35, 5.27 | no | europe | C |
 | 49 | Bosporan Kingdom | Panticapaeum | 45.35, 36.47 | ua | europe | B |
 | 50 | Cucuteni | Talianki | 48.80, 30.47 | ua | europe | C |
-| 51 | Avaria | the Ring | 47.00, 19.50 | hu | europe | C |
+| 51 | Avaria | Hring | 47.00, 19.50 | hu | europe | C |
 | 52 | Khazaria | Atil | 46.40, 47.90 | ru | steppe | B |
-| 53 | The Sarmatians | the Don steppe | 50.00, 44.00 | ru | steppe | C |
+| 53 | The Sarmatians | Uspe | 50.00, 44.00 | ru | steppe | C |
 
 **Central Asia and the steppe (14)**
 
@@ -344,7 +344,7 @@ to the far corners either (measured in section 2), and every game differs.
 | 110 | Ife | Ile-Ife | 7.48, 4.56 | ng | westafrica | B |
 | 111 | Bono | Bono Manso | 7.90, -1.98 | gh | westafrica | B |
 | 112 | D'mt | Yeha | 14.29, 39.02 | et | nile | A |
-| 113 | Punt | the Berbera coast | 10.44, 45.01 | so | nile | B |
+| 113 | Punt | Opone | 10.42, 51.27 | so | nile | B |
 | 114 | Ajuran | Merca | 1.71, 44.77 | so | eastafrica | B |
 | 115 | Kilwa | Kilwa Kisiwani | -8.96, 39.51 | tz | eastafrica | B |
 | 116 | Kitara | Bigo | 0.40, 31.40 | ug | eastafrica | B |
@@ -355,8 +355,8 @@ to the far corners either (measured in section 2), and every game differs.
 | 121 | Mapungubwe | Mapungubwe Hill | -22.19, 29.38 | za | eastafrica | A |
 | 122 | Mutapa | Zvongombe | -16.40, 31.30 | zw | eastafrica | B |
 | 123 | Merina | Ambohimanga | -18.76, 47.56 | mg | eastafrica | B (late, 500 CE) |
-| 124 | The Khoekhoe | the Cape | -33.90, 18.60 | za | eastafrica | C |
-| 125 | The San | the Kalahari | -22.00, 22.00 | bw | eastafrica | C |
+| 124 | The Khoekhoe | Camissa | -33.90, 18.60 | za | eastafrica | C |
+| 125 | The San | Tsodilo | -18.75, 21.73 | bw | eastafrica | C |
 
 **The Americas (19)**
 
@@ -366,32 +366,32 @@ to the far corners either (measured in section 2), and every game differs.
 | 127 | Moche | Huaca del Sol | -8.13, -78.99 | pe | americas | A |
 | 128 | Wari | Huari | -13.06, -74.17 | pe | americas | A |
 | 129 | Tiwanaku | Tiwanaku | -16.55, -68.67 | bo | americas | A |
-| 130 | Diaguita | the Calchaquí valleys | -25.50, -66.00 | ar | americas | B |
+| 130 | Diaguita | Calchaquí | -25.50, -66.00 | ar | americas | B |
 | 131 | Muisca | Bacatá | 4.71, -74.07 | co | americas | A |
-| 132 | Marajoara | the Marajó mounds | -0.90, -49.60 | br | americas | B |
-| 133 | Tupinambá | Guanabara Bay | -22.90, -43.20 | br | americas | B |
+| 132 | Marajoara | Marajó | -0.90, -49.60 | br | americas | B |
+| 133 | Tupinambá | Guanabara | -22.90, -43.20 | br | americas | B |
 | 134 | Jaragua | Jaragua | 18.50, -72.80 | ht | americas | B |
-| 135 | Kalinago | Dominica | 15.41, -61.37 | dm | americas | C (late, 1200 CE) |
+| 135 | Kalinago | Waitukubuli | 15.41, -61.37 | dm | americas | C (late, 1200 CE) |
 | 136 | Teotihuacan | Teotihuacan | 19.69, -98.84 | mx | americas | A |
 | 137 | Zapotec | Monte Albán | 17.04, -96.77 | mx | americas | A |
-| 138 | Mutal | Mutal (Tikal) | 17.22, -89.62 | gt | americas | A |
-| 139 | Hopewell | the Chillicothe earthworks | 39.33, -82.98 | us | americas | A |
+| 138 | Mutal | Mutal | 17.22, -89.62 | gt | americas | A |
+| 139 | Hopewell | Chillicothe | 39.33, -82.98 | us | americas | A |
 | 140 | Hohokam | Snaketown | 33.18, -111.92 | us | americas | B |
 | 141 | Chaco | Pueblo Bonito | 36.06, -107.96 | us | americas | B |
 | 142 | Calusa | Calos | 26.42, -81.86 | us | americas | C |
-| 143 | Haida | the Skeena mouth (Kiusta's islands are too small for the grid) | 54.20, -130.10 | ca | americas | C |
+| 143 | Haida | Kiusta | 54.20, -130.10 | ca | americas | C |
 | 144 | Dorset | Igloolik | 69.37, -81.80 | ca | americas | C (late, 500 BCE) |
 
 **Oceania (6)**
 
 | # | People | Capital | Lat, lon | Land | Theme | W |
 |---|---|---|---|---|---|---|
-| 145 | Lapita | the Bismarck Archipelago | -3.00, 152.00 | pg | pacific | B (late, 1600 BCE) |
+| 145 | Lapita | Talepakemalai | -1.60, 149.70 | pg | pacific | B (late, 1600 BCE) |
 | 146 | The Wahgi | Kuk | -5.78, 144.33 | pg | pacific | C |
 | 147 | Gunditjmara | Budj Bim | -38.07, 141.92 | au | monsoon | C |
 | 148 | Saudeleur | Pohnpei | 6.84, 158.33 | fm | pacific | C (late, 1100 CE) |
-| 149 | The Latte chiefs | Guam | 13.44, 144.79 | gu | pacific | C (late, 800 CE) |
-| 150 | Bau | Bau Island | -17.99, 178.62 | fj | pacific | C (late, 1000 BCE) |
+| 149 | The Latte chiefs | Guåhan | 13.44, 144.79 | gu | pacific | C (late, 800 CE) |
+| 150 | Bau | Bau | -17.99, 178.62 | fj | pacific | C (late, 1000 BCE) |
 
 **Themes in the pool:** europe 24, americas 19, levant 18, steppe 16, indic 13, monsoon 12,
 eastafrica 9, maghreb 8, sinic 8, nile 6, westafrica 6, pacific 5, korea 3, japan 2,
@@ -417,6 +417,13 @@ made-up mash of two personal names from the modern country's culture group.
 **New:** every people has its **own list of 20 real historical city names**, capital first, then
 its great cities, then real ancient place names of its homeland (draft lists, researched on the
 web, in `plans/data/cities/*.json`, 3,000 names, reviewed before they ship).
+**Status of the drafts (2026-10-04):** all 150 lists exist, 20 unique names each, no name used
+by two peoples, every capital a real place name. They were written from the researchers' own
+knowledge, **not yet checked name by name on the web**: a checking pass (a script that looks each
+name up in the Pleiades gazetteer and Wikipedia and lists the misses) runs before W0 ships. Thin
+peoples (Botai, the Andronovo, Tichitt, Nok, Engaruka, the Khoekhoe, the San, Dorset, the Wahgi,
+Gunditjmara, Kalinago, Marajoara, Cucuteni) are filled after their known sites with real
+place names of their homeland in their own language, never invented names.
 A city founded by a people takes, in order:
 1. **The next unused name from the founder's own list.** Akkad founds Sippar, then Nippur;
    the Kingdom of Israel founds Samaria, Megiddo, Hazor, Shechem...
