@@ -51,9 +51,33 @@ Budgets: a whole town 60,000 / 10,000 / 1,500; one 2048 WebP atlas set per file.
   channel between parapets.
 
 ## The northern variant (Celtic hillfort hall)
-`classical-town-small-a-europenorth.glb` and `classical-town-small-b-europenorth.glb`: the two
-small Europe towns with the hall (8 x 12 m, 6 m) on a banked, grassed enclosure with a short
-palisade in place of the temple. See the table added below when built.
+| File | LOD0 / LOD1 / LOD2 | Footprint | Height | File | Validation |
+|---|---|---|---|---|---|
+| classical-town-small-a-europenorth | 10,094 / 2,456 / 550 | 41 m | 7.5 m | 2.4 MB | passed |
+| classical-town-small-b-europenorth | 9,674 / 2,610 / 682 | 41 m | 7.5 m | 2.4 MB | passed |
+
+The two small Europe towns with the hall (`ti_europe_classical_north.py`: about 5 x 7 m in
+small-a, 4.4 x 6 m in small-b, 6 m to the ridge) on a grassed enclosure with earth banks and a
+short palisade in place of the temple: ochre daub between oak posts over a wattle base, a steep
+straw gable with the Bronze kit's pegged ridge pole, carved crossed bargeboards, double plank
+doors and a team-cloth banner on the gable. Only the landmark changes: the houses round it stay
+Roman, which suits a Romanised north (Gaul, Britain). A truly northern town (no Roman houses)
+would need the Bronze Europe longhouses on the Classical layouts: the kit already supports it
+(swap `ec.europe_house` for `eb.europe_house`), about an hour of placement checks per town; and
+medium towns would need the hall at the sheet's full 8 x 12 m with its 18 x 16 m bank, which fits
+the medium temple spot. Previews: `small-<v>-europenorth-*.png`.
+
+## roman_house (ti_classical.py) and the Classical Europe houses
+`roman_house` is one generic box: cream plaster on a stone footing, a plain gable (eaves or gable
+to the front), shuttered windows, an optional balcony and chimney. The Europe sheets ask for
+three distinct types, so the kit adds them beside it instead of changing it (ti_classical.py is
+untouched): the cottage is ochre plaster with brick showing, gable-front, with a tiled lean-to,
+a pergola and a walled garden; the town house adds a red-ochre dado, two rows of shutters, a
+stone door frame and step, and a hip roof round an open court (compluvium), not a gable; the
+domus adds a columned porch with its own roof, an atrium round an impluvium pool and a peristyle
+garden behind. If roman_house were to be brought in line: give it a `roof='hip'|'ring'` option
+(the ring roof from ti_europe_classical.py), a dado band and a `wall=` material, and leave the
+porch and peristyle as separate parts.
 
 ## Not matched
 - Window glass, door ironwork and roof tile relief are procedural; the sheets' plants (vines,

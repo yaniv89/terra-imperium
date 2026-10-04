@@ -34,10 +34,14 @@ const BEFORE_EAST = new Set(['bronze', 'classical']);
 // From the Gunpowder Age the lands of European settlement build the colonial variant of the
 // European kit (a clapboard church), falling back to Europe as well.
 const COLONIES = new Set(['us', 'ca', 'au', 'nz', 'bm', 'pm', 'gl', 'fk', 'gs', 'nf', 'pn', 'hm', 'tf']);
-export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe' };
+// In the Classical Age the lands beyond Rome's frontier (Ireland and Britain, Germany,
+// Scandinavia, the Baltic and the north-east) build round the Celtic hillfort hall.
+const EUROPE_NORTH = new Set(['ie', 'gb', 'im', 'de', 'dk', 'no', 'se', 'fi', 'is', 'fo', 'ax', 'nl', 'pl', 'lt', 'lv', 'ee', 'by', 'ua', 'ru']);
+export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe' };
 /** The style a city on this nation's land is drawn in, in this age. */
 export const styleOfLand = (nationId, ageId) => {
   if (EARLY_AGES.has(ageId) && BEFORE_SETTLEMENT[nationId]) return BEFORE_SETTLEMENT[nationId];
+  if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';
   if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
   if (COLONIES.has(nationId)) return 'colonies';
   return styleOfNation(nationId);
