@@ -56,13 +56,22 @@ const clipToLand = (multi, land) => {
     const near = idx.filter((l) => overlaps(l.box, box)).map((l) => l.poly);
     // No coastline here at all: an island too small for the land data keeps its hex shape.
     if (!near.length) { out.push(poly); return; }
+    let cut;
     try {
-      const cut = toD3Winding(polygonClipping.intersection([poly], near));
-      if (cut.length) cut.forEach((p) => out.push(p)); else out.push(poly);
-    } catch (e) {
-      if (!clipToLand.warned) { clipToLand.warned = true; console.warn('Territory clipping failed, drawing hex shapes', e); }
-      out.push(poly);
+      cut = polygonClipping.intersection([poly], near);
+    } catch {
+      // The land comes in 10 degree pieces (hexCoast.js) and the clipper can trip where a
+      // territory meets two pieces along their shared edge: cut against each piece on its own.
+      cut = [];
+      for (const piece of near) {
+        try { cut.push(...polygonClipping.intersection([poly], [piece])); } catch (e) {
+          if (!clipToLand.warned) { clipToLand.warned = true; console.warn('Territory clipping failed, drawing hex shapes', e); }
+          cut = null;
+          break;
+        }
+      }
     }
+    if (cut && cut.length) toD3Winding(cut).forEach((p) => out.push(p)); else out.push(poly);
   });
   return out;
 };

@@ -1,5 +1,5 @@
 // src/data/geo/cityFeatures.test.js
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../regions';
 import { loadLandFeatures } from './loadWorldFeatures';
@@ -33,6 +33,14 @@ describe('city features from state', () => {
     // d3 winding: every territory is a small patch of the sphere, never its complement.
     Object.values(clipped).forEach((f) => expect(geoArea(f), f.id).toBeLessThan(0.05));
     expect(getCityFeatures(state, land)).toBe(getCityFeatures(state, land));
+  });
+
+  it('clips every territory to the coast without falling back to hex shapes', async () => {
+    const land = await loadLandFeatures();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    getCityFeatures({ ...state, world: { ...state.world, tileOwner: { ...state.world.tileOwner } } }, land);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('builds one territory per nation whose land is the union of its cities', async () => {
