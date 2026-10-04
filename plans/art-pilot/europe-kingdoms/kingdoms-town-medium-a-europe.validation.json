@@ -1,0 +1,107 @@
+{
+  "file": "kingdoms-town-medium-a-europe.glb",
+  "kind": "town",
+  "bytes": 3920228,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 22942,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.09,
+          "depth": 6.122,
+          "height": 1.99,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 4058,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.076,
+          "depth": 6.109,
+          "height": 1.92,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 680,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 6.036,
+          "depth": 6.09,
+          "height": 1.92,
+          "min_height": 0.012
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.122
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "kingdoms-town-medium-a-europe_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 746004
+    },
+    {
+      "name": "kingdoms-town-medium-a-europe_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 701064
+    },
+    {
+      "name": "kingdoms-town-medium-a-europe_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 527044
+    }
+  ],
+  "passed": true
+}

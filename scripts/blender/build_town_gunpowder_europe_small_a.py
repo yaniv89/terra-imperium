@@ -14,7 +14,7 @@ import ti_europe_gunpowder as eu  # noqa: E402
 import build_town_gunpowder_small_a as base  # noqa: E402
 
 CH = {'europe': eu.baroque_church, 'colonies': eu.clapboard_church}
-REPLACE = None
+REPLACE = lambda mode: {(1.05, 1.38): lambda ms, rng: CH[mode](ms, rng, 1.05, 1.36, top=1.1, w=0.56, length=0.74, yaw=0)}
 
 if __name__ == '__main__':
     eu.main(base.NAME, base.layout, base.GROUND, max_storeys=2, replace=REPLACE)
