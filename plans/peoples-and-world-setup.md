@@ -129,7 +129,14 @@ Replaces today's "World scenario" dropdown and the "Active nations" dropdown in
   keys move the choice, at least 48 px tall (touch target).
 - Phone landscape (844x390): the three cards sit in **one row**; portrait and narrow desktop
   stack them. Standard is preselected.
-- The world seed field stays, folded under a small "Advanced" link (it is a power-user option).
+- **The world seed is random and hidden** (the user, 2026-10-04): the "World seed" field is
+  removed from the screen. Today it defaults to 1, so every emergent world is the same map unless
+  the player types a number. Instead, pressing Start draws a fresh seed in the UI
+  (`crypto.getRandomValues`, outside the engine, so the engine stays pure and deterministic) and
+  passes it in `scenario.seed`. The seed is saved in the game state, so a save, a cloud sync or
+  a replay rebuilds the same world. Every new game gets a different spread of majors and
+  independents. Tests and the balance-sim keep passing fixed seeds.
+- The guided start draws its seed the same way.
 
 ### 3.2 The full world, commented out
 - The "Full world" option is **commented out in the JSX** (not deleted), with a comment pointing
@@ -600,7 +607,7 @@ build scripts, so it can run **in parallel** with W0 to W4 on its own branch.
 ## 7. Phases
 | Phase | What | Size |
 |---|---|---|
-| **W0. Peoples and start screen** | peoples.js and its build script, world sizes, the radio cards, the full world commented out, the picker, the id switch with the legacy map, palaces by theme, tests | 2 to 3 sessions |
+| **W0. Peoples and start screen** | peoples.js and its build script, world sizes, the radio cards, the full world commented out, a random hidden world seed, the picker, the id switch with the legacy map, palaces by theme, tests | 2 to 3 sessions |
 | W1 to W4 | as `plans/independent-cities.md` (independents, their AI, interactions, UI) | |
 | **M. Map quality** | section 6b: measure, levels 6 and 7 from finer sources, a smarter close-zoom shader, rivers and lakes, the globe, size and speed; runs in parallel | 4 to 6 sessions |
 
