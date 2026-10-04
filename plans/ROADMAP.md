@@ -18,6 +18,7 @@ Big features go on a side branch; merge to `main` only when the user asks, then 
 | `plans/peoples-and-world-setup.md` | **phase W0 and M**: the 150-people pool (names, capitals, themes, weights), world sizes (measured), the start screen, city names, the art theme survey, map resolution and quality |
 | `plans/independent-cities.md` | **phases W1 to W4**: independent cities (one city, never expand, raid like barbarians), their AI, what players and AI majors can do to them, naming of independents and free cities |
 | `plans/eras-origins-and-future.md` | **phases 0 to 5**: nine ages from 5000 BCE to 2500 CE (Neolithic, Age of Cities, Bronze, Classical, Kingdoms, Gunpowder, Modern, Information, Future), tech, units incl. robot armies, buildings, wonders, diplomacy, governments, AI, events, art, pacing, saves |
+| `plans/qa-audit.md` | **phase Q**: the full QA, UX, gameplay, mechanics, AI and art audit (a ready prompt for an agent): every screen on 7 screen sizes, hands-on playthroughs, the art and terrain blend, and a fix plan with one work package per root cause, each tagged with a phase of this roadmap |
 | `plans/data/cities/*.json` | draft city names: 150 peoples x 20 real historical names (3,000), capital first, one file per region |
 | `.claude/skills/balance-sim/stateHash.sim.js` | the "nothing changed" check for refactors (whole-state hashes on fixed seeds) |
 
@@ -73,6 +74,11 @@ Big features go on a side branch; merge to `main` only when the user asks, then 
 22. Improve the **resolution and quality** of the map (finer tiles, real hillshade, land cover,
     rivers, a sharper globe); the decided look (real Earth, faint hexes) stays.
 
+**Quality**
+23. A **full QA audit (phase Q)** tests everything, plays the game hands-on, inspects the art
+    and its blend into the terrain, and writes a fix direction for every finding. It runs on
+    `claude/bronze-towns` first; it was stopped once for cost, so it runs in cheaper parts.
+
 ---
 
 ## 3. What is already done
@@ -103,7 +109,12 @@ Big features go on a side branch; merge to `main` only when the user asks, then 
 | 8 | **Ages 3. The Information split** (Modern 1900 to 1990, Information 1990 to 2100) | eras 16 | 3 sessions |
 | 9 | **Ages 4. The Future** (2100 to 2500, END_YEAR 2500, robot armies) | eras 16 | 4 to 5 sessions |
 | 10 | **Ages 5. Art and polish** (models, towns, wonders, icons, audio, historical names) | eras 16 | ongoing |
+| now, then after W4 and Ages 2 | **Q. Full QA audit** on `claude/bronze-towns`: UI on 7 screen sizes, mechanics and AI, hands-on play, art and terrain blend; output `qa-report/REPORT.md` and `FIX-PLAN.md` (work packages tagged with these phases). Run it in parts to keep the cost down (see the end of the plan); its "now" packages go before W0, the rest join their phase | qa-audit | 1 session per part (4 to 6) |
 | any | **M. Map quality**: measure, levels 6 and 7 from finer data, a smarter close-zoom shader, rivers and lakes, the globe, size and speed | peoples-and-world-setup 6b | 4 to 6 sessions, in parallel |
+
+Why Q comes first: W0 needs `claude/bronze-towns` merged in, so auditing that branch now
+catches its art and close view problems before they spread, and the fix plan feeds every phase
+after it. It is re-run after W4 (the new world is in) and after Ages 2 (the default start).
 
 Why this order: W0 to W3 change who exists on the map, and the Origins and Age of Cities designs
 build on independents; the ancient ages come before the late ones because every game plays the
@@ -134,6 +145,9 @@ once, in W0, with a migration that keeps old saves loading.
 - `scripts/build-edge-engine.test.mjs` times out only under full-suite load; passes alone.
 - The art branch `claude/bronze-towns` holds the town kits and `src/data/architecture.js`
   (themes); W0's "palaces by `nation.theme`" needs it merged or rebased in first.
+- Phase Q has a started Playwright harness in `qa-report/harness/` on branch
+  `qa/full-audit-2026-10-03` (seeded new game, screenshots per viewport, console capture). It was
+  built against `main` and never fully verified: copy it and check it first.
 - The city name drafts were not checked name by name on the web yet; W0 runs that check.
 - The peoples' capital coordinates are approximate; the W0 build script snaps them to tiles and
   re-checks the 3-hex spacing (all 150 passed on 2026-10-04; Haida moved to the mainland coast).
