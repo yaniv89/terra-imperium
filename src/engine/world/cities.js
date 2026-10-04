@@ -460,9 +460,26 @@ export const buyTileCost = (city, candidate) => candidate.cost * BUY_TILE_MULT;
 // Which maps are private belongs to one pass (a Set on the pass's world under PRIVATE): a map made
 // private this turn is shared state next turn and must be copied again before a write.
 const PRIVATE = Symbol('privateMaps');
+// The copy keeps V8's fast (array-like) elements. The maps are keyed by tile id, so an object built
+// in a scattered order sits in dictionary mode, where a spread costs about 1.5 us a key (11 to 20 ms
+// a turn for 7,000 to 12,000 owned tiles on the frequency-100 grid), and V8 only turns it back
+// into fast elements once it is dense enough for the highest id (2 x 3 x its hash capacity >= max
+// id, so later on a bigger grid). Rebuilt in ascending key order it gets fast elements, and its
+// spread is a block copy (0.6 ms). A spread copy has no headroom, so a claim above its highest id
+// can send it back to dictionary mode later in the game; then the next spread pays per key again
+// (typed ownership storage, plans/math/perf.md, is the full fix). Same keys, values and key order
+// either way, so the world never depends on which copy ran.
+const fastMaps = new WeakSet();
+const copyMap = (base) => {
+  let out;
+  if (fastMaps.has(base)) out = { ...base };
+  else { out = {}; const keys = Object.keys(base); for (let i = 0; i < keys.length; i++) out[keys[i]] = base[keys[i]]; }
+  fastMaps.add(out);
+  return out;
+};
 const ownMap = (world, key) => {
   const mine = world[PRIVATE] || (world[PRIVATE] = new Set());
-  if (!mine.has(world[key])) { const base = world[key]; world[key] = { ...base }; mine.add(world[key]); if (key === 'tileOwner') noteOwnerCopy(base, world[key]); }
+  if (!mine.has(world[key])) { const base = world[key]; world[key] = copyMap(base); mine.add(world[key]); if (key === 'tileOwner') noteOwnerCopy(base, world[key]); }
   return world[key];
 };
 /** The turn's working world with private (writable) ownership and tile-state maps, for settlers.js
