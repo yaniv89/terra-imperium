@@ -22,7 +22,7 @@ import { getSoldierGeometry, packForGPU, createSoldierMaterial, RIG_TIME, MODEL_
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
 import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, TIER_SCALE } from './scale';
+import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
 import { styleOfLand } from '../../../data/architecture';
@@ -156,6 +156,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
 
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
+    // town tiles, so no town grows into its neighbour (townGapUnits)
+    const townTiles = new Set(Object.values(state.regions).filter((r) => (r.owner || r.colony) && r.tile != null).map((r) => r.tile));
+    const isTown = (t) => townTiles.has(t);
     Object.keys(REGION_COORDINATES).forEach((id) => {
       const region = state.regions[id];
       if (!region || (!region.owner && !region.colony)) return;
@@ -215,7 +218,8 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       // the town's ground (and its wall ring) is claimed first; its fields come after the works
       // bigger towns drawn bigger, and no town reaching into the sea
       const radius = (campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0);
-      const ts = townUnitPx(k, radius, townRoomUnits(projection, getTiles(), region.tile) * k, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
+      const room = Math.min(townRoomUnits(projection, getTiles(), region.tile), townGapUnits(projection, getTiles(), region.tile, isTown));
+      const ts = townUnitPx(k, radius, room * k, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       mesh.position.set(at.x, -at.y, at.y * 0.05);

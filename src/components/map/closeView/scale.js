@@ -47,6 +47,30 @@ export const townRoomUnits = (projection, tiles, tile) => {
   return room;
 };
 
+/** Half the distance (projection units) from a town to the nearest other town within three rings,
+ * or Infinity: two towns never grow into each other. `isTown(tile)` says whether a tile holds a
+ * town (the close view and the banners build it once a frame from the cities). */
+export const townGapUnits = (projection, tiles, tile, isTown) => {
+  if (!projection || tile == null) return Infinity;
+  const at = (t) => { const { lat, lon } = tiles.latLonOf(t); return projection([lon, lat]); };
+  const c = at(tile);
+  let best = Infinity;
+  const seen = new Set([tile]);
+  let frontier = [tile];
+  for (let ring = 0; ring < 3; ring++) {
+    const next = [];
+    frontier.forEach((f) => (tiles.neighbors[f] || []).forEach((n) => {
+      if (seen.has(n)) return;
+      seen.add(n); next.push(n);
+      if (!isTown(n)) return;
+      const p = at(n);
+      if (c && p && Math.abs(p[0] - c[0]) < 50) best = Math.min(best, Math.hypot(p[0] - c[0], p[1] - c[1]) / 2);
+    }));
+    frontier = next;
+  }
+  return best;
+};
+
 // Where an army's soldiers stand, in model units from the province centre (screen x, screen y).
 export const ARMY_SPOT = { x: 2.4, y: 1.6 };
 // How far the models lean toward the viewer (radians about the screen x axis): the three-quarter

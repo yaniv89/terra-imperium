@@ -113,5 +113,5 @@ describe('exhaustive reachability guarantee — every province', () => {
       const lanes = getSeaLanesWithinReach(id, 'modern');
       expect(lanes.length, `${id} (${REGIONS_DATA[id]?.name}) has no Modern-age sea lane`).toBeGreaterThan(0);
     });
-  });
+  }, 30000); // every coastal city's lanes on the 100k-cell grid: about 6 s
 });

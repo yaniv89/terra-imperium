@@ -11,7 +11,7 @@ import { getNationColor } from '../../data/nationColors';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { townTier } from './closeView/townTiers';
-import { townUnitPx, townRoomUnits, TIER_SCALE } from './closeView/scale';
+import { townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './closeView/scale';
 import { getTiles } from '../../data/geo/tiles';
 
 const EDGE_PX = 80;
@@ -23,6 +23,8 @@ export const bannerOffsetPx = (modelRadius, pxPerUnit) => (modelRadius + 0.35) *
 const CityBanners = ({ projection, transform, width, height, onSelect, selectedRegion = null, playerColor }) => {
   const { state } = useGame();
   const cities = useMemo(() => Object.values(state.regions).filter((c) => c.owner || c.colony), [state.regions]);
+  const townTiles = useMemo(() => new Set(cities.filter((c) => c.tile != null).map((c) => c.tile)), [cities]);
+  const isTown = (t) => townTiles.has(t);
   if (!projection) return null;
   const k = transform.k;
   const out = [];
@@ -35,7 +37,8 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
     const radius = tier ? tier.modelRadius : 1;
     // the same size rule as the town itself (CloseViewLayer), walls included
     const capRadius = radius + ((city.buildings?.categories?.defense ?? -1) >= 0 ? 0.3 : 0);
-    const y = p[1] * k + transform.y + bannerOffsetPx(radius, townUnitPx(k, capRadius, townRoomUnits(projection, getTiles(), city.tile) * k, tier ? TIER_SCALE[tier.id] || 1 : 1));
+    const room = Math.min(townRoomUnits(projection, getTiles(), city.tile), townGapUnits(projection, getTiles(), city.tile, isTown));
+    const y = p[1] * k + transform.y + bannerOffsetPx(radius, townUnitPx(k, capRadius, room * k, tier ? TIER_SCALE[tier.id] || 1 : 1));
     if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;
     const owner = city.owner || city.colony?.ownerId;
     const own = owner === state.playerNationId;
