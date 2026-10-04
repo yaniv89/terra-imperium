@@ -133,17 +133,18 @@ const isWorkable = (tiles, id) => {
 // index is the same whatever order the cities were visited or founded in. Cached per cities map,
 // and a new map with the same cities (sizes and yields change every turn, centres and names almost
 // never) reuses the last index: the key is the sorted centres and names.
+// Stored per tile in an Int32Array (the blocking centre, -1 for none) with the centres' names
+// beside it, so copying the index for a new cities map is a block copy, not a 30,000-entry Map.
 const blockedCache = new WeakMap();
 let lastBlocked = { key: null, map: null, set: null };
-const markBlocked = (map, tiles, city) => {
-  let frontier = [city.tile]; const seen = new Set(frontier);
-  const claim = (t) => { const prev = map.get(t); if (!prev || prev.tile > city.tile) map.set(t, { tile: city.tile, name: city.name }); };
-  claim(city.tile);
-  for (let d = 1; d < MIN_CITY_SPACING; d++) {
-    const next = [];
-    frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); claim(n); } }));
-    frontier = next;
-  }
+const newBlockedIndex = (tiles) => ({ by: new Int32Array(tiles.count).fill(-1), names: new Map() });
+const copyBlockedIndex = (index) => ({ by: index.by.slice(), names: new Map(index.names) });
+/** The city blocking `tile` as { tile, name }, or undefined. */
+const blockerOf = (index, tile) => { const c = index.by[tile]; return c < 0 ? undefined : { tile: c, name: index.names.get(c) }; };
+const markBlocked = (index, tiles, city) => {
+  const { by } = index; const centre = city.tile;
+  if (!index.names.has(centre) || index.names.get(centre) !== city.name) index.names.set(centre, city.name);
+  for (const t of ringsAround(tiles, centre, MIN_CITY_SPACING - 1).keys()) { const prev = by[t]; if (prev < 0 || prev > centre) by[t] = centre; }
 };
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
@@ -157,10 +158,10 @@ const blockedTiles = (cities, tiles) => {
   const prev = lastBlocked.set;
   const set = new Set(list);
   if (prev && prev.size <= set.size && [...prev].every((k) => set.has(k))) {
-    map = new Map(lastBlocked.map);
+    map = copyBlockedIndex(lastBlocked.map);
     all.forEach((city) => { if (!prev.has(`${city.tile}:${city.name}`)) markBlocked(map, tiles, city); });
   } else {
-    map = new Map();
+    map = newBlockedIndex(tiles);
     all.forEach((city) => markBlocked(map, tiles, city));
   }
   blockedCache.set(cities, map);
@@ -172,7 +173,7 @@ const blockedTiles = (cities, tiles) => {
 const noteFoundedCity = (cities, tiles, city) => {
   let map = blockedCache.get(cities);
   if (!map) return;
-  if (lastBlocked.map === map) { map = new Map(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null, set: null }; }
+  if (lastBlocked.map === map) { map = copyBlockedIndex(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null, set: null }; }
   markBlocked(map, tiles, city);
 };
 
@@ -181,7 +182,7 @@ export const canFoundCity = (world, tiles, tile, nationId) => {
   if (tiles.terrainOf(tile) === 'snow' || tiles.featureOf(tile) === 'ice') return { ok: false, reason: 'Nothing can live on the ice.' };
   const owner = world.tileOwner[tile];
   if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, reason: 'This land belongs to another nation.' };
-  const near = blockedTiles(world.cities, tiles).get(tile);
+  const near = blockerOf(blockedTiles(world.cities, tiles), tile);
   if (near) return { ok: false, reason: `Too close to ${near.name}.` };
   return { ok: true };
 };
