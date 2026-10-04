@@ -9,11 +9,15 @@ the Europe scripts) -> `kingdoms-town-<size>-<v>-levant.glb`. Shared: `build_sha
 
 | File | LOD0 / LOD1 / LOD2 | Footprint | Height | Validation |
 |---|---|---|---|---|
-| kingdoms-town-small-b-levant | 16,211 / 2,463 / 310 | 40 m | | passed |
-| palace-small | 2,585 / 439 / 48 | 12 m | 12 m | passed |
-| palace | 3,646 / 508 / 120 | 14.7 m (with steps) | 18 m | passed |
-| walls-medium | 8,600 / 1,960 / 318 | 69 m | 15 m (pennants) | passed |
-| other five towns (1024 test / layout counts) | small-a 12,261 / 2,687 / 368; big-a about 54,500 / 8,000 / 800 | | | 2048 builds were still running |
+| kingdoms-town-small-a-levant | 12,261 / 2,687 / 368 | 41 m | 16 m | passed |
+| kingdoms-town-small-b-levant | 16,211 / 2,463 / 310 | 41 m | 12.5 m | passed |
+| kingdoms-town-medium-a-levant | 26,580 / 4,417 / 532 | 61 m | 20 m | passed |
+| kingdoms-town-medium-b-levant | 29,952 / 4,966 / 566 | 62 m | 20 m | passed |
+| kingdoms-town-big-a-levant | 55,191 / 8,033 / 810 | 82 m | 24 m | passed |
+| kingdoms-town-big-b-levant | 44,218 / 7,309 / 646 | 81 m | 24 m | passed |
+| palace-small (shared-kingdoms-levant) | 2,585 / 439 / 48 | 12 m | 12 m | passed |
+| palace (shared-kingdoms-levant) | 3,646 / 508 / 120 | 14.7 m (steps, pots) | 18 m | passed |
+| walls-medium (shared-kingdoms-levant) | 8,600 / 1,960 / 318 | 69 m | 15 m (pennants) | passed |
 
 ## Decisions
 - Houses by plot size: poor = mud-brick block with a walled yard, reed pergola, cloth or palm;
