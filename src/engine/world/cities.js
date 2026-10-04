@@ -43,6 +43,7 @@ import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTem
 import { navalLinesFor } from '../../data/navalLines';
 import { logisticGrowthMult, sizeToPeople as peopleForSize, foodForPeople, peopleOf } from '../population';
 import { noteOwnerCopy, noteOwnerWrite } from './tileIndex';
+import { CITY_SPACING_KM, spacingBlocks, spacingReach } from '../../data/geo/citySpacing';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -89,8 +90,9 @@ export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const IMPROVEMENT_COST_PER_TURN = 10;
 // Rings between city centres: about 300 km, so the city count stays near the old one on any grid
-// (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid).
-export const MIN_CITY_SPACING_KM = 306;
+// (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid). One ring less across
+// water, as in Civ VI: the rule lives in src/data/geo/citySpacing.js, shared with the starts.
+export const MIN_CITY_SPACING_KM = CITY_SPACING_KM;
 export const MIN_CITY_SPACING = ringsForKm(MIN_CITY_SPACING_KM);
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
@@ -128,7 +130,8 @@ const isWorkable = (tiles, id) => {
   return v === 1;
 };
 
-// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings): tile -> the name of the
+// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings, the last of them only on
+// the city's own landmass: citySpacing.js spacingBlocks): tile -> the name of the
 // blocking city. Where two cities block a tile, the one with the lower centre tile names it, so the
 // index is the same whatever order the cities were visited or founded in. Cached per cities map,
 // and a new map with the same cities (sizes and yields change every turn, centres and names almost
@@ -144,7 +147,10 @@ const blockerOf = (index, tile) => { const c = index.by[tile]; return c < 0 ? un
 const markBlocked = (index, tiles, city) => {
   const { by } = index; const centre = city.tile;
   if (!index.names.has(centre) || index.names.get(centre) !== city.name) index.names.set(centre, city.name);
-  for (const t of ringsAround(tiles, centre, MIN_CITY_SPACING - 1).keys()) { const prev = by[t]; if (prev < 0 || prev > centre) by[t] = centre; }
+  for (const [t, ring] of ringsAround(tiles, centre, spacingReach(tiles))) {
+    if (!spacingBlocks(tiles, centre, t, ring)) continue;
+    const prev = by[t]; if (prev < 0 || prev > centre) by[t] = centre;
+  }
 };
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
