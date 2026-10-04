@@ -14,7 +14,7 @@ Files: `classical-town-<size>-<v>-levant.glb`; the object inside keeps the base 
 | classical-town-small-a-levant | 22,726 / 4,092 / 550 | 41 m | 9.3 m | 3.3 MB | passed |
 | classical-town-small-b-levant | 19,260 / 4,046 / 670 | 41 m | 8.4 m | 3.2 MB | passed |
 | classical-town-medium-a-levant | 50,970 / 9,272 / 922 | 61 m | 13.5 m | 6.2 MB | passed |
-| MEDIUM_B_ROW |
+| classical-town-medium-b-levant | 44,804 / 8,528 / 994 | 61 m | 13.0 m | 5.7 MB | passed |
 
 Budgets: a whole town 60,000 / 10,000 / 1,500; one 2048 WebP atlas set per file. Previews:
 `<size>-<v>-levant-concept-vs-model.png` (the street sheet beside the model) and `-top.png`.
@@ -74,3 +74,6 @@ Budgets: a whole town 60,000 / 10,000 / 1,500; one 2048 WebP atlas set per file.
   sheet are not drawn (the base layouts pack plots too tightly).
 - Rich houses on south and east plots face the centre as in the base layout, so from the game
   camera some show their plain backs.
+- medium-b's Apadana faces east into the town, so the game camera (from the south) sees its
+  side with the end columns, not the six-column front.
+- Validation heights are the measured model heights (the tallest landmark), not sheet values.
