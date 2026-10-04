@@ -3,7 +3,7 @@ import { updateWarHeat, warContagionMult, heatKernel, HEAT_DECAY, HEAT_ALPHA, HE
 import { createInitialState } from '../context/GameContext';
 import { getTiles } from '../data/geo/tiles';
 import { getCapital } from '../data/regions';
-import { tileKm } from './geoKm';
+import { tileKm } from './tradeValue';
 
 describe('war contagion (Hawkes)', () => {
   it('the kernel falls with km and ends at the reach', () => {

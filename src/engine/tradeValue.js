@@ -22,7 +22,17 @@
 import { getTiles } from '../data/geo/tiles';
 import { getCapital } from '../data/regions';
 import { getTradeRoute } from './tradeRoutes';
-import { pathKm, tileKm } from './geoKm';
+import { distanceKm } from '../data/geo/geodesic';
+
+/** Km between two tiles (the shared exact distance), or Infinity when either is missing. */
+export const tileKm = (tiles, a, b) => (a == null || b == null || !tiles.centres[a] || !tiles.centres[b] ? Infinity : distanceKm(tiles.centres[a], tiles.centres[b]));
+
+/** The length in km of a path of adjacent tiles. */
+export const pathKm = (tiles, path) => {
+  let km = 0;
+  for (let i = 1; i < (path?.length || 0); i++) km += distanceKm(tiles.centres[path[i - 1]], tiles.centres[path[i]]);
+  return km;
+};
 
 export const TRADE_GRAVITY_G = 0.1;
 export const TRADE_DISTANCE_KM = 1000;

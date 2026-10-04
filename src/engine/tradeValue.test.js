@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { gravityMult, softCap, TRADE_GRAVITY_G, TRADE_DISTANCE_KM, TRADE_ROUTE_MAX_MULT, economySizes, routeKm } from './tradeValue';
-import { arcKm, pathKm, tileKm } from './geoKm';
+import { gravityMult, softCap, TRADE_GRAVITY_G, TRADE_DISTANCE_KM, TRADE_ROUTE_MAX_MULT, economySizes, routeKm, pathKm, tileKm } from './tradeValue';
 import { getTiles } from '../data/geo/tiles';
 import { distanceKm } from '../data/geo/geodesic';
 
-describe('geoKm', () => {
+describe('tile km', () => {
   const tiles = getTiles();
   it('is the shared exact great-circle distance', () => {
-    expect(arcKm(tiles.centres[0], tiles.centres[500])).toBe(distanceKm(tiles.centres[0], tiles.centres[500]));
+    expect(tileKm(tiles, 0, 500)).toBe(distanceKm(tiles.centres[0], tiles.centres[500]));
   });
   it('sums a path and handles missing tiles', () => {
     const t = 1000; const n = tiles.neighbors[t][0];

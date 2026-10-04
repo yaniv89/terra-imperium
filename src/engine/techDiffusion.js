@@ -18,8 +18,7 @@
 // nation, cached per turn, independent of the number of cells.
 import { getBorderingNationIds, getCapital } from '../data/regions';
 import { getTiles } from '../data/geo/tiles';
-import { tileKm } from './geoKm';
-import { economySizes } from './tradeValue';
+import { economySizes, tileKm } from './tradeValue';
 
 export const DIFFUSION_MAX = 0.3;
 export const TRADE_CONTACT_WEIGHT = 2;

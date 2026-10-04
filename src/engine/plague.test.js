@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sirStep, jumpChance, betaOf, linkWeight, seedPlague, spreadPlague, seedPlagueNear, BETA, MORTALITY, MIN_I, REACH_KM, LAND_KM, VISIBLE_I, BETA_TECHS, PLAGUE_EVENT_ORIGINS } from './plague';
 import { getTiles } from '../data/geo/tiles';
-import { arcKm } from './geoKm';
+import { distanceKm } from '../data/geo/geodesic';
 import { sizeToPeople } from './world/cities';
 
 describe('the SIR generation inside a city', () => {
@@ -91,7 +91,7 @@ describe('spreadPlague on real tiles', () => {
   it('a city far beyond every kernel is never reached by land', () => {
     const regions = build();
     const far = tiles.countryTiles.au[0];
-    expect(arcKm(tiles.centres[far], tiles.centres[regions.c0.tile])).toBeGreaterThan(10000);
+    expect(distanceKm(tiles.centres[far], tiles.centres[regions.c0.tile])).toBeGreaterThan(10000);
     regions.far = { id: 'far', name: 'Far', owner: 'au', tile: far, size: 6, food: 0, currentPopulation: sizeToPeople(6) };
     regions.c0 = seedPlague(regions.c0, 1, 0.5);
     for (let t = 2; t < 40; t++) spreadPlague(regions, t);

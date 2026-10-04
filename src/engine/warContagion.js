@@ -17,7 +17,7 @@
 // turn plus O(nations) per new war; independent of the grid, distances in km.
 import { getTiles } from '../data/geo/tiles';
 import { getCapital } from '../data/regions';
-import { tileKm } from './geoKm';
+import { tileKm } from './tradeValue';
 
 export const HEAT_ALPHA = 1;
 export const HEAT_DECAY = 0.85;      // about a 6-turn memory

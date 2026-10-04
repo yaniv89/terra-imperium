@@ -36,8 +36,8 @@
 // nothing.
 import { getTiles } from '../data/geo/tiles';
 import { getCapital } from '../data/regions';
-import { fromLatLon } from '../data/geo/geodesic';
-import { arcKm } from './geoKm';
+import { fromLatLonExact } from '../data/geo/geodesic';
+import { distanceKm } from '../data/geo/geodesic';
 import { drawPeople, sizeToPeople } from './world/cities';
 import { getTradeRoute } from './tradeRoutes';
 
@@ -147,7 +147,7 @@ export const spreadPlague = (regions, turn, ctx = {}) => {
     ids.forEach((dst) => {
       const b = regions[dst];
       if (dst === src || !susceptible(b) || b.plague?.i > 0) return;
-      const km = arcKm(ca, tiles.centres[b.tile]);
+      const km = distanceKm(ca, tiles.centres[b.tile]);
       if (km > SEA_REACH_KM || (km > REACH_KM && !aPort)) return;
       add(dst, ia * linkWeight(km, aPort && portOf(dst)));
     });
@@ -218,10 +218,10 @@ export const PLAGUE_EVENT_ORIGINS = {
 /** Seed an outbreak in the `cities` owned cities nearest a point (working `regions`, mutated). Returns their ids. */
 export const seedPlagueNear = (regions, { lat, lon, cities = 1, i = SEED_I }, turn) => {
   const tiles = getTiles();
-  const origin = fromLatLon(lat, lon);
+  const origin = fromLatLonExact(lat, lon);
   const near = Object.keys(regions)
     .filter((id) => susceptible(regions[id]))
-    .map((id) => ({ id, km: arcKm(origin, tiles.centres[regions[id].tile]) }))
+    .map((id) => ({ id, km: distanceKm(origin, tiles.centres[regions[id].tile]) }))
     .sort((a, b) => a.km - b.km || (a.id < b.id ? -1 : 1))
     .slice(0, cities);
   near.forEach(({ id }) => { regions[id] = seedPlague(regions[id], turn, i); });
