@@ -88,3 +88,15 @@ them never sees them in its list; the reason text says "Only a city on Israel's 
 - Art note for the model branch: both files stand on a large round ground disc in the `Town`
   material, which reads near black on the desert. Naming that disc's material `Ground` (as the
   towns do) lets the close view tint it into the land (groundBlend.js), or the disc can go.
+
+## 7. After merging claude/bronze-towns (the delivered models)
+
+The models (src/assets/map/wonders/solomons_temple.glb, masada.glb) came in with the merge of
+claude/bronze-towns; CloseViewLayer now draws the town landmarks (buildingLayer.js) and the
+wonders together, wonders claiming their ground first so landmarks keep clear of them. In the
+browser at zoom 100 (tiers 1, 2, 3):
+- Solomon's Temple tier 1 reads as an empty dark disc (the altar is a speck); tier 2 adds the
+  temple, tier 3 the side halls, which read well.
+- Masada's three tiers look almost the same at game zoom: the wall ring dominates; the inner
+  buildings and the northern palace hardly show.
+- Both stand on a dark ground disc in the `Town` material (see section 6).

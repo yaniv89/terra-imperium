@@ -32,9 +32,9 @@ import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from 
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
-import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { pickBuildingModels, buildingSpots, assignSpots, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
+import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 
 const TREE_KINDS = ['conifer', 'broad', 'palm'];
 const MAX_WORKS = 400;
@@ -256,7 +256,68 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
 
-  InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3
+    // Wonders on their own tiles (wonderAssets.js): the built tier's model at the towns' scale,
+    // in the owner's colour, on land only. Without a file the banner and the star stay alone.
+    const seenWonders = new Set();
+    wonders.forEach((w) => {
+      const url = wonderAssetUrl(w.projectId);
+      if (!t.assets.has(url)) {
+        t.assets.set(url, null);
+        loadAssetObjects(url).then((objs) => { t.assets.set(url, objs); setAssetsTick((n) => n + 1); })
+          .catch((e) => { console.warn('wonder model failed, the wonder keeps its banner:', e.message); });
+      }
+      const root = wonderTierObject(t.assets.get(url), w.tier);
+      if (!root) return;
+      const { lat, lon } = getTiles().latLonOf(w.tile);
+      const at = toScreenLatLng({ lat, lng: lon });
+      if (!at || !landAt(at.x, at.y)) return;
+      const teamColor = w.ownerId === state.playerNationId ? PLAYER_COLOR : (getNationColor(w.ownerId) || '#64748b');
+      const tint = tintAt(lat, lon);
+      const key = `${root.uuid}|${teamColor}|${tintKey(tint)}`;
+      let mesh = t.wonders.get(w.tile);
+      if (!mesh || mesh.userData.key !== key) {
+        if (mesh) scene.remove(mesh);
+        mesh = instanceTownAsset(root, teamColor, tint);
+        // its ground radius from the model itself (up to 120 m across), measured untransformed
+        const box = new Box3().setFromObject(mesh);
+        const r = box.isEmpty() ? WONDER_RADIUS : Math.max(Math.abs(box.min.x), Math.abs(box.max.x), Math.abs(box.min.z), Math.abs(box.max.z));
+        mesh.userData.radius = Math.max(1, Math.min(WONDER_RADIUS * 1.5, r || WONDER_RADIUS));
+        mesh.userData.key = key;
+        mesh.frustumCulled = false;
+        t.wonders.set(w.tile, mesh);
+        scene.add(mesh);
+      }
+      showLod(mesh, lodForZoom(k));
+      const radius = mesh.userData.radius;
+      const room = Math.min(townRoomUnits(projection, getTiles(), w.tile), townGapUnits(projection, getTiles(), w.tile, isTown));
+      const ws = townUnitPx(k, radius, room * k);
+      occ.claim(at.x, at.y, radius * ws);
+      mesh.position.set(at.x, -at.y, at.y * 0.05);
+      mesh.rotation.set(TILT, 0, 0);
+      mesh.scale.setScalar(ws);
+      mesh.visible = true;
+      seenWonders.add(w.tile);
+    });
+    t.wonders.forEach((mesh, tile) => { if (!seenWonders.has(tile)) mesh.visible = false; });
+
+    // Landmarks: each on the first free spot round its town (on land, and outside the wall only
+    // where nothing else stands), with the town's scale, tilt and level of detail.
+    t.buildings.begin(lodForZoom(k));
+    const spotMatrix = new Matrix4(); const placed = new Matrix4();
+    townBuildings.forEach(({ mesh, at, s: ts, picks, teamColor, tint }) => {
+      mesh.updateMatrix();
+      const accept = (spot) => {
+        const sx = at.x + spot.x * ts; const sy = at.y + spot.z * ts * lean;
+        const r = BUILDING_DISC * ts * 0.8;
+        if (![[0, 0], [r, 0], [-r, 0], [0, r * lean], [0, -r * lean]].every(([dx, dy]) => landAt(sx + dx, sy + dy))) return false;
+        return spot.inner || occ.take(sx, sy, BUILDING_DISC * ts);
+      };
+      assignSpots(picks, mesh.userData.spots, accept).forEach(({ model, spot }) => {
+        spotMatrix.makeRotationY(spot.yaw).setPosition(spot.x, 0, spot.z);
+        t.buildings.add(model.url, placed.multiplyMatrices(mesh.matrix, spotMatrix), teamColor, tint);
+      });
+    });
+    t.buildings.end();
 
     // The land: trees in the woods, a work on each improved tile (landscape.js).
     const lsTmp = new Object3D(); const lsColor = new Color();
