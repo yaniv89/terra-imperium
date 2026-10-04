@@ -708,13 +708,15 @@ TOWN_OBJECTS = [('palace-small', 3000, 400), ('palace', 3000, 400), ('walls-medi
 # The close view multiplies Ground by the land's tint (groundBlend.js), so a delivered Ground must be
 # as light and neutral as the base files' (shared-bronze.glb camp and fields, baked: mean HSV value
 # 0.375, saturation 0.315). Each object's Ground faces are baked from a re-toned copy of its atlas
-# whose texels under them average that; the camp's Town (tents) is lifted to at least value 0.28.
+# whose texels under them average that; the camp's tents and the fields' crops (Town) are lifted
+# to at least the value RETONE_TOWN gives.
 GROUND_TONE = (0.375, 0.315)
-RETONE_TOWN = {'colonycamp': 0.28}
+# camp tents, and field crops to the middle of the base fields' 0.23 to 0.38: (value, bake loss)
+RETONE_TOWN = {'colonycamp': (0.28, 0.55), 'field1': (0.30, 0.60), 'field2': (0.30, 0.60),
+               'field3': (0.30, 0.60), 'field4': (0.30, 0.60)}
 # what the bake keeps of the input (measured on the Israelite camp and fields): its AO darkens a flat
-# ground to about 0.90 and the tents (steep, self-shaded) to about 0.55; saturation comes out ~5% up
+# ground to about 0.90 (the Town losses are per object, above); saturation comes out ~5% up
 AO_LOSS = 0.90
-AO_LOSS_TOWN = 0.55
 SAT_GAIN = 1.05
 
 
@@ -816,7 +818,7 @@ def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
             mine = [p for p in parts.values() if p.key == key]
             ground = retoned(img, [p.lod0['ground'] for p in mine if 'ground' in p.lod0],
                              GROUND_TONE[0] / AO_LOSS, GROUND_TONE[1] / SAT_GAIN)
-            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], RETONE_TOWN[key] / AO_LOSS_TOWN,
+            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], RETONE_TOWN[key][0] / RETONE_TOWN[key][1],
                            floor_only=True) if key in RETONE_TOWN else None
             kit_material('nl_%s_town' % key, town or img)
             kit_material('nl_%s_team' % key, img)

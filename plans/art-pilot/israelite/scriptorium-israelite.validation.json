@@ -1,7 +1,7 @@
 {
   "file": "scriptorium-israelite.glb",
   "kind": "landmark",
-  "bytes": 494740,
+  "bytes": 494732,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "scriptorium-israelite": {
+    "scriptorium": {
       "lods": {
         "LOD0": {
           "triangles": 2172,

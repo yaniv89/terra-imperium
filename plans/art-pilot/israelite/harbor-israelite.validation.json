@@ -1,7 +1,7 @@
 {
   "file": "harbor-israelite.glb",
   "kind": "landmark",
-  "bytes": 266816,
+  "bytes": 266804,
   "checks": {
     "footprint_within_5pct": true,
     "height_within_5pct": true,
@@ -19,7 +19,7 @@
     "file_size": true
   },
   "objects": {
-    "harbor-israelite": {
+    "harbor": {
       "lods": {
         "LOD0": {
           "triangles": 697,
