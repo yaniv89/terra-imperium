@@ -6,7 +6,7 @@ Authoritative scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 l
 
 Built but not yet uploaded: 18. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
 
-**Quality review: 77 uploaded items require revision; 5 accepted. 345 items remain to finish.** Upload verification alone does not establish visual quality. Production is revising the affected batches: duplicated AO, dark world lighting, facade detail, material assignments and water blending. Corrected uploads are tracked separately below.
+**Quality review: 57 uploaded items require revision; 25 accepted. 325 items remain to finish.** Upload verification alone does not establish visual quality. Production is revising the affected batches: duplicated AO, dark world lighting, facade detail, material assignments and water blending. Corrected uploads are tracked separately below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |
 |---|---:|---:|---|
