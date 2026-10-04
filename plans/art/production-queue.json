@@ -3,7 +3,10 @@
   "target_items": 350,
   "in_game_count_from_source": 402,
   "uploaded_and_download_verified": 60,
-  "built_awaiting_upload": 0,
+  "quality_accepted": 0,
+  "uploaded_requiring_quality_revision": 60,
+  "remaining_to_finish": 350,
+  "built_awaiting_upload": 20,
   "remaining_to_upload": 290,
   "completed_checkpoints": [
     "01",
@@ -16,520 +19,520 @@
       "section": "kits",
       "description": "steppe / modern / landmark-1: a glass tower on a steppe square",
       "source": "ITEMS.md Part B",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/steppe/modern/landmark-2",
       "section": "kits",
       "description": "steppe / modern / landmark-2: a space launch gantry (Baikonur)",
       "source": "ITEMS.md Part B",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/steppe/modern/materials",
       "section": "kits",
       "description": "steppe / modern / materials",
       "source": "ITEMS.md Part B",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/materials",
       "section": "kits",
       "description": "indic / gunpowder / materials",
       "source": "ITEMS.md Part B",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/bronze/houses",
       "section": "kits",
       "description": "bronze Israelite houses; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/bronze/street",
       "section": "kits",
       "description": "bronze Israelite street; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/bronze/roofscape",
       "section": "kits",
       "description": "bronze Israelite roofscape; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/bronze/materials",
       "section": "kits",
       "description": "bronze Israelite materials; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/bronze/landmark-1",
       "section": "kits",
       "description": "Six-chamber city gate (Megiddo/Hazor/Gezer)",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/bronze/landmark-2",
       "section": "kits",
       "description": "Three-aisle pillared storehouse",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/palace-small-israelite",
       "section": "towns",
       "description": "bronze regional palace; archaeological form in theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/palace-israelite",
       "section": "towns",
       "description": "bronze regional palace; archaeological form in theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/walls-medium-israelite",
       "section": "towns",
       "description": "bronze Israelite wall kit",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/colony-camp-israelite",
       "section": "towns",
       "description": "bronze regional camp",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/field-1-israelite",
       "section": "towns",
       "description": "Shared early-age field asset; retain reuse across early ages",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/field-2-israelite",
       "section": "towns",
       "description": "Shared early-age field asset; retain reuse across early ages",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/field-3-israelite",
       "section": "towns",
       "description": "Shared early-age field asset; retain reuse across early ages",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/bronze/field-4-israelite",
       "section": "towns",
       "description": "Shared early-age field asset; retain reuse across early ages",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/classical/houses",
       "section": "kits",
       "description": "classical Israelite houses; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/classical/street",
       "section": "kits",
       "description": "classical Israelite street; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/classical/roofscape",
       "section": "kits",
       "description": "classical Israelite roofscape; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/classical/materials",
       "section": "kits",
       "description": "classical Israelite materials; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/classical/landmark-1",
       "section": "kits",
       "description": "Galilean synagogue (Capernaum/Gamla/Kfar Baram)",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/classical/landmark-2",
       "section": "kits",
       "description": "Herodian Phasael tower",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/classical/palace-small-israelite",
       "section": "towns",
       "description": "classical regional palace; archaeological form in theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/classical/palace-israelite",
       "section": "towns",
       "description": "classical regional palace; archaeological form in theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/classical/walls-medium-israelite",
       "section": "towns",
       "description": "classical Israelite wall kit",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/granary-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/barracks-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/shrine-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/copper_mine-israelite",
       "section": "buildings",
       "description": "bronze archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/irrigation-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/market-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/library-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/harbor-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/workshop-israelite",
       "section": "buildings",
       "description": "classical archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/buildings/scriptorium-israelite",
       "section": "buildings",
       "description": "kingdoms archaeological building; see theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/wonders/solomons_temple",
       "section": "wonders",
       "description": "Three separate tier objects in one file; archaeological reconstruction",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/wonders/masada",
       "section": "wonders",
       "description": "Three separate tier objects in one file; archaeological reconstruction",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/houses",
       "section": "kits",
       "description": "kingdoms Israelite houses; see authoritative theme brief",
       "source": "ITEMS.md Part C and israelite-theme.md",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/street",
       "section": "kits",
       "description": "kingdoms Israelite street; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/roofscape",
       "section": "kits",
       "description": "kingdoms Israelite roofscape; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/materials",
       "section": "kits",
       "description": "kingdoms Israelite materials; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/landmark-1",
       "section": "kits",
       "description": "Byzantine-period synagogue (Bet Alpha/Hammat Tiberias)",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/landmark-2",
       "section": "kits",
       "description": "Jerusalem medieval citadel tower",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/houses",
       "section": "kits",
       "description": "gunpowder Israelite houses; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/street",
       "section": "kits",
       "description": "gunpowder Israelite street; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/roofscape",
       "section": "kits",
       "description": "gunpowder Israelite roofscape; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/materials",
       "section": "kits",
       "description": "gunpowder Israelite materials; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/landmark-1",
       "section": "kits",
       "description": "Great domed synagogue (Hurva 1864)",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/landmark-2",
       "section": "kits",
       "description": "Ottoman city gate",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/modern/houses",
       "section": "kits",
       "description": "modern Israelite houses; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/modern/street",
       "section": "kits",
       "description": "modern Israelite street; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/modern/roofscape",
       "section": "kits",
       "description": "modern Israelite roofscape; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/modern/materials",
       "section": "kits",
       "description": "modern Israelite materials; see authoritative theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/modern/landmark-1",
       "section": "kits",
       "description": "Round, triangular and square office towers",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/kits/israelite/modern/landmark-2",
       "section": "kits",
       "description": "Kibbutz water tower",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/kingdoms/palace-small-israelite",
       "section": "towns",
       "description": "kingdoms regional palace; archaeological form in theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/kingdoms/palace-israelite",
       "section": "towns",
       "description": "kingdoms regional palace; archaeological form in theme brief",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/gunpowder/walls-medium-israelite",
       "section": "towns",
       "description": "gunpowder Israelite wall kit",
-      "delivery_status": "uploaded_verified"
+      "delivery_status": "uploaded_requires_quality_revision"
     },
     {
       "path": "plans/art/towns/modern/colony-camp-israelite",
       "section": "towns",
       "description": "modern regional camp",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/farm-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/plantation-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/pasture-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/fishing_boats-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/bronze/fort-bronze-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/modern/fort-modern-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/europe/modern/houses",
       "section": "kits",
       "description": "Regional europe modern houses",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/europe/modern/street",
       "section": "kits",
       "description": "Regional europe modern street",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/europe/modern/roofscape",
       "section": "kits",
       "description": "Regional europe modern roofscape",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/europe/modern/materials",
       "section": "kits",
       "description": "Regional europe modern materials",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/europe/modern/landmark-1",
       "section": "kits",
       "description": "Regional europe modern landmark-1",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/europe/modern/landmark-2",
       "section": "kits",
       "description": "Regional europe modern landmark-2",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/levant/bronze/houses",
       "section": "kits",
       "description": "Regional levant bronze houses",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/levant/bronze/street",
       "section": "kits",
       "description": "Regional levant bronze street",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/levant/bronze/roofscape",
       "section": "kits",
       "description": "Regional levant bronze roofscape",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/levant/bronze/materials",
       "section": "kits",
       "description": "Regional levant bronze materials",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/levant/bronze/landmark-1",
       "section": "kits",
       "description": "Regional levant bronze landmark-1",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/levant/bronze/landmark-2",
       "section": "kits",
       "description": "Regional levant bronze landmark-2",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/houses",
       "section": "kits",
       "description": "Regional indic gunpowder houses",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/street",
