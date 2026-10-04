@@ -85,5 +85,5 @@ the 2 wonders (checkpoint 02). The full list is in `plans/art/ITEMS.md`.
 ## Not started
 
 Section 4 buildings (34), section 5 wonders (15, three tiers each), section 6 tile improvements
-(19 sheets), section 7 units, settlers and ships (45), section 8 icons (130), and the Israelite
-theme (74). (The spec's own estimates said 20, 41 and 133; the counts here are from its tables.)
+(19 sheets), section 7 units, settlers and ships (45), section 8 icons (130).
+(The spec's own estimates said 20, 41 and 133; the counts here are from its tables.)
