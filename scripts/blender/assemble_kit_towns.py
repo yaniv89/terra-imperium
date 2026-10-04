@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bpy  # noqa: E402
 import bmesh  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
+import numpy as np  # noqa: E402
 import ti_map as tm  # noqa: E402
 import ti_town as tt  # noqa: E402
 
@@ -704,6 +705,88 @@ TOWN_OBJECTS = [('palace-small', 3000, 400), ('palace', 3000, 400), ('walls-medi
                 ('field-3', 1450, 290), ('field-4', 1450, 290)]
 
 
+# The close view multiplies Ground by the land's tint (groundBlend.js), so a delivered Ground must be
+# as light and neutral as the base files' (shared-bronze.glb camp and fields, baked: mean HSV value
+# 0.375, saturation 0.315). Each object's Ground faces are baked from a re-toned copy of its atlas
+# whose texels under them average that; the camp's Town (tents) is lifted to at least value 0.28.
+GROUND_TONE = (0.375, 0.315)
+RETONE_TOWN = {'colonycamp': 0.28}
+# what the bake keeps of the input (measured on the Israelite camp and fields): its AO darkens a flat
+# ground to about 0.90 and the tents (steep, self-shaded) to about 0.55; saturation comes out ~5% up
+AO_LOSS = 0.90
+AO_LOSS_TOWN = 0.55
+SAT_GAIN = 1.05
+
+
+def _hsv(rgb):
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    d = mx - mn
+    h = np.zeros_like(mx)
+    nz = d > 1e-6
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    i = nz & (mx == r)
+    h[i] = ((g[i] - b[i]) / d[i]) % 6
+    i = nz & (mx == g) & (mx != r)
+    h[i] = (b[i] - r[i]) / d[i] + 2
+    i = nz & (mx == b) & (mx != r) & (mx != g)
+    h[i] = (r[i] - g[i]) / d[i] + 4
+    return h / 6, np.where(mx > 1e-6, d / np.maximum(mx, 1e-6), 0), mx
+
+
+def _rgb(h, s, v):
+    h6 = (h * 6) % 6
+    c = v * s
+    x = c * (1 - np.abs(h6 % 2 - 1))
+    z = np.zeros_like(h)
+    k = np.floor(h6).astype(int)
+    r = np.choose(k, [c, x, z, z, x, c], mode='clip')
+    g = np.choose(k, [x, c, c, x, z, z], mode='clip')
+    b = np.choose(k, [z, z, x, c, c, x], mode='clip')
+    return np.stack([r, g, b], -1) + (v - c)[..., None]
+
+
+def _texels(image, bms):
+    """The image's texels (H, W, 4 array, rows from the bottom) and those under the faces of `bms`
+    (through their 'orig' UVs), sampled at four points per triangle."""
+    w, h = image.size
+    px = np.array(image.pixels[:], dtype=np.float32).reshape(h, w, 4)
+    pts = []
+    for bm in bms:
+        uv = bm.loops.layers.uv.get('orig')
+        for f in bm.faces:
+            co = [l[uv].uv for l in f.loops]
+            for k in range(1, len(co) - 1):
+                a, b, c = co[0], co[k], co[k + 1]
+                for r1, r2 in ((0.33, 0.33), (0.6, 0.2), (0.2, 0.6), (0.2, 0.2)):
+                    pts.append((a.x + r1 * (b.x - a.x) + r2 * (c.x - a.x), a.y + r1 * (b.y - a.y) + r2 * (c.y - a.y)))
+    if not pts:
+        return px, None
+    q = np.array(pts) % 1.0
+    return px, px[(q[:, 1] * h).astype(int).clip(0, h - 1), (q[:, 0] * w).astype(int).clip(0, w - 1), :3]
+
+
+def retoned(image, bms, value, sat=None, floor_only=False):
+    """A copy of `image` with HSV value (and saturation) scaled so the texels under `bms` average
+    `value` (`sat`); floor_only leaves an image that is already that light alone. None if no faces."""
+    px, under = _texels(image, bms)
+    if under is None:
+        return None
+    _h, s0, v0 = _hsv(under)
+    gv = value / max(1e-3, v0.mean())
+    if floor_only and gv <= 1.0:
+        return None
+    gs = sat / max(1e-3, s0.mean()) if sat else 1.0
+    hh, ss, vv = _hsv(px[..., :3])
+    out = px.copy()
+    out[..., :3] = _rgb(hh, np.clip(ss * gs, 0, 1), np.clip(vv * gv, 0, 1))
+    img = bpy.data.images.new(image.name + '_retone', image.size[0], image.size[1], alpha=True)
+    img.colorspace_settings.name = image.colorspace_settings.name
+    img.pixels[:] = out.ravel()
+    img.pack()
+    print('retone', image.name, 'value %.3f -> x%.2f' % (v0.mean(), gv), 'sat %.3f -> x%.2f' % (s0.mean(), gs))
+    return img
+
+
 def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
     """shared-<age>-<style>.glb from <towns_dir>/<name>-<style>/model.glb for each object present.
     Camps and fields keep their delivered ground (material role 'ground', exported as Ground)."""
@@ -730,8 +813,14 @@ def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
         parts, images = load_kit(paths, lambda p: min(1.0, budgets[p.key][0] * 0.95 / tris_by_key[p.key]),
                                  lambda p: budgets[p.key][1] * p.tris / tris_by_key[p.key])
         for key, img in images.items():
-            for role in ROLES:
-                kit_material('nl_%s_%s' % (key, role), img)
+            mine = [p for p in parts.values() if p.key == key]
+            ground = retoned(img, [p.lod0['ground'] for p in mine if 'ground' in p.lod0],
+                             GROUND_TONE[0] / AO_LOSS, GROUND_TONE[1] / SAT_GAIN)
+            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], RETONE_TOWN[key] / AO_LOSS_TOWN,
+                           floor_only=True) if key in RETONE_TOWN else None
+            kit_material('nl_%s_town' % key, town or img)
+            kit_material('nl_%s_team' % key, img)
+            kit_material('nl_%s_ground' % key, ground or img)
         state['parts'] = parts
     keys = list(paths)
     register_materials(['nl_%s_%s' % (k, r) for k in keys for r in ROLES], team=['nl_%s_team' % k for k in keys],
