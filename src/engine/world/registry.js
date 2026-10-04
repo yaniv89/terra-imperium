@@ -97,6 +97,13 @@ const ringsBetweenRaw = (tiles, from, to, maxRing) => {
 // Static facts of a tile, memoised for good: the tiles within NEAR_RINGS of a centre, its old
 // terrain word, its lat/lon, and whether it touches the sea (a lake does not count).
 const nearTilesMemo = new Map();
+const centreFacts = new Map();
+let seaTouch = null; // Int8Array: -1 unknown, 0 no, 1 yes
+let staticFor = null; // the grid the memos above belong to
+const forGrid = (tiles) => {
+  if (staticFor === tiles) return;
+  staticFor = tiles; ringCache.clear(); nearTilesMemo.clear(); centreFacts.clear(); seaTouch = new Int8Array(tiles.count).fill(-1);
+};
 const nearTilesOf = (tiles, centre) => {
   let hit = nearTilesMemo.get(centre);
   if (hit) return hit;
@@ -110,15 +117,12 @@ const nearTilesOf = (tiles, centre) => {
   nearTilesMemo.set(centre, hit);
   return hit;
 };
-const centreFacts = new Map();
 const centreFactsOf = (tiles, tile) => {
   let hit = centreFacts.get(tile);
   if (!hit) { const { lat, lon } = tiles.latLonOf(tile); hit = { lat, lon, terrain: legacyTerrainOf(tiles, tile) }; centreFacts.set(tile, hit); }
   return hit;
 };
-let seaTouch = null; // Int8Array: -1 unknown, 0 no, 1 yes
 const touchesSea = (tiles, t) => {
-  if (!seaTouch || seaTouch.length !== tiles.count) seaTouch = new Int8Array(tiles.count).fill(-1);
   if (seaTouch[t] < 0) seaTouch[t] = tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake') ? 1 : 0;
   return seaTouch[t] === 1;
 };
@@ -132,6 +136,7 @@ export const buildRegistry = (regions) => {
   const tiles = getTiles();
   const out = { regions: {}, coordinates: {}, capitals: {} };
   const cities = Object.values(regions).filter((c) => c && c.tile != null);
+  forGrid(tiles);
   if (!ownerBuf || ownerBuf.length !== tiles.count) { ownerBuf = new Int32Array(tiles.count); centreBuf = new Int32Array(tiles.count); }
   ownerBuf.fill(-1); centreBuf.fill(-1);
   // Per city: the indices of its neighbours and of the cities it touches, deduplicated with two

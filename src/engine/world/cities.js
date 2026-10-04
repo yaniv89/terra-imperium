@@ -98,49 +98,51 @@ export const ringDistance = (tiles, from, to, maxRing = 6) => {
   return Infinity;
 };
 
-const isWorkable = (tiles, id) => tiles.land[id] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(id));
+// Static per tile: memoised in a flat array (1 workable, 2 not, 0 not yet asked).
+let workableMemo = null; let workableFor = null;
+const isWorkable = (tiles, id) => {
+  if (workableFor !== tiles) { workableFor = tiles; workableMemo = new Uint8Array(tiles.count); }
+  let v = workableMemo[id];
+  if (!v) { v = tiles.land[id] === 1 || ['coast', 'lake'].includes(tiles.terrainOf(id)) ? 1 : 2; workableMemo[id] = v; }
+  return v === 1;
+};
 
-// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings), cached per cities map:
-// the AI asks about hundreds of sites a turn, and a ring walk per city per site was the cost.
-// A new cities map with the same cities (sizes and yields change every turn, centres and names
-// almost never) reuses the last index: the key is the cities' centres and names in map order.
+// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings): tile -> the name of the
+// blocking city. Where two cities block a tile, the one with the lower centre tile names it, so the
+// index is the same whatever order the cities were visited or founded in. Cached per cities map,
+// and a new map with the same cities (sizes and yields change every turn, centres and names almost
+// never) reuses the last index: the key is the sorted centres and names.
 const blockedCache = new WeakMap();
 let lastBlocked = { key: null, map: null };
+const markBlocked = (map, tiles, city) => {
+  let frontier = [city.tile]; const seen = new Set(frontier);
+  const claim = (t) => { const prev = map.get(t); if (!prev || prev.tile > city.tile) map.set(t, { tile: city.tile, name: city.name }); };
+  claim(city.tile);
+  for (let d = 1; d < MIN_CITY_SPACING; d++) {
+    const next = [];
+    frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); claim(n); } }));
+    frontier = next;
+  }
+};
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
   if (map) return map;
-  const list = Object.values(cities);
-  let key = '';
-  for (let i = 0; i < list.length; i++) key += `${list[i].tile}:${list[i].name}|`;
+  const list = Object.values(cities).map((c) => `${c.tile}:${c.name}`).sort();
+  const key = list.join('|');
   if (lastBlocked.key === key) { blockedCache.set(cities, lastBlocked.map); return lastBlocked.map; }
   map = new Map();
-  Object.values(cities).forEach((city) => {
-    let frontier = [city.tile]; const seen = new Set(frontier);
-    map.set(city.tile, city.name);
-    for (let d = 1; d < MIN_CITY_SPACING; d++) {
-      const next = [];
-      frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); if (!map.has(n)) map.set(n, city.name); } }));
-      frontier = next;
-    }
-  });
+  Object.values(cities).forEach((city) => markBlocked(map, tiles, city));
   blockedCache.set(cities, map);
   lastBlocked = { key, map };
   return map;
 };
 // A city founded into a cities map that is written in place (processSettlers): its ring joins the
-// cached index instead of a rebuild per founding.
+// cached index instead of a rebuild per founding (on a copy when the index is shared).
 const noteFoundedCity = (cities, tiles, city) => {
   let map = blockedCache.get(cities);
   if (!map) return;
-  // The index may be shared with other cities maps that do not hold the new city: write a copy.
   if (lastBlocked.map === map) { map = new Map(map); blockedCache.set(cities, map); lastBlocked = { key: null, map: null }; }
-  let frontier = [city.tile]; const seen = new Set(frontier);
-  map.set(city.tile, city.name);
-  for (let d = 1; d < MIN_CITY_SPACING; d++) {
-    const next = [];
-    frontier.forEach((t) => tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); if (!map.has(n)) map.set(n, city.name); } }));
-    frontier = next;
-  }
+  markBlocked(map, tiles, city);
 };
 
 export const canFoundCity = (world, tiles, tile, nationId) => {
@@ -149,7 +151,7 @@ export const canFoundCity = (world, tiles, tile, nationId) => {
   const owner = world.tileOwner[tile];
   if (owner && world.cities[owner]?.ownerId !== nationId) return { ok: false, reason: 'This land belongs to another nation.' };
   const near = blockedTiles(world.cities, tiles).get(tile);
-  if (near) return { ok: false, reason: `Too close to ${near}.` };
+  if (near) return { ok: false, reason: `Too close to ${near.name}.` };
   return { ok: true };
 };
 
