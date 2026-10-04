@@ -208,7 +208,7 @@ def drain(ms, f, x0, x1, y, pit=None, lod=1):
     cx = (x0 + x1) / 2
     for sy in (-1, 1):
         ms.box('inb_drain', (length, 0.012, 0.012), at=(cx, y + sy * 0.019, G), lod=lod, frame=f)
-    ms.box('inb_water', (length, 0.028, 0.005), at=(cx, y, G + 0.002), lod=lod, frame=f)
+    ms.box('inb_water', (length, 0.028, 0.005), at=(cx, y, G + 0.002), lod=0, frame=f)
     px = cx if pit is None else pit
     ms.box('inb_brick', (0.05, 0.055, 0.024), at=(px, y, G), lod=lod, frame=f)
     ms.box('dark', (0.03, 0.03, 0.003), at=(px, y, G + 0.023), lod=0, frame=f)
@@ -374,7 +374,7 @@ def back_yard(ms, rng, f, w, d, yard):
     rect(ms, f, 'inb_brick', -w / 2 + 0.01, -w / 2 + 0.01 + t, y0, y1, G, yh, lod=1)
     rect(ms, f, 'inb_brick', w / 2 - 0.01 - t, w / 2 - 0.01, y0, y1, G, yh, lod=1)
     rect(ms, f, 'inb_brick', -w / 2 + 0.01, w / 2 - 0.01, y1 - t, y1, G, yh, lod=1)
-    rect(ms, f, 'inb_plaster', -w / 2 + 0.03, w / 2 - 0.03, y0, y1 - t, G, 0.003, lod=1)
+    rect(ms, f, 'inb_plaster', -w / 2 + 0.03, w / 2 - 0.03, y0, y1 - t, G, 0.003, lod=0)
     r = rng.random()
     cy = (y0 + y1) / 2
     if r < 0.45:
