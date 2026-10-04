@@ -46,9 +46,9 @@ def layout(ms, rng):
     sc.court_wall(ms, 0.4, 1.8, 1.7, 1.8, gaps=((0.5, 0.22),))
     sc.court_wall(ms, -1.75, -1.6, -1.75, 1.5, gaps=((0.2, 0.2), (0.55, 0.2), (0.88, 0.2)))
     # the east courtyard wall with the gate tower set in it (the passage runs east to west)
-    sc.gate_tower(ms, rng, 1.8, 0.5, w=0.9, d=0.6, top=1.0, yaw=-90)
-    sc.court_wall(ms, 1.8, -1.6, 1.8, 0.05, gaps=((0.45, 0.2),))
-    sc.court_wall(ms, 1.8, 0.95, 1.8, 1.5)
+    sc.gate_tower(ms, rng, 1.75, 0.5, w=0.9, d=0.6, top=1.0, yaw=-90)
+    sc.court_wall(ms, 1.75, -1.6, 1.75, 0.05, gaps=((0.45, 0.2),))
+    sc.court_wall(ms, 1.75, 0.95, 1.75, 1.5)
     for slot in SLOTS:
         sc.sinic_house(ms, rng, slot)
     for side in (-1, 1):
