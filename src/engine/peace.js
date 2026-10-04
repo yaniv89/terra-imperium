@@ -17,7 +17,7 @@ import { getFormerOwnerOnConquest } from '../data/rebellion';
 import { applyAggressiveExpansion } from './expansion';
 import { aeMultFor, claimOn } from './claims';
 import { addNationModifier } from './modifiers/timed';
-import { getEffectiveMilitaryPower } from './aiEconomy';
+import { warOdds, exposure, prizeOf, DECISIVE } from './warOdds';
 import { getPool } from './nationState';
 import { clampPrestige, clampStability } from './nationalPower';
 import {
@@ -87,38 +87,43 @@ export const getMaxPeaceCost = (war, offererId) => {
   return Math.min(100, Math.max(0, offererScore) + 10);
 };
 
-// The recipient's acceptance ledger — positive components make accepting more likely, negative
-// ones make it less likely. `accepted` iff the total covers the terms' combined cost.
+// The recipient's acceptance ledger: the bargaining model of war (plans/math-ideas.md 3.3, see
+// warOdds.js and plans/math/ai.md). The recipient takes a deal worth more to it than fighting on.
+// Fighting on is a lottery: the offerer wins with p (the Lanchester war odds as the RECIPIENT sees
+// the armies, so a hidden army is a bluff it can fall for), and then takes what is exposed; the
+// recipient wins with 1 - p and takes what the offerer has exposed. Both pay to keep fighting.
+//   War situation          the war score: what the offerer already holds and has won
+//   Odds if the war goes on DECISIVE x (p x risk - (1 - p) x gain), within ±OUTLOOK_CAP (risk and
+//                          gain in peace-cost units, warOdds.js exposure and prizeOf)
+//   War exhaustion, War weariness   the price of fighting on
+//   Capital secure, Demands include capital   what is at stake beyond the terms
+// Positive lines make accepting more likely. `accepted` iff the total covers the terms' cost.
+// "Losing slowly" and "about to lose" now differ: the second has p near 1 against a big exposure.
+export const OUTLOOK_CAP = 30;
 export const getPeaceAcceptance = (state, war, offererId, terms) => {
   const recipientId = otherSide(war, offererId);
   const recipient = state.nations[recipientId];
-  const offerer = state.nations[offererId];
   const offererScore = offererId === war.aggressor ? (war.score || 0) : -(war.score || 0);
   const recipientCapitalId = getCapital(state, recipientId);
   const recipientCapitalOccupied = !!recipientCapitalId && state.regions[recipientCapitalId]?.occupiedBy === offererId;
-  // Plan §M16: real fielded strength (plus a damped abstract-garrison component for a nation that
-  // hasn't recruited much) now weighs the "Military balance" line, not the abstract militaryStrength
-  // number alone — src/engine/aiEconomy.js's getEffectiveMilitaryPower is the same metric
-  // getSortedByMilitary uses. Scaling both sides by the same abstract-garrison factor leaves a
-  // fresh, unitless fixture's ratio exactly as it was before this change (only real, divergent
-  // armies actually move it).
-  const offererStrength = offerer ? getEffectiveMilitaryPower(state, offererId) || 1 : 1;
-  const recipientStrength = recipient ? getEffectiveMilitaryPower(state, recipientId) || 1 : 1;
-  const strengthShare = offererStrength / (offererStrength + recipientStrength);
+  const p = state.nations[offererId] && recipient ? warOdds(state, offererId, recipientId, recipientId) : 0.5;
+  const risk = recipient ? exposure(state, recipientId, offererId) : 0;
+  const gain = recipient ? prizeOf(state, recipientId, offererId) : 0;
+  const outlook = Math.max(-OUTLOOK_CAP, Math.min(OUTLOOK_CAP, DECISIVE * (p * risk - (1 - p) * gain)));
   const turnsAtWar = Math.max(0, (state.turnNumber || 0) - (war.startTurn ?? state.turnNumber ?? 0));
   const cedesCapital = terms.some((t) => t.type === 'cede' && t.regionId === recipientCapitalId);
 
   const breakdown = [
     { label: 'War situation', value: Math.round(offererScore) },
     { label: 'War exhaustion', value: Math.round(0.4 * (recipient?.warExhaustion || 0)) },
-    { label: 'Military balance', value: Math.round(20 * (2 * strengthShare - 1)) },
+    { label: 'Odds if the war goes on', value: Math.round(outlook), detail: `${Math.round(100 * (1 - p))}% to win it` },
     { label: 'War weariness', value: Math.round(Math.min(10, turnsAtWar / 5)) },
     { label: 'Capital secure', value: recipientCapitalOccupied ? 0 : -10 },
     { label: 'Demands include capital', value: cedesCapital ? -15 : 0 }
   ];
   const total = Math.round(breakdown.reduce((sum, line) => sum + line.value, 0));
   const cost = getPeaceCost(state, war, offererId, terms);
-  return { total, cost, accepted: total >= cost, breakdown };
+  return { total, cost, accepted: total >= cost, breakdown, odds: p };
 };
 
 // Applies an agreed (or enforced) set of terms. Pure — returns the new regions/nations/resources
