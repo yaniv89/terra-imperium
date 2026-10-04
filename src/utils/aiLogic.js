@@ -34,6 +34,7 @@ import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCo
 import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
 import { warContagionMult } from '../engine/warContagion';
+import { warValue, WAR_COST } from '../engine/warOdds';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -274,12 +275,21 @@ export const processAIRecruitment = (state, units, nations, regions, sortedByMil
   return { units: nextUnits, nations: nextNations, logs };
 };
 
-// Among a nation's bordering nations (including the player) it isn't already fighting, the weakest
-// one — "attacks the weakest valuable region reachable", not the nearest pixel, per the plan. A
-// neighbour already at war elsewhere counts as weaker (its army is split between fronts). A
-// coalition member with a valid shot at the runaway leader ignores that and goes straight for the
-// leader instead, regardless of how it compares to other neighbors — that's the whole point of
-// ganging up on it.
+// Among a nation's bordering nations (including the player) it isn't already fighting, the one
+// whose war is worth the most to it (plans/math/ai.md, the bargaining model in warOdds.js):
+// EV = DECISIVE x (p x gain - (1 - p) x risk) - cost, where p is the Lanchester war odds over
+// the armies it can see (a neighbour busy in other wars has its army split between fronts), gain
+// the neighbour's development touching its land and risk its own touching theirs. No war is worth
+// it (every EV <= 0): no target, so the roll passes without a war. A bold doctrine or ruler prices
+// the war cheaper (WAR_TEMPER_MIN..MAX). A coalition member with a valid shot at the runaway
+// leader ignores all that and goes straight for the leader — that's the whole point of ganging up.
+export const WAR_TEMPER_MIN = 0.5;
+export const WAR_TEMPER_MAX = 2;
+export const warTemper = (nation) => Math.max(WAR_TEMPER_MIN, Math.min(WAR_TEMPER_MAX, (DOCTRINES[nation?.doctrine] || DEFAULT_DOCTRINE).warRollMult * rulerWarMult(nation || {})));
+export const rankWarTargets = (state, nationId, candidates) => {
+  const cost = WAR_COST / warTemper(state.nations[nationId]);
+  return candidates.map((id) => ({ id, ...warValue(state, nationId, id, { cost }) })).sort((a, b) => b.ev - a.ev || (a.id < b.id ? -1 : 1));
+};
 const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = null) => {
   // Plan §M12/M13: the AI never breaks a truce (isInTruce, src/engine/diplomacy.js) — a
   // truce-active neighbor is filtered out of consideration entirely.
@@ -289,8 +299,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
-  const effective = (id) => state.nations[id].militaryStrength / (1 + countActiveWars(state.wars, id));
-  return candidates.reduce((weakest, id) => (effective(id) < effective(weakest) ? id : weakest), candidates[0]);
+  const best = rankWarTargets(state, nationId, candidates)[0];
+  return best && best.ev > 0 ? best.id : null;
 };
 
 // `opinionMult`: the opinion factor (opinion.js warRollOpinionMult) of this nation's view of the

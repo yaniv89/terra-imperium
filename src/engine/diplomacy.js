@@ -15,6 +15,7 @@ import { resolveSiegeControlDamage } from './siege';
 import { TRUCE_DURATION_TURNS, TRADE_PACT_BASE_CAPACITY, INDEPENDENCE_WAR_WIN_SCORE } from '../data/actionCosts';
 import { getNationTotalDev, getTotalDev } from './development';
 import { applyPeace, buildAITerms, getPeaceAcceptance } from './peace';
+import { strengthOdds } from './lanchester';
 import { devastateRegion, applyBattleWarExhaustion } from './aftermath';
 import { leansPositive, leansNegative } from '../data/identity';
 import { createDefenseRecord, getGarrison, PLAYER_DEFENDED_CAPTURE_MULT } from './defense';
@@ -369,6 +370,10 @@ const PEACE_SCORE_OFFER_THRESHOLD = 30;    // the AI offers the player peace onc
 const PEACE_SCORE_ENFORCE_THRESHOLD = 90;  // an overwhelming win enforces peace outright, no offer needed
                                             // (trim: the plan's own "held for 3 turns" streak isn't tracked)
 const AI_VS_AI_PEACE_SCORE_THRESHOLD = 25;
+// Below that score, two AI nations sign a white peace once both would accept one (their outlooks
+// have converged), checked every CONVERGE_PERIOD turns after CONVERGE_MIN_TURNS of war.
+export const CONVERGE_MIN_TURNS = 25;
+export const CONVERGE_PERIOD = 5;
 // Exported so gameReducer's REJECT_PENDING_PEACE case can reuse the same cadence when the player
 // turns an offer down, rather than the AI immediately re-offering next turn.
 export const PEACE_OFFER_COOLDOWN_TURNS = 5;
@@ -447,8 +452,10 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         if (targetRegion && targetRegion.owner === currentWar.enemy && targetRegion.occupiedBy !== currentWar.aggressor) {
           const updatedAggressor = nextNations[currentWar.aggressor];
           const updatedDefender = nextNations[currentWar.enemy];
-          const totalStrength = updatedAggressor.militaryStrength + updatedDefender.militaryStrength;
-          const aggressorShare = updatedAggressor.militaryStrength / totalStrength;
+          // The aggressor's odds by the Lanchester square law (lanchester.js), not a raw share: the
+          // larger side wins disproportionately. Equal armies still give 0.5.
+          const { power } = strengthOdds(updatedAggressor.militaryStrength, updatedDefender.militaryStrength);
+          const aggressorShare = power === Infinity ? 1 : power / (1 + power);
           // A garrisoned player region is decided by a real battle instead (Tactical Battles plan
           // §16). The garrison can now win, so the roll fires more often to keep expected losses
           // where they were (PLAYER_DEFENDED_CAPTURE_MULT, calibrated in defense.test.js).
@@ -555,6 +562,11 @@ export const resolveWarProgress = (state, regions, nations, wars, rng) => {
         // Trim: the plan's own "score 100 held for 3 turns" enforcement streak isn't tracked —
         // a sufficiently lopsided score enforces immediately instead.
         if (leaderScore >= PEACE_SCORE_ENFORCE_THRESHOLD || acceptance.accepted) return concludeWar(currentWar, leaderId, terms, snapshotState);
+      } else if (state.turnNumber - (currentWar.startTurn ?? state.turnNumber) >= CONVERGE_MIN_TURNS && state.turnNumber % CONVERGE_PERIOD === 0
+        && getPeaceAcceptance(snapshotState, currentWar, currentWar.aggressor, []).accepted && getPeaceAcceptance(snapshotState, currentWar, currentWar.enemy, []).accepted) {
+        // The bargaining model (peace.js, warOdds.js): neither side is winning and both expect
+        // fighting on to cost more than it can bring, so their estimates have converged: white peace.
+        return concludeWar(currentWar, currentWar.aggressor, [], snapshotState);
       }
       return currentWar;
     }

@@ -6,12 +6,8 @@ import { distanceKm } from '../data/geo/geodesic';
 
 describe('geoKm', () => {
   const tiles = getTiles();
-  it('matches the great-circle distance within 0.1% up to 8,000 km', () => {
-    [[0, 1], [0, 500], [100, 9000], [20, 30000], [5, 16000]].forEach(([a, b]) => {
-      const exact = distanceKm(tiles.centres[a], tiles.centres[b]);
-      if (exact > 8000) return;
-      expect(Math.abs(arcKm(tiles.centres[a], tiles.centres[b]) - exact)).toBeLessThan(exact * 0.001 + 0.01);
-    });
+  it('is the shared exact great-circle distance', () => {
+    expect(arcKm(tiles.centres[0], tiles.centres[500])).toBe(distanceKm(tiles.centres[0], tiles.centres[500]));
   });
   it('sums a path and handles missing tiles', () => {
     const t = 1000; const n = tiles.neighbors[t][0];

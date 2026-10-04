@@ -16,31 +16,43 @@ import { getTiles } from '../../data/geo/tiles';
 import { sizeToPeople, foundCity, emptyWorld } from './cities';
 import { buildScenarioStarts, DEFAULT_SCENARIO_ID } from '../../data/scenarios';
 import COUNTRY_ADJACENCY from '../../data/geo/countries-adjacency.json';
-import { fromLatLon, distanceKm } from '../../data/geo/geodesic';
+import { distanceKm, EARTH_RADIUS_KM } from '../../data/geo/geodesic';
+import { sinCosDeg } from '../../utils/exactMath';
+import { ringsForKm, kmCoveringRings } from '../../data/geo/gridScale';
 
-// A small lat/lon bucket index over city centres (unit vectors), with a radius query in km.
-export const buildRadiusIndex = (centres, step = 3) => {
+// A radius index over city centres (unit vectors): a 3-D grid of cubes CELL_KM wide on the chord,
+// so there is no pole or longitude problem and no trigonometry (the same on every engine, unlike
+// asin/atan2 buckets). `near(v, km)` lists the indices within `km` of the great circle from `v`,
+// sorted, so callers that sum over them add in the same order everywhere.
+const RADIUS_CELL_KM = 600;
+export const buildRadiusIndex = (centres) => {
+  const h = RADIUS_CELL_KM / EARTH_RADIUS_KM;
+  const cell = (x) => Math.floor(x / h);
+  const keyOf = (ix, iy, iz) => ((ix + 64) * 128 + (iy + 64)) * 128 + (iz + 64);
   const buckets = new Map();
-  const key = (lat, lon) => `${Math.floor((lat + 90) / step)},${Math.floor((lon + 180) / step)}`;
-  const latLon = centres.map((c) => ({ lat: (Math.asin(Math.max(-1, Math.min(1, c[2]))) * 180) / Math.PI, lon: (Math.atan2(c[1], c[0]) * 180) / Math.PI }));
-  latLon.forEach((p, i) => { const k = key(p.lat, p.lon); (buckets.get(k) || buckets.set(k, []).get(k)).push(i); });
-  const within = (lat, lon, km) => {
-    const v = fromLatLon(lat, lon);
-    const span = Math.ceil(km / 111 / step) + 1;
-    const cosDot = Math.cos(km / 6371);
+  centres.forEach((c, i) => { const k = keyOf(cell(c[0]), cell(c[1]), cell(c[2])); (buckets.get(k) || buckets.set(k, []).get(k)).push(i); });
+  const near = (v, km) => {
+    // The chord of `km` of arc: 2 sin(km / 2R), compared squared.
+    const chord = 2 * sinCosDeg((km / EARTH_RADIUS_KM / 2) * (180 / Math.PI))[0];
+    const limit = km >= Math.PI * EARTH_RADIUS_KM ? 4 : chord * chord;
+    const span = Math.ceil(Math.min(2, chord) / h);
+    const cx = cell(v[0]); const cy = cell(v[1]); const cz = cell(v[2]);
     const out = [];
-    const bl = Math.floor((lat + 90) / step); const bo = Math.floor((lon + 180) / step);
-    const cols = Math.ceil(360 / step);
-    for (let dl = -span; dl <= span; dl++) {
-      for (let dn = -span; dn <= span; dn++) {
-        const list = buckets.get(`${bl + dl},${((bo + dn) % cols + cols) % cols}`);
-        if (!list) continue;
-        list.forEach((i) => { const c = centres[i]; if (c[0] * v[0] + c[1] * v[1] + c[2] * v[2] >= cosDot) out.push(i); });
+    for (let dx = -span; dx <= span; dx++) {
+      for (let dy = -span; dy <= span; dy++) {
+        for (let dz = -span; dz <= span; dz++) {
+          const list = buckets.get(keyOf(cx + dx, cy + dy, cz + dz));
+          if (!list) continue;
+          list.forEach((i) => {
+            const c = centres[i]; const ex = c[0] - v[0]; const ey = c[1] - v[1]; const ez = c[2] - v[2];
+            if (ex * ex + ey * ey + ez * ez <= limit) out.push(i);
+          });
+        }
       }
     }
-    return out;
+    return out.sort((a, b) => a - b);
   };
-  return { within };
+  return { near };
 };
 
 export const WORLD_REGISTRY = {
@@ -68,8 +80,9 @@ export const legacyTerrainOf = (tiles, tile) => {
 // for two different peoples whose modern countries border each other, when they are the nearest
 // cities of those peoples within BRIDGE_RINGS tiles. The last rule is the bridge that keeps wars,
 // trade and AI fronts working on the Dawn world, where only 10% of the land is claimed.
-export const NEAR_RINGS = 4;
-export const BRIDGE_RINGS = 17;
+// In km, as rings of the loaded grid (gridScale.js): 4 and 17 rings at frequency 75.
+export const NEAR_RINGS = ringsForKm(410);
+export const BRIDGE_RINGS = ringsForKm(1740);
 // City centres never move, so the ring distance between two tiles is memoised for good.
 const ringCache = new Map();
 const ringsBetween = (tiles, from, to, maxRing) => {
@@ -101,12 +114,11 @@ export const buildRegistry = (regions) => {
   const owners = {};
   const cities = Object.values(regions).filter((c) => c && c.tile != null);
   cities.forEach((city) => { (city.tiles || [city.tile]).forEach((t) => { owners[t] = city.id; }); });
-  // Cities by tile bucket for the distance rules (a 2-degree bucket index like geodesic.js's).
+  // Cities by position for the distance rules: the candidates within the km `rings` steps can
+  // span at most, then the exact ring test.
   const index = buildRadiusIndex(cities.map((c) => tiles.centres[c.tile]));
   const nearCities = (city, rings) => {
-    const { lat, lon } = tiles.latLonOf(city.tile);
-    const km = rings * 150 + 60;
-    const found = index.within(lat, lon, km).map((i) => cities[i]).filter((c) => c.id !== city.id);
+    const found = index.near(tiles.centres[city.tile], kmCoveringRings(rings, tiles) + 1).map((i) => cities[i]).filter((c) => c.id !== city.id);
     return found.filter((c) => ringsBetween(tiles, city.tile, c.tile, rings) <= rings);
   };
   const byNation = {};

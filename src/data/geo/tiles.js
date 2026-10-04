@@ -7,14 +7,14 @@
 // static import, decorated once on first use. `loadTiles()` stays as an async alias for callers
 // written before the engine needed the grid.
 import rawTiles from './tiles.json';
-import { fromLatLon, buildLatLonIndex, cellPolygon, toLatLon } from './geodesic.js';
+import { fromLatLonExact, buildLatLonIndex, cellPolygon, toLatLon } from './geodesic.js';
 
 let cached = null;
 
 const decorate = (raw) => {
   const n = raw.count;
   const centres = new Array(n);
-  for (let i = 0; i < n; i++) centres[i] = fromLatLon(raw.lat[i] / 1000, raw.lon[i] / 1000);
+  for (let i = 0; i < n; i++) centres[i] = fromLatLonExact(raw.lat[i] / 1000, raw.lon[i] / 1000);
   const neighbors = new Array(n);
   for (let i = 0; i < n; i++) {
     const ns = [];

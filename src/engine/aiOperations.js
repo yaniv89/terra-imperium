@@ -18,10 +18,14 @@ import { besiegersOf } from './sieges';
 import { applyCosts, canAfford } from '../utils/helpers';
 import { ACTION_COSTS } from '../data/actionCosts';
 import { landUnitsByTile } from './sieges';
-import { threatenedCities, besiegerStacksBeside, pillageTile, RELIEF_RATIO } from './threat';
+import { threatenedCities, besiegerStacksBeside, pillageTile } from './threat';
 import { playerRouteTiles } from './plunder';
 import { ringsAround } from './world/cities';
 import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO } from './navalBattle';
+import { estimateBattle } from './lanchester';
+import { getTotalDev } from './development';
+import { getDefenseLevelDamageReductionMultiplier } from './siege';
+import { getCapital } from '../data/regions';
 
 const routeStep = (regions, nationId, from, goals) => {
   const queue = [from], first = new Map([[from, null]]);
@@ -45,9 +49,20 @@ export const AI_MARCH_STEPS = 40;
 export const ROUTE_RETRY_TURNS = 3;
 export const AI_RAID_RINGS = 11; // a stack at war with the player with no city goal in reach raids a trade route this close // a stack that found no path to its goal waits this long before searching again
 
-// A besieged AI city's garrison sallies (fieldBattle.js) against the besiegers on one ring-1 tile
-// when it outweighs them by SALLY_RATIO; the player's besiegers get a battle report.
+// Battle decisions read the Lanchester estimate (lanchester.js: terrain, walls, forts, rivers,
+// unit matchups and ages, calibrated against the real auto-resolve) instead of a raw strength
+// ratio. An AI fights a battle when its estimated chance to win clears the bar:
+//   SALLY_MIN_P    a besieged garrison sallies against the besiegers on one ring-1 tile
+//   RELIEF_MIN_P   a stack beside a besieger of an own city attacks it (threat.js)
+//   ASSAULT_MIN_P  a stack touching an enemy city assaults it (or the walls are under ASSAULT_HP)
+//   LANDING_MIN_P  an embarked army lands on a defended coast
+// SALLY_RATIO is the cheap pre-filter: a garrison under half the besiegers' strength never asks.
 export const SALLY_RATIO = 1.3;
+export const SALLY_MIN_P = 0.6;
+export const RELIEF_MIN_P = 0.6;
+export const ASSAULT_MIN_P = 0.45;
+export const LANDING_MIN_P = 0.5;
+const PREFILTER = 0.5;
 export const aiSally = (state, nationId, rng) => {
   let next = state;
   for (const city of Object.values(state.regions).filter((c) => c.owner === nationId && c.siege?.by).sort((a, b) => (a.id < b.id ? -1 : 1))) {
@@ -58,11 +73,12 @@ export const aiSally = (state, nationId, rng) => {
     const targets = new Map();
     by.forEach((list) => list.forEach((u) => { const t = unitTile(next, u); targets.set(t, (targets.get(t) || 0) + u.strength); }));
     const weakest = [...targets].sort((a, b) => a[1] - b[1] || a[0] - b[0])[0];
-    if (!weakest || mine < weakest[1] * SALLY_RATIO) continue;
+    if (!weakest || mine < weakest[1] * PREFILTER) continue;
     const actor = { ...next, playerNationId: nationId, resources: getPool(next, nationId), techAgeId: getTechAgeId(next, nationId) };
     const v = validateFieldAttack(actor, city.id, weakest[0], { ignoreCost: true });
     if (!v.ok) continue;
     const ctx = getFieldBattleContext(actor, v);
+    if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < SALLY_MIN_P) continue;
     const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
     const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
     next = { ...next, units: r.units, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
@@ -79,6 +95,33 @@ export const nearestRouteTile = (state, tile, rings) => {
   let best = null; let bestD = Infinity;
   routes.forEach((t) => { const d = near.get(t); if (d !== undefined && (d < bestD || (d === bestD && t < best))) { best = t; bestD = d; } });
   return best;
+};
+
+// Which enemy city next door a stack goes for (plans/math-ideas.md 3.1, utility scoring): every
+// candidate is scored, best first (ties by id):
+//   utility = worth x claim x goal x capital x (TARGET_P_FLOOR + pWin)
+//   worth   the city's development (at least 1), so rich cities draw armies
+//   claim   TARGET_CLAIM_MULT for a city this nation lost (formerOwner, a conquest from it)
+//   goal    TARGET_GOAL_MULT for the city its war is about
+//   capital TARGET_CAPITAL_MULT for the enemy's capital
+//   pWin    the Lanchester estimate of this stack against the garrison behind its walls
+// It used to rank by a fixed list (former owner, then goal, then the weakest garrison).
+export const TARGET_CLAIM_MULT = 3;
+export const TARGET_GOAL_MULT = 2;
+export const TARGET_CAPITAL_MULT = 1.5;
+export const TARGET_P_FLOOR = 0.1; // a strong garrison lowers a city's draw, it never hides it
+export const targetUtility = (state, nationId, wars, stack, id, garrison) => {
+  const city = state.regions[id];
+  const claim = city.formerOwner === nationId || city.conquest?.from === nationId ? TARGET_CLAIM_MULT : 1;
+  const goal = wars.some(w => w.goal?.regionId === id) ? TARGET_GOAL_MULT : 1;
+  const capital = getCapital(state, city.owner) === id ? TARGET_CAPITAL_MULT : 1;
+  const walls = getDefenseLevelDamageReductionMultiplier(city.defenseLevel || 0);
+  const pWin = garrison.length ? estimateBattle({ attackerUnits: stack, defenderUnits: garrison, isAttackingFortification: (city.defenseLevel || 0) > 0, defenderDamageReductionMultiplier: walls }).pWin : 1;
+  return Math.max(1, getTotalDev(city)) * claim * goal * capital * (TARGET_P_FLOOR + pWin);
+};
+const rankTargets = (state, nationId, wars, stack, ids, unitsIn) => {
+  const score = new Map(ids.map(id => [id, targetUtility(state, nationId, wars, stack, id, unitsIn(id).filter(u => u.ownerId !== nationId && u.domain === 'land'))]));
+  return ids.sort((a, b) => score.get(b) - score.get(a) || a.localeCompare(b));
 };
 
 export const processAIOperations = (state, rng) => {
@@ -123,17 +166,18 @@ export const processAIOperations = (state, rng) => {
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
       const at = unitTile(next, stack[0]);
-      // Relief (threat.js): a stack beside a besieger of an own city attacks it when it outweighs
-      // that besieger stack by RELIEF_RATIO.
+      // Relief (threat.js): a stack beside a besieger of an own city attacks it when the estimate
+      // gives it RELIEF_MIN_P against that besieger stack.
       const besiegedNear = land.map(id => next.regions[id]).filter(c => c.siege?.by && tiles.neighbors[c.tile].some(t => t === at || tiles.neighbors[at].includes(t)));
       let relieved = false;
       for (const city of besiegedNear) {
         const weakest = besiegerStacksBeside(next, at, city, byTile)[0];
-        if (!weakest || stack.reduce((s, u) => s + u.strength, 0) < weakest.strength * RELIEF_RATIO) continue;
+        if (!weakest || stack.reduce((s, u) => s + u.strength, 0) < weakest.strength * PREFILTER) continue;
         const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
         const v = validateFieldAttack(actor, from, weakest.tile, { ignoreCost: true });
         if (!v.ok) continue;
         const ctx = getFieldBattleContext(actor, v);
+        if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < RELIEF_MIN_P) continue;
         const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
         const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
         stack.forEach(u => committed.add(u.id));
@@ -147,10 +191,7 @@ export const processAIOperations = (state, rng) => {
       // neighbour per stack was most of the phase at a thousand units).
       if (unitsByRegionFor !== next.units) { unitsByRegion = new Map(); Object.values(next.units).forEach(u => { const l = unitsByRegion.get(u.regionId); if (l) l.push(u); else unitsByRegion.set(u.regionId, [u]); }); unitsByRegionFor = next.units; }
       const unitsIn = (id) => unitsByRegion.get(id) || [];
-      const ranked = getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))).sort((a,b) => {
-        const value = id => (next.regions[id].formerOwner === nationId || next.regions[id].conquest?.from === nationId ? 100 : 0) + (wars.some(w => w.goal?.regionId === id) ? 20 : 0) - unitsIn(id).filter(u => u.ownerId !== nationId).reduce((s,u) => s + u.strength, 0) / 1000;
-        return value(b)-value(a) || a.localeCompare(b);
-      });
+      const ranked = rankTargets(next, nationId, wars, stack, getNeighborIds(from).filter(id => enemies.has(next.regions[id]?.owner) && !next.pendingDefenses.some(d=>d.regionId===id) && !unitsIn(id).some(u=>isUnitInBattle(next,u.id))), unitsIn);
       // Attacks come from tiles that touch the city's land; a city farther off is marched on.
       const candidates = ranked.filter(id => touchesCity(next, tiles, at, id));
       const target = threatened.size && !threatened.has(from) ? null : candidates[0];
@@ -158,10 +199,11 @@ export const processAIOperations = (state, rng) => {
         const actor = { ...next, playerNationId: nationId, resources: pool, techAgeId: getTechAgeId(next, nationId) };
         const v = validateInvasion(actor, from, target);
         if (!v.ok) continue;
-        const defenderStrength=v.defenderUnits.reduce((sum,u)=>sum+u.strength,0);
         const city = next.regions[target];
         const wallsDown = !!city.siege && city.siege.hp < ASSAULT_HP * siegeMaxHp(city);
-        if(defenderStrength>stack.reduce((sum,u)=>sum+u.strength,0)*1.25 && !wallsDown)continue;
+        const ctx = getInvasionBattleContext(actor, v);
+        // Not worth an assault yet: the stack holds its tile, which keeps the siege on (sieges.js).
+        if (!wallsDown && v.defenderUnits.length && estimateBattle(getResolveBattleArgs(v, ctx)).pWin < ASSAULT_MIN_P) continue;
         // Keep a defensive reserve when the capital is under siege elsewhere.
         stack.forEach(u => committed.add(u.id));
         const chargedPool = applyCosts(pool, ACTION_COSTS.launchInvasion);
@@ -170,7 +212,6 @@ export const processAIOperations = (state, rng) => {
           stack.forEach(u => { next.units[u.id] = { ...u, movesLeft: 0 }; });
           next.pendingDefenses.push({ id: `op_${state.turnNumber}_${nationId}_${from}`, warId: v.war.id, aggressorId: nationId, fromRegionId: from, regionId: target, attackerUnitIds: stack.map(u => u.id), defenderUnitIds: v.defenderUnits.map(u=>u.id), synthetic: [], seed: Math.floor(rng.next()*0xffffffff)>>>0, turn: state.turnNumber });
         } else {
-          const ctx = getInvasionBattleContext(actor, v);
           const battle = resolveBattle({ ...getResolveBattleArgs(v, ctx), rng });
           const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: target, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed() });
           next = { ...next, regions: result.regions, units: result.units, wars: result.wars, hiredCommanders: result.hiredCommanders,
@@ -281,7 +322,7 @@ export const processAINavalOperations = state => {
       for(const unit of cargo.slice(0,fleet.transportCapacity || 0))apply({type:ActionTypes.EMBARK_UNIT,payload:{landUnitId:unit.id,navalUnitId:fleet.id}});
       const embarked=Object.values(next.units).filter(u=>u.embarkedOn===fleet.id);
       const defenders=Object.values(next.units).filter(u=>u.regionId===target&&u.domain==='land');
-      if(!embarked.length || defenders.reduce((v,u)=>v+u.strength,0)>embarked.reduce((v,u)=>v+u.strength,0)*.75)continue;
+      if(!embarked.length || (defenders.length && estimateBattle({attackerUnits:embarked,defenderUnits:defenders,battleType:'landing',attackerAgeId:getTechAgeId(next,id),defenderAgeId:getTechAgeId(next,next.regions[target]?.owner)}).pWin<LANDING_MIN_P))continue;
       apply({type:ActionTypes.AMPHIBIOUS_ASSAULT,payload:{navalUnitId:fleet.id,targetRegionId:target}});
     }
   }

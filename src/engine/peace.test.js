@@ -115,6 +115,19 @@ describe('getPeaceAcceptance', () => {
   });
 });
 
+describe('getPeaceAcceptance: the bargaining model (warOdds.js)', () => {
+  it('a recipient facing a far stronger army concedes more than one facing an equal army', () => {
+    const state = usState();
+    const war = warWithOccupiedCapital(state, { score: 0 });
+    const units = (owner, n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`${owner}${i}`, { id: `${owner}${i}`, ownerId: owner, regionId: cap(owner), tile: state.regions[cap(owner)].tile, domain: 'land', classId: 'infantry', strength: 1000 }]));
+    const even = getPeaceAcceptance({ ...state, units: { ...units('us', 3), ...units('ca', 3) } }, war, 'us', []);
+    const crushed = getPeaceAcceptance({ ...state, units: { ...units('us', 9), ...units('ca', 3) } }, war, 'us', []);
+    expect(crushed.odds).toBeGreaterThan(even.odds);
+    expect(crushed.total).toBeGreaterThan(even.total);
+    expect(crushed.breakdown.find((l) => l.label === 'Odds if the war goes on').value).toBeGreaterThan(0);
+  });
+});
+
 describe('applyPeace', () => {
   it('cede: transfers ownership, sets formerOwner, and accrues Aggressive Expansion', () => {
     const state = usState();
