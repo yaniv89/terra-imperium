@@ -116,6 +116,8 @@ at a time (background jobs), not more.
   height, file size; then the decisions and what did not match the sheets), the
   `*.validation.json` files, `*-concept-vs-model.png` previews (downscale to 1600 px wide).
 - Touch nothing else: no edits to existing scripts or modules, no `src/` code, no `docs/`.
+- Before committing new GLBs in src/assets/map, run `npm run pack:models` (meshopt compression,
+  about half the size; the test in scripts/art fails on an unpacked file).
 - Commit as you go and push your branch (`git push -u origin <your branch>`); end commit messages
   with the attribution lines the session gives you. Never push to `claude/bronze-towns` or `main`.
 
