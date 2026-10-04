@@ -75,7 +75,46 @@ Branch `math/world-systems`, from `ee575e7` (the brief). Session `world-systems`
   roll of about 0.5 to 2.4% a turn that is under 0.15 extra wars per Tier-1 neighbour, a branching
   ratio well below 1. The nation sheet shows "Wars nearby: +N% war chance".
 
-## Numbers: balance-sim, 150 turns, seeds 11 and 12, PLAYER=au, base `ee575e7`, run side by side
+## Numbers after merging claude/bronze-towns (paired, 8 seeds)
+
+`PLAYER=au compare.sh origin/claude/bronze-towns 150 11-18` (base b5120d7, which already has
+grid-math, sim-stats and ai, so their changes are not counted here). Turn 150, mean over 8 seeds,
+95% paired interval, `*` = the interval excludes 0:
+
+| metric | base | head | diff | 95% CI | |
+|---|---|---|---|---|---|
+| warsTotal | 7.13 | 5.50 | -1.63 | [-5.17, 1.92] | |
+| conquests | 0.38 | 0.63 | +0.25 | [-0.91, 1.41] | |
+| civilWarsStarted | 30.8 | 29.8 | -1.00 | [-6.81, 4.81] | |
+| avgUnrest | 6.21 | 7.11 | +0.90 | [-1.21, 3.01] | |
+| cities | 851.8 | 839.3 | -12.5 | [-22.1, -2.89] | * |
+| landClaimedPct | 40.8 | 40.0 | -0.72 | [-1.15, -0.30] | * |
+| playerGold | 2290 | 2464 | +174 | [164, 184] | * |
+| playerTechs | 10.8 | 10.4 | -0.38 | [-1.00, 0.25] | |
+| giniPopulation | 0.35 | 0.37 | +0.010 | [0.007, 0.014] | * |
+| effectiveNations | 125.5 | 127.2 | +1.76 | [0.61, 2.92] | * |
+| maxProvinceShare | 0.0178 | 0.0173 | -0.0005 | [-0.0014, 0.0004] | |
+| zipfSlope | -0.14 | -0.14 | -0.003 | [-0.027, 0.022] | |
+| msPerTurn (parallel, indicative) | 344 | 360 | +16 | [-6, 39] | |
+
+Real effects: 1.5% fewer cities and 0.7 points less land settled by turn 150 (small cities grow
+a little slower at sizes 1 and 2, and levies now cost food, so settlers come a bit later); the
+passive player earns 7.6% more (its city reaches size 4 sooner); land is slightly less
+concentrated. Wars, civil wars, unrest and conquests show no significant change. nonFinite and
+auditViolations stay 0. At turn 100 the zipf slope is -0.27 -> -0.18 (*), back to equal by 150.
+
+On the lead's Zipf note (slope -0.14, real cities about -1): these changes neither cause nor fix
+it. City sizes are even because every city's carrying capacity is nearly the same (2 + water +
+Food tier + techs). A Zipf tail needs capacity that differs by place, for example housing from
+market access (sum over nearby cities of size / (1 + (km / 300)^2), the gravity term already in
+tradeValue.js and plague.js) and a capital bonus, so growth is roughly proportional to size
+(Gibrat) with uneven caps. Not done here: it is a new rule with its own balance pass.
+
+The engine now uses the shared exact `distanceKm` (geoKm.js is a thin layer over it); the new
+formulas need no exp, log or fractional pow (integer THETA, the Hawkes recursion, 1 / (1 + x^2)
+kernels), and src/engine/determinismGuard.test.js passes.
+
+## Earlier numbers (before the merge): balance-sim, 150 turns, seeds 11 and 12, PLAYER=au, base `ee575e7`, run side by side
 
 | key | s11 base | s11 new | s12 base | s12 new |
 |---|---|---|---|---|
@@ -154,4 +193,3 @@ Reading it:
   rates would need integer powers per age; not done.
 - No quarantine action yet (close the ports, keep the money or the health); the trade and army
   links are the place to hook it.
-- `geoKm.js` duplicates what grid-math's shared distance helper will provide; merge onto theirs.
