@@ -70,3 +70,7 @@ Previews: `*-kit-vs-model.png` (the street sheet beside the model), `*-beauty-te
 - The souk's vault tile is grey as drawn on the sheet, although the sheet's label says terracotta.
 - The sheets have no windmill or civic-tower equivalent; the hammam with its windcatcher is my
   choice for those spots.
+- In the big towns (28 m minarets on a 12.5 m plot) the prayer-hall chamber under the dome stands
+  about 11 m above the ranges and reads as a square tower; the sheet's chamber is lower and its
+  dome wider. A lower cap on the chamber (about 0.3 of the height) would fix it; not rebuilt
+  because the shared machine was running out of memory (two big builds were killed).
