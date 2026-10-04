@@ -1,15 +1,14 @@
 # Art items, one by one
 
-Every item of `plans/art-image-spec.md` (and the Israelite theme, `plans/art/israelite-theme.md`), by name, checked against the model files in the game (`src/assets/map/towns`, `src/assets/map/shared`) on 2026-10-04. One item = one id in the spec; an id with variants a and b counts once. The summary is in `plans/art/IMPLEMENTED.md`.
+Every item of `plans/art-image-spec.md` and the Israelite theme (`plans/art/israelite-theme.md`), by name, checked against the model files in the game (`src/assets/map/towns`, `src/assets/map/shared`) on 2026-10-04. One item = one id in the spec; an id with variants a and b counts once. The summary is in `plans/art/IMPLEMENTED.md`.
 
-| | Items |
-|---|---|
-| In the game | 402 |
-| Left in the spec | 276 |
-| Israelite theme (not started) | 74 |
-| **Total** | **752** |
+| | In the game | Left | Total |
+|---|---|---|---|
+| Art spec | 408 | 270 | 678 |
+| Israelite theme | 14 | 60 | 74 |
+| **Total** | **422** | **330** | **752** |
 
-## Part A. In the game (402)
+## Part A. In the game (422)
 
 ### 3. Base towns (62)
 
@@ -76,7 +75,7 @@ Every item of `plans/art-image-spec.md` (and the Israelite theme, `plans/art/isr
 61. modern / field-3 (pasture)
 62. modern / field-4 (the age's own field)
 
-### 3b. Regional kits (300)
+### 3b. Regional kits (306)
 
 63. europe / bronze / houses (timber longhouses with turf or thatch, a palisade)
 64. europe / bronze / street
@@ -270,162 +269,185 @@ Every item of `plans/art-image-spec.md` (and the Israelite theme, `plans/art/isr
 252. steppe / gunpowder / materials
 253. steppe / gunpowder / landmark-1: a Buddhist monastery with white walls and red trim (Mongolia, Bhutan)
 254. steppe / gunpowder / landmark-2: a Khiva style tiled tower
-255. indic / bronze / houses (Indus Valley: baked-brick houses on a grid, drains, a bathing tank)
-256. indic / bronze / street
-257. indic / bronze / roofscape
-258. indic / bronze / materials
-259. indic / bronze / landmark-1: a great bath
-260. indic / bronze / landmark-2: a granary on a brick platform
-261. indic / classical / houses (Mauryan and Gupta: timber and brick with carved balconies)
-262. indic / classical / street
-263. indic / classical / roofscape
-264. indic / classical / materials
-265. indic / classical / landmark-1: a stupa with a stone railing and gateways (Sanchi)
-266. indic / classical / landmark-2: a rock-cut chaitya front
-267. indic / kingdoms / houses (Chola and Sultanate: stone, carved)
-268. indic / kingdoms / street
-269. indic / kingdoms / roofscape
-270. indic / kingdoms / materials
-271. indic / kingdoms / landmark-1: a temple gopuram tower in tiers
-272. indic / kingdoms / landmark-2: a Sultanate tomb with a dome
-273. sinic / bronze / houses (Shang: rammed-earth walls, timber halls with thatch, a walled courtyard)
-274. sinic / bronze / street
-275. sinic / bronze / roofscape
-276. sinic / bronze / materials
-277. sinic / bronze / landmark-1: a bronze-casting hall on a platform
-278. sinic / bronze / landmark-2: an oracle shrine with a drum tower
-279. sinic / classical / houses (Han: courtyard houses with hip roofs, tiled)
-280. sinic / classical / street
-281. sinic / classical / roofscape
-282. sinic / classical / materials
-283. sinic / classical / landmark-1: a gate tower with a double eave
-284. sinic / classical / landmark-2: a Han watchtower (que)
-285. sinic / kingdoms / houses (Tang and Song: hip-and-gable roofs, grey tile, red pillars)
-286. sinic / kingdoms / street
-287. sinic / kingdoms / roofscape
-288. sinic / kingdoms / materials
-289. sinic / kingdoms / landmark-1: a pagoda in seven storeys
-290. sinic / kingdoms / landmark-2: a drum tower
-291. sinic / gunpowder / houses (Ming and Qing: grey brick, courtyard quarters)
-292. sinic / gunpowder / street
-293. sinic / gunpowder / roofscape
-294. sinic / gunpowder / materials
-295. sinic / gunpowder / landmark-1: a city gate with a barbican
-296. sinic / gunpowder / landmark-2: a temple with a glazed yellow roof
-297. sinic / modern / houses (Shanghai towers and tile-roof lanes)
-298. sinic / modern / street
-299. sinic / modern / roofscape
-300. sinic / modern / materials
-301. sinic / modern / landmark-1: a pearl tower
-302. sinic / modern / landmark-2: a high-speed rail station
-303. monsoon / bronze / houses (stilt houses of bamboo and palm over water, a longhouse)
-304. monsoon / bronze / street
-305. monsoon / bronze / roofscape
-306. monsoon / bronze / materials
-307. monsoon / bronze / landmark-1: a Dong Son drum shrine
-308. monsoon / bronze / landmark-2: a megalith terrace
-309. monsoon / classical / houses (Funan and early Java: brick temples, stilt houses)
-310. monsoon / classical / street
-311. monsoon / classical / roofscape
-312. monsoon / classical / materials
-313. monsoon / classical / landmark-1: a Cham brick tower
-314. monsoon / classical / landmark-2: a Borobudur style stepped stupa
-315. monsoon / kingdoms / houses (Khmer and Majapahit: sandstone towers, moats, teak houses)
-316. monsoon / kingdoms / street
-317. monsoon / kingdoms / roofscape
-318. monsoon / kingdoms / materials
-319. monsoon / kingdoms / landmark-1: an Angkor style five-tower temple
-320. monsoon / kingdoms / landmark-2: a Burmese golden stupa (Shwedagon)
-321. monsoon / gunpowder / houses (Ayutthaya and colonial ports: tiered roofs, shophouses)
-322. monsoon / gunpowder / street
-323. monsoon / gunpowder / roofscape
-324. monsoon / gunpowder / materials
-325. monsoon / gunpowder / landmark-1: a Thai prang with a spired roof hall
-326. monsoon / gunpowder / landmark-2: a Dutch colonial warehouse with a canal (Batavia)
-327. monsoon / modern / houses (Singapore towers, Manila and Jakarta sprawl)
-328. monsoon / modern / street
-329. monsoon / modern / roofscape
-330. monsoon / modern / materials
-331. monsoon / modern / landmark-1: a tower with a rooftop garden
-332. monsoon / modern / landmark-2: a Pacific stilt longhouse rebuilt in tin
-333. americas / bronze / houses (Olmec and Norte Chico: earth platforms, thatch houses)
-334. americas / bronze / street
-335. americas / bronze / roofscape
-336. americas / bronze / materials
-337. americas / bronze / landmark-1: a colossal-head plaza
-338. americas / bronze / landmark-2: a sunken circular court (Caral)
-339. americas / classical / houses (Maya and Moche: stone with plaster, corbel vaults)
-340. americas / classical / street
-341. americas / classical / roofscape
-342. americas / classical / materials
-343. americas / classical / landmark-1: a stepped pyramid with a temple top
-344. americas / classical / landmark-2: a Moche adobe huaca with murals
-345. americas / kingdoms / houses (Aztec and Inca: adobe and polished stone, terraces)
-346. americas / kingdoms / street
-347. americas / kingdoms / roofscape
-348. americas / kingdoms / materials
-349. americas / kingdoms / landmark-1: a twin-temple pyramid
-350. americas / kingdoms / landmark-2: an Inca gateway of fitted stone (Machu Picchu style)
-351. americas / gunpowder / houses (Spanish and Portuguese colonial: whitewashed walls, tile roofs, a plaza with a church)
-352. americas / gunpowder / street
-353. americas / gunpowder / roofscape
-354. americas / gunpowder / materials
-355. americas / gunpowder / landmark-1: a baroque cathedral with twin towers
-356. americas / gunpowder / landmark-2: a hacienda with an arcade
-357. americas / modern / houses (São Paulo and Mexico City concrete, favelas on the hills)
-358. americas / modern / street
-359. americas / modern / roofscape
-360. americas / modern / materials
-361. americas / modern / landmark-1: a Brasília style curved parliament
-362. americas / modern / landmark-2: a stadium bowl
+255. steppe / modern / houses (Soviet blocks and new glass)
+256. steppe / modern / street
+257. steppe / modern / roofscape
+258. steppe / modern / materials
+259. steppe / modern / landmark-1: a glass tower on a steppe square
+260. steppe / modern / landmark-2: a space launch gantry (Baikonur)
+261. indic / bronze / houses (Indus Valley: baked-brick houses on a grid, drains, a bathing tank)
+262. indic / bronze / street
+263. indic / bronze / roofscape
+264. indic / bronze / materials
+265. indic / bronze / landmark-1: a great bath
+266. indic / bronze / landmark-2: a granary on a brick platform
+267. indic / classical / houses (Mauryan and Gupta: timber and brick with carved balconies)
+268. indic / classical / street
+269. indic / classical / roofscape
+270. indic / classical / materials
+271. indic / classical / landmark-1: a stupa with a stone railing and gateways (Sanchi)
+272. indic / classical / landmark-2: a rock-cut chaitya front
+273. indic / kingdoms / houses (Chola and Sultanate: stone, carved)
+274. indic / kingdoms / street
+275. indic / kingdoms / roofscape
+276. indic / kingdoms / materials
+277. indic / kingdoms / landmark-1: a temple gopuram tower in tiers
+278. indic / kingdoms / landmark-2: a Sultanate tomb with a dome
+279. sinic / bronze / houses (Shang: rammed-earth walls, timber halls with thatch, a walled courtyard)
+280. sinic / bronze / street
+281. sinic / bronze / roofscape
+282. sinic / bronze / materials
+283. sinic / bronze / landmark-1: a bronze-casting hall on a platform
+284. sinic / bronze / landmark-2: an oracle shrine with a drum tower
+285. sinic / classical / houses (Han: courtyard houses with hip roofs, tiled)
+286. sinic / classical / street
+287. sinic / classical / roofscape
+288. sinic / classical / materials
+289. sinic / classical / landmark-1: a gate tower with a double eave
+290. sinic / classical / landmark-2: a Han watchtower (que)
+291. sinic / kingdoms / houses (Tang and Song: hip-and-gable roofs, grey tile, red pillars)
+292. sinic / kingdoms / street
+293. sinic / kingdoms / roofscape
+294. sinic / kingdoms / materials
+295. sinic / kingdoms / landmark-1: a pagoda in seven storeys
+296. sinic / kingdoms / landmark-2: a drum tower
+297. sinic / gunpowder / houses (Ming and Qing: grey brick, courtyard quarters)
+298. sinic / gunpowder / street
+299. sinic / gunpowder / roofscape
+300. sinic / gunpowder / materials
+301. sinic / gunpowder / landmark-1: a city gate with a barbican
+302. sinic / gunpowder / landmark-2: a temple with a glazed yellow roof
+303. sinic / modern / houses (Shanghai towers and tile-roof lanes)
+304. sinic / modern / street
+305. sinic / modern / roofscape
+306. sinic / modern / materials
+307. sinic / modern / landmark-1: a pearl tower
+308. sinic / modern / landmark-2: a high-speed rail station
+309. monsoon / bronze / houses (stilt houses of bamboo and palm over water, a longhouse)
+310. monsoon / bronze / street
+311. monsoon / bronze / roofscape
+312. monsoon / bronze / materials
+313. monsoon / bronze / landmark-1: a Dong Son drum shrine
+314. monsoon / bronze / landmark-2: a megalith terrace
+315. monsoon / classical / houses (Funan and early Java: brick temples, stilt houses)
+316. monsoon / classical / street
+317. monsoon / classical / roofscape
+318. monsoon / classical / materials
+319. monsoon / classical / landmark-1: a Cham brick tower
+320. monsoon / classical / landmark-2: a Borobudur style stepped stupa
+321. monsoon / kingdoms / houses (Khmer and Majapahit: sandstone towers, moats, teak houses)
+322. monsoon / kingdoms / street
+323. monsoon / kingdoms / roofscape
+324. monsoon / kingdoms / materials
+325. monsoon / kingdoms / landmark-1: an Angkor style five-tower temple
+326. monsoon / kingdoms / landmark-2: a Burmese golden stupa (Shwedagon)
+327. monsoon / gunpowder / houses (Ayutthaya and colonial ports: tiered roofs, shophouses)
+328. monsoon / gunpowder / street
+329. monsoon / gunpowder / roofscape
+330. monsoon / gunpowder / materials
+331. monsoon / gunpowder / landmark-1: a Thai prang with a spired roof hall
+332. monsoon / gunpowder / landmark-2: a Dutch colonial warehouse with a canal (Batavia)
+333. monsoon / modern / houses (Singapore towers, Manila and Jakarta sprawl)
+334. monsoon / modern / street
+335. monsoon / modern / roofscape
+336. monsoon / modern / materials
+337. monsoon / modern / landmark-1: a tower with a rooftop garden
+338. monsoon / modern / landmark-2: a Pacific stilt longhouse rebuilt in tin
+339. americas / bronze / houses (Olmec and Norte Chico: earth platforms, thatch houses)
+340. americas / bronze / street
+341. americas / bronze / roofscape
+342. americas / bronze / materials
+343. americas / bronze / landmark-1: a colossal-head plaza
+344. americas / bronze / landmark-2: a sunken circular court (Caral)
+345. americas / classical / houses (Maya and Moche: stone with plaster, corbel vaults)
+346. americas / classical / street
+347. americas / classical / roofscape
+348. americas / classical / materials
+349. americas / classical / landmark-1: a stepped pyramid with a temple top
+350. americas / classical / landmark-2: a Moche adobe huaca with murals
+351. americas / kingdoms / houses (Aztec and Inca: adobe and polished stone, terraces)
+352. americas / kingdoms / street
+353. americas / kingdoms / roofscape
+354. americas / kingdoms / materials
+355. americas / kingdoms / landmark-1: a twin-temple pyramid
+356. americas / kingdoms / landmark-2: an Inca gateway of fitted stone (Machu Picchu style)
+357. americas / gunpowder / houses (Spanish and Portuguese colonial: whitewashed walls, tile roofs, a plaza with a church)
+358. americas / gunpowder / street
+359. americas / gunpowder / roofscape
+360. americas / gunpowder / materials
+361. americas / gunpowder / landmark-1: a baroque cathedral with twin towers
+362. americas / gunpowder / landmark-2: a hacienda with an arcade
+363. americas / modern / houses (São Paulo and Mexico City concrete, favelas on the hills)
+364. americas / modern / street
+365. americas / modern / roofscape
+366. americas / modern / materials
+367. americas / modern / landmark-1: a Brasília style curved parliament
+368. americas / modern / landmark-2: a stadium bowl
 
 ### 3b. Sub-landmarks (7)
 
-363. japan / kingdoms / landmark-japan: a pagoda and a castle tenshu
-364. japan / gunpowder / landmark-japan: an Edo castle keep
-365. korea / kingdoms / landmark-korea: a palace hall with a dancheong-painted eave
-366. easteurope / kingdoms / landmark-east: an onion-domed church
-367. europenorth / classical / landmark-north: a Celtic hillfort hall
-368. colonies / gunpowder / landmark-colonies: a clapboard church with a white spire
-369. pacific / bronze / landmark-pacific: a marae with carved posts
+369. japan / kingdoms / landmark-japan: a pagoda and a castle tenshu
+370. japan / gunpowder / landmark-japan: an Edo castle keep
+371. korea / kingdoms / landmark-korea: a palace hall with a dancheong-painted eave
+372. easteurope / kingdoms / landmark-east: an onion-domed church
+373. europenorth / classical / landmark-north: a Celtic hillfort hall
+374. colonies / gunpowder / landmark-colonies: a clapboard church with a white spire
+375. pacific / bronze / landmark-pacific: a marae with carved posts
 
 ### 3b.5 Kingdoms palaces and walls (33)
 
-370. europe / kingdoms / palace-small
-371. europe / kingdoms / palace
-372. europe / kingdoms / walls-medium
-373. levant / kingdoms / palace-small
-374. levant / kingdoms / palace
-375. levant / kingdoms / walls-medium
-376. nile / kingdoms / palace-small
-377. nile / kingdoms / palace
-378. nile / kingdoms / walls-medium
-379. maghreb / kingdoms / palace-small
-380. maghreb / kingdoms / palace
-381. maghreb / kingdoms / walls-medium
-382. westafrica / kingdoms / palace-small
-383. westafrica / kingdoms / palace
-384. westafrica / kingdoms / walls-medium
-385. eastafrica / kingdoms / palace-small
-386. eastafrica / kingdoms / palace
-387. eastafrica / kingdoms / walls-medium
-388. steppe / kingdoms / palace-small
-389. steppe / kingdoms / palace
-390. steppe / kingdoms / walls-medium
-391. indic / kingdoms / palace-small
-392. indic / kingdoms / palace
-393. indic / kingdoms / walls-medium
-394. sinic / kingdoms / palace-small
-395. sinic / kingdoms / palace
-396. sinic / kingdoms / walls-medium
-397. monsoon / kingdoms / palace-small
-398. monsoon / kingdoms / palace
-399. monsoon / kingdoms / walls-medium
-400. americas / kingdoms / palace-small
-401. americas / kingdoms / palace
-402. americas / kingdoms / walls-medium
+376. europe / kingdoms / palace-small
+377. europe / kingdoms / palace
+378. europe / kingdoms / walls-medium
+379. levant / kingdoms / palace-small
+380. levant / kingdoms / palace
+381. levant / kingdoms / walls-medium
+382. nile / kingdoms / palace-small
+383. nile / kingdoms / palace
+384. nile / kingdoms / walls-medium
+385. maghreb / kingdoms / palace-small
+386. maghreb / kingdoms / palace
+387. maghreb / kingdoms / walls-medium
+388. westafrica / kingdoms / palace-small
+389. westafrica / kingdoms / palace
+390. westafrica / kingdoms / walls-medium
+391. eastafrica / kingdoms / palace-small
+392. eastafrica / kingdoms / palace
+393. eastafrica / kingdoms / walls-medium
+394. steppe / kingdoms / palace-small
+395. steppe / kingdoms / palace
+396. steppe / kingdoms / walls-medium
+397. indic / kingdoms / palace-small
+398. indic / kingdoms / palace
+399. indic / kingdoms / walls-medium
+400. sinic / kingdoms / palace-small
+401. sinic / kingdoms / palace
+402. sinic / kingdoms / walls-medium
+403. monsoon / kingdoms / palace-small
+404. monsoon / kingdoms / palace
+405. monsoon / kingdoms / walls-medium
+406. americas / kingdoms / palace-small
+407. americas / kingdoms / palace
+408. americas / kingdoms / walls-medium
 
-## Part B. Left in the spec (276)
+### Israelite theme (14)
+
+409. israelite / bronze / houses: the four-room house: a stone footing, mud-brick or fieldstone walls, a row of
+410. israelite / bronze / street: packed earth lanes, houses back to back in a ring round the edge of the town
+411. israelite / bronze / materials: limestone, mud brick, roof clay, olive wood, plaster, team cloth
+412. israelite / bronze / landmark-1: a six-chamber city gate with two towers (Megiddo, Hazor, Gezer)
+413. israelite / bronze / landmark-2: a pillared storehouse with three aisles and rows of stone pillars
+414. palace-small-israelite (bronze)
+415. palace-israelite (bronze)
+416. walls-medium-israelite (bronze)
+417. colony-camp-israelite (bronze)
+418. field-1-israelite (all early ages)
+419. field-2-israelite (all early ages)
+420. field-3-israelite (all early ages)
+421. field-4-israelite (all early ages)
+422. israelite / bronze / roofscape
+
+## Part B. Left (330)
 
 ### 3. Base towns (3)
 
@@ -433,7 +455,7 @@ Every item of `plans/art-image-spec.md` (and the Israelite theme, `plans/art/isr
 2. classical / palace-small (seat of a small capital)
 3. classical / palace (seat of a medium or big capital)
 
-### 3b. Regional kits (30)
+### 3b. Regional kits (24)
 
 4. europe / modern / houses (glass, steel, a park)
 5. europe / modern / street
@@ -447,356 +469,336 @@ Every item of `plans/art-image-spec.md` (and the Israelite theme, `plans/art/isr
 13. levant / bronze / materials
 14. levant / bronze / landmark-1: a ziggurat with a triple stair
 15. levant / bronze / landmark-2: a city gate with glazed brick lions
-16. steppe / modern / houses (Soviet blocks and new glass)
-17. steppe / modern / street
-18. steppe / modern / roofscape
-19. steppe / modern / materials
-20. steppe / modern / landmark-1: a glass tower on a steppe square
-21. steppe / modern / landmark-2: a space launch gantry (Baikonur)
-22. indic / gunpowder / houses (Mughal and Rajput: red sandstone and white marble)
-23. indic / gunpowder / street
-24. indic / gunpowder / roofscape
-25. indic / gunpowder / materials
-26. indic / gunpowder / landmark-1: a Mughal gateway with a dome and chhatris
-27. indic / gunpowder / landmark-2: a Rajput palace with jharokha balconies
-28. indic / modern / houses (concrete, tea estates, tech parks)
-29. indic / modern / street
-30. indic / modern / roofscape
-31. indic / modern / materials
-32. indic / modern / landmark-1: a glass campus with a dome (Bangalore)
-33. indic / modern / landmark-2: a Mumbai tower with a sea link
+16. indic / gunpowder / houses (Mughal and Rajput: red sandstone and white marble)
+17. indic / gunpowder / street
+18. indic / gunpowder / roofscape
+19. indic / gunpowder / materials
+20. indic / gunpowder / landmark-1: a Mughal gateway with a dome and chhatris
+21. indic / gunpowder / landmark-2: a Rajput palace with jharokha balconies
+22. indic / modern / houses (concrete, tea estates, tech parks)
+23. indic / modern / street
+24. indic / modern / roofscape
+25. indic / modern / materials
+26. indic / modern / landmark-1: a glass campus with a dome (Bangalore)
+27. indic / modern / landmark-2: a Mumbai tower with a sea link
 
 ### 4. Buildings (34)
 
-34. granary (Granary, bronze): Egyptian beehive granaries or a Mesopotamian grain store with ramps
-35. irrigation (Irrigation, classical): a stone channel with sluice gates and a small water wheel (noria)
-36. farm_estate (Farm Estate, kingdoms): a manor farm: barn, dovecote, walled yard
-37. crop_rotation_farm (Crop Rotation Farm, gunpowder): a Georgian model farm: brick barns, a threshing floor, a hedge
-38. mechanized_farm (Mechanized Farm, modern): grain silos, a combine shed, a pivot irrigation arm
-39. market (Market, classical): an agora or forum with stalls under awnings (team colour)
-40. bazaar (Bazaar, kingdoms): a covered bazaar with domes and arcades
-41. bank (Bank, gunpowder): a neoclassical bank with a portico
-42. stock_exchange (Stock Exchange, modern): a glass tower with a ticker band (no text)
-43. barracks (Barracks, bronze): a mud-brick compound with a training yard and spear racks
-44. drill_yard (Drill Yard, classical): a Roman castra block: a parade ground, a stone barracks, standards (team)
-45. military_academy (Military Academy, gunpowder): an 18th century academy: a brick quad with a cannon
-46. war_college (War College, modern): a modern campus block with a radar mast and flags
-47. library (Library, classical): the Library of Celsus front: two storeys of columns and niches
-48. scriptorium (Scriptorium, kingdoms): a monastery cloister with a scriptorium wing
-49. university (University, gunpowder): a college quad with a chapel and a dome (Oxford, Salamanca)
-50. research_lab (Research Lab, modern): a low glass and concrete lab with a dish on the roof
-51. workshop (Workshop, classical): a potter's and smith's yard: kilns, a chimney, a water wheel
-52. manufactory (Manufactory, gunpowder): a brick mill with a tall chimney and a water wheel or beam engine
-53. factory (Factory, modern): a sawtooth-roof factory with two chimneys and a yard
-54. shrine (Shrine, bronze): a small stepped shrine with an altar and standards (team)
-55. temple (Temple, classical): a peripteral temple on a podium (variant b in the big town: a Chinese temple hall)
-56. cathedral (Cathedral / Mosque, kingdoms): two sheets: `cathedral-a` a Gothic cathedral with a spire, `cathedral-b` a mosque with a dome and two minarets
-57. civic_center (Civic Center, modern): a civic hall with a plaza, a fountain and flags (team)
-58. harbor (Harbor, classical): a stone quay with a breakwater, a warehouse and two moored boats
-59. shipyard (Shipyard, kingdoms): slipways with a hull in frame, a crane, a rope walk
-60. naval_base (Naval Base, gunpowder): a dry dock, a sea wall with cannon, a signal mast
-61. carrier_dock (Carrier Dock, modern): a concrete pier with cranes and a radar tower
-62. road_post (Road Post, bronze): a waystation: a courtyard, stables, a cistern
-63. highway (Highway, kingdoms): a paved road segment with a milestone and a stone bridge
-64. rail_depot (Rail Depot, modern): a railway station with a platform canopy and a goods shed
-65. copper_mine (Copper Mine, bronze): an open pit with ladders, a smelting hearth, ore baskets
-66. iron_foundry (Iron Foundry, kingdoms): a bloomery furnace with bellows and a charcoal pile
-67. oil_well (Oil Well, modern): a pumpjack and a storage tank (the same model as the `oil_well` improvement
+28. granary (Granary, bronze): Egyptian beehive granaries or a Mesopotamian grain store with ramps
+29. irrigation (Irrigation, classical): a stone channel with sluice gates and a small water wheel (noria)
+30. farm_estate (Farm Estate, kingdoms): a manor farm: barn, dovecote, walled yard
+31. crop_rotation_farm (Crop Rotation Farm, gunpowder): a Georgian model farm: brick barns, a threshing floor, a hedge
+32. mechanized_farm (Mechanized Farm, modern): grain silos, a combine shed, a pivot irrigation arm
+33. market (Market, classical): an agora or forum with stalls under awnings (team colour)
+34. bazaar (Bazaar, kingdoms): a covered bazaar with domes and arcades
+35. bank (Bank, gunpowder): a neoclassical bank with a portico
+36. stock_exchange (Stock Exchange, modern): a glass tower with a ticker band (no text)
+37. barracks (Barracks, bronze): a mud-brick compound with a training yard and spear racks
+38. drill_yard (Drill Yard, classical): a Roman castra block: a parade ground, a stone barracks, standards (team)
+39. military_academy (Military Academy, gunpowder): an 18th century academy: a brick quad with a cannon
+40. war_college (War College, modern): a modern campus block with a radar mast and flags
+41. library (Library, classical): the Library of Celsus front: two storeys of columns and niches
+42. scriptorium (Scriptorium, kingdoms): a monastery cloister with a scriptorium wing
+43. university (University, gunpowder): a college quad with a chapel and a dome (Oxford, Salamanca)
+44. research_lab (Research Lab, modern): a low glass and concrete lab with a dish on the roof
+45. workshop (Workshop, classical): a potter's and smith's yard: kilns, a chimney, a water wheel
+46. manufactory (Manufactory, gunpowder): a brick mill with a tall chimney and a water wheel or beam engine
+47. factory (Factory, modern): a sawtooth-roof factory with two chimneys and a yard
+48. shrine (Shrine, bronze): a small stepped shrine with an altar and standards (team)
+49. temple (Temple, classical): a peripteral temple on a podium (variant b in the big town: a Chinese temple hall)
+50. cathedral (Cathedral / Mosque, kingdoms): two sheets: `cathedral-a` a Gothic cathedral with a spire, `cathedral-b` a mosque with a dome and two minarets
+51. civic_center (Civic Center, modern): a civic hall with a plaza, a fountain and flags (team)
+52. harbor (Harbor, classical): a stone quay with a breakwater, a warehouse and two moored boats
+53. shipyard (Shipyard, kingdoms): slipways with a hull in frame, a crane, a rope walk
+54. naval_base (Naval Base, gunpowder): a dry dock, a sea wall with cannon, a signal mast
+55. carrier_dock (Carrier Dock, modern): a concrete pier with cranes and a radar tower
+56. road_post (Road Post, bronze): a waystation: a courtyard, stables, a cistern
+57. highway (Highway, kingdoms): a paved road segment with a milestone and a stone bridge
+58. rail_depot (Rail Depot, modern): a railway station with a platform canopy and a goods shed
+59. copper_mine (Copper Mine, bronze): an open pit with ladders, a smelting hearth, ore baskets
+60. iron_foundry (Iron Foundry, kingdoms): a bloomery furnace with bellows and a charcoal pile
+61. oil_well (Oil Well, modern): a pumpjack and a storage tank (the same model as the `oil_well` improvement
 
 ### 5. Wonders (15)
 
-68. great_pyramids (The Great Pyramids, bronze)
-69. hanging_gardens (The Hanging Gardens, bronze)
-70. great_wall (The Great Wall, bronze)
-71. great_library (The Great Library, classical)
-72. colosseum (The Colosseum, classical)
-73. lighthouse (The Lighthouse, classical)
-74. grand_bazaar (The Grand Bazaar, kingdoms)
-75. great_cathedral (The Great Cathedral, kingdoms)
-76. forbidden_city (The Forbidden City, kingdoms)
-77. royal_observatory (The Royal Observatory, gunpowder)
-78. arsenal (The Arsenal, gunpowder)
-79. palace_of_versailles (The Palace of Versailles, gunpowder)
-80. space_program (The Space Program, modern)
-81. international_exchange (The International Exchange, modern)
-82. atomic_research_center (The Atomic Research Center, modern)
+62. great_pyramids (The Great Pyramids, bronze)
+63. hanging_gardens (The Hanging Gardens, bronze)
+64. great_wall (The Great Wall, bronze)
+65. great_library (The Great Library, classical)
+66. colosseum (The Colosseum, classical)
+67. lighthouse (The Lighthouse, classical)
+68. grand_bazaar (The Grand Bazaar, kingdoms)
+69. great_cathedral (The Great Cathedral, kingdoms)
+70. forbidden_city (The Forbidden City, kingdoms)
+71. royal_observatory (The Royal Observatory, gunpowder)
+72. arsenal (The Arsenal, gunpowder)
+73. palace_of_versailles (The Palace of Versailles, gunpowder)
+74. space_program (The Space Program, modern)
+75. international_exchange (The International Exchange, modern)
+76. atomic_research_center (The Atomic Research Center, modern)
 
 ### 6. Tile improvements (19)
 
-83. farm-ancient (Farm)
-84. farm-modern (Farm)
-85. pasture (Pasture)
-86. camp (Camp)
-87. mine-ancient (Mine)
-88. mine-modern (Mine)
-89. quarry (Quarry)
-90. lumber_camp (Lumber camp)
-91. fishing_boats-ancient (Fishing boats)
-92. fishing_boats-modern (Fishing boats)
-93. plantation (Plantation)
-94. oil_well (Oil well)
-95. road-ancient (Road)
-96. road-modern (Road)
-97. fort-bronze (Fort)
-98. fort-classical (Fort)
-99. fort-kingdoms (Fort)
-100. fort-gunpowder (Fort)
-101. fort-modern (Fort)
+77. farm-ancient (Farm)
+78. farm-modern (Farm)
+79. pasture (Pasture)
+80. camp (Camp)
+81. mine-ancient (Mine)
+82. mine-modern (Mine)
+83. quarry (Quarry)
+84. lumber_camp (Lumber camp)
+85. fishing_boats-ancient (Fishing boats)
+86. fishing_boats-modern (Fishing boats)
+87. plantation (Plantation)
+88. oil_well (Oil well)
+89. road-ancient (Road)
+90. road-modern (Road)
+91. fort-bronze (Fort)
+92. fort-classical (Fort)
+93. fort-kingdoms (Fort)
+94. fort-gunpowder (Fort)
+95. fort-modern (Fort)
 
 ### 7. Units and ships (45)
 
-102. bronze-infantry (Spearmen)
-103. bronze-cavalry (Chariots)
-104. bronze-ranged (Archers)
-105. bronze-siege (Battering Ram)
-106. bronze-support (Baggage Train)
-107. classical-infantry (Swordsmen)
-108. classical-cavalry (Heavy Cavalry)
-109. classical-ranged (Composite Archers)
-110. classical-siege (Ballista)
-111. classical-support (Engineers)
-112. kingdoms-infantry (Pikemen)
-113. kingdoms-cavalry (Knights)
-114. kingdoms-ranged (Longbowmen)
-115. kingdoms-siege (Trebuchet)
-116. kingdoms-support (Pioneers)
-117. gunpowder-infantry (Musketeers)
-118. gunpowder-cavalry (Dragoons)
-119. gunpowder-ranged (Riflemen)
-120. gunpowder-siege (Field Cannon)
-121. gunpowder-support (Sappers)
-122. modern-infantry (Mechanized Infantry)
-123. modern-cavalry (Tanks)
-124. modern-ranged (ATGM Teams)
-125. modern-siege (Artillery)
-126. modern-support (Anti-Air Battery)
-127. modern-air (Fighter Jet)
-128. settler-bronze (Settler)
-129. settler-classical (Settler)
-130. settler-kingdoms (Settler)
-131. settler-gunpowder (Settler)
-132. settler-modern (Settler)
-133. warship-bronze (War Galley)
-134. warship-classical (Trireme)
-135. warship-kingdoms (Cog)
-136. warship-gunpowder (Frigate)
-137. warship-modern (Destroyer)
-138. transport-classical (Longship (classical))
-139. transport-kingdoms (Carrack)
-140. transport-gunpowder (Galleon)
-141. transport-modern (Landing ship)
-142. raider-classical (Bireme)
-143. raider-kingdoms (Corsair)
-144. raider-gunpowder (Privateer)
-145. raider-modern (Submarine)
-146. carrier-modern (Carrier)
+96. bronze-infantry (Spearmen)
+97. bronze-cavalry (Chariots)
+98. bronze-ranged (Archers)
+99. bronze-siege (Battering Ram)
+100. bronze-support (Baggage Train)
+101. classical-infantry (Swordsmen)
+102. classical-cavalry (Heavy Cavalry)
+103. classical-ranged (Composite Archers)
+104. classical-siege (Ballista)
+105. classical-support (Engineers)
+106. kingdoms-infantry (Pikemen)
+107. kingdoms-cavalry (Knights)
+108. kingdoms-ranged (Longbowmen)
+109. kingdoms-siege (Trebuchet)
+110. kingdoms-support (Pioneers)
+111. gunpowder-infantry (Musketeers)
+112. gunpowder-cavalry (Dragoons)
+113. gunpowder-ranged (Riflemen)
+114. gunpowder-siege (Field Cannon)
+115. gunpowder-support (Sappers)
+116. modern-infantry (Mechanized Infantry)
+117. modern-cavalry (Tanks)
+118. modern-ranged (ATGM Teams)
+119. modern-siege (Artillery)
+120. modern-support (Anti-Air Battery)
+121. modern-air (Fighter Jet)
+122. settler-bronze (Settler)
+123. settler-classical (Settler)
+124. settler-kingdoms (Settler)
+125. settler-gunpowder (Settler)
+126. settler-modern (Settler)
+127. warship-bronze (War Galley)
+128. warship-classical (Trireme)
+129. warship-kingdoms (Cog)
+130. warship-gunpowder (Frigate)
+131. warship-modern (Destroyer)
+132. transport-classical (Longship (classical))
+133. transport-kingdoms (Carrack)
+134. transport-gunpowder (Galleon)
+135. transport-modern (Landing ship)
+136. raider-classical (Bireme)
+137. raider-kingdoms (Corsair)
+138. raider-gunpowder (Privateer)
+139. raider-modern (Submarine)
+140. carrier-modern (Carrier)
 
 ### 8. Icons (130)
 
-147. icons/resources/wheat
-148. icons/resources/rice
-149. icons/resources/cattle
-150. icons/resources/sheep
-151. icons/resources/deer
-152. icons/resources/fish
-153. icons/resources/whales
-154. icons/resources/bananas
-155. icons/resources/dates
-156. icons/resources/stone
-157. icons/resources/timber
-158. icons/resources/reeds
-159. icons/resources/horses
-160. icons/resources/copper
-161. icons/resources/iron
-162. icons/resources/coal
-163. icons/resources/oil
-164. icons/resources/uranium
-165. icons/resources/gold
-166. icons/resources/silver
-167. icons/resources/gems
-168. icons/resources/salt
-169. icons/resources/furs
-170. icons/resources/honey
-171. icons/resources/spices
-172. icons/resources/dyes
-173. icons/resources/sugar
-174. icons/resources/cotton
-175. icons/resources/silk
-176. icons/resources/tea
-177. icons/resources/wine
-178. icons/resources/olives
-179. icons/resources/incense
-180. icons/resources/papyrus
-181. icons/resources/rubber
-182. icons/improvements/farm
-183. icons/improvements/pasture
-184. icons/improvements/camp
-185. icons/improvements/mine
-186. icons/improvements/quarry
-187. icons/improvements/lumber_camp
-188. icons/improvements/fishing_boats
-189. icons/improvements/plantation
-190. icons/improvements/oil_well
-191. icons/improvements/road
-192. icons/improvements/fort
-193. icons/buildings/granary
-194. icons/buildings/irrigation
-195. icons/buildings/farm_estate
-196. icons/buildings/crop_rotation_farm
-197. icons/buildings/mechanized_farm
-198. icons/buildings/market
-199. icons/buildings/bazaar
-200. icons/buildings/bank
-201. icons/buildings/stock_exchange
-202. icons/buildings/barracks
-203. icons/buildings/drill_yard
-204. icons/buildings/military_academy
-205. icons/buildings/war_college
-206. icons/buildings/library
-207. icons/buildings/scriptorium
-208. icons/buildings/university
-209. icons/buildings/research_lab
-210. icons/buildings/workshop
-211. icons/buildings/manufactory
-212. icons/buildings/factory
-213. icons/buildings/shrine
-214. icons/buildings/temple
-215. icons/buildings/cathedral
-216. icons/buildings/civic_center
-217. icons/buildings/harbor
-218. icons/buildings/shipyard
-219. icons/buildings/naval_base
-220. icons/buildings/carrier_dock
-221. icons/buildings/road_post
-222. icons/buildings/highway
-223. icons/buildings/rail_depot
-224. icons/buildings/copper_mine
-225. icons/buildings/iron_foundry
-226. icons/buildings/oil_well
-227. icons/wonders/great_pyramids
-228. icons/wonders/hanging_gardens
-229. icons/wonders/great_wall
-230. icons/wonders/great_library
-231. icons/wonders/colosseum
-232. icons/wonders/lighthouse
-233. icons/wonders/grand_bazaar
-234. icons/wonders/great_cathedral
-235. icons/wonders/forbidden_city
-236. icons/wonders/royal_observatory
-237. icons/wonders/arsenal
-238. icons/wonders/palace_of_versailles
-239. icons/wonders/space_program
-240. icons/wonders/international_exchange
-241. icons/wonders/atomic_research_center
-242. icons/units/infantry
-243. icons/units/cavalry
-244. icons/units/ranged
-245. icons/units/siege
-246. icons/units/support
-247. icons/units/air
-248. icons/units/settler
-249. icons/ships/warship
-250. icons/ships/transport
-251. icons/ships/raider
-252. icons/ships/carrier
-253. icons/cities/city-small-bronze
-254. icons/cities/city-medium-bronze
-255. icons/cities/city-big-bronze
-256. icons/cities/city-small-classical
-257. icons/cities/city-medium-classical
-258. icons/cities/city-big-classical
-259. icons/cities/city-small-kingdoms
-260. icons/cities/city-medium-kingdoms
-261. icons/cities/city-big-kingdoms
-262. icons/cities/city-small-gunpowder
-263. icons/cities/city-medium-gunpowder
-264. icons/cities/city-big-gunpowder
-265. icons/cities/city-small-modern
-266. icons/cities/city-medium-modern
-267. icons/cities/city-big-modern
-268. icons/ages/bronze
-269. icons/ages/classical
-270. icons/ages/kingdoms
-271. icons/ages/gunpowder
-272. icons/ages/modern
-273. icons/markers/capital
-274. icons/markers/wonder
-275. icons/markers/event
-276. icons/markers/battle
+141. icons/resources/wheat
+142. icons/resources/rice
+143. icons/resources/cattle
+144. icons/resources/sheep
+145. icons/resources/deer
+146. icons/resources/fish
+147. icons/resources/whales
+148. icons/resources/bananas
+149. icons/resources/dates
+150. icons/resources/stone
+151. icons/resources/timber
+152. icons/resources/reeds
+153. icons/resources/horses
+154. icons/resources/copper
+155. icons/resources/iron
+156. icons/resources/coal
+157. icons/resources/oil
+158. icons/resources/uranium
+159. icons/resources/gold
+160. icons/resources/silver
+161. icons/resources/gems
+162. icons/resources/salt
+163. icons/resources/furs
+164. icons/resources/honey
+165. icons/resources/spices
+166. icons/resources/dyes
+167. icons/resources/sugar
+168. icons/resources/cotton
+169. icons/resources/silk
+170. icons/resources/tea
+171. icons/resources/wine
+172. icons/resources/olives
+173. icons/resources/incense
+174. icons/resources/papyrus
+175. icons/resources/rubber
+176. icons/improvements/farm
+177. icons/improvements/pasture
+178. icons/improvements/camp
+179. icons/improvements/mine
+180. icons/improvements/quarry
+181. icons/improvements/lumber_camp
+182. icons/improvements/fishing_boats
+183. icons/improvements/plantation
+184. icons/improvements/oil_well
+185. icons/improvements/road
+186. icons/improvements/fort
+187. icons/buildings/granary
+188. icons/buildings/irrigation
+189. icons/buildings/farm_estate
+190. icons/buildings/crop_rotation_farm
+191. icons/buildings/mechanized_farm
+192. icons/buildings/market
+193. icons/buildings/bazaar
+194. icons/buildings/bank
+195. icons/buildings/stock_exchange
+196. icons/buildings/barracks
+197. icons/buildings/drill_yard
+198. icons/buildings/military_academy
+199. icons/buildings/war_college
+200. icons/buildings/library
+201. icons/buildings/scriptorium
+202. icons/buildings/university
+203. icons/buildings/research_lab
+204. icons/buildings/workshop
+205. icons/buildings/manufactory
+206. icons/buildings/factory
+207. icons/buildings/shrine
+208. icons/buildings/temple
+209. icons/buildings/cathedral
+210. icons/buildings/civic_center
+211. icons/buildings/harbor
+212. icons/buildings/shipyard
+213. icons/buildings/naval_base
+214. icons/buildings/carrier_dock
+215. icons/buildings/road_post
+216. icons/buildings/highway
+217. icons/buildings/rail_depot
+218. icons/buildings/copper_mine
+219. icons/buildings/iron_foundry
+220. icons/buildings/oil_well
+221. icons/wonders/great_pyramids
+222. icons/wonders/hanging_gardens
+223. icons/wonders/great_wall
+224. icons/wonders/great_library
+225. icons/wonders/colosseum
+226. icons/wonders/lighthouse
+227. icons/wonders/grand_bazaar
+228. icons/wonders/great_cathedral
+229. icons/wonders/forbidden_city
+230. icons/wonders/royal_observatory
+231. icons/wonders/arsenal
+232. icons/wonders/palace_of_versailles
+233. icons/wonders/space_program
+234. icons/wonders/international_exchange
+235. icons/wonders/atomic_research_center
+236. icons/units/infantry
+237. icons/units/cavalry
+238. icons/units/ranged
+239. icons/units/siege
+240. icons/units/support
+241. icons/units/air
+242. icons/units/settler
+243. icons/ships/warship
+244. icons/ships/transport
+245. icons/ships/raider
+246. icons/ships/carrier
+247. icons/cities/city-small-bronze
+248. icons/cities/city-medium-bronze
+249. icons/cities/city-big-bronze
+250. icons/cities/city-small-classical
+251. icons/cities/city-medium-classical
+252. icons/cities/city-big-classical
+253. icons/cities/city-small-kingdoms
+254. icons/cities/city-medium-kingdoms
+255. icons/cities/city-big-kingdoms
+256. icons/cities/city-small-gunpowder
+257. icons/cities/city-medium-gunpowder
+258. icons/cities/city-big-gunpowder
+259. icons/cities/city-small-modern
+260. icons/cities/city-medium-modern
+261. icons/cities/city-big-modern
+262. icons/ages/bronze
+263. icons/ages/classical
+264. icons/ages/kingdoms
+265. icons/ages/gunpowder
+266. icons/ages/modern
+267. icons/markers/capital
+268. icons/markers/wonder
+269. icons/markers/event
+270. icons/markers/battle
 
-## Part C. Israelite theme, not started (74)
+### Israelite theme (60)
 
-1. israelite / bronze / houses: the four-room house: a stone footing, mud-brick or fieldstone walls, a row of
-2. israelite / bronze / street: packed earth lanes, houses back to back in a ring round the edge of the town
-3. israelite / bronze / materials: limestone, mud brick, roof clay, olive wood, plaster, team cloth
-4. israelite / bronze / landmark-1: a six-chamber city gate with two towers (Megiddo, Hazor, Gezer)
-5. israelite / bronze / landmark-2: a pillared storehouse with three aisles and rows of stone pillars
-6. israelite / classical / houses: courtyard houses of fieldstone and lime plaster, flat roofs with a parapet, an
-7. israelite / classical / street: paved lanes with a drain and stepped streets on the slope (the stepped street of
-8. israelite / classical / materials: drafted-margin ashlar, fieldstone, lime plaster, roof plaster, cedar, team cloth
-9. israelite / classical / landmark-1: a Galilean synagogue: a basilica hall with two rows of columns and a gabled
-10. israelite / classical / landmark-2: a Herodian tower: a tall square tower of drafted ashlar on a sloping base,
-11. israelite / kingdoms / houses: stone houses with cross-vaulted rooms and flat roofs, small arched windows, courtyard
-12. israelite / kingdoms / street: cobbled lanes with stone steps and arches over the lane
-13. israelite / kingdoms / landmark-1: a Byzantine-period synagogue with an apse, a basalt facade and a tiled roof
-14. israelite / kingdoms / landmark-2: the medieval citadel tower of Jerusalem: a square keep of big ashlar with a
-15. israelite / gunpowder / houses: Ottoman-era stone houses with domed roofs (Jerusalem's roofscape of small domes),
-16. israelite / gunpowder / street: stone-paved stepped alleys, a covered market lane
-17. israelite / gunpowder / landmark-1: a great domed synagogue: a tall square stone hall with a big dome on a drum
-18. israelite / gunpowder / landmark-2: an Ottoman city gate: a crenellated gate tower with a pointed arch and a bent
-19. israelite / modern / houses: Bauhaus white blocks on pilotis with ribbon balconies and rounded corners
-20. israelite / modern / street: asphalt with sand-coloured sidewalks and a boulevard of trees in the middle
-21. israelite / modern / landmark-1: a group of three office towers on one podium: one round, one triangular, one
-22. israelite / modern / landmark-2: a kibbutz water tower: a concrete tank on legs with a lookout platform
-23. palace-small-israelite (bronze)
-24. palace-israelite (bronze)
-25. palace-small-israelite (classical)
-26. palace-israelite (classical)
-27. palace-small-israelite (kingdoms)
-28. palace-israelite (kingdoms)
-29. walls-medium-israelite (bronze)
-30. walls-medium-israelite (classical)
-31. walls-medium-israelite (gunpowder)
-32. colony-camp-israelite (bronze)
-33. colony-camp-israelite (modern)
-34. field-1-israelite (all early ages)
-35. field-2-israelite (all early ages)
-36. field-3-israelite (all early ages)
-37. field-4-israelite (all early ages)
-38. granary-israelite (bronze)
-39. barracks-israelite (bronze)
-40. shrine-israelite (bronze)
-41. copper_mine-israelite (bronze)
-42. irrigation-israelite (classical)
-43. market-israelite (classical)
-44. library-israelite (classical)
-45. harbor-israelite (classical)
-46. workshop-israelite (classical)
-47. scriptorium-israelite (kingdoms)
-48. solomons_temple (bronze)
-49. masada (classical)
-50. farm-israelite (ancient)
-51. plantation-israelite (ancient)
-52. pasture-israelite (ancient)
-53. fishing_boats-israelite (ancient)
-54. fort-bronze-israelite (bronze)
-55. fort-modern-israelite (modern)
-56. bronze-infantry-israelite (Israelite Spearmen)
-57. bronze-ranged-israelite (Slingers)
-58. bronze-cavalry-israelite (Chariots of Israel)
-59. classical-infantry-israelite (Judahite Spearmen)
-60. classical-ranged-israelite (Judahite Slingers)
-61. classical-cavalry-israelite (Hasmonean Horse)
-62. classical-siege-israelite (Hasmonean Catapult)
-63. modern-infantry-israelite (Infantry (olive))
-64. modern-cavalry-israelite (Tanks (front engine))
-65. settler-bronze-israelite (Settler)
-66. settler-modern-israelite (Settler)
-67. israelite / bronze / roofscape
-68. israelite / classical / roofscape
-69. israelite / kingdoms / roofscape
-70. israelite / kingdoms / materials
-71. israelite / gunpowder / roofscape
-72. israelite / gunpowder / materials
-73. israelite / modern / roofscape
-74. israelite / modern / materials
+271. israelite / classical / houses: courtyard houses of fieldstone and lime plaster, flat roofs with a parapet, an
+272. israelite / classical / street: paved lanes with a drain and stepped streets on the slope (the stepped street of
+273. israelite / classical / materials: drafted-margin ashlar, fieldstone, lime plaster, roof plaster, cedar, team cloth
+274. israelite / classical / landmark-1: a Galilean synagogue: a basilica hall with two rows of columns and a gabled
+275. israelite / classical / landmark-2: a Herodian tower: a tall square tower of drafted ashlar on a sloping base,
+276. israelite / kingdoms / houses: stone houses with cross-vaulted rooms and flat roofs, small arched windows, courtyard
+277. israelite / kingdoms / street: cobbled lanes with stone steps and arches over the lane
+278. israelite / kingdoms / landmark-1: a Byzantine-period synagogue with an apse, a basalt facade and a tiled roof
+279. israelite / kingdoms / landmark-2: the medieval citadel tower of Jerusalem: a square keep of big ashlar with a
+280. israelite / gunpowder / houses: Ottoman-era stone houses with domed roofs (Jerusalem's roofscape of small domes),
+281. israelite / gunpowder / street: stone-paved stepped alleys, a covered market lane
+282. israelite / gunpowder / landmark-1: a great domed synagogue: a tall square stone hall with a big dome on a drum
+283. israelite / gunpowder / landmark-2: an Ottoman city gate: a crenellated gate tower with a pointed arch and a bent
+284. israelite / modern / houses: Bauhaus white blocks on pilotis with ribbon balconies and rounded corners
+285. israelite / modern / street: asphalt with sand-coloured sidewalks and a boulevard of trees in the middle
+286. israelite / modern / landmark-1: a group of three office towers on one podium: one round, one triangular, one
+287. israelite / modern / landmark-2: a kibbutz water tower: a concrete tank on legs with a lookout platform
+288. palace-small-israelite (classical)
+289. palace-israelite (classical)
+290. palace-small-israelite (kingdoms)
+291. palace-israelite (kingdoms)
+292. walls-medium-israelite (classical)
+293. walls-medium-israelite (gunpowder)
+294. colony-camp-israelite (modern)
+295. granary-israelite (bronze)
+296. barracks-israelite (bronze)
+297. shrine-israelite (bronze)
+298. copper_mine-israelite (bronze)
+299. irrigation-israelite (classical)
+300. market-israelite (classical)
+301. library-israelite (classical)
+302. harbor-israelite (classical)
+303. workshop-israelite (classical)
+304. scriptorium-israelite (kingdoms)
+305. solomons_temple (bronze)
+306. masada (classical)
+307. farm-israelite (ancient)
+308. plantation-israelite (ancient)
+309. pasture-israelite (ancient)
+310. fishing_boats-israelite (ancient)
+311. fort-bronze-israelite (bronze)
+312. fort-modern-israelite (modern)
+313. bronze-infantry-israelite (Israelite Spearmen)
+314. bronze-ranged-israelite (Slingers)
+315. bronze-cavalry-israelite (Chariots of Israel)
+316. classical-infantry-israelite (Judahite Spearmen)
+317. classical-ranged-israelite (Judahite Slingers)
+318. classical-cavalry-israelite (Hasmonean Horse)
+319. classical-siege-israelite (Hasmonean Catapult)
+320. modern-infantry-israelite (Infantry (olive))
+321. modern-cavalry-israelite (Tanks (front engine))
+322. settler-bronze-israelite (Settler)
+323. settler-modern-israelite (Settler)
+324. israelite / classical / roofscape
+325. israelite / kingdoms / roofscape
+326. israelite / kingdoms / materials
+327. israelite / gunpowder / roofscape
+328. israelite / gunpowder / materials
+329. israelite / modern / roofscape
+330. israelite / modern / materials
