@@ -52,8 +52,8 @@ const buildCityWorld = (initial, scenarioId, nationIds) => {
   Object.keys(starts).sort().forEach((nationId) => {
     if (!nations[nationId]) return;
     founded[nationId] = [];
-    starts[nationId].cities.forEach(({ tile, size }, i) => {
-      const r = foundCity(world, tiles, { nationId, tile, size, turn: 1, isCapital: i === 0 });
+    starts[nationId].cities.forEach(({ tile, size, name }, i) => {
+      const r = foundCity(world, tiles, { nationId, tile, name, size, turn: 1, isCapital: i === 0 });
       world = r.world;
       founded[nationId].push(r.city.id);
     });

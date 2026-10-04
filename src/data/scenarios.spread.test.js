@@ -2,7 +2,7 @@
 // Start capitals spread so towns never stand on each other (scenarios.js spreadCapitals).
 import { describe, it, expect } from 'vitest';
 import { getTiles } from './geo/tiles';
-import { spreadCapitals, ringsFrom, START_SPACING_MIN } from './scenarios';
+import { spreadCapitals, ringsFrom, START_SPACING_MIN, buildScenarioStarts } from './scenarios';
 
 describe('start capitals', () => {
   const tiles = getTiles();
@@ -38,5 +38,12 @@ describe('start capitals', () => {
 
   it('is the same every time', () => {
     expect(spreadCapitals(tiles, [...ids].reverse())).toEqual(out);
+  });
+
+  it('a moved capital keeps its real name', () => {
+    const { starts } = buildScenarioStarts(tiles, 'dawn');
+    expect(starts.il.capital).not.toBe(tiles.capitals.il);
+    expect(starts.il.cities[0].name).toBe(tiles.names[tiles.capitals.il]);
+    expect(starts.fr.cities[0].name).toBeUndefined(); // unmoved: the tile's own name
   });
 });

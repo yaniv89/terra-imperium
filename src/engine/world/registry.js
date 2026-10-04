@@ -217,8 +217,8 @@ export const ensureDefaultWorld = () => {
   let world = emptyWorld();
   const regions = {};
   Object.keys(starts).sort().forEach((nationId) => {
-    starts[nationId].cities.forEach(({ tile, size }, i) => {
-      const r = foundCity(world, tiles, { nationId, tile, size, turn: 1, isCapital: i === 0 });
+    starts[nationId].cities.forEach(({ tile, size, name }, i) => {
+      const r = foundCity(world, tiles, { nationId, tile, name, size, turn: 1, isCapital: i === 0 });
       world = r.world;
       regions[r.city.id] = { ...r.city, founderId: nationId, owner: nationId };
     });

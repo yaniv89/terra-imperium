@@ -141,7 +141,9 @@ export const buildScenarioStarts = (tiles, scenarioId = DEFAULT_SCENARIO_ID, nat
   ids.forEach((id) => {
     const capital = capitals[id];
     claimedBy.set(capital, id);
-    starts[id] = { capital, size: capitalSizeFor(scenario, id), cities: [{ tile: capital, size: capitalSizeFor(scenario, id) }], tiles: [capital], settlers: 0, hardStart: false };
+    // a capital moved off its real tile keeps its real name (Jerusalem, not the new tile's town)
+    const name = capital !== tiles.capitals[id] ? tiles.names[tiles.capitals[id]] || undefined : undefined;
+    starts[id] = { capital, size: capitalSizeFor(scenario, id), cities: [{ tile: capital, size: capitalSizeFor(scenario, id), name }], tiles: [capital], settlers: 0, hardStart: false };
   });
   ids.forEach((id) => {
     const extra = UNPEOPLED_AT_DAWN.has(id) && scenario.id === 'dawn' ? 0 : scenario.extraCities;

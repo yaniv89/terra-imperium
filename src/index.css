@@ -366,6 +366,63 @@ svg path {
   max-height: 52dvh;
 }
 
+/* City banners in the close view (src/components/map/CityBanners.jsx), Civilization style: the
+   owner's colour holds the size, the name sits on a dark pill, small marks for a capital, a siege
+   and low loyalty, a thin bar for a siege's HP or an outpost's growth. */
+.city-banner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  border: 1.5px solid var(--banner-colour);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #f8fafc;
+  font: 700 12px/1 ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+  -webkit-tap-highlight-color: transparent;
+}
+.city-banner::before {
+  /* a 40 px touch target round a ~22 px banner */
+  content: '';
+  position: absolute;
+  inset: -9px -4px;
+}
+.city-banner.selected { border-color: #fde68a; box-shadow: 0 0 0 2px rgba(253, 230, 138, 0.55), 0 2px 6px rgba(0, 0, 0, 0.55); }
+.city-banner:active { filter: brightness(1.15); }
+.city-banner-size {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 999px 0 0 999px;
+  background: var(--banner-colour);
+  color: #0f172a;
+  font-weight: 800;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
+}
+.city-banner-name { display: flex; align-items: center; gap: 3px; padding: 4px 9px 4px 6px; letter-spacing: 0.01em; }
+.city-banner-star { color: #fde68a; font-size: 11px; }
+.city-banner-warn { margin-left: 2px; padding: 0 4px; border-radius: 6px; background: #ef4444; color: #fff; font-size: 10px; line-height: 13px; }
+.city-banner-siege { margin-left: 2px; color: #fb923c; }
+.city-banner-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -5px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(15, 23, 42, 0.85);
+  overflow: hidden;
+}
+.city-banner-bar > span { display: block; height: 100%; }
+[data-layout="phone-landscape"] .city-banner { font-size: 11px; }
+
 /* Map markers (plan §4a): army, fleet and battle banners on the flat map and the globe
    (src/components/map/mapBanners.js). Positioned by the overlay; drawn at screen scale. */
 .map-banner {

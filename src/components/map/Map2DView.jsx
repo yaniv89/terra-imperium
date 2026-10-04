@@ -35,8 +35,7 @@ import { getNationColor } from '../../data/nationColors';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
-import { townTier } from './closeView/townTiers';
-import { unitPx } from './closeView/scale';
+import CityBanners from './CityBanners';
 // The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
 const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
 // The ground under it (plans/playtest-1.md P1.3): a shader over the raster, sharp at any zoom.
@@ -642,16 +641,9 @@ const Map2DView = ({
       // From the close zoom the town model is the city: no disc or rings over the art, only the
       // name and the warnings, with an invisible disc that still takes the tap.
       if (townsDrawn) {
-        out.push(
-          <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} data-close-badge="1" onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
-            <circle r={r} fill="rgba(0,0,0,0)" />
-            {city.siege && <text y={-r - sw * 2.5} textAnchor="middle" fontSize={r * 0.9} fontWeight="700" fill="#fb923c" stroke="rgba(0,0,0,0.7)" strokeWidth={sw * 0.8} paintOrder="stroke" pointerEvents="none" data-siege-badge={city.id}>⚔</text>}
-            {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.3} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
-            {city.disaster && <text x={-r * 0.95} y={-r * 0.6} textAnchor="middle" fontSize={r * 0.9} pointerEvents="none" data-disaster-badge={city.id}>{city.disaster.kind === 'flood' ? '≈' : city.disaster.kind === 'fire' ? '🔥' : '☠'}</text>}
-            {/* under the town's front edge (and its wall): the models stand over anything drawn above */}
-            <text y={(((city.owner ? townTier(city).modelRadius : 1) + 0.35) * unitPx(zoomK) * 0.8 + 12) / zoomK} textAnchor="middle" fontSize={12 / zoomK} fontWeight="700" fill={city.id === selectedRegion ? '#fde68a' : '#fff'} stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>
-          </g>
-        );
+        // From the close zoom the town model is the city and CityBanners carries its name and marks:
+        // only an invisible disc stays here, so a tap on the town still selects it.
+        out.push(<circle key={city.id} cx={x} cy={y} r={r} fill="rgba(0,0,0,0)" data-city-badge={city.id} data-close-badge="1" onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }} />);
         return;
       }
       out.push(
@@ -741,6 +733,9 @@ const Map2DView = ({
         <Suspense fallback={null}>
           <CloseViewLayer projection={projection} transform={transform} width={width} height={height} active={transform.k >= CLOSE_ZOOM_K} land={land} />
         </Suspense>
+      )}
+      {interactive && transform.k >= CLOSE_ZOOM_K && (
+        <CityBanners projection={projection} transform={transform} width={width} height={height} selectedRegion={selectedRegion} playerColor={PLAYER_BAND_COLOR} onSelect={(id, e) => handleClick(id, e)} />
       )}
       <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
