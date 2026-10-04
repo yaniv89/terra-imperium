@@ -2,7 +2,10 @@
 
 Date: 2026-10-03. Status: approved with the decisions in section 13; not started (the user asked
 to wait).
-Companion to `plans/eras-origins-and-future.md` (the nine ages). This plan changes the shape of the
+Companion to `plans/eras-origins-and-future.md` (the nine ages).
+**Update 2026-10-04:** world sizes are now Small 24, Standard 36, Large 48 with independents from
+the 150-people pool; see `plans/peoples-and-world-setup.md` (phase W0, before W1). Section 2's
+table below is superseded by it. This plan changes the shape of the
 world, so it comes before that plan's Phase 1 (section 12).
 
 ---
