@@ -196,18 +196,55 @@ const classify = ({ id, land, lat, elevMean, elevMax, rough, koppen, regionClass
   return { terrain, relief, feature };
 };
 
-// Capitals countryCapitals.json could not resolve to coordinates (its own build log lists them).
-// Cells opened as water so every sea reaches the ocean (see pass 1). Centres from the built grid.
-const STRAITS = [
-  { name: 'Bab-el-Mandeb', lat: 12.8, lon: 43.7 },
-  { name: 'Dardanelles', lat: 40.2, lon: 26.9 },
-  { name: 'Sea of Marmara', lat: 41.3, lon: 28.0 },
-  { name: 'Oresund', lat: 55.5, lon: 13.7 },
-  { name: 'White Sea throat', lat: 66.8, lon: 39.8 },
-  { name: 'Malacca west', lat: 1.8, lon: 100.9 },
-  { name: 'Malacca east', lat: 0.6, lon: 102.8 }
+// Real straits (plans/math/straits.md). A strait narrower than a cell (14 km at Gibraltar, 1 km
+// at the Bosphorus) falls on cells the land polygons call land, which seals the Mediterranean, the
+// Black Sea, the Sea of Azov and others off from the ocean. Each strait is a polyline of
+// [lat, lon] points that runs from open water on one side to open water on the other, along the
+// real channel; every cell the line passes through becomes water. Nearest-cell regions along a line
+// are contiguous, so the carved cells always form a connected channel, at any grid frequency.
+// Keep the end points in water that is wide at every frequency (the line carves nothing there).
+// A line carves only when its two ends are not already joined by sea: where the grid keeps a
+// strait open by itself (the Danish straits at frequency 75), no land is lost to it.
+export const STRAIT_LINES = [
+  { name: 'Gibraltar', line: [[35.9, -6.6], [35.95, -5.75], [35.97, -5.45], [36.1, -4.8], [36.3, -4.0]] },
+  { name: 'Dardanelles', line: [[39.85, 25.9], [40.05, 26.2], [40.2, 26.4], [40.4, 26.7], [40.6, 27.2]] },
+  { name: 'Sea of Marmara', line: [[40.6, 27.2], [40.75, 28.0], [40.85, 28.7], [41.0, 29.0]] },
+  { name: 'Bosphorus', line: [[40.85, 28.9], [41.0, 29.0], [41.1, 29.05], [41.2, 29.1], [41.3, 29.2], [41.7, 29.5]] },
+  { name: 'Kerch', line: [[44.8, 36.3], [45.1, 36.5], [45.3, 36.6], [45.6, 36.8], [46.0, 36.9]] },
+  { name: 'Oresund', line: [[54.7, 13.1], [55.0, 12.9], [55.4, 12.85], [55.7, 12.7], [56.0, 12.65], [56.3, 12.3], [56.7, 12.0]] },
+  { name: 'Great Belt', line: [[54.6, 11.0], [55.0, 10.95], [55.3, 11.0], [55.7, 11.0], [56.1, 11.2]] },
+  { name: 'Gulf of Finland', line: [[59.3, 21.5], [59.55, 23.0], [59.75, 24.5], [59.9, 26.0], [60.0, 27.5], [59.95, 29.0], [59.95, 30.1]] },
+  { name: 'White Sea throat', line: [[65.3, 38.5], [65.9, 39.5], [66.4, 40.4], [66.9, 41.0], [67.8, 41.5]] },
+  { name: 'Bab-el-Mandeb', line: [[12.0, 44.2], [12.4, 43.6], [12.6, 43.35], [12.9, 43.1], [13.4, 42.7]] },
+  { name: 'Hormuz', line: [[25.6, 57.4], [26.2, 56.8], [26.55, 56.4], [26.5, 56.0], [26.3, 55.5]] },
+  { name: 'Malacca', line: [[5.5, 98.5], [4.0, 99.8], [2.6, 101.0], [1.8, 102.2], [1.25, 103.4], [1.2, 103.8], [1.3, 104.3]] },
+  { name: 'Bass', line: [[-38.5, 141.5], [-39.4, 144.0], [-39.6, 146.5], [-39.5, 148.5]] },
+  { name: 'Gulf of California midriff', line: [[27.5, -111.5], [28.6, -112.7], [29.5, -113.3], [30.4, -113.9], [31.0, -114.4]] },
+  { name: 'St Lawrence estuary', line: [[49.9, -64.0], [49.4, -66.5], [49.0, -68.0], [48.4, -69.3], [47.6, -70.1]] },
+  { name: 'Juan de Fuca and Georgia', line: [[48.45, -124.8], [48.25, -123.6], [48.5, -123.2], [48.9, -123.3], [49.4, -123.9]] },
+  { name: 'Lake Maracaibo outlet', line: [[11.6, -71.2], [11.0, -71.5], [10.6, -71.6], [10.0, -71.6]] },
+  { name: 'Gulf of Khambhat', line: [[20.7, 71.9], [21.3, 72.4], [21.8, 72.5], [22.2, 72.4]] },
+  { name: 'Gulf of Ob', line: [[72.8, 73.8], [71.6, 73.0], [70.2, 73.4], [69.0, 73.6], [67.8, 73.6], [67.0, 72.5], [66.5, 71.4]] },
+  { name: 'Taz estuary', line: [[69.0, 73.6], [68.6, 75.3], [68.0, 76.8], [67.5, 78.0]] },
+  { name: 'Gydan Bay', line: [[72.3, 75.8], [71.8, 76.8], [71.2, 77.8], [70.9, 78.6]] }
 ];
+// Water the ocean must NOT reach: real landlocked seas. A sea pocket holding one of these points is
+// left alone by the inlet pass below (and is the only kind of pocket the build accepts).
+export const LANDLOCKED_SEAS = [
+  { name: 'Caspian Sea', lat: 42.0, lon: 51.0 },
+  // Not a sea: the polygon test misses the pole itself, so the South Pole cell reads as water. Left
+  // as it is: a territory around the pole breaks the border geometry (tileGeometry.js).
+  { name: 'South Pole cell', lat: -90, lon: 0 }
+];
+// A sea pocket that is not landlocked and lies within this much land of the open ocean is an inlet
+// the grid closed (a fjord, a sound between Arctic islands): the build opens the shortest land path.
+// In kilometres, converted with the grid's measured spacing, so it scales with the frequency.
+export const MAX_INLET_GAP_KM = 230;
+// The longest sea path, in cells, that still counts as the strait being open for a line crossing
+// `lineCells` cells: the channel itself with a little room to wind, never the way round an island.
+export const straitDetour = (lineCells) => 2 * lineCells + 2;
 
+// Capitals countryCapitals.json could not resolve to coordinates (its own build log lists them).
 const CAPITAL_FALLBACKS = {
   sm: { name: 'San Marino', lat: 43.94, lng: 12.45 }, hk: { name: 'Hong Kong', lat: 22.28, lng: 114.16 },
   xn: { name: 'North Nicosia', lat: 35.18, lng: 33.36 }, ki: { name: 'South Tarawa', lat: 1.33, lng: 172.98 },
@@ -297,16 +334,109 @@ export const buildTiles = ({ log = console.log } = {}) => {
   }
   log(`pass 1 done (${((Date.now() - t0) / 1000).toFixed(1)} s): land cells ${land.reduce((a, b) => a + b, 0)}`);
 
-  // Straits narrower than a cell (26 km at Bab-el-Mandeb, 1 km at the Dardanelles) land on cells
-  // the land polygons call land, which seals the Red Sea, the Black Sea, the Baltic and the White
-  // Sea off from the oceans. Each entry names the cell centre that becomes the strait's water.
-  STRAITS.forEach(({ name, lat, lon }) => {
-    const id = cellIndex.nearest(lat, lon);
-    if (!land[id]) { log(`  strait ${name}: cell ${id} is already water`); return; }
+  // Open the real straits (STRAIT_LINES), then any small inlet the grid closed (see MAX_INLET_GAP_KM).
+  const opened = new Set();
+  const openCell = (id) => {
     land[id] = 0; country[id] = -1; climate[id] = null; lake[id] = 0; glaciated[id] = 0;
     elevMean[id] = Math.min(elevMean[id], -20); // shelf water for the classifier
-    log(`  strait ${name}: cell ${id} (${latLon[id].lat.toFixed(1)}, ${latLon[id].lon.toFixed(1)}) opened`);
+    opened.add(id);
+  };
+  const seaCell = (i) => !land[i] && !lake[i];
+  const seaComponents = () => {
+    const comp = new Int32Array(n).fill(-1); const sizes = [];
+    for (let s = 0; s < n; s++) {
+      if (!seaCell(s) || comp[s] >= 0) continue;
+      const c = sizes.length; let size = 0; const stack = [s]; comp[s] = c;
+      while (stack.length) { const i = stack.pop(); size++; grid.neighbors[i].forEach((j) => { if (comp[j] < 0 && seaCell(j)) { comp[j] = c; stack.push(j); } }); }
+      sizes.push(size);
+    }
+    let main = 0; sizes.forEach((sz, c) => { if (sz > sizes[main]) main = c; });
+    return { comp, sizes, main };
+  };
+  // Sea steps from a to b, or -1 when b is more than maxSteps away by sea. A strait counts as open
+  // only through a short local path: the Strait of Malacca is not open because Sumatra can be
+  // sailed around.
+  const seaSteps = (a, b, maxSteps) => {
+    const dist = new Map([[a, 0]]); let frontier = [a];
+    for (let d = 1; d <= maxSteps && frontier.length; d++) {
+      const next = [];
+      for (const i of frontier) for (const j of grid.neighbors[i]) {
+        if (dist.has(j) || !seaCell(j)) continue;
+        if (j === b) return d;
+        dist.set(j, d); next.push(j);
+      }
+      frontier = next;
+    }
+    return -1;
+  };
+  const STEP_DEG = 0.05; // about 5 km between samples, far finer than any planned grid
+  const lineCells = (line) => {
+    const cells = [];
+    for (let s = 0; s < line.length - 1; s++) {
+      const [la0, lo0] = line[s]; const [la1, lo1] = line[s + 1];
+      const steps = Math.max(1, Math.ceil(Math.hypot(la1 - la0, lo1 - lo0) / STEP_DEG));
+      for (let t = 0; t <= steps; t++) {
+        const id = cellIndex.nearest(la0 + ((la1 - la0) * t) / steps, lo0 + ((lo1 - lo0) * t) / steps);
+        if (cells[cells.length - 1] !== id) cells.push(id);
+      }
+    }
+    return cells;
+  };
+  STRAIT_LINES.forEach(({ name, line }) => {
+    const cells = lineCells(line);
+    // The water at the two ends of the line: its first and last sea cells.
+    const first = cells.find(seaCell); const last = cells.slice().reverse().find(seaCell);
+    if (first != null && last != null && first !== last && seaSteps(first, last, straitDetour(cells.length)) >= 0) {
+      log(`  strait ${name}: already open`); return;
+    }
+    const cut = [...new Set(cells.filter((id) => land[id] || lake[id]))];
+    cut.forEach(openCell);
+    log(`  strait ${name}: opened ${cut.join(', ') || 'nothing'}`);
   });
+  let spacingSum = 0; let spacingCount = 0;
+  for (let i = 0; i < n; i += 97) grid.neighbors[i].forEach((j) => { spacingSum += distanceKm(grid.centres[i], grid.centres[j]); spacingCount++; });
+  const maxGapCells = Math.max(1, Math.floor(MAX_INLET_GAP_KM / (spacingSum / spacingCount)));
+  const landlockedCells = new Set(LANDLOCKED_SEAS.map(({ lat, lon }) => cellIndex.nearest(lat, lon)));
+  for (let round = 0; round < 50; round++) {
+    const { comp, main } = seaComponents();
+    const keep = new Set([main, ...[...landlockedCells].filter(seaCell).map((i) => comp[i])]);
+    let carved = 0;
+    const pocketsSeen = new Set();
+    for (let s = 0; s < n; s++) {
+      if (!seaCell(s) || comp[s] < 0 || keep.has(comp[s]) || pocketsSeen.has(comp[s])) continue; // < 0: opened this round
+      const pocket = comp[s]; pocketsSeen.add(pocket);
+      // Breadth-first over land from the whole pocket to the nearest cell of the main ocean.
+      const prev = new Map(); let frontier = [];
+      for (let i = s; i < n; i++) if (comp[i] === pocket) { prev.set(i, -1); frontier.push(i); }
+      let goal = -1;
+      for (let depth = 0; depth <= maxGapCells && goal < 0; depth++) {
+        const next = [];
+        for (const i of frontier) {
+          for (const j of grid.neighbors[i]) {
+            if (prev.has(j)) continue;
+            if (seaCell(j) && comp[j] === main) { prev.set(j, i); goal = j; break; }
+            if (land[j] && depth < maxGapCells) { prev.set(j, i); next.push(j); }
+          }
+          if (goal >= 0) break;
+        }
+        frontier = next;
+      }
+      const where = `${latLon[s].lat.toFixed(1)}, ${latLon[s].lon.toFixed(1)}`;
+      if (goal < 0) { log(`  sea pocket at ${where} stays closed (no ocean within ${maxGapCells} land cells)`); continue; }
+      const path = [];
+      for (let i = prev.get(goal); i >= 0 && land[i]; i = prev.get(i)) path.push(i);
+      path.forEach(openCell); carved += path.length;
+      log(`  inlet at ${where}: opened ${path.join(', ')}`);
+    }
+    if (!carved) break;
+  }
+  {
+    const { comp, sizes, main } = seaComponents();
+    const closed = sizes.map((sz, c) => c).filter((c) => c !== main);
+    log(`  sea: ${sizes[main]} cells reach the ocean; closed pockets: ${closed.map((c) => {
+      const i = comp.indexOf(c); return `${sizes[c]} at ${latLon[i].lat.toFixed(1)}, ${latLon[i].lon.toFixed(1)}`;
+    }).join('; ') || 'none'}`);
+  }
 
   // Coastal flags and sea distance.
   const coastal = new Uint8Array(n);
@@ -353,7 +483,9 @@ export const buildTiles = ({ log = console.log } = {}) => {
   const namePop = new Float64Array(n);
   placesFc.features.forEach((f) => {
     const [lon, lat] = f.geometry.coordinates;
-    const id = cellIndex.nearest(lat, lon);
+    let id = cellIndex.nearest(lat, lon);
+    // A town on a strait (Istanbul, Tangier) keeps its name on the nearest bank.
+    if (opened.has(id)) id = cellIndex.nearest(lat, lon, 7).find((j) => land[j] && !lake[j]) ?? -1;
     const pop = f.properties.pop_max || 0;
     if (id >= 0 && pop >= namePop[id]) { namePop[id] = pop; names[id] = f.properties.name; }
   });
