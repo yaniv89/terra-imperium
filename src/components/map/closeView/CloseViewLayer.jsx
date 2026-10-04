@@ -32,7 +32,7 @@ import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from 
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
-import { pickBuildingModels, buildingSpots, assignSpots, BUILDING_DISC } from './buildingModels';
+import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 
@@ -166,7 +166,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       if (t.buildings.hasModel(url)) return true;
       if (!t.assets.has(url)) {
         t.assets.set(url, null);
-        loadAssetObjects(url).then((objs) => { t.buildings.setModel(url, objs[id] || Object.values(objs)[0]); setAssetsTick((n) => n + 1); })
+        loadAssetObjects(url).then((objs) => { t.buildings.setModel(url, buildingRoot(objs, id, url)); setAssetsTick((n) => n + 1); })
           .catch((e) => { console.warn('building model failed, the town stands without it:', e.message); });
       }
       return false;

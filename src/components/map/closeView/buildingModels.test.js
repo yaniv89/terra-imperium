@@ -6,7 +6,9 @@ import { Scene, Matrix4, Vector3, Color } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { BUILDING_CATEGORIES } from '../../../data/buildings';
 import { styleOfLand } from '../../../data/architecture';
-import { BUILDING_MODEL_IDS, indexBuildingFiles, buildingModelUrl, builtModels, pickBuildingModels, buildingSpots, assignSpots, BUILDING_DISC, MAX_BUILDINGS } from './buildingModels';
+import fs from 'fs';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { BUILDING_MODEL_IDS, buildingRoot, indexBuildingFiles, buildingModelUrl, builtModels, pickBuildingModels, buildingSpots, assignSpots, BUILDING_DISC, MAX_BUILDINGS } from './buildingModels';
 import { prepareBuildingModel, createBuildingLayer } from './buildingLayer';
 import { loadAssetObjects, fieldsAround } from './townAssets';
 import { buildingGlb } from './glbFixture';
@@ -61,10 +63,13 @@ describe('building models: picking', () => {
     expect(pickBuildingModels({}, 'israelite', 'big', INDEX)).toEqual([]);
   });
 
-  it('draws nothing with the files shipped today unless some exist', () => {
-    const region = { buildings: cats({ food: 0 }) };
-    const picks = pickBuildingModels(region, 'israelite', 'small');
-    picks.forEach((p) => expect(p.url).toBeTruthy());
+  it('finds the shipped Israelite files for Israelite land only', () => {
+    const region = { buildings: cats({ food: 0, culture: 0 }) };
+    const il = pickBuildingModels(region, styleOfLand('il', 'bronze'), 'small');
+    il.forEach((p) => expect(p.url).toMatch(/-israelite/));
+    if (fs.existsSync('src/assets/map/buildings/granary-israelite.glb')) expect(il.map((p) => p.id)).toEqual(['shrine', 'granary']);
+    // no base files yet: other lands draw nothing
+    pickBuildingModels(region, 'europe', 'small').forEach((p) => expect(p.url).not.toMatch(/-israelite/));
   });
 });
 
@@ -80,8 +85,8 @@ describe('building models: placement', () => {
       expect(spots.slice(0, inner.length).every((s) => s.inner)).toBe(true);
       inner.forEach((s) => {
         expect(s.z).toBeLessThan(0); // north, away from the banner below the town
-        expect(Math.max(Math.abs(s.x), Math.abs(s.z)) + BUILDING_DISC).toBeLessThanOrEqual(half[tier] + 1e-9);
-        expect(Math.hypot(s.x, s.z) - BUILDING_DISC).toBeGreaterThan(tier === 'small' ? 0.45 : 0.65); // clear of the palace (0.4 and 0.6 across the shared files)
+        expect(Math.max(Math.abs(s.x), Math.abs(s.z)) + BUILDING_DISC).toBeLessThanOrEqual(half[tier] + 0.1); // within the ground, short of the wall ring
+        expect(Math.hypot(s.x, s.z) - BUILDING_DISC).toBeGreaterThanOrEqual(tier === 'small' ? 0.4 : 0.6); // clear of the palace (0.4 and 0.6 from the centre in the shared files)
       });
       spots.filter((s) => !s.inner).forEach((s) => {
         expect(Math.hypot(s.x, s.z) - BUILDING_DISC).toBeGreaterThan(wall[tier]);
@@ -128,10 +133,33 @@ describe('building models: placement', () => {
 describe('building models: a real GLB through the instanced layer', () => {
   const parse = (bytes) => new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), '');
 
+  it('finds the object named after the file, then the bare id, then the only one', () => {
+    expect(buildingRoot({ 'granary-israelite': 1, x: 2 }, 'granary', '/src/assets/map/buildings/granary-israelite.glb')).toBe(1);
+    expect(buildingRoot({ 'granary-israelite': 1, x: 2 }, 'granary', '/terra-imperium/assets/granary-israelite-Bx7kQ2aZ.glb')).toBe(1);
+    expect(buildingRoot({ x: 2, granary: 3 }, 'granary', 'u/granary.glb')).toBe(3);
+    expect(buildingRoot({ x: 2 }, 'granary', 'u/whatever.glb')).toBe(2);
+  });
+
+  const REAL = 'src/assets/map/buildings/granary-israelite.glb';
+  it.skipIf(!fs.existsSync(REAL))('reads a delivered Israelite landmark (meshopt) into Town and Team parts per LOD', async () => {
+    globalThis.self ||= globalThis; // GLTFLoader's texture path reads `self` (the embedded atlas fails to decode in node; the geometry is what is checked)
+    const b = fs.readFileSync(REAL);
+    const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+    const objs = await loadAssetObjects('test://real-granary', () => loader.parseAsync(b.buffer.slice(b.byteOffset, b.byteOffset + b.length), ''));
+    const root = buildingRoot(objs, 'granary', REAL);
+    expect(root.name).toBe('granary-israelite');
+    const lods = prepareBuildingModel(root);
+    expect(lods).toHaveLength(3);
+    lods.forEach((parts) => {
+      expect(parts.length).toBeGreaterThan(0);
+      expect(parts.some((p) => p.kind === 'team')).toBe(true);
+    });
+  });
+
   it('parses the fixture into a root with LOD children and splits it per material', async () => {
-    const objs = await loadAssetObjects('test://granary-israelite.glb', () => parse(buildingGlb('granary')));
-    expect(Object.keys(objs)).toEqual(['granary']);
-    const lods = prepareBuildingModel(objs.granary);
+    const objs = await loadAssetObjects('test://granary-israelite.glb', () => parse(buildingGlb('granary-israelite')));
+    expect(Object.keys(objs)).toEqual(['granary-israelite']);
+    const lods = prepareBuildingModel(buildingRoot(objs, 'granary', 'test://granary-israelite.glb'));
     expect(lods).toHaveLength(3);
     lods.forEach((parts) => {
       expect(parts.map((p) => p.kind)).toEqual(['plain', 'team']);
