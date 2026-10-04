@@ -1,0 +1,107 @@
+{
+  "file": "classical-town-small-b-westafrica.glb",
+  "kind": "town",
+  "bytes": 1042036,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-small-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 3132,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.043,
+          "depth": 3.944,
+          "height": 0.637,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 1640,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.043,
+          "depth": 3.944,
+          "height": 0.637,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 466,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 4.043,
+          "depth": 3.944,
+          "height": 0.637,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 4.043
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "classical-town-small-b-westafrica_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 42648
+    },
+    {
+      "name": "classical-town-small-b-westafrica_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 358358
+    },
+    {
+      "name": "classical-town-small-b-westafrica_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 286456
+    }
+  ],
+  "passed": true
+}

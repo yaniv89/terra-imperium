@@ -1,0 +1,649 @@
+{
+  "bronze-town-big-a-westafrica.glb": {
+    "bytes": 2626272,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 16304,
+          "width": 7.914,
+          "depth": 7.962,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 6716,
+          "width": 7.914,
+          "depth": 7.962,
+          "height": 1.274,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.914,
+          "depth": 7.962,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-big-b-westafrica.glb": {
+    "bytes": 2665432,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 16426,
+          "width": 7.945,
+          "depth": 7.932,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 6879,
+          "width": 7.945,
+          "depth": 7.932,
+          "height": 1.274,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 736,
+          "width": 7.945,
+          "depth": 7.932,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-medium-a-westafrica.glb": {
+    "bytes": 2103204,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 11116,
+          "width": 5.992,
+          "depth": 5.916,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4613,
+          "width": 5.992,
+          "depth": 5.916,
+          "height": 1.274,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 5.992,
+          "depth": 5.916,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-medium-b-westafrica.glb": {
+    "bytes": 2115700,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 11196,
+          "width": 6.035,
+          "depth": 5.938,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4613,
+          "width": 6.035,
+          "depth": 5.938,
+          "height": 1.274,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 6.035,
+          "depth": 5.938,
+          "height": 1.28,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-small-a-westafrica.glb": {
+    "bytes": 1626928,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 6740,
+          "width": 3.947,
+          "depth": 4.014,
+          "height": 0.942,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2744,
+          "width": 3.947,
+          "depth": 4.014,
+          "height": 0.936,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 456,
+          "width": 3.947,
+          "depth": 4.014,
+          "height": 0.942,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "bronze-town-small-b-westafrica.glb": {
+    "bytes": 1629280,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 6842,
+          "width": 3.94,
+          "depth": 4.0,
+          "height": 0.942,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 2564,
+          "width": 3.94,
+          "depth": 4.0,
+          "height": 0.936,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 3.94,
+          "depth": 4.0,
+          "height": 0.942,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-big-a-westafrica.glb": {
+    "bytes": 2090724,
+    "objects": {
+      "town-big-a": {
+        "LOD0": {
+          "triangles": 11776,
+          "width": 7.909,
+          "depth": 7.999,
+          "height": 1.15,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 6554,
+          "width": 7.909,
+          "depth": 7.999,
+          "height": 1.15,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 736,
+          "width": 7.909,
+          "depth": 7.999,
+          "height": 1.15,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-big-b-westafrica.glb": {
+    "bytes": 2085976,
+    "objects": {
+      "town-big-b": {
+        "LOD0": {
+          "triangles": 11460,
+          "width": 7.982,
+          "depth": 7.982,
+          "height": 1.15,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 6462,
+          "width": 7.982,
+          "depth": 7.982,
+          "height": 1.15,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 726,
+          "width": 7.982,
+          "depth": 7.982,
+          "height": 1.15,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-medium-a-westafrica.glb": {
+    "bytes": 1762832,
+    "objects": {
+      "town-medium-a": {
+        "LOD0": {
+          "triangles": 9140,
+          "width": 5.957,
+          "depth": 5.91,
+          "height": 1.067,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4934,
+          "width": 5.957,
+          "depth": 5.91,
+          "height": 1.067,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 5.957,
+          "depth": 5.91,
+          "height": 1.067,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-medium-b-westafrica.glb": {
+    "bytes": 1809728,
+    "objects": {
+      "town-medium-b": {
+        "LOD0": {
+          "triangles": 9236,
+          "width": 6.031,
+          "depth": 5.943,
+          "height": 1.067,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 4934,
+          "width": 6.031,
+          "depth": 5.943,
+          "height": 1.067,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 626,
+          "width": 6.031,
+          "depth": 5.943,
+          "height": 1.067,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-small-a-westafrica.glb": {
+    "bytes": 1663248,
+    "objects": {
+      "town-small-a": {
+        "LOD0": {
+          "triangles": 8276,
+          "width": 4.019,
+          "depth": 3.961,
+          "height": 1.053,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 3934,
+          "width": 4.019,
+          "depth": 3.961,
+          "height": 1.053,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 456,
+          "width": 4.019,
+          "depth": 3.961,
+          "height": 1.053,
+          "materials": [
+            "Ground",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "classical-town-small-b-westafrica.glb": {
+    "bytes": 1042036,
+    "objects": {
+      "town-small-b": {
+        "LOD0": {
+          "triangles": 3132,
+          "width": 4.043,
+          "depth": 3.944,
+          "height": 0.637,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1640,
+          "width": 4.043,
+          "depth": 3.944,
+          "height": 0.637,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 466,
+          "width": 4.043,
+          "depth": 3.944,
+          "height": 0.637,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}
