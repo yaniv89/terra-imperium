@@ -33,6 +33,7 @@ import { UNIT_CLASSES, UNIT_CLASS_IDS, getAvailableClasses } from '../data/unitC
 import { AE_COALITION_ROLL_SCALE, AE_COALITION_ROLL_CAP } from '../data/actionCosts';
 import { independenceChance } from '../engine/vassals';
 import { getEffectiveMilitaryPower, canAffordAIRecruit, applyAIRecruitCost } from '../engine/aiEconomy';
+import { warContagionMult } from '../engine/warContagion';
 
 const DEFAULT_RNG = { next: () => Math.random() };
 const DEFAULT_DOCTRINE = DOCTRINES.attrition;
@@ -376,7 +377,8 @@ export const processAIWarDecisions = (state, nations, wars, sortedByMilitary, rn
     // A claim this nation fabricated (claims.js) and that is ready: the war it was made for
     // needs no new roll (the roll was passed when the claim was started).
     const readyTarget = claimsOf(activeNation).map((cid) => state.regions[cid]?.owner).find((t) => t && t !== nationId && !(warRollOpinionMult(opinion) <= 0 && t === state.playerNationId) && pickWarTarget(view, nationId, t, null) === t) || null;
-    if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
+    // Recent wars nearby raise the roll (warContagion.js, a Hawkes process).
+    if (!readyTarget && !shouldDeclareWar(activeNation, rng, aggressionMult, coalitionMult * warContagionMult(activeNation) * (fronts > 0 ? SECOND_FRONT_ROLL_MULT : 1), warRollOpinionMult(opinion))) return;
     const targetId = readyTarget || pickWarTarget(view, nationId, canStrikeLeader ? runawayLeaderId : null, warRollOpinionMult(opinion) <= 0 ? state.playerNationId : null);
     if (!targetId) return;
     if (!hasCasusBelli(view, nationId, targetId)) {

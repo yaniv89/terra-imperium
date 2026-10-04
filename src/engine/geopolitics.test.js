@@ -3,7 +3,7 @@
 // diffusion along borders, and defensive pacts with a call to arms.
 import { describe, it, expect } from 'vitest';
 import { libertyDesireTarget, nextLibertyDesire, independenceChance, LD_RISE } from './vassals';
-import { getTechDiffusion, withDiffusion, PIONEER_MULT, DIFFUSION_PER_NEIGHBOR } from './techDiffusion';
+import { getTechDiffusion, withDiffusion, contactsOf, PIONEER_MULT, DIFFUSION_MAX, TRADE_CONTACT_WEIGHT } from './techDiffusion';
 import { updateDefensivePacts, pactAllies, PACT_FORM_AE } from './pacts';
 import { declareWar } from './diplomacy';
 import { processAIWarDecisions } from '../utils/aiLogic';
@@ -52,19 +52,40 @@ describe('technology diffusion', () => {
     expect(d.pioneer).toBe(true);
     expect(d.mult).toBe(PIONEER_MULT);
   });
-  it('neighbours that have it make it cheaper, one step per neighbour', () => {
+  it('the share of the known world (by economy) that has it sets the discount', () => {
+    const known = contactsOf(state, 'fr');
     const neighbours = getBorderingNationIds(state.regions, 'fr').slice(0, 2);
+    neighbours.forEach((id) => expect(known.has(id)).toBe(true));
     const nations = { ...state.nations };
     neighbours.forEach((id) => { nations[id] = { ...nations[id], tech: { researched: [techId], ageId: 'bronze' } }; });
     const s = { ...state, nations };
     const d = getTechDiffusion(s, 'fr', techId);
-    expect(d.neighborsWithIt).toBe(neighbours.length);
-    expect(d.mult).toBeCloseTo(1 - DIFFUSION_PER_NEIGHBOR * neighbours.length);
+    let total = 0; let withIt = 0;
+    contactsOf(s, 'fr').forEach((w, id) => { total += w; if (neighbours.includes(id)) withIt += w; });
+    expect(d.knownWithIt).toBe(neighbours.length);
+    expect(d.share).toBeCloseTo(withIt / total, 10);
+    expect(d.mult).toBeCloseTo(1 - DIFFUSION_MAX * withIt / total, 10);
     expect(withDiffusion(s, 'fr', techId, 0)).toBeLessThan(0);
-    // far away holders don't help, but they do end the pioneer penalty
-    const far = Object.keys(state.nations).find((id) => id !== 'fr' && !getBorderingNationIds(state.regions, 'fr').includes(id));
+    // everyone known has it: the full discount
+    const all = { ...state.nations };
+    contactsOf(state, 'fr').forEach((w, id) => { all[id] = { ...all[id], tech: { researched: [techId], ageId: 'bronze' } }; });
+    expect(getTechDiffusion({ ...state, nations: all }, 'fr', techId).mult).toBeCloseTo(1 - DIFFUSION_MAX, 10);
+    // far away holders the nation does not know don't help, but they do end the pioneer penalty
+    const far = Object.keys(state.nations).find((id) => id !== 'fr' && !known.has(id));
     const s2 = { ...state, nations: { ...state.nations, [far]: { ...state.nations[far], tech: { researched: [techId], ageId: 'bronze' } } } };
     expect(getTechDiffusion(s2, 'fr', techId)).toMatchObject({ pioneer: false, mult: 1 });
+  });
+  it('a trade partner is known wherever it is, and counts double', () => {
+    const far = Object.keys(state.nations).find((id) => id !== 'fr' && !contactsOf(state, 'fr').has(id));
+    const s = { ...state, nations: { ...state.nations, [far]: { ...state.nations[far], hasTradeAgreement: true } } };
+    const known = contactsOf(s, 'fr');
+    expect(known.has(far)).toBe(true);
+    expect(known.get(far) % TRADE_CONTACT_WEIGHT).toBe(0);
+    // and the partner knows the player back
+    expect(contactsOf(s, far).has('fr')).toBe(true);
+  });
+  it('the known world widens with the age (km, not rings)', () => {
+    expect(contactsOf({ ...state, age: 'gunpowder' }, 'fr').size).toBeGreaterThan(contactsOf(state, 'fr').size);
   });
 });
 

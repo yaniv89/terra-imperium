@@ -26,7 +26,7 @@ import { EVENT_CHAINS } from '../data/eventChains';
 import { calcIncome, formatMoney, nextUnrest, getNationBonusTotal, getPowerIncome, getFieldedStrength } from '../utils/helpers';
 import { getRegionModifier, getModifier } from './modifiers/sheet';
 import { nextSiegeControlRegen, SIEGE_REGEN_COOLDOWN_TURNS } from './siege';
-import { getPopulationGrowthRate, nextRegionPopulation } from './population';
+import { getPopulationGrowthRate, nextRegionPopulation, peopleOf } from './population';
 import { checkNationElimination, unlinkEliminatedVassalage, closeWarsForEliminatedNation, wasEliminatedByPlayer, NATION_ELIMINATION_REWARD, checkPlayerDefeat } from './elimination';
 import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSortedByMilitary, getRelationFromHostility, getNationTier } from '../utils/aiLogic';
 import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
@@ -43,7 +43,7 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { processCities, sizeToPeople } from './world/cities';
+import { processCities, growthThreshold } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
@@ -97,6 +97,8 @@ import { estateLandEffects } from './estateLand';
 import { plunderedRoutes, plunderGoldFor } from './plunder';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
+import { spreadPlague, seedPlagueNear, PLAGUE_EVENT_ORIGINS } from './plague';
+import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -174,6 +176,8 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   });
   // Floods, fires and plagues by tile facts (cityDisasters.js).
   const disasterLogs = rollCityDisasters(regions, newTurnNumber);
+  // Plague spreads between cities along land, sea lanes, trade routes and armies (plague.js, SIR).
+  disasterLogs.push(...spreadPlague(regions, newTurnNumber, { units: state.units, tileOwner: result.world.tileOwner, researchedOf: (nid) => getResearched(state, nid), state }));
   // One copy of the units map for every unit finished this turn (a spread per unit was 12 ms).
   let units = result.completed.some((item) => item.kind === 'settler' || item.kind === 'unit') ? { ...state.units } : state.units;
   let nextUnitSeq = state.nextUnitSeq || 0;
@@ -362,6 +366,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     return value;
   };
   const governView = { ...state, nations: modifierExpiredNations }; // one view for the governor lookups below
+  const peopleSpeedMult = speedCostMult(state.gameSpeed, newAge);
   Object.entries(regions).forEach(([id, region]) => {
     if (region.owner === null) return;
     const owner = modifierExpiredNations[region.owner];
@@ -384,27 +389,23 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     if(region.integratingUntil != null){control=Math.min(100,control+13);unrest=Math.max(0,unrest-7);}
     const stillUnderCooldown = region.lastAttackedTurn != null && (newTurnNumber - region.lastAttackedTurn) < SIEGE_REGEN_COOLDOWN_TURNS;
 
-    // Population (plan item 3): driven by the Food & Growth building tier, infrastructure,
-    // government/policy/wonder popGrowthBonus and unrest — not automatic time-based growth. A
-    // region actively under invasion this turn loses population instead of growing (src/engine/
-    // population.js has the full breakdown).
-    const modernBaseline = REGIONS_DATA[id]?.population || 0;
-    // A devastated province (aftermath.js) grows more slowly while it recovers.
-    const growthRate = getPopulationGrowthRate({
-      foodTier: region.buildings?.categories?.food ?? -1,
-      infrastructure: region.currentInfrastructure || 0,
-      popGrowthBonus: getNationBonusTotal(owner, 'popGrowthBonus'),
-      unrest
-    }) - devastationGrowthPenalty(region);
+    // Population (src/engine/population.js, one model): a city's people are its size plus its
+    // food bank's progress, grown by the city step's logistic rule. Only a record without a size
+    // (a hand-built test region) still runs the fallback logistic on its own levers.
     const devastation = decayDevastation(region.devastation);
-    const currentPopulation = region.size != null
-      ? sizeToPeople(region.size)
-      : nextRegionPopulation({
-        currentPopulation: region.currentPopulation || modernBaseline,
-        modernBaseline,
-        growthRate,
-        underInvasion: region.underInvasion
-      });
+    let currentPopulation;
+    if (region.size != null) currentPopulation = peopleOf(region, growthThreshold(region.size, peopleSpeedMult));
+    else {
+      const modernBaseline = REGIONS_DATA[id]?.population || 0;
+      // A devastated province (aftermath.js) grows more slowly while it recovers.
+      const growthRate = getPopulationGrowthRate({
+        foodTier: region.buildings?.categories?.food ?? -1,
+        infrastructure: region.currentInfrastructure || 0,
+        popGrowthBonus: getNationBonusTotal(owner, 'popGrowthBonus'),
+        unrest
+      }) - devastationGrowthPenalty(region);
+      currentPopulation = nextRegionPopulation({ currentPopulation: region.currentPopulation || modernBaseline, modernBaseline, growthRate, underInvasion: region.underInvasion });
+    }
 
     if (unrest !== region.unrest || control !== region.control || (region.underInvasion && !stillUnderCooldown) || currentPopulation !== region.currentPopulation || devastation !== (region.devastation || 0)) {
       regions[id] = { ...region, ...(region.integratingUntil != null && newTurnNumber>=region.integratingUntil ? {integratingUntil:null}:{}), unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation, ...(region.devastation != null || devastation ? { devastation } : {}) };
@@ -1024,6 +1025,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   let nationsAfterWars = warDecisions.nations;
   let wars = warDecisions.wars;
   logs.push(...warDecisions.logs.map(l => ({ year: newYear, ...l })));
+  // War contagion (warContagion.js, a Hawkes process): wars that began this turn heat up the
+  // nations near them; the heat decays and raises their own war roll next turn.
+  nationsAfterWars = updateWarHeat(nationsAfterWars, wars, state.turnNumber, { ...state, regions });
   mark('aiWarDeclarations');
 
   // --- AI ABM defense (plan §M19: "AI builds ABM to level 1-2 when at war with a nuclear power") ---
@@ -1138,6 +1142,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
   // --- events ---
   const dueEvent = pickNextEvent(newYear, nations, state.firedEvents, state.playerNationId, regions);
+  // The scripted plagues start a real outbreak where history started them (plague.js).
+  if (dueEvent && PLAGUE_EVENT_ORIGINS[dueEvent.id]) seedPlagueNear(regions, PLAGUE_EVENT_ORIGINS[dueEvent.id], newTurnNumber);
 
   // --- event chains ---
   // A scripted follow-up scheduled earlier by applyEventEffects.js (effects.spawnFollowUp) fires

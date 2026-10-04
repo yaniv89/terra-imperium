@@ -353,7 +353,8 @@ export const DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN = 3;
 // chosen so a fresh nation can still form its first pact before ever touching identity) plus/minus
 // the identity swing, floored at 0 so a committed isolationist can be locked out entirely.
 export const TRADE_PACT_BASE_CAPACITY = 1;
-// Plan: "+5% x pact count" trade income, replacing the old flat +20 gold/partner (helpers.js).
+// Plan: "+5% x pact count" trade income. Now the calibration target only: a pact is worth the gravity
+// model's share (src/engine/tradeValue.js), about this for an equal partner 1,000 km away.
 export const TRADE_PACT_GOLD_MULT_PER_PACT = 0.05;
 
 // Truces (plan §M13's own truce rules, pulled forward since M12 is where wars first get a

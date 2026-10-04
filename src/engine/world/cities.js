@@ -11,9 +11,11 @@
 //               by focus (balanced, food, production, gold) with optional locks, deterministic.
 //   yields      food, production, gold from src/data/tileYields.js; science and culture from size
 //               and buildings. Food eaten = FOOD_PER_CITIZEN x size; the surplus fills the food
-//               bank; at the threshold the city grows; at the housing cap growth is a quarter;
-//               two over it stops; a negative bank starves a citizen.
-//   housing     HOUSING_BASE + water + Food building tier + housing techs.
+//               bank; at the threshold the city grows. Growth is logistic with a soft cap
+//               (src/engine/population.js logisticGrowthMult): it slows smoothly as size nears
+//               housing + 1.75 and stops past it; a negative bank starves a citizen.
+//   housing     HOUSING_BASE + water + Food building tier + housing techs: the carrying capacity.
+//   people      population.js PEOPLE_BY_SIZE, the one population model (size and food bank).
 //   amenities   need floor(size / 2); supplied by the nation's luxuries (ctx.luxuries) and the
 //               Culture building tier. Short cities grow slower and gain unrest.
 //   production  one item at a time with a queue; overflow carries; buildings use the existing
@@ -38,6 +40,7 @@ import { disasterMults } from '../cityDisasters';
 import { mapEffectsOf } from '../techMapEffects';
 import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTemplates';
 import { navalLinesFor } from '../../data/navalLines';
+import { logisticGrowthMult, sizeToPeople as peopleForSize, foodForPeople, peopleOf } from '../population';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -45,7 +48,6 @@ export const HOUSING_BASE = 2;
 export const HOUSING_WATER = 1;
 export const HOUSING_TECHS = { infrastructure_aqueducts: 2, infrastructure_canal_locks: 2, infrastructure_highway_systems: 4 };
 export const CENTRE_MIN_YIELDS = { food: 2, production: 1, gold: 1 };
-export const GROWTH_AT_CAP = 0.25;
 export const STARVE_LOSS = 1;
 export const AMENITY_NEED_PER_CITIZENS = 2;
 export const AMENITY_GROWTH_BONUS = 0.1;   // at +2 or more
@@ -431,7 +433,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     logs.push(c.underInvasion ? `${c.name} starves under siege and shrinks to ${size}.` : `${c.name} starves and shrinks to ${size}.`);
   } else if (y.food > 0 && !c.underInvasion) {
     let gain = y.food * disasterMults(c, ctx.turnNumber).growth; // no growth under plague
-    if (size >= housing + 2) gain = 0; else if (size >= housing) gain *= GROWTH_AT_CAP;
+    gain *= logisticGrowthMult(size, housing); // the soft cap (population.js)
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
     food = c.food + gain;
     const threshold = growthThreshold(size, ctx.speedMult || 1);
@@ -533,5 +535,45 @@ export const processCities = (world, tiles, ctxFor) => {
 };
 
 // People from size (C2), city and countryside together: 1,000 x size^2.8 (size 2 is 7,000, size 5
-// is 90,000, size 12 is 1.1 million, size 30 is 14 million), the curve Civilization uses.
-export const sizeToPeople = (size) => Math.round(1000 * Math.max(1, size) ** 2.8);
+// is 90,000, size 12 is 1.1 million, size 30 is 14 million), the curve Civilization uses. The
+// table lives in population.js, the one population model.
+export const sizeToPeople = peopleForSize;
+
+/**
+ * Take `men` people from a city through its food bank (levies, casualties): the bank shrinks by
+ * what those people are worth (population.js foodForPeople), never below 0. With `canShrink`
+ * (plague) a loss bigger than the bank costs whole sizes, down to size 1. Returns the same city
+ * when nothing changes.
+ */
+export const drawPeople = (city, men, { speedMult = 1, canShrink = false } = {}) => {
+  if (!city || city.size == null || !(men > 0)) return city;
+  let size = city.size;
+  let food = city.food || 0;
+  let left = men;
+  for (let guard = 0; guard < PEOPLE_GUARD && left > 0; guard++) {
+    const threshold = growthThreshold(size, speedMult);
+    const worth = foodForPeople(size, left, threshold);
+    if (worth <= food) { food -= worth; left = 0; break; }
+    // The bank covers part; the rest is a whole size (or nothing more, for a levy).
+    left -= food > 0 ? (left * food) / worth : 0;
+    food = 0;
+    if (!canShrink || size <= 1) break;
+    size -= 1;
+    food = growthThreshold(size, speedMult) - 0.1; // the smaller size starts (just short of) full
+  }
+  const roundedFood = Math.round(food * 10) / 10;
+  if (size === city.size && roundedFood === city.food) return city;
+  return withPeople({ ...city, size, food: roundedFood }, speedMult);
+};
+// The derived people number follows the stock at once (resolveTurn rewrites it each turn too).
+const withPeople = (city, speedMult) => (city.currentPopulation == null ? city : { ...city, currentPopulation: peopleOf(city, growthThreshold(city.size, speedMult)) });
+const PEOPLE_GUARD = 8;
+
+/** Add `men` people to a city as food in its bank (Develop Province, Population Policy), up to just below the next threshold. */
+export const addPeople = (city, men, { speedMult = 1 } = {}) => {
+  if (!city || city.size == null || !(men > 0)) return city;
+  const threshold = growthThreshold(city.size, speedMult);
+  const food = Math.min(threshold - 0.1, (city.food || 0) + foodForPeople(city.size, men, threshold));
+  const rounded = Math.round(food * 10) / 10;
+  return rounded > (city.food || 0) ? withPeople({ ...city, food: rounded }, speedMult) : city;
+};

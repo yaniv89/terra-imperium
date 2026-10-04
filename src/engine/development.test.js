@@ -27,11 +27,19 @@ describe('getTotalDev', () => {
 });
 
 describe('getPopFactor', () => {
-  it('is 1 at the baseline and clamped either side', () => {
+  it('is 1 at the baseline, floored below and soft-capped above', () => {
     expect(getPopFactor({ currentPopulation: 100 }, { population: 100 })).toBe(1);
     expect(getPopFactor({ currentPopulation: 1 }, { population: 100 })).toBe(POP_FACTOR_MIN);
-    expect(getPopFactor({ currentPopulation: 1e9 }, { population: 100 })).toBe(POP_FACTOR_MAX);
+    const big = getPopFactor({ currentPopulation: 1e9 }, { population: 100 });
+    expect(big).toBeLessThan(POP_FACTOR_MAX);
+    expect(big).toBeGreaterThan(POP_FACTOR_MAX - 0.001);
+    // every extra person still counts a little: no flat zone below the cap
+    expect(getPopFactor({ currentPopulation: 400 }, { population: 100 })).toBeGreaterThan(getPopFactor({ currentPopulation: 300 }, { population: 100 }));
     expect(getPopFactor({ currentPopulation: 5 }, undefined)).toBe(1);
+  });
+
+  it('is 1 for a city: its size already drives its yields (one population model)', () => {
+    expect(getPopFactor({ size: 4, currentPopulation: 1e7 }, { population: 100 })).toBe(1);
   });
 });
 

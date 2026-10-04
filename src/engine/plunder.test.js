@@ -39,7 +39,7 @@ describe('raids on trade routes', () => {
     expect(p[0]).toMatchObject({ partnerId: 'de', kind: 'land', by: 'rebels' });
     expect(ring).toContain(p[0].tile);
     // The pact's gold line is gone while the route is cut; a turn tells the player.
-    const line = (st) => getModifier(st, 'fr', 'national.goldMult').breakdown.find((l) => l.sourceId === 'trade_pacts');
+    const line = (st) => getModifier(st, 'fr', 'national.goldMult').breakdown.find((l) => l.sourceId === 'trade_de');
     expect(line(s)).toBeTruthy(); expect(line(cut)).toBeFalsy();
     const next = resolveTurn(cut);
     expect(next.logs.some((l) => /plunder your land trade route/.test(l.message))).toBe(true);

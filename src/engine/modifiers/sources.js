@@ -1,4 +1,4 @@
-import { getTradeRoute } from '../tradeRoutes';
+import { tradeRoutesValue } from '../tradeValue';
 // src/engine/modifiers/sources.js
 // Plan §M1: each function returns modifier LINES (never a summed total) so src/engine/modifiers/
 // sheet.js can group and total them generically. `staticSources` depends only on the nation object
@@ -14,7 +14,7 @@ import {
 } from '../../data/estates';
 import { GREAT_PROJECTS, getGreatProjectOwner } from '../../data/greatProjects';
 import { TAX_RATES } from '../../data/taxRates';
-import { FUSION_GRID_GOLD_MULT_BONUS, TRADE_PACT_GOLD_MULT_PER_PACT } from '../../data/actionCosts';
+import { FUSION_GRID_GOLD_MULT_BONUS } from '../../data/actionCosts';
 import { getSatelliteEffectTotal } from '../../data/satellites';
 import { TECH_TREE } from '../../data/techTree';
 import { TRAITS } from '../../data/traits';
@@ -123,14 +123,14 @@ export const contextSources = (state, nationId) => {
   // so reading the flag here is enough — no separate "supplied" check needed.
   if (nation?.fusionGridActive) lines.push({ key: 'national.goldMult', value: FUSION_GRID_GOLD_MULT_BONUS, sourceType: 'fusionGrid', sourceId: 'fusion_grid', label: 'Fusion Grid' });
 
-  // Trade Pacts (plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner) — pacts
-  // are inherently player-centric today (hasTradeAgreement lives on the OTHER nation's own record,
-  // and AI nations never form pacts with each other), so this only ever applies to the player.
+  // Trade Pacts: one line per open route, worth the gravity model's share (tradeValue.js: both
+  // economies' sizes over the route's km), which replaced the flat +5% per pact. Pacts are
+  // player-centric (hasTradeAgreement lives on the OTHER nation's record; AI nations never form
+  // pacts with each other), so this only ever applies to the player.
   if (nationId === state.playerNationId) {
-    const activePactCount = Object.values(state.nations || {}).filter((n) => n.hasTradeAgreement && (!state.scenario || getTradeRoute(state,n.id).ok)).length;
-    if (activePactCount > 0) {
-      lines.push({ key: 'national.goldMult', value: activePactCount * TRADE_PACT_GOLD_MULT_PER_PACT, sourceType: 'tradePact', sourceId: 'trade_pacts', label: 'Trade Pacts' });
-    }
+    tradeRoutesValue(state, nationId).forEach((r) => {
+      lines.push({ key: 'national.goldMult', value: r.mult, sourceType: 'tradePact', sourceId: `trade_${r.partnerId}`, label: `Trade with ${r.name} (${r.km} km)` });
+    });
   }
 
   // Plan §M10: Great Projects. Ownership is derived from the site region's current owner

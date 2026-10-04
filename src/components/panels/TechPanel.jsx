@@ -34,7 +34,7 @@ const TechRow = ({ info, onResearch, onQueue }) => {
   const { tech, researched, current, queuedAt, canStart, reason, cost, turns, share, diffusion, boost, mapEffect } = info;
   const status = researched ? 'Researched' : current ? `Researching · ${formatTurns(turns)}` : queuedAt >= 0 ? `Queued #${queuedAt + 2}` : canStart ? `${cost} science · ${formatTurns(turns)}` : reason;
   const diffusionNote = !diffusion || researched ? '' : diffusion.pioneer ? ' · first in the world: +20% cost'
-    : diffusion.neighborsWithIt ? ` · ${diffusion.neighborsWithIt} neighbour${diffusion.neighborsWithIt > 1 ? 's know' : ' knows'} it: -${Math.round((1 - diffusion.mult) * 100)}%` : '';
+    : diffusion.knownWithIt ? ` · ${diffusion.knownWithIt} of the ${diffusion.known} nations you know have it: -${Math.round((1 - diffusion.mult) * 100)}%` : '';
   const Icon = researched ? Check : current ? Sparkles : canStart || queuedAt >= 0 ? BookOpen : Lock;
   return (
     <div className={`rounded-lg border px-2.5 py-2 space-y-1 ${current ? 'border-purple-500/70 bg-purple-500/10' : researched ? 'border-emerald-700/40 bg-emerald-900/10' : 'border-slate-700 bg-slate-800/40'}`} data-testid={`tech-${tech.id}`}>

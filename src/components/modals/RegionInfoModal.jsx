@@ -1,4 +1,5 @@
 import { getTradeRoute } from '../../engine/tradeRoutes';
+import { tradeRoutesValue } from '../../engine/tradeValue';
 import ColonyBlock from './ColonyBlock';
 // src/components/modals/RegionInfoModal.jsx
 // Region information modal/panel with close button
@@ -304,7 +305,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || regionState.disaster || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
           {regionState.disaster && (
-            <div className="rounded-lg border border-sky-400/50 bg-sky-500/10 p-2 text-[11px] text-sky-100" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : 'no growth'} until turn {regionState.disaster.until}.</div>
+            <div className="rounded-lg border border-sky-400/50 bg-sky-500/10 p-2 text-[11px] text-sky-100" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : regionState.plague?.i > 0 ? `${Math.round(regionState.plague.i * 100)}% of the people sick, no growth; it spreads to nearby cities, ports, trade partners and armies` : 'no growth'}{regionState.plague?.i > 0 ? '' : ` until turn ${regionState.disaster.until}`}.</div>
           )}
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-orange-400 font-semibold animate-pulse">
@@ -403,7 +404,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             </div>
           )}
           {regionState.integratingUntil > state.turnNumber && <p className="text-xs text-amber-200">Integration continues until turn {regionState.integratingUntil}: control rises and unrest falls each turn.</p>}
-          {ownerNation?.hasTradeAgreement && <p className="text-xs text-slate-300">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}</p>}
+          {ownerNation?.hasTradeAgreement && <p className="text-xs text-slate-300">Trade route: {getTradeRoute(state,ownerNation.id).ok ? getTradeRoute(state,ownerNation.id).kind : getTradeRoute(state,ownerNation.id).reason}{(() => { const v = tradeRoutesValue(state).find((r) => r.partnerId === ownerNation.id); return v ? `, ${v.km} km: +${(v.mult * 100).toFixed(1)}% gold (bigger and nearer partners pay more)` : ''; })()}</p>}
           {isNeutralFrontier && <ColonyBlock regionId={regionId} />}
           {atWarWithOwner && invasionSources.map(({ regionId: srcId, unitCount, blockedReason }) => (
             <ActionButton

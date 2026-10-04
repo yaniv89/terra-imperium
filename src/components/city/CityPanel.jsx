@@ -19,6 +19,7 @@ import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { getAvailableClasses } from '../../data/unitClasses';
 import { IMPROVEMENTS, tileFacts, tileYields, canImprove } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
+import { logisticGrowthMult } from '../../engine/population';
 import {
   FOCUS, growthThreshold, housingOf, amenitiesOf, productionCost, canQueue, claimCandidates, buyTileCost, MAX_SIZE, allocateTiles, cityYields
 } from '../../engine/world/cities';
@@ -70,7 +71,9 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   const housing = city ? housingOf(city, researched) : 0;
   const amen = city ? amenitiesOf(city, { luxuries: (city.lastYields?.luxuries || []).length }) : { need: 0, supply: 0, net: 0 };
   const threshold = city ? growthThreshold(city.size, speedCostMult(state.gameSpeed, ageId)) : 0;
-  const growthTurns = city && yields.food > 0 && city.size < MAX_SIZE ? Math.ceil(Math.max(0, threshold - city.food) / yields.food) : null;
+  // The housing soft cap (population.js logisticGrowthMult) slows growth as the city fills up.
+  const growthSpeed = city ? logisticGrowthMult(city.size, housing) : 1;
+  const growthTurns = city && yields.food > 0 && growthSpeed > 0 && city.size < MAX_SIZE ? Math.ceil(Math.max(0, threshold - city.food) / (yields.food * growthSpeed)) : null;
   const costCtx = { ageId, citiesOwned, speedMult: speedCostMult(state.gameSpeed, ageId) };
   const turnsFor = (item, progress = 0) => Math.max(1, Math.ceil(Math.max(0, productionCost(item, costCtx) - progress) / Math.max(0.1, yields.production)));
 
@@ -197,7 +200,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         <div className="bg-slate-800/60 rounded-lg p-2">
           <div className="text-slate-400 flex items-center gap-1"><Home className="w-3 h-3" />Housing</div>
           <div className={`font-semibold text-base ${city.size >= housing ? 'text-amber-300' : 'text-white'}`}>{city.size}/{housing}</div>
-          <div className="text-slate-500 text-[10px]">{city.size >= housing + 2 ? 'full: no growth' : city.size >= housing ? 'crowded: slow growth' : 'room to grow'}</div>
+          <div className="text-slate-500 text-[10px]">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}</div>
         </div>
         <div className="bg-slate-800/60 rounded-lg p-2">
           <div className="text-slate-400 flex items-center gap-1"><Smile className="w-3 h-3" />Amenities</div>

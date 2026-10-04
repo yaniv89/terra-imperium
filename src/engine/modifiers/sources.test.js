@@ -94,12 +94,18 @@ describe('contextSources', () => {
     expect(lines.some((l) => l.sourceType === 'tax' && l.key === 'national.goldMult')).toBe(true);
   });
 
-  // Plan §M12: "+5% x pact count", replacing the old flat +20 gold/partner (helpers.js). Pacts are
-  // inherently player-centric (hasTradeAgreement lives on the OTHER nation's own record).
-  it('includes a Trade Pact goldMult line for the player, scaled by how many partners have hasTradeAgreement', () => {
-    const state = { playerNationId: 'fr', nations: { fr: {}, de: { hasTradeAgreement: true }, gb: { hasTradeAgreement: true } } };
-    const lines = contextSources(state, 'fr');
-    expect(lines).toContainEqual({ key: 'national.goldMult', value: 0.1, sourceType: 'tradePact', sourceId: 'trade_pacts', label: 'Trade Pacts' });
+  // Trade pacts are worth the gravity model's share (tradeValue.js): one line per partner. Pacts
+  // are inherently player-centric (hasTradeAgreement lives on the OTHER nation's own record).
+  it('includes one gravity Trade Pact goldMult line per partner for the player', () => {
+    const city = (id, owner, tile, size) => ({ id, owner, tile, size });
+    const state = {
+      playerNationId: 'fr',
+      regions: { a: city('a', 'fr', 100, 3), b: city('b', 'de', 104, 3), c: city('c', 'gb', 900, 6) },
+      nations: { fr: { capitalRegionId: 'a' }, de: { name: 'Germany', capitalRegionId: 'b', hasTradeAgreement: true }, gb: { name: 'Britain', capitalRegionId: 'c', hasTradeAgreement: true } }
+    };
+    const lines = contextSources(state, 'fr').filter((l) => l.sourceType === 'tradePact');
+    expect(lines.map((l) => l.sourceId).sort()).toEqual(['trade_de', 'trade_gb']);
+    lines.forEach((l) => { expect(l.key).toBe('national.goldMult'); expect(l.value).toBeGreaterThan(0); expect(l.label).toMatch(/^Trade with .* km\)$/); });
   });
 
   it('emits no Trade Pact line with zero active pacts', () => {

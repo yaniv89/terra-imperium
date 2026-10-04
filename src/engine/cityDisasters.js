@@ -5,8 +5,9 @@
 //   flood    a river city (FLOOD_CHANCE): half its food bank; food x FLOOD_FOOD_MULT for DISASTER_TURNS
 //   fire     a city of size FIRE_MIN_SIZE or more (FIRE_CHANCE): half its production progress;
 //            production x FIRE_PRODUCTION_MULT for DISASTER_TURNS
-//   plague   a city of size PLAGUE_MIN_SIZE or more (PLAGUE_CHANCE): PLAGUE_SIZE_LOSS citizens at
-//            once; no growth for DISASTER_TURNS
+//   plague   no longer rolled here: plague spreads between cities as an epidemic (plague.js, SIR).
+//            It still uses the 'plague' mark (no growth) while a city is infected; strike(.., 'plague')
+//            stays for callers that force one.
 // A city carries one disaster at a time (`city.disaster: { kind, until }`), shown on its card as
 // a mark until it heals, and rolls again only DISASTER_COOLDOWN turns after the last one. The
 // nation-wide meters (disasters.js) are a different thing: politics, not weather. Pure.
@@ -14,9 +15,7 @@ import { getTiles } from '../data/geo/tiles';
 
 export const FLOOD_CHANCE = 0.004;
 export const FIRE_CHANCE = 0.003;
-export const PLAGUE_CHANCE = 0.003;
 export const FIRE_MIN_SIZE = 4;
-export const PLAGUE_MIN_SIZE = 6;
 export const DISASTER_TURNS = 5;
 export const DISASTER_COOLDOWN = 30;
 export const FLOOD_FOOD_MULT = 0.75;
@@ -35,7 +34,6 @@ export const rollFor = (city, turn, tiles = getTiles()) => {
   let band = 0;
   if (tiles.rivers[city.tile]) { band += FLOOD_CHANCE; if (roll < band) return 'flood'; }
   if ((city.size || 1) >= FIRE_MIN_SIZE) { band += FIRE_CHANCE; if (roll < band) return 'fire'; }
-  if ((city.size || 1) >= PLAGUE_MIN_SIZE) { band += PLAGUE_CHANCE; if (roll < band) return 'plague'; }
   return null;
 };
 

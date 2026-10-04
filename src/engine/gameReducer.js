@@ -9,7 +9,7 @@ import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
-import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost, canFoundCity } from './world/cities';
+import { queueItem, dequeueItem, setFocus, toggleLock, canQueue, claimCandidates, buyTileCost, canFoundCity, addPeople, sizeToPeople } from './world/cities';
 import { isSettler, settlerPath, canSettle, foundOutpost, SETTLER_MOVES } from './settlers';
 import { markTutorialStep } from './tutorial';
 import { answerDemand } from './aiAccords';
@@ -887,8 +887,8 @@ const reduceAction = (state, action) => {
           ...state.regions,
           [regionId]: {
             ...region,
-            dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 },
-            currentPopulation: (region.currentPopulation || modernBaseline) + popGain
+            ...(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { currentPopulation: (region.currentPopulation || modernBaseline) + popGain }),
+            dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 }
           }
         },
         logs: [...state.logs, { year: state.year, message: `Developed ${devType} in ${REGIONS_DATA[regionId]?.name} (+1).`, type: LogTypes.ACTION }]
@@ -954,11 +954,15 @@ const reduceAction = (state, action) => {
       if (!region || region.owner !== state.playerNationId) return state;
       if (region.occupiedBy) return reject(state, `${REGIONS_DATA[regionId]?.name} is occupied — liberate it first.`);
       if (!canAfford(state.resources, costs)) return state;
-      const nextPopulation = Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE));
+      // A city banks the new people as food toward its next size (population.js, one model).
+      const nextRegion = region.size != null
+        ? addPeople(region, (region.currentPopulation || sizeToPeople(region.size)) * POPULATION_POLICY_GROWTH_RATE)
+        : { ...region, currentPopulation: Math.round((region.currentPopulation || 1) * (1 + POPULATION_POLICY_GROWTH_RATE)) };
+      const nextPopulation = nextRegion.currentPopulation ?? sizeToPeople(nextRegion.size);
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        regions: { ...state.regions, [regionId]: { ...region, currentPopulation: nextPopulation } },
+        regions: { ...state.regions, [regionId]: nextRegion },
         logs: [...state.logs, { year: state.year, message: `Population growth invested in ${REGIONS_DATA[regionId]?.name} — now ${nextPopulation.toLocaleString()}.`, type: LogTypes.ACTION }]
       };
     }

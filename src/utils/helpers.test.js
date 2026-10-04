@@ -121,27 +121,20 @@ describe('calcIncome', () => {
     expect(withMine.copper).toBe(0);
   });
 
-  it('scales gold and hr with population growth from Population Policy, but not deposit/extraction resources', () => {
-    const state = createInitialState({ playerNationId: 'cl' }); // Chile has a copper deposit
-    const base = calcIncome(state);
-    const grown = calcIncome({
-      ...state,
-      regions: {
-        ...state.regions,
-        [cap('cl')]: {
-          ...state.regions[cap('cl')],
-          currentPopulation: Math.round(state.regions[cap('cl')].currentPopulation * 1.5),
-          buildings: { ...state.regions[cap('cl')].buildings, extraction: { ...state.regions[cap('cl')].buildings.extraction, copper: true } }
-        }
-      }
-    });
-    expect(grown.gold).toBeGreaterThan(base.gold);
-    expect(grown.hr).toBeGreaterThan(base.hr);
-    const baseWithMine = calcIncome({
-      ...state,
-      regions: { ...state.regions, [cap('cl')]: { ...state.regions[cap('cl')], buildings: { ...state.regions[cap('cl')].buildings, extraction: { ...state.regions[cap('cl')].buildings.extraction, copper: true } } } }
-    });
-    expect(grown.copper).toBe(baseWithMine.copper); // extraction yield is deposit/building-driven, not population-driven
+  it('a city earns by its size, not by a separate people number (one population model); extraction is deposit-driven', () => {
+    const state = createInitialState({ playerNationId: 'cl', rngSeed: 3 }); // Chile has a copper deposit
+    const capital = state.regions[cap('cl')];
+    const withMine = { ...capital, buildings: { ...capital.buildings, extraction: { ...capital.buildings.extraction, copper: true } } };
+    const baseWithMine = calcIncome({ ...state, regions: { ...state.regions, [cap('cl')]: withMine } });
+    // A stale or edited people number on a city changes nothing: people are derived from size.
+    const inflated = calcIncome({ ...state, regions: { ...state.regions, [cap('cl')]: { ...withMine, currentPopulation: Math.round(capital.currentPopulation * 1.5) } } });
+    expect(inflated.gold).toBe(baseWithMine.gold);
+    expect(inflated.hr).toBe(baseWithMine.hr);
+    // A bigger economy (the dev a bigger city's yields write) earns more; copper stays the mine's.
+    const developed = calcIncome({ ...state, regions: { ...state.regions, [cap('cl')]: { ...withMine, dev: { tax: withMine.dev.tax * 2, production: withMine.dev.production * 2, manpower: withMine.dev.manpower * 2 } } } });
+    expect(developed.gold).toBeGreaterThan(baseWithMine.gold);
+    expect(developed.hr).toBeGreaterThan(baseWithMine.hr);
+    expect(developed.copper).toBe(baseWithMine.copper);
   });
 
   it('applies Set Tax Rate\'s goldMult on top of government/policy bonuses', () => {

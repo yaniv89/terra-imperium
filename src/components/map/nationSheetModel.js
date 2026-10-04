@@ -11,6 +11,7 @@ import { hasOpenBorders } from '../../engine/accords';
 import { claimsAgainst } from '../../engine/claims';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { getGreatProjectOwner, GREAT_PROJECTS } from '../../data/greatProjects';
+import { warContagionMult } from '../../engine/warContagion';
 
 export const nationSheetModel = (state, nationId) => {
   const nation = state.nations?.[nationId];
@@ -31,6 +32,9 @@ export const nationSheetModel = (state, nationId) => {
   if (nation.vassalOf === me) relations.push({ id: 'vassal', label: 'Your vassal', tone: 'good' });
   if (state.nations[me]?.vassalOf === nationId) relations.push({ id: 'overlord', label: 'Your overlord', tone: 'neutral' });
   if ((state.nations[me]?.rivals || []).includes(nationId)) relations.push({ id: 'rival', label: 'Your rival', tone: 'bad' });
+  // War contagion (warContagion.js): recent wars near this nation make it readier for its own.
+  const heatPct = Math.round((warContagionMult(nation) - 1) * 100);
+  if (heatPct >= 10) relations.push({ id: 'restless', label: `Wars nearby: +${heatPct}% war chance`, tone: 'bad' });
   const myClaims = claimsAgainst(state, me, nationId);
   const theirClaims = claimsAgainst(state, nationId, me);
   const wonders = Object.keys(state.greatProjects || {}).filter((id) => getGreatProjectOwner(state, id) === nationId).map((id) => GREAT_PROJECTS[id]?.name || id);

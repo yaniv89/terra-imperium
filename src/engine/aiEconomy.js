@@ -21,6 +21,7 @@ import { hasDeposit } from '../data/deposits';
 // Spending follows a bounded cadence with stability, frontier reserves, laws and advisors ahead
 // of long-term investment. Space missions remain a player victory objective.
 import { devastationIncomeMult } from './aftermath';
+import { addPeople, sizeToPeople } from './world/cities';
 import { ACTION_COSTS, BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 import { getFieldedStrength } from '../utils/helpers';
 import { getResearched } from './nationState';
@@ -234,8 +235,8 @@ const tryDevelopProvince = (state, nation, regions) => {
     regionId,
     updatedRegion: {
       ...region,
-      dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 },
-      currentPopulation: (region.currentPopulation || modernBaseline) + popGain
+      ...(region.size != null ? addPeople(region, sizeToPeople(region.size) * DEVELOP_PROVINCE_POP_GAIN_RATIO) : { currentPopulation: (region.currentPopulation || modernBaseline) + popGain }),
+      dev: { ...region.dev, [devType]: (region.dev?.[devType] || 0) + 1 }
     }
   };
 };

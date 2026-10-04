@@ -2,9 +2,9 @@
 // What war costs the land and the people, beyond the units themselves. Every battle and every levy
 // ripples into the macro economy through explicit, bounded formulas:
 //
-//   Levy: raising a unit draws its men from its home province's population. Population already
-//   feeds that province's tax, production and manpower through getPopFactor (development.js), so a
-//   heavy levy in a small province visibly thins its income and its future manpower.
+//   Levy: raising a unit draws its men from its home city's people. A city pays from its food
+//   bank (population.js, one model), so a heavy levy in a small city costs it turns of growth;
+//   a big city barely notices. It never costs a whole size.
 //
 //   Casualty scars: men who die in battle don't come home. Their share of the unit's strength is
 //   taken off the home province's population for good (natural growth refills it only slowly).
@@ -22,6 +22,7 @@
 // All pure: (inputs) -> new objects, no RNG state threaded through, no mutation.
 import { REGIONS_DATA } from '../data/regions';
 import { POPULATION_FLOOR_RATIO } from './population';
+import { drawPeople } from './world/cities';
 
 // Men per point of unit strength: a full 1000-strength unit is ~10,000 soldiers. Against real
 // provincial populations (hundreds of thousands to millions) a single levy is a few per cent at
@@ -58,6 +59,11 @@ const populationFloor = (regionId) => (REGIONS_DATA[regionId]?.population || 0) 
 // `regions` object when nothing changes.
 export const drawPopulation = (regions, regionId, men) => {
   const region = regions?.[regionId];
+  // A city pays from its food bank (cities.js drawPeople): the one population model.
+  if (region?.size != null) {
+    const next = drawPeople(region, men);
+    return next === region ? regions : { ...regions, [regionId]: next };
+  }
   const baseline = REGIONS_DATA[regionId]?.population || 0;
   if (!region || !(men > 0) || !(baseline > 0)) return regions;
   const current = region.currentPopulation || baseline;

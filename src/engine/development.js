@@ -38,16 +38,24 @@ export const getTotalDev = (region) => {
 export const getNationTotalDev = (state, nationId) =>
   getOwnedRegionIds(state.regions || {},nationId).reduce((sum,id)=>sum+getTotalDev(state.regions[id]),0);
 
-// Population and development both compounding without limit would let a heavily-grown, heavily-
-// developed region's income spiral (the plan's own concern, §M5's "clamped" note) — this replaces
-// calcIncome's old UNCLAMPED popGrowthMult with an explicit [0.5, 2.0] ceiling/floor.
+// How a record's people scale its income. A city (a record with a size) already earns from its
+// size: dev is rewritten from the city's yields every turn, so its factor is 1 (one population
+// model, population.js; before, a city that grew read up to 2x for a turn against the registry's
+// stale baseline). A size-less record keeps the ratio to its baseline, soft-capped between
+// POP_FACTOR_MIN and POP_FACTOR_MAX: 1 + (MAX - 1) x tanh-like x / (1 + x) above 1, never a wall.
 export const POP_FACTOR_MIN = 0.5;
 export const POP_FACTOR_MAX = 2.0;
+export const softCapAbove = (ratio, max) => {
+  if (ratio <= 1) return ratio;
+  const x = (ratio - 1) / (max - 1);
+  return 1 + (max - 1) * (x / (1 + x));
+};
 export const getPopFactor = (region, regionData) => {
+  if (region?.size != null) return 1;
   const modernBaseline = regionData?.population || 0;
   if (modernBaseline <= 0) return 1;
   const ratio = (region?.currentPopulation || modernBaseline) / modernBaseline;
-  return Math.max(POP_FACTOR_MIN, Math.min(POP_FACTOR_MAX, ratio));
+  return Math.max(POP_FACTOR_MIN, softCapAbove(ratio, POP_FACTOR_MAX));
 };
 
 // Develop Province (plan §M5's new action): which power pool each development type spends.
