@@ -40,6 +40,8 @@ const MAX_COMPLETIONS_PER_TURN = 6;
 // 240 nations working out research every turn cost about 10% of a turn; this brings it to ~3%.
 export const AI_RESEARCH_PERIOD = 3;
 const stagger = (id) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; return Math.abs(h) % AI_RESEARCH_PERIOD; };
+/** Does AI nation `id` spend its science on `turn` (the turn number being resolved)? */
+export const researchesThisTurn = (id, turn) => (turn + stagger(id)) % AI_RESEARCH_PERIOD === 0;
 
 export const emptyResearch = () => ({ current: null, queue: [], progress: {}, auto: false, lastCompleted: null });
 
@@ -185,7 +187,7 @@ export const applyResearchTurn = (state) => {
   Object.keys(state.nations).forEach((id) => {
     const nation = state.nations[id];
     if (id === state.playerNationId || nation.isEliminated || !nation.economy) return;
-    if ((state.turnNumber + stagger(id)) % AI_RESEARCH_PERIOD !== 0) return;
+    if (!researchesThisTurn(id, state.turnNumber)) return;
     const boosted = applyBoosts(state, id, researchOf(state, id), researchedSetOf(state, id));
     const r = stepResearch(boosted.applied.length ? { ...state, nations: { ...state.nations, [id]: { ...nation, research: boosted.research } } } : state, id);
     if (!r.completed.length && r.stock === nation.economy.techPoints && r.research.current === nation.research?.current) return;

@@ -65,7 +65,7 @@ import {
   POWER_POOL_CAP
 } from '../data/actionCosts';
 import { processSuccession, processRoyalBirth, getAdvisorSalary } from './succession';
-import { applyResearchTurn } from './research';
+import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
@@ -638,7 +638,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     tiers.set(nId, tier);
     const period = lodPeriod(tier, nation);
     if (period > 1) lodPeriods[nId] = period;
-    if (settlesThisTurn(nId, period, newTurnNumber)) settling.add(nId);
+    // A nation that spends its science this turn (research.js) settles first, so the research step
+    // reads every turn's science.
+    if (settlesThisTurn(nId, period, newTurnNumber) || researchesThisTurn(nId, newTurnNumber)) settling.add(nId);
   });
   const allIncomes = calcAllNationIncomes(aiEconState, settling);
   // Units grouped by owner once; a nation's own desertion below only drops its own, already settled, units.
