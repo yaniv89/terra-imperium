@@ -1,0 +1,107 @@
+{
+  "file": "modern-town-big-a-sinic.glb",
+  "kind": "town",
+  "bytes": 4153908,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-big-a": {
+      "lods": {
+        "LOD0": {
+          "triangles": 25302,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 8.042,
+          "depth": 8.091,
+          "height": 5.03,
+          "min_height": 0
+        },
+        "LOD1": {
+          "triangles": 9200,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 8.042,
+          "depth": 8.091,
+          "height": 5.03,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 1382,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 8.042,
+          "depth": 8.091,
+          "height": 4.53,
+          "min_height": 0.0082
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 8.091
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "modern-town-big-a-sinic_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 377146
+    },
+    {
+      "name": "modern-town-big-a-sinic_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 709806
+    },
+    {
+      "name": "modern-town-big-a-sinic_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 542746
+    }
+  ],
+  "passed": true
+}
