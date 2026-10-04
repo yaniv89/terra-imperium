@@ -43,10 +43,11 @@ import {
   REVOLT_SUCCESS_TURNS, INTEGRATION_CONTROL_THRESHOLD, REVOLT_RECLAIMED_CONTROL, REVOLT_RECLAIMED_UNREST
 } from '../data/rebellion';
 import { createRng } from '../utils/rng';
-import { processCities, growthThreshold } from './world/cities';
+import { processCities, growthThreshold, privateWorld } from './world/cities';
 import { makeSettler, processSettlers, bestSites, isSettler } from './settlers';
 import { chooseProduction, nationCounts, SETTLER_THINK_PERIOD } from './aiProduction';
 import { syncWorldRegistry } from './world/registry';
+import { lodPeriod, settlesThisTurn, turnsToSettle } from './world/lod';
 import { getTiles } from '../data/geo/tiles';
 import { getResearched, getTechAgeId } from './nationState';
 import { getEffectiveAgeId } from '../data/ages';
@@ -64,7 +65,7 @@ import {
   POWER_POOL_CAP
 } from '../data/actionCosts';
 import { processSuccession, processRoyalBirth, getAdvisorSalary } from './succession';
-import { applyResearchTurn } from './research';
+import { applyResearchTurn, researchesThisTurn } from './research';
 import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { processEstatesTurn } from './estates';
 import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
@@ -201,12 +202,14 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
   const afterCities = { ...state, regions, units, nextUnitSeq, world: { tileOwner: result.world.tileOwner, tileState: result.world.tileState } };
   const hasSettlers = Object.values(units).some(isSettler) || Object.values(regions).some((c) => c.outpost);
   if (!hasSettlers) return { state: afterCities, logs, wonders };
-  const settled = processSettlers(afterCities, regions, units, afterCities.world, (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
+  // Outposts are founded into the turn's own maps (copied here if the cities pass wrote nothing).
+  const settled = processSettlers(afterCities, regions, units, privateWorld(afterCities.world, result.world), (nid) => ctxFor({ owner: nid }).ageId, newTurnNumber);
   settled.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push(l.message); });
-  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: settled.world }, logs, wonders };
+  return { state: { ...afterCities, regions: settled.regions, units: settled.units, world: { tileOwner: settled.world.tileOwner, tileState: settled.world.tileState } }, logs, wonders };
 };
 
 export const resolveTurn = (incomingState, { onPhase } = {}) => {
+  const turnStart = onPhase ? performance.now() : 0;
   let state = syncWorldRegistry(incomingState);
   // Guard: nothing to resolve if the game already ended, an event is blocking play, or a peace
   // offer (plan §M13) is awaiting the player's ACCEPT_PENDING_PEACE/REJECT_PENDING_PEACE response.
@@ -219,7 +222,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   state = normalizeUnitTiles(state);
 
   let regionDraft = null;
-  let phaseStart = onPhase ? performance.now() : 0;
+  let phaseStart = turnStart;
   const mark = (name) => {
     if (regionDraft) invalidateRegionsCache(regionDraft);
     if (!onPhase) return;
@@ -236,6 +239,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     marchLogs = advanceMarches(state, marchedUnits, { year: state.year }).logs;
     state = { ...state, units: marchedUnits };
   }
+  mark('marches');
 
   let rng = createRng(state.rngSeed);
   const logs = [];
@@ -511,7 +515,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // city's shares, loyalty follows the owner's share, garrison and amenities; at 0 a city goes over
   // to the nation pressing it most, or stands free.
   {
-    const loyal = applyLoyalty(state, regions, units, modifierExpiredNations, newTurnNumber);
+    const loyal = applyLoyalty(state, regions, units, modifierExpiredNations, newTurnNumber, (nid) => state.lodPeriods?.[nid] || 1);
     loyal.logs.forEach((l) => { if (l.nationId === state.playerNationId) logs.push({ year: newYear, message: l.message, type: LogTypes.CRISIS }); });
   }
   mark('rebellionAndSupply');
@@ -624,8 +628,22 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // file are already careful to avoid. `regions`/`nations` are passed by REFERENCE, not spread, so
   // this snapshot stays valid even as later lines in this same loop mutate their properties.
   const aiEconState = { ...state, regions, nations };
-  const allIncomes = calcAllNationIncomes(aiEconState);
   const tieringSortedByMilitary = getSortedByMilitary(aiEconState);
+  // Level of detail (world/lod.js): a far nation at peace settles every few turns, paying and
+  // earning every turn since its last settlement at once; one that thinks this turn always settles.
+  const tiers = new Map(); const settling = new Set(); const lodPeriods = {};
+  Object.keys(nations).forEach((nId) => {
+    const nation = nations[nId];
+    if (nId === state.playerNationId || nation.isEliminated || !nation.economy) return;
+    const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
+    tiers.set(nId, tier);
+    const period = lodPeriod(tier, nation);
+    if (period > 1) lodPeriods[nId] = period;
+    // A nation that spends its science this turn (research.js) settles first, so the research step
+    // reads every turn's science.
+    if (settlesThisTurn(nId, period, newTurnNumber) || researchesThisTurn(nId, newTurnNumber)) settling.add(nId);
+  });
+  const allIncomes = calcAllNationIncomes(aiEconState, settling);
   // Units grouped by owner once; a nation's own desertion below only drops its own, already settled, units.
   const unitsByOwnerNow = unitsByOwner(units);
   const upkeepState = { ...aiEconState, units, turnNumber: newTurnNumber };
@@ -634,26 +652,30 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const nation = nations[nId];
     if (nation.isEliminated) return;
     if (!nation.economy) return; // a legacy/test fixture with no seeded economy stays on the old abstract-only path
+    const tier = tiers.get(nId);
+    if (!settling.has(nId)) return;
+    const turns = turnsToSettle(nation, newTurnNumber, lodPeriod(tier, nation));
     const income = allIncomes[nId] || { gold: 0, hr: 0, techPoints: 0 };
     const powerIncome = getPowerIncome(aiEconState, nId);
     const pool = { ...nation.economy };
-    pool.gold += income.gold;
-    pool.hr += income.hr;
-    pool.techPoints += income.techPoints;
+    pool.gold += income.gold; // the other turns' gold is credited turn by turn in settleAIUpkeep
+    pool.hr += income.hr * turns;
+    pool.techPoints += income.techPoints * turns;
     const ownedUnits = unitsByOwnerNow.get(nId) || [];
-    const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool,tileOwner:state.world?.tileOwner,ownedUnits});
-    pool.supplies=aiSupply.supplies;
-    pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
-    ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
+    for (let k = 0; k < turns; k++) {
+      const aiSupply = computeSupplyFlow({regions,units,nationId:nId,ageId:getEffectiveAgeId(newAge,nation.tech?.ageId),resources:pool,tileOwner:state.world?.tileOwner,ownedUnits});
+      pool.supplies=aiSupply.supplies;
+      pool[aiSupply.metalId]=(pool[aiSupply.metalId] || 0)-aiSupply.metalUsed;
+      ['copper', 'iron', 'oil', 'rareMetals', 'helium3'].forEach(key => { pool[key] = (pool[key] || 0) + (income[key] || 0); });
+    }
     // Same flat POWER_POOL_CAP bank the player's own pools use (the maintenanceAndPower phase
     // above) — the old 2x-income cap here kept every AI pool below the cheapest tech's 40 power,
     // so no AI nation ever researched anything.
-    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p], POWER_POOL_CAP); });
-    nations[nId] = { ...nation, economy: pool };
-    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits);
+    ['adm', 'dip', 'mil'].forEach((p) => { pool[p] = Math.min((pool[p] || 0) + powerIncome[p] * turns, POWER_POOL_CAP); });
+    nations[nId] = { ...nation, economy: pool, lodSettledTurn: newTurnNumber };
+    nations[nId] = settleAIUpkeep(upkeepState, nId, income, ownedUnits, turns, income.gold);
     if (nations[nId].lastBankruptcyTurn === newTurnNumber) applyArmyDesertion(units, nId);
 
-    const tier = getNationTier(aiEconState, nId, tieringSortedByMilitary) || 3;
     if (!thinksThisTurn(nId, tier, newTurnNumber)) return;
     const result = processAIEconomyTurn(aiEconState, regions, nId);
     nations[nId] = result.nation;
@@ -1209,6 +1231,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     proceduralEventCooldown,
     pendingEventChains: nextPendingEventChains,
     nextLoanSeq,
+    lodPeriods, // world/lod.js: next turn's loyalty pass reads which nations are far and quiet
     rngSeed: rng.getSeed(),
     logs: [...state.logs, ...logs]
   };
@@ -1256,6 +1279,12 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   }
   mark('victory');
 
+  next = reconcileTerritory(processColonies(processEmergence(next)));
+  mark('emergenceAndTerritory');
   // Research last, once this turn's science has been credited (src/engine/research.js).
-  return normalizeUnitTiles(syncWorldRegistry(applyResearchTurn(reconcileTerritory(processColonies(processEmergence(next))))));
+  next = applyResearchTurn(next);
+  mark('research');
+  next = normalizeUnitTiles(syncWorldRegistry(next));
+  mark('registry');
+  return next;
 };

@@ -89,11 +89,14 @@ const emptyAIPool = () => ({ gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil:
 // path is never at risk of a regression from this milestone. Building/government/law/identity
 // modifier sources (src/engine/modifiers/) already read generically for any nationId, so those are
 // included via the SAME getRegionModifier/getModifier calls calcIncome itself uses.
-export const calcAllNationIncomes = (state) => {
+// `only` (a Set of nation ids, optional): the nations whose income is wanted this turn (world/lod.js
+// settles far nations every few turns); every other nation's regions are skipped.
+export const calcAllNationIncomes = (state, only = null) => {
   const tiles = getTiles(); // district yields read the grid (districts.js)
   const incomes = {};
   Object.values(state.regions).forEach((region) => {
     if (!region.owner || region.owner === state.playerNationId || region.occupiedBy) return;
+    if (only && !only.has(region.owner)) return;
     const regData = REGIONS_DATA[region.id];
     if (!regData) return;
     const dev = region.dev || seedDevelopment(region.id);
@@ -348,18 +351,30 @@ export const applyAIRecruitCost = (nation, state, ageId) => {
   return { ...nation, economy: applyCosts(pool, costs) };
 };
 
-export const settleAIUpkeep = (state, nationId, income, ownedUnits = null) => {
-  const nation = state.nations[nationId];
+// `turns`: how many turns this settlement covers (world/lod.js: a far, quiet nation settles every
+// few turns). The turns are replayed one by one, so a broke nation takes a loan or goes bankrupt
+// as often as it would have turn by turn: `goldPerTurn` is credited before each turn after the
+// first (the caller has credited the first), and the loans' interest follows the loans taken.
+export const settleAIUpkeep = (state, nationId, income, ownedUnits = null, turns = 1, goldPerTurn = 0) => {
   const balance = calcNationBalance(state, nationId, income, ownedUnits);
-  const expenses = Object.values(balance.expenses).reduce((a,b)=>a+b,0);
-  const gold = (nation.economy.gold || 0) - expenses;
-  if (gold >= 0) return { ...nation, economy: { ...nation.economy, gold }, lastNetIncome: balance.net };
-  const loans = nation.loans || [];
-  if (loans.length < getLoanCapacity(state, nationId)) {
-    const principal = Math.max(200, -gold);
-    return { ...nation, economy: { ...nation.economy, gold: gold + principal }, loans: [...loans, { id: 'ai_loan_' + nationId + '_' + state.turnNumber, principal, interestRate: getLoanInterestRate(state, nationId), takenTurn: state.turnNumber }], lastNetIncome: balance.net };
+  const interestOf = (loans) => (loans || []).reduce((sum, loan) => sum + Math.round(loan.principal * loan.interestRate), 0);
+  const otherExpenses = Object.values(balance.expenses).reduce((a,b)=>a+b,0) - balance.expenses.loanInterest;
+  let nation = state.nations[nationId];
+  for (let t = 0; t < turns; t++) {
+    const start = t === 0 ? nation.economy.gold || 0 : (nation.economy.gold || 0) + goldPerTurn;
+    const loanInterest = t === 0 ? balance.expenses.loanInterest : interestOf(nation.loans);
+    const net = t === 0 ? balance.net : (income.gold || 0) - otherExpenses - loanInterest;
+    const gold = start - otherExpenses - loanInterest;
+    if (gold >= 0) { nation = { ...nation, economy: { ...nation.economy, gold }, lastNetIncome: net }; continue; }
+    const loans = nation.loans || [];
+    if (loans.length < getLoanCapacity(state, nationId)) {
+      const principal = Math.max(200, -gold);
+      nation = { ...nation, economy: { ...nation.economy, gold: gold + principal }, loans: [...loans, { id: 'ai_loan_' + nationId + '_' + state.turnNumber + (t ? '_' + t : ''), principal, interestRate: getLoanInterestRate(state, nationId), takenTurn: state.turnNumber }], lastNetIncome: net };
+      continue;
+    }
+    const bankrupt = applyBankruptcy(nation, state.regions, nationId, state.turnNumber);
+    Object.assign(state.regions, bankrupt.regions);
+    nation = { ...bankrupt.nation, economy: { ...nation.economy, gold: 0 }, lastNetIncome: net };
   }
-  const bankrupt = applyBankruptcy(nation, state.regions, nationId, state.turnNumber);
-  Object.assign(state.regions, bankrupt.regions);
-  return { ...bankrupt.nation, economy: { ...nation.economy, gold: 0 }, lastNetIncome: balance.net };
+  return nation;
 };

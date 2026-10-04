@@ -15,6 +15,7 @@
 // The AI's war roll multiplies by max(0, (20 - opinion) / 60) (aiLogic.js): with no map reasons
 // this equals the old hostility/100 + 0.2, so a friend never gets a surprise war and an enemy at
 // -40 or less gives a casus belli (diplomacy.js). Pure; cached per (nations, regions, world).
+import { ownerSlots } from './world/tileIndex';
 import { getTiles } from '../data/geo/tiles';
 import { IDENTITY_AXES, leansNegative, leansPositive } from '../data/identity';
 import { lawRulesOf } from './lawRules';
@@ -47,6 +48,47 @@ const cityIndexOf = (regions, tiles) => {
   return idx;
 };
 
+// Border tiles between every pair of nations, in one walk of the claimed land per map (a walk of A's
+// land per pair asked was the cost, and it grows with the number of cells): a -> b -> how many of
+// a's tiles touch a tile of one of b's cities.
+// Kept while the claimed land (tileOwner) and every city's owner and tiles are the same: a turn
+// builds several regions maps but changes borders once.
+const borderCache = new WeakMap(); // regions -> { tileOwner, counts }
+let lastBorders = { tileOwner: null, key: null, counts: null };
+const sharedBorderOf = (regions, tileOwner, tiles, idx) => {
+  const hit = borderCache.get(regions);
+  if (hit && hit.tileOwner === tileOwner) return hit.counts;
+  const cityOwner = new Map();
+  let key = '';
+  idx.byOwner.forEach((list, owner) => list.forEach((c) => { cityOwner.set(c.id, owner); key += `${c.id}:${owner}:${(c.tiles || []).length}|`; }));
+  if (lastBorders.tileOwner === tileOwner && lastBorders.key === key) { borderCache.set(regions, { tileOwner, counts: lastBorders.counts }); return lastBorders.counts; }
+  // The owning nation of every tile as a small integer (typed, one read per neighbour).
+  const nations = [...idx.byOwner.keys()];
+  const nationOf = new Map(nations.map((n, i) => [n, i]));
+  const { slot, ids } = ownerSlots(tileOwner, tiles.count);
+  const slotNation = Int32Array.from(ids, (id) => { const o = cityOwner.get(id); return o === undefined ? -1 : nationOf.get(o); });
+  const counts = new Map();
+  const touched = new Int32Array(nations.length).fill(-1);
+  let stamp = 0;
+  nations.forEach((a, ai) => {
+    let row = null;
+    idx.byOwner.get(a).forEach((c) => (c.tiles || [c.tile]).forEach((t) => {
+      stamp += 1;
+      const ns = tiles.neighbors[t];
+      for (let k = 0; k < ns.length; k++) {
+        const s = slot[ns[k]]; if (s < 0) continue;
+        const b = slotNation[s]; if (b < 0 || b === ai || touched[b] === stamp) continue;
+        touched[b] = stamp;
+        row ||= counts.get(a) || counts.set(a, new Map()).get(a);
+        row.set(nations[b], (row.get(nations[b]) || 0) + 1);
+      }
+    }));
+  });
+  borderCache.set(regions, { tileOwner, counts });
+  lastBorders = { tileOwner, key, counts };
+  return counts;
+};
+
 // The map's part of A's opinion of B: borders, settling, culture.
 const mapReasons = (state, a, b) => {
   const out = [];
@@ -58,9 +100,7 @@ const mapReasons = (state, a, b) => {
   const mine = idx.byOwner.get(a) || [];
   const theirs = idx.byOwner.get(b) || [];
   if (!mine.length || !theirs.length) return out;
-  const theirCities = new Set(theirs.map((c) => c.id));
-  let shared = 0;
-  mine.forEach((c) => (c.tiles || [c.tile]).forEach((t) => { if (tiles.neighbors[t].some((n) => theirCities.has(tileOwner[n]))) shared += 1; }));
+  const shared = sharedBorderOf(regions, tileOwner, tiles, idx).get(a)?.get(b) || 0;
   if (shared > BORDER_FREE_TILES) out.push({ id: 'borders', label: 'Shared border', value: Math.max(BORDER_MAX, BORDER_PER_TILE * (shared - BORDER_FREE_TILES)), detail: `${shared} tiles touch` });
   const turn = state.turnNumber || 1;
   let settled = 0;
