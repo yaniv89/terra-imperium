@@ -117,6 +117,12 @@ def decimated(src, name, target):
         mod.use_collapse_triangulate = True
         bpy.context.view_layer.objects.active = o
         bpy.ops.object.modifier_apply(modifier=mod.name)
+        # Collapse may extrapolate boundary vertices below the source base.
+        # Keep the authored ground plane rather than shifting the whole LOD up.
+        base_z = min(v.co.z for v in src.data.vertices)
+        for vertex in o.data.vertices:
+            vertex.co.z = max(base_z, vertex.co.z)
+        o.data.update()
     return o
 
 
