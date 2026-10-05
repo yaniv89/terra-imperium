@@ -2,16 +2,17 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 82,
-  "quality_accepted": 62,
+  "uploaded_and_download_verified": 100,
+  "quality_accepted": 80,
   "uploaded_requiring_quality_revision": 20,
-  "remaining_to_finish": 288,
-  "built_awaiting_upload": 20,
-  "remaining_to_upload": 268,
+  "remaining_to_finish": 270,
+  "built_awaiting_upload": 13,
+  "remaining_to_upload": 250,
   "completed_checkpoints": [
     "01",
     "02",
     "03",
+    "04",
     "06"
   ],
   "items": [
@@ -419,25 +420,25 @@
       "path": "plans/art/towns/modern/colony-camp-israelite",
       "section": "towns",
       "description": "modern regional camp",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/improvements/ancient/farm-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/improvements/ancient/plantation-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/improvements/ancient/pasture-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/improvements/ancient/fishing_boats-israelite",
@@ -449,37 +450,37 @@
       "path": "plans/art/improvements/bronze/fort-bronze-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/improvements/modern/fort-modern-israelite",
       "section": "improvements",
       "description": "50m patch, improvement object and Ground; see theme brief",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/europe/modern/houses",
       "section": "kits",
       "description": "Regional europe modern houses",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/europe/modern/street",
       "section": "kits",
       "description": "Regional europe modern street",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/europe/modern/roofscape",
       "section": "kits",
       "description": "Regional europe modern roofscape",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/europe/modern/materials",
       "section": "kits",
       "description": "Regional europe modern materials",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/europe/modern/landmark-1",
@@ -491,115 +492,115 @@
       "path": "plans/art/kits/europe/modern/landmark-2",
       "section": "kits",
       "description": "Regional europe modern landmark-2",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/levant/bronze/houses",
       "section": "kits",
       "description": "Regional levant bronze houses",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/levant/bronze/street",
       "section": "kits",
       "description": "Regional levant bronze street",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/levant/bronze/roofscape",
       "section": "kits",
       "description": "Regional levant bronze roofscape",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/levant/bronze/materials",
       "section": "kits",
       "description": "Regional levant bronze materials",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/levant/bronze/landmark-1",
       "section": "kits",
       "description": "Regional levant bronze landmark-1",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/levant/bronze/landmark-2",
       "section": "kits",
       "description": "Regional levant bronze landmark-2",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/houses",
       "section": "kits",
       "description": "Regional indic gunpowder houses",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/street",
       "section": "kits",
       "description": "Regional indic gunpowder street",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/roofscape",
       "section": "kits",
       "description": "Regional indic gunpowder roofscape",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/landmark-1",
       "section": "kits",
       "description": "Regional indic gunpowder landmark-1",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/landmark-2",
       "section": "kits",
       "description": "Regional indic gunpowder landmark-2",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/modern/houses",
       "section": "kits",
       "description": "Regional indic modern houses",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/modern/street",
       "section": "kits",
       "description": "Regional indic modern street",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/modern/roofscape",
       "section": "kits",
       "description": "Regional indic modern roofscape",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/modern/landmark-1",
       "section": "kits",
       "description": "Regional indic modern landmark-1",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/kits/indic/modern/landmark-2",
       "section": "kits",
       "description": "Regional indic modern landmark-2",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/towns/classical/palace-small",
       "section": "towns",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/towns/classical/palace",
       "section": "towns",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/resources/wheat",
