@@ -216,6 +216,11 @@ def report(out, scale, made):
     bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, export_apply=True,
                               export_cameras=False, export_lights=False, export_image_format='WEBP',
                               export_image_quality=90, export_yup=True)
+    # Standard normalized colour storage keeps large exports within the file budget.
+    # Error is bounded by 0.5/255; geometry and textures stay unchanged.
+    if os.path.getsize(out) > 6 * 1024 * 1024:
+        from pack_vertex_colors import compact_colors
+        compact_colors(out)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.splitext(out)[0] + '.blend')
     for root, lods in made:
         print('imported', root.name, 'scale', round(scale, 4), {c.name: tris(c) for c in lods},
