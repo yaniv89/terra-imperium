@@ -2,12 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 240,
-  "quality_accepted": 240,
+  "uploaded_and_download_verified": 260,
+  "quality_accepted": 260,
   "uploaded_requiring_quality_revision": 0,
-  "remaining_to_finish": 110,
-  "built_awaiting_upload": 18,
-  "remaining_to_upload": 110,
+  "remaining_to_finish": 90,
+  "built_awaiting_upload": 25,
+  "remaining_to_upload": 90,
   "completed_checkpoints": [
     "01",
     "02",
@@ -19,6 +19,7 @@
     "08",
     "09",
     "10",
+    "11",
     "12",
     "13"
   ],
@@ -1267,121 +1268,121 @@
       "path": "plans/art/icons/cities/city-medium-classical",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-big-classical",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-small-kingdoms",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-medium-kingdoms",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-big-kingdoms",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-small-gunpowder",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-medium-gunpowder",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-big-gunpowder",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-small-modern",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-medium-modern",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/cities/city-big-modern",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/ages/bronze",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/ages/classical",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/ages/kingdoms",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/ages/gunpowder",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/ages/modern",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/markers/capital",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/markers/wonder",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/markers/event",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/markers/battle",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/wonders/great_pyramids",
@@ -1705,43 +1706,43 @@
       "path": "plans/art/improvements/ancient/road",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/modern/road",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/pasture",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/camp",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/quarry",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/lumber_camp",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/plantation",
       "section": "improvements",
       "description": "",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/improvements/ancient/oil_well",
