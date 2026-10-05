@@ -2,11 +2,11 @@
 
 Authoritative scope: `plans/art/ITEMS.md`, Part B (276) and Part C (74): **350 logical items**. Part A’s 402 in-game items are excluded. A/B variants stay together as one logical item.
 
-**Uploaded and download-verified: 240 / 350. Remaining to upload: 110.**
+**Uploaded and download-verified: 260 / 350. Remaining to upload: 90.**
 
-Built but not yet uploaded: 18. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
+Built but not yet uploaded: 25. These are not marked complete. Delivery is separate from importing into the game; ITEMS.md’s in-game count is unchanged.
 
-**Quality review: 0 uploaded items require revision; 240 accepted. 110 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
+**Quality review: 0 uploaded items require revision; 260 accepted. 90 items remain to finish.** Upload verification alone does not establish visual quality. Previously rejected batches have been replaced and verified. Delivery links and exact item lists are below.
 
 | Checkpoint | Items | ZIPs | Files and exact item list |
 |---|---:|---:|---|
@@ -20,6 +20,7 @@ Built but not yet uploaded: 18. These are not marked complete. Delivery is separ
 | 08 | 20 | 4 | [Manifest and previews](downloads/blender-remaining/checkpoint-08/README.md) |
 | 09 | 20 | 4 | [Manifest and previews](downloads/blender-remaining/checkpoint-09/README.md) |
 | 10 | 20 | 4 | [Manifest and previews](downloads/blender-remaining/checkpoint-10/README.md) |
+| 11 | 20 | 4 | [Manifest and previews](downloads/blender-remaining/checkpoint-11/README.md) |
 | 12 | 20 | 4 | [Manifest and previews](downloads/blender-remaining/checkpoint-12/README.md) |
 | 13 | 20 | 4 | [Manifest and previews](downloads/blender-remaining/checkpoint-13/README.md) |
 
