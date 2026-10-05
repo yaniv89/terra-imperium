@@ -2,12 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 140,
-  "quality_accepted": 140,
+  "uploaded_and_download_verified": 160,
+  "quality_accepted": 160,
   "uploaded_requiring_quality_revision": 0,
-  "remaining_to_finish": 210,
-  "built_awaiting_upload": 10,
-  "remaining_to_upload": 210,
+  "remaining_to_finish": 190,
+  "built_awaiting_upload": 14,
+  "remaining_to_upload": 190,
   "completed_checkpoints": [
     "01",
     "02",
@@ -15,6 +15,7 @@
     "04",
     "05",
     "06",
+    "07",
     "12"
   ],
   "items": [
@@ -782,121 +783,121 @@
       "path": "plans/art/icons/resources/tea",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/wine",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/olives",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/incense",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/papyrus",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/rubber",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/farm",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/pasture",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/camp",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/mine",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/quarry",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/lumber_camp",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/fishing_boats",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/plantation",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/oil_well",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/road",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/improvements/fort",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/granary",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/irrigation",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/farm_estate",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/crop_rotation_farm",
@@ -1550,25 +1551,25 @@
       "path": "plans/art/buildings/library",
       "section": "buildings",
       "description": "the Library of Celsus front: two storeys of columns and niches",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/scriptorium",
       "section": "buildings",
       "description": "a monastery cloister with a scriptorium wing",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/university",
       "section": "buildings",
       "description": "a college quad with a chapel and a dome (Oxford, Salamanca)",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/research_lab",
       "section": "buildings",
       "description": "a low glass and concrete lab with a dish on the roof",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/workshop",
