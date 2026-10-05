@@ -3,9 +3,9 @@
   "target_items": 350,
   "in_game_count_from_source": 402,
   "uploaded_and_download_verified": 82,
-  "quality_accepted": 44,
-  "uploaded_requiring_quality_revision": 38,
-  "remaining_to_finish": 306,
+  "quality_accepted": 62,
+  "uploaded_requiring_quality_revision": 20,
+  "remaining_to_finish": 288,
   "built_awaiting_upload": 20,
   "remaining_to_upload": 268,
   "completed_checkpoints": [
@@ -299,19 +299,19 @@
       "path": "plans/art/kits/israelite/kingdoms/street",
       "section": "kits",
       "description": "kingdoms Israelite street; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/roofscape",
       "section": "kits",
       "description": "kingdoms Israelite roofscape; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/materials",
       "section": "kits",
       "description": "kingdoms Israelite materials; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/kingdoms/landmark-1",
@@ -323,43 +323,43 @@
       "path": "plans/art/kits/israelite/kingdoms/landmark-2",
       "section": "kits",
       "description": "Jerusalem medieval citadel tower",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/houses",
       "section": "kits",
       "description": "gunpowder Israelite houses; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/street",
       "section": "kits",
       "description": "gunpowder Israelite street; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/roofscape",
       "section": "kits",
       "description": "gunpowder Israelite roofscape; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/materials",
       "section": "kits",
       "description": "gunpowder Israelite materials; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/landmark-1",
       "section": "kits",
       "description": "Great domed synagogue (Hurva 1864)",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/gunpowder/landmark-2",
       "section": "kits",
       "description": "Ottoman city gate",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/modern/houses",
@@ -371,49 +371,49 @@
       "path": "plans/art/kits/israelite/modern/street",
       "section": "kits",
       "description": "modern Israelite street; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/modern/roofscape",
       "section": "kits",
       "description": "modern Israelite roofscape; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/modern/materials",
       "section": "kits",
       "description": "modern Israelite materials; see authoritative theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/modern/landmark-1",
       "section": "kits",
       "description": "Round, triangular and square office towers",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/israelite/modern/landmark-2",
       "section": "kits",
       "description": "Kibbutz water tower",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/towns/kingdoms/palace-small-israelite",
       "section": "towns",
       "description": "kingdoms regional palace; archaeological form in theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/towns/kingdoms/palace-israelite",
       "section": "towns",
       "description": "kingdoms regional palace; archaeological form in theme brief",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/towns/gunpowder/walls-medium-israelite",
       "section": "towns",
       "description": "gunpowder Israelite wall kit",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/towns/modern/colony-camp-israelite",
