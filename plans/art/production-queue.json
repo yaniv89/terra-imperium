@@ -2,12 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 180,
-  "quality_accepted": 180,
+  "uploaded_and_download_verified": 200,
+  "quality_accepted": 200,
   "uploaded_requiring_quality_revision": 0,
-  "remaining_to_finish": 170,
-  "built_awaiting_upload": 19,
-  "remaining_to_upload": 170,
+  "remaining_to_finish": 150,
+  "built_awaiting_upload": 22,
+  "remaining_to_upload": 150,
   "completed_checkpoints": [
     "01",
     "02",
@@ -17,6 +17,7 @@
     "06",
     "07",
     "08",
+    "09",
     "12"
   ],
   "items": [
@@ -1024,121 +1025,121 @@
       "path": "plans/art/icons/buildings/harbor",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/shipyard",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/naval_base",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/carrier_dock",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/road_post",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/highway",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/rail_depot",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/copper_mine",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/iron_foundry",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/oil_well",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/great_pyramids",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/hanging_gardens",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/great_wall",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/great_library",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/colosseum",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/lighthouse",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/grand_bazaar",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/great_cathedral",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/forbidden_city",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/royal_observatory",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/wonders/arsenal",
@@ -1606,19 +1607,19 @@
       "path": "plans/art/buildings/civic_center",
       "section": "buildings",
       "description": "a civic hall with a plaza, a fountain and flags (team)",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/harbor",
       "section": "buildings",
       "description": "a stone quay with a breakwater, a warehouse and two moored boats",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/shipyard",
       "section": "buildings",
       "description": "slipways with a hull in frame, a crane, a rope walk",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/naval_base",
