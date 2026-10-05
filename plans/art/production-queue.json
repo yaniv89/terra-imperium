@@ -2,17 +2,18 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 120,
-  "quality_accepted": 100,
+  "uploaded_and_download_verified": 140,
+  "quality_accepted": 120,
   "uploaded_requiring_quality_revision": 20,
-  "remaining_to_finish": 250,
-  "built_awaiting_upload": 25,
-  "remaining_to_upload": 230,
+  "remaining_to_finish": 230,
+  "built_awaiting_upload": 9,
+  "remaining_to_upload": 210,
   "completed_checkpoints": [
     "01",
     "02",
     "03",
     "04",
+    "05",
     "06",
     "12"
   ],
@@ -541,121 +542,121 @@
       "path": "plans/art/kits/indic/gunpowder/street",
       "section": "kits",
       "description": "Regional indic gunpowder street",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/roofscape",
       "section": "kits",
       "description": "Regional indic gunpowder roofscape",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/landmark-1",
       "section": "kits",
       "description": "Regional indic gunpowder landmark-1",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/gunpowder/landmark-2",
       "section": "kits",
       "description": "Regional indic gunpowder landmark-2",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/modern/houses",
       "section": "kits",
       "description": "Regional indic modern houses",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/modern/street",
       "section": "kits",
       "description": "Regional indic modern street",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/modern/roofscape",
       "section": "kits",
       "description": "Regional indic modern roofscape",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/modern/landmark-1",
       "section": "kits",
       "description": "Regional indic modern landmark-1",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/kits/indic/modern/landmark-2",
       "section": "kits",
       "description": "Regional indic modern landmark-2",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/towns/classical/palace-small",
       "section": "towns",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/towns/classical/palace",
       "section": "towns",
       "description": "",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/wheat",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/rice",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/cattle",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/sheep",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/deer",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/fish",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/whales",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/bananas",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/dates",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/stone",
@@ -1519,25 +1520,25 @@
       "path": "plans/art/buildings/stock_exchange",
       "section": "buildings",
       "description": "a glass tower with a ticker band (no text)",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/barracks",
       "section": "buildings",
       "description": "a mud-brick compound with a training yard and spear racks",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/drill_yard",
       "section": "buildings",
       "description": "a Roman castra block: a parade ground, a stone barracks, standards (team)",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/military_academy",
       "section": "buildings",
       "description": "an 18th century academy: a brick quad with a cannon",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/war_college",
