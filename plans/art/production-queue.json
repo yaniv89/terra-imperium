@@ -2,12 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 160,
-  "quality_accepted": 160,
+  "uploaded_and_download_verified": 180,
+  "quality_accepted": 180,
   "uploaded_requiring_quality_revision": 0,
-  "remaining_to_finish": 190,
-  "built_awaiting_upload": 14,
-  "remaining_to_upload": 190,
+  "remaining_to_finish": 170,
+  "built_awaiting_upload": 19,
+  "remaining_to_upload": 170,
   "completed_checkpoints": [
     "01",
     "02",
@@ -16,6 +16,7 @@
     "05",
     "06",
     "07",
+    "08",
     "12"
   ],
   "items": [
@@ -903,121 +904,121 @@
       "path": "plans/art/icons/buildings/crop_rotation_farm",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/mechanized_farm",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/market",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/bazaar",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/bank",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/stock_exchange",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/barracks",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/drill_yard",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/military_academy",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/war_college",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/library",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/scriptorium",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/university",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/research_lab",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/workshop",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/manufactory",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/factory",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/shrine",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/temple",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/civic_center",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/buildings/harbor",
@@ -1575,31 +1576,31 @@
       "path": "plans/art/buildings/workshop",
       "section": "buildings",
       "description": "a potter's and smith's yard: kilns, a chimney, a water wheel",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/manufactory",
       "section": "buildings",
       "description": "a brick mill with a tall chimney and a water wheel or beam engine",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/factory",
       "section": "buildings",
       "description": "a sawtooth-roof factory with two chimneys and a yard",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/shrine",
       "section": "buildings",
       "description": "a small stepped shrine with an altar and standards (team)",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/temple",
       "section": "buildings",
       "description": "a peripteral temple on a podium (variant b in the big town: a Chinese temple hall)",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/civic_center",
