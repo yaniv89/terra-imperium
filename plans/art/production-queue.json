@@ -3,10 +3,10 @@
   "target_items": 350,
   "in_game_count_from_source": 402,
   "uploaded_and_download_verified": 140,
-  "quality_accepted": 120,
-  "uploaded_requiring_quality_revision": 20,
-  "remaining_to_finish": 230,
-  "built_awaiting_upload": 9,
+  "quality_accepted": 140,
+  "uploaded_requiring_quality_revision": 0,
+  "remaining_to_finish": 210,
+  "built_awaiting_upload": 10,
   "remaining_to_upload": 210,
   "completed_checkpoints": [
     "01",
@@ -662,121 +662,121 @@
       "path": "plans/art/icons/resources/stone",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/timber",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/reeds",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/horses",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/copper",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/iron",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/coal",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/oil",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/uranium",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/gold",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/silver",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/gems",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/salt",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/furs",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/honey",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/spices",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/dyes",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/sugar",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/cotton",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/silk",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "uploaded_requires_quality_revision"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/icons/resources/tea",
@@ -1544,7 +1544,7 @@
       "path": "plans/art/buildings/war_college",
       "section": "buildings",
       "description": "a modern campus block with a radar mast and flags",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/library",
