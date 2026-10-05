@@ -2,12 +2,12 @@
   "source": "plans/art/ITEMS.md Part B + Part C",
   "target_items": 350,
   "in_game_count_from_source": 402,
-  "uploaded_and_download_verified": 200,
-  "quality_accepted": 200,
+  "uploaded_and_download_verified": 220,
+  "quality_accepted": 220,
   "uploaded_requiring_quality_revision": 0,
-  "remaining_to_finish": 150,
-  "built_awaiting_upload": 22,
-  "remaining_to_upload": 150,
+  "remaining_to_finish": 130,
+  "built_awaiting_upload": 17,
+  "remaining_to_upload": 130,
   "completed_checkpoints": [
     "01",
     "02",
@@ -18,7 +18,8 @@
     "07",
     "08",
     "09",
-    "12"
+    "12",
+    "13"
   ],
   "items": [
     {
@@ -1145,61 +1146,61 @@
       "path": "plans/art/icons/wonders/arsenal",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/wonders/palace_of_versailles",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/wonders/space_program",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/wonders/international_exchange",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/wonders/atomic_research_center",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/units/infantry",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/units/cavalry",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/units/ranged",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/units/siege",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/units/support",
       "section": "icons",
       "description": "256px colour plus white silhouette mask; 24px readability",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/icons/units/air",
@@ -1505,151 +1506,151 @@
       "path": "plans/art/buildings/market",
       "section": "buildings",
       "description": "an agora or forum with stalls under awnings (team colour)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/bazaar",
       "section": "buildings",
       "description": "a covered bazaar with domes and arcades",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/bank",
       "section": "buildings",
       "description": "a neoclassical bank with a portico",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/stock_exchange",
       "section": "buildings",
       "description": "a glass tower with a ticker band (no text)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/barracks",
       "section": "buildings",
       "description": "a mud-brick compound with a training yard and spear racks",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/drill_yard",
       "section": "buildings",
       "description": "a Roman castra block: a parade ground, a stone barracks, standards (team)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/military_academy",
       "section": "buildings",
       "description": "an 18th century academy: a brick quad with a cannon",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/war_college",
       "section": "buildings",
       "description": "a modern campus block with a radar mast and flags",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/library",
       "section": "buildings",
       "description": "the Library of Celsus front: two storeys of columns and niches",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/scriptorium",
       "section": "buildings",
       "description": "a monastery cloister with a scriptorium wing",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/university",
       "section": "buildings",
       "description": "a college quad with a chapel and a dome (Oxford, Salamanca)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/research_lab",
       "section": "buildings",
       "description": "a low glass and concrete lab with a dish on the roof",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/workshop",
       "section": "buildings",
       "description": "a potter's and smith's yard: kilns, a chimney, a water wheel",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/manufactory",
       "section": "buildings",
       "description": "a brick mill with a tall chimney and a water wheel or beam engine",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/factory",
       "section": "buildings",
       "description": "a sawtooth-roof factory with two chimneys and a yard",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/shrine",
       "section": "buildings",
       "description": "a small stepped shrine with an altar and standards (team)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/temple",
       "section": "buildings",
       "description": "a peripteral temple on a podium (variant b in the big town: a Chinese temple hall)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/civic_center",
       "section": "buildings",
       "description": "a civic hall with a plaza, a fountain and flags (team)",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/harbor",
       "section": "buildings",
       "description": "a stone quay with a breakwater, a warehouse and two moored boats",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/shipyard",
       "section": "buildings",
       "description": "slipways with a hull in frame, a crane, a rope walk",
-      "delivery_status": "built_awaiting_validation_upload"
+      "delivery_status": "uploaded_quality_accepted"
     },
     {
       "path": "plans/art/buildings/naval_base",
       "section": "buildings",
       "description": "a dry dock, a sea wall with cannon, a signal mast",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/carrier_dock",
       "section": "buildings",
       "description": "a concrete pier with cranes and a radar tower",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/road_post",
       "section": "buildings",
       "description": "a waystation: a courtyard, stables, a cistern",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/highway",
       "section": "buildings",
       "description": "a paved road segment with a milestone and a stone bridge",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/rail_depot",
       "section": "buildings",
       "description": "a railway station with a platform canopy and a goods shed",
-      "delivery_status": "pending"
+      "delivery_status": "built_awaiting_validation_upload"
     },
     {
       "path": "plans/art/buildings/copper_mine",
