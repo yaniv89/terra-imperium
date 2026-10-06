@@ -7,6 +7,8 @@
 import { InstancedMesh, Color, ShaderChunk } from 'three';
 
 const WHITE = new Color('#ffffff');
+/** The kit LOD for the battle camera's zoom (1 = the default view). */
+export const kitLodForZoom = (zoom) => (zoom >= 0.9 ? 0 : zoom >= 0.5 ? 1 : 2);
 const patched = new Map(); // material uuid -> clone that ignores the instance colour
 // The colour chunk without the instance colour, for the materials that keep their own colours.
 const NO_INSTANCE_COLOR = ShaderChunk.color_vertex.replace(/#ifdef USE_INSTANCING_COLOR[\s\S]*?#endif/, '');

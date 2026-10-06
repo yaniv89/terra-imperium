@@ -27,6 +27,7 @@ import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
 import { VegetationProps } from '../art/vegetationProps';
+import { dressStructure, fortRef } from '../art/structureArt';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -605,6 +606,11 @@ export class BattleRenderer {
       this.mergeByMaterial(g);
       this.scene.add(g);
       this.structureMeshes.set(s.id, g);
+      // A fortified place without a real city: its keep is the age's fort once the file is in
+      // (src/assets/battle/city/fort-<age>.glb or the map's fort improvement; structureArt.js).
+      if (s.kind === 'keep' && !this.setup.city && (s.walls || s.damage > 0)) {
+        dressStructure(g, fortRef(this.setup.sides[1].ageId), { fitTiles: s.walls ? 8 : 4.5, teamColor: this.setup.sides[1].color, track: (m) => this.track(m), isLive: () => !this.disposed });
+      }
     });
   }
 
@@ -1344,6 +1350,7 @@ export class BattleRenderer {
   }
 
   dispose() {
+    this.disposed = true;
     this.soldierLayers.forEach((l) => l.levels.forEach((m) => m.dispose()));
     this.cityLayer?.dispose();
     this.ecoLayer?.dispose();

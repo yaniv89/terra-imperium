@@ -39,7 +39,7 @@ import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, needsCoast, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
 import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
-import { enableTownDamage, setTownDamage, syncTownDamage, ruinMound } from './townDamage';
+import { applyTownDamage, syncTownDamage } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
@@ -243,9 +243,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor, tint));
         if (dmg) {
           const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark');
-          enableTownDamage(mesh);
-          setTownDamage(mesh, states.filter((s) => s.state === 'ruined'), states.filter((s) => s.state === 'damaged'));
-          states.filter((s) => s.state === 'ruined').forEach((s) => mesh.add(ruinMound(s)));
+          applyTownDamage(mesh, states, { ageId: opts.ageId, style, teamColor, tint, onReady: onAssets });
         }
         mesh.userData.fields = fields.map((f) => {
           const field = instanceTownAsset(shared[f.name], teamColor, tint);

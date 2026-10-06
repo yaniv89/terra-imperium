@@ -26,7 +26,9 @@ import { BUILDINGS, NODE_KINDS, buildingArt } from '../data/economy';
 import { CITY_TILES_PER_UNIT } from '../setup/cityBattle';
 import { ART } from '../art/artFiles';
 import { loadKit, kitObject, objectSize } from '../art/kitLoader';
-import { KitInstances } from '../art/kitInstances';
+import { KitInstances, kitLodForZoom } from '../art/kitInstances';
+
+export { kitLodForZoom };
 import { vegetationKitFor } from '../art/vegetation';
 
 const PRIMS = ['box', 'roof', 'cyl', 'cone', 'rock', 'flat'];
@@ -68,8 +70,6 @@ const NODE_PARTS = {
 
 const M = new Matrix4();
 const V = new Vector3();
-/** The kit LOD for the battle camera's zoom (1 = the default view). */
-export const kitLodForZoom = (zoom) => (zoom >= 0.9 ? 0 : zoom >= 0.5 ? 1 : 2);
 /** A node's state object by what is left of it. */
 export const nodeStateNames = (frac) => (frac > 0.5 ? ['full', 'half'] : frac > 0.12 ? ['half', 'full'] : ['depleted', 'half', 'full']);
 /** A grove's tree by what is left of it. */
