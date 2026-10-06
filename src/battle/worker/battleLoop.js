@@ -2,14 +2,15 @@
 // Real-time driver around the pure sim (Tactical Battles plan §12.1), shared by the Web Worker and
 // the main-thread fallback. It turns wall-clock time into fixed 20 Hz ticks (with speed and
 // pause), stamps the player's orders with the tick they take effect on, records them into a log
-// (setup + log = the whole battle), and posts compact render frames, checkpoints and the result.
+// (setup + log = the whole battle), and posts packed render frames (packedView.js: the squads in
+// one transferable buffer, `post(message, transfer)`), checkpoints and the result.
 import { createWorld } from '../sim/world';
 import { step } from '../sim/step';
 import { applyOrder } from '../sim/orders';
 import { toStrategicResult } from '../sim/result';
 import { worldHash } from '../sim/hash';
 import { TICK_HZ } from '../sim/constants';
-import { makeRenderView } from '../render/view';
+import { createViewPacker, SLOW_EVERY } from '../render/packedView';
 
 const TICK_MS = 1000 / TICK_HZ;
 const CHECKPOINT_EVERY = 10 * TICK_HZ;
@@ -37,6 +38,12 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
   const playerSide = Math.max(0, (setup.controllers || []).indexOf('player'));
   let lastFogTick = -100; // the fog grid rides along only when it can have changed (every 5 ticks)
   let lastPostedTick = -1;
+  let lastSlowTick = -100; // names, abilities, call costs: every SLOW_EVERY ticks
+  const packer = createViewPacker();
+  const postFrame = (fog, alpha, events, slow) => {
+    const { packed, transfer } = packer.pack(world, pending, playerSide, { fog, slow });
+    post({ type: 'frame', packed, alpha, events }, transfer);
+  };
 
   const emitEnd = () => {
     finished = true;
@@ -56,7 +63,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
         if (o.type === 'deploy' && world.tick === 0) { applyOrder(world, stamped); world.events.length = 0; return; }
         pending.push(stamped);
       });
-      if (paused) post({ type: 'frame', view: makeRenderView(world, pending, playerSide, false), alpha: 1, events: [] });
+      if (paused) postFrame(false, 1, [], true);
     },
     setPaused(p) { paused = p; last = null; },
     setSpeed(s) { speed = s; },
@@ -81,7 +88,9 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       lastPostedTick = world.tick;
       const sendFog = world.tick - lastFogTick >= 5;
       if (sendFog) lastFogTick = world.tick;
-      post({ type: 'frame', view: makeRenderView(world, pending, playerSide, sendFog), alpha: paused ? 1 : acc / TICK_MS, events });
+      const sendSlow = world.tick - lastSlowTick >= SLOW_EVERY || paused || world.ended;
+      if (sendSlow) lastSlowTick = world.tick;
+      postFrame(sendFog, paused ? 1 : acc / TICK_MS, events, sendSlow);
       if (world.ended) emitEnd();
     }
   };

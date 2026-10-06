@@ -17,7 +17,7 @@ self.onmessage = ({ data }) => {
   switch (data.type) {
     case 'start':
       clearTimeout(timer);
-      loop = createBattleLoop({ setup: data.setup, resume: data.resume || null, post: (m) => self.postMessage(m) });
+      loop = createBattleLoop({ setup: data.setup, resume: data.resume || null, post: (m, transfer) => self.postMessage(m, transfer || []) });
       if (data.paused) loop.setPaused(true);
       pump();
       break;
