@@ -1,4 +1,4 @@
-﻿// src/components/map/gl/territoryData.js
+// src/components/map/gl/territoryData.js
 // What the territory shader (territoryShader.js) reads per tile and per city, built from the
 // world as the player knows it (fogView.js). Pure, no three.js:
 //   tile texel  [city index + 1 (0: nobody), nation index + 1 (0: nobody), fog, 0]

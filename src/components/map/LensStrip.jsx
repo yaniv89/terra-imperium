@@ -1,4 +1,4 @@
-﻿// src/components/map/LensStrip.jsx
+// src/components/map/LensStrip.jsx
 // The lens pill (plans/playtest-1.md P1.5): one small pill names the current lens; tapping it
 // opens the strip with a label and a one-line hint per lens, closing after a pick. Keys 1 to 7
 // on a keyboard (MapContainer binds them). 44 px targets.
