@@ -9,6 +9,7 @@ import { portWaters, seaPassable } from './fleets';
 import { validateFleetAttack, enemyFleetsAt, getFleetBattleContext, AI_FLEET_ATTACK_RATIO } from './navalBattle';
 import { armySheetModel, stackOn } from '../components/map/armySheetModel';
 import { processAINavalOperations } from './aiOperations';
+import { resolveQueuedAuto } from './battleQueue';
 import { assertGameState } from './stateAudit';
 import { getCombatWidth } from '../data/combatWidth';
 
@@ -78,8 +79,11 @@ describe('fleet against fleet (plan D5b)', () => {
     const war = atWar(withUnits(S, [fleet('f', FR, { tile: ours, strength: 200, maxStrength: 1000 }), fleet('e1', GB, { ownerId: 'gb', tile: theirs }), fleet('e2', GB, { ownerId: 'gb', tile: theirs })]));
     expect(AI_FLEET_ATTACK_RATIO).toBeGreaterThan(1);
     const next = processAINavalOperations({ ...war, nations: { ...war.nations, gb: { ...war.nations.gb, economy: { ...(war.nations.gb.economy || {}), gold: 1000, mil: 50 } } } });
-    const f = next.units.f;
+    // Against the player's fleet the battle waits in the queue for Command or Auto (battleQueue.js).
+    expect(next.pendingDefenses?.[0]).toMatchObject({ kind: 'naval', aggressorId: 'gb', defenderUnitIds: ['f'] });
+    const fought = resolveQueuedAuto(next, next.pendingDefenses[0].id);
+    const f = fought.units.f;
     expect(!f || f.strength < 200 || f.tile !== ours).toBe(true);
-    expect((next.battleReports || []).some((b) => b.kind === 'naval' && b.playerSide === 'defender')).toBe(true);
+    expect((fought.battleReports || []).some((b) => b.kind === 'naval' && b.playerSide === 'defender')).toBe(true);
   });
 });

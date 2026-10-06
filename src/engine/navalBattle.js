@@ -11,18 +11,14 @@
 import { getTiles } from '../data/geo/tiles';
 import { getEffectiveAgeId } from '../data/ages';
 import { ACTION_COSTS } from '../data/actionCosts';
-import { awardXp } from '../data/promotions';
-import { getGeneralXpMultiplier } from '../data/generals';
 import { canAfford } from '../utils/helpers';
-import { isWarBetween, recordBattle } from './diplomacy';
+import { isWarBetween } from './diplomacy';
 import { canAttack } from './hostility';
 import { getTechAgeId } from './nationState';
-import { recordBattleReport } from './battleReports';
 import { regionForTile, unitTile } from './armies';
-import { isUnitInBattle, XP_WIN, XP_LOSE } from './invasion';
-import { isFleet, seaPassable, fleetAge, enemyFleetAt } from './fleets';
-import { mapEffectsFor } from './techMapEffects';
-import { BATTLE_MARK_TURNS } from './fieldBattle';
+import { isUnitInBattle } from './invasion';
+import { isFleet } from './fleets';
+import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 
 export const SEA_TERRAIN = 'sea';
 export const NAVAL_BATTLE_TYPE = 'naval';
@@ -82,66 +78,13 @@ export const getFleetResolveArgs = (v, ctx) => ({
   attackerPenaltyMultiplier: 1, defenderDamageReductionMultiplier: 1, battleType: ctx.battleType
 });
 
-// Where a beaten fleet on `tile` falls back to: a neighbouring sea tile it may sail, with no
-// enemy fleet on it and not one the attackers came from; else nowhere (it is sunk).
-const retreatTile = (state, tile, unit, attackerTiles) => {
-  const tiles = getTiles();
-  const ageId = fleetAge(state, unit.ownerId);
-  const fx = mapEffectsFor(state, unit.ownerId);
-  return tiles.neighbors[tile].find((n) => seaPassable(tiles, n, ageId, fx.deepOcean > 0, fx.deepOcean > 0) && !attackerTiles.has(n) && !enemyFleetAt(state, n, unit.ownerId)) ?? null;
-};
-
-/** Everything after the battle. `battle` is resolveBattle's shape. */
-export const applyFleetResult = (state, v, battle, { rngSeed, attackerNationId = state.playerNationId } = {}) => {
-  const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = battle;
-  const units = { ...state.units };
-  const sink = (id) => { delete units[id]; Object.values(units).forEach((c) => { if (c.embarkedOn === id) delete units[c.id]; }); };
-  const world = state.world ? { ...state.world, tileState: { ...(state.world.tileState || {}), [v.tile]: { ...(state.world.tileState?.[v.tile] || {}), battle: { turn: state.turnNumber, until: (state.turnNumber || 0) + BATTLE_MARK_TURNS, outcome } } } } : state.world;
-  const xp = (list, deployed, amount) => list.map((u) => (deployed.includes(u.id) ? awardXp(u, Math.round(amount * getGeneralXpMultiplier(state.hiredCommanders?.[u.commanderId]))) : u));
-  const attackerXp = outcome === 'attacker' ? XP_WIN : outcome === 'defender' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
-  const defenderXp = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
-  const attackers = xp(resolvedAttackers, report?.deployedAttackerIds || [], attackerXp);
-  const defenders = xp(resolvedDefenders, report?.deployedDefenderIds || [], defenderXp);
-  let sunk = 0;
-  attackers.forEach((u) => {
-    if (u.strength <= 0) { sink(u.id); return; }
-    units[u.id] = { ...units[u.id], ...u, routed: undefined, movesLeft: 0, lastBattleTurn: state.turnNumber };
-  });
-  const attackerTiles = new Set(v.attackerUnits.map((u) => unitTile(state, u)));
-  let retreated = null;
-  defenders.forEach((u) => {
-    if (u.strength <= 0) { sink(u.id); sunk += 1; return; }
-    const next = { ...units[u.id], ...u, routed: undefined, lastBattleTurn: state.turnNumber };
-    if (outcome === 'attacker') {
-      const to = retreated ?? retreatTile(state, v.tile, u, attackerTiles);
-      if (to == null) { sink(u.id); sunk += 1; return; }
-      retreated = to;
-      units[u.id] = { ...next, tile: to, regionId: regionForTile(state, to, u.ownerId, u.regionId), movesLeft: 0, route: undefined };
-      Object.values(units).forEach((c) => { if (c.embarkedOn === u.id) units[c.id] = { ...c, tile: to, regionId: units[u.id].regionId }; });
-    } else units[u.id] = next;
-  });
-  const attStart = v.attackerUnits.reduce((s, u) => s + u.strength, 0); const defStart = v.defenderUnits.reduce((s, u) => s + u.strength, 0);
-  const attLoss = attStart - resolvedAttackers.reduce((s, u) => s + Math.max(0, u.strength), 0);
-  const defLoss = defStart - resolvedDefenders.reduce((s, u) => s + Math.max(0, u.strength), 0);
-  let wars = state.wars;
-  if (v.war && outcome !== 'stalemate') {
-    const winnerId = outcome === 'attacker' ? attackerNationId : v.defenderNationId;
-    const lossShare = outcome === 'attacker' ? (defStart ? defLoss / defStart : 0) : (attStart ? attLoss / attStart : 0);
-    wars = state.wars.map((w) => (w.id === v.war.id ? { ...w, battleScore: recordBattle(w, winnerId, lossShare) } : w));
-  }
+/** Everything after the battle, through the one outcome service (battleOutcome.js). `battle` is resolveBattle's shape. */
+export const applyFleetResult = (state, v, battle, { rngSeed, attackerNationId = state.playerNationId, id = null, viewerId = undefined, mode = undefined, defenseId = null } = {}) => {
   const anchor = state.world?.tileOwner?.[v.tile] ?? regionForTile(state, v.tile, attackerNationId, v.fromRegionId);
-  const where = state.regions[anchor]?.name ? `off ${state.regions[anchor].name}` : 'at sea';
-  const enemy = state.nations[v.defenderNationId]?.name || 'the enemy';
-  const mine = attackerNationId === state.playerNationId;
-  const who = mine ? 'Your fleet' : `${state.nations[attackerNationId]?.name || 'A'} fleet`;
-  const message = outcome === 'attacker' ? `${who} beat ${mine ? enemy : 'your fleet'} ${where}${sunk ? `, sinking ${sunk} ship${sunk > 1 ? 's' : ''}` : ''}.`
-    : outcome === 'defender' ? `${mine ? 'Your attack' : `${state.nations[attackerNationId]?.name || 'An'} attack`} ${where} was beaten off${mine ? '' : ' by your fleet'}.`
-    : `The sea battle ${where} ended with both fleets spent.`;
-  return {
-    ...state,
-    world, units, wars,
-    rngSeed: rngSeed ?? state.rngSeed,
-    ...recordBattleReport(state, { ...report, kind: 'naval', tile: v.tile, outcome, fromRegionId: v.fromRegionId, targetRegionId: anchor, attackerNationId, defenderNationId: v.defenderNationId }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),
-    logs: [...state.logs, { year: state.year, message, type: 'combat' }]
+  const meta = {
+    kind: 'naval', mode, defenseId, warId: v.war?.id ?? null, attackerNationId, defenderNationId: v.defenderNationId, viewerId,
+    fromRegionId: v.fromRegionId, regionId: anchor, tile: v.tile, fromTile: v.fromTile ?? null,
+    attackerStart: v.attackerUnits, defenderStart: v.defenderUnits, rngSeed
   };
+  return applyBattleOutcome(state, makeBattleOutcome({ ...meta, id: id || battleIdOf(state, { ...meta, seed: rngSeed ?? state.rngSeed }) }, battle));
 };

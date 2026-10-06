@@ -3,6 +3,7 @@
 // garrisoned player regions queue as defense battles instead of a bare dice roll; the turn can't
 // end while one is pending; auto and commanded defenses apply the right consequences; and the
 // calibration harness keeps expected territory loss under auto-resolve within ±10% of the old roll.
+import { drainAutoBattles } from './battleQueue';
 import { describe, it, expect } from 'vitest';
 import { gameReducer, createInitialState } from './gameReducer';
 import { ActionTypes } from '../data/types';
@@ -109,8 +110,10 @@ describe('turn flow', () => {
     let s = { ...baseState(), battleSettings: { autoDefend: true } };
     for (let i = 0; i < 40; i++) {
       s = resolveTurn(s);
+      // The queue waits while an event or a peace offer opened this turn (battleQueue.js); the
+      // answer drains it (gameReducer runs drainAutoBattles after every action).
+      if (s.activeEventId || s.activeProceduralEvent || s.pendingPeaceOffer) s = drainAutoBattles({ ...s, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null });
       expect(s.pendingDefenses || []).toHaveLength(0);
-      if (s.activeEventId || s.activeProceduralEvent || s.pendingPeaceOffer) s = { ...s, activeEventId: null, activeProceduralEvent: null, pendingPeaceOffer: null };
     }
   }, 60000);
 });

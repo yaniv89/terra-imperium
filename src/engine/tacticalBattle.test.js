@@ -214,7 +214,10 @@ describe('battle odds preview', () => {
     const odds = estimateInvasionOdds(s, FR_BORDER, BE_REGION, 100);
     expect(odds.attacker + odds.defender + odds.stalemate).toBeCloseTo(1, 5);
     expect(odds.attackerStrength).toBe(3000);
-    expect(estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION).undefended).toBe(true);
+    // An empty city still has its militia (battleInputs.js, master plan 6.7 row 19): a regiment beats it.
+    const empty = estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION);
+    expect(empty.undefended).toBeFalsy();
+    expect(empty.attacker).toBeGreaterThan(0.8);
   });
 });
 
@@ -418,8 +421,11 @@ describe('auto-resolve is fair and explains itself (reported: "check the auto ba
     const others = Object.fromEntries(Object.entries(s.units).filter(([, u]) => u.regionId !== FR_BORDER));
     const strong = estimateInvasionOdds({ ...s, units: { ...others, ...mine(garrison.length * 3) } }, FR_BORDER, BE_REGION, 120);
     const weak = estimateInvasionOdds({ ...s, units: { ...others, ...mine(1) } }, FR_BORDER, BE_REGION, 120);
-    expect(strong.attacker).toBeGreaterThan(0.7);
-    expect(strong.capture).toBeGreaterThan(0.6);
+    // The honest auto-resolve (autoBattle.js) gives both sides the battle economy's auxiliaries
+    // and the city its militia, calibrated against the real-time battle (parityEco): in this
+    // mountain town the defenders hold far more often than a bare count of regiments says.
+    expect(strong.attacker).toBeGreaterThan(0.4);
+    expect(strong.capture).toBeGreaterThan(0.3);
     expect(weak.attacker).toBeLessThan(strong.attacker);
     expect(strong.factors.find((f) => f.id === 'numbers').value).toBeGreaterThan(1);
   });

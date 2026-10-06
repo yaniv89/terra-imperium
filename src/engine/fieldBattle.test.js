@@ -82,11 +82,15 @@ describe('field attacks', () => {
     const win2 = { outcome: 'attacker', attackerUnits: v2.attackerUnits, defenderUnits: [{ ...v2.defenderUnits[0], strength: 100 }], report: { deployedAttackerIds: [], deployedDefenderIds: [], outcome: 'attacker' } };
     const gone = applyFieldResult(boxed, v2, win2, { rngSeed: 1 });
     if (tiles.neighbors[theirs].every((t) => tiles.land[t] !== 1 || t === ours || ring.some((r) => r.tile === t))) expect(gone.units.e).toBeUndefined();
-    // A lost attack leaves everyone in place.
+    // A lost attack (master plan 6.9): the defender holds its tile; the attackers, who withdrew,
+    // step back one tile away from it (a unit still on the field would be destroyed).
     const lose = { outcome: 'defender', attackerUnits: v.attackerUnits.map((u) => ({ ...u, strength: 500 })), defenderUnits: v.defenderUnits, report: { deployedAttackerIds: [], deployedDefenderIds: [], outcome: 'defender' } };
     const held = applyFieldResult(war, v, lose, { rngSeed: 1 });
     expect(held.units.e.tile).toBe(theirs);
-    expect(held.units.a.tile).toBe(ours);
+    expect(held.units.a.tile).not.toBe(theirs);
+    expect([ours, ...tiles.neighbors[ours]]).toContain(held.units.a.tile);
+    const caught = applyFieldResult(war, v, { ...lose, attackerUnits: lose.attackerUnits.map((u) => ({ ...u, disposition: 'field' })) }, { rngSeed: 1 });
+    expect(caught.units.a).toBeUndefined();
     expect(ctx.isDefended).toBe(true);
   });
 
@@ -115,11 +119,13 @@ describe('field attacks', () => {
     const war = atWar(withUnits(S, [unit('a', IN, { tile: ring, strength: 200, maxStrength: 1000 }), unit('g1', PK, { ownerId: 'pk', tile: city.tile }), unit('g2', PK, { ownerId: 'pk', tile: city.tile })]));
     const besieged = { ...war, regions: { ...war.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: 'in', startedTurn: 1, encircled: false, starving: 0 } } } };
     const after = aiSally(besieged, 'pk', createRng(5));
-    expect(after.battleReports?.[0]?.kind).toBe('field');
+    // Against the player, the sally waits in the battle queue for Command or Auto (battleQueue.js).
+    expect(after.pendingDefenses?.[0]?.kind).toBe('field');
     expect(after.units.g1.movesLeft).toBe(0);
     const outweighed = { ...besieged, units: { ...besieged.units, a: { ...besieged.units.a, strength: 1000 }, a2: { ...besieged.units.a, id: 'a2', strength: 1000 } } };
     const nope = aiSally(outweighed, 'pk', createRng(5));
     expect(nope.battleReports?.length || 0).toBe(0);
+    expect(nope.pendingDefenses?.length || 0).toBe(0);
   });
 });
 

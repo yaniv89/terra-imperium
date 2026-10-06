@@ -25,6 +25,8 @@ import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
 import { placeCity, cityKeepInset } from './cityBattle';
 import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
 import { buildEconomySetup } from './economySetup';
+import { battleInputs } from '../../engine/battleInputs';
+import { getTechAgeId } from '../../engine/nationState';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
@@ -221,6 +223,9 @@ const buildDefenseSetup = (state, pb) => {
   const armies = getDefenseArmies(state, { ...def, attackerUnitIds: pb.attackerUnitIds, synthetic: pb.synthetic, defenderUnitIds: pb.defenderUnitIds });
   if (!armies.attackerUnits.length || !armies.defenderUnits.length) return null;
   const ctx = getDefenseBattleContext(state, def);
+  // The same campaign inputs as the auto-resolve (battleInputs.js): conditioned morale, the city's
+  // militia fixed when the battle began (pb.militia), the stockpiles' supply and development.
+  const ins = battleInputs(state, { attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, cityId: pb.targetRegionId, fromRegionId: def.fromRegionId, militia: pb.militia || [] });
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fromUnit = armies.attackerUnits.find((u) => !u.synthetic && state.units[u.id]);
   return buildSetupFromArmies({
@@ -228,8 +233,8 @@ const buildDefenseSetup = (state, pb) => {
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
-    attackerUnits: armies.attackerUnits,
-    defenderUnits: armies.defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals,
@@ -253,7 +258,8 @@ const buildDefenseSetup = (state, pb) => {
     regionBuildings: getRegionBattleBuildings(region),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
     cityDamage: cityDamageOf(region),
-    economy: true // every assault is a full RTS battle (decision 23; phase R1)
+    economy: true, // every assault is a full RTS battle (decision 23; phase R1)
+    economyInputs: ins.economyInputs
   });
 };
 
@@ -267,6 +273,7 @@ const buildAmphibiousSetup = (state, pb) => {
   const defenderUnits = v.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
   const ctx = getAmphibiousBattleContext(state, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
+  const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia || [] });
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, pb.targetRegionId, 'local.fortLevel').total;
   return buildSetupFromArmies({
@@ -274,8 +281,8 @@ const buildAmphibiousSetup = (state, pb) => {
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
-    attackerUnits,
-    defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
@@ -300,14 +307,22 @@ const buildAmphibiousSetup = (state, pb) => {
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
     cityDamage: cityDamageOf(v.targetRegion),
-    economy: true
+    economy: true,
+    economyInputs: ins.economyInputs
   });
 };
+
+// A field or sea battle an AI started against the player (battleQueue.js) is gated as the
+// aggressor's attack: the same gate, from its side.
+const gateOf = (state, pb) => (pb.attackerNationId && pb.attackerNationId !== state.playerNationId
+  ? { ...state, playerNationId: pb.attackerNationId, techAgeId: getTechAgeId(state, pb.attackerNationId) }
+  : state);
 
 // A field battle (fieldBattle.js): two stacks on open ground. The defender's camp stands for the
 // keep (an unfortified town fires nothing); the tile and its neighbours shape the field.
 const buildFieldSetup = (state, pb) => {
-  const v = validateFieldAttack(state, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+  const gate = gateOf(state, pb);
+  const v = validateFieldAttack(gate, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;
   // A sally: the attackers come out of a besieged city onto its ring (battleType.js).
   const from = state.regions[pb.fromRegionId];
@@ -315,15 +330,16 @@ const buildFieldSetup = (state, pb) => {
   const attackerUnits = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
   const defenderUnits = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
-  const ctx = getFieldBattleContext(state, { ...v, attackerUnits, defenderUnits });
+  const ctx = getFieldBattleContext(gate, { ...v, attackerUnits, defenderUnits });
+  const ins = battleInputs(state, { attackerUnits, defenderUnits, fromRegionId: pb.fromRegionId });
   return buildSetupFromArmies({
     tileContext: tileContextOf(state, pb.tile, { fromTile: v.fromTile }),
     fromTile: v.fromTile, sally, city: false,
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
-    attackerUnits,
-    defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
@@ -334,26 +350,28 @@ const buildFieldSetup = (state, pb) => {
     defenseReduction: ctx.defenderDamageReductionMultiplier,
     isAttackingFortification: false,
     attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
-    attackerNationId: state.playerNationId,
+    attackerNationId: gate.playerNationId,
     defenderNationId: v.defenderNationId,
-    controllers: ['player', 'ai'],
+    controllers: pb.playerSide === 'defender' ? ['ai', 'player'] : ['player', 'ai'],
     difficultyId: state.difficultyId || 'prince',
-    powers: [getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })],
+    powers: [getBattlePowers(state, gate.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: gate.playerNationId === state.playerNationId }), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits, { allowNuclear: v.defenderNationId === state.playerNationId })],
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
-    economy: true // full base-building in field battles too (decision 36)
+    economy: true, // full base-building in field battles too (decision 36)
+    economyInputs: ins.economyInputs
   });
 };
 
 // A sea battle (navalBattle.js): the fleets on `fromTile` against the enemy fleets on `tile`.
 const buildNavalSetup = (state, pb) => {
-  const v = validateFleetAttack(state, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+  const gate = gateOf(state, pb);
+  const v = validateFleetAttack(gate, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
   if (!v.ok) return null;
   const attackerUnits = v.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id));
   const defenderUnits = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
-  const ctx = getFleetBattleContext(state, { ...v, attackerUnits, defenderUnits });
+  const ctx = getFleetBattleContext(gate, { ...v, attackerUnits, defenderUnits });
   return buildSetupFromArmies({
     tileContext: tileContextOf(state, pb.tile, { fromTile: v.fromTile }),
     fromTile: v.fromTile, battleType: 'naval',
@@ -365,8 +383,8 @@ const buildNavalSetup = (state, pb) => {
     generals: ctx.generals || {},
     fortLevel: 0, isCapital: false, infrastructure: 0, deposits: [],
     defenseReduction: 1, isAttackingFortification: false, attackerPenaltyMultiplier: 1,
-    attackerNationId: state.playerNationId, defenderNationId: v.defenderNationId,
-    controllers: ['player', 'ai'], difficultyId: state.difficultyId || 'prince',
+    attackerNationId: gate.playerNationId, defenderNationId: v.defenderNationId,
+    controllers: pb.playerSide === 'defender' ? ['ai', 'player'] : ['player', 'ai'], difficultyId: state.difficultyId || 'prince',
     powers: [[], []], reinforcements: [[], []], intel: { attackerSeesDefender: true }, regionBuildings: []
   });
 };
@@ -384,6 +402,7 @@ export const buildInvasionSetup = (state, pendingBattle) => {
   const attackerUnits = v.attackerUnits.filter((u) => attackerIds.has(u.id));
   const defenderUnits = v.defenderUnits.filter((u) => defenderIds.has(u.id));
   const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits });
+  const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: targetRegionId, fromRegionId, militia: pendingBattle.militia || [] });
   const regionData = REGIONS_DATA[targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
   return buildSetupFromArmies({
@@ -391,8 +410,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     regionId: targetRegionId,
     terrain: ctx.terrain,
     seed,
-    attackerUnits,
-    defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
@@ -418,7 +437,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, targetRegionId),
     cityDamage: cityDamageOf(v.targetRegion),
-    economy: true
+    economy: true,
+    economyInputs: ins.economyInputs
   });
 };
 

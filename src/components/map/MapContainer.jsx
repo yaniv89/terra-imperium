@@ -48,7 +48,6 @@ import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION } from './marchEvents';
-import { useIsMobile } from '../../hooks/useIsMobile';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -114,7 +113,6 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [eventFocus, setEventFocus] = useState(null); // the event sheet's city (marchEvents.js focusRegion)
-  const isMobile = useIsMobile();
   const [viewportBounds, setViewportBounds] = useState(null);
   const [navigateTarget, setNavigateTarget] = useState(null);
   // A touch tap that covered several provinces: which one did the player mean? (RegionChooser)

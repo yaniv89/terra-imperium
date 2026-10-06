@@ -214,7 +214,10 @@ const pursuitPhase = (winnerUnits, loserFront, generals, log) => {
 export const resolveBattle = ({
   attackerUnits, defenderUnits, terrain, isAttackingFortification, rng, generals = {},
   attackerPenaltyMultiplier = 1, defenderDamageReductionMultiplier = 1,
-  attackerAgeId = 'bronze', defenderAgeId = 'bronze', battleType = 'field'
+  attackerAgeId = 'bronze', defenderAgeId = 'bronze', battleType = 'field',
+  // More rounds when the battle economy adds auxiliaries (autoBattle.js): the real-time battle has
+  // the time to fight them all, an 8-round exchange would end in a stand-off.
+  maxRounds = MAX_BATTLE_ROUNDS
 }) => {
   const combatWidth = getCombatWidth(terrain);
   const terrainMod = getTerrainCombatModifier(terrain);
@@ -254,9 +257,10 @@ export const resolveBattle = ({
   let rounds = 0;
   // Each side's total strength at the start and after every round (and after the pursuit), for
   // the auto-resolve replay and the battle report chart. Display only: nothing reads it back.
-  const standing = (all) => all.reduce((sum, u) => sum + Math.max(0, u.strength), 0);
+  // (the army's own men: local auxiliaries, autoBattle.js, are not counted)
+  const standing = (all) => all.reduce((sum, u) => sum + (u.auxiliary ? 0 : Math.max(0, u.strength)), 0);
   const timeline = [{ round: 0, att: Math.round(standing(attAll)), def: Math.round(standing(defAll)) }];
-  while (!attackerBroken && !defenderBroken && rounds < MAX_BATTLE_ROUNDS) {
+  while (!attackerBroken && !defenderBroken && rounds < maxRounds) {
     rounds += 1;
     // Ranged phase: archers/artillery on both sides fire (every round — they keep shooting).
     applyHits([
@@ -280,8 +284,11 @@ export const resolveBattle = ({
     markRouted(attFront); markRouted(defFront);
     attFront = refillLine(attFront, attReserve, combatWidth, attFought);
     defFront = refillLine(defFront, defReserve, combatWidth, defFought);
-    attackerBroken = attFront.length === 0;
-    defenderBroken = defFront.length === 0;
+    // Local auxiliaries (autoBattle.js, the battle economy's trained troops) fight in the line but
+    // never hold it alone: a side whose own army has broken is beaten, its auxiliaries or not.
+    const ownLeft = (front, reserve) => front.some((u) => !u.auxiliary) || reserve.some((u) => !u.auxiliary && canFight(u));
+    attackerBroken = !ownLeft(attFront, attReserve);
+    defenderBroken = !ownLeft(defFront, defReserve);
     timeline.push({ round: rounds, att: Math.round(standing(attAll)), def: Math.round(standing(defAll)), attBroken: attackerBroken, defBroken: defenderBroken });
   }
 

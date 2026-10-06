@@ -34,7 +34,7 @@ import {
   labelArt, discArt, badgeArt, badgeRadiusStep, BADGE_BOX_R, armyArt, fleetArt, battleArt, colonyArt, wonderArt, eventArt,
   clusterArt, glyphArt, iconArt, groundBattleArt, settlerArt, cityBannerArt, peakArt, passArt, PEAK_LIFT
 } from './spriteArt';
-import { ridgeSegments, mountainPeaks, passPoints, bridgeLines, MOUNTAIN_SPRITES_FROM_K, PASS_MARK_FROM_K } from './terrainModel';
+import { ridgeSegments, mountainPeaks, passPoints, MOUNTAIN_SPRITES_FROM_K, PASS_MARK_FROM_K } from './terrainModel';
 import { PLAYER_BAND_COLOR } from './territoryData';
 import { cityRailModel } from '../../city/cityRailModel';
 
@@ -183,7 +183,9 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
   const within = landTilesWithin(window).filter(isExplored);
   const roadTiles = new Set(within.filter(onRoad));
   const road = cssColor('#7c5a32');
-  const bridges = [];
+  // No bridges for now: the map shows the raster's own rivers, not the grid's river edges (a deck
+  // across a hex edge would stand beside the painted river, not on it). The rules keep their
+  // crossings (terrainData.crossingsOf).
   roadTiles.forEach((t) => {
     const a = pointOf(projection, t);
     tiles.neighbors[t].forEach((n) => {
@@ -192,12 +194,8 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
       const half = (projection.scale() * Math.PI); // half the world's width
       const bx = b[0] - a[0] > half ? b[0] - 2 * half : b[0] - a[0] < -half ? b[0] + 2 * half : b[0];
       lines.push({ a, b: [bx, b[1]], half: 0.8, exp: 0, color: [road[0], road[1], road[2], 0.85] });
-      // a road over a river edge: a bridge (terrainData.crossingsOf), drawn over the roads
-      const size = tiles.riverSizeBetween ? tiles.riverSizeBetween(t, n) : 0;
-      if (size) bridges.push(...bridgeLines(t, n, size, a, [bx, b[1]], projection, k, tiles));
     });
   });
-  lines.push(...bridges);
   within.forEach((t) => {
     const e = ts[t];
     const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
