@@ -31,6 +31,22 @@ Exchange rate (attacker losses / defender losses), tactical vs auto, per matchup
 seeds: 4 seeds swing it by 30%. The guardrail in systems.test.js keeps tactical within
 [auto / 2, auto x 3.5]. Commanded play must never be a shortcut to free wins.
 
+### Campaign parity: the economy on, the honest auto-resolve (phase R2)
+```bash
+N=32 TYPES=field,assault,town AGES=bronze:bronze,classical:kingdoms TERRAIN=mixed \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/parityEco
+BASE=<parityEco output> K=0,1.5 U=1000 EFF=1,1.6 F=8,12 A=12,20 D=8,12 W=0.6,0.7 \
+  npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/autoCalib
+```
+parityEco runs every campaign battle the way the game fights it (the battle economy on, the real
+city from its manifest with its militia; `assault` a walled city at fort level 2, `town` an
+unwalled one) against src/engine/autoBattle.js `autoFromInputs` fed the same armies. Each row:
+exchange tactical vs auto, the ratio and IN/OUT of the guardrail [auto / 2, auto x 3.5], wins
+both ways, auxiliaries trained, battle length, the city's damage kinds. autoCalib reads a
+parityEco output and grid-searches the auto's constants (AUTO_TUNE: auxiliaries, the walls'
+gate, closeness); put the winners in autoBattle.js and rerun parityEco. Any change to the sim's
+economy or AI needs this rerun: Auto must stay honest (master plan 6.1).
+
 ## 3. See it in a real browser
 ```bash
 npx vite --port 5199 --strictPort > /tmp/vite.log 2>&1 &

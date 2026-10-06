@@ -58,10 +58,15 @@ describe('battle report history', () => {
     expect(e).toMatchObject({ targetRegionId: target, attackerNationId: 'fr', defenderNationId: 'de', playerSide: 'attacker', commanded: false, turn: state.turnNumber });
     expect(e.outcome).toBe(next.lastBattleReport.outcome);
     expect(e.sides.attacker.map((u) => u.id).sort()).toEqual(['a1', 'a2']);
-    expect(e.sides.defender.map((u) => u.before)).toEqual([600]);
+    // The garrison and the city's militia (battleInputs.js, master plan 6.7 row 19).
+    const militia = e.sides.defender.filter((u) => u.id.startsWith('mil_'));
+    expect(e.sides.defender.find((u) => u.id === 'd1').before).toBe(600);
+    expect(militia.length).toBeGreaterThan(0);
+    const militiaStart = militia.reduce((s, u) => s + u.before, 0);
     const lostA = e.sides.attacker.reduce((s, u) => s + u.before - u.after, 0);
     expect(e.fallen.attacker).toBe(lostA * MEN_PER_STRENGTH);
-    expect(e.timeline[0]).toMatchObject({ att: 1800, def: 600 });
+    expect(e.timeline[0]).toMatchObject({ att: 1800, def: 600 + militiaStart });
+    expect(e.name).toMatch(/^Siege of /);
   });
 
   it('keeps only the newest entries', () => {

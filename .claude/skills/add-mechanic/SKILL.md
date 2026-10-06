@@ -40,7 +40,10 @@ vassals.js (liberty desire), techDiffusion.js, pacts.js, supplies.js.
   A value a later phase reads this turn must be computed earlier (supplies are computed at
   income, hunger is applied in the morale phase).
 - Player actions: the matching `case ActionTypes.X` in gameReducer.js.
-- Battles: BOTH `applyInvasionResult` (invasion.js) and `applyDefenseResult` (defense.js).
+- Battles: ONE place, `applyBattleOutcome` (battleOutcome.js), which every battle path calls
+  (invasion, defence, landing, field, sea, rebels; Command and Auto); a battle input both modes
+  must read goes in battleInputs.js, and the auto-resolve's model in autoBattle.js (rerun the
+  battle-lab parityEco check after changing it).
   AI-vs-AI fighting is abstract, in `resolveWarProgress` (diplomacy.js).
 - Wars: always through `declareWar` (diplomacy.js); it runs the defensive-pact call to arms.
 - AI parity, decided explicitly: AI nations have `nation.economy` (gold, hr, techPoints,

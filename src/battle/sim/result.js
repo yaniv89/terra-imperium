@@ -21,7 +21,10 @@ export const toStrategicResult = (w) => {
     ...q.original,
     strength: Math.max(0, Math.min(q.startStrength, q.strength)),
     morale: Math.max(0, Math.min(100, q.morale)),
-    routed: q.routed || (q.fled && !q.retreating)
+    routed: q.routed || (q.fled && !q.retreating),
+    // How it left the battle (src/engine/battleOutcome.js, master plan 6.9): a field battle's
+    // loser loses the units still on the field; the ones that left by an exit step back a tile.
+    disposition: !q.alive || q.strength <= 0 ? 'dead' : q.fled ? 'fled' : q.onField ? 'field' : 'reserve'
   }));
   const engagedIds = (side) => w.squads.filter((q) => q.side === side && q.engaged && !q.eco).map((q) => q.unitId);
   const attackerUnits = bySide(SIDE_ATTACKER);

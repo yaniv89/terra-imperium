@@ -54,6 +54,8 @@ export const nationFacts = (state, nationId) => {
     });
   });
   f.sieged = index.besiegers.has(nationId);
+  // Battles won, counted by the outcome service (battleOutcome.js, master plan 6.7 row 15).
+  f.battlesWon = n?.battleStats?.won || 0;
   return f;
 };
 

@@ -41,11 +41,12 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
     turn: state.turnNumber,
     year: state.year,
     kind: report.kind || 'land',
-    // "Siege of Kish", "Battle of Sippar" (battleNames.js), fixed when the battle is fought
-    name: battleName(state, { kind: report.kind || 'land', targetRegionId: report.targetRegionId ?? null, tile: report.tile ?? null }),
+    // "Siege of Kish", "Battle of Sippar" (battleNames.js), fixed when the battle is fought; the
+    // outcome service (battleOutcome.js) passes the name it gave the battle.
+    name: report.name || battleName(state, { kind: report.kind || 'land', targetRegionId: report.targetRegionId ?? null, tile: report.tile ?? null }),
     tile: report.tile ?? null,
     defense: !!report.defense,
-    commanded: !!report.tactical,
+    commanded: !!report.tactical || report.mode === 'command',
     fromRegionId: report.fromRegionId ?? null,
     targetRegionId: report.targetRegionId ?? null,
     attackerNationId: report.attackerNationId ?? null,

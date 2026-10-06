@@ -357,6 +357,32 @@ Mechanisms nobody has yet, needed by the plans:
   tile puts the river on the battle map with fords and bridges (from the tile's road and river
   edges). Defending a crossing gives the defender the fords as chokepoints.
 
+### 6.10 Phase R2 result (2026-10-06, branch claude/phase-r2-campaign-bridge)
+- **One outcome service**: `applyBattleOutcome` (src/engine/battleOutcome.js), idempotent by
+  operation id (`state.appliedBattleIds`, optional; no save bump). Every path calls it: commanded
+  and Auto invasions, landings (and their naval interception), defences, field and sea battles,
+  the AI's sallies, reliefs, assaults and W3 campaigns, rebels (SUPPRESS_REBELLION) and the
+  region-level fleet action. Rows 1 to 22 of 6.7 each have a test in battleOutcome.test.js.
+  Field and sea battles now devastate and weary the loser (row 21); battle records feed a boost.
+- **Shared inputs** (battleInputs.js): supply, starvation, plague, the walls' HP (wonders), the
+  city's militia (replacing the synthetic garrison), allied and vassal reinforcements, live
+  armies after desertion. The RTS setup and Auto both read them.
+- **Command or Auto everywhere**: battles the AI starts against the player (city assaults, field
+  attacks, fleet attacks) wait in the queue (battleQueue.js) in movement order, each pausing the
+  turn, and the queue waits for events and peace offers. AI against AI stays Auto.
+- **Honest Auto** (autoBattle.js): the battle economy's auxiliaries on both sides, a walled city
+  holding its gate against armies without siege engines, city damage like the real-time AI's
+  (towers, town hall), decisive field dispositions. Parity with the economy on (battle-lab
+  parityEco, 32 seeds, field / walled assault / unwalled town, nine age pairs): 79 of 81 matchups
+  within the guardrail; the two out are bronze attackers against classical walls (Auto too harsh,
+  0.38x and 0.44x). Attacker wins agree within 8 of 32 in 60 of 81 matchups. Mountains: a big
+  attacker against a town wins less on Auto than in the real-time battle (17 vs 32 of 32).
+- balance-sim (6 seeds, 150 turns, against claude/integration): nothing significant; cities change
+  hands a little less (3.7 to 2.3); nonFinite and audit violations 0; wars end.
+- Left: raids and sacks (raidBattle.js) stay on the old auto-resolve until R3 swaps them; AI
+  landings on the player's coast and their interception are still fought at once (not queued);
+  a general as a unit on the battle map; escrowed recruits (RTS plan 6.5) beyond the auxiliaries.
+
 ## 7. Order of work
 
 Four tracks run side by side. Each phase is one branch, merged when the user says.
