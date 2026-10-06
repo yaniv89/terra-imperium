@@ -139,7 +139,7 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     const setup = buildInvasionSetup(started, started.pendingBattle);
     expect(setup.structures.filter((st) => st.kind === 'building').map((st) => st.category).sort()).toEqual(['economy', 'military']);
     const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
-    const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, razed: ['military', 'defense', 'bogus'] } } };
+    const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, razed: ['military', 'defense', 'bogus'], cityDamage: { destroyed: [], damaged: [] } } } }; // only the razed list (the AI battle's own city damage varies with the economy)
     const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: forged } });
     expect(next.regions[BE_REGION].buildings.categories.military).toBe(0);
     expect(next.regions[BE_REGION].buildings.categories.economy).toBe(0);

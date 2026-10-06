@@ -19,7 +19,7 @@ const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}
 const HudButton = ({ icon: Icon, label, onClick, active, danger, disabled, testId }) => (
   <button
     type="button" onClick={onClick} disabled={disabled} data-testid={testId}
-    className={`min-w-[48px] h-12 px-2.5 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold border shadow-lg transition-colors disabled:opacity-40
+    className={`shrink-0 min-w-[44px] h-11 px-2 rounded-xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold border shadow-lg transition-colors disabled:opacity-40
       ${active ? 'bg-lime-500/25 border-lime-400 text-lime-200' : danger ? 'bg-red-900/60 border-red-500/60 text-red-200' : 'bg-slate-900/85 border-slate-600/70 text-slate-100'}`}
   >
     {Icon && <Icon className="w-4 h-4" />}
@@ -54,7 +54,7 @@ const BattleHud = ({
       <div className="absolute top-0 inset-x-0 p-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-start gap-2 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1.5">
           <HudButton icon={paused ? Play : Pause} label={!started ? 'Start' : paused ? 'Play' : 'Pause'} onClick={onTogglePause} active={!started} testId="battle-pause" />
-          <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} className="min-w-[48px] h-12 rounded-xl bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-bold shadow-lg">{speed}×</button>
+          <button type="button" onClick={() => onSpeed(speed === 1 ? 2 : speed === 2 ? 3 : 1)} className="min-w-[44px] h-11 rounded-xl bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-bold shadow-lg">{speed}×</button>
         </div>
         <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
           <div className="px-3 py-1 rounded-full bg-slate-900/85 border border-slate-600/70 text-slate-100 text-xs font-semibold shadow-lg flex items-center gap-3">
@@ -115,14 +115,14 @@ const BattleHud = ({
 
       {/* Commander powers (left thumb): cooldown / uses / cost on each */}
       {hud.powers?.length > 0 && (
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 pointer-events-auto" data-testid="battle-powers">
+        <div className="absolute left-2 top-[calc(3.5rem+env(safe-area-inset-top))] bottom-[calc(3.5rem+env(safe-area-inset-bottom))] w-[68px] flex flex-col gap-1 overflow-y-auto pointer-events-auto" data-testid="battle-powers">
           {hud.powers.map((pw) => {
             const armedHere = armed?.type === 'power' && armed.id === pw.id;
             const disabled = pw.usesLeft <= 0 || pw.readyIn > 0 || supply < pw.cost;
             return (
               <button key={pw.id} type="button" disabled={disabled}
                 onClick={() => (pw.id === 'nuclearStrike' && !armedHere ? setConfirmNuke(pw) : onPower(pw))}
-                className={`w-[76px] min-h-[48px] px-1.5 py-1 rounded-xl border text-[10px] font-semibold leading-tight shadow-lg disabled:opacity-40 ${armedHere ? 'bg-orange-500/30 border-orange-300 text-orange-100' : pw.id === 'nuclearStrike' ? 'bg-red-950/85 border-red-500/70 text-red-100' : 'bg-slate-900/85 border-slate-600/70 text-slate-100'}`}>
+                className={`w-[68px] min-h-[44px] shrink-0 px-1 py-0.5 rounded-xl border text-[10px] font-semibold leading-tight shadow-lg disabled:opacity-40 ${armedHere ? 'bg-orange-500/30 border-orange-300 text-orange-100' : pw.id === 'nuclearStrike' ? 'bg-red-950/85 border-red-500/70 text-red-100' : 'bg-slate-900/85 border-slate-600/70 text-slate-100'}`}>
                 <Zap className="w-3.5 h-3.5 mx-auto mb-0.5" />
                 {pw.label}
                 <span className="block text-[9px] text-slate-400 font-normal">
@@ -146,7 +146,7 @@ const BattleHud = ({
 
       {/* Selected squads */}
       {selectedSquads.length > 0 && (
-        <div className="absolute left-2 top-[calc(7rem+env(safe-area-inset-top))] max-w-[70vw] px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-600 text-slate-200 text-[11px] shadow-xl pointer-events-none">
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-w-[50vw] px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-600 text-slate-200 text-[10px] shadow-xl pointer-events-none">
           {selectedSquads.length === 1 ? (() => {
             const q = selectedSquads[0];
             return (
@@ -160,8 +160,8 @@ const BattleHud = ({
       )}
 
       {/* Bottom: chips (left) + command bar (right) */}
-      <div className="absolute bottom-0 inset-x-0 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex flex-wrap items-end justify-between gap-2 pointer-events-none">
-        <div className="pointer-events-auto flex flex-wrap gap-1.5 max-w-[60%]">
+      <div className={`absolute bottom-0 inset-x-0 p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end justify-between gap-2 pointer-events-none ${hud.powers?.length ? 'pl-[84px]' : ''}`}>
+        <div className="pointer-events-auto flex gap-1 min-w-0 max-w-[58%] overflow-x-auto scrollbar-none" data-testid="battle-chips">
           <HudButton icon={Users} label={`All ${onField.filter((q) => q.classId !== 'worker').length}`} onClick={() => onSelectClass('all')} testId="battle-select-all" />
           {eco && <HudButton icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
           {eco && eco.idleWorkers.length > 0 && <HudButton icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
@@ -170,7 +170,7 @@ const BattleHud = ({
           ))}
           <HudButton icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} disabled={!reserves.length} testId="battle-reserves" />
         </div>
-        <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5">
+        <div className="pointer-events-auto flex justify-end gap-1 shrink min-w-0 overflow-x-auto scrollbar-none" data-testid="battle-commands">
           {eco && <HudButton icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen || armed?.type === 'place'} disabled={!eco.workers} testId="battle-build" />}
           {hasAbilities && <HudButton icon={Sparkles} label="Abilities" onClick={onOpenAbilities} testId="battle-abilities" />}
           <HudButton icon={Crosshair} label="Atk-move" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} disabled={!selectedSquads.length} testId="battle-attack-move" />

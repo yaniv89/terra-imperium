@@ -1,0 +1,73 @@
+{
+  "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "rows": [
+    {
+      "size": 300,
+      "camera": "default",
+      "cpu": "x1",
+      "fps": 186.2,
+      "frameP50": 5.4,
+      "frameP95": 6.3,
+      "mainP95": 5.9,
+      "simMean": 1.78,
+      "simP95": 4,
+      "tris": 289585,
+      "calls": 70,
+      "figures": 527,
+      "lod": 2,
+      "dpr": 2,
+      "squads": 516
+    },
+    {
+      "size": 300,
+      "camera": "default",
+      "cpu": "x4",
+      "fps": 88.5,
+      "frameP50": 10.5,
+      "frameP95": 15.6,
+      "mainP95": 11.5,
+      "simMean": 1.28,
+      "simP95": 2.1,
+      "tris": 291933,
+      "calls": 70,
+      "figures": 587,
+      "lod": 2,
+      "dpr": 2,
+      "squads": 508
+    },
+    {
+      "size": 300,
+      "camera": "far",
+      "cpu": "x1",
+      "fps": 161.3,
+      "frameP50": 6.1,
+      "frameP95": 7.5,
+      "mainP95": 6.8,
+      "simMean": 1.6,
+      "simP95": 2.6,
+      "tris": 409498,
+      "calls": 95,
+      "figures": 1584,
+      "lod": 2,
+      "dpr": 2,
+      "squads": 504
+    },
+    {
+      "size": 300,
+      "camera": "far",
+      "cpu": "x4",
+      "fps": 81.9,
+      "frameP50": 11.6,
+      "frameP95": 17,
+      "mainP95": 12.8,
+      "simMean": 1.52,
+      "simP95": 3.8,
+      "tris": 407442,
+      "calls": 93,
+      "figures": 1491,
+      "lod": 2,
+      "dpr": 1,
+      "squads": 487
+    }
+  ]
+}

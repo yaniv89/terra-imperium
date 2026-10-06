@@ -28,6 +28,6 @@ const r1 = (v) => (v == null ? '-' : (Math.round(v * 10) / 10).toFixed(1));
 export const formatPerf = ({ meter, diag, sim, squads }) => [
   `${r1(meter.fps)} fps  frame p50 ${r1(meter.frameP50)} / p95 ${r1(meter.frameP95)} ms`,
   `main ${r1(meter.mainP50)} / p95 ${r1(meter.mainP95)} ms  sim ${sim ? `${r1(sim.mean)} / p95 ${r1(sim.p95)}` : '-'} ms/tick`,
-  `${diag ? `${Math.round(diag.triangles / 1000)}k tris  ${diag.drawCalls} calls  ${diag.figures} figures  lod ${diag.tier ?? '-'}  dpr ${diag.dpr}` : ''}`,
+  `${diag ? `${Math.round(diag.triangles / 1000)}k tris  ${diag.drawCalls} calls  ${diag.figures} figures  lod ${diag.tier ?? '-'} (+${diag.bias ?? 0})  dpr ${diag.dpr}` : ''}`,
   `${squads} squads on the field`
 ].join('\n');

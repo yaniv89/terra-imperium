@@ -79,8 +79,8 @@ export const buildEconomySetup = ({ map, terrain, tileContext = null, regionKey 
 
   const nodes = [];
   const anchors = [
-    { x: camp.tx + size / 2, y: camp.ty + size / 2, rMin: 4, rMax: 13, xMax: Math.floor(w * 0.3) },
-    { x: keep.x, y: keep.y, rMin: city ? 9 + Math.round((city.scale || 0) * 2) : 6, rMax: city ? 24 : 15, xMin: Math.floor(w * 0.62) }
+    { x: camp.tx + size / 2, y: camp.ty + size / 2, rMin: 3, rMax: 9, xMax: Math.floor(w * 0.3) },
+    { x: keep.x, y: keep.y, rMin: city ? 9 + Math.round((city.scale || 0) * 2) : 5, rMax: city ? 22 : 11, xMin: Math.floor(w * 0.62) }
   ];
   const place = (kind, a, near = null) => {
     for (let tries = 0; tries < 160; tries++) {

@@ -31,7 +31,7 @@ import {
   buildRateHalves, CANCEL_REFUND, REPAIR_HP_PER_SEC, REPAIR_RECENT_TICKS, REPAIR_RECENT_MULT_QUARTERS,
   BUILD_RADIUS_HQ, BUILD_RADIUS_OWN, QUEUE_MAX, LOOT_SHARE, CITY_BUILDING_LOOT, TRADE_GOLD_PER_SEC, TRADE_GOLD_MAX,
   AID_RADIUS, AID_HEAL_PER_SEC, HOUSE_HOUSING, HALL_HOUSING, BUILDINGS, UNITS, costMilli, costTotal, buildTicks, trainTicks,
-  trainableRoles, buildableFor
+  trainableRoles, buildableFor, WORKER_MIX
 } from '../data/economy';
 
 export const START_WORKERS = 5;          // each side starts with a few laborers by its headquarters
@@ -168,11 +168,12 @@ const pickNode = (w, side, res, x, y, assigned, maxD = Infinity) => {
   return best;
 };
 
-// The resource a side has least of (food, then materials, then gold on ties).
-const neediest = (w, side) => {
-  const s = w.eco.stock[side];
-  let best = 0;
-  for (let i = 1; i < 3; i++) if (s[i] < s[best]) best = i;
+// The resource furthest below its share of the side's laborers (WORKER_MIX; food first on ties).
+export const neediest = (w, side) => {
+  const on = [0, 0, 0]; let total = 0;
+  w.squads.forEach((q) => { if (q.worker && q.side === side && q.alive && q.job?.t === 'gather') { on[RES_INDEX[w.eco.nodes[q.job.node].res]] += 1; total += 1; } });
+  let best = 0; let bestGap = -Infinity;
+  RESOURCES.forEach((r, i) => { const gap = WORKER_MIX[r] * (total + 1) - on[i]; if (gap > bestGap) { bestGap = gap; best = i; } });
   return RESOURCES[best];
 };
 
@@ -623,6 +624,9 @@ export const ecoView = (w, playerSide) => {
     pop: population(w, playerSide),
     cap: housingCap(w, playerSide),
     workers: workers.length,
+    // Where the population is (army, laborers, in training) and where the housing comes from.
+    popSplit: { workers: workers.filter((q) => q.onField || q.enterTick >= 0).length, training: activeTraining(w, playerSide), army: population(w, playerSide) - activeTraining(w, playerSide) - workers.filter((q) => q.onField || q.enterTick >= 0).length },
+    houses: eco.buildings.filter((b) => b.side === playerSide && b.type === 'house' && ready(w, b)).length,
     idleWorkers: workers.filter((q) => !q.job || q.order.type !== 'work').map((q) => q.idx),
     buildings: eco.buildings.map((b) => {
       const alive = ecoAlive(w, b);
