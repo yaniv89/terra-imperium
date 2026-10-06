@@ -87,6 +87,7 @@ matrix products per town with landmarks; the picks and spots are cached.
 
 ## Open
 
-- The naval line could prefer a spot on the coast side; today it takes the first free land spot.
+- Done on art/wonders-buildings: naval landmarks stand only on the shore, their quay facing the water
+  (plans/art-pilot/wonders-buildings/README.md). The 25 base landmarks are in.
 - `cathedral-a` / `cathedral-b` (spec section 4) would read as style `a` / `b`: if both are
   delivered, name them `cathedral.glb` and `cathedral-<style>.glb` or add a variant rule.
