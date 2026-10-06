@@ -260,21 +260,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
     };
   }
 
-  // estateLoyalty: { estateId: delta } — loyalty is a real, drifting STORED field (processEstatesTurn
-  // pulls it toward equilibrium every turn); influence is deliberately NOT wired here because it's a
-  // derived snapshot recomputed fresh every turn (src/engine/estates.js's own header comment), so a
-  // flat delta on it would just be silently overwritten on the very next turn.
-  if (effects.estateLoyalty && next.nations[playerNationId]?.estates) {
-    const player = next.nations[playerNationId];
-    const estates = { ...player.estates };
-    Object.entries(effects.estateLoyalty).forEach(([estateId, delta]) => {
-      const estate = estates[estateId];
-      if (!estate) return;
-      estates[estateId] = { ...estate, loyalty: Math.max(0, Math.min(100, estate.loyalty + delta)) };
-    });
-    next.nations = { ...next.nations, [playerNationId]: { ...player, estates } };
-  }
-
   // addClaim: nationId — claims are on cities (claims.js): the event grants one on that nation's
   // city nearest to the player's land (none when the player already claims every city of theirs).
   if (effects.addClaim && next.nations[playerNationId]) {
@@ -314,15 +299,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
     next.nations = { ...next.nations, [playerNationId]: { ...player, ruler: { ...player.ruler, traits } } };
   }
 
-  // heir: { claim: delta } — src/engine/succession.js's own 0-100 claim field.
-  if (effects.heir?.claim && next.nations[playerNationId]?.heir) {
-    const player = next.nations[playerNationId];
-    next.nations = {
-      ...next.nations,
-      [playerNationId]: { ...player, heir: { ...player.heir, claim: Math.max(0, Math.min(100, player.heir.claim + effects.heir.claim)) } }
-    };
-  }
-
   // dev: { regionId, type, delta } — a direct, permanent development bump (distinct from the
   // Develop Province ACTION's ADM/DIP/MIL cost — the event itself IS the cost here).
   if (effects.dev && next.regions[effects.dev.regionId]) {
@@ -348,15 +324,6 @@ export const applyEventEffects = (state, event, optionIndex) => {
   if (effects.law && next.nations[playerNationId] && getLaw(effects.law.category, effects.law.lawId)) {
     const player = next.nations[playerNationId];
     next.nations = { ...next.nations, [playerNationId]: { ...player, laws: { ...player.laws, [effects.law.category]: effects.law.lawId } } };
-  }
-
-  // crownLand: delta — src/engine/nationalPower.js/estates.js's existing 0-100 field.
-  if (effects.crownLand && next.nations[playerNationId]) {
-    const player = next.nations[playerNationId];
-    next.nations = {
-      ...next.nations,
-      [playerNationId]: { ...player, crownLand: Math.max(0, Math.min(100, (player.crownLand ?? 50) + effects.crownLand)) }
-    };
   }
 
   if (effects.victory) {

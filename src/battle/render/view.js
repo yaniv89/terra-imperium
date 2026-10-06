@@ -1,4 +1,6 @@
 // src/battle/render/view.js
+// The reference shape of a render view. Live battles send packed frames instead (packedView.js,
+// decoded on the screen to this exact shape; packedView.test.js keeps the two equal).
 // The small, plain snapshot of a world the renderer and HUD need each frame — cheap to post from
 // the worker (≤ 64 squads) and free of anything the UI shouldn't touch. Everything is seen from
 // the PLAYER's side: enemy squads carry `visible` (fog of war), and the fog grid itself is only

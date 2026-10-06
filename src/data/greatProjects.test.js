@@ -42,11 +42,10 @@ describe('GREAT_PROJECTS data integrity', () => {
     });
   });
 
-  it('every tier\'s effect key is a real, wired modifier hook or the known raw estateLoyalty key (plan §M9)', () => {
+  it('every tier\'s effect key is a real, wired modifier hook', () => {
     Object.values(GREAT_PROJECTS).forEach((project) => {
       project.tiers.forEach((tier) => {
         Object.keys(tier.effects).forEach((hook) => {
-          if (hook === 'estateLoyalty') return;
           expect(RECOGNIZED_HOOKS, `${project.id}/${hook}`).toContain(hook);
         });
       });
@@ -54,8 +53,8 @@ describe('GREAT_PROJECTS data integrity', () => {
   });
 
   // Bug-pattern regression guard (plan feedback: "issue with great works" — 5 projects gave
-  // literally no ongoing effect at all, and 3 more claimed an estateLoyalty bonus that nothing ever
-  // applied). Keeps both classes of bug from quietly coming back.
+  // literally no ongoing effect at all).
+  // Keeps that bug from quietly coming back.
   it('no project is effect-free at any tier (every project gives a real, ongoing bonus beyond one-time prestige)', () => {
     Object.values(GREAT_PROJECTS).forEach((project) => {
       project.tiers.forEach((tier, i) => {

@@ -34,6 +34,7 @@ import { tileFacts, tileYields } from '../data/tileYields';
 import { legacyTerrainOf } from './world/registry';
 import { isWarBetween } from './diplomacy';
 import { settlingBarred } from './accords';
+import { isExplored } from './fog';
 import { speedCostMult } from '../data/ages';
 import { ringsForKm, kmPerRing, F75_RING_KM } from '../data/geo/gridScale';
 
@@ -178,7 +179,8 @@ export const bestSites = (state, nationId, fromTile, ageId, { rings = AI_SETTLE_
   const perRing = sitePenaltyPerRing();
   for (let d = 0; d <= rings; d++) {
     for (const t of frontier) {
-      if (tiles.land[t] && !world.tileOwner[t] && canFoundCity(world, tiles, t, nationId).ok && !settlingBarred(state, nationId, t)) {
+      // Only land the nation has explored (fog.js): nobody settles a coast it has never seen.
+      if (tiles.land[t] && !world.tileOwner[t] && isExplored(state, t, nationId) && canFoundCity(world, tiles, t, nationId).ok && !settlingBarred(state, nationId, t)) {
         const quality = siteQuality(state, t);
         if (quality >= SITE_SCORE_MIN) out.push({ tile: t, score: Math.round((quality - d * perRing) * 10) / 10, quality, steps: d });
       }

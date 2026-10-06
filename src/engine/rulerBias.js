@@ -1,7 +1,7 @@
 // src/engine/rulerBias.js
 // A ruler's traits bias the AI (plans/civ-map-rework.md, C8): a warlike ruler raises the war
 // roll, a builder ruler puts the building lines they care about first. Every AI nation already
-// has a real ruler with 0 to 2 traits (succession.js, traits.js); until now nothing read them.
+// has a real ruler with 0 to 2 traits (rulers.js, traits.js); until now nothing read them.
 //   War roll   the chance multiplier is the product of RULER_WAR_ROLL over the ruler's traits,
 //              clamped to [RULER_WAR_ROLL_MIN, RULER_WAR_ROLL_MAX] (aiLogic.js shouldDeclareWar).
 //   Build      RULER_BUILD_LINES names the building lines a trait moves to the front of the

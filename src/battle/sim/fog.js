@@ -6,12 +6,14 @@
 // report: the whole map explored and every defender visible for the first seconds of the battle.
 // Ambushed squads stay hidden even inside sight until they attack or enemy cavalry comes close.
 import { Q } from './constants';
+import { cavalryOf } from './squadLists';
 
+// A disc of radius r as one run per row: half[dy + r] = the largest dx with dx^2 + dy^2 <= r^2.
 const disc = new Map();
-const discOffsets = (r) => {
+const discHalfWidths = (r) => {
   if (disc.has(r)) return disc.get(r);
-  const out = [];
-  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (dx * dx + dy * dy <= r * r) out.push([dx, dy]);
+  const out = new Int32Array(2 * r + 1);
+  for (let dy = -r; dy <= r; dy++) { let dx = 0; while ((dx + 1) * (dx + 1) + dy * dy <= r * r) dx += 1; out[dy + r] = dx; }
   disc.set(r, out);
   return out;
 };
@@ -32,10 +34,15 @@ export const initFog = (w) => {
 const stamp = (w, grid, x, y, radiusTiles) => {
   const { w: mw, h: mh } = w.map;
   const tx = Math.floor(x / Q); const ty = Math.floor(y / Q);
-  discOffsets(radiusTiles).forEach(([dx, dy]) => {
-    const px = tx + dx; const py = ty + dy;
-    if (px >= 0 && py >= 0 && px < mw && py < mh) grid[py * mw + px] = 2;
-  });
+  if (radiusTiles < 0) return;
+  const half = discHalfWidths(radiusTiles);
+  for (let dy = -radiusTiles; dy <= radiusTiles; dy++) {
+    const py = ty + dy;
+    if (py < 0 || py >= mh) continue;
+    const hw = half[dy + radiusTiles];
+    const x0 = Math.max(0, tx - hw); const x1 = Math.min(mw - 1, tx + hw);
+    if (x0 <= x1) grid.fill(2, py * mw + x0, py * mw + x1 + 1);
+  }
 };
 
 export const updateFog = (w) => {
@@ -49,7 +56,8 @@ export const updateFog = (w) => {
       stamp(w, grid, q.x, q.y, q.stats.sight + (q.stats.flying ? 2 : 0));
     });
     if (side === 1) {
-      w.structures.forEach((s) => { if (s.alive) stamp(w, grid, s.x, s.y, s.kind === 'keep' ? Math.floor(w.setup.territoryRadius / Q) : 8); });
+      // city houses and wall segments see nothing (the keep, towers and buildings do)
+      w.structures.forEach((s) => { if (s.alive && !s.passive && s.kind !== 'wall' && s.kind !== 'gate') stamp(w, grid, s.x, s.y, s.kind === 'keep' ? Math.floor(w.setup.territoryRadius / Q) : 8); });
     }
     w.points.forEach((p) => { if (p.owner === side) stamp(w, grid, p.x, p.y, 6); });
   });
@@ -65,7 +73,7 @@ export const isTileVisibleTo = (w, side, x, y) => {
 // Is enemy squad `q` hidden by an ambush from `side`? (Enemy cavalry close by spots it.)
 export const isAmbushHidden = (w, q, side) => {
   if (!(q.hiddenUntil > w.tick)) return false;
-  return !w.squads.some((o) => o.side === side && o.alive && o.onField && !o.fled && o.classId === 'cavalry'
+  return !cavalryOf(w).some((o) => o.side === side && o.alive && o.onField && !o.fled
     && (o.x - q.x) * (o.x - q.x) + (o.y - q.y) * (o.y - q.y) <= AMBUSH_SPOT_RADIUS * AMBUSH_SPOT_RADIUS);
 };
 

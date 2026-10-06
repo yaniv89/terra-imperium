@@ -16,7 +16,7 @@
 // a starving one, a frontier one, one with a foreign majority), one is drawn with the turn's rng,
 // and the event carries `cityId` and `tile` so the sheet names the place and the city-targeted
 // effects (applyEventEffects.js: cityUnrest, cityFood, citySize, cityLoyalty) land there. A
-// template with no `candidates` (a general at court, a pretender) keeps a plain isEligible gate.
+// template with no `candidates` (a general at court) keeps a plain isEligible gate.
 import { getTiles } from './geo/tiles';
 import { CLIMATE_RESILIENCE_THRESHOLD } from './actionCosts';
 
@@ -125,19 +125,6 @@ const PROCEDURAL_TEMPLATES = [
       options: [
         { label: 'Grant them their customs and a seat in council', effects: { cityLoyalty: 15, dip: -5 } },
         { label: 'Garrison the quarter and tax it', effects: { gold: 60, cityLoyalty: -10, cityUnrest: 5 } }
-      ]
-    })
-  },
-  {
-    id: 'throne_pretender',
-    weight: 5,
-    candidates: (state) => mine(state).filter((c) => (c.unrest || 0) >= 30),
-    build: (state, rng, city) => ({
-      title: 'A Rival Claims Your Throne',
-      description: `Discontent in ${city.name} has emboldened a pretender, who now claims a rightful place at the head of the state.`,
-      options: [
-        { label: 'Move against them decisively', effects: { gold: -80, cityUnrest: -10, controlBonus: 10 } },
-        { label: 'Buy their loyalty with a title and lands', effects: { gold: -150, controlPenalty: 5 } }
       ]
     })
   },

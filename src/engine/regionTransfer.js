@@ -21,10 +21,10 @@ export const transferRegion = (region, newOwnerId, nations, overrides = {}) => {
     underInvasion: false,
     ...overrides
   };
-  const heir = nations?.[newOwnerId];
+  const receiver = nations?.[newOwnerId];
   // A dead nation reclaiming land rises again — a real liberation, not a zombie owner.
-  const revivedNation = heir?.isEliminated
-    ? { ...heir, isEliminated: false, isAtWar: false, capitalRegionId: region.id }
+  const revivedNation = receiver?.isEliminated
+    ? { ...receiver, isEliminated: false, isAtWar: false, capitalRegionId: region.id }
     : null;
   return { region: nextRegion, revivedNation };
 };

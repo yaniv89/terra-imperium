@@ -13,6 +13,9 @@ import { canSeeSquad } from './fog';
 import { getSquadAbilities, powerState, POWERS } from './effects';
 import { canGarrison, garrisonRoom } from './objectives';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { makeGrid, rebuildGrid } from './spatial';
+
+const AI_CELL = 4 * Q;
 
 export const AI_DIFFICULTY = {
   settler: { thinkEvery: 24, retreatAt: 0.15, reserves: false, powers: false, abilities: false, flank: false, missiles: false },
@@ -52,9 +55,28 @@ const densestEnemyCluster = (w, side, enemies) => {
   const cells = new Map();
   enemies.forEach((q) => { const k = Math.floor(q.x / (4 * Q)) * 1000 + Math.floor(q.y / (4 * Q)); const c = cells.get(k) || { s: 0, x: 0, y: 0, n: 0 }; c.s += q.strength; c.x += q.x; c.y += q.y; c.n += 1; cells.set(k, c); });
   let best = null;
+  // Our squads near each cell centre, from a grid of where everyone stands now.
+  const g = rebuildGrid(w.aiGrid && w.aiGrid.cell === AI_CELL ? w.aiGrid : makeGrid(AI_CELL, true), w.squads, (o) => o.alive && o.onField);
+  w.aiGrid = g;
+  const R = 3 * Q;
+  const friendNear = (cx, cy) => {
+    if (!g.n) return false;
+    const ax = Math.max(Math.floor((cx - R) / g.cell) - g.cx0, 0); const bx = Math.min(Math.floor((cx + R) / g.cell) - g.cx0, g.cols - 1);
+    const ay = Math.max(Math.floor((cy - R) / g.cell) - g.cy0, 0); const by = Math.min(Math.floor((cy + R) / g.cell) - g.cy0, g.rows - 1);
+    for (let y = ay; y <= by; y++) {
+      for (let x = ax; x <= bx; x++) {
+        const b = (y * g.cols + x) * 2 + side;
+        for (let s = g.start[b], end = g.start[b + 1]; s < end; s++) {
+          const o = w.squads[g.items[s]];
+          if (isFighting(o) && distSq(o.x, o.y, cx, cy) < R * R) return true;
+        }
+      }
+    }
+    return false;
+  };
   cells.forEach((c) => {
     const cx = c.x / c.n; const cy = c.y / c.n;
-    const friendlyClose = w.squads.some((o) => o.side === side && isFighting(o) && distSq(o.x, o.y, cx, cy) < (3 * Q) * (3 * Q));
+    const friendlyClose = friendNear(cx, cy);
     if (!friendlyClose && (!best || c.s > best.s)) best = { s: c.s, x: cx, y: cy };
   });
   return best;
@@ -99,7 +121,7 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
   const group = [];
   idle.forEach((q) => {
     if (q.stats.structureBonus) {
-      const tower = w.structures.find((s) => s.alive && s.kind === 'tower');
+      const tower = w.structures.find((s) => s.alive && s.kind === 'tower' && s.damage > 0); // an armed one
       const s = tower || (keep.alive ? keep : null);
       if (s) { orders.push({ side, type: 'attack', squads: [q.idx], target: { kind: 'structure', index: w.structures.indexOf(s) } }); return; }
     }
@@ -137,7 +159,9 @@ const garrisonBuildings = (w, side, mine, orders) => {
   if (budget <= 0 || mine.length < 2) return mine;
   const sent = new Set();
   w.structures.forEach((s, si) => {
-    let room = garrisonRoom(w, si) - w.squads.filter((q) => q.order.type === 'garrison' && q.order.structure === si).length;
+    const open = garrisonRoom(w, si);
+    if (open <= 0) return;
+    let room = open - w.squads.filter((q) => q.order.type === 'garrison' && q.order.structure === si).length;
     while (room > 0 && budget > 0) {
       const candidates = mine.filter((q) => !sent.has(q.idx) && canGarrison(q) && q.order.type !== 'garrison' && q.target < 0 && distSq(q.x, q.y, s.x, s.y) <= GARRISON_REACH * GARRISON_REACH);
       const pick = nearest(candidates.filter((q) => q.classId === 'ranged'), s.x, s.y) || nearest(candidates, s.x, s.y);

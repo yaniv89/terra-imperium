@@ -30,7 +30,7 @@ export const empireOverviewModel = (state) => {
   const research = getResearchView(state);
   return {
     name: nation.name,
-    authority: { total: authority.total, parts: authority.parts, tone: authority.total < AUTHORITY_CIVIL_WAR ? 'red' : authority.total < AUTHORITY_NO_LAWS ? 'amber' : 'green', note: authority.total < AUTHORITY_CIVIL_WAR ? 'Civil war looms.' : authority.total < AUTHORITY_NO_LAWS ? 'Too low for new laws; the estates demand.' : null },
+    authority: { total: authority.total, parts: authority.parts, tone: authority.total < AUTHORITY_CIVIL_WAR ? 'red' : authority.total < AUTHORITY_NO_LAWS ? 'amber' : 'green', note: authority.total < AUTHORITY_CIVIL_WAR ? 'Civil war looms.' : authority.total < AUTHORITY_NO_LAWS ? 'Too low for new laws.' : null },
     era: { ageName: AGES[era.ageId]?.name || era.ageId, met: era.met, needed: era.needed, goals: era.goals.map((g) => ({ id: g.id, label: g.label, value: g.value, target: g.target, unit: g.unit, done: g.done })) },
     treasury: {
       gold: Math.round(state.resources?.gold || 0),

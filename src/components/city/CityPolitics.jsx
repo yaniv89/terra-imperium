@@ -1,9 +1,8 @@
 // src/components/city/CityPolitics.jsx
 // The city sheet's Politics tab (plans/civ-map-rework.md E4): loyalty with its parts, the culture
-// shares, why unrest moves, the governor (seat one from here), the estates' land in this city, a
-// disaster in progress. Phone first: stacked cards, 44 px buttons.
+// shares, why unrest moves, the governor (seat one from here), a disaster in progress. Phone first: stacked cards, 44 px buttons.
 import React from 'react';
-import { Heart, Users, Flame, Crown, Landmark, Scale } from 'lucide-react';
+import { Heart, Users, Flame, Crown, Scale } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { cityPoliticsModel, crownActions, crownNotes } from './cityPoliticsModel';
@@ -56,12 +55,6 @@ const CityPolitics = ({ cityId }) => {
               {!m.candidates.length && <span className="text-slate-500">No candidates at court.</span>}
             </div>
           )}
-        </Card>
-      )}
-      {m.estates.length > 0 && (
-        <Card icon={Landmark} title="The estates here" testId="city-estates">
-          {m.estates.map((e) => <div key={e.estateId} className="text-slate-400">{e.label}: {e.tiles} tile{e.tiles === 1 ? '' : 's'} ({e.worked} worked), {e.gives}.</div>)}
-          <div className="text-slate-500">Press 6 on the map to see their land. Seize Land on the Empire tab takes it back.</div>
         </Card>
       )}
       {actions.length > 0 && (

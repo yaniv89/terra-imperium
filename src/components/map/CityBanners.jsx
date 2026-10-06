@@ -4,8 +4,8 @@
 // city's state in small marks (a siege bar, a loyalty warning, an outpost's progress). HTML over
 // the 3D canvas, so no building can hide a name; tapping a banner selects the city. Further out
 // the SVG badges carry the cities (Map2DView).
-import React, { useMemo } from 'react';
-import { useGame } from '../../context/GameContext';
+import React, { useMemo, useCallback } from 'react';
+import { useFogView } from './useFogView';
 import { cityLatLon } from '../../data/geo/cityFeatures';
 import { getNationColor } from '../../data/nationColors';
 import { isIndependent, mutedIndependentColour, PERSONALITIES } from '../../data/independents';
@@ -24,10 +24,10 @@ const EDGE_PX = 80;
 export const bannerOffsetPx = (modelRadius, pxPerUnit) => (modelRadius + 0.35) * pxPerUnit * 0.8 + 6;
 
 const CityBanners = ({ projection, transform, width, height, onSelect, selectedRegion = null, playerColor }) => {
-  const { state } = useGame();
+  const { state } = useFogView(); // towns as the player knows them (fog of war)
   const cities = useMemo(() => Object.values(state.regions).filter((c) => c.owner || c.colony), [state.regions]);
   const townTiles = useMemo(() => new Set(cities.filter((c) => c.tile != null).map((c) => c.tile)), [cities]);
-  const isTown = (t) => townTiles.has(t);
+  const isTown = useCallback((t) => townTiles.has(t), [townTiles]); // stable: scale.js caches each gap
   if (!projection) return null;
   const k = transform.k;
   const out = [];

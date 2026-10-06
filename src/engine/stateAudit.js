@@ -1,5 +1,5 @@
 // Read-only diagnostics for resolved campaign snapshots. No repairs and no RNG consumption.
-import { PRETENDER_MARKER } from './civilWar';
+import { INSURGENT_MARKER } from './civilWar';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getTiles } from '../data/geo/tiles';
 import { spacingBreaches } from '../data/geo/citySpacing';
@@ -50,7 +50,7 @@ export const auditGameState = (state) => {
     numbers(r.dev, `regions.${id}.dev`);
     if (r.owner != null && !knownOwner(r.owner)) report('unknown_owner', `regions.${id}.owner`, 'Region owner is missing');
     if (nations[r.owner]?.isEliminated) report('eliminated_owner', `regions.${id}.owner`, 'Eliminated nation still owns land');
-    if (r.occupiedBy && !(r.occupiedBy===PRETENDER_MARKER && nations[r.owner]?.civilWar?.active) && (!knownOwner(r.occupiedBy) || r.occupiedBy === r.owner)) report('invalid_occupation', `regions.${id}.occupiedBy`, 'Occupier must be a different known owner');
+    if (r.occupiedBy && !(r.occupiedBy===INSURGENT_MARKER && nations[r.owner]?.civilWar?.active) && (!knownOwner(r.occupiedBy) || r.occupiedBy === r.owner)) report('invalid_occupation', `regions.${id}.occupiedBy`, 'Occupier must be a different known owner');
     ['control', 'unrest', 'devastation'].forEach(key => {
       if (r[key] != null && (r[key] < 0 || r[key] > 100)) report('range', `regions.${id}.${key}`, 'Expected 0..100');
     });

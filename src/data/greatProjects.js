@@ -10,7 +10,7 @@
 // ownership change the way a stored copy could.
 //
 // "AI competes for projects" (the plan's own world-race framing) isn't wired: every other
-// milestone since M8 has deferred AI ECONOMIC actions to M16 (government reforms, laws, estates —
+// milestone since M8 has deferred AI ECONOMIC actions to M16 (government reforms, laws —
 // AI never adopts/grants/interacts, only the player does), and starting/upgrading a project is
 // exactly that kind of action. The race backdrop is still real once M16 lands, since ownership is
 // derived from region conquest, which AI-vs-AI wars already cause today.
@@ -32,7 +32,7 @@
 // src/engine/modifiers/sources.js's own `capacityBonus` computation now folds in this function's own
 // already-accumulated `lines` (which includes the great-project loop above) alongside
 // staticSources(nation), fixing it without nationalPower.js ever needing to import the modifier
-// engine. estates.js had the identical bug shape for `estateLoyalty` — see its own header.
+// engine.
 //
 // Five projects (Pyramids, Great Wall, Arsenal, Space Program, Atomic Research Center) name a
 // flavor effect that doesn't exist as a real mechanic yet (a stability floor, a combat malus on
@@ -113,11 +113,11 @@ export const GREAT_PROJECTS = {
   },
   colosseum: {
     id: 'colosseum', name: 'The Colosseum', ageId: 'classical', siteRule: 'devAtLeast15',
-    description: 'Built in a region with development 15 or higher. -1/-2/-3 unrest nationwide; +5 nobility loyalty.',
+    description: 'Built in a region with development 15 or higher. -1/-2/-3 unrest nationwide.',
     tiers: [
-      { effects: { stabilityBonus: 1, estateLoyalty: { nobility: 5 } }, completionPrestige: 10 },
-      { effects: { stabilityBonus: 2, estateLoyalty: { nobility: 5 } }, completionPrestige: 20 },
-      { effects: { stabilityBonus: 3, estateLoyalty: { nobility: 5 } }, completionPrestige: 30 }
+      { effects: { stabilityBonus: 1 }, completionPrestige: 10 },
+      { effects: { stabilityBonus: 2 }, completionPrestige: 20 },
+      { effects: { stabilityBonus: 3 }, completionPrestige: 30 }
     ]
   },
   lighthouse: {
@@ -158,11 +158,11 @@ export const GREAT_PROJECTS = {
   },
   great_cathedral: {
     id: 'great_cathedral', name: 'The Great Cathedral', ageId: 'kingdoms', siteRule: 'cathedral',
-    description: 'Built in a region with a Cathedral / Mosque. +10 clergy loyalty (a stability-regen tick per 10 turns is not yet a modeled mechanic).',
+    description: 'Built in a region with a Cathedral / Mosque. -1/-1/-2 unrest nationwide.',
     tiers: [
-      { effects: { estateLoyalty: { clergy: 10 } }, completionPrestige: 10 },
-      { effects: { estateLoyalty: { clergy: 10 } }, completionPrestige: 20 },
-      { effects: { estateLoyalty: { clergy: 10 } }, completionPrestige: 30 }
+      { effects: { stabilityBonus: 1 }, completionPrestige: 10 },
+      { effects: { stabilityBonus: 1 }, completionPrestige: 20 },
+      { effects: { stabilityBonus: 2 }, completionPrestige: 30 }
     ]
   },
   forbidden_city: {
@@ -194,11 +194,11 @@ export const GREAT_PROJECTS = {
   },
   palace_of_versailles: {
     id: 'palace_of_versailles', name: 'The Palace of Versailles', ageId: 'gunpowder', siteRule: 'capital',
-    description: 'Built at your capital. +5 loyalty for every estate (+1 diplomat is M12, not yet wired).',
+    description: 'Built at your capital. +1/+1/+2 ADM per turn from the court (+1 diplomat is M12, not yet wired).',
     tiers: [
-      { effects: { estateLoyalty: { all: 5 } }, completionPrestige: 20 },
-      { effects: { estateLoyalty: { all: 5 } }, completionPrestige: 35 },
-      { effects: { estateLoyalty: { all: 5 } }, completionPrestige: 50 }
+      { effects: { admBonus: 1 }, completionPrestige: 20 },
+      { effects: { admBonus: 1 }, completionPrestige: 35 },
+      { effects: { admBonus: 2 }, completionPrestige: 50 }
     ]
   },
   space_program: {

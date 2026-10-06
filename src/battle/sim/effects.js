@@ -12,6 +12,8 @@ import { distSq, polarX, polarY } from './fixed';
 import { isFighting } from './combat';
 import { Q, SIDE_DEFENDER, secondsToTicks as S } from './constants';
 import { moraleFromLosses } from './moraleMath';
+import { generalsOf } from './squadLists';
+import { collapseFootprint } from './cityStructures';
 
 // ---- general & perk abilities ----------------------------------------------------------------
 export const ABILITIES = {
@@ -83,7 +85,7 @@ export const effectMult = (w, q, kind) => {
 };
 
 // A general's passive aura (RoN: +armor, steadier troops): 0.9x damage taken, 0.8x morale loss.
-export const generalAura = (w, q) => w.squads.some((o) => o.side === q.side && o.commanderId && isFighting(o) && !o.routed
+export const generalAura = (w, q) => generalsOf(w).some((o) => o.side === q.side && isFighting(o) && !o.routed
   && distSq(o.x, o.y, q.x, q.y) <= GENERAL_AURA_RADIUS * GENERAL_AURA_RADIUS);
 
 export const damageTakenMult = (w, q, arc) => {
@@ -192,7 +194,7 @@ export const processImpacts = (w) => {
       if (!s.alive || imp.side === SIDE_DEFENDER) return; // the defender never shells its own keep
       if (distSq(s.x, s.y, imp.x, imp.y) > (imp.radius + s.radius) * (imp.radius + s.radius)) return;
       s.hp = Math.max(0, s.hp - Math.round(imp.damage * imp.structureMult));
-      if (s.hp === 0) { s.alive = false; w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id }); }
+      if (s.hp === 0) { s.alive = false; w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id }); collapseFootprint(w, s); }
     });
   });
 };

@@ -3,6 +3,7 @@
 // src/engine/invasion.js's applyInvasionResult consumes a commanded battle the same way it
 // consumes an auto-resolved one.
 import { SIDE_ATTACKER, SIDE_DEFENDER, TICK_HZ } from './constants';
+import { cityDamageReport } from './cityStructures';
 
 // A skilled commander earns a little more XP than auto-resolve would give — capped, so battles
 // can't be farmed (one attack per stack per turn already holds).
@@ -57,7 +58,9 @@ export const toStrategicResult = (w) => {
         powersUsed: [{ ...w.powersUsed[0] }, { ...w.powersUsed[1] }],
         xpBonusById,
         // The region's buildings the attacker burned (each loses a tier in the campaign).
-        razed: [...(w.razed || [])]
+        razed: [...(w.razed || [])],
+        // The real city's losses by manifest id (src/engine/cityManifest.js carries them to the map).
+        ...(w.setup.city ? { cityDamage: cityDamageReport(w) } : {})
       }
     }
   };

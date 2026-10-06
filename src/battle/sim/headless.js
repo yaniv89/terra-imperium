@@ -15,7 +15,7 @@ export const runHeadless = (setup, { orders = [], maxTicks = battleLimitTicks(se
   while (!w.ended && w.tick < maxTicks) {
     step(w, byTick.get(w.tick) || []);
     w.events.length = 0;
-    if (checkpointEvery && w.tick % checkpointEvery === 0) checkpoints.push({ tick: w.tick, hash: worldHash(w) });
+    if (checkpointEvery && w.tick % checkpointEvery === 0) checkpoints.push({ tick: w.tick, hash: worldHash(w), chain: w.hashChain });
   }
-  return { world: w, result: toStrategicResult(w), hash: worldHash(w), checkpoints };
+  return { world: w, result: toStrategicResult(w), hash: worldHash(w), chain: w.hashChain, checkpoints };
 };

@@ -63,6 +63,10 @@ The live site is GitHub Pages, built into `docs/`.
   independents (W3): src/engine/indepPolicy.js (AI campaigns, `nation.indepGoal`, siege force `unit.indepOp`
   marched by aiOperations.js; joining by attitude; trade; tribute to majors; the player's actions) and
   razing.js (one size a turn, `city.razing`).
+  City manifest (phase B): src/data/townLayout.js (from src/data/townLayouts.json, `npm run
+  build:town-layouts` after town art), src/engine/cityManifest.js (from the city record; damage in
+  region.cityDamage, the 50% rule, free repairs), battle: src/battle/setup/cityBattle.js and
+  src/battle/render/cityLayer.js, map: src/components/map/closeView/townDamage.js.
   Progress and open balance items: plan section J3.
 - Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
   pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
@@ -79,6 +83,13 @@ The live site is GitHub Pages, built into `docs/`.
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.
 - `src/components/`: React UI (panels, modals, globe, map, battle screens).
+- The flat map is one WebGL canvas (phase A2): `src/components/map/gl/GLMapView.jsx`. Territories,
+  borders, hexes, fog and lens tints are one full-screen shader that finds each pixel's tile
+  (territoryShader.js over the data textures of tileGpuData.js and territoryData.js); badges,
+  banners, markers and glyphs are instanced sprites from a canvas atlas (sceneModel.js,
+  spriteArt.js); the close view's models come from closeView/closeViewScene.js in the same scene.
+  The world wraps east-west (mapView.js). The old SVG map (Map2DView.jsx) and the globe stay behind
+  settings (map/mapPrefs.js) for one release. Map speed: `node scripts/perf/map-pan.mjs --gpu`.
 - Layout: `src/hooks/useLayoutMode.js` picks desktop / tablet / phone-landscape / phone-portrait and
   sets `<html data-layout>`. Phones play landscape (slim top bar, tab rail on the right, side
   sheets); portrait shows a rotate screen. CSS follows it with the `pl:` Tailwind variant and the

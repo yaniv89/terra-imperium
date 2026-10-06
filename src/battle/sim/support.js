@@ -15,7 +15,8 @@ const REST_TICKS = secondsToTicks(10);
 const HEAL_PER_SEC = 0.005; // of max strength
 const CADRE_HEAL_PER_SEC = 0.0025;
 
-const nearSupply = (w, q) => w.squads.some((o) => o.side === q.side && isFighting(o) && !o.routed && (
+const isSupplier = (o) => isFighting(o) && !o.routed && (o.stats.supplyAura || o.commanderId);
+const nearSupply = (suppliers, q) => suppliers.some((o) => o.side === q.side && (
   (o.stats.supplyAura && distSq(o.x, o.y, q.x, q.y) <= o.stats.supplyAura * o.stats.supplyAura)
   || (o.commanderId && distSq(o.x, o.y, q.x, q.y) <= GENERAL_SUPPLY_RADIUS * GENERAL_SUPPLY_RADIUS)
 ));
@@ -28,9 +29,12 @@ const inDefenderTerritory = (w, q) => {
 export const applySupplyAndAttrition = (w) => {
   if (w.tick % SUPPORT_EVERY !== 0 || w.tick === 0) return;
   const perSecond = (w.setup.attritionPerMinute || 0) / 60;
+  // The wagons and generals, listed once: none of them can fall during this pass (a supplier is
+  // always within its own reach, so it never takes attrition), so the list stays true throughout.
+  const suppliers = w.squads.filter(isSupplier);
   w.squads.forEach((q) => {
     if (!isFighting(q)) return;
-    const supplied = nearSupply(w, q);
+    const supplied = nearSupply(suppliers, q);
     // Attrition: only the invader, only on enemy soil, only without supply.
     if (q.side === SIDE_ATTACKER && !q.stats.flying && perSecond > 0 && !supplied && !hasPerk(q, 'forager') && inDefenderTerritory(w, q)) {
       const loss = Math.max(1, Math.round(q.strength * perSecond));

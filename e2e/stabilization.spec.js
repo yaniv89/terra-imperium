@@ -24,14 +24,16 @@ const clearPoint=async(page,feature,id)=>{
   const bounds=await page.getByTestId('flat-map').boundingBox();
   for(const point of interior(feature).slice(0,40)){
     const p=await page.evaluate(point=>window.__map2DTest.project(point.lat,point.lng),point);
-    const covered=await page.evaluate(({x,y,id})=>{const el=document.elementFromPoint(x,y);const other=el?.closest('[data-city-banner],[data-city-badge]');return !!other&&(other.dataset.cityBanner||other.dataset.cityBadge)!==id;},{x:bounds.x+p.x,y:bounds.y+p.y,id});
+    // the WebGL map answers what a tap there picks (hitAt); the SVG map has DOM banners and badges
+    const covered=await page.evaluate(({x,y,id,sx,sy})=>{if(window.__map2DTest.hitAt){const h=window.__map2DTest.hitAt(sx,sy);return !!h&&h.id!==id;}const el=document.elementFromPoint(x,y);const other=el?.closest('[data-city-banner],[data-city-badge]');return !!other&&(other.dataset.cityBanner||other.dataset.cityBadge)!==id;},{x:bounds.x+p.x,y:bounds.y+p.y,id,sx:p.x,sy:p.y});
     if(!covered)return {x:bounds.x+p.x,y:bounds.y+p.y,point};
   }
   throw new Error(`every interior point of ${id} is under another city`);
 };
 test('actual globe pointer hits preserve selected province at two zoom levels',async({page})=>{
   test.setTimeout(240000);
-  await page.addInitScript(()=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;});
+  // the globe is hidden behind a setting for one release (plans/MASTER-PLAN.md decision 28)
+  await page.addInitScript(()=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;localStorage.setItem('terra-imperium-show-globe','1');localStorage.setItem('terra-imperium-map-mode','globe');});
   await page.goto('/');
   await page.getByPlaceholder('Search 240 nations...').fill('Israel');
   await page.getByRole('button',{name:'Israel',exact:true}).dispatchEvent('click');
@@ -56,25 +58,33 @@ test('actual globe pointer hits preserve selected province at two zoom levels',a
     }
   }
 });
-test('2D province fills select their own region at two zoom levels',async({page})=>{
-  test.setTimeout(180000);
-  await page.addInitScript(()=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;});
+const flatMapSelects=async(page,renderer)=>{
+  await page.addInitScript((r)=>{window.__E2E_DISABLE_GLOBE_AUTOROTATE__=true;window.__E2E_MAP_TEST__=true;localStorage.setItem('terra-imperium-map-renderer',r);},renderer);
   await page.goto('/');
   await page.getByPlaceholder('Search 240 nations...').fill('Israel');
   await page.getByRole('button',{name:'Israel',exact:true}).dispatchEvent('click');
   await page.getByRole('button',{name:'Begin as Israel'}).dispatchEvent('click');
   await page.getByRole('button',{name:'Skip',exact:true}).click();
-  await page.getByTitle('Flat map view').click();
+  if(renderer==='webgl')await expect(page.getByTestId('flat-map')).toHaveAttribute('data-renderer','webgl');
   await page.waitForFunction(()=>window.__map2DTest?.features?.length>0);
   const features=await page.evaluate(()=>window.__map2DTest.features.filter(f=>f.properties.owner==='il').slice(0,3));
   for(const feature of features)for(const zoom of [10,30]){
     const id=feature.properties.gameRegionId,deepest=interior(feature)[0];
     await page.evaluate(({point,zoom})=>window.__map2DTest.focus(point.lat,point.lng,zoom),{point:deepest,zoom});
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(400); // the WebGL map rebuilds its badges and banners once the zoom settles
     const {x,y}=await clearPoint(page,feature,id);
     await page.mouse.click(x,y);
     await expect.poll(()=>page.evaluate(()=>window.__map2DTest.selected)).toBe(id);
     await page.getByRole('button',{name:'Close',exact:true}).click();
     await expect.poll(()=>page.evaluate(()=>window.__map2DTest.selected)).toBeNull();
   }
+};
+// The flat map is the map (the globe is hidden): the WebGL map, and the old SVG map behind its setting.
+test('2D province fills select their own region at two zoom levels',async({page})=>{
+  test.setTimeout(180000);
+  await flatMapSelects(page,'webgl');
+});
+test('the old SVG map still selects its provinces',async({page})=>{
+  test.setTimeout(180000);
+  await flatMapSelects(page,'svg');
 });

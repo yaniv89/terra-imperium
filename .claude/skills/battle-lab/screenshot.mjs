@@ -37,7 +37,7 @@ await page.evaluate(() => {
   const r = window.__battleRenderer; const sp = r.splats[r.splats.length - 1];
   if (sp) { r.centerOn(sp.x, sp.z); return; }
   let sx = 0; let sz = 0; let n = 0;
-  r.soldierLayers.forEach((l) => { const a = l.high.instanceMatrix.array; for (let i = 0; i < l.count; i++) { sx += a[i * 16 + 12]; sz += a[i * 16 + 14]; n += 1; } });
+  r.soldierLayers.forEach((l) => { const a = l.matrix.array; for (let i = 0; i < l.count; i++) { sx += a[i * 16 + 12]; sz += a[i * 16 + 14]; n += 1; } });
   if (n) r.centerOn(sx / n, sz / n);
 });
 await page.waitForTimeout(400);

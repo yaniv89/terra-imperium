@@ -2,14 +2,15 @@
 // Real-time driver around the pure sim (Tactical Battles plan §12.1), shared by the Web Worker and
 // the main-thread fallback. It turns wall-clock time into fixed 20 Hz ticks (with speed and
 // pause), stamps the player's orders with the tick they take effect on, records them into a log
-// (setup + log = the whole battle), and posts compact render frames, checkpoints and the result.
+// (setup + log = the whole battle), and posts packed render frames (packedView.js: the squads in
+// one transferable buffer, `post(message, transfer)`), checkpoints and the result.
 import { createWorld } from '../sim/world';
 import { step } from '../sim/step';
 import { applyOrder } from '../sim/orders';
 import { toStrategicResult } from '../sim/result';
 import { worldHash } from '../sim/hash';
 import { TICK_HZ } from '../sim/constants';
-import { makeRenderView } from '../render/view';
+import { createViewPacker, SLOW_EVERY } from '../render/packedView';
 
 const TICK_MS = 1000 / TICK_HZ;
 const CHECKPOINT_EVERY = 10 * TICK_HZ;
@@ -36,10 +37,25 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
   // Everything the UI is shown is seen from the player's side (fog of war); spectating = side 0.
   const playerSide = Math.max(0, (setup.controllers || []).indexOf('player'));
   let lastFogTick = -100; // the fog grid rides along only when it can have changed (every 5 ticks)
+  let lastPostedTick = -1;
+  let lastSlowTick = -100; // names, abilities, call costs: every SLOW_EVERY ticks
+  const packer = createViewPacker();
+  // Wall-clock ms of the last 100 sim ticks, for the perf overlay (never read by the sim).
+  const tickMs = new Float64Array(100); let ticksTimed = 0;
+  const simStats = () => {
+    const n = Math.min(ticksTimed, tickMs.length);
+    if (!n) return null;
+    const a = Array.from(tickMs.subarray(0, n)).sort((x, y) => x - y);
+    return { mean: a.reduce((x, y) => x + y, 0) / n, p95: a[Math.min(n - 1, Math.floor(n * 0.95))], squads: world.squads.length };
+  };
+  const postFrame = (fog, alpha, events, slow) => {
+    const { packed, transfer } = packer.pack(world, pending, playerSide, { fog, slow });
+    post({ type: 'frame', packed, alpha, events, sim: simStats() }, transfer);
+  };
 
   const emitEnd = () => {
     finished = true;
-    post({ type: 'ended', result: toStrategicResult(world), log, hash: worldHash(world), tick: world.tick });
+    post({ type: 'ended', result: toStrategicResult(world), log, hash: worldHash(world), chain: world.hashChain, tick: world.tick });
   };
 
   return {
@@ -55,7 +71,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
         if (o.type === 'deploy' && world.tick === 0) { applyOrder(world, stamped); world.events.length = 0; return; }
         pending.push(stamped);
       });
-      if (paused) post({ type: 'frame', view: makeRenderView(world, pending, playerSide, false), alpha: 1, events: [] });
+      if (paused) postFrame(false, 1, [], true);
     },
     setPaused(p) { paused = p; last = null; },
     setSpeed(s) { speed = s; },
@@ -68,14 +84,23 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       const events = [];
       while (acc >= TICK_MS && !world.ended) {
         const orders = pending; pending = [];
+        const t0 = performance.now();
         step(world, orders);
+        tickMs[ticksTimed++ % tickMs.length] = performance.now() - t0;
         events.push(...world.events); world.events.length = 0;
         acc -= TICK_MS;
-        if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), log: [...log] });
+        if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), chain: world.hashChain, log: [...log] });
       }
+      // A view only when the world moved on (20 Hz at 1x, not every screen frame): the screen
+      // interpolates between the last two by itself, and a 300-a-side view costs milliseconds to
+      // build and copy (plans/terra-imperium-rts-plan.md 13.3). Paused, pushOrders posts its own.
+      if (world.tick === lastPostedTick && !events.length && !world.ended) return;
+      lastPostedTick = world.tick;
       const sendFog = world.tick - lastFogTick >= 5;
       if (sendFog) lastFogTick = world.tick;
-      post({ type: 'frame', view: makeRenderView(world, pending, playerSide, sendFog), alpha: paused ? 1 : acc / TICK_MS, events });
+      const sendSlow = world.tick - lastSlowTick >= SLOW_EVERY || paused || world.ended;
+      if (sendSlow) lastSlowTick = world.tick;
+      postFrame(sendFog, paused ? 1 : acc / TICK_MS, events, sendSlow);
       if (world.ended) emitEnd();
     }
   };

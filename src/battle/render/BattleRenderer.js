@@ -11,18 +11,20 @@ import {
   MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, Object3D, Vector3, Vector2, Raycaster, Plane,
   ConeGeometry, DodecahedronGeometry, BoxGeometry, CylinderGeometry, RingGeometry,
   Float32BufferAttribute, DoubleSide, Group, Mesh, FogExp2, DataTexture, RGBAFormat, LinearFilter,
-  ACESFilmicToneMapping, PCFShadowMap, InstancedBufferAttribute, PMREMGenerator, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage
+  ACESFilmicToneMapping, PCFShadowMap, InstancedBufferAttribute, PMREMGenerator, MeshStandardMaterial, IcosahedronGeometry, DynamicDrawUsage, Matrix4
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
-import { getSoldierGeometry, getImposterGeometry, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
+import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
+import { getSoldierGeometry, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant } from './unitVariants';
-import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
+import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
 import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
+import { CityLayer, CITY_KINDS } from './cityLayer';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -35,7 +37,7 @@ const GROUND_ALT = {
 };
 const TILE_TINT = {
   [TILE.FOREST]: '#3d5f29', [TILE.WATER]: '#3a5f63', [TILE.ROCK]: '#6f6d63', [TILE.ROAD]: '#9a8058',
-  [TILE.FORD]: '#6f8a7e', [TILE.BUILDING]: '#77766f'
+  [TILE.FORD]: '#6f8a7e', [TILE.BUILDING]: '#77766f', [TILE.RUBBLE]: '#8b8073'
 };
 // The sky and the haze the far land melts into, by terrain (FogExp2 uses the same colour, so the
 // horizon has no edge).
@@ -53,6 +55,37 @@ export const PHONE_MAX_ZOOM = 5;
 const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (see resize)
 const tmp = new Object3D();
 const tmpColor = new Color();
+const GREY_ROUT = new Color('#9ca3af');
+const PALE_AMBUSH = new Color('#e2e8f0');
+const WHITE = new Color('#ffffff');
+const CAM_RIGHT = new Vector3();
+const CAM_BASIS = new Matrix4();
+const BAR_GREEN = new Color('#22c55e');
+const BAR_LIME = new Color('#84cc16');
+// Write position · turn about the vertical (yaw) · scale into slot k of an instance matrix array
+// (what Object3D.updateMatrix would compose, without the Euler and quaternion round trip).
+const writeYaw = (arr, k, x, y, z, yaw, sx, sy, sz) => {
+  const c = Math.cos(yaw); const s = Math.sin(yaw); const o = k * 16;
+  arr[o] = c * sx; arr[o + 1] = 0; arr[o + 2] = -s * sx; arr[o + 3] = 0;
+  arr[o + 4] = 0; arr[o + 5] = sy; arr[o + 6] = 0; arr[o + 7] = 0;
+  arr[o + 8] = s * sz; arr[o + 9] = 0; arr[o + 10] = c * sz; arr[o + 11] = 0;
+  arr[o + 12] = x; arr[o + 13] = y; arr[o + 14] = z; arr[o + 15] = 1;
+};
+// The same for a quad turned to face the camera (rotation matrix elements `b`), stretched by sx.
+const writeBasis = (arr, k, b, x, y, z, sx) => {
+  const o = k * 16;
+  arr[o] = b[0] * sx; arr[o + 1] = b[1] * sx; arr[o + 2] = b[2] * sx; arr[o + 3] = 0;
+  arr[o + 4] = b[4]; arr[o + 5] = b[5]; arr[o + 6] = b[6]; arr[o + 7] = 0;
+  arr[o + 8] = b[8]; arr[o + 9] = b[9]; arr[o + 10] = b[10]; arr[o + 11] = 0;
+  arr[o + 12] = x; arr[o + 13] = y; arr[o + 14] = z; arr[o + 15] = 1;
+};
+// An instanced mesh's colour array (three.js makes it on the first setColorAt).
+// Parsed colours by CSS string (Color.set parses the string every call: costly every frame).
+const COLORS = new Map();
+const colorOf = (css) => { let c = COLORS.get(css); if (!c) { c = new Color(css); COLORS.set(css, c); } return c; };
+const instanceColors = (mesh) => { if (!mesh.instanceColor) mesh.setColorAt(0, WHITE); return mesh.instanceColor.array; };
+const PROP_CHUNK = 48;
+const FIG = 9; // floats per figure in a squad's cached layout (squadFigures) // trees, rocks, tufts and houses are instanced per 48 x 48 tile chunk
 
 const hash01 = (n) => { let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -151,6 +184,10 @@ export class BattleRenderer {
     this.groundPlane = new Plane(new Vector3(0, 1, 0), 0);
     this.disposables = [];
     this.soldierLayers = new Map();
+    this.figureScale = figureScale(setup); // fewer figures per squad in a big battle (capacity.js)
+    this.sideColors = setup.sides.map((sd) => new Color(sd.color));
+    this.squadInfo = [];
+    this.figureBudget = BATTLE_GRAPHICS.figureTriangles.desktop;
     this.fx = [];
     this.markers = [];
     this.time = 0;
@@ -177,6 +214,7 @@ export class BattleRenderer {
     // metallic surfaces render nearly black); it lights only the Standard materials (troops, water)
     // and costs one ~256px PMREM texture, generated once per battle.
     this.soldierMaterial = this.track(createSoldierMaterial({ standard: true }));
+    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.4 })); // the far level (soldierLod.js)
     const pmrem = new PMREMGenerator(this.renderer);
     this.envMap = this.track(pmrem.fromScene(new RoomEnvironment(), 0.04).texture);
     pmrem.dispose();
@@ -187,6 +225,8 @@ export class BattleRenderer {
     this.buildTerrain();
     this.buildProps();
     this.buildStructures();
+    this.cityLayer = new CityLayer(this); // the real city's houses, walls and ruins (cityLayer.js)
+    this.cityLayer.build();
     this.buildPoints();
     this.buildOverlays();
     this.buildFogOverlay();
@@ -219,26 +259,36 @@ export class BattleRenderer {
 
   setFog(grid) {
     const { w, h } = this.map;
+    let veiled = false;
     for (let row = 0; row < h; row++) {
       // Texture row 0 is the bottom of the plane (large z); map row 0 is the top (small z).
       const iz = h - 1 - row;
       for (let ix = 0; ix < w; ix++) {
         const v = grid ? grid[iz * w + ix] : 2;
         const a = v === 2 ? 0 : v === 1 ? 110 : 235;
+        if (a) veiled = true;
         const o = (row * w + ix) * 4;
         this.fogData[o] = a; this.fogData[o + 1] = a; this.fogData[o + 2] = a; this.fogData[o + 3] = 255;
       }
     }
     this.fogTexture.needsUpdate = true;
+    // Nothing hidden (everything in sight, or no fog of war): the two veils would draw about
+    // 66,000 fully clear triangles a frame.
+    this.fogMesh.visible = veiled; this.skirtFogMesh.visible = veiled;
   }
 
   track(obj) { this.disposables.push(obj); return obj; }
 
   // One tile's own ground level (riverbeds sit low).
+  // (Read thousands of times a frame for the figures: worked out once per tile, then looked up.)
   tileHeight(ix, iz) {
     const { w, h, height, tiles } = this.map;
-    const cx = Math.max(0, Math.min(w - 1, ix)); const cz = Math.max(0, Math.min(h - 1, iz));
-    return tiles[cz * w + cx] === TILE.WATER ? -0.5 : Math.max(-0.12, (height[cz * w + cx] / 256) * 0.55);
+    if (!this.tileHeights) {
+      this.tileHeights = new Float32Array(w * h);
+      for (let i = 0; i < w * h; i++) this.tileHeights[i] = tiles[i] === TILE.WATER ? -0.5 : Math.max(-0.12, (height[i] / 256) * 0.55);
+    }
+    const cx = ix < 0 ? 0 : ix > w - 1 ? w - 1 : ix; const cz = iz < 0 ? 0 : iz > h - 1 ? h - 1 : iz;
+    return this.tileHeights[cz * w + cx];
   }
 
   // The ground's height anywhere: bilinear between tile centres, so riverbanks and slopes are smooth
@@ -247,6 +297,14 @@ export class BattleRenderer {
     const fx = x - 0.5; const fz = z - 0.5;
     const ix = Math.floor(fx); const iz = Math.floor(fz);
     const tx = fx - ix; const tz = fz - iz;
+    const { w, h } = this.map;
+    if (ix >= 0 && iz >= 0 && ix < w - 1 && iz < h - 1 && this.tileHeights) {
+      // Inside the map (nearly every call): the same bilinear blend, straight from the table.
+      const t = this.tileHeights; const o = iz * w + ix;
+      const top = t[o] + (t[o + 1] - t[o]) * tx;
+      const bottom = t[o + w] + (t[o + w + 1] - t[o + w]) * tx;
+      return top + (bottom - top) * tz;
+    }
     const top = lerp(this.tileHeight(ix, iz), this.tileHeight(ix + 1, iz), tx);
     const bottom = lerp(this.tileHeight(ix, iz + 1), this.tileHeight(ix + 1, iz + 1), tx);
     return lerp(top, bottom, tz);
@@ -340,6 +398,7 @@ export class BattleRenderer {
     const pines = []; const oaks = []; const rocks = []; const houses = []; const tufts = [];
     // Tiles taken by the province's own buildings get their own models (buildStructures).
     const landmarkTiles = new Set(this.setup.structures.filter((st) => st.kind === 'building').map((st) => Math.floor(st.y / Q) * w + Math.floor(st.x / Q)));
+    this.setup.structures.forEach((st) => (st.footprint || []).forEach((c) => landmarkTiles.add(c))); // the real city draws its own (cityLayer.js)
     for (let z = 0; z < h; z++) {
       for (let x = 0; x < w; x++) {
         const t = tiles[z * w + x];
@@ -367,21 +426,39 @@ export class BattleRenderer {
       }
     }
     const ground = (x, z) => (x < 0 || z < 0 || x > w || z > h ? this.skirtHeight(x, z) : this.heightAt(x, z));
+    // Instanced by spatial chunk (PROP_CHUNK tiles square): each chunk has its own bounds, so
+    // three.js leaves out the chunks off screen (and outside the sun's shadow box). One mesh for
+    // the whole field had bounds covering everything and drew every tree every frame.
     const place = (list, geo, { color = '#ffffff', shadow = true, scaleFn = (s0) => [s0, s0, s0], tint = 0.25 } = {}) => {
       if (!list.length) return;
-      const mesh = new InstancedMesh(this.track(geo), this.track(new MeshLambertMaterial({ color, vertexColors: !!geo.attributes.color })), list.length);
-      list.forEach(([x, z, s0], i) => {
-        tmp.position.set(x, ground(x, z), z);
-        tmp.rotation.set(0, hash01(i * 13 + 5) * Math.PI * 2, 0);
-        const sc = scaleFn(s0, i); tmp.scale.set(sc[0], sc[1], sc[2]);
-        tmp.updateMatrix();
-        mesh.setMatrixAt(i, tmp.matrix);
-        tmpColor.setRGB(1, 1, 1).multiplyScalar(1 - tint / 2 + hash01(i * 31) * tint);
-        mesh.setColorAt(i, tmpColor);
+      this.track(geo);
+      const mat = this.track(new MeshLambertMaterial({ color, vertexColors: !!geo.attributes.color }));
+      const chunks = new Map();
+      list.forEach((item, i) => {
+        const key = `${Math.floor(item[0] / PROP_CHUNK)},${Math.floor(item[1] / PROP_CHUNK)}`;
+        if (!chunks.has(key)) chunks.set(key, []);
+        chunks.get(key).push(i);
       });
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.castShadow = shadow; mesh.receiveShadow = true;
-      this.scene.add(mesh);
+      chunks.forEach((ids, key) => {
+        const mesh = new InstancedMesh(geo, mat, ids.length);
+        // Out in the skirt (the land beyond the field, fading into the haze) props cast no shadow.
+        const [cx, cz] = key.split(',').map(Number);
+        const beyond = (cx + 1) * PROP_CHUNK <= 0 || (cz + 1) * PROP_CHUNK <= 0 || cx * PROP_CHUNK >= w || cz * PROP_CHUNK >= h;
+        ids.forEach((i, j) => {
+          const [x, z, s0] = list[i];
+          tmp.position.set(x, ground(x, z), z);
+          tmp.rotation.set(0, hash01(i * 13 + 5) * Math.PI * 2, 0);
+          const sc = scaleFn(s0, i); tmp.scale.set(sc[0], sc[1], sc[2]);
+          tmp.updateMatrix();
+          mesh.setMatrixAt(j, tmp.matrix);
+          tmpColor.setRGB(1, 1, 1).multiplyScalar(1 - tint / 2 + hash01(i * 31) * tint);
+          mesh.setColorAt(j, tmpColor);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.computeBoundingSphere(); mesh.computeBoundingBox();
+        mesh.castShadow = shadow && !beyond; mesh.receiveShadow = true;
+        this.scene.add(mesh);
+      });
     };
     // Vertex-coloured multi-part props, merged: one draw call per kind.
     const painted = (geo, color) => {
@@ -394,13 +471,13 @@ export class BattleRenderer {
     const leaf = winter ? '#5d7d6c' : dry ? '#6f7d3a' : '#3d6e2e';
     const snow = '#eef3f6';
     const pine = mergeGeometries([
-      painted(new CylinderGeometry(0.07, 0.1, 0.5, 5).translate(0, 0.25, 0), '#5a3d25'),
-      painted(new ConeGeometry(0.5, 0.8, 7).translate(0, 0.75, 0), leaf),
-      painted(new ConeGeometry(0.4, 0.7, 7).translate(0, 1.15, 0), leaf),
-      painted(new ConeGeometry(0.28, 0.6, 7).translate(0, 1.5, 0), winter ? snow : leaf)
+      painted(new CylinderGeometry(0.07, 0.1, 0.5, 5, 1, true).translate(0, 0.25, 0), '#5a3d25'),
+      painted(new ConeGeometry(0.5, 0.8, 7, 1, true).translate(0, 0.75, 0), leaf),
+      painted(new ConeGeometry(0.4, 0.7, 7, 1, true).translate(0, 1.15, 0), leaf),
+      painted(new ConeGeometry(0.28, 0.6, 7, 1, true).translate(0, 1.5, 0), winter ? snow : leaf)
     ]);
     const oak = mergeGeometries([
-      painted(new CylinderGeometry(0.08, 0.12, 0.8, 6).translate(0, 0.4, 0), '#5f4128'),
+      painted(new CylinderGeometry(0.08, 0.12, 0.8, 6, 1, true).translate(0, 0.4, 0), '#5f4128'),
       painted(new IcosahedronGeometry(0.55, 0).translate(0, 1.05, 0), dry ? '#7a8a3e' : '#4f8a36'),
       painted(new IcosahedronGeometry(0.4, 0).translate(0.3, 0.85, 0.15), dry ? '#6d7c36' : '#46803a'),
       painted(new IcosahedronGeometry(0.38, 0).translate(-0.25, 0.9, -0.2), dry ? '#83903f' : '#5a9440')
@@ -410,9 +487,9 @@ export class BattleRenderer {
     place(oaks, oak, { scaleFn: (s0) => [s0 * 1.1, s0, s0 * 1.1] });
     place(rocks, new DodecahedronGeometry(0.5, 0).translate(0, 0.18, 0), { color: winter ? '#a3a7a8' : '#7d7a70', scaleFn: (s0, i) => [s0, s0 * (0.5 + hash01(i) * 0.4), s0 * (0.8 + hash01(i * 3) * 0.4)] });
     const tuft = mergeGeometries([
-      painted(new ConeGeometry(0.035, 0.2, 3).rotateZ(0.25).translate(0.04, 0.09, 0), dry ? '#b3aa6a' : '#7da347'),
-      painted(new ConeGeometry(0.035, 0.24, 3).rotateX(-0.2).translate(-0.03, 0.11, 0.02), dry ? '#a19a5c' : '#8cb054'),
-      painted(new ConeGeometry(0.03, 0.17, 3).rotateZ(-0.3).translate(-0.05, 0.08, -0.04), dry ? '#c0b67a' : '#6f9a3f')
+      painted(new ConeGeometry(0.035, 0.2, 3, 1, true).rotateZ(0.25).translate(0.04, 0.09, 0), dry ? '#b3aa6a' : '#7da347'),
+      painted(new ConeGeometry(0.035, 0.24, 3, 1, true).rotateX(-0.2).translate(-0.03, 0.11, 0.02), dry ? '#a19a5c' : '#8cb054'),
+      painted(new ConeGeometry(0.03, 0.17, 3, 1, true).rotateZ(-0.3).translate(-0.05, 0.08, -0.04), dry ? '#c0b67a' : '#6f9a3f')
     ]);
     tuft.computeVertexNormals();
     place(tufts, tuft, { shadow: false, tint: 0.35 });
@@ -446,6 +523,7 @@ export class BattleRenderer {
     };
     this.setup.structures.forEach((s) => {
       if (this.map.naval) return; // a sea battle's anchorage is an objective for the AI, nothing stands there
+      if (CITY_KINDS.has(s.kind)) return; // drawn by cityLayer.js
       // Per-structure materials, so a destroyed tower can turn to rubble on its own.
       const stone = this.track(new MeshLambertMaterial({ color: modern ? '#8f9194' : '#a39c8c' }));
       const darkStone = this.track(new MeshLambertMaterial({ color: modern ? '#6c6e72' : '#7d776a' }));
@@ -471,7 +549,7 @@ export class BattleRenderer {
         const flag = add(new PlaneGeometry(0.8, 0.5).translate(0.4, 3.55, 0), this.track(new MeshLambertMaterial({ color: this.setup.sides[1].color, side: DoubleSide })));
         flag.castShadow = false;
         g.userData.flag = flag;
-        if (s.walls) {
+        if (s.walls && !this.setup.city) { // a real city has its own wall ring (cityLayer.js)
           // A curtain wall ring with a crenellated top.
           const segs = 20;
           for (let i = 0; i < segs; i++) {
@@ -490,8 +568,32 @@ export class BattleRenderer {
         if (!modern) add(new ConeGeometry(0.72, 0.9, 10).translate(0, 3.25, 0), roof);
       }
       g.position.set(x, this.heightAt(x, z), z);
+      this.mergeByMaterial(g);
       this.scene.add(g);
       this.structureMeshes.set(s.id, g);
+    });
+  }
+
+  // A structure is built from dozens of parts (a keep with walls has about 60: merlons, towers,
+  // wall segments); one draw call each adds up. Bake each part's placement into its geometry and
+  // merge the parts that share a material (and a shadow setting) into one mesh.
+  mergeByMaterial(g) {
+    const groups = new Map();
+    g.children.forEach((m) => {
+      if (!m.isMesh) return;
+      const key = `${m.material.uuid}:${m.castShadow}`;
+      if (!groups.has(key)) groups.set(key, { material: m.material, castShadow: m.castShadow, geos: [] });
+      m.updateMatrix();
+      const geo = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+      groups.get(key).geos.push(geo.applyMatrix4(m.matrix));
+    });
+    g.clear();
+    groups.forEach(({ material, castShadow, geos }) => {
+      const geo = this.track(mergeGeometries(geos));
+      geos.forEach((x) => x.dispose());
+      const mesh = new Mesh(geo, material);
+      mesh.castShadow = castShadow; mesh.receiveShadow = true;
+      g.add(mesh);
     });
   }
 
@@ -582,7 +684,7 @@ export class BattleRenderer {
   }
 
   buildOverlays() {
-    const MAX = 64;
+    const MAX = squadSlots(this.setup); // one marker, banner and bar per squad that can take the field (capacity.js)
     const mk = (geo, color, opacity = 1) => {
       const mat = this.track(new MeshBasicMaterial({ color, transparent: opacity < 1, opacity, depthWrite: opacity >= 1, side: DoubleSide }));
       const m = new InstancedMesh(this.track(geo), mat, MAX);
@@ -633,36 +735,33 @@ export class BattleRenderer {
   }
 
   // One soldier layer per (age, class) for BOTH armies — the side's colour is per instance
-  // (instanceColor), so two armies of the same age cost the same draw calls as one. A layer is a
-  // ZoomLOD of two InstancedMeshes, the full model (with shadows) and its ~50-triangle imposter
-  // (no shadow pass), which SHARE every per-instance buffer: matrix, colour, animation (phase,
-  // moving, attacking) and variant (skin tone, emblem cell, cloth jitter). The CPU writes each
-  // soldier once per frame and uploads only the used range; the GPU draws whichever level shows.
+  // (instanceColor), so two armies of the same age cost the same draw calls as one. A layer holds
+  // three InstancedMeshes, one per detail level (soldierLod.js: the full model, the only one that
+  // casts shadows, then about 360 and about 60 triangles), which SHARE every per-instance buffer:
+  // matrix, colour, animation (phase, moving, attacking) and variant (skin tone, emblem cell,
+  // cloth jitter). Only squads in view are written (drawSquads culls them), so three.js's own
+  // per-object culling stays off; the CPU uploads only the used range and one level draws.
   soldierLayer(ageId, classId) {
     const key = `${ageId}:${classId}`;
     let layer = this.soldierLayers.get(key);
     if (layer) return layer;
-    const MAX = 2 * 16 * 20;
+    const MAX = soldierSlots(this.setup, ageId, classId); // every soldier of this age and class (capacity.js)
     const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
     const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
-    const make = (source, shadow) => {
+    const make = (source, shadow, far) => {
       const geo = this.track(packForGPU(source.clone()));
       geo.setAttribute('aAnim', anim);
       geo.setAttribute('aVariant', variant);
-      const mesh = new InstancedMesh(geo, this.soldierMaterial, MAX);
+      const mesh = new InstancedMesh(geo, far ? this.farSoldierMaterial : this.soldierMaterial, MAX);
       mesh.instanceMatrix = matrix; mesh.instanceColor = color;
       if (shadow) mesh.customDepthMaterial = this.soldierDepth;
       mesh.castShadow = shadow; mesh.receiveShadow = true;
-      mesh.count = 0; mesh.frustumCulled = false;
+      mesh.count = 0; mesh.frustumCulled = false; mesh.visible = false;
+      this.scene.add(mesh);
       return mesh;
     };
-    const high = make(getSoldierGeometry(ageId, classId), true);
-    const low = make(getImposterGeometry(ageId, classId), false);
-    const lod = new ZoomLOD(120);
-    lod.addLevel(high, 0);
-    lod.addLevel(low, IMPOSTER_DISTANCE, 0.06);
-    this.scene.add(lod);
-    layer = { lod, high, low, matrix, color, anim, variant, count: 0, capacity: MAX };
+    const levels = soldierLodGeometries(getSoldierGeometry(ageId, classId)).map((g, k) => make(g, k === 0 && BATTLE_GRAPHICS.shadows, k === 2));
+    layer = { levels, tris: levels.map((m) => triangleCount(m.geometry)), matrix, color, anim, variant, count: 0, capacity: MAX };
     this.soldierLayers.set(key, layer);
     return layer;
   }
@@ -675,6 +774,9 @@ export class BattleRenderer {
     // Phones (short side <= 500 css px) may zoom closer: at 3x a soldier is still only about 29 css
     // px tall on a 390 px tall landscape screen, too small to see the unit art.
     this.maxZoom = Math.min(width, height) <= 500 ? PHONE_MAX_ZOOM : 3;
+    // The soldiers' share of the triangle budget (RTS plan 13.1: about 0.5 M a frame on a phone
+    // with terrain and scenery, 1 to 1.5 M on a desktop).
+    this.figureBudget = Math.min(width, height) <= 500 ? BATTLE_GRAPHICS.figureTriangles.phone : BATTLE_GRAPHICS.figureTriangles.desktop;
     this.camera.left = (-viewH * aspect) / 2; this.camera.right = (viewH * aspect) / 2;
     this.camera.top = viewH / 2; this.camera.bottom = -viewH / 2;
     this.camera.updateProjectionMatrix();
@@ -819,7 +921,8 @@ export class BattleRenderer {
   }
 
   diagnostics() {
-    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures};
+    let figures = 0; this.soldierLayers.forEach((l) => { figures += l.count; });
+    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,figures,tier:this.soldierTier??null,zoom:this.camera.zoom};
   }
 
   adaptResolution(dt) {
@@ -853,6 +956,7 @@ export class BattleRenderer {
     this.updateCamera();
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
+    if (cur) this.cityLayer.update(cur);
     if (cur) this.drawPoints(cur);
     this.drawFx(dt);
     this.renderer.render(this.scene, this.camera);
@@ -860,12 +964,80 @@ export class BattleRenderer {
     if(this.frameTimes.length>180)this.frameTimes.shift();
   }
 
+  // A test for "is a ground point (tiles) within `margin` tiles of the screen?", from this frame's
+  // camera. The camera is orthographic: a point's screen position is a fixed linear map of it.
+  viewCuller() {
+    const cam = this.camera;
+    cam.updateMatrixWorld();
+    this.viewProj = (this.viewProj || cam.projectionMatrix.clone()).multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    const e = this.viewProj.elements;
+    const perTile = (2 * cam.zoom) / Math.min(cam.right - cam.left, cam.top - cam.bottom); // ndc per tile, the larger of the two axes
+    return (x, z, margin) => {
+      const y = this.heightAt(x, z);
+      const m = 1 + margin * perTile;
+      const nx = e[0] * x + e[4] * y + e[8] * z + e[12];
+      const ny = e[1] * x + e[5] * y + e[9] * z + e[13];
+      return nx > -m && nx < m && ny > -m && ny < m;
+    };
+  }
+
+  // What never changes about a squad's figures (class and age are fixed for a battle): its stats,
+  // soldier layer, how many figures it draws at full strength and how they stand.
+  squadLook(s) {
+    const stats = s.classId === 'naval' ? getUnitBattleStats({ classId: 'naval', navalLine: s.navalLine }, s.ageId) : getBattleStats(s.classId, s.ageId);
+    return {
+      stats,
+      layer: this.soldierLayer(s.ageId, s.classId),
+      drawn: this.figureScale < 1 ? { soldiers: scaledSoldiers(stats.soldiers, this.figureScale) } : stats,
+      big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
+      spacing: stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52,
+      scale: MODEL_SCALE[s.classId] || 0.62,
+      organic: isOrganic(s.classId, s.ageId),
+      sideColor: this.sideColors[s.side]
+    };
+  }
+
+  // A squad's figures where they stand in its block (lateral, back), the cos and sin of each one's
+  // small turn, its walk phase and its look (skin, emblem, cloth): all fixed for a given count and
+  // spacing, so worked out once and again only when the squad loses a figure.
+  squadFigures(info, s, n, cols, spacing) {
+    const f = info.fig;
+    if (f && f.n === n && f.cols === cols && f.spacing === spacing) return f.data;
+    const data = new Float32Array(n * FIG);
+    const jitter = info.big ? 0.1 : 0.07;
+    const look = new Float32Array(4);
+    for (let i = 0; i < n; i++) {
+      const d = i * FIG; const col = i % cols; const row = Math.floor(i / cols);
+      data[d] = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * jitter * 2;
+      data[d + 1] = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
+      const j = (hash01(s.idx * 7 + i) - 0.5) * 0.18;
+      data[d + 2] = Math.cos(j); data[d + 3] = Math.sin(j);
+      data[d + 4] = hash01(s.idx * 131 + i) * 6.283;
+      writeSoldierVariant(look, 0, s.idx, s.side, i);
+      data.set(look, d + 5);
+    }
+    info.fig = { n, cols, spacing, data };
+    return data;
+  }
+
+  // A soldier's height on screen (css px) at the current zoom.
+  soldierPx() { return (MODEL_SCALE.infantry * this.camera.zoom * (this.height || 1)) / Math.max(1e-6, this.camera.top - this.camera.bottom); }
+
   drawSquads(prev, cur, alpha, ui) {
     const selected = ui?.selected || new Set();
     this.soldierLayers.forEach((l) => { l.count = 0; });
     let discN = 0; let ringN = 0; let barN = 0;
     const camQuat = this.camera.quaternion;
-    if (cur.fog) this.setFog(cur.fog);
+    const camRight = CAM_RIGHT.set(1, 0, 0).applyQuaternion(camQuat);
+    const camBasis = CAM_BASIS.makeRotationFromQuaternion(camQuat).elements;
+    // A view stays current for a few screen frames: repaint the fog only when a new grid arrives.
+    if (cur.fog && cur.fog !== this.lastFog) { this.lastFog = cur.fog; this.setFog(cur.fog); }
+    const cull = this.viewCuller();
+    const spread = 1 / Math.sqrt(this.figureScale); // fewer figures stand further apart: a squad keeps its ground
+    const discMat = this.discs.instanceMatrix.array; const discCol = instanceColors(this.discs);
+    const ringMat = this.rings.instanceMatrix.array;
+    const poleMat = this.bannerPoles.instanceMatrix.array; const flagMat = this.bannerFlags.instanceMatrix.array; const flagCol = instanceColors(this.bannerFlags);
+    const barBgMat = this.barBg.instanceMatrix.array; const barFillMat = this.barFill.instanceMatrix.array; const barFillCol = instanceColors(this.barFill);
     cur.squads.forEach((s) => {
       const memo = this.soldierMemo.get(s.idx);
       // Wiped out on the field: every soldier still standing last frame falls at once.
@@ -876,77 +1048,102 @@ export class BattleRenderer {
       const useP = p && p.onField;
       const x = (useP ? lerp(p.x, s.x, alpha) : s.x) / Q;
       const z = (useP ? lerp(p.y, s.y, alpha) : s.y) / Q;
+      const info = this.squadInfo[s.idx] || (this.squadInfo[s.idx] = this.squadLook(s));
+      const { stats, layer, big } = info;
+      const n = getSoldierCount(info.drawn, s.strength, s.maxStrength);
+      const cols = Math.max(1, Math.ceil(Math.sqrt(n * (big ? 1.2 : 1.8))));
+      const spacing = info.spacing * spread;
+      // Off screen (with a margin for the block, which runs back from its front rank, the figures'
+      // height and the banner): nothing to draw, so no figures, ring, banner or bar, and no blood
+      // for its losses while away.
+      if (!cull(x, z, Math.max(cols / 2, Math.ceil(n / cols)) * spacing + 3)) { this.soldierMemo.delete(s.idx); return; }
       const facing = useP ? lerpAngle256(p.facing, s.facing, alpha) : s.facing;
       // Squads in contact get nudged apart a little every tick; that's jostling, not marching.
       const step = useP ? Math.hypot(p.x - s.x, p.y - s.y) / Q : 0;
       const moving = step > 0.03 && !s.striking;
       const y = s.classId === 'naval' ? -0.2 : this.heightAt(x, z);
-      const stats = s.classId === 'naval' ? getUnitBattleStats({ classId: 'naval', navalLine: s.navalLine }, s.ageId) : getBattleStats(s.classId, s.ageId);
-      const n = getSoldierCount(stats, s.strength, s.maxStrength);
-      const layer = this.soldierLayer(s.ageId, s.classId);
-      const { anim } = layer;
       const a = (facing / 256) * Math.PI * 2;
       const fx = Math.cos(a); const fz = Math.sin(a);
-      const big = s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || stats.flying;
-      const cols = Math.max(1, Math.ceil(Math.sqrt(n * (big ? 1.2 : 1.8))));
-      const spacing = stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52;
-      const scale = MODEL_SCALE[s.classId] || 0.62;
+      const scale = info.scale;
       const heading = Math.atan2(fx, fz);
       // Fighting while it's actually swinging or shooting, or standing its ground with a target.
       const fighting = !s.routed && (s.striking || (s.target >= 0 && !moving));
-      tmpColor.set(this.setup.sides[s.side].color);
-      if (s.routed) tmpColor.lerp(new Color('#9ca3af'), 0.6);
-      if (s.hidden) tmpColor.lerp(new Color('#e2e8f0'), 0.45); // in ambush
-      if (selected.has(s.idx)) tmpColor.lerp(new Color('#ffffff'), 0.2);
+      const isSelected = selected.has(s.idx);
+      tmpColor.copy(info.sideColor);
+      if (s.routed) tmpColor.lerp(GREY_ROUT, 0.6);
+      if (s.hidden) tmpColor.lerp(PALE_AMBUSH, 0.45); // in ambush
+      if (isSelected) tmpColor.lerp(WHITE, 0.2);
+      const { r: cr, g: cg, b: cb } = tmpColor;
+      const mat = layer.matrix.array; const colArr = layer.color.array; const animArr = layer.anim.array;
+      const walking = moving || s.routed ? 1 : 0; const striking = fighting ? 1 : 0;
+      const turn = heading + (s.routed ? Math.PI : 0); // routed troops turn and run
+      const ct = Math.cos(turn) * scale; const st = Math.sin(turn) * scale;
+      const fig = this.squadFigures(info, s, n, cols, spacing);
+      const varArr = layer.variant.array;
       for (let i = 0; i < n; i++) {
-        const col = i % cols; const row = Math.floor(i / cols);
-        const jitter = big ? 0.1 : 0.07;
-        const lat = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * jitter * 2;
-        const back = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
-        const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
         const k = layer.count;
         if (k >= layer.capacity) break;
-        tmp.position.set(px, stats.flying ? 2.4 + Math.sin(this.time * 2 + i) * 0.15 : this.heightAt(px, pz), pz);
-        // Routed troops turn and run; everyone else faces the squad's heading (a touch of variety).
-        tmp.rotation.set(stats.flying ? Math.sin(this.time + i) * 0.15 : 0, heading + (s.routed ? Math.PI : 0) + (hash01(s.idx * 7 + i) - 0.5) * 0.18, 0);
-        tmp.scale.set(scale, scale, scale);
-        tmp.updateMatrix();
-        layer.high.setMatrixAt(k, tmp.matrix); // shared with layer.low
-        layer.high.setColorAt(k, tmpColor);
-        anim.setXYZ(k, hash01(s.idx * 131 + i) * 6.283, moving || s.routed ? 1 : 0, fighting ? 1 : 0);
-        writeSoldierVariant(layer.variant.array, k, s.idx, s.side, i);
+        const d = i * FIG;
+        const lat = fig[d]; const back = fig[d + 1];
+        const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
+        // Everyone faces the squad's heading, with a touch of variety (cos and sin of the turn
+        // plus the figure's own small jitter, by the angle-sum rule).
+        if (stats.flying) {
+          const yaw = turn + Math.atan2(fig[d + 3], fig[d + 2]);
+          tmp.position.set(px, 2.4 + Math.sin(this.time * 2 + i) * 0.15, pz);
+          tmp.rotation.set(Math.sin(this.time + i) * 0.15, yaw, 0);
+          tmp.scale.set(scale, scale, scale);
+          tmp.updateMatrix();
+          tmp.matrix.toArray(mat, k * 16);
+        } else {
+          const c = ct * fig[d + 2] - st * fig[d + 3]; const sn = st * fig[d + 2] + ct * fig[d + 3]; const o = k * 16;
+          mat[o] = c; mat[o + 1] = 0; mat[o + 2] = -sn; mat[o + 3] = 0;
+          mat[o + 4] = 0; mat[o + 5] = scale; mat[o + 6] = 0; mat[o + 7] = 0;
+          mat[o + 8] = sn; mat[o + 9] = 0; mat[o + 10] = c; mat[o + 11] = 0;
+          mat[o + 12] = px; mat[o + 13] = this.heightAt(px, pz); mat[o + 14] = pz; mat[o + 15] = 1;
+        }
+        colArr[k * 3] = cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb;
+        animArr[k * 3] = fig[d + 4]; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking;
+        varArr[k * 4] = fig[d + 5]; varArr[k * 4 + 1] = fig[d + 6]; varArr[k * 4 + 2] = fig[d + 7]; varArr[k * 4 + 3] = fig[d + 8];
         layer.count += 1;
       }
       // Soldiers lost since last frame go down in a spray of blood where they stood.
-      const nextMemo = { n, x, z, fx, fz, cols, spacing, big, organic: isOrganic(s.classId, s.ageId), idx: s.idx };
-      if (memo && n < memo.n) this.spillBlood({ ...nextMemo, n: memo.n }, n);
-      this.soldierMemo.set(s.idx, nextMemo);
-      // Ground ring, selection ring, standard-bearer banner, strength bar.
+      if (memo && n < memo.n) this.spillBlood({ n: memo.n, x, z, fx, fz, cols, spacing, big, organic: info.organic, idx: s.idx }, n);
+      const m = memo || {};
+      Object.assign(m, { n, x, z, fx, fz, cols, spacing, big, organic: info.organic, idx: s.idx });
+      if (!memo) this.soldierMemo.set(s.idx, m);
+      // Ground ring, selection ring, standard-bearer banner, strength bar (written straight into
+      // their instance buffers: three.js's Object3D compose and colour parsing cost more than
+      // the soldiers themselves at 600 squads).
       const r = 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
-      tmp.rotation.set(0, 0, 0); tmp.position.set(x, y + 0.05, z); tmp.scale.set(r, 1, r); tmp.updateMatrix();
-      this.discs.setMatrixAt(discN, tmp.matrix); this.discs.setColorAt(discN, tmpColor.set(this.setup.sides[s.side].color));
-      if (selected.has(s.idx)) { tmp.position.y = y + 0.07; tmp.updateMatrix(); this.rings.setMatrixAt(ringN, tmp.matrix); ringN += 1; }
+      const side = info.sideColor;
+      writeYaw(discMat, discN, x, y + 0.05, z, 0, r, 1, r);
+      discCol[discN * 3] = side.r; discCol[discN * 3 + 1] = side.g; discCol[discN * 3 + 2] = side.b;
+      if (isSelected) { writeYaw(ringMat, ringN, x, y + 0.07, z, 0, r, 1, r); ringN += 1; }
       if (!stats.flying) {
         const bx = x + fx * 0.25 + (-fz) * (r * 0.55); const bz = z + fz * 0.25 + fx * (r * 0.55);
-        tmp.position.set(bx, this.heightAt(bx, bz), bz); tmp.rotation.set(0, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, 0); tmp.scale.set(1, 1, 1); tmp.updateMatrix();
-        this.bannerPoles.setMatrixAt(discN, tmp.matrix);
-        this.bannerFlags.setMatrixAt(discN, tmp.matrix);
-        this.bannerFlags.setColorAt(discN, tmpColor.set(this.setup.sides[s.side].color));
+        writeYaw(poleMat, discN, bx, this.heightAt(bx, bz), bz, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, 1, 1, 1);
+        flagMat.set(poleMat.subarray(discN * 16, discN * 16 + 16), discN * 16);
+        flagCol[discN * 3] = side.r; flagCol[discN * 3 + 1] = side.g; flagCol[discN * 3 + 2] = side.b;
       } else {
-        tmp.scale.set(0, 0, 0); tmp.updateMatrix();
-        this.bannerPoles.setMatrixAt(discN, tmp.matrix); this.bannerFlags.setMatrixAt(discN, tmp.matrix);
+        writeYaw(poleMat, discN, x, y, z, 0, 0, 0, 0);
+        writeYaw(flagMat, discN, x, y, z, 0, 0, 0, 0);
       }
       discN += 1;
       const frac = Math.max(0, s.strength / Math.max(1, s.startStrength));
-      tmp.quaternion.copy(camQuat); tmp.position.set(x, y + (stats.flying ? 3.8 : big ? 2.1 : 1.75), z); tmp.scale.set(1.0, 1, 1); tmp.updateMatrix();
-      this.barBg.setMatrixAt(barN, tmp.matrix);
-      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -0.5); tmp.scale.set(1.0 * frac, 1, 1); tmp.updateMatrix();
-      this.barFill.setMatrixAt(barN, tmp.matrix);
-      this.barFill.setColorAt(barN, tmpColor.set(frac > 0.3 ? '#22c55e' : '#84cc16'));
+      const by = y + (stats.flying ? 3.8 : big ? 2.1 : 1.75);
+      writeBasis(barBgMat, barN, camBasis, x, by, z, 1);
+      writeBasis(barFillMat, barN, camBasis, x - camRight.x * 0.5, by - camRight.y * 0.5, z - camRight.z * 0.5, frac);
+      const bar = frac > 0.3 ? BAR_GREEN : BAR_LIME;
+      barFillCol[barN * 3] = bar.r; barFillCol[barN * 3 + 1] = bar.g; barFillCol[barN * 3 + 2] = bar.b;
       barN += 1;
     });
-    this.soldierLayers.forEach((l) => {
-      l.high.count = l.count; l.low.count = l.count;
+    // One detail level for every soldier this frame (soldierLod.js): what their size on screen
+    // calls for, coarser while the figures in view would pass the triangle budget.
+    const layers = [...this.soldierLayers.values()];
+    this.soldierTier = pickSoldierTier({ px: this.soldierPx(), layers: layers.map((l) => ({ figures: l.count, tris: l.tris })), budget: this.figureBudget, prev: this.soldierTier ?? 2 });
+    layers.forEach((l) => {
+      l.levels.forEach((m, k) => { m.count = l.count; m.visible = k === this.soldierTier && l.count > 0; });
       if (!l.count) return;
       [l.matrix, l.color, l.anim, l.variant].forEach((a) => {
         a.clearUpdateRanges(); a.addUpdateRange(0, l.count * a.itemSize); a.needsUpdate = true;
@@ -1014,7 +1211,7 @@ export class BattleRenderer {
     cur.points.forEach((p) => {
       const g = this.pointMeshes.get(p.id);
       if (!g) return;
-      g.userData.mat.color.set(p.owner === 0 || p.owner === 1 ? this.setup.sides[p.owner].color : '#9ca3af');
+      g.userData.mat.color.copy(colorOf(p.owner === 0 || p.owner === 1 ? this.setup.sides[p.owner].color : '#9ca3af'));
       g.children[1].rotation.y = Math.sin(this.time * 3) * 0.25;
     });
   }
@@ -1036,7 +1233,7 @@ export class BattleRenderer {
         tmp.position.set(f.x, this.heightAt(f.x, f.z) + 0.4 + rise, f.z);
         tmp.rotation.set(k * 4, k * 5, 0); const sc = (f.big ? 2.2 : 1) * (1 - k); tmp.scale.set(sc, sc, sc); tmp.updateMatrix();
         this.sparks.setMatrixAt(sn, tmp.matrix);
-        this.sparks.setColorAt(sn, tmpColor.set(f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24'));
+        this.sparks.setColorAt(sn, colorOf(f.fire ? (k < 0.4 ? '#fb923c' : '#57534e') : f.big ? '#a8a29e' : '#fbbf24'));
         sn += 1;
       }
     });
@@ -1049,7 +1246,7 @@ export class BattleRenderer {
       const py = Math.max(ground + 0.03, ground + f.y + f.vy * t - 4.9 * t * t);
       tmp.position.set(px, py, pz); tmp.rotation.set(t * 6, t * 4, 0);
       const sc = 1 - (f.t / f.life) * 0.4; tmp.scale.set(sc, sc * 1.4, sc); tmp.updateMatrix();
-      this.blood.setMatrixAt(bn, tmp.matrix); this.blood.setColorAt(bn, tmpColor.set(f.color)); bn += 1;
+      this.blood.setMatrixAt(bn, tmp.matrix); this.blood.setColorAt(bn, colorOf(f.color)); bn += 1;
     });
     this.blood.count = bn; this.blood.instanceMatrix.needsUpdate = true; if (this.blood.instanceColor) this.blood.instanceColor.needsUpdate = true;
     this.splats = this.splats.filter((sp) => (sp.t += dt) < SPLAT_LIFE);
@@ -1061,7 +1258,7 @@ export class BattleRenderer {
       const grow = Math.min(1, sp.t / 0.5); const fade = Math.min(1, (SPLAT_LIFE - sp.t) / 4);
       const sc = sp.size * (0.4 + 0.6 * grow) * fade;
       tmp.rotation.set(0, sp.rot, 0); tmp.position.set(sp.x, this.heightAt(sp.x, sp.z) + 0.03, sp.z); tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
-      m.setMatrixAt(k, tmp.matrix); m.setColorAt(k, tmpColor.set(sp.color)); splatN[sp.layer] += 1;
+      m.setMatrixAt(k, tmp.matrix); m.setColorAt(k, colorOf(sp.color)); splatN[sp.layer] += 1;
     });
     this.splatLayers.forEach((m, i) => { m.count = splatN[i]; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
     this.markers = this.markers.filter((m) => (m.t += dt) < 0.8);
@@ -1069,13 +1266,14 @@ export class BattleRenderer {
       if (mn >= 64) return;
       const k = m.t / 0.8;
       tmp.rotation.set(0, 0, 0); tmp.position.set(m.x, this.heightAt(m.x, m.z) + 0.08, m.z); const sc = 0.6 + k * 1.2; tmp.scale.set(sc, 1, sc); tmp.updateMatrix();
-      this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, tmpColor.set(m.color)); mn += 1;
+      this.markerRings.setMatrixAt(mn, tmp.matrix); this.markerRings.setColorAt(mn, colorOf(m.color)); mn += 1;
     });
     [[this.tracers, tn], [this.sparks, sn], [this.markerRings, mn]].forEach(([m, n]) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });
   }
 
   dispose() {
-    this.soldierLayers.forEach((l) => { l.high.dispose(); l.low.dispose(); });
+    this.soldierLayers.forEach((l) => l.levels.forEach((m) => m.dispose()));
+    this.cityLayer?.dispose();
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();

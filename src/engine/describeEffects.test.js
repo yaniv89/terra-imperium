@@ -76,24 +76,22 @@ describe('describeEffects (plan §M17: the one shared effect-description functio
     const frCapital = getNationCapital('fr');
     const out = describeEffects({
       addModifier: { label: 'Test Boon', mods: { 'national.goldMult': 0.1 }, duration: 10 },
-      estateLoyalty: { clergy: 10 },
       spawnRebels: { regionId: frCapital, strength: 100 },
       ruler: { addTrait: 'scholar' },
-      heir: { claim: 15 },
       dev: { regionId: frCapital, type: 'tax', delta: 2 },
       construct: { regionId: frCapital, category: 'military' },
-      law: { category: 'taxation', lawId: 'land_tax' },
-      crownLand: -10
+      law: { category: 'taxation', lawId: 'land_tax' }
     });
     expect(out.find((e) => e.text === 'Test Boon (10 turns)')).toBeTruthy();
-    expect(out.find((e) => e.text === 'Clergy Loyalty +10')).toBeTruthy();
     expect(out.find((e) => e.text.startsWith('Unrest in'))).toBeTruthy();
     expect(out.find((e) => e.text === 'Ruler gains Scholar')).toBeTruthy();
-    expect(out.find((e) => e.text === 'Heir Claim +15')).toBeTruthy();
     expect(out.find((e) => e.text.includes('Tax +2'))).toBeTruthy();
     expect(out.find((e) => e.text === 'Free Military building')).toBeTruthy();
     expect(out.find((e) => e.text === 'Law: Land Tax')).toBeTruthy();
-    expect(out.find((e) => e.text === 'Crown Land -10%')).toBeTruthy();
+  });
+
+  it('shows nothing for the removed estate and succession keys an old saved event may carry', () => {
+    expect(describeEffects({ estateLoyalty: { clergy: 10 }, crownLand: -10, heir: { claim: 15 } })).toEqual([]);
   });
 
   it('drops a ruler effect with neither addTrait nor removeTrait, and an invalid law id, rather than showing a blank/broken line', () => {

@@ -1,4 +1,4 @@
-// src/components/independents/independentsListModel.js
+﻿// src/components/independents/independentsListModel.js
 // The independents list in Relations (phase W4): every independent the player has met, with its
 // personality, distance, attitude, grudge and the current deal, sorted and filtered. Read only.
 // Distance is from the player's nearest city (km, great circle between tile centres).
@@ -7,7 +7,7 @@ import { tileKm } from '../../engine/tradeValue';
 import { isIndependentNation, PERSONALITIES, PERSONALITY_IDS } from '../../data/independents';
 import { grudgeOf } from '../../engine/grudges';
 import { attitudeOf } from '../../engine/indepPolicy';
-import { hasMet } from '../../engine/hostility';
+import { hasMet } from '../../engine/fog';
 import { attitudeWord, attitudeTone, grudgeTone } from './independentSheetModel';
 import { shieldUrl, shieldColour } from './independentArt';
 

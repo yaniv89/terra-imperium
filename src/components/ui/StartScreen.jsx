@@ -104,14 +104,15 @@ const StartScreen = ({ onStart }) => {
   const [selectedId, setSelectedId] = useState(DEFAULT_PEOPLE_ID);
   const [gameSpeed, setGameSpeed] = useState('normal');
   const [difficultyId, setDifficultyId] = useState('prince');
+  const [exploredWorld, setExploredWorld] = useState(false);
 
   const peoples = useMemo(() => PEOPLES_LIST
     .filter((p) => (region === 'all' || p.regionGroup === region) && matchPeople(p, search))
     .sort((a, b) => a.name.replace(/^The /, '').localeCompare(b.name.replace(/^The /, ''))), [region, search]);
   const selected = PEOPLES[selectedId];
 
-  const begin = () => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, seed: newWorldSeed() } });
-  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed() }, guided: true });
+  const begin = () => onStart({ playerNationId: selectedId, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: worldSize, seed: newWorldSeed() }, exploredWorld });
+  const guided = () => onStart({ playerNationId: TUTORIAL_NATION, gameSpeed, difficultyId, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: newWorldSeed() }, guided: true, exploredWorld });
   const background = startArt(compact ? 'background-phone' : 'background-wide') || startArt('background-wide');
 
   const settings = (
@@ -148,6 +149,21 @@ const StartScreen = ({ onStart }) => {
           ))}
         </div>
         {compact && <p className="mt-1 text-[11px] text-slate-400">{DIFFICULTIES[difficultyId]?.description}</p>}
+      </section>
+      {/* Fog of war (src/engine/fog.js): on by default; the explored world shows the whole map. */}
+      <section>
+        <SectionTitle>The map</SectionTitle>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ id: false, name: 'Fog of war', blurb: 'You know your homeland; explore to find the rest and meet other peoples.' },
+            { id: true, name: 'Explored world', blurb: 'The whole world is mapped and every people known from the start.' }].map((o) => (
+            <button key={String(o.id)} type="button" onClick={() => setExploredWorld(o.id)} aria-pressed={exploredWorld === o.id}
+              data-testid={o.id ? 'explored-world' : 'fog-of-war'}
+              className={`min-h-[44px] p-2 rounded-xl text-left text-xs border transition-all ${exploredWorld === o.id ? 'bg-blue-500/20 border-blue-500/50 text-white' : 'bg-slate-800/60 border-slate-700 hover:bg-slate-700/60 text-slate-300'}`}>
+              <span className="block font-semibold">{o.name}</span>
+              {!compact && <span className="block text-[10px] text-slate-400 leading-tight">{o.blurb}</span>}
+            </button>
+          ))}
+        </div>
       </section>
       <button type="button" onClick={guided} data-testid="guided-start"
         className="w-full flex items-center justify-center gap-2 px-3 min-h-[44px] rounded-xl font-semibold text-sm bg-amber-700/60 hover:bg-amber-600/70 border border-amber-500/50 text-amber-100 transition-all active:scale-95"

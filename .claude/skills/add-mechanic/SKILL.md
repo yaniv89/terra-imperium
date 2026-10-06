@@ -34,7 +34,7 @@ vassals.js (liberty desire), techDiffusion.js, pacts.js, supplies.js.
 
 ## 3. Wire it into the right place
 - Turn order matters. resolveTurn phases: income -> region unrest/population -> rebellion ->
-  supply attrition -> movement/reinforcement/morale -> AI growth/economy/succession/estates ->
+  supply attrition -> movement/reinforcement/morale -> AI growth/economy/rulers ->
   economy (upkeep, loans, bankruptcy) -> diplomacy (AE, pacts, vassals) -> great projects ->
   AI recruitment -> AI war declarations -> war progress -> war exhaustion -> events.
   A value a later phase reads this turn must be computed earlier (supplies are computed at

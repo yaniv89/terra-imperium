@@ -37,11 +37,10 @@ describe('LAW_CATEGORIES data integrity', () => {
     });
   });
 
-  it('every law\'s effects (when present) use a real, wired modifier hook or the known raw estateLoyalty key (plan §M9)', () => {
+  it('every law\'s effects (when present) use a real, wired modifier hook', () => {
     Object.values(LAW_CATEGORIES).forEach((tiers) => {
       tiers.forEach((law) => {
         Object.keys(law.effects || {}).forEach((hook) => {
-          if (hook === 'estateLoyalty' || hook === 'estateInfluence') return;
           expect(RECOGNIZED_HOOKS, `${law.id}/${hook}`).toContain(hook);
         });
       });

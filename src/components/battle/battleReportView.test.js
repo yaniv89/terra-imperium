@@ -45,5 +45,5 @@ describe('replay sampling', () => {
     expect(sample(pts, 1)).toMatchObject({ round: 1, mine: 0.8, theirs: 0.4 });
     expect(sample(pts, 7)).toMatchObject({ round: 1 });
     expect(sample(pts, NaN)).toMatchObject({ round: 0 });
-  });
+  }, 60000); // the dynamic import pulls in GameContext and the whole engine (several seconds under load)
 });

@@ -43,6 +43,7 @@ import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
 import RaidMarkersOverlay from '../independents/RaidMarkersOverlay';
 import CityBanners from './CityBanners';
+import { fogView, exploredFeatures, visibleFeatures } from './fogView';
 // The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
 const CloseViewLayer = React.lazy(() => import('./closeView/CloseViewLayer'));
 // The ground under it (plans/playtest-1.md P1.3): a shader over the raster, sharp at any zoom.
@@ -56,7 +57,7 @@ import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 import { WORK_KINDS } from './closeView/landscape';
 import { visibleRasterTiles, rasterTileUrl, baseRasterZoom } from '../../data/geo/rasterTiles';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover, settleTints } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, tradeLines, airCover, settleTints } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -81,6 +82,8 @@ const ZOOM_EXTENT = [1, 200]; // up to the super zoom (plans/playtest-1.md P1.1)
 const TOUCH_ZOOM_EXTENT = [1, 200];
 const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 const ZOOM_STEP_SCALE = 1.6;
+const ZOOM_SETTLE_MS = 150;
+const ZOOM_JUMP = 1.8;
 // Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
 // space above/below the map on a tall/narrow (mobile) viewport, since the world's ~2:1 aspect
 // ratio is much wider than a phone screen. GlobeView.jsx already opens centered on the player's
@@ -114,7 +117,11 @@ const Map2DView = ({
   onAmbiguousTap = null, width, height, selectedRegion, onSelectRegion, interactive = true, hudOffset = false,
   initialFocusRegionId = null, focusRegionId = null, navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, selectedArmy = null, lens = 'political'
 }) => {
-  const { state } = useGame();
+  // The world as the player knows it (fogView.js): last-seen territories and towns where it is
+  // explored but out of sight, nothing where it is unexplored. With fog off it is the state itself.
+  const { state: gameState } = useGame();
+  const fog = useMemo(() => fogView(gameState), [gameState]);
+  const state = fog.state;
   const { effects } = useEffects();
   // Only the main full-bleed map (hudOffset) sits under the game's floating panels; MapModal's and
   // the minimap's own Map2DView instances are in their own boxes and ignore the insets.
@@ -164,9 +171,10 @@ const Map2DView = ({
     return { west: q(Math.max(-180, a[0])), east: q(Math.min(180, b[0])), north: q(Math.min(90, a[1])), south: q(Math.max(-90, b[1])) };
   }, [projection, interactive, transform, width, height]);
   const hexKey = hexWindow ? `${hexWindow.west},${hexWindow.east},${hexWindow.south},${hexWindow.north}` : '';
-  const hexPath = useMemo(() => (hexWindow && projection ? geoPath(projection)(getHexMeshWithin(hexWindow)) : null),
+  // Only the explored hexes: the unexplored ones lie under the fog mask anyway.
+  const hexPath = useMemo(() => (hexWindow && projection ? geoPath(projection)(getHexMeshWithin(hexWindow, fog.on ? fog.isExplored : null)) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hexKey, projection]);
+    [hexKey, projection, fog.explored]);
 
   // Where the equirectangular raster sits in the projection's pixel space: the whole world
   // rectangle, so it lines up with the province paths at every zoom.
@@ -175,6 +183,18 @@ const Map2DView = ({
     const [x0, y0] = projection([-180, 90]); const [x1, y1] = projection([180, -90]);
     return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
   }, [projection]);
+
+  // Fog of war shapes (plans/MASTER-PLAN.md 5.2): one dark mask over everything not explored (a
+  // rectangle round the world with the explored land cut out, even-odd), and one grey wash over
+  // what is explored but out of sight (the explored shape with the visible tiles cut out). Rebuilt
+  // when the explored map grows (once a turn) or the sight changes (an army moves).
+  const exploredPath = useMemo(() => (fog.on && projection ? exploredFeatures(fog.explored).map((f) => geoPath(projection)(f) || '').join('') : null), [fog.on, fog.explored, projection]);
+  const fogMaskPath = useMemo(() => {
+    if (exploredPath == null || !rasterRect) return null;
+    const { x, y, width: w, height: h } = rasterRect;
+    return `M${x - w},${y - h}H${x + 2 * w}V${y + 2 * h}H${x - w}Z${exploredPath}`;
+  }, [exploredPath, rasterRect]);
+  const fogWashPath = useMemo(() => (exploredPath && projection ? exploredPath + visibleFeatures(fog.visible).map((f) => geoPath(projection)(f) || '').join('') : null), [exploredPath, fog.visible, projection]);
 
   const pathsById = useMemo(() => {
     if (!projection) return null;
@@ -361,7 +381,20 @@ const Map2DView = ({
   // transform, so React doesn't re-diff every path on every animation frame. Zoom level (k) stays a
   // dependency because stroke width is divided by it. Before this, each frame of a d3 pan
   // transition re-rendered all 4,482 paths — janky on a phone and the dominant cost of every pan.
-  const zoomK = transform.k;
+  // Zoom by transform, rebuild on settle (plans/rts-world-review.md 6.3): during a wheel or pinch
+  // zoom the <g> transform scales what is drawn; the paths, bands, badges and glyphs whose stroke
+  // and size depend on the zoom rebuild once, ZOOM_SETTLE_MS after the zoom stops.
+  const [settledK, setSettledK] = useState(transform.k);
+  // A jump (a focus, the minimap, a far zoom) rebuilds at once; only the small steps of a wheel or
+  // pinch gesture wait for it to stop.
+  useEffect(() => {
+    if (transform.k === settledK) return undefined;
+    const ratio = transform.k / settledK;
+    if (ratio > ZOOM_JUMP || ratio < 1 / ZOOM_JUMP) { setSettledK(transform.k); return undefined; }
+    const id = setTimeout(() => setSettledK(transform.k), ZOOM_SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [transform.k, settledK]);
+  const zoomK = settledK;
   // The raster pyramid over the base picture (rasterTiles.js): the level that matches the zoom,
   // only the tiles on screen. Keyed on the tile set, so panning inside a tile re-renders nothing.
   const rasterTileList = interactive && rasterRect ? visibleRasterTiles({ raster: rasterRect, transform, width, height, dpr: Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1), baseZ: baseRasterZoom(worldRasterSizeFor(width, height)) }) : [];
@@ -510,12 +543,6 @@ const Map2DView = ({
       </g>
     ); })];
     if (lens === 'supply') return [...supplyReach(state).map((t) => <path key={`r${t.tile}`} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-reach={t.tile} />), ...supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />)];
-    if (lens === 'estates') return estateTints(state).map((t) => { const [x, y] = at(t.tile); return (
-      <g key={t.tile} pointerEvents="none" data-lens-estate={t.tile} data-estate={t.estateId}>
-        <path d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" />
-        {zoomK >= HEX_FROM_ZOOM && <text x={x} y={y + 3 / zoomK} textAnchor="middle" fontSize={9 / zoomK} fontWeight="700" fill="#fff" stroke="rgba(0,0,0,0.7)" strokeWidth={2 / zoomK} paintOrder="stroke">{t.crest}</text>}
-      </g>
-    ); });
     if (lens === 'trade') return tradeLines(state).map((r) => {
       const pts = r.tiles.map((t) => at(t));
       const colour = r.plundered ? '#f87171' : r.kind === 'sea' ? '#38bdf8' : '#fbbf24';
@@ -546,7 +573,7 @@ const Map2DView = ({
     const onRoad = (t) => centres.has(t) || (!!ts[t]?.road && !ts[t]?.pillaged);
     const seen = new Set();
     const roads = [];
-    const within = landTilesWithin(hexWindow);
+    const within = landTilesWithin(hexWindow).filter(fog.isExplored);
     within.forEach((t) => { if (onRoad(t)) seen.add(t); });
     seen.forEach((t) => {
       const { lat, lon } = tiles.latLonOf(t); const [x0, y0] = projection([lon, lat]);
@@ -571,7 +598,7 @@ const Map2DView = ({
         : <polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
     });
     return out;
-  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens, closeGround]);
+  }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens, closeGround, fog]);
   // Marks of the last battles on the ground (fieldBattle.js) at the detail zoom.
   const battleMarkElements = useMemo(() => {
     if (!interactive || !projection || zoomK < CITY_DETAIL_ZOOM) return null;
@@ -622,7 +649,8 @@ const Map2DView = ({
   const settlerElements = useMemo(() => {
     if (!interactive || !projection) return null;
     const tiles = getTiles();
-    return Object.values(state.units).filter((u) => isSettler(u) && u.tile != null && (u.ownerId === state.playerNationId || zoomK >= 2)).map((u) => {
+    // Foreign settlers only in sight (fog of war).
+    return Object.values(state.units).filter((u) => isSettler(u) && u.tile != null && (u.ownerId === state.playerNationId || (zoomK >= 2 && fog.isVisible(u.tile)))).map((u) => {
       const { lat, lon } = tiles.latLonOf(u.tile);
       const [x, y] = projection([lon, lat]);
       const own = u.ownerId === state.playerNationId;
@@ -639,7 +667,7 @@ const Map2DView = ({
         </g>
       );
     });
-  }, [interactive, projection, state.units, state.playerNationId, zoomK, onSelectTile]);
+  }, [interactive, projection, state.units, state.playerNationId, zoomK, onSelectTile, fog]);
 
   // A badge per city (B5's region view): a disc with the size, the name from region zoom. Scaled
   // by 1/sqrt(zoom) so badges grow a little as the map zooms without covering the land.
@@ -655,7 +683,8 @@ const Map2DView = ({
       const ll = cityLatLon(state, city.id);
       if (!ll) return;
       const [x, y] = projection([ll.lng, ll.lat]);
-      const colour = city.owner ? getNationColor(city.owner) : '#94a3b8';
+      // A town remembered out of sight (fogView.js) is drawn greyed and static, as last seen.
+      const colour = city.ghost ? '#94a3b8' : city.owner ? getNationColor(city.owner) : '#94a3b8';
       const r = (city.isCapital ? 5 + (city.size || 1) * 0.35 : 3.5 + (city.size || 1) * 0.3) / Math.sqrt(zoomK);
       // On-map affordances (plans/civ-map-rework.md E6): a siege arc with the HP left, a wall mark,
       // an outpost's progress ring, a red mark for a city losing its loyalty.
@@ -675,7 +704,7 @@ const Map2DView = ({
         return;
       }
       out.push(
-        <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
+        <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} data-ghost={city.ghost ? '1' : undefined} opacity={city.ghost ? 0.6 : undefined} style={{ cursor: 'pointer' }} onClick={(e) => handleClick(city.id, e)}>
           <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} strokeDasharray={city.outpost ? `${2 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}` : undefined} />
           {/* The skyline of the owner's age and the town's size (art spec section 8), inside the disc. */}
           {!city.outpost && <image href={cityIconUrl(townTier(city)?.id, ageOf(city.owner))} x={-r * 0.92} y={-r * 0.92} width={r * 1.84} height={r * 1.84} pointerEvents="none" data-city-icon={townTier(city)?.id} />}
@@ -740,6 +769,7 @@ const Map2DView = ({
           {warBorderElements}
           {hexPath && zoomK >= HEX_FROM_ZOOM && <path d={hexPath} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={0.6 / zoomK} pointerEvents="none" data-testid="hex-mesh" />}
         </g>
+        {fogWashPath && <path d={fogWashPath} fillRule="evenodd" fill="rgba(15,23,42,0.55)" stroke="none" pointerEvents="none" data-testid="fog-wash" />}
         {lensElements && <g data-testid="lens-layer" data-lens={lens}>{lensElements}</g>}
         {glyphElements}
         {battleMarkElements}
@@ -747,6 +777,8 @@ const Map2DView = ({
         {marchElements}
         {settlerElements}
         {badgeElements}
+        {/* Unexplored: one dark mask over everything, the explored world cut out of it. */}
+        {fogMaskPath && <path d={fogMaskPath} fillRule="evenodd" fill="#0b1120" stroke="rgba(148,163,184,0.25)" strokeWidth={0.8 / zoomK} pointerEvents={interactive ? 'all' : 'none'} data-testid="fog-mask" />}
       </g>
     </svg>
   );

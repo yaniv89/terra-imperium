@@ -6,9 +6,10 @@
 import { createRng } from '../../utils/rng';
 import { sectorAt } from './tileContext';
 
-export const TILE = { OPEN: 0, FOREST: 1, WATER: 2, ROCK: 3, ROAD: 4, SAND: 5, FORD: 6, BUILDING: 7 };
+// RUBBLE: a city structure's ground after it fell (src/battle/sim/cityStructures.js): passable, slow.
+export const TILE = { OPEN: 0, FOREST: 1, WATER: 2, ROCK: 3, ROAD: 4, SAND: 5, FORD: 6, BUILDING: 7, RUBBLE: 8 };
 // Movement cost per tile in eighths (8 = normal); 0 = impassable for ground units.
-export const TILE_COST = [8, 11, 0, 0, 6, 10, 13, 0];
+export const TILE_COST = [8, 11, 0, 0, 6, 10, 13, 0, 13];
 export const isPassable = (tile) => TILE_COST[tile] > 0;
 
 export const hashString = (s) => {
@@ -182,7 +183,9 @@ const generateNavalMap = ({ w, h, tileContext, rng }) => {
   return { w, h, tiles, height, keep, points: [], landing: false, naval: true, attackerEdge: 1, attackerZone: { x0: 1, y0: 2, x1: 11, y1: h - 3 } };
 };
 
-export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null, naval = false }) => {
+// How far in from the east edge the keep stands (tiles).
+export const KEEP_INSET = 14;
+export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, roads = 1, landing = false, tileContext = null, naval = false, keepInset = KEEP_INSET }) => {
   const { w, h } = getMapSize(combatWidth);
   if (naval) return generateNavalMap({ w, h, tileContext, rng: createRng(hashString(tileContext ? `sea:tile:${tileContext.tile}` : `sea:${regionId}`)) });
   const tpl = TEMPLATES[terrain] || TEMPLATES.mixed;
@@ -256,7 +259,7 @@ export const generateMap = ({ regionId, terrain, combatWidth, pointCount = 0, ro
   }
 
   // Keep and deploy zones are always clear ground.
-  const keep = { x: w - 14, y: midY };
+  const keep = { x: w - keepInset, y: midY }; // a city assault moves it in so the whole walled town fits (cityBattle.js)
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < 12; x++) if (tiles[y * w + x] !== TILE.WATER || !tpl.coast) tiles[y * w + x] = TILE.OPEN;
   carveDisc(tiles, w, h, keep.x, keep.y, 9, TILE.OPEN);
   for (let y = keep.y - 1; y <= keep.y + 1; y++) for (let x = keep.x - 1; x <= keep.x + 1; x++) tiles[y * w + x] = TILE.BUILDING;

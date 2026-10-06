@@ -9,10 +9,11 @@ import { getCounterMultiplier, getSiegeMultiplier } from '../../data/unitClasses
 import { getPromotionMoraleLossMultiplier, applySapperToSiegeMultiplier } from '../../data/promotions';
 import { nextRandom } from './rng';
 import { angleBetween, angleDiff, distSq, isqrt, turnToward } from './fixed';
-import { queryRadius } from './pathing';
+import { buildTargetGrid, queryRadius } from './pathing';
 import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './constants';
 import { canSeeSquad } from './fog';
 import { razeBuilding } from './buildings';
+import { collapseFootprint } from './cityStructures';
 import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
 import { moraleFromLosses } from './moraleMath';
 
@@ -165,6 +166,7 @@ export const attackStructure = (w, a, s) => {
     s.alive = false;
     if (s.kind === 'building') razeBuilding(w, s, a.side);
     else w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id });
+    collapseFootprint(w, s);
   }
 };
 
@@ -187,15 +189,34 @@ const validTargetFor = (q, t, w = null) => {
 };
 
 // Pick the best enemy squad within `radius`, or the nearest living structure for attackers.
+// Only enemies are scanned (the side-split target grid, pathing.js buildTargetGrid), cell by cell;
+// ties go to the lowest squad index, the same pick as a scan in index order.
 export const acquireTarget = (w, q, radius) => {
   let best = -1; let bestScore = 0;
-  queryRadius(w, q.x, q.y, radius).forEach((j) => {
-    const t = w.squads[j];
-    if (!validTargetFor(q, t, w)) return;
-    if (q.stats.minRange && distSq(q.x, q.y, t.x, t.y) < q.stats.minRange * q.stats.minRange) return;
-    const score = targetScore(q, t);
-    if (score > bestScore) { bestScore = score; best = j; }
-  });
+  const g = w.targetGrid || buildTargetGrid(w);
+  if (g.n) {
+    const { cell, cx0, cy0, cols, rows, start, items, px, py } = g;
+    const enemy = q.side === 0 ? 1 : 0; // a squad's side is 0 or 1
+    const r2 = radius * radius;
+    const minR2 = q.stats.minRange ? q.stats.minRange * q.stats.minRange : 0;
+    const ax = Math.max(Math.floor((q.x - radius) / cell) - cx0, 0); const bx = Math.min(Math.floor((q.x + radius) / cell) - cx0, cols - 1);
+    const ay = Math.max(Math.floor((q.y - radius) / cell) - cy0, 0); const by = Math.min(Math.floor((q.y + radius) / cell) - cy0, rows - 1);
+    for (let cy = ay; cy <= by; cy++) {
+      for (let cx = ax; cx <= bx; cx++) {
+        const b = (cy * cols + cx) * 2 + enemy;
+        for (let s = start[b], end = start[b + 1]; s < end; s++) {
+          const ddx = px[s] - q.x; const ddy = py[s] - q.y;
+          const d2 = ddx * ddx + ddy * ddy;
+          if (d2 > r2 || d2 < minR2) continue;
+          const j = items[s];
+          const t = w.squads[j];
+          if (!validTargetFor(q, t, w)) continue;
+          const score = targetScore(q, t);
+          if (score > bestScore || (score === bestScore && best >= 0 && j < best)) { bestScore = score; best = j; }
+        }
+      }
+    }
+  }
   if (best >= 0 && !(q.stats.structureBonus && structureTargetIndex(w, q, radius) >= 0)) return { kind: 'squad', index: best };
   const si = q.side === SIDE_ATTACKER && !q.stats.airOnly ? structureTargetIndex(w, q, radius) : -1;
   if (si >= 0) return { kind: 'structure', index: si };
@@ -206,7 +227,9 @@ export const acquireTarget = (w, q, radius) => {
 const structureTargetIndex = (w, q, radius) => {
   let best = -1; let bestD = Infinity;
   w.structures.forEach((s, i) => {
-    if (!s.alive) return;
+    // houses, walls, the gate and unarmed towers are taken down only on an explicit order (the
+    // ring is passed through its gate; cityStructures.js); the keep, armed towers and buildings by anyone
+    if (!s.alive || s.passive || !(s.kind === 'keep' || s.kind === 'building' || s.damage > 0)) return;
     const d = distSq(q.x, q.y, s.x, s.y) - s.radius * s.radius;
     const limit = (radius + s.radius) * (radius + s.radius);
     if (d > limit) return;

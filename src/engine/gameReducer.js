@@ -4,7 +4,6 @@ import { atSea, touchesCoastOf } from './fleets';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
 import { abandonColony, foundColony, validateColony } from './colonies';
-import { applyActionPolitics } from './actionPolitics';
 import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
@@ -42,13 +41,6 @@ import {
 } from '../data/government';
 import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clampIdentity } from '../data/identity';
 import { getLaw, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
-import {
-  createInitialEstates, getPrivilege, clampCrownLand, CROWN_LAND_DEFAULT,
-  CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SELL_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY,
-  CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS, ESTATE_INTERACTION_COOLDOWN_TURNS,
-  ESTATE_ASK_LOYALTY_PENALTY, REVOKE_PRIVILEGE_LOYALTY_PENALTY, ESTATE_LABELS, ESTATE_LOYALTY_LOW_THRESHOLD
-} from '../data/estates';
-import { canDoEstateInteraction } from './estates';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
@@ -87,11 +79,11 @@ import {
   COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD, CLIMATE_RESILIENCE_MAX,
   CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION,
   ARMY_MAINTENANCE_DEFAULT, FUSION_GRID_ACTIVATION_HELIUM3,
-  MAX_RIVALS, MARRIAGE_HOSTILITY_REDUCTION, MARRIAGE_HEIR_CLAIM_BONUS,
+  MAX_RIVALS, MARRIAGE_HOSTILITY_REDUCTION,
   BREAK_ALLIANCE_HOSTILITY_INCREASE, INSULT_HOSTILITY_INCREASE, STARTING_DIPLOMATS,
   TRUCE_BREAK_STABILITY_PENALTY, TRUCE_BREAK_PRESTIGE_PENALTY, TRUCE_BREAK_AE_AGAINST_NEIGHBORS,
   VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV,
-  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD, SECURE_SUCCESSION_CLAIM } from '../data/actionCosts';
+  ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { replayBattle } from '../battle/sim/replay';
@@ -111,7 +103,8 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
-import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost, getSuccessionStyle, generateHeir, generateConsort, ADOPTED_HEIR_CLAIM_PENALTY } from './succession';
+import { initFog, updateFog, fogOn, hasMet } from './fog';
+import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './rulers';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
 import { getModifier, getRegionModifier } from './modifiers/sheet';
@@ -130,6 +123,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
+import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 
@@ -143,7 +137,7 @@ const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false, fog = true } = {}) => {
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
@@ -151,14 +145,14 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // start on the tile grid at the end of this function); `regions` is empty until then.
   const regions = {};
 
-  // Ruler/heir generation (plan §M3) draws from a seeded rng so the whole nations table stays
+  // Ruler generation (plan §M3) draws from a seeded rng so the whole nations table stays
   // reproducible from state.rngSeed alone — the seed captured at the end of this loop already
-  // reflects every draw made generating all 240 rulers/heirs, so turn 1 continues deterministically
+  // reflects every draw made generating all 240 rulers, so turn 1 continues deterministically
   // from there rather than replaying the same draws again. `rngSeed` is an optional override (tests,
   // and the edge-bundle parity check) so the WHOLE initial state — not just the final stored seed —
   // can be pinned and reproduced; real gameplay always omits it and gets fresh randomness.
   const baseSeed = rngSeed ?? randomSeed();
-  const successionRng = createRng(baseSeed);
+  const rulerRng = createRng(baseSeed);
 
   // A peoples world (new games, phase W0: src/engine/worldgen/peoplesWorld.js) draws its majors
   // from the 150-people pool with the world seed; an old country id for the player maps to the
@@ -189,10 +183,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // Every nation of the world gets a record — any of them can be the player's.
   const nations = {};
   Object.entries(nationSource).forEach(([id, data]) => {
-    // No nation starts with a government adopted, so none starts with an heir either (heirs only
-    // exist under a hereditary government — see succession.js's getSuccessionStyle) — one is
-    // generated the first time that nation's reign ends after adopting one.
-    const ruler = generateRuler(id, successionRng, { turnNumber: 1, age, gameSpeed });
+    const ruler = generateRuler(id, rulerRng, { turnNumber: 1, age, gameSpeed });
     nations[id] = {
       id,
       name: data.name,
@@ -221,17 +212,10 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       laws: { ...DEFAULT_LAWS },
       lawCooldowns: {},
       identityShiftCooldownTurn: 0,
-      // Estates (plan §M9) — Clergy/Nobility/Burghers from the start; Labor is added once the
-      // nation reaches the Modern age (resolveTurn.js's age-transition check). Every nation gets
-      // the field so staticSources can read any nation's threshold bonus/malus generically, but
-      // only the player can grant/revoke privileges or run an interaction today; AI parity is M16.
-      estates: createInitialEstates(),
-      crownLand: CROWN_LAND_DEFAULT,
-      estateInteractionCooldowns: {},
       // Set Tax Rate (plan §M11) — every nation gets a rate so calcIncome/nextUnrest can read any
       // nation's generically; only the player can change theirs today. taxRateCooldownUntil is the
       // turn the rate can next change (0 = available now), the same "store the unlock turn, default
-      // 0" shape lawCooldowns/estateInteractionCooldowns already use so a fresh nation isn't already
+      // 0" shape lawCooldowns already uses so a fresh nation isn't already
       // on cooldown at turn 0. extortionateTaxProgress backs the extortionate tier's periodic
       // stability drain (nationalPower.js), the same shape stabilityDecayProgress already uses.
       taxRate: DEFAULT_TAX_RATE,
@@ -285,7 +269,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       ae: {},
       // Rivals (plan §M12) — up to MAX_RIVALS nation ids the player has designated; only the
       // player acts on this today, the same "every nation carries the field generically" pattern
-      // as estates/laws/taxRate above.
+      // as laws/taxRate above.
       rivals: [],
       // Diplomats (plan §M12) — a flat count for now (no bonus sources wired yet); diplomatTasks
       // holds at most `diplomats` concurrent { targetId, task, startedTurn } assignments.
@@ -295,12 +279,11 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // action can't be spammed for repeated hostility reduction against the same target.
       marriageWith: [],
 
-      // Rulers, heirs, advisors (plan §M3) — every nation gets a ruler so resolveTurn.js's
-      // succession pass and the modifier engine's ruler-skill source (src/engine/modifiers/
+      // Rulers and advisors (plan §M3) — every nation gets a ruler so resolveTurn.js's
+      // rulers pass and the modifier engine's ruler-skill source (src/engine/modifiers/
       // sources.js) can read any nation's generically; only the player's ruler/advisors actually
       // affect anything mechanically today (AI nations don't consume power pools until M16).
       ruler,
-      heir: null,
       advisors: { adm: null, dip: null, mil: null },
 
       // National stability, legitimacy, prestige, overextension (plan §M4) — every nation carries
@@ -320,13 +303,13 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // getCapital for why getNationCapital ITSELF stays untouched (buildings.js/greatProjects.js's
       // site rules read the ORIGINAL capital deliberately). lowStabilityStreak backs the civil war
       // stability trigger (src/engine/civilWar.js); civilWar/disasters/libertyDesire are scaffolded
-      // for every nation the same "generic reader, real for player and AI both" way stability/
-      // estates/succession already are (every nation gets real per-turn crisis processing, matching
-      // M3/M4/M9's own precedent — this is deliberately NOT deferred to M16's AI-parity milestone).
+      // for every nation the same "generic reader, real for player and AI both" way stability
+      // and rulers already are (every nation gets real per-turn crisis processing, matching
+      // M3/M4's own precedent — this is deliberately NOT deferred to M16's AI-parity milestone).
       capitalRegionId: getNationCapital(id),
       lowStabilityStreak: 0,
       civilWar: null,
-      disasters: { estateTakeover: 0, economicCollapse: 0, successionWar: 0, revolution: 0 },
+      disasters: { economicCollapse: 0, revolution: 0 },
       libertyDesire: 0,
 
       // AI parity (plan §M16). Only non-player nations get these — the player keeps living on
@@ -462,7 +445,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     // Advisor candidates (plan §M3) — only the player's own is ever generated/read today (AI
     // nations don't hire advisors until M16 gives them a real economy to hire with), keyed by
     // nation id the same way state.satellites is, in case that changes later.
-    advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, successionRng) },
+    advisorPool: { [playerNationId]: generateAdvisorCandidates(playerNationId, rulerRng) },
 
     // Space Race mission ladder (plan §10.4 Layer 3, src/data/spaceMissions.js) — a mission in
     // progress lives in spaceMissionProgress keyed by id with turns remaining; completing it moves
@@ -473,17 +456,18 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     diplomaticLeadershipStreak: 0,
 
     // Deterministic turn resolution — see src/utils/rng.js
-    // Carries forward whatever successionRng advanced to while generating all 240 nations' rulers
+    // Carries forward whatever rulerRng advanced to while generating all 240 nations' rulers
     // above, rather than a fresh randomSeed() — turn 1 then continues deterministically from
     // exactly where ruler generation left off, instead of silently discarding those draws.
-    rngSeed: successionRng.getSeed(),
+    rngSeed: rulerRng.getSeed(),
 
     // Logs
     logs: [
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  const started = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late })));
+  // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
+  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late }))), { on: fog });
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
@@ -607,6 +591,24 @@ const applyRazedBuildings = (state, regionId, razed) => {
   };
 };
 
+// A commanded city battle's damage to the real city (src/engine/cityManifest.js, master plan 6.8):
+// the houses, buildings and walls destroyed or damaged, by manifest id, under the 50% rule. The
+// manifest is the one the battle loaded (`before`: the state the battle was built from); a battle
+// with no city report (an old client) still costs the razed buildings a tier each.
+const applyCityDamageAfterBattle = (before, after, regionId, tactical) => {
+  const report = tactical?.cityDamage;
+  if (!report) return applyRazedBuildings(after, regionId, tactical?.razed);
+  const manifest = cityManifestOf(before, regionId);
+  const occupation = !!after.regions[regionId] && before.regions[regionId]?.owner !== after.regions[regionId].owner;
+  // buildings the sim razed are destroyed structures too (bld-<category>)
+  const razed = (tactical.razed || []).map((c) => `bld-${c}`);
+  const { state: next, log } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(report.destroyed || []), ...razed])], damaged: report.damaged || [] }, { manifest, occupation });
+  if (!log) return next;
+  return { ...next, logs: [...next.logs, { year: next.year, message: `The fighting left its mark on ${REGIONS_DATA[regionId]?.name || regionId}: ${log}.`, type: LogTypes.COMBAT }] };
+};
+const MANIFEST_ID = /^[a-z][a-z0-9_-]{0,47}$/;
+const cleanIds = (list) => (Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && MANIFEST_ID.test(id)))].slice(0, 600) : []);
+
 export const sanitizeTacticalResult = (state, pb, result) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
   // Synthetic expeditionary troops (defense battles) live on the battle record, not in state.units.
@@ -646,7 +648,8 @@ export const sanitizeTacticalResult = (state, pb, result) => {
         decisive: !!report.tactical?.decisive,
         xpBonusById: bonus,
         powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
-        razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : []
+        razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : [],
+        ...(report.tactical?.cityDamage ? { cityDamage: { destroyed: cleanIds(report.tactical.cityDamage.destroyed), damaged: cleanIds(report.tactical.cityDamage.damaged) } } : {})
       }
     }
   };
@@ -789,7 +792,7 @@ const reduceAction = (state, action) => {
     }
 
     case ActionTypes.ASSIGN_GOVERNOR: {
-      // Governors (governors.js): a court candidate or the heir takes a city group's seat.
+      // Governors (governors.js): a court candidate takes a city group's seat.
       const { seatId, candidateId } = action.payload;
       const nation = state.nations[state.playerNationId];
       const group = cityGroups(state, state.playerNationId).find((g) => g.seat === seatId);
@@ -1642,26 +1645,26 @@ const reduceAction = (state, action) => {
         if (!def) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
         const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
-        return applyRazedBuildings(applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical.razed);
+        return applyCityDamageAfterBattle(state, applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical);
       }
       // An assault on an independent has no war (hostility.js): it stands while the target may still be attacked.
       if (!targetRegion || (pb.warId ? !war : !canAttack(state, pb.attackerNationId || state.playerNationId, targetRegion.owner))) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
       const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
       if (pb.kind === 'amphibious') {
-        return applyRazedBuildings(applyAmphibiousLanding(
+        return applyCityDamageAfterBattle(state, applyAmphibiousLanding(
           afterMissiles,
           { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
           safe,
           { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-        ), pb.targetRegionId, safe.report.tactical.razed);
+        ), pb.targetRegionId, safe.report.tactical);
       }
-      return applyRazedBuildings(applyInvasionResult(
+      return applyCityDamageAfterBattle(state, applyInvasionResult(
         afterMissiles,
         { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
         safe,
         { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-      ), pb.targetRegionId, safe.report.tactical.razed);
+      ), pb.targetRegionId, safe.report.tactical);
     }
 
     case ActionTypes.ABANDON_TACTICAL_BATTLE: {
@@ -2058,17 +2061,6 @@ const reduceAction = (state, action) => {
       const costs = ACTION_COSTS.changeGovernmentType;
       if (!type || !canChangeGovernmentType(nation, typeId, state.age)) return state;
       if (!canAfford(state.resources, costs)) return state;
-      // Plan §M21 balance fix: scripts/simulate.mjs found ~30-40% of nations hitting a Succession
-      // Crisis (and its 40% civil-war roll) almost immediately after becoming a monarchy — because
-      // `heir` stays null until a reign actually ENDS (see createInitialState's own comment on why
-      // it starts null), a brand-new monarchy's first-ever reign end was ALWAYS heirless. Generating
-      // an heir the moment a nation first becomes hereditary — same as a real dynasty already having
-      // an heir apparent — closes that gap without touching the succession-crisis mechanic itself.
-      const rng = createRng(state.rngSeed);
-      const needsHeir = getSuccessionStyle({ type: typeId }) === 'hereditary' && !nation.heir;
-      const heir = needsHeir ? generateHeir(state.playerNationId, rng, nation.ruler?.dynasty, state.turnNumber) : nation.heir;
-      // The heir apparent has a parent: a new monarchy's ruler comes married (to a noble).
-      const ruler = needsHeir && nation.ruler && !nation.ruler.consort ? { ...nation.ruler, consort: generateConsort(state.playerNationId, rng) } : nation.ruler;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
@@ -2077,12 +2069,9 @@ const reduceAction = (state, action) => {
           [state.playerNationId]: {
             ...nation,
             government: { type: typeId, reforms: resetReformsForType(typeId, state.age) },
-            stability: clampStability((nation.stability || 0) - 2),
-            heir,
-            ruler
+            stability: clampStability((nation.stability || 0) - 2)
           }
         },
-        rngSeed: rng.getSeed(),
         logs: [...state.logs, { year: state.year, message: `Your empire has become a ${type.name}. (-2 stability)`, type: LogTypes.MILESTONE }]
       };
     }
@@ -2145,155 +2134,6 @@ const reduceAction = (state, action) => {
           }
         },
         logs: [...state.logs, { year: state.year, message: `Enacted the ${law.name} law.`, type: LogTypes.MILESTONE }]
-      };
-    }
-
-    case ActionTypes.SEIZE_LAND: {
-      const nation = state.nations[state.playerNationId];
-      const costs = ACTION_COSTS.seizeLand;
-      if (!canDoEstateInteraction(nation, 'seizeLand', state.turnNumber)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      const estates = {};
-      Object.entries(nation.estates).forEach(([id, estate]) => {
-        estates[id] = { ...estate, loyalty: Math.max(0, estate.loyalty - CROWN_LAND_SEIZE_LOYALTY_PENALTY) };
-      });
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: {
-          ...state.nations,
-          [state.playerNationId]: {
-            ...nation,
-            crownLand: clampCrownLand(nation.crownLand + CROWN_LAND_SEIZE_AMOUNT),
-            estates,
-            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, seizeLand: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
-          }
-        },
-        logs: [...state.logs, { year: state.year, message: `Seized crown land from the estates. (+${CROWN_LAND_SEIZE_AMOUNT} crown land, -${CROWN_LAND_SEIZE_LOYALTY_PENALTY} loyalty for every estate)`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.SELL_LAND: {
-      const nation = state.nations[state.playerNationId];
-      const costs = ACTION_COSTS.sellLand;
-      if (!canDoEstateInteraction(nation, 'sellLand', state.turnNumber)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
-      const goldGain = 5 * totalDev;
-      const afterCost = applyCosts(state.resources, costs);
-      const burghers = nation.estates.burghers;
-      return {
-        ...state,
-        resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
-        nations: {
-          ...state.nations,
-          [state.playerNationId]: {
-            ...nation,
-            crownLand: clampCrownLand(nation.crownLand - CROWN_LAND_SELL_AMOUNT),
-            estates: { ...nation.estates, burghers: { ...burghers, loyalty: Math.min(100, burghers.loyalty + CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS) } },
-            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, sellLand: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
-          }
-        },
-        logs: [...state.logs, { year: state.year, message: `Sold crown land to the burghers for ${formatMoney(goldGain)}. (-${CROWN_LAND_SELL_AMOUNT} crown land, +${CROWN_LAND_SELL_BURGHER_LOYALTY_BONUS} burgher loyalty)`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.GRANT_ESTATE_PRIVILEGE: {
-      const { estateId, privilegeId } = action.payload;
-      const nation = state.nations[state.playerNationId];
-      const estate = nation.estates?.[estateId];
-      const privilege = getPrivilege(estateId, privilegeId);
-      const costs = ACTION_COSTS.grantEstatePrivilege;
-      if (!estate || !privilege || estate.privileges.includes(privilegeId)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: {
-          ...state.nations,
-          [state.playerNationId]: { ...nation, estates: { ...nation.estates, [estateId]: { ...estate, privileges: [...estate.privileges, privilegeId] } } }
-        },
-        logs: [...state.logs, { year: state.year, message: `Granted the ${privilege.name} privilege to the ${ESTATE_LABELS[estateId]}.`, type: LogTypes.MILESTONE }]
-      };
-    }
-
-    case ActionTypes.REVOKE_ESTATE_PRIVILEGE: {
-      const { estateId, privilegeId } = action.payload;
-      const nation = state.nations[state.playerNationId];
-      const estate = nation.estates?.[estateId];
-      const privilege = getPrivilege(estateId, privilegeId);
-      const costs = ACTION_COSTS.revokeEstatePrivilege;
-      if (!estate || !privilege || !estate.privileges.includes(privilegeId)) return state;
-      if (!canAfford(state.resources, costs)) return state;
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        nations: {
-          ...state.nations,
-          [state.playerNationId]: {
-            ...nation,
-            stability: clampStability((nation.stability || 0) - 1),
-            estates: {
-              ...nation.estates,
-              [estateId]: { ...estate, privileges: estate.privileges.filter((id) => id !== privilegeId), loyalty: Math.max(0, estate.loyalty - REVOKE_PRIVILEGE_LOYALTY_PENALTY) }
-            }
-          }
-        },
-        logs: [...state.logs, { year: state.year, message: `Revoked the ${privilege.name} privilege from the ${ESTATE_LABELS[estateId]}. (-1 stability, -${REVOKE_PRIVILEGE_LOYALTY_PENALTY} loyalty)`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.CLERGY_TITHE: {
-      const nation = state.nations[state.playerNationId];
-      const clergy = nation.estates?.clergy;
-      const costs = ACTION_COSTS.clergyTithe;
-      if (!clergy) return state;
-      // Cooldown + loyalty floor: without them this was free, unlimited gold — loyalty just pinned at 0
-      // and every further click cost nothing (10 tithes + 10 levies on turn 1 = +9,560 gold/manpower).
-      if (!canDoEstateInteraction(nation, 'clergyTithe', state.turnNumber)) return reject(state, `The Clergy can be asked for a tithe again on turn ${nation.estateInteractionCooldowns.clergyTithe}.`);
-      if (clergy.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return reject(state, `The Clergy refuse a tithe — their loyalty is below ${ESTATE_LOYALTY_LOW_THRESHOLD}.`);
-      if (!canAfford(state.resources, costs)) return reject(state, `Not enough ADM for a tithe (need ${costs.adm}).`);
-      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
-      const goldGain = totalDev * 2;
-      const afterCost = applyCosts(state.resources, costs);
-      return {
-        ...state,
-        resources: { ...afterCost, gold: (afterCost.gold || 0) + goldGain },
-        nations: {
-          ...state.nations,
-          [state.playerNationId]: {
-            ...nation,
-            estates: { ...nation.estates, clergy: { ...clergy, loyalty: Math.max(0, clergy.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } },
-            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, clergyTithe: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
-          }
-        },
-        logs: [...state.logs, { year: state.year, message: `The Clergy tithes ${formatMoney(goldGain)} to the crown. (-${ESTATE_ASK_LOYALTY_PENALTY} clergy loyalty)`, type: LogTypes.ACTION }]
-      };
-    }
-
-    case ActionTypes.NOBILITY_LEVIES: {
-      const nation = state.nations[state.playerNationId];
-      const nobility = nation.estates?.nobility;
-      const costs = ACTION_COSTS.nobilityLevies;
-      if (!nobility) return state;
-      if (!canDoEstateInteraction(nation, 'nobilityLevies', state.turnNumber)) return reject(state, `The Nobility can be asked for levies again on turn ${nation.estateInteractionCooldowns.nobilityLevies}.`);
-      if (nobility.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return reject(state, `The Nobility refuse to raise levies — their loyalty is below ${ESTATE_LOYALTY_LOW_THRESHOLD}.`);
-      if (!canAfford(state.resources, costs)) return reject(state, `Not enough ADM to raise levies (need ${costs.adm}).`);
-      const totalDev = Object.values(state.regions).reduce((sum, r) => sum + (r.owner === state.playerNationId ? getTotalDev(r) : 0), 0);
-      const hrGain = totalDev * 2;
-      const afterCost = applyCosts(state.resources, costs);
-      return {
-        ...state,
-        resources: { ...afterCost, hr: (afterCost.hr || 0) + hrGain },
-        nations: {
-          ...state.nations,
-          [state.playerNationId]: {
-            ...nation,
-            estates: { ...nation.estates, nobility: { ...nobility, loyalty: Math.max(0, nobility.loyalty - ESTATE_ASK_LOYALTY_PENALTY) } },
-            estateInteractionCooldowns: { ...nation.estateInteractionCooldowns, nobilityLevies: state.turnNumber + ESTATE_INTERACTION_COOLDOWN_TURNS }
-          }
-        },
-        logs: [...state.logs, { year: state.year, message: `The Nobility raises levies: +${Math.round(hrGain)} manpower. (-${ESTATE_ASK_LOYALTY_PENALTY} nobility loyalty)`, type: LogTypes.ACTION }]
       };
     }
 
@@ -2719,80 +2559,16 @@ const reduceAction = (state, action) => {
       const target = state.nations[nationId];
       const costs = ACTION_COSTS.proposeMarriage;
       if (!target || target.isAtWar) return state;
-      // Plan: "both monarchies" — this codebase's own real hereditary/monarchy check (M3).
-      if (getSuccessionStyle(player.government) !== 'hereditary' || getSuccessionStyle(target.government) !== 'hereditary') return state;
+      // Plan: "both monarchies".
+      if (player.government?.type !== 'monarchy' || target.government?.type !== 'monarchy') return state;
       if ((player.marriageWith || []).includes(nationId)) return state;
       if (!canAfford(state.resources, costs)) return state;
       const nextTarget = { ...target, hostility: Math.max(target.hostilityFloor || 0, target.hostility - MARRIAGE_HOSTILITY_REDUCTION) };
-      // An unmarried ruler weds a royal of that house themself: a consort, so an heir can be born
-      // (src/engine/succession.js's processRoyalBirth), with the stronger claim of a royal match.
-      const rng = createRng(state.rngSeed);
-      const consort = player.ruler && !player.ruler.consort ? generateConsort(nationId, rng, { foreign: true }) : null;
-      const nextPlayer = {
-        ...player,
-        marriageWith: [...(player.marriageWith || []), nationId],
-        ruler: consort ? { ...player.ruler, consort } : player.ruler,
-        heir: player.heir ? { ...player.heir, claim: Math.min(100, player.heir.claim + MARRIAGE_HEIR_CLAIM_BONUS) } : player.heir
-      };
-      const message = consort
-        ? `${player.ruler.name} weds ${consort.name} of ${target.name} — a royal match that binds the two houses.`
-        : `A royal marriage was arranged with ${target.name}.${player.heir ? ` (+${MARRIAGE_HEIR_CLAIM_BONUS} heir claim)` : ''}`;
       return {
         ...state,
         resources: applyCosts(state.resources, costs),
-        rngSeed: consort ? rng.getSeed() : state.rngSeed,
-        nations: { ...state.nations, [state.playerNationId]: nextPlayer, [nationId]: nextTarget },
-        logs: [...state.logs, { year: state.year, message, type: LogTypes.DIPLOMACY }]
-      };
-    }
-
-    // ---- The royal family (src/engine/succession.js) ----
-
-    case ActionTypes.MARRY_NOBLE: {
-      const player = state.nations[state.playerNationId];
-      if (getSuccessionStyle(player.government) !== 'hereditary') return reject(state, 'Only a monarchy needs a royal marriage — your government chooses its successor another way.');
-      if (!player.ruler || player.ruler.consort) return reject(state, 'Your ruler is already married.');
-      if (!canAfford(state.resources, ACTION_COSTS.marryNoble)) return reject(state, 'Not enough gold for the wedding.');
-      const rng = createRng(state.rngSeed);
-      const consort = generateConsort(state.playerNationId, rng);
-      return {
-        ...state,
-        resources: applyCosts(state.resources, ACTION_COSTS.marryNoble),
-        rngSeed: rng.getSeed(),
-        nations: { ...state.nations, [state.playerNationId]: { ...player, ruler: { ...player.ruler, consort } } },
-        logs: [...state.logs, { year: state.year, message: `${player.ruler.name} marries ${consort.name}, of a noble house of the realm.`, type: LogTypes.DIPLOMACY }]
-      };
-    }
-
-    case ActionTypes.SECURE_SUCCESSION: {
-      // The warning's way out (plans/playtest-1.md P4): gold and favours buy the heir's claim up,
-      // so the succession no longer rolls a crisis (succession.js: a crisis needs a claim under 20).
-      const player = state.nations[state.playerNationId];
-      if (!player.heir) return reject(state, 'No heir to secure.');
-      if (player.heir.claim >= 20 + SECURE_SUCCESSION_CLAIM) return reject(state, 'The succession is already secure.');
-      if (!canAfford(state.resources, ACTION_COSTS.secureSuccession)) return reject(state, 'Not enough gold and DIP to secure the succession.');
-      return {
-        ...state,
-        resources: applyCosts(state.resources, ACTION_COSTS.secureSuccession),
-        nations: { ...state.nations, [state.playerNationId]: { ...player, heir: { ...player.heir, claim: Math.min(100, player.heir.claim + SECURE_SUCCESSION_CLAIM) } } },
-        logs: [...state.logs, { year: state.year, message: `${player.heir.name}'s claim is secured (+${SECURE_SUCCESSION_CLAIM}): the great houses have been paid.`, type: LogTypes.MILESTONE }]
-      };
-    }
-
-    case ActionTypes.ADOPT_HEIR: {
-      // The fallback when no child comes: name a relative heir. Their claim is weak.
-      const player = state.nations[state.playerNationId];
-      if (getSuccessionStyle(player.government) !== 'hereditary') return reject(state, 'Only a monarchy names an heir.');
-      if (player.heir) return reject(state, 'You already have an heir.');
-      if (!canAfford(state.resources, ACTION_COSTS.adoptHeir)) return reject(state, 'Not enough ADM to legitimize a relative.');
-      const rng = createRng(state.rngSeed);
-      const heir = generateHeir(state.playerNationId, rng, player.ruler?.dynasty, state.turnNumber, ADOPTED_HEIR_CLAIM_PENALTY);
-      return {
-        ...state,
-        resources: applyCosts(state.resources, ACTION_COSTS.adoptHeir),
-        rngSeed: rng.getSeed(),
-        nations: { ...state.nations, [state.playerNationId]: { ...player, heir: { ...heir, adopted: true } } },
-        logs: [...state.logs, { year: state.year, message: `${heir.name}, a relative of House ${heir.dynasty}, is named heir (claim ${heir.claim}).`, type: LogTypes.DIPLOMACY }]
+        nations: { ...state.nations, [state.playerNationId]: { ...player, marriageWith: [...(player.marriageWith || []), nationId] }, [nationId]: nextTarget },
+        logs: [...state.logs, { year: state.year, message: `A royal marriage binds your house to ${target.name}.`, type: LogTypes.DIPLOMACY }]
       };
     }
 
@@ -3257,8 +3033,8 @@ const reduceAction = (state, action) => {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from
       // meta-progression localStorage via the component layer — see GameProvider.resetGame below.
       // This keeps gameReducer a pure function of (state, action).
-      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided } = action.payload || {};
-      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided });
+      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld } = action.payload || {};
+      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
       const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
       return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
     }
@@ -3292,9 +3068,30 @@ const reduceAction = (state, action) => {
 // see src/engine/saveMigrations.js for why this exists and what it does.
 export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 
+// Diplomacy needs contact (fog.js): these actions name a people in `payload.nationId`.
+const CONTACT_ACTIONS = new Set([
+  ActionTypes.DECLARE_WAR, ActionTypes.FABRICATE_CLAIM, ActionTypes.TRADE_AGREEMENT, ActionTypes.OPEN_BORDERS,
+  ActionTypes.DEMAND, ActionTypes.MILITARY_ALLIANCE, ActionTypes.GIFT_BRIBE, ActionTypes.ESPIONAGE,
+  ActionTypes.RIVAL_NATION, ActionTypes.PROPOSE_MARRIAGE, ActionTypes.INSULT, ActionTypes.ASSIGN_DIPLOMAT, ActionTypes.VASSALIZE
+]);
+// Actions after which the player's own sight is refreshed at once (an army moved, a city rose):
+// exploring and meeting peoples happen as you move, not only at the end of the turn.
+const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
+
 export const gameReducer = (state, action) => {
+  // A turn the worker resolved from `from` (src/services/turnClient.js): taken only while the game
+  // still stands at `from`, so an action taken meanwhile is never lost or doubled.
+  if (action?.type === ActionTypes.APPLY_TURN_RESULT) {
+    const { from, state: resolved } = action.payload || {};
+    return from === state && resolved ? syncWorldRegistry(resolved) : state;
+  }
   syncWorldRegistry(state);
-  const next = applyActionPolitics(state,reduceAction(state, action),action);
+  const target = action?.payload?.nationId;
+  if (CONTACT_ACTIONS.has(action?.type) && target && state.nations?.[target] && !hasMet(state, state.playerNationId, target)) {
+    return reject(state, 'You have not met that people yet: send scouts, armies or ships until you see their land.');
+  }
+  let next = reduceAction(state, action);
+  if (next !== state && !NO_FOG_REFRESH.has(action?.type) && fogOn(next) && (next.units !== state.units || next.regions !== state.regions)) next = updateFog(next, { onlyPlayer: true });
   const synced = syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
   // A peoples world keeps its titles and regiment numbers current (peopleNames.js; names only).
   return synced === state ? state : refreshPeopleNames(synced, state);

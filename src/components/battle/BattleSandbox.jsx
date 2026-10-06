@@ -5,11 +5,13 @@
 import React, { useMemo, useState } from 'react';
 import TacticalBattleScreen from './TacticalBattleScreen';
 import { buildSetupFromArmies } from '../../battle/setup/buildBattleSetup';
+import { buildTownManifest } from '../../data/townLayout';
 import { TEMPLATES } from '../../battle/setup/mapgen';
 import { tileContextOf } from '../../battle/setup/tileContext';
 import { getTiles } from '../../data/geo/tiles';
 import { AGE_ORDER } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
+import { makeBenchSetup } from '../../battle/bench/benchScenario';
 
 const PRESETS = {
   balanced: ['infantry', 'infantry', 'cavalry', 'ranged', 'ranged', 'siege', 'infantry'],
@@ -41,6 +43,16 @@ const sandboxPowers = (ageId, units) => {
 };
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+// `&city=small|medium|big`: assault a real city from its manifest (src/battle/setup/cityBattle.js);
+// `&style=levant` its land, `&ruined=4` houses already in ruins (from the third nearest the square out) and `&damaged=4` the next
+// damaged, as a second invasion of the same city finds them.
+const sandboxCity = (config) => {
+  if (!config.city) return {};
+  const cityManifest = buildTownManifest({ cityId: 'sandbox-city', ageId: config.ageId, tierId: config.city, style: params.get('style') || 'europe', seed: config.seed, capital: config.fortLevel >= 4, defenseTier: Math.max(0, Math.floor(config.fortLevel / 2)), buildings: { military: 0, economy: 1, culture: 1, food: 0, industry: 0, science: 1 } });
+  const houses = cityManifest.structures.filter((s) => s.kind === 'house').map((s) => s.id);
+  const nr = Number(params.get('ruined') || 0); const nd = Number(params.get('damaged') || 0);
+  return { cityManifest, cityDamage: { ruined: Object.fromEntries(houses.slice(2, 2 + nr).map((id) => [id, 5])), damaged: Object.fromEntries(houses.slice(2 + nr, 2 + nr + nd).map((id) => [id, 2])) } };
+};
 
 const BattleSandbox = () => {
   const [config, setConfig] = useState({
@@ -53,7 +65,9 @@ const BattleSandbox = () => {
     spectate: params.has('spectate'),
     fog: params.has('fog'),
     landing: params.has('landing'),
-    sea: params.has('sea')
+    sea: params.has('sea'),
+    bench: Math.max(0, Math.min(1000, Number(params.get('bench')) || 0)),
+    city: ['small', 'medium', 'big'].includes(params.get('city')) ? params.get('city') : null
   });
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
@@ -70,7 +84,9 @@ const BattleSandbox = () => {
     }
     return null;
   }, []);
-  const setup = useMemo(() => config.sea ? buildSetupFromArmies({
+  // `?battleSandbox&bench=300&autostart`: the kernel benchmark's battle (N squads a side, AI against
+  // AI, everyone on the field; src/battle/bench/benchScenario.js), to see and time the renderer at scale.
+  const setup = useMemo(() => config.bench ? makeBenchSetup(config.bench, config.seed + runId) : config.sea ? buildSetupFromArmies({
     tileContext: sampleTile != null ? tileContextOf(null, getTiles().neighbors[sampleTile].find((n) => getTiles().land[n] !== 1)) : null,
     regionId: `sandbox-sea-${config.seed}`, terrain: 'sea', battleType: 'naval', seed: config.seed + runId,
     attackerUnits: buildFleet('a', 'attacker', 1000, 'g_att'), defenderUnits: buildFleet('d', 'defender', 900, 'g_def'), generals: GENERALS,
@@ -100,7 +116,8 @@ const BattleSandbox = () => {
     isCapital: config.fortLevel >= 4,
     infrastructure: 5,
     deposits: ['iron', 'copper'],
-    controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai']
+    controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai'],
+    ...sandboxCity(config)
   }), [config, runId, sampleTile]);
 
   if (running) {

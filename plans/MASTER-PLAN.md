@@ -140,6 +140,16 @@ release, then deleted with `react-globe.gl` and `politicalTexture`. The roadmap'
 items (levels 6 and 7 of the raster, hillshade, land cover, HydroRIVERS) land on this map; the
 8,192 globe texture is dropped.
 
+Status (branch `claude/phase-a2-webgl-map`): done. `src/components/map/gl/` draws the map; the old
+SVG map ("Old map drawing") and the globe ("Show the globe") are settings, both off. Measured with
+`scripts/perf/map-pan.mjs --gpu` (the A2 report has the tables): panning the explored world at
+k 4 and 12 went from 11-15 fps to 107-132 fps on the 844x390 profile with the CPU slowed 4x, from
+40-55 to 101-144 fps on the desktop; the close view (k 40) from 15 to 78 and from 47 to 92. With
+software WebGL (no GPU, the worst case) the phone pans at 28-35 fps at k 1 to 12 (2 to 3 before),
+the close view stays slow (5 fps; 3 before). Left: delete the globe and the SVG map after one release; the world map window
+(MapModal) and the minimap still draw SVG; the art of batch 08 (map sprites) has placeholders
+(paths in `gl/mapSprites.js`).
+
 ## 6. Battles: the combined design
 
 The RTS plan's engineering (determinism, ledgers, escrow, idempotent outcome, snapshots, budgets)
@@ -165,6 +175,47 @@ stands. These sections amend it.
   as population frees up (deaths, retreats), in the order the player sets.
 - Control by **regiment** (box select regiments, regiment cards, formations); single units
   remain selectable. 300 single-unit orders are not playable on a 844x390 screen.
+- **Phase C result (2026-10-06, branch claude/phase-c-battle-kernel).** `node scripts/battle-bench.mjs`:
+  AI against AI, a full army mix, everyone on the field, 2,400 ticks; i7-12650H, one core pinned;
+  phone = x4 (review section 5); budget p95 <= 10 ms, p99 <= 20 ms (RTS plan 13.1).
+
+  | Sim entities a side | Before: mean / p95 ms | After: mean / p95 / p99 ms | Phone p95 after (x4) |
+  |---|---|---|---|
+  | 300 | 2.41 / 3.81 | 0.80 / 1.19 / 1.51 | 4.8: **go** |
+  | 500 | 5.26 / 8.90 | 1.42 / 2.13 / 2.78 | 8.5: go, little margin |
+  | 1,000 | 29.9 / 39.0 | 5.65 / 9.98 / 14.2 | about 25 to 40: **no** |
+
+  Same world hash before and after on every scenario (a pure speed change). The renderer is now
+  the limit: at 300 squads a side (about 10 figures each, 6,000 figures) a frame is 14 to 19
+  million triangles at zoom 1 and 3.6 million zoomed out (phone budget 0.5 million); the sim is
+  not. Before R1: frustum culling and a distance LOD for soldier layers, shadows off for the mass,
+  fewer figures per entity at scale, and packed transferable frames (13.3).
+- **Phase C2 result (2026-10-06, branch claude/phase-c2-battle-render): the renderer.** Edge on the
+  Intel UHD iGPU, 844x390, DPR 1, `?battleSandbox&bench=300&autostart`, dev server
+  (`.claude/skills/battle-lab/render-bench.mjs`; screenshots in plans/phase-c2/).
+
+  | 300 a side | Before: triangles / frame p50, p95 ms | After: triangles / frame p50, p95 ms |
+  |---|---|---|
+  | Default camera (zoom 1) | 20.8 M / 130, 136 | 0.43 M / 4.9, 6.5 |
+  | Default, CPU x4 | 16.6 M / 108, 126 | 0.41 M / 17.5, 35.9 |
+  | Close (zoom 2.2) | 15.5 M / 106, 133 | 0.43 M (max 0.54) / 4.7, 6.2 |
+  | Far (zoom 0.45) | 3.5 M / 40, 51 | 0.48 M / 7.7, 9.9 |
+
+  How: squads off screen are not written; three detail levels per soldier (full with shadows,
+  about 360 and about 60 triangles, clustered with the rig kept, `soldierLod.js`), one a frame by
+  size on screen within a 300k (phone) / 800k (desktop) triangle budget; past 80 squads a side
+  fewer figures per squad (about half at 300, 0.4 at 500+), spread wider; props instanced per
+  48-tile chunk so they cull, skirt props without shadows, structures merged by material, fog veils
+  hidden when nothing is fogged; drawSquads writes the buffers directly. Worker frames are packed
+  (`packedView.js`): 2.44 ms a tick (build + clone) down to 0.21 ms at 300, 4.9 to 0.4 ms at 500.
+  `&perf` puts the numbers on screen; `scripts/battle-phone-bench.mjs` emulates a phone (DPR 3,
+  touch, CPU x4/x6, not the GPU): 300 and 500 a side ran at 33 to 55 fps median at x4 in a
+  production build, p95 33 to 85 ms (noisy on this laptop). Verdict: 300 a side holds end to end
+  on a mid phone by these measures (sim p95 4.8 ms x4, render about 30 fps with p95 near the 40 ms
+  line); a real-phone run with `&perf` is the remaining check. 500 a side: sim go (8.5 ms x4), but
+  the far view is 0.64 M triangles and the main thread has little margin: it needs a billboard
+  level for the farthest zoom, fewer or merged props at far zoom, and the HUD off the per-squad
+  React path before it is offered on phones.
 
 ### 6.3 Village houses and population (decisions 26, 30)
 As in Age of Empires, every unit needs housing:
@@ -254,6 +305,19 @@ Mechanisms nobody has yet, needed by the plans:
 - So destroying the city in battle still costs the conqueror (a smaller, damaged prize), but a
   conquest never leaves ruins only. Razing stays a separate, deliberate order on the map.
 - The same 50% rule for sacks, sallies and failed assaults (the defender's city).
+- **Phase B result (2026-10-06, branch claude/phase-b-city-manifest).** The town models are split
+  back into their houses and landmarks (`npm run build:town-layouts` writes
+  `src/data/townLayouts.json`); `src/data/townLayout.js` builds a city's manifest (town hall,
+  houses with stable ids and housing, landmarks, palace, buildings, wall ring, gate, towers,
+  wonders) and `src/engine/cityManifest.js` derives it from the city record, so saves keep only
+  `region.cityDamage` (an optional field: no save version change). A city assault loads it
+  (`src/battle/setup/cityBattle.js`, setup version 4): 2.75 tiles per model unit, the gate turned
+  to the attacker, houses and walls block the ground and fall to rubble, only the keep, armed
+  towers and buildings are picked by the AI. The battle reports its losses by manifest id; the
+  reducer carries them under this rule; repairs run each turn. The close view and the battle draw
+  the same town model with the same damage shader (`closeView/townDamage.js`). Parity
+  (`TYPES=assault CITY=1`): the real city plays like the old keep (both still far from auto: R2).
+  Screenshots: `plans/images/phase-b/`.
 
 ### 6.9 Field battles, forts and rivers (decisions 33, 34)
 - **Decisive field battles**: a battle away from a city ends when one side's army is destroyed,

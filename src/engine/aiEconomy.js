@@ -1,9 +1,7 @@
 import { districtYields } from './districts';
 import { getTiles } from '../data/geo/tiles';
-import { ESTATE_PRIVILEGES, CROWN_LAND_SEIZE_AMOUNT, CROWN_LAND_SEIZE_LOYALTY_PENALTY, ESTATE_INTERACTION_COOLDOWN_TURNS } from '../data/estates';
-import { canDoEstateInteraction } from './estates';
 import { LAW_CATEGORIES, LAW_CATEGORY_IDS, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS } from '../data/laws';
-import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from './succession';
+import { generateAdvisorCandidates, getAdvisorHireCost, getAdvisorSalary } from './rulers';
 import { getNeighborIds } from '../data/regions';
 import { getRecruitUnitCost, calcNationBalance, getLoanCapacity, getLoanInterestRate, applyBankruptcy } from './economy';
 import { canAfford, applyCosts, EXTRACTION_BASE_YIELD } from '../utils/helpers';
@@ -38,7 +36,6 @@ import { AGE_ORDER } from '../data/ages';
 import { getAvailableGovernmentTypes, getReformChoices, resetReformsForType } from '../data/government';
 import { DOCTRINE_BUILDING_PRIORITY, DOCTRINE_GOVERNMENT, DOCTRINE_LAWS, DOCTRINE_REFORMS } from '../data/nations';
 import { clampStability, getIncreaseStabilityCost } from './nationalPower';
-import { getSuccessionStyle, generateHeir } from './succession';
 import { createRng } from '../utils/rng';
 import { autoGovern } from './governors';
 
@@ -147,17 +144,7 @@ const tryAdoptOrReformGovernment = (state, nation) => {
     if (available.length === 0) return null;
     const preferred = (DOCTRINE_GOVERNMENT[nation.doctrine] || []).map((id) => available.find((t) => t.id === id)).find(Boolean);
     const choice = preferred || available[fnv1a(`${nation.id}gov`) % available.length];
-    // Plan §M21 balance fix (see this file's own header on the M16 laws/reform scope trim, and
-    // gameReducer.js's CHANGE_GOVERNMENT_TYPE case for the identical player-side fix): without
-    // this, an AI nation's FIRST reign as a fresh monarchy is always heirless (heir stays null
-    // until a reign actually ends), guaranteeing a Succession Crisis — and its 40% civil-war roll
-    // — the moment that first reign runs out. A one-off deterministic rng (not a threaded seed,
-    // matching this file's own `fnv1a`-keyed pseudo-randomness elsewhere) generates an heir right
-    // when hereditary government is adopted, the same as the player gets.
-    const heir = getSuccessionStyle({ type: choice.id }) === 'hereditary'
-      ? generateHeir(nation.id, createRng(fnv1a(`${nation.id}heir${state.turnNumber}`)), nation.ruler?.dynasty, state.turnNumber)
-      : nation.heir;
-    return { ...nation, government: { type: choice.id, reforms: resetReformsForType(choice.id, ageId) }, heir };
+    return { ...nation, government: { type: choice.id, reforms: resetReformsForType(choice.id, ageId) } };
   }
   const reforms = getReformChoices(nation.government.type, ageId);
   if (reforms.length > 0 && !nation.government.reforms?.[ageId]) {
@@ -281,18 +268,10 @@ export const processAIEconomyTurn = (state, regions, nationId) => {
 
   // A nation on the brink of civil war (see this function's own AI_STABILITY_RAISE_THRESHOLD
   // comment) gets first call on its ADM, ahead of government/building/research — those can all
-  // wait a think; losing regions to a pretender army cannot.
+  // wait a think; losing regions to an insurgent army cannot.
   const stabilityResult = tryIncreaseStability(state, nextNation);
   if(stabilityResult)return {nation:stabilityResult};
   if(state.scenario?.mode==='emergent' && getOwnedRegionIds(regions,nationId).some(id=>getNeighborIds(id).some(n=>regions[n]?.owner===null))) return {nation:nextNation};
-  const estateEntries=Object.entries(nextNation.estates || {});
-  if((nextNation.crownLand ?? 50)<50 && estateEntries.length && estateEntries.every(([,e])=>e.loyalty>=70) && canDoEstateInteraction(nextNation,'seizeLand',state.turnNumber) && canAfford(pool,ACTION_COSTS.seizeLand)){
-    return {nation:{...nextNation,economy:applyCosts(pool,ACTION_COSTS.seizeLand),crownLand:Math.min(100,nextNation.crownLand+CROWN_LAND_SEIZE_AMOUNT),estates:Object.fromEntries(estateEntries.map(([id,e])=>[id,{...e,loyalty:e.loyalty-CROWN_LAND_SEIZE_LOYALTY_PENALTY}])),estateInteractionCooldowns:{...nextNation.estateInteractionCooldowns,seizeLand:state.turnNumber+ESTATE_INTERACTION_COOLDOWN_TURNS}}};
-  }
-  for(const [id,e] of estateEntries){
-    const privilege=(ESTATE_PRIVILEGES[id] || []).find(p=>p.loyaltyBonus>0 && e.loyalty<30 && !e.privileges.includes(p.id) && e.influence+(p.influenceBonus || 0)<80);
-    if(privilege && canAfford(pool,ACTION_COSTS.grantEstatePrivilege))return {nation:{...nextNation,economy:applyCosts(pool,ACTION_COSTS.grantEstatePrivilege),estates:{...nextNation.estates,[id]:{...e,privileges:[...e.privileges,privilege.id]}}}};
-  }
   // Keep power and cash for movement, recruitment and the next upkeep bill during wars.
   if(nextNation.isAtWar && ((pool.gold || 0)<Math.max(200,-(nextNation.lastNetIncome || 0)*3) || (pool.mil || 0)<10))return {nation:nextNation};
   if(!stabilityResult && (nextNation.stability || 0)>=0){

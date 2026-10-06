@@ -8,9 +8,9 @@ import { getTiles } from '../../data/geo/tiles';
 
 describe('lenses', () => {
   const S = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
-  it('eight lenses with keys 1 to 8', () => {
-    expect(LENS_IDS).toEqual(['political', 'yields', 'loyalty', 'threat', 'supply', 'estates', 'trade', 'settle']);
-    expect(LENSES.map((l) => l.key)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']);
+  it('seven lenses with keys 1 to 7', () => {
+    expect(LENS_IDS).toEqual(['political', 'yields', 'loyalty', 'threat', 'supply', 'trade', 'settle']);
+    expect(LENSES.map((l) => l.key)).toEqual(['1', '2', '3', '4', '5', '6', '7']);
     LENSES.forEach((l) => expect(ICONS[l.id], l.id).toBeTruthy()); // the strip needs an icon per lens
   });
   it('yields on the player\'s tiles, loyalty discs per city, supply tints per own army, threat circles per enemy stack', () => {
