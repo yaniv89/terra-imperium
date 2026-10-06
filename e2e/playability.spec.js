@@ -60,6 +60,8 @@ test('a randomly chosen nation can play several turns with no console errors and
   // 240 real nations, per plan §1 — any one of them has to be a valid, playable start. Picks
   // randomly among whatever the start screen actually renders (unsearched, so all 240 are there).
   const nationButtons = page.locator('section', { has: page.getByRole('heading', { name: 'Choose Your Nation' }) }).locator('button');
+  // the app renders once the world grid has loaded (src/index.jsx): wait for the start screen
+  await nationButtons.first().waitFor({ state: 'attached', timeout: 60000 });
   const nationCount = await nationButtons.count();
   expect(nationCount, 'the start screen rendered no nation buttons at all').toBeGreaterThan(0);
   const nationButton = nationButtons.nth(Math.floor(Math.random() * nationCount));
