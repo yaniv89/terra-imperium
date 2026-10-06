@@ -60,7 +60,7 @@ describe('effects coverage (plan §13)', () => {
       const map = text.match(/DIPLOMACY_EFFECT_BY_ACTION = \{([\s\S]*?)\};/);
       if (map) for (const m of map[1].matchAll(/:\s*'([a-z_]+)'/g)) triggered.add(m[1]);
     });
-    expect(triggered.size).toBeGreaterThan(40);
+    expect(triggered.size).toBeGreaterThan(30);
     expect([...triggered].filter((t) => !EFFECT_REGISTRY[t])).toEqual([]);
   });
 });

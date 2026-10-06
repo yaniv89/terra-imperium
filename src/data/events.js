@@ -33,7 +33,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Tin, scarce and found in only a handful of places, is now the single resource every bronze-working kingdom cannot do without — and the routes that carry it are worth fighting over.',
     options: [
       { label: 'Secure the trade routes with garrisons', effects: { gold: -100, defenseBonus: 0.05 } },
-      { label: 'Let merchants handle it themselves', effects: { gold: 60, crownLand: -5 } }
+      { label: 'Let merchants handle it themselves', effects: { gold: 60 } }
     ]
   },
   rise_of_writing: {
@@ -42,8 +42,8 @@ export const HISTORICAL_EVENTS = {
     title: 'The First Scribes',
     description: 'A system of written records spreads among neighboring courts, turning administration from memory and custom into something that can be counted, taxed, and enforced.',
     options: [
-      { label: 'Train a corps of royal scribes', effects: { gold: -60, techPoints: 25, crownLand: 5 } },
-      { label: 'Leave record-keeping to the temples', effects: { dip: 10, estateLoyalty: { clergy: 10 } } }
+      { label: 'Train a corps of royal scribes', effects: { gold: -60, techPoints: 25 } },
+      { label: 'Leave record-keeping to the temples', effects: { dip: 10 } }
     ]
   },
   bronze_age_collapse: {
@@ -86,7 +86,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Word spreads of a library built to hold a copy of every book in the known world, drawing scholars from every court willing to fund the journey.',
     options: [
       { label: 'Send scholars and fund a wing of your own', effects: { gold: -100, techPoints: 40 } },
-      { label: 'Rely on your own scribes and temples', effects: { dip: 15, estateLoyalty: { clergy: 10 } } }
+      { label: 'Rely on your own scribes and temples', effects: { dip: 15 } }
     ]
   },
   silk_road_opens: {
@@ -96,7 +96,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Trade routes stretching from the Mediterranean to the far east open in earnest, carrying silk, spices, and ideas across an entire continent.',
     options: [
       { label: 'Invest in caravanserais and trade infrastructure', effects: { gold: -100, dip: 15 } },
-      { label: 'Focus inward and let others carry the trade', effects: { hr: 30, crownLand: 5 } }
+      { label: 'Focus inward and let others carry the trade', effects: { hr: 30 } }
     ]
   },
   antonine_plague: {
@@ -168,7 +168,7 @@ export const HISTORICAL_EVENTS = {
     description: 'A new method of reproducing text with movable type spreads rapidly, putting books — and ideas — within reach of far more people than ever before.',
     options: [
       { label: 'Fund printing houses in your major cities', effects: { gold: -80, techPoints: 40 } },
-      { label: 'Leave it to the church and the guilds', effects: { dip: 10, estateLoyalty: { clergy: 10 } } }
+      { label: 'Leave it to the church and the guilds', effects: { dip: 10 } }
     ]
   },
 
@@ -203,7 +203,7 @@ export const HISTORICAL_EVENTS = {
     description: 'A new way of testing claims against observation and experiment spreads among natural philosophers, quietly overturning certainties that had stood for a thousand years.',
     options: [
       { label: 'Found a royal academy of sciences', effects: { gold: -120, techPoints: 55 } },
-      { label: 'Leave it to individual patrons', effects: { techPoints: 20, crownLand: 5 } }
+      { label: 'Leave it to individual patrons', effects: { techPoints: 20 } }
     ]
   },
   continental_upheaval: {
@@ -213,9 +213,7 @@ export const HISTORICAL_EVENTS = {
     description: 'A wave of revolutionary wars and shifting alliances upends the old order across entire continents, redrawing borders and toppling dynasties that seemed permanent.',
     options: [
       { label: 'Modernize your army to keep pace', effects: { gold: -200, militaryStrengthBonus: 300, stability: -1 } },
-      // Watching neighboring dynasties fall raises the same question at home — the seed of a
-      // succession crisis (event chain, src/data/eventChains.js's succession_crisis_1).
-      { label: 'Stay neutral and consolidate at home', effects: { controlBonus: 10, spawnFollowUp: { id: 'succession_crisis_1', delayTurns: 3 } } }
+      { label: 'Stay neutral and consolidate at home', effects: { controlBonus: 10 } }
     ]
   },
   industrial_revolution: {
@@ -225,7 +223,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Steam and mechanization transform how goods are made, drawing workers off the land and into new factory towns almost overnight.',
     options: [
       { label: 'Invest heavily in factories and rail', effects: { gold: -250, techPoints: 50 } },
-      { label: 'Let industrialization happen at its own pace', effects: { gold: 80, estateLoyalty: { burghers: 10 } } }
+      { label: 'Let industrialization happen at its own pace', effects: { gold: 80 } }
     ]
   },
 
@@ -237,7 +235,7 @@ export const HISTORICAL_EVENTS = {
     description: 'A regional dispute spirals into a war on a scale the world has never seen, drawing in nations far from its original cause and consuming an entire generation.',
     options: [
       { label: 'Mobilize for total war', effects: { gold: -300, militaryStrengthBonus: 500, hr: -100 } },
-      { label: 'Maintain strict neutrality', effects: { gold: 150, crownLand: 5 } }
+      { label: 'Maintain strict neutrality', effects: { gold: 150 } }
     ]
   },
   great_depression: {
@@ -269,7 +267,7 @@ export const HISTORICAL_EVENTS = {
       // Full commitment to unproven new technology is exactly the risk-tolerant posture the
       // technological gamble chain (src/data/eventChains.js's tech_gamble_1) assumes.
       { label: 'Invest heavily in the new technology', effects: { gold: -300, techPoints: 100, spawnFollowUp: { id: 'tech_gamble_1', delayTurns: 4 } } },
-      { label: 'Let private industry lead the way', effects: { gold: 100, techPoints: 20, crownLand: -5 } }
+      { label: 'Let private industry lead the way', effects: { gold: 100, techPoints: 20 } }
     ]
   },
   climate_stress: {
@@ -300,7 +298,7 @@ export const HISTORICAL_EVENTS = {
     title: "The Nile's Verdict",
     description: 'The annual flood of the Nile arrives lower than expected, threatening the harvest the whole kingdom depends on.',
     options: [
-      { label: 'Draw on the royal granaries', effects: { hr: 30, gold: -80, crownLand: -5 } },
+      { label: 'Draw on the royal granaries', effects: { hr: 30, gold: -80 } },
       { label: 'Ration strictly and wait for a better year', effects: { hr: -20, controlBonus: 5 } }
     ]
   },
@@ -337,7 +335,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Foreign traders and missionaries have grown numerous enough to worry the court. Some counsel closing the realm to outside influence entirely.',
     options: [
       { label: 'Seal the borders and expel foreign traders', effects: { controlBonus: 10, gold: -50 } },
-      { label: 'Keep trade open despite the risk', effects: { gold: 80, dip: 10, estateLoyalty: { burghers: 10 } } }
+      { label: 'Keep trade open despite the risk', effects: { gold: 80, dip: 10 } }
     ]
   },
   national_britain_naval_turn: {
@@ -372,7 +370,7 @@ export const HISTORICAL_EVENTS = {
     title: 'Ships From a Distant Sea',
     description: 'Foreign ships arrive by a sea route none of your merchants have used before, eager to trade directly for the spices and cloth that made your ports famous.',
     options: [
-      { label: 'Grant them trading rights at your ports', effects: { gold: 100, dip: 10, crownLand: -5 } },
+      { label: 'Grant them trading rights at your ports', effects: { gold: 100, dip: 10 } },
       { label: 'Restrict them to existing merchant guilds', effects: { gold: 40, controlBonus: 5 } }
     ]
   },
@@ -457,7 +455,7 @@ export const HISTORICAL_EVENTS = {
     description: 'Merchant fleets and a new kind of joint-stock company make your ports the busiest in the world, and your merchants some of the wealthiest.',
     options: [
       { label: 'Charter more trading companies', effects: { gold: -100, dip: 20 } },
-      { label: 'Tax the existing trade heavily instead', effects: { gold: 150, estateLoyalty: { burghers: -10 } } }
+      { label: 'Tax the existing trade heavily instead', effects: { gold: 150 } }
     ]
   },
   national_russian_reforms: {

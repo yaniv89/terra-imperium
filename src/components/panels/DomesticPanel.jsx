@@ -1,15 +1,15 @@
 // src/components/panels/DomesticPanel.jsx
 // Domestic tab (plan §5 / §9): purely empire-wide management now — Government & Reforms, Laws,
-// Estates, Court (ruler/heir/advisors/stability), National Identity, and Empire (Security/Taxes/
+// Court (ruler/advisors/stability), National Identity, and Empire (Security/Taxes/
 // Economy/Great Projects). Region-specific actions (development, buildings, resource deposits,
 // per-region great projects) used to be appended here whenever a region was selected, which is what
 // made this tab overcrowded — they now live in their own Civ-style screen, ProvinceModal.jsx,
-// opened via RegionInfoModal's "Manage Region" button. Government/Laws/Estates/Identity default
+// opened via RegionInfoModal's "Manage Region" button. Government/Laws/Identity default
 // collapsed (changed rarely); Court/Empire default open (checked almost every turn) — see
 // CollapsibleSection.
 import React from 'react';
 import { WonderIcon } from '../ui/icons';
-import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Heart, Baby, Globe2, Swords, Flag } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords, Flag } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import EmpireOverview from './EmpireOverview';
 import MilitaryPanel from './MilitaryPanel';
@@ -20,21 +20,19 @@ import { ActionTypes } from '../../data/types';
 import { getNationCapital } from '../../data/regions';
 import {
   ACTION_COSTS, COUNTER_INTEL_HOSTILITY_REDUCTION, COUNTER_INTEL_DIPLOMACY_POINTS_REWARD,
-  FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS, SECURE_SUCCESSION_CLAIM } from '../../data/actionCosts';
+  FUSION_GRID_ACTIVATION_HELIUM3, FUSION_GRID_UPKEEP_HELIUM3_PER_TURN, FUSION_GRID_GOLD_MULT_BONUS } from '../../data/actionCosts';
 import {
   GOVERNMENT_TYPES, getActiveReforms, getAvailableGovernmentTypes, getReformChoices, canChangeGovernmentType, canEnactReform
 } from '../../data/government';
 import { IDENTITY_AXES, IDENTITY_AXIS_IDS, IDENTITY_MIN, IDENTITY_MAX } from '../../data/identity';
 import { LAW_CATEGORY_IDS, LAW_CATEGORIES, getLaw, canEnactLaw, getLawChangeCost, getRequiredTechName } from '../../data/laws';
-import { ESTATE_LABELS, ESTATE_LOYALTY_HIGH_THRESHOLD, ESTATE_LOYALTY_LOW_THRESHOLD, getEstatePrivileges, CROWN_LAND_LOW_THRESHOLD, CROWN_LAND_HIGH_THRESHOLD } from '../../data/estates';
-import { canDoEstateInteraction } from '../../engine/estates';
 import {
   GREAT_PROJECTS, GREAT_PROJECT_IDS, getGreatProjectOwner
 } from '../../data/greatProjects';
 import { TAX_RATES, TAX_RATE_IDS } from '../../data/taxRates';
 import { calcNationBalance, getLoanCapacity, getLoanSize, hasBankingHouses } from '../../engine/economy';
 import { canAfford, formatNumber } from '../../utils/helpers';
-import { getAdvisorHireCost, getSuccessionStyle, ROYAL_BIRTH_CHANCE } from '../../engine/succession';
+import { getAdvisorHireCost } from '../../engine/rulers';
 import { getIncreaseStabilityCost, STABILITY_MAX } from '../../engine/nationalPower';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { TRAITS } from '../../data/traits';
@@ -42,7 +40,6 @@ import { ActionButton, CollapsibleSection } from '../ui';
 import { cityGroups, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_ASSIGN_TURNS, GOVERNOR_REFRESH_TURNS } from '../../engine/governors';
 import { authorityOf, AUTHORITY_NO_LAWS, AUTHORITY_CIVIL_WAR } from '../../engine/authority';
 import { lawRulesOf, describeRules } from '../../engine/lawRules';
-import { describeHoldings, estateHoldings, estateLandEffects, ESTATE_LAND_MIN_COUNTRYSIDE } from '../../engine/estateLand';
 
 const POWER_POOL_NAMES = { adm: 'Administrative', dip: 'Diplomatic', mil: 'Military' };
 
@@ -199,29 +196,13 @@ const DomesticPanel = () => {
   };
 
   const ruler = playerNation?.ruler;
-  const heir = playerNation?.heir;
-  const successionStyle = getSuccessionStyle(playerNation?.government);
-  const hereditary = successionStyle === 'hereditary';
-  // How this government picks the next ruler, so "no heir" only reads as a problem when it is one.
-  const SUCCESSION_NOTES = {
-    hereditary: 'Hereditary: the heir inherits the throne. No heir means a succession crisis.',
-    elective: 'Elective: a new leader is elected when this term ends — no heir needed.',
-    theocratic: 'Theocratic: the clergy choose the next leader — no heir needed.',
-    autocratic: 'Autocratic: the strongest commander seizes power next — no heir needed.',
-    tribal: 'Tribal: the strongest claimant takes over. Adopt a Monarchy (Government) to found a dynasty with heirs.'
-  };
-  const handleMarryNoble = () => {
-    triggerEffect('hire_advisor', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.MARRY_NOBLE });
-  };
-  const handleAdoptHeir = () => dispatch({ type: ActionTypes.ADOPT_HEIR });
   const advisors = playerNation?.advisors || {};
   const advisorCandidates = state.advisorPool?.[state.playerNationId] || {};
   const nationStability = playerNation?.stability || 0;
   const nationLegitimacy = playerNation?.legitimacy ?? 50;
   const nationPrestige = playerNation?.prestige || 0;
 
-  // Governors (src/engine/governors.js): one seat per city group, a candidate or the heir in it.
+  // Governors (src/engine/governors.js): one seat per city group, a court candidate in it.
   const governorsSection = (() => {
     const me = state.playerNationId;
     const nation = state.nations[me];
@@ -268,7 +249,7 @@ const DomesticPanel = () => {
         </div>
         <div className="h-1.5 rounded bg-slate-700 overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${authority.total}%` }} /></div>
         <div className="text-[10px] text-slate-500 mt-1">{authority.parts.map((p) => `${p.label} ${p.value > 0 ? '+' : ''}${p.value}`).join(' · ')}</div>
-        {authority.total < AUTHORITY_NO_LAWS && <div className="text-[10px] text-amber-300 mt-0.5">Under {AUTHORITY_NO_LAWS}: no new laws, the estates press their demands{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}.</div>}
+        {authority.total < AUTHORITY_NO_LAWS && <div className="text-[10px] text-amber-300 mt-0.5">Under {AUTHORITY_NO_LAWS}: no new laws{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}.</div>}
       </div>
       {ruler && (
         <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
@@ -283,66 +264,9 @@ const DomesticPanel = () => {
           <div className="text-[10px] text-slate-500">
             Reign ends turn {ruler.reignEndsTurn}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1 border-t border-slate-700 pt-1" data-testid="succession-style">
-            {SUCCESSION_NOTES[successionStyle]}
+          <div className="text-[10px] text-slate-400 mt-1 border-t border-slate-700 pt-1">
+            When the reign ends a new ruler takes over{playerNation?.government?.type === 'monarchy' ? ' from the same royal house' : ''}.
           </div>
-          {hereditary && (
-            <div className="text-[10px] mt-1 flex items-center gap-1 text-slate-300">
-              <Heart size={10} className="text-pink-400 shrink-0" />
-              {ruler.consort
-                ? <span>Consort: {ruler.consort.name}{ruler.consort.foreign ? ` of ${state.nations[ruler.consort.from]?.name || ruler.consort.from}` : ''}</span>
-                : <span className="text-amber-400">Unmarried — no heir can be born</span>}
-            </div>
-          )}
-          {heir && (
-            <div className="text-[10px] text-slate-300 mt-1 flex items-center gap-1">
-              <Baby size={10} className="text-sky-300 shrink-0" />
-              Heir: {heir.name}{heir.adopted ? ' (adopted)' : ''} (claim {heir.claim}) · ADM {heir.adm} · DIP {heir.dip} · MIL {heir.mil}
-              {heir.claim < 20 && <span className="text-amber-400"> — weak claim, crisis risk</span>}
-            </div>
-          )}
-          {heir && heir.claim < 20 + SECURE_SUCCESSION_CLAIM && (
-            <div className="mt-2">
-              <ActionButton icon={Crown} label="Secure the succession" description={`Pay the great houses: ${heir.name}'s claim +${SECURE_SUCCESSION_CLAIM}, no crisis when the reign ends (turn ${ruler.reignEndsTurn})`} costs={ACTION_COSTS.secureSuccession} onClick={() => dispatch({ type: ActionTypes.SECURE_SUCCESSION })} disabled={!canAfford(state.resources, ACTION_COSTS.secureSuccession)} size="small" data-testid="secure-succession" />
-            </div>
-          )}
-          {hereditary && !heir && (
-            <div className="text-[10px] text-amber-500 mt-1">
-              No heir — a succession crisis if the reign ends now.
-              {ruler.consort && ` An heir may be born any turn (${Math.round(ROYAL_BIRTH_CHANCE * 100)}% each turn).`}
-            </div>
-          )}
-          {hereditary && (!ruler.consort || !heir) && (
-            <div className="mt-2 space-y-1.5">
-              {!ruler.consort && (
-                <>
-                  <ActionButton
-                    icon={Heart}
-                    label="Marry a noble"
-                    description="A match within the realm: an heir can then be born"
-                    costs={ACTION_COSTS.marryNoble}
-                    onClick={handleMarryNoble}
-                    disabled={!canAfford(state.resources, ACTION_COSTS.marryNoble)}
-                    resources={state.resources}
-                    size="small"
-                  />
-                  <div className="text-[10px] text-slate-500">…or seek a royal match abroad (Diplomacy → Royal Marriage): better relations and a stronger heir claim.</div>
-                </>
-              )}
-              {!heir && (
-                <ActionButton
-                  icon={Baby}
-                  label="Name a relative as heir"
-                  description="Secures the line now, but with a weak claim"
-                  costs={ACTION_COSTS.adoptHeir}
-                  onClick={handleAdoptHeir}
-                  disabled={!canAfford(state.resources, ACTION_COSTS.adoptHeir)}
-                  resources={state.resources}
-                  size="small"
-                />
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -527,106 +451,6 @@ const DomesticPanel = () => {
     </div>
   );
 
-  const handleSeizeLand = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.seizeLand)) return addLog('Not enough resources', 'action');
-    triggerEffect('seize_land', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.SEIZE_LAND, payload: {} });
-  };
-  const handleSellLand = () => {
-    if (!canAfford(state.resources, ACTION_COSTS.sellLand)) return addLog('Not enough resources', 'action');
-    triggerEffect('sell_land', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.SELL_LAND, payload: {} });
-  };
-  const handleGrantPrivilege = (estateId, privilegeId) => {
-    if (!canAfford(state.resources, ACTION_COSTS.grantEstatePrivilege)) return addLog('Not enough resources', 'action');
-    triggerEffect('grant_estate_privilege', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId, privilegeId } });
-  };
-  const handleRevokePrivilege = (estateId, privilegeId) => {
-    triggerEffect('revoke_estate_privilege', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId, privilegeId } });
-  };
-  // Tithe/Levies have a cooldown and need loyalty >= the low threshold (the reducer logs why when
-  // refused); the button stays tappable so a refusal still explains itself, just dimmed.
-  const estateAskReady = (key, estate) => canDoEstateInteraction(playerNation, key, state.turnNumber) && estate.loyalty >= ESTATE_LOYALTY_LOW_THRESHOLD;
-  const estateAskNote = (key, estate) => {
-    if (!canDoEstateInteraction(playerNation, key, state.turnNumber)) return ` · turn ${playerNation.estateInteractionCooldowns[key]}`;
-    if (estate.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD) return ` · needs ${ESTATE_LOYALTY_LOW_THRESHOLD} loyalty`;
-    return '';
-  };
-  const handleClergyTithe = () => {
-    triggerEffect('clergy_tithe', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.CLERGY_TITHE, payload: {} });
-  };
-  const handleNobilityLevies = () => {
-    triggerEffect('nobility_levies', { region: getNationCapital(state.playerNationId) });
-    dispatch({ type: ActionTypes.NOBILITY_LEVIES, payload: {} });
-  };
-
-  const crownLand = playerNation?.crownLand ?? 50;
-  const holdings = estateHoldings(state);
-  const holdingLines = describeHoldings(state);
-  const landEffects = estateLandEffects(state);
-  const estatesSection = (
-    <div className="space-y-2">
-      <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-slate-400">Crown Land</span>
-          <span className={`font-mono ${crownLand <= CROWN_LAND_LOW_THRESHOLD ? 'text-red-400' : crownLand >= CROWN_LAND_HIGH_THRESHOLD ? 'text-emerald-400' : 'text-white'}`}>{crownLand}%</span>
-        </div>
-        {holdings.countryside > 0 && (
-          <div className="text-[11px] text-slate-400" data-testid="estate-land">
-            The crown works {holdings.crownTiles} of {holdings.countryside} countryside tiles{holdings.byTile.size === 0 ? ` (the estates take land from ${ESTATE_LAND_MIN_COUNTRYSIDE} tiles on)` : ''}. {holdingLines.map((l) => `${ESTATE_LABELS[l.estateId] || l.estateId} ${l.tiles} tiles (${l.worked} worked) for ${l.gives}`).join('; ')}.
-            {landEffects.goldToEstates > 0 && ` The estates keep ${landEffects.goldToEstates} gold a turn.`} Press 6 on the map to see their land.
-          </div>
-        )}
-        <div className="flex gap-1.5">
-          <ActionButton icon={Landmark} label="Seize Land" description="+10 crown land, -20 loyalty (all estates)" costs={ACTION_COSTS.seizeLand}
-            onClick={handleSeizeLand} disabled={!canAfford(state.resources, ACTION_COSTS.seizeLand) || !canDoEstateInteraction(playerNation, 'seizeLand', state.turnNumber)} size="small" />
-          <ActionButton icon={Coins} label="Sell Land" description="-10 crown land, +gold, +10 burgher loyalty" costs={ACTION_COSTS.sellLand}
-            onClick={handleSellLand} disabled={!canAfford(state.resources, ACTION_COSTS.sellLand) || !canDoEstateInteraction(playerNation, 'sellLand', state.turnNumber)} size="small" />
-        </div>
-      </div>
-      {Object.entries(playerNation?.estates || {}).map(([estateId, estate]) => (
-        <div key={estateId} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-white font-semibold">{ESTATE_LABELS[estateId] || estateId}</span>
-            <span className={`font-mono ${estate.loyalty < ESTATE_LOYALTY_LOW_THRESHOLD ? 'text-red-400' : estate.loyalty >= ESTATE_LOYALTY_HIGH_THRESHOLD ? 'text-emerald-400' : 'text-slate-300'}`}>
-              Loyalty {Math.round(estate.loyalty)} · Influence {Math.round(estate.influence)}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {getEstatePrivileges(estateId).map((privilege) => {
-              const granted = estate.privileges.includes(privilege.id);
-              return granted ? (
-                <button key={privilege.id} onClick={() => handleRevokePrivilege(estateId, privilege.id)} title={privilege.description}
-                  className="text-[10px] rounded bg-amber-700/40 hover:bg-red-700/40 border border-amber-600/50 text-amber-200 px-2 py-1">
-                  {privilege.name} (revoke)
-                </button>
-              ) : (
-                <button key={privilege.id} onClick={() => handleGrantPrivilege(estateId, privilege.id)}
-                  disabled={!canAfford(state.resources, ACTION_COSTS.grantEstatePrivilege)} title={privilege.description}
-                  className="text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 px-2 py-1">
-                  Grant {privilege.name}
-                </button>
-              );
-            })}
-            {estateId === 'clergy' && (
-              <button onClick={handleClergyTithe} className={`text-[10px] rounded border px-2 py-1 ${estateAskReady('clergyTithe', estate) ? 'bg-yellow-700/40 hover:bg-yellow-600/40 border-yellow-600/50 text-yellow-200' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                Tithe ({ACTION_COSTS.clergyTithe.adm} ADM, -10 loyalty){estateAskNote('clergyTithe', estate)}
-              </button>
-            )}
-            {estateId === 'nobility' && (
-              <button onClick={handleNobilityLevies} className={`text-[10px] rounded border px-2 py-1 ${estateAskReady('nobilityLevies', estate) ? 'bg-red-700/40 hover:bg-red-600/40 border-red-600/50 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
-                Raise Levies ({ACTION_COSTS.nobilityLevies.adm} ADM, -10 loyalty){estateAskNote('nobilityLevies', estate)}
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   const identityOnCooldown = (state.turnNumber || 0) < (playerNation?.identityShiftCooldownTurn || 0);
   const handleShiftIdentity = (axis, direction) => {
     if (!canAfford(state.resources, ACTION_COSTS.shiftIdentity)) return addLog('Not enough resources', 'action');
@@ -697,10 +521,6 @@ const DomesticPanel = () => {
       <div className="border-t border-slate-800" />
       <CollapsibleSection title="Laws" icon={ScrollText}>
         {lawsSection}
-      </CollapsibleSection>
-      <div className="border-t border-slate-800" />
-      <CollapsibleSection title="Estates" icon={Coins} summary={`Crown Land ${crownLand}%`}>
-        {estatesSection}
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
       <CollapsibleSection title="National Identity" icon={Users}>

@@ -55,7 +55,7 @@ import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 import { WORK_KINDS } from './closeView/landscape';
 import { visibleRasterTiles, rasterTileUrl, baseRasterZoom } from '../../data/geo/rasterTiles';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover, settleTints } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, tradeLines, airCover, settleTints } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -509,12 +509,6 @@ const Map2DView = ({
       </g>
     ); })];
     if (lens === 'supply') return [...supplyReach(state).map((t) => <path key={`r${t.tile}`} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-reach={t.tile} />), ...supplyTints(state).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-supply={t.tile} />)];
-    if (lens === 'estates') return estateTints(state).map((t) => { const [x, y] = at(t.tile); return (
-      <g key={t.tile} pointerEvents="none" data-lens-estate={t.tile} data-estate={t.estateId}>
-        <path d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" />
-        {zoomK >= HEX_FROM_ZOOM && <text x={x} y={y + 3 / zoomK} textAnchor="middle" fontSize={9 / zoomK} fontWeight="700" fill="#fff" stroke="rgba(0,0,0,0.7)" strokeWidth={2 / zoomK} paintOrder="stroke">{t.crest}</text>}
-      </g>
-    ); });
     if (lens === 'trade') return tradeLines(state).map((r) => {
       const pts = r.tiles.map((t) => at(t));
       const colour = r.plundered ? '#f87171' : r.kind === 'sea' ? '#38bdf8' : '#fbbf24';

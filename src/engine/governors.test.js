@@ -65,14 +65,12 @@ describe('governors', () => {
     assertGameState(x);
   });
 
-  it('candidates refresh on the period, the heir may serve, AI nations govern every group, lost seats are pruned', () => {
+  it('candidates refresh on the period, AI nations govern every group, lost seats are pruned', () => {
     let s = quiet(createInitialState({ playerNationId: 'in', rngSeed: 3 }));
     s = play(s);
     const first = s.nations.in.governorCandidates;
     for (let i = 0; i < GOVERNOR_REFRESH_TURNS; i++) s = play(s);
     expect(s.nations.in.governorCandidates).not.toEqual(first);
-    const withHeir = { ...s.nations.in, heir: { id: 'heir_x', name: 'Asha', adm: 5, dip: 1, mil: 1 } };
-    expect(governorChoices(withHeir).some((c) => c.heir && c.skill === 3)).toBe(true);
     const pk = s.nations.pk;
     expect(pk.governors && Object.keys(pk.governors).length).toBe(cityGroups(s, 'pk').length);
     expect(governorOf(s, 'pk', getNationCapital('pk'))).not.toBeNull();

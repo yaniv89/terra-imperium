@@ -3,7 +3,7 @@ import { getOwnedRegionIds } from '../data/regions';
 import { getPool, getResearched } from './nationState';
 // src/engine/economy.js
 // Plan §M11: expenses ledger, loans, bankruptcy, and the strategic-resource recruit cost. Mirrors
-// nationalPower.js/estates.js's shape — pure functions read from `state`, resolveTurn.js writes the
+// nationalPower.js's shape — pure functions read from `state`, resolveTurn.js writes the
 // result back. Real only for the player: calcIncome (helpers.js) itself only ever computed the
 // player's economy (AI nations have no simulated gold/loan economy until M16), so every function
 // here that reads income/expenses is honestly player-only too, matching the established
@@ -13,11 +13,11 @@ import {
   LOAN_BASE_INTEREST_RATE, LOAN_INTEREST_PER_EXISTING_LOAN, LOAN_INTEREST_BANKING_HOUSES_DISCOUNT, LOAN_MIN_INTEREST_RATE,
   LOAN_BASE_CAPACITY, LOAN_BANK_CAPACITY_CAP, LOAN_MIN_SIZE, LOAN_SIZE_INCOME_MULTIPLIER,
   RECRUIT_STRATEGIC_RESOURCE_BY_AGE, RECRUIT_MISSING_RESOURCE_GOLD_PENALTY_MULT, ACTION_COSTS,
-  BANKRUPTCY_STABILITY_PENALTY, BANKRUPTCY_PRESTIGE_PENALTY, BANKRUPTCY_ESTATE_LOYALTY_PENALTY,
+  BANKRUPTCY_STABILITY_PENALTY, BANKRUPTCY_PRESTIGE_PENALTY,
   BANKRUPTCY_MODIFIER_MODS, BANKRUPTCY_DURATION_TURNS
 } from '../data/actionCosts';
 import { calcIncome } from '../utils/helpers';
-import { getAdvisorSalary } from './succession';
+import { getAdvisorSalary } from './rulers';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { addNationModifier } from './modifiers/timed';
 import { clampStability, clampPrestige } from './nationalPower';
@@ -30,8 +30,7 @@ export const hasBankingHouses = (state, nationId) =>
 
 // Bank building tier (economy category index 2, "Bank") or higher, one owned region at a time,
 // capped at +3 total per the plan's own "max +3 total" — a direct region scan rather than a
-// modifier-engine hook, the same shape estates.js's land-share terms already use for player-only
-// per-region counts.
+// modifier-engine hook.
 const getBankLoanCapacityBonus = (state, nationId) => {
   const bankTierOrHigher = Object.values(state.regions || {})
     .filter((r) => r.owner === nationId && (r.buildings?.categories?.economy ?? -1) >= 2).length;
@@ -102,17 +101,12 @@ export const calcNationBalance = (state, nationId, knownIncome, ownedUnits = nul
 // drifting copies. `extraStabilityPenalty` is the disaster's own additional hit on top of bankruptcy's
 // regular one; the natural shortfall path always passes 0.
 export const applyBankruptcy = (nation, regions, nationId, turnNumber, extraStabilityPenalty = 0) => {
-  const estates = { ...nation.estates };
-  Object.keys(estates).forEach((estateId) => {
-    estates[estateId] = { ...estates[estateId], loyalty: Math.max(0, estates[estateId].loyalty - BANKRUPTCY_ESTATE_LOYALTY_PENALTY) };
-  });
   const nextNation = addNationModifier(
     {
       ...nation,
       loans: [],
       stability: clampStability((nation.stability || 0) - BANKRUPTCY_STABILITY_PENALTY - extraStabilityPenalty),
       prestige: clampPrestige((nation.prestige || 0) - BANKRUPTCY_PRESTIGE_PENALTY),
-      estates,
       // Plan §M18's "Phoenix" achievement ("recover from bankruptcy to 5,000g") needs a permanent
       // marker that bankruptcy actually happened — a nation's treasury clearing 5,000g on its own
       // means nothing without proof it was ever the one recovering from something.

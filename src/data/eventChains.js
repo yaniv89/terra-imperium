@@ -12,56 +12,12 @@
 // chain below is written generically for that reason, using the same nation-agnostic effect keys
 // world events use (see events.js's header) rather than anything naming a specific nation/region.
 //
-// Four multi-step storylines, each kicked off from a real option in events.js/proceduralEvents.js
+// Three multi-step storylines, each kicked off from a real option in events.js/proceduralEvents.js
 // (see the spawnFollowUp comments there):
-//   succession_crisis (3 steps) <- continental_upheaval's "stay neutral" option
 //   colonial_venture (3 steps)  <- columbian_exchange's "adopt aggressively" option
 //   tech_gamble (2 steps)       <- digital_revolution's "invest heavily" option
 //   border_dispute (2 steps)    <- frontier_raiders' "punitive expedition" option
 export const EVENT_CHAINS = {
-  // ---- Succession Crisis ----
-  succession_crisis_1: {
-    id: 'succession_crisis_1',
-    title: 'A Succession Crisis Brews',
-    description: 'Watching a neighboring dynasty collapse raises an uncomfortable question at home: who succeeds you, and will everyone actually accept it?',
-    options: [
-      { label: 'Name the eldest heir now, publicly', effects: { gold: -50, controlBonus: 5, spawnFollowUp: { id: 'succession_crisis_2', delayTurns: 5 } } },
-      { label: 'Back whichever claimant has the strongest army', effects: { gold: -100, militaryStrengthBonus: 50, stability: -1, spawnFollowUp: { id: 'succession_crisis_2', delayTurns: 5 } } }
-    ]
-  },
-  // Plan §M17: "a branching chain reaches different endings" — the two choices here don't just
-  // reconverge on one shared step 3 (as every other chain below still does; the mechanism supports
-  // a real fork at any option, this is the one place content actually uses it): purging sends the
-  // crisis toward an autocratic close, negotiating toward a conciliatory one, each its own distinct
-  // final chapter rather than the same text with different numbers plugged in.
-  succession_crisis_2: {
-    id: 'succession_crisis_2',
-    title: 'The Court Splits',
-    description: 'Rivals to your chosen successor refuse to accept the arrangement, and the court fractures into open, competing factions.',
-    options: [
-      { label: 'Purge the opposition', effects: { gold: -80, controlBonus: 10, spawnFollowUp: { id: 'succession_crisis_3_autocratic', delayTurns: 5 } } },
-      { label: 'Negotiate a power-sharing settlement', effects: { gold: -40, dip: 20, stability: 1, spawnFollowUp: { id: 'succession_crisis_3_conciliatory', delayTurns: 5 } } }
-    ]
-  },
-  succession_crisis_3_autocratic: {
-    id: 'succession_crisis_3_autocratic',
-    title: 'The Crisis Resolves: A Firmer Hand',
-    description: 'With the opposition broken, the succession is no longer in doubt — but the court now answers to fear as much as loyalty.',
-    options: [
-      { label: 'Consolidate the new order firmly', effects: { controlBonus: 15, crownLand: 10, estateLoyalty: { nobility: -10 } } },
-      { label: 'Offer a token amnesty to steady the realm', effects: { dip: 10, legitimacy: 5 } }
-    ]
-  },
-  succession_crisis_3_conciliatory: {
-    id: 'succession_crisis_3_conciliatory',
-    title: 'The Crisis Resolves: A Shared Settlement',
-    description: 'The power-sharing arrangement holds, and the crisis passes without open bloodshed — at the cost of a court that now has more factions with a real say.',
-    options: [
-      { label: 'Honor the settlement in full', effects: { controlPenalty: 5, dip: 15, estateLoyalty: { nobility: 10 } } },
-      { label: 'Quietly claw back what was conceded', effects: { controlBonus: 5, legitimacy: -10 } }
-    ]
-  },
-
   // ---- Colonial Venture ----
   colonial_venture_1: {
     id: 'colonial_venture_1',
@@ -69,7 +25,7 @@ export const EVENT_CHAINS = {
     description: 'Merchants and adventurers petition you to fund an expedition to distant, unclaimed shores — a fortune waiting to be made, or lost.',
     options: [
       { label: 'Fund it generously', effects: { gold: -200, prestige: 5, spawnFollowUp: { id: 'colonial_venture_2', delayTurns: 8 } } },
-      { label: 'Fund it modestly and see what comes of it', effects: { gold: -80, crownLand: 3, spawnFollowUp: { id: 'colonial_venture_2', delayTurns: 10 } } }
+      { label: 'Fund it modestly and see what comes of it', effects: { gold: -80, spawnFollowUp: { id: 'colonial_venture_2', delayTurns: 10 } } }
     ]
   },
   colonial_venture_2: {

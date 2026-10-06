@@ -1,12 +1,12 @@
-// src/components/map/LensStrip.jsx
+﻿// src/components/map/LensStrip.jsx
 // The lens pill (plans/playtest-1.md P1.5): one small pill names the current lens; tapping it
-// opens the strip with a label and a one-line hint per lens, closing after a pick. Keys 1 to 8
+// opens the strip with a label and a one-line hint per lens, closing after a pick. Keys 1 to 7
 // on a keyboard (MapContainer binds them). 44 px targets.
 import React, { useState } from 'react';
-import { Landmark, Wheat, Heart, Crosshair, Package, Crown, Coins, Tent, Layers, X } from 'lucide-react';
+import { Landmark, Wheat, Heart, Crosshair, Package, Coins, Tent, Layers, X } from 'lucide-react';
 import { LENSES } from './lenses';
 
-export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, estates: Crown, trade: Coins, settle: Tent };
+export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, trade: Coins, settle: Tent };
 
 const LensStrip = ({ lens, onChange }) => {
   const [open, setOpen] = useState(false);

@@ -168,19 +168,6 @@ describe('applyEventEffects', () => {
       expect(next.nations.fr.modifiers[0]).toMatchObject({ label: 'Test Boon', mods: { 'national.goldMult': 0.1 }, expiresTurn: 15 });
     });
 
-    it('estateLoyalty adjusts the real, stored loyalty field, clamped to [0, 100]', () => {
-      const state = createInitialState({ playerNationId: 'fr' });
-      const next = applyEventEffects(state, fixtureEvent('loyalty_event', { estateLoyalty: { clergy: 20 } }), 0);
-      expect(next.nations.fr.estates.clergy.loyalty).toBe(70);
-      expect(next.nations.fr.estates.nobility.loyalty).toBe(50); // untouched
-
-      const capped = applyEventEffects(
-        { ...state, nations: { ...state.nations, fr: { ...state.nations.fr, estates: { ...state.nations.fr.estates, clergy: { ...state.nations.fr.estates.clergy, loyalty: 95 } } } } },
-        fixtureEvent('loyalty_event', { estateLoyalty: { clergy: 20 } }), 0
-      );
-      expect(capped.nations.fr.estates.clergy.loyalty).toBe(100);
-    });
-
     it('addClaim names a nation and grants a claim on its city nearest to the player, one city per event', () => {
       const state = createInitialState({ playerNationId: 'fr' });
       const next = applyEventEffects(state, fixtureEvent('claim_event', { addClaim: 'de' }), 0);
@@ -218,13 +205,6 @@ describe('applyEventEffects', () => {
       expect(removed.nations.fr.ruler.traits).toEqual([]);
     });
 
-    it('heir.claim adjusts the real succession claim field, clamped to [0, 100]', () => {
-      const state = { ...createInitialState({ playerNationId: 'fr' }) };
-      state.nations = { ...state.nations, fr: { ...state.nations.fr, heir: { id: 'h1', name: 'Test Heir', claim: 50 } } };
-      const next = applyEventEffects(state, fixtureEvent('heir_event', { heir: { claim: 20 } }), 0);
-      expect(next.nations.fr.heir.claim).toBe(70);
-    });
-
     it('dev bumps the real region development field, floored at 1', () => {
       const state = createInitialState({ playerNationId: 'fr' });
       const frCapital = getNationCapital('fr');
@@ -251,12 +231,6 @@ describe('applyEventEffects', () => {
 
       const bogus = applyEventEffects(state, fixtureEvent('law_event_2', { law: { category: 'taxation', lawId: 'not_a_real_law' } }), 0);
       expect(bogus.nations.fr.laws.taxation).toBe(state.nations.fr.laws.taxation); // unchanged
-    });
-
-    it('crownLand adjusts the real field, clamped to [0, 100]', () => {
-      const state = createInitialState({ playerNationId: 'fr' });
-      const next = applyEventEffects(state, fixtureEvent('crown_land_event', { crownLand: -20 }), 0);
-      expect(next.nations.fr.crownLand).toBe(30);
     });
   });
 });

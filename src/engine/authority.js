@@ -1,18 +1,16 @@
 // src/engine/authority.js
 // Authority (plans/civ-map-rework.md, C4.1; workstream 8). One meter, 0 to 100, with a breakdown,
 // DERIVED each time from the numbers every writer already keeps (stability, legitimacy, the
-// ruler, laws, estates, war exhaustion, overextension, the capital), so no writer changes:
+// ruler, laws, war exhaustion, overextension, the capital), so no writer changes:
 //   authority = AUTHORITY_BASE
 //             + AUTHORITY_PER_STABILITY x stability            (-3..3)
 //             + (legitimacy - 50) / AUTHORITY_LEGITIMACY_DIV    (0..100)
 //             + (ruler ADM + DIP + MIL - AUTHORITY_RULER_PAR)   (skills)
 //             + AUTHORITY_PER_LAW_STABILITY x the laws' stabilityBonus sum
-//             + (mean estate loyalty - 50) / AUTHORITY_ESTATE_DIV
 //             - war exhaustion / AUTHORITY_WAR_EXHAUSTION_DIV
 //             - overextension / AUTHORITY_OVEREXTENSION_DIV     (capped at AUTHORITY_OVEREXTENSION_MAX)
 //             - AUTHORITY_CAPITAL_LOST while the capital is in other hands or occupied
-// Gates: under AUTHORITY_NO_LAWS no law can be enacted (laws.js canEnactLaw) and every estate
-// loses AUTHORITY_ESTATE_DEMAND loyalty a turn (estates.js); under AUTHORITY_CIVIL_WAR the turn
+// Gates: under AUTHORITY_NO_LAWS no law can be enacted (laws.js canEnactLaw); under AUTHORITY_CIVIL_WAR the turn
 // counts as a low-stability turn for the civil war streak (civilWar.js). Prestige stays its own
 // score. Pure.
 import { LAW_CATEGORIES, getLaw } from '../data/laws';
@@ -23,14 +21,12 @@ export const AUTHORITY_PER_STABILITY = 8;
 export const AUTHORITY_LEGITIMACY_DIV = 2;
 export const AUTHORITY_RULER_PAR = 9;
 export const AUTHORITY_PER_LAW_STABILITY = 5;
-export const AUTHORITY_ESTATE_DIV = 5;
 export const AUTHORITY_WAR_EXHAUSTION_DIV = 4;
 export const AUTHORITY_OVEREXTENSION_DIV = 4;
 export const AUTHORITY_OVEREXTENSION_MAX = 25;
 export const AUTHORITY_CAPITAL_LOST = 20;
 export const AUTHORITY_NO_LAWS = 25;
 export const AUTHORITY_CIVIL_WAR = 10;
-export const AUTHORITY_ESTATE_DEMAND = 1;
 
 const r1 = (v) => Math.round(v * 10) / 10;
 
@@ -46,8 +42,6 @@ export const authorityOf = (state, nationId) => {
   if (n.ruler) { const skill = (n.ruler.adm || 0) + (n.ruler.dip || 0) + (n.ruler.mil || 0) - AUTHORITY_RULER_PAR; if (skill) parts.push({ id: 'ruler', label: `${n.ruler.name}'s skill`, value: skill }); }
   const lawBonus = Object.keys(LAW_CATEGORIES).reduce((s, cat) => s + (getLaw(cat, n.laws?.[cat])?.effects?.stabilityBonus || 0), 0);
   if (lawBonus) parts.push({ id: 'laws', label: 'Laws', value: AUTHORITY_PER_LAW_STABILITY * lawBonus });
-  const estates = Object.values(n.estates || {});
-  if (estates.length) { const mean = estates.reduce((s, e) => s + (e.loyalty || 0), 0) / estates.length; if (mean !== 50) parts.push({ id: 'estates', label: 'Estate loyalty', value: r1((mean - 50) / AUTHORITY_ESTATE_DIV) }); }
   if (n.warExhaustion > 0) parts.push({ id: 'warExhaustion', label: 'War exhaustion', value: -r1(n.warExhaustion / AUTHORITY_WAR_EXHAUSTION_DIV) });
   const over = getOverextension(state, nationId);
   if (over > 0) parts.push({ id: 'overextension', label: 'Overextension', value: -Math.min(AUTHORITY_OVEREXTENSION_MAX, r1(over / AUTHORITY_OVEREXTENSION_DIV)) });
@@ -58,5 +52,4 @@ export const authorityOf = (state, nationId) => {
 };
 
 export const canEnactLaws = (state, nationId) => authorityOf(state, nationId).total >= AUTHORITY_NO_LAWS;
-export const estatesDemanding = (state, nationId) => authorityOf(state, nationId).total < AUTHORITY_NO_LAWS;
 export const authorityRisksCivilWar = (state, nationId) => authorityOf(state, nationId).total < AUTHORITY_CIVIL_WAR;

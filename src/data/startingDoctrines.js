@@ -5,7 +5,7 @@
 // decisive advantage), matching this file's own original design note.
 //
 // Adapted from the plan's own example list: "+1 diplomat" names a system this codebase never
-// built (no diplomat count/task mechanic exists — src/engine/succession.js's own header comment on
+// built (no diplomat count/task mechanic exists — src/engine/rulers.js's own comment on
 // advisors already makes the same trim for "the plan's per-advisor flavor bonus table"). +5
 // legitimacy takes that reward's place: a real, wired field of comparable modesty.
 import { getCapital } from './regions';

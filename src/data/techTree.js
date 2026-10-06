@@ -17,7 +17,7 @@
 // (power pools, tax/production/manpower income, tech points, population growth, development/
 // building/research/stability cost, unrest) gets that real effect via TECH_EFFECTS. A tech whose
 // plan-described effect names a system that doesn't exist yet (combat/siege/naval damage,
-// movement, attrition-by-terrain, estate loyalty, laws/reforms, trade pact capacity, event
+// movement, attrition-by-terrain, laws/reforms, trade pact capacity, event
 // chances) is left with no `effects` entry — it's still real progression (its own prerequisite
 // chain, its building unlocks where those exist), just not a faked modifier line. Those systems'
 // own milestones (M8/M9/M11/M12/M14/M17) are where those techs' remaining effects get wired.

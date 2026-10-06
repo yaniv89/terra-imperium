@@ -46,9 +46,6 @@ export const EFFECT_REGISTRY = {
   hire_general: { scene: 'promotion', palette: P('#38bdf8', '#e0f2fe'), icon: 'medal', label: 'General hired' },
   appoint_general: { scene: 'promotion', palette: P('#0ea5e9', '#e0f2fe'), icon: 'swords', label: 'General takes command' },
   hire_advisor: { scene: 'promotion', palette: P('#a78bfa', '#ede9fe'), icon: 'quill', label: 'Advisor hired' },
-  marry_noble: { scene: 'promotion', palette: P('#ec4899', '#fce7f3'), icon: 'heart', label: 'Royal wedding' },
-  adopt_heir: { scene: 'promotion', palette: P('#38bdf8', '#e0f2fe'), icon: 'crown', label: 'Heir named' },
-  secure_succession: { scene: 'promotion', palette: P('#fbbf24', '#fef3c7'), icon: 'crown', label: 'Succession secured' },
   suppress_rebellion: { scene: 'suppress', palette: P('#f87171', '#fef2f2') },
   embark_unit: { scene: 'march', palette: P('#22d3ee', '#ecfeff'), boats: true, count: 3 },
   disembark_unit: { scene: 'march', palette: P('#2dd4bf', '#f0fdfa'), count: 3 },
@@ -66,8 +63,6 @@ export const EFFECT_REGISTRY = {
   gain_control: { scene: 'claim', palette: P('#60a5fa', '#dbeafe') },
   move_capital: { scene: 'claim', palette: P('#f59e0b', '#fef3c7'), crown: true, label: 'New capital' },
   declare_independence: { scene: 'claim', palette: P('#dc2626', '#fee2e2'), chains: true, label: 'Independence!' },
-  seize_land: { scene: 'claim', palette: P('#b45309', '#fef3c7'), pull: true, label: 'Crown land seized' },
-  sell_land: { scene: 'claim', palette: P('#a16207', '#fef9c3'), coins: true, label: 'Crown land sold' },
   quell_unrest: { scene: 'order', palette: P('#fb7185', '#fff1f2') },
   increase_stability: { scene: 'order', palette: P('#60a5fa', '#dbeafe'), scales: true, label: 'Stability rises' },
 
@@ -79,11 +74,7 @@ export const EFFECT_REGISTRY = {
   enact_government_reform: { scene: 'decree', palette: P('#c084fc', '#f3e8ff'), label: 'Reform enacted' },
   change_government_type: { scene: 'decree', palette: P('#818cf8', '#e0e7ff'), throne: true, label: 'New government' },
   shift_identity: { scene: 'decree', palette: P('#c084fc', '#f3e8ff'), scales: true, label: 'Identity shifts' },
-  grant_estate_privilege: { scene: 'decree', palette: P('#7c3aed', '#ede9fe'), label: 'Privilege granted' },
-  revoke_estate_privilege: { scene: 'decree', palette: P('#64748b', '#f1f5f9'), crack: true, label: 'Privilege revoked' },
   set_tax_rate: { scene: 'treasury', palette: P('#facc15', '#fef9c3'), label: 'Taxes adjusted' },
-  clergy_tithe: { scene: 'treasury', palette: P('#eab308', '#fef9c3'), label: 'Tithe collected' },
-  nobility_levies: { scene: 'treasury', palette: P('#dc2626', '#fee2e2'), figures: true, label: 'Levies raised' },
 
   // ---- diplomacy between capitals ----
   sue_for_peace: { scene: 'envoy', palette: P('#84cc16', '#ecfccb'), dove: true, label: 'Peace offered' },
