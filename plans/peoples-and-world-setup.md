@@ -622,15 +622,24 @@ scenario mode `peoples` with world sizes 24/36/42, the weighted pick with a 612 
 starts, the world seed from the start screen (`src/engine/worldgen/peoplesWorld.js`); city names
 from the founder's list, then the nearest absent peoples' lists, then its own syllables; regiment
 names; battle names; palaces by `nation.theme`; the new start screen with art placeholders; the
-guided start as Kemet. Decisions taken in the build: Israel is pinned as a major in every world
-(no independents yet) but does not hold its neighbours off by the gap (else Kemet could never be
-a major); late arrivals are never drawn as AI majors but the player may pick one; Crete is all
-water on the grid, so Keftiu stands on the mainland (Thessaly).
+guided start as Kemet. Decisions taken in the build: late arrivals are never drawn as AI majors
+but the player may pick one; Crete is all water on the grid, so Keftiu stands on the mainland
+(Thessaly).
+**Changed 2026-10-06 (the user):** Israel (the pinned people) follows the same gap rule as
+everyone: it is tried first after the player and is a major only when its capital is at least
+612 km from the player's; it then holds its neighbours off like any major (the old exception,
+"pinned but holds nobody off", is gone). The gap is never relaxed (`GAP_RELAX` removed): a
+people too close to a chosen major is skipped and becomes an independent; a pool that cannot fill
+the size would give fewer majors. Measured (25 seeds x 6 players: Akkad, Kemet, Israel, Ahhiyawa,
+Celtiberia, Shang; 150 worlds a size): Small 24 / 24 / 24 (min / median / max majors placed),
+Standard 36 / 36 / 36, Large 42 / 42 / 42: the pool always fills every size. Consequence: Kemet
+(about 430 km from Jerusalem) is a major only when the player picks it, and then Israel is not; with
+any other player Israel is in and Kemet is an independent (0 of 125 worlds per size).
 Left for later: the web check of the city names; the Pleiades gazetteer; independents (W1);
 unmet peoples (phase A); renaming a city; famous renamings by age; region and theme art.
 
 ## 8. Decisions (from the user, 2026-10-04)
 1. **Every nation starts equal with one city** (section 4.1): same size, army and treasury, no
-   head starts. The Kingdom of Israel is always in the world but gets no other advantage.
+   head starts. The Kingdom of Israel is always in the world (since 2026-10-06: when it keeps the 612 km gap from the player) but gets no other advantage.
 2. **World sizes: decided by measurement** (section 2): Small 24, Standard 36, Large 42.
 3. The peoples list stands as written unless the user asks for a change.

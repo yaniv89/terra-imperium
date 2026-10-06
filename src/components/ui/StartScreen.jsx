@@ -196,7 +196,7 @@ const StartScreen = ({ onStart }) => {
       <PeopleEmblem slug={selected.id} color={selected.color} size={compact ? 18 : 24} />
       <div className="min-w-0">
         <div className="font-semibold text-white truncate">{selected.name}</div>
-        <div className="text-[11px] text-slate-400 truncate">{selected.capital.name}, in modern {selected.landName}{selected.pinned ? ' · always in the world' : ''}{selected.arrives != null ? ' · a late people, playable from the start' : ''}</div>
+        <div className="text-[11px] text-slate-400 truncate">{selected.capital.name}, in modern {selected.landName}{selected.arrives != null ? ' · a late people, playable from the start' : ''}</div>
       </div>
       <Check className="w-4 h-4 text-blue-300 shrink-0" />
     </div>
