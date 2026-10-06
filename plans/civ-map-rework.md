@@ -2024,7 +2024,7 @@ plague) and the ground shows crossed swords where a field battle was fought for 
 open in E5 and E6: the Trade lens (routes and plunder risk), the lenses on the globe, pressure
 arrows on the loyalty lens, fog as a hatch, the growth arc on the city badge.
 
-**Workstream 12, wave 4: the "next" prompt (2026-10-02).** `src/components/ui/nextPrompt.js`
+**Workstream 12, wave 4: the "next" prompt (2026-10-02).** `src/components/ui/nextPromptModel.js`
 (pure, tested) lists what still wants a decision, in order: a peace offer, nothing being
 researched (unless the advisor chooses), a city with an empty build queue, settlers with no
 destination, an army in the field with moves left and no route (garrisons rest in their
@@ -2194,7 +2194,7 @@ merge). Fortify is not an engine concept and was not faked. The Military setting
 me before End Turn while something still wants a decision": with it on and prompts waiting
 (the guide aside), the first tap arms End Turn for WARN_ARM_MS (4 s) as "End anyway? N
 waiting" and the second tap ends the turn; End Turn is never blocked (`endTurnWarnings`).
-Tests in armySheetModel.test.js and nextPrompt.test.js.
+Tests in armySheetModel.test.js and nextPromptModel.test.js.
 
 **D5b, sea depths and the carrier's air units (2026-10-03).** `seaDepth` (fleets.js) classes
 every water tile: lake, coast (the coast terrain, open to everyone), shelf (ocean tiles beside

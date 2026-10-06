@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState } from '../../engine/gameReducer';
 import { getNationCapital } from '../../data/regions';
-import { nextPrompts, endTurnWarnings, UNREST_PROMPT } from './nextPrompt';
+import { nextPrompts, endTurnWarnings, UNREST_PROMPT } from './nextPromptModel';
 
 describe('next prompt', () => {
   it('lists what wants a decision, in order, and nothing when all is settled', () => {
