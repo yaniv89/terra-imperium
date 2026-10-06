@@ -5,7 +5,7 @@
 // (`cityGroups`, cached per cities map). Each group has one seat (its first city) and may have a
 // GOVERNOR (`nation.governors[seatId] = { id, name, skill, since, ready }`), a character from the
 // court's candidates (`nation.governorCandidates`, GOVERNOR_CANDIDATES refreshed every
-// GOVERNOR_REFRESH_TURNS turns; the heir may serve too). Taking office takes
+// GOVERNOR_REFRESH_TURNS turns). Taking office takes
 // GOVERNOR_ASSIGN_TURNS turns. A governed city gets:
 //   +GOVERNOR_FOOD food, +GOVERNOR_PRODUCTION_MULT production, +GOVERNOR_CULTURE culture (cities.js)
 //   +GOVERNOR_LOYALTY + skill loyalty (loyalty.js), unrest x GOVERNOR_UNREST_MULT a turn (resolveTurn)
@@ -101,10 +101,9 @@ export const generateGovernorCandidates = (nationId, seed) => {
   return Array.from({ length: GOVERNOR_CANDIDATES }, (_, i) => ({ id: `gov_${nationId}_${seed}_${i}`, name: generateGivenName(nationId, rng), skill: 1 + Math.floor(rng.next() * GOVERNOR_MAX_SKILL) }));
 };
 
-/** The people the player may seat: the candidates and the heir (skill from ADM). */
+/** The people the player may seat: the court's candidates not already in office. */
 export const governorChoices = (nation) => {
   const out = [...(nation.governorCandidates || [])];
-  if (nation.heir) out.push({ id: nation.heir.id, name: `${nation.heir.name} (heir)`, skill: Math.max(1, Math.min(GOVERNOR_MAX_SKILL, Math.ceil((nation.heir.adm || 1) / 2))), heir: true });
   const seated = new Set(Object.values(nation.governors || {}).map((g) => g.id));
   return out.filter((c) => !seated.has(c.id));
 };
@@ -112,7 +111,7 @@ export const governorChoices = (nation) => {
 /** The nation with `candidate` on its way to `seatId` (in office at turn + GOVERNOR_ASSIGN_TURNS). */
 export const assignGovernor = (nation, seatId, candidate, turn) => ({
   ...nation,
-  governors: { ...(nation.governors || {}), [seatId]: { id: candidate.id, name: candidate.name, skill: candidate.skill, heir: !!candidate.heir, since: turn, ready: turn + GOVERNOR_ASSIGN_TURNS } },
+  governors: { ...(nation.governors || {}), [seatId]: { id: candidate.id, name: candidate.name, skill: candidate.skill, since: turn, ready: turn + GOVERNOR_ASSIGN_TURNS } },
   governorCandidates: (nation.governorCandidates || []).filter((c) => c.id !== candidate.id)
 });
 

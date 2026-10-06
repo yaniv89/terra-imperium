@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { applyResearchTurn, getResearchCost } from '../engine/research';
+import { hasMet } from '../engine/fog';
 import { gameReducer, createInitialState } from './GameContext';
 import { ActionTypes, GameStatus, LogTypes } from '../data/types';
 import { XP_THRESHOLDS } from '../data/promotions';
@@ -1823,27 +1824,11 @@ describe('Government reform and law actions (plan §M8)', () => {
       expect(gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } })).toBe(state);
     });
 
-    // Plan §M21 balance fix: scripts/simulate.mjs found a Succession Crisis (and its 40% civil-war
-    // roll) hitting a huge share of nations almost immediately, because `heir` stayed null until a
-    // reign actually ended — a brand-new monarchy's very first reign end was ALWAYS heirless.
-    it('generates a real heir the moment the player first becomes a monarchy (a hereditary type)', () => {
-      const state = { ...richState(), nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: null } } };
-      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
-      expect(next.nations.fr.heir).toBeTruthy();
-      expect(next.nations.fr.heir.claim).toBeGreaterThanOrEqual(40); // generateHeir's own 40-100 base — never a near-certain crisis
-    });
-
-    it('never overwrites an heir the player already has', () => {
-      const existingHeir = { id: 'heir_fr_existing', claim: 55 };
-      const state = { ...richState(), nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: existingHeir } } };
-      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
-      expect(next.nations.fr.heir).toBe(existingHeir);
-    });
-
-    it('does not generate an heir for a non-hereditary type (Dictatorship)', () => {
-      const state = { ...richState(), age: 'modern', nations: { ...richState().nations, fr: { ...richState().nations.fr, heir: null } } };
-      const next = gameReducer(state, { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'dictatorship' } });
-      expect(next.nations.fr.heir).toBeFalsy();
+    it('becoming a monarchy names no heir: succession was removed (master plan decision 37)', () => {
+      const next = gameReducer(richState(), { type: ActionTypes.CHANGE_GOVERNMENT_TYPE, payload: { typeId: 'monarchy' } });
+      expect(next.nations.fr.government.type).toBe('monarchy');
+      expect(next.nations.fr).not.toHaveProperty('heir');
+      expect(next.nations.fr.ruler).not.toHaveProperty('consort');
     });
   });
 
@@ -1972,99 +1957,6 @@ describe('Government reform and law actions (plan §M8)', () => {
     it('is a no-op when unaffordable', () => {
       const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
       expect(gameReducer(state, { type: ActionTypes.SHIFT_IDENTITY, payload: { axis: 'collectivism', direction: 1 } })).toBe(state);
-    });
-  });
-});
-
-describe('Estates actions (plan §M9)', () => {
-  const richState = (playerNationId = 'fr') => {
-    const state = createInitialState({ playerNationId });
-    state.units = {}; // the Dawn start's own garrison would be "the unit" below
-    return { ...state, resources: { ...state.resources, adm: 100000, gold: 100000, hr: 100000 } };
-  };
-
-  describe('SEIZE_LAND', () => {
-    it('raises crown land, drops every estate\'s loyalty, deducts ADM, and sets a cooldown', () => {
-      const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.SEIZE_LAND, payload: {} });
-      expect(next.nations.fr.crownLand).toBe(state.nations.fr.crownLand + 10);
-      Object.values(next.nations.fr.estates).forEach((estate) => expect(estate.loyalty).toBe(30)); // 50 - 20
-      expect(next.resources.adm).toBeLessThan(state.resources.adm);
-      expect(next.nations.fr.estateInteractionCooldowns.seizeLand).toBe(state.turnNumber + 10);
-    });
-
-    it('is a no-op while on cooldown', () => {
-      const first = gameReducer(richState(), { type: ActionTypes.SEIZE_LAND, payload: {} });
-      expect(gameReducer(first, { type: ActionTypes.SEIZE_LAND, payload: {} })).toBe(first);
-    });
-
-    it('is a no-op when unaffordable', () => {
-      const state = { ...richState(), resources: { ...richState().resources, adm: 0 } };
-      expect(gameReducer(state, { type: ActionTypes.SEIZE_LAND, payload: {} })).toBe(state);
-    });
-  });
-
-  describe('SELL_LAND', () => {
-    it('lowers crown land, grants gold, raises burgher loyalty, and sets a cooldown', () => {
-      const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.SELL_LAND, payload: {} });
-      expect(next.nations.fr.crownLand).toBe(state.nations.fr.crownLand - 10);
-      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
-      expect(next.nations.fr.estates.burghers.loyalty).toBe(60); // 50 + 10
-      expect(next.nations.fr.estateInteractionCooldowns.sellLand).toBe(state.turnNumber + 10);
-    });
-
-    it('is a no-op while on cooldown', () => {
-      const first = gameReducer(richState(), { type: ActionTypes.SELL_LAND, payload: {} });
-      expect(gameReducer(first, { type: ActionTypes.SELL_LAND, payload: {} })).toBe(first);
-    });
-  });
-
-  describe('GRANT_ESTATE_PRIVILEGE / REVOKE_ESTATE_PRIVILEGE', () => {
-    it('grants a privilege and deducts the cost', () => {
-      const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
-      expect(next.nations.fr.estates.clergy.privileges).toContain('control_of_education');
-      expect(next.resources.adm).toBeLessThan(state.resources.adm);
-    });
-
-    it('is a no-op for a privilege already granted', () => {
-      const granted = gameReducer(richState(), { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
-      expect(gameReducer(granted, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } })).toBe(granted);
-    });
-
-    it('is a no-op for an unknown privilege id', () => {
-      const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'not_real' } })).toBe(state);
-    });
-
-    it('revokes a granted privilege, costing -1 stability and -30 loyalty for that estate', () => {
-      const granted = gameReducer(richState(), { type: ActionTypes.GRANT_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
-      const next = gameReducer(granted, { type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } });
-      expect(next.nations.fr.estates.clergy.privileges).not.toContain('control_of_education');
-      expect(next.nations.fr.estates.clergy.loyalty).toBe(20); // 50 - 30
-      expect(next.nations.fr.stability).toBe((granted.nations.fr.stability || 0) - 1);
-    });
-
-    it('is a no-op revoking a privilege that was never granted', () => {
-      const state = richState();
-      expect(gameReducer(state, { type: ActionTypes.REVOKE_ESTATE_PRIVILEGE, payload: { estateId: 'clergy', privilegeId: 'control_of_education' } })).toBe(state);
-    });
-  });
-
-  describe('CLERGY_TITHE / NOBILITY_LEVIES', () => {
-    it('Clergy Tithe grants gold and costs 10 clergy loyalty', () => {
-      const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.CLERGY_TITHE, payload: {} });
-      expect(next.resources.gold).toBeGreaterThan(state.resources.gold);
-      expect(next.nations.fr.estates.clergy.loyalty).toBe(40); // 50 - 10
-    });
-
-    it('Nobility Raise Levies grants manpower and costs 10 nobility loyalty', () => {
-      const state = richState();
-      const next = gameReducer(state, { type: ActionTypes.NOBILITY_LEVIES, payload: {} });
-      expect(next.resources.hr).toBeGreaterThan(state.resources.hr);
-      expect(next.nations.fr.estates.nobility.loyalty).toBe(40);
     });
   });
 });
@@ -2448,7 +2340,7 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op for a non-bordering nation', () => {
       const state = richState();
       const bordering = new Set(getBorderingNationIds(state.regions, 'fr'));
-      const nonBordering = Object.keys(state.nations).find((id) => id !== 'fr' && !bordering.has(id));
+      const nonBordering = Object.keys(state.nations).find((id) => id !== 'fr' && !bordering.has(id) && hasMet(state, 'fr', id));
       expect(gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: nonBordering } })).toBe(state);
     });
 
@@ -2479,14 +2371,13 @@ describe('Diplomacy tab actions', () => {
       }
     });
 
-    it('reduces the target\'s hostility and raises the heir\'s claim', () => {
+    it('reduces the target\'s hostility and records the match', () => {
       const state = asMonarchies(richState(), 'de');
       const withHostility = { ...state, nations: { ...state.nations, de: { ...state.nations.de, hostility: 80 } } };
-      const withHeir = { ...withHostility, nations: { ...withHostility.nations, fr: { ...withHostility.nations.fr, heir: { id: 'h1', claim: 50 } } } };
-      const next = gameReducer(withHeir, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } });
+      const next = gameReducer(withHostility, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: 'de' } });
       expect(next.nations.de.hostility).toBeLessThan(80);
-      expect(next.nations.fr.heir.claim).toBe(60);
       expect(next.nations.fr.marriageWith).toContain('de');
+      expect(next.nations.fr.ruler).not.toHaveProperty('consort');
     });
 
     it('is a no-op unless both nations are monarchies', () => {
@@ -2542,10 +2433,10 @@ describe('Diplomacy tab actions', () => {
 
     it('is a no-op once every diplomat is already assigned', () => {
       const state = richState();
-      const targets = Object.keys(state.nations).filter((id) => id !== 'fr').slice(0, state.nations.fr.diplomats);
+      const targets = Object.keys(state.nations).filter((id) => id !== 'fr' && hasMet(state, 'fr', id)).slice(0, state.nations.fr.diplomats);
       let assigned = state;
       targets.forEach((id) => { assigned = gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: id } }); });
-      const extra = Object.keys(state.nations).find((id) => id !== 'fr' && !targets.includes(id));
+      const extra = Object.keys(state.nations).find((id) => id !== 'fr' && !targets.includes(id) && hasMet(state, 'fr', id));
       expect(gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: extra } })).toBe(assigned);
     });
 
@@ -2615,7 +2506,7 @@ describe('Diplomacy tab actions', () => {
       const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
       // fr is now de's OVERLORD in this fixture, not a vassal — flip the roles to test the guard.
       const frIsVassal = { ...vassalized, nations: { ...vassalized.nations, fr: { ...vassalized.nations.fr, vassalOf: 'de' } } };
-      const other = Object.keys(frIsVassal.nations).find((id) => id !== 'fr' && id !== 'de');
+      const other = Object.keys(frIsVassal.nations).find((id) => id !== 'fr' && id !== 'de' && hasMet(frIsVassal, 'fr', id));
       expect(gameReducer(frIsVassal, { type: ActionTypes.DECLARE_WAR, payload: { nationId: other } })).toBe(frIsVassal);
     });
   });
@@ -2730,7 +2621,7 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op once trade pact capacity is exhausted', () => {
       const state = richState(); // base capacity 1 with neutral identity
       const first = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
-      const otherId = Object.keys(first.nations).find((id) => id !== 'fr' && id !== 'de' && !first.nations[id].isAtWar);
+      const otherId = Object.keys(first.nations).find((id) => id !== 'fr' && id !== 'de' && !first.nations[id].isAtWar && hasMet(first, 'fr', id));
       expect(gameReducer(first, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: otherId } })).toBe(first);
     });
   });
@@ -2755,36 +2646,3 @@ describe('default case', () => {
   });
 });
 
-describe('royal family actions', () => {
-  const asMonarchy = () => {
-    const s = createInitialState({ playerNationId: 'fr' });
-    const fr = s.nations.fr;
-    return { ...s, resources: { ...s.resources, gold: 5000, adm: 500, dip: 500 }, nations: { ...s.nations, fr: { ...fr, government: { type: 'monarchy', reforms: [] }, ruler: { ...fr.ruler, consort: null }, heir: null } } };
-  };
-
-  it('MARRY_NOBLE gives the ruler a consort, once, and only in a monarchy', () => {
-    const s = asMonarchy();
-    const wed = gameReducer(s, { type: ActionTypes.MARRY_NOBLE });
-    expect(wed.nations.fr.ruler.consort).toMatchObject({ foreign: false });
-    expect(wed.resources.gold).toBe(s.resources.gold - 60);
-    expectRefused(gameReducer(wed, { type: ActionTypes.MARRY_NOBLE }), wed);
-    const tribal = { ...s, nations: { ...s.nations, fr: { ...s.nations.fr, government: null } } };
-    expectRefused(gameReducer(tribal, { type: ActionTypes.MARRY_NOBLE }), tribal);
-  });
-
-  it('a royal match abroad also gives an unmarried ruler a foreign consort', () => {
-    const s = asMonarchy();
-    const target = Object.keys(s.nations).find((id) => id !== 'fr' && !s.nations[id].isAtWar);
-    const withTarget = { ...s, nations: { ...s.nations, [target]: { ...s.nations[target], government: { type: 'monarchy', reforms: [] } } } };
-    const next = gameReducer(withTarget, { type: ActionTypes.PROPOSE_MARRIAGE, payload: { nationId: target } });
-    expect(next.nations.fr.ruler.consort).toMatchObject({ from: target, foreign: true });
-  });
-
-  it('ADOPT_HEIR names a weak-claim relative when no child comes', () => {
-    const s = asMonarchy();
-    const next = gameReducer(s, { type: ActionTypes.ADOPT_HEIR });
-    expect(next.nations.fr.heir).toMatchObject({ adopted: true });
-    expect(next.nations.fr.heir.claim).toBeLessThanOrEqual(70);
-    expectRefused(gameReducer(next, { type: ActionTypes.ADOPT_HEIR }), next);
-  });
-});

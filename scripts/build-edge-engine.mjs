@@ -16,7 +16,8 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ENTRY = path.resolve(__dirname, '../src/engine/gameReducer.js');
+// edgeEntry.js: the world grid (tilesPreload.js) first, then gameReducer.js and all it exports.
+const ENTRY = path.resolve(__dirname, '../src/engine/edgeEntry.js');
 const OUTFILE = path.resolve(__dirname, '../supabase/functions/resolve-turn/_engine.bundle.js');
 
 export const buildEdgeEngine = () => build({

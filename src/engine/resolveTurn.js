@@ -3,6 +3,8 @@ import { processAIAccords } from './aiAccords';
 import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
 import { processEmergence } from './emergence';
+import { processLateArrivals, independentCityCtx } from './independents';
+import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
@@ -62,19 +64,17 @@ import {
   FUSION_GRID_UPKEEP_HELIUM3_PER_TURN,
   DIPLOMAT_IMPROVE_RELATIONS_HOSTILITY_DECAY_PER_TURN, VASSAL_TRIBUTE_RATE, VASSAL_TRIBUTE_GOLD_PER_DEV_POINT,
   RIVAL_ELIMINATED_PRESTIGE_REWARD, CAPITAL_OCCUPIED_STABILITY_PENALTY, CAPITAL_OCCUPIED_POOL_PENALTY,
-  CIVIL_WAR_SUCCESSION_CRISIS_CHANCE, ECONOMIC_COLLAPSE_STABILITY_PENALTY,
+  ECONOMIC_COLLAPSE_STABILITY_PENALTY,
   POWER_POOL_CAP
 } from '../data/actionCosts';
-import { processSuccession, processRoyalBirth, getAdvisorSalary } from './succession';
+import { processReignEnd, getAdvisorSalary } from './rulers';
 import { applyResearchTurn, researchesThisTurn } from './research';
-import { processNationalPowerTurn, clampStability, clampLegitimacy, clampPrestige, STABILITY_MAX } from './nationalPower';
-import { processEstatesTurn } from './estates';
-import { createInitialEstate, LABOR_ESTATE_ID } from '../data/estates';
+import { processNationalPowerTurn, clampStability, clampPrestige, STABILITY_MAX } from './nationalPower';
 import { GREAT_PROJECTS, cityWonderTotal } from '../data/greatProjects';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { clampMaintenance, getLoanCapacity, getLoanSize, getLoanInterestRate, applyBankruptcy } from './economy';
 import {
-  nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, crisisCanErupt, inCivilWarCooldown
+  nextLowStabilityStreak, isStabilityCivilWarTrigger, startCivilWar, processCivilWarTurn, inCivilWarCooldown
 } from './civilWar';
 import { processDisastersTurn, nextEconomicCollapseProgress, isEconomicCollapseDisasterReady } from './disasters';
 import { getTotalDev } from './development';
@@ -95,7 +95,6 @@ import { processColonies } from './colonies';
 import { hasPerk } from '../data/promotions';
 import { governorEffects, governorOf, pruneGovernors, generateGovernorCandidates, GOVERNOR_UNREST_MULT, GOVERNOR_REFRESH_TURNS } from './governors';
 import { lawRulesOf } from './lawRules';
-import { estateLandEffects } from './estateLand';
 import { plunderedRoutes, plunderGoldFor } from './plunder';
 import { authorityRisksCivilWar } from './authority';
 import { rollCityDisasters } from './cityDisasters';
@@ -103,6 +102,7 @@ import { spreadPlague, seedPlagueNear, PLAGUE_EVENT_ORIGINS } from './plague';
 import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
 import { ringsFromF75 } from '../data/geo/gridScale';
+import { updateFog } from './fog';
 import { repairCityDamage } from './cityManifest';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -140,18 +140,17 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         citiesOwned: citiesOwned[nid] || 1,
         speedMult: speedCostMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // the speed table (ages.js)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
-        greatProjects: state.greatProjects || {}
+        greatProjects: state.greatProjects || {},
+        // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
+        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, newAge) : {})
       });
     }
     return ctxCache.get(nid);
   };
   // A governed city (governors.js) adds its governor's food, production and culture to the nation's context.
-  // The clergy's land returns culture to the city whose countryside it holds (estateLand.js).
-  const clergyCulture = estateLandEffects(state).cultureByCity;
   // A city's own national wonder adds its culture (greatProjects.js cityEffects, Solomon's Temple).
   const ctxFor = (city) => {
     let base = nationCtx(city.owner);
-    if (city.owner === state.playerNationId && clergyCulture[city.id]) base = { ...base, cultureBonus: (base.cultureBonus || 0) + clergyCulture[city.id] };
     const wonderCulture = cityWonderTotal(state.greatProjects, city.id, 'local.culture');
     if (wonderCulture) base = { ...base, cultureBonus: (base.cultureBonus || 0) + wonderCulture };
     if (!city.owner || !state.nations[city.owner]?.governors || city.id == null) return base;
@@ -440,9 +439,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const units = { ...state.units };
   const revivedNations = {}; // eliminated nations a successful revolt handed land back to (see transferRegion)
   const rebelUnitIdByRegion = {};
-  // Civil-war pretenders (isPretender) are owned by src/engine/civilWar.js, not by this unrest block —
-  // letting this block see them made every pretender in a calm province "dissolve" the next turn.
-  Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID && !u.isPretender) rebelUnitIdByRegion[u.regionId] = u.id; });
+  // Civil-war insurgents (isInsurgent) are owned by src/engine/civilWar.js, not by this unrest block —
+  // letting this block see them made every insurgent stack in a calm province "dissolve" the next turn.
+  Object.values(units).forEach(u => { if (u.ownerId === REBEL_OWNER_ID && !u.isInsurgent) rebelUnitIdByRegion[u.regionId] = u.id; });
   Object.entries(regions).forEach(([regionId, region]) => {
     const existingRebelId = rebelUnitIdByRegion[regionId];
     if (region.unrest >= REBELLION_UNREST_THRESHOLD) {
@@ -606,7 +605,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const nations = { ...modifierExpiredNations, ...revivedNations };
   const opinionView = { ...state, nations: modifierExpiredNations }; // one view for the loop: a fresh spread per nation would rebuild the modifier sheets 240 times
   Object.entries(nations).forEach(([nId, nation]) => {
-    if (nation.isPlayer || nation.isEliminated) return;
+    if (nation.isPlayer || nation.isEliminated || isIndependentNation(nation)) return; // independents have no relations to drift (independents.js)
     const growthUpdate = aiUpdates.nationUpdates[nId];
     const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0));
     const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
@@ -627,7 +626,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // turn, Tier 2 every 3, Tier 3 every 10), which is what keeps this affordable at 240 nations.
   // Recruitment stays a separate pass below (processAIRecruitment, Tier 1 only, unchanged cadence)
   // now drawing on this same real economy once it exists — see aiEconomy.js's own header for the
-  // full list of what's deliberately NOT part of this milestone (laws, estates, identity, advisors,
+  // full list of what's deliberately NOT part of this milestone (laws, identity, advisors,
   // diplomat tasks, AI loans/bankruptcy).
   // ONE shared state snapshot for this whole phase — critically, the SAME object reference for
   // every nation's calcAllNationIncomes/getPowerIncome/getNationTier/processAIEconomyTurn call.
@@ -693,11 +692,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   });
   mark('aiEconomy');
 
-  // --- succession (plan §M3) --- runs for every nation (cheap: a number comparison for the vast
-  // majority whose reign isn't ending this turn), but only the player's own succession is logged —
-  // 240 nations' worth of log lines every few turns would drown out everything else in the console.
-  // AI nations still get a real ruler/heir update even though nothing reads an AI ruler's stats
-  // mechanically yet (M16), so this doesn't need touching again once AI parity lands.
+  // --- rulers (plan §M3) --- runs for every nation (cheap: a number comparison for the vast
+  // majority whose reign isn't ending this turn), but only the player's new ruler is logged.
+  // When a reign ends a new ruler takes over (rulers.js): no heirs, claims or crises.
   // Governors (governors.js): the player's court offers fresh candidates every GOVERNOR_REFRESH_TURNS
   // turns, and a governor whose seat was lost leaves.
   {
@@ -709,51 +706,21 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
   }
   Object.entries(nations).forEach(([nId, nation]) => {
-    const result = processSuccession(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed, bornHeirsOnly: nId === state.playerNationId });
-    if (!result) return;
-    // Plan §M4: "heirless succession: -1 stability" is the one lower-stability trigger from the
-    // plan's own table that's mechanically real today — a heirless OR low-claim succession is
-    // exactly M3's `result.crisis` flag, so this reuses it rather than inventing a parallel check.
-    const stability = result.crisis ? clampStability((nation.stability || 0) - 1) : nation.stability;
-    // Plan §M8.1: Elective Monarchy's "-10 legitimacy at succession" (result.legitimacyPenalty).
-    const legitimacy = result.legitimacyPenalty ? clampLegitimacy((nation.legitimacy ?? 50) - result.legitimacyPenalty) : nation.legitimacy;
-    // Plan §M18's "Dynasty" achievement ("the same dynasty for 10 rulers"): a real consecutive-
-    // succession counter, reset the instant the ruling house actually changes (an elective/
-    // theocratic/autocratic/tribal succession, or a hereditary line that just failed, both roll a
-    // brand-new dynasty name per succession.js's own nextDynasty logic).
-    const sameDynastyStreak = result.ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
-    nations[nId] = { ...nation, ruler: result.ruler, heir: result.heir, stability, legitimacy, sameDynastyStreak };
+    const ruler = processReignEnd(nation, rng, { turnNumber: newTurnNumber, age: newAge, gameSpeed: state.gameSpeed });
+    if (!ruler) return;
+    // Plan §M18's "Dynasty" achievement ("the same royal house for 10 rulers"): counts consecutive
+    // rulers of one house, reset the moment the house changes (any government but a monarchy rolls
+    // a new house name each reign).
+    const sameDynastyStreak = ruler.dynasty === nation.ruler?.dynasty ? (nation.sameDynastyStreak || 0) + 1 : 1;
+    nations[nId] = { ...nation, ruler, sameDynastyStreak };
     if (nId === state.playerNationId) {
-      const message = result.crisis
-        ? `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne amid an uncertain succession. (-1 stability)`
-        : `${result.ruler.name} of House ${result.ruler.dynasty} succeeds to the throne.`;
-      logs.push({ year: newYear, message, type: LogTypes.MILESTONE });
-    }
-    // Civil war trigger #1 (plan §M3/§M15): "a heirless OR low-claim succession fires the Succession
-    // Crisis chain... a pretender rebel spawns with 40% chance" — the plan named this chance back in
-    // M3 but nothing existed yet to spawn into (civil war IS that "pretender rebel" substrate, so
-    // this is where the M3 comment's own deferred 40% roll is finally wired, not a new mechanic).
-    if (result.crisis && crisisCanErupt(nations[nId], newTurnNumber) && rng.next() < CIVIL_WAR_SUCCESSION_CRISIS_CHANCE) {
-      const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
-      if (started) {
-        Object.assign(regions, started.regions);
-        Object.assign(units, started.units);
-        nations[nId] = { ...nations[nId], civilWar: started.civilWar };
-        logs.push({ year: newYear, message: `${nations[nId].name}: the succession crisis erupts into open civil war!`, type: LogTypes.CRISIS });
-      }
+      logs.push({ year: newYear, message: `${ruler.name} of House ${ruler.dynasty} now rules.`, type: LogTypes.MILESTONE });
     }
   });
-  // The player's royal family: a married monarch without an heir may have one this turn.
-  const playerForBirth = nations[state.playerNationId];
-  const newborn = playerForBirth ? processRoyalBirth(playerForBirth, rng, newTurnNumber) : null;
-  if (newborn) {
-    nations[state.playerNationId] = { ...playerForBirth, heir: newborn };
-    logs.push({ year: newYear, message: `An heir is born to ${playerForBirth.ruler.name} and ${playerForBirth.ruler.consort.name}: ${newborn.name} of House ${newborn.dynasty} (claim ${newborn.claim}).`, type: LogTypes.MILESTONE });
-  }
-  mark('succession');
+  mark('rulers');
 
   // --- national power: stability decay, legitimacy/tradition/devotion, prestige (plan §M4) ---
-  // runs for every nation, same cadence and reasoning as the succession pass just above (cheap,
+  // runs for every nation, same cadence and reasoning as the rulers pass just above (cheap,
   // AI nations get real numbers even though nothing reads them mechanically until M16 wires AI
   // decisions off of them).
   Object.entries(nations).forEach(([nId, nation]) => {
@@ -788,50 +755,36 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   }
   mark('capitals');
 
-  // --- estates (plan §M9) --- loyalty drifts 1/turn toward its reform/law/trait/privilege-driven
-  // target, influence is recomputed (real for the player, a cheap privilege-only proxy for AI — see
-  // estates.js's getEstateInfluence). Labor joins once a nation reaches the Modern age, matching the
-  // plan's own gating; earlier ages never see the fourth estate at all.
-  const estatesState = { ...state, nations, regions };
-  Object.entries(nations).forEach(([nId, nation]) => {
-    let estates = processEstatesTurn(estatesState, nId);
-    if (newAge === 'modern' && estates && !estates[LABOR_ESTATE_ID]) {
-      estates = { ...estates, [LABOR_ESTATE_ID]: createInitialEstate() };
-    }
-    if (estates && estates !== nation.estates) nations[nId] = { ...nation, estates };
-  });
-  mark('estates');
-
   // --- disasters & civil war (plan §M15) --- runs for every nation, the same "real for player and
-  // AI both" cadence as stability/estates/succession above. Disasters read only fields every nation
+  // AI both" cadence as stability and rulers above. Disasters read only fields every nation
   // already tracks for real; a nation already fighting a civil war skips straight to
   // processCivilWarTurn instead of re-checking triggers (declareWar's own one-active-thing-at-a-time
   // spirit, applied here even though this isn't a state.wars entry — see civilWar.js's own header on
   // why not).
   Object.entries(nations).forEach(([nId, nation]) => {
-    const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, newAge, newTurnNumber);
+    const { nation: afterDisasters, triggersCivilWar, logs: disasterLogs } = processDisastersTurn(nation, newAge);
     if (nId === state.playerNationId) logs.push(...disasterLogs.map((l) => ({ year: newYear, ...l })));
     nations[nId] = afterDisasters;
 
     if (nation.civilWar?.active) {
       const result = processCivilWarTurn({ ...state, age: newAge }, regions, units, nations[nId], nId, rng, newTurnNumber);
       Object.assign(regions, result.regions);
-      // Object.assign alone can only ADD/replace keys — pretender stacks the civil war removed
-      // (suppressed by an AI, or cleared when the pretenders win) must be deleted explicitly too.
-      Object.keys(units).forEach((id) => { if (units[id].isPretender && !result.units[id]) delete units[id]; });
+      // Object.assign alone can only ADD/replace keys — insurgent stacks the civil war removed
+      // (suppressed by an AI, or cleared when the insurgents win) must be deleted explicitly too.
+      Object.keys(units).forEach((id) => { if (units[id].isInsurgent && !result.units[id]) delete units[id]; });
       Object.assign(units, result.units);
       nations[nId] = result.nation;
       if (result.result === 'crushed' || result.result === 'lost') nations[nId] = { ...nations[nId], civilWarEndedTurn: newTurnNumber }; // the cooldown (civilWar.js)
       if (result.result === 'crushed') {
-        logs.push({ year: newYear, message: `${nations[nId].name} crushes the pretender uprising. (+1 stability, +10 legitimacy)`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, message: `${nations[nId].name} crushes the uprising. (+1 stability, +10 legitimacy)`, type: LogTypes.CRISIS });
       } else if (result.result === 'lost') {
-        logs.push({ year: newYear, message: `${nations[nId].name} falls to the pretenders — a new regime takes power.`, type: LogTypes.CRISIS });
+        logs.push({ year: newYear, message: `${nations[nId].name} falls to the insurgents: a new regime takes power.`, type: LogTypes.CRISIS });
       }
       return;
     }
 
     const lowStabilityStreak = nextLowStabilityStreak(nations[nId], authorityRisksCivilWar({ ...state, regions, nations }, nId));
-    const shouldStart = (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber);
+    const shouldStart = (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber) && !isIndependentNation(nations[nId]); // an independent has no civil wars (one city, no court)
     if (shouldStart) {
       const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
       if (started) {
@@ -915,7 +868,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
         year: newYear,
         message: disasterBankruptcyReady && rawGold >= 0
           ? 'Economic Collapse! Years of mounting debt force bankruptcy outright. (-2 stability on top of the usual bankruptcy penalties)'
-          : 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, every estate -20 loyalty, a 10-turn economic crisis)',
+          : 'Bankruptcy! The treasury is empty and no further loans can be taken. (-3 stability, -20 prestige, a 10-turn economic crisis)',
         type: LogTypes.CRISIS
       });
     } else if (rawGold < 0) {
@@ -987,7 +940,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
 
   // Liberty desire (plan §M12/§M15: "rises with your weakness and their strength... at >= 50 they
   // may declare an independence war") — generic for every vassal, player or AI, the same real-
-  // fielded-strength comparison civil war's own pretender sizing uses rather than the abstract
+  // fielded-strength comparison civil war's own insurgent sizing uses rather than the abstract
   // militaryStrength number, since that's what an independence war would actually be fought with.
   // It now drifts toward a target read from the overlord's real weakness: relative strength, how
   // many wars it's fighting, its war exhaustion and whether it's in debt (src/engine/vassals.js).
@@ -1114,6 +1067,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       }
     });
     wars = closeWarsForEliminatedNation(wars, nId);
+    // An independent is one city: taking it is a conquest, not the fall of a nation (no reward, no world log).
+    if (isIndependentNation(eliminated)) return;
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
     // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
     // is pure decay outside one-shot sources) — this is the one real payoff instead, a one-shot
@@ -1290,12 +1245,16 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   }
   mark('victory');
 
-  next = reconcileTerritory(processColonies(processEmergence(next)));
+  next = reconcileTerritory(processColonies(processLateArrivals(processEmergence(next))));
   mark('emergenceAndTerritory');
   // Research last, once this turn's science has been credited (src/engine/research.js).
   next = applyResearchTurn(next);
   mark('research');
   next = normalizeUnitTiles(syncWorldRegistry(next));
   mark('registry');
+  // Fog of war last (fog.js): what everyone sees once the turn's moves, foundings and conquests
+  // are done grows their explored maps and makes contacts.
+  next = updateFog(next);
+  mark('fog');
   return next;
 };

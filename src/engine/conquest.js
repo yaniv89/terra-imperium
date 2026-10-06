@@ -18,6 +18,7 @@ import { getTotalDev } from './development';
 import { clampStability } from './nationalPower';
 import { getCapital } from '../data/regions';
 import { CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY } from '../data/actionCosts';
+import { isIndependentNation, INDEPENDENT_CONQUEST_AE_MULT } from '../data/independents';
 
 export const CONQUEST_CONTROL = 25;
 export const CONQUEST_MIN_UNREST = 50;
@@ -51,7 +52,9 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
     loyalty: LOYALTY_ON_CONQUEST, freeCity: undefined
   });
   const nextRegions = { ...regions, [regionId]: taken };
-  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region));
+  // Taking an independent's city costs half the usual AE (plans/independent-cities.md 5).
+  const indepMult = isIndependentNation(nations[loserId]) ? INDEPENDENT_CONQUEST_AE_MULT : 1;
+  let nextNations = applyAggressiveExpansion(nations, nextRegions, regionId, loserId, conquerorId, aeMultFor({ nations, regions }, conquerorId, region) * indepMult);
   // The claim the city was taken for is settled.
   if (nextNations[conquerorId]?.claims?.includes(regionId)) nextNations = { ...nextNations, [conquerorId]: { ...nextNations[conquerorId], claims: nextNations[conquerorId].claims.filter((id) => id !== regionId) } };
   nextNations = relocateLostCapital(nextNations, nextRegions, loserId);

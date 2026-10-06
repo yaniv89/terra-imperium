@@ -18,6 +18,7 @@
 // Pure: returns the next nations, the logs and the pending demand.
 import { getTouchingIds } from '../data/regions';
 import { getNationTier } from '../utils/aiLogic';
+import { isIndependentNation } from '../data/independents';
 import { DEMAND_COOLDOWN_TURNS, DEMAND_CB_TURNS, DEMAND_TRIBUTE_SHARE, DEMAND_TRIBUTE_MIN, DEMANDS, hasOpenBorders, setOpenBorders, applyDemand, demandAcceptance, grantDemand } from './accords';
 import { claimsAgainst } from './claims';
 import { opinionReasons } from './opinion';
@@ -74,10 +75,11 @@ export const processAIAccords = (state, nations, { turn, sortedByMilitary }) => 
     }
     pendingDemand = null;
   }
-  const ids = Object.keys(nations).filter((id) => id !== me && !nations[id].isEliminated && !nations[id].isPlayer).sort();
+  // Independents make no accords and are asked for nothing (plans/independent-cities.md 3.2; W3 adds tribute).
+  const ids = Object.keys(nations).filter((id) => id !== me && !nations[id].isEliminated && !nations[id].isPlayer && !isIndependentNation(nations[id])).sort();
   const active = ids.filter((id) => slotOf(ids, id) === turn % AI_ACCORD_PERIOD);
   active.forEach((a) => {
-    const around = touchingNations(view(), a);
+    const around = touchingNations(view(), a).filter((b) => !isIndependentNation(next[b]));
     around.forEach((b) => {
       if (b === me || atWar(state, a, b) || related(next, a, b)) return;
       const ab = opinionOf(view(), a, b); const ba = opinionOf(view(), b, a);

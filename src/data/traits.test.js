@@ -9,12 +9,11 @@ describe('TRAITS', () => {
     });
   });
 
-  it('every trait has at least one effect, and every effect hook is a real, wired modifier hook (or the known raw estateLoyalty key, plan §M9)', () => {
+  it('every trait has at least one effect, and every effect hook is a real, wired modifier hook', () => {
     Object.values(TRAITS).forEach((trait) => {
       const keys = Object.keys(trait.effects);
       expect(keys.length).toBeGreaterThan(0);
       keys.forEach((hook) => {
-        if (hook === 'estateLoyalty') return; // raw, per-estate — consumed directly by src/engine/estates.js
         expect(LEGACY_HOOK).toHaveProperty(hook);
       });
     });

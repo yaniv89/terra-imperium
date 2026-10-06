@@ -4,10 +4,11 @@
 // city's state in small marks (a siege bar, a loyalty warning, an outpost's progress). HTML over
 // the 3D canvas, so no building can hide a name; tapping a banner selects the city. Further out
 // the SVG badges carry the cities (Map2DView).
-import React, { useMemo } from 'react';
-import { useGame } from '../../context/GameContext';
+import React, { useMemo, useCallback } from 'react';
+import { useFogView } from './useFogView';
 import { cityLatLon } from '../../data/geo/cityFeatures';
 import { getNationColor } from '../../data/nationColors';
+import { isIndependent, mutedIndependentColour, PERSONALITIES } from '../../data/independents';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { markerIconUrl } from '../../data/icons';
@@ -22,10 +23,10 @@ const EDGE_PX = 80;
 export const bannerOffsetPx = (modelRadius, pxPerUnit) => (modelRadius + 0.35) * pxPerUnit * 0.8 + 6;
 
 const CityBanners = ({ projection, transform, width, height, onSelect, selectedRegion = null, playerColor }) => {
-  const { state } = useGame();
+  const { state } = useFogView(); // towns as the player knows them (fog of war)
   const cities = useMemo(() => Object.values(state.regions).filter((c) => c.owner || c.colony), [state.regions]);
   const townTiles = useMemo(() => new Set(cities.filter((c) => c.tile != null).map((c) => c.tile)), [cities]);
-  const isTown = (t) => townTiles.has(t);
+  const isTown = useCallback((t) => townTiles.has(t), [townTiles]); // stable: scale.js caches each gap
   if (!projection) return null;
   const k = transform.k;
   const out = [];
@@ -43,7 +44,10 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
     if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;
     const owner = city.owner || city.colony?.ownerId;
     const own = owner === state.playerNationId;
-    const colour = own ? playerColor : getNationColor(owner) || '#94a3b8';
+    // An independent (independents.js): a muted banner and a dot in its personality's colour, the
+    // placeholder for the personality shield (src/assets/icons/independents/<personality>.svg).
+    const indep = isIndependent(state.nations, owner) ? state.nations[owner].indep?.personality || 'tribal' : null;
+    const colour = own ? playerColor : indep ? mutedIndependentColour(getNationColor(owner)) : getNationColor(owner) || '#94a3b8';
     const selected = city.id === selectedRegion;
     const siege = city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null;
     const outpost = city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null;
@@ -61,6 +65,7 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
         <span className="city-banner-size">{outpost != null ? '⛺' : city.size || 1}</span>
         <span className="city-banner-name">
           {city.isCapital && (markerIconUrl('capital') ? <img src={markerIconUrl('capital')} alt="" className="city-banner-star city-banner-icon" width={14} height={14} draggable={false} /> : <span className="city-banner-star" aria-hidden="true">★</span>)}
+          {indep && <span className="city-banner-indep" style={{ background: PERSONALITIES[indep]?.badge }} title={`Independent city (${PERSONALITIES[indep]?.name || indep})`} data-independent={indep} />}
           {city.name}
           {disloyal && <span className="city-banner-warn" title="Loyalty is low" data-loyalty-warning={city.id}>!</span>}
           {city.siege && <span className="city-banner-siege" title="Under siege" data-siege-badge={city.id}>{markerIconUrl('battle') ? <img src={markerIconUrl('battle')} alt="" className="city-banner-icon" width={14} height={14} draggable={false} /> : '⚔'}</span>}

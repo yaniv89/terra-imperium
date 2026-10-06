@@ -9,6 +9,8 @@
 // nation id and tile id, never by randomness.
 import { AGE_ORDER } from './ages';
 import { ringsForKm, foundingDisk } from './geo/gridScale';
+import { CITY_SPACING_KM, citySpacingRings, spacingBlocks, spacingReach } from './geo/citySpacing';
+import { distanceKm } from './geo/geodesic';
 
 export const SCENARIOS = {
   dawn: { id: 'dawn', name: 'Dawn of Civilization', year: -2000, age: 'bronze', ringKm: 102, extraCities: 0, description: 'Every people starts with one city. Settle the empty world.' },
@@ -43,102 +45,164 @@ export const capitalSizeFor = (scenario, nationId) => {
 };
 
 // Ring distance from `from` over the grid, limited to `maxRing`, as a Map tile -> ring.
-export const ringsFrom = (tiles, from, maxRing) => {
+// `through(tile)`: only walk onto tiles it accepts (for example, one landmass).
+export const ringsFrom = (tiles, from, maxRing, through = null) => {
   const dist = new Map([[from, 0]]);
   const queue = [from];
   for (let i = 0; i < queue.length; i++) {
     const id = queue[i];
     const d = dist.get(id);
     if (d >= maxRing) continue;
-    tiles.neighbors[id].forEach((n) => { if (!dist.has(n)) { dist.set(n, d + 1); queue.push(n); } });
+    tiles.neighbors[id].forEach((n) => { if (!dist.has(n) && (!through || through(n))) { dist.set(n, d + 1); queue.push(n); } });
   }
   return dist;
 };
 
-// Start capitals obey the settling rule (MIN_CITY_SPACING, 3 rings: no other city within 2 rings),
-// as far as each nation's own land allows: real capitals can lie under 100 km apart, closer than
-// one 106 km hex (Jerusalem, Ramallah, Amman). Bigger nations (more land tiles) are placed first
-// and keep their real capital when it is clear; a capital that is not moves to the nearest tile of
-// its own land that is. A land with no such tile (Luxembourg, Liechtenstein, the small islands)
-// keeps its real capital, and then a bigger neighbour shifts up to BIG_MOVE_RINGS within its own
-// land when that clears it. Moved capitals keep their real names (buildScenarioStarts).
-// Deterministic, so every game starts the same.
-// Both in km, as rings of the grid (3 at frequency 75, 4 at frequency 100): the same km as the
-// settling rule (MIN_CITY_SPACING_KM in world/cities.js).
-export const START_SPACING_KM = 306;
+// Start capitals obey the settling rule with no exceptions (citySpacing.js, Civ VI style: no
+// other city within 3 rings, 2 across water), exactly as a settler's city must. Real capitals can
+// lie under 100 km apart, closer than one hex (Jerusalem and Ramallah, Monaco and Nice). This is
+// the legacy 240-nation world (plans/settle-rules.md R3 and R4, option A); the peoples pool of the
+// new worlds is spaced by construction.
+//   0. The `priority` nation (the one the player picks) is placed first and keeps its real capital.
+//   1. Then bigger nations (more land tiles) first: a real capital that is clear stays; one that
+//      is not moves to the nearest clear tile of its own land.
+//   2. A capital still crowded (its small land had no room) asks its bigger neighbours (never the
+//      priority nation) to shift up to BIG_MOVE_KM within their own land when that clears it.
+//   3. The rule then always holds. In the same order, a capital crowded by one already fixed takes
+//      the nearest clear tile of its own land, else the nearest clear land tile at most
+//      START_ABROAD_KM beyond its border; with neither it is ABSENT at the start (left out of the
+//      result: not on the map unless the player picks it).
+// Moved capitals keep their real names (buildScenarioStarts). Deterministic: the same picked
+// nation always gives the same start.
+export const START_SPACING_KM = CITY_SPACING_KM;
+export const START_ABROAD_KM = 300;
 const BIG_MOVE_KM = 306;
 const OWN_SEARCH_KM = 4080; // how far a crowded capital looks for a clear tile of its own land
-export const startSpacing = (tiles) => ringsForKm(START_SPACING_KM, { tiles });
+export const startSpacing = (tiles) => citySpacingRings(tiles);
+/** Whether two city centres obey the settling rule (citySpacing.js). */
+export const spacedApart = (tiles, a, b) => {
+  const reach = spacingReach(tiles);
+  const ring = ringsFrom(tiles, a, reach).get(b);
+  return ring === undefined || !spacingBlocks(tiles, a, b, ring);
+};
+/** The tiles a city centre bars (citySpacing.js: its own landmass to `reach` rings, one ring less
+ * across water), the centre included. */
+export const barredBy = (tiles, centre) => {
+  const out = [];
+  ringsFrom(tiles, centre, spacingReach(tiles)).forEach((ring, t) => { if (spacingBlocks(tiles, centre, t, ring)) out.push(t); });
+  return out;
+};
 const spreadCache = new WeakMap();
-export const spreadCapitals = (tiles, ids) => {
-  const key = [...ids].sort().join(',');
+/** { [nationId]: capital tile } for every nation placed at the start; an absent nation (R4 option
+ * A) has no entry. `priority`: the player's nation, placed first on its real capital. */
+export const spreadCapitals = (tiles, ids, { priority = null } = {}) => {
+  const p = priority != null && ids.includes(priority) ? priority : null;
+  const key = `${p ?? ''}|${[...ids].sort().join(',')}`;
   const cached = spreadCache.get(tiles)?.get(key);
   if (cached) return { ...cached };
-  const result = spreadCapitalsUncached(tiles, ids);
+  const result = spreadCapitalsUncached(tiles, ids, p);
   if (!spreadCache.has(tiles)) spreadCache.set(tiles, new Map());
   spreadCache.get(tiles).set(key, result);
   return { ...result };
 };
-const spreadCapitalsUncached = (tiles, ids) => {
+/** The nations of `ids` with no room at the start (spreadCapitals leaves them out). */
+export const absentAtStart = (tiles, ids, opts) => { const out = spreadCapitals(tiles, ids, opts); return ids.filter((id) => tiles.capitals[id] != null && out[id] == null).sort(); };
+const spreadCapitalsUncached = (tiles, ids, priority) => {
   const size = (id) => (tiles.countryTiles?.[id] || []).length;
-  const order = [...ids].sort((a, b) => size(b) - size(a) || (a < b ? -1 : 1));
+  const order = [...ids].filter((id) => tiles.capitals[id] != null)
+    .sort((a, b) => (b === priority) - (a === priority) || size(b) - size(a) || (a < b ? -1 : 1));
   const out = {};
   const livable = (t) => tiles.land[t] === 1 && tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice';
-  const START_SPACING = startSpacing(tiles);
-  const clearOf = (tile, others) => { const near = ringsFrom(tiles, tile, START_SPACING - 1); return !others.some((o) => near.has(o)); };
-  // the nation's own livable tiles, nearest to `from` first (ring distance over the whole grid)
+  const reach = spacingReach(tiles);
+  const clearOf = (tile, others) => others.every((o) => spacedApart(tiles, o, tile));
   // whether a city founded on `tile` would touch the sea through its own land (the registry's
   // coastal rule): a moved capital must not give a landlocked nation a coast (Austria's ring on
   // the coarse grid reaches a tile by the Gulf of Trieste)
   const seaward = (id, tile) => [tile, ...tiles.neighbors[tile]].some((t) => tiles.land[t] === 1 && (t === tile || tiles.countryOf(t) === id)
     && tiles.neighbors[t].some((n) => !tiles.land[n] && tiles.terrainOf(n) !== 'lake'));
+  const inlandOf = (id) => !seaward(id, tiles.capitals[id]);
+  // the nation's own livable tiles, nearest to `from` first (ring distance over the whole grid)
   const ownByDistance = (id, from, maxRing) => {
     const dist = ringsFrom(tiles, from, maxRing);
-    const inland = !seaward(id, tiles.capitals[id] ?? from);
+    const inland = inlandOf(id);
     return (tiles.countryTiles?.[id] || []).filter((t) => dist.has(t) && livable(t) && !(inland && seaward(id, t)))
       .sort((a, b) => dist.get(a) - dist.get(b) || a - b);
   };
-  // tiles within START_SPACING - 1 rings of a placed capital (ring distance is symmetric)
+  // livable land within START_ABROAD_KM of the nation's own land, never the land of a nation still
+  // to be placed (`waiting`: St. Martin must not take San Juan before Puerto Rico's turn), nearest
+  // to its border first, then nearest its real capital (km), then by tile id
+  const abroadByDistance = (id, waiting) => {
+    const own = (tiles.countryTiles?.[id] || []).length ? tiles.countryTiles[id] : [tiles.capitals[id]];
+    const maxRing = ringsForKm(START_ABROAD_KM, { tiles });
+    const dist = new Map(own.map((t) => [t, 0]));
+    const queue = [...own];
+    for (let i = 0; i < queue.length; i++) {
+      const d = dist.get(queue[i]);
+      if (d >= maxRing) continue;
+      for (const n of tiles.neighbors[queue[i]]) if (!dist.has(n)) { dist.set(n, d + 1); queue.push(n); }
+    }
+    const home = tiles.centres[tiles.capitals[id]];
+    const inland = inlandOf(id);
+    return [...dist.keys()].filter((t) => dist.get(t) > 0 && livable(t) && !waiting.has(tiles.countryOf(t)) && !(inland && seaward(id, t)))
+      .map((t) => ({ t, d: dist.get(t), km: distanceKm(home, tiles.centres[t]) }))
+      .sort((a, b) => a.d - b.d || a.km - b.km || a.t - b.t).map((x) => x.t);
+  };
+  // Pass 1
   const blocked = new Set();
   order.forEach((id) => {
     const real = tiles.capitals[id];
-    const tile = !blocked.has(real) ? real : ownByDistance(id, real, ringsForKm(OWN_SEARCH_KM, { tiles })).find((t) => !blocked.has(t)) ?? real;
+    const tile = id === priority || !blocked.has(real) ? real : ownByDistance(id, real, ringsForKm(OWN_SEARCH_KM, { tiles })).find((t) => !blocked.has(t)) ?? real;
     out[id] = tile;
-    ringsFrom(tiles, tile, START_SPACING - 1).forEach((_, t) => blocked.add(t));
+    barredBy(tiles, tile).forEach((t) => blocked.add(t));
   });
   // Pass 2: a capital still crowded (its small land had no room) asks its bigger neighbours to
   // shift within their own land.
   order.forEach((small) => {
+    if (small === priority) return;
     const others = () => order.filter((o) => o !== small).map((o) => out[o]);
     if (clearOf(out[small], others())) return;
-    const near = ringsFrom(tiles, out[small], START_SPACING - 1);
-    order.filter((big) => big !== small && size(big) > size(small) && near.has(out[big])).forEach((big) => {
+    const near = ringsFrom(tiles, out[small], reach);
+    order.filter((big) => big !== small && big !== priority && size(big) > size(small) && near.has(out[big]) && !spacedApart(tiles, out[big], out[small])).forEach((big) => {
       const rest = order.filter((o) => o !== big).map((o) => out[o]);
       const t = ownByDistance(big, out[big], ringsForKm(BIG_MOVE_KM, { tiles })).find((x) => clearOf(x, rest));
       if (t != null) out[big] = t;
     });
   });
+  // Pass 3: the rule always holds; who has no room within reach is absent.
+  const fixed = new Set();
+  const waiting = new Set(order);
+  order.forEach((id) => {
+    waiting.delete(id);
+    if (fixed.has(out[id])) {
+      const tile = ownByDistance(id, out[id], ringsForKm(OWN_SEARCH_KM, { tiles })).find((t) => !fixed.has(t))
+        ?? abroadByDistance(id, waiting).find((t) => !fixed.has(t));
+      if (tile == null) { delete out[id]; return; }
+      out[id] = tile;
+    }
+    barredBy(tiles, out[id]).forEach((t) => fixed.add(t));
+  });
   return out;
 };
 
-// Extra city sites inside a nation's modern territory: its most populous named tiles, at least
-// START_SPACING_KM apart from every other city, nearest the capital first on ties (searched within
-// EXTRA_SITE_KM of the capital).
+// Extra city sites inside a nation's modern territory: its most populous named tiles, clear of
+// every city placed so far, every nation's (the settling rule: `barred` holds the tiles every
+// centre so far bars), nearest the capital first on ties (searched within EXTRA_SITE_KM of the
+// capital).
 const EXTRA_SITE_KM = 1224;
-const extraCitySites = (tiles, nationId, capital, count, claimedBy) => {
+const extraCitySites = (tiles, nationId, capital, count, claimedBy, barred) => {
   if (count <= 0) return [];
   const own = tiles.countryTiles[nationId] || [];
   const named = own.filter((id) => id !== capital && tiles.names[id] && tiles.land[id] && !tiles.lake?.[id]);
   const chosen = [];
-  const near = startSpacing(tiles) - 1;
-  const farEnough = (id) => [capital, ...chosen].every((c) => !ringsFrom(tiles, c, near).has(id));
   // Deterministic order: tile id, which the build fixed; the name list has no population, so the
   // capital-distance order below is the tie-break that matters.
-  const byDistance = named.map((id) => ({ id, ring: ringsFrom(tiles, capital, ringsForKm(EXTRA_SITE_KM, { tiles })).get(id) ?? 999 })).sort((a, b) => a.ring - b.ring || a.id - b.id);
+  const fromCapital = ringsFrom(tiles, capital, ringsForKm(EXTRA_SITE_KM, { tiles }));
+  const byDistance = named.map((id) => ({ id, ring: fromCapital.get(id) ?? 999 })).sort((a, b) => a.ring - b.ring || a.id - b.id);
   for (const { id } of byDistance) {
     if (chosen.length >= count) break;
-    if (claimedBy.has(id) || !farEnough(id)) continue;
+    if (claimedBy.has(id) || barred.has(id)) continue;
     chosen.push(id);
+    barredBy(tiles, id).forEach((t) => barred.add(t));
   }
   return chosen;
 };
@@ -147,27 +211,32 @@ const extraCitySites = (tiles, nationId, capital, count, claimedBy) => {
  * Start specs for every nation in `nationIds` (default: every nation with a capital tile):
  *   { [nationId]: { capital, size, cities: [{ tile, size }], tiles: [tileIds], settlers, hardStart } }
  * Cities claim their centre and ring; land claims never overlap and prefer a nation's own
- * modern territory. In the Modern start every land tile of a country is claimed.
+ * modern territory. In the Modern start every land tile of a country is claimed. `priority`: the
+ * player's nation (spreadCapitals); `absent` lists the nations with no room at the start.
  */
-export const buildScenarioStarts = (tiles, scenarioId = DEFAULT_SCENARIO_ID, nationIds = null) => {
+export const buildScenarioStarts = (tiles, scenarioId = DEFAULT_SCENARIO_ID, nationIds = null, { priority = null } = {}) => {
   const scenario = SCENARIOS[scenarioId];
   if (!scenario) throw new Error(`unknown scenario ${scenarioId}`);
-  const ids = (nationIds || Object.keys(tiles.capitals)).filter((id) => tiles.capitals[id] != null).sort();
+  const asked = (nationIds || Object.keys(tiles.capitals)).filter((id) => tiles.capitals[id] != null).sort();
   const claimedBy = new Map();
   const starts = {};
-  const capitals = spreadCapitals(tiles, ids);
+  const capitals = spreadCapitals(tiles, asked, { priority });
+  const ids = asked.filter((id) => capitals[id] != null);
+  const absent = asked.filter((id) => capitals[id] == null);
   // Pass 1: capitals and extra cities (every city centre claimed first, so a ring never swallows
   // another nation's capital).
+  const barred = new Set();
   ids.forEach((id) => {
     const capital = capitals[id];
     claimedBy.set(capital, id);
+    barredBy(tiles, capital).forEach((t) => barred.add(t));
     // a capital moved off its real tile keeps its real name (Jerusalem, not the new tile's town)
     const name = capital !== tiles.capitals[id] ? tiles.names[tiles.capitals[id]] || undefined : undefined;
     starts[id] = { capital, size: capitalSizeFor(scenario, id), cities: [{ tile: capital, size: capitalSizeFor(scenario, id), name }], tiles: [capital], settlers: 0, hardStart: false };
   });
   ids.forEach((id) => {
     const extra = UNPEOPLED_AT_DAWN.has(id) && scenario.id === 'dawn' ? 0 : scenario.extraCities;
-    extraCitySites(tiles, id, starts[id].capital, extra, claimedBy).forEach((tile) => {
+    extraCitySites(tiles, id, starts[id].capital, extra, claimedBy, barred).forEach((tile) => {
       claimedBy.set(tile, id);
       starts[id].cities.push({ tile, size: Math.max(1, starts[id].size - 1) });
       starts[id].tiles.push(tile);
@@ -199,10 +268,24 @@ export const buildScenarioStarts = (tiles, scenarioId = DEFAULT_SCENARIO_ID, nat
       if (UNPEOPLED_AT_DAWN.has(id)) { starts[id].settlers = 1; starts[id].hardStart = true; }
     }
   });
-  return { scenario, starts, claimedBy };
+  return { scenario, starts, claimedBy, absent };
 };
 
 export const landClaimedShare = (tiles, claimedBy) => {
   const land = tiles.land.reduce((a, b) => a + b, 0);
   return claimedBy.size / land;
+};
+
+/** The nation picker's note on a crowded start in the full world (settle-rules R6), or null. The
+ * nation the player picks always keeps its real capital (spreadCapitals' priority); the note says
+ * what happens to it when another nation is played. */
+export const startPlacementNote = (tiles, nationId) => {
+  const ids = Object.keys(tiles.capitals).filter((id) => tiles.capitals[id] != null);
+  const real = tiles.capitals[nationId];
+  if (real == null) return null;
+  const out = spreadCapitals(tiles, ids);
+  const home = tiles.names[real] || 'its capital';
+  if (out[nationId] == null) return `Crowded by its neighbours: you start in ${home}, but when you play another nation it is not on the map.`;
+  if (out[nationId] !== real) return `Crowded by its neighbours: you start in ${home}, but when you play another nation it starts at ${tiles.names[out[nationId]] || 'a site nearby'}.`;
+  return null;
 };

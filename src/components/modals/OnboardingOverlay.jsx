@@ -29,8 +29,8 @@ const STEPS = [
   },
   {
     icon: Landmark,
-    title: 'Stability & Estates',
-    body: 'Stability, legitimacy, and prestige are your realm\'s foundation — let them slip and unrest, rebellions, and even civil war follow. Your Clergy, Nobility, and Burghers each have their own loyalty and influence, and an ignored estate can turn on you.'
+    title: 'Stability & Authority',
+    body: 'Stability, legitimacy, and prestige are your realm\'s foundation. Let them slip and unrest, rebellions, and even civil war follow. Your authority sums them up: too low and no new law can pass.'
   },
   {
     icon: Hammer,

@@ -219,7 +219,7 @@ describe('endgame reachability: the space-race ladder completes within the Moder
   // must still be paid from that income alone.
   it('a twelve-city nation with Research Labs affords the entire ladder from its own natural income, no injected resources', () => {
     const base = growCities(addCities(freshWorld('us'), 'us', 11).state, 'us');
-    // Isolate mission affordability from external conquests and succession crises.
+    // Isolate mission affordability from external conquests and a new ruler's traits.
     // Diplomacy and wartime save/load are exercised in separate campaign scenarios.
     base.nations.us={...base.nations.us,stability:3,legitimacy:100,ruler:{...base.nations.us.ruler,reignEndsTurn:999999,traits:[]},truces:Object.fromEntries(Object.keys(base.nations).filter(id=>id!=='us').map(id=>[id,999999]))};
     for(const id of Object.keys(base.nations))if(id!=='us')base.nations[id]={...base.nations[id],truces:{...base.nations[id].truces,us:999999}};

@@ -25,8 +25,9 @@ const button = (html, testId) => html.match(new RegExp(`<button[^>]*data-testid=
 describe('attack buttons follow the engine validation', () => {
   beforeEach(() => {
     // Two German cities beside the capital, so a conquered one still has a German neighbour.
-    const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 7 }), 'de');
-    game.state = addCity(first.state, 'de', { near: first.cityId }).state;
+    // packed tighter than the settling rule so the two German lands touch (testWorld loose)
+    const first = addCity(createInitialState({ playerNationId: 'fr', rngSeed: 7 }), 'de', { loose: true });
+    game.state = addCity(first.state, 'de', { near: first.cityId, loose: true }).state;
     from = Object.keys(game.state.regions).find(id => game.state.regions[id].owner === 'de' && getNeighborIds(id).some(n => game.state.regions[n]?.owner === 'de'));
     target = getNeighborIds(from).find(id => game.state.regions[id]?.owner === 'de');
     game.state.regions[from].owner = 'fr';

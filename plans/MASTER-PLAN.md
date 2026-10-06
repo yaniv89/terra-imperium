@@ -139,6 +139,16 @@ release, then deleted with `react-globe.gl` and `politicalTexture`. The roadmap'
 items (levels 6 and 7 of the raster, hillshade, land cover, HydroRIVERS) land on this map; the
 8,192 globe texture is dropped.
 
+Status (branch `claude/phase-a2-webgl-map`): done. `src/components/map/gl/` draws the map; the old
+SVG map ("Old map drawing") and the globe ("Show the globe") are settings, both off. Measured with
+`scripts/perf/map-pan.mjs --gpu` (the A2 report has the tables): panning the explored world at
+k 4 and 12 went from 11-15 fps to 107-132 fps on the 844x390 profile with the CPU slowed 4x, from
+40-55 to 101-144 fps on the desktop; the close view (k 40) from 15 to 78 and from 47 to 92. With
+software WebGL (no GPU, the worst case) the phone pans at 28-35 fps at k 1 to 12 (2 to 3 before),
+the close view stays slow (5 fps; 3 before). Left: delete the globe and the SVG map after one release; the world map window
+(MapModal) and the minimap still draw SVG; the art of batch 08 (map sprites) has placeholders
+(paths in `gl/mapSprites.js`).
+
 ## 6. Battles: the combined design
 
 The RTS plan's engineering (determinism, ledgers, escrow, idempotent outcome, snapshots, budgets)

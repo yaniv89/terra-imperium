@@ -3,6 +3,8 @@
 // drawn in the building style of the land it stands on (the tile's modern country), whoever owns
 // it, so a conquered city keeps its roofs and streets. Each style has a kit per age; until a kit
 // is built the age's base towns stand in.
+import { PEOPLES } from './peoples';
+
 export const STYLE_NATIONS = {
   nile: ['dj', 'eg', 'er', 'et', 'sd', 'so', 'ss', 'xs'], // Nile and Horn
   levant: ['ae', 'af', 'am', 'az', 'bh', 'cy', 'ge', 'il', 'iq', 'ir', 'jo', 'kw', 'lb', 'om', 'ps', 'qa', 'sa', 'sy', 'tr', 'xn', 'ye'], // Levant, Mesopotamia, Arabia, Persia
@@ -49,8 +51,14 @@ const ANDALUS = new Set(['es', 'pt', 'gi']);
 // falling back to the Levant kit wherever it has no model of its own.
 const ISRAELITE = new Set(['il']);
 export const STYLE_FALLBACK = { easteurope: 'europe', colonies: 'europe', europenorth: 'europe', japan: 'sinic', korea: 'sinic', pacific: 'monsoon', andalus: 'levant', israelite: 'levant' };
-/** The style a city on this nation's land is drawn in, in this age. */
+/** A people's art theme (src/data/peoples.js), or null for a legacy country id. Palaces and theme
+ * units follow it (art spec 3b.5); towns follow the land (styleOfLand). */
+export const themeOfNation = (nationId) => PEOPLES[nationId]?.theme || null;
+
+/** The style a city on this nation's land is drawn in, in this age. A people id (a city on a tile
+ * with no modern country) reads as its theme. */
 export const styleOfLand = (nationId, ageId) => {
+  if (PEOPLES[nationId]) return PEOPLES[nationId].theme;
   if (EAST_EUROPE.has(nationId) && !BEFORE_EAST.has(ageId)) return 'easteurope';
   if (SUB_SINIC[nationId]) return SUB_SINIC[nationId];
   if (ageId === 'classical' && EUROPE_NORTH.has(nationId)) return 'europenorth';

@@ -1,15 +1,28 @@
 // src/components/map/Map2DContainer.jsx
-// Sizing wrapper around Map2DView, mirroring src/components/globe/GlobeContainer.jsx's own
-// ResizeObserver pattern — an <svg> needs explicit pixel width/height to fit its projection to,
-// the same way react-globe.gl needs pixel dimensions rather than a self-scaling viewBox alone.
-import React, { useEffect, useRef, useState } from 'react';
+// Sizing wrapper for the flat map: measures its box (ResizeObserver) and draws the WebGL map
+// (gl/GLMapView.jsx, loaded on first use with three.js), or the old SVG map (Map2DView.jsx) when
+// the "old map drawing" setting is on (mapPrefs.js), when `renderer="svg"` is asked for (the
+// world map window), or when this browser has no WebGL2.
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Map2DView from './Map2DView';
+import { useMapPrefs } from './mapPrefs';
+
+const GLMapView = React.lazy(() => import('./gl/GLMapView'));
+let webgl2 = null;
+const hasWebGL2 = () => {
+  if (webgl2 == null) { try { webgl2 = !!document.createElement('canvas').getContext('webgl2'); } catch { webgl2 = false; } }
+  return webgl2;
+};
 
 const Map2DContainer = ({
   selectedRegion, onSelectRegion, onAmbiguousTap = null, hudOffset = false, initialFocusRegionId = null, focusRegionId = null,
-  navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political', selectedArmy = null }) => {
+  navigateTarget = null, onViewportChange = null, selectedTile = null, onSelectTile = null, onSelectArmy = null, lens = 'political', selectedArmy = null,
+  renderer = null }) => {
   const containerRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const prefs = useMapPrefs();
+  const [glFailed, setGlFailed] = useState(false);
+  const useGL = (renderer || prefs.renderer) === 'webgl' && !glFailed && hasWebGL2();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -22,25 +35,15 @@ const Map2DContainer = ({
     return () => observer.disconnect();
   }, []);
 
+  const props = {
+    width: size.width, height: size.height, selectedRegion, onSelectRegion, onAmbiguousTap, hudOffset, initialFocusRegionId, focusRegionId,
+    navigateTarget, onViewportChange, selectedTile, selectedArmy, onSelectTile, onSelectArmy, lens
+  };
   return (
     <div ref={containerRef} className="relative w-full h-full bg-slate-900">
-      {size.width > 0 && size.height > 0 && (
-        <Map2DView
-          width={size.width}
-          height={size.height}
-          selectedRegion={selectedRegion}
-          onSelectRegion={onSelectRegion}
-            onAmbiguousTap={onAmbiguousTap}
-          hudOffset={hudOffset}
-          initialFocusRegionId={initialFocusRegionId}
-          focusRegionId={focusRegionId}
-          navigateTarget={navigateTarget}
-          onViewportChange={onViewportChange}
-          selectedTile={selectedTile}
-          selectedArmy={selectedArmy}
-          onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} lens={lens}
-        />
-      )}
+      {size.width > 0 && size.height > 0 && (useGL
+        ? <Suspense fallback={<div className="w-full h-full" style={{ background: '#0f172a' }} />}><GLMapView {...props} onFail={() => setGlFailed(true)} /></Suspense>
+        : <Map2DView {...props} />)}
     </div>
   );
 };

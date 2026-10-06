@@ -5,7 +5,7 @@
 // objects don't each carry an empty array for a feature most regions never use.
 //
 // Nothing in the game creates an entry yet — this is pure infrastructure landing ahead of the
-// first real caller (M4's stability effects, M9's estate privileges, M13's reparations,
+// first real caller (M4's stability effects, M13's reparations,
 // M17's event modifiers, ...), each of which only needs to call addNationModifier/
 // addRegionModifier and push the result through applyEventEffects-style state updates; none of
 // them need to touch resolveTurn.js's turn loop again, since expireModifiers is already wired in.

@@ -1,7 +1,8 @@
 // Read-only diagnostics for resolved campaign snapshots. No repairs and no RNG consumption.
-import { PRETENDER_MARKER } from './civilWar';
+import { INSURGENT_MARKER } from './civilWar';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getTiles } from '../data/geo/tiles';
+import { spacingBreaches } from '../data/geo/citySpacing';
 
 export const auditGameState = (state) => {
   const issues = [];
@@ -49,7 +50,7 @@ export const auditGameState = (state) => {
     numbers(r.dev, `regions.${id}.dev`);
     if (r.owner != null && !knownOwner(r.owner)) report('unknown_owner', `regions.${id}.owner`, 'Region owner is missing');
     if (nations[r.owner]?.isEliminated) report('eliminated_owner', `regions.${id}.owner`, 'Eliminated nation still owns land');
-    if (r.occupiedBy && !(r.occupiedBy===PRETENDER_MARKER && nations[r.owner]?.civilWar?.active) && (!knownOwner(r.occupiedBy) || r.occupiedBy === r.owner)) report('invalid_occupation', `regions.${id}.occupiedBy`, 'Occupier must be a different known owner');
+    if (r.occupiedBy && !(r.occupiedBy===INSURGENT_MARKER && nations[r.owner]?.civilWar?.active) && (!knownOwner(r.occupiedBy) || r.occupiedBy === r.owner)) report('invalid_occupation', `regions.${id}.occupiedBy`, 'Occupier must be a different known owner');
     ['control', 'unrest', 'devastation'].forEach(key => {
       if (r[key] != null && (r[key] < 0 || r[key] > 100)) report('range', `regions.${id}.${key}`, 'Expected 0..100');
     });
@@ -71,6 +72,12 @@ export const auditGameState = (state) => {
       if (c.size != null && (c.size < 1 || c.size > 30)) report('range', `regions.${id}.size`, 'Size is 1..30');
     });
     Object.entries(tileOwner).forEach(([t, id]) => { if (!regions[id]) report('tile_owner', `world.tileOwner.${t}`, 'Tile owned by a missing city'); });
+    // The settling rule (citySpacing.js, settle-rules R7): no two city centres closer than it allows.
+    const byTile = new Map();
+    Object.entries(regions).forEach(([id, c]) => { if (c.tile != null && !byTile.has(c.tile)) byTile.set(c.tile, id); });
+    spacingBreaches(getTiles(), Object.values(regions).map((c) => c.tile).filter((t) => t != null)).forEach(([a, b]) => {
+      report('city_spacing', `regions.${byTile.get(b)}.tile`, a === b ? `Two cities on tile ${a}` : `Too close to ${regions[byTile.get(a)]?.name || byTile.get(a)}`);
+    });
   }
   Object.entries(units).forEach(([id, u]) => {
     if (u.id !== id) report('identity', `units.${id}.id`, 'Record ID differs from its map key');

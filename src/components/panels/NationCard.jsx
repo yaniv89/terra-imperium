@@ -16,7 +16,6 @@ import {
   MAX_RIVALS, VASSALIZE_HOSTILITY_CEILING, VASSALIZE_STRENGTH_RATIO, VASSAL_ANNEX_COOLDOWN_TURNS, VASSAL_ANNEX_DIP_PER_DEV
 } from '../../data/actionCosts';
 import { hasCasusBelli, isAtWarWithPlayer, isInTruce, isWarBetween, getTradePactCapacity } from '../../engine/diplomacy';
-import { getSuccessionStyle } from '../../engine/succession';
 import { getTotalDev } from '../../engine/development';
 import { getNationCapital, getBorderingNationIds } from '../../data/regions';
 import { canAfford, formatNumber, getRelationColor, getFieldedStrength } from '../../utils/helpers';
@@ -130,8 +129,8 @@ export const NationCard = ({ nation }) => {
   const allianceAcceptanceScore = (50 - (nation.hostility || 0)) / 2 + (nation.prestige || 0) / 10 + (nation.hasTradeAgreement ? 20 : 0);
   const canMarry = !atWarWithPlayer
     && !targetEngagedElsewhere
-    && getSuccessionStyle(player.government) === 'hereditary'
-    && getSuccessionStyle(nation.government) === 'hereditary'
+    && player.government?.type === 'monarchy'
+    && nation.government?.type === 'monarchy'
     && !(player.marriageWith || []).includes(nation.id);
   const hasDiplomatAssigned = (player.diplomatTasks || []).some((t) => t.targetId === nation.id);
   const canAssignDiplomat = !hasDiplomatAssigned && (player.diplomatTasks || []).length < (player.diplomats || 0);
@@ -161,7 +160,7 @@ export const NationCard = ({ nation }) => {
       <div className="flex justify-between items-start mb-2">
         <div>
           <div className="font-semibold text-sm text-white flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nationData?.color }} />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nation.color || nationData?.color }} />
             {nation.name}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
@@ -394,7 +393,7 @@ export const NationCard = ({ nation }) => {
                   <IconButton
                     icon={Heart}
                     label={`Royal Marriage (${formatCost(ACTION_COSTS.proposeMarriage)})`}
-                    title="Both monarchies — reduces hostility and raises your heir's claim"
+                    title="Both monarchies: reduces their hostility"
                     disabled={!canAfford(state.resources, ACTION_COSTS.proposeMarriage)}
                     onClick={() => dispatchIfAffordable(ActionTypes.PROPOSE_MARRIAGE, ACTION_COSTS.proposeMarriage)}
                   />

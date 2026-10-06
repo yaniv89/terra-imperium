@@ -268,22 +268,17 @@ describe('resolveTurn economy (plan §M11)', () => {
     expect(next.logs.some(l => l.message.includes('auto-took a loan'))).toBe(true);
   });
 
-  it('bankruptcy applies -3 stability, -20 prestige, drops every estate 20 loyalty, clears loans, and pushes a 10-turn modifier', () => {
+  it('bankruptcy applies -3 stability, -20 prestige, clears loans, and pushes a 10-turn modifier', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
     const fr = {
       ...base.nations.fr,
       stability: 0,
       prestige: 50,
-      // No ruler traits — a randomly-rolled loyalty-shifting trait (Kind, Zealot, ...) would move
-      // an estate's equilibrium target off 50 and make this turn's own loyalty DRIFT (estates.js's
-      // own per-turn pass, which runs before this bankruptcy check) nonzero, which would break the
-      // exact "-20 from 50" arithmetic this test pins.
       ruler: { ...base.nations.fr.ruler, traits: [] },
       // A pre-existing loan is here to confirm it gets wiped by bankruptcy, not what CAUSES it —
       // the huge army's upkeep below is the actual shortfall (Banking Houses isn't researched, so
       // loan capacity is 0 regardless of this loan's own presence).
-      loans: [{ id: 'l1', principal: 100, interestRate: 0.04, takenTurn: 0 }],
-      estates: Object.fromEntries(Object.entries(base.nations.fr.estates).map(([id, e]) => [id, { ...e, loyalty: 50 }]))
+      loans: [{ id: 'l1', principal: 100, interestRate: 0.04, takenTurn: 0 }]
     };
     const hugeArmy = Array.from({ length: 1000 }, (_, i) => [`u${i}`, { id: `u${i}`, ownerId: 'fr', domain: 'land', regionId: cap('fr') }])
       .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
@@ -294,7 +289,6 @@ describe('resolveTurn economy (plan §M11)', () => {
     // trunc(50 x 0.95) = 47, then 47 - 20 = 27.
     expect(next.nations.fr.prestige).toBe(27);
     expect(next.nations.fr.loans).toEqual([]);
-    Object.values(next.nations.fr.estates).forEach((e) => expect(e.loyalty).toBe(30));
     expect(next.nations.fr.modifiers.some((m) => m.sourceType === 'bankruptcy' && m.expiresTurn === next.turnNumber + 10)).toBe(true);
   });
 
@@ -940,16 +934,16 @@ describe('resolveTurn event chains', () => {
   });
 
   it('fires a real, multi-step chain end-to-end: schedules, fires at dueTurn, and resolving it schedules the next step', () => {
-    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: 5, pendingEventChains: [{ id: 'succession_crisis_1', dueTurn: 6 }] });
+    const base = withAllEventsFired({ ...createInitialState({ playerNationId: 'fr' }), turnNumber: 5, pendingEventChains: [{ id: 'colonial_venture_1', dueTurn: 6 }] });
     const next = resolveTurn(base);
-    expect(next.activeEventId).toBe('succession_crisis_1');
+    expect(next.activeEventId).toBe('colonial_venture_1');
     expect(next.pendingEventChains).toEqual([]);
 
     const event = HISTORICAL_EVENTS[next.activeEventId] || EVENT_CHAINS[next.activeEventId];
-    expect(event.title).toBe('A Succession Crisis Brews');
+    expect(event.title).toBe('A Venture Beyond the Horizon');
 
-    const resolved = applyEventEffects(next, event, 0); // "Name the eldest heir now" -> schedules succession_crisis_2
-    expect(resolved.pendingEventChains).toEqual([{ id: 'succession_crisis_2', dueTurn: resolved.turnNumber + 5 }]);
+    const resolved = applyEventEffects(next, event, 0); // "Fund it generously" -> schedules colonial_venture_2
+    expect(resolved.pendingEventChains).toEqual([{ id: 'colonial_venture_2', dueTurn: resolved.turnNumber + 8 }]);
     expect(resolved.activeEventId).toBeNull();
   });
 });
@@ -1199,7 +1193,7 @@ describe('resolveTurn civil war trigger (plan §M15)', () => {
     }
     const next = resolveTurn(state);
     expect(next.nations.fr.civilWar?.active).toBe(true);
-    expect(Object.values(next.units).some((u) => u.isPretender)).toBe(true);
+    expect(Object.values(next.units).some((u) => u.isInsurgent)).toBe(true);
     expect(next.logs.some((l) => l.type === LogTypes.CRISIS && l.message.toLowerCase().includes('civil war'))).toBe(true);
   });
 
@@ -1214,29 +1208,22 @@ describe('resolveTurn civil war trigger (plan §M15)', () => {
 });
 
 describe('resolveTurn disasters (plan §M15)', () => {
-  // Succession War (heirless monarchy, low legitimacy), not Estate Takeover, is the disaster used
-  // to prove this wiring: Estate Takeover's own trigger (estate influence/loyalty) is recomputed
-  // for real by the estates phase EVERY turn, before this phase ever runs, so a hand-set influence/
-  // loyalty override here would just be overwritten first — disasters.test.js already covers Estate
-  // Takeover directly, at the unit level, where that isn't a confound.
-  it('grows the Succession War meter for a heirless, low-legitimacy monarchy', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = { ...base, nations: { ...base.nations, fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, heir: null, legitimacy: 10 } } };
-    const next = resolveTurn(state);
-    expect(next.nations.fr.disasters.successionWar).toBeGreaterThan(0);
+  // Revolution: a Modern-age nation at stability -2 or worse whose legitimacy is under 30.
+  const revolutionary = (meter) => {
+    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 2 }));
+    const fr = { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: -3, legitimacy: 10, disasters: { ...base.nations.fr.disasters, revolution: meter } };
+    return { ...base, year: 1950, age: 'modern', nations: { ...base.nations, fr } };
+  };
+
+  it('grows the Revolution meter for a discredited Modern-age regime', () => {
+    const next = resolveTurn(revolutionary(0));
+    expect(next.nations.fr.disasters.revolution).toBeGreaterThan(0);
   });
 
-  it('completes into a civil war once the Succession War meter reaches 100', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = {
-      ...base,
-      nations: {
-        ...base.nations,
-        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, heir: null, legitimacy: 10, disasters: { ...base.nations.fr.disasters, successionWar: 90 } }
-      }
-    };
-    const next = resolveTurn(state);
-    expect(next.nations.fr.disasters.successionWar).toBe(0); // completed and reset
+  it('completes into a new government and a civil war once the Revolution meter reaches 100', () => {
+    const next = resolveTurn(revolutionary(90));
+    expect(next.nations.fr.disasters.revolution).toBe(0); // completed and reset
+    expect(next.nations.fr.government.type).not.toBe('monarchy');
     expect(next.nations.fr.civilWar?.active).toBe(true);
   });
 });
@@ -1247,56 +1234,25 @@ describe('resolveTurn national power (plan §M4)', () => {
     const state = { ...base, nations: { ...base.nations, de: { ...base.nations.de, prestige: 100 } } };
     const next = resolveTurn(state);
     // Prestige decays 5%/turn toward 0 (nationalPower.js) — proves the pass actually ran for an
-    // AI nation, not only the one the succession/getPowerIncome code paths already special-case.
+    // AI nation, not only the one the getPowerIncome code path already special-cases.
     expect(next.nations.de.prestige).toBeLessThan(100);
   });
 
-  it('deducts 1 stability from a nation whose succession is a crisis (heirless or low-claim)', () => {
-    // Fixed seed: with a random one, ~6% of runs also rolled the crisis's 40% civil war AND had the
-    // pretenders seize the capital, whose capital-occupied penalty takes a second point (-2).
+  it('crowns a new ruler when a reign ends, with no heir and no stability cost', () => {
     const base = withAllEventsFired(createInitialState({ playerNationId: 'fr', rngSeed: 1 }));
-    // A monarchy whose reign just ended with no heir at all is unconditionally a crisis
-    // (succession.js's processSuccession) — a real, deterministic trigger, not a probabilistic one.
     const state = {
       ...base,
       nations: {
         ...base.nations,
-        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber }, heir: null }
+        fr: { ...base.nations.fr, government: { type: 'monarchy', reforms: {} }, stability: 0, ruler: { ...base.nations.fr.ruler, reignEndsTurn: base.turnNumber + 1 } }
       }
     };
     const next = resolveTurn(state);
-    expect(next.nations.fr.stability).toBe(-1);
-  });
-});
-
-describe('resolveTurn estates (plan §M9)', () => {
-  it('drifts every nation\'s estate loyalty 1 step toward its target, not just the player\'s', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = {
-      ...base,
-      nations: {
-        ...base.nations,
-        de: { ...base.nations.de, government: { type: 'monarchy', reforms: { bronze: 'divine_kingship' } } } // clergy target 60
-      }
-    };
-    const next = resolveTurn(state);
-    expect(next.nations.de.estates.clergy.loyalty).toBe(51); // 50 -> 1 step toward 60
-  });
-
-  it('adds a Labor estate once the calendar crosses into the Modern age, for every nation', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const state = { ...base, year: 1899, age: 'gunpowder' };
-    expect(state.nations.fr.estates.labor).toBeUndefined();
-    const next = resolveTurn(state);
-    expect(next.age).toBe('modern');
-    expect(next.nations.fr.estates.labor).toBeDefined();
-    expect(next.nations.de.estates.labor).toBeDefined();
-  });
-
-  it('does not add a Labor estate before the Modern age', () => {
-    const base = withAllEventsFired(createInitialState({ playerNationId: 'fr' }));
-    const next = resolveTurn(base); // still Bronze age at game start
-    expect(next.nations.fr.estates.labor).toBeUndefined();
+    expect(next.nations.fr.ruler.id).toBe(`ruler_fr_${base.turnNumber + 1}`);
+    expect(next.nations.fr.ruler.dynasty).toBe(base.nations.fr.ruler.dynasty);
+    expect(next.nations.fr.stability).toBe(0);
+    expect(next.nations.fr).not.toHaveProperty('heir');
+    expect(next.nations.fr).not.toHaveProperty('estates');
   });
 });
 

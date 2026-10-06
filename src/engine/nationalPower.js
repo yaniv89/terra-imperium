@@ -1,15 +1,12 @@
 // src/engine/nationalPower.js
 // Plan §M4: national stability, legitimacy/tradition/devotion, prestige, and overextension.
 // Several of the plan's own listed sources/effects for these four numbers name systems that don't
-// exist yet in this codebase — estates and their loyalty (M9), buildings/Civic Center governing
+// exist yet in this codebase — buildings/Civic Center governing
 // capacity (M6), war score (M13), great projects (M10), capital occupation/loss (M15), bankruptcy
-// (M11) — this ships the honest subset that's mechanically real today, and adapts a couple of the
-// plan's own named triggers onto what M3 already built (a heirless/low-claim succession IS a real,
-// working trigger for -1 stability, so that one ships). M8's government reform tiers now DO
+// (M11) — this ships the honest subset that's mechanically real today. M8's government reform tiers now DO
 // contribute to governing capacity (`reformCapacityBonus` below), supplied by the caller the same
 // way `getIncreaseStabilityCost`'s `stabilityCostMult` is. Every trim is called out inline with
 // `// adapted:` or `// deferred:`.
-import { getSuccessionStyle } from './succession';
 import { TECH_TREE } from '../data/techTree';
 import { TechCategories } from '../data/types';
 import { TAX_RATES } from '../data/taxRates';
@@ -88,8 +85,7 @@ export const getRulerBestPool = (ruler) => {
   return pools.reduce((best, pool) => (ruler[pool] > ruler[best] ? pool : best), 'adm');
 };
 
-// Runs once per nation per turn (resolveTurn.js), mirroring succession.js's processSuccession
-// shape: pure, no state dependency beyond what's passed in, caller writes the result back.
+// Runs once per nation per turn (resolveTurn.js): pure, no state dependency beyond what's passed in, caller writes the result back.
 export const processNationalPowerTurn = (nation) => {
   let stability = nation.stability || 0;
   let stabilityDecayProgress = nation.stabilityDecayProgress || 0;
@@ -123,13 +119,12 @@ export const processNationalPowerTurn = (nation) => {
   // Tribal has no legitimacy system yet — the plan's replacement (Cohesion, raised by raiding) is
   // M8 work, so a tribal nation's legitimacy is simply left untouched here rather than faked.
   let legitimacy = nation.legitimacy ?? 50;
-  const style = getSuccessionStyle(nation.government);
-  if (style !== 'tribal') {
+  const type = nation.government?.type;
+  if (type && type !== 'tribal') {
     const rulerAdm = nation.ruler?.adm || 0;
-    const baseGain = style === 'hereditary' ? 0.5 * (rulerAdm / 6)
-      : style === 'theocratic' ? 0.5 * (rulerAdm / 6) // devotion: adapted to ruler ADM, no clergy loyalty system (M9) yet to drive it instead
-      : style === 'elective' ? 0.5 // republican tradition
-      : 0.3; // autocratic: adapted, no clergy/devotion system (M9) to drive this instead
+    const baseGain = type === 'monarchy' || type === 'theocracy' ? 0.5 * (rulerAdm / 6) // legitimacy, or a theocracy's devotion, follows the ruler's ADM
+      : type === 'republic' ? 0.5 // republican tradition
+      : 0.3; // a dictatorship's
     const prestigeGain = (nation.prestige || 0) / 500; // plan: "prestige ... legitimacy gain"
     legitimacy = clampLegitimacy(legitimacy + baseGain + prestigeGain);
   }

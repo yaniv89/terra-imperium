@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: '/terra-imperium/',
+  // The turn and battle workers load the world grid first and the engine after it (dynamic imports),
+  // which needs ES module workers (they are created with { type: 'module' }).
+  worker: { format: 'es' },
   server: {
     port: 3000
   },

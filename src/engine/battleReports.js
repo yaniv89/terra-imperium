@@ -9,6 +9,7 @@
 // survivors), and the strength-after-every-round timeline the auto-resolve replay plays back.
 // Display only: no game rule reads it back.
 import { MEN_PER_STRENGTH } from './aftermath';
+import { battleName } from './battleNames';
 
 export const BATTLE_REPORT_HISTORY = 30;
 
@@ -40,8 +41,10 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
     turn: state.turnNumber,
     year: state.year,
     kind: report.kind || 'land',
-    // The battle's name (battleName.js: "Siege of Ur", "Battle of the Jordan"), from the outcome service.
-    name: report.name || null,
+    // "Siege of Kish", "Battle of Sippar" (battleNames.js), fixed when the battle is fought; the
+    // outcome service (battleOutcome.js) passes the name it gave the battle.
+    name: report.name || battleName(state, { kind: report.kind || 'land', targetRegionId: report.targetRegionId ?? null, tile: report.tile ?? null }),
+    tile: report.tile ?? null,
     defense: !!report.defense,
     commanded: !!report.tactical || report.mode === 'command',
     fromRegionId: report.fromRegionId ?? null,

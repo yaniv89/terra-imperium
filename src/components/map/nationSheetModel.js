@@ -12,6 +12,7 @@ import { claimsAgainst } from '../../engine/claims';
 import { getEffectiveMilitaryPower } from '../../engine/aiEconomy';
 import { getGreatProjectOwner, GREAT_PROJECTS } from '../../data/greatProjects';
 import { warContagionMult } from '../../engine/warContagion';
+import { hasMet } from '../../engine/fog';
 
 export const nationSheetModel = (state, nationId) => {
   const nation = state.nations?.[nationId];
@@ -40,6 +41,7 @@ export const nationSheetModel = (state, nationId) => {
   const wonders = Object.keys(state.greatProjects || {}).filter((id) => getGreatProjectOwner(state, id) === nationId).map((id) => GREAT_PROJECTS[id]?.name || id);
   return {
     nationId, name: nation.name, eliminated: !!nation.isEliminated,
+    met: hasMet(state, me, nationId) || !!war, // contact needs sight (engine/fog.js); a war is contact enough
     government: GOVERNMENT_TYPES[nation.government?.type]?.name || 'Tribal Council',
     ruler: nation.ruler?.name || null,
     cities: cities.length, capital: capitalId ? state.regions[capitalId]?.name || null : null, capitalId: capitalId || null,

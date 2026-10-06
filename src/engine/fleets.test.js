@@ -43,7 +43,7 @@ describe('sea paths', () => {
     const modern = { ...usWar, age: 'modern', techAgeId: 'modern' };
     const far = findSeaPath(modern, port.s.regions[port.id].tile, port.s.regions[US].tile, 'fr');
     expect(far.path?.[far.path.length - 1]).toBe(port.s.regions[US].tile);
-    expect(findSeaPath(port.s, port.s.regions[port.id].tile, port.s.regions[getNationCapital('lu')].tile, 'fr').reason).toMatch(/city|route|access/);
+    expect(findSeaPath(port.s, port.s.regions[port.id].tile, port.s.regions[getNationCapital('ch')].tile, 'fr').reason).toMatch(/city|route|access/);
   });
 });
 

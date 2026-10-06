@@ -58,6 +58,7 @@ export const LIKED_WONDER_MULT = 1.25;
 export const UNIT_UTILITY = 0.45;
 export const ARMING_UNIT_UTILITY = 1.1;
 export const WAR_UNIT_UTILITY = 1.6;
+export const GARRISON_UNIT_UTILITY = 1.4; // an independent below its garrison target trains first (independents.js)
 /** The building lines in the order a doctrine builds them, every line once (the template). */
 export const buildingOrder = (doctrine) => { const liked = DOCTRINE_BUILDING_PRIORITY[doctrine] || []; return [...liked.filter((c) => BUILDING_PRIORITY.includes(c)), ...BUILDING_PRIORITY.filter((c) => !liked.includes(c))]; };
 export const BUILDING_PRIORITY = ['food', 'economy', 'culture', 'science', 'industry', 'military', 'logistics', 'defense', 'naval']; // 'logistics' is the category id (buildings.js); it was listed as 'infrastructure' and the AI never built a Road Post from the template
@@ -138,7 +139,10 @@ export const chooseProduction = (state, city, ctx) => {
   // One settler decision per nation per turn: the first city that thinks searches for a site and
   // queues the settlers; its siblings build on (a search per city was 140 site searches a turn, and
   // every sibling queued settlers of its own against the same empty count).
-  if (thinks && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId) && !settlerDecidedThisTurn(state, nationId)) {
+  // An independent (ctx.garrisonTarget set, independents.js) never settles, never builds wonders and
+  // keeps a garrison of garrisonTarget land units, first of all.
+  const independent = ctx.garrisonTarget != null;
+  if (!independent && thinks && city.size >= SETTLER_FROM_SIZE && counts.settlers === 0 && counts.outposts < outpostSlots(ctx.ageId) && !settlerDecidedThisTurn(state, nationId)) {
     const site = bestSites(state, nationId, city.tile, ctx.ageId, { limit: 1 })[0];
     const item = { kind: 'settler' };
     if (site && canQueue(city, tiles, world, item, ctx).ok) offer(item, SETTLER_UTILITY * (sit.atWar ? WAR_SETTLER_MULT : 1)); // bestSites already holds the quality floor
@@ -154,7 +158,7 @@ export const chooseProduction = (state, city, ctx) => {
     if (!affordable(item) || !canQueue(city, tiles, world, item, ctx).ok) return;
     offer(item, doctrine * need * affordability(costOf(item) / production, ctx.speedMult || 1));
   });
-  if (ctx.wonders !== false && production >= WONDER_MIN_PRODUCTION && ((ctx.turnNumber || 0) + city.tile) % WONDER_THINK_PERIOD === 0 && WONDER_UTILITY * LIKED_WONDER_MULT > bestScore) {
+  if (!independent && ctx.wonders !== false && production >= WONDER_MIN_PRODUCTION && ((ctx.turnNumber || 0) + city.tile) % WONDER_THINK_PERIOD === 0 && WONDER_UTILITY * LIKED_WONDER_MULT > bestScore) {
     const options = wonderOptions(state, city, nationId);
     if (options.length) {
       const liked = DOCTRINE_WONDERS[state.nations?.[nationId]?.doctrine] || [];
@@ -164,9 +168,10 @@ export const chooseProduction = (state, city, ctx) => {
       if (costOf(item) / production <= MAX_WONDER_TURNS * (ctx.speedMult || 1)) offer(item, WONDER_UTILITY * (likedPick ? LIKED_WONDER_MULT : 1));
     }
   }
-  if (counts.landUnits < ctx.citiesOwned * UNITS_PER_CITY && getAvailableClasses(ctx.ageId).includes('infantry')) {
+  const unitCap = independent ? ctx.garrisonTarget : ctx.citiesOwned * UNITS_PER_CITY;
+  if (counts.landUnits < unitCap && getAvailableClasses(ctx.ageId).includes('infantry')) {
     const item = { kind: 'unit', classId: 'infantry' };
-    const score = sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY;
+    const score = independent ? GARRISON_UNIT_UTILITY : sit.atWar ? WAR_UNIT_UTILITY : sit.arming ? ARMING_UNIT_UTILITY : UNIT_UTILITY;
     if (score > bestScore && canQueue(city, tiles, world, item, ctx).ok && affordable(item)) offer(item, score);
   }
   return best;

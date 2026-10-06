@@ -1,15 +1,17 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { loadTiles } from './geo/tiles';
-import { buildScenarioStarts, landClaimedShare, SCENARIO_IDS, ringsFrom, spreadCapitals } from './scenarios';
+import { buildScenarioStarts, landClaimedShare, SCENARIO_IDS, ringsFrom, spreadCapitals, absentAtStart } from './scenarios';
 
 let tiles;
 beforeAll(async () => { tiles = await loadTiles(); });
 
 describe('scenario starts on the world grid', () => {
-  it('Dawn: every nation has one city on its (spread) capital tile and claims about 10% of the land', () => {
-    const { starts, claimedBy } = buildScenarioStarts(tiles, 'dawn');
-    expect(Object.keys(starts).length).toBe(240);
-    const capitals = spreadCapitals(tiles, Object.keys(starts));
+  it('Dawn: every nation with room has one city on its (spread) capital tile and claims about 10% of the land', () => {
+    const { starts, claimedBy, absent } = buildScenarioStarts(tiles, 'dawn');
+    // the crowded small lands with no room are absent (settle-rules R4, option A)
+    expect(absent).toEqual(absentAtStart(tiles, Object.keys(tiles.capitals)));
+    expect(Object.keys(starts).length).toBe(240 - absent.length);
+    const capitals = spreadCapitals(tiles, Object.keys(tiles.capitals));
     Object.entries(starts).forEach(([id, s]) => {
       expect(s.cities.length, id).toBe(1);
       expect(s.capital).toBe(capitals[id]);
@@ -42,12 +44,13 @@ describe('scenario starts on the world grid', () => {
     const shares = SCENARIO_IDS.map((sid) => landClaimedShare(tiles, buildScenarioStarts(tiles, sid).claimedBy));
     for (let i = 1; i < shares.length; i++) expect(shares[i]).toBeGreaterThan(shares[i - 1]);
     const modern = buildScenarioStarts(tiles, 'modern');
-    const landWithCountry = tiles.land.reduce((a, l, i) => a + (l && tiles.country[i] >= 0 ? 1 : 0), 0);
+    // every land tile of a nation on the map (an absent nation's land stays open)
+    const landWithCountry = tiles.land.reduce((a, l, i) => a + (l && tiles.country[i] >= 0 && !modern.absent.includes(tiles.countryOf(i)) ? 1 : 0), 0);
     expect(modern.claimedBy.size).toBe(landWithCountry);
     expect(modern.starts.fr.cities.length).toBeGreaterThan(3);
     const kingdoms = buildScenarioStarts(tiles, 'kingdoms');
     expect(kingdoms.starts.fr.cities.length).toBe(3);
-    // Cities are at least 3 tiles apart.
+    // Cities obey the settling rule: at least 4 rings apart on one landmass (citySpacing.js).
     kingdoms.starts.fr.cities.forEach((a) => kingdoms.starts.fr.cities.forEach((b) => {
       if (a.tile !== b.tile) expect(ringsFrom(tiles, a.tile, 2).has(b.tile)).toBe(false);
     }));

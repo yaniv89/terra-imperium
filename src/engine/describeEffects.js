@@ -14,14 +14,14 @@
 // ActionButton call site's effect-hint keys across ~10 panel files for a purely cosmetic change —
 // not an M17-sized edit, so it's deferred rather than force-fit here.
 import { WORLD_NATIONS as NATIONS_DATA } from '../data/worldNations';
+import { PEOPLES } from '../data/peoples';
 import { REGIONS_DATA } from '../data/regions';
 import { BUILDING_CATEGORIES } from '../data/buildings';
 import { getLaw } from '../data/laws';
 import { TRAITS } from '../data/traits';
-import { ESTATE_LABELS } from '../data/estates';
 import { formatMoney, formatNumber } from '../utils/helpers';
 
-const nationName = (id) => NATIONS_DATA[id]?.name || id;
+const nationName = (id) => NATIONS_DATA[id]?.name || PEOPLES[id]?.name || id;
 const regionName = (id) => REGIONS_DATA[id]?.name || id;
 const joinNations = (value) => (Array.isArray(value) ? value : [value]).map(nationName).join(', ');
 const signed = (n) => `${n >= 0 ? '+' : ''}${n}`;
@@ -64,10 +64,6 @@ const DESCRIBERS = {
   prestige: (v) => ({ text: `Prestige ${signed(v)}`, sign: v >= 0 ? 'positive' : 'negative' }),
   victory: () => ({ text: 'VICTORY', sign: 'positive' }),
   addModifier: (v) => ({ text: `${v.label || 'Modifier'} (${v.duration} turns)`, sign: 'neutral' }),
-  estateLoyalty: (v) => {
-    const [estateId, delta] = Object.entries(v)[0] || [];
-    return { text: `${ESTATE_LABELS[estateId] || estateId} Loyalty ${signed(delta)}`, sign: delta >= 0 ? 'positive' : 'negative' };
-  },
   addClaim: (v) => ({ text: `Claim: ${nationName(v)}`, sign: 'neutral' }),
   spawnRebels: (v) => ({ text: `Unrest in ${regionName(v.regionId)}`, sign: 'negative' }),
   ruler: (v) => {
@@ -75,20 +71,20 @@ const DESCRIBERS = {
     if (v.removeTrait) return { text: `Ruler loses ${TRAITS[v.removeTrait]?.name || v.removeTrait}`, sign: 'negative' };
     return null;
   },
-  heir: (v) => (v.claim ? { text: `Heir Claim ${signed(v.claim)}`, sign: v.claim >= 0 ? 'positive' : 'negative' } : null),
   dev: (v) => ({ text: `${regionName(v.regionId)} ${DEV_TYPE_LABELS[v.type] || v.type} ${signed(v.delta)}`, sign: v.delta >= 0 ? 'positive' : 'negative' }),
   construct: (v) => ({ text: `Free ${BUILDING_CATEGORIES[v.category]?.label || v.category} building`, sign: 'positive', tooltip: regionName(v.regionId) }),
   law: (v) => {
     const law = getLaw(v.category, v.lawId);
     return law ? { text: `Law: ${law.name}`, sign: 'neutral' } : null;
-  },
-  crownLand: (v) => ({ text: `Crown Land ${signed(v)}%`, sign: v >= 0 ? 'positive' : 'negative' })
+  }
 };
 
 // Keys with no player-facing preview: internal scheduling (spawnFollowUp) or nothing meaningful
 // to show. Listed explicitly so a future key that's forgotten here falls through to the generic
-// String(value) fallback below instead of silently vanishing.
-const SILENT_KEYS = new Set(['spawnFollowUp']);
+// String(value) fallback below instead of silently vanishing. estateLoyalty, crownLand and heir
+// belonged to the removed estates and succession (master plan decision 37): an event saved before
+// then may still carry them, and they now do nothing, so they show nothing.
+const SILENT_KEYS = new Set(['spawnFollowUp', 'estateLoyalty', 'crownLand', 'heir']);
 
 export const describeEffects = (effects) => {
   if (!effects) return [];

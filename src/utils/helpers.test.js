@@ -242,16 +242,14 @@ describe('getNationBonusTotal', () => {
   // with region-sited projects whose owner is derived from live region state — staticSources (the
   // only source getNationBonusTotal's bare-nation shim can read) can no longer demonstrate them; see
   // src/engine/modifiers/sources.test.js's contextSources tests for the real coverage instead.
-  // An estate privilege is still a real nation-scoped staticSources effect, so it exercises the same
-  // "sums an effect alongside government/law bonuses" path wonders used to.
-  it('sums a granted estate privilege\'s effect alongside government and law bonuses', () => {
-    const nation = { government: { type: 'tribal', reforms: {} }, laws: {}, estates: { clergy: { loyalty: 50, influence: 10, privileges: ['control_of_education'] } } };
+  it('sums a reform\'s effect from the nation alone', () => {
+    const nation = { government: { type: 'theocracy', reforms: { classical: 'oracle_council' } }, laws: {} };
     expect(getNationBonusTotal(nation, 'techPointsMult')).toBeCloseTo(0.15);
   });
 
-  it('ignores an unbuilt/unknown privilege id gracefully', () => {
-    const nation = { estates: { clergy: { loyalty: 50, influence: 10, privileges: ['not_a_real_privilege'] } } };
-    expect(getNationBonusTotal(nation, 'goldMult')).toBe(0);
+  it('ignores an unknown reform id gracefully', () => {
+    const nation = { government: { type: 'theocracy', reforms: { classical: 'not_a_real_reform' } } };
+    expect(getNationBonusTotal(nation, 'techPointsMult')).toBe(0);
   });
 
   it('sums an enacted government reform\'s effect (identity no longer contributes directly, plan §M8.3)', () => {

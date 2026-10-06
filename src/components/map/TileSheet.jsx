@@ -20,8 +20,6 @@ import { atSea } from '../../engine/fleets';
 import { tileAccess, unitTile } from '../../engine/armies';
 import { declareWarModel } from '../panels/warActions';
 import { enemyStackAt, validateFieldAttack } from '../../engine/fieldBattle';
-import { estateHoldings } from '../../engine/estateLand';
-import { ESTATE_LABELS } from '../../data/estates';
 import PreBattleModal from '../battle/PreBattleModal';
 import { Swords } from 'lucide-react';
 
@@ -46,7 +44,6 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
   if (tile == null || !facts) return null;
   const y = tileYields(facts, researched);
   const ownerCity = state.world?.tileOwner?.[tile] ? state.regions[state.world.tileOwner[tile]] : null;
-  const heldBy = ownerCity?.owner === state.playerNationId ? estateHoldings(state).byTile.get(tile) || null : null; // an estate's land (estateLand.js)
   const ownerNation = ownerCity ? state.nations[ownerCity.owner] : null;
   const name = tiles.names[tile] || (facts.river ? `On the ${tiles.riverNames[tile] || 'river'}` : facts.land ? 'Wild land' : 'Open water');
   const parts = [facts.terrain, facts.relief !== 'flat' ? facts.relief : null, facts.feature !== 'none' ? facts.feature : null, facts.river ? 'river' : null, facts.coastal && facts.land ? 'coast' : null].filter(Boolean);
@@ -103,11 +100,11 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
         {facts.resource && <span className="text-fuchsia-300 capitalize inline-flex items-center gap-1"><ResourceIcon resourceId={facts.resource} size={18} />{facts.resource}</span>}
         {facts.improvement && <span className="text-sky-300 inline-flex items-center gap-1"><ImprovementIcon improvementId={facts.improvement} size={18} />{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
         {facts.district && <span className="text-violet-300" data-testid="tile-district">{DISTRICTS[facts.district]?.name || facts.district}{facts.pillaged ? ' (pillaged)' : ''}</span>}
-        {heldBy && <span className="text-violet-300" data-testid="tile-estate">Held by the {ESTATE_LABELS[heldBy] || heldBy}</span>}
       </div>
       {ownerCity ? (
         <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-left text-xs rounded-lg bg-slate-800/60 border border-slate-700 px-2 py-2 min-h-[40px]">
           Land of <span className="text-white font-semibold">{ownerCity.name}</span> <span className="text-slate-400">({ownerNation?.name || ownerCity.owner})</span>
+          {settlers.length > 0 && ownerCity.owner !== me && <span className="block text-[11px] text-red-300" data-testid="settle-reason">No city here: it belongs to {ownerNation?.name || ownerCity.owner}.</span>}
         </button>
       ) : (
         <div className="space-y-2">

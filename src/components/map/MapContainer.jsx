@@ -52,6 +52,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
+import { useMapPrefs } from './mapPrefs';
 
 export const MINIMAP_STORAGE_KEY = 'terra-imperium-minimap-open';
 const MODE_STORAGE_KEY = 'terra-imperium-map-mode';
@@ -106,7 +107,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   // In march mode any tile (sea included, for a fleet) is the target; otherwise only land opens the tile sheet.
   const onSelectTile = (tile) => { if (marching) { if (tile != null) marchCtx.aimAt(tile); return; } const land = tile != null && getTiles().land[tile] === 1 ? tile : null; setSelectedTile(land); if (land != null) { setManageOpen(false); setSelectedArmy(null); if (!stacking) selectRegion(null); } };
   const stacked = stacking && !!selectedRegion && (selectedTile != null || selectedArmy != null);
-  const [mode, setMode] = useState(readStoredMode);
+  const [storedMode, setMode] = useState(readStoredMode);
+  // The globe is hidden behind a setting for one release (decision 28): off, the flat map is the map.
+  const { globe: globeAllowed } = useMapPrefs();
+  const mode = globeAllowed ? storedMode : 'flat';
   const [modalOpen, setModalOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
   const [eventFocus, setEventFocus] = useState(null); // the event sheet's city (marchEvents.js focusRegion)
@@ -182,7 +186,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
           : <button type="button" onClick={() => setMini(true)} aria-label="Show the mini map" data-testid="minimap-show" className="min-h-[36px] px-2.5 rounded-full bg-slate-900/90 border border-slate-700 shadow-xl text-[11px] font-semibold text-slate-200 pointer-events-auto">World</button>}
         {miniOpen && <MapLegend />}
       </div>
-      <MapModeToggle mode={mode} onChange={handleModeChange} />
+      {globeAllowed && <MapModeToggle mode={mode} onChange={handleModeChange} />}
       <MarchBar onSelectRegion={selectRegion} />
       <RegionChooser choice={tapChoice} onPick={(id) => { setTapChoice(null); onSelectRegion(id); }} onClose={() => setTapChoice(null)} />
 

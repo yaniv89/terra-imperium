@@ -22,6 +22,9 @@ export const RelationStatus = {
 export const ActionTypes = {
   ADVANCE_TURN: 'ADVANCE_TURN',
   FAST_FORWARD: 'FAST_FORWARD',
+  // A turn resolved in the turn worker (src/services/turnClient.js): { from, state }, applied only
+  // if the game is still at the 'from' state.
+  APPLY_TURN_RESULT: 'APPLY_TURN_RESULT',
   RESET_GAME: 'RESET_GAME',
   FRONTIER_EXPEDITION: 'FRONTIER_EXPEDITION',
   FOUND_COLONY: 'FOUND_COLONY',
@@ -109,16 +112,6 @@ export const ActionTypes = {
   ENACT_GOVERNMENT_REFORM: 'ENACT_GOVERNMENT_REFORM',
   CHANGE_LAW: 'CHANGE_LAW',
 
-  // Estates (plan §M9) — crown land interactions and privilege grant/revoke. Clergy Tithe/Nobility
-  // Raise Levies are 2 of the plan's 3 "estate asks"; Burghers' Guild Loan needs 0%-interest loans
-  // (M11), so it's deferred rather than faked as an identical gold grant.
-  SEIZE_LAND: 'SEIZE_LAND',
-  SELL_LAND: 'SELL_LAND',
-  GRANT_ESTATE_PRIVILEGE: 'GRANT_ESTATE_PRIVILEGE',
-  REVOKE_ESTATE_PRIVILEGE: 'REVOKE_ESTATE_PRIVILEGE',
-  CLERGY_TITHE: 'CLERGY_TITHE',
-  NOBILITY_LEVIES: 'NOBILITY_LEVIES',
-
   // Diplomacy tab (plan §8) — casus belli, war/peace lifecycle, and the first tier of agreements.
   DECLARE_WAR: 'DECLARE_WAR',
   FABRICATE_CLAIM: 'FABRICATE_CLAIM',
@@ -152,9 +145,6 @@ export const ActionTypes = {
   RIVAL_NATION: 'RIVAL_NATION',
   UNRIVAL_NATION: 'UNRIVAL_NATION',
   PROPOSE_MARRIAGE: 'PROPOSE_MARRIAGE',
-  MARRY_NOBLE: 'MARRY_NOBLE',
-  ADOPT_HEIR: 'ADOPT_HEIR',
-  SECURE_SUCCESSION: 'SECURE_SUCCESSION',
   BREAK_ALLIANCE: 'BREAK_ALLIANCE',
   INSULT: 'INSULT',
   ASSIGN_DIPLOMAT: 'ASSIGN_DIPLOMAT',
@@ -168,7 +158,7 @@ export const ActionTypes = {
   BUILD_CLIMATE_RESILIENCE: 'BUILD_CLIMATE_RESILIENCE',
   // Cultural Export / soft power (Modern age) — see nation.culturalInfluence's comment.
   CULTURAL_EXPORT: 'CULTURAL_EXPORT',
-  // Rulers, heirs, advisors (plan §M3) — see src/engine/succession.js.
+  // Rulers and advisors (plan §M3) — see src/engine/rulers.js.
   HIRE_ADVISOR: 'HIRE_ADVISOR',
   // Governors (plans/civ-map-rework.md C4.3, src/engine/governors.js).
   ASSIGN_GOVERNOR: 'ASSIGN_GOVERNOR',

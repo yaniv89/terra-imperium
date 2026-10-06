@@ -1,14 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { REGIONS_DATA, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getNeighborIds } from './regions';
 import countriesMeta from './geo/countries-meta.json';
+import { getTiles } from './geo/tiles';
+import { absentAtStart } from './scenarios';
+
+// The crowded small lands with no room at the start are absent from the default world
+// (settle-rules R4, option A): on the map only when the player picks them.
+const ABSENT = absentAtStart(getTiles(), Object.keys(getTiles().capitals));
 
 // Regions are cities on the tile world (src/engine/world/registry.js). Before any game exists
-// the registry holds the default Dawn world: 240 nations, one city each.
+// the registry holds the default Dawn world: every nation with room at the start, one city each.
 describe('the city registry (default Dawn world)', () => {
   it('holds one city per nation, every one with the fields the engine reads', () => {
-    expect(Object.keys(REGIONS_DATA).length).toBe(240);
+    expect(ABSENT.length).toBeGreaterThan(0);
+    expect(Object.keys(REGIONS_DATA).length).toBe(240 - ABSENT.length);
     const owners = new Set(Object.values(REGIONS_DATA).map((r) => r.startOwner));
-    expect(owners.size).toBe(240);
+    expect(owners.size).toBe(240 - ABSENT.length);
     Object.entries(REGIONS_DATA).forEach(([id, data]) => {
       expect(data.id).toBe(id);
       expect(typeof data.name).toBe('string');
@@ -63,8 +70,9 @@ describe('distanceFromAnchor (overextension)', () => {
 });
 
 describe('getNationCapital', () => {
-  it('returns a capital city for every one of the 240 nations, on that nation\'s land', () => {
-    Object.keys(countriesMeta).forEach((nationId) => {
+  it('returns a capital city for every nation on the map, on that nation\'s land, and none for an absent one', () => {
+    ABSENT.forEach((nationId) => expect(getNationCapital(nationId), nationId).toBeNull());
+    Object.keys(countriesMeta).filter((id) => !ABSENT.includes(id)).forEach((nationId) => {
       const capital = getNationCapital(nationId);
       expect(capital, nationId).toBeTruthy();
       expect(REGIONS_DATA[capital].startOwner).toBe(nationId);

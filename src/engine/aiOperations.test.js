@@ -12,7 +12,7 @@ import { processAINavalOperations, processAIOperations } from './aiOperations';
 const setup=()=>{
   const s0=createInitialState({playerNationId:'fr',rngSeed:7});
   const border=s0.nations.de.capitalRegionId;
-  const added=addCity(s0,'de',{near:border});
+  const added=addCity(s0,'de',{near:border,loose:true});
   const s=added.state;const interior=added.cityId;
   const target=getNeighborIds(border).find(id=>s.regions[id]?.owner==='fr');
   if(!target||getNeighborIds(interior).some(n=>s.regions[n]?.owner==='fr'))throw new Error('fixture: expected Berlin to border Paris and the new city not to');
@@ -34,7 +34,8 @@ describe('operational AI',()=>{
   });
   it('does not commit the same player garrison to two simultaneous battles',()=>{
     const base=setup();
-    // A French city with two German neighbours: a new French city, then two German ones beside it.
+    // A French city with two German neighbours: a new French city, then two German ones beside it,
+    // packed tighter than the settling rule allows (testWorld addCity loose).
     // Beside the interior city, away from Berlin, so the capital is not threatened.
     // A French city that borders neither Berlin nor the interior city's French neighbours: the
     // nearest free land to the interior city that is not adjacent to the capital.
@@ -42,10 +43,10 @@ describe('operational AI',()=>{
     const pool=[];for(let t=0;t<tiles.count;t++)if(tiles.land[t]&&!base.s.world.tileOwner[t])pool.push(t);
     pool.sort((a,b)=>distanceKm(tiles.centres[from],tiles.centres[a])-distanceKm(tiles.centres[from],tiles.centres[b]));
     let f=null;
-    for(const t of pool.slice(0,160)){let r;try{r=addCity(base.s,'fr',{near:t});}catch{continue;}if(r.state.regions[r.cityId].tile===t&&!getNeighborIds(r.cityId).includes(base.border)){f=r;break;}}
+    for(const t of pool.slice(0,160)){let r;try{r=addCity(base.s,'fr',{near:t,loose:true});}catch{continue;}if(r.state.regions[r.cityId].tile===t&&!getNeighborIds(r.cityId).includes(base.border)){f=r;break;}}
     if(!f)throw new Error('fixture: no French site away from Berlin');
     let st=f.state;const sources=[];
-    for(let i=0;i<5&&sources.length<2;i++){const g=addCity(st,'de',{near:f.cityId});st=g.state;if(getNeighborIds(f.cityId).includes(g.cityId))sources.push(g.cityId);}
+    for(let i=0;i<5&&sources.length<2;i++){const g=addCity(st,'de',{near:f.cityId,loose:true});st=g.state;if(getNeighborIds(f.cityId).includes(g.cityId))sources.push(g.cityId);}
     const s={...st,wars:base.s.wars,nations:{...st.nations,de:base.s.nations.de},units:base.s.units};
     const target=f.cityId;
     sources.forEach(id=>expect(getNeighborIds(target)).toContain(id));

@@ -2,16 +2,14 @@
 // The city sheet's Politics and Buildings tabs (plans/civ-map-rework.md E4), as pure models the
 // panels render and the tests check: loyalty with its parts, the culture shares, why unrest moves
 // (the same inputs resolveTurn's unrest drift reads), the governor and who could be seated, the
-// estates' land in this city, the disaster in progress, and the building lines with their next tier.
+// disaster in progress, and the building lines with their next tier.
 import { TECH_TREE } from '../../data/techTree';
 import { getTiles } from '../../data/geo/tiles';
 import { BUILDING_CATEGORIES } from '../../data/buildings';
 import { TAX_RATES } from '../../data/taxRates';
-import { ESTATE_LABELS } from '../../data/estates';
 import { loyaltyOf, loyaltyTarget, cultureOf } from '../../engine/loyalty';
 import { amenitiesOf, AMENITY_UNREST_PER_MISSING } from '../../engine/world/cities';
 import { groupOfCity, governorOf, governorChoices, GOVERNOR_FOOD, GOVERNOR_PRODUCTION_MULT, GOVERNOR_CULTURE, GOVERNOR_LOYALTY, UNGOVERNED_LOYALTY, GOVERNOR_UNREST_MULT } from '../../engine/governors';
-import { estateHoldings, NOBLE_LEVY_PER_TILE, CLERGY_CULTURE_PER_TILE, BURGHER_TRADE_GOLD_PER_TILE } from '../../engine/estateLand';
 import { getModifier, getRegionModifier, getNationBonusTotal } from '../../engine/modifiers/sheet';
 import { WAR_WEARINESS_FROM, WAR_WEARINESS_SCALE } from '../../engine/resolveTurn';
 import { canBuildTier, getBuildingTierCost } from '../../data/buildings';
@@ -78,11 +76,6 @@ export const cityPoliticsModel = (state, cityId) => {
   const governor = city.owner ? governorOf(state, city.owner, cityId) : null;
   const pending = group && nation?.governors?.[group.seat] && !governor ? nation.governors[group.seat] : null;
   const candidates = mine && group ? governorChoices(nation) : [];
-  const holdings = mine ? estateHoldings(state) : null;
-  const estates = holdings ? Object.entries(holdings.byCity[cityId] || {}).map(([estateId, tiles]) => ({
-    estateId, label: ESTATE_LABELS[estateId] || estateId, tiles, worked: holdings.workedByCity[cityId]?.[estateId] || 0,
-    gives: estateId === 'nobility' ? `${NOBLE_LEVY_PER_TILE} manpower per worked tile` : estateId === 'clergy' ? `${CLERGY_CULTURE_PER_TILE} culture per worked tile` : estateId === 'burghers' ? `${BURGHER_TRADE_GOLD_PER_TILE} gold per worked tile with a trade pact` : ''
-  })) : [];
   const turn = state.turnNumber || 0;
   const disaster = city.disaster && city.disaster.until >= turn ? { kind: city.disaster.kind, turnsLeft: city.disaster.until - turn } : null;
   return {
@@ -94,7 +87,6 @@ export const cityPoliticsModel = (state, cityId) => {
     pending: pending ? { name: pending.name, ready: pending.ready } : null,
     ungovernedLoyalty: group && !governor && !pending && (mine || nation?.governors) ? UNGOVERNED_LOYALTY : 0,
     candidates,
-    estates,
     disaster
   };
 };

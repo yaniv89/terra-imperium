@@ -7,6 +7,9 @@ import { RelationStatus } from './types';
 import { DOCTRINE_BY_CULTURE_GROUP } from './nations';
 import { getCultureGroup } from './names';
 import countriesMeta from './geo/countries-meta.json';
+import { PEOPLES } from './peoples';
+import { titleFor } from './nationTitles';
+import { EQUAL_START_MILITARY } from './worldSizes';
 
 // Deterministic (no RNG, stable across rebuilds and every game) so a given country always gets
 // the same archetype. Plan §M16: "doctrine assigned by culture group + starting size" — replaces
@@ -55,3 +58,24 @@ const buildNation = (countryId, meta) => {
 export const WORLD_NATIONS = Object.fromEntries(
   Object.entries(countriesMeta).map(([countryId, meta]) => [countryId, buildNation(countryId, meta)])
 );
+
+// The same record for a people of the pool (src/data/peoples.js, phase W0): every people starts
+// equal (roadmap decision 10), so the military proxy is one constant; the doctrine comes from its
+// land's culture group, hashed by the people's own id so neighbours of one land differ. `name` is
+// the titled name of a tribal start; the engine keeps it current (nationTitles.js).
+export const peopleNationRecord = (peopleId) => {
+  const p = PEOPLES[peopleId];
+  if (!p) return null;
+  return {
+    id: peopleId,
+    people: peopleId,
+    name: titleFor(p, 'tribal', 1),
+    color: p.color,
+    startHostility: 5,
+    startMilitary: EQUAL_START_MILITARY,
+    startRelation: RelationStatus.NEUTRAL,
+    doctrine: doctrineForCountry(peopleId, EQUAL_START_MILITARY),
+    population: 0,
+    gdpMillions: 0
+  };
+};

@@ -17,6 +17,8 @@ import { canSeeRegionDetails, getIntelTurnsLeft } from '../../engine/intel';
 import { ACTION_COSTS, SETTLE_COLONIZE_CONTROL_THRESHOLD, ESPIONAGE_SUCCESS_CHANCE, INTEL_DURATION_TURNS } from '../../data/actionCosts';
 import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplomacy';
+import { canAttack } from '../../engine/hostility';
+import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
@@ -150,7 +152,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // Attacking needs a war with the owner (plan §M13). At peace, the attack buttons would do nothing,
   // so they're replaced by the decision that actually comes first: declaring war.
   // Already held by your army (an occupation from an older save): no attack left to make there.
-  const atWarWithOwner = !!ownerNation && isAtWarWithPlayer(state, ownerNation.id) && regionState.occupiedBy !== state.playerNationId;
+  // An independent city (hostility.js) may be attacked without a war: it counts as "at war" here.
+  const ownerIsIndependent = !!ownerNation && isIndependentNation(ownerNation);
+  const atWarWithOwner = !!ownerNation && (isAtWarWithPlayer(state, ownerNation.id) || canAttack(state, state.playerNationId, ownerNation.id)) && regionState.occupiedBy !== state.playerNationId;
   // Land nobody owns (an emergent world's frontier) has no war to declare and no one to invade.
   const hasMilitaryOption = !!ownerNation && invasionSources.length + amphibiousSources.length + navalEngagementSources.length > 0;
   const warJustified = !!ownerNation && hasCasusBelli(state, state.playerNationId, ownerNation.id);
@@ -368,6 +372,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             {ownerNation.hasPeaceTreaty && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">✓ Peace Treaty</span>}
             {ownerNation.hasTradeAgreement && <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px]">✓ Trade Agreement</span>}
             {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ At War</span>}
+            {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-slate-200 rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
           </div>
         </div>
       )}

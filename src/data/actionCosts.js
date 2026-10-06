@@ -65,19 +65,6 @@ export const ACTION_COSTS = {
   // in this codebase) — a vassal already pays 10% tribute every turn just for existing as a subject.
   declareIndependence: {},
 
-  // Estates (plan §M9). Seize/Sell Land are the crown asserting or ceding authority — priced like a
-  // reform and a lesser bureaucratic action respectively. Granting a privilege is a real concession,
-  // priced like a reform; revoking one costs no resource at all because the plan's own described
-  // cost IS the -1 stability/-30 loyalty penalty (gameReducer.js's REVOKE_ESTATE_PRIVILEGE case).
-  // The two estate "asks" are free like every other bookkeeping action (setTaxRate/appointGeneral) —
-  // their real cost is the -10 loyalty they charge that estate.
-  seizeLand: { adm: 100 },
-  sellLand: { adm: 30 },
-  grantEstatePrivilege: { adm: 100 },
-  revokeEstatePrivilege: { adm: 0 },
-  clergyTithe: { adm: 10 },
-  nobilityLevies: { adm: 10 },
-
   // Space Race (plan §10.4) — a satellite is a permanent, ongoing asset, priced well above any
   // single-turn action; an ASAT strike is cheaper than launching a satellite outright (destroying
   // is easier than building) but still a real commitment, on top of the shared debris-level cost.
@@ -131,10 +118,6 @@ export const ACTION_COSTS = {
   // sibling — their real cost is the relationship consequence itself, not a resource.
   rivalNation: { dip: 0 },
   proposeMarriage: { gold: 100, dip: 10 },
-  // The royal family (src/engine/succession.js): marry a noble at court, or adopt a relative as heir.
-  marryNoble: { gold: 60 },
-  adoptHeir: { adm: 50 },
-  secureSuccession: { gold: 200, dip: 2 }, // buys the pretender faction: the heir's claim +SECURE_SUCCESSION_CLAIM (plans/playtest-1.md P4)
   breakAlliance: { dip: 0 },
   insult: { dip: 0 },
   assignDiplomat: { dip: 5 },
@@ -229,7 +212,6 @@ export const LOAN_SIZE_INCOME_MULTIPLIER = 5;
 export const BANKRUPTCY_DURATION_TURNS = 10;
 export const BANKRUPTCY_STABILITY_PENALTY = 3;
 export const BANKRUPTCY_PRESTIGE_PENALTY = 20;
-export const BANKRUPTCY_ESTATE_LOYALTY_PENALTY = 20;
 // Keyed by the FULL modifier-engine key (national.goldMult), not the short LEGACY_HOOK name —
 // nation.modifiers[] entries are read directly by sources.js's staticSources with no LEGACY_HOOK
 // translation (unlike government/law/trait effect tables, which use the short hook names).
@@ -318,7 +300,7 @@ export const ASAT_DEBRIS_RISE = 15;
 export const ORBITAL_DEBRIS_DECAY_PER_TURN = 2;
 
 // Diplomacy overhaul (plan §M12). Every nation gets these fields (rivals/diplomats/ae/truces/
-// vassals) the same "generic reader, player-only writer today" way government/laws/taxRate/estates
+// vassals) the same "generic reader, player-only writer today" way government/laws/taxRate
 // already do — see gameReducer.js's createInitialState comment on that pattern.
 
 // Rivals (plan: "Pick up to 3 from nations of similar strength that border you"). The plan's own
@@ -329,11 +311,10 @@ export const ORBITAL_DEBRIS_DECAY_PER_TURN = 2;
 export const MAX_RIVALS = 3;
 export const RIVAL_ELIMINATED_PRESTIGE_REWARD = 5;
 
-// Royal Marriage (plan: "both monarchies... +25 opinion, +10 heir claim"). This game has one
+// Royal Marriage (plan: "both monarchies... +25 opinion"). This game has one
 // hostility scalar per nation (not pairwise opinion), so "+25 opinion" becomes "-25 hostility
 // toward the player" — the real, existing axis a marriage can actually move.
 export const MARRIAGE_HOSTILITY_REDUCTION = 25;
-export const MARRIAGE_HEIR_CLAIM_BONUS = 10;
 
 export const BREAK_ALLIANCE_HOSTILITY_INCREASE = 25;
 export const INSULT_HOSTILITY_INCREASE = 50;
@@ -405,32 +386,27 @@ export const CAPITAL_OCCUPIED_STABILITY_PENALTY = 1;
 export const CAPITAL_OCCUPIED_POOL_PENALTY = 1; // -1 ADM/DIP/MIL per turn while occupied (player only, see resolveTurn.js)
 export const CAPITAL_LOST_IN_PEACE_STABILITY_PENALTY = 2;
 
-// Civil war (plan §M15). Pretender rebels reuse REBEL_OWNER_ID (src/data/rebellion.js) for combat —
-// a pretender army is just a rebel army with a cause — but mark the regions they seize with
+// Civil war (plan §M15). Insurgent rebels reuse REBEL_OWNER_ID (src/data/rebellion.js) for combat —
+// an insurgent army is just a rebel army with a cause — but mark the regions they seize with
 // `occupiedBy` (the same "someone else holds this militarily, ownership hasn't changed" field M13
 // wars use) so "holds >= 50% of your regions" is a plain count, not a second tracking structure.
-export const SECURE_SUCCESSION_CLAIM = 30;
 export const CIVIL_WAR_STABILITY_STREAK_TURNS = 5; // five consecutive turns at the floor (plans/playtest-1.md P4; was 3)
-export const CIVIL_WAR_SUCCESSION_CRISIS_CHANCE = 0.2; // a contested succession erupts one time in five, and only with a weak court (civilWar.js crisisCanErupt; was 0.4)
-export const CIVIL_WAR_PRETENDER_REGION_SHARE = 0.15;
-export const CIVIL_WAR_PRETENDER_STRENGTH_SHARE = 0.15; // vs. the nation's own real fielded strength
+export const CIVIL_WAR_INSURGENT_REGION_SHARE = 0.15;
+export const CIVIL_WAR_INSURGENT_STRENGTH_SHARE = 0.15; // vs. the nation's own real fielded strength
 export const CIVIL_WAR_HOLD_SHARE_TO_LOSE = 0.5;
 export const CIVIL_WAR_HOLD_STREAK_TO_LOSE_TURNS = 5;
 export const CIVIL_WAR_LOSE_PRESTIGE_PENALTY = 20;
 export const CIVIL_WAR_CRUSH_STABILITY_REWARD = 1;
 export const CIVIL_WAR_CRUSH_LEGITIMACY_REWARD = 10;
 
-// Disasters (plan §M15): four independent 0-100 progress meters, each growing 10/turn while its
+// Disasters (plan §M15): two independent 0-100 progress meters, each growing 10/turn while its
 // trigger condition holds and decaying 10/turn otherwise (a flat, symmetric rate — the plan gives
 // concrete thresholds for the endpoints, not a described curve in between).
 export const DISASTER_PROGRESS_STEP = 10;
 export const DISASTER_MAX_PROGRESS = 100;
-export const ESTATE_TAKEOVER_ADM_DIP_MIL_PENALTY = 2;
-export const ESTATE_TAKEOVER_MODIFIER_DURATION_TURNS = 20;
 export const ECONOMIC_COLLAPSE_MIN_LOANS = 3;
 export const ECONOMIC_COLLAPSE_STABILITY_PENALTY = 2; // on top of applyBankruptcy's own -3
-export const SUCCESSION_WAR_LEGITIMACY_THRESHOLD = 30;
-export const REVOLUTION_LABOR_LOYALTY_THRESHOLD = 30;
+export const REVOLUTION_LEGITIMACY_THRESHOLD = 30; // a Modern-age regime this discredited, at stability -2 or worse, faces revolution
 
 // Forced vassalage (plan §M15: "An AI peace deal can vassalize the player") — buildAITerms only
 // reaches for a vassalize term once its cede/reparations options can't fully use a truly overwhelming

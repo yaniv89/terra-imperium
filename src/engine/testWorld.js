@@ -4,7 +4,7 @@
 // borders France" or "five cities with a Bank" founds them here, through the real foundCity, on
 // the nearest free land. Not used by the game.
 import { getTiles } from '../data/geo/tiles';
-import { foundCity, sizeToPeople, ringDistance } from './world/cities';
+import { foundCity, sizeToPeople, canFoundCity, ringDistance } from './world/cities';
 import { syncWorldRegistry } from './world/registry';
 import { getNationCapital, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getTouchingIds } from '../data/regions';
@@ -12,25 +12,31 @@ import { getTouchingIds } from '../data/regions';
 export const cap = (nationId) => getNationCapital(nationId);
 
 // Founds a city for `nationId` on the nearest free, settleable land tile to `near` (a tile id or
-// a region id) at least 3 tiles from every city. Returns { state, cityId }.
-export const addCity = (state, nationId, { near = null, size = 2, name = null, isCapital = false } = {}) => {
+// a region id) that the settling rule allows (cities.canFoundCity: clear of every city, 4 rings on
+// one landmass, 3 across water), as a settler's city must be. `loose`: only not beside another
+// city (the old fixture rule), for tests that need cities packed tighter than the game allows
+// (two lands that touch after a conquest); such a state fails the audit's city_spacing check.
+// Returns { state, cityId }.
+export const addCity = (state, nationId, { near = null, size = 2, name = null, isCapital = false, loose = false } = {}) => {
   const tiles = getTiles();
   const from = near == null ? state.regions[state.nations[nationId].capitalRegionId].tile : (typeof near === 'string' ? state.regions[near].tile : near);
   const tileOwner = state.world?.tileOwner || {};
+  const world = { cities: state.regions, tileOwner, tileState: state.world?.tileState || {} };
   const cityTiles = Object.values(state.regions).map((c) => c.tile);
+  const clear = (t) => (loose
+    ? tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice' && cityTiles.every((c) => ringDistance(tiles, c, t, 1) >= 2)
+    : canFoundCity(world, tiles, t, nationId).ok);
   let frontier = [from]; const seen = new Set(frontier); let found = null;
   for (let d = 0; d < 30 && !found; d++) {
     const next = [];
     for (const t of frontier) {
-      const ok = tiles.land[t] === 1 && tiles.terrainOf(t) !== 'snow' && tiles.featureOf(t) !== 'ice' && !tileOwner[t]
-        && cityTiles.every((c) => ringDistance(tiles, c, t, 1) >= 2);
+      const ok = tiles.land[t] === 1 && !tileOwner[t] && clear(t);
       if (ok) { found = t; break; }
       tiles.neighbors[t].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); } });
     }
     frontier = next.sort((a, b) => a - b);
   }
   if (found == null) throw new Error(`testWorld.addCity: no free land near ${from}`);
-  const world = { cities: state.regions, tileOwner, tileState: state.world?.tileState || {} };
   const r = foundCity(world, tiles, { nationId, tile: found, size, name, turn: state.turnNumber || 1, isCapital });
   const record = { ...r.city, founderId: nationId, owner: nationId, control: 100, currentPopulation: sizeToPeople(size), currentInfrastructure: 0, underInvasion: false, unrest: 0, defenseLevel: 0, climateResilience: 0, dev: { tax: size, production: size, manpower: size }, buildings: r.city.buildings };
   const regions = { ...r.world.cities, [record.id]: record };

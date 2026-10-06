@@ -9,7 +9,7 @@ it('smoke: a new game on the tile world runs 5 turns', () => {
   const cap = getNationCapital('fr');
   expect(cap).toBeTruthy();
   expect(s.regions[cap].owner).toBe('fr');
-  expect(Object.keys(s.regions).length).toBe(240);
+  expect(Object.keys(s.regions).length).toBe(240 - s.scenario.dormantNationIds.length); // less the nations with no room (settle-rules R4)
   expect(REGIONS_DATA[cap].name).toBeTruthy();
   console.log('fr capital', cap, REGIONS_DATA[cap].name, 'neighbours', getNeighborIds(cap), 'tiles', s.regions[cap].tiles.length, 'units', Object.keys(s.units).length);
   expect(auditGameState(s)).toEqual([]);

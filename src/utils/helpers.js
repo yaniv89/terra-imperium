@@ -15,7 +15,6 @@ import { getModifier, getRegionModifier } from '../engine/modifiers/sheet';
 import { getPopFactor, seedDevelopment, getTotalDev } from '../engine/development';
 import { devastationIncomeMult } from '../engine/aftermath';
 import { lawRulesOf } from '../engine/lawRules';
-import { estateLandEffects } from '../engine/estateLand';
 import { BASE_TECHPOINTS_PER_TURN, SCIENCE_PER_DEV } from '../data/actionCosts';
 // Re-exported so every existing `import { getNationBonusTotal } from '../utils/helpers'` site
 // keeps working unchanged — the actual summation now lives in the modifier engine (plan §M1),
@@ -126,7 +125,7 @@ export const getUnitCount = (state, nationId) => getFieldedStrengthIndex(state.u
 
 // Plan §M2/§M3: replaces the old single-pool getMaxActionPoints with the three power pools' per-
 // turn income. Recomputed fresh from current government/ruler/advisors/tech every turn rather than
-// read from a stored field, so adopting a government, a succession, or finishing a Governance tech
+// read from a stored field, so adopting a government, a new ruler, or finishing a Governance tech
 // all take effect on the very next turn automatically. `national.apBonus` (government maturity,
 // Governance techs) applies equally to all three pools; `national.admBonus`/`dipBonus`/`milBonus`
 // (ruler skill, advisors, pool-specific traits — src/engine/modifiers/sources.js) each touch only
@@ -293,15 +292,6 @@ export const calcIncome = (state) => {
   const hrMult = 1 + getModifier(state, state.playerNationId, 'national.hrMult').total;
   income.gold = (income.gold || 0) * goldMult;
   income.hr = (income.hr || 0) * hrMult;
-  // The estates' land (estateLand.js), flat and after the multipliers: worked estate tiles pay
-  // the estate half their gold; the nobility returns levies, the burghers trade gold (the
-  // clergy's culture goes to the city in resolveTurn's city context).
-  const estateLand = estateLandEffects(state);
-  if (estateLand.goldToEstates || estateLand.tradeGold || estateLand.levies) {
-    income.gold = (income.gold || 0) - estateLand.goldToEstates + estateLand.tradeGold;
-    income.hr = (income.hr || 0) + estateLand.levies;
-  }
-
   // A Spy Satellite's flat techPoints/turn — additive income, not a multiplier, so it's summed
   // separately from the goldMult/hrMult hooks above rather than forced into that multiplicative
   // shape. (A Communications Satellite's dipPerTurn is NOT handled here — see getPowerIncome's own

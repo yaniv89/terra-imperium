@@ -104,7 +104,7 @@ const PerTurnStrip = ({ state }) => {
 };
 
 // End Turn and Fast Forward: the same two buttons in every layout.
-const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
+const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward, turnPending = false }) => {
   // The "warn me" setting (E3): with prompts still waiting, the first tap arms the button for a
   // few seconds and says how many; the second tap ends the turn. End Turn is never blocked.
   const [armed, setArmed] = useState(false);
@@ -124,7 +124,8 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
     <button
       onClick={endTurn}
       data-armed={armed ? '1' : '0'}
-      disabled={state.activeEventId !== null || isGameOver}
+      data-turn-pending={turnPending ? '1' : '0'}
+      disabled={state.activeEventId !== null || isGameOver || turnPending}
       className={`
         px-3 sm:px-4 py-1.5 sm:py-2 pl:px-3 pl:py-1.5 pl:text-xs rounded-lg font-bold text-xs sm:text-sm
         bg-gradient-to-r from-blue-600 to-blue-500
@@ -136,7 +137,7 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
     >
       {/* Always labeled — this is the single most-repeated action in the game and must never
           degrade to an unlabeled color block on a narrow screen. */}
-      <span className="whitespace-nowrap">{armed ? `End anyway? ${warnings} waiting` : 'End Turn'}</span>
+      <span className="whitespace-nowrap">{turnPending ? 'The world moves…' : armed ? `End anyway? ${warnings} waiting` : 'End Turn'}</span>
       {state.pendingDefenses?.length > 0 && (
         <span className="ml-0.5 px-1.5 rounded-full bg-red-500 text-[10px] leading-4" title="Your regions are under attack — fight the assaults first">{state.pendingDefenses.length}</span>
       )}
@@ -146,7 +147,7 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
         ending, so the quiet stretches of a multi-century game don't need one click each. */}
     <button
       onClick={fastForward}
-      disabled={state.activeEventId !== null || isGameOver}
+      disabled={state.activeEventId !== null || isGameOver || turnPending}
       title="Fast-forward until something happens"
       className={`
         px-2.5 sm:px-3 py-1.5 sm:py-2 pl:px-2 pl:py-1.5 rounded-lg font-bold text-xs sm:text-sm
@@ -163,7 +164,7 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward }) => {
 };
 
 const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
-  const { state, advanceTurn, fastForward, exportSave, importSave } = useGame();
+  const { state, advanceTurn, fastForward, turnPending, exportSave, importSave } = useGame();
   const layoutMode = useLayoutMode();
   const fileInputRef = useRef(null);
   const headerRef = useRef(null);
@@ -251,7 +252,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
         <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
           <ResourceBar />
         </div>
-        <TurnButtons state={state} isGameOver={isGameOver} advanceTurn={advanceTurn} fastForward={fastForward} />
+        <TurnButtons state={state} isGameOver={isGameOver} advanceTurn={advanceTurn} fastForward={fastForward} turnPending={turnPending} />
         {importInput}
         <div className="relative shrink-0">
           <OverflowMenu {...menuProps} />
@@ -346,7 +347,7 @@ const GameHeader = ({ onReset, onOpenSettings, cloudStatus }) => {
           <ResourceBar />
         </div>
 
-        <TurnButtons state={state} isGameOver={isGameOver} advanceTurn={advanceTurn} fastForward={fastForward} />
+        <TurnButtons state={state} isGameOver={isGameOver} advanceTurn={advanceTurn} fastForward={fastForward} turnPending={turnPending} />
       </div>
     </header>
   );

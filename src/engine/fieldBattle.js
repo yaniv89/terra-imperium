@@ -24,6 +24,7 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween } from './diplomacy';
 import { getTechAgeId } from './nationState';
+import { canAttack } from './hostility';
 import { legacyTerrainOf } from './world/registry';
 import { passableTile, regionForTile, unitTile } from './armies';
 import { isUnitInBattle } from './invasion';
@@ -42,7 +43,8 @@ export const RETREAT_KM = 102; // km (1 ring at frequency 75)
 export const RETREAT_RINGS = ringsForKm(RETREAT_KM);
 
 const isCentre = (state, tile) => state.regions[state.world?.tileOwner?.[tile]]?.tile === tile;
-const hostile = (state, me, owner) => owner === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, me, owner));
+// `me` may attack a stack of `owner` (hostility.js: at war, rebels, an independent's stack).
+const hostile = (state, me, owner) => canAttack(state, me, owner);
 
 /** Enemy land units of `me` standing on `tile`. */
 export const enemyStackAt = (state, tile, me = state.playerNationId, units = state.units) => Object.values(units)

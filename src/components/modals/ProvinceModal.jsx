@@ -22,7 +22,7 @@ import CityPolitics from '../city/CityPolitics';
 
 // The city sheet (plans/civ-map-rework.md E4): City and Tiles (src/components/city/CityPanel.jsx),
 // Buildings (with the crown's development investments) and Politics (loyalty, unrest, the
-// governor, the estates, the crown's actions). The old Overview, Economy and Military tabs
+// governor, the crown's actions). The old Overview, Economy and Military tabs
 // retired: units live on the army sheet, recruitment in the production queue.
 const TABS = [
   { id: 'city', label: 'City' },
