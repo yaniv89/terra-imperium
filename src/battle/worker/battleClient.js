@@ -2,6 +2,7 @@
 // One API for the UI whether the sim runs in a Web Worker (normal) or on the main thread (a very
 // old WebView where module workers fail). Both run the exact same battleLoop, so results agree.
 import { createBattleLoop } from './battleLoop';
+import { createViewDecoder } from '../render/packedView';
 
 const createInlineBackend = (onMessage) => {
   let loop = null; let raf = null;
@@ -33,7 +34,10 @@ const createWorkerBackend = (onMessage) => {
   };
 };
 
-export const createBattleClient = ({ setup, resume = null, paused = false, onMessage, preferWorker = true }) => {
+export const createBattleClient = ({ setup, resume = null, paused = false, onMessage: deliver, preferWorker = true }) => {
+  // Frames arrive packed (packedView.js); the UI gets them as plain-shaped views (`m.view`).
+  const decode = createViewDecoder();
+  const onMessage = (m) => { if (m.type === 'frame' && m.packed) { m.view = decode(m.packed); m.packed = null; } deliver(m); };
   let backend;
   try {
     backend = preferWorker && typeof Worker !== 'undefined' ? createWorkerBackend(onMessage) : createInlineBackend(onMessage);

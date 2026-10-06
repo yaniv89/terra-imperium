@@ -16,10 +16,13 @@ import BattleResultScreen from './BattleResultScreen';
 import { ABILITIES } from '../../battle/sim/effects';
 import { createBattleAudio } from '../../battle/audio/battleAudio';
 import { needsUnitModels, preloadUnitModels } from '../../battle/render/unitModels';
+import { createPerfMeter, formatPerf } from '../../battle/render/perfMeter';
 
 const ABILITY_LABELS = Object.fromEntries(Object.entries(ABILITIES).map(([id, a]) => [id, a.label]));
 
 const HUD_INTERVAL_MS = 150;
+// `&perf` in the page URL shows the performance readout (works in a production build too).
+const PERF_ON = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
 
 const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon }) => {
   const wrapRef = useRef(null);
@@ -45,6 +48,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const [lasso, setLasso] = useState(null);
   const [radial, setRadial] = useState(null);
   const [ended, setEnded] = useState(null);
+  const perfRef = useRef(null);
 
   const updateSelection = useCallback((ids) => {
     selectedRef.current = new Set(ids);
@@ -64,7 +68,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     rendererRef.current = renderer;
     if (!resume) renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide); // the zone shows until Start (plan E7)
     if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
-    if (import.meta.env.DEV) window.__battleRenderer = renderer; // for debugging in the console
+    // For debugging in the console, and for scripts/battle-phone-bench.mjs (which moves the camera) in a perf run.
+    if (import.meta.env.DEV || PERF_ON) { window.__battleRenderer = renderer; window.__battleView = () => frames.current.cur; }
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
     setSoundOn(audio.isEnabled());
@@ -81,6 +86,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       onMessage: (m) => {
         if (m.type === 'frame') {
           const f = frames.current;
+          if (m.sim) f.sim = m.sim;
           if (!f.cur || m.view.tick !== f.cur.tick) { f.prev = f.cur; f.cur = m.view; f.arrival = performance.now(); } else f.cur = m.view;
           // First frame: look straight at your own army.
           if (!f.centered) {
@@ -99,12 +105,25 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     clientRef.current = client;
     if (import.meta.env.DEV) window.__battleOrders = (orders) => client.sendOrders(orders); // console / visual-test driving
 
-    let raf; let lastT = performance.now(); let lastHud = 0;
+    let raf; let lastT = performance.now(); let lastHud = 0; let lastPerf = 0;
+    // `&perf` in the URL: an on-screen readout (perfMeter.js), also left in window.__battlePerf.
+    const meter = PERF_ON ? createPerfMeter() : null;
     const loop = (t) => {
-      const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+      const rawMs = t - lastT;
+      const dt = Math.min(0.1, rawMs / 1000); lastT = t;
       const f = frames.current;
       const alpha = f.prev ? Math.min(1, ((t - f.arrival) * speedRef.current) / (1000 / TICK_HZ)) : 1;
+      const r0 = meter ? performance.now() : 0;
       renderer.render(f.prev, f.cur, alpha, { selected: selectedRef.current }, dt);
+      if (meter) {
+        meter.push(rawMs, performance.now() - r0);
+        if (t - lastPerf > 250) {
+          lastPerf = t;
+          const stats = { meter: meter.summary(), diag: renderer.diagnostics(), sim: f.sim || null, squads: f.cur ? f.cur.squads.filter((q) => q.alive && q.onField).length : 0 };
+          window.__battlePerf = stats;
+          if (perfRef.current) perfRef.current.textContent = formatPerf(stats);
+        }
+      }
       if (t - lastHud > HUD_INTERVAL_MS && f.cur) { lastHud = t; setHud(f.cur); }
       raf = requestAnimationFrame(loop);
     };
@@ -310,6 +329,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         hasAbilities={selectedAbilities.length > 0}
         soundOn={soundOn} onToggleSound={toggleSound}
       />
+      {PERF_ON && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
       {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} onContinue={() => onFinish?.(ended)} />}
     </div>
   );

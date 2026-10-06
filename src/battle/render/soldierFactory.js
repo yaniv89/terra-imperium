@@ -483,7 +483,7 @@ const patchRig = (shader, withColor) => {
       int tone = int(clamp(floor(aVariant.x + 0.5), 0.0, ${f(SKIN_N - 1)}));
       base = mix(base * (1.0 + aVariant.z * 0.09 * (1.0 - aTeam)), uSkin[tone], isSkin);
       #ifdef USE_INSTANCING_COLOR
-        vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, 0.12 * (1.0 - isSkin)), instanceColor.rgb, aTeam);
+        vColor.rgb = mix(base * mix(vec3(1.0), instanceColor.rgb, ${f(withColor.teamTint ?? 0.12)} * (1.0 - isSkin)), instanceColor.rgb, aTeam);
       #else
         vColor.rgb = base;
       #endif
@@ -534,12 +534,14 @@ export const RIG_TIME = { value: 0 };
 // cheaper per pixel than PBR and flat-coloured low-poly models gain almost nothing from it.
 // `standard: true` gives the same rig on MeshStandardMaterial (the patch only touches chunks both
 // share). `emblems` is the heraldry atlas texture (defaults to the shared procedural one).
-export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtlas() } = {}) => {
+// `teamTint`: how much of the side's colour every cloth and metal part takes (the team parts take
+// all of it); the far detail level raises it so a figure a few pixels tall still reads as its army.
+export const createSoldierMaterial = ({ standard = false, emblems = getEmblemAtlas(), teamTint = 0.12 } = {}) => {
   const mat = standard
     ? new MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.05 })
     : new MeshLambertMaterial({ vertexColors: true });
-  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard });
-  mat.customProgramCacheKey = () => (standard ? 'soldier-rig-std' : 'soldier-rig');
+  mat.onBeforeCompile = (shader) => patchRig(shader, { emblems, standard, teamTint });
+  mat.customProgramCacheKey = () => `${standard ? 'soldier-rig-std' : 'soldier-rig'}-${teamTint}`;
   return mat;
 };
 // Shadow pass: the same bones, so shadows walk with their soldiers.

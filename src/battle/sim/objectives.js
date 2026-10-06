@@ -69,14 +69,19 @@ export const updateGarrisons = (w) => {
   });
 };
 
-// Extra damage per shot from a building's garrison.
-const garrisonFire = (w, si, s) => garrisonOf(w, si).reduce((sum, q) => sum + q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT, 0);
+// Extra damage per shot from a building's garrison (its squads in index order, as garrisonOf).
+const garrisonFire = (garrison, s) => garrison.reduce((sum, q) => sum + q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT, 0);
 
 // Towers and the (unbreached) keep fire at the nearest attacking squad in range.
 export const resolveStructureFire = (w) => {
+  // Every structure's garrison in one pass over the army (none of them changes while buildings fire:
+  // they only ever hit attackers, and a garrison is the defender's).
+  const garrisons = w.structures.map(() => []);
+  w.squads.forEach((q) => { if (q.inside >= 0 && q.alive && garrisons[q.inside]) garrisons[q.inside].push(q); });
   w.structures.forEach((s, si) => {
     if (!s.alive) return;
-    const bonus = garrisonFire(w, si, s);
+    const garrison = garrisons[si];
+    const bonus = garrisonFire(garrison, s);
     if (!s.damage && !bonus) return;
     if (s.cooldown > 0) { s.cooldown -= 1; return; }
     let target = null; let bestD = Infinity;
@@ -90,7 +95,7 @@ export const resolveStructureFire = (w) => {
     const variance = 1 + (nextRandom(w) * 2 - 1) * RNG_VARIANCE;
     const damage = Math.max(1, Math.round((s.damage + bonus) * variance));
     // The garrison shares the credit (battle XP goes to squads that fought).
-    if (bonus) garrisonOf(w, si).forEach((q) => { q.engaged = true; q.damageDealt += Math.round((damage * (q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT)) / (s.damage + bonus)); });
+    if (bonus) garrison.forEach((q) => { q.engaged = true; q.damageDealt += Math.round((damage * (q.strength * perHitFraction({ attackTicks: s.attackTicks }) * GARRISON_FIRE_MULT)) / (s.damage + bonus)); });
     target.strength = Math.max(0, target.strength - damage);
     target.morale = Math.max(0, target.morale - Math.round(moraleFromLosses(target, damage) * getPromotionMoraleLossMultiplier({ promotions: target.promotions })));
     target.lastHitTick = w.tick;

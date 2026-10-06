@@ -44,11 +44,55 @@ screenshot and lists console errors. Look at the image with the Read tool. "GPU 
 ReadPixels" warnings come from SwiftShader, not the game. It relies on the DEV-only hooks
 `window.__battleRenderer` and `window.__battleOrders`.
 
+## 4. Scale: ms per tick at 300 / 500 / 1,000 squads a side
+```bash
+node scripts/battle-bench.mjs                       # this checkout
+node scripts/battle-bench.mjs --root <other checkout> # the same battle on older code (git archive it)
+```
+AI against AI (king), a full army mix with generals and powers, everyone on the field in deep
+blocks (`setup.deployment = 'blocks'`, src/battle/bench/benchScenario.js), 2,400 ticks, best of 3.
+The phone column is x4 (plans/rts-world-review.md section 5), the budget p95 <= 10 ms (RTS plan
+13.1). Timing is noisy on this hybrid laptop: pin to one core (`start /affinity 4 /high /wait /b
+node ...` on Windows) and compare before and after interleaved on the same machine.
+`PERF_CHECKS=1 npx vitest run src/battle/sim/kernel.test.js` asserts the 300-a-side budget.
+See it drawn: `?battleSandbox&bench=300&autostart` (add `&perf` for the on-screen readout: fps,
+frame p50/p95, renderer main-thread ms, sim ms per tick, triangles, draw calls, figures, LOD level;
+it works in a production build and on a real phone, see below).
+
+Renderer at scale (phase C2, plans/MASTER-PLAN.md 6.2):
+```bash
+npx vite --port 5199 --strictPort &
+node .claude/skills/battle-lab/render-bench.mjs <outDir> [--bench 300] [--dpr 1] [--throttle 4]   # Edge, real GPU, 844x390
+node scripts/battle-phone-bench.mjs --sizes 300,500 --throttle 1,4,6 --out <dir> [--url <build>]  # DPR 3, touch, CPU x4/x6
+SIZES=300,500 npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/viewcost  # frame build + transfer ms
+```
+render-bench times BattleRenderer.render, drawSquads and three's render separately and screenshots
+each camera. CPU throttling over CDP slows the page's main thread but NOT the sim worker (its ms per
+tick stays flat) and never the GPU; take the sim's phone figure from battle-bench.mjs x4. Numbers on
+the hybrid laptop swing 30 to 50% run to run (other processes, thermals): compare interleaved.
+For timings use a production build (`npx vite build --outDir <tmp> --emptyOutDir`, then
+`npx vite preview --outDir <tmp> --port 5198`; never build into docs/ for this): React dev mode
+adds milliseconds to every HUD update.
+Real phone on the same Wi-Fi: `npx vite --host` (prints the Network URL, e.g.
+http://192.168.1.22:5173/terra-imperium/), allow Node through the Windows firewall for private
+networks, then open `<Network URL>?battleSandbox&bench=300&autostart&perf` on the phone in landscape.
+Renderer rules: soldiers draw through soldierLod.js (full / about 360 / about 60 triangles, one level
+a frame by size on screen within BATTLE_GRAPHICS.figureTriangles); only squads in view are written;
+figures per squad shrink past 80 squads a side (capacity.js figureScale); props are instanced per
+48-tile chunk so three culls them; worker frames are packed (packedView.js, keep it equal to view.js).
+Any change to the sim must keep `kernel.test.js` (grids equal the full scan, hash chain) green; a
+pure speed change should leave every world hash unchanged (compare `runHeadless(...).chain`).
+
 ## Rules of the sim
 - Integer Q8 fixed point (1 tile = 256), integer ticks, `nextRandom(w)` only. Replays and the
   replay-verification tests (replay.test.js) must stay exact. Round damage immediately.
 - Anything outside the sim influences it only through orders.
 - New per-squad fields go in `makeSquad` (world.js); new view fields in view.js.
+- Neighbour queries go through the packed grids (spatial.js, pathing.js `queryRadius`,
+  `buildTargetGrid`), never a scan of every squad per squad. `classId`, `commanderId` and `side`
+  are fixed after createWorld (squadLists.js caches lists by them).
+- Every 20 ticks step() folds the world hash into `w.hashChain` (hash.js); `replaySegment`
+  (replay.js) verifies a battle from a snapshot and the tail of its log.
 - Renderer: every geometry, material and texture goes through `this.track()` so `dispose()`
   frees it; instanced meshes reset `count` every frame; short effects live in `this.fx` with a life.
 - Run `npx vitest run src/battle` and the full suite before committing.

@@ -12,6 +12,7 @@ import { distSq, polarX, polarY } from './fixed';
 import { isFighting } from './combat';
 import { Q, SIDE_DEFENDER, secondsToTicks as S } from './constants';
 import { moraleFromLosses } from './moraleMath';
+import { generalsOf } from './squadLists';
 
 // ---- general & perk abilities ----------------------------------------------------------------
 export const ABILITIES = {
@@ -83,7 +84,7 @@ export const effectMult = (w, q, kind) => {
 };
 
 // A general's passive aura (RoN: +armor, steadier troops): 0.9x damage taken, 0.8x morale loss.
-export const generalAura = (w, q) => w.squads.some((o) => o.side === q.side && o.commanderId && isFighting(o) && !o.routed
+export const generalAura = (w, q) => generalsOf(w).some((o) => o.side === q.side && isFighting(o) && !o.routed
   && distSq(o.x, o.y, q.x, q.y) <= GENERAL_AURA_RADIUS * GENERAL_AURA_RADIUS);
 
 export const damageTakenMult = (w, q, arc) => {
