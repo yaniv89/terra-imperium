@@ -112,7 +112,7 @@ const Row = ({ row, selected, onClick }) => {
  */
 const BattleReportSheet = ({ entry, reports = null, onClose, onShowRegion, onReplay }) => {
   const { state } = useGame();
-  const all = reports && reports.length ? reports : entry ? [entry] : [];
+  const all = useMemo(() => (reports && reports.length ? reports : entry ? [entry] : []), [reports, entry]);
   const [filter, setFilter] = useState('all');
   const [pickedId, setPickedId] = useState(null);
   const [phoneDetail, setPhoneDetail] = useState(true);
