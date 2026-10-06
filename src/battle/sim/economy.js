@@ -624,6 +624,9 @@ export const ecoView = (w, playerSide) => {
     pop: population(w, playerSide),
     cap: housingCap(w, playerSide),
     workers: workers.length,
+    // Where the population is (army, laborers, in training) and where the housing comes from.
+    popSplit: { workers: workers.filter((q) => q.onField || q.enterTick >= 0).length, training: activeTraining(w, playerSide), army: population(w, playerSide) - activeTraining(w, playerSide) - workers.filter((q) => q.onField || q.enterTick >= 0).length },
+    houses: eco.buildings.filter((b) => b.side === playerSide && b.type === 'house' && ready(w, b)).length,
     idleWorkers: workers.filter((q) => !q.job || q.order.type !== 'work').map((q) => q.idx),
     buildings: eco.buildings.map((b) => {
       const alive = ecoAlive(w, b);

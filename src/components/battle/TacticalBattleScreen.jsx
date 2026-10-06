@@ -418,7 +418,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       />
       {buildMenu && hud?.eco && <BuildMenu ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}
       {ecoBuilding && (
-        <BuildingPanel building={ecoBuilding} ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock}
+        <BuildingPanel building={ecoBuilding} ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} eco={hud.eco}
+          onBuildHouse={() => pickBuilding('house')}
           onTrain={(role) => send([{ type: 'train', building: ecoBuilding.idx, role }])}
           onCancel={(slot) => send([{ type: 'cancelTrain', building: ecoBuilding.idx, slot }])}
           rallyArmed={armed?.type === 'rally'}

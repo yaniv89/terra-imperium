@@ -161,7 +161,7 @@ const BattleHud = ({
 
       {/* Bottom: chips (left) + command bar (right) */}
       <div className={`absolute bottom-0 inset-x-0 p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end justify-between gap-2 pointer-events-none ${hud.powers?.length ? 'pl-[84px]' : ''}`}>
-        <div className="pointer-events-auto flex gap-1 min-w-0 overflow-x-auto scrollbar-none" data-testid="battle-chips">
+        <div className="pointer-events-auto flex gap-1 min-w-0 max-w-[58%] overflow-x-auto scrollbar-none" data-testid="battle-chips">
           <HudButton icon={Users} label={`All ${onField.filter((q) => q.classId !== 'worker').length}`} onClick={() => onSelectClass('all')} testId="battle-select-all" />
           {eco && <HudButton icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
           {eco && eco.idleWorkers.length > 0 && <HudButton icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}

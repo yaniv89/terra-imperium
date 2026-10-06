@@ -13,7 +13,7 @@
 //   npx vite --port 5199 --strictPort &                       (or point --url at a build)
 //   node scripts/battle-phone-bench.mjs [--sizes 300,500] [--throttle 1,4,6] [--out dir]
 //        [--browser <chrome or msedge exe>] [--url http://localhost:5199/terra-imperium/]
-//        [--warm 10] [--sample 5]
+//        [--warm 10] [--sample 5] [--eco]   (--eco: the battle economy on, phase R1)
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
@@ -39,7 +39,7 @@ for (const n of sizes) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(`${base}?battleSandbox&bench=${n}&autostart&perf`, { timeout: 240000, waitUntil: 'domcontentloaded' });
+  await page.goto(`${base}?battleSandbox&bench=${n}&autostart&perf${argv.includes('--eco') ? '&eco' : ''}`, { timeout: 240000, waitUntil: 'domcontentloaded' });
   await page.getByTestId('battle-pause').waitFor({ timeout: 180000 });
   gpu = await page.evaluate(() => {
     const gl = document.querySelector('canvas').getContext('webgl2');
