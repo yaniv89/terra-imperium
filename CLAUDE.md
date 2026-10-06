@@ -50,7 +50,14 @@ The live site is GitHub Pages, built into `docs/`.
   the supply meter: supplyMeter.js; tile sight (fog): sight.js; fleets on sea tiles: fleets.js; sieges (walls, HP,
   encirclement, falls): sieges.js. Battlefields come from the tile and its six
   neighbours: src/battle/setup/tileContext.js feeds mapgen.js. Field battles between stacks on
-  tiles: src/engine/fieldBattle.js (ATTACK_ARMY, kind 'field'). Opinion with reasons (AI war
+  tiles: src/engine/fieldBattle.js (ATTACK_ARMY, kind 'field'). The campaign bridge (phase R2):
+  every battle ends in ONE call, `applyBattleOutcome` (src/engine/battleOutcome.js, idempotent by
+  operation id, every row of master plan 6.7; invasion/defense/field/naval apply functions are thin
+  wrappers); battleInputs.js is what Command and Auto both read (supply, starvation, plague, walls'
+  HP, the city's militia, allied reinforcements); autoBattle.js is the honest auto-resolve
+  (auxiliaries from the battle economy, the walls' gate, calibrated with battle-lab parityEco);
+  battleQueue.js holds battles others start against the player (pendingDefenses: city, field and
+  sea), Command or Auto each, waiting for events and peace offers. Opinion with reasons (AI war
   roll, casus belli): src/engine/opinion.js over src/data/opinion.js. Loyalty and culture per
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
