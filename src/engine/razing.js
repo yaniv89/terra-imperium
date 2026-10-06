@@ -62,7 +62,7 @@ export const startRazing = (state, nationId, cityId) => {
     Object.keys(nations).sort().forEach((id) => {
       const n = nations[id];
       if (id === nationId || n.isEliminated) return;
-      if (isIndependentNation(n)) { if (kinOf(n) === theme) nations = addGrudge(nations, id, nationId, GRUDGE_RAZE_KIN); return; }
+      if (isIndependentNation(n)) { if (kinOf(n) === theme) nations = addGrudge(nations, id, nationId, GRUDGE_RAZE_KIN, { id: 'razedKin', turn }); return; }
       if (themeOfPeople(n.people) === theme) nations = { ...nations, [id]: { ...n, razedBy: { ...(n.razedBy || {}), [nationId]: turn } } };
     });
   }

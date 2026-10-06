@@ -50,7 +50,7 @@ import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/ind
 import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
 import { answerTributeDemand } from './raids';
-import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, razeCityForPlayer } from './indepPolicy';
+import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, offerIndependentTribute, razeCityForPlayer } from './indepPolicy';
 import { canRaze, stopRazing } from './razing';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
@@ -2894,6 +2894,11 @@ const reduceAction = (state, action) => {
       const r = proposeIndependentTrade(state, action.payload?.independentId);
       return r.reason ? reject(state, r.reason) : r;
     }
+    case ActionTypes.OFFER_INDEPENDENT_TRIBUTE: {
+      // Phase W4: tribute paid unasked, for peace (indepPolicy.js).
+      const r = offerIndependentTribute(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
     case ActionTypes.RAZE_CITY: {
       const why = canRaze(state, state.playerNationId, action.payload?.regionId);
       if (!why.ok) return reject(state, why.reason);
@@ -2925,7 +2930,7 @@ const reduceAction = (state, action) => {
       return {
         ...state,
         units,
-        nations: independentLand ? addGrudge(state.nations, landOwner, state.playerNationId, GRUDGE_ATTACKED) : state.nations,
+        nations: independentLand ? addGrudge(state.nations, landOwner, state.playerNationId, GRUDGE_ATTACKED, { id: 'pillaged', turn: state.turnNumber }) : state.nations,
         world: { ...state.world, tileState: raid.tileState },
         resources: { ...state.resources, gold: (state.resources.gold || 0) + raid.gold },
         logs: [...state.logs, { year: state.year, message: `Your army pillages ${getTiles().names[tile] || 'the land'} of ${state.regions[raid.cityId]?.name || 'the enemy'}: +${raid.gold} gold.`, type: LogTypes.COMBAT }]

@@ -160,7 +160,7 @@ export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null
     : `The battle near ${where} ended with both sides spent.`;
   const anchor = state.world?.tileOwner?.[v.tile] ?? regionForTile(state, v.tile, attackerNationId, v.fromRegionId);
   // An independent remembers who killed its men (grudges.js, phase W2).
-  const nations = defLoss > 0 && isIndependentNation(state.nations?.[v.defenderNationId]) ? addGrudge(state.nations, v.defenderNationId, attackerNationId, GRUDGE_ATTACKED) : state.nations;
+  const nations = defLoss > 0 && isIndependentNation(state.nations?.[v.defenderNationId]) ? addGrudge(state.nations, v.defenderNationId, attackerNationId, GRUDGE_ATTACKED, { id: 'killed', turn: state.turnNumber }) : state.nations;
   return {
     ...state,
     world, units, nations,

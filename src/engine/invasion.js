@@ -216,7 +216,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
   // War score (plan §M13): this invasion counts as a battle in `war` regardless of which side of
   // it the player is on, feeding the same score the AI's own peace decisions read.
   // An independent remembers who attacked it (grudges.js, phase W2).
-  if (isIndependentNation(state.nations[targetRegion.owner])) nextNations = addGrudge(nextNations, targetRegion.owner, state.playerNationId, GRUDGE_ATTACKED);
+  if (isIndependentNation(state.nations[targetRegion.owner])) nextNations = addGrudge(nextNations, targetRegion.owner, state.playerNationId, GRUDGE_ATTACKED, { id: 'attacked', turn: state.turnNumber });
   const invasionLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
   const invasionWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
   const nextWars = invasionWinnerId && war
@@ -351,7 +351,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
     nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
   }
 
-  if (isIndependentNation(state.nations[targetRegion.owner])) nextNations = addGrudge(nextNations, targetRegion.owner, state.playerNationId, GRUDGE_ATTACKED);
+  if (isIndependentNation(state.nations[targetRegion.owner])) nextNations = addGrudge(nextNations, targetRegion.owner, state.playerNationId, GRUDGE_ATTACKED, { id: 'attacked', turn: state.turnNumber });
   const assaultLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
   const assaultWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
   const nextWars = assaultWinnerId && war
