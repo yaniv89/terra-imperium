@@ -581,7 +581,9 @@ const applyCityDamageAfterBattle = (before, after, regionId, tactical) => {
   if (!report) return applyRazedBuildings(after, regionId, tactical?.razed);
   const manifest = cityManifestOf(before, regionId);
   const occupation = !!after.regions[regionId] && before.regions[regionId]?.owner !== after.regions[regionId].owner;
-  const { state: next, log } = applyCityBattleDamage(after, regionId, report, { manifest, occupation });
+  // buildings the sim razed are destroyed structures too (bld-<category>)
+  const razed = (tactical.razed || []).map((c) => `bld-${c}`);
+  const { state: next, log } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(report.destroyed || []), ...razed])], damaged: report.damaged || [] }, { manifest, occupation });
   if (!log) return next;
   return { ...next, logs: [...next.logs, { year: next.year, message: `The fighting left its mark on ${REGIONS_DATA[regionId]?.name || regionId}: ${log}.`, type: LogTypes.COMBAT }] };
 };
