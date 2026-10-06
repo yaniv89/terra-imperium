@@ -177,6 +177,28 @@ const SCREENS = {
     await click(page.getByTestId('top-bar-nation'));
     await page.getByTestId('nation-overview').waitFor({ timeout: 10000 });
     await shot(page, 'W17-nation', vp);
+  },
+  W07: async (page, vp) => {
+    await startGame(page);
+    // meet the five nearest majors; at war with the nearest, a pact and trade with the third
+    await patchState(page, `
+      const me = s.playerNationId; const met = s.fog.met[me] || {};
+      const cap = s.regions[s.nations[me].capitalRegionId];
+      const cands = Object.values(s.nations).filter((n) => n.id !== me && n.kind !== 'independent' && n.capitalRegionId && s.regions[n.capitalRegionId]);
+      const d = (n) => { const r = s.regions[n.capitalRegionId]; return Math.hypot((r.lat || 0) - (cap.lat || 0), (r.lng || r.lon || 0) - (cap.lng || cap.lon || 0)); };
+      const near = cands.sort((a, b) => d(a) - d(b)).slice(0, 5);
+      const nextMet = { ...met }; near.forEach((n, i) => { nextMet[n.id] = 1 + i * 2; });
+      const nations = { ...s.nations, [near[2].id]: { ...s.nations[near[2].id], hasMilitaryPact: true, hasTradeAgreement: true } };
+      return { ...s, turnNumber: s.turnNumber + 5, research: { ...(s.research || {}), current: 'infrastructure_irrigation_canals' }, nations, fog: { ...s.fog, met: { ...s.fog.met, [me]: nextMet } },
+        wars: [...(s.wars || []), { id: 'war-shot', active: true, aggressor: near[0].id, enemy: me, score: -12, startTurn: s.turnNumber }] };`);
+    // the patch jumps five turns, so the first-contact cards (W03) treat it like a loaded save; the
+    // turn report (W10) of that jump is closed with Escape
+    await page.getByTestId('turn-report').waitFor({ timeout: 10000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    await openTab(page, 'diplomacy');
+    await page.getByTestId('peoples-tab').waitFor({ timeout: 10000 });
+    await click(page.locator('[data-people-row]').nth(1));
+    await shot(page, 'W07-peoples', vp);
   }
 };
 

@@ -47,9 +47,8 @@ const NationSheet = ({ nationId, onClose, onSelectRegion }) => {
         {m.relations.length > 0 && <div className="flex flex-wrap gap-x-2">{m.relations.map((r) => <span key={r.id} className={TONE[r.tone]}>{r.label}</span>)}</div>}
         {(m.claims.mine || m.claims.theirs) ? <div>{m.claims.mine ? `You hold ${m.claims.mine} claim${m.claims.mine === 1 ? '' : 's'} on their cities. ` : ''}{m.claims.theirs ? `They hold ${m.claims.theirs} claim${m.claims.theirs === 1 ? '' : 's'} on yours.` : ''}</div> : null}
         {m.wonders.length > 0 && <div className="text-yellow-200">Wonders: {m.wonders.join(', ')}</div>}
-        <div>Opinion of you <span className={m.opinion >= 20 ? 'text-fa-good' : m.opinion <= -40 ? 'text-fa-danger-text' : 'text-fa-enemy'}>{m.opinion > 0 ? '+' : ''}{m.opinion}</span>: {m.reasons.map((r) => `${r.label} ${r.value > 0 ? '+' : ''}${r.value}`).join(' · ')}</div>
       </div>
-      <NationCard nation={state.nations[nationId]} />
+      <NationCard nation={state.nations[nationId]} hideTitle />
     </>
   );
   if (isMobile) {

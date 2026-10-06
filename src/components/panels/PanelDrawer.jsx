@@ -25,7 +25,7 @@ import { openSettings } from '../ui/uiEvents';
 
 // Research and Peoples need two columns, so their dock is wider (plans/UI-DESIGN.md section 5:
 // wider sheets for Research); the map keeps at least 12rem on a phone held sideways.
-const WIDE_TABS = new Set(['tech']);
+const WIDE_TABS = new Set(['tech', 'diplomacy']);
 
 // One rail button: icon over a tiny label; a dot when something there waits for you. The open
 // tab is a raised fill with a light outline (selection is never brass).
