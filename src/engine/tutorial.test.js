@@ -7,7 +7,7 @@ import { getTiles } from '../data/geo/tiles';
 import { tileFacts } from '../data/tileYields';
 import { isSettler } from './settlers';
 import { TUTORIAL_STEPS, TUTORIAL_TURNS, TUTORIAL_TECH, tutorialStatus, tutorialPrompt, advanceTutorial, markTutorialStep } from './tutorial';
-import { nextPrompts } from '../components/ui/nextPrompt';
+import { nextPrompts } from '../components/ui/nextPromptModel';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
 const guided = () => quiet(createInitialState({ playerNationId: 'eg', rngSeed: 11, guided: true }));

@@ -2,10 +2,12 @@
 # The Classical Age shared file (plans/model-brief-for-claude.md, section 4.2): the wall rings
 # `walls-small`, `walls-medium`, `walls-big`, the outpost's `colony-camp` and the fields `field-1`
 # (wheat), `field-2` (olives), `field-3` (pasture), `field-4` (vineyard), from
-# plans/art/towns/classical/<id>/reference-sheet.png, in one GLB with one atlas. The palaces join
-# it when their sheets arrive.
+# plans/art/towns/classical/<id>/reference-sheet.png, in one GLB with one atlas. The delivered
+# Blender palaces (plans/art/towns/classical/palace-small and palace) join these objects in the
+# same atlas through assemble_kit_towns.py's shared-base mode, which builds the shipped file:
 #
-#   python scripts/blender/build_shared_classical.py <out_dir> [atlas_px]
+#   python scripts/blender/assemble_kit_towns.py shared-base <towns/classical dir> classical <out_dir> [atlas_px]
+#   python scripts/blender/build_shared_classical.py <out_dir> [atlas_px]   (without the palaces)
 import os
 import sys
 
