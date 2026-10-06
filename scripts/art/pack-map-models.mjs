@@ -1,5 +1,7 @@
 // scripts/art/pack-map-models.mjs
-// Compresses the close-view map models (src/assets/map/towns and shared) in place with gltfpack:
+// Compresses the model files in place with gltfpack: the close-view map models (src/assets/map/
+// towns, shared, buildings, wonders, improvements, terrain) and the battle art (src/assets/battle/
+// rts, city, nature, terrain, projectiles; src/assets/units/signature, without quantization):
 // meshopt geometry compression and quantized vertices, the WebP textures as they are. Node names
 // (the objects and their LOD0..LOD2 children) and the Town / Ground / Team materials are kept, so
 // the game reads the files unchanged (gltfUnitLoader sets the meshopt decoder). A town drops from
@@ -9,14 +11,14 @@
 import { execFileSync } from 'node:child_process';
 import { renameSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { isPacked, mapModelFiles, readGlbJson } from './glbInfo.mjs';
+import { isPacked, modelFiles, packFlags, readGlbJson } from './glbInfo.mjs';
 
 const GLTFPACK = join('node_modules', '.bin', 'gltfpack');
 
 const pack = (file) => {
   const tmp = `${file}.packing.glb`;
   try {
-    execFileSync(GLTFPACK, ['-i', file, '-o', tmp, '-cc', '-kn', '-km', '-ke'], { stdio: ['ignore', 'ignore', 'pipe'] });
+    execFileSync(GLTFPACK, ['-i', file, '-o', tmp, ...packFlags(file)], { stdio: ['ignore', 'ignore', 'pipe'] });
     if (!isPacked(readGlbJson(tmp))) throw new Error('gltfpack wrote no meshopt data');
     const before = statSync(file).size;
     renameSync(tmp, file);
@@ -27,7 +29,7 @@ const pack = (file) => {
   }
 };
 
-const files = process.argv.length > 2 ? process.argv.slice(2) : mapModelFiles();
+const files = process.argv.length > 2 ? process.argv.slice(2) : modelFiles();
 let before = 0, after = 0, packed = 0;
 files.forEach((file) => {
   if (isPacked(readGlbJson(file))) return;
@@ -35,4 +37,4 @@ files.forEach((file) => {
   before += b; after += a; packed += 1;
   console.log(`${file}: ${(b / 1e6).toFixed(1)} MB -> ${(a / 1e6).toFixed(1)} MB`);
 });
-console.log(packed ? `packed ${packed} files: ${(before / 1e6).toFixed(0)} MB -> ${(after / 1e6).toFixed(0)} MB` : 'every map model is already packed');
+console.log(packed ? `packed ${packed} files: ${(before / 1e6).toFixed(0)} MB -> ${(after / 1e6).toFixed(0)} MB` : 'every model is already packed');

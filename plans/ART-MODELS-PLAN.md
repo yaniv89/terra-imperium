@@ -32,9 +32,10 @@ Decisions taken for this plan (user, 2026-10-06):
 | Nature, terrain kits | 0 (code cones and rocks) | nodes, herds, vegetation, battle river and bridges, map mountains and terrain kits: sections 7, 8 |
 | Effects | code sparks and blood | sprite sheets: section 9 |
 
-Paths that the code did not load were being wired at the time of writing (branch
-`claude/wire-art-paths`, Wave 0 below). No model in this plan is "done" until it shows in the game
-through those loaders.
+Every art path of this plan is wired (Wave 0 code, branch `claude/wire-art-paths`): a file dropped
+into its folder shows in the game, the procedural placeholder stays where none is. Each folder's
+README.md lists its file and object names, scale, budgets and fallback; `src/battle/art/` holds the
+loaders. No model in this plan is "done" until it shows in the game through those loaders.
 
 ---
 
