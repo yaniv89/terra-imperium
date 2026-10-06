@@ -271,6 +271,19 @@ Mechanisms nobody has yet, needed by the plans:
 - So destroying the city in battle still costs the conqueror (a smaller, damaged prize), but a
   conquest never leaves ruins only. Razing stays a separate, deliberate order on the map.
 - The same 50% rule for sacks, sallies and failed assaults (the defender's city).
+- **Phase B result (2026-10-06, branch claude/phase-b-city-manifest).** The town models are split
+  back into their houses and landmarks (`npm run build:town-layouts` writes
+  `src/data/townLayouts.json`); `src/data/townLayout.js` builds a city's manifest (town hall,
+  houses with stable ids and housing, landmarks, palace, buildings, wall ring, gate, towers,
+  wonders) and `src/engine/cityManifest.js` derives it from the city record, so saves keep only
+  `region.cityDamage` (an optional field: no save version change). A city assault loads it
+  (`src/battle/setup/cityBattle.js`, setup version 4): 2.75 tiles per model unit, the gate turned
+  to the attacker, houses and walls block the ground and fall to rubble, only the keep, armed
+  towers and buildings are picked by the AI. The battle reports its losses by manifest id; the
+  reducer carries them under this rule; repairs run each turn. The close view and the battle draw
+  the same town model with the same damage shader (`closeView/townDamage.js`). Parity
+  (`TYPES=assault CITY=1`): the real city plays like the old keep (both still far from auto: R2).
+  Screenshots: `plans/images/phase-b/`.
 
 ### 6.9 Field battles, forts and rivers (decisions 33, 34)
 - **Decisive field battles**: a battle away from a city ends when one side's army is destroyed,
