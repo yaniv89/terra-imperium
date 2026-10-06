@@ -34,6 +34,7 @@ import { FxSprites } from '../art/fxSheets';
 import { getAgeIndex } from '../../data/ages';
 import { peopleForNationId } from '../../data/peoples';
 import { signatureKey, baseClassOf } from '../../data/signatureUnits';
+import { battleGroundSets, groundTextureUniform } from '../../data/groundMaterials';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -382,7 +383,9 @@ export class BattleRenderer {
     this.tileMask = this.track(buildTileMask(this.map));
     const mat = this.track(patchGroundMaterial(new MeshLambertMaterial({ vertexColors: true }), {
       mask: this.tileMask, mapW: w, mapH: h,
-      road: TILE_TINT[TILE.ROAD], sand: SAND_TINT[this.setup.terrain] || '#d6c28c', rock: TILE_TINT[TILE.ROCK], forest: TILE_TINT[TILE.FOREST]
+      road: TILE_TINT[TILE.ROAD], sand: SAND_TINT[this.setup.terrain] || '#d6c28c', rock: TILE_TINT[TILE.ROCK], forest: TILE_TINT[TILE.FOREST],
+      // ground material sets (src/assets/terrain/<id>/, data/groundMaterials.js) as detail, where delivered
+      details: Object.fromEntries(Object.entries(battleGroundSets(this.setup.terrain, { urban: !!this.setup.city })).filter(([, set]) => set).map(([layer, set]) => [layer, groundTextureUniform(set.color)]))
     }));
     this.terrain = new Mesh(geo, mat);
     this.terrain.receiveShadow = true;

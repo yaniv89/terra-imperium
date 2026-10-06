@@ -28,6 +28,7 @@ import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceF
 import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, ROOM_FILL } from './scale';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen, townDrawRadiusKm } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
+import { dressCloseTerrain } from './terrainKits';
 import { riverHalfPx } from '../gl/terrainModel';
 import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
@@ -110,6 +111,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     ridges: new Map(), hills: instanced(getHillGeometry(), 600)
   };
   for (let v = 0; v < RIDGE_VARIANTS; v++) [false, true].forEach((snow) => t.ridges.set(`${v}|${snow}`, instanced(getRidgeGeometry(v, snow), MAX_RIDGE_MESH)));
+  dressCloseTerrain(t, onAssets); // the map terrain kits, where delivered (terrainKits.js)
   const plotMap = plotTexture();
   const plotMaterial = new MeshBasicMaterial({ map: plotMap, transparent: true, opacity: 0.88, depthWrite: false });
   t.plots = new InstancedMesh(new PlaneGeometry(1, 1), plotMaterial, MAX_PLOTS);
