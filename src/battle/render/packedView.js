@@ -69,13 +69,15 @@ export const createViewPacker = () => {
       points: w.points.map((p) => ({ id: p.id, resId: p.resId, x: p.x, y: p.y, owner: p.owner, progress: p.progress, capturingSide: p.capturingSide })),
       eco: ecoView(w, playerSide), // the battle economy (small: stockpiles, buildings, nodes), null without one
       squads: f.buffer,
-      slow: slow ? w.squads.map((q, i) => ({ i, side: q.side,
+      // Squads born since the last frame (the battle economy trains them) always bring their slow part.
+      slow: slow || n > slowKeys.length ? w.squads.map((q, i) => (!slow && i < slowKeys.length ? null : { i, side: q.side,
         unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null,
         maxStrength: q.maxStrength, startStrength: q.startStrength,
         reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
         callCost: callCost(q, w), xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,
         abilities: q.side === playerSide ? getSquadAbilities(w, q).map((id) => ({ id, readyIn: Math.max(0, (q.cooldowns?.[id] || 0) - w.tick) })) : []
       })).filter((m) => {
+        if (!m) return false;
         // Only the squads whose slow part changed since it was last sent (most never do).
         const key = JSON.stringify(m);
         if (slowKeys[m.i] === key) return false;

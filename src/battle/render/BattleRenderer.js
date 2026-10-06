@@ -402,6 +402,7 @@ export class BattleRenderer {
     // Tiles taken by the province's own buildings get their own models (buildStructures).
     const landmarkTiles = new Set(this.setup.structures.filter((st) => st.kind === 'building').map((st) => Math.floor(st.y / Q) * w + Math.floor(st.x / Q)));
     this.setup.structures.forEach((st) => (st.footprint || []).forEach((c) => landmarkTiles.add(c))); // the real city draws its own (cityLayer.js)
+    (this.setup.economy?.camp?.footprint || []).forEach((c) => landmarkTiles.add(c)); // the expedition camp (economyLayer.js)
     for (let z = 0; z < h; z++) {
       for (let x = 0; x < w; x++) {
         const t = tiles[z * w + x];

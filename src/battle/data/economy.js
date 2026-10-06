@@ -38,6 +38,8 @@ export const POP_PER_SQUAD = 1;
 
 // Workers: gather rates per worker-second before walking (RTS plan 6.1), carry 10.
 export const CARRY = toMilli(10);
+// How a side spreads its laborers when it puts one to work by itself (a new laborer, an emptied node).
+export const WORKER_MIX = { food: 0.45, materials: 0.4, gold: 0.15 };
 export const GATHER_PER_SEC = { food: 0.65, materials: 0.6, gold: 0.4 };
 export const ORE_RATE_MULT = 0.75;   // metal ore is slower to work than wood or stone
 export const FARM_RATE_MULT = 0.7;   // a farm is renewable but slower (RTS plan 6.1)

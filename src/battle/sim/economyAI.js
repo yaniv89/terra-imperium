@@ -8,7 +8,7 @@
 import { distSq } from './fixed';
 import { Q, SIDE_ATTACKER } from './constants';
 import { placementBlock, population, housingCap, ecoAlive } from './economy';
-import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableRoles, POP_LIMIT } from '../data/economy';
+import { BUILDINGS, UNITS, RESOURCES, MILLI, costMilli, buildableFor, trainableRoles, POP_LIMIT, WORKER_MIX } from '../data/economy';
 
 // workers: laborers it keeps; prod: production buildings; towers: when defending; mix: the share of
 // laborers on food, materials, gold; army: what its barracks train, in order of preference.
@@ -19,11 +19,17 @@ export const AI_ECONOMY = {
   king: { every: 30, workers: 20, prod: 3, towers: 1, queue: 2 },
   emperor: { every: 24, workers: 26, prod: 4, towers: 2, queue: 3 }
 };
-const MIX = { food: 0.45, materials: 0.4, gold: 0.15 };
+const MIX = WORKER_MIX;
 const PRODUCTION = ['barracks', 'range', 'stable', 'siegeWorkshop'];
 
 const afford = (stock, cost, reserve = 0) => { const c = costMilli(cost); return RESOURCES.every((r, i) => stock[i] - reserve * MILLI >= c[r]); };
 const spend = (stock, cost) => { const c = costMilli(cost); RESOURCES.forEach((r, i) => { stock[i] -= c[r]; }); };
+
+const nearestNode = (w, side, res, x, y) => {
+  let best = -1; let bestD = Infinity;
+  w.eco.nodes.forEach((n, i) => { if (n.res === res && n.amount !== 0 && (n.side < 0 || n.side === side)) { const d = distSq(n.x, n.y, x, y); if (d < bestD) { bestD = d; best = i; } } });
+  return best;
+};
 
 // A spot for `type` near (x, y): rings outward, the first valid footprint (same rule as the player).
 const findSpot = (w, side, type, x, y, rMin = 4, rMax = 16) => {
@@ -65,6 +71,16 @@ export const thinkEconomy = (w, side, difficultyId, orders) => {
     onRes[res] += 1;
     orders.push({ side, type: 'gather', squads: [q.idx], node: best });
   });
+
+  // ... and one laborer a think moves from the most crowded resource to the most wanting one.
+  const total = workers.length;
+  const over = RESOURCES.find((r) => onRes[r] > MIX[r] * total + 1.5);
+  const under = RESOURCES.find((r) => onRes[r] < MIX[r] * total - 1);
+  if (over && under) {
+    const mover = workers.find((q) => q.job?.t === 'gather' && w.eco.nodes[q.job.node].res === over && !idle.includes(q));
+    const node = mover ? nearestNode(w, side, under, mover.x, mover.y) : -1;
+    if (node >= 0) orders.push({ side, type: 'gather', squads: [mover.idx], node });
+  }
 
   // 2. Sites nobody is building: the nearest two laborers go.
   const sites = mine.filter((b) => !b.built && b.proxy == null);
