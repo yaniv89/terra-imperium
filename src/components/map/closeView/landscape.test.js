@@ -63,6 +63,7 @@ describe('close view landscape', () => {
     expect(unitPx(20)).toBeCloseTo(11 * HEX); expect(unitPx(SUPER_FROM_K)).toBeCloseTo(22 * HEX); // HEX: the hex's size vs frequency 75
     expect(unitPx(200)).toBeGreaterThan(unitPx(100));
     expect(unitPx(200) / 200).toBeLessThan(unitPx(SUPER_FROM_K) / SUPER_FROM_K * 0.7);
+    // the fallback where a town's hex is behind the map's wrap (cityHex.test.js has the hex fill):
     // bigger towns drawn bigger; the room to the coast caps the scale
     expect(townUnitPx(20, 2, 400, TIER_SCALE.big)).toBeCloseTo(unitPx(20) * 1.25);
     expect(townUnitPx(120, 4, 100, TIER_SCALE.big)).toBeCloseTo((ROOM_FILL * 100) / 4);

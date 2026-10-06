@@ -14,14 +14,15 @@ import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { markerIconUrl } from '../../data/icons';
 import { townTier } from './closeView/townTiers';
-import { townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './closeView/scale';
+import { tiltFor, TIER_SCALE } from './closeView/scale';
+import { hexTownPx } from './closeView/cityHex';
 import { getTiles } from '../../data/geo/tiles';
 
 const EDGE_PX = 80;
-// The banner hangs just under the town's front edge (and its wall ring): the ground is about
-// `modelRadius` units across each way at `pxPerUnit` (the town's hex-capped scale), foreshortened
-// by the tilt.
-export const bannerOffsetPx = (modelRadius, pxPerUnit) => (modelRadius + 0.35) * pxPerUnit * 0.8 + 6;
+// The banner hangs just under the town's front edge (and its wall ring), so it never covers the
+// town: the ground reaches `modelRadius` units toward the viewer at `pxPerUnit` (the town's scale,
+// filling its hex: closeView/cityHex.js), foreshortened by `lean`, the sine of the models' tilt.
+export const bannerOffsetPx = (modelRadius, pxPerUnit, lean = Math.sin(tiltFor(0))) => (modelRadius + 0.35) * pxPerUnit * lean + 6;
 
 const CityBanners = ({ projection, transform, width, height, onSelect, selectedRegion = null, playerColor }) => {
   const { state } = useFogView(); // towns as the player knows them (fog of war)
@@ -40,8 +41,9 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
     const radius = tier ? tier.modelRadius : 1;
     // the same size rule as the town itself (CloseViewLayer), walls included
     const capRadius = radius + ((city.buildings?.categories?.defense ?? -1) >= 0 ? 0.3 : 0);
-    const room = Math.min(townRoomUnits(projection, getTiles(), city.tile), townGapUnits(projection, getTiles(), city.tile, isTown));
-    const y = p[1] * k + transform.y + bannerOffsetPx(radius, townUnitPx(k, capRadius, room * k, tier ? TIER_SCALE[tier.id] || 1 : 1));
+    const lean = Math.sin(tiltFor(k));
+    const px = hexTownPx({ projection, tiles: getTiles(), tile: city.tile, k, radius: capRadius, lean, fill: !!tier, isTown, tierScale: tier ? TIER_SCALE[tier.id] || 1 : 1 });
+    const y = p[1] * k + transform.y + bannerOffsetPx(radius, px, lean);
     if (x < -EDGE_PX || y < -EDGE_PX || x > width + EDGE_PX || y > height + EDGE_PX) return;
     const owner = city.owner || city.colony?.ownerId;
     const own = owner === state.playerNationId;

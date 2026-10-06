@@ -13,7 +13,9 @@ export const HEX = hexSizeVsF75();
 export const SUPER_FROM_K = 40;
 export const SUPER_GROWTH = 0.7;
 export const unitPx = (k) => HEX * (k <= SUPER_FROM_K ? Math.max(2, k * 0.55) : SUPER_FROM_K * 0.55 * (k / SUPER_FROM_K) ** SUPER_GROWTH);
-// Bigger towns read bigger: a medium town is drawn 12% and a big one 25% above its model's size.
+// A town fills its own hex (cityHex.js, decision D10): the tier's art shows the city's size. The
+// rules below are the fallback where a hex cannot be projected whole (the map's wrap), and the cap
+// for wonders and improvements: there a medium town is drawn 12% and a big one 25% above its size.
 export const TIER_SCALE = { small: 1, medium: 1.12, big: 1.25 };
 // A town never reaches into the sea: its pixels per model unit are capped so its radius (with its
 // wall ring) stays within ROOM_FILL of its `room`, the distance from its centre to the nearest
