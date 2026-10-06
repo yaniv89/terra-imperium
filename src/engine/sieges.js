@@ -20,7 +20,7 @@
 // land), the city's yields and growth, and the AI's "threatened city" objective (aiOperations).
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID } from '../data/rebellion';
-import { isWarBetween } from './diplomacy';
+import { canAttack } from './hostility';
 import { getResearched } from './nationState';
 import { unitTile } from './armies';
 import { isBlockaded, isFleet, portWaters } from './fleets';
@@ -46,7 +46,9 @@ export const wallsOf = (city) => Math.min(MAX_WALLS, (city.buildings?.categories
 export const siegeMaxHp = (city, greatProjects = null) => Math.round(SIEGE_HP_BASE * (1 + wallsOf(city)) * (1 + (city.size || 1) / 10) * (1 + cityWonderTotal(greatProjects, city.id, 'local.wallHp')));
 export const siegeHpOf = (city, greatProjects = null) => (city.siege ? city.siege.hp : siegeMaxHp(city, greatProjects));
 
-const hostile = (state, nationId, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, ownerId));
+// Who besieges a city: anyone who may attack its owner (hostility.js: at war, rebels, or anyone
+// against an independent; a passive independent never besieges).
+const besieges = (state, ownerId, cityOwnerId) => canAttack(state, ownerId, cityOwnerId);
 
 /** Land units (no cargo, no settlers, alive) by the tile they stand on: Map tile -> units. Built
  * once per turn and shared by the siege and loyalty phases. */
@@ -67,7 +69,7 @@ export const besiegersOf = (state, city, units = state.units, byTile = null) => 
   const index = byTile || landUnitsByTile(state, units);
   const byNation = new Map();
   tiles.neighbors[city.tile].forEach((t) => (index.get(t) || []).forEach((u) => {
-    if (u.ownerId === city.owner || !hostile(state, city.owner, u.ownerId)) return;
+    if (u.ownerId === city.owner || !besieges(state, u.ownerId, city.owner)) return;
     if (!byNation.has(u.ownerId)) byNation.set(u.ownerId, []);
     byNation.get(u.ownerId).push(u);
   }));

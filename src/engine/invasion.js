@@ -19,6 +19,7 @@ import { awardXp } from '../data/promotions';
 import { getGeneralXpMultiplier } from '../data/generals';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween, recordBattle } from './diplomacy';
+import { canAttack } from './hostility';
 import { getRegionModifier } from './modifiers/sheet';
 import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier, isGarrisonBroken } from './siege';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -93,9 +94,10 @@ export const validateInvasion = (state, fromRegionId, targetRegionId, { ignoreCo
   const stack = Object.values(state.units).filter((u) => u.regionId === fromRegionId && u.ownerId === state.playerNationId && u.domain === 'land' && u.classId !== 'settler' && !u.embarkedOn && (ignoreBattleLocks || !isUnitInBattle(state, u.id)));
   const attackerUnits = stack.filter(reaches);
   if (!cityAdjacent && attackerUnits.length === 0) return { ok: false, reason: 'not_adjacent' };
-  // Plan §M13: invasions require an active war with the target's owner.
-  const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
-  if (!war) return { ok: false, reason: 'no_war' };
+  // Plan §M13: invasions require an active war with the target's owner, except an independent's
+  // city, which anyone may attack without one (hostility.js; `war` is then null: no war score).
+  const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner)) || null;
+  if (!war && !canAttack(state, state.playerNationId, targetRegion.owner)) return { ok: false, reason: 'no_war' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.launchInvasion)) return { ok: false, reason: 'cost' };
   if (attackerUnits.length === 0) return { ok: false, reason: 'no_units' };
   // Plan §M14: one attack per stack per turn — every unit in the attacking stack must still have
@@ -213,7 +215,7 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
   // it the player is on, feeding the same score the AI's own peace decisions read.
   const invasionLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
   const invasionWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
-  const nextWars = invasionWinnerId
+  const nextWars = invasionWinnerId && war
     ? state.wars.map(w => (w.id === war.id ? { ...w, battleScore: recordBattle(w, invasionWinnerId, invasionLossShare) } : w))
     : state.wars;
 
@@ -265,8 +267,8 @@ export const validateAmphibious = (state, navalUnitId, targetRegionId, { ignoreC
   if (!beside && !getNeighborIds(navalUnit.regionId).includes(targetRegionId) && !isReachableBySea(navalUnit.regionId, targetRegionId, state.age)) return { ok: false, reason: 'out_of_reach' };
   const embarkedLandUnits = Object.values(state.units).filter((u) => u.embarkedOn === navalUnitId && u.ownerId === state.playerNationId);
   if (embarkedLandUnits.length === 0) return { ok: false, reason: 'no_units' };
-  const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner));
-  if (!war) return { ok: false, reason: 'no_war' };
+  const war = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, targetRegion.owner)) || null;
+  if (!war && !canAttack(state, state.playerNationId, targetRegion.owner)) return { ok: false, reason: 'no_war' };
   if (!ignoreBattleLocks && ((navalUnit.movesLeft ?? 1) <= 0 || !embarkedLandUnits.every((u) => (u.movesLeft ?? 1) > 0))) return { ok: false, reason: 'no_moves' };
   if (!ignoreCost && !canAfford(state.resources, ACTION_COSTS.amphibiousAssault)) return { ok: false, reason: 'cost' };
   const defenderNavalUnits = Object.values(state.units).filter((u) => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
@@ -347,7 +349,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
 
   const assaultLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
   const assaultWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
-  const nextWars = assaultWinnerId
+  const nextWars = assaultWinnerId && war
     ? state.wars.map(w => (w.id === war.id ? { ...w, battleScore: recordBattle(w, assaultWinnerId, assaultLossShare) } : w))
     : state.wars;
 

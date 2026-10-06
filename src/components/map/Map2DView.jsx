@@ -37,6 +37,7 @@ import { wallsOf } from '../../engine/sieges';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { getNationColor } from '../../data/nationColors';
+import { isIndependent, mutedIndependentColour, INDEPENDENT_BAND_DASH } from '../../data/independents';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
@@ -54,7 +55,7 @@ import { getAtWarNationIds, getRegionFillColor, getRegionStrokeColor } from '../
 import { worldRasterUrl, worldRasterSizeFor, withAlpha } from '../../data/geo/worldRaster';
 import { WORK_KINDS } from './closeView/landscape';
 import { visibleRasterTiles, rasterTileUrl, baseRasterZoom } from '../../data/geo/rasterTiles';
-import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover } from './lenses';
+import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, estateTints, tradeLines, airCover, settleTints } from './lenses';
 
 const OCEAN_COLOR = '#0f172a'; // matches GlobeView's OCEAN_COLOR / backgroundColor
 // How much of the terrain raster shows through a nation's colour on land.
@@ -432,17 +433,20 @@ const Map2DView = ({
   const bandIdBase = React.useId().replace(/:/g, '');
   const nationBandElements = useMemo(() => {
     if (!interactive || !nationOutlines.length) return null;
-    const colourOf = (owner) => (owner === state.playerNationId ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8');
+    // An independent's band is muted and dashed (independents.js: the W1 placeholder for a hatched border).
+    const indep = (owner) => isIndependent(state.nations, owner);
+    const colourOf = (owner) => (owner === state.playerNationId ? PLAYER_BAND_COLOR : indep(owner) ? mutedIndependentColour(getNationColor(owner)) : getNationColor(owner) || '#94a3b8');
     return (
       <g pointerEvents="none" data-testid="nation-bands">
         <defs>{nationOutlines.map((n) => <clipPath key={n.owner} id={`${bandIdBase}-${n.owner}`}><path d={n.d} /></clipPath>)}</defs>
         {nationOutlines.map((n) => (
           <path key={n.owner} d={n.d} fill="none" stroke={colourOf(n.owner)} strokeWidth={(2 * NATION_BAND_PX) / zoomK} strokeLinejoin="round"
-            clipPath={`url(#${bandIdBase}-${n.owner})`} opacity={0.9} data-nation-band={n.owner} />
+            strokeDasharray={indep(n.owner) ? INDEPENDENT_BAND_DASH.split(' ').map((v) => (Number(v) * NATION_BAND_PX) / zoomK).join(' ') : undefined}
+            clipPath={`url(#${bandIdBase}-${n.owner})`} opacity={0.9} data-nation-band={n.owner} data-independent={indep(n.owner) ? 'true' : undefined} />
         ))}
       </g>
     );
-  }, [interactive, nationOutlines, state.playerNationId, zoomK, bandIdBase]);
+  }, [interactive, nationOutlines, state.playerNationId, state.nations, zoomK, bandIdBase]);
 
   // Load the close view a little before it is needed, then keep it (one WebGL context for good).
   const [closeLoaded, setCloseLoaded] = useState(false);
@@ -479,11 +483,15 @@ const Map2DView = ({
   }, [interactive, onSelectTile, projection, transform, selectedTile]);
   const selectedTilePath = useMemo(() => (projection && selectedTile != null ? geoPath(projection)(getTileFeature(selectedTile)) : null), [projection, selectedTile]);
 
+  // The settle lens (lenses.js settleTints) also shows while one of your settlers stands on the
+  // selected tile: illegal land red, legal land faint green (settle-rules R6).
+  const settlerSelected = selectedTile != null && Object.values(state.units).some((u) => isSettler(u) && u.ownerId === state.playerNationId && u.tile === selectedTile);
   // The lens layer (lenses.js): yields on your tiles, loyalty discs, threat circles, supply tints.
   const lensElements = useMemo(() => {
-    if (!interactive || !projection || lens === 'political') return null;
+    if (!interactive || !projection || (lens === 'political' && !settlerSelected)) return null;
     const tiles = getTiles();
     const pathGen = geoPath(projection);
+    if (lens === 'settle' || settlerSelected) return settleTints(state, settlerSelected ? [selectedTile] : null).map((t) => <path key={t.tile} d={pathGen(getTileFeature(t.tile))} fill={t.colour} stroke="none" pointerEvents="none" data-lens-settle={t.tile} data-ok={t.ok ? '1' : '0'} />);
     const at = (t) => { const { lat, lon } = tiles.latLonOf(t); return projection([lon, lat]); };
     if (lens === 'yields') {
       if (zoomK < HEX_FROM_ZOOM) return null;
@@ -519,7 +527,7 @@ const Map2DView = ({
       );
     });
     return null;
-  }, [interactive, projection, lens, state, zoomK]);
+  }, [interactive, projection, lens, state, zoomK, settlerSelected, selectedTile]);
   // Improvements, districts and resources as small glyphs on their tiles at the local zoom (plan
   // B5): a letter in a disc for an improvement, in a square for a district (districts.js), a
   // small diamond for a resource; only the tiles on screen (landTilesWithin, the hex window).

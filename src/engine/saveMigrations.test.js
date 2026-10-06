@@ -76,7 +76,7 @@ describe('migrateSave (version 7: the tile world, a clean break with the region 
     expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
     expect(loaded.state.playerNationId).toBe('de');
     expect(loaded.state.world.tileOwner).toEqual(fresh.world.tileOwner);
-    expect(Object.keys(loaded.state.regions)).toHaveLength(240);
+    expect(Object.keys(loaded.state.regions)).toHaveLength(240 - fresh.scenario.dormantNationIds.length); // less the nations with no room (settle-rules R4)
   });
 
   it('a loaded save survives 5 more turns with no NaN/Infinity leaves', () => {

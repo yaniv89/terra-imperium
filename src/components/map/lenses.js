@@ -8,10 +8,14 @@
 //   supply     the tile of every own army tinted by its supply zone (home, held, wild, enemy)
 //   estates    the countryside tiles each estate holds, tinted with a crest letter (estateLand.js)
 //   trade      the caravan path or sea link of every trade pact, red where plundered (plunder.js)
+//   settle     where a settler may found a city (the settling rule, citySpacing.js): illegal land
+//              red with its reason, legal land faint green; also shown while a settler is selected
 import { getTiles } from '../../data/geo/tiles';
 import { airRanges } from '../../engine/airPower';
 import { tileFacts, tileYields } from '../../data/tileYields';
-import { ringsAround } from '../../engine/world/cities';
+import { ringsAround, canFoundCity } from '../../engine/world/cities';
+import { settlersOf } from '../../engine/settlers';
+import { settlingBarred } from '../../engine/accords';
 import { getResearched } from '../../engine/nationState';
 import { loyaltyOf } from '../../engine/loyalty';
 import { isWarBetween } from '../../engine/diplomacy';
@@ -33,7 +37,8 @@ export const LENSES = [
   { id: 'threat', label: 'Threat', key: '4', hint: 'Enemy armies and their reach' },
   { id: 'supply', label: 'Supply', key: '5', hint: 'How far your supply lines reach, and where your armies are fed' },
   { id: 'estates', label: 'Estates', key: '6', hint: 'The land your estates hold' },
-  { id: 'trade', label: 'Trade', key: '7', hint: 'Your trade routes and the raiders on them' }
+  { id: 'trade', label: 'Trade', key: '7', hint: 'Your trade routes and the raiders on them' },
+  { id: 'settle', label: 'Settle', key: '8', hint: 'Where your settlers may found a city' }
 ];
 export const LENS_IDS = LENSES.map((l) => l.id);
 export const ZONE_COLOUR = { home: 'rgba(34,197,94,0.45)', held: 'rgba(250,204,21,0.45)', wild: 'rgba(251,146,60,0.45)', enemy: 'rgba(239,68,68,0.5)' };
@@ -135,4 +140,34 @@ export const tradeLines = (state) => {
     const tiles = r.ok ? (r.kind === 'land' ? r.tiles : r.regions.map((id) => state.regions[id]?.tile).filter((t) => t != null)) : [];
     return { partnerId: n.id, name: n.name, kind: r.ok ? r.kind : null, ok: r.ok, tiles, plundered: !!p, plunderTile: p?.tile ?? null, reason: r.ok ? null : r.reason };
   });
+};
+
+/** The settle lens (plans/settle-rules.md R6): every land tile within SETTLE_LENS_KM of `from`
+ * (default: the player's settlers, else the player's cities) as [{ tile, ok, reason, colour }].
+ * A tile is legal when the settling rule allows a city there (cities.canFoundCity: land, no ice,
+ * not another nation's land, clear of every city) and no accord bars it; the reason names the
+ * blocking city or the owning nation ("Too close to Jerusalem.", "Belongs to Egypt."). */
+export const SETTLE_LENS_KM = 612;
+export const SETTLE_COLOUR = { ok: 'rgba(52,211,153,0.22)', no: 'rgba(239,68,68,0.4)' };
+export const settleTints = (state, from = null, { km = SETTLE_LENS_KM, limit = 3000 } = {}) => {
+  const tiles = getTiles();
+  const me = state.playerNationId;
+  const tileOwner = state.world?.tileOwner || {};
+  const world = { cities: state.regions || {}, tileOwner, tileState: state.world?.tileState || {} };
+  const own = settlersOf(state.units || {}, me).map((u) => u.tile).filter((t) => t != null);
+  const starts = from || (own.length ? own : Object.values(state.regions || {}).filter((c) => c.owner === me && c.tile != null).map((c) => c.tile));
+  const rings = ringsForKm(km);
+  const seen = new Set();
+  const out = [];
+  [...new Set(starts)].sort((a, b) => a - b).forEach((s) => {
+    for (const t of ringsAround(tiles, s, rings).keys()) {
+      if (seen.has(t) || tiles.land[t] !== 1 || out.length >= limit) continue;
+      seen.add(t);
+      const owner = tileOwner[t] != null ? state.regions?.[tileOwner[t]]?.owner : null;
+      let res = owner && owner !== me ? { ok: false, reason: `Belongs to ${state.nations?.[owner]?.name || owner}.` } : canFoundCity(world, tiles, t, me);
+      if (res.ok && settlingBarred(state, me, t)) res = { ok: false, reason: 'You promised not to settle this close to their cities.' };
+      out.push({ tile: t, ok: res.ok, reason: res.ok ? null : res.reason, colour: res.ok ? SETTLE_COLOUR.ok : SETTLE_COLOUR.no });
+    }
+  });
+  return out.sort((a, b) => a.tile - b.tile);
 };

@@ -29,7 +29,7 @@ import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceF
 import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './scale';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
-import { styleOfLand } from '../../../data/architecture';
+import { styleOfLand, themeOfNation } from '../../../data/architecture';
 import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from './groundBlend';
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
@@ -210,7 +210,11 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       // The camp, a capital's palace, the wall ring and the fields come from the age's shared file.
       const shared = camp || asset ? sharedFor(opts.ageId, style) : null;
       const campRoot = camp ? shared?.[COLONY_CAMP] : null;
-      const palaceRoot = asset && opts.capital ? shared?.[palaceFor(tier.id)] : null;
+      // A capital's palace follows the owner's theme (a people's `theme`, art spec 3b.5), the town
+      // the land's; a legacy nation's palace stays with the land.
+      const palaceStyle = themeOfNation(owner);
+      const palaceShared = asset && opts.capital && palaceStyle && palaceStyle !== style ? sharedFor(opts.ageId, palaceStyle) : shared;
+      const palaceRoot = asset && opts.capital ? palaceShared?.[palaceFor(tier.id)] : null;
       const wallsRoot = asset && opts.walls ? shared?.[wallsFor(tier.id)] : null;
       const fields = asset && shared ? fieldsAround(tier.id, seed, fieldCount(region)).filter((f) => shared[f.name]) : [];
       const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');

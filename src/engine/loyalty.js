@@ -43,6 +43,8 @@ import { landUnitsByTile } from './sieges';
 import { governorEffects } from './governors';
 import { lawRulesOf } from './lawRules';
 import { cityWonderTotal } from '../data/greatProjects';
+import { isIndependentNation } from '../data/independents';
+import { breakAwayAsIndependent } from './independents';
 
 // Culture reaches PRESSURE_KM (13 rings at frequency 75) and falls off by the ring distance on
 // the loaded grid (gridScale.js): one ring is the measured neighbour spacing, not a fixed km.
@@ -195,7 +197,7 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
       const since = city.freeCity?.since ?? turn;
       if (turn - since < FREE_CITY_JOIN_TURNS) return;
       const near = bordering(view, tiles, city);
-      const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated).sort((a, b) => (pressure[b] || 0) - (pressure[a] || 0) || (a < b ? -1 : 1))[0];
+      const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated && !isIndependentNation(nations[id])).sort((a, b) => (pressure[b] || 0) - (pressure[a] || 0) || (a < b ? -1 : 1))[0];
       if (best) flips.push({ cityId: city.id, from: null, to: best });
       return;
     }
@@ -213,7 +215,7 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
     if (loyalty <= 0 && !settling && nations[city.owner]?.capitalRegionId !== city.id) { // a nation's current capital never flips (a stale isCapital flag on a taken city does not count)
       const near = bordering(view, tiles, city);
       const press = pressure || pressureOn(tiles, cities, index, city, neighbours);
-      const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated).sort((a, b) => (press[b] || 0) - (press[a] || 0) || (a < b ? -1 : 1))[0];
+      const best = [...near].filter((id) => nations[id] && !nations[id].isEliminated && !isIndependentNation(nations[id])).sort((a, b) => (press[b] || 0) - (press[a] || 0) || (a < b ? -1 : 1))[0];
       flips.push({ cityId: city.id, from: city.owner, to: best || null });
     } else if (loyalty <= 25 && current > 25) logs.push({ nationId: city.owner, message: `${city.name} is losing its loyalty (${loyalty}): garrison it or raise its amenities.` });
   });
@@ -225,6 +227,12 @@ export const applyLoyalty = (state, regions, units, nations, turn, periodOf = nu
       regions[f.cityId] = region;
       if (revivedNation) nations[f.to] = revivedNation;
       logs.push({ nationId: f.from, message: `${city.name} has gone over to ${nations[f.to]?.name || f.to}: its people no longer feel yours.` }, { nationId: f.to, message: `${city.name} joins you: its people chose your rule.` });
+    } else if (breakAwayAsIndependent(state, nations, regions, f.cityId, turn)) {
+      // A world with independents: the city stands as a new independent (independents 14.4).
+      const id = `free_${f.cityId}`;
+      regions[f.cityId] = { ...city, owner: id, occupiedBy: undefined, conquest: undefined, siege: null, control: 100, unrest: 0, loyalty: LOYALTY_ON_FLIP, culture: city.culture, freeCity: undefined, lastFlipTurn: turn };
+      nations[id] = { ...nations[id], capitalRegionId: f.cityId };
+      logs.push({ nationId: f.from, message: `${city.name} has thrown off your rule and stands as ${nations[id].name}, an independent city.` });
     } else {
       regions[f.cityId] = { ...city, owner: null, occupiedBy: undefined, conquest: undefined, siege: null, control: 0, loyalty: LOYALTY_ON_FLIP, freeCity: { since: turn, formerOwner: f.from }, lastFlipTurn: turn };
       logs.push({ nationId: f.from, message: `${city.name} has thrown off your rule and stands as a free city.` });

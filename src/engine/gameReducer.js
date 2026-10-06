@@ -30,7 +30,12 @@ import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
-import { WORLD_NATIONS } from '../data/worldNations';
+import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
+import { peopleForNationId } from '../data/peoples';
+import { DEFAULT_WORLD_SIZE } from '../data/worldSizes';
+import { pickMajors } from './worldgen/peoplesWorld';
+import { pickIndependents, asIndependentSource, finalizeIndependents } from './independents';
+import { refreshPeopleNames } from './peopleNames';
 import { TECH_TREE } from '../data/techTree';
 import {
   GOVERNMENT_TYPES, canChangeGovernmentType, canEnactReform, resetReformsForType, getReformChoices
@@ -48,6 +53,8 @@ import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { canAttack } from './hostility';
+import { isIndependent } from '../data/independents';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -145,16 +152,38 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // from there rather than replaying the same draws again. `rngSeed` is an optional override (tests,
   // and the edge-bundle parity check) so the WHOLE initial state — not just the final stored seed —
   // can be pinned and reproduced; real gameplay always omits it and gets fresh randomness.
-  const successionRng = createRng(rngSeed ?? randomSeed());
+  const baseSeed = rngSeed ?? randomSeed();
+  const successionRng = createRng(baseSeed);
+
+  // A peoples world (new games, phase W0: src/engine/worldgen/peoplesWorld.js) draws its majors
+  // from the 150-people pool with the world seed; an old country id for the player maps to the
+  // people of that land (LEGACY_NATION_IDS). The legacy worlds keep all 240 country records.
+  const peoplesMode = scenario?.mode === 'peoples';
+  if (peoplesMode) {
+    const mapped = peopleForNationId(playerNationId);
+    if (!mapped) throw new Error(`Unknown people ${playerNationId}`);
+    playerNationId = mapped;
+  }
+  const worldSeed = peoplesMode ? (scenario?.seed ?? baseSeed) : (scenario?.seed ?? rngSeed ?? 1);
+  const majorIds = peoplesMode ? pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }) : null;
+  // Every other people of the pool is an independent city (phase W1, src/engine/independents.js);
+  // `independents: false` in the scenario leaves them out (majors only, as phase W0 built it).
+  const independentPick = peoplesMode && scenario.independents !== false ? pickIndependents(majorIds, scenario.size || DEFAULT_WORLD_SIZE, worldSeed) : { ids: [], late: [] };
+  const nationSource = peoplesMode
+    ? Object.fromEntries([
+      ...majorIds.sort().map((id) => [id, peopleNationRecord(id)]),
+      ...independentPick.ids.map((id) => [id, asIndependentSource(peopleNationRecord(id))])
+    ])
+    : WORLD_NATIONS;
 
   // Plan §M4: overextension is measured relative to each nation's OWN starting size, so a 50-region
   // nation and a 1-region nation are equally "at capacity" at the same overextension% — captured
   // once, here, since region ownership churns every game while this stays a fixed reference point.
   const startRegionCountByOwner = {};
 
-  // Every one of the 240 nations gets a record — any of them can be the player's.
+  // Every nation of the world gets a record — any of them can be the player's.
   const nations = {};
-  Object.entries(WORLD_NATIONS).forEach(([id, data]) => {
+  Object.entries(nationSource).forEach(([id, data]) => {
     // No nation starts with a government adopted, so none starts with an heir either (heirs only
     // exist under a hereditary government — see succession.js's getSuccessionStyle) — one is
     // generated the first time that nation's reign ends after adopting one.
@@ -162,6 +191,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     nations[id] = {
       id,
       name: data.name,
+      ...(data.people ? { people: data.people } : {}),
       color: data.color,
       isPlayer: id === playerNationId,
       hostility: data.startHostility,
@@ -299,7 +329,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       // moving the player onto this shape too would touch every existing test and UI component that
       // reads state.resources directly, for zero present benefit). tech.ageId starts equal to the
       // calendar age, mirroring state.techAgeId's own seeding.
-      ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {})
+      ...(id !== playerNationId ? { economy: { gold: 0, hr: 0, techPoints: 0, adm: 0, dip: 0, mil: 0 }, tech: { researched: [], ageId: age } } : {}),
+      ...(data.kind ? { kind: data.kind } : {}) // an independent (phase W1, independents.js finalizes it)
     };
   });
 
@@ -447,7 +478,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  const started = syncWorldRegistry(applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 }));
+  const started = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late })));
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
@@ -616,8 +647,19 @@ export const sanitizeTacticalResult = (state, pb, result) => {
   };
 };
 
+// Independents (plans/independent-cities.md 3.2, 6) take part in no diplomacy: no wars (they are
+// attacked without one), treaties, marriages, vassalage, claims or diplomats. W3 adds their own
+// actions (tribute, trade, mercenaries, gifts).
+const DIPLOMACY_ACTIONS = new Set([ActionTypes.DECLARE_WAR, ActionTypes.FABRICATE_CLAIM, ActionTypes.OFFER_PEACE, ActionTypes.TRADE_AGREEMENT, ActionTypes.OPEN_BORDERS, ActionTypes.DEMAND, ActionTypes.MILITARY_ALLIANCE, ActionTypes.GIFT_BRIBE, ActionTypes.RIVAL_NATION, ActionTypes.PROPOSE_MARRIAGE, ActionTypes.BREAK_ALLIANCE, ActionTypes.INSULT, ActionTypes.VASSALIZE, ActionTypes.ANNEX_VASSAL, ActionTypes.ASSIGN_DIPLOMAT].filter(Boolean));
+const independentDiplomacyRefused = (state, action) => {
+  if (!DIPLOMACY_ACTIONS.has(action.type)) return null;
+  const p = action.payload || {};
+  const target = p.nationId ?? p.targetId ?? p.targetNationId;
+  return isIndependent(state.nations, target) ? reject(state, `${state.nations[target].name} is an independent city: it makes no treaties, and you may attack it without a war.`) : null;
+};
+
 const reduceAction = (state, action) => {
-  const blocked = guardPendingBattle(state, action);
+  const blocked = guardPendingBattle(state, action) || independentDiplomacyRefused(state, action);
   if (blocked) return blocked;
   switch (action.type) {
     case ActionTypes.ADVANCE_TURN:
@@ -1136,7 +1178,7 @@ const reduceAction = (state, action) => {
       // province once its control collapsed. Rebel-held land is fair game without a war.
       const strikeTargetOwner = targetRegion.occupiedBy ?? targetRegion.owner;
       const atWarWithTarget = state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, strikeTargetOwner));
-      if (strikeTargetOwner !== REBEL_OWNER_ID && !atWarWithTarget) {
+      if (!atWarWithTarget && !canAttack(state, state.playerNationId, strikeTargetOwner)) { // rebels and independents need no war (hostility.js)
         return reject(state, `You must be at war with ${state.nations[strikeTargetOwner]?.name || strikeTargetOwner} to strike ${REGIONS_DATA[targetRegionId]?.name}.`);
       }
       const costs = ACTION_COSTS.missileStrike;
@@ -1541,7 +1583,7 @@ const reduceAction = (state, action) => {
           kind: 'invasion',
           fromRegionId,
           targetRegionId,
-          warId: v.war.id,
+          warId: v.war?.id ?? null,
           attackerNationId: state.playerNationId,
           defenderNationId: v.targetRegion.owner,
           seed,
@@ -1597,7 +1639,8 @@ const reduceAction = (state, action) => {
         const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
         return applyRazedBuildings(applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical.razed);
       }
-      if (!war || !targetRegion) return cleared;
+      // An assault on an independent has no war (hostility.js): it stands while the target may still be attacked.
+      if (!targetRegion || (pb.warId ? !war : !canAttack(state, pb.attackerNationId || state.playerNationId, targetRegion.owner))) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
       const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
       if (pb.kind === 'amphibious') {
@@ -1686,7 +1729,7 @@ const reduceAction = (state, action) => {
           navalUnitId,
           fromRegionId: v.navalUnit.regionId,
           targetRegionId,
-          warId: v.war.id,
+          warId: v.war?.id ?? null,
           attackerNationId: state.playerNationId,
           defenderNationId: v.targetRegion.owner,
           seed,
@@ -1852,7 +1895,7 @@ const reduceAction = (state, action) => {
       if (!attackerNavalUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       // Only fleets of nations you're at war with can be engaged (plan §M13, as for invasions).
       const presentNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
-      const defenderNavalUnits = presentNavalUnits.filter(u => isAtWarWithPlayer(state, u.ownerId));
+      const defenderNavalUnits = presentNavalUnits.filter(u => canAttack(state, state.playerNationId, u.ownerId));
       if (presentNavalUnits.length === 0) return state;
       if (defenderNavalUnits.length === 0) return reject(state, `You're at peace with ${state.nations[presentNavalUnits[0].ownerId]?.name || 'that fleet\'s nation'} — declare war before engaging their fleet.`);
       if (!canAfford(state.resources, costs)) return state;
@@ -3195,5 +3238,7 @@ export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 export const gameReducer = (state, action) => {
   syncWorldRegistry(state);
   const next = applyActionPolitics(state,reduceAction(state, action),action);
-  return syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
+  const synced = syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
+  // A peoples world keeps its titles and regiment numbers current (peopleNames.js; names only).
+  return synced === state ? state : refreshPeopleNames(synced, state);
 };

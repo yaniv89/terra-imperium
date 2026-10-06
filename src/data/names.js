@@ -7,6 +7,8 @@
 // the 240 nations falling back to a generic pool — real flavor for the common case, honestly
 // approximate for the long tail, rather than either blocking M3 on the full pipeline or faking
 // precision the mapping doesn't have.
+import { countryOfNation } from './peoples';
+
 const NAME_POOLS = {
   western_european: {
     given: ['William', 'Henry', 'Charles', 'Louis', 'Frederick', 'Edward', 'Robert', 'Philip', 'Albert', 'George', 'Isabella', 'Eleanor', 'Margaret', 'Catherine', 'Anne'],
@@ -72,7 +74,8 @@ const COUNTRY_TO_GROUP = {
   pe: 'latin_american', cl: 'latin_american', ve: 'latin_american'
 };
 
-export const getCultureGroup = (nationId) => COUNTRY_TO_GROUP[nationId] || 'generic';
+// A people of the pool (src/data/peoples.js) reads the group of its modern land.
+export const getCultureGroup = (nationId) => COUNTRY_TO_GROUP[countryOfNation(nationId)] || 'generic';
 
 const pick = (list, rng) => list[Math.floor(rng.next() * list.length)];
 

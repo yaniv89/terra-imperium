@@ -20,7 +20,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
 import { getEffectiveAgeId } from '../data/ages';
-import { isWarBetween } from './diplomacy';
+import { canAttack, canFight } from './hostility';
 import { getTechAgeId } from './nationState';
 import { regionAccess, unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
@@ -86,7 +86,7 @@ export const portsBeside = (state, tiles, tile) => {
 
 // A fleet of a nation at war with `nationId` on `tile`.
 export const enemyFleetAt = (state, tile, nationId, units = state.units) => Object.values(units).some((u) => isFleet(u) && u.strength > 0 && u.ownerId !== nationId
-  && unitTile(state, u) === tile && (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, u.ownerId)));
+  && unitTile(state, u) === tile && canFight(state, nationId, u.ownerId));
 
 const heapPush = (h, item) => { h.push(item); let i = h.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } };
 const heapPop = (h) => {
@@ -157,7 +157,7 @@ export const isBlockaded = (state, cityId, units = state.units) => {
     const t = unitTile(state, u);
     if (!waters.has(t)) return;
     if (u.ownerId === city.owner) own = true;
-    else if ((state.wars || []).some((w) => w.active && isWarBetween(w, city.owner, u.ownerId))) enemy = true;
+    else if (canAttack(state, u.ownerId, city.owner)) enemy = true;
   });
   return enemy && !own;
 };

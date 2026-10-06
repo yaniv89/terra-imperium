@@ -3,6 +3,8 @@ import { processAIAccords } from './aiAccords';
 import { advanceTutorial } from './tutorial';
 export { DESERTION_SHARE, DESERTION_MORALE, DESERTION_DISBAND_BELOW } from './armyDesertion';
 import { processEmergence } from './emergence';
+import { processLateArrivals, independentCityCtx } from './independents';
+import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
@@ -139,7 +141,9 @@ const runCitiesPhase = (state, newAge, newTurnNumber) => {
         citiesOwned: citiesOwned[nid] || 1,
         speedMult: speedCostMult(state.gameSpeed, getEffectiveAgeId(newAge, nid ? getTechAgeId(state, nid) : newAge)), // the speed table (ages.js)
         luxuries: luxuriesByNation[nid] ? luxuriesByNation[nid].size : 0,
-        greatProjects: state.greatProjects || {}
+        greatProjects: state.greatProjects || {},
+        // An independent's city: capped size, a small border, a garrison and buildings only (independents.js).
+        ...(isIndependent(state.nations, nid) ? independentCityCtx(state, nid, newAge) : {})
       });
     }
     return ctxCache.get(nid);
@@ -603,7 +607,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   const nations = { ...modifierExpiredNations, ...revivedNations };
   const opinionView = { ...state, nations: modifierExpiredNations }; // one view for the loop: a fresh spread per nation would rebuild the modifier sheets 240 times
   Object.entries(nations).forEach(([nId, nation]) => {
-    if (nation.isPlayer || nation.isEliminated) return;
+    if (nation.isPlayer || nation.isEliminated || isIndependentNation(nation)) return; // independents have no relations to drift (independents.js)
     const growthUpdate = aiUpdates.nationUpdates[nId];
     const militaryStrength = Math.max(100, nation.militaryStrength + (growthUpdate?.militaryStrengthChange || 0));
     const hostility = clamp(nation.hostility + (growthUpdate?.hostilityChange || 0), nation.hostilityFloor || 0, 100);
@@ -828,7 +832,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
 
     const lowStabilityStreak = nextLowStabilityStreak(nations[nId], authorityRisksCivilWar({ ...state, regions, nations }, nId));
-    const shouldStart = (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber);
+    const shouldStart = (triggersCivilWar || isStabilityCivilWarTrigger(lowStabilityStreak)) && !inCivilWarCooldown(nations[nId], newTurnNumber) && !isIndependentNation(nations[nId]); // an independent has no civil wars (one city, no court)
     if (shouldStart) {
       const started = startCivilWar(regions, units, nId, getFieldedStrength({ units }, nId), rng, newTurnNumber);
       if (started) {
@@ -1111,6 +1115,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       }
     });
     wars = closeWarsForEliminatedNation(wars, nId);
+    // An independent is one city: taking it is a conquest, not the fall of a nation (no reward, no world log).
+    if (isIndependentNation(eliminated)) return;
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
     // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
     // is pure decay outside one-shot sources) — this is the one real payoff instead, a one-shot
@@ -1287,7 +1293,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   }
   mark('victory');
 
-  next = reconcileTerritory(processColonies(processEmergence(next)));
+  next = reconcileTerritory(processColonies(processLateArrivals(processEmergence(next))));
   mark('emergenceAndTerritory');
   // Research last, once this turn's science has been credited (src/engine/research.js).
   next = applyResearchTurn(next);

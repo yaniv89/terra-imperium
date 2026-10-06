@@ -613,6 +613,22 @@ build scripts, so it can run **in parallel** with W0 to W4 on its own branch.
 
 ---
 
+## 7b. W0 status (2026-10-06, branch claude/phase-w0-peoples)
+Done: `src/data/peoples.js` (150 peoples, adjectives, regions, themes, weights, late arrivals,
+Israel pinned) and `src/data/peopleCities.json` (the 3,000 names); `npm run build:peoples` writes
+`src/data/geo/peopleCapitals.json` (capital tiles, colours, `LEGACY_NATION_IDS`); titles by
+government and size incl. Dictatorship, Technocracy, Corporate State (`src/data/nationTitles.js`);
+scenario mode `peoples` with world sizes 24/36/42, the weighted pick with a 612 km gap, equal
+starts, the world seed from the start screen (`src/engine/worldgen/peoplesWorld.js`); city names
+from the founder's list, then the nearest absent peoples' lists, then its own syllables; regiment
+names; battle names; palaces by `nation.theme`; the new start screen with art placeholders; the
+guided start as Kemet. Decisions taken in the build: Israel is pinned as a major in every world
+(no independents yet) but does not hold its neighbours off by the gap (else Kemet could never be
+a major); late arrivals are never drawn as AI majors but the player may pick one; Crete is all
+water on the grid, so Keftiu stands on the mainland (Thessaly).
+Left for later: the web check of the city names; the Pleiades gazetteer; independents (W1);
+unmet peoples (phase A); renaming a city; famous renamings by age; region and theme art.
+
 ## 8. Decisions (from the user, 2026-10-04)
 1. **Every nation starts equal with one city** (section 4.1): same size, army and treasury, no
    head starts. The Kingdom of Israel is always in the world but gets no other advantage.

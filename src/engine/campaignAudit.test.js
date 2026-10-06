@@ -30,13 +30,13 @@ describe('audited campaigns', () => {
   },30000);
   it('closing an eliminated nation\'s last war clears the survivor\'s war flag', () => {
     const state = fresh(7);
-    Object.values(state.regions).forEach(r => { if (r.owner === 'lu') r.owner = 'fr'; });
-    state.wars = [{ id: 'elimination', aggressor: 'fr', enemy: 'lu', active: true, score: 0, startTurn: 0 }];
+    Object.values(state.regions).forEach(r => { if (r.owner === 'ad') r.owner = 'fr'; });
+    state.wars = [{ id: 'elimination', aggressor: 'fr', enemy: 'ad', active: true, score: 0, startTurn: 0 }];
     state.nations.fr.isAtWar = true;
-    state.nations.lu.isAtWar = true;
+    state.nations.ad.isAtWar = true;
     const next = resolveTurn(state);
-    expect(next.nations.lu.isEliminated).toBe(true);
-    expect(next.wars.some(w => w.active && (w.enemy === 'lu' || w.aggressor === 'lu'))).toBe(false);
+    expect(next.nations.ad.isEliminated).toBe(true);
+    expect(next.wars.some(w => w.active && (w.enemy === 'ad' || w.aggressor === 'ad'))).toBe(false);
     expect(next.nations.fr.isAtWar).toBe(next.wars.some(w => w.active && (w.enemy === 'fr' || w.aggressor === 'fr')));
     assertGameState(next);
   });

@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Swords, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { describeOutcome, formatMen, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
+import { battleTitle, describeOutcome, formatMen, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
 
 const OURS = '#3B82F6';
@@ -91,7 +91,7 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
                   ${mineHit && theirsHit ? 'animate-battle-shake' : ''}`} key={mineHit && theirsHit ? `s${now.round}` : 'card'}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 font-bold text-white"><Swords className="w-4 h-4 text-orange-400 shrink-0" /> <span className="truncate">Battle of {regionName(entry.targetRegionId)}</span></div>
+          <div className="flex items-center gap-1.5 font-bold text-white"><Swords className="w-4 h-4 text-orange-400 shrink-0" /> <span className="truncate">{battleTitle(state, entry)}</span></div>
           <div className="text-[11px] text-slate-400 truncate">{ourNation} against {theirNation}</div>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close battle" className="p-1 rounded hover:bg-slate-800 text-slate-400"><X className="w-4 h-4" /></button>
@@ -139,7 +139,7 @@ const MiniRow = ({ entry, p, onOpen }) => {
   return (
     <div className="space-y-1">
       <div className="flex justify-between gap-2 text-[11px]">
-        <span className="truncate text-slate-300">{regionName(entry.targetRegionId)}</span>
+        <span className="truncate text-slate-300">{entry.name || regionName(entry.targetRegionId)}</span>
         {p >= 1 && <span className={`shrink-0 font-semibold ${TONE[result.tone]}`}>{result.tone === 'win' ? 'Won' : result.tone === 'loss' ? 'Lost' : 'Drawn'}</span>}
       </div>
       <div className="flex gap-1 h-2">

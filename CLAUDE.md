@@ -44,7 +44,7 @@ The live site is GitHub Pages, built into `docs/`.
   Save version 10 is a clean break (7 was the frequency-53 grid, 8 and 9 frequency 75). Distances are
   rules in km, never rings: write `ringsForKm(km)` (src/data/geo/gridScale.js; tech reach bonuses in
   src/data/techMapEffects.js are km too), movement is km a turn (armies.js MOVE_KM), a new city claims
-  `foundingDisk` (the same land on any grid) and culture tile costs are per area. Settlers and outposts: `src/engine/settlers.js`; what AI cities
+  `foundingDisk` (the same land on any grid) and culture tile costs are per area. The one settling rule (306 km, one ring less across water) for founding, starts and the audit: `src/data/geo/citySpacing.js`. Settlers and outposts: `src/engine/settlers.js`; what AI cities
   build: `src/engine/aiProduction.js`. Armies on tiles (unit.tile, move points, tile costs, A*
   routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js;
   the supply meter: supplyMeter.js; tile sight (fog): sight.js; fleets on sea tiles: fleets.js; sieges (walls, HP,
@@ -55,7 +55,17 @@ The live site is GitHub Pages, built into `docs/`.
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
+  Independent cities (phase W1, one-city `kind: 'independent'` nations of a peoples world): src/engine/independents.js
+  over src/data/independents.js; who may fight whom (`canFight`, `canAttack`: no war needed against an
+  independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code.
   Progress and open balance items: plan section J3.
+- Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
+  pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
+  `npm run build:peoples`), world sizes in src/data/worldSizes.js, the pick in
+  src/engine/worldgen/peoplesWorld.js. Nation ids are people slugs (`akkad`, `israel`);
+  `LEGACY_NATION_IDS` maps old country ids. `createInitialState` without a scenario still builds
+  the legacy 240-country world (tests, old saves). Titles, regiment numbers: src/engine/peopleNames.js;
+  battle names: src/engine/battleNames.js.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
   and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to

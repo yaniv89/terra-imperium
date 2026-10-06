@@ -57,13 +57,14 @@ test('a randomly chosen nation can play several turns with no console errors and
   await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; });
   await page.goto('/');
 
-  // 240 real nations, per plan §1 — any one of them has to be a valid, playable start. Picks
-  // randomly among whatever the start screen actually renders (unsearched, so all 240 are there).
-  const nationButtons = page.locator('section', { has: page.getByRole('heading', { name: 'Choose Your Nation' }) }).locator('button');
+  // 150 peoples (phase W0): any one of them has to be a valid, playable start. Picks
+  // randomly among whatever the start screen actually renders (unsearched, so all 150 are there).
+  // The peoples picker (phase W0): one button per people, carrying its name.
+  const nationButtons = page.locator('[data-people]');
   const nationCount = await nationButtons.count();
   expect(nationCount, 'the start screen rendered no nation buttons at all').toBeGreaterThan(0);
   const nationButton = nationButtons.nth(Math.floor(Math.random() * nationCount));
-  const nationName = (await nationButton.textContent()).trim();
+  const nationName = await nationButton.getAttribute('data-people-name');
   await click(nationButton);
   await click(page.getByRole('button', { name: `Begin as ${nationName}` }));
 

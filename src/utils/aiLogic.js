@@ -24,6 +24,7 @@
 import { opinionOf, warRollOpinionMult } from '../engine/opinion';
 import { rulerWarMult } from '../engine/rulerBias';
 import { DOCTRINES } from '../data/nations';
+import { isIndependentNation, everyMajorThinks } from '../data/independents';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
@@ -110,7 +111,7 @@ const COALITION_HOSTILITY_RISE_PER_TURN = 3;
 // coalition threshold — otherwise null. Pure and cheap: one pass over the nations already in
 // hand, no new state.
 export const findRunawayLeader = (nations) => {
-  const entries = Object.values(nations).filter(n => !n.isEliminated);
+  const entries = Object.values(nations).filter(n => !n.isEliminated && !isIndependentNation(n));
   const total = entries.reduce((sum, n) => sum + (n.militaryStrength || 0), 0);
   if (total <= 0) return null;
   const leader = entries.reduce((max, n) => (n.militaryStrength > (max?.militaryStrength || 0) ? n : max), null);
@@ -124,10 +125,13 @@ export const findRunawayLeader = (nations) => {
 // Tier 3: everyone else, passive-only. `sortedByMilitary` is every non-player nation id ranked
 // descending — computed once per turn by the caller, not per nation, to keep this affordable
 // across 240 nations.
+// Independents have no tier: they never recruit through this loop, declare wars or spend like a
+// major (their own cheap logic: src/engine/independents.js). In a world with independents every
+// major is Tier 1 (everyMajorThinks).
 export const getNationTier = (state, nationId, sortedByMilitary) => {
   const nation = state.nations[nationId];
-  if (!nation || nation.isPlayer || nation.isEliminated) return null;
-  if (nation.isAtWar) return 1;
+  if (!nation || nation.isPlayer || nation.isEliminated || isIndependentNation(nation)) return null;
+  if (nation.isAtWar || everyMajorThinks(state)) return 1;
   if (getBorderingNationIds(state.regions, nationId).includes(state.playerNationId)) return 1;
   const rank = sortedByMilitary.indexOf(nationId);
   if (rank !== -1 && rank < TOP_MILITARY_TIER_1_COUNT) return 1;
@@ -144,7 +148,7 @@ export const getNationTier = (state, nationId, sortedByMilitary) => {
 // the plan calls out keeps this a safe, well-scoped step rather than a blanket rip-and-replace.
 export const getSortedByMilitary = (state) =>
   Object.values(state.nations)
-    .filter(n => !n.isPlayer && !n.isEliminated)
+    .filter(n => !n.isPlayer && !n.isEliminated && !isIndependentNation(n))
     .sort((a, b) => getEffectiveMilitaryPower(state, b.id) - getEffectiveMilitaryPower(state, a.id))
     .map(n => n.id);
 
@@ -295,7 +299,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
   // truce-active neighbor is filtered out of consideration entirely.
   const candidates = getBorderingNationIds(state.regions, nationId)
     // Never its own vassal: an overlord settles a vassal by annexing it, not by war.
-    .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id)
+    // Independents are never a war target (they are attacked without a war: W3 gives the AI that).
+    .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]) && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id)
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;
@@ -458,7 +463,7 @@ export const processAllAINations = (state, year, rng = DEFAULT_RNG) => {
   const allUpdates = { nationUpdates: {}, logs: [] };
 
   Object.values(state.nations).forEach(nation => {
-    if (nation.isPlayer || nation.isEliminated) return;
+    if (nation.isPlayer || nation.isEliminated || isIndependentNation(nation)) return; // independents: src/engine/independents.js
     const updates = processAINationTurn(nation, state, year, rng);
     allUpdates.nationUpdates[nation.id] = {
       militaryStrengthChange: updates.militaryStrengthChange,

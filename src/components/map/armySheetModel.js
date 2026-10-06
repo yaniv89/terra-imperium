@@ -5,6 +5,7 @@
 import { getTiles } from '../../data/geo/tiles';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getUnitDefinition, UNIT_CLASSES } from '../../data/unitClasses';
+import { regimentName } from '../../data/regimentNames';
 import { unitTile, movePoints } from '../../engine/armies';
 import { supplyOf, supplyZone, supplyReport, SUPPLY_MAX, SUPPLY_LINE_RINGS } from '../../engine/supplyMeter';
 import { isFortified } from '../../engine/fieldBattle';
@@ -53,7 +54,8 @@ export const armySheetModel = (state, tile) => {
   const researched = getResearched(state, state.playerNationId);
   const rows = units.map((u) => ({
     id: u.id,
-    name: naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId,
+    // "3rd Akkadian Spearmen" in a peoples world (regimentNames.js), the plain name otherwise
+    name: regimentName(state.nations[u.ownerId], u, naval ? navalName(navalLineOf(u), ageId) : getUnitDefinition(ageId, u.classId)?.name || UNIT_CLASSES[u.classId]?.name || u.classId),
     cargo: naval ? Object.values(state.units).filter((c) => c.embarkedOn === u.id).length : 0,
     classId: u.classId,
     navalLine: naval ? navalLineOf(u) : null,

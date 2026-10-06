@@ -15,6 +15,7 @@ import { awardXp } from '../data/promotions';
 import { getGeneralXpMultiplier } from '../data/generals';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween, recordBattle } from './diplomacy';
+import { canAttack } from './hostility';
 import { getTechAgeId } from './nationState';
 import { recordBattleReport } from './battleReports';
 import { regionForTile, unitTile } from './armies';
@@ -28,7 +29,8 @@ export const NAVAL_BATTLE_TYPE = 'naval';
 /** An AI fleet attacks when it outweighs the enemy stack by this much. */
 export const AI_FLEET_ATTACK_RATIO = 1.25;
 
-const hostile = (state, me, owner) => (state.wars || []).some((w) => w.active && isWarBetween(w, me, owner));
+// At war with `me`, or an independent's fleet (hostility.js canAttack; rebels have no fleets).
+const hostile = (state, me, owner) => canAttack(state, me, owner);
 const isWater = (tiles, tile) => tile != null && tile >= 0 && tiles.land[tile] !== 1;
 
 /** Enemy fleets of `me` standing on sea tile `tile` (at war with `me`). */

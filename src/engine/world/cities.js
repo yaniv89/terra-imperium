@@ -43,6 +43,7 @@ import { nextTemplateUnit, templateProgress, validateTemplate } from '../armyTem
 import { navalLinesFor } from '../../data/navalLines';
 import { logisticGrowthMult, sizeToPeople as peopleForSize, foodForPeople, peopleOf } from '../population';
 import { noteOwnerCopy, noteOwnerWrite } from './tileIndex';
+import { CITY_SPACING_KM, spacingBlocks, spacingReach } from '../../data/geo/citySpacing';
 
 export const FOOD_PER_CITIZEN = 2;
 export const MAX_SIZE = 30;
@@ -89,8 +90,9 @@ export const UNIT_COST_PER_AGE = 0.6;
 export const UNIT_CLASS_COST = { infantry: 1, ranged: 1.1, cavalry: 1.5, siege: 1.6, naval: 1.4, support: 1.2, air: 2.2 };
 export const IMPROVEMENT_COST_PER_TURN = 10;
 // Rings between city centres: about 300 km, so the city count stays near the old one on any grid
-// (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid).
-export const MIN_CITY_SPACING_KM = 306;
+// (3 rings at frequency 75, 4 at frequency 100; 2 on the old 150 km grid). One ring less across
+// water, as in Civ VI: the rule lives in src/data/geo/citySpacing.js, shared with the starts.
+export const MIN_CITY_SPACING_KM = CITY_SPACING_KM;
 export const MIN_CITY_SPACING = ringsForKm(MIN_CITY_SPACING_KM);
 export const FOCUS = ['balanced', 'food', 'production', 'gold'];
 
@@ -128,7 +130,8 @@ const isWorkable = (tiles, id) => {
   return v === 1;
 };
 
-// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings): tile -> the name of the
+// Tiles too close to an existing city (within MIN_CITY_SPACING - 1 rings, the last of them only on
+// the city's own landmass: citySpacing.js spacingBlocks): tile -> the name of the
 // blocking city. Where two cities block a tile, the one with the lower centre tile names it, so the
 // index is the same whatever order the cities were visited or founded in. Cached per cities map,
 // and a new map with the same cities (sizes and yields change every turn, centres and names almost
@@ -144,7 +147,10 @@ const blockerOf = (index, tile) => { const c = index.by[tile]; return c < 0 ? un
 const markBlocked = (index, tiles, city) => {
   const { by } = index; const centre = city.tile;
   if (!index.names.has(centre) || index.names.get(centre) !== city.name) index.names.set(centre, city.name);
-  for (const t of ringsAround(tiles, centre, MIN_CITY_SPACING - 1).keys()) { const prev = by[t]; if (prev < 0 || prev > centre) by[t] = centre; }
+  for (const [t, ring] of ringsAround(tiles, centre, spacingReach(tiles))) {
+    if (!spacingBlocks(tiles, centre, t, ring)) continue;
+    const prev = by[t]; if (prev < 0 || prev > centre) by[t] = centre;
+  }
 };
 const blockedTiles = (cities, tiles) => {
   let map = blockedCache.get(cities);
@@ -432,9 +438,10 @@ export const ringsAround = (tiles, centre, maxRing) => {
 
 /** Tiles the city could claim next, best first: unowned, workable, adjacent to its land, inside
  * the age's ring. Each entry { tile, ring, cost, score }. */
-export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [] } = {}) => {
+// `maxBorderRing`: a hard limit on top of the age's (an independent's small border, independents.js).
+export const claimCandidates = (city, tiles, world, { ageId = 'bronze', researched = [], maxBorderRing = Infinity } = {}) => {
   const fx = mapEffectsOf(researched); // techs that push the border and cheapen tiles (techMapEffects.js)
-  const maxRing = borderRingFor(ageId, fx.borderRing);
+  const maxRing = Math.min(borderRingFor(ageId, fx.borderRing), maxBorderRing);
   const own = new Set(city.tiles);
   const out = new Map();
   const rings = ringsAround(tiles, city.tile, maxRing);
@@ -537,7 +544,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
     if (amen.net >= 2) gain *= 1 + AMENITY_GROWTH_BONUS; else if (amen.net < 0) gain *= 1 - AMENITY_GROWTH_PENALTY;
     food = c.food + gain;
     const threshold = growthThreshold(size, ctx.speedMult || 1);
-    if (food >= threshold && size < MAX_SIZE) { size += 1; food -= threshold * (1 - Math.min(0.5, mapEffectsOf(researched).granaryKeep)); logs.push(`${c.name} grows to size ${size}.`); } // granaries keep a share (techMapEffects.js)
+    if (food >= threshold && size < Math.min(MAX_SIZE, ctx.maxSize ?? MAX_SIZE)) { size += 1; food -= threshold * (1 - Math.min(0.5, mapEffectsOf(researched).granaryKeep)); logs.push(`${c.name} grows to size ${size}.`); } // granaries keep a share (techMapEffects.js)
   }
   // 3. Unrest from amenities.
   // Only the penalty lives here: resolveTurn's unrest drift (control, stability, taxes) owns the
@@ -603,7 +610,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let cultureBank = c.cultureBank + y.culture;
   // No tile costs less than a ring-1 one: below that the candidate search cannot claim anything.
   const affordable = cultureBank >= tileCultureCost(c, 1, mapEffectsOf(researched).tileCostMult);
-  const candidates = affordable ? claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched }) : [];
+  const candidates = affordable ? claimCandidates({ ...next, tiles: c.tiles }, tiles, w, { ageId, researched, maxBorderRing: ctx.maxBorderRing ?? Infinity }) : [];
   let claimed = [];
   if (candidates.length) {
     const best = candidates[0];
