@@ -15,6 +15,7 @@ import {
 } from '../../services/auth';
 import { listSaves, writeSlot, readSlot, deleteSlot, SAVE_SLOTS } from '../../services/cloudSaves';
 import { migrateSave } from '../../engine/saveMigrations';
+import MapSettings from '../map/MapSettings';
 
 const SLOT_LABELS = { autosave: 'Autosave', slot1: 'Slot 1', slot2: 'Slot 2', slot3: 'Slot 3' };
 
@@ -162,6 +163,8 @@ const AccountModal = ({ open, onClose, onOpenAdmin }) => {
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        <MapSettings />
 
         {!isCloudSaveConfigured ? (
           <p className="text-slate-400 text-sm">
