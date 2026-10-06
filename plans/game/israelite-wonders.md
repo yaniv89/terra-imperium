@@ -88,3 +88,4 @@ them never sees them in its list; the reason text says "Only a city on Israel's 
 - Art note for the model branch: both files stand on a large round ground disc in the `Town`
   material, which reads near black on the desert. Naming that disc's material `Ground` (as the
   towns do) lets the close view tint it into the land (groundBlend.js), or the disc can go.
+  Done on art/wonders-buildings: the checkpoint-02 files replace them, and they have no disc.

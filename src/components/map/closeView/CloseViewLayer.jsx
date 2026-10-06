@@ -34,7 +34,7 @@ import { loadGroundData, isLandAt, sampleLandColour, groundTint, tintKey } from 
 import { createOccupancy } from './occupancy';
 import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
-import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, BUILDING_DISC } from './buildingModels';
+import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, needsCoast, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
@@ -306,14 +306,22 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     t.wonders.forEach((mesh, tile) => { if (!seenWonders.has(tile)) mesh.visible = false; });
 
     // Landmarks: each on the first free spot round its town (on land, and outside the wall only
-    // where nothing else stands), with the town's scale, tilt and level of detail.
+    // where nothing else stands; a naval one on the shore, its quay to the water), with the town's
+    // scale, tilt and level of detail.
     t.buildings.begin(lodForZoom(k));
     const spotMatrix = new Matrix4(); const placed = new Matrix4();
     townBuildings.forEach(({ mesh, at, s: ts, picks, teamColor, tint }) => {
       mesh.updateMatrix();
-      const accept = (spot) => {
+      const accept = (spot, model) => {
         const sx = at.x + spot.x * ts; const sy = at.y + spot.z * ts * lean;
         const r = BUILDING_DISC * ts * 0.8;
+        if (needsCoast(model.id)) {
+          // a naval landmark: land under it and behind it, open water just in front of its quay
+          const fx = Math.sin(spot.yaw) * ts; const fy = Math.cos(spot.yaw) * ts * lean;
+          const onLand = (d) => landAt(sx + fx * d, sy + fy * d);
+          if (!onLand(0) || !onLand(-BUILDING_DISC * 0.8) || onLand(BUILDING_DISC * 1.3) || onLand(BUILDING_DISC * 2)) return false;
+          return occ.take(sx, sy, BUILDING_DISC * ts);
+        }
         if (![[0, 0], [r, 0], [-r, 0], [0, r * lean], [0, -r * lean]].every(([dx, dy]) => landAt(sx + dx, sy + dy))) return false;
         return spot.inner || occ.take(sx, sy, BUILDING_DISC * ts);
       };

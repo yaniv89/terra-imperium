@@ -1,6 +1,9 @@
 // src/components/map/closeView/wonderAssets.test.js
 import { describe, it, expect } from 'vitest';
+import fs from 'fs';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements } from './wonderAssets';
+import { GREAT_PROJECT_IDS } from '../../../data/greatProjects';
+import { readGlbJson } from '../../../../scripts/art/glbInfo.mjs';
 
 const tiles = { land: { 10: 1, 11: 1, 12: 0 } };
 
@@ -36,5 +39,24 @@ describe('wonder models in the close view', () => {
       { projectId: 'masada', tile: 11, tier: 2, ownerId: 'il' }
     ]);
     expect(wonderPlacements({ regions: {} }, tiles)).toEqual([]);
+  });
+
+  const DIR = 'src/assets/map/wonders';
+  const SHIPPED = fs.readdirSync(DIR).filter((f) => f.endsWith('.glb')).map((f) => f.replace('.glb', ''));
+  it('ships one file per wonder of the game, and none for an unknown id', () => {
+    expect(SHIPPED.filter((id) => !GREAT_PROJECT_IDS.includes(id))).toEqual([]);
+    expect(GREAT_PROJECT_IDS.filter((id) => !SHIPPED.includes(id))).toEqual([]);
+  });
+
+  it('each file holds tier1, tier2 and tier3 with three levels of detail, in the map materials only', () => {
+    SHIPPED.forEach((id) => {
+      const j = readGlbJson(`${DIR}/${id}.glb`);
+      ['tier1', 'tier2', 'tier3'].forEach((t) => {
+        const root = j.nodes.find((n) => n.name === t);
+        expect(root, `${id} ${t}`).toBeTruthy();
+        expect(root.children.map((c) => j.nodes[c].name.replace(/\.\d+$/, '')).sort(), `${id} ${t}`).toEqual(['LOD0', 'LOD1', 'LOD2']);
+      });
+      j.materials.forEach((m) => expect(['Town', 'Team', 'Ground'], id).toContain(m.name));
+    });
   });
 });
