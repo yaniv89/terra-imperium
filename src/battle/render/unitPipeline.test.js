@@ -1,10 +1,9 @@
 // The rest of the unit pipeline: per-instance variants (skin tone, emblem cell, cloth jitter), the
-// zoom-driven LOD, far-zoom imposters, GLB overrides of the procedural models, and the preload
+// far-zoom imposters, GLB overrides of the procedural models, and the preload
 // registry that picks the models a battle needs.
 import { describe, it, expect, afterEach } from 'vitest';
-import { OrthographicCamera, Object3D, BoxGeometry } from 'three';
+import { BoxGeometry } from 'three';
 import { emblemCellUv, emblemCellFor, writeSoldierVariant, SKIN_TONES, EMBLEM_CELLS, getEmblemAtlas } from './unitVariants';
-import { ZoomLOD, IMPOSTER_DISTANCE, IMPOSTER_ZOOM } from './zoomLod';
 import {
   getSoldierGeometry, getImposterGeometry, registerSoldierGeometry, unregisterSoldierGeometry, getProceduralSoldierGeometry,
   RIG_ATTRIBUTES, LIMB, PART
@@ -39,27 +38,6 @@ describe('instance variants', () => {
 
   it('falls back to a blank atlas where there is no canvas', () => {
     expect(getEmblemAtlas().image.width).toBe(1);
-  });
-});
-
-describe('ZoomLOD', () => {
-  const lod = () => { const l = new ZoomLOD(120); l.addLevel(new Object3D(), 0); l.addLevel(new Object3D(), IMPOSTER_DISTANCE, 0.06); return l; };
-  const cam = (zoom, x = 0) => { const c = new OrthographicCamera(); c.zoom = zoom; c.position.set(x, 50, 0); c.updateMatrixWorld(); return c; };
-
-  it('swaps to the imposter when zoomed out, whatever the camera is looking at', () => {
-    const l = lod();
-    l.update(cam(1)); expect(l.getCurrentLevel()).toBe(0);
-    l.update(cam(0.6)); expect(l.getCurrentLevel()).toBe(1);
-    l.update(cam(0.6, 5000)); expect(l.getCurrentLevel()).toBe(1); // panning doesn't matter
-    l.update(cam(1.5, 5000)); expect(l.getCurrentLevel()).toBe(0);
-    expect(l.levels[0].object.visible).toBe(true); expect(l.levels[1].object.visible).toBe(false);
-  });
-
-  it('holds its level across the threshold (no flicker while pinching)', () => {
-    const l = lod();
-    l.update(cam(IMPOSTER_ZOOM * 0.95)); expect(l.getCurrentLevel()).toBe(1);
-    l.update(cam(IMPOSTER_ZOOM * 1.03)); expect(l.getCurrentLevel()).toBe(1);
-    l.update(cam(IMPOSTER_ZOOM * 1.1)); expect(l.getCurrentLevel()).toBe(0);
   });
 });
 

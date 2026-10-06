@@ -64,7 +64,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
     rendererRef.current = renderer;
     if (!resume) renderer.setDeployZone(deployZone({ map: setup.map }, playerSide), playerSide); // the zone shows until Start (plan E7)
     if(window.__E2E_BATTLE_TEST__)window.__battleTest={diagnostics:()=>renderer.diagnostics(),tick:()=>frames.current.cur?.tick};
-    if (import.meta.env.DEV) window.__battleRenderer = renderer; // for debugging in the console
+    if (import.meta.env.DEV) { window.__battleRenderer = renderer; window.__battleView = () => frames.current.cur; } // for debugging in the console
     const audio = createBattleAudio({ ageIds: setup.sides.map((sd) => sd.ageId), playerSide });
     audioRef.current = audio;
     setSoundOn(audio.isEnabled());
