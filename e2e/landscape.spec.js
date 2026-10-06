@@ -37,14 +37,16 @@ test.describe('phone held sideways', () => {
 
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-landscape');
 
-    // One slim header row, with End Turn inside the screen.
+    // One slim top bar (plans/UI-DESIGN.md: 36 px), End Turn bottom right in thumb reach, left of the rail.
     const header = page.locator('header');
     await expect(header).toBeVisible();
     expect((await box(header)).height).toBeLessThanOrEqual(52);
     const endTurn = page.getByRole('button', { name: 'End Turn' });
     const et = await box(endTurn);
-    expect(et.right).toBeLessThanOrEqual(844);
-    expect(et.bottom).toBeLessThanOrEqual(52);
+    expect(et.right).toBeLessThanOrEqual(844 - 52);
+    expect(et.bottom).toBeLessThanOrEqual(390);
+    expect(et.top).toBeGreaterThanOrEqual(390 / 2);
+    expect(et.height).toBeGreaterThanOrEqual(44);
 
     // The rail sits on the right edge; no bottom tab bar, no floating log button.
     const rail = page.getByTestId('landscape-rail');

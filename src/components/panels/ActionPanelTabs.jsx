@@ -1,22 +1,22 @@
 // src/components/panels/ActionPanelTabs.jsx
-// The Empire/Tech/Space/Legacy tab row, split out of ActionPanel.jsx so
-// App.jsx's mobile layout can position it independently of the panel content — pinned to the
-// bottom of the screen (thumb-reachable) instead of sitting above content, which requires
-// scrolling back up past the globe to reach after selecting a region. Desktop keeps the tabs
-// visually above the content exactly as before; only the DOM/flex-order relationship changed to
-// make that possible without duplicating this component per breakpoint.
+// The tabs of the side panel: Empire, Cities, Research, Peoples (diplomacy), Space, Legacy. The
+// rail (PanelDrawer.jsx) shows them on the right edge on every landscape layout and the desktop;
+// the bottom bar of a phone held upright shows this row. Field Atlas look: a light underline marks
+// the open tab, a small red dot the tabs that need you (plans/UI-DESIGN.md section 2).
 import React from 'react';
-import { Home, Beaker, Trophy, Satellite } from 'lucide-react';
+import { Crown, Building2, FlaskConical, HeartHandshake, Trophy, Satellite } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { TECH_TREE } from '../../data/techTree';
-import { TabButton } from '../ui';
+import { nextPrompts } from '../ui/nextPromptModel';
 
-// The Military and Diplomacy tabs are the Empire sheet's War and Relations sections now
-// (plans/civ-map-rework.md E4; panelEvents.js aliases the old ids).
+// The War section stays in the Empire sheet (plans/civ-map-rework.md E4); Diplomacy is its own tab
+// again as "Peoples" (W07), so the Empire sheet no longer repeats it.
 export const TABS = [
-  { id: 'domestic', label: 'Empire', icon: Home },
-  { id: 'tech', label: 'Tech', icon: Beaker },
+  { id: 'domestic', label: 'Empire', icon: Crown },
+  { id: 'cities', label: 'Cities', icon: Building2 },
+  { id: 'tech', label: 'Research', icon: FlaskConical },
+  { id: 'diplomacy', label: 'Peoples', icon: HeartHandshake },
   { id: 'space', label: 'Space', icon: Satellite },
   { id: 'legacy', label: 'Legacy', icon: Trophy }
 ];
@@ -26,15 +26,24 @@ export const TABS = [
 export const spaceUnlocked = (state) => state.techAgeId === 'modern' || Object.keys(state.techTree || {}).some((id) => state.techTree[id]?.researched && TECH_TREE[id]?.ageId === 'modern');
 export const visibleTabs = (state) => TABS.filter((t) => t.id !== 'space' || spaceUnlocked(state));
 
-// The red count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
+// The count on a tab (also used by the landscape tab rail in PanelDrawer.jsx).
 export const getTabBadge = (state, tabId) => {
   switch (tabId) {
     case 'domestic': {
-      // Wars with the player (n.isAtWar alone is "in a war with anyone") plus enemy invasions
-      // under way: what the War and Relations sections hold.
+      // Enemy invasions under way: what the War section holds.
       const invasions = (state.invasions || []).filter(i => i.active && !i.isPlayerAttacker).length;
       const wars = Object.values(state.nations).filter(n => !n.isPlayer && isAtWarWithPlayer(state, n.id)).length;
       return wars + invasions > 0 ? wars + invasions : null;
+    }
+    case 'cities': {
+      const n = nextPrompts(state).filter((p) => p.kind === 'city' || p.kind === 'unrest').length;
+      return n || null;
+    }
+    case 'tech':
+      return !state.research?.current && !state.research?.auto ? 1 : null;
+    case 'diplomacy': {
+      const n = (state.pendingPeaceOffer ? 1 : 0) + (state.pendingDemand ? 1 : 0) + (state.tributeDemands || []).length + (state.joinOffers || []).length;
+      return n || null;
     }
     default:
       return null;
@@ -45,17 +54,19 @@ const ActionPanelTabs = ({ activeTab, onTabChange }) => {
   const { state } = useGame();
 
   return (
-    <div className="flex border-b border-slate-700 bg-slate-800/50">
-      {visibleTabs(state).map(tab => (
-        <TabButton
-          key={tab.id}
-          icon={tab.icon}
-          label={tab.label}
-          isActive={activeTab === tab.id}
-          onClick={() => onTabChange(tab.id)}
-          badge={getTabBadge(state, tab.id)}
-        />
-      ))}
+    <div className="flex border-b border-fa-line bg-fa-panel overflow-x-auto scrollbar-none" role="tablist" aria-label="Panels">
+      {visibleTabs(state).map(tab => {
+        const Icon = tab.icon;
+        const badge = getTabBadge(state, tab.id);
+        return (
+          <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} aria-label={tab.label} onClick={() => onTabChange(tab.id)}
+            className="fa-tab flex-1 flex-col !gap-0.5 !px-1 !text-[10px] min-w-[3.5rem]">
+            <Icon className="w-[18px] h-[18px]" aria-hidden="true" />
+            {tab.label}
+            {badge > 0 && <span className="absolute top-1.5 right-[calc(50%-16px)] w-2 h-2 rounded-full bg-fa-danger" aria-label={`${badge} waiting`} />}
+          </button>
+        );
+      })}
     </div>
   );
 };

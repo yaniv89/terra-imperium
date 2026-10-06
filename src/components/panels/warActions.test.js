@@ -15,7 +15,7 @@ describe('declare war from anywhere (plan P2.1) and the Space tab (P5.3)', () =>
   });
   it('the Space tab waits for the Modern Age', () => {
     expect(spaceUnlocked(s)).toBe(false);
-    expect(visibleTabs(s).map((t) => t.id)).toEqual(['domestic', 'tech', 'legacy']);
+    expect(visibleTabs(s).map((t) => t.id)).toEqual(['domestic', 'cities', 'tech', 'diplomacy', 'legacy']);
     expect(spaceUnlocked({ ...s, techAgeId: 'modern' })).toBe(true);
     expect(spaceUnlocked({ ...s, techTree: { ...s.techTree, science_computing: { researched: true } } })).toBe(true);
   });

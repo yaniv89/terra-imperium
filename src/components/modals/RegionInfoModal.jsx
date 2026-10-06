@@ -94,24 +94,8 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   // No persistent "select a region" placeholder on mobile — an always-visible empty-state sheet
   // would just be more of the same clutter this change is trying to reduce. Desktop keeps it,
   // since there it's a small, stationary corner hint, not a sheet competing for screen space.
-  if (!regionId) {
-    if (isMobile && isCornerCard) return null;
-    return (
-      <div className={`
-        ${isCornerCard
-          ? `absolute ${cornerTopClass} left-2 z-20 pl:hidden`
-          : 'relative'
-        }
-        bg-slate-900 p-3 rounded-lg text-xs min-w-[180px]
-        border border-slate-700 shadow-xl
-      `}>
-        <div className="text-slate-400 italic flex items-center gap-2">
-          <MapPin className="w-4 h-4" />
-          <span>Select a region on the map</span>
-        </div>
-      </div>
-    );
-  }
+  // No empty "select a region" hint: the map is the hint (plans/UI-DESIGN.md rule 3).
+  if (!regionId) return null;
 
   const regionData = REGIONS_DATA[regionId];
   const regionState = state.regions[regionId];

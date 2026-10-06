@@ -9,11 +9,10 @@
 // CollapsibleSection.
 import React from 'react';
 import { WonderIcon } from '../ui/icons';
-import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords, Flag } from 'lucide-react';
+import { Landmark, ScrollText, Coins, ShieldAlert, Crown, Users, TrendingUp, Globe2, Swords } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import EmpireOverview from './EmpireOverview';
 import MilitaryPanel from './MilitaryPanel';
-import DiplomacyPanel from './DiplomacyPanel';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
 import { useEffects } from '../../context/EffectsContext';
 import { ActionTypes } from '../../data/types';
@@ -500,10 +499,6 @@ const DomesticPanel = () => {
       <div className="border-t border-slate-800" />
       <CollapsibleSection id="war" title="War" icon={Swords} summary={warsNow.length ? `at war with ${warsNow.length}` : 'at peace'}>
         <MilitaryPanel />
-      </CollapsibleSection>
-      <div className="border-t border-slate-800" />
-      <CollapsibleSection id="relations" title="Relations" icon={Flag} summary={`${Object.values(state.nations).filter((n) => !n.isPlayer && n.hasTradeAgreement).length} trade pacts`}>
-        <DiplomacyPanel />
       </CollapsibleSection>
       <div className="border-t border-slate-800" />
       <CollapsibleSection id="court" title="Court" icon={Crown} defaultOpen>

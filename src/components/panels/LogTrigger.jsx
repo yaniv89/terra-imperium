@@ -20,16 +20,16 @@ import { ScrollText } from 'lucide-react';
 const LogTrigger = ({ onClick, unreadCount = 0 }) => (
   <button
     onClick={onClick}
-    className="fixed z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-slate-900/90 backdrop-blur-md
-               border border-slate-700 shadow-xl text-slate-300 hover:bg-slate-800 transition-colors
-               left-3 top-[calc(env(safe-area-inset-top)+var(--header-height,4.5rem)+0.5rem)]
-               lg:left-1/2 lg:-translate-x-1/2 pl:hidden"
+    className="fixed z-20 flex items-center gap-2 px-3 min-h-[40px] rounded-full bg-fa-panel/95
+               border border-fa-line shadow-xl text-fa-text hover:bg-fa-raised transition-colors
+               right-3 top-[calc(var(--header-height,2.25rem)+0.5rem)]
+               lg:hidden pl:hidden"
     aria-label="Open event log"
   >
-    <ScrollText className="w-4 h-4 text-slate-400 shrink-0" />
+    <ScrollText className="w-4 h-4 text-fa-muted shrink-0" />
     <span className="hidden sm:inline text-xs font-semibold">Event Log</span>
     {unreadCount > 0 && (
-      <span className="text-[10px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+      <span className="text-[10px] font-bold text-fa-ink bg-fa-text px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
         {unreadCount > 99 ? '99+' : unreadCount}
       </span>
     )}
