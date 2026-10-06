@@ -22,10 +22,13 @@ import { unitTile } from '../../engine/armies';
 import { BUILDING_CATEGORIES, getCategoryTierName } from '../../data/buildings';
 import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
+import { placeCity, cityKeepInset } from './cityBattle';
+import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
-// under different rules (v2: garrisons, v3: the region's buildings on the battlefield).
-export const SETUP_VERSION = 3;
+// under different rules (v2: garrisons, v3: the region's buildings on the battlefield, v4: the real
+// city from its manifest, cityBattle.js).
+export const SETUP_VERSION = 4;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -106,15 +109,25 @@ export const buildSetupFromArmies = ({
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
   landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null,
+  cityManifest = null, cityDamage = null, // the real city (src/engine/cityManifest.js): its houses, walls and landmarks stand on the field
   combatWidth: combatWidthOverride = null // a bigger field for the large-battle presets and the benchmark (src/battle/bench/benchScenario.js)
 }) => {
   const combatWidth = combatWidthOverride || getCombatWidth(terrain);
   const naval = battleType === 'naval';
   const type = battleType || battleTypeOf({ landing, sally, city, fortLevel, tileContext, fromTile });
-  const map = generateMap({ regionId, terrain, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval });
+  const realCity = !naval && type !== 'sally' && cityManifest?.structures?.length ? cityManifest : null;
+  const map = generateMap({ regionId, terrain, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval, ...(realCity ? { keepInset: cityKeepInset(realCity) } : {}) });
   // A siege in progress (sieges.js) has already battered the walls: the keep starts at that HP.
   // A sea battle has one structure: the defender's anchorage, an unwalled keep the AI steers for and the renderer leaves out.
-  const structures = naval ? buildStructures({ keepTile: map.keep, fortLevel: 0, isCapital: false }) : [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
+  let cityInfo = null;
+  let structures;
+  if (naval) structures = buildStructures({ keepTile: map.keep, fortLevel: 0, isCapital: false });
+  else if (realCity) {
+    const keepStructures = buildStructures({ keepTile: map.keep, fortLevel, isCapital });
+    const placed = placeCity({ map, manifest: realCity, damage: cityDamage, fortLevel, keepStructures });
+    structures = placed.structures;
+    cityInfo = placed.city;
+  } else structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
   if (tileContext && tileContext.hpRatio < 1) structures.forEach((st) => { if (st.kind === 'keep' || st.kind === 'tower') st.hp = Math.max(1, Math.round(st.maxHp * tileContext.hpRatio)); });
   const points = map.points.map((p, i) => ({ id: `p_${deposits[i]}`, kind: 'deposit', resId: deposits[i], x: centre(p.x), y: centre(p.y), owner: 1, progress: 0, capturingSide: -1 }));
   // A landing's beachhead: a point on the sand the invaders must hold (battleType.js).
@@ -131,6 +144,9 @@ export const buildSetupFromArmies = ({
     map,
     tile: tileContext?.tile ?? null,
     structures,
+    // The real city (cityBattle.js): its id, town model, scale and the defender's housing cap
+    // (houses plus the town hall, master plan 6.3; the battle economy reads it from phase R1).
+    city: cityInfo,
     points,
     territoryRadius: TERRITORY_RADIUS,
     supplyCap: 200 + 30 * Math.max(0, infrastructure),
@@ -221,7 +237,9 @@ const buildDefenseSetup = (state, pb) => {
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
     // The AI does no espionage; the defender sees its own land regardless.
     intel: { attackerSeesDefender: false },
-    regionBuildings: getRegionBattleBuildings(region)
+    regionBuildings: getRegionBattleBuildings(region),
+    cityManifest: cityManifestOf(state, pb.targetRegionId),
+    cityDamage: cityDamageOf(region)
   });
 };
 
@@ -265,7 +283,9 @@ const buildAmphibiousSetup = (state, pb) => {
     reinforcements: [[], toReinforcements(state, pb, pb.defenderReinforcements, 1)],
     intel: { attackerSeesDefender: canSeeRegionDetails(state, pb.targetRegionId) },
     landing: true,
-    regionBuildings: getRegionBattleBuildings(v.targetRegion)
+    regionBuildings: getRegionBattleBuildings(v.targetRegion),
+    cityManifest: cityManifestOf(state, pb.targetRegionId),
+    cityDamage: cityDamageOf(v.targetRegion)
   });
 };
 
@@ -379,7 +399,9 @@ export const buildInvasionSetup = (state, pendingBattle) => {
       toReinforcements(state, pendingBattle, pendingBattle.defenderReinforcements, 1)
     ],
     intel: { attackerSeesDefender: canSeeRegionDetails(state, targetRegionId) },
-    regionBuildings: getRegionBattleBuildings(v.targetRegion)
+    regionBuildings: getRegionBattleBuildings(v.targetRegion),
+    cityManifest: cityManifestOf(state, targetRegionId),
+    cityDamage: cityDamageOf(v.targetRegion)
   });
 };
 

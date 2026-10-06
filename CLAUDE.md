@@ -58,6 +58,10 @@ The live site is GitHub Pages, built into `docs/`.
   Independent cities (phase W1, one-city `kind: 'independent'` nations of a peoples world): src/engine/independents.js
   over src/data/independents.js; who may fight whom (`canFight`, `canAttack`: no war needed against an
   independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code.
+  City manifest (phase B): src/data/townLayout.js (from src/data/townLayouts.json, `npm run
+  build:town-layouts` after town art), src/engine/cityManifest.js (from the city record; damage in
+  region.cityDamage, the 50% rule, free repairs), battle: src/battle/setup/cityBattle.js and
+  src/battle/render/cityLayer.js, map: src/components/map/closeView/townDamage.js.
   Progress and open balance items: plan section J3.
 - Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
   pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via

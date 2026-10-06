@@ -46,6 +46,7 @@ import { cultureOf, loyaltyOf, loyaltyTarget } from '../../engine/loyalty';
 import PeaceDealSheet from '../battle/PeaceDealSheet';
 import { claimOn, canFabricateClaim, CLAIM_FABRICATE_TURNS } from '../../engine/claims';
 import { DISASTER_LABELS } from '../../engine/cityDisasters';
+import { cityHousingCap, cityDamageOf } from '../../engine/cityManifest';
 
 // Whether `fromRegionId` can reach `toRegionId` right now — land-adjacent, or (for a naval force)
 // within the current age's sea-lane reach. Same helper ProvinceModal defines for its own,
@@ -322,6 +323,20 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
               <div className="text-orange-200/80 mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
             </div>
           )}
+          {regionState.owner && (() => {
+            // The real city in battle (src/engine/cityManifest.js): who its houses shelter, and
+            // what an earlier battle left in ruins or damaged (repairs are free).
+            const dmg = cityDamageOf(regionState);
+            const ruined = Object.keys(dmg.ruined).filter((id) => id.startsWith('house-')).length;
+            const damaged = Object.keys(dmg.damaged).length;
+            return (
+              <div className="text-[11px] text-slate-300" data-testid="city-battle-note">
+                In battle its houses shelter {cityHousingCap(state, regionId)} people (the town hall 20).
+                {ruined > 0 && <span className="text-amber-200"> {ruined} house{ruined > 1 ? 's' : ''} in ruins, rebuilt over the next turns.</span>}
+                {damaged > 0 && <span className="text-amber-200"> {damaged} damaged, repairing.</span>}
+              </div>
+            );
+          })()}
           {regionState.occupiedBy === state.playerNationId && occupationWar && (
             <div className="rounded-lg border border-cyan-400/50 bg-cyan-500/10 p-2 text-[11px] text-cyan-100 space-y-1.5" data-testid="occupation-note">
               <div>Your army holds {regionData.name}, but it stays {ownerNation?.name || 'theirs'}&apos;s land until peace. Demand it in a peace deal to make it yours.</div>

@@ -118,6 +118,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
+import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 
@@ -585,6 +586,24 @@ const applyRazedBuildings = (state, regionId, razed) => {
   };
 };
 
+// A commanded city battle's damage to the real city (src/engine/cityManifest.js, master plan 6.8):
+// the houses, buildings and walls destroyed or damaged, by manifest id, under the 50% rule. The
+// manifest is the one the battle loaded (`before`: the state the battle was built from); a battle
+// with no city report (an old client) still costs the razed buildings a tier each.
+const applyCityDamageAfterBattle = (before, after, regionId, tactical) => {
+  const report = tactical?.cityDamage;
+  if (!report) return applyRazedBuildings(after, regionId, tactical?.razed);
+  const manifest = cityManifestOf(before, regionId);
+  const occupation = !!after.regions[regionId] && before.regions[regionId]?.owner !== after.regions[regionId].owner;
+  // buildings the sim razed are destroyed structures too (bld-<category>)
+  const razed = (tactical.razed || []).map((c) => `bld-${c}`);
+  const { state: next, log } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(report.destroyed || []), ...razed])], damaged: report.damaged || [] }, { manifest, occupation });
+  if (!log) return next;
+  return { ...next, logs: [...next.logs, { year: next.year, message: `The fighting left its mark on ${REGIONS_DATA[regionId]?.name || regionId}: ${log}.`, type: LogTypes.COMBAT }] };
+};
+const MANIFEST_ID = /^[a-z][a-z0-9_-]{0,47}$/;
+const cleanIds = (list) => (Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && MANIFEST_ID.test(id)))].slice(0, 600) : []);
+
 export const sanitizeTacticalResult = (state, pb, result) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
   // Synthetic expeditionary troops (defense battles) live on the battle record, not in state.units.
@@ -624,7 +643,8 @@ export const sanitizeTacticalResult = (state, pb, result) => {
         decisive: !!report.tactical?.decisive,
         xpBonusById: bonus,
         powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
-        razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : []
+        razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : [],
+        ...(report.tactical?.cityDamage ? { cityDamage: { destroyed: cleanIds(report.tactical.cityDamage.destroyed), damaged: cleanIds(report.tactical.cityDamage.damaged) } } : {})
       }
     }
   };
@@ -1620,26 +1640,26 @@ const reduceAction = (state, action) => {
         if (!def) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
         const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
-        return applyRazedBuildings(applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical.razed);
+        return applyCityDamageAfterBattle(state, applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical);
       }
       // An assault on an independent has no war (hostility.js): it stands while the target may still be attacked.
       if (!targetRegion || (pb.warId ? !war : !canAttack(state, pb.attackerNationId || state.playerNationId, targetRegion.owner))) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
       const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
       if (pb.kind === 'amphibious') {
-        return applyRazedBuildings(applyAmphibiousLanding(
+        return applyCityDamageAfterBattle(state, applyAmphibiousLanding(
           afterMissiles,
           { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
           safe,
           { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-        ), pb.targetRegionId, safe.report.tactical.razed);
+        ), pb.targetRegionId, safe.report.tactical);
       }
-      return applyRazedBuildings(applyInvasionResult(
+      return applyCityDamageAfterBattle(state, applyInvasionResult(
         afterMissiles,
         { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
         safe,
         { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-      ), pb.targetRegionId, safe.report.tactical.razed);
+      ), pb.targetRegionId, safe.report.tactical);
     }
 
     case ActionTypes.ABANDON_TACTICAL_BATTLE: {

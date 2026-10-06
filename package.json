@@ -9,6 +9,7 @@
     "build": "node --max-old-space-size=8192 scripts/build.mjs",
     "import:models": "node scripts/import-models.js",
     "pack:models": "node scripts/art/pack-map-models.mjs",
+    "build:town-layouts": "node scripts/art/build-town-layouts.mjs",
     "preview": "node scripts/preview.mjs",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
