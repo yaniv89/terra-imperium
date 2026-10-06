@@ -1,6 +1,6 @@
 # Review: the RTS plan, the world art plan, speed, fog and the globe
 
-Date: 2026-10-06. The decisions and the combined order of work are now in `plans/MASTER-PLAN.md`.. Reviews `plans/terra-imperium-rts-plan.md` (the RTS plan) and
+Date: 2026-10-06. The decisions and the combined order of work are now in `plans/MASTER-PLAN.md`. Reviews `plans/terra-imperium-rts-plan.md` (the RTS plan) and
 `plans/terra-imperium-world-art-and-city-destruction-plan.md` (the world plan), both written
 against commit 81b933b7. This file does not replace them: it says what is wrong or missing,
 what to decide, and adds the two things they lack: a speed plan for the campaign map (fog of
