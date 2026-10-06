@@ -3,10 +3,10 @@
 // opens the strip with a label and a one-line hint per lens, closing after a pick. Keys 1 to 7
 // on a keyboard (MapContainer binds them). 44 px targets.
 import React, { useState } from 'react';
-import { Landmark, Wheat, Heart, Crosshair, Package, Crown, Coins, Layers, X } from 'lucide-react';
+import { Landmark, Wheat, Heart, Crosshair, Package, Coins, Layers, X } from 'lucide-react';
 import { LENSES } from './lenses';
 
-export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, estates: Crown, trade: Coins };
+export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, trade: Coins };
 
 const LensStrip = ({ lens, onChange }) => {
   const [open, setOpen] = useState(false);

@@ -20,7 +20,7 @@ describe('city politics model', () => {
     if (seated) { const m2 = cityPoliticsModel(seated, paris); expect(m2.pending?.name).toBe(m.candidates[0].name); }
     expect(cityPoliticsModel(S, 'nope')).toBeNull();
     const foreign = cityPoliticsModel(S, getNationCapital('de'));
-    expect(foreign.mine).toBe(false); expect(foreign.candidates).toEqual([]); expect(foreign.estates).toEqual([]);
+    expect(foreign.mine).toBe(false); expect(foreign.candidates).toEqual([]);
   });
   it('an amenity shortage, high taxes and a disaster show up', () => {
     const short = { ...S, regions: { ...S.regions, [paris]: { ...S.regions[paris], size: 12, disaster: { kind: 'plague', until: S.turnNumber + 3 } } }, nations: { ...S.nations, fr: { ...S.nations.fr, taxRate: 'high' } } };

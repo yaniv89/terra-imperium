@@ -6,7 +6,6 @@
 //   loyalty    a disc behind each city coloured by its loyalty (green to red)
 //   threat     a red circle of THREAT_RINGS around every enemy stack at war with the player
 //   supply     the tile of every own army tinted by its supply zone (home, held, wild, enemy)
-//   estates    the countryside tiles each estate holds, tinted with a crest letter (estateLand.js)
 //   trade      the caravan path or sea link of every trade pact, red where plundered (plunder.js)
 import { getTiles } from '../../data/geo/tiles';
 import { airRanges } from '../../engine/airPower';
@@ -21,7 +20,6 @@ import { mapEffectsFor } from '../../engine/techMapEffects';
 import { getModifier } from '../../engine/modifiers/sheet';
 import { THREAT_RINGS } from '../../engine/threat';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
-import { estateHoldings, ESTATE_COLOUR, ESTATE_CREST } from '../../engine/estateLand';
 import { getTradeRoute } from '../../engine/tradeRoutes';
 import { plunderedRoutes } from '../../engine/plunder';
 import { ringsForKm, ringsFromF75 } from '../../data/geo/gridScale';
@@ -32,8 +30,7 @@ export const LENSES = [
   { id: 'loyalty', label: 'Loyalty', key: '3', hint: 'How loyal each city is' },
   { id: 'threat', label: 'Threat', key: '4', hint: 'Enemy armies and their reach' },
   { id: 'supply', label: 'Supply', key: '5', hint: 'How far your supply lines reach, and where your armies are fed' },
-  { id: 'estates', label: 'Estates', key: '6', hint: 'The land your estates hold' },
-  { id: 'trade', label: 'Trade', key: '7', hint: 'Your trade routes and the raiders on them' }
+  { id: 'trade', label: 'Trade', key: '6', hint: 'Your trade routes and the raiders on them' }
 ];
 export const LENS_IDS = LENSES.map((l) => l.id);
 export const ZONE_COLOUR = { home: 'rgba(34,197,94,0.45)', held: 'rgba(250,204,21,0.45)', wild: 'rgba(251,146,60,0.45)', enemy: 'rgba(239,68,68,0.5)' };
@@ -117,13 +114,6 @@ export const supplyTints = (state) => {
 };
 
 export const isAtWarWith = (state, a, b) => (state.wars || []).some((w) => w.active && isWarBetween(w, a, b));
-
-/** The tiles the player's estates hold: [{ tile, estateId, colour, crest }]. */
-export const estateTints = (state) => {
-  const out = [];
-  estateHoldings(state).byTile.forEach((estateId, tile) => out.push({ tile, estateId, colour: ESTATE_COLOUR[estateId] || 'rgba(148,163,184,0.4)', crest: ESTATE_CREST[estateId] || '?' }));
-  return out.sort((a, b) => a.tile - b.tile);
-};
 
 /** The player's trade routes: [{ partnerId, kind, tiles, ok, plundered, plunderTile }]. A sea
  * route is drawn port to port; a cut land route shows the raider's tile. */

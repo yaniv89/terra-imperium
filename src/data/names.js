@@ -1,5 +1,5 @@
 // src/data/names.js
-// Plan §M3: ruler/heir/dynasty name generation. The full plan calls for 22 UN-subregion-derived
+// Plan §M3: ruler/dynasty name generation. The full plan calls for 22 UN-subregion-derived
 // culture groups built by a data pipeline (scripts/build-culture-groups.mjs) keyed off the same
 // npm geo package this project already uses for capitals — that pipeline doesn't exist yet, and
 // building it is a real, separate task. This ships 8 broad flavor pools instead, covering the
@@ -76,8 +76,8 @@ export const getCultureGroup = (nationId) => COUNTRY_TO_GROUP[nationId] || 'gene
 
 const pick = (list, rng) => list[Math.floor(rng.next() * list.length)];
 
-// A ruler/heir's given name plus their dynasty's name — `dynasty` is passed in rather than rolled
-// here so an heir shares their predecessor's dynasty (see succession.js), only a fresh line
+// A ruler's given name plus their dynasty's name — `dynasty` is passed in rather than rolled
+// here so a monarchy's next ruler keeps the royal house (see rulers.js), only a fresh line
 // (post-civil-war, or the game's very first ruler) rolls a brand new one.
 export const generateGivenName = (nationId, rng) => pick(NAME_POOLS[getCultureGroup(nationId)].given, rng);
 export const generateDynastyName = (nationId, rng) => pick(NAME_POOLS[getCultureGroup(nationId)].dynasty, rng);

@@ -9,9 +9,7 @@ import { getResearched } from '../engine/nationState';
 //
 // Tiers within a category aren't a prerequisite chain the way techs are — you can switch straight to
 // any tier your tech/identity unlocks, matching a policy swap rather than a research queue. Each
-// tier's `effects` uses the same LEGACY_HOOK vocabulary as government reforms, plus the raw
-// `estateLoyalty` / `estateInfluence` keys (plan §M9, read directly by src/engine/estates.js). A
-// tier's `rules` are the hooks the tile world's systems read directly (src/engine/lawRules.js:
+// tier's `effects` uses the same LEGACY_HOOK vocabulary as government reforms. A tier's `rules` are the hooks the tile world's systems read directly (src/engine/lawRules.js:
 // loyalty, army upkeep, war exhaustion, trade gold, partners' opinion, raids).
 import { TECH_TREE } from './techTree';
 import { leansPositive, leansNegative } from './identity';
@@ -35,9 +33,9 @@ export const LAW_CATEGORIES = {
   ],
   religion: [
     { id: 'state_cult', name: 'State Cult', tier: 1, requiresTech: null, description: 'The baseline faith.', effects: {} },
-    { id: 'established_church', name: 'Established Church', tier: 2, requiresTech: 'science_scholastic_method', description: '-10% stability cost; -1 unrest; +10 clergy loyalty.', effects: { stabilityCost: -0.1, stabilityBonus: 1, estateLoyalty: { clergy: 10 } } },
+    { id: 'established_church', name: 'Established Church', tier: 2, requiresTech: 'science_scholastic_method', description: '-10% stability cost; -1 unrest.', effects: { stabilityCost: -0.1, stabilityBonus: 1 } },
     { id: 'tolerance', name: 'Tolerance', tier: 3, requiresTech: 'governance_constitutional_law', description: '-0.5 unrest; no loyalty penalty for cities of a foreign culture.', effects: { stabilityBonus: 0.5 }, rules: { tolerance: true } },
-    { id: 'secularism', name: 'Secularism', tier: 4, requiresTech: 'science_scientific_method', requiresIdentity: { axis: 'secularism', pole: 'negative' }, description: '+10% stability cost; -10 clergy loyalty.', effects: { stabilityCost: 0.1, estateLoyalty: { clergy: -10 } } }
+    { id: 'secularism', name: 'Secularism', tier: 4, requiresTech: 'science_scientific_method', requiresIdentity: { axis: 'secularism', pole: 'negative' }, description: '+10% stability cost.', effects: { stabilityCost: 0.1 } }
   ],
   trade: [
     { id: 'barter', name: 'Barter', tier: 1, requiresTech: null, description: 'The baseline exchange.', effects: {} },
@@ -47,7 +45,7 @@ export const LAW_CATEGORIES = {
   ],
   land: [
     { id: 'communal', name: 'Communal', tier: 1, requiresTech: null, description: '+0.1% pop growth.', effects: { popGrowthBonus: 0.001 } },
-    { id: 'manorialism', name: 'Manorialism', tier: 2, requiresTech: 'governance_feudal_charters', description: '-5% income; nobility influence +10; +1 loyalty in every city.', effects: { goldMult: -0.05, estateInfluence: { nobility: 10 } }, rules: { loyaltyBonus: 1 } },
+    { id: 'manorialism', name: 'Manorialism', tier: 2, requiresTech: 'governance_feudal_charters', description: '-5% income; +1 loyalty in every city.', effects: { goldMult: -0.05 }, rules: { loyaltyBonus: 1 } },
     { id: 'private_property', name: 'Private Property', tier: 3, requiresTech: 'economy_joint_stock_companies', description: '+0.1% pop growth; +15% production.', effects: { popGrowthBonus: 0.001, goldMult: 0.15 } },
     // "+2 unrest for 10 turns after enacting" is a real timed nation.modifiers[] entry — see the
     // COLLECTIVIZATION_UNREST_MODIFIER/COLLECTIVIZATION_UNREST_TURNS constants below and

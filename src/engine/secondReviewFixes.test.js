@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialState, gameReducer } from './gameReducer';
 import { resolveTurn } from './resolveTurn';
-import { startCivilWar, processCivilWarTurn, PRETENDER_MARKER } from './civilWar';
+import { startCivilWar, processCivilWarTurn, INSURGENT_MARKER } from './civilWar';
 import { applyEventEffects, getOptionShortfall } from './applyEventEffects';
 import { ActionTypes } from '../data/types';
 import { REBEL_OWNER_ID } from '../data/rebellion';
@@ -31,13 +31,13 @@ const rebelUnit = (id, regionId, extra = {}) => ({
 });
 
 describe('S2: civil wars no longer end by themselves', () => {
-  it('pretender armies survive the unrest phase in calm provinces', () => {
+  it('insurgent armies survive the unrest phase in calm provinces', () => {
     let state = fresh();
     const started = startCivilWar(state.regions, state.units, 'fr', 1000, createRng(1), state.turnNumber);
     state = { ...state, regions: started.regions, units: started.units, nations: { ...state.nations, fr: { ...state.nations.fr, civilWar: started.civilWar } } };
-    const before = Object.values(state.units).filter((u) => u.isPretender).length;
+    const before = Object.values(state.units).filter((u) => u.isInsurgent).length;
     const next = resolveTurn(state);
-    expect(Object.values(next.units).filter((u) => u.isPretender).length).toBeGreaterThanOrEqual(before);
+    expect(Object.values(next.units).filter((u) => u.isInsurgent).length).toBeGreaterThanOrEqual(before);
     expect(next.nations.fr.civilWar?.active).toBe(true);
   });
 
@@ -48,7 +48,7 @@ describe('S2: civil wars no longer end by themselves', () => {
     expect(startCivilWar(regions, state.units, 'fr', 1000, createRng(1), 1)).toBeNull();
   });
 
-  it('an AI nation grinds its pretenders down (its civil war can end without a player action)', () => {
+  it('an AI nation grinds its insurgents down (its civil war can end without a player action)', () => {
     const state = fresh();
     const aiId = 'de';
     const started = startCivilWar(state.regions, state.units, aiId, 1000, createRng(2), 1);
@@ -69,7 +69,7 @@ describe('S2: civil wars no longer end by themselves', () => {
     expect(result.result).toBe('crushed');
   });
 
-  it('pretenders spread, so an unopposed civil war can actually be lost', () => {
+  it('insurgents spread, so an unopposed civil war can actually be lost', () => {
     const state = fresh('us');
     const started = startCivilWar(state.regions, state.units, 'us', 1000, createRng(3), 1);
     let regions = started.regions;
@@ -82,32 +82,7 @@ describe('S2: civil wars no longer end by themselves', () => {
       regions = r.regions; units = r.units; nation = r.nation; outcome = r.result;
     }
     expect(outcome).toBe('lost');
-    expect(Object.values(units).some((u) => u.isPretender && regions[u.regionId]?.owner === 'us')).toBe(false);
-  });
-});
-
-describe('S3: estate asks have a cooldown and a loyalty floor', () => {
-  it('a second tithe/levy in the same turn is refused and pays nothing', () => {
-    let state = { ...fresh(), resources: { ...fresh().resources, adm: 500 } };
-    state = gameReducer(state, A('CLERGY_TITHE'));
-    const goldAfterOne = state.resources.gold;
-    state = gameReducer(state, A('CLERGY_TITHE'));
-    expect(state.resources.gold).toBe(goldAfterOne);
-    expect(lastLog(state)).toMatch(/again on turn/);
-
-    state = gameReducer(state, A('NOBILITY_LEVIES'));
-    const hrAfterOne = state.resources.hr;
-    state = gameReducer(state, A('NOBILITY_LEVIES'));
-    expect(state.resources.hr).toBe(hrAfterOne);
-  });
-
-  it('an estate below the loyalty floor refuses', () => {
-    const base = fresh();
-    const fr = base.nations.fr;
-    const state = { ...base, resources: { ...base.resources, adm: 500 }, nations: { ...base.nations, fr: { ...fr, estates: { ...fr.estates, clergy: { ...fr.estates.clergy, loyalty: 10 } } } } };
-    const next = gameReducer(state, A('CLERGY_TITHE'));
-    expect(next.resources.gold).toBe(state.resources.gold);
-    expect(lastLog(next)).toMatch(/refuse/);
+    expect(Object.values(units).some((u) => u.isInsurgent && regions[u.regionId]?.owner === 'us')).toBe(false);
   });
 });
 
@@ -263,5 +238,5 @@ describe('S14: occupied provinces', () => {
   });
 });
 
-// PRETENDER_MARKER is part of civilWar.js's public surface; keep the import honest.
-it('pretender-held regions use the shared marker', () => expect(PRETENDER_MARKER).toBe('pretenders'));
+// INSURGENT_MARKER is part of civilWar.js's public surface; keep the import honest.
+it('insurgent-held regions use the shared marker', () => expect(INSURGENT_MARKER).toBe('insurgents'));

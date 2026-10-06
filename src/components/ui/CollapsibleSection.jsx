@@ -4,7 +4,7 @@
 // UI state — nothing here reads game state — so any panel can wrap a section in this without
 // touching its own data flow. `summary` renders next to the title even while collapsed, so
 // collapsing a section never hides the one fact someone might be scanning for (current government
-// type, crown land %, techs researched, etc).
+// type, techs researched, etc).
 import React, { useEffect, useRef, useState } from 'react';
 import { OPEN_SECTION } from '../panels/panelEvents';
 import { ChevronDown, ChevronRight } from 'lucide-react';

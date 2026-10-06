@@ -1,10 +1,9 @@
 import {describe,it,expect} from 'vitest';
-import {createInitialState,gameReducer} from './gameReducer';
+import {createInitialState} from './gameReducer';
 import {getRecruitUnitCost} from './economy';
 import {settleAIUpkeep,canAffordAIRecruit,applyAIRecruitCost} from './aiEconomy';
 import {getTradeRoute} from './tradeRoutes';
 import {processEmergence} from './emergence';
-import {ActionTypes} from '../data/types';
 import {assertGameState} from './stateAudit';
 import {hasDeposit} from '../data/deposits';
 import {calcAllNationIncomes} from './aiEconomy';
@@ -29,11 +28,6 @@ describe('economic and scenario connections',()=>{
   it('war disrupts a real adjacent land trade route',()=>{
     const s=createInitialState({playerNationId:'fr',rngSeed:7});expect(getTradeRoute(s,'de').ok).toBe(true);
     s.wars=[{id:'w',aggressor:'fr',enemy:'de',active:true}];expect(getTradeRoute(s,'de').ok).toBe(false);
-  });
-  it('tax decisions have a visible political cost only when changed',()=>{
-    const s=createInitialState({playerNationId:'fr',rngSeed:7});const before=s.nations.fr.estates.burghers.loyalty;
-    const next=gameReducer(s,{type:ActionTypes.SET_TAX_RATE,payload:{rate:'high'}});expect(next.nations.fr.estates.burghers.loyalty).toBe(before-5);
-    const same=gameReducer(next,{type:ActionTypes.SET_TAX_RATE,payload:{rate:'high'}});expect(same.nations.fr.estates.burghers.loyalty).toBe(before-5);
   });
   it('late emergence uses only neutral territory and keeps valid capital and save metadata',()=>{
     const s=createInitialState({playerNationId:'fr',rngSeed:7,scenario:{mode:'emergent',nationCount:15,seed:7}});s.turnNumber=50;

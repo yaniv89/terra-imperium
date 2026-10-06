@@ -10,11 +10,9 @@ const RECOGNIZED_HOOKS = [
   'dipBonus', 'milBonus', 'developmentCost', 'buildingCost', 'researchCost', 'stabilityCost',
   'supplyRange', 'attrition', 'governingCapacity', 'moraleRecovery'
 ];
-// These are raw, non-LEGACY_HOOK keys consumed directly by succession.js/laws.js/estates.js rather
-// than through the modifier engine — see government.js's header comment. estateLoyalty/
-// estateInfluence are nested per-estate objects, not flat numbers, so the "recognized hooks" test
-// below only checks the KEY names here, not their (object) values.
-const RAW_KEYS = ['heirClaimBonus', 'successionLegitimacyPenalty', 'lawCostMult', 'estateLoyalty', 'estateInfluence'];
+// A raw, non-LEGACY_HOOK key consumed directly by laws.js rather than through the modifier engine
+// (see government.js's header comment).
+const RAW_KEYS = ['lawCostMult'];
 
 describe('GOVERNMENT_TYPES / GOVERNMENT_REFORMS data integrity', () => {
   it('every type belongs to a real age', () => {
@@ -96,9 +94,9 @@ describe('getActiveReforms / getGovernmentReformEffectSum', () => {
   });
 
   it('sums a raw effect key across every active reform', () => {
-    const nation = { government: { type: 'monarchy', reforms: { kingdoms: 'hereditary_primogeniture' } } };
-    expect(getGovernmentReformEffectSum(nation, 'heirClaimBonus')).toBe(20);
-    expect(getGovernmentReformEffectSum(nation, 'lawCostMult')).toBe(0);
+    const nation = { government: { type: 'monarchy', reforms: { gunpowder: 'parliamentary_monarchy' } } };
+    expect(getGovernmentReformEffectSum(nation, 'lawCostMult')).toBe(-0.5);
+    expect(getGovernmentReformEffectSum(nation, 'admBonus')).toBe(0);
   });
 });
 
