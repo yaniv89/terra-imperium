@@ -13,6 +13,7 @@ import { buildTargetGrid, queryRadius } from './pathing';
 import { Q, SQUAD_RADIUS, SIDE_ATTACKER, TICK_HZ, secondsToTicks } from './constants';
 import { canSeeSquad } from './fog';
 import { razeBuilding } from './buildings';
+import { collapseFootprint } from './cityStructures';
 import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
 import { moraleFromLosses } from './moraleMath';
 
@@ -165,6 +166,7 @@ export const attackStructure = (w, a, s) => {
     s.alive = false;
     if (s.kind === 'building') razeBuilding(w, s, a.side);
     else w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id });
+    collapseFootprint(w, s);
   }
 };
 
@@ -225,7 +227,7 @@ export const acquireTarget = (w, q, radius) => {
 const structureTargetIndex = (w, q, radius) => {
   let best = -1; let bestD = Infinity;
   w.structures.forEach((s, i) => {
-    if (!s.alive) return;
+    if (!s.alive || s.passive) return; // houses are taken down only on an explicit order (cityStructures.js)
     const d = distSq(q.x, q.y, s.x, s.y) - s.radius * s.radius;
     const limit = (radius + s.radius) * (radius + s.radius);
     if (d > limit) return;

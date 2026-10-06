@@ -159,7 +159,9 @@ const garrisonBuildings = (w, side, mine, orders) => {
   if (budget <= 0 || mine.length < 2) return mine;
   const sent = new Set();
   w.structures.forEach((s, si) => {
-    let room = garrisonRoom(w, si) - w.squads.filter((q) => q.order.type === 'garrison' && q.order.structure === si).length;
+    const open = garrisonRoom(w, si);
+    if (open <= 0) return;
+    let room = open - w.squads.filter((q) => q.order.type === 'garrison' && q.order.structure === si).length;
     while (room > 0 && budget > 0) {
       const candidates = mine.filter((q) => !sent.has(q.idx) && canGarrison(q) && q.order.type !== 'garrison' && q.target < 0 && distSq(q.x, q.y, s.x, s.y) <= GARRISON_REACH * GARRISON_REACH);
       const pick = nearest(candidates.filter((q) => q.classId === 'ranged'), s.x, s.y) || nearest(candidates, s.x, s.y);
