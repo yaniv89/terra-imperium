@@ -516,6 +516,7 @@ const writeTileState = (world, tile, entry, inPlace = false) => {
  * Returns { city, world, yields, completed: [item...], logs: [string...] }. With `inPlace` the
  * world's tileOwner and tileState are the caller's own copies and are written directly.
  */
+const RAZING_YIELDS = Object.freeze({ food: 0, production: 0, gold: 0, science: 0, culture: 0, strategic: {}, luxuries: [], raw: { food: 0, production: 0, gold: 0 } });
 export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   const researched = ctx.researched || [];
   const ageId = ctx.ageId || 'bronze';
@@ -525,6 +526,7 @@ export const processCity = (world, tiles, city, ctx = {}, inPlace = false) => {
   let c = city;
   const logs = []; const completed = [];
   if (c.outpost) return { city: c, world: w, yields: null, completed, logs }; // outposts are grown by settlers.js
+  if (c.razing) return { city: c, world: w, yields: RAZING_YIELDS, completed, logs }; // a burning city yields nothing (razing.js)
 
   // 1. Work the land.
   const worked = allocateTiles(c, tiles, w, researched, ctx.blockedTiles || new Set());

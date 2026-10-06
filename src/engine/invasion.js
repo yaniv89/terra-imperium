@@ -20,6 +20,8 @@ import { getGeneralXpMultiplier } from '../data/generals';
 import { canAfford } from '../utils/helpers';
 import { isWarBetween, recordBattle } from './diplomacy';
 import { canAttack } from './hostility';
+import { addGrudge } from './grudges';
+import { isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { getRegionModifier } from './modifiers/sheet';
 import { getDefenseLevelDamageReductionMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, getZoneOfControlMultiplier, isGarrisonBroken } from './siege';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
@@ -213,6 +215,8 @@ export const applyInvasionResult = (state, { fromRegionId, targetRegionId, war, 
 
   // War score (plan §M13): this invasion counts as a battle in `war` regardless of which side of
   // it the player is on, feeding the same score the AI's own peace decisions read.
+  // An independent remembers who attacked it (grudges.js, phase W2).
+  if (isIndependentNation(state.nations[targetRegion.owner])) nextNations = addGrudge(nextNations, targetRegion.owner, state.playerNationId, GRUDGE_ATTACKED);
   const invasionLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
   const invasionWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
   const nextWars = invasionWinnerId && war
@@ -347,6 +351,7 @@ export const applyAmphibiousLanding = (state, { navalUnitId, fromRegionId, targe
     nextRegions[targetRegionId] = { ...targetRegion, control: nextControl, lastAttackedTurn: state.turnNumber, underInvasion: true };
   }
 
+  if (isIndependentNation(state.nations[targetRegion.owner])) nextNations = addGrudge(nextNations, targetRegion.owner, state.playerNationId, GRUDGE_ATTACKED);
   const assaultLossShare = captured ? 0.4 : (outcome === 'attacker' ? 0.2 : outcome === 'defender' ? 0.2 : null);
   const assaultWinnerId = outcome === 'attacker' ? state.playerNationId : outcome === 'defender' ? targetRegion.owner : null;
   const nextWars = assaultWinnerId && war

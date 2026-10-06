@@ -5,13 +5,15 @@
 //   canFight(a, b)    a and b are hostile: an active war between them, or one of them is the
 //                     rebels, or one of them is an independent city (independents are never in
 //                     state.wars: anyone may fight them without a declaration), unless a truce with
-//                     the independent holds (`nation.indep.truceWith[other] > turn`: none exist
-//                     in W1; tribute and truces come with W3).
+//                     the independent holds (`nation.indep.truceWith[other] > turn`: phase W2 sets
+//                     one while `other` pays it tribute, raids.js).
 //                     Symmetric. Used where hostility is a fact on the ground: zone of control, enemy
 //                     armies on a tile, land access, blockades.
-//   canAttack(a, b)   a may start a fight against b: canFight, and `a` is not an independent while
-//                     independents are passive (W1: INDEPENDENTS_ATTACK is false; W2 raids turn it
-//                     on). Used where someone acts: sieges, assaults, field attacks, plunder.
+//   canAttack(a, b)   a may start a fight against b: canFight, and `a` is not an independent
+//                     (INDEPENDENTS_ATTACK stays false). Used where someone acts: sieges, assaults,
+//                     field attacks, plunder. An independent never besieges or assaults through
+//                     these paths: its raids and sacks (phase W2) are raids.js's own and can never
+//                     capture a city.
 //   warBetween(a, b)  the war record between them, or null (for war score and peace terms; an
 //                     attack on an independent has no war, so it never touches war score).
 //
@@ -20,7 +22,8 @@ import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isIndependentNation } from '../data/independents';
 import { isWarBetween } from './diplomacy';
 
-/** W1: independents never start a fight (no raids, no sieges, no field attacks). W2 turns raids on. */
+/** Independents start no siege, assault or field attack through the shared paths; raids.js runs their
+ * raids and sacks (phase W2). */
 export const INDEPENDENTS_ATTACK = false;
 
 export const isIndependentId = (state, id) => !!id && isIndependentNation(state?.nations?.[id]);

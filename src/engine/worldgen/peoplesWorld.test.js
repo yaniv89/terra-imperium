@@ -11,7 +11,7 @@ const tiles = getTiles();
 const km = (a, b) => distanceKm(tiles.centres[PEOPLES[a].tile], tiles.centres[PEOPLES[b].tile]);
 
 describe('the peoples world: who becomes a major (phase W0)', () => {
-  it('every world size gives its count, the player first, Israel always in, no late arrival', () => {
+  it('every world size gives its count, the player first, Israel in when it keeps the gap, no late arrival', () => {
     Object.values(WORLD_SIZES).forEach((size) => [1, 2, 3, 99, 4242].forEach((seed) => {
       const majors = pickMajors('akkad', size.id, seed, { tiles });
       expect(majors, `${size.id} ${seed}`).toHaveLength(size.majors);
@@ -22,12 +22,23 @@ describe('the peoples world: who becomes a major (phase W0)', () => {
     }));
   });
 
-  it('keeps the majors apart (the gap), the pinned people aside', () => {
-    [5, 6, 7].forEach((seed) => {
-      const majors = pickMajors('kemet', 'standard', seed, { tiles }).filter((id) => id !== 'israel');
+  it('keeps every major apart by the gap, the pinned people included, never relaxed', () => {
+    ['kemet', 'akkad', 'israel'].forEach((player) => [5, 6, 7].forEach((seed) => {
+      const majors = pickMajors(player, 'standard', seed, { tiles });
       for (let i = 0; i < majors.length; i++) for (let j = i + 1; j < majors.length; j++) {
         expect(km(majors[i], majors[j]), `${majors[i]}-${majors[j]}`).toBeGreaterThanOrEqual(MAJOR_MIN_GAP_KM);
       }
+    }));
+  });
+
+  it('the pinned people holds the gap like everyone: Kemet as the player leaves Israel out, and Israel holds Kemet off', () => {
+    expect(km('kemet', 'israel')).toBeLessThan(MAJOR_MIN_GAP_KM);
+    [1, 2, 3].forEach((seed) => {
+      const withKemet = pickMajors('kemet', 'standard', seed, { tiles });
+      expect(withKemet).not.toContain('israel');
+      expect(withKemet).toHaveLength(WORLD_SIZES.standard.majors);
+      expect(pickMajors('akkad', 'standard', seed, { tiles })).not.toContain('kemet');
+      expect(pickMajors('israel', 'small', seed, { tiles })[0]).toBe('israel');
     });
   });
 

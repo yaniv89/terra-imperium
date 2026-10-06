@@ -57,7 +57,12 @@ The live site is GitHub Pages, built into `docs/`.
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
   Independent cities (phase W1, one-city `kind: 'independent'` nations of a peoples world): src/engine/independents.js
   over src/data/independents.js; who may fight whom (`canFight`, `canAttack`: no war needed against an
-  independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code.
+  independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code. Their AI (W2):
+  raids, sacks and tribute in src/engine/raids.js (the raid battle R3 replaces: raidBattle.js `fightRaidBattle`),
+  grudges.js, mercenaries.js. No captives: units lost are gone (master plan decision 37). Majors and
+  independents (W3): src/engine/indepPolicy.js (AI campaigns, `nation.indepGoal`, siege force `unit.indepOp`
+  marched by aiOperations.js; joining by attitude; trade; tribute to majors; the player's actions) and
+  razing.js (one size a turn, `city.razing`).
   City manifest (phase B): src/data/townLayout.js (from src/data/townLayouts.json, `npm run
   build:town-layouts` after town art), src/engine/cityManifest.js (from the city record; damage in
   region.cityDamage, the 50% rule, free repairs), battle: src/battle/setup/cityBattle.js and

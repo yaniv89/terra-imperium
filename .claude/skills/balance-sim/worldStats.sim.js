@@ -83,6 +83,24 @@ const snapshot = (s, t, counters, ms, lives) => {
     // Independents (phase W1): how many still stand, and the majors' cities (the expansion check).
     independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
     majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
+    // Independents' AI (phase W2, raids.js, cumulative): raids started (and at the player), raids
+    // that took their loot (and on the player), raid battles, sacks, loot, tribute demands and deals,
+    // tribute gold paid, mercenary bands hired; and now: raids out, tribute deals running, bands in service.
+    raidsStarted: s.indepStats?.raidsStarted || 0, raidsAtPlayer: s.indepStats?.raidsAtPlayer || 0, raidsHit: s.indepStats?.raidsHit || 0,
+    raidsOnPlayer: s.indepStats?.raidsOnPlayer || 0, raidBattles: s.indepStats?.raidBattles || 0, sacks: s.indepStats?.sacks || 0,
+    raidLoot: s.indepStats?.loot || 0, tributeDemands: s.indepStats?.tributeDemands || 0, tributeDeals: s.indepStats?.tributeDeals || 0,
+    tributeGold: s.indepStats?.tributeGold || 0, mercsHired: s.indepStats?.mercsHired || 0,
+    pillages: s.indepStats?.pillages || 0, routesCut: s.indepStats?.routesCut || 0, settlersKilled: s.indepStats?.settlersKilled || 0, outpostsBurned: s.indepStats?.outpostsBurned || 0,
+    raidsOut: nations.filter((n) => n.indep?.raid && !n.isEliminated).length,
+    tributeRunning: nations.reduce((k, n) => k + Object.keys(n.indep?.tributeFrom || {}).length, 0),
+    mercsActive: Object.values(s.units).filter((u) => u.mercenary).length,
+    // Majors and independents (phase W3, indepPolicy.js and razing.js, cumulative): independents
+    // conquered, joined, cities razed (and fires started), campaigns, courtships and gifts, trade
+    // deals and their gold, tribute demanded by majors and paid to them; and now: campaigns running.
+    indepConquered: s.indepStats?.conquered || 0, indepJoined: s.indepStats?.joined || 0, citiesRazed: s.indepStats?.razed || 0, razeStarted: s.indepStats?.razeStarted || 0,
+    campaigns: s.indepStats?.campaigns || 0, musters: s.indepStats?.musters || 0, courtships: s.indepStats?.courtships || 0, gifts: s.indepStats?.gifts || 0, tradeDeals: s.indepStats?.tradeDeals || 0,
+    tradeGold: s.indepStats?.tradeGold || 0, majorTributeDemands: s.indepStats?.tributeDemandsByMajors || 0, tributeToMajors: s.indepStats?.tributeToMajors || 0,
+    campaignsRunning: nations.filter((n) => n.indepGoal?.kind === 'conquer' && !n.isEliminated).length,
     nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };

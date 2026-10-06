@@ -35,6 +35,15 @@ export const ActionTypes = {
   SAVE_ARMY_TEMPLATE: 'SAVE_ARMY_TEMPLATE',
   RENAME_ARMY: 'RENAME_ARMY',
   PILLAGE_TILE: 'PILLAGE_TILE',
+  HIRE_MERCENARY: 'HIRE_MERCENARY', // phase W2 (mercenaries.js): payload { independentId }
+  ANSWER_TRIBUTE_DEMAND: 'ANSWER_TRIBUTE_DEMAND', // phase W2 (raids.js): payload { id, pay }
+  GIFT_INDEPENDENT: 'GIFT_INDEPENDENT', // phase W3 (indepPolicy.js): payload { independentId }
+  PROPOSE_JOINING: 'PROPOSE_JOINING', // phase W3: payload { independentId }
+  ANSWER_JOIN_OFFER: 'ANSWER_JOIN_OFFER', // phase W3: payload { id, accept }
+  DEMAND_INDEPENDENT_TRIBUTE: 'DEMAND_INDEPENDENT_TRIBUTE', // phase W3: payload { independentId }
+  PROPOSE_INDEPENDENT_TRADE: 'PROPOSE_INDEPENDENT_TRADE', // phase W3: payload { independentId }
+  RAZE_CITY: 'RAZE_CITY', // phase W3 (razing.js): payload { regionId }
+  STOP_RAZING: 'STOP_RAZING', // phase W3: payload { regionId }
   DELETE_ARMY_TEMPLATE: 'DELETE_ARMY_TEMPLATE',
   DEQUEUE_PRODUCTION: 'DEQUEUE_PRODUCTION',
   SET_CITY_FOCUS: 'SET_CITY_FOCUS',

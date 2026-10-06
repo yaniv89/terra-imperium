@@ -24,8 +24,31 @@ import { ringsForKm, kmPerRing } from '../data/geo/gridScale';
 import {
   OPINION_MIN, OPINION_MAX, OPINION_BASELINE, GRUDGE_PER_HOSTILITY, BORDER_FREE_TILES, BORDER_PER_TILE, BORDER_MAX, BORDER_TILE_KM, SETTLED_NEAR_KM, SETTLED_NEAR,
   HOLDS_MY_CULTURE, CLAIM_ON_MY_CITY, TRADE_ROUTE, TRADE_MAX, ALLIANCE, OPEN_BORDERS, DEFENSIVE_PACT, ROYAL_MARRIAGE, SAME_IDENTITY_AXIS, BROKEN_TRUCE, AE_FREE, AE_PER_POINT, RIVAL, VASSAL_OF_YOU,
-  WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION
+  WAR_ROLL_OPINION_CEILING, WAR_ROLL_OPINION_SPAN, CASUS_BELLI_OPINION, RAIDED_US, PAYS_US_TRIBUTE,
+  INDEP_FAVOUR_PER_POINT, INDEP_KIN, INDEP_CULTURE_SCALE, INDEP_GRUDGE_PER_POINT, TRADES_WITH_US, TRIBUTARY, RAZED_OUR_KIN
 } from '../data/opinion';
+import { PEOPLES } from '../data/peoples';
+
+// Phase W3: what an independent `A` adds to its view of major `b` (independents 4.5 and 5): the
+// favour its gifts bought, kinship (the same art theme), b's culture in its city, trade, the
+// tribute it pays b, and its grudge against b.
+const themeOf = (n) => (n?.people ? PEOPLES[n.people]?.theme || null : null);
+const independentReasons = (state, A, b) => {
+  const out = [];
+  const B = state.nations[b];
+  const ind = A.indep;
+  const favour = ind.favour?.[b] || 0;
+  if (favour > 0) out.push({ id: 'favour', label: 'Gifts and favours', value: INDEP_FAVOUR_PER_POINT * favour });
+  const theme = themeOf(A);
+  if (theme && theme === themeOf(B)) out.push({ id: 'kin', label: 'Our kin', value: INDEP_KIN });
+  const share = state.regions?.[A.capitalRegionId]?.culture?.[b] || 0;
+  if (share >= 0.05) out.push({ id: 'culture', label: 'Their culture among us', value: Math.round(INDEP_CULTURE_SCALE * share), detail: `${Math.round(share * 100)}%` });
+  if (ind.tradeWith?.[b] != null) out.push({ id: 'tradesWithUs', label: 'Trades with us', value: TRADES_WITH_US });
+  if (ind.tributeTo?.[b]) out.push({ id: 'tributary', label: 'We pay them tribute', value: TRIBUTARY });
+  const grudge = ind.grudges?.[b] || 0;
+  if (grudge > 0) out.push({ id: 'indepGrudge', label: 'Grudge', value: INDEP_GRUDGE_PER_POINT * grudge, detail: `${grudge} / 100` });
+  return out;
+};
 
 const clamp = (v) => Math.max(OPINION_MIN, Math.min(OPINION_MAX, Math.round(v)));
 // Per regions identity: cities by owner, and for every city founded after the start the set of
@@ -147,6 +170,15 @@ export const opinionReasons = (state, a, b = state.playerNationId) => {
   if ((B.rivals || []).includes(a)) out.push({ id: 'rival', label: 'Rival', value: RIVAL });
   if (b === state.playerNationId && (A.hostilityFloor || 0) >= 40) out.push({ id: 'truce', label: 'Broke a truce', value: BROKEN_TRUCE });
   if (A.vassalOf === b) out.push({ id: 'vassal', label: 'My overlord', value: VASSAL_OF_YOU });
+  // Independents (phase W2, raids.js): raids fade one point a turn; tribute warms its receiver.
+  const raided = A.raidedBy?.[b];
+  if (raided != null && RAIDED_US + ((state.turnNumber || 0) - raided) < 0) out.push({ id: 'raidedUs', label: 'Raided us', value: RAIDED_US + ((state.turnNumber || 0) - raided) });
+  if (A.indep?.tributeFrom?.[b]) out.push({ id: 'paysTribute', label: 'Pays us tribute', value: PAYS_US_TRIBUTE });
+  // Phase W3 (indepPolicy.js): an independent's attitude to a major, the joining measure.
+  if (A.indep) out.push(...independentReasons(state, A, b));
+  // A major whose people's kin had a city razed (razing.js) remembers; fades 1 a turn.
+  const razed = A.razedBy?.[b];
+  if (razed != null && RAZED_OUR_KIN + ((state.turnNumber || 0) - razed) < 0) out.push({ id: 'razedKin', label: 'Razed a city of our kin', value: RAZED_OUR_KIN + ((state.turnNumber || 0) - razed) });
   return out.map((r) => ({ ...r, value: Math.round(r.value * 10) / 10 }));
 };
 

@@ -26,6 +26,8 @@ import { canAfford } from '../utils/helpers';
 import { isWarBetween, recordBattle } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { canAttack } from './hostility';
+import { addGrudge } from './grudges';
+import { isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { legacyTerrainOf } from './world/registry';
 import { recordBattleReport } from './battleReports';
 import { findTilePath, passableTile, regionForTile, unitTile } from './armies';
@@ -157,9 +159,11 @@ export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null
     : outcome === 'defender' ? `${mine ? 'Your attack' : `${state.nations[attackerNationId]?.name || 'An'} attack`} near ${where} was thrown back${mine ? '' : ' by your army'}.`
     : `The battle near ${where} ended with both sides spent.`;
   const anchor = state.world?.tileOwner?.[v.tile] ?? regionForTile(state, v.tile, attackerNationId, v.fromRegionId);
+  // An independent remembers who killed its men (grudges.js, phase W2).
+  const nations = defLoss > 0 && isIndependentNation(state.nations?.[v.defenderNationId]) ? addGrudge(state.nations, v.defenderNationId, attackerNationId, GRUDGE_ATTACKED) : state.nations;
   return {
     ...state,
-    world, units,
+    world, units, nations,
     wars,
     rngSeed: rngSeed ?? state.rngSeed,
     ...recordBattleReport(state, { ...report, kind: 'field', tile: v.tile, outcome, fromRegionId: v.fromRegionId, targetRegionId: anchor, attackerNationId, defenderNationId: v.defenderNationId }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),
