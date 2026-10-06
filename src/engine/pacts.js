@@ -10,11 +10,14 @@
 //
 // AI nations only: the player chooses their own alliances. A vassal answers to its overlord and a
 // nation already fighting the maximum number of wars sits a call out (checked at call time).
+import { isIndependentNation } from '../data/independents';
+
 export const PACT_FORM_AE = 40;
 export const PACT_KEEP_AE = 15;
 export const PACT_MIN_MEMBERS = 2;
 
-const eligible = (id, n, playerNationId) => n && id !== playerNationId && !n.vassalOf && !n.eliminated;
+// Independents join no pacts (plans/independent-cities.md 3.2), and nobody forms a league against one.
+const eligible = (id, n, playerNationId) => n && id !== playerNationId && !n.vassalOf && !n.eliminated && !isIndependentNation(n);
 
 // One pass per turn. Returns { nations, logs } (same nations reference when nothing changed).
 export const updateDefensivePacts = (nations, { playerNationId, turnNumber } = {}) => {
@@ -34,7 +37,7 @@ export const updateDefensivePacts = (nations, { playerNationId, turnNumber } = {
   Object.entries(next).forEach(([id, n]) => {
     if (!eligible(id, n, playerNationId) || n.defensivePact) return;
     let worst = null; let worstAe = PACT_FORM_AE - 1;
-    Object.entries(n.ae || {}).forEach(([x, v]) => { if (v > worstAe && next[x] && x !== id) { worst = x; worstAe = v; } });
+    Object.entries(n.ae || {}).forEach(([x, v]) => { if (v > worstAe && next[x] && x !== id && !isIndependentNation(next[x])) { worst = x; worstAe = v; } });
     if (worst) (fearers[worst] ||= []).push(id);
   });
 

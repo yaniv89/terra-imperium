@@ -48,6 +48,8 @@ import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
+import { canAttack } from './hostility';
+import { isIndependent } from '../data/independents';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -616,8 +618,19 @@ export const sanitizeTacticalResult = (state, pb, result) => {
   };
 };
 
+// Independents (plans/independent-cities.md 3.2, 6) take part in no diplomacy: no wars (they are
+// attacked without one), treaties, marriages, vassalage, claims or diplomats. W3 adds their own
+// actions (tribute, trade, mercenaries, gifts).
+const DIPLOMACY_ACTIONS = new Set([ActionTypes.DECLARE_WAR, ActionTypes.FABRICATE_CLAIM, ActionTypes.OFFER_PEACE, ActionTypes.TRADE_AGREEMENT, ActionTypes.OPEN_BORDERS, ActionTypes.DEMAND, ActionTypes.MILITARY_ALLIANCE, ActionTypes.GIFT_BRIBE, ActionTypes.RIVAL_NATION, ActionTypes.PROPOSE_MARRIAGE, ActionTypes.BREAK_ALLIANCE, ActionTypes.INSULT, ActionTypes.VASSALIZE, ActionTypes.ANNEX_VASSAL, ActionTypes.ASSIGN_DIPLOMAT].filter(Boolean));
+const independentDiplomacyRefused = (state, action) => {
+  if (!DIPLOMACY_ACTIONS.has(action.type)) return null;
+  const p = action.payload || {};
+  const target = p.nationId ?? p.targetId ?? p.targetNationId;
+  return isIndependent(state.nations, target) ? reject(state, `${state.nations[target].name} is an independent city: it makes no treaties, and you may attack it without a war.`) : null;
+};
+
 const reduceAction = (state, action) => {
-  const blocked = guardPendingBattle(state, action);
+  const blocked = guardPendingBattle(state, action) || independentDiplomacyRefused(state, action);
   if (blocked) return blocked;
   switch (action.type) {
     case ActionTypes.ADVANCE_TURN:
@@ -1136,7 +1149,7 @@ const reduceAction = (state, action) => {
       // province once its control collapsed. Rebel-held land is fair game without a war.
       const strikeTargetOwner = targetRegion.occupiedBy ?? targetRegion.owner;
       const atWarWithTarget = state.wars.some((w) => w.active && isWarBetween(w, state.playerNationId, strikeTargetOwner));
-      if (strikeTargetOwner !== REBEL_OWNER_ID && !atWarWithTarget) {
+      if (!atWarWithTarget && !canAttack(state, state.playerNationId, strikeTargetOwner)) { // rebels and independents need no war (hostility.js)
         return reject(state, `You must be at war with ${state.nations[strikeTargetOwner]?.name || strikeTargetOwner} to strike ${REGIONS_DATA[targetRegionId]?.name}.`);
       }
       const costs = ACTION_COSTS.missileStrike;
@@ -1541,7 +1554,7 @@ const reduceAction = (state, action) => {
           kind: 'invasion',
           fromRegionId,
           targetRegionId,
-          warId: v.war.id,
+          warId: v.war?.id ?? null,
           attackerNationId: state.playerNationId,
           defenderNationId: v.targetRegion.owner,
           seed,
@@ -1597,7 +1610,8 @@ const reduceAction = (state, action) => {
         const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
         return applyRazedBuildings(applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical.razed);
       }
-      if (!war || !targetRegion) return cleared;
+      // An assault on an independent has no war (hostility.js): it stands while the target may still be attacked.
+      if (!targetRegion || (pb.warId ? !war : !canAttack(state, pb.attackerNationId || state.playerNationId, targetRegion.owner))) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
       const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
       if (pb.kind === 'amphibious') {
@@ -1686,7 +1700,7 @@ const reduceAction = (state, action) => {
           navalUnitId,
           fromRegionId: v.navalUnit.regionId,
           targetRegionId,
-          warId: v.war.id,
+          warId: v.war?.id ?? null,
           attackerNationId: state.playerNationId,
           defenderNationId: v.targetRegion.owner,
           seed,
@@ -1852,7 +1866,7 @@ const reduceAction = (state, action) => {
       if (!attackerNavalUnits.every(u => (u.movesLeft ?? 1) > 0)) return state;
       // Only fleets of nations you're at war with can be engaged (plan §M13, as for invasions).
       const presentNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
-      const defenderNavalUnits = presentNavalUnits.filter(u => isAtWarWithPlayer(state, u.ownerId));
+      const defenderNavalUnits = presentNavalUnits.filter(u => canAttack(state, state.playerNationId, u.ownerId));
       if (presentNavalUnits.length === 0) return state;
       if (defenderNavalUnits.length === 0) return reject(state, `You're at peace with ${state.nations[presentNavalUnits[0].ownerId]?.name || 'that fleet\'s nation'} — declare war before engaging their fleet.`);
       if (!canAfford(state.resources, costs)) return state;

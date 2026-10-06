@@ -9,6 +9,7 @@
 import { getTiles } from '../data/geo/tiles';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { isWarBetween } from './diplomacy';
+import { canAttack } from './hostility';
 import { unitTile } from './armies';
 import { getTradeRoute, findCaravanPath, enemyTilesOf } from './tradeRoutes';
 import { getCapital } from '../data/regions';
@@ -23,12 +24,14 @@ export const RAIDER_REACH_KM = 306; // km (3 rings at frequency 75)
 export const RAIDER_REACH_RINGS = ringsForKm(RAIDER_REACH_KM);
 
 const hostileTo = (state, me, ownerId) => ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, me, ownerId));
+// A stack that may raid `me` (hostility.js canAttack: at war, rebels; independents once W2 lets them raid).
+const raidsMe = (state, me, ownerId) => canAttack(state, ownerId, me);
 
 /** Enemy land stacks of the player by tile: Map tile -> ownerId (the strongest owner on it). */
 const enemyLandByTile = (state, me) => {
   const map = new Map();
   Object.values(state.units || {}).forEach((u) => {
-    if (u.domain === 'naval' || u.embarkedOn || u.classId === 'settler' || !(u.strength > 0) || u.ownerId === me || !hostileTo(state, me, u.ownerId)) return;
+    if (u.domain === 'naval' || u.embarkedOn || u.classId === 'settler' || !(u.strength > 0) || u.ownerId === me || !raidsMe(state, me, u.ownerId)) return;
     const t = unitTile(state, u);
     if (t == null) return;
     const cur = map.get(t);
@@ -41,7 +44,7 @@ const enemyLandByTile = (state, me) => {
 const enemyRaidersByTile = (state, me) => {
   const map = new Map();
   Object.values(state.units || {}).forEach((u) => {
-    if (!isFleet(u) || !(u.strength > 0) || u.ownerId === me || navalLineOf(u) !== 'raider' || !hostileTo(state, me, u.ownerId)) return;
+    if (!isFleet(u) || !(u.strength > 0) || u.ownerId === me || navalLineOf(u) !== 'raider' || !raidsMe(state, me, u.ownerId)) return;
     const t = unitTile(state, u);
     if (t != null && !map.has(t)) map.set(t, u.ownerId);
   });

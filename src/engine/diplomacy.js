@@ -9,6 +9,7 @@ import { opinionOf, opinionGivesCasusBelli } from './opinion';
 import { claimsAgainst } from './claims';
 import { hasDemandCasusBelli, setOpenBorders } from './accords';
 import { RelationStatus } from '../data/types';
+import { isIndependent } from '../data/independents';
 import { isAdjacentToOwner, REGIONS_DATA, getCapital } from '../data/regions';
 import { CAPTURE_PREFERRING_DOCTRINES } from '../data/nations';
 import { resolveSiegeControlDamage } from './siege';
@@ -193,6 +194,9 @@ export const declareWar = (state, nationId, opts = {}) => {
 const declareWarOnly = (state, nationId, { aggressor, goal = null } = {}) => {
   const nation = state.nations[nationId];
   if (!nation || nationId === aggressor || hasActiveWarBetween(state, nationId, aggressor)) return state;
+  // Independents are never in state.wars (plans/independent-cities.md 6): they are fought without a
+  // declaration (hostility.js canFight) and never declare one.
+  if (isIndependent(state.nations, nationId) || isIndependent(state.nations, aggressor)) return state;
 
   const brokePeace = !!nation.hasPeaceTreaty;
   const resolvedGoal = goal || assignDefaultWarGoal(state, nationId, aggressor);

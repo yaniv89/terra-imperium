@@ -26,7 +26,7 @@ import { getTiles } from '../data/geo/tiles';
 import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { hasPerk } from '../data/promotions';
-import { isWarBetween } from './diplomacy';
+import { canFight, isIndependentId } from './hostility';
 import { legacyTerrainOf } from './world/registry';
 import { mapEffectsOf } from './techMapEffects';
 
@@ -85,7 +85,9 @@ export const regionAccess = (state, regionId, nationId = state.playerNationId) =
   if (r.owner === nationId) return r.occupiedBy && r.occupiedBy !== nationId ? 'enemy' : 'own';
   if (!r.owner) return 'wild';
   if (r.owner === REBEL_OWNER_ID) return 'enemy';
-  if ((state.wars || []).some((w) => w.active && isWarBetween(w, nationId, r.owner))) return r.occupiedBy === nationId ? 'held' : 'enemy';
+  // At war, or an independent (fought without a war: hostility.js), the land is enemy land.
+  if (canFight(state, nationId, r.owner)) return r.occupiedBy === nationId ? 'held' : 'enemy';
+  if (isIndependentId(state, r.owner)) return 'closed'; // a truce with an independent keeps its land shut
   const owner = state.nations[r.owner];
   if (owner && !owner.isEliminated && (owner.vassalOf === nationId || state.nations[nationId]?.vassalOf === r.owner || owner.hasMilitaryPact || owner.openBordersWith?.[nationId])) return 'friend';
   return 'closed';
@@ -126,7 +128,7 @@ export const isHarsh = (tiles, tile) => HARSH_TERRAIN.has(legacyTerrainOf(tiles,
 // A land unit of a nation at war with `nationId` (or rebels) standing on `tile`.
 export const enemyArmyAt = (state, tile, nationId, units = state.units) => Object.values(units).some((u) => u.domain !== 'naval' && !u.embarkedOn && u.strength > 0 && u.classId !== 'settler'
   && u.ownerId !== nationId && unitTile(state, u) === tile
-  && (u.ownerId === REBEL_OWNER_ID || (state.wars || []).some((w) => w.active && isWarBetween(w, nationId, u.ownerId))));
+  && canFight(state, nationId, u.ownerId));
 
 /** True when an enemy army stands on a tile next to `tile` (zone of control). */
 export const inEnemyZoc = (state, tiles, tile, nationId, units = state.units) => tiles.neighbors[tile].some((n) => enemyArmyAt(state, n, nationId, units));
