@@ -59,7 +59,7 @@ describe('W4 independents UI', () => {
     expect(out).toContain('data-testid="tribute-choice-pay"');
     expect(out).toContain('data-testid="tribute-choice-refuse"');
     expect(out).toContain('aria-checked="true"');
-    expect((out.match(/bg-\[#D8A444\]/g) || []).length).toBe(1);
+    expect((out.match(/fa-btn-primary/g) || []).length).toBe(1);
     expect(html(React.createElement(TributeDemandSheet, { demandId: 'gone', onClose: () => {} }))).toBe('');
   });
 

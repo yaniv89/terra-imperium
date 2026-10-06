@@ -18,7 +18,7 @@ import { openIndependent } from './independentEvents';
 import { actionIconUrl } from './independentArt';
 
 const EDGE = 40;
-const RED = '#f87171';
+const RED = '#E5604D'; // the Field Atlas danger
 const VIOLET = '#9C8FD0';
 
 const RaidMarkersOverlay = ({ projection, transform, width, height }) => {
@@ -62,36 +62,36 @@ const RaidMarkersOverlay = ({ projection, transform, width, height }) => {
         {placed.routes.map((r) => <path key={r.id} d={r.d} fill="none" stroke={r.againstYou ? RED : VIOLET} strokeWidth={2} strokeDasharray="5 4" strokeLinecap="round" opacity={0.9} data-raid-route={r.id} />)}
         {placed.warnings.map((w) => (
           <g key={`${w.id}-${w.tile}`} data-raid-warning={w.tile}>
-            <circle cx={w.xy[0]} cy={w.xy[1]} r={w.r} fill="rgba(248,113,113,0.12)" stroke={RED} strokeWidth={2} strokeDasharray="4 3" />
+            <circle cx={w.xy[0]} cy={w.xy[1]} r={w.r} fill="rgba(229,96,77,0.12)" stroke={RED} strokeWidth={2} strokeDasharray="4 3" />
             <circle cx={w.xy[0]} cy={w.xy[1]} r={w.r + 5} fill="none" stroke={RED} strokeWidth={1.2} opacity={0.6} className="animate-pulse" />
           </g>
         ))}
-        {placed.sieges.map((s) => <circle key={s.cityId} cx={s.xy[0]} cy={s.xy[1]} r={14} fill="none" stroke="#fb923c" strokeWidth={2} strokeDasharray="2 3" data-siege-ring={s.cityId} />)}
+        {placed.sieges.map((s) => <circle key={s.cityId} cx={s.xy[0]} cy={s.xy[1]} r={14} fill="none" stroke="#EE8A3A" strokeWidth={2} strokeDasharray="2 3" data-siege-ring={s.cityId} />)}
       </svg>
       {placed.warnings.filter((w) => w.label).map((w) => (
-        <button key={`wl-${w.id}-${w.tile}`} type="button" onClick={() => openIndependent(w.id)} className={`${chip} bg-slate-950/90 border-red-400/70 text-red-200 min-h-[24px]`}
+        <button key={`wl-${w.id}-${w.tile}`} type="button" onClick={() => openIndependent(w.id)} className={`${chip} bg-fa-ink/90 border-fa-danger/70 text-fa-danger-text min-h-[24px]`}
           style={{ transform: `translate(${Math.round(w.xy[0])}px, ${Math.round(w.xy[1] - w.r - 8)}px) translate(-50%, -100%)` }} data-raid-target={w.tile}
           aria-label={`Raid target: ${w.target}${w.eta != null ? `, ${w.eta} turns` : ''}`}>
-          Raid target: {w.target}{w.eta != null ? ` · ${w.eta}t` : ''}
+          Raid target: {w.target}{w.eta != null ? ` · in ${w.eta} turn${w.eta === 1 ? '' : 's'}` : ''}
         </button>
       ))}
       {placed.parties.map((p) => (
-        <button key={`p-${p.id}`} type="button" onClick={() => openIndependent(p.id)} className={`${chip} flex items-center gap-1 min-h-[28px] bg-slate-900/95 ${p.againstYou ? 'border-red-400/80 text-red-100' : 'border-[#9C8FD0]/80 text-slate-100'}`}
+        <button key={`p-${p.id}`} type="button" onClick={() => openIndependent(p.id)} className={`${chip} flex items-center gap-1 min-h-[28px] bg-fa-panel/95 ${p.againstYou ? 'border-fa-danger/80 text-fa-text' : 'border-fa-indep/80 border-dashed text-fa-text'}`}
           style={{ transform: `translate(${Math.round(p.xy[0])}px, ${Math.round(p.xy[1] - 22)}px) translate(-50%, -100%)` }} data-raid-party={p.id}
           aria-label={`Raid party of ${p.name}, ${p.kindWord}, ${p.phase === 'home' ? 'going home' : `target ${p.target}`}${p.eta != null ? `, ${p.eta} turns` : ''}`}>
           {torch ? <img src={torch} alt="" width={12} height={12} /> : <Flame className="w-3 h-3" style={{ color: p.againstYou ? RED : VIOLET }} aria-hidden="true" />}
-          <span>Raid party{p.phase === 'home' ? ', going home' : p.eta != null ? ` · ${p.eta}t` : ''}</span>
+          <span>Raid party{p.phase === 'home' ? ', going home' : p.eta != null ? ` · in ${p.eta} turn${p.eta === 1 ? '' : 's'}` : ''}</span>
         </button>
       ))}
       {placed.sieges.map((s) => (
-        <button key={`s-${s.cityId}`} type="button" onClick={() => openIndependent(s.owner)} className={`${chip} flex items-center gap-1 min-h-[24px] bg-slate-900/95 border-orange-400/70 text-orange-100`}
+        <button key={`s-${s.cityId}`} type="button" onClick={() => openIndependent(s.owner)} className={`${chip} flex items-center gap-1 min-h-[24px] bg-fa-panel/95 border-fa-enemy/70 text-fa-text`}
           style={{ transform: `translate(${Math.round(s.xy[0])}px, ${Math.round(s.xy[1] + 16)}px) translate(-50%, 0)` }} data-indep-siege={s.cityId}
           aria-label={`${s.byName} besiege ${s.name}, walls ${Math.round(s.hp * 100)}%`}>
           <Castle className="w-3 h-3" aria-hidden="true" />{s.byName} besiege · {Math.round(s.hp * 100)}%
         </button>
       ))}
       {placed.burning.map((b) => (
-        <span key={`b-${b.cityId}`} className={`${chip} flex items-center gap-1 bg-slate-900/95 border-red-500/70 text-red-200`}
+        <span key={`b-${b.cityId}`} className={`${chip} flex items-center gap-1 bg-fa-panel/95 border-fa-danger/70 text-fa-danger-text`}
           style={{ transform: `translate(${Math.round(b.xy[0])}px, ${Math.round(b.xy[1] + 16)}px) translate(-50%, 0)` }} data-burning={b.cityId}>
           <Flame className="w-3 h-3" aria-hidden="true" />Burning · {b.size} turn{b.size === 1 ? '' : 's'} left
         </span>

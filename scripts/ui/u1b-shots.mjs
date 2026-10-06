@@ -97,6 +97,24 @@ const REPORTS = `
 `;
 
 const SCREENS = {
+  W15: async (page, vp) => {
+    await startGame(page);
+    // the nearest raiders (or any independent) demands tribute; a little grudge already
+    await patch(page, `
+      const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId];
+      const ind = Object.values(s.nations).filter((n) => n.indep && !n.isEliminated && s.regions[n.capitalRegionId]);
+      const d = (n) => { const r = s.regions[n.capitalRegionId]; return Math.hypot((r.lat || 0) - (cap.lat || 0), (r.lng || r.lon || 0) - (cap.lng || cap.lon || 0)); };
+      const pick = ind.filter((n) => n.indep.personality === 'raiders').sort((a, b) => d(a) - d(b))[0] || ind[0];
+      window.__u1b = { indep: pick.id };
+      const n = s.nations[pick.id];
+      return { ...s, resources: { ...s.resources, gold: 142 }, nations: { ...s.nations, [pick.id]: { ...n, indep: { ...n.indep, grudges: { ...(n.indep.grudges || {}), [me]: 45 } } } },
+        tributeDemands: [{ id: 'td_u1b', indepId: pick.id, gold: 4, turns: 15, turn: s.turnNumber, expires: s.turnNumber + 3 }] };`);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:open-tribute-demand', { detail: 'td_u1b' })));
+    await page.getByTestId('tribute-demand-sheet').waitFor({ timeout: 15000 });
+    await shot(page, 'W15-tribute', vp);
+    await click(page.getByTestId('tribute-choice-pay'));
+    await shot(page, 'W15-tribute-pay', vp);
+  },
   W13: async (page, vp) => {
     await startGame(page);
     await patch(page, `${WAR_SETUP}
@@ -170,7 +188,7 @@ const SCREENS = {
   }
 };
 
-const browser = await chromium.launch({ headless: true, executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ headless: true, executablePath: CHROME, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-dev-shm-usage'] });
 try {
   for (const vp of VIEWPORTS) {
     const context = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.hasTouch, deviceScaleFactor: vp.deviceScaleFactor });

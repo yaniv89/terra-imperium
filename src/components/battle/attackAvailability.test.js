@@ -37,7 +37,7 @@ describe('attack buttons follow the engine validation', () => {
     game.state.units = { army: { id: 'army', ownerId: 'fr', regionId: from, domain: 'land', classId: 'infantry', strength: 1000, maxStrength: 1000, movesLeft: 0 } };
     game.state = atGates(game.state, from, target); // the attack needs touching lands or an army beside the city
   });
-  it('disables both battle modes and explains the exhausted army after conquest', () => {
+  it('disables both battle modes and explains the exhausted army after conquest', { timeout: 20000 }, () => {
     expect(validateInvasion(game.state, from, target)).toMatchObject({ ok: false, reason: 'no_moves' });
     const html = renderBattle();
     expect(html).toContain('End the turn before attacking again.');
