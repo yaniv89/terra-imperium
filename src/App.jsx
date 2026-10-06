@@ -12,6 +12,7 @@ import NextPrompt from './components/ui/NextPrompt';
 import SettingsSheet from './components/ui/SettingsSheet';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION } from './components/map/marchEvents';
+import FirstContactCard from './components/modals/FirstContactCard';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
 import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
@@ -217,6 +218,9 @@ const GameLayout = () => {
       <div className="fixed z-10 left-[calc(max(env(safe-area-inset-left),0.75rem)+var(--city-rail-w,0px))] top-[calc(var(--header-height,2.25rem)+0.625rem)] pointer-events-none needs-you">
         {state.gameStatus === GameStatus.ACTIVE && <NextPrompt />}
       </div>
+
+      {/* First contact with a people (W03). */}
+      <FirstContactCard />
 
       {/* End Turn, bottom right (W02, W10). */}
       <TurnDock />

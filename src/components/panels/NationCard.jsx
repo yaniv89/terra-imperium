@@ -72,7 +72,7 @@ const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title
     onClick={onClick}
     title={title}
     className={`flex items-center gap-1 px-1.5 py-1 rounded text-[10px] ${
-      looksDisabled ? 'bg-slate-800 text-slate-500' : 'bg-slate-700/80 hover:bg-slate-600 text-slate-200'
+      looksDisabled ? 'bg-fa-raised text-fa-muted' : 'bg-fa-hover/80 hover:bg-fa-line text-fa-text'
     }`}
   >
     <Icon size={11} />
@@ -153,13 +153,13 @@ export const NationCard = ({ nation }) => {
           ? 'bg-red-500/10 border-red-500/30'
           : nation.hasPeaceTreaty
             ? 'bg-green-500/10 border-green-500/30'
-            : 'bg-slate-800/50 border-slate-700'
+            : 'bg-fa-raised/50 border-fa-line'
         }
       `}
     >
       <div className="flex justify-between items-start mb-2">
         <div>
-          <div className="font-semibold text-sm text-white flex items-center gap-2">
+          <div className="font-semibold text-sm text-fa-text flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nation.color || nationData?.color }} />
             {nation.name}
           </div>
@@ -168,34 +168,34 @@ export const NationCard = ({ nation }) => {
               {nation.relationStatus}
             </span>
             {nation.doctrine && (
-              <span className="text-[9px] uppercase tracking-wide text-slate-500 border border-slate-700 rounded px-1">
+              <span className="text-[9px] uppercase tracking-wide text-fa-muted border border-fa-line rounded px-1">
                 {nation.doctrine}
               </span>
             )}
           </div>
         </div>
         <div className="text-right text-xs">
-          <details className="text-slate-400" data-testid="opinion">
-            <summary className="cursor-pointer list-none">Opinion: <span className={`font-mono ${opinionOf(state, nation.id) >= 20 ? 'text-emerald-300' : opinionOf(state, nation.id) <= -40 ? 'text-red-400' : 'text-orange-300'}`}>{opinionOf(state, nation.id) > 0 ? '+' : ''}{opinionOf(state, nation.id)}</span></summary>
+          <details className="text-fa-muted" data-testid="opinion">
+            <summary className="cursor-pointer list-none">Opinion: <span className={`font-mono ${opinionOf(state, nation.id) >= 20 ? 'text-fa-good' : opinionOf(state, nation.id) <= -40 ? 'text-fa-danger-text' : 'text-fa-enemy'}`}>{opinionOf(state, nation.id) > 0 ? '+' : ''}{opinionOf(state, nation.id)}</span></summary>
             <ul className="mt-1 text-left text-[10px] space-y-0.5">
               {opinionReasons(state, nation.id).map((r) => (
-                <li key={r.id} className="flex justify-between gap-2"><span>{r.label}{r.detail ? ` (${r.detail})` : ''}</span><span className={`font-mono ${r.value >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>{r.value > 0 ? '+' : ''}{r.value}</span></li>
+                <li key={r.id} className="flex justify-between gap-2"><span>{r.label}{r.detail ? ` (${r.detail})` : ''}</span><span className={`font-mono ${r.value >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{r.value > 0 ? '+' : ''}{r.value}</span></li>
               ))}
             </ul>
           </details>
-          <div className="text-slate-400">
+          <div className="text-fa-muted">
             Military: {hasIntel(state, nation.id)
-              ? <span className="text-red-400 font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
-              : <span className="text-slate-500 font-mono" title="Unknown — a successful espionage op reveals it">?</span>}
+              ? <span className="text-fa-danger-text font-mono">{formatNumber(getFieldedStrength(state, nation.id))}</span>
+              : <span className="text-fa-muted font-mono" title="Unknown — a successful espionage op reveals it">?</span>}
           </div>
           {atWarWithPlayer && (
-            <div className="text-slate-400">
+            <div className="text-fa-muted">
               War Exhaustion: <span className="text-amber-400 font-mono">{nation.warExhaustion || 0}</span>
             </div>
           )}
           {atWarWithPlayer && activeWar && (
-            <div className="text-slate-400">
-              War Score: <span className={`font-mono ${playerWarScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span>
+            <div className="text-fa-muted">
+              War Score: <span className={`font-mono ${playerWarScore >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>{playerWarScore >= 0 ? '+' : ''}{playerWarScore}</span>
             </div>
           )}
         </div>
@@ -203,16 +203,16 @@ export const NationCard = ({ nation }) => {
 
       <div className="flex flex-wrap gap-1 mb-2">
         {nation.hasPeaceTreaty && (
-          <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[10px]">✓ Peace Treaty</span>
+          <span className="px-1.5 py-0.5 bg-green-500/20 text-fa-good rounded text-[10px]">✓ Peace Treaty</span>
         )}
         {nation.hasTradeAgreement && (
-          <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px]">✓ Trade Agreement</span>
+          <span className="px-1.5 py-0.5 bg-blue-500/20 text-fa-you rounded text-[10px]">✓ Trade Agreement</span>
         )}
         {nation.hasMilitaryPact && (
           <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded text-[10px]">✓ Military Pact</span>
         )}
         {hasOpenBorders(state, player.id, nation.id) && (
-          <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded text-[10px]" data-testid="open-borders-badge">Open borders</span>
+          <span className="px-1.5 py-0.5 bg-emerald-500/20 text-fa-good rounded text-[10px]" data-testid="open-borders-badge">Open borders</span>
         )}
         {claimsAgainst(state, player.id, nation.id).length > 0 && (
           <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px]" data-testid="claim-badge">Claim on {claimsAgainst(state, player.id, nation.id).map((c) => c.name).join(', ')}</span>
@@ -221,19 +221,19 @@ export const NationCard = ({ nation }) => {
           <span key={c.cityId} className="px-1.5 py-0.5 bg-amber-500/10 text-amber-300 rounded text-[10px]">Claim on {state.regions[c.cityId]?.name} in {Math.max(0, c.done - state.turnNumber)} turns</span>
         ))}
         {atWarWithPlayer && (
-          <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ AT WAR</span>
+          <span className="px-1.5 py-0.5 bg-red-500/20 text-fa-danger-text rounded text-[10px] animate-pulse">⚔ AT WAR</span>
         )}
         {truceActive && (
           <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 rounded text-[10px]">Truce (turn {nation.truces?.[state.playerNationId]})</span>
         )}
         {isRival && (
-          <span className="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded text-[10px]">Rival</span>
+          <span className="px-1.5 py-0.5 bg-orange-500/20 text-fa-enemy rounded text-[10px]">Rival</span>
         )}
         {isVassalOfPlayer && (
           <span className="px-1.5 py-0.5 bg-violet-500/20 text-violet-400 rounded text-[10px]">Your Vassal</span>
         )}
         {hasDiplomatAssigned && (
-          <span className="px-1.5 py-0.5 bg-sky-500/20 text-sky-400 rounded text-[10px]">Diplomat assigned</span>
+          <span className="px-1.5 py-0.5 bg-sky-500/20 text-fa-you rounded text-[10px]">Diplomat assigned</span>
         )}
       </div>
 
@@ -306,7 +306,7 @@ export const NationCard = ({ nation }) => {
             {hasSecondary && (
               <button
                 onClick={() => setExpanded((e) => !e)}
-                className="flex items-center gap-1 px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 text-[10px]"
+                className="flex items-center gap-1 px-1.5 py-1 rounded bg-fa-raised hover:bg-fa-hover text-fa-muted text-[10px]"
               >
                 {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                 {expanded ? 'Less' : 'More'}

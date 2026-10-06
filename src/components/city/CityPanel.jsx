@@ -154,23 +154,23 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   if (view === 'tiles') {
     return (
       <div className="space-y-3" data-testid="city-tiles">
-        <div className="text-[11px] text-slate-400">
+        <div className="text-[11px] text-fa-muted">
           {city.size} citizens work {Math.min(city.size, city.tiles.length - 1)} of {city.tiles.length - 1} tiles ({FOCUS_LABEL[city.focus]} focus). Lock a tile to always work it.
         </div>
         <ul className="space-y-1">
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
-            <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-emerald-900/30 border border-emerald-700/40' : 'bg-slate-800/60 border border-slate-700/60'}`}>
+            <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-emerald-900/30 border border-emerald-700/40' : 'bg-fa-raised/60 border border-fa-line/60'}`}>
               <div className="min-w-0 flex-1">
-                <div className="text-slate-100 truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
-                <div className="text-slate-400 flex gap-2">
-                  <Yield icon={Wheat} value={y.food} title="Food" className="text-emerald-300" />
+                <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
+                <div className="text-fa-muted flex gap-2">
+                  <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
                   <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />
                   <Yield icon={Coins} value={y.gold} title="Gold" className="text-yellow-300" />
-                  {worked && !centre && <span className="text-emerald-400">worked</span>}
+                  {worked && !centre && <span className="text-fa-good">worked</span>}
                 </div>
               </div>
               {mine && !centre && (
-                <button type="button" onClick={() => dispatch({ type: ActionTypes.TOGGLE_TILE_LOCK, payload: { cityId, tile } })} className={`p-2 rounded-lg min-w-[40px] min-h-[40px] ${locked ? 'bg-blue-600/70 text-white' : 'bg-slate-700/60 text-slate-300'}`} aria-label={locked ? 'Unlock tile' : 'Lock tile'} title={locked ? 'Unlock: let the city choose' : 'Lock: always work this tile'}>
+                <button type="button" onClick={() => dispatch({ type: ActionTypes.TOGGLE_TILE_LOCK, payload: { cityId, tile } })} className={`p-2 rounded-lg min-w-[40px] min-h-[40px] ${locked ? 'bg-blue-600/70 text-fa-text' : 'bg-fa-hover/60 text-fa-text'}`} aria-label={locked ? 'Unlock tile' : 'Lock tile'} title={locked ? 'Unlock: let the city choose' : 'Lock: always work this tile'}>
                   {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </button>
               )}
@@ -179,7 +179,7 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </ul>
         {mine && candidates.length > 0 && (
           <div>
-            <div className="text-[11px] font-semibold text-slate-300 mb-1">Buy land ({city.cultureBank != null ? `${Math.round(city.cultureBank)} culture banked` : 'culture claims the best tile on its own'})</div>
+            <div className="text-[11px] font-semibold text-fa-text mb-1">Buy land ({city.cultureBank != null ? `${Math.round(city.cultureBank)} culture banked` : 'culture claims the best tile on its own'})</div>
             <ul className="space-y-1">
               {candidates.map((c) => {
                 const facts = tileFacts(tiles, c.tile, world.tileState[c.tile]);
@@ -187,16 +187,16 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 const cost = buyTileCost(city, c);
                 const can = (state.resources.gold || 0) >= cost;
                 return (
-                  <li key={c.tile} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
+                  <li key={c.tile} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-fa-raised/60 border border-fa-line/60">
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-100 truncate capitalize"><TileMarks facts={facts} />{describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''} <span className="text-slate-500">ring {c.ring}</span></div>
-                      <div className="text-slate-400 flex gap-2">
-                        <Yield icon={Wheat} value={y.food} title="Food" className="text-emerald-300" />
+                      <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''} <span className="text-fa-muted">ring {c.ring}</span></div>
+                      <div className="text-fa-muted flex gap-2">
+                        <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
                         <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />
                         <Yield icon={Coins} value={y.gold} title="Gold" className="text-yellow-300" />
                       </div>
                     </div>
-                    <button type="button" disabled={!can} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: c.tile } })} className="px-3 min-h-[40px] rounded-lg bg-yellow-600/70 text-white font-semibold disabled:opacity-40" data-testid="buy-tile">
+                    <button type="button" disabled={!can} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: c.tile } })} className="px-3 min-h-[40px] rounded-lg bg-yellow-600/70 text-fa-text font-semibold disabled:opacity-40" data-testid="buy-tile">
                       {cost}g
                     </button>
                   </li>
@@ -212,34 +212,34 @@ const CityPanel = ({ cityId, view = 'city' }) => {
   return (
     <div className="space-y-3" data-testid="city-sheet">
       <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="bg-slate-800/60 rounded-lg p-2">
-          <div className="text-slate-400">Size</div>
-          <div className="text-white font-semibold text-base">{city.size}</div>
-          <div className="text-slate-500 text-[10px]">{growthTurns == null ? (yields.food < 0 ? 'starving' : 'not growing') : `grows in ${growthTurns} turn${growthTurns === 1 ? '' : 's'}`}</div>
+        <div className="bg-fa-raised/60 rounded-lg p-2">
+          <div className="text-fa-muted">Size</div>
+          <div className="text-fa-text font-semibold text-base">{city.size}</div>
+          <div className="text-fa-muted text-[10px]">{growthTurns == null ? (yields.food < 0 ? 'starving' : 'not growing') : `grows in ${growthTurns} turn${growthTurns === 1 ? '' : 's'}`}</div>
         </div>
-        <div className="bg-slate-800/60 rounded-lg p-2">
-          <div className="text-slate-400 flex items-center gap-1"><Home className="w-3 h-3" />Housing</div>
-          <div className={`font-semibold text-base ${city.size >= housing ? 'text-amber-300' : 'text-white'}`}>{city.size}/{housing}</div>
-          <div className="text-slate-500 text-[10px]">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
+        <div className="bg-fa-raised/60 rounded-lg p-2">
+          <div className="text-fa-muted flex items-center gap-1"><Home className="w-3 h-3" />Housing</div>
+          <div className={`font-semibold text-base ${city.size >= housing ? 'text-amber-300' : 'text-fa-text'}`}>{city.size}/{housing}</div>
+          <div className="text-fa-muted text-[10px]">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
         </div>
-        <div className="bg-slate-800/60 rounded-lg p-2">
-          <div className="text-slate-400 flex items-center gap-1"><Smile className="w-3 h-3" />Amenities</div>
-          <div className={`font-semibold text-base ${amen.net < 0 ? 'text-red-300' : amen.net >= 2 ? 'text-emerald-300' : 'text-white'}`}>{amen.supply}/{amen.need}</div>
-          <div className="text-slate-500 text-[10px]">{amen.net < 0 ? 'short: unrest rises' : amen.net >= 2 ? 'content: faster growth' : 'enough'}</div>
+        <div className="bg-fa-raised/60 rounded-lg p-2">
+          <div className="text-fa-muted flex items-center gap-1"><Smile className="w-3 h-3" />Amenities</div>
+          <div className={`font-semibold text-base ${amen.net < 0 ? 'text-fa-danger-text' : amen.net >= 2 ? 'text-fa-good' : 'text-fa-text'}`}>{amen.supply}/{amen.need}</div>
+          <div className="text-fa-muted text-[10px]">{amen.net < 0 ? 'short: unrest rises' : amen.net >= 2 ? 'content: faster growth' : 'enough'}</div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-xs bg-slate-800/40 rounded-lg p-2" data-testid="city-yields">
-        <Yield icon={Wheat} value={`${yields.food >= 0 ? '+' : ''}${yields.food} food`} title={`Food surplus after ${city.size * 2} eaten; ${Math.round(city.food)}/${threshold} banked`} className="text-emerald-300" />
+      <div className="flex flex-wrap items-center gap-3 text-xs bg-fa-raised/40 rounded-lg p-2" data-testid="city-yields">
+        <Yield icon={Wheat} value={`${yields.food >= 0 ? '+' : ''}${yields.food} food`} title={`Food surplus after ${city.size * 2} eaten; ${Math.round(city.food)}/${threshold} banked`} className="text-fa-good" />
         <Yield icon={Hammer} value={`${yields.production} production`} title="Production a turn" className="text-amber-300" />
         <Yield icon={Coins} value={`${yields.gold} gold`} title="Gold a turn" className="text-yellow-300" />
-        <span className="text-sky-300">{yields.science} science</span>
+        <span className="text-fa-you">{yields.science} science</span>
         <span className="text-fuchsia-300">{yields.culture} culture</span>
       </div>
       {mine && (
         <div className="flex items-center gap-1 text-xs">
-          <span className="text-slate-400 mr-1">Focus</span>
+          <span className="text-fa-muted mr-1">Focus</span>
           {FOCUS.map((f) => (
-            <button key={f} type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: f } })} className={`px-2 min-h-[36px] rounded-lg border ${city.focus === f ? 'bg-blue-600/70 border-blue-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'}`}>
+            <button key={f} type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: f } })} className={`px-2 min-h-[36px] rounded-lg border ${city.focus === f ? 'bg-blue-600/70 border-blue-400 text-fa-text' : 'bg-fa-raised/60 border-fa-line text-fa-text'}`}>
               {FOCUS_LABEL[f]}
             </button>
           ))}
@@ -247,24 +247,24 @@ const CityPanel = ({ cityId, view = 'city' }) => {
       )}
 
       <div>
-        <div className="text-[11px] font-semibold text-slate-300 mb-1">Building now</div>
+        <div className="text-[11px] font-semibold text-fa-text mb-1">Building now</div>
         {queue.length === 0 ? (
-          <div className="text-xs text-slate-500 rounded-lg border border-dashed border-slate-700 p-3">Nothing in production. Pick something below.</div>
+          <div className="text-xs text-fa-muted rounded-lg border border-dashed border-fa-line p-3">Nothing in production. Pick something below.</div>
         ) : (
           <ol className="space-y-1" data-testid="city-queue">
             {queue.map((item, i) => {
               const cost = productionCost(item, costCtx);
               const progress = i === 0 ? city.production.progress : 0;
               return (
-                <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
+                <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-fa-raised/60 border border-fa-line/60">
                   <ItemIcon item={item} ageId={ageId} />
                   <div className="min-w-0 flex-1">
-                    <div className="text-slate-100 truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
-                    <div className="text-slate-400">{i === 0 ? `${Math.round(progress)}/${cost} · ` : `${cost} · `}{turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
-                    {i === 0 && <div className="h-1 rounded bg-slate-700 mt-1"><div className="h-1 rounded bg-amber-400" style={{ width: `${Math.min(100, (progress / Math.max(1, cost)) * 100)}%` }} /></div>}
+                    <div className="text-fa-text truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
+                    <div className="text-fa-muted">{i === 0 ? `${Math.round(progress)}/${cost} · ` : `${cost} · `}{turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
+                    {i === 0 && <div className="h-1 rounded bg-fa-hover mt-1"><div className="h-1 rounded bg-amber-400" style={{ width: `${Math.min(100, (progress / Math.max(1, cost)) * 100)}%` }} /></div>}
                   </div>
                   {mine && (
-                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: i } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-slate-700/60 text-slate-300" aria-label="Remove from queue">
+                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: i } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-fa-hover/60 text-fa-text" aria-label="Remove from queue">
                       <X className="w-4 h-4" />
                     </button>
                   )}
@@ -280,19 +280,19 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         if (!rows.length) return null;
         return (
           <div key={group}>
-            <div className="text-[11px] font-semibold text-slate-300 mb-1">{group}</div>
+            <div className="text-[11px] font-semibold text-fa-text mb-1">{group}</div>
             <ul className="space-y-1">
               {rows.map((o) => {
                 const cost = productionCost(o.item, costCtx);
                 return (
-                  <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs border ${o.ok ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-900/60 border-slate-800 opacity-70'}`}>
+                  <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs border ${o.ok ? 'bg-fa-raised/60 border-fa-line/60' : 'bg-fa-panel/60 border-fa-line opacity-70'}`}>
                     <ItemIcon item={o.item} ageId={ageId} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-100 truncate">{itemLabel(o.item, tiles, ageId)}</div>
-                      {o.item.kind === 'wonder' && <div className="text-slate-500 text-[10px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
-                      <div className="text-slate-400">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-sky-300 min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
+                      <div className="text-fa-text truncate">{itemLabel(o.item, tiles, ageId)}</div>
+                      {o.item.kind === 'wonder' && <div className="text-fa-muted text-[10px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
+                      <div className="text-fa-muted">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
                     </div>
-                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-white disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
+                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-fa-text disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
                       {queue.length ? <Plus className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
                     </button>
                   </li>
@@ -315,38 +315,38 @@ const ArmyTemplateEditor = ({ state, dispatch, ageId }) => {
   const edit = (t) => setDraft({ id: t?.id || null, name: t?.name || '', composition: { ...(t?.composition || {}) } });
   const bump = (c, d) => setDraft((x) => ({ ...x, composition: { ...x.composition, [c]: Math.max(0, (x.composition[c] | 0) + d) } }));
   return (
-    <div className="mt-3 border-t border-slate-800 pt-2" data-testid="army-templates">
+    <div className="mt-3 border-t border-fa-line pt-2" data-testid="army-templates">
       <div className="flex items-center justify-between mb-1">
-        <div className="text-[11px] font-semibold text-slate-300">Army templates</div>
-        <button type="button" onClick={() => edit(null)} className="text-[11px] text-emerald-300 min-h-[32px] px-2">New</button>
+        <div className="text-[11px] font-semibold text-fa-text">Army templates</div>
+        <button type="button" onClick={() => edit(null)} className="text-[11px] text-fa-good min-h-[32px] px-2">New</button>
       </div>
       <ul className="space-y-1 text-xs">
         {templates.map((t) => (
-          <li key={t.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] bg-slate-800/40 border border-slate-700/60">
-            <div className="min-w-0 flex-1 truncate text-slate-100">{t.name} <span className="text-slate-400">({templateSize(t.composition)} units: {Object.entries(t.composition).map(([c, n]) => `${n} ${unitDisplayName(ageId, c)}`).join(', ')})</span></div>
-            <button type="button" onClick={() => edit(t)} className="text-slate-300 min-h-[32px] px-2">Edit</button>
-            <button type="button" onClick={() => dispatch({ type: ActionTypes.DELETE_ARMY_TEMPLATE, payload: { id: t.id } })} aria-label={`Delete ${t.name}`} className="text-red-300 min-h-[32px] px-2">Delete</button>
+          <li key={t.id} className="flex items-center gap-2 rounded-lg px-2 min-h-[40px] bg-fa-raised/40 border border-fa-line/60">
+            <div className="min-w-0 flex-1 truncate text-fa-text">{t.name} <span className="text-fa-muted">({templateSize(t.composition)} units: {Object.entries(t.composition).map(([c, n]) => `${n} ${unitDisplayName(ageId, c)}`).join(', ')})</span></div>
+            <button type="button" onClick={() => edit(t)} className="text-fa-text min-h-[32px] px-2">Edit</button>
+            <button type="button" onClick={() => dispatch({ type: ActionTypes.DELETE_ARMY_TEMPLATE, payload: { id: t.id } })} aria-label={`Delete ${t.name}`} className="text-fa-danger-text min-h-[32px] px-2">Delete</button>
           </li>
         ))}
       </ul>
       {draft && (
-        <div className="mt-2 rounded-lg border border-emerald-700/60 bg-slate-900/60 p-2 space-y-2 text-xs" data-testid="army-template-editor">
-          <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Army name" className="w-full bg-slate-800 rounded px-2 min-h-[36px] text-white" aria-label="Army name" />
+        <div className="mt-2 rounded-lg border border-emerald-700/60 bg-fa-panel/60 p-2 space-y-2 text-xs" data-testid="army-template-editor">
+          <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Army name" className="w-full bg-fa-raised rounded px-2 min-h-[36px] text-fa-text" aria-label="Army name" />
           <div className="grid grid-cols-2 gap-1">
             {classes.map((c) => (
-              <div key={c} className="flex items-center justify-between rounded bg-slate-800/60 px-2 min-h-[36px]">
-                <span className="text-slate-200 inline-flex items-center gap-1 min-w-0" title={unitClassLabel(c)}><UnitIcon classId={c} ageId={ageId} size={18} /><span className="truncate">{unitDisplayName(ageId, c)}</span></span>
+              <div key={c} className="flex items-center justify-between rounded bg-fa-raised/60 px-2 min-h-[36px]">
+                <span className="text-fa-text inline-flex items-center gap-1 min-w-0" title={unitClassLabel(c)}><UnitIcon classId={c} ageId={ageId} size={18} /><span className="truncate">{unitDisplayName(ageId, c)}</span></span>
                 <span className="flex items-center gap-1">
-                  <button type="button" onClick={() => bump(c, -1)} className="min-w-[32px] min-h-[32px] rounded bg-slate-700 text-white" aria-label={`Fewer ${c}`}>-</button>
-                  <span className="w-5 text-center text-white">{draft.composition[c] | 0}</span>
-                  <button type="button" onClick={() => bump(c, 1)} className="min-w-[32px] min-h-[32px] rounded bg-slate-700 text-white" aria-label={`More ${c}`}>+</button>
+                  <button type="button" onClick={() => bump(c, -1)} className="min-w-[32px] min-h-[32px] rounded bg-fa-hover text-fa-text" aria-label={`Fewer ${c}`}>-</button>
+                  <span className="w-5 text-center text-fa-text">{draft.composition[c] | 0}</span>
+                  <button type="button" onClick={() => bump(c, 1)} className="min-w-[32px] min-h-[32px] rounded bg-fa-hover text-fa-text" aria-label={`More ${c}`}>+</button>
                 </span>
               </div>
             ))}
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => { dispatch({ type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: draft } }); setDraft(null); }} disabled={!draft.name.trim() || templateSize(draft.composition) < 1} className="flex-1 min-h-[40px] rounded-lg bg-emerald-700 text-white disabled:opacity-40" data-testid="save-army-template">Save</button>
-            <button type="button" onClick={() => setDraft(null)} className="min-h-[40px] px-3 rounded-lg bg-slate-700 text-slate-200">Cancel</button>
+            <button type="button" onClick={() => { dispatch({ type: ActionTypes.SAVE_ARMY_TEMPLATE, payload: { template: draft } }); setDraft(null); }} disabled={!draft.name.trim() || templateSize(draft.composition) < 1} className="flex-1 min-h-[40px] rounded-lg bg-emerald-700 text-fa-text disabled:opacity-40" data-testid="save-army-template">Save</button>
+            <button type="button" onClick={() => setDraft(null)} className="min-h-[40px] px-3 rounded-lg bg-fa-hover text-fa-text">Cancel</button>
           </div>
         </div>
       )}

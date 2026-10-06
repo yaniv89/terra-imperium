@@ -23,7 +23,8 @@ const FoodIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="non
 const ScienceIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-science)" strokeWidth="1.8" aria-hidden="true"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" /></svg>;
 const CultureIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--fa-indep)" strokeWidth="1.8" aria-hidden="true"><path d="M4 20h16M6 20V10M10 20V10M14 20V10M18 20V10M3 10l9-6 9 6z" /></svg>;
 
-const delta = (v) => <span className={`fa-num text-[11px] ${v < 0 ? 'text-fa-danger-text' : 'text-fa-good'}`}>{signed(v)}</span>;
+// the change a turn; nothing for none (a 0 reads as noise beside the number)
+const delta = (v) => (v ? <span className={`fa-num text-[11px] ${v < 0 ? 'text-fa-danger-text' : 'text-fa-good'}`}>{signed(v)}</span> : null);
 
 // One item of the bar: a 32 px tall button with an icon, the number and its per-turn change.
 const BarItem = ({ label, onClick, expanded, children, testId }) => (

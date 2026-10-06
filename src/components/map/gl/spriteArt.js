@@ -407,48 +407,61 @@ export const settlerArt = ({ own, idle, iconUrl }, rCss, dpr) => {
 };
 
 // ------------------------------------------------------------------ the close view's city banner (CityBanners.jsx)
+// The display font of the Field Atlas look (plans/UI-DESIGN.md), used once it has loaded: a sprite
+// drawn before keeps the fallback, and its key says so, so it is redrawn with the real font later.
+const DISPLAY_FONT = '"Spectral SC", Georgia, serif';
+const MONO_FONT = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+const displayReady = (size) => { try { return typeof document !== 'undefined' && !!document.fonts?.check(`700 ${size}px "Spectral SC"`); } catch { return false; } };
+
 /**
- * The pill under a town: a disc of the owner's colour with the size (a tent for an outpost), the
- * capital star, the name, the low loyalty and siege marks, a siege or outpost bar. `font`: 12 px,
- * 11 on a phone held sideways. Returns the art with `css.w`, `css.h`.
+ * The pill under a town (W02, Field Atlas): a disc of the owner's colour with the size (a tent for
+ * an outpost), the capital star, the name in Spectral SC, the low loyalty and siege marks, and a
+ * thin bar under it: the siege, the outpost's growth, or (your cities) the production of what it
+ * builds (`c.build`, 0 to 1). `font`: 12 px, 11 on a phone held sideways. Returns the art with
+ * `css.w`, `css.h`.
  */
 export const cityBannerArt = (c, dpr, font = 12) => {
   const star = markerIconUrl('capital'); const siegeIcon = markerIconUrl('siege') || markerIconUrl('battle');
   const sizeText = c.outpost != null ? '⛺' : String(c.size || 1);
-  const nameW = measure(fontOf(font), c.name);
-  const sizeW = Math.max(20, measure(fontOf(font, 800), sizeText) + 10);
+  const display = displayReady(font + 1);
+  const nameFont = display ? `700 ${font + 1}px ${DISPLAY_FONT}` : fontOf(font);
+  const sizeFont = display ? `600 ${font - 1}px ${MONO_FONT}` : fontOf(font - 1, 800);
+  const nameW = measure(nameFont, c.name);
+  const disc = font + 6;
   const extras = (c.capital ? 17 : 0) + (c.disloyal ? 16 : 0) + (c.siege != null ? 17 : 0);
-  const w = Math.ceil(sizeW + 6 + nameW + extras + 9 + 3);
-  const h = Math.ceil(font + 8 + 3);
-  const pad = 6; const cw = w + pad * 2; const ch = h + pad * 2 + 4;
+  const w = Math.ceil(3 + disc + 6 + nameW + extras + 9);
+  const h = Math.ceil(font + 12);
+  const bar = c.siege ?? c.outpost ?? c.build ?? null;
+  const pad = 6; const cw = w + pad * 2; const ch = h + pad * 2 + 5;
+  const q = (v) => (v == null ? '' : Math.round(v * 20));
   return {
-    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${c.siege == null ? '' : Math.round(c.siege * 20)}|${c.outpost == null ? '' : Math.round(c.outpost * 20)}|${font}|${dpr}`,
+    key: `cityBanner|${c.name}|${sizeText}|${c.colour}|${c.selected ? 1 : 0}|${c.capital ? 1 : 0}|${c.disloyal ? 1 : 0}|${q(c.siege)}|${q(c.outpost)}|${q(c.build)}|${font}|${display ? 1 : 0}|${dpr}`,
     w: Math.ceil(cw * dpr), h: Math.ceil(ch * dpr), pending: waiting(c.capital ? star : null) || waiting(c.siege != null ? siegeIcon : null),
     css: { w: Math.ceil(cw * dpr) / dpr, h: Math.ceil(ch * dpr) / dpr, pillW: w, pillH: h, pad },
     draw: (ctx) => {
       ctx.scale(dpr, dpr); ctx.translate(pad, pad);
-      const pill = () => { ctx.beginPath(); ctx.roundRect?.(0.75, 0.75, w - 1.5, h - 1.5, h / 2); if (!ctx.roundRect) ctx.rect(0.75, 0.75, w - 1.5, h - 1.5); };
-      ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
-      pill(); ctx.fillStyle = 'rgba(15,23,42,0.86)'; ctx.fill();
+      const pill = (x = 0.5, y = 0.5, pw = w - 1, ph = h - 1) => { ctx.beginPath(); ctx.roundRect?.(x, y, pw, ph, ph / 2); if (!ctx.roundRect) ctx.rect(x, y, pw, ph); };
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+      pill(); ctx.fillStyle = 'rgba(26,33,43,0.92)'; ctx.fill();
       ctx.shadowColor = 'transparent';
       // the size disc
-      ctx.save(); pill(); ctx.clip();
-      ctx.fillStyle = c.colour; ctx.fillRect(0, 0, sizeW, h);
-      ctx.restore();
-      ctx.font = fontOf(font, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#0f172a';
-      ctx.fillText(sizeText, sizeW / 2, h / 2 + 0.5);
+      ctx.beginPath(); ctx.arc(3 + disc / 2, h / 2, disc / 2, 0, Math.PI * 2); ctx.fillStyle = c.colour; ctx.fill();
+      ctx.font = sizeFont; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#10141A';
+      ctx.fillText(sizeText, 3 + disc / 2, h / 2 + 0.5);
       // the name and its marks
-      let x = sizeW + 6;
-      if (c.capital) { if (!(star && drawIcon(ctx, star, x, h / 2 - 7, 14, 14))) { ctx.fillStyle = '#fde68a'; ctx.font = fontOf(11); ctx.textAlign = 'left'; ctx.fillText('★', x, h / 2); } x += 17; }
-      ctx.font = fontOf(font); ctx.textAlign = 'left'; ctx.fillStyle = '#f8fafc'; ctx.fillText(c.name, x, h / 2 + 0.5); x += nameW + 2;
-      if (c.disloyal) { ctx.beginPath(); ctx.roundRect?.(x, h / 2 - 6.5, 12, 13, 6); ctx.fillStyle = '#ef4444'; ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = fontOf(10); ctx.textAlign = 'center'; ctx.fillText('!', x + 6, h / 2 + 0.5); x += 16; }
-      if (c.siege != null) { if (!(siegeIcon && drawIcon(ctx, siegeIcon, x, h / 2 - 7, 14, 14))) { ctx.fillStyle = '#fb923c'; ctx.font = fontOf(11); ctx.textAlign = 'left'; ctx.fillText('⚔', x, h / 2); } }
-      pill(); ctx.strokeStyle = c.selected ? '#fde68a' : c.colour; ctx.lineWidth = 1.5; ctx.stroke();
-      if (c.selected) { ctx.beginPath(); ctx.roundRect?.(-1.25, -1.25, w + 2.5, h + 2.5, h / 2 + 2); ctx.strokeStyle = 'rgba(253,230,138,0.55)'; ctx.lineWidth = 2; ctx.stroke(); }
-      const bar = c.siege ?? c.outpost;
+      let x = 3 + disc + 6;
+      ctx.font = nameFont; ctx.textAlign = 'left'; ctx.fillStyle = '#ECE5D3'; ctx.fillText(c.name, x, h / 2 + 0.5); x += nameW + 3;
+      if (c.capital) { if (!(star && drawIcon(ctx, star, x, h / 2 - 7, 14, 14))) { ctx.fillStyle = '#ECE5D3'; ctx.font = fontOf(11); ctx.textAlign = 'left'; ctx.fillText('★', x, h / 2); } x += 17; }
+      if (c.disloyal) { ctx.beginPath(); ctx.roundRect?.(x, h / 2 - 6.5, 12, 13, 6); ctx.fillStyle = '#E5604D'; ctx.fill(); ctx.fillStyle = '#10141A'; ctx.font = fontOf(10); ctx.textAlign = 'center'; ctx.fillText('!', x + 6, h / 2 + 0.5); x += 16; }
+      if (c.siege != null) { if (!(siegeIcon && drawIcon(ctx, siegeIcon, x, h / 2 - 7, 14, 14))) { ctx.fillStyle = '#EE8A3A'; ctx.font = fontOf(11); ctx.textAlign = 'left'; ctx.fillText('⚔', x, h / 2); } }
+      pill(); ctx.strokeStyle = c.colour; ctx.lineWidth = 1; ctx.stroke();
+      // selected: a 2 px light outline (selection is never brass)
+      if (c.selected) { pill(-1.5, -1.5, w + 3, h + 3); ctx.strokeStyle = '#ECE5D3'; ctx.lineWidth = 2; ctx.stroke(); }
       if (bar != null) {
-        ctx.fillStyle = 'rgba(15,23,42,0.85)'; ctx.fillRect(12, h + 2, w - 24, 3);
-        ctx.fillStyle = c.siege != null ? '#f97316' : '#fde68a'; ctx.fillRect(12, h + 2, (w - 24) * Math.max(0, Math.min(1, bar)), 3);
+        const bw = Math.min(56, w - 16); const bx = (w - bw) / 2;
+        ctx.beginPath(); ctx.roundRect?.(bx, h + 3, bw, 3, 1.5); if (!ctx.roundRect) ctx.rect(bx, h + 3, bw, 3); ctx.fillStyle = '#33404F'; ctx.fill();
+        ctx.beginPath(); ctx.roundRect?.(bx, h + 3, Math.max(1.5, bw * Math.max(0, Math.min(1, bar))), 3, 1.5); if (!ctx.roundRect) ctx.rect(bx, h + 3, bw * bar, 3);
+        ctx.fillStyle = c.siege != null ? '#EE8A3A' : c.outpost != null ? '#ECE5D3' : '#CDB27A'; ctx.fill();
       }
     }
   };

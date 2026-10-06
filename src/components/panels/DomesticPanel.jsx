@@ -60,7 +60,7 @@ const DomesticPanel = () => {
 
   const empireSection = (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-slate-300">Security</div>
+      <div className="text-xs font-semibold text-fa-text">Security</div>
       <ActionButton
         icon={ShieldAlert}
         label="Counter-Intelligence"
@@ -71,7 +71,7 @@ const DomesticPanel = () => {
         size="small"
       />
 
-      <div className="text-xs font-semibold text-slate-300 pt-1">Taxes</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">Taxes</div>
       {(() => {
         const taxCooldownTurn = playerNation?.taxRateCooldownUntil || 0;
         const onTaxCooldown = state.turnNumber < taxCooldownTurn;
@@ -88,7 +88,7 @@ const DomesticPanel = () => {
                 className={`text-xs rounded-lg p-2 border ${
                   playerNation?.taxRate === rateId
                     ? 'bg-amber-600/30 border-amber-500 text-amber-300'
-                    : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800'
+                    : 'bg-fa-raised/60 border-fa-line text-fa-text hover:bg-fa-raised'
                 } disabled:opacity-50`}
               >
                 <Coins size={14} className="mx-auto mb-0.5" />
@@ -99,36 +99,36 @@ const DomesticPanel = () => {
         );
       })()}
 
-      <div className="text-xs font-semibold text-slate-300 pt-1">Economy</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">Economy</div>
       {(() => {
         const { income, expenses, net } = calcNationBalance(state, state.playerNationId);
         const loans = playerNation?.loans || [];
         const loanCapacity = getLoanCapacity(state, state.playerNationId);
         const canBorrow = hasBankingHouses(state, state.playerNationId);
         return (
-          <div className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
-            <div className="flex justify-between text-slate-300">
+          <div className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex justify-between text-fa-text">
               <span>Income</span><span>+{formatNumber(Math.round(income.gold || 0))}g</span>
             </div>
-            <div className="flex justify-between text-slate-400">
+            <div className="flex justify-between text-fa-muted">
               <span>Upkeep &amp; interest</span>
               <span>-{formatNumber(Object.values(expenses).reduce((s, v) => s + v, 0))}g</span>
             </div>
-            <div className={`flex justify-between font-semibold ${net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <div className={`flex justify-between font-semibold ${net >= 0 ? 'text-fa-good' : 'text-fa-danger-text'}`}>
               <span>Net</span><span>{net >= 0 ? '+' : ''}{formatNumber(Math.round(net))}g</span>
             </div>
             {!canBorrow ? (
-              <div className="text-slate-500 pt-1">Loans require Banking Houses (Economy tech).</div>
+              <div className="text-fa-muted pt-1">Loans require Banking Houses (Economy tech).</div>
             ) : (
               <>
-                <div className="text-slate-400 pt-1">Loans: {loans.length}/{loanCapacity}</div>
+                <div className="text-fa-muted pt-1">Loans: {loans.length}/{loanCapacity}</div>
                 {loans.map((loan) => (
-                  <div key={loan.id} className="flex justify-between items-center text-slate-300">
+                  <div key={loan.id} className="flex justify-between items-center text-fa-text">
                     <span>{formatNumber(loan.principal)}g @ {Math.round(loan.interestRate * 100)}%</span>
                     <button
                       onClick={() => dispatch({ type: ActionTypes.REPAY_LOAN, payload: { loanId: loan.id } })}
                       disabled={(state.resources.gold || 0) < loan.principal}
-                      className="text-[10px] bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded px-1.5 py-0.5"
+                      className="text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-0.5"
                     >
                       Repay
                     </button>
@@ -137,7 +137,7 @@ const DomesticPanel = () => {
                 <button
                   onClick={() => dispatch({ type: ActionTypes.REQUEST_LOAN })}
                   disabled={loans.length >= loanCapacity}
-                  className="w-full text-[10px] bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded px-1.5 py-1 mt-1"
+                  className="w-full text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-1 mt-1"
                 >
                   Request Loan (~{formatNumber(getLoanSize(state, state.playerNationId))}g)
                 </button>
@@ -148,7 +148,7 @@ const DomesticPanel = () => {
                 onClick={() => dispatch({ type: ActionTypes.ACTIVATE_FUSION_GRID })}
                 disabled={playerNation?.fusionGridActive || (state.resources.helium3 || 0) < FUSION_GRID_ACTIVATION_HELIUM3}
                 title={`50 Helium-3 once, then ${FUSION_GRID_UPKEEP_HELIUM3_PER_TURN}/turn, for +${Math.round(FUSION_GRID_GOLD_MULT_BONUS * 100)}% Gold income while supplied.`}
-                className="w-full text-[10px] bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded px-1.5 py-1 mt-1"
+                className="w-full text-[10px] bg-fa-hover hover:bg-fa-line disabled:opacity-50 rounded px-1.5 py-1 mt-1"
               >
                 {playerNation?.fusionGridActive ? 'Fusion Grid Online' : `Activate Fusion Grid (${FUSION_GRID_ACTIVATION_HELIUM3} He-3)`}
               </button>
@@ -157,7 +157,7 @@ const DomesticPanel = () => {
         );
       })()}
 
-      <div className="text-xs font-semibold text-slate-300 pt-1">Great Projects</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">Great Projects</div>
       {GREAT_PROJECT_IDS.map((projectId) => {
         const project = GREAT_PROJECTS[projectId];
         const entry = state.greatProjects?.[projectId];
@@ -167,12 +167,12 @@ const DomesticPanel = () => {
           : `Tier ${entry.tier}${ownerId ? ` — ${ownedByPlayer ? 'yours' : state.nations[ownerId]?.name || ownerId}` : ' — contested'}`;
         const canRaise = ownedByPlayer && entry.tier < (project.tiers?.length || 3);
         return (
-          <div key={projectId} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+          <div key={projectId} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-white inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{project.name}</span>
-              <span className="text-slate-400">{status}</span>
+              <span className="text-fa-text inline-flex items-center gap-1.5"><WonderIcon projectId={projectId} size={20} />{project.name}</span>
+              <span className="text-fa-muted">{status}</span>
             </div>
-            <div className="text-slate-500">{project.description}</div>
+            <div className="text-fa-muted">{project.description}</div>
             {canRaise && <div className="text-[10px] text-amber-200">Raise it to tier {entry.tier + 1} from {state.regions[entry.regionId]?.name || 'its city'}&apos;s production queue (Wonders).</div>}
           </div>
         );
@@ -209,26 +209,26 @@ const DomesticPanel = () => {
     const choices = governorChoices(nation);
     if (!groups.length) return null;
     return (
-      <div className="bg-slate-800/60 rounded-lg p-3 text-sm space-y-2" data-testid="governors">
-        <div className="flex items-center gap-2"><Users size={14} className="text-emerald-300 shrink-0" /><div className="text-white font-semibold">Governors</div></div>
-        <div className="text-[10px] text-slate-500">A governed group: +{GOVERNOR_FOOD} food, +{Math.round(GOVERNOR_PRODUCTION_MULT * 100)}% production, +{GOVERNOR_CULTURE} culture, +{GOVERNOR_LOYALTY} loyalty and skill, less unrest. Ungoverned: {UNGOVERNED_LOYALTY} loyalty. Taking office takes {GOVERNOR_ASSIGN_TURNS} turns.</div>
+      <div className="bg-fa-raised/60 rounded-lg p-3 text-sm space-y-2" data-testid="governors">
+        <div className="flex items-center gap-2"><Users size={14} className="text-fa-good shrink-0" /><div className="text-fa-text font-semibold">Governors</div></div>
+        <div className="text-[10px] text-fa-muted">A governed group: +{GOVERNOR_FOOD} food, +{Math.round(GOVERNOR_PRODUCTION_MULT * 100)}% production, +{GOVERNOR_CULTURE} culture, +{GOVERNOR_LOYALTY} loyalty and skill, less unrest. Ungoverned: {UNGOVERNED_LOYALTY} loyalty. Taking office takes {GOVERNOR_ASSIGN_TURNS} turns.</div>
         {groups.map((g) => {
           const gov = nation.governors?.[g.seat];
           const arriving = gov && state.turnNumber < gov.ready;
           return (
-            <div key={g.seat} className="rounded-lg border border-slate-700 p-2 space-y-1" data-testid="governor-seat">
+            <div key={g.seat} className="rounded-lg border border-fa-line p-2 space-y-1" data-testid="governor-seat">
               <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-white">{state.regions[g.seat]?.name} <span className="text-slate-500">+{g.cities.length - 1}</span></span>
-                <span className={gov ? 'text-emerald-300' : 'text-amber-300'}>{gov ? `${gov.name} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
+                <span className="text-fa-text">{state.regions[g.seat]?.name} <span className="text-fa-muted">+{g.cities.length - 1}</span></span>
+                <span className={gov ? 'text-fa-good' : 'text-amber-300'}>{gov ? `${gov.name} (skill ${gov.skill}${arriving ? `, arrives in ${gov.ready - state.turnNumber}` : ''})` : `ungoverned (${UNGOVERNED_LOYALTY} loyalty)`}</span>
               </div>
               {gov ? (
-                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-slate-700 hover:bg-slate-600 text-xs text-slate-200">Recall</button>
+                <button type="button" onClick={() => dispatch({ type: ActionTypes.DISMISS_GOVERNOR, payload: { seatId: g.seat } })} className="min-h-[36px] px-2 rounded bg-fa-hover hover:bg-fa-line text-xs text-fa-text">Recall</button>
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {choices.map((c) => (
-                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-white">Seat {c.name} (skill {c.skill})</button>
+                    <button key={c.id} type="button" data-testid="assign-governor" onClick={() => dispatch({ type: ActionTypes.ASSIGN_GOVERNOR, payload: { seatId: g.seat, candidateId: c.id } })} className="min-h-[36px] px-2 rounded bg-emerald-700 hover:bg-emerald-600 text-xs text-fa-text">Seat {c.name} (skill {c.skill})</button>
                   ))}
-                  {!choices.length && <span className="text-[10px] text-slate-500">No one at court is free: candidates arrive every {GOVERNOR_REFRESH_TURNS} turns.</span>}
+                  {!choices.length && <span className="text-[10px] text-fa-muted">No one at court is free: candidates arrive every {GOVERNOR_REFRESH_TURNS} turns.</span>}
                 </div>
               )}
             </div>
@@ -241,48 +241,48 @@ const DomesticPanel = () => {
   const authority = authorityOf(state, state.playerNationId);
   const courtSection = (
     <div className="space-y-2">
-      <div className="bg-slate-800/60 rounded-lg p-3 text-sm" data-testid="authority">
+      <div className="bg-fa-raised/60 rounded-lg p-3 text-sm" data-testid="authority">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-slate-300 font-semibold">Authority</span>
-          <span className={`font-mono font-bold ${authority.total < AUTHORITY_CIVIL_WAR ? 'text-red-400' : authority.total < AUTHORITY_NO_LAWS ? 'text-amber-300' : 'text-emerald-300'}`}>{authority.total}</span>
+          <span className="text-fa-text font-semibold">Authority</span>
+          <span className={`font-mono font-bold ${authority.total < AUTHORITY_CIVIL_WAR ? 'text-fa-danger-text' : authority.total < AUTHORITY_NO_LAWS ? 'text-amber-300' : 'text-fa-good'}`}>{authority.total}</span>
         </div>
-        <div className="h-1.5 rounded bg-slate-700 overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${authority.total}%` }} /></div>
-        <div className="text-[10px] text-slate-500 mt-1">{authority.parts.map((p) => `${p.label} ${p.value > 0 ? '+' : ''}${p.value}`).join(' · ')}</div>
+        <div className="h-1.5 rounded bg-fa-hover overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${authority.total}%` }} /></div>
+        <div className="text-[10px] text-fa-muted mt-1">{authority.parts.map((p) => `${p.label} ${p.value > 0 ? '+' : ''}${p.value}`).join(' · ')}</div>
         {authority.total < AUTHORITY_NO_LAWS && <div className="text-[10px] text-amber-300 mt-0.5">Under {AUTHORITY_NO_LAWS}: no new laws{authority.total < AUTHORITY_CIVIL_WAR ? `; under ${AUTHORITY_CIVIL_WAR} a civil war brews` : ''}.</div>}
       </div>
       {ruler && (
-        <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
+        <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
           <div className="flex items-center gap-2">
             <Crown size={14} className="text-amber-400 shrink-0" />
-            <div className="text-white font-semibold">{ruler.name} of House {ruler.dynasty}</div>
+            <div className="text-fa-text font-semibold">{ruler.name} of House {ruler.dynasty}</div>
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[10px] text-fa-muted mt-0.5">
             ADM {ruler.adm} · DIP {ruler.dip} · MIL {ruler.mil}
             {ruler.traits?.length > 0 && ` · ${ruler.traits.map((id) => TRAITS[id]?.name || id).join(', ')}`}
           </div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px] text-fa-muted">
             Reign ends turn {ruler.reignEndsTurn}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1 border-t border-slate-700 pt-1">
+          <div className="text-[10px] text-fa-muted mt-1 border-t border-fa-line pt-1">
             When the reign ends a new ruler takes over{playerNation?.government?.type === 'monarchy' ? ' from the same royal house' : ''}.
           </div>
         </div>
       )}
 
-      <div className="bg-slate-800/60 rounded-lg p-3 text-xs space-y-1.5">
+      <div className="bg-fa-raised/60 rounded-lg p-3 text-xs space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-slate-400">Stability</span>
-          <span className={`font-mono font-semibold ${nationStability > 0 ? 'text-green-400' : nationStability < 0 ? 'text-red-400' : 'text-slate-300'}`}>
+          <span className="text-fa-muted">Stability</span>
+          <span className={`font-mono font-semibold ${nationStability > 0 ? 'text-fa-good' : nationStability < 0 ? 'text-fa-danger-text' : 'text-fa-text'}`}>
             {nationStability > 0 ? `+${nationStability}` : nationStability}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-slate-400">Legitimacy</span>
-          <span className={`font-mono font-semibold ${nationLegitimacy < 50 ? 'text-red-400' : 'text-slate-300'}`}>{Math.round(nationLegitimacy)}</span>
+          <span className="text-fa-muted">Legitimacy</span>
+          <span className={`font-mono font-semibold ${nationLegitimacy < 50 ? 'text-fa-danger-text' : 'text-fa-text'}`}>{Math.round(nationLegitimacy)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-slate-400">Prestige</span>
-          <span className="font-mono font-semibold text-slate-300">{nationPrestige > 0 ? `+${nationPrestige}` : nationPrestige}</span>
+          <span className="text-fa-muted">Prestige</span>
+          <span className="font-mono font-semibold text-fa-text">{nationPrestige > 0 ? `+${nationPrestige}` : nationPrestige}</span>
         </div>
         <ActionButton
           icon={TrendingUp}
@@ -296,20 +296,20 @@ const DomesticPanel = () => {
         />
       </div>
 
-      <div className="text-xs font-semibold text-slate-300 pt-1">Advisors</div>
+      <div className="text-xs font-semibold text-fa-text pt-1">Advisors</div>
       {['adm', 'dip', 'mil'].map((pool) => {
         const current = advisors[pool];
         const candidates = advisorCandidates[pool] || [];
         return (
-          <div key={pool} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
-            <div className="flex items-center gap-1.5 text-slate-400">
+          <div key={pool} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
+            <div className="flex items-center gap-1.5 text-fa-muted">
               <Users size={12} />
               {POWER_POOL_NAMES[pool]} Advisor
             </div>
             {current ? (
-              <div className="text-white">{current.name} (level {current.level})</div>
+              <div className="text-fa-text">{current.name} (level {current.level})</div>
             ) : (
-              <div className="text-slate-500">None hired</div>
+              <div className="text-fa-muted">None hired</div>
             )}
             {candidates.map((candidate, index) => {
               const cost = getAdvisorHireCost(candidate.level);
@@ -358,11 +358,11 @@ const DomesticPanel = () => {
 
   const governmentSection = (
     <div className="space-y-2">
-      <div className="bg-slate-800/60 rounded-lg p-3 text-sm">
-        <div className="text-slate-400">Current</div>
-        <div className="text-white font-semibold">{currentGovernmentType ? currentGovernmentType.name : 'None adopted'}</div>
+      <div className="bg-fa-raised/60 rounded-lg p-3 text-sm">
+        <div className="text-fa-muted">Current</div>
+        <div className="text-fa-text font-semibold">{currentGovernmentType ? currentGovernmentType.name : 'None adopted'}</div>
         {activeReforms.length > 0 && (
-          <div className="text-[10px] text-slate-500 mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
+          <div className="text-[10px] text-fa-muted mt-0.5">{activeReforms.map((r) => r.name).join(' · ')}</div>
         )}
       </div>
       {availableGovernmentTypes.map((gov) => (
@@ -381,16 +381,16 @@ const DomesticPanel = () => {
 
       {currentGovernmentType && currentAgeReformChoices.length > 0 && (
         <>
-          <div className="text-xs font-semibold text-slate-300 pt-1">
+          <div className="text-xs font-semibold text-fa-text pt-1">
             {currentAgeReformChosen ? 'Current Reform' : 'Choose a Reform'}
           </div>
           {currentAgeReformChoices.map((reform) => (
             currentAgeReformChosen === reform.id ? (
-              <div key={reform.id} className="flex items-center gap-1.5 bg-slate-800/60 rounded-lg p-2 text-xs">
+              <div key={reform.id} className="flex items-center gap-1.5 bg-fa-raised/60 rounded-lg p-2 text-xs">
                 <ScrollText size={14} className="text-amber-400 shrink-0" />
                 <div className="flex-1">
-                  <div className="text-white">{reform.name}</div>
-                  <div className="text-slate-500">{reform.description}</div>
+                  <div className="text-fa-text">{reform.name}</div>
+                  <div className="text-fa-muted">{reform.description}</div>
                 </div>
               </div>
             ) : (
@@ -414,18 +414,18 @@ const DomesticPanel = () => {
   const rulesInForce = describeRules(lawRulesOf(playerNation));
   const lawsSection = (
     <div className="space-y-2">
-      {rulesInForce.length > 0 && <div className="text-[11px] text-emerald-200/90 bg-slate-800/40 rounded-lg px-2 py-1" data-testid="law-rules">In force: {rulesInForce.join('; ')}.</div>}
+      {rulesInForce.length > 0 && <div className="text-[11px] text-emerald-200/90 bg-fa-raised/40 rounded-lg px-2 py-1" data-testid="law-rules">In force: {rulesInForce.join('; ')}.</div>}
       {LAW_CATEGORY_IDS.map((category) => {
         const currentLawId = playerNation?.laws?.[category];
         const currentLaw = getLaw(category, currentLawId);
         const alternatives = LAW_CATEGORIES[category].filter((l) => l.id !== currentLawId);
         return (
-          <div key={category} className="bg-slate-800/60 rounded-lg p-2 text-xs space-y-1">
+          <div key={category} className="bg-fa-raised/60 rounded-lg p-2 text-xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 capitalize">{category}</span>
-              <span className="text-white font-semibold">{currentLaw?.name}</span>
+              <span className="text-fa-muted capitalize">{category}</span>
+              <span className="text-fa-text font-semibold">{currentLaw?.name}</span>
             </div>
-            {currentLaw?.description && <div className="text-slate-500">{currentLaw.description}</div>}
+            {currentLaw?.description && <div className="text-fa-muted">{currentLaw.description}</div>}
             <div className="flex flex-wrap gap-1 pt-1">
               {alternatives.map((law) => {
                 const canEnact = canEnactLaw(state, state.playerNationId, category, law.id);
@@ -437,7 +437,7 @@ const DomesticPanel = () => {
                     onClick={() => handleChangeLaw(category, law.id)}
                     disabled={!canEnact || !canAfford(state.resources, cost)}
                     title={requiredTech && !canEnact ? `Requires ${requiredTech}` : law.description}
-                    className="text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 px-2 py-1"
+                    className="text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text px-2 py-1"
                   >
                     {law.name} ({cost.adm} ADM)
                   </button>
@@ -463,23 +463,23 @@ const DomesticPanel = () => {
         const axis = IDENTITY_AXES[axisId];
         const value = playerNation?.identity?.[axisId] || 0;
         return (
-          <div key={axisId} className="bg-slate-800/60 rounded-lg p-2 text-xs">
+          <div key={axisId} className="bg-fa-raised/60 rounded-lg p-2 text-xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-slate-400" title={axis.description}>{axis.negativePole} &harr; {axis.positivePole}</span>
-              <span className="text-white font-mono">{value > 0 ? `+${value}` : value}</span>
+              <span className="text-fa-muted" title={axis.description}>{axis.negativePole} &harr; {axis.positivePole}</span>
+              <span className="text-fa-text font-mono">{value > 0 ? `+${value}` : value}</span>
             </div>
             <div className="flex gap-1.5">
               <button
                 onClick={() => handleShiftIdentity(axisId, -1)}
                 disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value <= IDENTITY_MIN}
-                className="flex-1 text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 py-1"
+                className="flex-1 text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text py-1"
               >
                 &larr; {axis.negativePole}
               </button>
               <button
                 onClick={() => handleShiftIdentity(axisId, 1)}
                 disabled={!canAfford(state.resources, ACTION_COSTS.shiftIdentity) || identityOnCooldown || value >= IDENTITY_MAX}
-                className="flex-1 text-[10px] rounded bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 py-1"
+                className="flex-1 text-[10px] rounded bg-fa-hover/80 hover:bg-fa-line disabled:opacity-40 disabled:cursor-not-allowed text-fa-text py-1"
               >
                 {axis.positivePole} &rarr;
               </button>
@@ -496,28 +496,28 @@ const DomesticPanel = () => {
       <CollapsibleSection title="Overview" icon={Globe2} defaultOpen>
         <EmpireOverview />
       </CollapsibleSection>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-fa-line" />
       <CollapsibleSection id="war" title="War" icon={Swords} summary={warsNow.length ? `at war with ${warsNow.length}` : 'at peace'}>
         <MilitaryPanel />
       </CollapsibleSection>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-fa-line" />
       <CollapsibleSection id="court" title="Court" icon={Crown} defaultOpen>
         {courtSection}
         {governorsSection}
       </CollapsibleSection>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-fa-line" />
       <CollapsibleSection title="Treasury" icon={ShieldAlert}>
         {empireSection}
       </CollapsibleSection>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-fa-line" />
       <CollapsibleSection title="Government" icon={Landmark} summary={currentGovernmentType?.name}>
         {governmentSection}
       </CollapsibleSection>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-fa-line" />
       <CollapsibleSection title="Laws" icon={ScrollText}>
         {lawsSection}
       </CollapsibleSection>
-      <div className="border-t border-slate-800" />
+      <div className="border-t border-fa-line" />
       <CollapsibleSection title="National Identity" icon={Users}>
         {identitySection}
       </CollapsibleSection>

@@ -63,7 +63,7 @@ const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
   return (
     <div
       ref={containerRef}
-      className="relative rounded-lg overflow-hidden border border-slate-700 shadow-xl bg-slate-900/90 group hover:border-blue-500 transition-colors cursor-crosshair"
+      className="relative rounded-lg overflow-hidden border border-fa-line shadow-xl bg-fa-panel/90 group hover:border-blue-500 transition-colors cursor-crosshair"
       style={{ width: WIDTH, height: HEIGHT, touchAction: 'none' }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -83,7 +83,7 @@ const MiniMap = ({ onOpen, viewportBounds, onNavigate }) => {
       <button
         onClick={(e) => { e.stopPropagation(); onOpen(); }}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute top-0.5 right-0.5 p-0.5 rounded bg-slate-900/70 opacity-0 group-hover:opacity-100 transition-opacity text-white hover:bg-slate-800"
+        className="absolute top-0.5 right-0.5 p-0.5 rounded bg-fa-panel/70 opacity-0 group-hover:opacity-100 transition-opacity text-fa-text hover:bg-fa-raised"
         title="Open full map"
         aria-label="Open full map"
       >

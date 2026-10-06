@@ -13,10 +13,10 @@ const MapModal = ({ open, onClose, selectedRegion, onSelectRegion }) => {
   return (
     <div className="fixed inset-0 z-[80] flex flex-col p-3 sm:p-6 bg-black/90 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-2 shrink-0">
-        <h2 className="text-white font-bold text-sm sm:text-base">World Map</h2>
+        <h2 className="text-fa-text font-bold text-sm sm:text-base">World Map</h2>
         <button
           onClick={onClose}
-          className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors"
+          className="p-1.5 hover:bg-fa-hover rounded-lg text-fa-text hover:text-fa-text transition-colors"
           aria-label="Close map"
         >
           <X className="w-5 h-5" />

@@ -5,12 +5,14 @@ import React from 'react';
 import { getCostString, getResourceStrain } from '../../utils/helpers';
 
 const VARIANT_STYLES = {
-  default: 'bg-slate-700/80 hover:bg-slate-600 border-slate-600 text-slate-100',
-  primary: 'bg-blue-600/80 hover:bg-blue-500 border-blue-500 text-white',
-  success: 'bg-green-600/20 hover:bg-green-600/30 border-green-500/50 text-green-400',
-  warning: 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-400',
-  danger: 'bg-red-600/20 hover:bg-red-600/30 border-red-500/50 text-red-400',
-  purple: 'bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/50 text-purple-400'
+  // Field Atlas (plans/UI-DESIGN.md): actions are raised cards with a line border; only a screen's
+  // one primary action is brass, so 'primary' here is the same raised card with a light edge.
+  default: 'bg-fa-raised hover:bg-fa-hover border-fa-line text-fa-text',
+  primary: 'bg-fa-raised hover:bg-fa-hover border-fa-text/70 text-fa-text',
+  success: 'bg-fa-raised hover:bg-fa-hover border-fa-good/60 text-fa-good',
+  warning: 'bg-fa-raised hover:bg-fa-hover border-fa-enemy/60 text-fa-enemy',
+  danger: 'bg-[rgba(229,96,77,0.12)] hover:bg-[rgba(229,96,77,0.2)] border-fa-danger text-fa-danger-text',
+  purple: 'bg-fa-raised hover:bg-fa-hover border-fa-indep/60 text-fa-indep'
 };
 
 const formatCost = (costs) => {
@@ -54,7 +56,7 @@ const ActionButton = ({
   const strain = costs && resources ? getResourceStrain(costs, resources) : null;
 
   const sizeClasses = {
-    small: 'p-2 gap-2',
+    small: 'p-2 gap-2 min-h-[44px]',
     normal: 'p-3 gap-3',
     large: 'p-4 gap-4'
   };
@@ -93,7 +95,7 @@ const ActionButton = ({
 
         {/* Description */}
         {description && (
-          <div className="text-xs text-slate-400 mt-0.5 leading-tight">
+          <div className="text-xs text-fa-muted mt-0.5 leading-tight">
             {description}
           </div>
         )}
@@ -103,13 +105,13 @@ const ActionButton = ({
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs font-mono">
             {/* Cost */}
             {costString && (
-              <span className={strain ? `${strain.level === 'critical' ? 'text-red-400' : 'text-amber-400'} font-semibold` : 'text-red-400/90'}>
+              <span className={strain ? `${strain.level === 'critical' ? 'text-fa-danger-text' : 'text-fa-enemy'} font-semibold` : 'text-fa-muted'}>
                 Cost: {costString}
               </span>
             )}
             {/* Effect */}
             {effectString && (
-              <span className="text-green-400/90">
+              <span className="text-fa-good">
                 → {effectString}
               </span>
             )}
@@ -118,7 +120,7 @@ const ActionButton = ({
 
         {/* Resource strain warning */}
         {strain && (
-          <div className={`text-xs mt-1 ${strain.level === 'critical' ? 'text-red-400' : 'text-amber-400'}`}>
+          <div className={`text-xs mt-1 ${strain.level === 'critical' ? 'text-fa-danger-text' : 'text-fa-enemy'}`}>
             ⚠ Uses {strain.level === 'critical' ? 'all' : 'most'} of your {strain.label}
           </div>
         )}

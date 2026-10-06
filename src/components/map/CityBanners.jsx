@@ -16,6 +16,7 @@ import { markerIconUrl } from '../../data/icons';
 import { townTier } from './closeView/townTiers';
 import { townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './closeView/scale';
 import { getTiles } from '../../data/geo/tiles';
+import { cityRailModel } from '../city/cityRailModel';
 
 const EDGE_PX = 80;
 // The banner hangs just under the town's front edge (and its wall ring): the ground is about
@@ -28,6 +29,8 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
   const cities = useMemo(() => Object.values(state.regions).filter((c) => c.owner || c.colony), [state.regions]);
   const townTiles = useMemo(() => new Set(cities.filter((c) => c.tile != null).map((c) => c.tile)), [cities]);
   const isTown = useCallback((t) => townTiles.has(t), [townTiles]); // stable: scale.js caches each gap
+  // the thin production bar under your banners (W02)
+  const builds = useMemo(() => new Map(cityRailModel(state).map((r) => [r.id, r.buildShare])), [state]);
   if (!projection) return null;
   const k = transform.k;
   const out = [];
@@ -53,6 +56,7 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
     const siege = city.siege ? Math.max(0, Math.min(1, city.siege.hp / Math.max(1, city.siege.maxHp))) : null;
     const outpost = city.outpost ? Math.max(0, Math.min(1, (city.outpost.progress || 0) / OUTPOST_DONE)) : null;
     const disloyal = city.owner && loyaltyOf(city) <= 25;
+    const build = own && siege == null && outpost == null ? builds.get(city.id) ?? null : null;
     out.push(
       <button
         key={city.id}
@@ -73,9 +77,9 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
           {disloyal && <span className="city-banner-warn" title="Loyalty is low" data-loyalty-warning={city.id}>!</span>}
           {city.siege && <span className="city-banner-siege" title="Under siege" data-siege-badge={city.id}>{markerIconUrl('battle') ? <img src={markerIconUrl('battle')} alt="" className="city-banner-icon" width={14} height={14} draggable={false} /> : '⚔'}</span>}
         </span>
-        {(siege != null || outpost != null) && (
+        {(siege != null || outpost != null || build != null) && (
           <span className="city-banner-bar" aria-hidden="true">
-            <span style={{ width: `${Math.round((siege ?? outpost) * 100)}%`, background: siege != null ? '#f97316' : '#fde68a' }} />
+            <span style={{ width: `${Math.round((siege ?? outpost ?? build) * 100)}%`, background: siege != null ? 'var(--fa-enemy)' : outpost != null ? 'var(--fa-text)' : '#CDB27A' }} />
           </span>
         )}
       </button>

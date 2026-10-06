@@ -64,16 +64,16 @@ const OnboardingOverlay = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-      <div className="bg-slate-900 rounded-xl border-2 border-blue-500/60 max-w-sm w-full shadow-2xl p-6 text-center">
-        <Icon className="w-12 h-12 mx-auto mb-3 text-blue-400" />
-        <h2 className="text-xl font-bold text-white mb-2">{step.title}</h2>
-        <p className="text-slate-300 text-sm leading-relaxed mb-6">{step.body}</p>
+      <div className="bg-fa-panel rounded-xl border-2 border-blue-500/60 max-w-sm w-full shadow-2xl p-6 text-center">
+        <Icon className="w-12 h-12 mx-auto mb-3 text-fa-you" />
+        <h2 className="text-xl font-bold text-fa-text mb-2">{step.title}</h2>
+        <p className="text-fa-text text-sm leading-relaxed mb-6">{step.body}</p>
 
         <div className="flex items-center justify-center gap-1.5 mb-5">
           {STEPS.map((s, i) => (
             <span
               key={s.title}
-              className={`w-1.5 h-1.5 rounded-full ${i === stepIndex ? 'bg-blue-400' : 'bg-slate-700'}`}
+              className={`w-1.5 h-1.5 rounded-full ${i === stepIndex ? 'bg-blue-400' : 'bg-fa-hover'}`}
             />
           ))}
         </div>
@@ -83,14 +83,14 @@ const OnboardingOverlay = ({ onComplete }) => {
             <button
               onClick={handleBack}
               className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg text-sm
-                         bg-slate-700 hover:bg-slate-600 text-slate-200 transition-all active:scale-95"
+                         bg-fa-hover hover:bg-fa-line text-fa-text transition-all active:scale-95"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
           )}
           <button
             onClick={onComplete}
-            className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm text-fa-muted hover:text-fa-text transition-colors"
           >
             Skip
           </button>
@@ -98,7 +98,7 @@ const OnboardingOverlay = ({ onComplete }) => {
             onClick={handleNext}
             className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold text-sm
                        bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
-                       text-white shadow-lg transition-all active:scale-95"
+                       text-fa-text shadow-lg transition-all active:scale-95"
           >
             {isLastStep ? 'Start Playing' : 'Next'}
             {!isLastStep && <ChevronRight className="w-4 h-4" />}

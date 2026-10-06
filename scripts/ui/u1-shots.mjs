@@ -47,7 +47,7 @@ const startGame = async (page, people = 'Akkad', explored = false) => {
 const patchState = (page, fnSource) => page.evaluate((src) => {
   // eslint-disable-next-line no-new-func
   const fn = new Function('s', src);
-  const s = fn(structuredClone(window.__game.state));
+  const s = fn(window.__game.state); // fn returns a new state: change only what it spreads
   window.__game.dispatch({ type: 'LOAD_GAME', payload: s });
 }, fnSource);
 
@@ -68,7 +68,28 @@ const SCREENS = {
   },
   W02: async (page, vp) => {
     await startGame(page);
+    // queue a build in the capital so its banner carries the production bar
+    await patchState(page, `
+      const me = s.playerNationId; const cap = s.nations[me].capitalRegionId; const c = s.regions[cap];
+      return { ...s, regions: { ...s.regions, [cap]: { ...c, production: { ...c.production, current: { kind: 'building', category: 'food', tier: 0 }, progress: 14 } } } };`);
     await shot(page, 'W02-map', vp);
+    const zoomIn = page.getByRole('button', { name: 'Zoom in' });
+    for (let i = 0; i < 6; i++) { await click(zoomIn); await wait(350); }
+    await wait(2500);
+    await shot(page, 'W02-map-close', vp);
+  },
+  W03: async (page, vp) => {
+    await startGame(page);
+    // meet the nearest major people not met yet (the card shows for contacts made while playing)
+    await patchState(page, `
+      const me = s.playerNationId; const met = s.fog.met[me] || {};
+      const cap = s.regions[s.nations[me].capitalRegionId];
+      const cands = Object.values(s.nations).filter((n) => n.id !== me && !met[n.id] && !n.indep && n.capitalRegionId && s.regions[n.capitalRegionId]);
+      const d = (n) => { const r = s.regions[n.capitalRegionId]; return Math.hypot((r.lat || 0) - (cap.lat || 0), (r.lng || r.lon || 0) - (cap.lng || cap.lon || 0)); };
+      const pick = cands.sort((a, b) => d(a) - d(b))[0];
+      return { ...s, fog: { ...s.fog, met: { ...s.fog.met, [me]: { ...met, [pick.id]: s.turnNumber } } } };`);
+    await page.getByTestId('first-contact').waitFor({ timeout: 10000 });
+    await shot(page, 'W03-first-contact', vp);
   }
 };
 

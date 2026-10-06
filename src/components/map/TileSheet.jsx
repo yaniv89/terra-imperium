@@ -66,21 +66,21 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
 
   const body = (
     <>
-      <div className="flex justify-between items-start border-b border-slate-700 pb-2 mb-2">
+      <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
+          <MapPin className="w-4 h-4 text-fa-good shrink-0" />
           <div className="min-w-0">
-            <div className="font-bold text-white truncate text-sm">{name}</div>
-            <div className="text-slate-500 text-[10px] capitalize">{parts.join(', ')}{country && !ownerCity ? ` · ${WORLD_NATIONS[country]?.name || country} lands` : ''}</div>
+            <div className="font-bold text-fa-text truncate text-sm">{name}</div>
+            <div className="text-fa-muted text-[10px] capitalize">{parts.join(', ')}{country && !ownerCity ? ` · ${WORLD_NATIONS[country]?.name || country} lands` : ''}</div>
           </div>
         </div>
-        <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white shrink-0"><X className="w-4 h-4" /></button>
+        <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text shrink-0"><X className="w-4 h-4" /></button>
       </div>
       {enemyHere.length > 0 && (
         <div className="mb-2 space-y-1" data-testid="enemy-army-here">
-          <div className="text-xs text-red-300 font-semibold flex items-center gap-1"><Swords className="w-3.5 h-3.5" /> {state.nations[enemyHere[0].ownerId]?.name || 'Rebel'} army here: {enemyHere.length} unit{enemyHere.length === 1 ? '' : 's'}</div>
+          <div className="text-xs text-fa-danger-text font-semibold flex items-center gap-1"><Swords className="w-3.5 h-3.5" /> {state.nations[enemyHere[0].ownerId]?.name || 'Rebel'} army here: {enemyHere.length} unit{enemyHere.length === 1 ? '' : 's'}</div>
           {attackSources.map(({ regionId, v }) => (
-            <button key={regionId} type="button" disabled={!v.ok && v.reason !== 'cost'} onClick={() => setAttackFrom(regionId)} data-testid="attack-army" className="w-full min-h-[44px] rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1">
+            <button key={regionId} type="button" disabled={!v.ok && v.reason !== 'cost'} onClick={() => setAttackFrom(regionId)} data-testid="attack-army" className="w-full min-h-[44px] rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-40 text-fa-text font-semibold text-xs flex items-center justify-center gap-1">
               Attack with the army of {state.regions[regionId]?.name || regionId}{v.ok ? ` (${v.attackerUnits.length} unit${v.attackerUnits.length === 1 ? '' : 's'})` : v.reason === 'no_moves' ? ' (already moved)' : ''}
             </button>
           ))}
@@ -89,49 +89,49 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
       {foreignWar && (
         <div className="mb-2 space-y-1" data-testid="foreign-army-here">
           <div className="text-xs text-amber-200 font-semibold">{foreignWar.name}&apos;s army here: {foreignHere.length} unit{foreignHere.length === 1 ? '' : 's'} (at peace)</div>
-          <button type="button" disabled={!foreignWar.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } })} title={foreignWar.note} data-testid="tile-declare-war" className="w-full min-h-[44px] rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1"><Swords className="w-3.5 h-3.5" /> {foreignWar.label}</button>
+          <button type="button" disabled={!foreignWar.enabled} onClick={() => dispatch({ type: ActionTypes.DECLARE_WAR, payload: { nationId: foreignWar.nationId } })} title={foreignWar.note} data-testid="tile-declare-war" className="w-full min-h-[44px] rounded-lg bg-amber-700 hover:bg-amber-600 disabled:opacity-40 text-fa-text font-semibold text-xs flex items-center justify-center gap-1"><Swords className="w-3.5 h-3.5" /> {foreignWar.label}</button>
         </div>
       )}
       {attackFrom && <PreBattleModal fromRegionId={attackFrom} tile={tile} onClose={() => setAttackFrom(null)} />}
       <div className="flex flex-wrap gap-3 text-xs mb-2" data-testid="tile-yields">
-        <Yield icon={Wheat} value={`${y.food} food`} className="text-emerald-300" title="Food" />
+        <Yield icon={Wheat} value={`${y.food} food`} className="text-fa-good" title="Food" />
         <Yield icon={Hammer} value={`${y.production} production`} className="text-amber-300" title="Production" />
         <Yield icon={Coins} value={`${y.gold} gold`} className="text-yellow-300" title="Gold" />
         {facts.resource && <span className="text-fuchsia-300 capitalize inline-flex items-center gap-1"><ResourceIcon resourceId={facts.resource} size={18} />{facts.resource}</span>}
-        {facts.improvement && <span className="text-sky-300 inline-flex items-center gap-1"><ImprovementIcon improvementId={facts.improvement} size={18} />{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
+        {facts.improvement && <span className="text-fa-you inline-flex items-center gap-1"><ImprovementIcon improvementId={facts.improvement} size={18} />{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
         {facts.district && <span className="text-violet-300" data-testid="tile-district">{DISTRICTS[facts.district]?.name || facts.district}{facts.pillaged ? ' (pillaged)' : ''}</span>}
       </div>
       {ownerCity ? (
-        <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-left text-xs rounded-lg bg-slate-800/60 border border-slate-700 px-2 py-2 min-h-[40px]">
-          Land of <span className="text-white font-semibold">{ownerCity.name}</span> <span className="text-slate-400">({ownerNation?.name || ownerCity.owner})</span>
-          {settlers.length > 0 && ownerCity.owner !== me && <span className="block text-[11px] text-red-300" data-testid="settle-reason">No city here: it belongs to {ownerNation?.name || ownerCity.owner}.</span>}
+        <button type="button" onClick={() => onSelectRegion?.(ownerCity.id)} className="w-full text-left text-xs rounded-lg bg-fa-raised/60 border border-fa-line px-2 py-2 min-h-[40px]">
+          Land of <span className="text-fa-text font-semibold">{ownerCity.name}</span> <span className="text-fa-muted">({ownerNation?.name || ownerCity.owner})</span>
+          {settlers.length > 0 && ownerCity.owner !== me && <span className="block text-[11px] text-fa-danger-text" data-testid="settle-reason">No city here: it belongs to {ownerNation?.name || ownerCity.owner}.</span>}
         </button>
       ) : (
         <div className="space-y-2">
-          <div className="text-xs text-slate-400">{facts.land ? (can.ok ? `A city here would score ${scoreSite(state, tile)}.` : can.reason) : 'Nobody lives at sea.'}</div>
+          <div className="text-xs text-fa-muted">{facts.land ? (can.ok ? `A city here would score ${scoreSite(state, tile)}.` : can.reason) : 'Nobody lives at sea.'}</div>
           {here.length > 0 && (
-            <button type="button" disabled={!can.ok} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: here[0].id } })} data-testid="found-city" className="w-full min-h-[44px] rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1">
+            <button type="button" disabled={!can.ok} onClick={() => dispatch({ type: ActionTypes.FOUND_CITY, payload: { unitId: here[0].id } })} data-testid="found-city" className="w-full min-h-[44px] rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-fa-text font-semibold text-xs flex items-center justify-center gap-1">
               <Flag className="w-4 h-4" /> Found a city here
             </button>
           )}
           {coming.map((u) => (
-            <div key={u.id} className="flex items-center justify-between text-xs rounded-lg bg-slate-800/60 border border-slate-700 px-2 min-h-[40px]">
-              <span className="text-slate-200 flex items-center gap-1"><Tent className="w-3.5 h-3.5" /> Settlers arriving in {turnsFor(u) ?? '?'} turn{turnsFor(u) === 1 ? '' : 's'}</span>
-              <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile: null } })} className="text-slate-400 underline">Cancel</button>
+            <div key={u.id} className="flex items-center justify-between text-xs rounded-lg bg-fa-raised/60 border border-fa-line px-2 min-h-[40px]">
+              <span className="text-fa-text flex items-center gap-1"><Tent className="w-3.5 h-3.5" /> Settlers arriving in {turnsFor(u) ?? '?'} turn{turnsFor(u) === 1 ? '' : 's'}</span>
+              <button type="button" onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile: null } })} className="text-fa-muted underline">Cancel</button>
             </div>
           ))}
           {facts.land && can.ok && idle.map((u) => {
             const turns = turnsFor(u);
             const from = state.regions[u.regionId]?.name || 'the road';
             return (
-              <button key={u.id} type="button" disabled={turns == null} onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile } })} data-testid="send-settler" className="w-full min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1">
+              <button key={u.id} type="button" disabled={turns == null} onClick={() => dispatch({ type: ActionTypes.SET_SETTLER_TARGET, payload: { unitId: u.id, tile } })} data-testid="send-settler" className="w-full min-h-[44px] rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-fa-text font-semibold text-xs flex items-center justify-center gap-1">
                 <Tent className="w-4 h-4" /> {turns == null ? `Settlers near ${from} cannot reach it` : `Send settlers from ${from}: ${turns} turn${turns === 1 ? '' : 's'}`}
               </button>
             );
           })}
-          {facts.land && can.ok && !settlers.length && <div className="text-[11px] text-slate-500">Build settlers in a city of size 2 or more to claim this land.</div>}
+          {facts.land && can.ok && !settlers.length && <div className="text-[11px] text-fa-muted">Build settlers in a city of size 2 or more to claim this land.</div>}
           {landing.length > 0 && (
-            <button type="button" onClick={() => landing.forEach((c) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id, tile } }))} data-testid="land-here" className="w-full min-h-[44px] rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs flex items-center justify-center gap-1">
+            <button type="button" onClick={() => landing.forEach((c) => dispatch({ type: ActionTypes.DISEMBARK_UNIT, payload: { landUnitId: c.id, tile } }))} data-testid="land-here" className="w-full min-h-[44px] rounded-lg bg-sky-600 hover:bg-sky-500 text-fa-text font-semibold text-xs flex items-center justify-center gap-1">
               Land {landing.length} unit{landing.length === 1 ? '' : 's'} here
             </button>
           )}
@@ -142,13 +142,13 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
 
   if (isMobile) {
     return (
-      <div className="fixed inset-x-0 bottom-0 z-30 max-h-[55vh] overflow-y-auto bg-slate-900 border-t border-slate-700 rounded-t-2xl p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs shadow-2xl sheet-panel" data-testid="tile-sheet">
+      <div className="fixed inset-x-0 bottom-0 z-30 max-h-[55vh] overflow-y-auto bg-fa-panel border-t border-fa-line rounded-t-2xl p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs shadow-2xl sheet-panel" data-testid="tile-sheet">
         {body}
       </div>
     );
   }
   return (
-    <div className="absolute corner-card corner-card-second top-[calc(var(--header-height,4.5rem)+0.5rem)] left-2 z-20 bg-slate-900 p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)] border border-slate-700 shadow-xl max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto" data-testid="tile-sheet">
+    <div className="absolute corner-card corner-card-second top-[calc(var(--header-height,4.5rem)+0.5rem)] left-2 z-20 bg-fa-panel p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)] border border-fa-line shadow-xl max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto" data-testid="tile-sheet">
       {body}
     </div>
   );

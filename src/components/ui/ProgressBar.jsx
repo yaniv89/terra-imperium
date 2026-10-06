@@ -16,13 +16,13 @@ const ProgressBar = ({
   const percentage = Math.min(100, Math.max(0, (value / max) * 100));
 
   const colorClasses = {
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    red: 'bg-red-500',
-    yellow: 'bg-yellow-500',
-    amber: 'bg-amber-500',
-    purple: 'bg-purple-500',
-    orange: 'bg-orange-500',
+    blue: 'bg-fa-you',
+    green: 'bg-fa-good',
+    red: 'bg-fa-danger',
+    yellow: 'bg-[#CDB27A]',
+    amber: 'bg-fa-brass',
+    purple: 'bg-fa-indep',
+    orange: 'bg-fa-enemy',
     gradient: 'bg-gradient-to-r from-red-500 via-yellow-500 to-green-500'
   };
 
@@ -46,11 +46,11 @@ const ProgressBar = ({
     <div className={`w-full ${className}`}>
       {showLabel && (
         <div className="flex justify-between items-center mb-1 text-xs">
-          <span className="text-slate-400">{label}</span>
-          <span className="text-slate-300 font-mono">{Math.round(percentage)}%</span>
+          <span className="text-fa-muted">{label}</span>
+          <span className="text-fa-text font-mono">{Math.round(percentage)}%</span>
         </div>
       )}
-      <div className={`w-full bg-slate-700 rounded-full overflow-hidden ${sizeClasses[size]}`}>
+      <div className={`w-full bg-fa-line rounded-full overflow-hidden ${sizeClasses[size]}`}>
         <div
           className={`h-full ${getValueColor()} ${animate ? 'transition-all duration-500' : ''}`}
           style={{ width: `${percentage}%` }}

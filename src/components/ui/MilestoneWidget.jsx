@@ -22,7 +22,7 @@ const MilestoneWidget = () => {
         {top.label}
       </div>
       <ProgressBar value={top.progress * 100} color="purple" size="small" />
-      <div className="text-[9px] text-slate-500 mt-1">{top.detail}</div>
+      <div className="text-[9px] text-fa-muted mt-1">{top.detail}</div>
     </div>
   );
 };

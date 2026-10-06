@@ -58,7 +58,7 @@ const IconButton = ({ icon: Icon, label, onClick, disabled: looksDisabled, title
     onClick={onClick}
     title={title}
     className={`flex items-center gap-1 px-1.5 py-1 rounded text-[10px] ${
-      looksDisabled ? 'bg-slate-800 text-slate-500' : 'bg-slate-700/80 hover:bg-slate-600 text-slate-200'
+      looksDisabled ? 'bg-fa-raised text-fa-muted' : 'bg-fa-hover/80 hover:bg-fa-line text-fa-text'
     }`}
   >
     <Icon size={11} />
@@ -153,7 +153,7 @@ const DiplomacyPanel = () => {
           </div>
           <div className="flex gap-1 shrink-0">
             <button type="button" className="min-h-[44px] px-3 rounded bg-[#D8A444] hover:bg-[#e3b45a] text-xs font-bold text-slate-950" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: true } })}>Accept</button>
-            <button type="button" className="min-h-[44px] px-3 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-100" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: false } })}>Decline</button>
+            <button type="button" className="min-h-[44px] px-3 rounded bg-fa-hover hover:bg-fa-line text-xs font-semibold text-fa-text" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: false } })}>Decline</button>
           </div>
         </div>
       ))}
@@ -184,13 +184,13 @@ const DiplomacyPanel = () => {
       )}
       <IndependentsList />
       <div className="relative mb-2">
-        <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+        <Search className="w-3.5 h-3.5 text-fa-muted absolute left-2 top-1/2 -translate-y-1/2" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search nations..."
-          className="w-full bg-slate-800/50 border border-slate-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+          className="w-full bg-fa-raised/50 border border-fa-line rounded-lg pl-7 pr-2 py-1.5 text-xs text-fa-text placeholder-fa-muted focus:outline-none focus:border-blue-500/50"
         />
       </div>
 
@@ -198,24 +198,24 @@ const DiplomacyPanel = () => {
         {sortedNations.map(nation => <NationCard key={nation.id} nation={nation} />)}
       </div>
       {unmetCount > 0 && (
-        <p className="text-[11px] text-slate-400 px-1" data-testid="unmet-count">
+        <p className="text-[11px] text-fa-muted px-1" data-testid="unmet-count">
           {unmetCount} {unmetCount === 1 ? 'people has' : 'peoples have'} not been met yet. Explore with armies, settlers and ships: diplomacy opens once you see their land.
         </p>
       )}
 
-      <div className="mt-3 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
+      <div className="mt-3 p-2 bg-fa-raised/30 rounded-lg border border-fa-line/50">
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div>
-            <div className="text-red-400 font-bold">{sortedNations.filter(n => isAtWarWithPlayer(state, n.id)).length}</div>
-            <div className="text-slate-500">At War</div>
+            <div className="text-fa-danger-text font-bold">{sortedNations.filter(n => isAtWarWithPlayer(state, n.id)).length}</div>
+            <div className="text-fa-muted">At War</div>
           </div>
           <div>
-            <div className="text-green-400 font-bold">{sortedNations.filter(n => n.hasPeaceTreaty).length}</div>
-            <div className="text-slate-500">Peace</div>
+            <div className="text-fa-good font-bold">{sortedNations.filter(n => n.hasPeaceTreaty).length}</div>
+            <div className="text-fa-muted">Peace</div>
           </div>
           <div>
-            <div className="text-blue-400 font-bold">{sortedNations.filter(n => n.hasTradeAgreement).length}</div>
-            <div className="text-slate-500">Trade</div>
+            <div className="text-fa-you font-bold">{sortedNations.filter(n => n.hasTradeAgreement).length}</div>
+            <div className="text-fa-muted">Trade</div>
           </div>
         </div>
       </div>

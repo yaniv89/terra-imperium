@@ -586,14 +586,14 @@ const GLMapView = ({
         <canvas ref={canvasRef} data-testid="gl-map" style={{ width, height, display: 'block' }} />
       </div>
       {!prefersReducedMotion() && <EffectsLayer effects={effects} getProjector={getProjector} width={width} height={height} ageId={state.age} testId="map2d-effects" />}
-      <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
-        <button onClick={() => zoomBy(ZOOM_STEP_SCALE)} disabled={kNow >= ZOOM_MAX} className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent" title="Zoom in">
+      <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-fa-panel/95 rounded-lg border border-fa-line shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,2.25rem)+0.625rem)]' : 'top-12'}`}>
+        <button onClick={() => zoomBy(ZOOM_STEP_SCALE)} disabled={kNow >= ZOOM_MAX} className="w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors disabled:opacity-30 disabled:hover:bg-transparent" title="Zoom in" aria-label="Zoom in">
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
-        <button onClick={() => zoomBy(1 / ZOOM_STEP_SCALE)} disabled={kNow <= minK} className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-t border-slate-700 disabled:opacity-30 disabled:hover:bg-transparent" title="Zoom out">
+        <button onClick={() => zoomBy(1 / ZOOM_STEP_SCALE)} disabled={kNow <= minK} className="w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors border-t border-fa-line disabled:opacity-30 disabled:hover:bg-transparent" title="Zoom out" aria-label="Zoom out">
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
-        <button onClick={resetZoom} disabled={kNow <= minK} className="p-1.5 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors border-t border-slate-700 disabled:opacity-30 disabled:hover:bg-transparent" title="Reset view">
+        <button onClick={resetZoom} disabled={kNow <= minK} className="w-10 h-10 flex items-center justify-center text-fa-text hover:bg-fa-raised transition-colors border-t border-fa-line disabled:opacity-30 disabled:hover:bg-transparent" title="Reset view" aria-label="Reset view">
           <Maximize className="w-3.5 h-3.5" />
         </button>
       </div>

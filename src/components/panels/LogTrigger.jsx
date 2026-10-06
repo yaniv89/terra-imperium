@@ -22,7 +22,7 @@ const LogTrigger = ({ onClick, unreadCount = 0 }) => (
     onClick={onClick}
     className="fixed z-20 flex items-center gap-2 px-3 min-h-[40px] rounded-full bg-fa-panel/95
                border border-fa-line shadow-xl text-fa-text hover:bg-fa-raised transition-colors
-               right-3 top-[calc(var(--header-height,2.25rem)+0.5rem)]
+               right-3 top-[calc(var(--header-height,2.25rem)+8.75rem)]
                lg:hidden pl:hidden"
     aria-label="Open event log"
   >

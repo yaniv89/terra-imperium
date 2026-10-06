@@ -68,31 +68,31 @@ const ProvinceModal = ({ regionId, open, onClose }) => {
         ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
         className={isMobile
-          ? `absolute inset-x-0 bottom-0 ${peeking ? 'max-h-[22vh]' : 'max-h-[65vh]'} transition-[max-height] duration-300 ease-out rounded-t-2xl bg-slate-900 border-t border-slate-700 shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]`
-          : 'absolute left-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(400px,46vw)] pl:pl-[env(safe-area-inset-left)] bg-slate-900 border-r border-slate-700 shadow-2xl flex flex-col'}
+          ? `absolute inset-x-0 bottom-0 ${peeking ? 'max-h-[22vh]' : 'max-h-[65vh]'} transition-[max-height] duration-300 ease-out rounded-t-2xl bg-fa-panel border-t border-fa-line shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom)]`
+          : 'absolute left-0 top-0 bottom-0 w-full max-w-md pl:max-w-[min(400px,46vw)] pl:pl-[env(safe-area-inset-left)] bg-fa-panel border-r border-fa-line shadow-2xl flex flex-col'}
       >
         {/* Header — tapping it while the sheet is peeking brings the full sheet straight back. */}
-        <div onClick={peeking ? cancelPeek : undefined} className="p-4 border-b border-slate-700 shrink-0 flex items-start justify-between gap-2">
+        <div onClick={peeking ? cancelPeek : undefined} className="p-4 border-b border-fa-line shrink-0 flex items-start justify-between gap-2">
           <div className="min-w-0 flex items-center gap-2">
-            <Building2 size={20} className="text-blue-400 shrink-0" />
+            <Building2 size={20} className="text-fa-you shrink-0" />
             <div className="min-w-0">
-              <div className="font-bold text-white truncate">{regionData.name}</div>
-              <div className="text-slate-500 text-[10px] capitalize">{regionData.terrain} · {ownerName}</div>
+              <div className="font-bold text-fa-text truncate">{regionData.name}</div>
+              <div className="text-fa-muted text-[10px] capitalize">{regionData.terrain} · {ownerName}</div>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors shrink-0">
+          <button onClick={onClose} className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text transition-colors shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-700 shrink-0">
+        <div className="flex border-b border-fa-line shrink-0">
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`flex-1 px-2 py-2 text-xs font-semibold border-b-2 transition-colors ${
-                tab === t.id ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+                tab === t.id ? 'border-blue-500 text-fa-you' : 'border-transparent text-fa-muted hover:text-fa-text'
               }`}
             >
               {t.label}

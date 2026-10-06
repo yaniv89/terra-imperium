@@ -38,22 +38,22 @@ const CityBuildings = ({ cityId }) => {
     <div className="space-y-3">
     <ul className="space-y-1" data-testid="city-buildings">
       {rows.map((r) => (
-        <li key={r.category} className="flex items-center gap-2 rounded-lg px-2 py-1.5 min-h-[44px] text-xs bg-slate-800/60 border border-slate-700/60">
+        <li key={r.category} className="flex items-center gap-2 rounded-lg px-2 py-1.5 min-h-[44px] text-xs bg-fa-raised/60 border border-fa-line/60">
           {/* The next tier's icon (what the button queues); a finished line shows its top tier. */}
           <BuildingIcon category={r.category} tier={r.next ? r.built.length : r.built.length - 1} size={28} />
           <div className="min-w-0 flex-1">
-            <div className="text-slate-100">{r.label}</div>
-            <div className="text-slate-400 truncate">{r.built.length ? r.built.join(', ') : 'nothing yet'}{r.next ? ` · next ${r.next.name} (${r.next.cost})` : ' · complete'}{r.next?.needs ? ` · needs ${r.next.needs}` : ''}{r.next?.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-sky-300 min-h-[24px]" data-testid="research-for-building">Research it</button>}</div>
+            <div className="text-fa-text">{r.label}</div>
+            <div className="text-fa-muted truncate">{r.built.length ? r.built.join(', ') : 'nothing yet'}{r.next ? ` · next ${r.next.name} (${r.next.cost})` : ' · complete'}{r.next?.needs ? ` · needs ${r.next.needs}` : ''}{r.next?.needsTech && mine && <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: r.next.needsTech } })} className="ml-1 underline text-fa-you min-h-[24px]" data-testid="research-for-building">Research it</button>}</div>
           </div>
           {r.next && mine && (r.next.queued
-            ? <span className="text-emerald-300 flex items-center gap-1"><Check className="w-3.5 h-3.5" /> queued</span>
-            : <button type="button" disabled={!r.next.canBuild} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: { kind: 'building', category: r.category, tier: r.built.length } } })} aria-label={`Queue ${r.next.name}`} className="min-w-[44px] min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-white flex items-center justify-center"><Plus className="w-4 h-4" /></button>)}
+            ? <span className="text-fa-good flex items-center gap-1"><Check className="w-3.5 h-3.5" /> queued</span>
+            : <button type="button" disabled={!r.next.canBuild} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: { kind: 'building', category: r.category, tier: r.built.length } } })} aria-label={`Queue ${r.next.name}`} className="min-w-[44px] min-h-[44px] rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 text-fa-text flex items-center justify-center"><Plus className="w-4 h-4" /></button>)}
         </li>
       ))}
     </ul>
     {dev && (
       <div className="space-y-1" data-testid="city-development">
-        <div className="text-xs font-semibold text-slate-300">Development (total {dev.totalDev})</div>
+        <div className="text-xs font-semibold text-fa-text">Development (total {dev.totalDev})</div>
         {dev.rows.map((r) => <ActionButton key={r.id} icon={TrendingUp} label={r.label} description={r.description} costs={r.costs} onClick={() => invest(r)} disabled={!r.enabled} resources={state.resources} size="small" />)}
         {dev.deposits.map((d) => <ActionButton key={d.resourceId} icon={depositIcon(d.resourceId)} label={`${d.name}${d.built ? ' (built)' : ''}`} description={`Develop this land's ${d.resourceId} deposit`} costs={d.built ? null : ACTION_COSTS.developResourceSite} onClick={() => developSite(d)} disabled={!d.enabled} resources={state.resources} size="small" />)}
       </div>

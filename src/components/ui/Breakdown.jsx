@@ -19,13 +19,13 @@ const Breakdown = ({ rows, total = null, unit = '' }) => {
     <div className="min-w-[10rem]">
       {rows.map((row, i) => (
         <div key={`${row.label}-${i}`} className="flex justify-between gap-3">
-          <span className="text-slate-300">{row.label}</span>
-          <span className={row.value > 0 ? 'text-emerald-400' : row.value < 0 ? 'text-red-400' : 'text-slate-400'}>
+          <span className="text-fa-text">{row.label}</span>
+          <span className={row.value > 0 ? 'text-emerald-400' : row.value < 0 ? 'text-red-400' : 'text-fa-muted'}>
             {formatSigned(row.value)}{unit}
           </span>
         </div>
       ))}
-      <div className="flex justify-between gap-3 mt-1 pt-1 border-t border-slate-600 font-bold">
+      <div className="flex justify-between gap-3 mt-1 pt-1 border-t border-fa-line font-bold">
         <span>Total</span>
         <span>{formatSigned(computedTotal)}{unit}</span>
       </div>
