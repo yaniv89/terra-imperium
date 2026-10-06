@@ -116,6 +116,17 @@ fire; a hit means a bug.
 - Perf: `spreadCapitals` with the prototype takes about 0.8 s for 240 nations (cached per
   grid). Keep it under 1 s or cache the result in the build.
 
+## Status (phase S, 2026-10-06, branch claude/ancient-world)
+Done: R1 (citySpacing.js, used by canFoundCity and so by settlers, the AI, emergence and the
+starts), R2 (unchanged rule), R5 (one barred-tile set over every nation's cities), R6 (the Settle
+lens, key 8, also shown while a tile with your settler is selected; the tile card names the owner;
+the nation picker note), R7 (stateAudit `city_spacing`; testWorld.addCity obeys the rule, `loose`
+for two fixtures). R3 and R4 for the legacy full world with **option A**: the picked nation first
+on its real capital; others move inside their land, else at most START_ABROAD_KM (300 km) beyond
+their border, never onto the land of a nation still to be placed; else absent (dormant and left out
+of the nations). Without a priority 17 are absent: ai bl cw je kn lc lu mf mk ms ps si sx va vc vi
+xk; 36 capitals move. Not done: a dormant nation emerging when its land frees up (optional).
+
 ## Starting point
 The prototype on `game/settle-rules` has R1 (citySpacing.js, wired into cities.js markBlocked),
 R3 with option B, and R5. Measured at frequency 100: 0 rule breaks, 60 capitals moved (list

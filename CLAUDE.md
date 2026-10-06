@@ -44,7 +44,7 @@ The live site is GitHub Pages, built into `docs/`.
   Save version 10 is a clean break (7 was the frequency-53 grid, 8 and 9 frequency 75). Distances are
   rules in km, never rings: write `ringsForKm(km)` (src/data/geo/gridScale.js; tech reach bonuses in
   src/data/techMapEffects.js are km too), movement is km a turn (armies.js MOVE_KM), a new city claims
-  `foundingDisk` (the same land on any grid) and culture tile costs are per area. Settlers and outposts: `src/engine/settlers.js`; what AI cities
+  `foundingDisk` (the same land on any grid) and culture tile costs are per area. The one settling rule (306 km, one ring less across water) for founding, starts and the audit: `src/data/geo/citySpacing.js`. Settlers and outposts: `src/engine/settlers.js`; what AI cities
   build: `src/engine/aiProduction.js`. Armies on tiles (unit.tile, move points, tile costs, A*
   routes, zone of control, `normalizeUnitTiles`): `src/engine/armies.js`; marches: routes.js;
   the supply meter: supplyMeter.js; tile sight (fog): sight.js; fleets on sea tiles: fleets.js; sieges (walls, HP,
