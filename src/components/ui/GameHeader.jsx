@@ -111,8 +111,12 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward, turnPending 
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), WARN_ARM_MS); return () => clearTimeout(t); }, [armed]);
   const warnings = endTurnWarnings(state);
   const endTurn = () => { if (warnings > 0 && !armed) { setArmed(true); return; } setArmed(false); advanceTurn(); };
+  // resolveTurn does nothing while an event (historical, chain or procedural) or a peace offer
+  // waits for an answer, so End Turn says so instead of looking clickable and doing nothing.
+  const waitingFor = state.activeEventId || state.activeProceduralEvent ? 'Answer the event first'
+    : state.pendingPeaceOffer ? 'Answer the peace offer first' : null;
   // Enter ends the turn (through the same gate) when nothing is being typed and no modal holds it.
-  const canEnd = !isGameOver && state.activeEventId === null;
+  const canEnd = !isGameOver && !waitingFor;
   useEffect(() => {
     const onKey = (e) => { if (e.key !== 'Enter' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return; if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target?.tagName || '')) return; if (!canEnd) return; e.preventDefault(); endTurn(); };
     window.addEventListener('keydown', onKey);
@@ -125,7 +129,8 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward, turnPending 
       onClick={endTurn}
       data-armed={armed ? '1' : '0'}
       data-turn-pending={turnPending ? '1' : '0'}
-      disabled={state.activeEventId !== null || isGameOver || turnPending}
+      disabled={!!waitingFor || isGameOver || turnPending}
+      title={waitingFor || undefined}
       className={`
         px-3 sm:px-4 py-1.5 sm:py-2 pl:px-3 pl:py-1.5 pl:text-xs rounded-lg font-bold text-xs sm:text-sm
         bg-gradient-to-r from-blue-600 to-blue-500
@@ -137,7 +142,7 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward, turnPending 
     >
       {/* Always labeled — this is the single most-repeated action in the game and must never
           degrade to an unlabeled color block on a narrow screen. */}
-      <span className="whitespace-nowrap">{turnPending ? 'The world moves…' : armed ? `End anyway? ${warnings} waiting` : 'End Turn'}</span>
+      <span className="whitespace-nowrap">{turnPending ? 'The world moves…' : waitingFor || (armed ? `End anyway? ${warnings} waiting` : 'End Turn')}</span>
       {state.pendingDefenses?.length > 0 && (
         <span className="ml-0.5 px-1.5 rounded-full bg-red-500 text-[10px] leading-4" title="Your regions are under attack — fight the assaults first">{state.pendingDefenses.length}</span>
       )}
@@ -147,7 +152,7 @@ const TurnButtons = ({ state, isGameOver, advanceTurn, fastForward, turnPending 
         ending, so the quiet stretches of a multi-century game don't need one click each. */}
     <button
       onClick={fastForward}
-      disabled={state.activeEventId !== null || isGameOver || turnPending}
+      disabled={!!waitingFor || isGameOver || turnPending}
       title="Fast-forward until something happens"
       className={`
         px-2.5 sm:px-3 py-1.5 sm:py-2 pl:px-2 pl:py-1.5 rounded-lg font-bold text-xs sm:text-sm
