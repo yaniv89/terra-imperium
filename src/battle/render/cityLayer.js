@@ -21,7 +21,7 @@
 import { InstancedMesh, MeshLambertMaterial, BoxGeometry, Object3D, Color, Group } from 'three';
 import { Q } from '../sim/constants';
 import { townUrlByName, loadTownAsset, instanceTownAsset, showLod } from '../../components/map/closeView/townAssets';
-import { enableTownDamage, setTownDamage, syncTownDamage } from '../../components/map/closeView/townDamage';
+import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry } from '../../components/map/closeView/townDamage';
 
 const PASSIVE_KINDS = new Set(['house', 'landmark', 'palace', 'wonder']);
 /** The structure kinds this layer draws (BattleRenderer leaves them out). */
@@ -52,7 +52,9 @@ export class CityLayer {
     };
     this.walls = mk(this.items.filter((i) => i.s.kind === 'wall' || i.s.kind === 'gate').length * 2, stone);
     this.blocks = mk(this.items.filter((i) => PASSIVE_KINDS.has(i.s.kind)).length, '#d8cdb5');
-    this.rubble = mk(this.items.length, '#8b8073');
+    this.rubble = new InstancedMesh(moundGeometry(), this.r.track(new MeshLambertMaterial({ color: '#8b8073' })), Math.max(1, this.items.length));
+    Object.assign(this.rubble, { count: 0, castShadow: true, receiveShadow: true, frustumCulled: false });
+    this.r.scene.add(this.rubble);
     // The town model itself, on the keep: town space -> battle tiles (cityBattle.js).
     const S = this.city.scale;
     this.root = new Group();
@@ -94,7 +96,7 @@ export class CityLayer {
       const [x, y, z] = at(s);
       if (state === 2) {
         tmp.position.set(x, y, z); tmp.rotation.set(0, 0, 0);
-        tmp.scale.set(Math.max(0.6, s.w * 0.9), 0.35, Math.max(0.6, s.d * 0.9)); tmp.updateMatrix();
+        tmp.scale.set(Math.max(0.8, s.w), Math.max(1, Math.min(s.w, s.d) * 1.4), Math.max(0.8, s.d)); tmp.updateMatrix();
         this.rubble.setMatrixAt(nr++, tmp.matrix);
         if (s.model) ruined.push(s.model);
         return;
@@ -108,7 +110,7 @@ export class CityLayer {
         parts.forEach(([off, l]) => {
           tmp.position.set(x - Math.sin(yaw) * off, y, z + Math.cos(yaw) * off);
           tmp.rotation.set(0, -yaw, 0);
-          tmp.scale.set(thick, s.kind === 'gate' ? 2.2 : 1.6, l); tmp.updateMatrix();
+          tmp.scale.set(thick, s.kind === 'gate' ? 1.6 : 1.1, l); tmp.updateMatrix();
           this.walls.setMatrixAt(nw, tmp.matrix);
           this.walls.setColorAt(nw++, tint.set('#ffffff').multiplyScalar(state === 1 ? 0.6 : 1));
         });

@@ -84,7 +84,7 @@ export const syncTownDamage = (root) => {
 };
 
 let mound = null;
-const moundGeometry = () => {
+export const moundGeometry = () => {
   if (!mound) {
     mound = mergeGeometries([
       new DodecahedronGeometry(0.5, 0).scale(1, 0.32, 1).translate(0, 0.08, 0),
