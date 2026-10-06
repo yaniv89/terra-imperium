@@ -1,0 +1,302 @@
+{
+  "farm-bronze-israelite.glb": {
+    "bytes": 1192444,
+    "objects": {
+      "farm-bronze-israelite": {
+        "LOD0": {
+          "triangles": 7330,
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 0.445,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1456,
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 0.445,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 4.681,
+          "depth": 4.767,
+          "height": 0.445,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "plantation-bronze-israelite.glb": {
+    "bytes": 1359892,
+    "objects": {
+      "plantation-bronze-israelite": {
+        "LOD0": {
+          "triangles": 7483,
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 0.52,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1456,
+          "width": 4.706,
+          "depth": 4.716,
+          "height": 0.52,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 4.161,
+          "depth": 4.125,
+          "height": 0.52,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "pasture-bronze-israelite.glb": {
+    "bytes": 780836,
+    "objects": {
+      "pasture-bronze-israelite": {
+        "LOD0": {
+          "triangles": 3171,
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1455,
+          "width": 4.706,
+          "depth": 4.716,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 4.384,
+          "depth": 4.248,
+          "height": 0.305,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "fishing_boats-bronze-israelite.glb": {
+    "bytes": 599892,
+    "objects": {
+      "fishing_boats-bronze-israelite": {
+        "LOD0": {
+          "triangles": 2024,
+          "width": 1.95,
+          "depth": 2.39,
+          "height": 0.64,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1457,
+          "width": 1.95,
+          "depth": 2.39,
+          "height": 0.64,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 291,
+          "width": 1.95,
+          "depth": 2.39,
+          "height": 0.59,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "fort-bronze-israelite.glb": {
+    "bytes": 455208,
+    "objects": {
+      "fort-bronze-israelite": {
+        "LOD0": {
+          "triangles": 1245,
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 0.68,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1011,
+          "width": 4.706,
+          "depth": 4.716,
+          "height": 0.68,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 4.374,
+          "depth": 4.43,
+          "height": 0.68,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  },
+  "fort-modern-israelite.glb": {
+    "bytes": 647664,
+    "objects": {
+      "fort-modern-israelite": {
+        "LOD0": {
+          "triangles": 2630,
+          "width": 4.756,
+          "depth": 4.77,
+          "height": 1.03,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD1": {
+          "triangles": 1454,
+          "width": 4.706,
+          "depth": 4.716,
+          "height": 1.03,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        },
+        "LOD2": {
+          "triangles": 290,
+          "width": 4.384,
+          "depth": 4.125,
+          "height": 1.03,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ]
+        }
+      }
+    },
+    "atlas": [
+      [
+        2048,
+        2048
+      ],
+      [
+        2048,
+        2048
+      ]
+    ]
+  }
+}
