@@ -17,14 +17,25 @@ const entry = {
 
 describe('battle report sheet', () => {
   it('shows the outcome, the fallen, the chart and both sides', () => {
-    const html = renderToStaticMarkup(React.createElement(BattleReportSheet, { entry, onClose: vi.fn() }));
+    const html = renderToStaticMarkup(React.createElement(BattleReportSheet, { entry, onClose: vi.fn(), onReplay: vi.fn() }));
+    expect(html).toContain('Victory');
     expect(html).toContain('taken');
-    expect(html).toContain('1,500</span> of yours');
-    expect(html).toContain('6,000</span> of theirs');
+    expect(html).toContain('<span class="font-semibold">1,500</span> lost');
+    expect(html).toContain('<span class="font-semibold">6,000</span> lost');
     expect(html).toContain('Fled the field');
+    expect(html).toContain('View replay');
     expect(html).toContain('Strength each round');
     expect(html).toContain('20,000 → 18,500');
     expect(html).toContain('(routed)');
+  });
+
+  it('lists every battle with filters when given the history', () => {
+    const second = { ...entry, id: 'battle-2', commanded: true, playerSide: 'defender', outcome: 'attacker', captured: true, timeline: null };
+    const html = renderToStaticMarkup(React.createElement(BattleReportSheet, { entry, reports: [second, entry], onClose: vi.fn() }));
+    expect(html.match(/data-testid="battle-report-row"/g)).toHaveLength(2);
+    expect(html).toContain('Sieges');
+    expect(html).toContain('>Lost<');
+    expect(html).toContain('>Command<');
   });
 
   it('renders nothing without an entry, and the replay starts on the first round', () => {

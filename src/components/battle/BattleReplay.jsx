@@ -10,9 +10,9 @@ import { useGame } from '../../context/GameContext';
 import { battleTitle, describeOutcome, formatMen, nationName, regionName, sidesFor, timelineFor } from './battleReportView';
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
 
-const OURS = '#3B82F6';
-const THEIRS = '#F97316';
-const TONE = { win: 'text-emerald-300', loss: 'text-red-300', draw: 'text-amber-300' };
+const OURS = 'var(--fa-you)';
+const THEIRS = 'var(--fa-enemy)';
+const TONE = { win: 'text-fa-good', loss: 'text-fa-danger-text', draw: 'text-fa-brass' };
 // A round that costs a side this share of its starting strength flashes its bar; both: shake.
 const HEAVY_ROUND = 0.08;
 
@@ -50,14 +50,14 @@ export const sample = (points, p) => {
 
 const Bar = ({ label, value, abs, color, hit, stamp }) => (
   <div className="space-y-1">
-    <div className="flex justify-between text-[11px] text-slate-300">
+    <div className="flex justify-between text-[11px] text-fa-text">
       <span>{label}</span>
       <span className="font-mono tabular-nums">{formatMen(abs * MEN_PER_STRENGTH)} men</span>
     </div>
-    <div className="relative h-4 rounded bg-slate-800 overflow-visible">
+    <div className="relative h-4 rounded bg-fa-raised overflow-visible">
       <div key={hit} className={`h-full rounded ${hit ? 'animate-hit-flash' : ''}`} style={{ width: `${Math.max(0, value) * 100}%`, background: color, transition: 'width 60ms linear' }} />
       {stamp && (
-        <span className="absolute right-1 -top-1.5 px-1.5 rounded border-2 border-red-400 text-red-300 text-[11px] font-black uppercase tracking-wider bg-slate-900/80 animate-stamp-in">
+        <span className="absolute right-1 -top-1.5 px-1.5 rounded border-2 border-fa-danger text-fa-danger-text text-[11px] font-black uppercase tracking-wider bg-fa-panel/80 animate-stamp-in">
           Routed!
         </span>
       )}
@@ -87,27 +87,27 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
 
   return (
     <div onClick={done ? undefined : skip} data-testid="battle-replay"
-      className={`w-[min(520px,92vw)] max-h-[92dvh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-2xl p-4 shadow-2xl text-slate-200 space-y-3
+      className={`w-[min(520px,92vw)] max-h-[92dvh] overflow-y-auto bg-fa-panel border border-fa-line rounded-[10px] p-4 shadow-2xl text-fa-text space-y-3
                   ${mineHit && theirsHit ? 'animate-battle-shake' : ''}`} key={mineHit && theirsHit ? `s${now.round}` : 'card'}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 font-bold text-white"><Swords className="w-4 h-4 text-orange-400 shrink-0" /> <span className="truncate">{battleTitle(state, entry)}</span></div>
-          <div className="text-[11px] text-slate-400 truncate">{ourNation} against {theirNation}</div>
+          <div className="flex items-center gap-1.5 font-bold text-fa-text"><Swords className="w-4 h-4 text-fa-enemy shrink-0" /> <span className="truncate">{battleTitle(state, entry)}</span></div>
+          <div className="text-[11px] text-fa-muted truncate">{ourNation} against {theirNation}</div>
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close battle" className="p-1 rounded hover:bg-slate-800 text-slate-400"><X className="w-4 h-4" /></button>
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close battle" className="p-1 rounded hover:bg-fa-raised text-fa-muted"><X className="w-4 h-4" /></button>
       </div>
 
       <Bar label={`Yours · ${ourNation}`} value={now.mine} abs={now.mineAbs} color={OURS} hit={mineHit} stamp={done && last.mineBroken} />
       <Bar label={`Theirs · ${theirNation}`} value={now.theirs} abs={now.theirsAbs} color={THEIRS} hit={theirsHit} stamp={done && last.theirsBroken} />
 
       <div className="space-y-1">
-        <div className="flex justify-between text-[10px] text-slate-400">
+        <div className="flex justify-between text-[10px] text-fa-muted">
           <span>Balance of strength</span>
           <span>{done ? `${rounds} round${rounds === 1 ? '' : 's'}` : `Round ${Math.min(rounds, now.round + 1)} of ${rounds}`}</span>
         </div>
-        <div className="relative h-2 rounded-full overflow-hidden flex bg-slate-800">
+        <div className="relative h-2 rounded-full overflow-hidden flex bg-fa-raised">
           <div style={{ width: `${share * 100}%`, background: OURS }} />
-          <div className="w-0.5 bg-slate-900" />
+          <div className="w-0.5 bg-fa-panel" />
           <div className="flex-1" style={{ background: THEIRS }} />
         </div>
       </div>
@@ -115,17 +115,17 @@ const SingleReplay = ({ entry, onOpen, onClose }) => {
       {done ? (
         <div className="space-y-2 pt-1" data-testid="battle-replay-result">
           <div className={`text-base font-bold ${TONE[result.tone]}`}>{result.text}</div>
-          <div className="text-xs text-slate-300">
-            Fallen: <span className="font-semibold text-white">{formatMen(entry.fallen[mine])}</span> of yours ·{' '}
-            <span className="font-semibold text-white">{formatMen(entry.fallen[theirs])}</span> of theirs
+          <div className="text-xs text-fa-text">
+            Fallen: <span className="font-semibold text-fa-text">{formatMen(entry.fallen[mine])}</span> of yours ·{' '}
+            <span className="font-semibold text-fa-text">{formatMen(entry.fallen[theirs])}</span> of theirs
           </div>
           <div className="flex gap-2">
-            <button onClick={() => onOpen(entry.id)} className="flex-1 min-h-[40px] rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-semibold">Full report</button>
-            <button onClick={onClose} className="flex-1 min-h-[40px] rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-bold text-white">Continue</button>
+            <button onClick={() => onOpen(entry.id)} className="flex-1 fa-btn fa-btn-secondary">Full report</button>
+            <button onClick={onClose} className="flex-1 fa-btn fa-btn-primary">Continue</button>
           </div>
         </div>
       ) : (
-        <div className="text-[10px] text-slate-500 text-center">Tap to skip</div>
+        <div className="text-[10px] text-fa-muted text-center">Tap to skip</div>
       )}
     </div>
   );
@@ -139,17 +139,17 @@ const MiniRow = ({ entry, p, onOpen }) => {
   return (
     <div className="space-y-1">
       <div className="flex justify-between gap-2 text-[11px]">
-        <span className="truncate text-slate-300">{entry.name || regionName(entry.targetRegionId)}</span>
+        <span className="truncate text-fa-text">{entry.name || regionName(entry.targetRegionId)}</span>
         {p >= 1 && <span className={`shrink-0 font-semibold ${TONE[result.tone]}`}>{result.tone === 'win' ? 'Won' : result.tone === 'loss' ? 'Lost' : 'Drawn'}</span>}
       </div>
       <div className="flex gap-1 h-2">
-        <div className="flex-1 rounded bg-slate-800"><div className="h-full rounded" style={{ width: `${now.mine * 100}%`, background: OURS }} /></div>
-        <div className="flex-1 rounded bg-slate-800"><div className="h-full rounded" style={{ width: `${now.theirs * 100}%`, background: THEIRS }} /></div>
+        <div className="flex-1 rounded bg-fa-raised"><div className="h-full rounded" style={{ width: `${now.mine * 100}%`, background: OURS }} /></div>
+        <div className="flex-1 rounded bg-fa-raised"><div className="h-full rounded" style={{ width: `${now.theirs * 100}%`, background: THEIRS }} /></div>
       </div>
       {p >= 1 && (
-        <div className="flex justify-between text-[10px] text-slate-400">
+        <div className="flex justify-between text-[10px] text-fa-muted">
           <span>Fallen {formatMen(entry.fallen[mine])} · {formatMen(entry.fallen[theirs])}</span>
-          <button onClick={() => onOpen(entry.id)} className="text-blue-300 underline underline-offset-2">Report</button>
+          <button onClick={() => onOpen(entry.id)} className="text-fa-you underline underline-offset-2">Report</button>
         </div>
       )}
     </div>
@@ -160,18 +160,18 @@ const MultiReplay = ({ entries, onOpen, onClose }) => {
   const [p, skip] = useProgress(1500, [entries.map((e) => e.id).join()]);
   return (
     <div onClick={p >= 1 ? undefined : skip} data-testid="battle-replay"
-      className="w-[min(520px,92vw)] max-h-[92dvh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-2xl p-4 shadow-2xl text-slate-200 space-y-3">
+      className="w-[min(520px,92vw)] max-h-[92dvh] overflow-y-auto bg-fa-panel border border-fa-line rounded-[10px] p-4 shadow-2xl text-fa-text space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-bold text-white"><Swords className="w-4 h-4 text-orange-400" /> {entries.length} battles this turn</div>
-        <div className="flex items-center gap-3 text-[10px] text-slate-400">
+        <div className="flex items-center gap-1.5 font-bold text-fa-text"><Swords className="w-4 h-4 text-fa-enemy" /> {entries.length} battles this turn</div>
+        <div className="flex items-center gap-3 text-[10px] text-fa-muted">
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: OURS }} />Yours</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: THEIRS }} />Theirs</span>
         </div>
       </div>
       {entries.map((e) => <MiniRow key={e.id} entry={e} p={p} onOpen={onOpen} />)}
       {p >= 1
-        ? <button onClick={onClose} className="w-full min-h-[40px] rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-bold text-white">Continue</button>
-        : <div className="text-[10px] text-slate-500 text-center">Tap to skip</div>}
+        ? <button onClick={onClose} className="w-full fa-btn fa-btn-primary">Continue</button>
+        : <div className="text-[10px] text-fa-muted text-center">Tap to skip</div>}
     </div>
   );
 };

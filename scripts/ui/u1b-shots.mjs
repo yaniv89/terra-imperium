@@ -79,7 +79,34 @@ const shot = async (page, name, vp) => {
   console.log('wrote', path.relative(process.cwd(), file));
 };
 
+// Four past battles for the reports (the shape src/engine/battleReports.js records).
+const REPORTS = `
+  const me = s.playerNationId; const foe = window.__u1b.foe; const cap = window.__u1b.capId;
+  const tl = (a, d, n) => Array.from({ length: n + 1 }, (_, i) => ({ round: i, att: Math.round(a * (1 - 0.08 * i)), def: Math.round(d * (1 - 0.2 * i)), ...(i === n ? { defBroken: true } : {}) }));
+  const side = (cls, before, after) => cls.map((c, i) => ({ id: c + i, classId: c, before, after: i === 0 ? after : before - 2 }));
+  const mk = (i, o) => ({ id: 'battle-' + i, turn: 30 - i * 3, year: s.year - (30 - i * 3), kind: 'land', tile: null, defense: false, commanded: false, fromRegionId: null, targetRegionId: cap,
+    attackerNationId: me, defenderNationId: foe, playerSide: 'attacker', outcome: 'attacker', captured: false, rounds: 4, terrain: 'plains', battleType: 'assault',
+    timeline: tl(34, 28, 4), sides: { attacker: side(['infantry', 'ranged', 'cavalry'], 12, 8), defender: side(['infantry', 'ranged'], 14, 0) }, fallen: { attacker: 96, defender: 231 }, fled: { attacker: 0, defender: 40 }, ...o });
+  const reports = [
+    mk(1, { name: 'Siege of Susa', commanded: true, captured: true, timeline: null }),
+    mk(2, { name: 'Siege of Uruk', playerSide: 'defender', attackerNationId: foe, defenderNationId: me, outcome: 'defender', commanded: true, fallen: { attacker: 188, defender: 64 } }),
+    mk(3, { name: 'Battle of Der', battleType: 'field', outcome: 'defender', fallen: { attacker: 140, defender: 88 } }),
+    mk(4, { name: 'Battle of the Diyala fields', battleType: 'field', fallen: { attacker: 12, defender: 41 } })
+  ];
+  return { ...s, battleReports: reports, battleReportSeq: 4, battleSettings: { ...(s.battleSettings || {}), instantBattles: true } };
+`;
+
 const SCREENS = {
+  W16: async (page, vp) => {
+    await startGame(page);
+    await patch(page, `${WAR_SETUP} return s;`);
+    await patch(page, REPORTS);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:open-battle-report', { detail: 'battle-2' })));
+    await page.getByTestId('battle-report').waitFor({ timeout: 15000 });
+    await shot(page, 'W16-reports', vp);
+    await click(page.getByRole('button', { name: 'Command', exact: true }));
+    await shot(page, 'W16-reports-command', vp);
+  },
   W11: async (page, vp) => {
     await startGame(page);
     await patch(page, `${WAR_SETUP}

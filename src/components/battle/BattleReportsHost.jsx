@@ -2,7 +2,7 @@
 // Watches the battle history (state.battleReports): every new auto-resolved battle plays its
 // replay (BattleReplay.jsx), unless the player turned that off ("instant battles" in the
 // Military tab). Commanded battles already end on their own result screen. Also opens the full
-// report sheet on request (battleReportEvents.js).
+// report sheet (W16: the list of the last 30 and one in full) on request (battleReportEvents.js).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import BattleReplay from './BattleReplay';
@@ -41,7 +41,8 @@ const BattleReportsHost = ({ onShowRegion }) => {
   return (
     <>
       <BattleReplay entries={replay} onOpen={open} onClose={() => setReplay(null)} />
-      <BattleReportSheet entry={entry} onClose={() => setOpenId(null)} onShowRegion={onShowRegion} />
+      <BattleReportSheet key={openId || 'none'} entry={entry} reports={reports} onClose={() => setOpenId(null)} onShowRegion={onShowRegion}
+        onReplay={(e) => { setOpenId(null); setReplay([e]); }} />
     </>
   );
 };
