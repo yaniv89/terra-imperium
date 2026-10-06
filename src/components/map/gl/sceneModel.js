@@ -22,7 +22,9 @@ import { RESOURCES_ON_TILES } from '../../../data/tileYields';
 import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../../data/icons';
 import { townTier } from '../closeView/townTiers';
 import { WORK_KINDS } from '../closeView/landscape';
-import { ARMY_SPOT, unitPx, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from '../closeView/scale';
+import { ARMY_SPOT, unitPx, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, ROOM_FILL } from '../closeView/scale';
+import { cachedFootprint, townDrawRadiusKm } from '../closeView/terrainPlacement';
+import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { clusterScreenMarkers, MARKER_OFFSET, markerItems } from '../mapBanners';
 import { bannerOffsetPx } from '../CityBanners';
@@ -30,8 +32,9 @@ import { yieldLabels, loyaltyDiscs, threatStacks, supplyTints, supplyReach, esta
 import { cssColor } from './cssColor';
 import {
   labelArt, discArt, badgeArt, badgeRadiusStep, BADGE_BOX_R, armyArt, fleetArt, battleArt, colonyArt, wonderArt, eventArt,
-  clusterArt, glyphArt, iconArt, groundBattleArt, settlerArt, cityBannerArt
+  clusterArt, glyphArt, iconArt, groundBattleArt, settlerArt, cityBannerArt, peakArt, passArt, PEAK_LIFT
 } from './spriteArt';
+import { ridgeSegments, mountainPeaks, passPoints, bridgeLines, MOUNTAIN_SPRITES_FROM_K, PASS_MARK_FROM_K } from './terrainModel';
 import { PLAYER_BAND_COLOR } from './territoryData';
 
 // The zoom levels of the old map (Map2DView.jsx).
@@ -87,8 +90,11 @@ export const citySprites = ({ state, projection, k, selectedRegion, dpr, bannerF
       const tier = city.owner && !city.outpost ? townTier(city) : null;
       const radius = tier ? tier.modelRadius : 1;
       const capRadius = radius + ((city.buildings?.categories?.defense ?? -1) >= 0 ? 0.3 : 0);
-      const room = Math.min(townRoomUnits(projection, getTiles(), city.tile), townGapUnits(projection, getTiles(), city.tile, isTown));
-      const below = bannerOffsetPx(radius, townUnitPx(k, capRadius, room * k, tier ? TIER_SCALE[tier.id] || 1 : 1));
+      // the town's room as the close view draws it (the footprint's town radius, terrainPlacement.js)
+      const fp = city.tile != null ? cachedFootprint(city.tile, state) : null;
+      const roomPx = fp?.town ? (townDrawRadiusKm(fp) * projection.scale() * k) / EARTH_RADIUS_KM / ROOM_FILL
+        : Math.min(townRoomUnits(projection, getTiles(), city.tile), townGapUnits(projection, getTiles(), city.tile, isTown)) * k;
+      const below = bannerOffsetPx(radius, townUnitPx(k, capRadius, roomPx, tier ? TIER_SCALE[tier.id] || 1 : 1));
       const owner = city.owner || city.colony?.ownerId;
       const own = owner === state.playerNationId;
       const art = cityBannerArt({
@@ -172,6 +178,7 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
   const within = landTilesWithin(window).filter(isExplored);
   const roadTiles = new Set(within.filter(onRoad));
   const road = cssColor('#7c5a32');
+  const bridges = [];
   roadTiles.forEach((t) => {
     const a = pointOf(projection, t);
     tiles.neighbors[t].forEach((n) => {
@@ -180,8 +187,12 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
       const half = (projection.scale() * Math.PI); // half the world's width
       const bx = b[0] - a[0] > half ? b[0] - 2 * half : b[0] - a[0] < -half ? b[0] + 2 * half : b[0];
       lines.push({ a, b: [bx, b[1]], half: 0.8, exp: 0, color: [road[0], road[1], road[2], 0.85] });
+      // a road over a river edge: a bridge (terrainData.crossingsOf), drawn over the roads
+      const size = tiles.riverSizeBetween ? tiles.riverSizeBetween(t, n) : 0;
+      if (size) bridges.push(...bridgeLines(t, n, size, a, [bx, b[1]], projection, k, tiles));
     });
   });
+  lines.push(...bridges);
   within.forEach((t) => {
     const e = ts[t];
     const resId = resources && tiles.resourceOf ? tiles.resourceOf(t) : null;
@@ -198,6 +209,30 @@ export const landSprites = ({ state, projection, k, window, isExplored, lens, cl
     if (res && !e?.improvement && !e?.district) { const ra = glyphArt({ kind: 'resource', iconUrl: resourceIconUrl(res) }, dpr); sprites.push({ art: ra, anchor, size: [ra.css.w, ra.css.h], color: WHITE }); }
   });
   return { sprites, lines };
+};
+
+/**
+ * The terrain pass's sprites (terrainModel.js): the mountain chains' peaks up to the close zoom
+ * (the close view's 3D ridges take over there) and the pass marks from the region zoom. Drawn
+ * under the territories, so the fog hides and greys them like the Earth. `near`: nearView.
+ */
+export const terrainSprites = ({ projection, k, near = null, dpr }) => {
+  const sprites = [];
+  if (k >= MOUNTAIN_SPRITES_FROM_K && k < CLOSE_ZOOM_K) {
+    mountainPeaks(ridgeSegments(projection), k, near).forEach((p) => {
+      const art = peakArt(p.variant, p.px, p.snow, dpr);
+      sprites.push({ art, anchor: p.anchor, offset: [0, -art.css.h * PEAK_LIFT, 0, 0], size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
+    });
+  }
+  if (k >= PASS_MARK_FROM_K) {
+    const px = Math.min(13, 6 + Math.sqrt(k) * 1.2);
+    passPoints(projection).forEach(({ anchor }) => {
+      if (near && !near(anchor)) return;
+      const art = passArt(px, dpr);
+      sprites.push({ art, anchor, size: [art.css.w, art.css.h], exp: [0, 0], color: WHITE });
+    });
+  }
+  return sprites;
 };
 
 /** Wonders and the battles on the ground (in sight), from the region zoom. */
