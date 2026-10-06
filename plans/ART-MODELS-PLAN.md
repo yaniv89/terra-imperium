@@ -269,6 +269,9 @@ base unit in the age it replaces, so every pick respects that (Bronze has no sig
 role may be replaced, including the Modern tank (now two picks: Merkava and LT vz. 38); no
 artillery, aircraft or ship pick was found that beats an infantry or mounted one for these peoples.
 
+Files: `src/assets/units/signature/<Id>.glb` (the Id column), the roster as data in
+`src/data/signatureUnits.js` (people id, age, role, model id, rig); no file, the base unit.
+
 Rig column: person = the shared person rig; horse, camel, elephant, chariot-light, chariot-heavy and
 ox = the mount rigs of the mounts track (track E); tank = the vehicle rig (`Hull`, `Turret`,
 `Barrel`, `Track_L/R`, section 4.1), built once for the base Modern Tank and reused for both
