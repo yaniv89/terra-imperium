@@ -107,7 +107,7 @@ export const WORK_OFFSET = { x: -1.1, y: 0.9 };
  * x, y, turn }] } in screen pixels, from the tiles on screen. `toScreen(lat, lon)` as above;
  * `k` the zoom; `cityTiles` a Set of the tiles that hold a city.
  */
-export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles, tiles = getTiles(), maxTrees = MAX_TREES }) => {
+export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles, tiles = getTiles(), maxTrees = MAX_TREES, isExplored = null }) => {
   const trees = []; const works = [];
   // Works from the sparse tile state (sea tiles too: fishing boats).
   Object.keys(world?.tileState || {}).forEach((key) => {
@@ -125,7 +125,7 @@ export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles
   landTilesOnScreen(toScreen, width, height).forEach((t) => {
     if (trees.length >= maxTrees) return;
     const kind = treeKindOf(tiles, t.tile);
-    if (!kind || tileIsCleared(world, cityTiles, t.tile)) return;
+    if (!kind || tileIsCleared(world, cityTiles, t.tile) || (isExplored && !isExplored(t.tile))) return; // no trees in the unexplored dark
     treeSpots(t.tile, t.lat, perHex).forEach((s) => {
       if (trees.length >= maxTrees) return;
       const p = toScreen(t.lat + s.dLat, t.lon + s.dLon);

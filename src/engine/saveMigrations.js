@@ -29,10 +29,12 @@ import { initFog, reviveFog } from './fog';
 // older and the app starts a fresh game while keeping the raw save untouched. A later land-flag
 // change that keeps tile ids can repair saves with world/landChanges.js (applyLandChanges), as
 // the version 8 to 9 step did.
-// Version 11 adds fog of war (src/engine/fog.js: explored maps, contacts, the last-seen picture,
-// arrays saved run-length encoded); a version 10 save loads and starts its fog from where its
-// cities stand now (migrate10to11).
-export const CURRENT_SAVE_VERSION = 11;
+// Version 11 is phase X's (branch claude/phase-x-fewer-systems, its migrate10to11). Version 12
+// adds fog of war (src/engine/fog.js: explored maps, contacts, the last-seen picture, arrays saved
+// run-length encoded); a save from before it loads and starts its fog from where its cities stand
+// now (migrate11to12). Until X merges, 10 -> 11 here is a no-op placeholder; on merge, X's real
+// migrate10to11 replaces it.
+export const CURRENT_SAVE_VERSION = 12;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -238,11 +240,14 @@ const migrate5to6 = (state) => {
   return { ...renamed, nations, regions, logs: [...logs, note] };
 };
 
-// v11: fog of war. A save from before it gets the fog of a new game, measured from its cities
+// v11 belongs to phase X (claude/phase-x-fewer-systems); a placeholder until that branch merges
+// and its own migrate10to11 takes this slot.
+const migrate10to11 = (state) => state;
+// v12: fog of war. A save from before it gets the fog of a new game, measured from its cities
 // as they stand: each people knows its homeland and its sight, nothing more.
-const migrate10to11 = (state) => (state.fog ? state : initFog(state));
+const migrate11to12 = (state) => (state.fog ? state : initFog(state));
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11 };
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11, 11: migrate11to12 };
 
 // Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
 // never merged key by key.

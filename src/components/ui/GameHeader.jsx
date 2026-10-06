@@ -13,7 +13,7 @@ import ResourceBar from './ResourceBar';
 import { getResearchView } from '../panels/researchView';
 import { openPanelTab } from '../panels/panelEvents';
 import { useLayoutMode, isLandscapeShell } from '../../hooks/useLayoutMode';
-import NextPrompt from './NextPrompt';
+import NextPrompt from './NextPrompt.jsx'; // the extension: on a case-insensitive disk './NextPrompt' finds nextPrompt.js
 import { endTurnWarnings, WARN_ARM_MS } from './nextPrompt';
 import { perTurnStrip } from '../city/cityRailModel';
 import { calcNationBalance } from '../../engine/economy';

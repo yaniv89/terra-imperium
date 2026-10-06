@@ -18,6 +18,7 @@ import {
   InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3
 } from 'three';
 import { useGame } from '../../../context/GameContext';
+import { useFogView } from '../useFogView';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { getEffectiveAgeId } from '../../../data/ages';
@@ -56,7 +57,11 @@ const FIELD_DISC = 0.8;
 const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
 
 const CloseViewLayer = ({ projection, transform, width, height, active, land = null }) => {
-  const { state } = useGame();
+  // Towns, works and trees as the player knows them (fogView.js); the armies from the real state
+  // (getMapMarkers applies sight itself).
+  const { state: gameState } = useGame();
+  const fog = useFogView();
+  const { state } = fog;
   const canvasRef = useRef(null);
   const three = useRef(null);
   const [assetsTick, setAssetsTick] = useState(0); // bumps when an artist town file finishes loading
@@ -112,9 +117,9 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     };
   }, []);
 
-  const markers = useMemo(() => getMapMarkers(state),
+  const markers = useMemo(() => getMapMarkers(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.units, state.regions, state.nations, state.intel, state.battleReports, state.turnNumber, state.playerNationId]);
+    [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
 
   // Lay the scene out whenever the view or the game changes.
   useEffect(() => {
@@ -339,7 +344,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       return p ? { x: p[0] * k + transform.x, y: p[1] * k + transform.y } : null;
     };
     const cityTiles = new Set(Object.values(state.regions).map((r) => r.tile).filter((x) => x != null));
-    const land = landscapeOnScreen({ toScreen: project, width, height, k, world: state.world, cityTiles });
+    const land = landscapeOnScreen({ toScreen: project, width, height, k, world: state.world, cityTiles, isExplored: fog.isExplored });
     t.trees.forEach((m) => { m.count = 0; });
     t.works.forEach((m) => { m.count = 0; });
     const put = (mesh, x, y, scale, turn, shade) => {
@@ -513,7 +518,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     t.layers.forEach((l) => { l.mesh.instanceMatrix.needsUpdate = true; l.mesh.instanceColor.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true; });
     t.moving = moving;
     t.dirty = true;
-  }, [active, projection, transform, width, height, state, markers, assetsTick]);
+  }, [active, projection, transform, width, height, state, fog, markers, assetsTick]);
 
   // Draw: every frame while soldiers walk, otherwise only after a change.
   useEffect(() => {

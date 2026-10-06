@@ -22,7 +22,9 @@
 // Shape (state.fog):
 //   { on, explored: { [nationId]: TileBits }, met: { [nationId]: { [otherId]: turnMet } },
 //     seen: { city: TileInts (index into cityIds, +1; 0 = no city), turn: TileInts (0 = never),
-//             cityIds: string[], cities: { [cityId]: snapshot }, improvements: { [tile]: id } } }
+//             cityIds: string[], cities: { [cityId]: snapshot }, improvements: { [tile]: { i, r } } } }
+//   (a city is remembered once its centre or any of its land was in sight; i is an improvement
+//   id, r marks a road)
 // TileBits and TileInts wrap typed arrays and serialise themselves run-length encoded (toJSON),
 // so every save writer (localStorage, export, cloud) stores them small; `reviveFog` turns the
 // encoded form back into arrays on load (saveMigrations.js).
@@ -296,19 +298,26 @@ const updateSeen = (state, seen, visible) => {
   const intern = (id) => { let i = index.get(id); if (i === undefined) { if (cityIds === seen.cityIds) cityIds = [...cityIds]; i = cityIds.length; cityIds.push(id); index.set(id, i); } return i + 1; };
   let improvements = seen.improvements; let cities = seen.cities;
   const visibleCities = new Set();
+  const bordersSeen = new Set(); // cities whose land is in sight: their name and owner are known
   visible.forEach((t) => {
     const owner = tileOwner[t];
     city[t] = owner ? intern(owner) : 0;
+    if (owner) bordersSeen.add(owner);
     turns[t] = turn;
-    const imp = tileState[t]?.improvement && !tileState[t]?.pillaged ? tileState[t].improvement : null;
-    if ((improvements[t] || null) !== imp) {
+    const ts = tileState[t];
+    const imp = ts?.improvement && !ts.pillaged ? ts.improvement : null;
+    const road = ts?.road && !ts.pillaged ? 1 : 0;
+    const old = improvements[t];
+    if ((old?.i || null) !== imp || (old?.r || 0) !== road) {
       if (improvements === seen.improvements) improvements = { ...improvements };
-      if (imp) improvements[t] = imp; else delete improvements[t];
+      if (imp || road) improvements[t] = road ? { i: imp, r: 1 } : { i: imp }; else delete improvements[t];
     }
   });
   Object.values(state.regions).forEach((c) => {
-    if (c.tile == null || !visible.has(c.tile)) return;
-    visibleCities.add(c.id);
+    if (c.tile == null) return;
+    const centre = visible.has(c.tile);
+    if (!centre && !bordersSeen.has(c.id)) return;
+    if (centre) visibleCities.add(c.id);
     const snap = snapshotCity(c);
     const old = cities[c.id];
     if (old && old.owner === snap.owner && old.size === snap.size && old.tier === snap.tier && old.name === snap.name && old.isCapital === snap.isCapital && old.buildings === snap.buildings && old.outpost?.progress === snap.outpost?.progress) return;
