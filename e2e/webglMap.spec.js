@@ -5,11 +5,11 @@
 // touch) is the reference screen.
 import { test, expect } from '@playwright/test';
 
-const startGame = async (page, nation = 'France') => {
+const startGame = async (page, nation = 'Akkad') => {
   await page.addInitScript(() => { window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; window.__E2E_MAP_TEST__ = true; try { localStorage.setItem('terra-imperium-minimap-open', '0'); } catch { /* none */ } });
   await page.goto('/');
-  await page.fill('input[placeholder="Search 240 nations..."]', nation);
-  await page.locator('section', { has: page.getByRole('heading', { name: 'Choose Your Nation' }) }).locator('button').first().dispatchEvent('click');
+  await page.fill('input[aria-label="Search peoples"]', nation);
+  await page.locator('[data-people]').first().dispatchEvent('click');
   await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});

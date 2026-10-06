@@ -25,8 +25,8 @@ const PROFILE = {
 
 const startGame = async (page) => {
   if (EXPLORED) await page.getByTestId('explored-world').dispatchEvent('click');
-  await page.fill('input[placeholder="Search 240 nations..."]', 'France');
-  const buttons = page.locator('section', { has: page.getByRole('heading', { name: 'Choose Your Nation' }) }).locator('button');
+  await page.fill('input[aria-label="Search peoples"]', 'Akkad');
+  const buttons = page.locator('[data-people]');
   await buttons.first().dispatchEvent('click');
   await page.getByRole('button', { name: /^Begin as/ }).dispatchEvent('click');
   const skip = page.getByRole('button', { name: 'Skip' });

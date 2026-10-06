@@ -87,7 +87,7 @@ test.describe('phone held upright', () => {
 
   test('plays upright with a soft rotate hint that stays dismissed', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Choose Your Nation' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Choose your people' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
     const hint = page.getByTestId('rotate-hint');
     await expect(hint).toBeVisible();
@@ -96,7 +96,7 @@ test.describe('phone held upright', () => {
     await expect(hint).toHaveCount(0);
     // A reload resumes the autosaved game (the shell shows, not the start screen); the hint stays away.
     await page.reload();
-    await expect(page.getByRole('button', { name: 'End Turn' }).or(page.getByRole('heading', { name: 'Choose Your Nation' })).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'End Turn' }).or(page.getByRole('heading', { name: 'Choose your people' })).first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByTestId('rotate-hint')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.dataset.layout)).toBe('phone-portrait');
   });
