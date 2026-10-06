@@ -414,6 +414,59 @@ with fleets: today raids stay on the raider's landmass); the tribal league
 the map's raid markers and the independent sheet (W4); AI majors defending against raiders and
 conquering independents, trade, peaceful joining, razing (W3).
 
+## 12d. Status of W3 (2026-10-06, branch claude/phase-w3-independents, on W2 0e11ff28)
+
+Done:
+- `src/engine/indepPolicy.js`, one phase in resolveTurn after the independents' own:
+  - **AI majors** (every major is Tier 1) think every 5 turns, staggered, never while at war with a
+    major or in a civil war: trade with mercantile neighbours, court a joinable neighbour with gifts
+    (only when gifts could lift its attitude to 80), make raiders they outweigh 3x pay tribute, and
+    go for an independent within 612 km (CONQUER_KM) when their spare army (one unit left in every
+    city) is 2x its garrison (plan 5). The siege force is tagged `unit.indepOp`; aiOperations.js
+    (`processIndependentOps`) marches it on tiles, besieges and assaults with no war (`war` null, half
+    AE, kin grudges from W2). A campaign ends when the city falls, after 30 turns (the city is then left
+    alone 25), or at war. Snowball guards: no new campaign above 2x the median major's cities (and 8),
+    or with 30 AE held against the major. The taken city's treasury goes to the taker.
+  - **Defence**: AI majors attack raid parties standing on their land from a stack next to them when
+    the Lanchester estimate gives 0.6 (`aiHuntRaiders`).
+  - **Joining (4.5)**: tribal and mercantile independents, and free cities that are not fortresses,
+    join a major with a city within 612 km at attitude 80 held 20 turns, or at once at 40 with the
+    major's whole army 5x theirs. Attitude = their opinion (opinion.js) plus favour (gifts: 50 gold for
+    10, cap 50, -0.5 a turn), kin (same art theme +10), the major's culture in the city (60 x share),
+    trade +10, tribute they pay it +15, minus half their grudge. No AE, loyalty 75, their units join.
+    To the player it is an offer in Relations (5 turns); the player may also ask and gets the reason.
+  - **Trade (mercantile)**: up to 3 partners within 1224 km, grudge under 30: 2 + age rank gold a turn
+    each way. **Tribute to a major**: 3x their strength near them, they pay (truce both ways), else +20
+    grudge; a fortress never pays.
+- `src/engine/razing.js` (decision 3): a city taken by force, any size, burns one size a turn and is
+  removed after size 1 (tiles and improvements freed, claims and war goals dropped, units rebased);
+  it yields nothing while burning; anyone retaking it (or the razer) stops the fire. Kin independents
+  +60 grudge, kin majors "razed our kin" -40 fading a point a turn. The AI razes only a size 1-2 prize
+  within 306 km of one of its own cities.
+- Placeholder UI (W4 builds the real sheet): the city panel of an independent shows attitude and its
+  reasons, the join rule, tribute and trade, with 44 px Gift, Ask to join, Demand tribute, Offer trade
+  buttons; Relations lists join offers (Accept / Decline); a city taken by force shows Raze, a burning
+  one Stop the burning.
+- Saves: optional fields only (`nation.indepGoal`, `indepRetry`, `razedBy`; `indep.favour`,
+  `tradeWith`, `tributeTo`, `leanSince`, `joined`; `unit.indepOp`; city `razing`, `joinedTurn`;
+  `state.joinOffers`; new `indepStats` keys): no version bump.
+
+Balance-sim (peoples Standard, PLAYER=au, 6 seeds x 150 turns, paired against W2 ec657ccb):
+independents conquered 20.3 (10.0 by turn 100), joined 2.3 (0.5 by turn 100), razed 0.7; major
+cities +18 [12.9, 23.5]; civil wars 43.8 vs 42.7 and unrest 22.0 vs 22.2 (both unchanged);
+maxProvinceShare 0.044 (+0.006), giniCities +0.03, effectiveNations -12 (the independents taken);
+audit 0, nonFinite 0; ms per turn +10 (not significant). Per 100 turns: about 13 conquered, 1.5
+joined, 0.4 razed.
+
+Open: the plan's target (25% to 45% of independents conquered by 1 CE, about turn 115) is not met:
+about 10% by turn 100. Majors field about one unit per city in peace and independents keep 3 to 5
+in their city, so few majors reach 2x. A **muster** (the major's cities train the missing force) is
+built but off (`MUSTER_MAX_UNITS` 0): at 3 units, gated by gold and income, civil wars rose 46% and
+unrest by half, because the majors' peacetime economies cannot carry the upkeep. Raising the rate
+needs either cheaper armies for majors or smaller independent garrisons (a balance pass, not W3).
+Also left: the tribal league and walls from surplus gold (W2 leftovers), AI majors demanding tribute
+from tribal cities, the trade route being plunderable, W4 (sheet, list, raid markers, art), R3.
+
 ## 13. Decisions (from the user, 2026-10-03)
 
 1. **Default world size: Standard, 35 major nations.**
