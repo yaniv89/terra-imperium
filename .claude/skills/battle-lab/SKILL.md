@@ -44,11 +44,31 @@ screenshot and lists console errors. Look at the image with the Read tool. "GPU 
 ReadPixels" warnings come from SwiftShader, not the game. It relies on the DEV-only hooks
 `window.__battleRenderer` and `window.__battleOrders`.
 
+## 4. Scale: ms per tick at 300 / 500 / 1,000 squads a side
+```bash
+node scripts/battle-bench.mjs                       # this checkout
+node scripts/battle-bench.mjs --root <other checkout> # the same battle on older code (git archive it)
+```
+AI against AI (king), a full army mix with generals and powers, everyone on the field in deep
+blocks (`setup.deployment = 'blocks'`, src/battle/bench/benchScenario.js), 2,400 ticks, best of 3.
+The phone column is x4 (plans/rts-world-review.md section 5), the budget p95 <= 10 ms (RTS plan
+13.1). Timing is noisy on this hybrid laptop: pin to one core (`start /affinity 4 /high /wait /b
+node ...` on Windows) and compare before and after interleaved on the same machine.
+`PERF_CHECKS=1 npx vitest run src/battle/sim/kernel.test.js` asserts the 300-a-side budget.
+See it drawn: `?battleSandbox&bench=300&autostart`.
+Any change to the sim must keep `kernel.test.js` (grids equal the full scan, hash chain) green; a
+pure speed change should leave every world hash unchanged (compare `runHeadless(...).chain`).
+
 ## Rules of the sim
 - Integer Q8 fixed point (1 tile = 256), integer ticks, `nextRandom(w)` only. Replays and the
   replay-verification tests (replay.test.js) must stay exact. Round damage immediately.
 - Anything outside the sim influences it only through orders.
 - New per-squad fields go in `makeSquad` (world.js); new view fields in view.js.
+- Neighbour queries go through the packed grids (spatial.js, pathing.js `queryRadius`,
+  `buildTargetGrid`), never a scan of every squad per squad. `classId`, `commanderId` and `side`
+  are fixed after createWorld (squadLists.js caches lists by them).
+- Every 20 ticks step() folds the world hash into `w.hashChain` (hash.js); `replaySegment`
+  (replay.js) verifies a battle from a snapshot and the tail of its log.
 - Renderer: every geometry, material and texture goes through `this.track()` so `dispose()`
   frees it; instanced meshes reset `count` every frame; short effects live in `this.fx` with a life.
 - Run `npx vitest run src/battle` and the full suite before committing.

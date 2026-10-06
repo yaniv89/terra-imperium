@@ -106,7 +106,7 @@ export const buildSetupFromArmies = ({
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
   landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null,
-  combatWidth: combatWidthOverride = null // a bigger field for the large-battle presets and the benchmark (src/battle/sim/benchScenario.js)
+  combatWidth: combatWidthOverride = null // a bigger field for the large-battle presets and the benchmark (src/battle/bench/benchScenario.js)
 }) => {
   const combatWidth = combatWidthOverride || getCombatWidth(terrain);
   const naval = battleType === 'naval';

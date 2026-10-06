@@ -1,13 +1,13 @@
-// src/battle/sim/benchScenario.js
+// src/battle/bench/benchScenario.js
 // The battle kernel benchmark (plans/MASTER-PLAN.md 6.2, phase C): N combat squads a side, AI
 // against AI, every squad already on the field in a deep block (melee in front, shooters behind),
 // on a plains field sized so the density stays about the same at every preset. Shared by
 // scripts/battle-bench.mjs (ms per tick, before and after) and the PERF_CHECKS test.
 // Pure and seeded: the same (perSide, seed) builds the same world on every machine.
 import { buildSetupFromArmies } from '../setup/buildBattleSetup';
-import { createWorld } from './world';
-import { step } from './step';
-import { worldHash } from './hash';
+import { createWorld } from '../sim/world';
+import { step } from '../sim/step';
+import { worldHash } from '../sim/hash';
 
 export const BENCH_SIZES = [300, 500, 1000];
 // A full army: 40% foot, 25% shooters, 20% horse, 10% siege (splash), 5% supply wagons, and a

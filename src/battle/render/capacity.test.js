@@ -3,7 +3,7 @@
 // a marker for every squad and a figure for every soldier, not the old fixed 64 and 640.
 import { describe, it, expect } from 'vitest';
 import { squadSlots, soldierSlots, MIN_SQUAD_SLOTS, MIN_SOLDIER_SLOTS } from './capacity';
-import { makeBenchSetup } from '../sim/benchScenario';
+import { makeBenchSetup } from '../bench/benchScenario';
 import { getBattleStats } from '../data/battleStats';
 import { createWorld } from '../sim/world';
 

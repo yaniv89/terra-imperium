@@ -36,6 +36,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
   // Everything the UI is shown is seen from the player's side (fog of war); spectating = side 0.
   const playerSide = Math.max(0, (setup.controllers || []).indexOf('player'));
   let lastFogTick = -100; // the fog grid rides along only when it can have changed (every 5 ticks)
+  let lastPostedTick = -1;
 
   const emitEnd = () => {
     finished = true;
@@ -73,6 +74,11 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
         acc -= TICK_MS;
         if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), chain: world.hashChain, log: [...log] });
       }
+      // A view only when the world moved on (20 Hz at 1x, not every screen frame): the screen
+      // interpolates between the last two by itself, and a 300-a-side view costs milliseconds to
+      // build and copy (plans/terra-imperium-rts-plan.md 13.3). Paused, pushOrders posts its own.
+      if (world.tick === lastPostedTick && !events.length && !world.ended) return;
+      lastPostedTick = world.tick;
       const sendFog = world.tick - lastFogTick >= 5;
       if (sendFog) lastFogTick = world.tick;
       post({ type: 'frame', view: makeRenderView(world, pending, playerSide, sendFog), alpha: paused ? 1 : acc / TICK_MS, events });

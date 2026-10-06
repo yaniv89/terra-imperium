@@ -115,7 +115,7 @@ const DEPLOY_TEMPLATES = {
 export const deployTemplate = (type) => DEPLOY_TEMPLATES[type] || DEPLOY_TEMPLATES.field;
 
 // Massed deployment (setup.deployment === 'blocks'; the large-battle presets and the kernel
-// benchmark, src/battle/sim/benchScenario.js): every squad of the army starts on the field, in a
+// benchmark, src/battle/bench/benchScenario.js): every squad of the army starts on the field, in a
 // deep block per side facing the other across the middle: columns from the front backward, rows
 // across the whole field, melee in front and shooters behind; a slot on impassable ground is skipped.
 const BLOCK_SPACING = Math.round(1.5 * Q);

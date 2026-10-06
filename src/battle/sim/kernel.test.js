@@ -4,7 +4,7 @@
 // they part), a battle can be verified from a snapshot by replaying only its last segment, and,
 // with PERF_CHECKS=1, 300 squads a side stay inside the phone budget.
 import { describe, it, expect } from 'vitest';
-import { makeBenchWorld, runBench } from './benchScenario';
+import { makeBenchWorld, runBench } from '../bench/benchScenario';
 import { step } from './step';
 import { worldHash, chainHash, HASH_CHAIN_EVERY, HASH_CHAIN_SEED } from './hash';
 import { buildSpatialHash, queryRadius, buildTargetGrid } from './pathing';
