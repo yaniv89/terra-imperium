@@ -37,8 +37,11 @@ describe('research choice sheet', () => {
     const military = techs.filter((id) => id.startsWith('military_'));
     game.state = gameReducer(s, { type: ActionTypes.RESEARCH_TECH, payload: { techId: military[1] } });
     const html = renderToStaticMarkup(React.createElement(TechPanel));
-    expect(html).toMatch(/\+[\d.]+ science\/turn/);
+    expect(html).toMatch(/\+[\d.]+ science a turn/);
     expect(html).toContain('data-testid="research-current"');
     expect(html).toContain('data-testid="research-queue"');
+    // W09: the era goals card and the age strip
+    expect(html).toContain('data-testid="research-era-goals"');
+    expect(html).toContain('data-testid="research-age-strip"');
   });
 });

@@ -1,6 +1,6 @@
 // scripts/ui/u1-shots.mjs
 // Screenshots of the world screens restyled in phase U1 (plans/UI-DESIGN.md), at the reference
-// phone screen (844x390 landscape) and a desktop (1280x800), into plans/phase-u1/.
+// phone screen (844x390 landscape) and a desktop (1280x800), into plans/ui/u1/.
 // Needs a running dev server (`npx vite --port 5181`) and a Chrome; headless.
 //   node scripts/ui/u1-shots.mjs [--url http://localhost:5181/terra-imperium/] [--chrome <path>] [--only W02,W05]
 // The game is driven through the UI and, for states that take many turns to reach (a war, a first
@@ -13,7 +13,7 @@ const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i
 const URL_BASE = arg('--url', 'http://localhost:5181/terra-imperium/');
 const CHROME = arg('--chrome', ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/google-chrome', '/opt/pw-browsers/chromium'].find((p) => fs.existsSync(p)));
 const ONLY = (arg('--only', '') || '').split(',').filter(Boolean);
-const OUT = path.resolve('plans/phase-u1');
+const OUT = path.resolve('plans/ui/u1');
 fs.mkdirSync(OUT, { recursive: true });
 
 const VIEWPORTS = [
@@ -50,6 +50,8 @@ const patchState = (page, fnSource) => page.evaluate((src) => {
   const s = fn(window.__game.state); // fn returns a new state: change only what it spreads
   window.__game.dispatch({ type: 'LOAD_GAME', payload: s });
 }, fnSource);
+
+const openTab = (page, tab) => page.evaluate((t) => window.dispatchEvent(new CustomEvent('ti:open-tab', { detail: t })), tab);
 
 const shot = async (page, name, vp) => {
   const file = path.join(OUT, `${name}-${vp.id}.png`);
@@ -132,6 +134,16 @@ const SCREENS = {
     await shot(page, 'W05-city', vp);
     await click(page.getByTestId('city-tab-defense'));
     await shot(page, 'W05-city-defense', vp);
+  },
+  W09: async (page, vp) => {
+    await startGame(page);
+    // Irrigation under way (Kish is on a river: its boost waits), two techs queued
+    await patchState(page, `
+      const r = s.research || {};
+      return { ...s, research: { ...r, current: 'infrastructure_irrigation_canals', queue: ['science_cuneiform_records', 'governance_code_of_laws'], progress: { ...(r.progress || {}), infrastructure_irrigation_canals: 9 } } };`);
+    await openTab(page, 'tech');
+    await page.getByTestId('research-current').waitFor({ timeout: 10000 });
+    await shot(page, 'W09-research', vp);
   }
 };
 
