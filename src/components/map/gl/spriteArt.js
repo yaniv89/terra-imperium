@@ -81,6 +81,55 @@ export const discArt = (px = 64, { ring = 0, dash = null } = {}) => ({
   }
 });
 
+// ------------------------------------------------------------------ terrain (phase F)
+// The mountain chains' peaks up to the close zoom (terrainModel.mountainPeaks) and the pass mark.
+// Placeholders for the `map-terrain/mountain-ridges` kit (ART-PRODUCTION-PLAN batch 14, spec S11),
+// which will arrive as src/assets/map/terrain/mountain-ridges.glb for the close view; these flat
+// pictures stay the far and regional look. A peak is lit from the north-west like the raster's
+// hillshade, its base on the ridge line (the sprite is offset up by PEAK_LIFT of its height).
+const PEAK_SHAPES = [
+  [[0, 1], [0.32, 0.28], [0.44, 0.42], [0.58, 0.08], [1, 1]],
+  [[0, 1], [0.46, 0.04], [0.62, 0.36], [0.74, 0.24], [1, 1]],
+  [[0, 1], [0.28, 0.4], [0.4, 0.3], [0.54, 0.12], [0.8, 0.5], [1, 1]]
+];
+export const PEAK_LIFT = 0.38;
+/** A peak `cssPx` wide (in 2 px steps), variant 0 to 2, with a snow cap or not. */
+export const peakArt = (variant, cssPx, snow, dpr) => {
+  const wCss = Math.max(4, Math.round(cssPx / 2) * 2); const hCss = Math.round(wCss * 0.72);
+  const w = Math.ceil(wCss * dpr) + 2; const h = Math.ceil(hCss * dpr) + 2;
+  const shape = PEAK_SHAPES[variant % PEAK_SHAPES.length];
+  return {
+    key: `peak|${variant % PEAK_SHAPES.length}|${wCss}|${snow ? 1 : 0}|${dpr}`, w, h, css: { w: w / dpr, h: h / dpr },
+    draw: (ctx) => {
+      const X = (u) => 1 + u * (w - 2); const Y = (v) => 1 + v * (h - 2);
+      const top = shape.reduce((m, p) => (p[1] < m[1] ? p : m), shape[0]);
+      const outline = () => { ctx.beginPath(); shape.forEach(([u, v], i) => (i ? ctx.lineTo(X(u), Y(v)) : ctx.moveTo(X(u), Y(v)))); ctx.closePath(); };
+      // the shaded east face, then the lit west face up to the summit's fall line
+      outline(); ctx.fillStyle = '#6f5f4c'; ctx.fill();
+      ctx.save(); outline(); ctx.clip();
+      ctx.beginPath(); ctx.moveTo(X(0), Y(1)); shape.slice(1).forEach(([u, v]) => { if (u <= top[0]) ctx.lineTo(X(u), Y(v)); });
+      ctx.lineTo(X(top[0] + 0.1), Y(1)); ctx.closePath(); ctx.fillStyle = '#b9a586'; ctx.fill();
+      if (snow) { ctx.fillStyle = 'rgba(248,250,252,0.95)'; ctx.fillRect(0, 0, w, Y(top[1] + 0.3)); }
+      ctx.restore();
+      outline(); ctx.strokeStyle = 'rgba(48,38,28,0.85)'; ctx.lineWidth = Math.max(0.8, dpr * 0.7); ctx.lineJoin = 'round'; ctx.stroke();
+    }
+  };
+};
+/** The mark on a mountain pass: two facing arcs (a saddle) on a pale halo, `cssPx` across. */
+export const passArt = (cssPx, dpr) => {
+  const px = Math.ceil(cssPx * dpr);
+  return {
+    key: `pass|${px}`, w: px, h: px, css: { w: px / dpr, h: px / dpr },
+    draw: (ctx) => {
+      const c = px / 2;
+      ctx.beginPath(); ctx.arc(c, c, c - 0.5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(254,243,199,0.8)'; ctx.fill();
+      ctx.strokeStyle = '#3f2d1d'; ctx.lineWidth = Math.max(1, px * 0.12); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(c - px * 0.62, c, px * 0.42, -0.75, 0.75); ctx.stroke();
+      ctx.beginPath(); ctx.arc(c + px * 0.62, c, px * 0.42, Math.PI - 0.75, Math.PI + 0.75); ctx.stroke();
+    }
+  };
+};
+
 // Art resolution of a badge: the radius in device pixels, in steps so a slow zoom reuses them.
 const R_STEPS = [6, 8, 10, 12, 16, 20, 24, 32, 40, 48];
 export const badgeRadiusStep = (rDevice) => R_STEPS.find((s) => s >= rDevice) || R_STEPS[R_STEPS.length - 1];

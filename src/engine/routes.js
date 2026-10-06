@@ -5,8 +5,9 @@
 // as its movement points allow, paying for the march in supplies and gold.
 //
 //   Pace        movement points per turn: the slowest unit's MOVE_POINTS (+1 with Forced March).
-//   Step cost   armies.js tileStepCost: open land 1, hills, forest and desert more, mountains 4,
-//               a river crossing +1, a road 0.5. Enemy land costs at least ENEMY_TILE_COST.
+//   Step cost   armies.js tileStepCost: open land 1, hills, forest and desert more, mountains 4
+//               (a pass as hills), a river crossing 0.5 / 1 / 2 by size (less on a road edge or
+//               with Stone Bridges), a road 0.5. Enemy land costs at least ENEMY_TILE_COST.
 //   Banking     unspent points carry over (up to BANK_CAP), so a slow army still crosses mountains.
 //   Access      at peace a route may only cross your land, a vassal's or a military ally's (and free
 //               land). At war it may plan into the enemy's land, but it halts at the border of every

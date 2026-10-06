@@ -65,6 +65,28 @@ describe('the battlefield from a tile', () => {
     expect(generateMap({ regionId: 'x', terrain: rctx.terrain, combatWidth: 4, tileContext: rctx }).tiles).toEqual(rmap.tiles);
   });
 
+  it('draws a river as wide as its size, with its fords and a bridge where a road crosses', () => {
+    const great = [...Array(tiles.count).keys()].find((t) => tiles.land[t] === 1 && tiles.neighbors[t].some((n) => tiles.land[n] === 1 && tiles.riverSizeBetween(t, n) === 3));
+    const n = tiles.neighbors[great].find((x) => tiles.land[x] === 1 && tiles.riverSizeBetween(great, x) === 3);
+    const ctx = tileContextOf(S, great);
+    const s = ctx.sectors.find((x) => x.tile === n);
+    expect(s).toMatchObject({ river: true, riverSize: 3, fords: 1, bridge: false });
+    const map = generateMap({ regionId: 'g', terrain: ctx.terrain, combatWidth: 4, tileContext: ctx });
+    const rim = sectorCells(map, s.bearing, SECTOR_INNER - 0.2);
+    expect(rim.filter((t) => t === TILE.WATER).length).toBeGreaterThan(0);
+    // with a road on both banks the crossing gets a bridge (road tiles through the water)
+    const roads = { ...S, world: { ...S.world, tileState: { ...S.world.tileState, [great]: { road: true }, [n]: { road: true } } } };
+    const rctx = tileContextOf(roads, great);
+    const rs = rctx.sectors.find((x) => x.tile === n);
+    expect(rs.bridge).toBe(true);
+    const rmap = generateMap({ regionId: 'g', terrain: rctx.terrain, combatWidth: 4, tileContext: rctx });
+    const cx = (rmap.w - 1) / 2; const cy = (rmap.h - 1) / 2; const half = Math.hypot(cx, cy);
+    const rad = (rs.bearing * Math.PI) / 180;
+    const at = (d) => rmap.tiles[Math.round(cy - Math.sin(rad) * d * half) * rmap.w + Math.round(cx + Math.cos(rad) * d * half)];
+    expect(at(SECTOR_INNER + 0.02 - 4 / half)).toBe(TILE.ROAD);
+    expect(at(SECTOR_INNER + 0.02 - 4 / half) === map.tiles[Math.round(cy - Math.sin(rad) * (SECTOR_INNER + 0.02 - 4 / half) * half) * map.w + Math.round(cx + Math.cos(rad) * (SECTOR_INNER + 0.02 - 4 / half) * half)]).toBe(false);
+  });
+
   it('a battered city starts the assault with its keep at the siege HP', () => {
     const city = S.regions[getNationCapital('be')];
     const half = { ...city, siege: { hp: Math.round(siegeMaxHp(city) / 2), maxHp: siegeMaxHp(city), by: 'fr' } };

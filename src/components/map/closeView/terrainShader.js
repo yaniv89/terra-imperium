@@ -15,6 +15,13 @@
 //                             mottling on green land, ripples on sand, crags on bare rock and
 //                             waves on water, plus a small hillshade from the same noise. Each
 //                             scale fades in once it spans a few screen pixels (DETAIL_SCALES_KM).
+//   Land cover (phase F)      where the tile has a land cover tile (rasterDetail.js, uCoverOn),
+//                             its class picks the detail instead of the colour guess: tree crowns
+//                             in forest and rainforest, ripples on desert, crags on rock, dry
+//                             speckle on steppe, a patchwork of plots on irrigated land, pools in
+//                             wetland. The class is read nearest, at a point warped by the noise,
+//                             so its edges never show the pixel grid. Placeholder for the ground
+//                             materials of ART-PRODUCTION-PLAN batch 14 (public/terrain/<id>/).
 // Kept free of React; the shader strings and the small helpers are pure and unit tested.
 export const EARTH_KM = 40075;
 // The noise scales, kilometres: broad patches, fields and copses, single crags and ripples.
@@ -71,6 +78,9 @@ uniform sampler2D uMap;
 uniform vec2 uSize;      // texture size in pixels
 uniform vec4 uGeo;       // lon0, lat0 (top edge), lon span, lat span (degrees)
 uniform float uPxPerKm;  // device pixels per kilometre
+uniform sampler2D uCover;  // land cover classes (red channel, LAND_COVER order)
+uniform float uCoverOn;
+uniform float uRiverOff;  // 1: the map draws the rivers from the grid (gl/terrainModel.js), the raster's go
 varying vec2 vUv;
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -126,11 +136,20 @@ void main() {
     vec3 groundC = (c00 * gw.x + c10 * gw.y + c01 * gw.z + c11 * gw.w) / sg;
     landC = mix(groundC, iceC, smoothstep(0.5 - ai, 0.5 + ai, mi));
   }
+  // Phase F: the grid's rivers are drawn over the map, so the raster's own river pixels become the
+  // land around them (the nearby land pixels, else a plain green): one river system, not two.
+  float riverKill = smoothstep(0.35, 0.7, rv) * uRiverOff;
+  if (riverKill > 0.0) {
+    float e0 = 1.0 - water(d0); float e1 = 1.0 - water(d1); float e2 = 1.0 - water(d2); float e3 = 1.0 - water(d3);
+    float ew = e0 + e1 + e2 + e3;
+    vec3 around = ew > 0.05 ? (d0 * e0 + d1 * e1 + d2 * e2 + d3 * e3) / ew : vec3(0.3, 0.38, 0.22);
+    landC = mix(landC, around, riverKill * (1.0 - clamp(sl * 3.0, 0.0, 1.0)));
+  }
   float aa = max(fwidth(m) * 0.8, 0.002);
   // Rivers narrow to their channel as you zoom in, instead of staying a few kilometres wide.
   float mr = mix(m, channel, rv * weight(${DETAIL_SCALES_KM[1].toFixed(1)}));
   float ar = max(fwidth(mr) * 0.8, 0.002);
-  float isWater = smoothstep(0.5 - ar, 0.5 + ar, mr);
+  float isWater = smoothstep(0.5 - ar, 0.5 + ar, mr) * (1.0 - riverKill);
   waterC = mix(waterC, vec3(0.27, 0.5, 0.72) * (0.85 + 0.3 * dot(waterC, vec3(0.33))), rv * 0.55);
 
   // World kilometres for the noise.
@@ -149,6 +168,20 @@ void main() {
   float n1 = fbm(km / ${DETAIL_SCALES_KM[0].toFixed(1)}) - 0.5;
   float n2 = fbm(km / ${DETAIL_SCALES_KM[1].toFixed(1)} + 31.0) - 0.5;
   float n3 = vnoise(km / ${DETAIL_SCALES_KM[2].toFixed(1)} + 7.0) - 0.5;
+  // Land cover: the class at a point warped by the noise (organic edges), one-hot by kind.
+  float cForest = 0.0; float cDesert = 0.0; float cRock = 0.0; float cSteppe = 0.0; float cIrrigated = 0.0; float cWet = 0.0;
+  if (uCoverOn > 0.5) {
+    float cls = floor(texture2D(uCover, vUv + vec2(n2, n3) * 1.6 / uSize).r * 255.0 + 0.5);
+    cForest = step(5.5, cls) * step(cls, 7.5);
+    cDesert = step(2.5, cls) * step(cls, 3.5);
+    cRock = step(1.5, cls) * step(cls, 2.5);
+    cSteppe = step(3.5, cls) * step(cls, 4.5);
+    cWet = step(8.5, cls) * step(cls, 9.5);
+    cIrrigated = step(9.5, cls);
+    sand = max(sand * 0.4, cDesert);
+    rock = max(rock * 0.4, cRock);
+    green = max(green, cForest);
+  }
   float mottle = n1 * 0.24 * w1 + n2 * 0.2 * w2 * (0.5 + green) + n3 * 0.12 * w3;
   float ripple = sin(dot(km, vec2(0.83, 0.55)) * 3.2 + n2 * 9.0) * 0.05 * w3 * sand;
   float crag = (0.25 - abs(n2)) * 0.3 * w2 * rock + (0.2 - abs(n3)) * 0.18 * w3 * rock;
@@ -157,6 +190,21 @@ void main() {
   float hy = fbm((km + vec2(0.0, 0.6)) / ${DETAIL_SCALES_KM[1].toFixed(1)} + 31.0) - 0.5 - n2;
   float hill = (hy - hx) * 2.2 * w2 * (0.4 + rock);
   vec3 land = landC * (1.0 + mottle + ripple + crag + hill);
+  if (uCoverOn > 0.5) {
+    // tree crowns: dark gaps between round canopies about 400 m across
+    float crown = vnoise(km / 0.4 + 3.0);
+    land *= 1.0 - cForest * w3 * (0.22 - 0.3 * crown * crown);
+    // dry steppe: pale speckle
+    land *= 1.0 + cSteppe * w3 * (vnoise(km / 0.5 + 11.0) - 0.5) * 0.18;
+    // irrigated land: plots about 1.2 km, each its own shade, furrows along one of two ways
+    vec2 plot = floor(km / 1.2);
+    float ph = hash(plot);
+    float furrow = sin(dot(km, ph > 0.5 ? vec2(1.0, 0.0) : vec2(0.0, 1.0)) * 40.0) * 0.5 + 0.5;
+    land = mix(land, land * vec3(0.92 + 0.22 * ph, 1.0 + 0.12 * (1.0 - ph), 0.85) * (0.95 + 0.06 * furrow), cIrrigated * w3);
+    // wetland: small pools between the reeds
+    float pool = smoothstep(0.66, 0.72, vnoise(km / 0.45 + 23.0));
+    land = mix(land, vec3(0.2, 0.33, 0.36), cWet * w3 * pool * 0.7);
+  }
 
   // Water: slow swells and a light rim along the shore.
   float wave = (vnoise(km / 3.0 + vec2(0.0, n1 * 3.0)) - 0.5) * 0.06 * w2 + (vnoise(km * vec2(1.4, 0.5)) - 0.5) * 0.05 * w3;

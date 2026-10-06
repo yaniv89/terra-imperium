@@ -58,6 +58,10 @@ const startGame = async (page) => {
   const skip = page.getByRole('button', { name: 'Skip' });
   await skip.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   if (await skip.isVisible().catch(() => false)) await skip.dispatchEvent('click');
+  // "Choose your research" opens on turn 1 over the map: "Later" closes it (the screenshots show the map)
+  const later = page.locator('[data-testid="research-choice"] button[aria-label="Later"]');
+  await later.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+  if (await later.isVisible().catch(() => false)) await later.dispatchEvent('click');
 };
 
 // In the page: pan by mouse events (d3-zoom listens on the map, then on the window).
@@ -136,6 +140,12 @@ const run = async () => {
       window.__E2E_DISABLE_GLOBE_AUTOROTATE__ = true; window.__E2E_MAP_TEST__ = true;
       try { localStorage.setItem('terra-imperium-map-mode', 'flat'); localStorage.setItem('terra-imperium-map-renderer', renderer); localStorage.setItem('terra-imperium-minimap-open', '0'); } catch { /* none */ }
     }, RENDERER);
+    // the map's own downloads (raster tiles, land cover, detail manifest): bytes per zoom step
+    let mapBytes = 0; let mapFiles = 0;
+    page.on('response', async (res) => {
+      if (!/\/map\/(tiles|cover)\//.test(res.url())) return;
+      try { const body = await res.body(); mapBytes += body.length; mapFiles += 1; } catch { /* aborted */ }
+    });
     await page.goto(`http://localhost:${PORT}/`);
     await startGame(page);
     await page.waitForFunction(() => window.__map2DTest?.focus, null, { timeout: 90000 });
@@ -149,9 +159,11 @@ const run = async () => {
     await cdp.send('Performance.enable');
     if (prof.throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: prof.throttle });
     for (const k of ZOOMS) {
+      const bytes0 = mapBytes; const files0 = mapFiles;
       await page.evaluate((zoom) => window.__map2DTest.focus(48.85, 2.35, zoom), k);
       await page.waitForTimeout(2500); // settle, tiles, models
-      if (SHOTS && (k === 4 || k === 40)) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${RENDERER}-${EXPLORED ? 'explored-' : ''}${name}-k${k}.png` }); }
+      const screenKB = round((mapBytes - bytes0) / 1024); const screenFiles = mapFiles - files0;
+      if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.screenshot({ path: `${SHOTS}/${RENDERER}-${EXPLORED ? 'explored-' : ''}${name}-k${k}.png` }); }
       const steps = await page.evaluate(panSteps, { steps: STEPS, dx: 6 });
       await page.waitForTimeout(600);
       const before = await cdp.send('Performance.getMetrics');
@@ -168,7 +180,8 @@ const run = async () => {
         profile: name, renderer: RENDERER, world: EXPLORED ? 'explored' : 'fog', k,
         stepMedian: round(pct(steps, 0.5)), stepP90: round(pct(steps, 0.9)),
         fps: round((frames.length * 1000) / total), frameP90: round(pct(frames, 0.9)), frameMax: round(Math.max(...frames)),
-        mainMsPerFrame: round(taskMs / Math.max(1, frames.length)), settleMs: settle == null ? null : round(settle), draws
+        mainMsPerFrame: round(taskMs / Math.max(1, frames.length)), settleMs: settle == null ? null : round(settle), draws,
+        screenKB, screenFiles
       };
       results.push(row);
       console.log(JSON.stringify(row));
@@ -178,9 +191,9 @@ const run = async () => {
     await context.close();
   }
   await browser.close();
-  console.log('\n| profile | renderer | world | k | step median / p90 ms | pan fps | frame p90 / max ms | main ms per frame | longest task after a pan, ms | draws (GL calls or SVG nodes) |');
-  console.log('|---|---|---|---|---|---|---|---|---|---|');
-  results.forEach((r) => console.log(`| ${r.profile} | ${r.renderer} | ${r.world} | ${r.k} | ${r.stepMedian} / ${r.stepP90} | ${r.fps} | ${r.frameP90} / ${r.frameMax} | ${r.mainMsPerFrame} | ${r.settleMs ?? '-'} | ${r.draws} |`));
+  console.log('\n| profile | renderer | world | k | step median / p90 ms | pan fps | frame p90 / max ms | main ms per frame | longest task after a pan, ms | draws (GL calls or SVG nodes) | map download on arrival, kB (files) |');
+  console.log('|---|---|---|---|---|---|---|---|---|---|---|');
+  results.forEach((r) => console.log(`| ${r.profile} | ${r.renderer} | ${r.world} | ${r.k} | ${r.stepMedian} / ${r.stepP90} | ${r.fps} | ${r.frameP90} / ${r.frameMax} | ${r.mainMsPerFrame} | ${r.settleMs ?? '-'} | ${r.draws} | ${r.screenKB} (${r.screenFiles}) |`));
   if (OUT) writeFileSync(OUT, JSON.stringify(results, null, 2));
 };
 

@@ -12,7 +12,9 @@ export const COLUMN_TYPES = {
   lat: 'Int32Array', lon: 'Int32Array', neighbors: 'Int32Array',
   land: 'Uint8Array', coastal: 'Uint8Array', country: 'Int16Array', elevation: 'Int16Array',
   roughness: 'Uint16Array', climate: 'Int8Array', terrain: 'Uint8Array', relief: 'Uint8Array',
-  feature: 'Uint8Array', rivers: 'Uint8Array', resource: 'Int8Array'
+  feature: 'Uint8Array', rivers: 'Uint8Array', resource: 'Int8Array',
+  // Phase F terrain columns (scripts/geo/build-tile-terrain.mjs, read through terrainData.js).
+  riverSize: 'Uint16Array', range: 'Int16Array', ridge: 'Uint8Array', pass: 'Uint8Array'
 };
 const CTORS = { Int32Array, Uint8Array, Int16Array, Uint16Array, Int8Array };
 const MAGIC = [0x54, 0x49, 0x42, 0x31]; // "TIB1"

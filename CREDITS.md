@@ -7,7 +7,8 @@ The world grid (`src/data/geo/tiles.json`, built by `scripts/geo/build-tiles.mjs
 - **Köppen-Geiger climate classification** at 0.5 degrees, via the `koppen-climate-lookup` npm
   package (Beck et al. 2018, CC BY 4.0).
 - **Elevation** from the Mapzen / Tilezen terrain tiles (zoom 4), used at build time to classify
-  relief. Required attribution for those tiles:
+  relief; zoom 5 for the raster pyramid and zoom 7 (under land) for the level 6 raster and the
+  land cover tiles (`scripts/geo/build-raster-detail.mjs`). Required attribution for those tiles:
   - ArcticDEM terrain data DEM(s) were created from DigitalGlobe, Inc., imagery and funded under
     National Science Foundation awards 1043681, 1559691, and 1542736;
   - Australia terrain data © Commonwealth of Australia (Geoscience Australia) 2017;
