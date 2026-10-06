@@ -18,7 +18,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
 import { soldierSlots, squadSlots, figureScale, scaledSoldiers } from './capacity';
-import { getSoldierGeometry, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
+import { getSoldierGeometry, hasSoldierOverride, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant } from './unitVariants';
 import { soldierLodGeometries, pickSoldierTier, triangleCount } from './soldierLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
@@ -32,6 +32,8 @@ import { BattleTerrainArt } from '../art/battleTerrain';
 import { ProjectileArt } from '../art/projectiles';
 import { FxSprites } from '../art/fxSheets';
 import { getAgeIndex } from '../../data/ages';
+import { peopleForNationId } from '../../data/peoples';
+import { signatureKey, baseClassOf } from '../../data/signatureUnits';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -794,7 +796,9 @@ export class BattleRenderer {
     const key = `${ageId}:${classId}`;
     let layer = this.soldierLayers.get(key);
     if (layer) return layer;
-    const MAX = soldierSlots(this.setup, ageId, classId); // every soldier of this age and class (capacity.js)
+    // every soldier of this age and class (capacity.js); a signature unit's layer ('infantry~people')
+    // as many as its base class, a general layer one a squad (the minimum pool)
+    const MAX = soldierSlots(this.setup, ageId, baseClassOf(classId));
     const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
     const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
     const make = (source, shadow, far) => {
@@ -1068,9 +1072,14 @@ export class BattleRenderer {
   // soldier layer, how many figures it draws at full strength and how they stand.
   squadLook(s) {
     const stats = s.classId === 'naval' ? getUnitBattleStats({ classId: 'naval', navalLine: s.navalLine }, s.ageId) : getBattleStats(s.classId, s.ageId);
+    // the side's people's signature unit draws in place of the base unit when its model is in
+    // (data/signatureUnits.js, unitModels.js); without it the base unit's layer
+    const people = this.sidePeople?.[s.side] ?? (this.sidePeople = this.setup.sides.map((sd) => peopleForNationId(sd.nationId)))[s.side];
+    const sig = people ? signatureKey(s.classId, people) : null;
     return {
       stats,
-      layer: this.soldierLayer(s.ageId, s.classId),
+      layer: this.soldierLayer(s.ageId, sig && hasSoldierOverride(s.ageId, sig) ? sig : s.classId),
+      general: hasSoldierOverride(s.ageId, 'general') ? this.soldierLayer(s.ageId, 'general') : null,
       drawn: this.figureScale < 1 ? { soldiers: scaledSoldiers(stats.soldiers, this.figureScale) } : stats,
       big: s.classId === 'cavalry' || s.classId === 'siege' || s.classId === 'support' || s.classId === 'naval' || !!stats.flying,
       spacing: stats.flying ? 1.4 : s.classId === 'naval' ? 2.2 : s.classId === 'siege' ? 1.5 : s.classId === 'cavalry' ? 0.95 : s.classId === 'support' ? 1.05 : 0.52,
@@ -1218,6 +1227,16 @@ export class BattleRenderer {
         flagMat.set(poleMat.subarray(bannerN * 16, bannerN * 16 + 16), bannerN * 16);
         flagCol[bannerN * 3] = side.r; flagCol[bannerN * 3 + 1] = side.g; flagCol[bannerN * 3 + 2] = side.b;
         bannerN += 1;
+        // the general's own figure beside the standard (src/assets/units/<age>-general.glb)
+        const gl = s.commanderId ? info.general : null;
+        if (gl && gl.count < gl.capacity) {
+          const gk = gl.count; const gx = bx - fx * 0.6; const gz = bz - fz * 0.6; const gs = MODEL_SCALE.general;
+          writeYaw(gl.matrix.array, gk, gx, this.heightAt(gx, gz), gz, turn, gs, gs, gs);
+          gl.color.array[gk * 3] = cr; gl.color.array[gk * 3 + 1] = cg; gl.color.array[gk * 3 + 2] = cb;
+          gl.anim.array[gk * 3] = fig[4]; gl.anim.array[gk * 3 + 1] = walking; gl.anim.array[gk * 3 + 2] = striking;
+          gl.variant.array.set(fig.subarray(5, 9), gk * 4);
+          gl.count += 1;
+        }
       }
       const hurt = s.strength < s.startStrength && (s.striking || s.target >= 0);
       if (!isSelected && !(hurt && zoom >= BAR_MIN_ZOOM)) return;
