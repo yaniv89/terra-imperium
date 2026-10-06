@@ -140,6 +140,18 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       ))}
+      {/* Independents offering to join (phase W3, indepPolicy.js): accept and the city is yours, peacefully. */}
+      {(state.joinOffers || []).filter((o) => state.nations[o.indepId] && !state.nations[o.indepId].isEliminated).map((o) => (
+        <div key={o.id} className="p-2 rounded bg-emerald-900/30 border border-emerald-600/50 flex flex-wrap items-center justify-between gap-2" data-testid="join-offer">
+          <div className="text-xs text-emerald-100 min-w-0">
+            <span className="font-semibold">{state.nations[o.indepId].name}</span> offer to join you: their city and soldiers become yours, with no aggressive expansion (answer by turn {o.expires}).
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <button type="button" className="min-h-[44px] px-3 rounded bg-emerald-700 hover:bg-emerald-600 text-xs font-semibold text-white" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: true } })}>Accept</button>
+            <button type="button" className="min-h-[44px] px-3 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-100" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: false } })}>Decline</button>
+          </div>
+        </div>
+      ))}
       {playerNation?.vassalOf && (
         // Plan §M12/§M15: a vassal's own path out of subjection — liberty desire rises the
         // stronger the vassal grows relative to its overlord (resolveTurn.js), and clears the

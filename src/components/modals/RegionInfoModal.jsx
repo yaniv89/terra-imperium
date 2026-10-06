@@ -20,6 +20,7 @@ import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplom
 import { canAttack } from '../../engine/hostility';
 import { isIndependentNation, PERSONALITIES } from '../../data/independents';
 import IndependentStatus from './IndependentStatus';
+import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
 import { BUILDING_CATEGORIES, BUILDING_CATEGORY_IDS, EXTRACTION_BUILDINGS, getCategoryTierName, getBuildingSlots, getUsedBuildingSlots } from '../../data/buildings';
@@ -347,6 +348,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
           )}
         </div>
       )}
+
+      {/* Keep or raze a city taken by force (phase W3, razing.js). */}
+      {isPlayerOwned && (regionState.conquest || regionState.razing) && <div className="mb-2"><RazeControl state={state} dispatch={dispatch} city={regionState} /></div>}
 
       {/* Foreign relations */}
       {!isPlayerOwned && ownerNation && (

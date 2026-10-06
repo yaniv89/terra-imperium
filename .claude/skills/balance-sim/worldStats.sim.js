@@ -94,6 +94,13 @@ const snapshot = (s, t, counters, ms, lives) => {
     raidsOut: nations.filter((n) => n.indep?.raid && !n.isEliminated).length,
     tributeRunning: nations.reduce((k, n) => k + Object.keys(n.indep?.tributeFrom || {}).length, 0),
     mercsActive: Object.values(s.units).filter((u) => u.mercenary).length,
+    // Majors and independents (phase W3, indepPolicy.js and razing.js, cumulative): independents
+    // conquered, joined, cities razed (and fires started), campaigns, courtships and gifts, trade
+    // deals and their gold, tribute demanded by majors and paid to them; and now: campaigns running.
+    indepConquered: s.indepStats?.conquered || 0, indepJoined: s.indepStats?.joined || 0, citiesRazed: s.indepStats?.razed || 0, razeStarted: s.indepStats?.razeStarted || 0,
+    campaigns: s.indepStats?.campaigns || 0, musters: s.indepStats?.musters || 0, courtships: s.indepStats?.courtships || 0, gifts: s.indepStats?.gifts || 0, tradeDeals: s.indepStats?.tradeDeals || 0,
+    tradeGold: s.indepStats?.tradeGold || 0, majorTributeDemands: s.indepStats?.tributeDemandsByMajors || 0, tributeToMajors: s.indepStats?.tributeToMajors || 0,
+    campaignsRunning: nations.filter((n) => n.indepGoal?.kind === 'conquer' && !n.isEliminated).length,
     nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };

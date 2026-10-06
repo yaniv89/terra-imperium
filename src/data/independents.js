@@ -244,3 +244,93 @@ export const MERC_AI_GOLD_MULT = 2;
 export const MERC_AI_RAIDED_TURNS = 10; // a major raided this recently hires too, at peace
 export const MERC_AI_MAX = 2;
 export const MERC_AI_PERIOD = 5;
+
+// ---------------------------------------------------------------------------------------------
+// Phase W3: majors and independents (independents 4.5, 5 and 6; master plan 6.5 and 7 row 10).
+// The engine is src/engine/indepPolicy.js (the AI majors' choices, joining, trade, tribute to
+// majors), src/engine/razing.js (razing a captured city) and aiOperations.js (the siege force and
+// the raider hunt). Every number is one table to tune with the balance-sim.
+
+/** An AI major weighs the independents around it every INDEP_POLICY_PERIOD turns, staggered by id. */
+export const INDEP_POLICY_PERIOD = 5;
+/** An independent whose city stands within CONQUER_KM of one of a major's cities is in its reach. */
+export const CONQUER_KM = 612;
+/** Plan 5: a major goes for an independent when its army near it is at least this times the
+ * garrison; the siege force it sends is at least CONQUER_FORCE_RATIO x the garrison (all it can
+ * spare when less), leaving CONQUER_KEEP_PER_CITY units in each of its cities. */
+export const CONQUER_STRENGTH_RATIO = 2;
+export const CONQUER_FORCE_RATIO = 2;
+export const CONQUER_KEEP_PER_CITY = 1;
+/** Short of the force, a major MUSTERS: its cities train up to MUSTER_MAX_UNITS more land units
+ * (aiProduction.js, as when arming for a claim) for at most MUSTER_MAX_TURNS, then it marches. Only
+ * a solvent major musters (MUSTER_MIN_GOLD in the treasury and a positive income last turn), and a
+ * muster that empties the treasury is called off: an army it cannot pay for costs it its stability.
+ * OFF (0) after the balance-sim: with 3 units (gated by gold and income) civil wars among majors rose
+ * 46% and unrest by half (6 seeds, 150 turns): the majors' peacetime economies cannot carry the
+ * extra upkeep. Kept as the one lever to raise the conquest rate once the economy is rebalanced. */
+export const MUSTER_MAX_UNITS = 0;
+export const MUSTER_MAX_TURNS = 30;
+export const MUSTER_MIN_GOLD = 100;
+/** The seeded chance a major with a target in reach starts the campaign on a think turn. */
+export const CONQUER_CHANCE = 0.6;
+/** A campaign that has not taken the city in this many turns ends; the city is left alone
+ * CONQUER_RETRY_TURNS before the same major tries again. */
+export const CONQUER_MAX_TURNS = 30;
+export const CONQUER_RETRY_TURNS = 25;
+/** Snowball guards: no new campaign for a major holding more than CONQUER_RUNAWAY_MULT x the median
+ * major's cities (and at least CONQUER_RUNAWAY_MIN), or that a neighbour holds CONQUER_AE_LIMIT
+ * aggressive expansion against. */
+export const CONQUER_RUNAWAY_MULT = 2;
+export const CONQUER_RUNAWAY_MIN = 8;
+export const CONQUER_AE_LIMIT = 30;
+
+/** Peaceful joining (independents 4.5): a tribal or mercantile independent, or a free city that is
+ * not a fortress, joins a major with a city within JOIN_KM when its attitude to that major has
+ * stayed at JOIN_OPINION for JOIN_TURNS turns, or at once when the major's army near it is
+ * JOIN_STRENGTH_RATIO x its own and its attitude is JOIN_STRENGTH_OPINION. No AE. */
+export const JOIN_PERSONALITIES = ['tribal', 'mercantile'];
+export const JOIN_KM = 612;
+export const JOIN_OPINION = 80;
+export const JOIN_TURNS = 20;
+export const JOIN_STRENGTH_RATIO = 5;
+export const JOIN_STRENGTH_OPINION = 40;
+/** A joined city starts this loyal (its people chose the new rule). */
+export const JOIN_LOYALTY = 75;
+/** The player's join offers wait this long for an answer. */
+export const JOIN_OFFER_TURNS = 5;
+
+/** Influence (independents 5, "gift gold"): a gift of GIFT_GOLD gold earns GIFT_FAVOUR favour; favour
+ * is capped at FAVOUR_MAX and fades FAVOUR_DECAY a turn. An AI major courting a joinable independent
+ * gifts on its think turns while it holds COURT_GOLD_MULT x a gift. */
+export const GIFT_GOLD = 50;
+export const GIFT_FAVOUR = 10;
+export const FAVOUR_MAX = 50;
+export const FAVOUR_DECAY = 0.5;
+export const COURT_GOLD_MULT = 3;
+export const COURT_CHANCE = 0.5;
+
+/** Tribute to a major (independents 5, "demand tribute"): when the major's army near it is at least
+ * DEMAND_TRIBUTE_RATIO x the independent's, it pays tributeGold a turn for TRIBUTE_TURNS turns (a
+ * truce both ways meanwhile), else it refuses (+GRUDGE_REFUSED). A fortress never pays. An AI major
+ * demands it on a think turn with the seeded DEMAND_TRIBUTE_CHANCE. */
+export const DEMAND_TRIBUTE_RATIO = 3;
+export const DEMAND_TRIBUTE_CHANCE = 0.25;
+
+/** Trade (independents 5): a mercantile independent trades with up to TRADE_MAX_PARTNERS majors
+ * that hold a city within TRADE_KM and that it holds under TRADE_MAX_GRUDGE against: each side
+ * gains tradeGoldOf(age) a turn. A grudge at TRADE_MAX_GRUDGE ends it. */
+export const TRADE_KM = 1224;
+export const TRADE_MAX_PARTNERS = 3;
+export const TRADE_MAX_GRUDGE = 30;
+export const TRADE_AI_CHANCE = 0.3;
+export const tradeGoldOf = (ageId = 'bronze') => 2 + Math.max(0, AGE_ORDER.indexOf(ageId));
+
+/** Razing (independents 5, decision 3): a captured city of any size loses RAZE_SIZE_PER_TURN size a
+ * turn and is gone after size 1; while it burns it yields nothing and anyone who retakes it stops
+ * the fire. Its people's kin among the independents hold GRUDGE_RAZE_KIN against the razer. An AI
+ * major razes a captured independent's city only when it is at most RAZE_AI_MAX_SIZE and stands
+ * within RAZE_AI_CROWD_KM of one of its own cities (a crowded, worthless prize). */
+export const RAZE_SIZE_PER_TURN = 1;
+export const GRUDGE_RAZE_KIN = 60;
+export const RAZE_AI_MAX_SIZE = 2;
+export const RAZE_AI_CROWD_KM = 306;

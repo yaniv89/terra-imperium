@@ -7,6 +7,7 @@ import { processLateArrivals, independentCityCtx } from './independents';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { processIndependents } from './raids';
+import { processMajorsAndIndependents } from './indepPolicy';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
 // src/engine/resolveTurn.js
@@ -1105,6 +1106,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // transient, one-turn signal (App.jsx diffs it to show a one-shot reward popup); it's not
   // persisted anywhere else on state. ---
   let playerEliminatedNationId = null;
+  let independentsConquered = 0; // phase W3: counted into state.indepStats.conquered below
   const eliminationWarParticipants = new Set();
   Object.keys(nationsAfterWars).forEach((nId) => {
     const eliminated = checkNationElimination(nationsAfterWars, regions, nId);
@@ -1118,7 +1120,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     });
     wars = closeWarsForEliminatedNation(wars, nId);
     // An independent is one city: taking it is a conquest, not the fall of a nation (no reward, no world log).
-    if (isIndependentNation(eliminated)) return;
+    if (isIndependentNation(eliminated)) { independentsConquered += 1; return; }
     logs.push({ year: newYear, message: `${eliminated.name} has been eliminated — no territory remains under its control.`, type: LogTypes.MILESTONE });
     // Rivals (plan §M12): "+10% prestige gain/turn" has no substrate (nationalPower.js's prestige
     // is pure decay outside one-shot sources) — this is the one real payoff instead, a one-shot
@@ -1160,6 +1162,28 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     }
   }
   mark('independents');
+
+  // --- majors and independents (phase W3, indepPolicy.js and razing.js): burning cities shrink or
+  // fall to ashes, the AI razes a small crowding prize, independents take favour, trade and tribute
+  // and may join a major, and the AI majors court, trade with, tax or march on them (the siege force
+  // itself moved in the operations above).
+  {
+    const stats0 = { ...(state.indepStats || {}), conquered: (state.indepStats?.conquered || 0) + independentsConquered };
+    const mi = processMajorsAndIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars, indepStats: stats0 });
+    if (mi) {
+      Object.keys(units).forEach((id) => { if (!mi.units[id]) delete units[id]; });
+      Object.assign(units, mi.units);
+      Object.keys(regions).forEach((id) => { if (!mi.regions[id]) delete regions[id]; });
+      Object.assign(regions, mi.regions);
+      Object.assign(resources, mi.resources);
+      nationsAfterWars = mi.nations;
+      wars = mi.wars;
+      state = { ...state, world: mi.world, joinOffers: mi.joinOffers, indepStats: mi.indepStats };
+      mi.logs.forEach((l) => { if (!l.nationId || l.nationId === state.playerNationId) logs.push({ year: l.year, message: l.message, type: l.type }); });
+      invalidateRegionsCache(regions);
+    } else if (independentsConquered) state = { ...state, indepStats: stats0 };
+  }
+  mark('majorsAndIndependents');
 
   // --- war exhaustion (plan §9/§11): rises for every nation at war, including the player,
   // decays at peace. Makes a long war's eventual Sue for Peace cheaper (GameContext.jsx) — this

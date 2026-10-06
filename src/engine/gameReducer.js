@@ -58,6 +58,8 @@ import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/ind
 import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
 import { answerTributeDemand } from './raids';
+import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, razeCityForPlayer } from './indepPolicy';
+import { canRaze, stopRazing } from './razing';
 
 const endWar = (wars, id) => wars.map((w) => (w.id === id ? { ...w, active: false, goalAchieved: true } : w));
 import { addNationModifier } from './modifiers/timed';
@@ -3094,6 +3096,38 @@ const reduceAction = (state, action) => {
       // Pay an independent's tribute (no raids from it meanwhile) or refuse it (raids.js, phase W2).
       const { id, pay } = action.payload || {};
       return answerTributeDemand(state, id, !!pay);
+    }
+    // Phase W3 (indepPolicy.js, razing.js): influence, joining, tribute, trade and razing.
+    case ActionTypes.GIFT_INDEPENDENT: {
+      const r = giftIndependent(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.PROPOSE_JOINING: {
+      const r = proposeJoining(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.ANSWER_JOIN_OFFER: {
+      const { id, accept } = action.payload || {};
+      return answerJoinOffer(state, id, !!accept);
+    }
+    case ActionTypes.DEMAND_INDEPENDENT_TRIBUTE: {
+      const r = demandIndependentTribute(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.PROPOSE_INDEPENDENT_TRADE: {
+      const r = proposeIndependentTrade(state, action.payload?.independentId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.RAZE_CITY: {
+      const why = canRaze(state, state.playerNationId, action.payload?.regionId);
+      if (!why.ok) return reject(state, why.reason);
+      const r = razeCityForPlayer(state, action.payload.regionId);
+      return r.reason ? reject(state, r.reason) : r;
+    }
+    case ActionTypes.STOP_RAZING: {
+      const regions = stopRazing(state, state.playerNationId, action.payload?.regionId);
+      if (!regions) return state;
+      return { ...state, regions, logs: [...state.logs, { year: state.year, message: `You stop the burning of ${regions[action.payload.regionId].name}.`, type: LogTypes.ACTION }] };
     }
     case ActionTypes.PILLAGE_TILE: {
       // The army sheet's pillage order (plan D6): a stack halted on an enemy tile with an

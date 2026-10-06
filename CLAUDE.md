@@ -59,7 +59,10 @@ The live site is GitHub Pages, built into `docs/`.
   over src/data/independents.js; who may fight whom (`canFight`, `canAttack`: no war needed against an
   independent): src/engine/hostility.js. Use it instead of a bare war check in new combat code. Their AI (W2):
   raids, sacks and tribute in src/engine/raids.js (the raid battle R3 replaces: raidBattle.js `fightRaidBattle`),
-  grudges.js, mercenaries.js. No captives: units lost are gone (master plan decision 37).
+  grudges.js, mercenaries.js. No captives: units lost are gone (master plan decision 37). Majors and
+  independents (W3): src/engine/indepPolicy.js (AI campaigns, `nation.indepGoal`, siege force `unit.indepOp`
+  marched by aiOperations.js; joining by attitude; trade; tribute to majors; the player's actions) and
+  razing.js (one size a turn, `city.razing`).
   Progress and open balance items: plan section J3.
 - Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
   pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
