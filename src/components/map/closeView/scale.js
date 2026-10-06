@@ -50,8 +50,21 @@ export const townRoomUnits = (projection, tiles, tile) => {
 /** Half the distance (projection units) from a town to the nearest other town within three rings,
  * or Infinity: two towns never grow into each other. `isTown(tile)` says whether a tile holds a
  * town (the close view and the banners build it once a frame from the cities). */
+// Cached per (isTown, projection, tile) like townRoomUnits: callers that keep `isTown` stable while
+// the towns stay the same (a memoised function) pay the three-ring search once per town, not per frame.
+const gapCache = new WeakMap(); // isTown -> WeakMap(projection -> Map(tile -> gap))
 export const townGapUnits = (projection, tiles, tile, isTown) => {
   if (!projection || tile == null) return Infinity;
+  let byProjection = gapCache.get(isTown);
+  if (!byProjection) { byProjection = new WeakMap(); gapCache.set(isTown, byProjection); }
+  let m = byProjection.get(projection);
+  if (!m) { m = new Map(); byProjection.set(projection, m); }
+  if (m.has(tile)) return m.get(tile);
+  const gap = townGapSearch(projection, tiles, tile, isTown);
+  m.set(tile, gap);
+  return gap;
+};
+const townGapSearch = (projection, tiles, tile, isTown) => {
   const at = (t) => { const { lat, lon } = tiles.latLonOf(t); return projection([lon, lat]); };
   const c = at(tile);
   let best = Infinity;

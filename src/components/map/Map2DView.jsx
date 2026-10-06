@@ -80,6 +80,7 @@ const ZOOM_EXTENT = [1, 200]; // up to the super zoom (plans/playtest-1.md P1.1)
 const TOUCH_ZOOM_EXTENT = [1, 200];
 const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 const ZOOM_STEP_SCALE = 1.6;
+const ZOOM_SETTLE_MS = 150;
 // Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
 // space above/below the map on a tall/narrow (mobile) viewport, since the world's ~2:1 aspect
 // ratio is much wider than a phone screen. GlobeView.jsx already opens centered on the player's
@@ -167,9 +168,10 @@ const Map2DView = ({
     return { west: q(Math.max(-180, a[0])), east: q(Math.min(180, b[0])), north: q(Math.min(90, a[1])), south: q(Math.max(-90, b[1])) };
   }, [projection, interactive, transform, width, height]);
   const hexKey = hexWindow ? `${hexWindow.west},${hexWindow.east},${hexWindow.south},${hexWindow.north}` : '';
-  const hexPath = useMemo(() => (hexWindow && projection ? geoPath(projection)(getHexMeshWithin(hexWindow)) : null),
+  // Only the explored hexes: the unexplored ones lie under the fog mask anyway.
+  const hexPath = useMemo(() => (hexWindow && projection ? geoPath(projection)(getHexMeshWithin(hexWindow, fog.on ? fog.isExplored : null)) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hexKey, projection]);
+    [hexKey, projection, fog.explored]);
 
   // Where the equirectangular raster sits in the projection's pixel space: the whole world
   // rectangle, so it lines up with the province paths at every zoom.
@@ -376,7 +378,16 @@ const Map2DView = ({
   // transform, so React doesn't re-diff every path on every animation frame. Zoom level (k) stays a
   // dependency because stroke width is divided by it. Before this, each frame of a d3 pan
   // transition re-rendered all 4,482 paths — janky on a phone and the dominant cost of every pan.
-  const zoomK = transform.k;
+  // Zoom by transform, rebuild on settle (plans/rts-world-review.md 6.3): during a wheel or pinch
+  // zoom the <g> transform scales what is drawn; the paths, bands, badges and glyphs whose stroke
+  // and size depend on the zoom rebuild once, ZOOM_SETTLE_MS after the zoom stops.
+  const [settledK, setSettledK] = useState(transform.k);
+  useEffect(() => {
+    if (transform.k === settledK) return undefined;
+    const id = setTimeout(() => setSettledK(transform.k), ZOOM_SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [transform.k, settledK]);
+  const zoomK = settledK;
   // The raster pyramid over the base picture (rasterTiles.js): the level that matches the zoom,
   // only the tiles on screen. Keyed on the tile set, so panning inside a tile re-renders nothing.
   const rasterTileList = interactive && rasterRect ? visibleRasterTiles({ raster: rasterRect, transform, width, height, dpr: Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1), baseZ: baseRasterZoom(worldRasterSizeFor(width, height)) }) : [];
