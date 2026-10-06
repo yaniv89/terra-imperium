@@ -48,3 +48,29 @@ export const spacingBlocks = (tiles, centre, tile, ring) => {
 
 /** The furthest ring a city can bar (walk this far round a centre, then ask spacingBlocks). */
 export const spacingReach = (tiles) => citySpacingRings(tiles) - 1;
+
+/** Pairs of city centres that break the rule, as [a, b] tile pairs with a < b (two cities on one
+ * tile count too). The invariant of stateAudit.js (settle-rules R7): nothing founds a city
+ * against the rule, and conquest, flips and free cities never found one, so a pair means a bug.
+ * Linear in the cities: a walk of `spacingReach` rings round each centre. */
+export const spacingBreaches = (tiles, centres) => {
+  const reach = spacingReach(tiles);
+  const count = new Map();
+  centres.forEach((c) => count.set(c, (count.get(c) || 0) + 1));
+  const out = [];
+  [...count.keys()].sort((a, b) => a - b).forEach((c) => {
+    if (count.get(c) > 1) out.push([c, c]);
+    const dist = new Map([[c, 0]]);
+    const queue = [c];
+    for (let i = 0; i < queue.length; i++) {
+      const d = dist.get(queue[i]);
+      if (d >= reach) continue;
+      for (const n of tiles.neighbors[queue[i]]) {
+        if (dist.has(n)) continue;
+        dist.set(n, d + 1); queue.push(n);
+        if (n > c && count.has(n) && spacingBlocks(tiles, c, n, d + 1)) out.push([c, n]);
+      }
+    }
+  });
+  return out;
+};

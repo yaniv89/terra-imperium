@@ -8,15 +8,23 @@ import { HISTORICAL_EVENTS } from '../../data/events';
 import { NATION_COUNTS, generateStarts, applyScenario } from './emergentWorld';
 import { processEmergence } from '../emergence';
 import { getTiles } from '../../data/geo/tiles';
-import { ringDistance, MIN_CITY_SPACING } from '../world/cities';
-import { SCENARIO_IDS, DAWN_SETTLER_NATIONS, UNPEOPLED_AT_DAWN } from '../../data/scenarios';
+import { spacingBreaches } from '../../data/geo/citySpacing';
+import { SCENARIO_IDS, DAWN_SETTLER_NATIONS, UNPEOPLED_AT_DAWN, absentAtStart } from '../../data/scenarios';
 
 describe('world scenarios on the tile grid', () => {
-  it('the full world: 240 peoples, one city each at the Dawn start, every capital on its own land', () => {
+  it('the full world: 240 peoples less the ones with no room, one city each at the Dawn start, every capital on its own land', () => {
     const state = createInitialState({ playerNationId: 'fr', rngSeed: 7 });
     expect(state.scenario.mode).toBe('full');
     expect(state.scenario.start).toBe('dawn');
-    expect(Object.keys(state.regions)).toHaveLength(240);
+    // The crowded small lands with no room are absent (settle-rules R4, option A): dormant, not in
+    // the nations, and never emerging in the full world.
+    const absent = absentAtStart(getTiles(), Object.keys(getTiles().capitals), { priority: 'fr' });
+    expect(absent).toContain('ps');
+    expect([...state.scenario.dormantNationIds].sort()).toEqual(absent);
+    absent.forEach((id) => expect(state.nations[id], id).toBeUndefined());
+    const total = 240 - absent.length;
+    expect(Object.keys(state.regions)).toHaveLength(total);
+    expect(Object.keys(state.nations)).toHaveLength(total);
     Object.values(state.nations).forEach((n) => {
       const capital = state.regions[n.capitalRegionId];
       expect(capital.owner).toBe(n.id);
@@ -24,9 +32,9 @@ describe('world scenarios on the tile grid', () => {
       expect(capital.tiles).toContain(capital.tile);
       expect(state.world.tileOwner[capital.tile]).toBe(capital.id);
     });
-    expect(Object.values(state.units).filter((u) => u.classId === 'infantry')).toHaveLength(240);
+    expect(Object.values(state.units).filter((u) => u.classId === 'infantry')).toHaveLength(total);
     // The Dawn settlers: the five river peoples and every unpeopled land (scenarios.js).
-    expect(Object.values(state.units).filter((u) => u.classId === 'settler').length).toBe(DAWN_SETTLER_NATIONS.length + UNPEOPLED_AT_DAWN.size);
+    expect(Object.values(state.units).filter((u) => u.classId === 'settler').length).toBe(DAWN_SETTLER_NATIONS.length + [...UNPEOPLED_AT_DAWN].filter((id) => !absent.includes(id)).length);
     assertGameState(state);
   });
 
@@ -86,14 +94,15 @@ describe('world scenarios on the tile grid', () => {
     assertGameState(next);
   });
 
-  it('a people never emerges within MIN_CITY_SPACING rings of a city', () => {
+  it('a people never emerges closer to a city than the settling rule allows', () => {
     let state = createInitialState({ playerNationId: 'fr', rngSeed: 7, scenario: { mode: 'emergent', nationCount: 15, seed: 7 } });
     state = { ...state, turnNumber: 50 };
     const tiles = getTiles();
     const next = processEmergence(state);
     const id = next.scenario.activeNationIds.at(-1);
     const capital = next.regions[next.nations[id].capitalRegionId];
-    Object.values(state.regions).forEach((c) => expect(ringDistance(tiles, c.tile, capital.tile, MIN_CITY_SPACING)).toBeGreaterThanOrEqual(MIN_CITY_SPACING));
+    // the shared rule (citySpacing.js): 4 rings on one landmass, 3 across water
+    expect(spacingBreaches(tiles, Object.values(next.regions).map((c) => c.tile))).toEqual([]);
     // a city two rings from that people's home: it waits (or another people emerges instead)
     const near = tiles.neighbors[tiles.neighbors[capital.tile][0]].find((t) => t !== capital.tile && !tiles.neighbors[capital.tile].includes(t));
     const blocker = { ...Object.values(state.regions)[0], id: 'blocker', tile: near, tiles: [near], owner: 'fr' };

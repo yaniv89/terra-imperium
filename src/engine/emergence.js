@@ -1,7 +1,7 @@
 // src/engine/emergence.js
 // New polities emerge on still-free land (plans/civ-map-rework.md, B6): every 50 turns of an
 // emergent world one dormant people founds its capital city, if its capital tile and the ring
-// around it are nobody's yet and no city stands within MIN_CITY_SPACING rings of it.
+// around it are nobody's yet and no city stands closer than the settling rule allows (citySpacing.js).
 import { createInitialState } from './gameReducer';
 import { getTiles } from '../data/geo/tiles';
 import { canFoundCity, foundCity, sizeToPeople } from './world/cities';
@@ -11,7 +11,7 @@ export const processEmergence = state => {
   const tiles = getTiles();
   const tileOwner = state.world?.tileOwner || {};
   const free = (t) => !tileOwner[t] && tiles.land[t] === 1;
-  // the same rule as settling: no city closer than MIN_CITY_SPACING rings (cities.canFoundCity)
+  // the same rule as settling (cities.canFoundCity, citySpacing.js)
   const spaced = (t, n) => canFoundCity({ cities: state.regions, tileOwner, tileState: state.world?.tileState || {} }, tiles, t, n).ok;
   const id = (state.scenario.dormantNationIds || []).find((n) => { const t = tiles.capitals[n]; return t != null && free(t) && tiles.neighbors[t].every((x) => !tileOwner[x]) && spaced(t, n); });
   if (!id) return state;

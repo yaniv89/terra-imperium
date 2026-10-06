@@ -43,7 +43,9 @@ export const generateStarts = (playerNationId, nationCount, seed) => {
 // rest of the engine reads), world.tileOwner, nations' capitals, and one starting army each.
 const buildCityWorld = (initial, scenarioId, nationIds) => {
   const tiles = getTiles();
-  const { starts } = buildScenarioStarts(tiles, scenarioId, nationIds);
+  // The player's nation is placed first on its real capital (scenarios.js spreadCapitals); a nation
+  // with no room at the start (the legacy full world's crowded small lands) is absent.
+  const { starts } = buildScenarioStarts(tiles, scenarioId, nationIds, { priority: initial.playerNationId });
   let world = emptyWorld();
   const nations = { ...initial.nations };
   const units = {};
@@ -114,7 +116,9 @@ export const applyScenario = (initial, { mode = 'full', nationCount = 45, seed =
   const built = buildCityWorld(initial, start, nationIds);
   const dormantNationIds = allIds.filter((id) => !built.activeNationIds.includes(id));
   // An emergent world carries only its active peoples; the dormant ones return through emergence.
-  if (mode === 'emergent') built.nations = Object.fromEntries(built.activeNationIds.map((id) => [id, built.nations[id]]));
+  // The full world leaves out the nations with no room at the start (settle-rules R4, option A):
+  // they are listed as dormant and never emerge (emergence runs in emergent worlds only).
+  built.nations =Object.fromEntries(built.activeNationIds.map((id) => [id, built.nations[id]]));
   const starts = {};
   built.activeNationIds.forEach((id) => { starts[id] = built.nations[id].capitalRegionId; });
   return {
