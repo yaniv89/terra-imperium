@@ -28,7 +28,8 @@
 //                                        units: they exist for the battle, and their dead are the
 //                                        city's people (aftermath.js casualty scars on the city).
 // Morale floors at MIN_START_MORALE so no input alone routs a unit before the battle. Pure.
-import { siegeHpOf, siegeMaxHp } from './sieges';
+import { siegeHpOf, siegeMaxHp, wallsOf } from './sieges';
+import { getRegionModifier } from './modifiers/sheet';
 import { cityHousingCap } from './cityManifest';
 import { getReinforcementSources } from './invasion';
 import { unitsWithinRings, REINFORCE_RINGS } from './armies';
@@ -159,6 +160,9 @@ export const battleInputs = (state, { attackerUnits = [], defenderUnits = [], ci
     militia: mil,
     economyInputs: { supply, development },
     hpRatio: city ? wallsHpRatio(state, city) : 1,
+    // Walls the real-time battle stands on the field (the keep's walls from the fort level, the
+    // town's wall ring from its Defense line): the auto-resolve's gate rule (autoBattle.js).
+    walled: !!city && ((city.defenseLevel || 0) + getRegionModifier(state, cityId, 'local.fortLevel').total >= 2 || wallsOf(city) >= 2),
     housing: city ? cityHousingCap(state, cityId) : 0,
     starved,
     plague: hasPlague(city)

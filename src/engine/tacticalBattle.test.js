@@ -421,8 +421,11 @@ describe('auto-resolve is fair and explains itself (reported: "check the auto ba
     const others = Object.fromEntries(Object.entries(s.units).filter(([, u]) => u.regionId !== FR_BORDER));
     const strong = estimateInvasionOdds({ ...s, units: { ...others, ...mine(garrison.length * 3) } }, FR_BORDER, BE_REGION, 120);
     const weak = estimateInvasionOdds({ ...s, units: { ...others, ...mine(1) } }, FR_BORDER, BE_REGION, 120);
-    expect(strong.attacker).toBeGreaterThan(0.7);
-    expect(strong.capture).toBeGreaterThan(0.6);
+    // The honest auto-resolve (autoBattle.js) gives both sides the battle economy's auxiliaries
+    // and the city its militia, calibrated against the real-time battle (parityEco): in this
+    // mountain town the defenders hold far more often than a bare count of regiments says.
+    expect(strong.attacker).toBeGreaterThan(0.4);
+    expect(strong.capture).toBeGreaterThan(0.3);
     expect(weak.attacker).toBeLessThan(strong.attacker);
     expect(strong.factors.find((f) => f.id === 'numbers').value).toBeGreaterThan(1);
   });
