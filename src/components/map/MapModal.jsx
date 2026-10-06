@@ -23,7 +23,8 @@ const MapModal = ({ open, onClose, selectedRegion, onSelectRegion }) => {
         </button>
       </div>
       <div className="relative flex-1 min-h-0">
-        <Map2DContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} />
+        {/* the SVG map: the main map already holds the one WebGL context */}
+        <Map2DContainer selectedRegion={selectedRegion} onSelectRegion={onSelectRegion} renderer="svg" />
         <RegionInfoModal regionId={selectedRegion} onClose={() => onSelectRegion(null)} position="panel" />
       </div>
     </div>

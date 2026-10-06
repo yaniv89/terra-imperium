@@ -11,6 +11,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  // ES module workers, as vite.config.js: the turn and battle workers load the grid, then the engine.
+  worker: { format: 'es' },
   build: {
     // The 2D icons (src/assets/icons, ~130 files of 1-4 KB) stay separate files: inlined they would
     // add ~190 KB of base64 to the main bundle; as files only the icons on screen load, cached.

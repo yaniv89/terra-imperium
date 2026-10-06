@@ -85,8 +85,9 @@ const engineGraph = () => {
 };
 
 // The code of a file with the opted-out lines blanked and comments removed, line numbers kept.
+// (CRLF line ends too, as a Windows checkout has them: a comment still ends at its line.)
 const codeLines = (source) => source
-  .split('\n').map((line) => (line.includes('determinism-ok:') ? '' : line)).join('\n')
+  .split(/\r?\n/).map((line) => (line.includes('determinism-ok:') ? '' : line)).join('\n')
   .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '))
   .split('\n').map((line) => line.replace(/(^|[^:'"`])\/\/.*$/, '$1'));
 
