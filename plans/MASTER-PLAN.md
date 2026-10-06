@@ -20,6 +20,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/terra-imperium-rts-plan.md` | the RTS battle design (economy, ledgers, outcome, saves, tests) | current, amended by section 6 here |
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
 | `plans/rts-world-review.md` | the review: measurements, speed plan, globe | current |
+| `plans/UI-DESIGN.md` | the UI and UX design: the look, five rules, 25 screens (world and RTS) mapped to phases; sketches in `plans/ui/` | current |
 
 The roadmap's code branch `claude/ancient-world` holds the settle-rules prototype and the age
 registry; the art and everything else is on `claude/bronze-towns`. **Before phase W0 starts,
@@ -293,6 +294,7 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
+| 17 | UI | **U** UI pass: restyle every screen to `plans/UI-DESIGN.md` (look, top bars, brass only for the primary action, reasons on tap); new screens peace deal, attacked interrupt, raid and tribute, battle reports, nation overview | UI-DESIGN | per screen, after the phase that owns its system; most after R2 | ongoing |
 | later | Rules | **Nine ages** (Age of Cities, Neolithic and Origins, Information, Future, robots): after their art exists (decision 32) | eras 16 | all above | 13 to 16 |
 
 Start now, in parallel: **S**, **X**, **A**, **C**. **C** decides whether 300 a side holds on a phone;

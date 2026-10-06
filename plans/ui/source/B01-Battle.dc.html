@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>B01 Battle HUD</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral+SC:wght@500;700&amp;family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#ECE5D3;text-decoration:none}a:hover{color:#D8A444}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; overflow: hidden; position: relative; background: #10141A; color: #ECE5D3; font-family: Figtree, sans-serif">
+
+  <svg width="844" height="390" viewBox="0 0 844 390" style="position: absolute; left: 0; top: 0">
+    <defs>
+      <pattern id="b1u" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.35" fill="#2F5FA8"></circle></pattern>
+      <filter id="b1s" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"></feGaussianBlur></filter>
+      <filter id="b1t" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="2"></feGaussianBlur></filter>
+      <pattern id="b1e" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.35" fill="#9C4E16"></circle></pattern>
+    </defs>
+    <rect width="844" height="390" fill="#93A36C"></rect>
+    <g filter="url(#b1s)">
+      <ellipse cx="170" cy="80" rx="210" ry="70" fill="#A6B079"></ellipse><ellipse cx="520" cy="330" rx="230" ry="70" fill="#879A60"></ellipse>
+      <ellipse cx="380" cy="200" rx="170" ry="60" fill="#9CAA6F"></ellipse><ellipse cx="300" cy="370" rx="130" ry="34" fill="#B3A87B"></ellipse>
+      <ellipse cx="440" cy="48" rx="100" ry="26" fill="#A49D89"></ellipse>
+      <ellipse cx="96" cy="305" rx="95" ry="42" fill="#5E7A4A"></ellipse><ellipse cx="775" cy="112" rx="85" ry="52" fill="#5E7A4A"></ellipse>
+    </g>
+    <g fill="#4E683D" opacity="0.75"><circle cx="40" cy="296" r="7"></circle><circle cx="62" cy="312" r="8"></circle><circle cx="96" cy="292" r="7"></circle><circle cx="128" cy="314" r="8"></circle><circle cx="150" cy="298" r="6"></circle><circle cx="80" cy="330" r="7"></circle><circle cx="742" cy="96" r="8"></circle><circle cx="770" cy="128" r="8"></circle><circle cx="800" cy="100" r="7"></circle><circle cx="816" cy="140" r="7"></circle><circle cx="752" cy="150" r="6"></circle></g>
+    <path d="M610 36 C 650 120, 700 160, 690 260 S 720 360, 760 390" stroke="#7E9A66" stroke-width="30" fill="none" opacity="0.6" filter="url(#b1t)"></path>
+    <path d="M610 36 C 650 120, 700 160, 690 260 S 720 360, 760 390" stroke="#5F93B8" stroke-width="11" fill="none"></path>
+    <path d="M610 36 C 650 120, 700 160, 690 260 S 720 360, 760 390" stroke="#8DBBD6" stroke-width="2.5" fill="none" opacity="0.6" transform="translate(-2 0)"></path>
+    <path d="M0 250 C 120 230, 200 280, 330 262 S 560 210, 844 236" stroke="#BDAA7E" stroke-width="10" fill="none" opacity="0.9" filter="url(#b1t)"></path>
+    <path d="M0 250 C 120 230, 200 280, 330 262 S 560 210, 844 236" stroke="#9C885E" stroke-width="1" fill="none" stroke-dasharray="6 5" opacity="0.7"></path>
+    <ellipse cx="692" cy="232" rx="16" ry="9" fill="#A9CBE0" opacity="0.8"></ellipse>
+
+    <g transform="rotate(-8 300 190)">
+      <rect x="250" y="150" width="58" height="16" fill="rgba(91,155,240,0.35)"></rect><rect x="250" y="150" width="58" height="16" fill="url(#b1u)"></rect>
+      <rect x="316" y="150" width="58" height="16" fill="rgba(91,155,240,0.35)"></rect><rect x="316" y="150" width="58" height="16" fill="url(#b1u)"></rect>
+      <rect x="382" y="150" width="58" height="16" fill="rgba(91,155,240,0.35)"></rect><rect x="382" y="150" width="58" height="16" fill="url(#b1u)"></rect>
+      <rect x="262" y="178" width="76" height="12" fill="rgba(91,155,240,0.35)"></rect><rect x="262" y="178" width="76" height="12" fill="url(#b1u)"></rect>
+      <rect x="350" y="178" width="76" height="12" fill="rgba(91,155,240,0.35)"></rect><rect x="350" y="178" width="76" height="12" fill="url(#b1u)"></rect>
+      <rect x="230" y="204" width="34" height="20" fill="rgba(91,155,240,0.35)"></rect><rect x="230" y="204" width="34" height="20" fill="url(#b1u)"></rect>
+    </g>
+    <rect x="180" y="110" width="40" height="22" fill="rgba(91,155,240,0.35)" transform="rotate(-20 200 121)"></rect><rect x="180" y="110" width="40" height="22" fill="url(#b1u)" transform="rotate(-20 200 121)"></rect>
+
+    <g transform="rotate(-8 470 130)">
+      <rect x="420" y="96" width="60" height="18" fill="rgba(238,138,58,0.35)"></rect><rect x="420" y="96" width="60" height="18" fill="url(#b1e)"></rect>
+      <rect x="488" y="96" width="60" height="18" fill="rgba(238,138,58,0.35)"></rect><rect x="488" y="96" width="60" height="18" fill="url(#b1e)"></rect>
+      <rect x="556" y="100" width="40" height="18" fill="rgba(238,138,58,0.35)"></rect><rect x="556" y="100" width="40" height="18" fill="url(#b1e)"></rect>
+      <rect x="440" y="70" width="90" height="12" fill="rgba(238,138,58,0.35)"></rect><rect x="440" y="70" width="90" height="12" fill="url(#b1e)"></rect>
+    </g>
+    <rect x="560" y="160" width="30" height="26" fill="rgba(238,138,58,0.35)"></rect><rect x="560" y="160" width="30" height="26" fill="url(#b1e)"></rect>
+
+    <ellipse cx="345" cy="152" rx="58" ry="20" fill="none" stroke="#ECE5D3" stroke-width="2"></ellipse>
+    <rect x="315" y="122" width="60" height="5" rx="2" fill="#10141A" opacity="0.75"></rect>
+    <rect x="315" y="122" width="44" height="5" rx="2" fill="#6CC28A"></rect>
+    <rect x="566" y="152" width="22" height="4" rx="2" fill="#10141A" opacity="0.75"></rect>
+    <rect x="566" y="152" width="8" height="4" rx="2" fill="#E5604D"></rect>
+
+    <g stroke="#10141A" stroke-width="1.2">
+      <line x1="300" y1="160" x2="300" y2="134"></line><path d="M300 134 h12 l-3 4 l3 4 h-12 z" fill="#5B9BF0"></path>
+      <line x1="232" y1="214" x2="232" y2="192"></line><path d="M232 192 h12 l-3 4 l3 4 h-12 z" fill="#5B9BF0"></path>
+      <line x1="196" y1="118" x2="196" y2="98"></line><path d="M196 98 h12 l-3 4 l3 4 h-12 z" fill="#5B9BF0"></path>
+      <line x1="500" y1="96" x2="500" y2="74"></line><path d="M500 74 h12 l-3 4 l3 4 h-12 z" fill="#EE8A3A"></path>
+      <line x1="574" y1="168" x2="574" y2="146"></line><path d="M574 146 h-12 l3 4 l-3 4 h12 z" fill="#EE8A3A"></path>
+    </g>
+    <path d="M360 214 l18 -26" stroke="#ECE5D3" stroke-width="1.6" stroke-dasharray="4 3" fill="none"></path>
+  </svg>
+
+  <div style="position: absolute; left: 0; top: 0; right: 0; height: 36px; background: rgba(26,33,43,0.94); border-bottom: 1px solid #33404F; display: flex; align-items: center; gap: 12px; padding: 0 10px; box-sizing: border-box; white-space: nowrap; z-index: 2">
+    <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 15px">Battle of Der</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">12:40</div>
+    <div style="width: 1px; height: 18px; background: #33404F"></div>
+    <div style="display: flex; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px">
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">FOOD </span>170</span>
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">MAT </span>130</span>
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">GOLD </span>45</span>
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">POP </span>186 / 220</span>
+    </div>
+    <div style="flex: 1"></div>
+    <button aria-label="Speed" style="height: 28px; min-width: 40px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; font-family: 'JetBrains Mono', monospace; font-size: 12px">1x</button>
+    <button aria-label="Pause" style="height: 28px; width: 36px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5v14M15 5v14"></path></svg></button>
+  </div>
+
+  <div style="position: absolute; left: 10px; top: 44px; width: 120px; height: 80px; border-radius: 8px; border: 1px solid #33404F; background: #879A62; overflow: hidden">
+    <svg width="120" height="80" viewBox="0 0 120 80">
+      <ellipse cx="14" cy="62" rx="14" ry="7" fill="#5E7A4A"></ellipse><ellipse cx="110" cy="20" rx="12" ry="9" fill="#5E7A4A"></ellipse><path d="M0 52 C 20 48, 40 58, 60 54 S 100 46, 120 50" stroke="#BDAA7E" stroke-width="2" fill="none"></path>
+      <path d="M86 0 C 92 20, 100 30, 98 50 S 104 74, 108 80" stroke="#6FA3C8" stroke-width="3" fill="none"></path>
+      <rect x="36" y="34" width="26" height="8" fill="#5B9BF0"></rect>
+      <rect x="26" y="24" width="6" height="4" fill="#5B9BF0"></rect>
+      <rect x="60" y="20" width="24" height="7" fill="#EE8A3A"></rect>
+      <rect x="80" y="34" width="5" height="5" fill="#EE8A3A"></rect>
+      <rect x="20" y="14" width="56" height="34" fill="none" stroke="#ECE5D3" stroke-width="1"></rect>
+    </svg>
+  </div>
+
+  <div style="position: absolute; left: 276px; top: 44px; background: rgba(26,33,43,0.92); border: 1px solid #33404F; border-radius: 999px; padding: 4px 12px; font-size: 12px; display: flex; gap: 8px; align-items: center">
+    <span style="font-weight: 700">Kish Spears</span>
+    <span style="color: #B9B19F">3 squads, 146 men</span>
+    <span style="font-family: 'JetBrains Mono', monospace; color: #6CC28A">74%</span>
+  </div>
+
+  <div style="position: absolute; right: 12px; bottom: 68px; display: flex; gap: 6px">
+    <button aria-label="Rally Cry, ready" style="width: 64px; height: 58px; border-radius: 8px; border: 1px solid #33404F; background: rgba(26,33,43,0.94); color: #ECE5D3; font-family: Figtree, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 21V3"></path><path d="M6 4h12l-3 4 3 4H6"></path><path d="M3 21h6"></path></svg><span style="font-size: 10px; font-weight: 700; line-height: 1.1">Rally Cry</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.1; color: #6CC28A">ready</span></button>
+    <button aria-label="Arrow Storm, ready in 40 seconds" style="width: 64px; height: 58px; border-radius: 8px; border: 1px solid #33404F; background: rgba(26,33,43,0.94); color: #B9B19F; font-family: Figtree, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3v11M5 12l2 2 2-2M12 6v12M10 16l2 2 2-2M17 3v11M15 12l2 2 2-2"></path></svg><span style="font-size: 10px; font-weight: 700; line-height: 1.1">Arrow Storm</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.1; color: #B9B19F">40s</span></button>
+    <button aria-label="Select General Sargon" style="width: 64px; height: 58px; border-radius: 8px; border: 1px solid #33404F; background: rgba(26,33,43,0.94); color: #ECE5D3; font-family: Figtree, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h16l-2-9-4 4-2-6-2 6-4-4z"></path></svg><span style="font-size: 10px; font-weight: 700; line-height: 1.1">Sargon</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; line-height: 1.1; color: #B9B19F">general</span></button>
+  </div>
+
+  <div style="position: absolute; left: 10px; bottom: 10px; width: 520px; height: 58px; display: flex; gap: 6px; overflow-x: auto">
+    <button style="flex: none; width: 52px; height: 58px; border-radius: 10px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); color: #ECE5D3; font-size: 11px; font-family: Figtree; padding: 0">All<div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">7</div></button>
+    <div style="flex: none; width: 104px; height: 58px; box-sizing: border-box; border-radius: 10px; border: 2px solid #ECE5D3; background: #232C38; padding: 5px 8px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="font-size: 12px; font-weight: 700">Kish Spears</div>
+      <div style="font-size: 11px; color: #B9B19F">Infantry, 146</div>
+      <div style="height: 4px; border-radius: 2px; background: #10141A"><div style="width: 74%; height: 4px; border-radius: 2px; background: #6CC28A"></div></div>
+    </div>
+    <div style="flex: none; width: 104px; height: 58px; box-sizing: border-box; border-radius: 10px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); padding: 5px 8px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="font-size: 12px; font-weight: 700">Uruk Bows</div>
+      <div style="font-size: 11px; color: #B9B19F">Archers, 98</div>
+      <div style="height: 4px; border-radius: 2px; background: #10141A"><div style="width: 92%; height: 4px; border-radius: 2px; background: #6CC28A"></div></div>
+    </div>
+    <div style="flex: none; width: 104px; height: 58px; box-sizing: border-box; border-radius: 10px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); padding: 5px 8px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="font-size: 12px; font-weight: 700">Royal Chariots</div>
+      <div style="font-size: 11px; color: #B9B19F">Mounted, 24</div>
+      <div style="height: 4px; border-radius: 2px; background: #10141A"><div style="width: 38%; height: 4px; border-radius: 2px; background: #E5604D"></div></div>
+    </div>
+    <div style="flex: none; width: 104px; height: 58px; box-sizing: border-box; border-radius: 10px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); padding: 5px 8px; display: flex; flex-direction: column; justify-content: space-between">
+      <div style="font-size: 12px; font-weight: 700">Akkad Levy</div>
+      <div style="font-size: 11px; color: #B9B19F">Infantry, 50</div>
+      <div style="height: 4px; border-radius: 2px; background: #10141A"><div style="width: 100%; height: 4px; border-radius: 2px; background: #6CC28A"></div></div>
+    </div>
+    <div style="flex: none; width: 40px; height: 58px; border-radius: 10px; background: rgba(26,33,43,0.6); color: #B9B19F; font-size: 11px; display: flex; align-items: center; justify-content: center">+3</div>
+  </div>
+
+  <div style="position: absolute; right: 12px; bottom: 10px; display: flex; gap: 6px">
+    <button style="width: 68px; height: 50px; border-radius: 8px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); color: #ECE5D3; font-size: 11px; font-family: Figtree; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7"></circle><path d="M12 2v5M12 17v5M2 12h5M17 12h5"></path></svg>Attack-move</button>
+    <button style="width: 68px; height: 50px; border-radius: 8px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); color: #ECE5D3; font-size: 11px; font-family: Figtree; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"></path></svg>Hold</button>
+    <button style="width: 68px; height: 50px; border-radius: 8px; border: 1px solid #33404F; background: rgba(26,33,43,0.92); color: #ECE5D3; font-size: 11px; font-family: Figtree; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h16M4 12h16M4 16h16"></path></svg>Formation</button>
+    <button style="width: 68px; height: 50px; border-radius: 8px; border: 1px solid #E5604D; background: rgba(26,33,43,0.92); color: #E5604D; font-size: 11px; font-family: Figtree; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 6l-6 6 6 6M4 12h16"></path></svg>Retreat</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
