@@ -21,6 +21,7 @@ import { DATA_W, LOOKUP_W, LOOKUP_H } from './tileGpuData';
 import { CITY_W } from './territoryData';
 import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm } from '../closeView/terrainShader';
 import { rasterTileUrl, rasterZoomFor, RASTER_MAX_Z, RASTER_TILE } from '../../../data/geo/rasterTiles';
+import { loadDetailIndex, bestColourTile, coverTileUrl } from '../../../data/geo/rasterDetail';
 
 const dataTexture = (data, w, h, format, type) => {
   const t = new DataTexture(data, w, h, format, type);
@@ -132,6 +133,8 @@ export const createTerritoryCache = (territory) => {
 
 // ------------------------------------------------------------------ raster
 const TILE_CACHE = 160;
+// Level 6 is drawn once level 5's pixels would show this much larger than the screen's.
+export const DETAIL_FROM_MAG = 1.25;
 const prepare = (texture, mip) => {
   texture.magFilter = LinearFilter; texture.minFilter = mip ? LinearMipmapLinearFilter : LinearFilter; texture.generateMipmaps = !!mip;
   texture.wrapS = ClampToEdgeWrapping; texture.wrapT = ClampToEdgeWrapping;
@@ -144,21 +147,35 @@ const plainMaterial = (texture) => new ShaderMaterial({
   fragmentShader: 'uniform sampler2D uMap; varying vec2 vUv; void main() { gl_FragColor = vec4(texture2D(uMap, vUv).rgb, 1.0); }',
   uniforms: { uMap: { value: texture } }, depthTest: false, depthWrite: false
 });
+let noCover = null; // a 1x1 'water' texel for terrain materials without a land cover tile
+const emptyCover = () => (noCover ||= dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType));
 const terrainMaterial = (texture, size, geo) => new ShaderMaterial({
   vertexShader: TERRAIN_VERTEX, fragmentShader: TERRAIN_FRAGMENT,
-  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 } },
+  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 } },
   depthTest: false, depthWrite: false
 });
+// A land cover tile (rasterDetail.js): one class byte a pixel in the red channel, read nearest.
+const prepareCover = (texture) => {
+  texture.magFilter = NearestFilter; texture.minFilter = NearestFilter; texture.generateMipmaps = false;
+  texture.wrapS = ClampToEdgeWrapping; texture.wrapT = ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return texture;
+};
 
 /**
  * The Earth. `update(view)` places the world picture's copies and the pyramid tiles for the view
- * (level by zoom; level RASTER_MAX_Z through the terrain shader from `closeK`). `onReady(true)`
- * once the world picture is in. Calls `request()` when a texture arrives.
+ * (level by zoom, through the terrain shader from `closeK`). `onReady(true)` once the world picture
+ * is in. Calls `request()` when a texture arrives.
+ * Phase F: past the pyramid's level RASTER_MAX_Z the detail levels of rasterDetail.js (level 6,
+ * land tiles only) stream in per view, each over its level 5 parent (bestColourTile), which is
+ * drawn wherever a level 6 tile is missing (open sea, the poles) or still loading. In the close
+ * view each tile also gets its land cover tile (same level and place) for the terrain shader.
  */
 export const createRasterLayer = (scene, { request, onReady }) => {
   const quad = new PlaneGeometry(1, 1).translate(0.5, -0.5, 0); // top-left corner at the origin
   const loader = new TextureLoader();
-  const r = { world: null, tiles: new Map(), disposed: false };
+  const r = { world: null, tiles: new Map(), disposed: false, detail: null, stats: { level: 0, tiles: 0, fallback: 0 } };
+  loadDetailIndex().then((index) => { if (!r.disposed && index) { r.detail = index; request(); } });
   const setWorld = (url, size) => {
     if (r.world?.url === url) return;
     loader.load(url, (texture) => {
@@ -176,7 +193,7 @@ export const createRasterLayer = (scene, { request, onReady }) => {
     const key = `${z}/${x}-${y}`;
     let e = r.tiles.get(key);
     if (!e) {
-      e = { key, z, x, y, texture: null, plain: null, terrain: null, meshes: [], used: 0 };
+      e = { key, z, x, y, texture: null, plain: null, terrain: null, cover: null, coverAsked: false, meshes: [], used: 0 };
       r.tiles.set(key, e);
       loader.load(rasterTileUrl(z, x, y), (texture) => {
         if (r.disposed || !r.tiles.has(key)) { texture.dispose(); return; }
@@ -184,10 +201,22 @@ export const createRasterLayer = (scene, { request, onReady }) => {
         e.plain = plainMaterial(texture);
         const cols = 2 ** (z + 1); const rows = 2 ** z;
         e.terrain = terrainMaterial(texture, [RASTER_TILE, RASTER_TILE], [-180 + (x * 360) / cols, 90 - (y * 180) / rows, 360 / cols, 180 / rows]);
+        if (e.cover) { e.terrain.uniforms.uCover.value = e.cover; e.terrain.uniforms.uCoverOn.value = 1; }
         request();
-      }, undefined, () => {});
+      }, undefined, () => { e.failed = true; });
     }
     return e;
+  };
+  // The land cover of a tile, asked for once (the close view only); no cover tile = all water.
+  const coverFor = (e) => {
+    if (e.coverAsked || !r.detail?.hasCover(e.z, e.x, e.y)) return;
+    e.coverAsked = true;
+    loader.load(coverTileUrl(e.z, e.x, e.y), (texture) => {
+      if (r.disposed || !r.tiles.has(e.key)) { texture.dispose(); return; }
+      e.cover = prepareCover(texture);
+      if (e.terrain) { e.terrain.uniforms.uCover.value = e.cover; e.terrain.uniforms.uCoverOn.value = 1; }
+      request();
+    }, undefined, () => {});
   };
   const update = (v, { closeK, baseZ, worldUrl, worldSize }) => {
     setWorld(worldUrl, worldSize);
@@ -203,37 +232,64 @@ export const createRasterLayer = (scene, { request, onReady }) => {
         m.scale.set(rr.width, rr.height, 1);
       });
     }
-    // the pyramid level for this zoom (none while the world picture is as sharp)
-    const z = close ? RASTER_MAX_Z : rasterZoomFor(rr.width * v.k * v.dpr);
+    // the level for this zoom (none while the world picture is as sharp): the pyramid's, then the
+    // detail levels where the screen's pixels are finer than level RASTER_MAX_Z
+    const need = Math.ceil(Math.log2(Math.max(1, rr.width * v.k * v.dpr) / (RASTER_TILE * 2)));
+    // (a detail level only once level RASTER_MAX_Z would be magnified by DETAIL_FROM_MAG or more)
+    const mag = (rr.width * v.k * v.dpr) / (RASTER_TILE * 2 ** (RASTER_MAX_Z + 1));
+    const z = r.detail && need > RASTER_MAX_Z && mag >= DETAIL_FROM_MAG ? Math.min(r.detail.maxZ, need) : close ? RASTER_MAX_Z : rasterZoomFor(rr.width * v.k * v.dpr);
     const tilesOn = close || z > baseZ;
     r.tiles.forEach((e) => { e.meshes.forEach((m) => { m.visible = false; }); });
+    r.stats = { level: tilesOn ? z : 0, tiles: 0, fallback: 0 };
     if (tilesOn) {
       const cols = 2 ** (z + 1); const rows = 2 ** z;
       const tw = rr.width / cols; const th = rr.height / rows;
       const x0 = Math.floor((v.worldLeft - rr.x) / tw) - 1; const x1 = Math.floor((v.worldLeft + v.width / v.k - rr.x) / tw) + 1;
       const y0 = Math.max(0, Math.floor((v.worldTop - rr.y) / th) - 1); const y1 = Math.min(rows - 1, Math.floor((v.worldTop + v.height / v.k - rr.y) / th) + 1);
       const now = performance.now();
+      // one tile drawn at world copy `copy` (its own level's columns), over its parents when `order` is 2
+      const draw = (e, copy, order) => {
+        const zc = 2 ** (e.z + 1); const zr = 2 ** e.z;
+        const w = rr.width / zc; const h = rr.height / zr;
+        const slot = e.meshes.find((m) => !m.visible) || (() => { const m = new Mesh(quad, e.plain); m.frustumCulled = false; scene.add(m); e.meshes.push(m); return m; })();
+        slot.renderOrder = order;
+        slot.material = close ? e.terrain : e.plain;
+        if (close) { e.terrain.uniforms.uPxPerKm.value = perKm; coverFor(e); }
+        // a hair of overlap so no seam shows the ocean under the tiles
+        slot.position.set(rr.x + (copy * zc + e.x) * w, -(rr.y + e.y * h), 0);
+        slot.scale.set(w * 1.003, h * 1.003, 1);
+        slot.visible = true;
+        r.stats.tiles += 1;
+      };
+      const parents = new Set();
       for (let ty = y0; ty <= y1; ty++) {
         for (let tx = x0; tx <= x1; tx++) {
           const col = ((tx % cols) + cols) % cols;
-          const e = tileEntry(z, col, ty);
-          e.used = now;
-          if (!e.texture) continue;
           const copy = Math.floor(tx / cols);
-          const slot = e.meshes.find((m) => !m.visible) || (() => { const m = new Mesh(quad, e.plain); m.renderOrder = 1; m.frustumCulled = false; scene.add(m); e.meshes.push(m); return m; })();
-          slot.material = close ? e.terrain : e.plain;
-          if (close) e.terrain.uniforms.uPxPerKm.value = perKm;
-          // a hair of overlap so no seam shows the ocean under the tiles
-          slot.position.set(rr.x + (copy * cols + col) * tw, -(rr.y + ty * th), 0);
-          slot.scale.set(tw * 1.003, th * 1.003, 1);
-          slot.visible = true;
+          if (z <= RASTER_MAX_Z) {
+            const e = tileEntry(z, col, ty);
+            e.used = now;
+            if (e.texture) draw(e, copy, 1);
+            continue;
+          }
+          // a detail tile: itself when it exists and has loaded, else its pyramid parent
+          const best = bestColourTile(r.detail, z, col, ty);
+          const own = best.z === z ? tileEntry(z, col, ty) : null;
+          if (own) own.used = now;
+          if (own?.texture) { draw(own, copy, 2); continue; }
+          // the pyramid's top level is complete: the parent always exists
+          const up = z - RASTER_MAX_Z;
+          const parent = tileEntry(RASTER_MAX_Z, col >> up, ty >> up);
+          parent.used = now;
+          const pk = `${parent.key}@${copy}`;
+          if (parent.texture && !parents.has(pk)) { parents.add(pk); draw(parent, copy, 1); r.stats.fallback += 1; }
         }
       }
     }
     if (r.tiles.size > TILE_CACHE) {
       [...r.tiles.values()].filter((e) => !e.meshes.some((m) => m.visible)).sort((a, b) => a.used - b.used).slice(0, r.tiles.size - TILE_CACHE).forEach((e) => {
         e.meshes.forEach((m) => scene.remove(m));
-        e.texture?.dispose(); e.plain?.dispose(); e.terrain?.dispose();
+        e.texture?.dispose(); e.plain?.dispose(); e.terrain?.dispose(); e.cover?.dispose();
         r.tiles.delete(e.key);
       });
     }
@@ -241,10 +297,11 @@ export const createRasterLayer = (scene, { request, onReady }) => {
   return {
     update,
     ready: () => !!r.world,
+    stats: () => r.stats,
     dispose: () => {
       r.disposed = true;
       if (r.world) { r.world.meshes.forEach((m) => scene.remove(m)); r.world.plain.dispose(); r.world.terrain.dispose(); r.world.texture.dispose(); }
-      r.tiles.forEach((e) => { e.meshes.forEach((m) => scene.remove(m)); e.texture?.dispose(); e.plain?.dispose(); e.terrain?.dispose(); });
+      r.tiles.forEach((e) => { e.meshes.forEach((m) => scene.remove(m)); e.texture?.dispose(); e.plain?.dispose(); e.terrain?.dispose(); e.cover?.dispose(); });
       quad.dispose();
     }
   };
