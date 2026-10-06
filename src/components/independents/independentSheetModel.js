@@ -48,6 +48,9 @@ export const grudgeTone = (g) => (g >= 50 ? 'bad' : g > 0 ? 'neutral' : 'good');
 const WALL_WORDS = ['no walls', 'walls low', 'walls strong', 'walls great'];
 const MOOD = { calm: null, raiding: 'raid party out', besieged: 'under threat', recovering: 'licking its wounds' };
 
+/** How long the sheet and the city card name the last raid's outcome. */
+export const LAST_RAID_TURNS = 10;
+
 /** What a raid goes for, in a few words. */
 export const RAID_KIND_WORDS = { pillage: 'pillage', route: 'trade route', settler: 'settlers', outpost: 'outpost', sack: 'sack' };
 
@@ -145,6 +148,8 @@ export const independentSheetModel = (state, indepId) => {
     theyPay: theyPay ? { gold: theyPay.gold, until: theyPay.until } : null,
     trade: trades ? { gold: tradeGoldOf(state.age) } : null,
     joinOffer: joinOffer ? { id: joinOffer.id, expires: joinOffer.expires } : null,
+    // The outcome of their last raid on you (raids.js lastRaidOnPlayer), shown LAST_RAID_TURNS turns.
+    lastRaid: ind.lastRaidOnPlayer && turn - ind.lastRaidOnPlayer.turn <= LAST_RAID_TURNS ? { ...ind.lastRaidOnPlayer, ago: turn - ind.lastRaidOnPlayer.turn } : null,
     raid: raid ? { kind: raid.kind, kindWord: RAID_KIND_WORDS[raid.kind] || raid.kind, target: raidTargetName(state, raid), tile: raid.targetTile, eta: eta?.turns ?? null } : null
   };
 
@@ -246,6 +251,7 @@ export const independentSummary = (state, indepId) => {
   if (!m) return null;
   const lines = [];
   if (m.deals.raid) lines.push({ tone: 'bad', text: `Their raiders are heading for ${m.deals.raid.target}${m.deals.raid.eta != null ? `, ${plural(m.deals.raid.eta, 'turn')} away` : ''}.` });
+  if (m.deals.lastRaid) lines.push({ tone: m.deals.lastRaid.won ? 'bad' : 'good', text: `Turn ${m.deals.lastRaid.turn}: ${m.deals.lastRaid.text}` });
   if (m.deals.demand) lines.push({ tone: 'warn', text: `They demand ${m.deals.demand.gold} gold a turn; answer within ${plural(m.deals.demand.turnsLeft, 'turn')}.` });
   if (m.deals.joinOffer) lines.push({ tone: 'good', text: 'They offer to join you.' });
   if (m.deals.youPay) lines.push({ tone: 'neutral', text: `You pay them ${m.deals.youPay.gold} gold a turn until turn ${m.deals.youPay.until}.` });

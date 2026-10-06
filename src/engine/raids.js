@@ -280,6 +280,12 @@ const fight = (w, id, { kind, tile, victim, city = null, party, defenders }) => 
 };
 
 const raiderName = (w, id) => w.nations[id]?.name || 'Raiders';
+/** The outcome of a raid on the player, kept on the raider for the UI (phase W4: the sheet's "last
+ * raid on you"): { turn, kind, won, loot, text }. A record only: no rule reads it. */
+const noteOutcome = (w, id, victim, outcome) => {
+  if (victim !== w.playerId || !w.nations[id]) return;
+  setIndep(w, id, { lastRaidOnPlayer: { turn: w.turn, ...outcome } });
+};
 const markRaided = (w, victim, id) => {
   const v = w.nations[victim];
   if (v && !isIndependentNation(v)) w.nations[victim] = { ...v, raidedBy: { ...(v.raidedBy || {}), [id]: w.turn } };
@@ -323,7 +329,7 @@ const resolveAtTarget = (w, id, party, raid) => {
     const r = fight(w, id, { kind, tile: t, victim, city: raid.kind === 'sack' ? city : null, party, defenders });
     const survivors = partyOf(w, id);
     if (!r.raidersWon) {
-      if (toPlayer) log(w, `Your ${kind === 'sack' ? 'garrison of' : 'army at'} ${kind === 'sack' ? city.name : placeOf(w, t)} drove off ${name}.`);
+      if (toPlayer) { const text = `Your ${kind === 'sack' ? 'garrison of' : 'army at'} ${kind === 'sack' ? city.name : placeOf(w, t)} drove off ${name}.`; log(w, text); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0, text }); }
       if (!survivors.length) { setIndep(w, id, { raid: { ...raid, lost: true } }); endRaid(w, id, []); return; }
       sendHome(w, id, survivors, { ...raid, lost: true }, 'beaten');
       return;
@@ -365,7 +371,7 @@ const resolveAtTarget = (w, id, party, raid) => {
   if (KIND_STAT[raid.kind]) w.stats[KIND_STAT[raid.kind]] = (w.stats[KIND_STAT[raid.kind]] || 0) + 1;
   w.stats.loot += loot;
   markRaided(w, victim, id);
-  if (toPlayer) { w.stats.raidsOnPlayer += 1; log(w, `${name} ${what}.`); }
+  if (toPlayer) { w.stats.raidsOnPlayer += 1; log(w, `${name} ${what}.`); noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
   if (raid.kind === 'route') { setIndep(w, id, { raid: { ...raid, phase: 'hold', holdUntil: w.turn + 1 } }); return; }
   sendHome(w, id, party, raid);
 };
@@ -411,7 +417,11 @@ const runRaid = (w, id, city) => {
     const theirs = blockers.filter((u) => u.ownerId === owner);
     if (owner && strength >= sumStrength(theirs) * RAID_FIGHT_RATIO) {
       const r = fight(w, id, { kind: 'intercept', tile: step.blocked, victim: owner, party: partyOf(w, id), defenders: theirs });
-      if (owner === w.playerId) log(w, r.raidersWon ? `${raiderName(w, id)} cut through your army near ${placeOf(w, step.blocked)}.` : `Your army near ${placeOf(w, step.blocked)} stopped ${raiderName(w, id)}.`);
+      if (owner === w.playerId) {
+        const text = r.raidersWon ? `${raiderName(w, id)} cut through your army near ${placeOf(w, step.blocked)}.` : `Your army near ${placeOf(w, step.blocked)} stopped ${raiderName(w, id)}.`;
+        log(w, text);
+        if (!r.raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0, text });
+      }
       if (r.raidersWon) fallBack(w, r.defenders.filter((u) => u.strength > 0));
       const left = partyOf(w, id);
       if (!left.length) { setIndep(w, id, { raid: { ...raid, lost: true } }); endRaid(w, id, []); return; }

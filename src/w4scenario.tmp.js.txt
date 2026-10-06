@@ -1,0 +1,67 @@
+// TEMPORARY (not committed): builds a save with a raid, a tribute demand, a join offer and an AI
+// siege of an independent, for the W4 browser check. Writes public/w4-scenario.json.
+import fs from 'node:fs';
+import { it } from 'vitest';
+import { createInitialState } from './engine/gameReducer';
+import { CURRENT_SAVE_VERSION } from './engine/saveMigrations';
+import { getTiles } from './data/geo/tiles';
+import { ringsAround } from './engine/world/cities';
+import { isIndependentNation, garrisonTarget } from './data/independents';
+import { raidForecast } from './engine/raids';
+import { findTilePath } from './engine/armies';
+import { addGrudge } from './engine/grudges';
+import { visibleTiles } from './engine/sight';
+import { HISTORICAL_EVENTS } from './data/events';
+
+const unit = (id, owner, regionId, tile, classId = 'infantry') => ({ id, ownerId: owner, regionId, homeRegionId: regionId, tile, domain: 'land', classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null });
+
+it('builds the W4 scenario', () => {
+  const tiles = getTiles();
+  let s = createInitialState({ playerNationId: 'akkad', rngSeed: 11, scenario: { mode: 'peoples', size: 'standard', seed: 11 } });
+  s = { ...s, firedEvents: Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {}), resources: { ...s.resources, gold: 320 } };
+  const me = s.playerNationId;
+  const cap = s.regions[s.nations[me].capitalRegionId];
+  const near = ringsAround(tiles, cap.tile, 12);
+  const indeps = Object.values(s.nations).filter((n) => isIndependentNation(n) && !n.isEliminated && near.has(s.regions[n.capitalRegionId]?.tile))
+    .sort((a, b) => near.get(s.regions[a.capitalRegionId].tile) - near.get(s.regions[b.capitalRegionId].tile));
+  console.log(indeps.map((n) => `${n.id}:${n.indep.personality}:${near.get(s.regions[n.capitalRegionId].tile)}`).join(' '));
+  const raider = indeps.find((n) => n.indep.personality === 'raiders');
+  const home = s.regions[raider.capitalRegionId];
+  const units = { ...s.units };
+  // The player's capital stripped to nothing in it: a sack target.
+  Object.values(units).forEach((u) => { if (u.ownerId === me) delete units[u.id]; });
+  for (let i = 0; i < garrisonTarget(home.size, 'raiders') + 2; i++) units[`r${i}`] = unit(`r${i}`, raider.id, home.id, home.tile, 'cavalry');
+  s = { ...s, units };
+  const f = raidForecast(s, raider.id, me);
+  console.log('forecast', JSON.stringify(f));
+  const path = findTilePath(s, home.tile, f.tile, raider.id, { maxSteps: 60 }).path;
+  // Put the party two steps from the target, on the path.
+  const at = path[Math.max(0, path.length - 4)];
+  const route = path.slice(path.indexOf(at) + 1, f.kind === 'sack' ? -1 : undefined);
+  units.r0 = { ...units.r0, raidOf: raider.id, tile: at };
+  units.r1 = { ...units.r1, raidOf: raider.id, tile: at };
+  let nations = { ...s.nations, [raider.id]: { ...raider, indep: { ...raider.indep, mood: 'raiding', lastRaidTurn: s.turnNumber, raid: { kind: f.kind, targetTile: f.tile, targetNationId: me, targetCityId: f.cityId, targetUnitId: null, startedTurn: s.turnNumber, startStrength: 2000, phase: 'out', route, warned: true } } } };
+  nations = addGrudge(nations, raider.id, me, 20, { id: 'killed', turn: 1 });
+  nations = addGrudge(nations, raider.id, me, 20, { id: 'pillaged', turn: 3 });
+  // A tribute demand from another raiders or tribal neighbour; a join offer from a tribal one.
+  const demander = indeps.find((n) => n.id !== raider.id && ['raiders', 'tribal'].includes(n.indep.personality));
+  const joiner = indeps.find((n) => n.id !== demander.id && n.indep.personality === 'tribal') || indeps.find((n) => n.indep.personality === 'mercantile');
+  // An AI siege of an independent city in sight.
+  const sight = visibleTiles({ ...s, units, nations }, me);
+  const besieged = indeps.find((n) => n.id !== raider.id && sight.has(s.regions[n.capitalRegionId].tile)) || indeps.find((n) => n.id !== raider.id);
+  const bc = s.regions[besieged.capitalRegionId];
+  const major = Object.keys(s.nations).find((id) => id !== me && !isIndependentNation(s.nations[id]) && !s.nations[id].isEliminated);
+  const nb = tiles.neighbors[bc.tile].find((t) => tiles.land[t] === 1);
+  units.ai0 = unit('ai0', major, s.nations[major].capitalRegionId, nb);
+  units.ai1 = unit('ai1', major, s.nations[major].capitalRegionId, nb);
+  const nb2 = tiles.neighbors[bc.tile].filter((t) => tiles.land[t] === 1 && t !== nb).pop();
+  units.p0 = unit('p0', me, cap.id, nb2);
+  const regions = { ...s.regions, [bc.id]: { ...bc, siege: { by: major, hp: 140, maxHp: 400, startedTurn: s.turnNumber, starving: 0, encircled: false } } };
+  console.log('raider', raider.id, 'demander', demander.id, 'joiner', joiner?.id, 'besieged', besieged.id, 'by', major, 'insight', sight.has(bc.tile));
+  s = {
+    ...s, units, nations, regions,
+    tributeDemands: [{ id: `trib_${demander.id}_${s.turnNumber}`, indepId: demander.id, gold: 3, turns: 20, turn: s.turnNumber, expires: s.turnNumber + 3 }],
+    joinOffers: joiner ? [{ id: `join_${joiner.id}_${s.turnNumber}`, indepId: joiner.id, turn: s.turnNumber, expires: s.turnNumber + 5 }] : []
+  };
+  fs.writeFileSync('public/w4-scenario.json', JSON.stringify({ version: CURRENT_SAVE_VERSION, state: s, savedAt: 0 }));
+});

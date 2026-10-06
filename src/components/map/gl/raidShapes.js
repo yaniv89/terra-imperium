@@ -12,6 +12,8 @@ import { cssColor } from './cssColor';
 import { actionIconUrl } from '../../independents/independentArt';
 
 const WHITE = [1, 1, 1, 1];
+/** Below this zoom only the parties carry a label (the rings stay): the far map stays readable. */
+export const RAID_LABEL_ZOOM = 5;
 const RED = '#f87171';
 const VIOLET = '#9C8FD0';
 const ORANGE = '#fb923c';
@@ -59,20 +61,20 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
       pts.push([prev && q[0] - prev[0] > half ? q[0] - 2 * half : prev && q[0] - prev[0] < -half ? q[0] + 2 * half : q[0], q[1]]);
     });
     const c = cssColor(p.againstYou ? RED : VIOLET);
-    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: 2, exp: 0.5, color: [15 / 255, 23 / 255, 42 / 255, 0.5] });
-    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: 1, dash: 6, gap: 4, exp: 0.5, color: [c[0], c[1], c[2], 0.95] });
+    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: 2.4, exp: 0, color: [15 / 255, 23 / 255, 42 / 255, 0.55] });
+    for (let i = 1; i < pts.length; i++) lines.push({ a: pts[i - 1], b: pts[i], half: 1.2, dash: 7, gap: 4, exp: 0, color: [c[0], c[1], c[2], 0.95] });
   });
   // Warning rings and their labels (left out when the party's label stands on it).
   model.warnings.forEach((w) => {
     const at = pointOf(projection, w.tile);
     if (!at) return;
-    const r = tileRadius(projection, w.tile);
+    const r = Math.max(tileRadius(projection, w.tile), 11 / k); // at least 11 px on screen
     const c = cssColor(RED);
     lines.push(...ring(at, r, { half: 1.6, dash: 5, gap: 3, exp: 0, color: [c[0], c[1], c[2], 0.95] }));
     lines.push(...ring(at, r * 1.35, { half: 0.8, exp: 0, color: [c[0], c[1], c[2], 0.45] }));
     const party = model.parties.find((p) => p.id === w.id);
     const pp = party ? pointOf(projection, party.tile) : null;
-    if (pp && Math.hypot(pp[0] - at[0], pp[1] - at[1]) * k < 60) return;
+    if (k < RAID_LABEL_ZOOM || (pp && Math.hypot(pp[0] - at[0], pp[1] - at[1]) * k < 60)) return;
     label(`Raid target: ${w.target}${w.eta != null ? ` · ${w.eta}t` : ''}`, '#fecaca', at, -r * k - 8, w.id);
   });
   // Parties: an icon (or disc) and a label.
@@ -90,12 +92,12 @@ export const raidShapes = ({ model, projection, k, dpr }) => {
     const at = pointOf(projection, s.tile);
     if (!at) return;
     const c = cssColor(ORANGE);
-    lines.push(...ring(at, tileRadius(projection, s.tile) * 1.2, { half: 1.4, dash: 3, gap: 3, exp: 0, color: [c[0], c[1], c[2], 0.9] }));
-    label(`${s.byName} besiege · ${Math.round(s.hp * 100)}%`, '#fed7aa', at, 22, s.owner);
+    lines.push(...ring(at, Math.max(tileRadius(projection, s.tile) * 1.2, 14 / k), { half: 1.4, dash: 3, gap: 3, exp: 0, color: [c[0], c[1], c[2], 0.9] }));
+    if (k >= RAID_LABEL_ZOOM) label(`${s.byName} besiege · ${Math.round(s.hp * 100)}%`, '#fed7aa', at, -30, s.owner);
   });
   model.burning.forEach((b) => {
     const at = pointOf(projection, b.tile);
-    if (at) label(`Burning · ${b.size} turn${b.size === 1 ? '' : 's'} left`, '#fecaca', at, 34, null);
+    if (at && k >= RAID_LABEL_ZOOM) label(`Burning · ${b.size} turn${b.size === 1 ? '' : 's'} left`, '#fecaca', at, 34, null);
   });
   return { lines, sprites, hits };
 };

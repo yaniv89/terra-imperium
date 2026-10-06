@@ -159,6 +159,25 @@ describe('W4 independent sheet model', () => {
   });
 });
 
+describe('W4 raid outcome', () => {
+  it('a raid that reaches the player records its outcome for the sheet and the city card', async () => {
+    const { processIndependents } = await import('../../engine/raids');
+    const { s, raider } = duel();
+    const f = raidForecast(s, raider.id, me);
+    // The party stands next to its target: one turn of the independents' phase resolves it.
+    const units = { ...s.units, r0: { ...s.units.r0, raidOf: raider.id, tile: f.tile }, r1: { ...s.units.r1, raidOf: raider.id, tile: f.tile } };
+    const nations = { ...s.nations, [raider.id]: { ...raider, indep: { ...raider.indep, raid: { kind: f.kind, targetTile: f.tile, targetCityId: f.cityId, targetNationId: me, phase: 'out', route: [], startedTurn: T, startStrength: 2000, warned: true } } } };
+    const st = { ...s, units, nations, turnNumber: T + 1 };
+    const out = processIndependents(st);
+    const rec = out.nations[raider.id].indep.lastRaidOnPlayer;
+    expect(rec).toMatchObject({ turn: T + 1, kind: f.kind, won: true });
+    expect(rec.text).toMatch(/^They /);
+    const after = { ...st, nations: out.nations, units: out.units, regions: out.regions };
+    expect(independentSheetModel(after, raider.id).deals.lastRaid).toMatchObject({ won: true, ago: 0 });
+    expect(independentSummary(after, raider.id).lines[0].text).toMatch(`Turn ${T + 1}: They `);
+  });
+});
+
 describe('W4 independents list model', () => {
   it('lists the met independents with distance, attitude, grudge and deal; sorts and filters', () => {
     const r = indeps('raiders')[0];

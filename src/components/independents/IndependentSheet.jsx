@@ -53,6 +53,11 @@ export const IndependentSheetBody = ({ model: m, onRun, note, onClose }) => (
             <div>Their raid party is heading for {m.deals.raid.target}{m.deals.raid.eta != null ? `: about ${m.deals.raid.eta} turn${m.deals.raid.eta === 1 ? '' : 's'} away` : ''}. Meet it with an army, or keep your soldiers in the city.</div>
           </div>
         )}
+        {m.deals.lastRaid && (
+          <div className={`rounded-lg border p-2 text-[12px] ${m.deals.lastRaid.won ? 'border-red-500/50 bg-red-950/30 text-red-100' : 'border-emerald-600/50 bg-emerald-950/30 text-emerald-100'}`} data-testid="indep-last-raid">
+            <span className="font-semibold">Last raid on you, turn {m.deals.lastRaid.turn}:</span> {m.deals.lastRaid.text}{m.deals.lastRaid.won && m.deals.lastRaid.loot && !m.deals.lastRaid.text.includes('gold') ? ` They took ${m.deals.lastRaid.loot} gold.` : ''}
+          </div>
+        )}
         <section className="rounded-lg border border-slate-700 bg-slate-800/50 p-2.5 space-y-1.5" data-testid="indep-attitude">
           <CardLabel right={<span className={`normal-case tracking-normal text-[12px] font-semibold ${TONE_TEXT[m.attitude.tone]}`}>{m.attitude.word} {signed(m.attitude.value)}</span>}>Toward you</CardLabel>
           <AttitudeMeter value={m.attitude.value} tone={m.attitude.tone} />
