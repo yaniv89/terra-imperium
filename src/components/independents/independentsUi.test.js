@@ -37,7 +37,7 @@ describe('W4 independents UI', () => {
     ['Attack without war', 'Pay tribute', 'Ask to join', 'Gift 50 gold', 'Demand tribute'].forEach((label) => expect(out).toContain(label));
     expect(out).toContain('data-testid="indep-demand"');
     expect(out).toContain('min-h-[44px]');
-    expect((out.match(/bg-\[#D8A444\]/g) || []).length).toBe(1);
+    expect((out.match(/(?<![:\w-])bg-fa-brass(?![\w-])/g) || []).length).toBe(1); // brass only on the one primary action (Field Atlas token, U1)
     expect(out).toContain('data-testid="indep-action-payTribute" data-ok="true"');
     // Raiders never join: the button stays (tappable for the reason), drawn as blocked.
     expect(out).toContain('data-testid="indep-action-join" data-ok="false"');

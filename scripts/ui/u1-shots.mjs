@@ -1,6 +1,6 @@
 // scripts/ui/u1-shots.mjs
 // Screenshots of the world screens restyled in phase U1 (plans/UI-DESIGN.md), at the reference
-// phone screen (844x390 landscape) and a desktop (1280x800), into plans/phase-u1/.
+// phone screen (844x390 landscape) and a desktop (1280x800), into plans/ui/u1/.
 // Needs a running dev server (`npx vite --port 5181`) and a Chrome; headless.
 //   node scripts/ui/u1-shots.mjs [--url http://localhost:5181/terra-imperium/] [--chrome <path>] [--only W02,W05]
 // The game is driven through the UI and, for states that take many turns to reach (a war, a first
@@ -13,7 +13,7 @@ const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i
 const URL_BASE = arg('--url', 'http://localhost:5181/terra-imperium/');
 const CHROME = arg('--chrome', ['C:/Program Files/Google/Chrome/Application/chrome.exe', '/usr/bin/google-chrome', '/opt/pw-browsers/chromium'].find((p) => fs.existsSync(p)));
 const ONLY = (arg('--only', '') || '').split(',').filter(Boolean);
-const OUT = path.resolve('plans/phase-u1');
+const OUT = path.resolve('plans/ui/u1');
 fs.mkdirSync(OUT, { recursive: true });
 
 const VIEWPORTS = [
@@ -50,6 +50,8 @@ const patchState = (page, fnSource) => page.evaluate((src) => {
   const s = fn(window.__game.state); // fn returns a new state: change only what it spreads
   window.__game.dispatch({ type: 'LOAD_GAME', payload: s });
 }, fnSource);
+
+const openTab = (page, tab) => page.evaluate((t) => window.dispatchEvent(new CustomEvent('ti:open-tab', { detail: t })), tab);
 
 const shot = async (page, name, vp) => {
   const file = path.join(OUT, `${name}-${vp.id}.png`);
@@ -132,6 +134,92 @@ const SCREENS = {
     await shot(page, 'W05-city', vp);
     await click(page.getByTestId('city-tab-defense'));
     await shot(page, 'W05-city-defense', vp);
+  },
+  W09: async (page, vp) => {
+    await startGame(page);
+    // Irrigation under way (Kish is on a river: its boost waits), two techs queued
+    await patchState(page, `
+      const r = s.research || {};
+      return { ...s, research: { ...r, current: 'infrastructure_irrigation_canals', queue: ['science_cuneiform_records', 'governance_code_of_laws'], progress: { ...(r.progress || {}), infrastructure_irrigation_canals: 9 } } };`);
+    await openTab(page, 'tech');
+    await page.getByTestId('research-current').waitFor({ timeout: 10000 });
+    await shot(page, 'W09-research', vp);
+  },
+  W10: async (page, vp) => {
+    await startGame(page);
+    // state 2: "warn me" on, the first tap arms End Turn and shows what still waits
+    await patchState(page, 'return { ...s, battleSettings: { ...(s.battleSettings || {}), warnEndTurn: true } };');
+    await click(page.locator('[data-testid="turn-dock"] button[data-armed]'));
+    await page.getByTestId('end-turn-warnings').waitFor({ timeout: 10000 });
+    await shot(page, 'W10-end-turn-armed', vp);
+    await wait(5000); // disarms by itself
+    // the report: a turn that brought a siege held at the capital, a raid, news and growth (a
+    // contact would also open its first-contact card, W03)
+    await patchState(page, `
+      const me = s.playerNationId; const capId = s.nations[me].capitalRegionId; const c = s.regions[capId];
+      const battle = { id: 'battle-shot', name: 'Siege of ' + c.name, playerSide: 'defender', outcome: 'defender', defense: true, targetRegionId: capId, fallen: { attacker: 300, defender: 40 }, sides: { attacker: [], defender: [] } };
+      return { ...s, turnNumber: s.turnNumber + 1, year: s.year + 1,
+        battleReports: [battle, ...(s.battleReports || [])],
+        logs: [...s.logs, { year: s.year, type: 'combat', message: 'Gutian raiders pillage the land of ' + c.name + ' (a pasture): 12 gold taken.' }, { year: s.year, type: 'diplomacy', message: 'The Kingdom of Elam denounces your border forts.' }],
+        research: { ...(s.research || {}), current: 'infrastructure_irrigation_canals' },
+        regions: { ...s.regions, [capId]: { ...c, size: (c.size || 1) + 1 } } };`);
+    await page.getByTestId('turn-report').waitFor({ timeout: 10000 });
+    await shot(page, 'W10-turn-report', vp);
+  },
+  W12: async (page, vp) => {
+    await startGame(page);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:open-settings')));
+    await page.getByTestId('settings-sheet').waitFor({ timeout: 10000 });
+    await shot(page, 'W12-settings', vp);
+  },
+  W17: async (page, vp) => {
+    await startGame(page);
+    await click(page.getByTestId('top-bar-nation'));
+    await page.getByTestId('nation-overview').waitFor({ timeout: 10000 });
+    await shot(page, 'W17-nation', vp);
+  },
+  W07: async (page, vp) => {
+    await startGame(page);
+    // meet the five nearest majors; at war with the nearest, a pact and trade with the third
+    await patchState(page, `
+      const me = s.playerNationId; const met = s.fog.met[me] || {};
+      const cap = s.regions[s.nations[me].capitalRegionId];
+      const cands = Object.values(s.nations).filter((n) => n.id !== me && n.kind !== 'independent' && n.capitalRegionId && s.regions[n.capitalRegionId]);
+      const d = (n) => { const r = s.regions[n.capitalRegionId]; return Math.hypot((r.lat || 0) - (cap.lat || 0), (r.lng || r.lon || 0) - (cap.lng || cap.lon || 0)); };
+      const near = cands.sort((a, b) => d(a) - d(b)).slice(0, 5);
+      const nextMet = { ...met }; near.forEach((n, i) => { nextMet[n.id] = 1 + i * 2; });
+      const nations = { ...s.nations, [near[2].id]: { ...s.nations[near[2].id], hasMilitaryPact: true, hasTradeAgreement: true } };
+      return { ...s, turnNumber: s.turnNumber + 5, research: { ...(s.research || {}), current: 'infrastructure_irrigation_canals' }, nations, fog: { ...s.fog, met: { ...s.fog.met, [me]: nextMet } },
+        wars: [...(s.wars || []), { id: 'war-shot', active: true, aggressor: near[0].id, enemy: me, score: -12, startTurn: s.turnNumber }] };`);
+    // the patch jumps five turns, so the first-contact cards (W03) treat it like a loaded save; the
+    // turn report (W10) of that jump is closed with Escape
+    await page.getByTestId('turn-report').waitFor({ timeout: 10000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    await openTab(page, 'diplomacy');
+    await page.getByTestId('peoples-tab').waitFor({ timeout: 10000 });
+    await click(page.locator('[data-people-row]').nth(1));
+    await shot(page, 'W07-peoples', vp);
+  },
+  W08: async (page, vp) => {
+    await startGame(page);
+    // the nearest independent (raiders if any are close) with a grudge and its causes; gold to hire
+    // its bands. No tribute demand here: a new one opens its own sheet (W15).
+    const id = await page.evaluate(() => {
+      const s = window.__game.state; const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId];
+      const all = Object.values(s.nations).filter((n) => n.kind === 'independent' && !n.isEliminated && s.regions[n.capitalRegionId]);
+      const d = (n) => { const r = s.regions[n.capitalRegionId]; return Math.hypot((r.lat || 0) - (cap.lat || 0), (r.lng || r.lon || 0) - (cap.lng || cap.lon || 0)); };
+      all.sort((a, b) => d(a) - d(b));
+      const pick = all.slice(0, 4).find((n) => n.indep?.personality === 'raiders') || all[0];
+      return pick.id;
+    });
+    await patchState(page, `
+      const me = s.playerNationId; const n = s.nations['${id}'];
+      const indep = { ...n.indep, grudges: { ...(n.indep.grudges || {}), [me]: 48 }, grudgeLog: { ...(n.indep.grudgeLog || {}), [me]: [{ id: 'pillaged', turn: s.turnNumber, amount: 20 }, { id: 'killed', turn: s.turnNumber, amount: 28 }] } };
+      return { ...s, resources: { ...s.resources, gold: 400 }, research: { ...(s.research || {}), current: 'infrastructure_irrigation_canals' },
+        nations: { ...s.nations, ['${id}']: { ...n, indep } } };`);
+    await page.evaluate((x) => window.dispatchEvent(new CustomEvent('ti:open-independent', { detail: x })), id);
+    await page.getByTestId('independent-sheet').waitFor({ timeout: 10000 });
+    await shot(page, 'W08-independent', vp);
   }
 };
 

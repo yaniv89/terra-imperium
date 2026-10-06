@@ -23,6 +23,10 @@ import { OPEN_TAB } from './panelEvents';
 import ActionPanel from './ActionPanel';
 import { openSettings } from '../ui/uiEvents';
 
+// Research and Peoples need two columns, so their dock is wider (plans/UI-DESIGN.md section 5:
+// wider sheets for Research); the map keeps at least 12rem on a phone held sideways.
+const WIDE_TABS = new Set(['tech', 'diplomacy']);
+
 // One rail button: icon over a tiny label; a dot when something there waits for you. The open
 // tab is a raised fill with a light outline (selection is never brass).
 const RailButton = ({ icon: Icon, label, active, badge, onClick, ariaLabel }) => (
@@ -120,7 +124,7 @@ const PanelDrawer = ({ activeTab, onTabChange, onOpenLog, unreadLogs = 0 }) => {
         className="fixed right-0 bottom-0 top-[var(--header-height,2.25rem)] z-20 flex pr-[env(safe-area-inset-right)] bg-fa-panel/95 border-l border-fa-line text-fa-text"
       >
         {dockOpen && (
-          <div data-testid="landscape-dock" className="w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px] flex flex-col border-r border-fa-line shadow-2xl bg-fa-panel">
+          <div data-testid="landscape-dock" data-tab={activeTab} className={`${WIDE_TABS.has(activeTab) ? 'w-[min(600px,calc(100vw-52px-12rem))] lg:w-[640px]' : 'w-[clamp(300px,40vw,380px)] tb:w-[420px] lg:w-[420px]'} flex flex-col border-r border-fa-line shadow-2xl bg-fa-panel`}>
             <ActionPanel activeTab={activeTab} />
           </div>
         )}

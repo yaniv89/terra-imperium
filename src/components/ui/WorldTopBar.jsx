@@ -13,7 +13,7 @@ import { useGame } from '../../context/GameContext';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openPanelTab } from '../panels/panelEvents';
-import { openNationOverview } from './uiEvents';
+import { openNationOverview, openTurnReport } from './uiEvents';
 import { topBarModel } from './topBarModel';
 import { Shield, signed } from './atlas';
 import ResourceBar from './ResourceBar';
@@ -108,7 +108,11 @@ const WorldTopBar = () => {
           </button>
         )}
         <span className="fa-num text-[12px] shrink-0" title="The year">{m.year}</span>
-        {!portrait && <span className="fa-label shrink-0 !text-[11px]">Turn <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span></span>}
+        {!portrait && (
+          <button type="button" onClick={() => openTurnReport()} className="fa-label shrink-0 !text-[11px] h-8 px-1 -mr-1 rounded-md hover:bg-fa-raised" title="The last turn's report" aria-label={`Turn ${m.turn}: the last turn's report`} data-testid="top-bar-turn">
+            Turn <span className="fa-num text-[12px] text-fa-text tracking-normal">{m.turn}</span>
+          </button>
+        )}
       </div>
       {open === 'gold' && (
         <Reasons title="Gold a turn" rows={m.gold.reasons} total={m.gold.perTurn} unit="" onClose={close}

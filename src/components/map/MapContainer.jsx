@@ -48,6 +48,7 @@ import NationSheet from './NationSheet';
 import LensStrip from './LensStrip';
 import { LENSES } from './lenses';
 import { SELECT_ARMY, SELECT_TILE, SELECT_NATION, FOCUS_REGION } from './marchEvents';
+import { SET_MAP_LENS } from '../ui/uiEvents';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useGame } from '../../context/GameContext';
 import { getNationCapital } from '../../data/regions';
@@ -85,8 +86,10 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
   const setMini = (v) => { setMiniState(v); try { localStorage.setItem(MINIMAP_STORAGE_KEY, v ? '1' : '0'); } catch { /* storage off */ } };
   useEffect(() => {
     const onKey = (e) => { if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; const l = LENSES.find((x) => x.key === e.key); if (l) setLens(l.id); };
+    const onLens = (e) => { if (LENSES.some((x) => x.id === e.detail)) setLens(e.detail); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener(SET_MAP_LENS, onLens);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener(SET_MAP_LENS, onLens); };
   }, []);
   // The next prompt opens an army sheet or a tile sheet from the header (marchEvents.js).
   useEffect(() => {

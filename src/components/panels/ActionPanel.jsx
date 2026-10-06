@@ -13,7 +13,7 @@ import { selectRegion } from '../map/marchEvents';
 
 const ActionPanel = ({ activeTab }) => {
   return (
-    <div className={`flex-1 overflow-y-auto overscroll-contain relative bg-fa-panel text-fa-text ${activeTab === 'cities' ? '' : 'p-3 sm:p-4'}`} data-testid="action-panel">
+    <div className={`flex-1 overflow-y-auto overscroll-contain relative bg-fa-panel text-fa-text ${activeTab === 'cities' || activeTab === 'tech' || activeTab === 'diplomacy' ? '' : 'p-3 sm:p-4'}`} data-testid="action-panel">
       {activeTab === 'domestic' && (
         <DomesticPanel />
       )}

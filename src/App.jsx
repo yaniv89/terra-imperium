@@ -10,17 +10,19 @@ import WorldTopBar from './components/ui/WorldTopBar';
 import TurnDock from './components/ui/TurnDock';
 import NextPrompt from './components/ui/NextPrompt';
 import SettingsSheet from './components/ui/SettingsSheet';
+import TurnReportSheet from './components/ui/TurnReportSheet';
+import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION } from './components/map/marchEvents';
 import FirstContactCard from './components/modals/FirstContactCard';
 import { MapContainer } from './components/map';
 import { PanelDrawer, LogTrigger, LogDrawer } from './components/panels';
-import { EventModal, GameOverModal, BattleSummaryToast, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
+import { EventModal, GameOverModal, AccountModal, ConflictChooserModal, OnboardingOverlay, AgeAdvanceBanner, NationEliminatedBanner, OldSaveNotice } from './components/modals';
 import AdminPage from './components/admin/AdminPage';
 
 // The commanded-battle screen (three.js + the sim worker) only downloads when a battle starts.
 const TacticalBattleHost = lazyWithReload(() => import('./components/battle/TacticalBattleHost'));
-import { GameStatus, LogTypes, ActionTypes } from './data/types';
+import { GameStatus, ActionTypes } from './data/types';
 import { HISTORICAL_EVENTS } from './data/events';
 import { EVENT_CHAINS } from './data/eventChains';
 import { AGES } from './data/ages';
@@ -135,18 +137,6 @@ const GameLayout = () => {
     return () => clearTimeout(timer);
   }, [state.playerEliminatedNationId, state.nations]);
 
-  // Post-turn battle summary (Phase 9) — surfaces newly-added combat/crisis log lines as a
-  // dismissible toast. prevLogCountRef starts at the CURRENT length so loading a save with an
-  // existing history never spuriously toasts on mount; only logs added after that count.
-  const prevLogCountRef = useRef(state.logs.length);
-  const [battleSummary, setBattleSummary] = useState(null);
-  useEffect(() => {
-    const newLogs = state.logs.slice(prevLogCountRef.current);
-    prevLogCountRef.current = state.logs.length;
-    const combatLogs = newLogs.filter(l => l.type === LogTypes.COMBAT || l.type === LogTypes.CRISIS);
-    if (combatLogs.length > 0) setBattleSummary(combatLogs);
-  }, [state.logs]);
-
   // Handle game reset. No confirmation needed once the run has already ended (Victory/Defeat) —
   // there's nothing left to lose. Routes back through the start screen so the player can pick a
   // new nation/speed/difficulty rather than silently restarting as whatever they last played.
@@ -155,7 +145,6 @@ const GameLayout = () => {
     if (alreadyOver || window.confirm('Reset game? All progress will be lost.')) {
       setShowStartScreen(true);
       setSelectedRegion(null);
-      setBattleSummary(null);
     }
   }, [state.gameStatus]);
 
@@ -264,8 +253,12 @@ const GameLayout = () => {
         onContinue={handleContinueAfterVictory}
       />
 
-      {/* Post-turn battle summary (Phase 9) - non-blocking, dismissible toast */}
-      <BattleSummaryToast entries={battleSummary} onDismiss={() => setBattleSummary(null)} />
+      {/* The turn report (W10): what the turn brought, grouped, with a place on each line.
+          It replaces the old battle summary toast (battles are its first group). */}
+      <TurnReportSheet />
+
+      {/* The nation overview (W17), from the name on the top bar */}
+      <NationOverviewSheet />
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />

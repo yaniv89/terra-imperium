@@ -3,9 +3,13 @@
 //   Map       the globe view (hidden by default) and the old map drawing (mapPrefs.js, per browser)
 //   Battles   the default mode the pre-battle screen preselects (Command, Auto or ask each time),
 //             always Auto for defences, instant AI battles (state.battleSettings, per game)
+//             and the battle size (300 a side, the one size today)
+//   Performance  the battle's performance overlay (mapPrefs.js perf, per browser) and the quality
+//             (Auto: the battle adapts soldier detail to the frame time)
 //   Turns     warn me before End Turn while something waits
 //   Saves     export, import, the cloud saves and account (AccountModal), a new game
-// Battle size, graphics quality and the device check belong to the battle settings of phase R2.
+// Not here yet (no engine for them; plans/UI-DESIGN.md W12): the 500 and 1,000 battle sizes and the
+// device check that measures them, a quality choice, a world-map overlay, a language choice.
 import React, { useRef } from 'react';
 import { Settings2, Download, Upload, Cloud, RotateCcw } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
@@ -56,14 +60,14 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
   return (
     <div className="fixed inset-0 z-[55] bg-black/50 flex items-center justify-center p-3 sheet-backdrop" onClick={onClose} data-testid="settings-sheet">
       <div role="dialog" aria-modal="true" aria-labelledby="settings-title" onClick={(e) => e.stopPropagation()}
-        className="sheet-panel fa-sheet w-full max-w-3xl max-h-[92dvh] flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
+        className="sheet-panel sheet-wide fa-sheet w-full max-w-3xl max-h-[92dvh] flex flex-col rounded-[10px] border border-fa-line shadow-2xl">
         <SheetHeader title="Settings" subtitle="Saved as you change them" icon={Settings2} onClose={onClose} titleId="settings-title" />
         <div className="flex-1 overflow-y-auto px-4 pb-4 grid gap-x-6 gap-y-4 md:grid-cols-2">
           <section className="space-y-1" aria-labelledby="settings-map">
             <Label id="settings-map">Map</Label>
             <Switch label="Globe view" hint="Hidden by default; the flat map is faster" checked={prefs.globe} onChange={(v) => setMapPrefs({ globe: v })} testId="map-show-globe" />
+            <Switch label="Fog: explored world" hint={fogOn(state) ? 'Off: chosen when the game began' : 'On: chosen when the game began'} checked={!fogOn(state)} onChange={() => {}} disabled testId="settings-fog" />
             <Switch label="Old map drawing" hint="The previous, slower map; only if the new one shows something wrong here" checked={prefs.renderer === 'svg'} onChange={(v) => setMapPrefs({ renderer: v ? 'svg' : 'webgl' })} testId="map-old-renderer" />
-            <div className="text-[12px] text-fa-muted pt-1">Fog of war: {fogOn(state) ? 'on' : 'off, the explored world'} (chosen when the game began).</div>
           </section>
           <section className="space-y-2" aria-labelledby="settings-battles">
             <Label id="settings-battles">Battles, default mode</Label>
@@ -71,6 +75,24 @@ const SettingsSheet = ({ open, onClose, onOpenAccount, onReset, cloudLabel }) =>
             <p className="text-[12px] text-fa-muted">{mode === 'ask' ? 'The pre-battle screen asks each time, Command or Auto.' : `The pre-battle screen starts on ${mode === 'command' ? 'Command' : 'Auto'}; you can still switch.`}</p>
             <Switch label="Always Auto for defences" hint="Assaults on your cities resolve at once when the turn ends" checked={bs.autoDefend === true} onChange={(v) => setBattle({ autoDefend: v })} testId="settings-auto-defend" />
             <Switch label="Instant AI battles" hint="Battles between other peoples skip the replay" checked={bs.instantBattles === true} onChange={(v) => setBattle({ instantBattles: v })} testId="settings-instant" />
+            <div className="flex items-center justify-between gap-3 min-h-[44px]" data-testid="settings-battle-size">
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold leading-tight">Battle size</div>
+                <div className="text-[12px] text-fa-muted leading-snug">Bigger armies fight in waves. Larger sizes come with a device check.</div>
+              </div>
+              <span className="fa-chip shrink-0" aria-pressed="true"><span className="fa-num">300</span> a side</span>
+            </div>
+          </section>
+          <section className="space-y-1" aria-labelledby="settings-perf">
+            <Label id="settings-perf">Performance</Label>
+            <Switch label="Performance overlay" hint="Frames a second and ms a frame in battles, top centre" checked={prefs.perf} onChange={(v) => setMapPrefs({ perf: v })} testId="settings-perf-overlay" />
+            <div className="flex items-center justify-between gap-3 min-h-[44px]">
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold leading-tight">Quality</div>
+                <div className="text-[12px] text-fa-muted leading-snug">The battle lowers soldier detail on slow frames and raises it again when frames are fast.</div>
+              </div>
+              <span className="fa-chip shrink-0" aria-pressed="true">Auto</span>
+            </div>
           </section>
           <section className="space-y-1" aria-labelledby="settings-turns">
             <Label id="settings-turns">Turns</Label>
