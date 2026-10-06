@@ -22,7 +22,7 @@ const AMBUSH_TICKS = secondsToTicks(AMBUSH_SECONDS);
 // The pursuit after a field battle is decided (decision 33).
 export const PURSUIT_SECONDS = 90;
 export const PURSUIT_TICKS = secondsToTicks(PURSUIT_SECONDS);
-const PURSUIT_TYPES = new Set(['field', 'river', 'ambush']);
+const PURSUIT_TYPES = new Set(['field', 'river', 'ambush', 'sally']); // the campaign's 'field' kind (a sally is one)
 const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).

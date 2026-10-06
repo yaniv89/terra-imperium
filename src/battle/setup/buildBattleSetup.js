@@ -179,7 +179,8 @@ export const buildSetupFromArmies = ({
     // The clock by battle type (battleType.js): a field battle is fast, a siege gives the engines time.
     battleType: type,
     // With an economy the clocks are the master plan's (6.1): a city assault 30 minutes, the rest 15.
-    limitTicks: ecoSetup ? (type === 'assault' ? ECONOMY_SIEGE_TICKS : ECONOMY_FIELD_TICKS) : BATTLE_TYPES[type].limitTicks,
+    // A landing is fought as a city assault (6.1): the 30-minute clock; a sally the field's 15.
+    limitTicks: ecoSetup ? (type === 'assault' || type === 'landing' ? ECONOMY_SIEGE_TICKS : ECONOMY_FIELD_TICKS) : BATTLE_TYPES[type].limitTicks,
     // What the raiders must burn before they get away (battleType.js).
     ...(raiding ? { raid: { needed: type === 'sack' ? SACK_BURN_NEEDED : RAID_LOOT_NEEDED } } : {}),
     map,
