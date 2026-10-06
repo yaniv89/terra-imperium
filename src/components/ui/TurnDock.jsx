@@ -23,7 +23,11 @@ const TurnDock = () => {
   const waiting = useMemo(() => nextPrompts(state).filter((p) => p.kind !== 'guide'), [state]);
   const warnings = endTurnWarnings(state);
   const isGameOver = state.gameStatus !== GameStatus.ACTIVE;
-  const blocked = state.activeEventId !== null || isGameOver || turnPending;
+  // resolveTurn does nothing while an event (historical, chain or procedural) or a peace offer
+  // waits for an answer, so End Turn says so instead of looking clickable and doing nothing.
+  const waitingFor = state.activeEventId || state.activeProceduralEvent ? 'Answer the event first'
+    : state.pendingPeaceOffer ? 'Answer the peace offer first' : null;
+  const blocked = !!waitingFor || isGameOver || turnPending;
   const endTurn = () => { if (blocked) return; if (warnings > 0 && !armed) { setArmed(true); return; } setArmed(false); advanceTurn(); };
   useEffect(() => {
     const onKey = (e) => { if (e.key !== 'Enter' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return; if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target?.tagName || '')) return; if (blocked) return; e.preventDefault(); endTurn(); };
@@ -63,11 +67,12 @@ const TurnDock = () => {
             onClick={endTurn}
             data-armed={armed ? '1' : '0'}
             data-turn-pending="0"
-            disabled={state.activeEventId !== null}
+            disabled={!!waitingFor}
+            title={waitingFor || undefined}
             className="fa-btn fa-btn-primary fa-btn-hero !min-h-[50px] !px-5 shadow-xl gap-2.5"
           >
-            <span className="whitespace-nowrap">{armed ? 'Tap again to end anyway' : 'End Turn'}</span>
-            {!armed && waiting.length > 0 && (
+            <span className="whitespace-nowrap">{waitingFor || (armed ? 'Tap again to end anyway' : 'End Turn')}</span>
+            {!armed && !waitingFor && waiting.length > 0 && (
               <span className="fa-num text-[11px] font-semibold bg-fa-ink text-fa-brass rounded-full px-2 py-0.5" aria-label={`${waiting.length} left`}>{waiting.length} left</span>
             )}
             {defenses > 0 && (

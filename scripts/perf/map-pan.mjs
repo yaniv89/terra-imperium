@@ -50,6 +50,7 @@ const PROFILE = {
 };
 
 const startGame = async (page) => {
+  await page.getByTestId('begin-game').waitFor({ timeout: 120000 });
   if (EXPLORED) await page.getByTestId('explored-world').dispatchEvent('click');
   await page.fill('input[aria-label="Search peoples"]', 'Akkad');
   const buttons = page.locator('[data-people]');

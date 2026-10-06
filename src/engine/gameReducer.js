@@ -4,7 +4,6 @@ import { atSea, touchesCoastOf } from './fleets';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs, applyFieldResult } from './fieldBattle';
 import { validateFleetAttack, getFleetBattleContext, getFleetResolveArgs, applyFleetResult } from './navalBattle';
 import { abandonColony, foundColony, validateColony } from './colonies';
-import { recordBattleReport } from './battleReports';
 import { chooseResearch, emptyResearch, queueResearch, unqueueResearch } from './research';
 import { applyScenario } from './worldgen/emergentWorld';
 import { syncWorldRegistry } from './world/registry';
@@ -43,7 +42,7 @@ import { IDENTITY_AXES, IDENTITY_SHIFT_STEP, IDENTITY_SHIFT_COOLDOWN_TURNS, clam
 import { getLaw, canEnactLaw, getLawChangeCost, LAW_CHANGE_COOLDOWN_TURNS, COLLECTIVIZATION_UNREST_MODIFIER, COLLECTIVIZATION_UNREST_TURNS, DEFAULT_LAWS } from '../data/laws';
 import { transferRegion } from './regionTransfer';
 import { grantIntel } from './intel';
-import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, getReinforcementSources, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
+import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, isUnitInBattle, MISSILE_POWER_TIERS, validateAmphibious, applyAmphibiousLanding, getAmphibiousBattleContext } from './invasion';
 import { declareWar, hasCasusBelli, isWarBetween, isAtWarWithPlayer, isInTruce, getTradePactCapacity, recordBattle, setTruce, refreshWarFlags, PEACE_OFFER_COOLDOWN_TURNS } from './diplomacy';
 import { canAttack } from './hostility';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
@@ -86,20 +85,23 @@ import {
   ESPIONAGE_SUPPORT_REBELS_UNREST_INCREASE, INTEL_DURATION_TURNS, MOVE_CAPITAL_FOREIGN_STABILITY_PENALTY, LIBERTY_DESIRE_INDEPENDENCE_THRESHOLD } from '../data/actionCosts';
 import { resolveTurn } from './resolveTurn';
 import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
+import { resolveAutoBattle } from './autoBattle';
+import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
+import { cityMilitia, reinforcementSources } from './battleInputs';
+import { battleQueueBlocked, queuedKind, queuedArmies, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 
 // Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
 // on its own, too.
 export { replayBattle };
-import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDefensesAuto, applyDefenseWithdrawal } from './defense';
+import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, applyDefenseWithdrawal } from './defense';
 import { applyEventEffects } from './applyEventEffects';
-import { resolveBattle } from './battle';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { pillageTile } from './threat';
 import { canPromote, getPerk } from '../data/promotions';
 import { generateGeneral } from '../data/generals';
 import { isCoastal, isReachableBySea } from '../data/navalReach';
-import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
+import { REBEL_OWNER_ID } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
@@ -123,7 +125,7 @@ import { cityGroups, governorChoices, assignGovernor, dismissGovernor, GOVERNOR_
 import { validateTemplate, saveTemplate, deleteTemplate, templatesOf, armyOrder } from './armyTemplates';
 import { NAVAL_LINES, navalCargo, navalAir } from '../data/navalLines';
 import { canQueueWonder, wonderItem } from './wonders';
-import { cityManifestOf, applyCityBattleDamage } from './cityManifest';
+
 
 // How many land units one naval unit can carry (plan §7.5's Embark/Disembark).
 
@@ -538,94 +540,30 @@ const sanitizePowersUsed = (used) => [0, 1].map((side) => {
   return out;
 });
 
-// Missiles fired inside a battle come out of the real stockpile; a nuclear strike brings the same
-// world condemnation, prestige loss and pariah status as one launched from the map.
-const applyBattleMissiles = (state, pb, powersUsed) => {
-  let nations = state.nations;
-  let regions = state.regions;
-  const logs = [];
-  [pb.attackerNationId, pb.defenderNationId].forEach((nationId, side) => {
-    const used = powersUsed?.[side] || {};
-    const nation = nations[nationId];
-    if (!nation || !Object.keys(used).length) return;
-    const missiles = { ...(nation.missiles || {}) };
-    let nukes = 0;
-    Object.entries(used).forEach(([id, n]) => {
-      const tier = MISSILE_POWER_TIERS[id];
-      const fired = Math.min(n, missiles[tier] || 0);
-      missiles[tier] = (missiles[tier] || 0) - fired;
-      if (tier === 'nuclear') nukes += fired;
-    });
-    nations = { ...nations, [nationId]: { ...nation, missiles } };
-    if (nukes > 0) {
-      const victimId = side === 0 ? pb.defenderNationId : pb.attackerNationId;
-      Object.keys(nations).forEach((id) => {
-        if (id === nationId) return;
-        nations[id] = { ...nations[id], hostility: id === victimId ? 100 : Math.min(100, (nations[id].hostility || 0) + NUCLEAR_GLOBAL_HOSTILITY) };
-      });
-      const striker = nations[nationId];
-      nations[nationId] = addNationModifier(
-        { ...striker, prestige: clampPrestige((striker.prestige || 0) - NUCLEAR_PRESTIGE_PENALTY) },
-        { sourceType: 'nuclear', sourceId: 'nuclear_pariah', label: 'Nuclear Pariah', mods: { 'national.goldMult': -NUCLEAR_PARIAH_GOLD_MULT_PENALTY }, duration: NUCLEAR_PARIAH_DURATION_TURNS, turnNumber: state.turnNumber }
-      );
-      regions = { ...regions, [pb.targetRegionId]: { ...regions[pb.targetRegionId], nuclearScarred: true } };
-      logs.push({ year: state.year, message: `A nuclear strike devastates the battlefield at ${REGIONS_DATA[pb.targetRegionId]?.name}. The world condemns the attack.`, type: LogTypes.COMBAT });
-    }
-  });
-  return { ...state, nations, regions, logs: [...state.logs, ...logs] };
-};
-
-// Buildings razed in a commanded battle (src/battle/sim/buildings.js) each lose a tier in the
-// province where it was fought.
-const applyRazedBuildings = (state, regionId, razed) => {
-  const region = state.regions[regionId];
-  const lost = [...new Set(razed || [])].filter((c) => (region?.buildings?.categories?.[c] ?? -1) >= 0);
-  if (!lost.length) return state;
-  const categories = { ...region.buildings.categories };
-  lost.forEach((c) => { categories[c] -= 1; });
-  const names = lost.map((c) => BUILDING_CATEGORIES[c]?.label || c).join(', ');
-  return {
-    ...state,
-    regions: { ...state.regions, [regionId]: { ...region, buildings: { ...region.buildings, categories } } },
-    logs: [...state.logs, { year: state.year, message: `The fighting left buildings in ${REGIONS_DATA[regionId]?.name || regionId} in ruins (${names}: one tier lost).`, type: LogTypes.COMBAT }]
-  };
-};
-
-// A commanded city battle's damage to the real city (src/engine/cityManifest.js, master plan 6.8):
-// the houses, buildings and walls destroyed or damaged, by manifest id, under the 50% rule. The
-// manifest is the one the battle loaded (`before`: the state the battle was built from); a battle
-// with no city report (an old client) still costs the razed buildings a tier each.
-const applyCityDamageAfterBattle = (before, after, regionId, tactical) => {
-  const report = tactical?.cityDamage;
-  if (!report) return applyRazedBuildings(after, regionId, tactical?.razed);
-  const manifest = cityManifestOf(before, regionId);
-  const occupation = !!after.regions[regionId] && before.regions[regionId]?.owner !== after.regions[regionId].owner;
-  // buildings the sim razed are destroyed structures too (bld-<category>)
-  const razed = (tactical.razed || []).map((c) => `bld-${c}`);
-  const { state: next, log } = applyCityBattleDamage(after, regionId, { destroyed: [...new Set([...(report.destroyed || []), ...razed])], damaged: report.damaged || [] }, { manifest, occupation });
-  if (!log) return next;
-  return { ...next, logs: [...next.logs, { year: next.year, message: `The fighting left its mark on ${REGIONS_DATA[regionId]?.name || regionId}: ${log}.`, type: LogTypes.COMBAT }] };
-};
+// Missiles fired inside a battle, the city's damage and the razed buildings are applied by the one
+// outcome service (battleOutcome.js applyPowers, applyCityDamage).
 const MANIFEST_ID = /^[a-z][a-z0-9_-]{0,47}$/;
 const cleanIds = (list) => (Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && MANIFEST_ID.test(id)))].slice(0, 600) : []);
 
+const DISPOSITIONS = ['dead', 'fled', 'field', 'reserve'];
 export const sanitizeTacticalResult = (state, pb, result) => {
   const OUTCOMES = ['attacker', 'defender', 'stalemate'];
   // Synthetic expeditionary troops (defense battles) live on the battle record, not in state.units.
   const clampUnits = (ids, reported) => ids.map((id) => {
-    const real = state.units[id] || (pb.synthetic || []).find((u) => u.id === id);
+    const real = state.units[id] || (pb.synthetic || []).find((u) => u.id === id) || (pb.militia || []).find((u) => u.id === id);
     if (!real) return null;
     const r = (reported || []).find((u) => u && u.id === id) || {};
     const strength = Number.isFinite(r.strength) ? Math.max(0, Math.min(real.strength, Math.round(r.strength))) : real.strength;
     const morale = Number.isFinite(r.morale) ? Math.max(0, Math.min(100, Math.round(r.morale))) : real.morale;
-    return { ...real, strength, morale, routed: !!r.routed };
+    const disposition = DISPOSITIONS.includes(r.disposition) ? (strength <= 0 ? 'dead' : r.disposition === 'dead' ? 'field' : r.disposition) : undefined;
+    return { ...real, strength, morale, routed: !!r.routed, ...(disposition ? { disposition } : {}) };
   }).filter(Boolean);
   // Reinforcements count only if the battle says they actually marched in (and they were really
   // standing by for this battle).
   const joined = Array.isArray(result?.report?.tactical?.joinedReinforcements) ? result.report.tactical.joinedReinforcements : [];
   const standby = (sources) => (sources || []).flatMap((src) => src.unitIds);
   const attackerIds = [...pb.attackerUnitIds, ...(pb.synthetic || []).map((u) => u.id), ...standby(pb.attackerReinforcements).filter((id) => joined.includes(id))];
-  const defenderIds = [...pb.defenderUnitIds, ...standby(pb.defenderReinforcements).filter((id) => joined.includes(id))];
+  const defenderIds = [...pb.defenderUnitIds, ...(pb.militia || []).map((u) => u.id), ...standby(pb.defenderReinforcements).filter((id) => joined.includes(id))];
   const attackerUnits = clampUnits(attackerIds, result?.attackerUnits);
   const defenderUnits = clampUnits(defenderIds, result?.defenderUnits);
   const report = result?.report || {};
@@ -1495,7 +1433,7 @@ const reduceAction = (state, action) => {
       if (!v.ok) return refuseAttack(state, v.reason, fromRegionId);
       const ctx = getFieldBattleContext(state, v);
       const rng = createRng(state.rngSeed);
-      const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
+      const battle = resolveAutoBattle(state, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId }, rng);
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
       return applyFieldResult(paid, v, battle, { rngSeed: rng.getSeed() });
     }
@@ -1508,7 +1446,7 @@ const reduceAction = (state, action) => {
       if (!v.ok) return refuseAttack(state, v.reason, state.world?.tileOwner?.[tile] ?? null);
       const ctx = getFleetBattleContext(state, v);
       const rng = createRng(state.rngSeed);
-      const battle = resolveBattle({ ...getFleetResolveArgs(v, ctx), rng });
+      const battle = resolveAutoBattle(state, getFleetResolveArgs(v, ctx), { kind: 'naval' }, rng);
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.navalEngagement) };
       return applyFleetResult(paid, v, battle, { rngSeed: rng.getSeed() });
     }
@@ -1522,9 +1460,9 @@ const reduceAction = (state, action) => {
       if (!v.ok) return refuseAttack(state, v.reason, targetRegionId);
       const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
       const rng = createRng(state.rngSeed);
-      const battle = resolveBattle({ ...getResolveBattleArgs(v, ctx), rng });
+      const battle = resolveAutoBattle(state, getResolveBattleArgs(v, ctx), { kind: 'invasion', cityId: targetRegionId, fromRegionId }, rng);
       const paid = { ...state, resources: applyCosts(state.resources, ACTION_COSTS.launchInvasion) };
-      return applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed() });
+      return applyInvasionResult(paid, { fromRegionId, targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), militia: battle.inputs.militia });
     }
 
     // ---- Tactical Battles (design/rts-battles-implementation-plan.md §10.1) ----
@@ -1599,8 +1537,11 @@ const reduceAction = (state, action) => {
           playerSide: 'attacker',
           attackerUnitIds: v.attackerUnits.map((u) => u.id),
           defenderUnitIds: v.defenderUnits.map((u) => u.id),
-          attackerReinforcements: getReinforcementSources(state, targetRegionId, state.playerNationId, [fromRegionId]),
-          defenderReinforcements: getReinforcementSources(state, targetRegionId, v.targetRegion.owner)
+          // Own and allied troops near the city stand by (battleInputs.js, master plan 6.7 row 16);
+          // the city's militia defends it (row 19).
+          attackerReinforcements: reinforcementSources(state, targetRegionId, state.playerNationId, v.targetRegion.owner, [fromRegionId]),
+          defenderReinforcements: reinforcementSources(state, targetRegionId, v.targetRegion.owner, state.playerNationId),
+          militia: cityMilitia(state, targetRegionId)
         },
         logs: [...state.logs, { year: state.year, message: `Your army marches on ${REGIONS_DATA[targetRegionId]?.name} — you take command of the battle.`, type: LogTypes.COMBAT }]
       };
@@ -1625,72 +1566,69 @@ const reduceAction = (state, action) => {
       // If peace was signed while the battle was being fought, the battle has no consequences.
       const war = state.wars.find((w) => w.id === pb.warId && w.active);
       const cleared = { ...state, pendingBattle: null };
+      // Every kind ends in the one outcome service (battleOutcome.js), under the pending battle's
+      // id: powers spent, the city's damage, XP, war score, aftermath and report, exactly once.
+      const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'command' };
+      // A field or sea battle the AI started (battleQueue.js): the gate is the aggressor's, the
+      // operation id the queued record's (so its Auto can never also land).
+      const aiStarted = !!pb.defenseId && (pb.kind === 'field' || pb.kind === 'naval');
+      const gateState = aiStarted ? aggressorView(cleared, pb.attackerNationId) : cleared;
+      const sideOpts = aiStarted ? { ...opts, id: pb.defenseId, defenseId: pb.defenseId, attackerNationId: pb.attackerNationId, viewerId: state.playerNationId } : opts;
       if (pb.kind === 'naval') {
-        const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        const nv = validateFleetAttack(gateState, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!nv.ok || (pb.warId && !war)) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
         const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
-        return applyFleetResult(cleared, vv, safe, { rngSeed: state.rngSeed });
+        return applyFleetResult(cleared, vv, safe, sideOpts);
       }
       if (pb.kind === 'field') {
-        const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        const fv = validateFieldAttack(gateState, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!fv.ok || (pb.warId && !war)) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
-        const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
         const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
-        return applyFieldResult(afterMissiles, vv, safe, { rngSeed: state.rngSeed, xpBonusById: safe.report.tactical.xpBonusById });
+        return applyFieldResult(cleared, vv, safe, { ...sideOpts, xpBonusById: safe.report.tactical.xpBonusById });
       }
       if (pb.kind === 'defense') {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
         if (!def) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
-        const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
-        return applyCityDamageAfterBattle(state, applyDefenseResult(afterMissiles, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }), pb.targetRegionId, safe.report.tactical);
+        return applyDefenseResult(cleared, def, safe, { decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById, mode: 'command', militia: pb.militia || [] });
       }
       // An assault on an independent has no war (hostility.js): it stands while the target may still be attacked.
       if (!targetRegion || (pb.warId ? !war : !canAttack(state, pb.attackerNationId || state.playerNationId, targetRegion.owner))) return cleared;
       const safe = sanitizeTacticalResult(state, pb, result);
-      const afterMissiles = applyBattleMissiles(cleared, pb, safe.report.tactical.powersUsed);
+      const cityOpts = { ...opts, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById, militia: pb.militia || [] };
       if (pb.kind === 'amphibious') {
-        return applyCityDamageAfterBattle(state, applyAmphibiousLanding(
-          afterMissiles,
-          { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
-          safe,
-          { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-        ), pb.targetRegionId, safe.report.tactical);
+        return applyAmphibiousLanding(cleared, { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion, isDefended: pb.defenderUnitIds.length > 0 }, safe, cityOpts);
       }
-      return applyCityDamageAfterBattle(state, applyInvasionResult(
-        afterMissiles,
-        { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion: afterMissiles.regions[pb.targetRegionId], isDefended: pb.defenderUnitIds.length > 0 },
-        safe,
-        { rngSeed: state.rngSeed, decisive: safe.report.tactical.decisive, xpBonusById: safe.report.tactical.xpBonusById }
-      ), pb.targetRegionId, safe.report.tactical);
+      return applyInvasionResult(cleared, { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war, targetRegion, isDefended: pb.defenderUnitIds.length > 0 }, safe, cityOpts);
     }
 
     case ActionTypes.ABANDON_TACTICAL_BATTLE: {
-      // "Auto-resolve instead": the same battle through resolveBattle, with the original units and
-      // the battle's own seed — the cost was already paid when it began, so it isn't charged again.
+      // "Auto-resolve instead": the same battle through the honest auto-resolve (autoBattle.js),
+      // with the original units, the same inputs and the battle's own seed, under the pending
+      // battle's id. The cost was already paid when it began, so it isn't charged again.
       const pb = state.pendingBattle;
       if (!pb) return state;
       const cleared = { ...state, pendingBattle: null };
-      if (pb.kind === 'defense') return resolveDefenseAuto(cleared, pb.defenseId);
+      const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
+      // A queued battle (a defence, or a field or sea battle the AI started): its own Auto.
+      if (pb.defenseId) return resolveQueuedAuto(cleared, pb.defenseId);
       if (pb.kind === 'naval') {
         const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!nv.ok) return cleared;
         const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)) };
         if (!vv.attackerUnits.length || !vv.defenderUnits.length) return cleared;
-        const nctx = getFleetBattleContext(cleared, vv);
-        const battle = resolveBattle({ ...getFleetResolveArgs(vv, nctx), rng: createRng(pb.seed) });
-        return applyFleetResult(cleared, vv, battle, { rngSeed: state.rngSeed });
+        const battle = resolveAutoBattle(cleared, getFleetResolveArgs(vv, getFleetBattleContext(cleared, vv)), { kind: 'naval' }, createRng(pb.seed));
+        return applyFleetResult(cleared, vv, battle, opts);
       }
       if (pb.kind === 'field') {
         const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!fv.ok) return cleared;
         const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)) };
         if (!vv.attackerUnits.length || !vv.defenderUnits.length) return cleared;
-        const fctx = getFieldBattleContext(cleared, vv);
-        const battle = resolveBattle({ ...getFieldResolveArgs(vv, fctx), rng: createRng(pb.seed) });
-        return applyFieldResult(cleared, vv, battle, { rngSeed: state.rngSeed });
+        const battle = resolveAutoBattle(cleared, getFieldResolveArgs(vv, getFieldBattleContext(cleared, vv)), { kind: 'field', fromRegionId: pb.fromRegionId }, createRng(pb.seed));
+        return applyFieldResult(cleared, vv, battle, opts);
       }
       if (pb.kind === 'amphibious') {
         const av = validateAmphibious(cleared, pb.navalUnitId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
@@ -1699,8 +1637,8 @@ const reduceAction = (state, action) => {
         const defenders = av.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
         if (!attackers.length) return cleared;
         const actx = getAmphibiousBattleContext(cleared, av, defenders);
-        const battle = resolveBattle({ attackerUnits: attackers, defenderUnits: defenders, ...actx, rng: createRng(pb.seed) });
-        return applyAmphibiousLanding(cleared, { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: av.war, targetRegion: av.targetRegion, isDefended: defenders.length > 0 }, battle, { rngSeed: state.rngSeed });
+        const battle = resolveAutoBattle(cleared, { attackerUnits: attackers, defenderUnits: defenders, ...actx }, { kind: 'landing', cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia }, createRng(pb.seed));
+        return applyAmphibiousLanding(cleared, { navalUnitId: pb.navalUnitId, fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: av.war, targetRegion: av.targetRegion, isDefended: defenders.length > 0 }, battle, { ...opts, militia: battle.inputs.militia });
       }
       const v = validateInvasion(cleared, pb.fromRegionId, pb.targetRegionId, { ignoreCost: true, ignoreBattleLocks: true });
       if (!v.ok) return cleared;
@@ -1709,8 +1647,8 @@ const reduceAction = (state, action) => {
       if (!attackers.length) return cleared;
       const vv = { ...v, attackerUnits: attackers, defenderUnits: defenders };
       const ctx = getInvasionBattleContext(cleared, { targetRegionId: pb.targetRegionId, targetRegion: v.targetRegion, defenderUnits: defenders });
-      const battle = resolveBattle({ ...getResolveBattleArgs(vv, ctx), rng: createRng(pb.seed) });
-      return applyInvasionResult(cleared, { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { rngSeed: state.rngSeed });
+      const battle = resolveAutoBattle(cleared, getResolveBattleArgs(vv, ctx), { kind: 'invasion', cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia }, createRng(pb.seed));
+      return applyInvasionResult(cleared, { fromRegionId: pb.fromRegionId, targetRegionId: pb.targetRegionId, war: v.war, targetRegion: v.targetRegion, isDefended: ctx.isDefended }, battle, { ...opts, militia: battle.inputs.militia });
     }
 
     // ---- Commanded amphibious landing (Tactical Battles T9) ----
@@ -1747,40 +1685,61 @@ const reduceAction = (state, action) => {
           attackerUnitIds: v.embarkedLandUnits.map((u) => u.id),
           defenderUnitIds: v.defenderLandUnits.map((u) => u.id),
           attackerReinforcements: [],
-          defenderReinforcements: getReinforcementSources(state, targetRegionId, v.targetRegion.owner)
+          defenderReinforcements: reinforcementSources(state, targetRegionId, v.targetRegion.owner, state.playerNationId),
+          militia: cityMilitia(state, targetRegionId)
         },
         logs: [...state.logs, { year: state.year, message: `Your fleet closes on ${REGIONS_DATA[targetRegionId]?.name} — you take command of the landing.`, type: LogTypes.COMBAT }]
       };
     }
 
-    // ---- Defense battles (plan §16): assaults queued by the AI's war rolls ----
+    // ---- The battle queue (battleQueue.js): battles others started against the player ----
+    // City assaults (defense.js), field battles and sea battles the AI started, in the order its
+    // armies moved. Each is fought on Command or Auto; none while an event or a peace offer waits.
 
     case ActionTypes.RESOLVE_DEFENSE_AUTO:
       if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
-      return resolveDefenseAuto(state, action.payload?.defenseId);
+      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      return resolveQueuedAuto(state, action.payload?.defenseId);
 
-    case ActionTypes.RESOLVE_ALL_DEFENSES_AUTO: {
-      // A defense already being commanded is left alone; everything else is fought now.
-      const commanded = (state.pendingDefenses || []).filter((d) => d.id === state.pendingBattle?.defenseId);
-      const rest = { ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => !commanded.includes(d)) };
-      const done = resolveAllDefensesAuto(rest);
-      return { ...done, pendingDefenses: [...commanded, ...(done.pendingDefenses || [])] };
-    }
+    case ActionTypes.RESOLVE_ALL_DEFENSES_AUTO:
+      // A battle already being commanded is left alone; everything else is fought now, in order.
+      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      return resolveAllQueuedAuto(state);
 
     case ActionTypes.WITHDRAW_FROM_DEFENSE: {
       if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
+      const queued = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
+      if (queued && queuedKind(queued) !== 'defense') return reject(state, 'An army in the field cannot give up a city: fight, or let the battle be fought on Auto.');
       const w = applyDefenseWithdrawal(state, action.payload?.defenseId);
       return w.ok ? w.state : reject(state, w.reason === 'nowhere' ? 'Your garrison has nowhere to fall back to — it has to fight.' : 'That assault is already over.');
     }
 
     case ActionTypes.BEGIN_DEFENSE_BATTLE: {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
+      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
       const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
       if (!def) return state;
+      const counter = (state.battleCounter || 0) + 1;
+      const kind = queuedKind(def);
+      if (kind !== 'defense') {
+        // A field or sea battle the AI started against the player's stack: the player defends it.
+        const armies = queuedArmies(state, def);
+        if (!armies) return resolveQueuedAuto(state, def.id);
+        return {
+          ...state,
+          battleCounter: counter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id,
+            fromRegionId: def.fromRegionId, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: state.world?.tileOwner?.[def.tile] ?? def.regionId, warId: def.warId,
+            attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+          },
+          logs: [...state.logs, { year: state.year, message: `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
+        };
+      }
       const armies = getDefenseArmies(state, def);
       // Nothing left to command (the garrison or the attackers are gone): settle it as auto does.
       if (!armies.defenderUnits.length || !armies.attackerUnits.length) return resolveDefenseAuto(state, def.id);
-      const counter = (state.battleCounter || 0) + 1;
       return {
         ...state,
         battleCounter: counter,
@@ -1800,7 +1759,8 @@ const reduceAction = (state, action) => {
           synthetic: def.synthetic || [],
           defenderUnitIds: armies.defenderUnits.map((u) => u.id),
           attackerReinforcements: [],
-          defenderReinforcements: getReinforcementSources(state, def.regionId, state.playerNationId)
+          defenderReinforcements: reinforcementSources(state, def.regionId, state.playerNationId, def.aggressorId),
+          militia: cityMilitia(state, def.regionId)
         },
         logs: [...state.logs, { year: state.year, message: `You take command of the defense of ${REGIONS_DATA[def.regionId]?.name}.`, type: LogTypes.COMBAT }]
       };
@@ -1826,53 +1786,51 @@ const reduceAction = (state, action) => {
       const { navalUnit, targetRegion, embarkedLandUnits, war: invasionWar } = gate;
 
       const rng = createRng(state.rngSeed);
-      const nextUnits = { ...state.units };
+      let nextUnits = { ...state.units };
       const terrain = getRegionTerrain(targetRegionId, REGIONS_DATA);
       const attackerAgeId = getEffectiveAgeId(state.age, state.techAgeId);
+      let paid = { ...state, resources: applyCosts(state.resources, costs) };
 
-      // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing.
-      // Losing it sinks the transport and everything still aboard, and the assault never lands.
+      // Naval interception (plan §7.5): a defending fleet forces a naval battle before the landing,
+      // fought and applied through the outcome service like any sea battle. Losing it sinks the
+      // transport and everything still aboard, and the assault never lands.
       const defenderNavalUnits = Object.values(state.units).filter(u => u.regionId === targetRegionId && u.domain === 'naval' && u.ownerId !== state.playerNationId);
       if (defenderNavalUnits.length > 0) {
-        const navalBattle = resolveBattle({
+        const navalBattle = resolveAutoBattle(state, {
           attackerUnits: [navalUnit],
           defenderUnits: defenderNavalUnits,
           terrain,
           isAttackingFortification: false,
-          rng,
           generals: state.hiredCommanders,
           attackerAgeId,
           defenderAgeId: state.age
-        });
-        navalBattle.defenderUnits.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
-        if (navalBattle.outcome !== 'attacker') {
-          delete nextUnits[navalUnitId];
-          embarkedLandUnits.forEach(u => delete nextUnits[u.id]);
-          return {
-            ...state,
-            resources: applyCosts(state.resources, costs),
-            units: nextUnits,
-            rngSeed: rng.getSeed(),
-            ...recordBattleReport(state, { ...navalBattle.report, kind: 'naval', fromRegionId: navalUnit.regionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner }, { attackers: navalBattle.attackerUnits, defenders: navalBattle.defenderUnits }),
-            logs: [...state.logs, { year: state.year, message: `Your invasion fleet was intercepted and sunk approaching ${REGIONS_DATA[targetRegionId]?.name}.`, type: LogTypes.COMBAT }]
-          };
+        }, { kind: 'lane' }, rng);
+        const sunk = navalBattle.outcome !== 'attacker';
+        const fought = sunk ? { ...navalBattle, attackerUnits: navalBattle.attackerUnits.map((u) => ({ ...u, strength: 0 })) } : navalBattle;
+        const meta = { kind: 'lane', warId: invasionWar?.id ?? null, attackerNationId: state.playerNationId, defenderNationId: targetRegion.owner, fromRegionId: navalUnit.regionId, regionId: targetRegionId, attackerStart: [navalUnit], defenderStart: defenderNavalUnits, rngSeed: rng.getSeed() };
+        paid = applyBattleOutcome(paid, makeBattleOutcome({ ...meta, id: battleIdOf(state, { ...meta, seed: rng.getSeed() }) }, fought));
+        if (sunk) {
+          // The transport went down with everything aboard.
+          const units = { ...paid.units };
+          delete units[navalUnitId];
+          embarkedLandUnits.forEach(u => delete units[u.id]);
+          return { ...paid, units, logs: [...paid.logs, { year: state.year, message: `Your invasion fleet was intercepted and sunk approaching ${REGIONS_DATA[targetRegionId]?.name}.`, type: LogTypes.COMBAT }] };
         }
-        nextUnits[navalUnitId] = navalBattle.attackerUnits[0];
+        nextUnits = paid.units;
       }
 
       // No existing foothold near the target means the landing itself takes the amphibious malus;
       // once the attacker already holds a neighboring region, further attacks staged from it are normal.
       const hasBeachhead = getNeighborIds(targetRegionId).some(nId => state.regions[nId]?.owner === state.playerNationId);
-      const attackerLandUnits = embarkedLandUnits.map(u => nextUnits[u.id] || u);
+      const attackerLandUnits = embarkedLandUnits.map(u => nextUnits[u.id] || u).filter(Boolean);
       const defenderLandUnits = Object.values(nextUnits).filter(u => u.regionId === targetRegionId && u.domain === 'land');
       const isDefended = defenderLandUnits.length > 0;
 
-      const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
+      const battle = resolveAutoBattle(paid, {
         attackerUnits: attackerLandUnits,
         defenderUnits: defenderLandUnits,
         terrain,
         isAttackingFortification: (targetRegion.defenseLevel || 0) > 0,
-        rng,
         generals: state.hiredCommanders,
         attackerAgeId,
         defenderAgeId: state.age,
@@ -1881,10 +1839,9 @@ const reduceAction = (state, action) => {
         defenderDamageReductionMultiplier: isDefended
           ? getDefenseLevelDamageReductionMultiplier((targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total) * getZoneOfControlMultiplier(state.regions, targetRegionId, targetRegion.owner)
           : 1
-      });
+      }, { kind: 'landing', cityId: targetRegionId, fromRegionId: navalUnit.regionId }, rng);
 
-      const paid = { ...state, resources: applyCosts(state.resources, costs), units: nextUnits };
-      return applyAmphibiousLanding(paid, { navalUnitId, fromRegionId: navalUnit.regionId, targetRegionId, war: invasionWar, targetRegion, isDefended }, { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report }, { rngSeed: rng.getSeed() });
+      return applyAmphibiousLanding({ ...paid, units: nextUnits }, { navalUnitId, fromRegionId: navalUnit.regionId, targetRegionId, war: invasionWar, targetRegion: paid.regions[targetRegionId] || targetRegion, isDefended }, battle, { rngSeed: rng.getSeed(), militia: battle.inputs.militia });
     }
 
     case ActionTypes.NAVAL_ENGAGEMENT: {
@@ -1909,37 +1866,21 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
-      const { outcome, attackerUnits: resolvedAttackers, defenderUnits: resolvedDefenders, report } = resolveBattle({
+      const battle = resolveAutoBattle(state, {
         attackerUnits: attackerNavalUnits,
         defenderUnits: defenderNavalUnits,
         terrain: getRegionTerrain(targetRegionId, REGIONS_DATA),
         isAttackingFortification: false,
-        rng,
         generals: state.hiredCommanders,
         attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
         defenderAgeId: state.age
-      });
-
-      // A naval engagement only contests the lane — survivors hold their own positions, win or
-      // lose; there's no ground to capture from a fleet-on-fleet action.
-      const nextUnits = { ...state.units };
-      resolvedAttackers.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, movesLeft: 0, lastBattleTurn: state.turnNumber }; });
-      resolvedDefenders.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, lastBattleTurn: state.turnNumber }; });
-
-      const outcomeMessage = outcome === 'attacker'
-        ? `Your fleet cleared the enemy from the waters near ${REGIONS_DATA[targetRegionId]?.name}.`
-        : outcome === 'defender'
-          ? `Your fleet was driven off near ${REGIONS_DATA[targetRegionId]?.name}.`
-          : `Your fleet's engagement near ${REGIONS_DATA[targetRegionId]?.name} ended inconclusively.`;
-
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        units: nextUnits,
-        rngSeed: rng.getSeed(),
-        ...recordBattleReport(state, { ...report, kind: 'naval', fromRegionId, targetRegionId, attackerNationId: state.playerNationId, defenderNationId: state.regions[targetRegionId]?.owner }, { attackers: resolvedAttackers, defenders: resolvedDefenders }),
-        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
-      };
+      }, { kind: 'lane' }, rng);
+      // A naval engagement only contests the lane: survivors hold their own positions, win or
+      // lose (battleOutcome.js, kind 'lane').
+      const defenderNationId = defenderNavalUnits[0].ownerId;
+      const laneWar = state.wars.find((w) => w.active && isWarBetween(w, state.playerNationId, defenderNationId));
+      const meta = { kind: 'lane', warId: laneWar?.id ?? null, attackerNationId: state.playerNationId, defenderNationId, fromRegionId, regionId: targetRegionId, attackerStart: attackerNavalUnits, defenderStart: defenderNavalUnits, rngSeed: rng.getSeed() };
+      return applyBattleOutcome({ ...state, resources: applyCosts(state.resources, costs) }, makeBattleOutcome({ ...meta, id: battleIdOf(state, { ...meta, seed: rng.getSeed() }) }, battle));
     }
 
     case ActionTypes.SUPPRESS_REBELLION: {
@@ -1956,47 +1897,18 @@ const reduceAction = (state, action) => {
       if (!canAfford(state.resources, costs)) return state;
 
       const rng = createRng(state.rngSeed);
-      const { outcome, attackerUnits: resolvedGarrison, defenderUnits: resolvedRebels, report } = resolveBattle({
+      const battle = resolveAutoBattle(state, {
         attackerUnits: garrisonUnits,
         defenderUnits: rebelUnits,
         terrain: getRegionTerrain(regionId, REGIONS_DATA),
         isAttackingFortification: false,
-        rng,
         generals: state.hiredCommanders,
         attackerAgeId: getEffectiveAgeId(state.age, state.techAgeId),
         defenderAgeId: state.age
-      });
-
-      const nextUnits = { ...state.units };
-      resolvedGarrison.forEach(u => { if (u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = { ...u, movesLeft: 0, lastBattleTurn: state.turnNumber }; });
-      // The rebellion is crushed outright on a win — a defeated uprising doesn't leave survivors
-      // to regroup the way a foreign army might retreat and return.
-      resolvedRebels.forEach(u => { if (outcome === 'attacker' || u.strength <= 0) delete nextUnits[u.id]; else nextUnits[u.id] = u; });
-
-      const nextRegions = { ...state.regions };
-      if (outcome === 'attacker') {
-        nextRegions[regionId] = {
-          ...region,
-          unrest: Math.min(region.unrest, REBELLION_UNREST_THRESHOLD - 10),
-          control: Math.min(100, (region.control || 0) + 20)
-        };
-      }
-
-      const outcomeMessage = outcome === 'attacker'
-        ? `The rebellion in ${REGIONS_DATA[regionId]?.name} has been crushed.`
-        : outcome === 'defender'
-          ? `Your garrison failed to suppress the rebellion in ${REGIONS_DATA[regionId]?.name}.`
-          : `The fighting in ${REGIONS_DATA[regionId]?.name} ended without a clear result.`;
-
-      return {
-        ...state,
-        resources: applyCosts(state.resources, costs),
-        regions: nextRegions,
-        units: nextUnits,
-        rngSeed: rng.getSeed(),
-        ...recordBattleReport(state, { ...report, kind: 'rebellion', fromRegionId: regionId, targetRegionId: regionId, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID }, { attackers: resolvedGarrison, defenders: resolvedRebels }),
-        logs: [...state.logs, { year: state.year, message: outcomeMessage, type: LogTypes.COMBAT }]
-      };
+      }, { kind: 'suppress' }, rng);
+      // The rebels are fought like any battle (master plan 6.7 row 17), through the outcome service.
+      const meta = { kind: 'suppress', warId: null, attackerNationId: state.playerNationId, defenderNationId: REBEL_OWNER_ID, fromRegionId: regionId, regionId, tile: region.tile ?? null, rngSeed: rng.getSeed() };
+      return applyBattleOutcome({ ...state, resources: applyCosts(state.resources, costs) }, makeBattleOutcome({ ...meta, id: battleIdOf(state, { ...meta, seed: rng.getSeed() }) }, battle));
     }
 
     // Research (src/engine/research.js): choosing a tech sets it as the target (its missing earlier
@@ -3091,6 +3003,9 @@ export const gameReducer = (state, action) => {
     return reject(state, 'You have not met that people yet: send scouts, armies or ships until you see their land.');
   }
   let next = reduceAction(state, action);
+  // The battle queue fights itself on Auto (battleSettings.autoDefend) once no event, peace offer
+  // or battle holds it (battleQueue.js): after a peace offer is answered, for instance.
+  if (next !== state && next.pendingDefenses?.length) next = drainAutoBattles(next);
   if (next !== state && !NO_FOG_REFRESH.has(action?.type) && fogOn(next) && (next.units !== state.units || next.regions !== state.regions)) next = updateFog(next, { onlyPlayer: true });
   const synced = syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
   // A peoples world keeps its titles and regiment numbers current (peopleNames.js; names only).

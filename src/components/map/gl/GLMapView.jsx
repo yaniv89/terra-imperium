@@ -51,7 +51,6 @@ import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes, terrainSprites,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
-import { riverChains, riverLines, riverBand } from './terrainModel';
 import { raidShapes } from './raidShapes';
 import { raidMapModel } from '../../independents/raidMapModel';
 import { openIndependent } from '../../independents/independentEvents';
@@ -127,7 +126,8 @@ const GLMapView = ({
     }
     renderer.setClearColor(OCEAN_COLOR, 1);
     renderer.info.autoReset = false;
-    // drawn in this order: the Earth, the terrain (rivers, mountain chains, passes: under the fog),
+    // drawn in this order: the Earth (its rivers are part of the picture), the terrain (mountain
+    // chains, passes: under the fog),
     // the territories (cached while panning), lines and ground sprites, the close view's models,
     // the badges, banners and markers
     const ground = new Scene(); const terrain = new Scene(); const base = new Scene(); const close = new Scene(); const top = new Scene();
@@ -144,7 +144,6 @@ const GLMapView = ({
     g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request() });
     g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
     g.territoryCache = createTerritoryCache(g.territory);
-    g.riverLines = createLineLayer(terrain, 5);
     g.terrainSprites = createSpriteLayer(terrain, atlas, 6);
     g.lowLines = createLineLayer(base, 20);
     g.groundSprites = createSpriteLayer(base, atlas, 30);
@@ -158,7 +157,7 @@ const GLMapView = ({
     return () => {
       g.disposed = true;
       cancelAnimationFrame(g.raf);
-      [g.raster, g.territory, g.riverLines, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
+      [g.raster, g.territory, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
       gl.current = null;
     };
@@ -183,7 +182,7 @@ const GLMapView = ({
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
       uSelTile: s.selectedTile ?? -1, uTintOn: s.tintOn ? 1 : 0, uFogOn: s.fogOn ? 1 : 0
     };
-    [g.riverLines, g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
+    [g.terrainSprites, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
     // the world camera (the raster quads and the close view's models)
     camera.left = v.worldLeft; camera.right = v.worldLeft + width / v.k;
     camera.top = -v.worldTop; camera.bottom = -(v.worldTop + height / v.k);
@@ -373,15 +372,8 @@ const GLMapView = ({
     [gameState.units, gameState.nations, gameState.regions, gameState.world, gameState.turnNumber, gameState.playerNationId]);
   const raids = useMemo(() => (projection ? raidShapes({ model: raidModel, projection, k, dpr }) : null), [raidModel, projection, k, dpr]);
 
-  // the terrain pass: rivers (one static list per band of zoom) and the mountain chains' sprites
-  const riverK = riverBand(k);
-  useEffect(() => {
-    const g = gl.current;
-    if (!g || !projection) return;
-    g.riverLines.set(riverK ? riverLines(riverChains(projection), k) : []);
-    g.request();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, projection, riverK]);
+  // the terrain pass: the mountain chains' sprites. No river lines: the Earth raster's own rivers
+  // are the map's rivers (the grid's river edges are rules only, terrainData.js).
   const terrainOut = useMemo(() => (projection ? terrainSprites({ projection, k, near: settledView ? nearView(settledView) : null, dpr }) : null), [projection, k, settledView, dpr]);
 
   const [atlasTick, setAtlasTick] = useState(0);
@@ -564,7 +556,7 @@ const GLMapView = ({
       transform: () => ({ ...transformRef.current })
     };
     window.__glMap = {
-      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), rivers: gl.current.riverLines.mesh.geometry.instanceCount, terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount }),
+      info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory, raster: gl.current.raster.stats(), terrainSprites: gl.current.terrainSprites.mesh.geometry.instanceCount }),
       renderer: gl.current?.renderer
     };
     return () => { delete window.__map2DTest; delete window.__glMap; };

@@ -169,6 +169,10 @@ export const spreadPlague = (regions, turn, ctx = {}) => {
   const tileOwner = ctx.tileOwner || {};
   Object.values(ctx.units || {}).forEach((u) => {
     if (u.domain === 'naval' || u.tile == null || !(u.strength > 0)) return;
+    // A battle at an infected city (battleOutcome.js `plagueContact`): the survivors carry it home
+    // for a couple of turns, wherever they stand.
+    const contact = u.plagueContact;
+    if (contact && contact.until >= turn && u.homeRegionId && contact.cityId !== u.homeRegionId && regions[contact.cityId] && regions[u.homeRegionId]) add(u.homeRegionId, ARMY_W * iOf(contact.cityId));
     const here = tileOwner[u.tile]; const home = u.homeRegionId;
     if (!here || !home || here === home || !regions[here] || !regions[home]) return;
     add(here, ARMY_W * iOf(home));
