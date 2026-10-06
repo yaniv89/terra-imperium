@@ -85,8 +85,10 @@ const engineGraph = () => {
 };
 
 // The code of a file with the opted-out lines blanked and comments removed, line numbers kept.
+// Split on CRLF too: on a Windows checkout the trailing \r stopped `.*$` from reaching the end of
+// a line, so comments that mention Math.random() were read as code.
 const codeLines = (source) => source
-  .split('\n').map((line) => (line.includes('determinism-ok:') ? '' : line)).join('\n')
+  .split(/\r?\n/).map((line) => (line.includes('determinism-ok:') ? '' : line)).join('\n')
   .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '))
   .split('\n').map((line) => line.replace(/(^|[^:'"`])\/\/.*$/, '$1'));
 
