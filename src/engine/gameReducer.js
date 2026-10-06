@@ -83,12 +83,13 @@ import { buildInvasionSetup } from '../battle/setup/buildBattleSetup';
 import { resolveAutoBattle } from './autoBattle';
 import { applyBattleOutcome, makeBattleOutcome, battleIdOf } from './battleOutcome';
 import { cityMilitia, reinforcementSources } from './battleInputs';
+import { battleQueueBlocked, queuedKind, queuedArmies, resolveQueuedAuto, resolveAllQueuedAuto, drainAutoBattles, aggressorView } from './battleQueue';
 import { replayBattle } from '../battle/sim/replay';
 
 // Re-exported so the edge-function bundle (scripts/build-edge-engine.mjs) can verify a battle log
 // on its own, too.
 export { replayBattle };
-import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, resolveAllDefensesAuto, applyDefenseWithdrawal } from './defense';
+import { applyDefenseResult, getDefenseArmies, resolveDefenseAuto, applyDefenseWithdrawal } from './defense';
 import { applyEventEffects } from './applyEventEffects';
 import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier } from './siege';
 import { pillageTile } from './threat';
@@ -1563,19 +1564,24 @@ const reduceAction = (state, action) => {
       // Every kind ends in the one outcome service (battleOutcome.js), under the pending battle's
       // id: powers spent, the city's damage, XP, war score, aftermath and report, exactly once.
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'command' };
+      // A field or sea battle the AI started (battleQueue.js): the gate is the aggressor's, the
+      // operation id the queued record's (so its Auto can never also land).
+      const aiStarted = !!pb.defenseId && (pb.kind === 'field' || pb.kind === 'naval');
+      const gateState = aiStarted ? aggressorView(cleared, pb.attackerNationId) : cleared;
+      const sideOpts = aiStarted ? { ...opts, id: pb.defenseId, defenseId: pb.defenseId, attackerNationId: pb.attackerNationId, viewerId: state.playerNationId } : opts;
       if (pb.kind === 'naval') {
-        const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        const nv = validateFleetAttack(gateState, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!nv.ok || (pb.warId && !war)) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
         const vv = { ...nv, attackerUnits: nv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: nv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
-        return applyFleetResult(cleared, vv, safe, opts);
+        return applyFleetResult(cleared, vv, safe, sideOpts);
       }
       if (pb.kind === 'field') {
-        const fv = validateFieldAttack(cleared, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
+        const fv = validateFieldAttack(gateState, pb.fromRegionId, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!fv.ok || (pb.warId && !war)) return cleared;
         const safe = sanitizeTacticalResult(state, pb, result);
         const vv = { ...fv, attackerUnits: fv.attackerUnits.filter((u) => pb.attackerUnitIds.includes(u.id)), defenderUnits: fv.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id)), war };
-        return applyFieldResult(cleared, vv, safe, { ...opts, xpBonusById: safe.report.tactical.xpBonusById });
+        return applyFieldResult(cleared, vv, safe, { ...sideOpts, xpBonusById: safe.report.tactical.xpBonusById });
       }
       if (pb.kind === 'defense') {
         const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
@@ -1601,7 +1607,8 @@ const reduceAction = (state, action) => {
       if (!pb) return state;
       const cleared = { ...state, pendingBattle: null };
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'auto' };
-      if (pb.kind === 'defense') return resolveDefenseAuto(cleared, pb.defenseId);
+      // A queued battle (a defence, or a field or sea battle the AI started): its own Auto.
+      if (pb.defenseId) return resolveQueuedAuto(cleared, pb.defenseId);
       if (pb.kind === 'naval') {
         const nv = validateFleetAttack(cleared, pb.fromTile, pb.tile, { ignoreCost: true, ignoreBattleLocks: true });
         if (!nv.ok) return cleared;
@@ -1680,34 +1687,54 @@ const reduceAction = (state, action) => {
       };
     }
 
-    // ---- Defense battles (plan §16): assaults queued by the AI's war rolls ----
+    // ---- The battle queue (battleQueue.js): battles others started against the player ----
+    // City assaults (defense.js), field battles and sea battles the AI started, in the order its
+    // armies moved. Each is fought on Command or Auto; none while an event or a peace offer waits.
 
     case ActionTypes.RESOLVE_DEFENSE_AUTO:
       if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
-      return resolveDefenseAuto(state, action.payload?.defenseId);
+      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      return resolveQueuedAuto(state, action.payload?.defenseId);
 
-    case ActionTypes.RESOLVE_ALL_DEFENSES_AUTO: {
-      // A defense already being commanded is left alone; everything else is fought now.
-      const commanded = (state.pendingDefenses || []).filter((d) => d.id === state.pendingBattle?.defenseId);
-      const rest = { ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => !commanded.includes(d)) };
-      const done = resolveAllDefensesAuto(rest);
-      return { ...done, pendingDefenses: [...commanded, ...(done.pendingDefenses || [])] };
-    }
+    case ActionTypes.RESOLVE_ALL_DEFENSES_AUTO:
+      // A battle already being commanded is left alone; everything else is fought now, in order.
+      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
+      return resolveAllQueuedAuto(state);
 
     case ActionTypes.WITHDRAW_FROM_DEFENSE: {
       if (state.pendingBattle?.defenseId === action.payload?.defenseId) return state;
+      const queued = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
+      if (queued && queuedKind(queued) !== 'defense') return reject(state, 'An army in the field cannot give up a city: fight, or let the battle be fought on Auto.');
       const w = applyDefenseWithdrawal(state, action.payload?.defenseId);
       return w.ok ? w.state : reject(state, w.reason === 'nowhere' ? 'Your garrison has nowhere to fall back to — it has to fight.' : 'That assault is already over.');
     }
 
     case ActionTypes.BEGIN_DEFENSE_BATTLE: {
       if (state.pendingBattle) return reject(state, 'Finish the battle already in progress first.');
+      if (battleQueueBlocked(state)) return reject(state, 'Answer the open event or peace offer first: the battles wait for it.');
       const def = (state.pendingDefenses || []).find((d) => d.id === action.payload?.defenseId);
       if (!def) return state;
+      const counter = (state.battleCounter || 0) + 1;
+      const kind = queuedKind(def);
+      if (kind !== 'defense') {
+        // A field or sea battle the AI started against the player's stack: the player defends it.
+        const armies = queuedArmies(state, def);
+        if (!armies) return resolveQueuedAuto(state, def.id);
+        return {
+          ...state,
+          battleCounter: counter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id,
+            fromRegionId: def.fromRegionId, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: state.world?.tileOwner?.[def.tile] ?? def.regionId, warId: def.warId,
+            attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
+          },
+          logs: [...state.logs, { year: state.year, message: `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
+        };
+      }
       const armies = getDefenseArmies(state, def);
       // Nothing left to command (the garrison or the attackers are gone): settle it as auto does.
       if (!armies.defenderUnits.length || !armies.attackerUnits.length) return resolveDefenseAuto(state, def.id);
-      const counter = (state.battleCounter || 0) + 1;
       return {
         ...state,
         battleCounter: counter,
@@ -2919,6 +2946,9 @@ export const gameReducer = (state, action) => {
     return reject(state, 'You have not met that people yet: send scouts, armies or ships until you see their land.');
   }
   let next = reduceAction(state, action);
+  // The battle queue fights itself on Auto (battleSettings.autoDefend) once no event, peace offer
+  // or battle holds it (battleQueue.js): after a peace offer is answered, for instance.
+  if (next !== state && next.pendingDefenses?.length) next = drainAutoBattles(next);
   if (next !== state && !NO_FOG_REFRESH.has(action?.type) && fogOn(next) && (next.units !== state.units || next.regions !== state.regions)) next = updateFog(next, { onlyPlayer: true });
   const synced = syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
   // A peoples world keeps its titles and regiment numbers current (peopleNames.js; names only).

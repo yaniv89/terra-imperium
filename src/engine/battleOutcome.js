@@ -515,10 +515,11 @@ export const applyBattleOutcome = (state, o) => {
   if (isBattleApplied(state, id)) return state;
   const viewerId = o.viewerId ?? state.playerNationId;
   const out = { ...o, id, viewerId };
-  // A defence record leaves the queue whatever happens (defense.js).
+  // A queued battle (battleQueue.js: a defence, or a field or sea battle the AI started) leaves the
+  // queue whatever happens.
   let base = remember(state, id);
   let record = null;
-  if (o.kind === 'defense') {
+  if (o.defenseId) {
     record = (state.pendingDefenses || []).find((d) => d.id === o.defenseId) || null;
     base = { ...base, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== o.defenseId) };
   }

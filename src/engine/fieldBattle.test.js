@@ -119,11 +119,13 @@ describe('field attacks', () => {
     const war = atWar(withUnits(S, [unit('a', IN, { tile: ring, strength: 200, maxStrength: 1000 }), unit('g1', PK, { ownerId: 'pk', tile: city.tile }), unit('g2', PK, { ownerId: 'pk', tile: city.tile })]));
     const besieged = { ...war, regions: { ...war.regions, [PK]: { ...city, siege: { hp: 100, maxHp: 200, by: 'in', startedTurn: 1, encircled: false, starving: 0 } } } };
     const after = aiSally(besieged, 'pk', createRng(5));
-    expect(after.battleReports?.[0]?.kind).toBe('field');
+    // Against the player, the sally waits in the battle queue for Command or Auto (battleQueue.js).
+    expect(after.pendingDefenses?.[0]?.kind).toBe('field');
     expect(after.units.g1.movesLeft).toBe(0);
     const outweighed = { ...besieged, units: { ...besieged.units, a: { ...besieged.units.a, strength: 1000 }, a2: { ...besieged.units.a, id: 'a2', strength: 1000 } } };
     const nope = aiSally(outweighed, 'pk', createRng(5));
     expect(nope.battleReports?.length || 0).toBe(0);
+    expect(nope.pendingDefenses?.length || 0).toBe(0);
   });
 });
 

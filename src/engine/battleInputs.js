@@ -90,14 +90,18 @@ export const conditionUnit = (state, u, { starved = false } = {}) => {
 export const cityMilitia = (state, cityId) => {
   const city = state.regions?.[cityId];
   if (!city || !city.owner || city.tile == null) return [];
-  const housing = cityHousingCap(state, cityId) || 0;
+  return militiaFor({ ownerId: city.owner, cityId, tile: city.tile, housing: cityHousingCap(state, cityId) || 0 });
+};
+
+/** The militia of a city with `housing` (its houses and town hall): pure, for the parity harness too. */
+export const militiaFor = ({ ownerId, cityId, tile = null, housing = 0 }) => {
   let total = Math.min(MILITIA_MAX, Math.round(housing * MILITIA_PER_HOUSING));
   const out = [];
   for (let i = 0; total > 0; i++) {
     const strength = Math.min(MILITIA_UNIT, total);
     total -= strength;
     out.push({
-      id: `mil_${cityId}_${i}`, ownerId: city.owner, regionId: cityId, homeRegionId: cityId, tile: city.tile,
+      id: `mil_${cityId}_${i}`, ownerId, regionId: cityId, homeRegionId: cityId, tile,
       domain: 'land', classId: 'infantry', strength, maxStrength: strength, morale: MILITIA_MORALE,
       xp: 0, rank: 'recruit', promotions: [], commanderId: null, militia: true
     });

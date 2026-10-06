@@ -44,6 +44,15 @@ export const resolveAutoBattle = (state, args, spec, rng, inputs = null) => {
   const kind = spec?.kind || 'invasion';
   const naval = kind === 'naval' || !!spec?.naval;
   const ins = inputs || battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId: naval || kind === 'field' ? null : spec?.cityId ?? null, fromRegionId: spec?.fromRegionId ?? null, naval, militia: spec?.militia ?? null });
+  return autoFromInputs(args, ins, kind, rng);
+};
+
+/**
+ * The auto-resolve from inputs already gathered (battleInputs.js shape: { attackerUnits,
+ * defenderUnits, hpRatio, economyInputs, housing }), without a game state: the parity harness
+ * (.claude/skills/battle-lab/parityEco.sim.js) feeds the same armies to this and to the sim.
+ */
+export const autoFromInputs = (args, ins, kind, rng) => {
   let battle = resolveBattle({
     ...args,
     attackerUnits: ins.attackerUnits,

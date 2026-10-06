@@ -34,7 +34,7 @@ import { processAllAINations, processAIWarDecisions, processAIRecruitment, getSo
 import { calcAllNationIncomes, processAIEconomyTurn, settleAIUpkeep, thinksThisTurn } from './aiEconomy';
 import { processAIAbmDefense } from './aiMissiles';
 import { resolveWarProgress, refreshWarFlags } from './diplomacy';
-import { resolveAllDefensesAuto } from './defense';
+import { drainAutoBattles } from './battleQueue';
 import { transferRegion } from './regionTransfer';
 import { checkVictoryConditions, applyVictory, VICTORY_CONDITIONS, getDiplomaticAlignmentShare, DIPLOMATIC_LEADERSHIP_SHARE } from '../data/victoryConditions';
 import { getPlayerRank } from './score';
@@ -1202,7 +1202,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     logs: [...state.logs, ...logs]
   };
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
-  if (next.pendingDefenses.length && state.battleSettings?.autoDefend === true) next = resolveAllDefensesAuto(next);
+  // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
+  // event or a peace offer opened this turn (then they wait for the answer, gameReducer's drain).
+  if (next.pendingDefenses.length) next = drainAutoBattles(next);
   if (next.tutorial) next = advanceTutorial(next);
   mark('assembleNextState');
 

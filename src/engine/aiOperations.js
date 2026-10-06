@@ -8,6 +8,7 @@ import { getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getPool, getTechAgeId } from './nationState';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
 import { resolveAutoBattle } from './autoBattle';
+import { fieldDefenseRecord } from './battleQueue';
 import { isUnitInBattle } from './invasion';
 import { placeInCity, unitTile, touchesCity, findTilePath, stackPace } from './armies';
 import { advanceMarches } from './routes';
@@ -21,7 +22,7 @@ import { landUnitsByTile } from './sieges';
 import { threatenedCities, besiegerStacksBeside, pillageTile } from './threat';
 import { playerRouteTiles } from './plunder';
 import { ringsAround } from './world/cities';
-import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO } from './navalBattle';
+import { enemyFleetsAt, AI_FLEET_ATTACK_RATIO, validateFleetAttack } from './navalBattle';
 import { estimateBattle } from './lanchester';
 import { getTotalDev } from './development';
 import { getDefenseLevelDamageReductionMultiplier } from './siege';
@@ -66,6 +67,17 @@ export const RELIEF_MIN_P = 0.6;
 export const ASSAULT_MIN_P = 0.45;
 export const LANDING_MIN_P = 0.5;
 const PREFILTER = 0.5;
+// A battle an AI starts against the player is not fought at once: it joins the battle queue
+// (battleQueue.js) so the player chooses Command or Auto (master plan decision 24). The attackers
+// spend their move now; a player stack already queued against is not attacked twice.
+export const queueAgainstPlayer = (next, v, nationId, rng, kind = 'field') => {
+  const busy = new Set((next.pendingDefenses || []).flatMap((d) => d.defenderUnitIds));
+  if (v.defenderUnits.some((u) => busy.has(u.id))) return next;
+  const record = fieldDefenseRecord(next, v, { aggressorId: nationId, seed: Math.floor(rng.next() * 0xffffffff) >>> 0, kind });
+  const units = { ...next.units };
+  v.attackerUnits.forEach((u) => { if (units[u.id]) units[u.id] = { ...units[u.id], movesLeft: 0 }; });
+  return { ...next, units, pendingDefenses: [...(next.pendingDefenses || []), record] };
+};
 export const aiSally = (state, nationId, rng) => {
   let next = state;
   for (const city of Object.values(state.regions).filter((c) => c.owner === nationId && c.siege?.by).sort((a, b) => (a.id < b.id ? -1 : 1))) {
@@ -82,6 +94,8 @@ export const aiSally = (state, nationId, rng) => {
     if (!v.ok) continue;
     const ctx = getFieldBattleContext(actor, v);
     if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < SALLY_MIN_P) continue;
+    // Against the player: the battle waits in the queue for their Command or Auto (battleQueue.js).
+    if (v.defenderNationId === state.playerNationId) { next = queueAgainstPlayer(next, v, nationId, rng); continue; }
     const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
     const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
     next = { ...next, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: next.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
@@ -181,6 +195,12 @@ export const processAIOperations = (state, rng) => {
         if (!v.ok) continue;
         const ctx = getFieldBattleContext(actor, v);
         if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < RELIEF_MIN_P) continue;
+        if (v.defenderNationId === state.playerNationId) {
+          next = queueAgainstPlayer(next, v, nationId, rng);
+          stack.forEach(u => committed.add(u.id));
+          relieved = true;
+          break;
+        }
         const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
         const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
         stack.forEach(u => committed.add(u.id));
@@ -302,6 +322,14 @@ export const processAINavalOperations = state => {
         if(tiles.land[n]===1)continue;
         const foe=enemyFleetsAt({...next,playerNationId:id},n,id);
         if(!foe.length || foe.reduce((s,u)=>s+u.strength,0)*AI_FLEET_ATTACK_RATIO>power)continue;
+        // Against the player's fleet: queued for the player's Command or Auto (battleQueue.js).
+        if(foe[0].ownerId===state.playerNationId){
+          const v=validateFleetAttack({...next,playerNationId:id,resources:getPool(next,id)},from,n,{ignoreCost:true});
+          if(!v.ok)continue;
+          const before=next;
+          next=queueAgainstPlayer(next,v,id,{next:()=>(((next.rngSeed||0)+n*2654435761)>>>0)/4294967296},'naval');
+          return next!==before;
+        }
         return apply({type:ActionTypes.ATTACK_FLEET,payload:{fromTile:from,tile:n}});
       }
       return false;

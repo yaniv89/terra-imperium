@@ -79,10 +79,10 @@ export const getFleetResolveArgs = (v, ctx) => ({
 });
 
 /** Everything after the battle, through the one outcome service (battleOutcome.js). `battle` is resolveBattle's shape. */
-export const applyFleetResult = (state, v, battle, { rngSeed, attackerNationId = state.playerNationId, id = null, viewerId = undefined, mode = undefined } = {}) => {
+export const applyFleetResult = (state, v, battle, { rngSeed, attackerNationId = state.playerNationId, id = null, viewerId = undefined, mode = undefined, defenseId = null } = {}) => {
   const anchor = state.world?.tileOwner?.[v.tile] ?? regionForTile(state, v.tile, attackerNationId, v.fromRegionId);
   const meta = {
-    kind: 'naval', mode, warId: v.war?.id ?? null, attackerNationId, defenderNationId: v.defenderNationId, viewerId,
+    kind: 'naval', mode, defenseId, warId: v.war?.id ?? null, attackerNationId, defenderNationId: v.defenderNationId, viewerId,
     fromRegionId: v.fromRegionId, regionId: anchor, tile: v.tile, fromTile: v.fromTile ?? null,
     attackerStart: v.attackerUnits, defenderStart: v.defenderUnits, rngSeed
   };

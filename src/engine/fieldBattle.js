@@ -103,10 +103,10 @@ export const getFieldResolveArgs = (v, ctx) => ({
  * `battle` is resolveBattle's shape. `attackerNationId` defaults to the player (the AI's sallies
  * pass their own); `viewerId` is the real player when an AI fights with its own actor state. */
 export { BATTLE_MARK_TURNS };
-export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null, attackerNationId = state.playerNationId, id = null, viewerId = undefined, mode = undefined } = {}) => {
+export const applyFieldResult = (state, v, battle, { rngSeed, xpBonusById = null, attackerNationId = state.playerNationId, id = null, viewerId = undefined, mode = undefined, defenseId = null } = {}) => {
   const anchor = state.world?.tileOwner?.[v.tile] ?? regionForTile(state, v.tile, attackerNationId, v.fromRegionId);
   const meta = {
-    kind: 'field', mode, warId: v.war?.id ?? null, attackerNationId, defenderNationId: v.defenderNationId, viewerId,
+    kind: 'field', mode, defenseId, warId: v.war?.id ?? null, attackerNationId, defenderNationId: v.defenderNationId, viewerId,
     fromRegionId: v.fromRegionId, regionId: anchor, tile: v.tile, fromTile: v.fromTile ?? null,
     attackerStart: v.attackerUnits, defenderStart: v.defenderUnits, xpBonusById, rngSeed
   };
