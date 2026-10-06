@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>W11 Pre-battle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral+SC:wght@500;700&amp;family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#ECE5D3;text-decoration:none}a:hover{color:#D8A444}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; overflow: hidden; position: relative; background: #10141A; color: #ECE5D3; font-family: Figtree, sans-serif">
+
+  <svg width="844" height="390" viewBox="0 0 844 390" style="position: absolute; left: 0; top: 0; opacity: 0.35">
+    <rect width="844" height="390" fill="#CDB27A"></rect>
+    <path d="M0 250 C200 230 420 290 844 240 L844 390 L0 390 Z" fill="#8FA36A"></path>
+    <path d="M0 270 C220 250 430 310 844 262" stroke="#6FA3C8" stroke-width="5" fill="none"></path>
+  </svg>
+
+  <div style="position: absolute; inset: 8px; background: rgba(26,33,43,0.96); border: 1px solid #33404F; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden">
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 12px; border-bottom: 1px solid #33404F">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ECE5D3" stroke-width="1.8"><path d="M4 21V9l3-2 3 2v12M14 21V9l3-2 3 2v12M10 13h4M2 21h20"></path></svg>
+      <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 19px">{{title}}</div>
+      <div style="font-size: 12px; color: #B9B19F">{{sub}}</div>
+      <div style="margin-left: auto; display: flex; background: #10141A; border: 1px solid #33404F; border-radius: 999px; padding: 2px">
+        <button onClick="{{asAttacker}}" style="{{attStyle}}">You attack</button>
+        <button onClick="{{asDefender}}" style="{{defStyle}}">AI attacks you</button>
+      </div>
+      <button aria-label="Close" style="width: 32px; height: 32px; background: #232C38; border: 1px solid #33404F; border-radius: 8px; color: #ECE5D3; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+
+    <div style="flex: 1; display: flex; gap: 8px; padding: 8px; min-height: 0">
+      <div style="width: 232px; background: #10141A; border: 1px solid #5B9BF0; border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 3px">
+        <div style="display: flex; align-items: baseline; gap: 6px"><div style="font-size: 11px; color: #5B9BF0; letter-spacing: 0.08em; font-weight: 700">YOURS</div><div style="font-size: 12px; font-weight: 600">{{mine.name}}</div><div style="margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px">{{mine.total}}</div></div>
+        <sc-for list="{{mine.rows}}" as="r" hint-placeholder-count="4">
+          <div style="display: flex; font-size: 12px; gap: 6px"><div style="flex: 1">{{r.u}}</div><div style="font-family: 'JetBrains Mono', monospace; color: #B9B19F">{{r.n}}</div></div>
+        </sc-for>
+        <div style="font-size: 11px; color: #B9B19F; line-height: 1.3; margin-top: auto">{{mine.note}}</div>
+      </div>
+
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+        <div style="background: #232C38; border: 1px solid #33404F; border-radius: 8px; padding: 6px 8px">
+          <div style="display: flex; align-items: baseline; gap: 6px">
+            <div style="font-size: 11px; color: #B9B19F; letter-spacing: 0.08em">{{oddsSource}}</div>
+            <div style="margin-left: auto; font-size: 13px; font-weight: 700; color: {{oddsColor}}">{{oddsWord}}</div>
+          </div>
+          <div style="position: relative; height: 10px; border-radius: 999px; margin: 6px 0 3px; background: #10141A; overflow: hidden">
+            <div style="{{oddsBand}}"></div>
+            <div style="position: absolute; left: 50%; top: 0; width: 1px; height: 10px; background: #B9B19F"></div>
+          </div>
+          <div style="display: flex; font-size: 10px; color: #B9B19F"><span>they win</span><span style="margin: 0 auto">even</span><span>you win</span></div>
+          <div style="font-size: 11px; color: #B9B19F; margin-top: 2px">A range, not a number. Only a spy report or full sight gives exact odds.</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+          <div style="background: #232C38; border: 1px solid #33404F; border-radius: 8px; padding: 5px 8px">
+            <div style="font-size: 11px; color: #B9B19F; letter-spacing: 0.08em">{{c1.k}}</div>
+            <div style="font-size: 12px; font-weight: 600">{{c1.v}}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #B9B19F">{{c1.s}}</div>
+          </div>
+          <div style="background: #232C38; border: 1px solid #33404F; border-radius: 8px; padding: 5px 8px">
+            <div style="font-size: 11px; color: #B9B19F; letter-spacing: 0.08em">{{c2.k}}</div>
+            <div style="font-size: 12px; font-weight: 600">{{c2.v}}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #B9B19F">{{c2.s}}</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; background: #232C38; border: 1px solid #33404F; border-radius: 8px; padding: 5px 8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B9B19F" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
+          <div style="font-size: 12px; flex: 1"><b>300 a side</b> <span style="color: #B9B19F">· {{waveNote}}</span></div>
+          <div style="font-size: 11px; color: #ECE5D3; text-decoration: underline">Settings</div>
+        </div>
+      </div>
+
+      <div style="width: 200px; background: #10141A; border: 1px solid #EE8A3A; border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 3px">
+        <div style="display: flex; align-items: baseline; gap: 6px"><div style="font-size: 11px; color: #EE8A3A; letter-spacing: 0.08em; font-weight: 700">THEIRS</div><div style="font-size: 12px; font-weight: 600">{{theirs.name}}</div></div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{theirs.total}}</div>
+        <sc-for list="{{theirs.rows}}" as="r" hint-placeholder-count="3">
+          <div style="display: flex; font-size: 12px; gap: 6px"><div style="flex: 1">{{r.u}}</div><div style="font-family: 'JetBrains Mono', monospace; color: #B9B19F">{{r.n}}</div></div>
+        </sc-for>
+        <div style="font-size: 11px; color: #B9B19F; line-height: 1.3; margin-top: auto">{{theirs.note}}</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; padding: 0 8px 8px; align-items: stretch">
+      <button onClick="{{pickCommand}}" style="{{cmdStyle}}">
+        <div style="display: flex; align-items: center; gap: 6px; font-family: 'Spectral SC', serif; font-weight: 700; font-size: 17px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 19L19 5M15 5h4v4M5 5l5 5M14 14l5 5"></path></svg>Command</div>
+        <div style="font-size: 11px; opacity: 0.85">Play the battle in real time</div>
+      </button>
+      <button onClick="{{pickAuto}}" style="{{autoStyle}}">
+        <div style="display: flex; align-items: center; gap: 6px; font-family: 'Spectral SC', serif; font-weight: 700; font-size: 17px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 3L5 13h6l-1 8 8-10h-6z"></path></svg>Auto</div>
+        <div style="font-size: 11px; opacity: 0.85">Instant result, same rules</div>
+      </button>
+      <div style="flex: 1; background: #10141A; border: 1px solid #33404F; border-radius: 8px; padding: 6px 9px; min-width: 0">
+        <div style="font-size: 11px; color: #B9B19F; letter-spacing: 0.08em">{{sumHead}}</div>
+        <div style="font-size: 12px; line-height: 1.35">{{sumText}}</div>
+      </div>
+      <button style="width: 132px; min-height: 52px; background: #D8A444; color: #10141A; border: 0; border-radius: 8px; font: 700 15px Figtree, sans-serif">{{goLabel}}</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  state = { mode: 'command', role: 'attack' };
+  renderVals() {
+    const mode = this.state?.mode ?? 'command';
+    const role = this.state?.role ?? 'attack';
+    const att = role === 'attack';
+    const seg = (on) => `height: 32px; padding: 0 12px; border-radius: 999px; border: 0; font: 600 12px Figtree, sans-serif; cursor: pointer; ${on ? 'background: #232C38; color: #ECE5D3; box-shadow: inset 0 0 0 2px #ECE5D3' : 'background: transparent; color: #B9B19F'}`;
+    const card = (on) => `width: 150px; min-height: 52px; text-align: left; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-family: Figtree, sans-serif; ${on ? 'background: #232C38; color: #ECE5D3; border: 2px solid #ECE5D3' : 'background: #10141A; color: #B9B19F; border: 1px solid #33404F'}`;
+    const mine = att
+      ? { name: 'Host of Sargon', total: '340', rows: [{ u: 'Spearmen x2', n: '160' }, { u: 'Archers', n: '80' }, { u: 'Chariots', n: '40' }, { u: 'Ladders, ram', n: '60' }], note: 'General Sargon: aura +10% morale. He can fall in battle.' }
+      : { name: 'Host of Sargon', total: '280', rows: [{ u: 'Spearmen x2', n: '160' }, { u: 'Archers', n: '80' }, { u: 'Chariots', n: '40' }], note: 'Camped on the plain by Der. Sargon: aura +10% morale.' };
+    const theirs = att
+      ? { name: 'Susa, held by Elam', total: 'about 180 to 240', rows: [{ u: 'Spearmen seen', n: '?' }, { u: 'Archers on walls', n: '?' }], note: 'Last seen T27 by your scouts.' }
+      : { name: 'Elamite host', total: 'about 300 to 360', rows: [{ u: 'Spearmen seen', n: '?' }, { u: 'Chariots', n: '?' }, { u: 'Horse archers', n: '?' }], note: 'Marched out of the Der fort this turn. Decide before you end the turn.' };
+    const oddsBand = att
+      ? 'position: absolute; top: 0; height: 10px; left: 56%; width: 26%; background: #6CC28A; border-radius: 999px'
+      : 'position: absolute; top: 0; height: 10px; left: 38%; width: 24%; background: #B9B19F; border-radius: 999px';
+    let sumHead, sumText, goLabel;
+    if (mode === 'command') {
+      sumHead = 'COMMAND';
+      sumText = att
+        ? 'You lead 300 a side in real time. The other 40 enter as a second wave. About 10 minutes. Pause any time.'
+        : 'You hold the field in real time, 300 a side. A field battle is decisive: the loser loses every unit left on the field.';
+      goLabel = 'Begin battle';
+    } else {
+      sumHead = 'AUTO, EXPECTED';
+      sumText = att
+        ? 'Likely win. You lose about 70 to 110 of 340. Susa keeps at least half its houses. Sargon risk: low.'
+        : 'Close. You lose about 90 to 140 of 280. Units that leave by an exit survive. Commanding may do better.';
+      goLabel = 'Resolve now';
+    }
+    return {
+      title: att ? 'Siege of Susa' : 'Battle of Der',
+      sub: att ? 'Akkad attacks · Elam holds Susa · T28' : 'Elam attacks your army at Der · T25',
+      oddsSource: att ? "SCOUTS' GUESS, SEEN T27" : "SCOUTS' GUESS, SEEN T25",
+      waveNote: att ? '40 more join in a second wave' : 'all 280 fit, no second wave',
+      oddsColor: att ? '#6CC28A' : '#ECE5D3',
+      c1: att ? { k: 'WALLS', v: 'Mud-brick, 2 gates', s: 'HP 60% after 3 turns' } : { k: 'GROUND', v: 'River plain, 2 fords', s: 'the Der fort stops you next to it' },
+      c2: att ? { k: 'HOUSES', v: '24 houses, battle housing 140', s: '120 + hall 20, half survive' } : { k: 'YOUR CAMP', v: 'Expedition camp, housing 60', s: '20 + 10 a regiment, 4 brought' },
+      attStyle: seg(att),
+      defStyle: seg(!att),
+      asAttacker: () => this.setState({ role: 'attack' }),
+      asDefender: () => this.setState({ role: 'defend' }),
+      mine,
+      theirs,
+      oddsWord: att ? 'Likely win' : 'Too close to call',
+      oddsBand,
+      cmdStyle: card(mode === 'command'),
+      autoStyle: card(mode === 'auto'),
+      pickCommand: () => this.setState({ mode: 'command' }),
+      pickAuto: () => this.setState({ mode: 'auto' }),
+      sumHead,
+      sumText,
+      goLabel
+    };
+  }
+}
+</script>
+</body>
+</html>
