@@ -31,7 +31,10 @@ const DefenseRow = ({ def, index, total, state, dispatch }) => {
   const view = useMemo(() => queuedBattleView(state, def, 30), [state.units, state.regions, def]); // eslint-disable-line react-hooks/exhaustive-deps
   const city = view.kind === 'defense';
   const region = state.regions[def.regionId];
-  const enemy = state.nations[def.aggressorId]?.name || def.aggressorId;
+  // A fort that stopped the player's army (forts.js): here the player is the one attacking.
+  const attacking = def.aggressorId === state.playerNationId;
+  const foeId = attacking ? view.defenderUnits[0]?.ownerId : def.aggressorId;
+  const enemy = state.nations[foeId]?.name || foeId || 'The enemy';
   const fallback = city ? getWithdrawalTarget(state, def.regionId) : null;
   const ageId = getEffectiveAgeId(state.age, state.techAgeId);
   return (
@@ -41,17 +44,17 @@ const DefenseRow = ({ def, index, total, state, dispatch }) => {
         <div className="text-[11px] text-slate-400 shrink-0">{total > 1 ? `${index + 1} of ${total}` : ''}{city ? `${total > 1 ? ' · ' : ''}control ${region?.control ?? '?'}%` : ''}</div>
       </div>
       <div className="text-[11px] text-slate-300 leading-snug">
-        <span className="text-orange-300">{enemy}:</span> {forceSummary(view.attackerUnits, ageId)}
+        <span className="text-orange-300">{enemy}{attacking && def.fort ? ' (in its fort)' : ''}:</span> {forceSummary(attacking ? view.defenderUnits : view.attackerUnits, ageId)}
         <br />
-        <span className="text-blue-300">{OURS[view.kind]}:</span> {forceSummary(view.defenderUnits, ageId)}
+        <span className="text-blue-300">{OURS[view.kind]}:</span> {forceSummary(attacking ? view.attackerUnits : view.defenderUnits, ageId)}
       </div>
       {!view.odds.undefended && (
         <div className="space-y-1">
           <div className="flex h-2 rounded-full overflow-hidden bg-slate-900">
-            <div className="bg-blue-500" style={{ width: pct(view.odds.holdChance) }} />
-            <div className="bg-orange-500" style={{ width: pct(1 - view.odds.holdChance) }} />
+            <div className="bg-blue-500" style={{ width: pct(attacking ? 1 - view.odds.holdChance : view.odds.holdChance) }} />
+            <div className="bg-orange-500" style={{ width: pct(attacking ? view.odds.holdChance : 1 - view.odds.holdChance) }} />
           </div>
-          <div className="text-[11px] text-slate-400">Auto holds {pct(view.odds.holdChance)} of the time{city && view.odds.avgDamage != null ? ` · about −${view.odds.avgDamage}% control on average` : ''}</div>
+          <div className="text-[11px] text-slate-400">{attacking ? `Auto wins ${pct(1 - view.odds.holdChance)}` : `Auto holds ${pct(view.odds.holdChance)}`} of the time{city && view.odds.avgDamage != null ? ` · about −${view.odds.avgDamage}% control on average` : ''}</div>
         </div>
       )}
       <div className={`grid ${city ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>

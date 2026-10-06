@@ -35,6 +35,7 @@ import { tileContextOf } from '../battle/setup/tileContext';
 import { ringsForKm } from '../data/geo/gridScale';
 
 export const FORT_REDUCTION = 0.75;      // damage taken by a stack on a tile with a Fort
+export const FORT_BATTLE_LEVEL = 2;      // a Fort on the battle map: a walled keep with a tower (forts.js, decision 34)
 export const FORTIFY_REDUCTION = 0.85;   // damage taken by a stack that held its tile a full turn (plans/playtest-1.md P2.3)
 /** A unit that stood on its tile through a whole turn and has no march under way. */
 export const isFortified = (u, turn) => u?.heldSince != null && (turn || 0) - u.heldSince >= 1 && !u.route?.length;

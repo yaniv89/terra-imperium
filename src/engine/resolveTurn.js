@@ -8,6 +8,7 @@ import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { processIndependents } from './raids';
 import { keepQueued } from './battleQueue';
+import { processFortBattles } from './forts';
 import { processMajorsAndIndependents } from './indepPolicy';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
@@ -245,6 +246,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // --- marches (routes.js): armies on a route walk this turn's steps first, so the supplies, the
   // upkeep and every phase below see where they now stand.
   let marchLogs = [];
+  const startUnits = state.units; // who moved this turn (forts.js: a manned fort stops and fights them)
   if (Object.values(state.units).some((u) => u.route?.length)) {
     const marchedUnits = { ...state.units };
     marchLogs = advanceMarches(state, marchedUnits, { year: state.year }).logs;
@@ -1253,6 +1255,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // Players who opted to auto-resolve enemy assaults are never interrupted: fought right away.
   // The battle queue (battleQueue.js): with autoDefend the battles are fought on Auto now, unless an
   // event or a peace offer opened this turn (then they wait for the answer, gameReducer's drain).
+  // Manned forts stop and fight the enemy armies that came next to them this turn (forts.js).
+  next = processFortBattles(next, startUnits);
   if (next.pendingDefenses.length) next = drainAutoBattles(next);
   if (next.tutorial) next = advanceTutorial(next);
   mark('assembleNextState');

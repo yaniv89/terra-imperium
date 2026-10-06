@@ -9,7 +9,8 @@
 //   N=32 TYPES=field,assault AGES=bronze:bronze,classical:classical \
 //     npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/parityEco
 // TYPES: field, assault (a walled city, fort level 2), town (an unwalled city), raid (raiders after
-// loot on an open tile), sack (raiders burning an unwalled town), sally, landing. TIER=small|medium|big
+// loot on an open tile), sack (raiders burning an unwalled town), sally, landing, fort (a field
+// battle against a manned fort). TIER=small|medium|big
 // sets the city. MATCH=0,1,2 picks the matchups.
 import { it } from 'vitest';
 import { buildSetupFromArmies } from '../../../src/battle/setup/buildBattleSetup';
@@ -19,6 +20,7 @@ import { militiaFor } from '../../../src/engine/battleInputs';
 import { createRng } from '../../../src/utils/rng';
 import { buildTownManifest, manifestHousing } from '../../../src/data/townLayout';
 import { getDefenseLevelDamageReductionMultiplier } from '../../../src/engine/siege';
+import { FORT_REDUCTION, FORT_BATTLE_LEVEL } from '../../../src/engine/fieldBattle';
 
 const N = Number(process.env.N || 32);
 const TIER = process.env.TIER || 'medium';
@@ -60,15 +62,17 @@ it('parity with the battle economy', () => {
       const raid = battleType === 'raid' || battleType === 'sack';
       const sally = battleType === 'sally';
       const landing = battleType === 'landing';
+      const fort = battleType === 'fort'; // a field battle against a manned fort (forts.js): the walled keep on the field
       const cityManifest = assault ? buildTownManifest({ cityId: `parity-${seed}`, ageId: ageD, tierId: TIER, style: 'europe', seed, defenseTier: walled ? 1 : -1 }) : null;
       const militia = assault ? militiaFor({ ownerId: 'defender', cityId: `parity-${seed}`, housing: manifestHousing(cityManifest) }) : [];
       const attackers = mk('a', att);
       const defenders = [...mk('d', def), ...militia];
-      const reduction = walled ? getDefenseLevelDamageReductionMultiplier(FORT) : 1;
+      const reduction = walled ? getDefenseLevelDamageReductionMultiplier(FORT) : fort ? FORT_REDUCTION : 1;
       const { result } = runHeadless(buildSetupFromArmies({
         regionId: `parity-${seed}`, terrain: TERRAIN, seed, attackerUnits: attackers, defenderUnits: defenders, attackerAgeId: ageA, defenderAgeId: ageD,
         controllers: ['ai', 'ai'], deposits: [], powers: [[], []], battleType: assault || raid || sally || landing ? null : 'field', city: assault, raid, sally, landing,
         ...(assault ? { fortLevel: walled ? FORT : 0, isAttackingFortification: walled, cityManifest, defenseReduction: reduction } : {}),
+        ...(fort ? { fortLevel: FORT_BATTLE_LEVEL, isAttackingFortification: true, defenseReduction: reduction } : {}),
         economy: true, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }
       }));
       tA += sum(attackers) - sum(result.attackerUnits); tD += sum(defenders) - sum(result.defenderUnits);
@@ -88,7 +92,7 @@ it('parity with the battle economy', () => {
       const ins = { walled, attackerUnits: attackers, defenderUnits: defenders, hpRatio: 1, economyInputs: { supply: [1, 1], development: [0.3, 0.3] }, housing: assault ? manifestHousing(cityManifest) : 0, militia };
       const autoType = raid ? battleType : sally ? 'sally' : landing ? 'landing' : walled ? 'assault' : 'field';
       const autoKind = raid ? battleType : landing ? 'landing' : assault ? 'invasion' : 'field';
-      const auto = autoFromInputs({ terrain: TERRAIN, isAttackingFortification: walled, battleType: autoType, attackerAgeId: ageA, defenderAgeId: ageD, defenderDamageReductionMultiplier: reduction, generals: {} }, ins, autoKind, createRng(seed * 97), TUNE);
+      const auto = autoFromInputs({ terrain: TERRAIN, isAttackingFortification: walled || fort, battleType: autoType, attackerAgeId: ageA, defenderAgeId: ageD, defenderDamageReductionMultiplier: reduction, generals: {} }, ins, autoKind, createRng(seed * 97), TUNE);
       aA += sum(attackers) - sum(auto.attackerUnits); aD += sum(defenders) - sum(auto.defenderUnits);
       if (auto.outcome === 'attacker') autoWins += 1;
       if (assault && !raid) {

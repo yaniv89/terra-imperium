@@ -11,7 +11,7 @@ import { getRosterCombatMultiplier } from '../../data/unitClasses';
 import { getDepositsFor } from '../../data/deposits';
 import { getRegionModifier } from '../../engine/modifiers/sheet';
 import { validateInvasion, getInvasionBattleContext, getBattlePowers, validateAmphibious, getAmphibiousBattleContext } from '../../engine/invasion';
-import { validateFieldAttack, getFieldBattleContext } from '../../engine/fieldBattle';
+import { validateFieldAttack, getFieldBattleContext, FORT_BATTLE_LEVEL } from '../../engine/fieldBattle';
 import { validateFleetAttack, getFleetBattleContext } from '../../engine/navalBattle';
 import { getDefenseArmies, getDefenseBattleContext } from '../../engine/defense';
 import { generateMap, TILE, LANDING_SEA_COLS } from './mapgen';
@@ -372,12 +372,13 @@ const buildFieldSetup = (state, pb) => {
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
-    fortLevel: 0,
+    // A Fort on the tile stands on the field as a walled keep with a tower; the garrison may man it (decision 34).
+    fortLevel: ctx.isAttackingFortification ? FORT_BATTLE_LEVEL : 0,
     isCapital: false,
     infrastructure: 0,
     deposits: [],
     defenseReduction: ctx.defenderDamageReductionMultiplier,
-    isAttackingFortification: false,
+    isAttackingFortification: ctx.isAttackingFortification,
     attackerPenaltyMultiplier: ctx.attackerPenaltyMultiplier,
     attackerNationId: gate.playerNationId,
     defenderNationId: v.defenderNationId,

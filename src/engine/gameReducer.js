@@ -1773,18 +1773,21 @@ const reduceAction = (state, action) => {
       }
       if (kind !== 'defense') {
         // A field or sea battle the AI started against the player's stack: the player defends it.
+        // A fort that stopped the player's army (forts.js): the player attacks it.
         const armies = queuedArmies(state, def);
         if (!armies) return resolveQueuedAuto(state, def.id);
+        const attacking = def.aggressorId === state.playerNationId;
+        const foe = attacking ? armies.v.defenderNationId : def.aggressorId;
         return {
           ...state,
           battleCounter: counter,
           pendingBattle: {
-            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id,
+            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id, fort: !!def.fort,
             fromRegionId: def.fromRegionId, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: state.world?.tileOwner?.[def.tile] ?? def.regionId, warId: def.warId,
-            attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerNationId: def.aggressorId, defenderNationId: attacking ? foe : state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: attacking ? 'attacker' : 'defender',
             attackerUnitIds: armies.v.attackerUnits.map((u) => u.id), defenderUnitIds: armies.v.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: []
           },
-          logs: [...state.logs, { year: state.year, message: `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
+          logs: [...state.logs, { year: state.year, message: attacking ? `You take command of the attack on the fort of ${state.nations[foe]?.name || foe}.` : `You take command of your ${kind === 'naval' ? 'fleet' : 'army'} against ${state.nations[def.aggressorId]?.name || def.aggressorId}.`, type: LogTypes.COMBAT }]
         };
       }
       const armies = getDefenseArmies(state, def);

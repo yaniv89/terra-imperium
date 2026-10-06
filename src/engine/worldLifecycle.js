@@ -36,7 +36,7 @@ export const reconcileTerritory = state => {
   const liveWars = new Set(wars.filter(w => w.active).map(w => w.id));
   const pendingPeaceOffer = state.pendingPeaceOffer && liveWars.has(state.pendingPeaceOffer.warId) ? state.pendingPeaceOffer : null;
   // A raid's battle has no war: it stands while its raiders live (battleQueue.js keepQueued).
-  const pendingDefenses = (state.pendingDefenses || []).filter(d => (d.warId ? liveWars.has(d.warId) && state.regions[d.regionId]?.owner === state.playerNationId : keepQueued(d, wars, nations)));
+  const pendingDefenses = (state.pendingDefenses || []).filter(d => (d.warId ? liveWars.has(d.warId) && (d.aggressorId === state.playerNationId || state.regions[d.regionId]?.owner === state.playerNationId) : keepQueued(d, wars, nations)));
   const changed = state.wars.filter(w => w.active && !liveWars.has(w.id)).flatMap(w => [w.aggressor, w.enemy]);
   if (changed.length) nations = refreshWarFlags(nations, wars, changed);
   for (const id of Object.keys(nations)) {

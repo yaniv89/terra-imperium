@@ -8,6 +8,7 @@ import { getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getPool, getTechAgeId } from './nationState';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult, validateAmphibious } from './invasion';
 import { landingRecords } from './aiLanding';
+import { isFortTile, fortOwnerOf } from './forts';
 import { resolveAutoBattle } from './autoBattle';
 import { fieldDefenseRecord } from './battleQueue';
 import { isUnitInBattle } from './invasion';
@@ -193,6 +194,9 @@ export const processAIOperations = (state, rng) => {
       if (stack.some(u => u.route?.length)) { marching = true; continue; } // already on the road: the march phase below walks it
       const pool = getPool(next, nationId);
       const at = unitTile(next, stack[0]);
+      // A garrison holds its own fort (forts.js: a manned fort stops the enemy) while the enemy stands
+      // at its gates, or while no city of its needs it.
+      if (isFortTile(next, at) && fortOwnerOf(next, at) === nationId && (!threatened.size || tiles.neighbors[at].some((n) => (byTile.get(n) || []).some((u) => enemies.has(u.ownerId))))) continue;
       // Relief (threat.js): a stack beside a besieger of an own city attacks it when the estimate
       // gives it RELIEF_MIN_P against that besieger stack.
       const besiegedNear = land.map(id => next.regions[id]).filter(c => c.siege?.by && tiles.neighbors[c.tile].some(t => t === at || tiles.neighbors[at].includes(t)));

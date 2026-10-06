@@ -21,8 +21,9 @@
 //                 war it may plan through the enemy's land, but a march halts at the border of
 //                 every enemy tile you do not hold: cities are taken through the attack card, and
 //                 winning moves the army in. An enemy army on the next tile halts it too.
-//   Zone of control  entering a tile next to an enemy army ends the move for the turn (Civ):
-//                 lines, chokepoints and flanks exist on the map.
+//   Zone of control  entering a tile next to an enemy army, or an enemy fort (manned or not,
+//                 forts.js), ends the move for the turn (Civ): lines, chokepoints and flanks exist
+//                 on the map. A manned fort also starts a battle with the army it stopped.
 //   Attacks       a city is attacked from any tile next to its land (invasion.js), and from inside
 //                 a neighbouring city's land as before (the registry bridge keeps the sparse Dawn
 //                 world connected).
@@ -158,8 +159,16 @@ export const enemyArmyAt = (state, tile, nationId, units = state.units) => Objec
   && u.ownerId !== nationId && unitTile(state, u) === tile
   && canFight(state, nationId, u.ownerId));
 
-/** True when an enemy army stands on a tile next to `tile` (zone of control). */
-export const inEnemyZoc = (state, tiles, tile, nationId, units = state.units) => tiles.neighbors[tile].some((n) => enemyArmyAt(state, n, nationId, units));
+/** A standing fort of a nation `nationId` may fight on `tile` (forts.js; decision 34). */
+const enemyFortAt = (state, tile, nationId) => {
+  const ts = state.world?.tileState?.[tile];
+  if (ts?.improvement !== 'fort' || ts.pillaged) return false;
+  const owner = state.regions?.[state.world?.tileOwner?.[tile]]?.owner;
+  return !!owner && owner !== nationId && canFight(state, nationId, owner);
+};
+
+/** True when an enemy army, or an enemy fort (manned or not), stands on a tile next to `tile` (zone of control). */
+export const inEnemyZoc = (state, tiles, tile, nationId, units = state.units) => tiles.neighbors[tile].some((n) => enemyArmyAt(state, n, nationId, units) || enemyFortAt(state, n, nationId));
 
 // A tiny binary heap for the path search.
 const heapPush = (h, item) => {
