@@ -26,6 +26,13 @@ const HUD_INTERVAL_MS = 150;
 // `&perf` in the page URL shows the performance readout (works in a production build too).
 const PERF_ON = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
 
+// One-time UI hints live in localStorage (per device, never in the save). Storage can be missing or
+// blocked (private mode): then the hint simply shows again next time.
+const SELECT_HINT_KEY = 'ti.hint.boxSelect';
+const SELECT_HINT_MS = 9000;
+const hintSeen = (key) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
+const markHintSeen = (key) => { try { localStorage.setItem(key, '1'); } catch { /* storage blocked */ } };
+
 const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon }) => {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
@@ -55,6 +62,21 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   const selectedBuildingRef = useRef(null);
   const [buildMenu, setBuildMenu] = useState(false);
   const perfRef = useRef(null);
+  // Touch box select (UI-DESIGN B04): while on, a one-finger drag draws the selection box.
+  const [selectMode, setSelectMode] = useState(false);
+  const selectModeRef = useRef(false);
+  const setSelectModeOn = useCallback((on) => { selectModeRef.current = on; setSelectMode(on); }, []);
+  // A one-time hint in the player's first commanded battle (a UI hint, never game state).
+  const [selectHint, setSelectHint] = useState(() => !hintSeen(SELECT_HINT_KEY));
+
+  // The hint is remembered as soon as it shows (the HUD is up), and fades on its own.
+  const hudUp = !!hud;
+  useEffect(() => {
+    if (!selectHint || !hudUp) return undefined;
+    markHintSeen(SELECT_HINT_KEY);
+    const t = setTimeout(() => setSelectHint(false), SELECT_HINT_MS);
+    return () => clearTimeout(t);
+  }, [selectHint, hudUp]);
 
   const updateSelection = useCallback((ids) => {
     selectedRef.current = new Set(ids);
@@ -265,6 +287,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   useEffect(() => {
     const el = canvasRef.current;
     return createGestureRecognizer(el, {
+      isSelectMode: () => selectModeRef.current,
+      selectModeDone: () => setSelectModeOn(false),
       isOnSelectedSquad: (p) => { const idx = ownSquadAt(p); return idx !== null && selectedRef.current.has(idx); },
       tap: (p) => {
         setRadial(null);
@@ -309,7 +333,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
       },
       cancel: () => { setDragLine(null); setLasso(null); }
     });
-  }, [issueAt, ownSquadAt, playerSide, send, updateSelection, selectBuilding]);
+  }, [issueAt, ownSquadAt, playerSide, send, updateSelection, selectBuilding, setSelectModeOn]);
 
   // Keyboard (desktop): space pause, A attack-move, S stop, H hold, R retreat, Esc deselect.
   useEffect(() => {
@@ -415,6 +439,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         hasAbilities={selectedAbilities.length > 0}
         onOpenBuild={() => setBuildMenu((v) => !v)} buildOpen={buildMenu} onSelectHq={selectHq}
         soundOn={soundOn} onToggleSound={toggleSound}
+        selectMode={selectMode} onToggleSelectMode={() => { setSelectModeOn(!selectModeRef.current); setSelectHint(false); }}
+        selectHint={selectHint}
       />
       {buildMenu && hud?.eco && <BuildMenu ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}
       {ecoBuilding && (
