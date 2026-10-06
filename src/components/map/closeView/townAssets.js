@@ -12,16 +12,21 @@
 import { Color } from 'three';
 import { loadGltf } from '../../../battle/render/gltfUnitLoader';
 import { styleChain } from '../../../data/architecture';
+import { townFileKey, indexTownFiles, townVariant, TOWN_VARIANT_BY_AGE } from '../../../data/townLayout';
+
+export { townVariant, TOWN_VARIANT_BY_AGE };
 
 // { '../../../assets/map/towns/bronze-town-small-a.glb': '/terra-imperium/assets/bronze-town-small-a-abc123.glb' }
 // A file may carry a regional kit after the variant: bronze-town-small-a-europe.glb is layout a
 // built with the Europe kit (art spec section 3b).
 const FILES = import.meta.glob('../../../assets/map/towns/*.glb', { query: '?url', import: 'default', eager: true });
-const BY_KEY = {}; // 'bronze:small' -> { base: { a, b }, europe: { a, b }, ... }
-Object.entries(FILES).forEach(([path, url]) => {
-  const m = path.match(/\/([a-z]+)-town-(small|medium|big)-([ab])(?:-([a-z]+))?\.glb$/);
-  if (m) ((BY_KEY[`${m[1]}:${m[2]}`] ||= {})[m[4] || 'base'] ||= {})[m[3]] = url;
-});
+// The pick of file is the city manifest's (src/data/townLayout.js townFileKey), so the town the
+// map shows is the town the battle loads.
+const URL_BY_NAME = {}; // 'bronze-town-small-a' -> url
+Object.entries(FILES).forEach(([path, url]) => { const m = path.match(/\/([a-z-]+)\.glb$/); if (m) URL_BY_NAME[m[1]] = url; });
+const FILE_INDEX = indexTownFiles(Object.keys(URL_BY_NAME));
+/** The town file names the close view can load (for the layout table's test). */
+export const townFileNames = () => Object.keys(URL_BY_NAME);
 
 // { bronze: { base: '/terra-imperium/assets/shared-bronze-abc123.glb' }, kingdoms: { base, europe } }
 // A regional shared file (shared-kingdoms-europe.glb) holds what that region's kit replaces
@@ -79,38 +84,11 @@ export const COLONY_CAMP = 'colony-camp';
 /** An outpost (a settler's new city that is still growing) or a colony with no owner yet. */
 export const isCamp = (region) => !!region && (!!region.outpost || (!region.owner && !!region.colony));
 
-// Each age's two layouts carry two traditions until every region has its kit (art spec 3b).
-// Bronze: a is Mesopotamian, b Egyptian; the Nile builds b, the Levant a. Classical: a is Roman,
-// b Han; East and South-East Asia and Mongolia build b. Kingdoms: a is European, b Abbasid and
-// Andalusian; the Nile, the Levant, the Maghreb, Iberia (al-Andalus) and Central Asia (Bukhara,
-// Samarkand) build b. Elsewhere, and in the Gunpowder and
-// Modern Ages, the city's seed mixes both so neighbours differ.
-export const TOWN_VARIANT_BY_AGE = {
-  bronze: { nile: 'b', levant: 'a', israelite: 'a' },
-  classical: { sinic: 'b', japan: 'b', korea: 'b', monsoon: 'b', steppe: 'b', others: 'a' },
-  kingdoms: { nile: 'b', levant: 'b', maghreb: 'b', andalus: 'b', steppe: 'b', israelite: 'b', others: 'a' }
-};
-
-/** The variant ('a' or 'b') a city builds in this age on land of this style. */
-export const townVariant = (ageId, style, seed = 0) => {
-  const rule = TOWN_VARIANT_BY_AGE[ageId];
-  return (rule && (rule[style] || rule.others)) || (seed % 2 ? 'b' : 'a');
-};
-
 /** The model for a town of this age and size, or null: the land's regional kit when that file
  * exists (layout a or b by the seed), else the age's base kit in the layout the land's tradition
  * (or the seed) picks.
  * Falls back to the other layout when only one exists. */
-export const townAssetUrl = (ageId, tierId, seed = 0, style = null) => {
-  const kits = BY_KEY[`${ageId}:${tierId}`];
-  if (!kits) return null;
-  // A regional kit builds both layouts in its own tradition, so the city's seed picks between
-  // them; the age's tradition rule only steers the base towns.
-  const pick = (k, v) => k && (k[v] || k.a || k.b);
-  const own = seed % 2 ? 'b' : 'a';
-  for (const st of styleChain(style)) { const url = pick(kits[st], own); if (url) return url; }
-  return pick(kits.base, townVariant(ageId, style, seed)) || null;
-};
+export const townAssetUrl = (ageId, tierId, seed = 0, style = null) => URL_BY_NAME[townFileKey(ageId, tierId, seed, style, FILE_INDEX)] || null;
 
 /** The level of detail the brief assigns to a zoom k: LOD2 below 20, LOD1 below 40, LOD0 above. */
 export const lodForZoom = (k) => (k < 20 ? 2 : k < 40 ? 1 : 0);

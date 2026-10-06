@@ -13,6 +13,7 @@ import { BoxGeometry, ConeGeometry, CylinderGeometry, Color, Float32BufferAttrib
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { TOWN_TIERS } from './townTiers';
+import { proceduralHouses, seededRandom as seeded } from '../../../data/townLayout';
 
 export { TOWN_TIERS, countBuildings, townTier } from './townTiers';
 
@@ -22,15 +23,6 @@ const AGE_STYLE = {
   kingdoms: { wall: '#d9cfb6', roof: '#5b4636', flatRoofs: false, stone: '#8f8f8a', accent: '#3f4b5c' },
   gunpowder: { wall: '#b4664a', roof: '#5e4334', flatRoofs: false, stone: '#9a8f86', accent: '#3b3f46' },
   modern: { wall: '#c3c6cc', roof: '#4b5563', flatRoofs: true, stone: '#9ca3af', accent: '#60a5fa' }
-};
-
-
-// A small seeded generator (mulberry32) from the region id.
-const seeded = (key) => {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
-  let a = h >>> 0;
-  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 };
 
 const tmpColor = new Color();
@@ -92,7 +84,6 @@ export const buildTownGeometry = (regionId, tierId, { ageId = 'bronze', walls = 
   }
   if (tier.id !== 'small') parts.push(paint(new CylinderGeometry(tier.radius * 0.8, tier.radius * 0.85, 0.03, 20).translate(0, 0.015, 0), '#a8956a'));
   // The middle: a well (small), a market square (medium), a keep (big); the capital's palace.
-  const plaza = tier.id === 'small' ? 0.5 : 0.95;
   if (capital) {
     parts.push(paint(new BoxGeometry(1.3, 0.9, 1.0).translate(0, 0.45, 0), style.stone));
     parts.push(paint(new BoxGeometry(1.36, 0.12, 1.06).translate(0, 0.96, 0), '#d4af37'));
@@ -105,20 +96,9 @@ export const buildTownGeometry = (regionId, tierId, { ageId = 'bronze', walls = 
   } else {
     parts.push(paint(new CylinderGeometry(0.16, 0.18, 0.18, 8).translate(0, 0.09, 0), style.stone));
   }
-  // Houses on a seeded scatter, kept off the plaza and apart from each other.
-  const placed = [];
-  let tries = 0;
-  while (placed.length < tier.houses && tries < tier.houses * 30) {
-    tries += 1;
-    const a = rand() * Math.PI * 2; const r = plaza + 0.35 + rand() * (tier.radius - plaza - 0.5);
-    const x = Math.cos(a) * r; const z = Math.sin(a) * r;
-    const w = 0.55 + rand() * 0.4; const d = 0.5 + rand() * 0.3;
-    if (placed.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < ((p.w + w) * 0.62) ** 2)) continue;
-    placed.push({ x, z, w });
-    const tall = modern && rand() < 0.35;
-    const h = tall ? 1.2 + rand() * 1.6 : 0.45 + rand() * (tier.id === 'big' ? 0.5 : 0.3);
-    house(parts, style, x, z, w, d, h, a + Math.PI / 2, 0.85 + rand() * 0.3, modern);
-  }
+  // Houses on a seeded scatter, kept off the plaza and apart from each other: the city manifest's
+  // houses for a town with no artist file (src/data/townLayout.js proceduralHouses).
+  proceduralHouses(regionId, tier.id, ageId).forEach(({ x, z, w, d, h, rot, shade }) => house(parts, style, x, z, w, d, h, rot, shade, modern));
   if (walls) wallRing(parts, style, tier.radius + 0.15, ageId === 'bronze');
   const geo = mergeGeometries(parts, false);
   geo.computeBoundingSphere();
