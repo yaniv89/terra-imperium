@@ -16,6 +16,11 @@ import { razeBuilding } from './buildings';
 import { collapseFootprint } from './cityStructures';
 import { damageTakenMult, moraleLossMult, damageDealtMult, attackRateMult } from './effects';
 import { moraleFromLosses } from './moraleMath';
+import { destroyEcoBuilding, ecoTargetIndex } from './economy';
+
+// The structure a squad is going for: a fixed one (the keep, a tower, a city building) or one the
+// battle economy raised ('eco', economy.js).
+export const structureTarget = (w, q) => (q.targetKind === 'eco' ? w.eco?.buildings[q.target] : w.structures[q.target]);
 
 const REVEAL_ON_ATTACK_TICKS = secondsToTicks(3);
 
@@ -97,9 +102,10 @@ const applyDamage = (w, attacker, target, damage, arc = 0) => {
   // Retaliation (standard RTS behaviour): a squad that isn't under a specific order fights back
   // against whoever is hitting it, even from beyond its own sight range.
   // A squad battering a wall turns on whoever attacks it, too.
-  const free = target.order.type === 'idle' || target.order.type === 'attackMove' || (target.order.type === 'attack' && target.targetKind === 'structure');
+  const onStructure = target.targetKind === 'structure' || target.targetKind === 'eco';
+  const free = target.order.type === 'idle' || target.order.type === 'attackMove' || (target.order.type === 'attack' && onStructure);
   const hasTarget = target.target >= 0 && target.targetKind === 'squad' && isFighting(w.squads[target.target]);
-  if (target.order.type === 'attack' && target.targetKind === 'structure' && !hasTarget) target.order = { type: 'idle' };
+  if (target.order.type === 'attack' && onStructure && !hasTarget) target.order = { type: 'idle' };
   if (free && !hasTarget && !target.routed && !target.retreating && target.stats.attackTicks > 0 && validTargetFor(target, attacker)) {
     target.targetKind = 'squad'; target.target = attacker.idx;
     target.anchorX = attacker.x; target.anchorY = attacker.y; // chasing its attacker is not "leaving its post"
@@ -161,8 +167,10 @@ export const attackStructure = (w, a, s) => {
   a.lastStrikeTick = w.tick;
   a.damageDealt += Math.round(damage / 3); // structure HP is on a bigger scale; count it 1/3 toward XP
   s.hp = Math.max(0, s.hp - damage);
+  if (s.eco) s.lastHitTick = w.tick; // repairs slow down under attack (economy.js)
   w.events.push({ t: w.tick, type: a.stats.melee ? 'melee' : 'shot', from: a.idx, structure: s.id, damage });
   if (s.hp === 0) {
+    if (s.eco) { destroyEcoBuilding(w, s, a.side); return; }
     s.alive = false;
     if (s.kind === 'building') razeBuilding(w, s, a.side);
     else w.events.push({ t: w.tick, type: s.kind === 'keep' ? 'keepBreached' : 'structureDestroyed', structure: s.id });
@@ -220,7 +228,10 @@ export const acquireTarget = (w, q, radius) => {
   if (best >= 0 && !(q.stats.structureBonus && structureTargetIndex(w, q, radius) >= 0)) return { kind: 'squad', index: best };
   const si = q.side === SIDE_ATTACKER && !q.stats.airOnly ? structureTargetIndex(w, q, radius) : -1;
   if (si >= 0) return { kind: 'structure', index: si };
-  return best >= 0 ? { kind: 'squad', index: best } : null;
+  if (best >= 0) return { kind: 'squad', index: best };
+  // The battle economy: the enemy's camp, depots and barracks are fair game too.
+  const ei = w.eco && !q.stats.airOnly ? ecoTargetIndex(w, q, radius) : -1;
+  return ei >= 0 ? { kind: 'eco', index: ei } : null;
 };
 
 // Towers before the keep; only structures within `radius`.
@@ -254,8 +265,8 @@ export const resolveAttacks = (w) => {
       if (!inRangeOfSquad(q, t)) return;
       q.facing = turnToward(q.facing, angleBetween(q.x, q.y, t.x, t.y), 32);
       if (q.cooldown === 0) { attackSquad(w, q, t); q.cooldown = Math.max(1, Math.round(q.stats.attackTicks / attackRateMult(w, q))); }
-    } else if (q.targetKind === 'structure') {
-      const s = w.structures[q.target];
+    } else if (q.targetKind === 'structure' || q.targetKind === 'eco') {
+      const s = structureTarget(w, q);
       if (!s || !s.alive) { q.target = -1; return; }
       if (!inRangeOfStructure(q, s)) return;
       q.facing = turnToward(q.facing, angleBetween(q.x, q.y, s.x, s.y), 32);

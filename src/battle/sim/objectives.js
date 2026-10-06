@@ -111,7 +111,7 @@ const presence = (w, x, y, radius) => {
   const count = [0, 0];
   queryRadius(w, x, y, radius).forEach((j) => {
     const q = w.squads[j];
-    if (isFighting(q) && !q.routed && !q.stats.flying && !(q.inside >= 0)) count[q.side] += 1;
+    if (isFighting(q) && !q.routed && !q.stats.flying && !(q.inside >= 0) && !q.worker) count[q.side] += 1;
   });
   return count;
 };
@@ -147,7 +147,7 @@ export const updateAssimilation = (w) => {
   let attackers = 0; let defenders = 0;
   queryRadius(w, keep.x, keep.y, ASSIMILATION_RADIUS).forEach((j) => {
     const q = w.squads[j];
-    if (!isFighting(q) || q.routed) return;
+    if (!isFighting(q) || q.routed || q.worker) return; // laborers neither take nor hold the keep
     if (q.side === SIDE_DEFENDER) defenders += 1;
     else if (OCCUPATION_CAPABLE_CLASSES.includes(q.classId)) attackers += 1;
   });

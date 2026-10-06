@@ -8,6 +8,7 @@ import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { initFog } from './fog';
 import { HASH_CHAIN_SEED } from './hash';
 import { tileOf, walkableGoal } from './pathing';
+import { initEconomy } from './economy';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
@@ -20,7 +21,7 @@ export const splitFrontAndReserve = (units, combatWidth) => {
 
 const isBackLine = (stats) => !stats.melee && !stats.flying;
 
-const makeSquad = (w, unit, side, ageId, index) => {
+export const makeSquad = (w, unit, side, ageId, index) => {
   const stats = getUnitBattleStats(unit, ageId); // a ship by its line (D5b), anything else by its class
   return {
     idx: index,
@@ -67,7 +68,8 @@ export const createWorld = (setup) => {
     rngState: setup.seed >>> 0,
     setup,
     // A city's structures turn their ground to rubble as they fall: the world gets its own tiles.
-    map: setup.city ? { ...setup.map, tiles: setup.map.tiles.slice() } : setup.map,
+    // (and the battle economy raises buildings on it).
+    map: setup.city || setup.economy ? { ...setup.map, tiles: setup.map.tiles.slice() } : setup.map,
     squads: [],
     structures: setup.structures.map((s) => ({ ...s })),
     points: setup.points.map((p) => ({ ...p })),
@@ -89,6 +91,7 @@ export const createWorld = (setup) => {
   spawnSides(w);
   if (setup.deployment === 'blocks') deployBlocks(w);
   initFog(w);
+  initEconomy(w); // the battle economy (phase R1): only when the setup has one
   return w;
 };
 
@@ -173,7 +176,7 @@ const spawnSides = (w) => {
         q.x = tileCenter(Math.max(zone.x0, Math.min(zone.x1, tx)));
         q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, ty)));
         // in a city a slot may fall on a house: the nearest open ground instead
-        if (setup.city && !TILE_COST[map.tiles[tileOf(map, q.x, q.y)]]) {
+        if ((setup.city || setup.economy) && !TILE_COST[map.tiles[tileOf(map, q.x, q.y)]]) {
           const i = walkableGoal(map, tileOf(map, q.x, q.y));
           q.x = tileCenter(i % map.w); q.y = tileCenter(Math.floor(i / map.w));
         }
@@ -198,5 +201,6 @@ const spawnSides = (w) => {
 // (For an amphibious landing the attacker's edge is the waterline: its troops fall back to the boats.)
 export const sideEdgeX = (w, side) => (side === SIDE_ATTACKER ? (w.map.attackerEdge || 1) * Q : (w.map.w - 1) * Q);
 
-export const fieldCount = (w, side) => w.squads.filter((q) => q.side === side && q.alive && !q.fled && (q.onField || q.enterTick >= 0)).length;
+// The army on the field (the reserve-call limit): workers and trained auxiliaries are housed, not counted here.
+export const fieldCount = (w, side) => w.squads.filter((q) => q.side === side && !q.eco && q.alive && !q.fled && (q.onField || q.enterTick >= 0)).length;
 export const fieldCap = (w) => w.setup.combatWidth + 2;

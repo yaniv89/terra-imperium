@@ -14,6 +14,7 @@ import { getSquadAbilities, powerState, POWERS } from './effects';
 import { canGarrison, garrisonRoom } from './objectives';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { makeGrid, rebuildGrid } from './spatial';
+import { thinkEconomy } from './economyAI';
 
 const AI_CELL = 4 * Q;
 
@@ -27,7 +28,8 @@ export const AI_DIFFICULTY = {
 const DEFENSE_RADIUS = 24 * Q;
 
 // Squads out in the open (a garrison stays put; its building does the fighting).
-const own = (w, side) => w.squads.filter((q) => q.side === side && isFighting(q) && !q.routed && !q.retreating && !(q.inside >= 0));
+// (Workers are the economy AI's: economyAI.js.)
+const own = (w, side) => w.squads.filter((q) => q.side === side && !q.worker && isFighting(q) && !q.routed && !q.retreating && !(q.inside >= 0));
 const visibleEnemies = (w, side) => w.squads.filter((q) => q.side !== side && isFighting(q) && !q.routed && canSeeSquad(w, side, q));
 const nearest = (list, x, y, maxD = Infinity) => {
   let best = null; let bestD = maxD * maxD;
@@ -153,7 +155,7 @@ const thinkAttacker = (w, side, cfg, mine, enemies, orders) => {
 // Prince+: man the keep and towers — ranged first — while keeping at least half the army outside.
 const GARRISON_REACH = 16 * Q;
 const garrisonBuildings = (w, side, mine, orders) => {
-  const army = w.squads.filter((q) => q.side === side && isFighting(q) && !q.routed);
+  const army = w.squads.filter((q) => q.side === side && !q.worker && isFighting(q) && !q.routed);
   const inside = army.filter((q) => q.inside >= 0 || q.order.type === 'garrison').length;
   let budget = Math.floor(army.length / 2) - inside;
   if (budget <= 0 || mine.length < 2) return mine;
@@ -197,12 +199,13 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
 
 export const thinkAI = (w, side, orders) => {
   const cfg = AI_DIFFICULTY[w.setup.difficultyId] || AI_DIFFICULTY.prince;
+  thinkEconomy(w, side, w.setup.difficultyId, orders); // on its own ticks; nothing without an economy
   if (w.tick % cfg.thinkEvery !== side) return; // the two sides think on different ticks
   const mine = own(w, side);
   const enemies = visibleEnemies(w, side);
   if (cfg.reserves) callReinforcementsAndReserves(w, side, orders);
   const start = w.setup.sides[side].units.reduce((s, u) => s + u.strength, 0) || 1;
-  const now = w.squads.filter((q) => q.side === side && q.alive && !q.fled && !q.reinforcement).reduce((s, q) => s + q.strength, 0);
+  const now = w.squads.filter((q) => q.side === side && q.alive && !q.fled && !q.reinforcement && !q.worker).reduce((s, q) => s + q.strength, 0);
   // An attacking AI that has lost most of its army withdraws rather than fighting to the last.
   if (side === SIDE_ATTACKER && now / start < cfg.retreatAt && mine.length) { orders.push({ side, type: 'retreatAll' }); return; }
   if (cfg.powers && enemies.length) decidePowers(w, side, cfg, mine, enemies, orders);

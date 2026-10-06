@@ -4,6 +4,7 @@
 // consumes an auto-resolved one.
 import { SIDE_ATTACKER, SIDE_DEFENDER, TICK_HZ } from './constants';
 import { cityDamageReport } from './cityStructures';
+import { economyReport } from './economy';
 
 // A skilled commander earns a little more XP than auto-resolve would give — capped, so battles
 // can't be farmed (one attack per stack per turn already holds).
@@ -13,14 +14,16 @@ const xpBonusFor = (q) => Math.min(COMMAND_XP_BONUS_CAP, Math.floor(q.damageDeal
 export const toStrategicResult = (w) => {
   // Reinforcements that were never called into the battle took no part in it: they're left out
   // entirely (the campaign keeps them exactly as they were).
-  const tookPart = (q) => !q.reinforcement || q.joined;
+  // Workers and trained auxiliaries (the battle economy) are not campaign units: they are reported
+  // in `tactical.economy` (RTS plan 6.5: auxiliaries demobilise after the battle).
+  const tookPart = (q) => !q.eco && (!q.reinforcement || q.joined);
   const bySide = (side) => w.squads.filter((q) => q.side === side && tookPart(q)).map((q) => ({
     ...q.original,
     strength: Math.max(0, Math.min(q.startStrength, q.strength)),
     morale: Math.max(0, Math.min(100, q.morale)),
     routed: q.routed || (q.fled && !q.retreating)
   }));
-  const engagedIds = (side) => w.squads.filter((q) => q.side === side && q.engaged).map((q) => q.unitId);
+  const engagedIds = (side) => w.squads.filter((q) => q.side === side && q.engaged && !q.eco).map((q) => q.unitId);
   const attackerUnits = bySide(SIDE_ATTACKER);
   const defenderUnits = bySide(SIDE_DEFENDER);
   const deployedAttackerIds = engagedIds(SIDE_ATTACKER);
@@ -31,7 +34,7 @@ export const toStrategicResult = (w) => {
     .slice(0, 60)
     .map((e) => ({ phase: e.phase, side: e.side === SIDE_ATTACKER ? 'attacker' : 'defender', attackerClass: e.attackerClass, defenderClass: e.defenderClass, damage: e.damage, hits: e.hits }));
   const xpBonusById = {};
-  w.squads.forEach((q) => { if (q.engaged) xpBonusById[q.unitId] = xpBonusFor(q); });
+  w.squads.forEach((q) => { if (q.engaged && !q.eco) xpBonusById[q.unitId] = xpBonusFor(q); });
   return {
     outcome,
     attackerUnits,
@@ -60,7 +63,9 @@ export const toStrategicResult = (w) => {
         // The region's buildings the attacker burned (each loses a tier in the campaign).
         razed: [...(w.razed || [])],
         // The real city's losses by manifest id (src/engine/cityManifest.js carries them to the map).
-        ...(w.setup.city ? { cityDamage: cityDamageReport(w) } : {})
+        ...(w.setup.city ? { cityDamage: cityDamageReport(w) } : {}),
+        // The battle economy's outcome per side (economy.js economyReport), for the campaign bridge (R2).
+        ...(w.eco ? { economy: economyReport(w) } : {})
       }
     }
   };

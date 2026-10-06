@@ -14,6 +14,7 @@ import { updateFog } from './fog';
 import { updateEffects, processImpacts } from './effects';
 import { applySupplyAndAttrition } from './support';
 import { updateBuildings } from './buildings';
+import { updateEconomy, fireEcoTowers, countEcoLosses } from './economy';
 import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } from './constants';
 import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
 
@@ -23,7 +24,7 @@ const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
 const lastStand = (w, side) => {
   if (w.lastStandUsed[side]) return;
-  const fighting = w.squads.some((q) => q.side === side && isFighting(q) && !q.routed && !q.retreating);
+  const fighting = w.squads.some((q) => q.side === side && !q.worker && isFighting(q) && !q.routed && !q.retreating);
   const entering = w.squads.some((q) => q.side === side && q.alive && q.enterTick >= 0);
   if (fighting || entering) return;
   const waiting = w.squads.filter((q) => q.side === side && q.alive && q.reserve && !q.fled);
@@ -33,21 +34,22 @@ const lastStand = (w, side) => {
   w.events.push({ t: w.tick, type: 'lastStand', side });
 };
 
-const isBroken = (w, side) => !w.squads.some((q) => q.side === side && q.alive && !q.fled && (
+// Workers (the battle economy) never keep a side in the fight: an army of laborers is a broken one.
+const isBroken = (w, side) => !w.squads.some((q) => q.side === side && !q.worker && q.alive && !q.fled && (
   (q.onField && !q.routed && !q.retreating) || q.enterTick >= 0 || (q.reserve && !w.lastStandUsed[side] && !w.retreatOrdered?.[side])
 ));
 
 // The strength a side still fields (alive, not fled, not routed; reserves count) against what it
 // brought: the battle types' loss rules read this (battleType.js).
 const startStrength = (w, side) => (w.setup.sides?.[side]?.units || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
-const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (q.side === side && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
+const sideStrength = (w, side) => w.squads.reduce((s, q) => s + (q.side === side && !q.worker && q.alive && !q.fled && !q.routed ? q.strength : 0), 0);
 const lossShare = (w, side) => { const start = startStrength(w, side); return start > 0 ? 1 - sideStrength(w, side) / start : 0; };
 // The share of a side's squads destroyed or fled the field: "rout or destroy 60%" counts squads
 // gone for good, so a side breaks only once most of its line has left (a strength share would end
 // even fights early for the side that trades worse).
 const brokenShare = (w, side) => { // a routed squad may still rally: only the dead and the fled count
   let mine = 0; let gone = 0;
-  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (q.side !== side) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
+  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (q.side !== side || q.worker) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
   return mine ? gone / mine : 0;
 };
 // The attacker's strength standing on the far bank (the defender's half of the field).
@@ -98,18 +100,21 @@ export const step = (w, orders = []) => {
   processImpacts(w);
   updateSupply(w);
   enterReserves(w);
+  updateEconomy(w); // workers, construction, training (economy.js; nothing without an economy)
   acquireTargets(w); // builds its own enemy-only grid (pathing.js buildTargetGrid)
   moveSquads(w);
   buildSpatialHash(w);
   separateSquads(w);
   resolveAttacks(w);
   resolveStructureFire(w);
+  fireEcoTowers(w);
   updateGarrisons(w); // squads that reached their building go in; failing buildings throw theirs out
   applySupplyAndAttrition(w);
   updateBuildings(w);
   updateMorale(w);
   updateCapturePoints(w);
   updateAssimilation(w);
+  countEcoLosses(w);
   lastStand(w, SIDE_ATTACKER);
   lastStand(w, SIDE_DEFENDER);
   checkEnd(w);
