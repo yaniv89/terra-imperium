@@ -27,8 +27,8 @@ import { conquerRegion } from './conquest';
 // cannot be converted either (a clean break, 'oldGrid'). migrateSave returns null for anything
 // older and the app starts a fresh game while keeping the raw save untouched. A later land-flag
 // change that keeps tile ids can repair saves with world/landChanges.js (applyLandChanges), as
-// the version 8 to 9 step did.
-export const CURRENT_SAVE_VERSION = 10;
+// the version 8 to 9 step did. Version 11 removed succession and the noble estates (migrate10to11).
+export const CURRENT_SAVE_VERSION = 11;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -130,7 +130,7 @@ const migrate3to4 = (state) => {
 
 // v5: land is taken by force now (src/engine/conquest.js) — a region won in battle changes owner on
 // the spot instead of sitting "occupied" until a peace deal. An occupation in a war that is still
-// running becomes the conquest it would have been; anything else (a civil war's pretender, a stale
+// running becomes the conquest it would have been; anything else (a civil war's insurgent, a stale
 // marker from a war that already ended) is left alone.
 const migrate4to5 = (state) => {
   let regions = state.regions;
@@ -234,7 +234,64 @@ const migrate5to6 = (state) => {
   return { ...renamed, nations, regions, logs: [...logs, note] };
 };
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6 };
+// v11: succession and the noble estates were removed (master plan decision 37). A nation drops its
+// heir, estates, crown land and estate cooldowns; its ruler drops the consort (and the claim or
+// adoption mark a ruler who was once an heir carried); the Estate Takeover and Succession War
+// meters and the timed Estate Takeover penalty go. A civil war's rebels were throne pretenders and
+// are now insurgents: their units' `isPretender` becomes `isInsurgent` and the provinces they hold
+// change marker from 'pretenders' to 'insurgents'. A pending or open Succession Crisis chain event
+// is dropped (it no longer exists, and an open event nobody can answer would stall every turn).
+// A governor who used to be the heir keeps the seat.
+const REMOVED_NATION_KEYS = ['heir', 'estates', 'crownLand', 'estateInteractionCooldowns'];
+const REMOVED_RULER_KEYS = ['consort', 'isRegency', 'claim', 'adopted'];
+const OLD_INSURGENT_MARKER = 'pretenders';
+const isSuccessionChain = (id) => typeof id === 'string' && id.startsWith('succession_crisis');
+const migrate10to11 = (state) => {
+  const nations = {};
+  Object.entries(state.nations || {}).forEach(([id, nation]) => {
+    if (!isPlainObject(nation)) { nations[id] = nation; return; }
+    const next = { ...nation };
+    REMOVED_NATION_KEYS.forEach((k) => delete next[k]);
+    if (isPlainObject(next.ruler)) {
+      const ruler = { ...next.ruler };
+      REMOVED_RULER_KEYS.forEach((k) => delete ruler[k]);
+      next.ruler = ruler;
+    }
+    if (isPlainObject(next.disasters)) next.disasters = { economicCollapse: next.disasters.economicCollapse || 0, revolution: next.disasters.revolution || 0 };
+    if (Array.isArray(next.modifiers)) next.modifiers = next.modifiers.filter((m) => m?.sourceId !== 'estate_takeover');
+    if (isPlainObject(next.governors)) {
+      next.governors = Object.fromEntries(Object.entries(next.governors).map(([seat, g]) => {
+        if (!isPlainObject(g)) return [seat, g];
+        // eslint-disable-next-line no-unused-vars -- destructured only to omit the old heir flag
+        const { heir, ...rest } = g;
+        return [seat, rest];
+      }));
+    }
+    nations[id] = next;
+  });
+  const units = {};
+  Object.entries(state.units || {}).forEach(([id, unit]) => {
+    if (!unit?.isPretender) { units[id] = unit; return; }
+    // eslint-disable-next-line no-unused-vars -- destructured only to rename the flag
+    const { isPretender, ...rest } = unit;
+    units[id] = { ...rest, isInsurgent: true };
+  });
+  const regions = {};
+  Object.entries(state.regions || {}).forEach(([id, region]) => {
+    regions[id] = region?.occupiedBy === OLD_INSURGENT_MARKER ? { ...region, occupiedBy: 'insurgents' } : region;
+  });
+  return {
+    ...state,
+    nations,
+    units,
+    regions,
+    pendingEventChains: (state.pendingEventChains || []).filter((c) => !isSuccessionChain(c?.id)),
+    activeEventId: isSuccessionChain(state.activeEventId) ? null : state.activeEventId
+  };
+};
+
+// Versions 6 to 9 are never migrated (an older grid, a clean break: OLDEST_LOADABLE_SAVE_VERSION).
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11 };
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 

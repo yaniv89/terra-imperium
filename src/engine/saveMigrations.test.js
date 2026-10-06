@@ -101,6 +101,49 @@ describe('migrateSave (version 7: the tile world, a clean break with the region 
     expect(migrateSave(fresh)).toBeNull(); // a bare state without an envelope counts as version 1
   });
 
+  it('loads a version 10 save that still carries succession and the estates, stripping them', () => {
+    const fresh = createInitialState({ playerNationId: 'fr', rngSeed: 4 });
+    const cap = getNationCapital('fr');
+    const fr = fresh.nations.fr;
+    const old = {
+      ...fresh,
+      nations: {
+        ...fresh.nations,
+        fr: {
+          ...fr,
+          heir: { id: 'heir_fr_1', name: 'Louis', claim: 60 },
+          ruler: { ...fr.ruler, consort: { name: 'Anne' }, isRegency: false, claim: 70 },
+          estates: { clergy: { loyalty: 50, influence: 10, privileges: [] } },
+          crownLand: 40,
+          estateInteractionCooldowns: { seizeLand: 12 },
+          disasters: { estateTakeover: 30, economicCollapse: 20, successionWar: 10, revolution: 0 },
+          modifiers: [{ id: 'm1', sourceId: 'estate_takeover', mods: { 'national.admBonus': -2 } }, { id: 'm2', sourceId: 'bankruptcy', mods: {} }],
+          governors: { [cap]: { id: 'heir_fr_1', name: 'Louis (heir)', skill: 2, heir: true, since: 1, ready: 3 } }
+        }
+      },
+      units: { ...fresh.units, p1: { id: 'p1', ownerId: 'rebels', isPretender: true, regionId: cap, strength: 5 } },
+      regions: { ...fresh.regions, [cap]: { ...fresh.regions[cap], occupiedBy: 'pretenders' } },
+      pendingEventChains: [{ id: 'succession_crisis_2', dueTurn: 9 }, { id: 'tech_gamble_2', dueTurn: 9 }],
+      activeEventId: 'succession_crisis_1'
+    };
+    const loaded = migrateSave({ version: 10, state: JSON.parse(JSON.stringify(old)) });
+    expect(loaded.version).toBe(CURRENT_SAVE_VERSION);
+    const n = loaded.state.nations.fr;
+    ['heir', 'estates', 'crownLand', 'estateInteractionCooldowns'].forEach((k) => expect(n, k).not.toHaveProperty(k));
+    expect(n.ruler).not.toHaveProperty('consort');
+    expect(n.ruler).not.toHaveProperty('claim');
+    expect(n.ruler.name).toBe(fr.ruler.name);
+    expect(n.disasters).toEqual({ economicCollapse: 20, revolution: 0 });
+    expect(n.modifiers.map((m) => m.id)).toEqual(['m2']);
+    expect(n.governors[cap]).not.toHaveProperty('heir');
+    expect(n.governors[cap].name).toBe('Louis (heir)');
+    expect(loaded.state.units.p1.isInsurgent).toBe(true);
+    expect(loaded.state.units.p1).not.toHaveProperty('isPretender');
+    expect(loaded.state.regions[cap].occupiedBy).toBe('insurgents');
+    expect(loaded.state.pendingEventChains.map((c) => c.id)).toEqual(['tech_gamble_2']);
+    expect(loaded.state.activeEventId).toBeNull();
+  });
+
   it('returns null for a save from a newer build than this one knows how to read', () => {
     expect(migrateSave({ version: CURRENT_SAVE_VERSION + 1, state: createInitialState({ playerNationId: 'fr' }) })).toBeNull();
   });
