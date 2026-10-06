@@ -12,8 +12,12 @@ Decisions taken for this plan (user, 2026-10-06):
 - Production: Blender agents, scripted, like the town kits (`scripts/blender/ti_map.py`, `ti_town.py`).
 - Look: like the buildings so far (section 2).
 - Scope: all five ages, everything the master plan's phases render.
-- Units: one shared functional set per age, culture looks per theme on every unit, AND signature
-  units per theme with their own rules (rules are a separate design phase, section 4.6).
+- Units (corrected by the user, 2026-10-06): one shared functional set per age, team-coloured, no
+  culture looks on ordinary units; plus ONE signature unit per people (150 in all), in ONE age only,
+  the age of that people's historical peak. In that age it replaces the people's base unit of the
+  same role; in every other age the people uses the ordinary base unit. Rules are a separate design
+  phase (section 4.6). Culture parts kits (old track C) and the old per-theme-per-age signature
+  units (old track D) are dropped.
 
 ---
 
@@ -120,9 +124,9 @@ every item below.
 |---|---|---|
 | A. Base battle units | 31 | 6 roles x 5 ages + Modern fighter |
 | B. Generals, raiders, mercenaries, heroes | 15 | 5 generals, 5 raider and 5 mercenary variants |
-| C. Culture parts kits | 75 kits (about 600 parts) | 15 themes x 5 ages |
-| D. Signature units | 75 | 1 per theme per age (Israelite uses its existing culture set) |
-| E. Mounts and new rigs | 6 | horse (3 tacks), camel, elephant, light chariot, heavy chariot, ox |
+| C. Culture parts kits | dropped | no culture looks on ordinary units (section 4.4) |
+| D. Signature units | 150 | one model per people, used in one age only (section 4.5): bronze 35, classical 38, kingdoms 36, gunpowder 32, modern 9 |
+| E. Mounts and new rigs | 6 | horse, camel, elephant, light chariot, heavy chariot, ox (one rig each, no tacks; horse, light chariot and ox are also the base units' rigs, section 4.5) |
 | F. Battle buildings | 85 | 14 roles x 5 ages + 3 Modern extras + 5 construction sets + 7 farm stage sets |
 | G. City destruction | 100 | 65 damaged-and-ruined house files, 5 wall kits, 5 ruin libraries, 5 forts, 5 palace damage sets, 15 wonder ruins |
 | H. Nature | 13 | 4 node families, 2 herds, 7 vegetation kits |
@@ -133,7 +137,7 @@ every item below.
 | M. Map independents | 17 | 12 dressings, 5 tribal camps |
 | N. Ships (map now, naval battles later) | 14 | already queued |
 | O. Effects (sprite sheets) | 22 | battle and map |
-| **Total 3D and FX items** | **about 560** | plus the 2D items of the older plan |
+| **Total 3D and FX items** | **about 564** | plus the 2D items of the older plan |
 
 ---
 
@@ -189,61 +193,242 @@ LOD0 triangle targets: person 1,200 to 1,500; mounted 2,200 to 2,500 (rider plus
 - Raiders `<band>-raider` (early, middle, modern bands x mounted and foot variants where useful):
   culture-neutral irregulars from the base parts with mismatched gear, torches, loot sacks.
 - Mercenaries `<age>-mercenary`: the age's infantry in mixed foreign kit with a coin pouch and a
-  neutral sash; theme parts applied from the seller's theme.
+  neutral sash, from the base parts (no theme parts: culture looks are dropped, section 4.4).
 
-### 4.4 Culture looks: parts kits (75 kits, about 600 parts)
-Each theme x age kit (`scripts/blender/ti_units_<theme>_<age>.py`) provides, built on the shared rig:
+### 4.4 Culture looks: parts kits (DROPPED)
+Dropped by the user's correction of 2026-10-06 ("one special unit across all ages for each nation,
+not all units"). The 75 theme-by-age parts kits (about 600 parts) are not built: ordinary units stay
+the one shared, team-coloured functional set of 4.2 for every people. The only culture on a unit is
+a people's single signature unit (4.5). The `styleChain` fallback for unit kits is not needed. The
+Israelite unit set of `plans/art/israelite-theme.md` section 7 (11 unit items) shrinks to the one
+Israelite signature unit below; the Judahite headdress and sling look stay as reference for it.
 
-| Part slot | Count per kit | Examples |
-|---|---|---|
-| Helmets / headwear | 2 to 3 | Egyptian nemes and khepresh; Greek Corinthian; Chinese lamellar cap; Aztec eagle helm; turban; kabuto |
-| Body armour / clothing | 2 | linen kilt; scale shirt; lamellar coat; padded cotton; mail; uniform coat |
-| Shields | 2 | figure-eight, tower, scutum, kite, round targe, rattan, hide, pavise |
-| Melee weapons | 2 | khopesh, kopis, dao, macuahuitl, talwar, katana, takoba |
-| Ranged weapons | 1 to 2 | composite bow, atlatl, crossbow, sling, matchlock, jezail |
-| Mount tack and colours | 1 | saddle cloth, plume, barding pattern |
-| Standard and banner shape | 1 | the theme's standard top (eagle, disc, dragon pole, crescent, sun) |
-| Palette | 1 | cloth, metal tint, skin-tone weighting (shader), team cloth placement |
+### 4.5 Signature units (150 models): one per people, one age each, to confirm
+Every one of the 150 peoples in `plans/peoples-and-world-setup.md` 4.4 (including the Kingdom of
+Israel) has exactly one signature unit, and one model for it. It is used in ONE age, the age of that
+people's historical peak, where it replaces the people's base unit of the same role (Civ style). In
+every other age that role is the ordinary shared base unit of 4.2. A people's signature unit is not
+a new troop type to balance across five ages: it is one figure, drawn once, rigged on the shared
+rig (4.1) or on a mount rig (below), with the role's clips.
 
-A unit in battle = base body + its role's base parts, with every slot the theme kit provides
-swapped in. Missing slot -> base part. Theme fallback follows `styleChain` (korea and japan to sinic
-when a kit is missing, pacific to monsoon, andalus and israelite to levant).
+How it was chosen: the most famous historical troop type of the people that reads as one figure or
+one mount, with the roles varied (inf 58, rng 47, mob 41, sig 4). Names are plain historical
+descriptions, not the names of the unique units of Civilization games (peoples 4.1 forbids copying
+Civ). "(check)" marks a name or look a historian should confirm before modelling; it is 102 of the
+150, because many of these peoples are known from few sources.
 
-Priority order of theme kits (by number of peoples): europe 24, americas 19, levant 18, steppe 16,
-indic 13, monsoon 12, eastafrica 9, maghreb 8, sinic 8, nile 6, westafrica 6, pacific 5, korea 3,
-japan 2, israelite 1 (the Israelite set is already specified in `plans/art/israelite-production-todo.md`).
+Age is the peak of the people, within the game's five ages. The pool is mostly ancient, so history
+does not give 30 per age: bronze 35, classical 38, kingdoms 36, gunpowder 32 and modern 9. The
+gunpowder and modern ones are mostly peoples with a famous later fight (Africa, the Americas, the
+Pacific, the Balkans and Alpine Europe), drawn as that later troop (for example the Norwegian ski
+infantry for the Rygir). Modern is thin because few of these peoples have a famous modern troop;
+raising it means re-choosing some classical or kingdoms picks (open question in section 13).
 
-### 4.5 Signature units (75 models): proposed roster, to confirm
-One signature unit per theme per age. Each replaces the theme's base unit of the same role (Civ-style)
-and uses the theme kit plus its own parts. Names are proposals for review; a historian pass checks
-each before modelling.
+Spread of the 150 over the ages, by theme:
 
-| Theme | Bronze | Classical | Kingdoms | Gunpowder | Modern |
-|---|---|---|---|---|---|
-| europe | Tower-shield spearmen (inf) | Hoplites (inf) | Huscarls (inf) | Tercio pikes and shot (inf) | Mountain troops (inf) |
-| americas | Atlatl warriors (rng) | Holcan spearmen (inf) | Jaguar warriors (inf) | Plains horse raiders (mob) | Marines (inf) |
-| levant | Heavy three-man chariot (mob) | Immortals (inf) | Mamluk cavalry (mob) | Janissaries (inf) | Desert commandos (inf) |
-| steppe | Spoked-wheel chariot (mob) | Scythian horse archers (mob) | Mongol horse archers (mob) | Cossacks (mob) | Motor raiders (mob) |
-| indic | Vedic chariot archers (mob) | War elephants (mob) | Rajput cavalry (mob) | Maratha light horse (mob) | Gurkha rifles (inf) |
-| monsoon | Bamboo-shield spearmen (inf) | Blowgun skirmishers (rng) | Khmer war elephants (mob) | Elephant swivel guns (sig) | Jungle rangers (inf) |
-| eastafrica | Kerma bowmen (rng) | Aksumite spearmen (inf) | Highland spearmen (inf) | Impi (inf) | Askari rifles (inf) |
-| maghreb | Libyan javelinmen (rng) | Numidian cavalry (mob) | Camel lancers (mob) | Saadi musketeers (inf) | Desert patrol (mob) |
-| sinic | Dagger-axe infantry (inf) | Repeating crossbowmen (rng) | Fire-lance troops (rng) | Bannermen (mob) | Mountain artillery (sig) |
-| nile | Medjay archers (rng) | Kushite archers (rng) | Camel corps (mob) | Nizam infantry (inf) | Camel corps, motorised (mob) |
-| westafrica | Iron spearmen (inf) | Hunter archers (rng) | Mali heavy cavalry (mob) | Mino (Dahomey) infantry (inf) | Riverine commandos (inf) |
-| pacific | Sling warriors (rng) | Club warriors (inf) | Taiaha warriors (inf) | Musket war party (inf) | Island marines (inf) |
-| korea | Bronze dagger warriors (inf) | Armoured cavalry (mob) | Hwacha (sig) | Joseon musketeers (inf) | Mountain infantry (inf) |
-| japan | Yayoi bowmen (rng) | Kofun horse archers (mob) | Samurai (inf) | Ashigaru arquebusiers (rng) | Naval infantry (inf) |
-| israelite | (from the Israelite set) | (from the set) | (from the set) | (from the set) | (from the set) |
+| Theme | Peoples | Bronze | Classical | Kingdoms | Gunpowder | Modern |
+|---|---|---|---|---|---|---|
+| europe | 24 | 4 | 7 | 0 | 7 | 6 |
+| americas | 19 | 1 | 3 | 7 | 7 | 1 |
+| levant | 18 | 10 | 7 | 0 | 0 | 1 |
+| steppe | 16 | 3 | 5 | 7 | 1 | 0 |
+| indic | 13 | 3 | 5 | 4 | 1 | 0 |
+| monsoon | 12 | 1 | 0 | 7 | 4 | 0 |
+| eastafrica | 9 | 0 | 0 | 4 | 5 | 0 |
+| maghreb | 8 | 2 | 3 | 2 | 1 | 0 |
+| sinic | 8 | 3 | 5 | 0 | 0 | 0 |
+| nile | 6 | 4 | 0 | 1 | 0 | 1 |
+| westafrica | 6 | 0 | 1 | 1 | 4 | 0 |
+| pacific | 5 | 2 | 0 | 1 | 2 | 0 |
+| korea | 3 | 1 | 1 | 1 | 0 | 0 |
+| japan | 2 | 0 | 1 | 1 | 0 | 0 |
+| israelite | 1 | 1 | 0 | 0 | 0 | 0 |
+| **Total** | **150** | **35** | **38** | **36** | **32** | **9** |
 
-Roles: inf = infantry, rng = ranged, mob = mobile, sig = siege. New rigs and mounts they need:
-camel, war elephant (with howdah and crew sockets), heavy three-man chariot, spoked-wheel chariot,
-outrigger (later, naval).
+Roles: inf = infantry, rng = ranged, mob = the mobile role (chariot, cavalry, camel, elephant; a
+tank in the Modern base set), sig = siege (artillery in the Modern base set). A role must exist as a
+base unit in the age it replaces, so every pick respects that (Bronze has no sig pick).
+
+Rig column: person = the shared person rig; horse, camel, elephant, chariot-light, chariot-heavy and
+ox = the mount rigs of the mounts track (track E); frame = a siege frame with three crew on the
+person rig (the base siege rig of that age with a different machine).
+
+| # | Id | People | Theme | Age | Signature unit | Role | Look (one line) | Rig or mount |
+|---|---|---|---|---|---|---|---|---|
+| 1 | kingdom-of-israel | Kingdom of Israel | israelite | bronze | Benjaminite slingers | rng | tunic, headband, sling whirled overhead, stone pouch at the hip (from plans/art/israelite-theme.md, section 7) | person |
+| 2 | ugarit | Ugarit | levant | bronze | Ugarit harbour archers (check) | rng | merchant-guard tunic, fringed kilt, composite bow, round cap, Syrian-style quiver | person |
+| 3 | mari | Mari | levant | bronze | Mari spear guard | inf | fleeced kaunakes skirt, bare chest, long spear, tall bronze helm with cheek flaps (Mari statues) | person |
+| 4 | akkad | Akkad | levant | bronze | Sharur-bearing spearmen | inf | Akkad: fringed kilt, bronze helmet, long spear, mace-like sharur standard-weapon in the off hand | person |
+| 5 | elam | Elam | levant | bronze | Elamite archers | rng | long fringed robe, headband, big self bow, quiver on the hip (Elam reliefs) | person |
+| 6 | media | Media | levant | classical | Median horse archers | mob | trousers and tunic, soft pointed cap, short composite bow, bow case | horse |
+| 7 | kanesh | Kanesh | levant | bronze | Kanesh donkey caravan guards (check) | inf | short kilt, pointed felt cap, spear, leather bag on a donkey-loaded pack, a trader's seal at the belt | person |
+| 8 | lydia | Lydia | levant | classical | Lydian lance cavalry | mob | plain tunic, felt cap, long lance, small round shield, Sardis gold-coin sash | horse |
+| 9 | phrygia | Phrygia | levant | bronze | Phrygian peltasts | rng | Phrygian cap with the forward-bent peak, trousers, javelin bundle, crescent wicker shield | person |
+| 10 | pontus | Pontus | levant | classical | Pontic scythed chariot (check) | mob | four-horse light chariot with blades on the axle hubs, driver in a conical helm | chariot-light |
+| 11 | urartu | Urartu | levant | bronze | Urartian fortress spearmen | inf | conical bronze helm with a crest, horned-god shield decoration, long spear, short belt | person |
+| 12 | colchis | Colchis | levant | bronze | Colchian axe skirmishers (check) | inf | tall pointed cap, wicker shield, single-edge axe, linen shirt | person |
+| 13 | aghvank | Aghvank | levant | classical | Aghvank mountain archers (check) | rng | felt cap, quilted tunic, short bow, crag boots | person |
+| 14 | saba | Saba | levant | classical | Sabaean camel archers | rng | loincloth and sash, curved bow, archer seated on a camel pack saddle | camel |
+| 15 | kindah | Kindah | levant | modern | Arab Revolt camel riflemen (check) | inf | headcloth with cord, long robe, bandolier, rifle, rider on a dromedary | camel |
+| 16 | magan | Magan | levant | bronze | Maganite copper-smith guards (check) | inf | bare chest, copper axe and round shield, copper ingot sack | person |
+| 17 | dilmun | Dilmun | levant | bronze | Dilmun pearl-diver slingers (check) | rng | short wrapped kilt, headcloth, sling, shell-and-stone pouch | person |
+| 18 | qedar | Qedar | levant | classical | Qedarite camel raiders | mob | dark goat-hair cloak, headcloth, spear and bow, rider on a dromedary | camel |
+| 19 | nabataea | Nabataea | levant | classical | Nabataean cliff archers | rng | ankle-length tunic, quiver, dagger belt, wide straw hat of the Petra frieze | person |
+| 20 | kemet | Kemet | nile | bronze | Chariot archers | mob | Kemet: two-horse light chariot, driver and archer, ostrich-plume horse crest, linen corselet | chariot-light |
+| 21 | kerma | Kerma | nile | bronze | Kerma long-bow archers | rng | bare chest, leather cap with feathers, very long self bow, wrist guard | person |
+| 22 | alodia | Alodia | nile | kingdoms | Alodian spear cavalry (check) | mob | quilted tunic, small round shield, spear, horse in a leather chest cloth | horse |
+| 23 | libu | The Libu | nile | bronze | Libu feather-cloaked javelinmen | inf | tall feather in the hair, long leather cloak, javelin pair, side-lock hairstyle (Egyptian reliefs) | person |
+| 24 | cyrene | Cyrene | maghreb | classical | Cyrenaic horse lancers (check) | mob | short tunic, round hat, javelin pair, horse with a spotted cloth (silphium-coin look) | horse |
+| 25 | garamantes | Garamantes | maghreb | bronze | Garamantian war chariot | mob | four-horse light chariot, driver and spearman, hide-covered sides | chariot-light |
+| 26 | numidia | Numidia | maghreb | classical | Numidian javelin riders | mob | short tunic, no saddle, two javelins, small leather shield, horse with a rope bridle | horse |
+| 27 | mauretania | Mauretania | maghreb | classical | Mauretanian lion-skin skirmishers (check) | inf | lion or leopard skin cloak, javelin, small round shield | person |
+| 28 | keftiu | Keftiu | europe | bronze | Keftiu bull-leaper guard (check) | inf | Minoan: waist-cinched kilt, long curls, figure-eight shield, bronze sword | person |
+| 29 | ahhiyawa | Ahhiyawa | europe | bronze | Mycenaean boar-tusk helmet spearmen | inf | boar-tusk helmet, tower shield, long spear, bronze greaves (Mycenaean frescoes) | person |
+| 30 | odrysia | Odrysia | europe | gunpowder | Haiduk musketeers (check) | rng | sash, short jacket, fur cap, long musket, pistols (Balkan outlaw fighters) | person |
+| 31 | illyria | Illyria | europe | modern | Albanian mountain riflemen (check) | rng | white felt cap, wool jacket, bandolier, rifle | person |
+| 32 | dacia | Dacia | europe | modern | Romanian mountain troops (check) | inf | field cap with an edelweiss badge, wool tunic, rifle, rucksack | person |
+| 33 | rasenna | Rasenna | europe | classical | Rasenna hoplite phalanx | inf | Etruscan: bronze Negau helmet, round shield, short spear, linen cuirass | person |
+| 34 | nuragi | The Nuragi | europe | modern | Sardinian brigade infantry (check) | inf | WWI grey-green uniform, steel helmet, rifle, red-and-white badge | person |
+| 35 | tartessos | Tartessos | europe | bronze | Tartessian gold-helm lancers (check) | mob | horned helmet, round caetra shield, lance, horse with silver bridle | horse |
+| 36 | celtiberia | Celtiberia | europe | gunpowder | Spanish guerrilleros (check) | rng | brown cloak, sash, broad hat, flintlock, 1808 irregular look | person |
+| 37 | lusitania | Lusitania | europe | gunpowder | Portuguese cacadores (check) | rng | green jacket, shako, Baker rifle, pouch (Peninsular War light riflemen) | person |
+| 38 | arverni | Arverni | europe | classical | Arverni chariot lords (check) | mob | Gaulish: two-horse chariot, mail-clad lord, long sword, torc | chariot-light |
+| 39 | belgae | Belgae | europe | classical | Belgic noble swordsmen | inf | mail shirt, oval shield with a boss, long sword, plumed helm | person |
+| 40 | noricum | Noricum | europe | modern | Austrian mountain troops (check) | inf | mountain cap, wool uniform, rifle, rope and ice axe | person |
+| 41 | marcomannia | Marcomannia | europe | modern | Czechoslovak legionnaires (check) | inf | WWI legion cap with a badge, tunic, rifle, webbing | person |
+| 42 | cherusci | Cherusci | europe | classical | Cherusci forest ambushers (check) | inf | Germanic: hair knot, framea spear, round board shield, cloak | person |
+| 43 | durotriges | Durotriges | europe | classical | Durotrigan hillfort slingers | rng | bare head, sling, big pouch of beach pebbles, short cloak | person |
+| 44 | brigantes | Brigantes | europe | classical | Brigantian chariot skirmishers | mob | small two-pony chariot, driver and javelin thrower, plaid cloak | chariot-light |
+| 45 | ulaid | Ulaid | europe | gunpowder | Irish pike-and-musket rebels (check) | inf | green coat, pike, flintlock, round hat (1798 rising) | person |
+| 46 | fortriu | Fortriu | europe | gunpowder | Highland broadsword clansmen (check) | inf | tartan plaid, targe shield, broadsword, flat bonnet | person |
+| 47 | geats | Geats | europe | gunpowder | Carolean pike-and-shot infantry (check) | inf | blue coat, tricorne, pike with a musket, short sword | person |
+| 48 | rygir | Rygir | europe | modern | Norwegian ski infantry (check) | inf | wool uniform, round cap, rifle, long skis on the back | person |
+| 49 | bosporan-kingdom | Bosporan Kingdom | europe | classical | Bosporan stone-thrower crews (check) | sig | torsion stone-thrower on a frame, three crew in linen cuirasses, stone pile | frame |
+| 50 | cucuteni | Cucuteni | europe | bronze | Cucuteni ox-cart warriors (check) | inf | Copper Age: copper axe, hide shield, spear, cart ox with a yoke (clay models) | ox |
+| 51 | avaria | Avaria | europe | gunpowder | Pannonian hussars (check) | mob | braided jacket with a pelisse, fur kalpak, sabre and carbine, horse in a saddle cloth | horse |
+| 52 | khazaria | Khazaria | steppe | kingdoms | Khazar heavy horse archers | mob | lamellar cuirass, felt cap with a plume, composite bow, sabre | horse |
+| 53 | sarmatians | The Sarmatians | steppe | gunpowder | Winged hussars (check) | mob | steel breastplate, wooden wings on the back, long lance, leopard-skin cloak | horse |
+| 54 | oxus | Oxus | steppe | bronze | Gonur chariot spearmen (check) | mob | Oxus: small two-wheel cart, driver and spearman, bronze axe | chariot-light |
+| 55 | parthava | Parthava | steppe | classical | Parthian horse archers | mob | trousers, cloak, soft cap, composite bow, shooting backward | horse |
+| 56 | bactria | Bactria | steppe | classical | Bactrian armoured cavalry | mob | scale coat, crested helm, long spear, horse in a saddle cloth with cheek plates | horse |
+| 57 | sogdia | Sogdia | steppe | kingdoms | Sogdian mail lancers (check) | mob | mail shirt, painted caftan, spear, horse with a patterned cloth | horse |
+| 58 | khwarazm | Khwarazm | steppe | kingdoms | Khwarazmian naphtha throwers (check) | sig | clay-pot thrower on a frame, three crew with cloth masks, fire pots | frame |
+| 59 | wusun | Wusun | steppe | classical | Wusun horse archers | mob | belted coat, felt cap, composite bow, short sabre | horse |
+| 60 | andronovo | The Andronovo | steppe | bronze | Andronovo spoke-wheel charioteers | mob | Bronze Age: two-horse light chariot with spoked wheels, driver and spearman (Sintashta burials) | chariot-light |
+| 61 | botai | Botai | steppe | bronze | Botai mounted hunters (check) | mob | hide coat, lasso pole, short spear, small horse (first horse tamers) | horse |
+| 62 | gokturk | Gokturk | steppe | kingdoms | Gokturk lamellar horse archers | mob | lamellar vest, steel cap, bow and sabre, pennant on a pole, braided hair | horse |
+| 63 | xianbei | Xianbei | steppe | classical | Xianbei armoured lancers | mob | iron scale armour, long lance, fur cap, horse with chest plate | horse |
+| 64 | kroraina | Kroraina | steppe | classical | Kroraina oasis archers (check) | rng | belted wool tunic, felt hat, bow, small round shield | person |
+| 65 | khotan | Khotan | steppe | kingdoms | Khotan jade-road guards (check) | inf | quilted coat, round helmet, spear, round shield with a jade-coloured boss | person |
+| 66 | zhangzhung | Zhangzhung | steppe | kingdoms | Zhangzhung yak-hide spearmen (check) | inf | fur-trimmed coat, spear, round yak-hide shield, felt hat | person |
+| 67 | yarlung | Yarlung | steppe | kingdoms | Yarlung lamellar lancers (check) | mob | Tibetan lamellar coat with a pointed helm, lance, horse in armour cloth | horse |
+| 68 | meluhha | Meluhha | indic | bronze | Meluhhan bowmen (check) | rng | Harappan: cloth kilt, shell armlets, bow, copper dagger, hair bun | person |
+| 69 | gandhara | Gandhara | indic | gunpowder | Pashtun jezail riflemen (check) | rng | turban, long coat, long jezail rifle, curved knife | person |
+| 70 | saurashtra | Saurashtra | indic | bronze | Saurashtran sea-trader guards (check) | inf | belted dhoti, sword and round shield, coil-wire bracelets | person |
+| 71 | kuru | Kuru | indic | bronze | Kuru chariot-warriors | mob | epic-age chariot with banner, driver and bowman, long beard | chariot-light |
+| 72 | kosala | Kosala | indic | classical | Kosalan foot archers | rng | dhoti, turban, tall bow, quiver, arrow-shielded stance | person |
+| 73 | magadha | Magadha | indic | classical | Magadhan war elephants | mob | armoured elephant with a howdah, mahout and two archers | elephant |
+| 74 | avanti | Avanti | indic | classical | Avanti heavy cavalry (check) | mob | quilted coat, turban, spear and sabre, horse with caparison | horse |
+| 75 | kalinga | Kalinga | indic | classical | Kalingan elephant corps | mob | armoured elephant, mahout, spearmen, painted forehead | elephant |
+| 76 | satavahana | Satavahana | indic | classical | Satavahana archer-lancers (check) | mob | turban, long lance, sword, horse with embroidered cloth | horse |
+| 77 | pandya | Pandya | indic | kingdoms | Pandyan swordsmen (check) | inf | waist-cloth, sword and round shield, turban, fish-emblem banner | person |
+| 78 | rajarata | Rajarata | indic | kingdoms | Rajaratan spearmen (check) | inf | short dhoti, spear and square shield, headcloth | person |
+| 79 | kamarupa | Kamarupa | indic | kingdoms | Kamarupan elephant archers (check) | mob | forest elephant, mahout and two archers, wicker howdah | elephant |
+| 80 | vanga | Vanga | indic | kingdoms | Vangan river archers (check) | rng | dhoti, turban, bow, quiver, bamboo shield on the back | person |
+| 81 | shang | Shang | sinic | bronze | Shang dagger-axe warriors | inf | bronze dagger-axe (ge), bronze helmet, lacquered leather vest, tiger-pattern shield | person |
+| 82 | zhou | Zhou | sinic | bronze | Zhou chariot lords | mob | Zhou: four-horse chariot with a lord, halberdier and driver, bronze fittings | chariot-heavy |
+| 83 | chu | Chu | sinic | classical | Chu halberdiers (check) | inf | lacquered leather armour, long halberd, red-black lacquer shield, tall hat | person |
+| 84 | shu | Shu | sinic | bronze | Shu bronze-mask guards (check) | inf | large bronze mask motif on the shield, long spear, plain tunic (Sanxingdui) | person |
+| 85 | qi | Qi | sinic | classical | Qi heavy crossbow crews (check) | sig | bolt thrower on a wooden stand, three crew in lacquered leather armour, bolt rack | frame |
+| 86 | yue | Yue | sinic | classical | Yue sword-masters (check) | inf | short tunic, bare arms, long bronze sword, rattan shield, tattooed skin | person |
+| 87 | dian | Dian | sinic | classical | Dian drum-cavalry (check) | mob | Dian bronze: feathered headdress, cloak, lance, horse with a bell-hung harness | horse |
+| 88 | nanyue | Nanyue | sinic | classical | Nanyue crossbow-boatmen (check) | rng | Han-Yue style: leather armour, repeating bow, short sword | person |
+| 89 | buyeo | Buyeo | korea | classical | Buyeo spear riders (check) | mob | fur-lined coat, long spear, bow, small horse with hide barding | horse |
+| 90 | gojoseon | Gojoseon | korea | bronze | Gojoseon dolmen archers (check) | rng | belted tunic, topknot, short bow, bronze dagger (lute-shaped) | person |
+| 91 | baekje | Baekje | korea | kingdoms | Baekje armoured cavalry | mob | plate and lamellar armour, crested helm, lance, horse armour | horse |
+| 92 | yamatai | Yamatai | japan | classical | Yamataian bowmen (check) | rng | Yayoi: tunic, long asymmetric bow, hide cap, quiver | person |
+| 93 | emishi | Emishi | japan | kingdoms | Emishi horse archers | mob | fur-edged tunic, long bow, straight sword, small horse | horse |
+| 94 | van-lang | Van Lang | monsoon | bronze | Van Lang bronze-drum archers | rng | feather headdress, loincloth, crossbow, tattooed skin (Dong Son drum art) | person |
+| 95 | champa | Champa | monsoon | kingdoms | Cham elephant lancers | mob | armoured elephant, mahout and spearman, Cham tower banner | elephant |
+| 96 | funan | Funan | monsoon | kingdoms | Funan marine archers (check) | rng | sarong, topknot, long bow, short sword | person |
+| 97 | pyu | Pyu | monsoon | kingdoms | Pyu spearmen (check) | inf | wrapped sarong, turban, spear, wicker shield | person |
+| 98 | dvaravati | Dvaravati | monsoon | kingdoms | Dvaravati sabre infantry (check) | inf | dhoti, cloth cap, curved sabre, small round shield | person |
+| 99 | srivijaya | Srivijaya | monsoon | kingdoms | Srivijayan shore archers (check) | rng | sarong, bare chest, composite bow, spear stuck in the sand | person |
+| 100 | tarumanagara | Tarumanagara | monsoon | kingdoms | Tarumanagara spear warriors (check) | inf | batik cloth, spear, round shield, headcloth | person |
+| 101 | medang | Medang | monsoon | gunpowder | Mataram kris infantry (check) | inf | batik sarong, wavy-bladed kris, small round shield, matchlock slung on the back | person |
+| 102 | kutai | Kutai | monsoon | gunpowder | Kutai sumpitan skirmishers (check) | rng | bark cloth, blowgun with a spear tip, dart quiver, leaf cap | person |
+| 103 | butuan | Butuan | monsoon | kingdoms | Butuan gold-ornament swordsmen (check) | inf | gold bands, kampilan sword, wooden shield, wrapped hair | person |
+| 104 | tondo | Tondo | monsoon | gunpowder | Tondo lantaka gun crews (check) | sig | bronze swivel gun on a wooden rest, three crew in sarongs, powder gourds | frame |
+| 105 | tichitt | Tichitt | maghreb | bronze | Tichitt stone-village archers (check) | rng | leather cap, bow, quiver, light hide cloak | person |
+| 106 | wagadu | Wagadu | maghreb | kingdoms | Wagadu iron-spear cavalry | mob | quilted horse armour, iron spear, conical hat, round shield | horse |
+| 107 | djenne-djeno | Djenné-Djeno | maghreb | kingdoms | Djenné-Djeno spear-and-shield guards (check) | inf | cotton tunic, spear, mud-coloured wicker shield | person |
+| 108 | kanem | Kanem | maghreb | gunpowder | Bornu mailed horsemen (check) | mob | quilted horse cloth, mail shirt, turban, lance and carbine | horse |
+| 109 | nok | Nok | westafrica | classical | Nokian terracotta spearmen (check) | inf | clay-sculpture style: elaborate hair, bare chest, spear, small shield | person |
+| 110 | ife | Ife | westafrica | kingdoms | Ife bronze-crown lancers (check) | inf | beaded crown, short wrapper, spear, round hide shield | person |
+| 111 | bono | Bono | westafrica | gunpowder | Akan musketeers (check) | rng | wrapper cloth, gold-wire armlets, long trade musket, powder gourd, round cap | person |
+| 112 | d-mt | D'mt | nile | modern | Ethiopian rifle infantry (check) | inf | white shamma cloak, cartridge belt, rifle, tall hat (Adwa, 1896) | person |
+| 113 | punt | Punt | nile | bronze | Puntite incense-road archers (check) | rng | kilt, beard, bow, incense sack (Egyptian relief look) | person |
+| 114 | ajuran | Ajuran | eastafrica | gunpowder | Ajuran matchlock horsemen (check) | mob | cotton tunic, turban, matchlock and lance, horse in cloth | horse |
+| 115 | kilwa | Kilwa | eastafrica | gunpowder | Swahili matchlock marines (check) | rng | kikoi wrapper, embroidered cap, matchlock, curved sword | person |
+| 116 | kitara | Kitara | eastafrica | kingdoms | Kitaran longhorn cattle guards (check) | inf | leather skirt, spear, shield, long-horned ox beside | ox |
+| 117 | engaruka | Engaruka | eastafrica | kingdoms | Engaruka terrace spearmen (check) | inf | stone-terraced farmers: spear, hide shield, cloak | person |
+| 118 | luba | Luba | westafrica | gunpowder | Luba musket-and-shield warriors (check) | rng | beaded cap, wrapper, trade musket, large hide shield | person |
+| 119 | lunda | Lunda | westafrica | gunpowder | Lunda musket-and-axe warriors (check) | inf | raffia kilt, battle axe, trade musket, feather cap | person |
+| 120 | ndongo | Ndongo | westafrica | gunpowder | Ndongo musket-and-axe guard (check) | rng | raffia kilt, curved axe, trade musket, headband (Queen Njinga's guard) | person |
+| 121 | mapungubwe | Mapungubwe | eastafrica | kingdoms | Mapungubwe gold-rhino archers (check) | rng | loincloth, gold bangles, bow, quiver (gold rhino find) | person |
+| 122 | mutapa | Mutapa | eastafrica | gunpowder | Mutapa musket-and-axe guard (check) | inf | wrapper, long axe, trade musket, oval shield | person |
+| 123 | merina | Merina | eastafrica | gunpowder | Merina musket highlanders (check) | rng | lamba cloak, flintlock musket, cartridge belt, straw hat | person |
+| 124 | khoekhoe | The Khoekhoe | eastafrica | gunpowder | Khoekhoe ox riders (check) | mob | skin kaross cloak, spear, rider seated on a war ox with a hide saddle | ox |
+| 125 | san | The San | eastafrica | kingdoms | San poison-arrow hunters | rng | loincloth, tiny bow, quiver of poison arrows, ostrich-shell beads | person |
+| 126 | caral | Caral | americas | bronze | Caral sling-and-club defenders (check) | rng | woven cotton tunic, sling, club, headband | person |
+| 127 | moche | Moche | americas | kingdoms | Moche warrior-priest clubmen | inf | Moche ceramics: large headdress, tunic, war club, round shield | person |
+| 128 | wari | Wari | americas | kingdoms | Wari tunic-lancers (check) | inf | chequered tunic, tall hat, spear, square shield | person |
+| 129 | tiwanaku | Tiwanaku | americas | kingdoms | Tiwanaku bronze-mace warriors (check) | inf | stepped headdress, tunic, star-headed mace, shield | person |
+| 130 | diaguita | Diaguita | americas | gunpowder | Calchaqui bolas and musket hunters (check) | rng | poncho tunic, bolas, captured matchlock, feathered headband | person |
+| 131 | muisca | Muisca | americas | gunpowder | Muisca gold-adorned spearmen | inf | gold nose ornament, cotton cloak, spear and darts, feather crown | person |
+| 132 | marajoara | Marajoara | americas | kingdoms | Marajoara fortress archers (check) | rng | body paint, feather headdress, long bow, painted clay armlet | person |
+| 133 | tupinamba | Tupinambá | americas | gunpowder | Tupinamba feather-cloak archers | rng | red feather cloak, long bow, war club | person |
+| 134 | jaragua | Jaragua | americas | gunpowder | Taino cotton-armour spearmen (check) | inf | cotton belt, feather headband, spear, wooden club (Anacaona's warriors) | person |
+| 135 | kalinago | Kalinago | americas | gunpowder | Kalinago canoe raiders | inf | body paint, club, bow, feather crown, parrot-feather armlets | person |
+| 136 | teotihuacan | Teotihuacan | americas | classical | Teotihuacan atlatl warriors | rng | tasselled headdress, cotton armour, atlatl and darts, round shield | person |
+| 137 | zapotec | Zapotec | americas | classical | Zapotec obsidian-club warriors (check) | inf | tall headdress, cotton armour, obsidian club, round shield | person |
+| 138 | mutal | Mutal | americas | kingdoms | Mutal spear-and-shield lords | inf | Maya: jaguar-pelt kilt, feather backrack, spear, round shield | person |
+| 139 | hopewell | Hopewell | americas | classical | Hopewell copper-axe warriors (check) | inf | copper breastplate, copper axe, hide shield, headdress | person |
+| 140 | hohokam | Hohokam | americas | kingdoms | Hohokam shell-and-bow archers (check) | rng | breech cloth, shell jewelry, bow, quiver | person |
+| 141 | chaco | Chaco | americas | kingdoms | Chacoan road runners (check) | rng | cotton kilt, sandals, bow, light shield | person |
+| 142 | calusa | Calusa | americas | gunpowder | Calusa shell-spear warriors | inf | cloth kilt, shell spear points, atlatl, feather headband | person |
+| 143 | haida | Haida | americas | gunpowder | Haida plank-armour musketeers (check) | rng | plank armour, carved helmet, trade musket, wooden shield | person |
+| 144 | dorset | Dorset | americas | modern | Arctic ranger riflemen (check) | rng | hooded anorak, rifle, snow goggles, rope sled strap | person |
+| 145 | lapita | Lapita | pacific | bronze | Lapita canoe spearmen (check) | inf | tapa kilt, shell armlets, spear, wooden club | person |
+| 146 | wahgi | The Wahgi | pacific | bronze | Wahgi bamboo-arrow archers (check) | rng | feather headdress, bark cape, long bow, painted face | person |
+| 147 | gunditjmara | Gunditjmara | monsoon | gunpowder | Gunditjmara spear-and-boomerang men | rng | fur cloak, spear, spear-thrower, boomerang, stone-trap fishermen | person |
+| 148 | saudeleur | Saudeleur | pacific | kingdoms | Saudeleur basalt-city spearmen (check) | inf | wrapper, woven fibre armour, spear, club | person |
+| 149 | latte-chiefs | The Latte chiefs | pacific | gunpowder | Latte chief slingers (check) | rng | woven kilt, stone sling, polished stone pouch (latte-stone chiefs) | person |
+| 150 | bau | Bau | pacific | gunpowder | Bau war-club warriors (check) | inf | Fijian: tapa kilt, tall war club, trade musket, feather headdress | person |
+
+Rigs the roster needs, by count and first age: person 101; horse 26 (first in bronze); chariot-light
+8 (5 bronze, 3 classical); chariot-heavy 1 (Zhou, bronze); ox 3 (Cucuteni in bronze, Kitara in
+kingdoms, Khoekhoe riders in gunpowder); camel 3 (classical: Saba, Qedar; modern: Kindah); elephant 4
+(classical: Magadha, Kalinga; kingdoms: Champa, Kamarupa); frame 4 (classical: Qi crossbow crews and
+Bosporan stone-throwers; kingdoms: Khwarazm naphtha throwers; gunpowder: Tondo lantaka). The base set
+(track A) already has the horse, the light chariot, the ox cart and the siege frames; track E adds
+the camel, the elephant, the heavy chariot and the ox as a ridden or pulled mount.
 
 ### 4.6 Signature unit rules (design phase, not art)
 Signature stats, costs, AI use and balance are a new master-plan phase (proposed "SU", after R4),
-with parity checks per age pair as in R2. Until it lands, signature units appear as the theme's
-culture look of the base unit with the base rules, so the art is never blocked by the design.
+with parity checks per age pair as in R2. The rules for one signature unit per people:
+- A people has one signature unit, available only in its own age. In that age it replaces the base
+  unit of its role for that people (the people trains it instead of the base unit of that role); in
+  every other age the people has only the ordinary base units.
+- Stats are the base unit's of that role and age, plus the SU phase's bonus (a modest edge in one
+  trait that fits the look, a small cost or training-time change to match). No second stat scale.
+- Because there is one unit per people, nothing needs to scale across ages: the unit exists in one.
+  A people that reaches its age late or early (the player picks any people) still gets it only then.
+- Mixed rosters: the unit is part of the squad types of that role, so the battle setup picks the
+  signature model for that people's squads of that role and age, the base model otherwise.
+- AI uses it as the base unit of that role (no special logic in the first version).
+- Until the SU phase lands, the model can ship with the base unit's rules, so the art is never
+  blocked by the design.
 
 ### 4.7 Ships (14, already queued)
 warship x 5 ages, raider and transport x Classical to Modern, carrier (Modern). Map now (fleets on the
@@ -400,16 +585,20 @@ Use the battle unit models (1 to 3 figures per army) and the ship models; no sep
 | 0 (code, in progress) | Wire every art path (branch `claude/wire-art-paths`); validator kinds; new modules `ti_units.py`, `ti_rts.py`, `ti_nature.py`, `ti_ruins.py`, `ti_terrain.py`; `ti_damage.py` | 0 | everything |
 | 0b (code) | VAT pipeline: bake script from clips, shader support, state machine hooks (death, hit, gather, fire) | 0 | clip-heavy units |
 | 1 | The perfect Bronze battle: shared rig and body, 6 Bronze base units, Bronze general, Bronze battle buildings (14 + construction set + farm stages), Bronze wall kit, ruins, fort, 13 Bronze damaged-house files, nodes, herds, vegetation temperate + desert + mediterranean, Bronze props, projectiles, 8 ground materials, core effects (fire, smoke, dust, sparks) | about 80 (4 batches) | a finished-looking Bronze game end to end |
-| 2 | Bronze culture: theme kits for Bronze in priority order (europe, americas, levant, steppe, indic, monsoon, eastafrica, maghreb, sinic, nile, westafrica, pacific, korea, japan) + 14 Bronze signature units + camel, elephant, chariot rigs | about 30 kits and units | every Bronze army looks like its people |
+| 2 | Bronze signature units: 35 models in two batches (about 18 and 17) by theme priority (europe, americas, levant, steppe, indic, monsoon, eastafrica, maghreb, sinic, nile, westafrica, pacific, korea, japan, israelite), plus the horse, light chariot, heavy chariot and ox rigs | about 40 | every Bronze people has its own special unit |
 | 3 | Map polish: mountain and terrain kits, improvements and forts, independents dressings and camps, town gaps, levant/bronze kit, town ground patches | about 70 | the map looks finished |
-| 4 | Classical: base units, general, battle buildings, walls, ruins, fort, damaged houses, culture kits, signature units, building culture skins | about 110 | Classical complete |
-| 5 | Kingdoms (same set) | about 110 | |
-| 6 | Gunpowder (same set) | about 110 | |
-| 7 | Modern (same set, plus Modern extras, jet, vehicles) | about 120 | |
+| 4 | Classical: base units, general, battle buildings, walls, ruins, fort, damaged houses, 38 signature units (two batches of 19) and the camel, elephant and frame rigs, building culture skins | about 120 | Classical complete |
+| 5 | Kingdoms (same set, with its 36 signature units in two batches of 18) | about 115 | Kingdoms complete |
+| 6 | Gunpowder (same set, with its 32 signature units in two batches of 16) | about 115 | Gunpowder complete |
+| 7 | Modern (same set, plus Modern extras, jet, vehicles, and its 9 signature units in one half batch) | about 100 | Modern complete |
 | 8 | Remaining: wonder ruins, palace damage, ships for naval battles, remaining effects, vegetation conifer, tropical, steppe, cold | about 40 | |
 
-Within a wave the order is: shared rig or module first, then the base (shared) set, then culture
-parts, then signature units, then damage states, so each batch lands as something visible in game.
+Within a wave the order is: shared rig or module first, then the base (shared) set, then that
+age's signature units, then damage states, so each batch lands as something visible in game.
+Signature units are grouped by age (section 4.5: 35, 38, 36, 32, 9), so each age's wave carries its
+own, about 20 per batch, ordered inside the age by theme priority (europe, americas, levant, steppe,
+indic, monsoon, eastafrica, maghreb, sinic, nile, westafrica, pacific, korea, japan, israelite) and
+then by roster number. The signature units of a later age never wait for the earlier ages' ones.
 
 Batch ids continue the existing queue (`plans/art/production-queue.json`): new items are added as
 batches A01 onwards with `phase`, `wave`, `priority`, `spec` (this file's section) and the
@@ -418,7 +607,7 @@ batches A01 onwards with `phase`, `wave`, `priority`, `spec` (this file's sectio
 ---
 
 ## 13. Open questions for the user
-- Confirm or edit the signature unit roster (4.5); a historian pass per name before modelling.
+- Confirm the 150 roster (4.5): the unit, role and age of each people. A historian pass per name marked (check) before modelling. Modern has only 9; say if you want more peoples moved to Modern or Gunpowder.
 - Signature unit rules phase "SU" in the master plan: when (proposed after R4)?
 - Blood: off by default with a setting, or removed?
 - Naval battles: keep ships at map quality now and do battle ships with the naval phase?
