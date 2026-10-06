@@ -906,7 +906,8 @@ export class BattleRenderer {
   }
 
   diagnostics() {
-    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures};
+    let figures = 0; this.soldierLayers.forEach((l) => { figures += l.count; });
+    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,figures,tier:this.soldierTier??null,zoom:this.camera.zoom};
   }
 
   adaptResolution(dt) {

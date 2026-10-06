@@ -40,9 +40,17 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
   let lastPostedTick = -1;
   let lastSlowTick = -100; // names, abilities, call costs: every SLOW_EVERY ticks
   const packer = createViewPacker();
+  // Wall-clock ms of the last 100 sim ticks, for the perf overlay (never read by the sim).
+  const tickMs = new Float64Array(100); let ticksTimed = 0;
+  const simStats = () => {
+    const n = Math.min(ticksTimed, tickMs.length);
+    if (!n) return null;
+    const a = Array.from(tickMs.subarray(0, n)).sort((x, y) => x - y);
+    return { mean: a.reduce((x, y) => x + y, 0) / n, p95: a[Math.min(n - 1, Math.floor(n * 0.95))], squads: world.squads.length };
+  };
   const postFrame = (fog, alpha, events, slow) => {
     const { packed, transfer } = packer.pack(world, pending, playerSide, { fog, slow });
-    post({ type: 'frame', packed, alpha, events }, transfer);
+    post({ type: 'frame', packed, alpha, events, sim: simStats() }, transfer);
   };
 
   const emitEnd = () => {
@@ -76,7 +84,9 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
       const events = [];
       while (acc >= TICK_MS && !world.ended) {
         const orders = pending; pending = [];
+        const t0 = performance.now();
         step(world, orders);
+        tickMs[ticksTimed++ % tickMs.length] = performance.now() - t0;
         events.push(...world.events); world.events.length = 0;
         acc -= TICK_MS;
         if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), chain: world.hashChain, log: [...log] });
