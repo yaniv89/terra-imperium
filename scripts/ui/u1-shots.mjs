@@ -90,6 +90,35 @@ const SCREENS = {
       return { ...s, fog: { ...s.fog, met: { ...s.fog.met, [me]: { ...met, [pick.id]: s.turnNumber } } } };`);
     await page.getByTestId('first-contact').waitFor({ timeout: 10000 });
     await shot(page, 'W03-first-contact', vp);
+  },
+  W04: async (page, vp) => {
+    await startGame(page);
+    // settlers in the capital, the Settle lens on (key 7), a tile two rings out (blocked) then one far enough
+    await patchState(page, `
+      const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId];
+      const u = { id: 'shot-settler', ownerId: me, regionId: cap.id, homeRegionId: cap.id, domain: 'land', classId: 'settler', strength: 100, maxStrength: 100, morale: 100, movesLeft: 3, xp: 0, rank: 'recruit', promotions: [], commanderId: null, embarkedOn: null, tile: cap.tile, target: null };
+      return { ...s, units: { ...s.units, [u.id]: u } };`);
+    await page.keyboard.press('7');
+    const pickTile = (ring) => page.evaluate(async (r) => {
+      const { getTiles } = await import('/terra-imperium/src/data/geo/tiles.js');
+      const t = getTiles(); const s = window.__game.state;
+      const start = s.regions[s.nations[s.playerNationId].capitalRegionId].tile;
+      let frontier = [start]; const seen = new Set(frontier);
+      for (let d = 0; d < r; d++) { const next = []; frontier.forEach((x) => t.neighbors[x].forEach((n) => { if (!seen.has(n)) { seen.add(n); next.push(n); } })); frontier = next; }
+      let tile = frontier.find((x) => t.land[x] && !s.world.tileOwner[x]);
+      if (r > 2) { // the best legal site at that range (the settle card's own model)
+        const { settleSiteModel } = await import('/terra-imperium/src/components/map/settleSiteModel.js');
+        const best = frontier.map((x) => ({ x, m: t.land[x] && !s.world.tileOwner[x] ? settleSiteModel(s, x, 'bronze') : null })).filter((o) => o.m?.ok).sort((a, b) => b.m.score - a.m.score)[0];
+        if (best) tile = best.x;
+      }
+      window.dispatchEvent(new CustomEvent('ti:select-tile', { detail: tile }));
+      return tile;
+    }, ring);
+    await pickTile(2);
+    await page.getByTestId('tile-sheet').waitFor({ timeout: 10000 });
+    await shot(page, 'W04-settle-blocked', vp);
+    await pickTile(5);
+    await shot(page, 'W04-settle-site', vp);
   }
 };
 

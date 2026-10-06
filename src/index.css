@@ -77,7 +77,7 @@ body {
     color: var(--fa-text);
   }
   .fa-sheet {
-    background: rgba(26, 33, 43, 0.97);
+    background: var(--fa-panel);
     color: var(--fa-text);
     border-color: var(--fa-line);
   }

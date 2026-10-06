@@ -7,7 +7,8 @@
 import React, { useState } from 'react';
 import { Landmark, Wheat, Heart, Crosshair, Package, Coins, Tent, Layers, X } from 'lucide-react';
 import { LENSES } from './lenses';
-import { CITY_SPACING_KM } from '../../data/geo/citySpacing';
+import { CITY_SPACING_KM, citySpacingRings } from '../../data/geo/citySpacing';
+import { getTiles } from '../../data/geo/tiles';
 
 export const ICONS = { political: Landmark, yields: Wheat, loyalty: Heart, threat: Crosshair, supply: Package, trade: Coins, settle: Tent };
 
@@ -15,7 +16,7 @@ const SettleLegend = () => (
   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 min-h-[32px] rounded-full bg-fa-panel/95 border border-fa-line text-[12px] text-fa-text pointer-events-auto shadow-lg" data-testid="settle-legend">
     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-good/80" aria-hidden="true" />Can found</span>
     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fa-danger/80" aria-hidden="true" />Blocked, tap for why</span>
-    <span className="fa-num text-[12px] font-semibold">Min {CITY_SPACING_KM} km apart</span>
+    <span className="font-semibold">Cities <span className="fa-num">{citySpacingRings(getTiles())}</span> tiles apart (about <span className="fa-num">{CITY_SPACING_KM}</span> km)</span>
   </div>
 );
 
