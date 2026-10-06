@@ -5,6 +5,10 @@
 // text. The CSS lives in index.css (.map-banner*).
 import { getNationColor } from '../../data/nationColors';
 import { shortMen } from '../../utils/mapMarkers';
+import { unitIconUrl, shipIconUrl, wonderIconUrl, markerIconUrl } from '../../data/icons';
+
+// A delivered icon (src/data/icons.js) inside a banner's SVG. URLs are the bundle's own asset paths.
+const iconImage = (url, x, y, size) => `<image href="${url}" x="${x}" y="${y}" width="${size}" height="${size}" />`;
 
 export const PLAYER_BANNER_COLOR = '#2563eb';
 const REBEL_BANNER_COLOR = '#ea580c';
@@ -33,7 +37,9 @@ export const armyBannerHtml = (m, { atWar = false } = {}) => {
   if (m.own) {
     const label = shortMen(m.men);
     return `<svg class="map-banner-svg" width="30" height="34" viewBox="0 0 26 32" aria-hidden="true">${shield(fill, moraleColor(m.morale), 2.4)}`
-      + `<g transform="translate(8 17.5)" fill="none" stroke="#e2e8f0" stroke-width="1.3" stroke-linecap="round">${CLASS_GLYPH[m.mainClass] || CLASS_GLYPH.infantry}</g></svg>`
+      // The main class's icon; a mixed stack (no art) keeps the plus glyph.
+      + (unitIconUrl(m.mainClass) ? iconImage(unitIconUrl(m.mainClass), 5.5, 13, 15)
+        : `<g transform="translate(8 17.5)" fill="none" stroke="#e2e8f0" stroke-width="1.3" stroke-linecap="round">${CLASS_GLYPH[m.mainClass] || CLASS_GLYPH.infantry}</g>`) + '</svg>'
       + `<span class="map-banner-label">${label}</span>`
       + (m.canMove ? '<span class="map-banner-dot" title="Can still move"></span>' : '');
   }
@@ -50,7 +56,9 @@ export const fleetBannerHtml = (m, { atWar = false } = {}) => {
   const size = m.own ? 24 : 18;
   return `<svg class="map-banner-svg" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">`
     + `<circle cx="12" cy="12" r="10.5" fill="${fill}" stroke="${atWar ? '#ef4444' : m.own ? '#e2e8f0' : 'rgba(15,23,42,0.9)'}" stroke-width="1.6" />`
-    + '<path d="M5 13 H19 L16.5 17 H7.5 Z M12 6 V13 M12 6 L16 11 H12" fill="#f8fafc" stroke="#f8fafc" stroke-width="0.8" stroke-linejoin="round" /></svg>'
+    // Your fleets show their line (warship, transport, raider, carrier); foreign ones a plain hull.
+    + (m.own && shipIconUrl(m.navalLine) ? iconImage(shipIconUrl(m.navalLine), 3.5, 3.5, 17)
+      : '<path d="M5 13 H19 L16.5 17 H7.5 Z M12 6 V13 M12 6 L16 11 H12" fill="#f8fafc" stroke="#f8fafc" stroke-width="0.8" stroke-linejoin="round" />') + '</svg>'
     + (m.own && m.embarked ? `<span class="map-banner-badge">${m.embarked}</span>` : '')
     + (m.own && m.canMove ? '<span class="map-banner-dot"></span>' : '');
 };
@@ -58,7 +66,7 @@ export const fleetBannerHtml = (m, { atWar = false } = {}) => {
 // Last turn's battle: crossed swords, green rim if the player won, red if not.
 export const battleBannerHtml = (b) => `<svg class="map-banner-svg" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">`
   + `<circle cx="12" cy="12" r="10.5" fill="#7f1d1d" stroke="${b.won ? '#22c55e' : b.outcome === 'stalemate' ? '#f59e0b' : '#f87171'}" stroke-width="2" />`
-  + '<path d="M7 7 L17 17 M17 7 L7 17 M6 9.5 L9.5 6 M14.5 6 L18 9.5" stroke="#f8fafc" stroke-width="2" stroke-linecap="round" fill="none" /></svg>';
+  + (markerIconUrl('battle') ? iconImage(markerIconUrl('battle'), 4, 4, 16) : '<path d="M7 7 L17 17 M17 7 L7 17 M6 9.5 L9.5 6 M14.5 6 L18 9.5" stroke="#f8fafc" stroke-width="2" stroke-linecap="round" fill="none" />') + '</svg>';
 
 // A colony (plan §4h): a tent, with a ring that fills as it grows.
 export const colonyBannerHtml = (m) => {
@@ -76,14 +84,17 @@ export const wonderBannerHtml = (m) => {
   const pips = [1, 2, 3].map((t) => `<circle cx="${6 + (t - 1) * 6}" cy="21.5" r="1.6" fill="${t <= (m.tier || 1) ? '#fde68a' : 'rgba(15,23,42,0.6)'}" />`).join('');
   return `<svg class="map-banner-svg" width="${m.own ? 24 : 20}" height="${m.own ? 24 : 20}" viewBox="0 0 24 24" aria-hidden="true">`
     + `<rect x="3" y="3" width="18" height="18" rx="4" fill="${fill}" stroke="rgba(15,23,42,0.9)" stroke-width="2" />`
-    + '<path d="M12 5 L15.5 17.5 H8.5 Z M6.5 18 H17.5" fill="#fef3c7" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round" />'
+    // The wonder's own silhouette (else the monument marker, else the drawn obelisk).
+    + ((wonderIconUrl(m.id) || markerIconUrl('wonder')) ? iconImage(wonderIconUrl(m.id) || markerIconUrl('wonder'), 4, 3, 16)
+      : '<path d="M12 5 L15.5 17.5 H8.5 Z M6.5 18 H17.5" fill="#fef3c7" stroke="#0f172a" stroke-width="0.8" stroke-linejoin="round" />')
     + pips + '</svg>';
 };
 
-// The open event's city (plan C9): an amber exclamation.
+// The open event's city (plan C9): the scroll on an amber disc (an exclamation without the art).
 export const eventBannerHtml = () => '<svg class="map-banner-svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">'
   + '<circle cx="12" cy="12" r="10.5" fill="#b45309" stroke="#fde68a" stroke-width="2" />'
-  + '<path d="M12 6 V13.5" stroke="#fffbeb" stroke-width="2.6" stroke-linecap="round" /><circle cx="12" cy="17.2" r="1.5" fill="#fffbeb" /></svg>';
+  + (markerIconUrl('event') ? iconImage(markerIconUrl('event'), 4, 4, 16)
+    : '<path d="M12 6 V13.5" stroke="#fffbeb" stroke-width="2.6" stroke-linecap="round" /><circle cx="12" cy="17.2" r="1.5" fill="#fffbeb" />') + '</svg>';
 
 // A cluster: several banners that would overlap at this zoom.
 export const clusterBannerHtml = (count, own) => `<span class="map-banner-cluster${own ? ' own' : ''}">${count}</span>`;

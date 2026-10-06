@@ -2,6 +2,7 @@
 // Barrel export for UI components
 
 export { default as ResourceBadge } from './ResourceBadge';
+export { default as GameIcon } from './GameIcon';
 export { default as ResourceBar } from './ResourceBar';
 export { default as ActionButton } from './ActionButton';
 export { default as CollapsibleSection } from './CollapsibleSection';

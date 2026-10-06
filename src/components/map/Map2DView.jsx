@@ -25,6 +25,10 @@ import { loadLandFeatures } from '../../data/geo/loadWorldFeatures';
 import { getCityFeatures, getNationTerritories, getHexMeshWithin, landTilesWithin, cityLatLon, getTileFeature, tileAtLatLon } from '../../data/geo/cityFeatures';
 import { DISTRICTS } from '../../engine/districts';
 import { RESOURCES_ON_TILES } from '../../data/tileYields';
+import { resourceIconUrl, improvementIconUrl, wonderIconUrl, markerIconUrl, unitIconUrl, cityIconUrl } from '../../data/icons';
+import { townTier } from './closeView/townTiers';
+import { getEffectiveAgeId } from '../../data/ages';
+import { getTechAgeId } from '../../engine/nationState';
 import { getTiles } from '../../data/geo/tiles';
 import { hexSizeVsF75 } from '../../data/geo/gridScale';
 import { isSettler } from '../../engine/settlers';
@@ -551,8 +555,11 @@ const Map2DView = ({
       const dim = e?.pillaged ? 0.45 : 1;
       if (e?.district && DISTRICTS[e.district]) out.push(<g key={`d${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-district-glyph={t}><rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.25} fill="#c4b5fd" stroke="#312e81" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#1e1b4b">{DISTRICTS[e.district].glyph}</text></g>);
       // In the close view the work stands as a model (closeView/landscape.js): no letter over it.
-      else if (e?.improvement && e.improvement !== 'road' && !(closeGround && WORK_KINDS.includes(e.improvement))) out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} /><text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text></g>);
-      if (res && !e?.improvement && !e?.district) out.push(<polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
+      else if (e?.improvement && e.improvement !== 'road' && !(closeGround && WORK_KINDS.includes(e.improvement))) out.push(<g key={`i${t}`} transform={`translate(${x},${y})`} pointerEvents="none" opacity={dim} data-improvement-glyph={t}><circle r={r} fill={owner[t] && state.regions[owner[t]]?.owner === state.playerNationId ? '#fef3c7' : '#e2e8f0'} stroke="#44403c" strokeWidth={0.8 / zoomK} />{improvementIconUrl(e.improvement) ? <image href={improvementIconUrl(e.improvement)} x={-r * 0.85} y={-r * 0.85} width={r * 1.7} height={r * 1.7} /> : <text y={fs * 0.36} textAnchor="middle" fontSize={fs} fontWeight="700" fill="#292524">{IMPROVEMENT_GLYPH[e.improvement] || '•'}</text>}</g>);
+      // The resource itself (src/data/icons.js) on a light disc; the old diamond if it has no art.
+      if (res && !e?.improvement && !e?.district) out.push(resourceIconUrl(res)
+        ? <g key={`r${t}`} transform={`translate(${x},${y})`} pointerEvents="none" data-resource-glyph={t}><circle r={r * 1.05} fill="rgba(248,250,252,0.85)" stroke="#701a75" strokeWidth={0.7 / zoomK} /><image href={resourceIconUrl(res)} x={-r * 0.95} y={-r * 0.95} width={r * 1.9} height={r * 1.9} /></g>
+        : <polygon key={`r${t}`} points={`${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}`} fill="#f0abfc" stroke="#701a75" strokeWidth={0.7 / zoomK} pointerEvents="none" data-resource-glyph={t} />);
     });
     return out;
   }, [interactive, projection, hexWindow, zoomK, state.world, state.regions, state.playerNationId, lens, closeGround]);
@@ -562,8 +569,10 @@ const Map2DView = ({
     const tiles = getTiles();
     return Object.entries(state.world?.tileState || {}).filter(([, v]) => v.wonder || (v.battle && v.battle.until >= state.turnNumber)).map(([t, v]) => {
       const { lat, lon } = tiles.latLonOf(Number(t)); const [x, y] = projection([lon, lat]);
-      if (v.wonder) return <text key={t} x={x} y={y} textAnchor="middle" fontSize={12 / zoomK} fill="#fde68a" stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke" pointerEvents="none" data-wonder-mark={t}>★</text>;
-      return <text key={t} x={x} y={y} textAnchor="middle" fontSize={11 / zoomK} fill={v.battle.outcome === 'attacker' ? '#fda4af' : '#cbd5e1'} stroke="rgba(0,0,0,0.75)" strokeWidth={2 / zoomK} paintOrder="stroke" pointerEvents="none" data-battle-mark={t}>⚔</text>;
+      // The wonder's own silhouette (else the generic monument), and crossed swords for a battle.
+      if (v.wonder) { const s = 18 / zoomK; return <image key={t} href={wonderIconUrl(v.wonder) || markerIconUrl('wonder')} x={x - s / 2} y={y - s / 2} width={s} height={s} pointerEvents="none" data-wonder-mark={t} />; }
+      const s = 15 / zoomK;
+      return <g key={t} pointerEvents="none" data-battle-mark={t} data-outcome={v.battle.outcome}><circle cx={x} cy={y} r={s * 0.6} fill={v.battle.outcome === 'attacker' ? 'rgba(127,29,29,0.7)' : 'rgba(30,41,59,0.7)'} /><image href={markerIconUrl('battle')} x={x - s / 2} y={y - s / 2} width={s} height={s} /></g>;
     });
   }, [interactive, projection, zoomK, state.world, state.turnNumber]);
   // March lines (plan §4g, on tiles since workstream 5): the marches under way and the one being
@@ -613,7 +622,10 @@ const Map2DView = ({
       const r = close ? Math.min(5 / Math.sqrt(zoomK), 6 / zoomK) : 5 / Math.sqrt(zoomK);
       return (
         <g key={u.id} transform={`translate(${x},${y})`} data-settler={u.id} data-own={own ? "true" : "false"} onClick={(e) => { e.stopPropagation(); onSelectTile?.(u.tile); }} style={{ cursor: 'pointer' }}>
-          <polygon points={`0,${-r} ${r},${r * 0.8} ${-r},${r * 0.8}`} fill={own ? '#fde68a' : '#e2e8f0'} stroke={own ? '#92400e' : '#334155'} strokeWidth={1.2 / Math.sqrt(zoomK)} />
+          {/* The settler wagon on a disc in its side's colour (the old tent if it has no art). */}
+          {unitIconUrl('settler')
+            ? <><circle r={r * 1.15} fill={own ? '#fde68a' : '#e2e8f0'} stroke={own ? '#92400e' : '#334155'} strokeWidth={1.2 / Math.sqrt(zoomK)} /><image href={unitIconUrl('settler')} x={-r} y={-r} width={r * 2} height={r * 2} /></>
+            : <polygon points={`0,${-r} ${r},${r * 0.8} ${-r},${r * 0.8}`} fill={own ? '#fde68a' : '#e2e8f0'} stroke={own ? '#92400e' : '#334155'} strokeWidth={1.2 / Math.sqrt(zoomK)} />}
           {own && u.target == null && !close && <circle r={r * 1.6} fill="none" stroke="#fde68a" strokeWidth={1 / Math.sqrt(zoomK)} strokeDasharray={`${3 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}`} />}
         </g>
       );
@@ -626,6 +638,10 @@ const Map2DView = ({
     if (!interactive || !projection) return null;
     const out = [];
     const townsDrawn = zoomK >= CLOSE_ZOOM_K;
+    // Each owner's age once (the city badge is a skyline of that age, sized by the town tier).
+    const ages = {};
+    const ageOf = (owner) => (ages[owner] ||= getEffectiveAgeId(state.age, getTechAgeId(state, owner)));
+    const capitalUrl = markerIconUrl('capital');
     Object.values(state.regions).forEach((city) => {
       const ll = cityLatLon(state, city.id);
       if (!ll) return;
@@ -652,21 +668,25 @@ const Map2DView = ({
       out.push(
         <g key={city.id} transform={`translate(${x},${y})`} data-city-badge={city.id} onClick={(e) => handleClick(city.id, e)} style={{ cursor: 'pointer' }}>
           <circle r={r} fill={city.id === selectedRegion ? '#fde68a' : city.outpost ? '#e2e8f0' : '#f8fafc'} stroke={colour} strokeWidth={2 / Math.sqrt(zoomK)} strokeDasharray={city.outpost ? `${2 / Math.sqrt(zoomK)} ${2 / Math.sqrt(zoomK)}` : undefined} />
-          {city.isCapital && <circle r={r * 0.4} fill={colour} />}
+          {/* The skyline of the owner's age and the town's size (art spec section 8), inside the disc. */}
+          {!city.outpost && <image href={cityIconUrl(townTier(city)?.id, ageOf(city.owner))} x={-r * 0.92} y={-r * 0.92} width={r * 1.84} height={r * 1.84} pointerEvents="none" data-city-icon={townTier(city)?.id} />}
+          {city.isCapital && (capitalUrl
+            ? <image href={capitalUrl} x={-r * 1.35} y={-r * 1.35} width={r * 0.95} height={r * 0.95} pointerEvents="none" data-capital-mark={city.id} />
+            : <circle r={r * 0.4} fill={colour} />)}
           {city.outpost && arc(city.outpost.progress / OUTPOST_DONE, r + sw * 1.2, '#fde68a', sw)}
           {city.siege && arc(city.siege.hp / Math.max(1, city.siege.maxHp), r + sw * 1.2, '#f97316', sw)}
           {city.siege && <text y={-r - sw * 2.5} textAnchor="middle" fontSize={r * 0.9} fontWeight="700" fill="#fb923c" stroke="rgba(0,0,0,0.7)" strokeWidth={sw * 0.8} paintOrder="stroke" pointerEvents="none" data-siege-badge={city.id}>⚔</text>}
           {walls > 0 && !city.outpost && <rect x={-r * 0.9} y={r * 0.45} width={r * 1.8} height={r * 0.35} fill="#475569" stroke="#0f172a" strokeWidth={sw * 0.4} />}
           {city.owner && loyaltyOf(city) <= 25 && <circle cx={r * 0.85} cy={-r * 0.85} r={r * 0.38} fill="#ef4444" stroke="#0f172a" strokeWidth={sw * 0.4} data-loyalty-warning={city.id} />}
           {city.disaster && <text x={-r * 0.95} y={-r * 0.6} textAnchor="middle" fontSize={r * 0.9} pointerEvents="none" data-disaster-badge={city.id}>{city.disaster.kind === 'flood' ? '≈' : city.disaster.kind === 'fire' ? '🔥' : '☠'}</text>}
-          {zoomK >= CITY_DETAIL_ZOOM && <text y={r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="700" fill="#0f172a" pointerEvents="none">{city.size || 1}</text>}
+          {zoomK >= CITY_DETAIL_ZOOM && <g pointerEvents="none" data-city-size={city.id}><rect x={r * 0.35} y={r * 0.3} width={r * 1.05} height={r * 0.85} rx={r * 0.3} fill="#0f172a" stroke={colour} strokeWidth={sw * 0.5} /><text x={r * 0.875} y={r * 0.97} textAnchor="middle" fontSize={r * 0.72} fontWeight="700" fill="#f8fafc">{city.size || 1}</text></g>}
           {(zoomK >= CITY_DETAIL_ZOOM || (zoomK >= NAME_EARLY_ZOOM && (city.isCapital || city.owner === state.playerNationId))) && <text y={-r - 2 / zoomK} textAnchor="middle" fontSize={11 / zoomK} fill="#fff" stroke="rgba(0,0,0,0.75)" strokeWidth={2.5 / zoomK} paintOrder="stroke" pointerEvents="none">{city.name}</text>}
         </g>
       );
     });
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interactive, projection, state.regions, zoomK, selectedRegion, handleClick]);
+  }, [interactive, projection, state.regions, state.age, state.nations, zoomK, selectedRegion, handleClick]);
 
   useEffect(()=>{
     if(!interactive || !hudOffset || !polygons || !projection || window.__E2E_MAP_TEST__!==true)return undefined;

@@ -13,6 +13,7 @@ import { getEffectiveAgeId } from '../../data/ages';
 import { getResearched } from '../../engine/nationState';
 import { tileFacts, tileYields, IMPROVEMENTS } from '../../data/tileYields';
 import { DISTRICTS } from '../../engine/districts';
+import { ResourceIcon, ImprovementIcon } from '../ui/icons';
 import { canSettle, scoreSite, settlerPath, settlersOf, SETTLER_MOVES } from '../../engine/settlers';
 import { WORLD_NATIONS } from '../../data/worldNations';
 import { atSea } from '../../engine/fleets';
@@ -99,8 +100,8 @@ const TileSheet = ({ tile, onClose, onSelectRegion }) => {
         <Yield icon={Wheat} value={`${y.food} food`} className="text-emerald-300" title="Food" />
         <Yield icon={Hammer} value={`${y.production} production`} className="text-amber-300" title="Production" />
         <Yield icon={Coins} value={`${y.gold} gold`} className="text-yellow-300" title="Gold" />
-        {facts.resource && <span className="text-fuchsia-300 capitalize">{facts.resource}</span>}
-        {facts.improvement && <span className="text-sky-300">{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
+        {facts.resource && <span className="text-fuchsia-300 capitalize inline-flex items-center gap-1"><ResourceIcon resourceId={facts.resource} size={18} />{facts.resource}</span>}
+        {facts.improvement && <span className="text-sky-300 inline-flex items-center gap-1"><ImprovementIcon improvementId={facts.improvement} size={18} />{IMPROVEMENTS[facts.improvement]?.name || facts.improvement}{facts.pillaged ? ' (pillaged)' : ''}</span>}
         {facts.district && <span className="text-violet-300" data-testid="tile-district">{DISTRICTS[facts.district]?.name || facts.district}{facts.pillaged ? ' (pillaged)' : ''}</span>}
         {heldBy && <span className="text-violet-300" data-testid="tile-estate">Held by the {ESTATE_LABELS[heldBy] || heldBy}</span>}
       </div>

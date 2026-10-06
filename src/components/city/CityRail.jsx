@@ -9,6 +9,7 @@ import { useGame } from '../../context/GameContext';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useReportInset } from '../../context/MapInsetsContext';
 import { cityRailModel, RAIL_STORAGE_KEY } from './cityRailModel';
+import GameIcon from '../ui/GameIcon';
 
 const readCollapsed = () => { try { return localStorage.getItem(RAIL_STORAGE_KEY) === '1'; } catch { return false; } };
 
@@ -47,7 +48,7 @@ const CityRail = ({ onSelectRegion }) => {
             <button type="button" onClick={() => onSelectRegion?.(r.id)} data-testid="city-rail-row" data-city-id={r.id} className="w-full text-left px-3 py-1.5 min-h-[44px] border-b border-slate-800/80 hover:bg-slate-800/70 flex items-center gap-2">
               <span className="w-7 h-7 rounded-full bg-slate-800 border border-slate-600 text-[11px] font-bold text-white flex items-center justify-center shrink-0">{r.size}</span>
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1 text-xs text-slate-100 truncate">{r.capital && <Crown className="w-3 h-3 text-amber-300 shrink-0" />}{r.name}{r.outpost ? <span className="text-slate-500"> (outpost)</span> : ''}</span>
+                <span className="flex items-center gap-1 text-xs text-slate-100 truncate">{r.capital && <GameIcon group="markers" id="capital" size={14} title="Capital" fallback={<Crown className="w-3 h-3 text-amber-300 shrink-0" />} />}{r.name}{r.outpost ? <span className="text-slate-500"> (outpost)</span> : ''}</span>
                 <span className="block text-[10px] text-slate-400 truncate">
                   {r.outpost ? 'Growing into a city' : r.idle ? 'Nothing queued' : `${r.building}${r.buildTurns ? ` · ${r.buildTurns} t` : ''}`}
                   {r.growthTurns ? ` · grows in ${r.growthTurns}` : ''}

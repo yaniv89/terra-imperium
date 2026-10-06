@@ -7,6 +7,8 @@
 // itself only adds the matching log line, since it's pure and has no access to EffectsContext.
 import React from 'react';
 import { Sparkles } from 'lucide-react';
+import { AGES } from '../../data/ages';
+import GameIcon from '../ui/GameIcon';
 
 const AgeAdvanceBanner = ({ ageName, onDismiss }) => {
   if (!ageName) return null;
@@ -14,7 +16,7 @@ const AgeAdvanceBanner = ({ ageName, onDismiss }) => {
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 animate-banner-in">
       <div className="flex items-center gap-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 border border-amber-300/60 rounded-full shadow-2xl shadow-amber-900/40 pl-4 pr-2 py-2">
-        <Sparkles className="w-4 h-4 text-amber-50 shrink-0" />
+        <GameIcon group="ages" id={Object.values(AGES).find((a) => a.name === ageName)?.id} size={24} fallback={<Sparkles className="w-4 h-4 text-amber-50 shrink-0" />} />
         <div className="text-sm font-semibold text-amber-50 tracking-wide whitespace-nowrap">
           A new era dawns — {ageName}
         </div>
