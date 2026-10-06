@@ -7,7 +7,7 @@ import { coloniesOf, colonySlots, foundColony, foundingCost, validateColony } fr
 import { getNeighborIds, getOwnedRegionIds } from '../data/regions';
 import { getPool, getTechAgeId } from './nationState';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, applyInvasionResult } from './invasion';
-import { resolveBattle } from './battle';
+import { resolveAutoBattle } from './autoBattle';
 import { isUnitInBattle } from './invasion';
 import { placeInCity, unitTile, touchesCity, findTilePath, stackPace } from './armies';
 import { advanceMarches } from './routes';
@@ -82,9 +82,9 @@ export const aiSally = (state, nationId, rng) => {
     if (!v.ok) continue;
     const ctx = getFieldBattleContext(actor, v);
     if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < SALLY_MIN_P) continue;
-    const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
-    const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
-    next = { ...next, units: r.units, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+    const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
+    const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
+    next = { ...next, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: next.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
       logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => by.has(state.playerNationId))] };
   }
   return next;
@@ -181,10 +181,10 @@ export const processAIOperations = (state, rng) => {
         if (!v.ok) continue;
         const ctx = getFieldBattleContext(actor, v);
         if (estimateBattle(getFieldResolveArgs(v, ctx)).pWin < RELIEF_MIN_P) continue;
-        const battle = resolveBattle({ ...getFieldResolveArgs(v, ctx), rng });
-        const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId });
+        const battle = resolveAutoBattle(actor, getFieldResolveArgs(v, ctx), { kind: 'field', fromRegionId: v.fromRegionId }, rng);
+        const r = applyFieldResult({ ...actor, units: next.units }, v, battle, { rngSeed: rng.getSeed(), attackerNationId: nationId, viewerId: state.playerNationId });
         stack.forEach(u => committed.add(u.id));
-        next = { ...next, units: r.units, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
+        next = { ...next, units: r.units, regions: r.regions, nations: { ...r.nations, [nationId]: { ...r.nations[nationId], economy: next.nations[nationId]?.economy } }, hiredCommanders: r.hiredCommanders, appliedBattleIds: r.appliedBattleIds, world: r.world || next.world, wars: r.wars, rngSeed: r.rngSeed, battleReports: r.battleReports, battleReportSeq: r.battleReportSeq, lastBattleReport: r.lastBattleReport,
           logs: [...next.logs, ...r.logs.slice(next.logs.length).filter(() => v.defenderNationId === state.playerNationId)] };
         relieved = true;
         break;
@@ -215,9 +215,9 @@ export const processAIOperations = (state, rng) => {
           stack.forEach(u => { next.units[u.id] = { ...u, movesLeft: 0 }; });
           next.pendingDefenses.push({ id: `op_${state.turnNumber}_${nationId}_${from}`, warId: v.war.id, aggressorId: nationId, fromRegionId: from, regionId: target, attackerUnitIds: stack.map(u => u.id), defenderUnitIds: v.defenderUnits.map(u=>u.id), synthetic: [], seed: Math.floor(rng.next()*0xffffffff)>>>0, turn: state.turnNumber });
         } else {
-          const battle = resolveBattle({ ...getResolveBattleArgs(v, ctx), rng });
-          const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: target, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed() });
-          next = { ...next, regions: result.regions, units: result.units, wars: result.wars, hiredCommanders: result.hiredCommanders,
+          const battle = resolveAutoBattle(actor, getResolveBattleArgs(v, ctx), { kind: 'invasion', cityId: target, fromRegionId: from }, rng);
+          const result = applyInvasionResult(actor, { ...v, fromRegionId: from, targetRegionId: target, isDefended: ctx.isDefended }, battle, { rngSeed: rng.getSeed(), viewerId: state.playerNationId, militia: battle.inputs.militia });
+          next = { ...next, regions: result.regions, units: result.units, wars: result.wars, hiredCommanders: result.hiredCommanders, appliedBattleIds: result.appliedBattleIds, world: result.world || next.world,
             nations: { ...result.nations, [nationId]: { ...result.nations[nationId], economy: chargedPool } },
             logs: [...next.logs, { year: next.year, type: 'combat', message: `${next.nations[nationId].name} attacks from ${from} toward ${target}.` }] };
         }

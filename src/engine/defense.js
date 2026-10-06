@@ -10,25 +10,21 @@
 // aggressor's militaryStrength to make up the gap. Synthetic troops exist only for this battle:
 // they're stored on the defense record, never in state.units, and their losses come out of
 // militaryStrength afterwards.
-import { recordBattleReport } from './battleReports';
 import { withAirSupport } from './airPower';
 import { conquerRegion } from './conquest';
-import { applyBattleAftermath } from './aftermath';
 import { LogTypes } from '../data/types';
 import { REGIONS_DATA, getTouchingIds } from '../data/regions';
 import { getRegionTerrain } from '../data/terrain';
 import { getEffectiveAgeId } from '../data/ages';
 import { getAvailableClasses } from '../data/unitClasses';
-import { awardXp } from '../data/promotions';
-import { getGeneralXpMultiplier } from '../data/generals';
 import { createRng } from '../utils/rng';
-import { resolveBattle } from './battle';
+import { resolveAutoBattle } from './autoBattle';
 import { recordBattle } from './diplomacy';
 import { getTechAgeId } from './nationState';
 import { getRegionModifier } from './modifiers/sheet';
-import { XP_WIN, XP_LOSE } from './invasion';
-import { placeInCity, unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
-import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, hasMeleeUnitDeployed, resolveSiegeControlDamage, SIEGE_CONTROL_DAMAGE, SIEGE_CAPTURE_CONTROL_THRESHOLD, isGarrisonBroken } from './siege';
+import { unitsWithinRings, nearestHeldCity, REINFORCE_RINGS } from './armies';
+import { getDefenseLevelDamageReductionMultiplier, getZoneOfControlMultiplier, SIEGE_CONTROL_DAMAGE } from './siege';
+import { applyBattleOutcome, makeBattleOutcome } from './battleOutcome';
 
 // Before this system, a successful capture roll against a garrisoned player region always did
 // full siege damage. Now the garrison fights back (getAssaultPressure averages about half), so the
@@ -147,10 +143,12 @@ export const getDefenseBattleContext = (state, def) => {
   };
 };
 
+// The honest auto-resolve (autoBattle.js) with the same inputs as the commanded defence: the
+// city's militia beside the garrison, supply, starvation, plague, the walls' remaining HP.
 export const autoResolveDefense = (state, def) => {
   const armies = getDefenseArmies(state, def);
   const ctx = getDefenseBattleContext(state, def);
-  return resolveBattle({
+  return resolveAutoBattle(state, {
     attackerUnits: armies.attackerUnits,
     defenderUnits: armies.defenderUnits,
     terrain: ctx.terrain,
@@ -158,9 +156,8 @@ export const autoResolveDefense = (state, def) => {
     generals: ctx.generals,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
-    defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier,
-    rng: createRng(def.seed)
-  });
+    defenderDamageReductionMultiplier: ctx.defenderDamageReductionMultiplier
+  }, { kind: 'defense', cityId: def.regionId, fromRegionId: def.fromRegionId }, createRng(def.seed));
 };
 
 const sumStrength = (units) => units.reduce((s, u) => s + Math.max(0, u.strength), 0);
@@ -180,115 +177,21 @@ export const getAssaultPressure = (battle, before) => {
   return shareA + shareD > 0 ? Math.max(0, Math.min(1, shareD / (shareA + shareD))) : 0;
 };
 
-// resolveSiegeControlDamage's rule with the damage scaled by pressure.
-const siegeFromPressure = (control, pressure, hasMeleeUnit) => {
-  const damaged = Math.max(0, (control || 0) - Math.round(SIEGE_CONTROL_DAMAGE.attacker * pressure));
-  if (pressure <= 0 || damaged > SIEGE_CAPTURE_CONTROL_THRESHOLD) return { nextControl: damaged, captured: false };
-  return hasMeleeUnit ? { nextControl: damaged, captured: true } : { nextControl: SIEGE_CAPTURE_CONTROL_THRESHOLD, captured: false };
-};
-
 const removeDefense = (state, defId) => ({ ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== defId) });
 
-// Everything that follows a defense battle. `battle` has resolveBattle's shape. `pressure` is set
-// for auto-resolved battles (getAssaultPressure); a commanded battle is fought to the finish, so
-// its outcome alone decides the siege. `decisive` (commanded: the keep fell) takes the region.
-export const applyDefenseResult = (state, def, battle, { decisive = false, xpBonusById = null, pressure = null } = {}) => {
-  const cleared = removeDefense(state, def.id);
-  const war = state.wars.find((w) => w.id === def.warId && w.active);
+// Everything that follows a defense battle, through the one outcome service (battleOutcome.js).
+// `battle` has resolveBattle's shape. `pressure` is set for auto-resolved battles
+// (getAssaultPressure); a commanded battle is fought to the finish, so its outcome alone decides
+// the siege. `decisive` (commanded: the keep fell) takes the region. The defence record's id is
+// the operation id, so Command and Auto of the same assault can never both land.
+export const applyDefenseResult = (state, def, battle, { decisive = false, xpBonusById = null, pressure = null, viewerId = undefined, mode = undefined, militia = null } = {}) => {
   const region = state.regions[def.regionId];
-  // Peace was signed (or the region changed hands) before the battle was fought: nothing happens.
-  if (!war || !region || region.owner !== state.playerNationId || region.occupiedBy) return cleared;
-
-  const { outcome, attackerUnits, defenderUnits, report } = battle;
-  const hasMeleeUnit = hasMeleeUnitDeployed(attackerUnits.filter((u) => u.strength > 0 && !u.routed));
-  const garrisonBroken = isGarrisonBroken(defenderUnits);
-  const siege = pressure === null || (outcome === 'attacker' && garrisonBroken)
-    ? resolveSiegeControlDamage({ currentControl: region.control, outcome, hasMeleeUnit, garrisonBroken })
-    : siegeFromPressure(region.control, pressure, hasMeleeUnit);
-  const captured = siege.captured || (decisive && outcome === 'attacker');
-  const damaged = siege.nextControl < (region.control || 0);
-  // Who "won" for war score: an auto-resolved assault counts for the aggressor once it did most of
-  // the damage it could have.
-  const aggressorWon = pressure === null ? outcome === 'attacker' : pressure >= 0.5;
-  const playerWon = pressure === null ? outcome === 'defender' : pressure < 0.5;
-
-  const units = { ...state.units };
-  // The garrison: XP for the troops who fought; if the region falls, the survivors fall back to a
-  // neighbouring province the player still holds (or are lost if there's nowhere to go).
-  const defenderXp = outcome === 'defender' ? XP_WIN : outcome === 'attacker' ? XP_LOSE : Math.round((XP_WIN + XP_LOSE) / 2);
-  const deployed = report?.deployedDefenderIds || [];
-  const fallback = captured ? nearestHeldCity(state, def.regionId, state.playerNationId) : null;
-  defenderUnits.forEach((u) => {
-    if (!units[u.id]) return;
-    if (u.strength <= 0 || (captured && !fallback)) { delete units[u.id]; return; }
-    const gained = deployed.includes(u.id) ? Math.round(defenderXp * getGeneralXpMultiplier(state.hiredCommanders?.[u.commanderId])) + (xpBonusById?.[u.id] || 0) : 0;
-    const next = gained ? awardXp({ ...units[u.id], strength: u.strength, morale: u.morale }, gained) : { ...units[u.id], strength: u.strength, morale: u.morale };
-    units[u.id] = { ...(captured ? placeInCity(next, state.regions, fallback) : next), lastBattleTurn: state.turnNumber };
-  });
-  // The aggressor's real troops take their losses and stay where they are. Synthetic ones fold
-  // back into militaryStrength, minus what they lost.
-  let syntheticLoss = 0;
-  attackerUnits.forEach((u) => {
-    if (u.synthetic) {
-      const start = (def.synthetic || []).find((s) => s.id === u.id)?.strength || 0;
-      syntheticLoss += Math.max(0, start - Math.max(0, u.strength));
-      return;
-    }
-    if (!units[u.id]) return;
-    if (u.strength <= 0) delete units[u.id];
-    else units[u.id] = { ...(captured ? placeInCity(units[u.id], state.regions, def.regionId) : units[u.id]), strength: u.strength, morale: u.morale, movesLeft: 0, lastBattleTurn: state.turnNumber };
-  });
-  const aggressor = state.nations[def.aggressorId];
-  let nations = aggressor && syntheticLoss > 0
-    ? { ...state.nations, [def.aggressorId]: { ...aggressor, militaryStrength: Math.max(100, (aggressor.militaryStrength || 0) - syntheticLoss) } }
-    : state.nations;
-
-  // A province that falls is conquered outright (src/engine/conquest.js) — the same rule as the
-  // player's own invasions; win it back by invading it.
-  let regions;
-  if (captured) {
-    ({ regions, nations } = conquerRegion({ regions: state.regions, nations, turnNumber: state.turnNumber }, def.regionId, def.aggressorId, war));
-  } else {
-    regions = { ...state.regions, [def.regionId]: { ...region, control: siege.nextControl, lastAttackedTurn: state.turnNumber, underInvasion: damaged } };
-  }
-
-  const winnerId = aggressorWon ? def.aggressorId : playerWon ? state.playerNationId : null;
-  const wars = winnerId
-    ? state.wars.map((w) => (w.id === war.id ? { ...w, battleScore: recordBattle(w, winnerId, aggressorWon ? (captured ? 0.3 : 0.15) : 0.2) } : w))
-    : state.wars;
-
-  const name = REGIONS_DATA[def.regionId]?.name || def.regionId;
-  const enemy = aggressor?.name || def.aggressorId;
-  const message = captured
-    ? `${enemy} storms ${name} and conquers it!${fallback ? ` Your survivors fall back to ${REGIONS_DATA[fallback]?.name || fallback}.` : ''}`
-    : damaged
-      ? `${enemy} presses the siege of ${name} (control now ${siege.nextControl}%). Your garrison holds on.`
-      : `Your garrison repels ${enemy}'s assault on ${name}!`;
-
-  // The battle's cost to the land and people (src/engine/aftermath.js).
-  const startOf = (u) => state.units[u.id] || (def.synthetic || []).find((sy) => sy.id === u.id) || { ...u, strength: u.maxStrength || u.strength };
-  const outcomeForAftermath = pressure === null ? outcome : aggressorWon ? 'attacker' : playerWon ? 'defender' : 'draw';
-  const aftermath = applyBattleAftermath({ ...state, regions, nations }, {
-    regionId: def.regionId,
-    beforeA: attackerUnits.map(startOf), afterA: attackerUnits,
-    beforeD: defenderUnits.map(startOf), afterD: defenderUnits,
-    attackerId: def.aggressorId, defenderId: state.playerNationId, outcome: outcomeForAftermath
-  });
-
-  return {
-    ...cleared,
-    units,
-    nations: aftermath.nations,
-    regions: aftermath.regions,
-    hiredCommanders: aftermath.hiredCommanders,
-    wars,
-    ...recordBattleReport(state, { ...report, captured, defense: true, fromRegionId: def.fromRegionId, targetRegionId: def.regionId, attackerNationId: def.aggressorId, defenderNationId: state.playerNationId }, {
-      attackers: attackerUnits, defenders: defenderUnits,
-      // Synthetic attackers (an AI's abstract militaryStrength, fielded for this fight) aren't in state.units.
-      beforeOf: (u) => (u.synthetic ? (def.synthetic || []).find((s) => s.id === u.id)?.strength : state.units[u.id]?.strength) ?? u.maxStrength ?? u.strength
-    }),
-    logs: [...state.logs, { year: state.year, message, type: LogTypes.COMBAT }, ...aftermath.logs]
-  };
+  return applyBattleOutcome(state, makeBattleOutcome({
+    id: def.id, kind: 'defense', mode, defenseId: def.id, warId: def.warId,
+    attackerNationId: def.aggressorId, defenderNationId: region?.owner === state.playerNationId ? state.playerNationId : (def.defenderNationId || state.playerNationId),
+    viewerId, fromRegionId: def.fromRegionId, regionId: def.regionId, tile: region?.tile ?? null,
+    isDefended: true, decisive, xpBonusById, pressure, synthetic: def.synthetic || [], militia
+  }, battle));
 };
 
 // Auto-resolves one queued defense (or all of them) into the log.
@@ -307,8 +210,8 @@ export const resolveDefenseAuto = (state, defId) => {
     });
   }
   const battle = autoResolveDefense(state, def);
-  const pressure = getAssaultPressure(battle, { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) });
-  return applyDefenseResult(state, def, battle, { pressure });
+  const pressure = getAssaultPressure(battle, { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) + sumStrength(battle.inputs.militia) });
+  return applyDefenseResult(state, def, battle, { pressure, mode: 'auto', militia: battle.inputs.militia });
 };
 
 export const resolveAllDefensesAuto = (state) =>
@@ -320,10 +223,11 @@ export const resolveAllDefensesAuto = (state) =>
 export const estimateDefenseOdds = (state, def, samples = 40) => {
   const armies = getDefenseArmies(state, def);
   if (!armies.defenderUnits.length) return { undefended: true, holdChance: 0, avgDamage: SIEGE_CONTROL_DAMAGE.attacker };
-  const before = { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) };
+  let before = null;
   let held = 0; let damage = 0;
   for (let i = 0; i < samples; i++) {
     const battle = autoResolveDefense(state, { ...def, seed: (def.seed + i * 0x9e3779b1) >>> 0 });
+    before = before || { attacker: sumStrength(armies.attackerUnits), defender: sumStrength(armies.defenderUnits) + sumStrength(battle.inputs.militia) };
     const p = getAssaultPressure(battle, before);
     if (p < 0.5) held++;
     damage += SIEGE_CONTROL_DAMAGE.attacker * p;

@@ -108,10 +108,11 @@ export const battleLossShare = (beforeUnits, afterUnits) => {
 };
 
 // The province a battle was fought in is devastated.
-export const devastateRegion = (regions, regionId, lossShare) => {
+// `scale` (default 1): a sea battle off a coast devastates it at half rate (battleOutcome.js).
+export const devastateRegion = (regions, regionId, lossShare, scale = 1) => {
   const region = regions?.[regionId];
-  if (!region) return regions;
-  const gain = DEVASTATION_PER_BATTLE + Math.round(DEVASTATION_PER_LOSS_SHARE * clamp(lossShare || 0, 0, 1));
+  if (!region || !(scale > 0)) return regions;
+  const gain = Math.round((DEVASTATION_PER_BATTLE + Math.round(DEVASTATION_PER_LOSS_SHARE * clamp(lossShare || 0, 0, 1))) * scale);
   return { ...regions, [regionId]: { ...region, devastation: clamp((region.devastation || 0) + gain, 0, DEVASTATION_MAX) } };
 };
 
@@ -159,11 +160,12 @@ export const resolveCommanderCasualties = (hiredCommanders, destroyedUnits, turn
 // Everything above for one resolved battle. `beforeA`/`beforeD` and `afterA`/`afterD` are the two
 // sides' units going in and coming out; `regionId` is where it was fought; the winner/loser ids
 // may be null (a draw). Returns the new regions/nations/hiredCommanders and log lines.
-export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD, afterD, attackerId, defenderId, outcome }) => {
+// `devastationScale` (default 1): 0.5 for a sea battle off a coast (battleOutcome.js).
+export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD, afterD, attackerId, defenderId, outcome, devastationScale = 1 }) => {
   const all = [...(beforeA || []), ...(beforeD || [])];
   const allAfter = [...(afterA || []), ...(afterD || [])];
   let regions = applyCasualtyScars(state.regions, all, allAfter);
-  regions = devastateRegion(regions, regionId, battleLossShare(all, allAfter));
+  regions = devastateRegion(regions, regionId, battleLossShare(all, allAfter), devastationScale);
   const winnerId = outcome === 'attacker' ? attackerId : outcome === 'defender' ? defenderId : null;
   const loserId = outcome === 'attacker' ? defenderId : outcome === 'defender' ? attackerId : null;
   const loserShare = loserId === attackerId ? sideLossShare(beforeA, afterA) : sideLossShare(beforeD, afterD);

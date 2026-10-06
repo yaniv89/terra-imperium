@@ -40,8 +40,10 @@ export const recordBattleReport = (state, report, { attackers, defenders, before
     turn: state.turnNumber,
     year: state.year,
     kind: report.kind || 'land',
+    // The battle's name (battleName.js: "Siege of Ur", "Battle of the Jordan"), from the outcome service.
+    name: report.name || null,
     defense: !!report.defense,
-    commanded: !!report.tactical,
+    commanded: !!report.tactical || report.mode === 'command',
     fromRegionId: report.fromRegionId ?? null,
     targetRegionId: report.targetRegionId ?? null,
     attackerNationId: report.attackerNationId ?? null,

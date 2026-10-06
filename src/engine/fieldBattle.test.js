@@ -82,11 +82,15 @@ describe('field attacks', () => {
     const win2 = { outcome: 'attacker', attackerUnits: v2.attackerUnits, defenderUnits: [{ ...v2.defenderUnits[0], strength: 100 }], report: { deployedAttackerIds: [], deployedDefenderIds: [], outcome: 'attacker' } };
     const gone = applyFieldResult(boxed, v2, win2, { rngSeed: 1 });
     if (tiles.neighbors[theirs].every((t) => tiles.land[t] !== 1 || t === ours || ring.some((r) => r.tile === t))) expect(gone.units.e).toBeUndefined();
-    // A lost attack leaves everyone in place.
+    // A lost attack (master plan 6.9): the defender holds its tile; the attackers, who withdrew,
+    // step back one tile away from it (a unit still on the field would be destroyed).
     const lose = { outcome: 'defender', attackerUnits: v.attackerUnits.map((u) => ({ ...u, strength: 500 })), defenderUnits: v.defenderUnits, report: { deployedAttackerIds: [], deployedDefenderIds: [], outcome: 'defender' } };
     const held = applyFieldResult(war, v, lose, { rngSeed: 1 });
     expect(held.units.e.tile).toBe(theirs);
-    expect(held.units.a.tile).toBe(ours);
+    expect(held.units.a.tile).not.toBe(theirs);
+    expect([ours, ...tiles.neighbors[ours]]).toContain(held.units.a.tile);
+    const caught = applyFieldResult(war, v, { ...lose, attackerUnits: lose.attackerUnits.map((u) => ({ ...u, disposition: 'field' })) }, { rngSeed: 1 });
+    expect(caught.units.a).toBeUndefined();
     expect(ctx.isDefended).toBe(true);
   });
 

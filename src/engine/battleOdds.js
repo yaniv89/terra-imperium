@@ -4,7 +4,8 @@
 // rule to each result, so the numbers shown are exactly what pressing Auto-resolve does. Also
 // explains WHY — the multipliers each side fights under (numbers, matchups, terrain, walls, age)
 // — so the calculation isn't a black box. Pure and fast (~a few ms for 200 samples).
-import { resolveBattle } from './battle';
+import { resolveAutoBattle } from './autoBattle';
+import { battleInputs, cityMilitia } from './battleInputs';
 import { createRng } from '../utils/rng';
 import { validateInvasion, getInvasionBattleContext, getResolveBattleArgs, validateAmphibious, getAmphibiousBattleContext } from './invasion';
 import { validateFieldAttack, getFieldBattleContext, getFieldResolveArgs } from './fieldBattle';
@@ -40,12 +41,13 @@ export const explainInvasion = (v, ctx) => {
 
 // Runs the real auto-resolve + siege rule `samples` times for an attack described by `v`
 // ({ attackerUnits, defenderUnits, targetRegion }) with resolveBattle `args` and context `ctx`.
-const simulate = (v, args, ctx, samples) => {
-  const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(v.defenderUnits);
+const simulate = (state, v, args, ctx, samples, spec) => {
+  const inputs = battleInputs(state, { attackerUnits: args.attackerUnits, defenderUnits: args.defenderUnits, cityId: spec.kind === 'field' || spec.kind === 'naval' ? null : spec.cityId, fromRegionId: spec.fromRegionId, naval: spec.kind === 'naval' });
+  const attStart = sumStrength(v.attackerUnits); const defStart = sumStrength(inputs.defenderUnits); // the militia stand with the garrison
   const tally = { attacker: 0, defender: 0, stalemate: 0 };
   let attLoss = 0; let defLoss = 0; let captures = 0; let controlLeft = 0;
   for (let i = 1; i <= samples; i++) {
-    const r = resolveBattle({ ...args, rng: createRng(Math.imul(i, 2654435761) >>> 0) });
+    const r = resolveAutoBattle(state, args, spec, createRng(Math.imul(i, 2654435761) >>> 0), inputs);
     tally[r.outcome] += 1;
     attLoss += attStart - sumStrength(r.attackerUnits);
     defLoss += defStart - sumStrength(r.defenderUnits);
@@ -79,9 +81,9 @@ const UNDEFENDED = { attacker: 1, defender: 0, stalemate: 0, capture: 1, undefen
 export const estimateInvasionOdds = (state, fromRegionId, targetRegionId, samples = 200) => {
   const v = validateInvasion(state, fromRegionId, targetRegionId, { ignoreCost: true });
   if (!v.ok) return null;
-  if (v.defenderUnits.length === 0) return UNDEFENDED;
+  if (v.defenderUnits.length === 0 && !cityMilitia(state, targetRegionId).length) return UNDEFENDED;
   const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits: v.defenderUnits });
-  return simulate(v, getResolveBattleArgs(v, ctx), ctx, samples);
+  return simulate(state, v, getResolveBattleArgs(v, ctx), ctx, samples, { kind: 'invasion', cityId: targetRegionId, fromRegionId });
 };
 
 // The land battle of an amphibious landing (the naval interception, if any, is fought first and
@@ -91,7 +93,7 @@ export const estimateFieldOdds = (state, fromRegionId, tile, samples = 200) => {
   const v = validateFieldAttack(state, fromRegionId, tile, { ignoreCost: true });
   if (!v.ok) return null;
   const ctx = getFieldBattleContext(state, v);
-  const r = simulate({ ...v, targetRegion: { control: 100 } }, getFieldResolveArgs(v, ctx), ctx, samples);
+  const r = simulate(state, { ...v, targetRegion: { control: 100 } }, getFieldResolveArgs(v, ctx), ctx, samples, { kind: 'field', fromRegionId });
   return { ...r, capture: r.attacker, field: true };
 };
 
@@ -100,7 +102,7 @@ export const estimateFleetOdds = (state, fromTile, tile, samples = 200) => {
   const v = validateFleetAttack(state, fromTile, tile, { ignoreCost: true });
   if (!v.ok) return null;
   const ctx = getFleetBattleContext(state, v);
-  const r = simulate({ ...v, targetRegion: { control: 100 } }, getFleetResolveArgs(v, ctx), ctx, samples);
+  const r = simulate(state, { ...v, targetRegion: { control: 100 } }, getFleetResolveArgs(v, ctx), ctx, samples, { kind: 'naval' });
   return { ...r, capture: r.attacker, field: true, naval: true };
 };
 
@@ -110,5 +112,5 @@ export const estimateLandingOdds = (state, navalUnitId, targetRegionId, samples 
   if (v.defenderLandUnits.length === 0) return UNDEFENDED;
   const ctx = getAmphibiousBattleContext(state, v, v.defenderLandUnits);
   const battle = { attackerUnits: v.embarkedLandUnits, defenderUnits: v.defenderLandUnits, targetRegion: v.targetRegion };
-  return simulate(battle, { ...ctx, attackerUnits: battle.attackerUnits, defenderUnits: battle.defenderUnits }, ctx, samples);
+  return simulate(state, battle, { ...ctx, attackerUnits: battle.attackerUnits, defenderUnits: battle.defenderUnits }, ctx, samples, { kind: 'landing', cityId: targetRegionId, fromRegionId: v.navalUnit.regionId });
 };

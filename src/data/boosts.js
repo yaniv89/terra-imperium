@@ -5,7 +5,7 @@
 //   f: { cities, sizes, resources (worked or owned resource ids), river (a city on a river),
 //        coastal, forest (an owned forest tile), hills, roads (road improvements), harbour,
 //        scienceBuilding, trade (a trade agreement), atWar, sieged (a siege laid by us),
-//        wonders }
+//        wonders, battlesWon (battles won, from the outcome service) }
 export const BOOST_SHARE = 0.4;
 
 export const BOOSTS = {
@@ -13,7 +13,7 @@ export const BOOSTS = {
   military_composite_bow: { label: 'Own a forest', check: (f) => f.forest },
   military_iron_weapons: { label: 'Own iron', check: (f) => f.resources.has('iron') },
   military_siege_engineering: { label: 'Lay a siege', check: (f) => f.sieged },
-  military_feudal_levies: { label: 'Rule 6 cities', check: (f) => f.cities >= 6 },
+  military_feudal_levies: { label: 'Win 3 battles or rule 6 cities', check: (f) => (f.battlesWon || 0) >= 3 || f.cities >= 6 },
   military_plate_armor: { label: 'Own iron and a city of size 6', check: (f) => f.resources.has('iron') && f.maxSize >= 6 },
   military_gunpowder_weapons: { label: 'Fight a war with 8 cities', check: (f) => f.atWar && f.cities >= 8 },
   military_standing_armies: { label: 'Rule 10 cities', check: (f) => f.cities >= 10 },

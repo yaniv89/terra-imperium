@@ -25,6 +25,7 @@ import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
 import { placeCity, cityKeepInset } from './cityBattle';
 import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
 import { buildEconomySetup } from './economySetup';
+import { battleInputs } from '../../engine/battleInputs';
 import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
@@ -221,6 +222,9 @@ const buildDefenseSetup = (state, pb) => {
   const armies = getDefenseArmies(state, { ...def, attackerUnitIds: pb.attackerUnitIds, synthetic: pb.synthetic, defenderUnitIds: pb.defenderUnitIds });
   if (!armies.attackerUnits.length || !armies.defenderUnits.length) return null;
   const ctx = getDefenseBattleContext(state, def);
+  // The same campaign inputs as the auto-resolve (battleInputs.js): conditioned morale, the city's
+  // militia fixed when the battle began (pb.militia), the stockpiles' supply and development.
+  const ins = battleInputs(state, { attackerUnits: armies.attackerUnits, defenderUnits: armies.defenderUnits, cityId: pb.targetRegionId, fromRegionId: def.fromRegionId, militia: pb.militia || [] });
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fromUnit = armies.attackerUnits.find((u) => !u.synthetic && state.units[u.id]);
   return buildSetupFromArmies({
@@ -228,8 +232,8 @@ const buildDefenseSetup = (state, pb) => {
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
-    attackerUnits: armies.attackerUnits,
-    defenderUnits: armies.defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals,
@@ -253,7 +257,8 @@ const buildDefenseSetup = (state, pb) => {
     regionBuildings: getRegionBattleBuildings(region),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
     cityDamage: cityDamageOf(region),
-    economy: true // every assault is a full RTS battle (decision 23; phase R1)
+    economy: true, // every assault is a full RTS battle (decision 23; phase R1)
+    economyInputs: ins.economyInputs
   });
 };
 
@@ -267,6 +272,7 @@ const buildAmphibiousSetup = (state, pb) => {
   const defenderUnits = v.defenderLandUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
   const ctx = getAmphibiousBattleContext(state, { ...v, hasBeachhead: pb.hasBeachhead ?? v.hasBeachhead }, defenderUnits);
+  const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: pb.targetRegionId, fromRegionId: pb.fromRegionId, militia: pb.militia || [] });
   const regionData = REGIONS_DATA[pb.targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, pb.targetRegionId, 'local.fortLevel').total;
   return buildSetupFromArmies({
@@ -274,8 +280,8 @@ const buildAmphibiousSetup = (state, pb) => {
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
-    attackerUnits,
-    defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
@@ -300,7 +306,8 @@ const buildAmphibiousSetup = (state, pb) => {
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
     cityDamage: cityDamageOf(v.targetRegion),
-    economy: true
+    economy: true,
+    economyInputs: ins.economyInputs
   });
 };
 
@@ -316,14 +323,15 @@ const buildFieldSetup = (state, pb) => {
   const defenderUnits = v.defenderUnits.filter((u) => pb.defenderUnitIds.includes(u.id));
   if (!attackerUnits.length || !defenderUnits.length) return null;
   const ctx = getFieldBattleContext(state, { ...v, attackerUnits, defenderUnits });
+  const ins = battleInputs(state, { attackerUnits, defenderUnits, fromRegionId: pb.fromRegionId });
   return buildSetupFromArmies({
     tileContext: tileContextOf(state, pb.tile, { fromTile: v.fromTile }),
     fromTile: v.fromTile, sally, city: false,
     regionId: pb.targetRegionId,
     terrain: ctx.terrain,
     seed: pb.seed,
-    attackerUnits,
-    defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
@@ -342,7 +350,8 @@ const buildFieldSetup = (state, pb) => {
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
     regionBuildings: [],
-    economy: true // full base-building in field battles too (decision 36)
+    economy: true, // full base-building in field battles too (decision 36)
+    economyInputs: ins.economyInputs
   });
 };
 
@@ -384,6 +393,7 @@ export const buildInvasionSetup = (state, pendingBattle) => {
   const attackerUnits = v.attackerUnits.filter((u) => attackerIds.has(u.id));
   const defenderUnits = v.defenderUnits.filter((u) => defenderIds.has(u.id));
   const ctx = getInvasionBattleContext(state, { targetRegionId, targetRegion: v.targetRegion, defenderUnits });
+  const ins = battleInputs(state, { attackerUnits, defenderUnits, cityId: targetRegionId, fromRegionId, militia: pendingBattle.militia || [] });
   const regionData = REGIONS_DATA[targetRegionId] || {};
   const fortLevel = (v.targetRegion.defenseLevel || 0) + getRegionModifier(state, targetRegionId, 'local.fortLevel').total;
   return buildSetupFromArmies({
@@ -391,8 +401,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     regionId: targetRegionId,
     terrain: ctx.terrain,
     seed,
-    attackerUnits,
-    defenderUnits,
+    attackerUnits: ins.attackerUnits,
+    defenderUnits: ins.defenderUnits,
     attackerAgeId: ctx.attackerAgeId,
     defenderAgeId: ctx.defenderAgeId,
     generals: ctx.generals || {},
@@ -418,7 +428,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, targetRegionId),
     cityDamage: cityDamageOf(v.targetRegion),
-    economy: true
+    economy: true,
+    economyInputs: ins.economyInputs
   });
 };
 

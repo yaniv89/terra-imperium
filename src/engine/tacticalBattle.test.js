@@ -214,7 +214,10 @@ describe('battle odds preview', () => {
     const odds = estimateInvasionOdds(s, FR_BORDER, BE_REGION, 100);
     expect(odds.attacker + odds.defender + odds.stalemate).toBeCloseTo(1, 5);
     expect(odds.attackerStrength).toBe(3000);
-    expect(estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION).undefended).toBe(true);
+    // An empty city still has its militia (battleInputs.js, master plan 6.7 row 19): a regiment beats it.
+    const empty = estimateInvasionOdds({ ...s, units: { a1: unit('a1', FR_BORDER, 'fr') } }, FR_BORDER, BE_REGION);
+    expect(empty.undefended).toBeFalsy();
+    expect(empty.attacker).toBeGreaterThan(0.8);
   });
 });
 
