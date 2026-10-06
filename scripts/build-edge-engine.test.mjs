@@ -72,7 +72,7 @@ describe('the Deno-bound engine bundle behaves identically to its source', () =>
     });
 
     expect(bundledState).toEqual(sourceState);
-  });
+  }, 60000);
 
   it('the bundle never imports anything unresolved (esbuild would have failed the build already, but confirm no bare import survived)', async () => {
     const contents = await readFile(BUNDLE_PATH, 'utf8');

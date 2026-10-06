@@ -21,6 +21,7 @@ import {
   ACTION_COSTS, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
 } from '../../data/actionCosts';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
+import { hasMet } from '../../engine/fog';
 import { getNationCapital } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber } from '../../utils/helpers';
@@ -87,6 +88,8 @@ const DiplomacyPanel = () => {
   const sortedNations = useMemo(() => {
     return Object.values(state.nations)
       .filter(n => !n.isPlayer)
+      // Only peoples you have met (engine/fog.js), and anyone at war with you.
+      .filter(n => hasMet(state, state.playerNationId, n.id) || isAtWarWithPlayer(state, n.id))
       .filter(n => !search.trim() || n.name.toLowerCase().includes(search.trim().toLowerCase()))
       .sort((a, b) => {
         const aAtWar = isAtWarWithPlayer(state, a.id);
@@ -96,6 +99,7 @@ const DiplomacyPanel = () => {
       });
   }, [state, search]);
 
+  const unmetCount = useMemo(() => Object.values(state.nations).filter((n) => !n.isPlayer && !n.isEliminated && !hasMet(state, state.playerNationId, n.id)).length, [state]);
   const pendingPeaceOffer = state.pendingPeaceOffer;
   const pendingPeaceOfferNation = pendingPeaceOffer ? state.nations[pendingPeaceOffer.from] : null;
 
@@ -166,6 +170,11 @@ const DiplomacyPanel = () => {
       <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-600">
         {sortedNations.map(nation => <NationCard key={nation.id} nation={nation} />)}
       </div>
+      {unmetCount > 0 && (
+        <p className="text-[11px] text-slate-400 px-1" data-testid="unmet-count">
+          {unmetCount} {unmetCount === 1 ? 'people has' : 'peoples have'} not been met yet. Explore with armies, settlers and ships: diplomacy opens once you see their land.
+        </p>
+      )}
 
       <div className="mt-3 p-2 bg-slate-800/30 rounded-lg border border-slate-700/50">
         <div className="grid grid-cols-3 gap-2 text-center text-xs">

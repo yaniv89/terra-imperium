@@ -16,6 +16,7 @@
 import { createInitialState } from './gameReducer';
 import { getNationCapital, REGIONS_DATA } from '../data/regions';
 import { conquerRegion } from './conquest';
+import { initFog, reviveFog } from './fog';
 
 // Bump this once per milestone that changes the STATE SHAPE in a way plain backfill can't handle
 // (a field is renamed, split, or needs a real formula to convert) — not for every commit. Add the
@@ -28,7 +29,10 @@ import { conquerRegion } from './conquest';
 // older and the app starts a fresh game while keeping the raw save untouched. A later land-flag
 // change that keeps tile ids can repair saves with world/landChanges.js (applyLandChanges), as
 // the version 8 to 9 step did.
-export const CURRENT_SAVE_VERSION = 10;
+// Version 11 adds fog of war (src/engine/fog.js: explored maps, contacts, the last-seen picture,
+// arrays saved run-length encoded); a version 10 save loads and starts its fog from where its
+// cities stand now (migrate10to11).
+export const CURRENT_SAVE_VERSION = 11;
 export const OLDEST_LOADABLE_SAVE_VERSION = 10;
 // The first version of the tile world: older saves are the province map ('tooOld'), newer ones up
 // to OLDEST_LOADABLE_SAVE_VERSION a coarser hex grid ('oldGrid').
@@ -234,9 +238,15 @@ const migrate5to6 = (state) => {
   return { ...renamed, nations, regions, logs: [...logs, note] };
 };
 
-const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6 };
+// v11: fog of war. A save from before it gets the fog of a new game, measured from its cities
+// as they stand: each people knows its homeland and its sight, nothing more.
+const migrate10to11 = (state) => (state.fog ? state : initFog(state));
 
-const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const MIGRATIONS = { 1: migrate1to2, 2: migrate2to3, 3: migrate3to4, 4: migrate4to5, 5: migrate5to6, 10: migrate10to11 };
+
+// Plain objects only: the fog's packed arrays (TileBits, TileInts) are class instances and are
+// never merged key by key.
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && (Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null);
 
 // Fills any key present in `template` but MISSING (`=== undefined`) from `target`. Never
 // overwrites a key `target` already has, however falsy. Recurses into plain-object values only;
@@ -269,7 +279,10 @@ const NATION_IDENTITY_KEYS = ['id', 'name', 'color', 'isPlayer'];
 // already-current save changes nothing, since every key it would fill is already present.
 export const backfillDefaults = (state) => {
   const fresh = createInitialState({ playerNationId: state.playerNationId, gameSpeed: state.gameSpeed, scenario: state.scenario, rngSeed: state.scenario?.seed });
-  const { regions: freshRegions, nations: freshNations, techTree: freshTechTree, ...freshTop } = fresh;
+  // The fog is never backfilled from a fresh game (another world's homelands): it is revived or
+  // migrated on its own (migrateSave).
+  // eslint-disable-next-line no-unused-vars
+  const { regions: freshRegions, nations: freshNations, techTree: freshTechTree, fog: _freshFog, ...freshTop } = fresh;
 
   // Units are a live collection: a missing starting army may have died or been
   // disbanded. Fresh-game entries must never resurrect it during a reload.
@@ -353,12 +366,14 @@ export const migrateSave = (payload) => {
   if (version > CURRENT_SAVE_VERSION) return null;
   if (version < OLDEST_LOADABLE_SAVE_VERSION) return null; // the province map or an older grid: a clean break
 
+  // The fog's run-length encoded arrays back to typed arrays before anything reads them.
+  if (state.fog) state = { ...state, fog: reviveFog(state.fog) };
   while (version < CURRENT_SAVE_VERSION) {
     const step = MIGRATIONS[version];
     if (!step) return null; // a gap in the chain — refuse rather than guess
     state = step(state);
     version += 1;
   }
-
-  return { version: CURRENT_SAVE_VERSION, state: backfillDefaults(state) };
+  const filled = backfillDefaults(state);
+  return { version: CURRENT_SAVE_VERSION, state: filled.fog ? filled : initFog(filled) };
 };

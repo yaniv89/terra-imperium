@@ -181,6 +181,7 @@ export const GameProvider = ({ children }) => {
         scenario: options.scenario,
         rngSeed: options.scenario?.seed,
         guided: !!options.guided,
+        exploredWorld: !!options.exploredWorld, // the "explored world" option: no fog of war (engine/fog.js)
         doctrineId: meta.selectedDoctrine,
         difficultyId: options.difficultyId || meta.difficulty
       }

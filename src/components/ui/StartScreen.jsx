@@ -21,6 +21,7 @@ const StartScreen = ({ onStart }) => {
   const [selectedNationId, setSelectedNationId] = useState(DEFAULT_NATION_ID);
   const [gameSpeed, setGameSpeed] = useState('normal');
   const [difficultyId, setDifficultyId] = useState('prince');
+  const [exploredWorld, setExploredWorld] = useState(false);
 
   const sortedNations = useMemo(() => {
     return Object.values(WORLD_NATIONS)
@@ -131,9 +132,32 @@ const StartScreen = ({ onStart }) => {
           </div>
         </section>
 
+        {/* Fog of war (src/engine/fog.js): on by default; the explored world shows the whole map. */}
+        <section>
+          <h2 className="text-sm font-semibold text-slate-300 mb-2">The map</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ id: false, name: 'Fog of war', blurb: 'You know your homeland; explore to find the rest and meet other peoples.' },
+              { id: true, name: 'Explored world', blurb: 'The whole world is mapped and every people known from the start.' }].map((o) => (
+              <button
+                key={String(o.id)}
+                type="button"
+                onClick={() => setExploredWorld(o.id)}
+                data-testid={o.id ? 'explored-world' : 'fog-of-war'}
+                aria-pressed={exploredWorld === o.id}
+                className={`p-2 min-h-[44px] rounded-lg text-left text-xs border transition-all ${
+                  exploredWorld === o.id ? 'bg-blue-500/20 border-blue-500/50 text-white' : 'bg-slate-800/60 border-slate-700 hover:bg-slate-700/60 text-slate-300'
+                }`}
+              >
+                <span className="block font-semibold">{o.name}</span>
+                <span className="block text-[10px] text-slate-400 leading-tight">{o.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
         <button
           type="button"
-          onClick={() => onStart({ playerNationId: 'eg', gameSpeed, difficultyId, scenario: { mode: 'full', nationCount, seed }, guided: true })}
+          onClick={() => onStart({ playerNationId: 'eg', gameSpeed, difficultyId, scenario: { mode: 'full', nationCount, seed }, guided: true, exploredWorld })}
           data-testid="guided-start"
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-amber-700/60 hover:bg-amber-600/70 border border-amber-500/50 text-amber-100 transition-all active:scale-95"
           title="Ten turns of prompts on the Nile: settle, farm, build, research, meet a neighbour, fight."
@@ -142,7 +166,7 @@ const StartScreen = ({ onStart }) => {
           New here? Play the guided start as Egypt
         </button>
         <button
-          onClick={() => onStart({ playerNationId: selectedNationId, gameSpeed, difficultyId, scenario: {mode,nationCount,seed} })}
+          onClick={() => onStart({ playerNationId: selectedNationId, gameSpeed, difficultyId, scenario: {mode,nationCount,seed}, exploredWorld })}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold text-base
                      bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400
                      text-white shadow-lg transition-all active:scale-95"
