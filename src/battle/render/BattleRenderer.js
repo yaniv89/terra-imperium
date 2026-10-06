@@ -25,6 +25,7 @@ import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSki
 import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
+import { EconomyLayer } from './economyLayer';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -227,6 +228,8 @@ export class BattleRenderer {
     this.buildStructures();
     this.cityLayer = new CityLayer(this); // the real city's houses, walls and ruins (cityLayer.js)
     this.cityLayer.build();
+    this.ecoLayer = new EconomyLayer(this); // the battle economy's nodes and buildings (economyLayer.js)
+    this.ecoLayer.build();
     this.buildPoints();
     this.buildOverlays();
     this.buildFogOverlay();
@@ -881,6 +884,8 @@ export class BattleRenderer {
     if (foe && (enemyFirst || !own || foeD < ownD)) best = foe;
     else if (own) best = own;
     if (best) return { ...best, ground: g };
+    const eco = this.ecoLayer.pick(g, view); // a building of the battle economy, or a resource node
+    if (eco) return { ...eco, ground: g };
     (view?.structures || []).forEach((s, index) => {
       if (!s.alive) return;
       const r = s.radius / Q + 0.6;
@@ -957,6 +962,7 @@ export class BattleRenderer {
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
     if (cur) this.cityLayer.update(cur);
+    if (cur) this.ecoLayer.update(cur, this.viewCuller());
     if (cur) this.drawPoints(cur);
     this.drawFx(dt);
     this.renderer.render(this.scene, this.camera);
@@ -1202,6 +1208,15 @@ export class BattleRenderer {
       tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -(s.kind === 'keep' ? 1.2 : 0.7)); tmp.scale.set((s.kind === 'keep' ? 2.4 : 1.4) * frac, 1, 1); tmp.updateMatrix();
       this.structBarFill.setMatrixAt(n, tmp.matrix);
       this.structBarFill.setColorAt(n, tmpColor.setHSL(0.08 + 0.25 * frac, 0.8, 0.5));
+      n += 1;
+    });
+    // The battle economy's damaged and unfinished buildings (economyLayer.js).
+    this.ecoLayer.bars(cur).forEach((b) => {
+      tmp.quaternion.copy(camQuat); tmp.position.set(b.x, this.heightAt(b.x, b.z) + b.h, b.z); tmp.scale.set(b.w, 1, 1); tmp.updateMatrix();
+      this.structBarBg.setMatrixAt(n, tmp.matrix);
+      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -b.w / 2); tmp.scale.set(b.w * b.frac, 1, 1); tmp.updateMatrix();
+      this.structBarFill.setMatrixAt(n, tmp.matrix);
+      this.structBarFill.setColorAt(n, tmpColor.setHSL(0.08 + 0.25 * b.frac, 0.8, 0.5));
       n += 1;
     });
     [this.structBarBg, this.structBarFill].forEach((m) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });

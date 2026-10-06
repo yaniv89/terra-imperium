@@ -67,7 +67,8 @@ const BattleSandbox = () => {
     landing: params.has('landing'),
     sea: params.has('sea'),
     bench: Math.max(0, Math.min(1000, Number(params.get('bench')) || 0)),
-    city: ['small', 'medium', 'big'].includes(params.get('city')) ? params.get('city') : null
+    city: ['small', 'medium', 'big'].includes(params.get('city')) ? params.get('city') : null,
+    economy: !params.has('noeco')
   });
   const [running, setRunning] = useState(params.has('autostart'));
   const [lastResult, setLastResult] = useState(null);
@@ -86,7 +87,7 @@ const BattleSandbox = () => {
   }, []);
   // `?battleSandbox&bench=300&autostart`: the kernel benchmark's battle (N squads a side, AI against
   // AI, everyone on the field; src/battle/bench/benchScenario.js), to see and time the renderer at scale.
-  const setup = useMemo(() => config.bench ? makeBenchSetup(config.bench, config.seed + runId) : config.sea ? buildSetupFromArmies({
+  const setup = useMemo(() => config.bench ? makeBenchSetup(config.bench, config.seed + runId, { economy: params.has('eco') }) : config.sea ? buildSetupFromArmies({
     tileContext: sampleTile != null ? tileContextOf(null, getTiles().neighbors[sampleTile].find((n) => getTiles().land[n] !== 1)) : null,
     regionId: `sandbox-sea-${config.seed}`, terrain: 'sea', battleType: 'naval', seed: config.seed + runId,
     attackerUnits: buildFleet('a', 'attacker', 1000, 'g_att'), defenderUnits: buildFleet('d', 'defender', 900, 'g_def'), generals: GENERALS,
@@ -117,6 +118,7 @@ const BattleSandbox = () => {
     infrastructure: 5,
     deposits: ['iron', 'copper'],
     controllers: config.spectate ? ['ai', 'ai'] : ['player', 'ai'],
+    economy: config.economy, // the battle economy (phase R1): workers, buildings, training; `&noeco` turns it off
     ...sandboxCity(config)
   }), [config, runId, sampleTile]);
 
@@ -154,6 +156,7 @@ const BattleSandbox = () => {
           {field('Fortifications', 'fortLevel', [0, 1, 2, 3, 4, 6])}
         </div>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.fog} onChange={(e) => setConfig((c) => ({ ...c, fog: e.target.checked }))} /> No intelligence (start blind in the fog)</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.economy} onChange={(e) => setConfig((c) => ({ ...c, economy: e.target.checked }))} /> Battle economy (workers, buildings, training)</label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={config.spectate} onChange={(e) => setConfig((c) => ({ ...c, spectate: e.target.checked }))} /> Spectate (AI vs AI)</label>
         <button type="button" onClick={() => { setRunId((r) => r + 1); setRunning(true); }} className="w-full h-12 rounded-xl bg-blue-600 font-semibold">Fight</button>
         {lastResult && (

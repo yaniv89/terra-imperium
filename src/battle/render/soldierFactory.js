@@ -314,6 +314,15 @@ const MODELS = {
     gunpowder: () => [...person('gunpowder', { skin: 1 }), ...shovel(), ...pack(C.cloth)],
     modern: () => [...truck(), part(cyl(0.03, 0.03, 0.7, 5), C.black, { at: [-0.1, 1.0, -0.2], rot: [Math.PI / 2 - 0.6, 0, 0], limb: LIMB.TURRET }), part(cyl(0.03, 0.03, 0.7, 5), C.black, { at: [0.1, 1.0, -0.2], rot: [Math.PI / 2 - 0.6, 0, 0], limb: LIMB.TURRET })]
   },
+  // The battle economy's laborer (phase R1): a placeholder until the art plan's units/<age>-worker
+  // (batch 04, src/assets/units/<age>-worker.glb) arrives: a person with a shovel and a pack.
+  worker: {
+    bronze: () => [...person('bronze', { skin: 2 }), ...shovel(), ...pack(C.cloth)],
+    classical: () => [...person('classical', { skin: 1 }), ...shovel(), ...pack(C.cloth)],
+    kingdoms: () => [...person('kingdoms', { skin: 3 }), ...shovel(), ...pack(C.cloth)],
+    gunpowder: () => [...person('gunpowder'), ...shovel(), ...pack(C.cloth)],
+    modern: () => [...person('modern', { skin: 2 }), ...shovel(), ...pack(C.darkOlive)]
+  },
   air: {
     modern: () => [
       part(cyl(0.12, 0.18, 1.8, 8), '#8b939c', { at: [0, 0, 0], rot: [Math.PI / 2, 0, 0] }),
@@ -399,7 +408,7 @@ export const disposeSoldierCache = () => {
 };
 
 // How big each model stands in the world (tiles), and how a squad lays them out.
-export const MODEL_SCALE = { infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege: 0.82, support: 0.82, air: 1.2, naval: 1.6 };
+export const MODEL_SCALE = { worker: 0.8, infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege: 0.82, support: 0.82, air: 1.2, naval: 1.6 };
 
 // ---- the animated material ---------------------------------------------------------------------
 

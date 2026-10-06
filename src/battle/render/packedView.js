@@ -12,6 +12,7 @@ import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
 import { callCost } from '../sim/orders';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
+import { ecoView } from '../sim/economy';
 
 // One squad's per-tick record. Nullable numbers travel as NaN.
 const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 'inside', 'order', 'orderX', 'orderY', 'target', 'targetKind'];
@@ -66,6 +67,7 @@ export const createViewPacker = () => {
         garrisonSlots: playerSide === 1 && garrisonRoom(w, si) + garrisonOf(w, si).length > 0 ? GARRISON_SLOTS[s.kind] || 0 : 0
       })),
       points: w.points.map((p) => ({ id: p.id, resId: p.resId, x: p.x, y: p.y, owner: p.owner, progress: p.progress, capturingSide: p.capturingSide })),
+      eco: ecoView(w, playerSide), // the battle economy (small: stockpiles, buildings, nodes), null without one
       squads: f.buffer,
       slow: slow ? w.squads.map((q, i) => ({ i, side: q.side,
         unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null,

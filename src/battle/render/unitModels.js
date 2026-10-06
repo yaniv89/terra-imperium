@@ -15,6 +15,7 @@
 import { loadUnitModel } from './gltfUnitLoader';
 import { composeUnitModel } from './unitComposer';
 import { registerSoldierGeometry, hasSoldierOverride, getProceduralSoldierGeometry } from './soldierFactory';
+import { trainableRoles } from '../data/economy';
 
 // { '../../assets/units/bronze-infantry.glb': '/terra-imperium/assets/bronze-infantry-abc123.glb' }
 const FILES = import.meta.glob('../../assets/units/*.{glb,gltf}', { query: '?url', import: 'default', eager: true });
@@ -51,6 +52,8 @@ export const battleModelPairs = (setup) => {
   (setup?.sides || []).forEach((sd) => [...(sd.units || []), ...(sd.reinforcements || [])].forEach((u) => {
     if (u?.classId && u.classId !== 'naval') seen.add(`${u.ageId || sd.ageId}:${u.classId}`);
   }));
+  // With a battle economy every class the side can train (workers too) may take the field.
+  if (setup?.economy) (setup.sides || []).forEach((sd) => trainableRoles(sd.ageId).forEach((c) => seen.add(`${sd.ageId}:${c}`)));
   return [...seen].map((k) => k.split(':'));
 };
 

@@ -252,7 +252,8 @@ const buildDefenseSetup = (state, pb) => {
     intel: { attackerSeesDefender: false },
     regionBuildings: getRegionBattleBuildings(region),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
-    cityDamage: cityDamageOf(region)
+    cityDamage: cityDamageOf(region),
+    economy: true // every assault is a full RTS battle (decision 23; phase R1)
   });
 };
 
@@ -298,7 +299,8 @@ const buildAmphibiousSetup = (state, pb) => {
     landing: true,
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
-    cityDamage: cityDamageOf(v.targetRegion)
+    cityDamage: cityDamageOf(v.targetRegion),
+    economy: true
   });
 };
 
@@ -339,7 +341,8 @@ const buildFieldSetup = (state, pb) => {
     powers: [getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })],
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
-    regionBuildings: []
+    regionBuildings: [],
+    economy: true // full base-building in field battles too (decision 36)
   });
 };
 
@@ -414,7 +417,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     intel: { attackerSeesDefender: canSeeRegionDetails(state, targetRegionId) },
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, targetRegionId),
-    cityDamage: cityDamageOf(v.targetRegion)
+    cityDamage: cityDamageOf(v.targetRegion),
+    economy: true
   });
 };
 

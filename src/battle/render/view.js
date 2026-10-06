@@ -9,6 +9,7 @@ import { canSeeSquad } from '../sim/fog';
 import { POWERS, powerState, getSquadAbilities } from '../sim/effects';
 import { callCost } from '../sim/orders';
 import { garrisonOf, garrisonRoom, GARRISON_SLOTS } from '../sim/objectives';
+import { ecoView } from '../sim/economy';
 
 export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog = true) => ({
   tick: w.tick,
@@ -47,5 +48,7 @@ export const makeRenderView = (w, pendingOrders = [], playerSide = 0, includeFog
     garrison: playerSide === 1 ? garrisonOf(w, si).length : 0,
     garrisonSlots: playerSide === 1 && garrisonRoom(w, si) + garrisonOf(w, si).length > 0 ? GARRISON_SLOTS[s.kind] || 0 : 0
   })),
-  points: w.points.map((p) => ({ id: p.id, resId: p.resId, x: p.x, y: p.y, owner: p.owner, progress: p.progress, capturingSide: p.capturingSide }))
+  points: w.points.map((p) => ({ id: p.id, resId: p.resId, x: p.x, y: p.y, owner: p.owner, progress: p.progress, capturingSide: p.capturingSide })),
+  // The battle economy (economy.js ecoView), null without one.
+  eco: ecoView(w, playerSide)
 });

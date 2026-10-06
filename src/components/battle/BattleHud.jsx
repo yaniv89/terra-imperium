@@ -3,15 +3,17 @@
 // clock, supply, keep status), class chips bottom-left (tap = select that class), the command bar
 // bottom-right, and a reserves drawer. Every control is ≥ 44 px; nothing needs precision.
 import React, { useState } from 'react';
-import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX, Timer } from 'lucide-react';
+import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX, Timer, Hammer, Tent } from 'lucide-react';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
 import { BUILDING_EFFECTS } from '../../battle/sim/buildings';
 import { getRankForXp } from '../../data/promotions';
 import { BATTLE_TYPES } from '../../battle/setup/battleType';
+import { ResourceBar } from './EconomyHud';
+import { ecoName } from '../../battle/data/economy';
 
-const CLASS_LABEL = { naval: 'Ships', infantry: 'Inf', cavalry: 'Cav', ranged: 'Rng', siege: 'Sge', air: 'Air', support: 'Sup' };
+const CLASS_LABEL = { worker: 'Wkr', naval: 'Ships', infantry: 'Inf', cavalry: 'Cav', ranged: 'Rng', siege: 'Sge', air: 'Air', support: 'Sup' };
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 const HudButton = ({ icon: Icon, label, onClick, active, danger, disabled, testId }) => (
@@ -28,7 +30,8 @@ const HudButton = ({ icon: Icon, label, onClick, active, danger, disabled, testI
 const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
-  onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound
+  onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound,
+  onOpenBuild, buildOpen = false, onSelectHq // the battle economy (EconomyHud.jsx)
 }) => {
   const [showReserves, setShowReserves] = useState(false);
   const [confirmNuke, setConfirmNuke] = useState(null);
@@ -36,6 +39,8 @@ const BattleHud = ({
   if (!hud) return null;
   const mine = hud.squads.filter((q) => q.side === playerSide && q.alive && !q.fled);
   const onField = mine.filter((q) => q.onField);
+  const eco = hud.eco || null;
+  const hasWorkers = selectedSquads.some((q) => q.classId === 'worker');
   const reserves = mine.filter((q) => q.reserve);
   const classCounts = onField.reduce((acc, q) => { acc[q.classId] = (acc[q.classId] || 0) + 1; return acc; }, {});
   const keep = hud.structures[0];
@@ -64,6 +69,7 @@ const BattleHud = ({
             <span className="text-amber-300 font-mono" title="Battle Supply">⛁ {Math.floor(supply)}</span>
             <span className="text-orange-300 font-mono" title="Enemy squads left">⚔ {enemyLeft}</span>
           </div>
+          {eco && <ResourceBar eco={eco} />}
           {keep && (
             <button type="button" onClick={onFocusKeep} className="pointer-events-auto px-2 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-[10px] text-slate-200 flex items-center gap-1.5">
               <Castle className="w-3 h-3" />
@@ -127,6 +133,11 @@ const BattleHud = ({
           })}
         </div>
       )}
+      {armed?.type === 'place' && (
+        <div className="absolute top-28 inset-x-0 flex justify-center pointer-events-none">
+          <div className="px-3 py-1.5 rounded-full bg-lime-700/90 text-white text-xs font-semibold shadow-xl">Tap the ground to place: {ecoName(armed.building, setup.sides[playerSide].ageId)}{hasWorkers ? '' : ' (the nearest laborers go)'}</div>
+        </div>
+      )}
       {armed?.type === 'power' && (
         <div className="absolute top-28 inset-x-0 flex justify-center pointer-events-none">
           <div className="px-3 py-1.5 rounded-full bg-orange-600/90 text-white text-xs font-semibold shadow-xl">Tap the battlefield to strike — {armed.label}</div>
@@ -151,13 +162,16 @@ const BattleHud = ({
       {/* Bottom: chips (left) + command bar (right) */}
       <div className="absolute bottom-0 inset-x-0 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex flex-wrap items-end justify-between gap-2 pointer-events-none">
         <div className="pointer-events-auto flex flex-wrap gap-1.5 max-w-[60%]">
-          <HudButton icon={Users} label={`All ${onField.length}`} onClick={() => onSelectClass('all')} testId="battle-select-all" />
+          <HudButton icon={Users} label={`All ${onField.filter((q) => q.classId !== 'worker').length}`} onClick={() => onSelectClass('all')} testId="battle-select-all" />
+          {eco && <HudButton icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
+          {eco && eco.idleWorkers.length > 0 && <HudButton icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
           {Object.entries(classCounts).map(([cls, n]) => (
             <HudButton key={cls} label={`${CLASS_LABEL[cls] || cls} ${n}`} onClick={() => onSelectClass(cls)} />
           ))}
           <HudButton icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} disabled={!reserves.length} testId="battle-reserves" />
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5">
+          {eco && <HudButton icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen || armed?.type === 'place'} disabled={!eco.workers} testId="battle-build" />}
           {hasAbilities && <HudButton icon={Sparkles} label="Abilities" onClick={onOpenAbilities} testId="battle-abilities" />}
           <HudButton icon={Crosshair} label="Atk-move" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} disabled={!selectedSquads.length} testId="battle-attack-move" />
           <HudButton icon={Hand} label="Hold" onClick={() => onCommand('hold')} disabled={!selectedSquads.length} />
