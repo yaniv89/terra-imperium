@@ -90,6 +90,7 @@ const snapshot = (s, t, counters, ms, lives) => {
     raidsOnPlayer: s.indepStats?.raidsOnPlayer || 0, raidBattles: s.indepStats?.raidBattles || 0, sacks: s.indepStats?.sacks || 0,
     raidLoot: s.indepStats?.loot || 0, tributeDemands: s.indepStats?.tributeDemands || 0, tributeDeals: s.indepStats?.tributeDeals || 0,
     tributeGold: s.indepStats?.tributeGold || 0, mercsHired: s.indepStats?.mercsHired || 0,
+    pillages: s.indepStats?.pillages || 0, routesCut: s.indepStats?.routesCut || 0, settlersKilled: s.indepStats?.settlersKilled || 0, outpostsBurned: s.indepStats?.outpostsBurned || 0,
     raidsOut: nations.filter((n) => n.indep?.raid && !n.isEliminated).length,
     tributeRunning: nations.reduce((k, n) => k + Object.keys(n.indep?.tributeFrom || {}).length, 0),
     mercsActive: Object.values(s.units).filter((u) => u.mercenary).length,

@@ -184,8 +184,8 @@ export const RAID_ERA_FACTOR = { bronze: 1, classical: 1, kingdoms: 1, gunpowder
 
 /** Loot, in gold (independents 4.3). An improvement: the threat.js RAID_GOLD of a pillage. A trade
  * route tile: PLUNDER_GOLD x 2 (plunder.js), taken from the victim, and the route is cut while the
- * party stands on it. A settler is killed (no captives, decision 37). An outpost is burned (its
- * progress is lost). */
+ * party stands on it. A settler is killed (no captives, decision 37). An outpost is burned (it
+ * loses OUTPOST_BURN_LOSS of its progress). */
 export const ROUTE_LOOT = 30;
 export const SETTLER_LOOT = 20;
 export const OUTPOST_LOOT = 20;
@@ -196,6 +196,10 @@ export const OUTPOST_LOOT = 20;
 export const SACK_GARRISON_RATIO = 0.5;
 export const SACK_INCOME_TURNS = 3;
 export const SACK_MIN_GOLD = 15;
+/** A sacked city or a burned outpost is left alone this many turns (no raid twice on the same ashes). */
+export const RAID_SPARE_TURNS = 20;
+/** A burned outpost loses this share of its progress (it is set back, not wiped out). */
+export const OUTPOST_BURN_LOSS = 0.5;
 
 /** Its treasury: its city's gold yield a turn (x MERCANTILE_GOLD_MULT for a mercantile city),
  * capped. Loot, tribute and mercenary pay go in; the mercenaries it hires come out. */

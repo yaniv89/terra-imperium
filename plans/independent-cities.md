@@ -372,7 +372,8 @@ Done:
   most 8 turns, fight an army in the way only when 1.2x stronger, and abort when beaten down, when
   home is threatened or when the target is gone. Targets: improvements (pillaged), the player's
   trade-route tiles (loot from the victim, the route cut while the party stands there), settlers
-  (killed), outposts (burned: progress lost) and weak cities (sack). Warnings and log lines for the
+  (killed), outposts (burned: half the progress lost) and weak cities (sack); a city sacked or burned is
+  spared for 20 turns. Warnings and log lines for the
   player; `raidedBy` for the "raided us" opinion reason.
 - Sack (4.4, master plan 6.5 and 6.8): 3 turns of the city's gold (at least 15), one size and one
   building tier, never more than half of either, never a capture (`sackedCity`).

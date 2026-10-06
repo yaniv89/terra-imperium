@@ -19,8 +19,9 @@
 //          score = loot x (1 + grudge / 50) x era / (1 + defenders near / party) - 2 per 102 km
 //        targets: an improvement (loot RAID_GOLD, pillaged), a tile of the player's trade routes
 //        (ROUTE_LOOT from the victim, the route cut while the party stands on it), a settler
-//        (killed), an outpost (burned: its progress lost) or a city whose garrison is under half
-//        the party (a SACK). It raids when the best score clears RAID_THRESHOLD and the seeded roll
+//        (killed), an outpost (burned: half its progress lost) or a city whose garrison is under half
+//        the party (a SACK); a city sacked or burned lately is spared RAID_SPARE_TURNS. It raids
+//        when the best score clears RAID_THRESHOLD and the seeded roll
 //        passes RAID_CHANCE x (1 + grudge / 100) (x the difficulty against the player). A fortress
 //        raids only in revenge (a grudge of FORTRESS_REVENGE_GRUDGE); a mercantile city never.
 //     4. tribute (raiders, tribal): a neighbour it hates (grudge TRIBUTE_DEMAND_GRUDGE) or outweighs
@@ -51,7 +52,7 @@ import { LogTypes } from '../data/types';
 import {
   isIndependentNation, garrisonTarget, THINK_PERIOD, RAID_KM, RAID_COOLDOWN, RAID_CHANCE, FORTRESS_REVENGE_GRUDGE, RAID_THRESHOLD,
   RAID_RING_PENALTY, RAID_RING_PENALTY_KM, RAID_MAX_TURNS, RAID_RECOVER_TURNS, RAID_FIGHT_RATIO, RAID_ERA_FACTOR, ROUTE_LOOT, SETTLER_LOOT,
-  OUTPOST_LOOT, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_ATTACKED, GRUDGE_REFUSED,
+  OUTPOST_LOOT, RAID_SPARE_TURNS, OUTPOST_BURN_LOSS, SACK_GARRISON_RATIO, SACK_INCOME_TURNS, SACK_MIN_GOLD, INDEPENDENT_GOLD_CAP, MERCANTILE_GOLD_MULT, GRUDGE_ATTACKED, GRUDGE_REFUSED,
   TRIBUTE_TURNS, TRIBUTE_DEMAND_GRUDGE, TRIBUTE_STRENGTH_RATIO, TRIBUTE_DEMAND_CHANCE, TRIBUTE_DEMAND_COOLDOWN, TRIBUTE_ANSWER_TURNS, tributeGold
 } from '../data/independents';
 import { createRng } from '../utils/rng';
@@ -65,6 +66,8 @@ import { fightRaidBattle } from './raidBattle';
 import { withGrudge, grudgeOf, decayGrudges } from './grudges';
 import { isUnitInBattle } from './invasion';
 import { hireMercenary, mercOffer, processMercenaries, goldIn, addGoldIn } from './mercenaries';
+
+const KIND_STAT = { pillage: 'pillages', route: 'routesCut', settler: 'settlersKilled', outpost: 'outpostsBurned' };
 
 /** Enemy armies within this distance of an independent's city put it under threat (the plan's 2 rings). */
 export const THREAT_KM = 204;
@@ -169,6 +172,8 @@ export const scanTargets = (w, id, city, partyStrength) => {
     if (owner && owner !== id && !isIndependentNation(w.nations[owner])) nearOwners.add(owner);
     if (!victimOk(w, id, owner)) return;
     if (c.tile === t) {
+      // A city sacked, or an outpost burned, lately is left alone (RAID_SPARE_TURNS).
+      if (Math.max(c.sackedTurn ?? -Infinity, c.burnedTurn ?? -Infinity) > w.turn - RAID_SPARE_TURNS) return;
       if (c.outpost) { offer('outpost', t, d, owner, OUTPOST_LOOT, { cityId }); return; }
       const garrison = defendersNear(owner, t, true);
       if (garrison < partyStrength * SACK_GARRISON_RATIO) offer('sack', t, d, owner, Math.max(SACK_MIN_GOLD, SACK_INCOME_TURNS * (c.lastYields?.gold || 0)), { cityId });
@@ -331,7 +336,7 @@ const resolveAtTarget = (w, id, party, raid) => {
     what = `kill a settler party at ${placeOf(w, t)}`;
     moveParty(w, party, t);
   } else if (raid.kind === 'outpost') {
-    w.regions[city.id] = { ...city, outpost: { ...city.outpost, progress: 0 }, burnedTurn: w.turn };
+    w.regions[city.id] = { ...city, outpost: { ...city.outpost, progress: Math.round(city.outpost.progress * (1 - OUTPOST_BURN_LOSS) * 10) / 10 }, burnedTurn: w.turn };
     loot = OUTPOST_LOOT;
     what = `burn the outpost of ${city.name}`;
   } else if (raid.kind === 'sack') {
@@ -345,6 +350,7 @@ const resolveAtTarget = (w, id, party, raid) => {
   }
   addGold(w, id, loot);
   w.stats.raidsHit += 1;
+  if (KIND_STAT[raid.kind]) w.stats[KIND_STAT[raid.kind]] = (w.stats[KIND_STAT[raid.kind]] || 0) + 1;
   w.stats.loot += loot;
   markRaided(w, victim, id);
   if (toPlayer) { w.stats.raidsOnPlayer += 1; log(w, `${name} ${what}.`); }
