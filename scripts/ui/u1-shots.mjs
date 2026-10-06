@@ -144,6 +144,27 @@ const SCREENS = {
     await openTab(page, 'tech');
     await page.getByTestId('research-current').waitFor({ timeout: 10000 });
     await shot(page, 'W09-research', vp);
+  },
+  W10: async (page, vp) => {
+    await startGame(page);
+    // state 2: "warn me" on, the first tap arms End Turn and shows what still waits
+    await patchState(page, 'return { ...s, battleSettings: { ...(s.battleSettings || {}), warnEndTurn: true } };');
+    await click(page.locator('[data-testid="turn-dock"] button[data-armed]'));
+    await page.getByTestId('end-turn-warnings').waitFor({ timeout: 10000 });
+    await shot(page, 'W10-end-turn-armed', vp);
+    await wait(5000); // disarms by itself
+    // the report: a turn that brought a siege held at the capital, a raid, news and growth (a
+    // contact would also open its first-contact card, W03)
+    await patchState(page, `
+      const me = s.playerNationId; const capId = s.nations[me].capitalRegionId; const c = s.regions[capId];
+      const battle = { id: 'battle-shot', name: 'Siege of ' + c.name, playerSide: 'defender', outcome: 'defender', defense: true, targetRegionId: capId, fallen: { attacker: 300, defender: 40 }, sides: { attacker: [], defender: [] } };
+      return { ...s, turnNumber: s.turnNumber + 1, year: s.year + 1,
+        battleReports: [battle, ...(s.battleReports || [])],
+        logs: [...s.logs, { year: s.year, type: 'combat', message: 'Gutian raiders pillage the land of ' + c.name + ' (a pasture): 12 gold taken.' }, { year: s.year, type: 'diplomacy', message: 'The Kingdom of Elam denounces your border forts.' }],
+        research: { ...(s.research || {}), current: 'infrastructure_irrigation_canals' },
+        regions: { ...s.regions, [capId]: { ...c, size: (c.size || 1) + 1 } } };`);
+    await page.getByTestId('turn-report').waitFor({ timeout: 10000 });
+    await shot(page, 'W10-turn-report', vp);
   }
 };
 
