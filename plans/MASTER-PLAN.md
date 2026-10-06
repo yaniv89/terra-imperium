@@ -372,11 +372,19 @@ Mechanisms nobody has yet, needed by the plans:
   turn, and the queue waits for events and peace offers. AI against AI stays Auto.
 - **Honest Auto** (autoBattle.js): the battle economy's auxiliaries on both sides, a walled city
   holding its gate against armies without siege engines, city damage like the real-time AI's
-  (towers, town hall), decisive field dispositions. Parity with the economy on (battle-lab
-  parityEco, 32 seeds, field / walled assault / unwalled town, nine age pairs): 79 of 81 matchups
-  within the guardrail; the two out are bronze attackers against classical walls (Auto too harsh,
-  0.38x and 0.44x). Attacker wins agree within 8 of 32 in 60 of 81 matchups. Mountains: a big
-  attacker against a town wins less on Auto than in the real-time battle (17 vs 32 of 32).
+  (towers, town hall), decisive field dispositions, and `WALLS_AGE_RELIEF` (0.7): behind walls an
+  older attacker gets back that share (as an exponent) of the defender's roster advantage, as the
+  real-time gate fight barely feels the age gap. Parity with the economy on (battle-lab parityEco,
+  32 seeds, field / walled assault / unwalled town): the two matchups that were out, bronze
+  attackers against classical walls (Auto too harsh, 0.38x and 0.44x), now read 0.57x and 0.88x
+  (the no-siege and siege armies; the third, 0.50x, rose to 0.80x); 79 of 81 became 81 of 81 and
+  nothing moved out (only walled assaults against a newer defender change). Rerun on the nine
+  pairs bronze:bronze, bronze:classical, classical:bronze, classical:classical, classical:kingdoms,
+  kingdoms:classical, kingdoms:kingdoms, gunpowder:gunpowder, modern:modern: 76 of 81 became 78;
+  the 3 still out are walled assaults by a NEWER attacker (classical>bronze, kingdoms>classical:
+  Auto too lenient on it, ratios 3.5x to 6.9x), unchanged by this fix and open. Attacker wins
+  agree within 8 of 32 in 60 of 81 matchups (before the fix). Mountains: a big attacker against a
+  town wins less on Auto than in the real-time battle (17 vs 32 of 32).
 - balance-sim (6 seeds, 150 turns, against claude/integration): nothing significant; cities change
   hands a little less (3.7 to 2.3); nonFinite and audit violations 0; wars end.
 - Left: raids and sacks (raidBattle.js) stay on the old auto-resolve until R3 swaps them; AI

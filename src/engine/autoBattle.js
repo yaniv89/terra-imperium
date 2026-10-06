@@ -35,6 +35,7 @@ import { resolveBattle, MAX_BATTLE_ROUNDS } from './battle';
 import { battleInputs, batteredReduction } from './battleInputs';
 import { stockMult, TRAIN_STRENGTH } from '../battle/data/economy';
 import { cityManifestOf } from './cityManifest';
+import { getRosterCombatMultiplier } from '../data/unitClasses';
 
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1.6;
@@ -45,7 +46,12 @@ export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (th
 export const WALLS_FORT_LEVEL = 2;
 export const WALLS_NO_SIEGE_MULT = 0.7;
 export const AUX_CLOSENESS = 1.5; // the auxiliaries x min(1, this x weaker / stronger army); 0 = off
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS };
+// Behind walls the real-time battle barely feels an older attacker's age gap (a bronze army against
+// classical walls loses what it loses against bronze walls: the fight is the gate, not the weapons),
+// while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
+// (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
+export const WALLS_AGE_RELIEF = 0.7;
+export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF };
 export const CITY_TOWER_REPELLED = 0.5;
 export const CITY_HALL_REPELLED = 0.3;
 
@@ -138,11 +144,14 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   const walled = contested && ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL);
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
   const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
+  // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).
+  const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? 'bronze', args.attackerAgeId ?? 'bronze') : 1;
+  const ageRelief = ageGap > 1 ? Math.pow(ageGap, tune.WALLS_AGE_RELIEF ?? WALLS_AGE_RELIEF) : 1;
   let battle = resolveBattle({
     ...args,
     attackerUnits: [...ins.attackerUnits, ...auxA],
     defenderUnits: [...ins.defenderUnits, ...auxD],
-    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult,
+    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * ageRelief,
     maxRounds: MAX_BATTLE_ROUNDS + Math.max(auxA.length, auxD.length) * (tune.AUX_ROUNDS ?? AUX_ROUNDS),
     defenderDamageReductionMultiplier: batteredReduction(args.defenderDamageReductionMultiplier ?? 1, ins.hpRatio),
     rng
@@ -155,7 +164,7 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     ...battle,
     attackerUnits: strip(battle.attackerUnits),
     defenderUnits: strip(battle.defenderUnits),
-    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult }
+    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief }
   };
   if (kind === 'field') battle = autoDispositions(battle, rng);
   return { ...battle, report: { ...battle.report, mode: 'auto' }, inputs: ins };
