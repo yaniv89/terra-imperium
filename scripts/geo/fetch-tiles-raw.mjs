@@ -52,3 +52,20 @@ if (process.argv.includes('--pyramid')) {
   }
   console.log(`zoom-5 elevation tiles: fetched ${got5}, have 1024`);
 }
+// With --detail: the zoom-7 elevation tiles (about 1.2 km a pixel) under the game's land, for
+// level 6 of the pyramid (build-raster-detail.mjs). Only tiles that touch a land hex (a land
+// cell's centre, a corner or an edge middle of its polygon) within DETAIL_MAX_LAT of the equator:
+// 3,931 of 16,384, about 85 kB each.
+if (process.argv.includes('--detail')) {
+  const { getTiles } = await import('../../src/data/geo/tiles.js');
+  const { detailElevationTiles } = await import('./build-raster-detail.mjs');
+  const wanted = detailElevationTiles(getTiles());
+  await mkdir(path.join(RAW, 'terrarium7'), { recursive: true });
+  let got7 = 0;
+  for (let i = 0; i < wanted.length; i += 24) {
+    const done = await Promise.all(wanted.slice(i, i + 24).map(([x, y]) => fetchTo(`https://elevation-tiles-prod.s3.amazonaws.com/terrarium/7/${x}/${y}.png`, path.join(RAW, 'terrarium7', `${x}-${y}.png`))));
+    got7 += done.filter(Boolean).length;
+    if (i % 960 === 0) console.log(`zoom-7: ${i}/${wanted.length}`);
+  }
+  console.log(`zoom-7 elevation tiles: fetched ${got7}, have ${wanted.length}`);
+}
