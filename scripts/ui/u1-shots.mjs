@@ -165,6 +165,12 @@ const SCREENS = {
         regions: { ...s.regions, [capId]: { ...c, size: (c.size || 1) + 1 } } };`);
     await page.getByTestId('turn-report').waitFor({ timeout: 10000 });
     await shot(page, 'W10-turn-report', vp);
+  },
+  W12: async (page, vp) => {
+    await startGame(page);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:open-settings')));
+    await page.getByTestId('settings-sheet').waitFor({ timeout: 10000 });
+    await shot(page, 'W12-settings', vp);
   }
 };
 

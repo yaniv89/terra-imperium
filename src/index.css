@@ -556,6 +556,11 @@ svg path {
   /* Clear of a notch on the right; the strip under it shows the backdrop. */
   margin-right: env(safe-area-inset-right);
 }
+/* Two-column sheets (Settings, the nation overview): wide enough for both columns, over the rail
+   (plans/UI-DESIGN.md section 5: Settings hides the tab rail). */
+[data-layout="phone-landscape"] .sheet-panel.sheet-wide {
+  width: min(720px, calc(100vw - env(safe-area-inset-left) - 4rem));
+}
 
 /* A tablet held sideways (E2): the same shell with a wider dock; side sheets 420 px wide. */
 [data-layout="tablet"] .sheet-backdrop {
