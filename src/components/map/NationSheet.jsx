@@ -9,6 +9,7 @@ import { ActionTypes } from '../../data/types';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { nationSheetModel } from './nationSheetModel';
 import NationCard from '../panels/NationCard';
+import { UNKNOWN_PEOPLE } from '../../engine/fog';
 
 const TONE = { good: 'text-emerald-300', bad: 'text-red-300', neutral: 'text-amber-200' };
 
@@ -20,7 +21,16 @@ const NationSheet = ({ nationId, onClose, onSelectRegion }) => {
   const isMobile = useIsMobile();
   const m = useMemo(() => nationSheetModel(state, nationId), [state, nationId]);
   if (!m) return null;
-  const body = (
+  // A people not yet met (engine/fog.js): no name, no numbers, no diplomacy.
+  const body = !m.met ? (
+    <div className="flex justify-between items-start" data-testid="nation-unknown">
+      <div className="min-w-0">
+        <div className="font-bold text-white text-sm">{UNKNOWN_PEOPLE}</div>
+        <div className="text-slate-400 text-[11px] mt-1">You have not met this people. Send an army, settlers or ships until you see their land; diplomacy opens on contact.</div>
+      </div>
+      <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"><X className="w-4 h-4" /></button>
+    </div>
+  ) : (
     <>
       <div className="flex justify-between items-start border-b border-slate-700 pb-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">

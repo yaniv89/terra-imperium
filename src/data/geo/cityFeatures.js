@@ -13,6 +13,7 @@
 import polygonClipping from 'polygon-clipping';
 import { getTiles } from './tiles';
 import { buildTerritories, buildHexMesh, cellFeature } from './tileGeometry';
+import { tilesInWindow } from './tileSpatialIndex';
 
 const territoryCache = new WeakMap(); // tileOwner -> Map(landKey -> [feature])
 const nationCache = new WeakMap();    // tileOwner -> Map(landKey|ownersKey -> [feature])
@@ -143,33 +144,11 @@ export const getHexMesh = () => {
  * for what is on screen: the whole world's mesh is one 50,000-segment path, too heavy to paint
  * at every pan). `west` may exceed `east` across the antimeridian. */
 /** The land tile ids inside a lat/lon window (`west` may exceed `east` across the antimeridian). */
-export const landTilesWithin = ({ south, north, west, east }) => {
-  const tiles = getTiles();
-  const ids = [];
-  const lat = tiles.lat; const lon = tiles.lon;
-  for (let i = 0; i < tiles.count; i++) {
-    if (!tiles.land[i]) continue;
-    const la = lat[i] / 1000; const lo = lon[i] / 1000;
-    if (la < south || la > north) continue;
-    if (west <= east ? (lo < west || lo > east) : (lo < west && lo > east)) continue;
-    ids.push(i);
-  }
-  return ids;
-};
+// Both read the spatial index (tileSpatialIndex.js): only the cells in the window are visited,
+// not all 100,002 tiles on every pan step.
+export const landTilesWithin = (area) => tilesInWindow(area);
 
-export const getHexMeshWithin = ({ south, north, west, east }) => {
-  const tiles = getTiles();
-  const ids = [];
-  const lat = tiles.lat; const lon = tiles.lon;
-  for (let i = 0; i < tiles.count; i++) {
-    if (!tiles.land[i]) continue;
-    const la = lat[i] / 1000; const lo = lon[i] / 1000;
-    if (la < south || la > north) continue;
-    if (west <= east ? (lo < west || lo > east) : (lo < west && lo > east)) continue;
-    ids.push(i);
-  }
-  return buildHexMesh(tiles, { landOnly: true, only: ids });
-};
+export const getHexMeshWithin = (area, keep = null) => buildHexMesh(getTiles(), { landOnly: true, only: keep ? tilesInWindow(area).filter(keep) : tilesInWindow(area) });
 
 /** A single tile as a feature (highlights). */
 export const getTileFeature = (tile) => cellFeature(getTiles(), tile);

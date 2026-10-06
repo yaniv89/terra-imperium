@@ -27,6 +27,7 @@ import { DOCTRINES } from '../data/nations';
 import { isIndependentNation, everyMajorThinks } from '../data/independents';
 import { RelationStatus } from '../data/types';
 import { getBorderingNationIds, getNeighborIds, getOwnedRegionIds } from '../data/regions';
+import { hasMet } from '../engine/fog';
 import { declareWar, isInTruce, hasActiveWarBetween, hasCasusBelli } from '../engine/diplomacy';
 import { claimsOf, claimsInProgressOf, claimableCities, startClaim } from '../engine/claims';
 import { ACTION_COSTS } from '../data/actionCosts';
@@ -300,7 +301,8 @@ const pickWarTarget = (state, nationId, preferredTargetId = null, excludeId = nu
   const candidates = getBorderingNationIds(state.regions, nationId)
     // Never its own vassal: an overlord settles a vassal by annexing it, not by war.
     // Independents are never a war target (they are attacked without a war: W3 gives the AI that).
-    .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]) && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id)
+    // Only a people it has met (fog.js): contact needs sight.
+    .filter(id => id !== excludeId && state.nations[id] && !state.nations[id].isEliminated && !isIndependentNation(state.nations[id]) && state.nations[id].vassalOf !== nationId && !isInTruce(state, nationId, id) && hasMet(state, nationId, id)
       && !hasActiveWarBetween(state, nationId, id) && countActiveWars(state.wars, id) < MAX_TARGET_WARS);
   if (candidates.length === 0) return null;
   if (preferredTargetId && candidates.includes(preferredTargetId)) return preferredTargetId;

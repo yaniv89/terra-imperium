@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { applyResearchTurn, getResearchCost } from '../engine/research';
+import { hasMet } from '../engine/fog';
 import { gameReducer, createInitialState } from './GameContext';
 import { ActionTypes, GameStatus, LogTypes } from '../data/types';
 import { XP_THRESHOLDS } from '../data/promotions';
@@ -2339,7 +2340,7 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op for a non-bordering nation', () => {
       const state = richState();
       const bordering = new Set(getBorderingNationIds(state.regions, 'fr'));
-      const nonBordering = Object.keys(state.nations).find((id) => id !== 'fr' && !bordering.has(id));
+      const nonBordering = Object.keys(state.nations).find((id) => id !== 'fr' && !bordering.has(id) && hasMet(state, 'fr', id));
       expect(gameReducer(state, { type: ActionTypes.RIVAL_NATION, payload: { nationId: nonBordering } })).toBe(state);
     });
 
@@ -2432,10 +2433,10 @@ describe('Diplomacy tab actions', () => {
 
     it('is a no-op once every diplomat is already assigned', () => {
       const state = richState();
-      const targets = Object.keys(state.nations).filter((id) => id !== 'fr').slice(0, state.nations.fr.diplomats);
+      const targets = Object.keys(state.nations).filter((id) => id !== 'fr' && hasMet(state, 'fr', id)).slice(0, state.nations.fr.diplomats);
       let assigned = state;
       targets.forEach((id) => { assigned = gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: id } }); });
-      const extra = Object.keys(state.nations).find((id) => id !== 'fr' && !targets.includes(id));
+      const extra = Object.keys(state.nations).find((id) => id !== 'fr' && !targets.includes(id) && hasMet(state, 'fr', id));
       expect(gameReducer(assigned, { type: ActionTypes.ASSIGN_DIPLOMAT, payload: { nationId: extra } })).toBe(assigned);
     });
 
@@ -2505,7 +2506,7 @@ describe('Diplomacy tab actions', () => {
       const vassalized = gameReducer(state, { type: ActionTypes.VASSALIZE, payload: { nationId: 'de' } });
       // fr is now de's OVERLORD in this fixture, not a vassal — flip the roles to test the guard.
       const frIsVassal = { ...vassalized, nations: { ...vassalized.nations, fr: { ...vassalized.nations.fr, vassalOf: 'de' } } };
-      const other = Object.keys(frIsVassal.nations).find((id) => id !== 'fr' && id !== 'de');
+      const other = Object.keys(frIsVassal.nations).find((id) => id !== 'fr' && id !== 'de' && hasMet(frIsVassal, 'fr', id));
       expect(gameReducer(frIsVassal, { type: ActionTypes.DECLARE_WAR, payload: { nationId: other } })).toBe(frIsVassal);
     });
   });
@@ -2620,7 +2621,7 @@ describe('Diplomacy tab actions', () => {
     it('is a no-op once trade pact capacity is exhausted', () => {
       const state = richState(); // base capacity 1 with neutral identity
       const first = gameReducer(state, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: 'de' } });
-      const otherId = Object.keys(first.nations).find((id) => id !== 'fr' && id !== 'de' && !first.nations[id].isAtWar);
+      const otherId = Object.keys(first.nations).find((id) => id !== 'fr' && id !== 'de' && !first.nations[id].isAtWar && hasMet(first, 'fr', id));
       expect(gameReducer(first, { type: ActionTypes.TRADE_AGREEMENT, payload: { nationId: otherId } })).toBe(first);
     });
   });

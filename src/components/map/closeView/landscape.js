@@ -12,6 +12,7 @@
 // Model units: a hex is about HEX_UNITS across (the towns' scale, unitPx in scale.js).
 import { getTiles } from '../../../data/geo/tiles';
 import { hexSizeVsF75 } from '../../../data/geo/gridScale';
+import { tilesInWindow } from '../../../data/geo/tileSpatialIndex';
 
 export const TREES_FROM_K = 14 / hexSizeVsF75(); // 14 at frequency 75: trees come with the close view's look, not a fixed zoom
 export const TREES_PER_HEX = 22;
@@ -44,14 +45,22 @@ const landTiles = () => {
  * The land tiles whose centre falls on screen (plus `margin` px): [{ tile, x, y, lat, lon }].
  * `toScreen(lat, lon)` returns { x, y } in screen pixels.
  */
-export const landTilesOnScreen = (toScreen, width, height, margin = 60) => {
-  const { ids, lat, lon } = landTiles();
+// `area` ({ south, north, west, east } in degrees, a little larger than the screen) narrows the
+// scan to the spatial index's cells in view (tileSpatialIndex.js) instead of every land tile.
+export const landTilesOnScreen = (toScreen, width, height, margin = 60, area = null) => {
   const out = [];
-  for (let i = 0; i < ids.length; i++) {
-    const p = toScreen(lat[i], lon[i]);
-    if (!p || p.x < -margin || p.y < -margin || p.x > width + margin || p.y > height + margin) continue;
-    out.push({ tile: ids[i], x: p.x, y: p.y, lat: lat[i], lon: lon[i] });
+  const keep = (tile, la, lo) => {
+    const p = toScreen(la, lo);
+    if (!p || p.x < -margin || p.y < -margin || p.x > width + margin || p.y > height + margin) return;
+    out.push({ tile, x: p.x, y: p.y, lat: la, lon: lo });
+  };
+  if (area) {
+    const tiles = getTiles();
+    tilesInWindow(area).forEach((t) => keep(t, tiles.lat[t] / 1000, tiles.lon[t] / 1000));
+    return out;
   }
+  const { ids, lat, lon } = landTiles();
+  for (let i = 0; i < ids.length; i++) keep(ids[i], lat[i], lon[i]);
   return out;
 };
 
@@ -107,7 +116,7 @@ export const WORK_OFFSET = { x: -1.1, y: 0.9 };
  * x, y, turn }] } in screen pixels, from the tiles on screen. `toScreen(lat, lon)` as above;
  * `k` the zoom; `cityTiles` a Set of the tiles that hold a city.
  */
-export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles, tiles = getTiles(), maxTrees = MAX_TREES }) => {
+export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles, tiles = getTiles(), maxTrees = MAX_TREES, isExplored = null, area = null }) => {
   const trees = []; const works = [];
   // Works from the sparse tile state (sea tiles too: fishing boats).
   Object.keys(world?.tileState || {}).forEach((key) => {
@@ -122,10 +131,10 @@ export const landscapeOnScreen = ({ toScreen, width, height, k, world, cityTiles
   const sup = superShare(k);
   const perHex = Math.round(TREES_PER_HEX * (1 + (SUPER_TREE_COUNT - 1) * sup));
   const sizeMul = 1 - (1 - SUPER_TREE_SIZE) * sup;
-  landTilesOnScreen(toScreen, width, height).forEach((t) => {
+  landTilesOnScreen(toScreen, width, height, 60, area).forEach((t) => {
     if (trees.length >= maxTrees) return;
     const kind = treeKindOf(tiles, t.tile);
-    if (!kind || tileIsCleared(world, cityTiles, t.tile)) return;
+    if (!kind || tileIsCleared(world, cityTiles, t.tile) || (isExplored && !isExplored(t.tile))) return; // no trees in the unexplored dark
     treeSpots(t.tile, t.lat, perHex).forEach((s) => {
       if (trees.length >= maxTrees) return;
       const p = toScreen(t.lat + s.dLat, t.lon + s.dLon);

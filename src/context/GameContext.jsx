@@ -13,6 +13,7 @@ import { loadMeta, saveMeta } from '../utils/metaProgression';
 // every existing `from '../context/GameContext'` import site keeps working unchanged.
 import { createInitialState, gameReducer } from '../engine/gameReducer';
 import { migrateSave, CURRENT_SAVE_VERSION, saveProblem } from '../engine/saveMigrations';
+import { runTurnInWorker, turnWorkerAvailable } from '../services/turnClient';
 
 export { createInitialState, gameReducer };
 
@@ -23,6 +24,7 @@ const STORAGE_KEY = 'terra-imperium-save-v1';
 // (saveMigrations.js's CURRENT_SAVE_VERSION): it used to be a hard-coded 1, which made every load
 // re-run the v1→v2 migration and wipe the ADM/DIP/MIL pools.
 const SAVE_VERSION = CURRENT_SAVE_VERSION;
+const AUTOSAVE_IDLE_MS = 1500;
 
 // Lazily load a saved game, falling back to a fresh one. migrateSave handles version upgrades and
 // backfills any field a newer build added that this save predates; a save it can't read at all
@@ -81,6 +83,8 @@ export const useGame = () => {
 // ============ PROVIDER ============
 export const GameProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, null, loadOrCreateState);
+  const stateRef = useRef(state); // the latest state, for the autosave and the turn worker
+  stateRef.current = state;
   // Dev builds only: read the state and dispatch from the console or a browser check.
   useEffect(() => {
     if (!import.meta.env.DEV) return undefined;
@@ -97,13 +101,26 @@ export const GameProvider = ({ children }) => {
   // straight serialize — the only thing intentionally NOT embedded is event *content*
   // (we store activeEventId, not the event object, so a future content patch can't leave a
   // save holding stale copy).
-  useEffect(() => {
+  // Written when the game goes quiet (AUTOSAVE_IDLE_MS after the last change) and when the page is
+  // hidden or closed, not after every action: serialising the whole world took tens of ms of the
+  // main thread on each army move.
+  const saveNow = useCallback(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state, savedAt: Date.now() }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SAVE_VERSION, state: stateRef.current, savedAt: Date.now() }));
     } catch (e) {
       // Storage unavailable or full — autosave is best-effort, never fatal.
     }
-  }, [state]);
+  }, []);
+  useEffect(() => {
+    const id = setTimeout(saveNow, AUTOSAVE_IDLE_MS);
+    return () => clearTimeout(id);
+  }, [state, saveNow]);
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') saveNow(); };
+    window.addEventListener('pagehide', saveNow);
+    document.addEventListener('visibilitychange', onHide);
+    return () => { window.removeEventListener('pagehide', saveNow); document.removeEventListener('visibilitychange', onHide); };
+  }, [saveNow]);
 
   // Achievement unlocks. checkAchievements is a pure predicate over the CURRENT snapshot (no
   // history needed), so this just diffs it against what's already persisted; the diff is what
@@ -155,15 +172,24 @@ export const GameProvider = ({ children }) => {
     dispatch({ type: ActionTypes.ADD_LOG, payload: { message, type } });
   }, []);
 
-  // Turn/event resolution now needs no payload from the component — the reducer always
-  // operates on the true latest state, so there is no stale-closure window to race.
-  const advanceTurn = useCallback(() => {
-    dispatch({ type: ActionTypes.ADVANCE_TURN });
+  // The turn runs in a Web Worker (src/services/turnClient.js, plans/rts-world-review.md 6.4), so
+  // the map stays responsive while the world moves; the result is applied only if the game is
+  // still where the turn started (APPLY_TURN_RESULT). Without workers, or if the worker fails,
+  // the turn runs here as before. `turnPending` lets the header show "The world moves".
+  const pendingRef = useRef(false);
+  const [turnPending, setTurnPending] = useState(false);
+  const runTurn = useCallback(async (type) => {
+    if (pendingRef.current) return;
+    const from = stateRef.current;
+    if (!turnWorkerAvailable()) { dispatch({ type }); return; }
+    pendingRef.current = true; setTurnPending(true);
+    const resolved = await runTurnInWorker(from, { type });
+    pendingRef.current = false; setTurnPending(false);
+    if (resolved) dispatch({ type: ActionTypes.APPLY_TURN_RESULT, payload: { from, state: resolved } });
+    else if (stateRef.current === from) dispatch({ type });
   }, []);
-
-  const fastForward = useCallback(() => {
-    dispatch({ type: ActionTypes.FAST_FORWARD });
-  }, []);
+  const advanceTurn = useCallback(() => runTurn(ActionTypes.ADVANCE_TURN), [runTurn]);
+  const fastForward = useCallback(() => runTurn(ActionTypes.FAST_FORWARD), [runTurn]);
 
   const resolveEvent = useCallback((optionIndex) => {
     dispatch({ type: ActionTypes.RESOLVE_EVENT, payload: { optionIndex } });
@@ -181,6 +207,7 @@ export const GameProvider = ({ children }) => {
         scenario: options.scenario,
         rngSeed: options.scenario?.seed,
         guided: !!options.guided,
+        exploredWorld: !!options.exploredWorld, // the "explored world" option: no fog of war (engine/fog.js)
         doctrineId: meta.selectedDoctrine,
         difficultyId: options.difficultyId || meta.difficulty
       }
@@ -210,6 +237,7 @@ export const GameProvider = ({ children }) => {
     addLog,
     advanceTurn,
     fastForward,
+    turnPending,
     resolveEvent,
     resetGame,
     exportSave,
@@ -218,7 +246,7 @@ export const GameProvider = ({ children }) => {
     selectDoctrine,
     selectDifficulty,
     completeOnboarding
-  }), [state, addLog, advanceTurn, fastForward, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
+  }), [state, addLog, advanceTurn, fastForward, turnPending, resolveEvent, resetGame, exportSave, importSave, meta, selectDoctrine, selectDifficulty, completeOnboarding]);
 
   return (
     <GameContext.Provider value={contextValue}>

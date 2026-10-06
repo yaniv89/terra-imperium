@@ -18,6 +18,7 @@ import {
   InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3
 } from 'three';
 import { useGame } from '../../../context/GameContext';
+import { useFogView } from '../useFogView';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
 import { markerLatLng } from '../../../utils/markerPosition';
 import { getEffectiveAgeId } from '../../../data/ages';
@@ -56,7 +57,11 @@ const FIELD_DISC = 0.8;
 const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
 
 const CloseViewLayer = ({ projection, transform, width, height, active, land = null }) => {
-  const { state } = useGame();
+  // Towns, works and trees as the player knows them (fogView.js); the armies from the real state
+  // (getMapMarkers applies sight itself).
+  const { state: gameState } = useGame();
+  const fog = useFogView();
+  const { state } = fog;
   const canvasRef = useRef(null);
   const three = useRef(null);
   const [assetsTick, setAssetsTick] = useState(0); // bumps when an artist town file finishes loading
@@ -112,9 +117,18 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     };
   }, []);
 
-  const markers = useMemo(() => getMapMarkers(state),
+  const markers = useMemo(() => getMapMarkers(gameState),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.units, state.regions, state.nations, state.intel, state.battleReports, state.turnNumber, state.playerNationId]);
+    [gameState.units, gameState.regions, gameState.nations, gameState.intel, gameState.battleReports, gameState.turnNumber, gameState.playerNationId]);
+
+  // The town tiles (so no town grows into its neighbour, townGapUnits) once per game state, not per
+  // frame: a stable isTown lets scale.js cache each town's gap. A wonder with a model counts too.
+  const towns = useMemo(() => {
+    const townTiles = new Set(Object.values(state.regions).filter((r) => (r.owner || r.colony) && r.tile != null).map((r) => r.tile));
+    const wonders = wonderPlacements(state, getTiles()).filter((w) => wonderAssetUrl(w.projectId));
+    wonders.forEach((w) => townTiles.add(w.tile));
+    return { wonders, isTown: (t) => townTiles.has(t) };
+  }, [state]);
 
   // Lay the scene out whenever the view or the game changes.
   useEffect(() => {
@@ -180,11 +194,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     // Towns: every province on screen with an owner or a colony.
     const seen = new Set();
     // town tiles, so no town grows into its neighbour (townGapUnits)
-    const townTiles = new Set(Object.values(state.regions).filter((r) => (r.owner || r.colony) && r.tile != null).map((r) => r.tile));
-    // a wonder with a model counts too: a town and the wonder beside it never grow into each other
-    const wonders = wonderPlacements(state, getTiles()).filter((w) => wonderAssetUrl(w.projectId));
-    wonders.forEach((w) => townTiles.add(w.tile));
-    const isTown = (t) => townTiles.has(t);
+    const { wonders, isTown } = towns;
     Object.keys(REGION_COORDINATES).forEach((id) => {
       const region = state.regions[id];
       if (!region || (!region.owner && !region.colony)) return;
@@ -343,7 +353,10 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       return p ? { x: p[0] * k + transform.x, y: p[1] * k + transform.y } : null;
     };
     const cityTiles = new Set(Object.values(state.regions).map((r) => r.tile).filter((x) => x != null));
-    const land = landscapeOnScreen({ toScreen: project, width, height, k, world: state.world, cityTiles });
+    // The screen as a lat/lon window (with a margin) for the spatial index: only the tiles in view.
+    const nw = latLonAt(-120, -120); const se = latLonAt(width + 120, height + 120);
+    const screenWindow = nw && se ? { west: nw[0], north: nw[1], east: se[0], south: se[1] } : null;
+    const land = landscapeOnScreen({ toScreen: project, width, height, k, world: state.world, cityTiles, isExplored: fog.isExplored, area: screenWindow });
     t.trees.forEach((m) => { m.count = 0; });
     t.works.forEach((m) => { m.count = 0; });
     const put = (mesh, x, y, scale, turn, shade) => {
@@ -517,23 +530,26 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
     t.layers.forEach((l) => { l.mesh.instanceMatrix.needsUpdate = true; l.mesh.instanceColor.needsUpdate = true; l.anim.needsUpdate = true; l.variant.needsUpdate = true; });
     t.moving = moving;
     t.dirty = true;
-  }, [active, projection, transform, width, height, state, markers, assetsTick]);
+    t.requestDraw?.();
+  }, [active, projection, transform, width, height, state, fog, towns, markers, assetsTick]);
 
-  // Draw: every frame while soldiers walk, otherwise only after a change.
+  // Draw on demand (plans/rts-world-review.md 6.3): one frame after a change, and every frame only
+  // while soldiers walk; no animation loop runs while nothing moves (saves the battery).
   useEffect(() => {
-    if (!active) return undefined;
+    const t = three.current;
+    if (!active || !t) return undefined;
     let raf = 0;
-    const loop = (now) => {
-      const t = three.current;
-      if (t && (t.dirty || t.moving)) {
-        RIG_TIME.value = now / 1000;
-        t.renderer.render(t.scene, t.camera);
-        t.dirty = false;
-      }
-      raf = requestAnimationFrame(loop);
+    const draw = (now) => {
+      raf = 0;
+      if (!three.current) return;
+      RIG_TIME.value = now / 1000;
+      t.renderer.render(t.scene, t.camera);
+      t.dirty = false;
+      if (t.moving) raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    t.requestDraw = () => { if (!raf) raf = requestAnimationFrame(draw); };
+    if (t.dirty || t.moving) t.requestDraw();
+    return () => { cancelAnimationFrame(raf); t.requestDraw = null; };
   }, [active]);
 
   return (

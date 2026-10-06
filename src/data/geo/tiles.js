@@ -3,13 +3,31 @@
 // scripts/geo/build-tiles.mjs. Static data, never part of game state: a tile's dynamic facts
 // (owner city, improvement, road, pillaged, seen) live in state as sparse maps keyed by tile id.
 //
-// The engine is synchronous (createInitialState, resolveTurn, the reducer), so the grid is a
-// static import, decorated once on first use. `loadTiles()` stays as an async alias for callers
-// written before the engine needed the grid.
-import rawTiles from './tiles.json';
+// The engine is synchronous (createInitialState, resolveTurn, the reducer) but the grid is not in
+// any bundle (it was an 8.2 MB JSON in the main chunk, plans/rts-world-review.md 6.4):
+//   - in the browser (and the workers) `await loadTiles()` fetches public/map/tiles.bin.gz
+//     (tilesCodec.js) before anything reads the grid; src/index.jsx, turn.worker.js and
+//     battle.worker.js load the rest of the app only after it;
+//   - in Node (tests, scripts) the first getTiles() reads tiles.json from disk;
+//   - a bundle that must carry the grid itself (the edge function) imports tilesPreload.js first.
+// The per-tile columns are typed arrays either way, decorated once on first use.
 import { fromLatLonExact, buildLatLonIndex, cellPolygon, toLatLon } from './geodesic.js';
+import { columnsFromJson, decodeTiles } from './tilesCodec.js';
 
 let cached = null;
+let rawTiles = null;
+
+/** Hands the grid over (tiles.json's shape; plain or typed-array columns). */
+export const setRawTiles = (raw) => { rawTiles = columnsFromJson(raw); cached = null; };
+
+// Node only: tiles.json from the working tree (tests and scripts run from the repo root).
+const readFromDisk = () => {
+  const proc = typeof globalThis.process !== 'undefined' ? globalThis.process : null;
+  const fs = proc?.getBuiltinModule?.('fs');
+  if (!fs) return null;
+  const file = `${proc.cwd().replace(/\\/g, '/')}/src/data/geo/tiles.json`;
+  return fs.existsSync(file) ? columnsFromJson(JSON.parse(fs.readFileSync(file, 'utf8'))) : null;
+};
 
 const decorate = (raw) => {
   const n = raw.count;
@@ -49,11 +67,59 @@ const decorate = (raw) => {
 };
 
 export const getTiles = () => {
-  if (!cached) cached = decorate(rawTiles);
+  if (!cached) {
+    if (!rawTiles) rawTiles = readFromDisk();
+    if (!rawTiles) throw new Error('The world grid is not loaded yet: await loadTiles() first.');
+    cached = decorate(rawTiles);
+  }
   return cached;
 };
 
-export const loadTiles = async () => getTiles();
+export const tilesLoaded = () => !!rawTiles;
+
+// The binary's URL next to the app (Vite's base; /terra-imperium/ on GitHub Pages).
+const binaryUrl = () => {
+  let base = '/';
+  try { base = import.meta.env?.BASE_URL || '/'; } catch { /* not under Vite */ }
+  return `${base}map/tiles.bin.gz`;
+};
+
+// Some servers hand the .gz over already decoded (Content-Encoding), others as the gzip file
+// itself: the first bytes say which.
+const gunzip = async (response) => {
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b) return bytes;
+  if (typeof DecompressionStream === 'undefined') return null;
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+};
+
+let loading = null;
+/** Loads the grid once (fetch and decode the binary; the JSON chunk where gzip streams are missing). */
+export const loadTiles = async () => {
+  if (rawTiles || readFromDiskOnce()) return getTiles();
+  loading ||= (async () => {
+    let bytes = null;
+    try {
+      const res = await fetch(binaryUrl());
+      if (res.ok) bytes = await gunzip(res);
+    } catch { /* offline or blocked: the JSON below */ }
+    let decoded = null;
+    try { decoded = bytes ? decodeTiles(bytes) : null; } catch { /* not the binary: the JSON below */ }
+    if (decoded) setRawTiles(decoded);
+    else setRawTiles((await import('./tiles.json')).default);
+  })();
+  await loading;
+  return getTiles();
+};
+let triedDisk = false;
+const readFromDiskOnce = () => {
+  if (triedDisk) return false;
+  triedDisk = true;
+  const r = readFromDisk();
+  if (r) rawTiles = r;
+  return !!r;
+};
 
 // For tests and scripts that already hold a raw JSON of their own.
 export const tilesFromRaw = (raw) => decorate(raw);

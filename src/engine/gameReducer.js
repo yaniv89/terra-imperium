@@ -98,6 +98,7 @@ import { REBEL_OWNER_ID, REBELLION_UNREST_THRESHOLD } from '../data/rebellion';
 import { randomSeed, createRng } from '../utils/rng';
 import { applyStartingDoctrine } from '../data/startingDoctrines';
 import { applyDifficulty } from '../data/difficulty';
+import { initFog, updateFog, fogOn, hasMet } from './fog';
 import { generateRuler, generateAdvisorCandidates, getAdvisorHireCost } from './rulers';
 import { clampStability, clampPrestige, getIncreaseStabilityCost } from './nationalPower';
 import { getTotalDev, DEV_TYPE_POOL, getDevelopProvinceCost, DEVELOP_PROVINCE_POP_GAIN_RATIO } from './development';
@@ -130,7 +131,7 @@ const formatYear = (year) => (year < 0 ? `${-year} BCE` : `${year} CE`);
 // Exported (not just used internally) so it doubles as test fixture data — resolveTurn.test.js
 // and applyEventEffects.test.js build realistic states from it rather than hand-rolling partial
 // mocks that could silently drift from the real shape.
-export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false } = {}) => {
+export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, gameSpeed = 'normal', rngSeed, scenario, guided = false, fog = true } = {}) => {
   const year = START_YEAR;
   const age = getCalendarAgeId(year);
 
@@ -459,7 +460,8 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  const started = refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late })));
+  // Fog of war (fog.js): each people knows its homeland; `fog: false` is the "explored world" option.
+  const started = initFog(refreshPeopleNames(syncWorldRegistry(finalizeIndependents(applyScenario(initial, { ...scenario, seed: worldSeed }), { late: independentPick.late }))), { on: fog });
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
@@ -2954,8 +2956,8 @@ const reduceAction = (state, action) => {
       // playerNationId/gameSpeed/difficultyId come from the start screen; doctrineId comes from
       // meta-progression localStorage via the component layer — see GameProvider.resetGame below.
       // This keeps gameReducer a pure function of (state, action).
-      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided } = action.payload || {};
-      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided });
+      const { playerNationId, gameSpeed, doctrineId, difficultyId, scenario, rngSeed, guided, exploredWorld } = action.payload || {};
+      const fresh = createInitialState({ playerNationId, gameSpeed, scenario, rngSeed, guided, fog: !exploredWorld });
       const withDoctrine = doctrineId ? applyStartingDoctrine(fresh, doctrineId) : fresh;
       return difficultyId ? applyDifficulty(withDoctrine, difficultyId) : withDoctrine;
     }
@@ -2989,9 +2991,30 @@ const reduceAction = (state, action) => {
 // see src/engine/saveMigrations.js for why this exists and what it does.
 export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 
+// Diplomacy needs contact (fog.js): these actions name a people in `payload.nationId`.
+const CONTACT_ACTIONS = new Set([
+  ActionTypes.DECLARE_WAR, ActionTypes.FABRICATE_CLAIM, ActionTypes.TRADE_AGREEMENT, ActionTypes.OPEN_BORDERS,
+  ActionTypes.DEMAND, ActionTypes.MILITARY_ALLIANCE, ActionTypes.GIFT_BRIBE, ActionTypes.ESPIONAGE,
+  ActionTypes.RIVAL_NATION, ActionTypes.PROPOSE_MARRIAGE, ActionTypes.INSULT, ActionTypes.ASSIGN_DIPLOMAT, ActionTypes.VASSALIZE
+]);
+// Actions after which the player's own sight is refreshed at once (an army moved, a city rose):
+// exploring and meeting peoples happen as you move, not only at the end of the turn.
+const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
+
 export const gameReducer = (state, action) => {
+  // A turn the worker resolved from `from` (src/services/turnClient.js): taken only while the game
+  // still stands at `from`, so an action taken meanwhile is never lost or doubled.
+  if (action?.type === ActionTypes.APPLY_TURN_RESULT) {
+    const { from, state: resolved } = action.payload || {};
+    return from === state && resolved ? syncWorldRegistry(resolved) : state;
+  }
   syncWorldRegistry(state);
-  const next = reduceAction(state, action);
+  const target = action?.payload?.nationId;
+  if (CONTACT_ACTIONS.has(action?.type) && target && state.nations?.[target] && !hasMet(state, state.playerNationId, target)) {
+    return reject(state, 'You have not met that people yet: send scouts, armies or ships until you see their land.');
+  }
+  let next = reduceAction(state, action);
+  if (next !== state && !NO_FOG_REFRESH.has(action?.type) && fogOn(next) && (next.units !== state.units || next.regions !== state.regions)) next = updateFog(next, { onlyPlayer: true });
   const synced = syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
   // A peoples world keeps its titles and regiment numbers current (peopleNames.js; names only).
   return synced === state ? state : refreshPeopleNames(synced, state);

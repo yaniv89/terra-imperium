@@ -52,7 +52,7 @@ describe('the Deno-bound engine bundle behaves identically to its source', () =>
     const sourceState = sourceCreateInitialState({ playerNationId: 'fr', rngSeed: FIXED_RNG_SEED });
     const bundledState = bundled.createInitialState({ playerNationId: 'fr', rngSeed: FIXED_RNG_SEED });
     expect(bundledState).toEqual(sourceState);
-  });
+  }, 60000); // the fog's 240 explored maps make the deep compare slow
 
   it('gameReducer resolves a real sequence of actions identically to the source', () => {
     const actions = [
@@ -72,7 +72,7 @@ describe('the Deno-bound engine bundle behaves identically to its source', () =>
     });
 
     expect(bundledState).toEqual(sourceState);
-  });
+  }, 60000);
 
   it('the bundle never imports anything unresolved (esbuild would have failed the build already, but confirm no bare import survived)', async () => {
     const contents = await readFile(BUNDLE_PATH, 'utf8');

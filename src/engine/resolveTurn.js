@@ -102,6 +102,7 @@ import { spreadPlague, seedPlagueNear, PLAGUE_EVENT_ORIGINS } from './plague';
 import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
 import { ringsFromF75 } from '../data/geo/gridScale';
+import { updateFog } from './fog';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -1248,5 +1249,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   mark('research');
   next = normalizeUnitTiles(syncWorldRegistry(next));
   mark('registry');
+  // Fog of war last (fog.js): what everyone sees once the turn's moves, foundings and conquests
+  // are done grows their explored maps and makes contacts.
+  next = updateFog(next);
+  mark('fog');
   return next;
 };
