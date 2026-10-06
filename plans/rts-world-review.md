@@ -220,12 +220,14 @@ Steps: make flat the default; remove the toggle; delete `GlobeView`, `politicalT
 Phases A and A2 can run beside the roadmap's W phases (they touch the renderer, not the rules).
 B needs the town assembler and the art sessions. C is independent and can start at once.
 
-## 10. Open questions for the user
+## 10. Decisions (the user, 2026-10-06)
 
-1. Base-building in battles: every city assault (the plan), or only great sieges (this review)?
-2. Default battle size on phones: about 300 a side (recommended) or 500?
-3. Fog of war on by default, with an "explored world" option? (recommended yes)
-4. Drop the globe (this reverses the roadmap's "sharper globe")? If yes: hide it behind a setting
-   for one release, then delete (recommended).
-5. Move the flat map from SVG to WebGL (section 6.5)? It is the biggest single speed fix and the
-   base for the world plan's 3D terrain (recommended yes, after phase A).
+1. **Base-building in every battle**: every city assault and every assault on units in the field
+   is a full RTS battle with workers and buildings. Every battle always offers **Command** (play
+   it) or **Auto** (resolve it). This overrides section 4.1 and phase E of section 9.
+2. **300 a side** is the default battle size. **Village houses control population**: armies and
+   workers need housing, as in Age of Empires.
+3. **Fog of war on** by default, with an "explored world" option.
+4. **Hide the globe** (a setting for one release, then delete).
+5. **Move the flat map to WebGL** after the fog phase.
+6. Combine this plan with the roadmap's peoples, names, independents and ages.
