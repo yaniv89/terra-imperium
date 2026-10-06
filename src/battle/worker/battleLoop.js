@@ -39,7 +39,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
 
   const emitEnd = () => {
     finished = true;
-    post({ type: 'ended', result: toStrategicResult(world), log, hash: worldHash(world), tick: world.tick });
+    post({ type: 'ended', result: toStrategicResult(world), log, hash: worldHash(world), chain: world.hashChain, tick: world.tick });
   };
 
   return {
@@ -71,7 +71,7 @@ export const createBattleLoop = ({ setup, resume = null, post }) => {
         step(world, orders);
         events.push(...world.events); world.events.length = 0;
         acc -= TICK_MS;
-        if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), log: [...log] });
+        if (world.tick % CHECKPOINT_EVERY === 0) post({ type: 'checkpoint', tick: world.tick, hash: worldHash(world), chain: world.hashChain, log: [...log] });
       }
       const sendFog = world.tick - lastFogTick >= 5;
       if (sendFog) lastFogTick = world.tick;
