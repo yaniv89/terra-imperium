@@ -37,7 +37,8 @@ const startGame = async (page) => {
 };
 
 const args = flag('gpu') ? ['--enable-gpu', '--ignore-gpu-blocklist', '--use-angle=d3d11', '--enable-webgl'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'];
-const browser = await chromium.launch({ channel: 'chrome', headless: true, args });
+const exe = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+const browser = await chromium.launch({ ...(exe ? { executablePath: exe } : { channel: 'chrome' }), headless: true, args });
 mkdirSync(OUT, { recursive: true });
 for (const name of PROFILES) {
   const context = await browser.newContext(PROFILE[name]);
@@ -55,8 +56,9 @@ for (const name of PROFILES) {
   await page.waitForTimeout(1500);
   for (const v of VIEWS) {
     await page.evaluate(({ lat, lng, k }) => window.__map2DTest.focus(lat, lng, k), v);
-    await page.waitForTimeout(3500);
-    await page.screenshot({ path: `${OUT}/${v.name}-${EXPLORED ? 'explored-' : ''}${name}-k${v.k}.png` });
+    // level 5 and 6 tiles stream in over the network: give them time, so shots compare like for like
+    await page.waitForTimeout(Number(arg('settle', 3500)));
+    await page.screenshot({ path: `${OUT}/${v.name}-${EXPLORED ? 'explored-' : ''}${name}-k${v.k}.png`, timeout: 180000 });
     const info = await page.evaluate(() => { const i = window.__glMap?.info(); return i && { calls: i.calls, raster: i.raster, terrainSprites: i.terrainSprites }; });
     console.log(name, v.name, v.k, JSON.stringify(info));
   }

@@ -4,6 +4,7 @@
 // (Mapzen/Tilezen, see CREDITS.md). Run once: node scripts/geo/fetch-tiles-raw.mjs
 // With --pyramid it also fetches what build-raster-pyramid.mjs needs: the 1:10M land and the
 // 1,024 zoom-5 elevation tiles (about 75 MB).
+// River lines for the raster (river-paint.mjs) come from ne_10m_rivers_lake_centerlines_scale_rank.
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -14,7 +15,7 @@ const RAW = path.join(__dirname, '.raw');
 const NE = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson';
 const NE_FILES = [
   'ne_50m_land', 'ne_10m_geography_regions_polys', 'ne_10m_glaciated_areas', 'ne_10m_lakes',
-  'ne_10m_rivers_lake_centerlines', 'ne_10m_populated_places_simple'
+  'ne_10m_rivers_lake_centerlines', 'ne_10m_rivers_lake_centerlines_scale_rank', 'ne_10m_populated_places_simple'
 ];
 const TERRARIUM = 'https://elevation-tiles-prod.s3.amazonaws.com/terrarium/4';
 
@@ -59,7 +60,15 @@ if (process.argv.includes('--pyramid')) {
 if (process.argv.includes('--detail')) {
   const { getTiles } = await import('../../src/data/geo/tiles.js');
   const { detailElevationTiles } = await import('./build-raster-detail.mjs');
-  const wanted = detailElevationTiles(getTiles());
+  let wanted = detailElevationTiles(getTiles());
+  // --box lon0,lat0,lon1,lat1: only the elevation tiles of one region (a map trial)
+  const bi = process.argv.indexOf('--box');
+  if (bi > 0) {
+    const [lon0, lat0, lon1, lat1] = process.argv[bi + 1].split(',').map(Number);
+    const n = 2 ** 7; const lonX = (lon) => Math.floor(((lon + 180) / 360) * n);
+    const latY = (lat) => { const la = (lat * Math.PI) / 180; return Math.floor(((1 - Math.log(Math.tan(la) + 1 / Math.cos(la)) / Math.PI) / 2) * n); };
+    wanted = wanted.filter(([x, y]) => x >= lonX(lon0) - 1 && x <= lonX(lon1) + 1 && y >= latY(lat1) - 1 && y <= latY(lat0) + 1);
+  }
   await mkdir(path.join(RAW, 'terrarium7'), { recursive: true });
   let got7 = 0;
   for (let i = 0; i < wanted.length; i += 24) {

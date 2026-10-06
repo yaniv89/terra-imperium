@@ -31,6 +31,7 @@ import { createRequire } from 'node:module';
 import { makeShadePixel, clampToCoast } from './build-raster-pyramid.mjs';
 import { climateColorGrid } from './build-world-raster.mjs';
 import { loadElevation } from './build-tiles.mjs';
+import { loadRiverLines, riverSvg, RIVER_MAX_RANK } from './river-paint.mjs';
 
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
@@ -209,21 +210,6 @@ const ringsOf = (features) => {
   });
   return rings;
 };
-const linesOf = (features) => {
-  const out = [];
-  features.forEach((f) => {
-    const rank = f.properties.scalerank ?? 12;
-    if (rank > 9 || /lake/i.test(f.properties.featurecla || '')) return;
-    const lines = f.geometry?.type === 'LineString' ? [f.geometry.coordinates] : f.geometry?.type === 'MultiLineString' ? f.geometry.coordinates : [];
-    lines.forEach((line) => {
-      let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
-      line.forEach(([x, y]) => { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; });
-      // ground width as the pyramid's level 5 (4.5 / 3 / 1.8 px at 2.4 km), in km
-      out.push({ line, width: (rank <= 3 ? 4.5 : rank <= 6 ? 3 : 1.8) * 2.44, minX, minY, maxX, maxY });
-    });
-  });
-  return out;
-};
 const boxOfTile = (z, tx, ty, padPx = 2) => {
   const { W, H } = levelSize(z);
   return { lon0: ((tx * TILE - padPx) / W) * 360 - 180, lon1: (((tx + 1) * TILE + padPx) / W) * 360 - 180, lat1: 90 - ((ty * TILE - padPx) / H) * 180, lat0: 90 - (((ty + 1) * TILE + padPx) / H) * 180 };
@@ -243,17 +229,13 @@ const maskFor = async (pathData, z, tx, y0, rows) => {
 };
 const riverOverlay = async (lines, z, tx, ty, box) => {
   const { W, H } = levelSize(z);
-  const kmPx = (180 / H) * 111;
-  const strokes = lines.filter((l) => meets(box, l)).map(({ line, width }) => {
-    const d = line.map(([lon, lat], i) => `${i ? 'L' : 'M'}${(((lon + 180) / 360) * W).toFixed(1)} ${(((90 - lat) / 180) * H).toFixed(1)}`).join('');
-    return `<path d="${d}" stroke="rgb(96,156,214)" stroke-opacity="0.75" stroke-width="${(width / kmPx).toFixed(2)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
-  }).join('');
+  const strokes = riverSvg(lines, { W, H, kmPx: (180 / H) * 111, minPx: 1, keep: (l) => meets(box, l) });
   if (!strokes) return null;
   return sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${TILE}" height="${TILE}" viewBox="${tx * TILE} ${ty * TILE} ${TILE} ${TILE}">${strokes}</svg>`)).raw().toBuffer({ resolveWithObject: true });
 };
 
 // ---- one tile: colour (optional) and land cover ------------------------------------------------
-const renderTile = async (ctx, z, tx, ty, { colour }) => {
+const renderTile = async (ctx, z, tx, ty, { colour, writeCover = true }) => {
   const { W, H } = levelSize(z);
   const box = boxOfTile(z, tx, ty);
   const y0 = ty * TILE;
@@ -301,7 +283,7 @@ const renderTile = async (ctx, z, tx, ty, { colour }) => {
   }
   ctx.rowHint = hint;
   const coverFile = path.join(COVER_OUT, String(z), `${tx}-${ty}.png`);
-  await sharp(Buffer.from(cover.buffer), { raw: { width: TILE, height: TILE, channels: 1 } }).png({ compressionLevel: 9, palette: false }).toFile(coverFile);
+  if (writeCover) await sharp(Buffer.from(cover.buffer), { raw: { width: TILE, height: TILE, channels: 1 } }).png({ compressionLevel: 9, palette: false }).toFile(coverFile);
   if (rgb) {
     const rivers = await riverOverlay(ctx.riverLines, z, tx, ty, box);
     if (rivers) {
@@ -320,8 +302,10 @@ const renderTile = async (ctx, z, tx, ty, { colour }) => {
 
 export const buildRasterDetail = async ({ coverOnly = false, box = null } = {}) => {
   const t0 = Date.now();
-  // A preview of one area: --box lon0,lat0,lon1,lat1 renders only the tiles meeting it (the
-  // manifest then lists only those, so never commit a box run).
+  // One area in place: --box lon0,lat0,lon1,lat1 re-renders only the level 6 pictures meeting it
+  // (rivers and relief) and leaves everything else alone: the other tiles, the land cover and
+  // the manifest (the tile set does not change). Needs the zoom-7 elevation of that area
+  // (node scripts/geo/fetch-tiles-raw.mjs --detail --box lon0,lat0,lon1,lat1).
   const only = box ? { minX: box[0], minY: box[1], maxX: box[2], maxY: box[3] } : null;
   const { getTiles } = await import('../../src/data/geo/tiles.js');
   const tiles = getTiles();
@@ -336,7 +320,7 @@ export const buildRasterDetail = async ({ coverOnly = false, box = null } = {}) 
     rowHint: -1,
     landRings: ringsOf(readJson(path.join(ROOT, 'src/data/geo/hexLand.json')).features),
     iceRings: ringsOf(readJson(path.join(RAW, 'ne', 'ne_10m_glaciated_areas.geojson')).features),
-    riverLines: linesOf(readJson(path.join(RAW, 'ne', 'ne_10m_rivers_lake_centerlines.geojson')).features)
+    riverLines: loadRiverLines(RAW, { maxRank: RIVER_MAX_RANK[DETAIL_Z] })
   };
   log(`sources ready (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   const manifest = { version: 1, tile: TILE, detail: {}, cover: { classes: LAND_COVER, levels: {} }, sources: {
@@ -344,14 +328,15 @@ export const buildRasterDetail = async ({ coverOnly = false, box = null } = {}) 
     land: 'src/data/geo/hexLand.json (the hex coast)', ice: 'Natural Earth 1:10M glaciated areas', rivers: 'Natural Earth 1:10M rivers',
     cover: 'derived: Köppen climate (koppen-climate-lookup), the game hex features, Natural Earth glaciers, elevation snow and tree lines'
   } };
-  rmSync(COVER_OUT, { recursive: true, force: true });
+  if (!only) rmSync(COVER_OUT, { recursive: true, force: true });
   for (const z of COVER_LEVELS) {
+    if (only && z !== DETAIL_Z) continue;
     const colour = z === DETAIL_Z && !coverOnly;
     // level 5 cover uses the coarse elevation: its classes only need the snow and tree lines
     const saved = ctx.elevation; if (z < DETAIL_Z) ctx.elevation = coarse;
     ctx.shade = makeShadePixel(levelSize(z).W, levelSize(z).H, DETAIL_RELIEF);
     mkdirSync(path.join(COVER_OUT, String(z)), { recursive: true });
-    if (colour) { rmSync(path.join(TILES_OUT, String(z)), { recursive: true, force: true }); mkdirSync(path.join(TILES_OUT, String(z)), { recursive: true }); }
+    if (colour && !only) { rmSync(path.join(TILES_OUT, String(z)), { recursive: true, force: true }); mkdirSync(path.join(TILES_OUT, String(z)), { recursive: true }); }
     const { cols, rows } = levelSize(z);
     const kept = [];
     for (let ty = 0; ty < rows; ty++) {
@@ -362,7 +347,7 @@ export const buildRasterDetail = async ({ coverOnly = false, box = null } = {}) 
         if (only && !meets(box, only)) continue;
         // level 6 past DETAIL_MAX_LAT would only repeat level 5 (same coarse elevation): skip it
         if (z === DETAIL_Z && (box.lat0 > DETAIL_MAX_LAT || box.lat1 < -DETAIL_MAX_LAT)) continue;
-        if (await renderTile(ctx, z, tx, ty, { colour })) kept.push(`${tx}-${ty}`);
+        if (await renderTile(ctx, z, tx, ty, { colour, writeCover: !only })) kept.push(`${tx}-${ty}`);
       }
       if (ty % 8 === 7) log(`level ${z}: row ${ty + 1}/${rows}, ${kept.length} tiles (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
     }
@@ -371,7 +356,7 @@ export const buildRasterDetail = async ({ coverOnly = false, box = null } = {}) 
     if (colour) manifest.detail[z] = kept;
   }
   if (coverOnly && existsSync(path.join(TILES_OUT, 'detail.json'))) manifest.detail = readJson(path.join(TILES_OUT, 'detail.json')).detail;
-  writeFileSync(path.join(TILES_OUT, 'detail.json'), JSON.stringify(manifest));
+  if (!only) writeFileSync(path.join(TILES_OUT, 'detail.json'), JSON.stringify(manifest));
   if (ctx.elevation.stats) log(`elevation samples: ${JSON.stringify(ctx.elevation.stats())}`);
   log(`done in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
 };

@@ -12,12 +12,14 @@
 // 1:10M glaciers and rivers.
 // Fetch them with: node scripts/geo/fetch-tiles-raw.mjs --pyramid
 // Memory stays small: the full level is rendered one 256-pixel band at a time.
-// Run: node scripts/geo/build-raster-pyramid.mjs   (a few minutes)
+// Run: node scripts/geo/build-raster-pyramid.mjs [--box lon0,lat0,lon1,lat1]   (a few minutes;
+// with a box only that region's tiles are rewritten)
 import { readFileSync, mkdirSync, existsSync, writeFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { climateColorGrid } from './build-world-raster.mjs';
+import { loadRiverLines, riverSvg, RIVER_MAX_RANK } from './river-paint.mjs';
 
 const require = createRequire(import.meta.url);
 const sharp = require('sharp');
@@ -70,20 +72,6 @@ const toPaths = (features, filter = () => true) => {
   });
   return parts.join('');
 };
-const toRiverStrokes = (features) => {
-  const strokes = [];
-  features.forEach((f) => {
-    const rank = f.properties.scalerank ?? 12;
-    if (rank > 9 || /lake/i.test(f.properties.featurecla || '')) return;
-    const width = rank <= 3 ? 4.5 : rank <= 6 ? 3 : 1.8;
-    const lines = f.geometry?.type === 'LineString' ? [f.geometry.coordinates] : f.geometry?.type === 'MultiLineString' ? f.geometry.coordinates : [];
-    lines.forEach((line) => {
-      const d = line.map(([lon, lat], i) => `${i ? 'L' : 'M'}${(((lon + 180) / 360) * W).toFixed(1)} ${(((90 - lat) / 180) * H).toFixed(1)}`).join('');
-      strokes.push(`<path d="${d}" stroke="rgb(96,156,214)" stroke-opacity="0.75" stroke-width="${width}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
-    });
-  });
-  return strokes.join('');
-};
 // A band of the full level, `rows` tall from `y0`, as a 0/1 mask.
 const bandMask = async (pathData, y0, rows) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${rows}" viewBox="0 ${y0} ${W} ${rows}"><path d="${pathData}" fill="white" fill-rule="evenodd"/></svg>`;
@@ -101,7 +89,8 @@ const landOnly = async (png, land, rows) => {
   for (let i = 0; i < W * rows; i++) if (!land[i]) data[i * 4 + 3] = 0;
   return sharp(data, { raw: { width: W, height: rows, channels: 4 }, limitInputPixels: false }).png().toBuffer();
 };
-const bandRivers = (strokes, y0, rows) => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${rows}" viewBox="0 ${y0} ${W} ${rows}">${strokes}</svg>`), { limitInputPixels: false }).png().toBuffer();
+const bandRivers = (lines, y0, rows) => { const strokes = riverSvg(lines, { W, H, kmPx: (180 / H) * 111, minPx: 0.9, keep: (l) => l.maxY >= 90 - ((y0 + rows + 4) / H) * 180 && l.minY <= 90 - ((y0 - 4) / H) * 180 }); return bandRiversPng(strokes, y0, rows); };
+const bandRiversPng = (strokes, y0, rows) => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${rows}" viewBox="0 ${y0} ${W} ${rows}">${strokes}</svg>`), { limitInputPixels: false }).png().toBuffer();
 
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -143,7 +132,10 @@ export const makeShadePixel = (W, H, relief = 9) => (ctx, x, y, eC, eL, eR, eU, 
 };
 const shadePixel = makeShadePixel(W, H);
 
-export const buildRasterPyramid = async () => {
+// `box` = [lon0, lat0, lon1, lat1] rebuilds only the tiles meeting that area (and their parents on
+// the lower levels) in place, leaving every other tile and meta.json alone: a trial or a fix
+// for one region (npm run build:pyramid -- --box 28,22,50,38).
+export const buildRasterPyramid = async ({ box = null } = {}) => {
   const t0 = Date.now();
   const elevation = loadElevation5();
   const climate = climateColorGrid();
@@ -151,16 +143,20 @@ export const buildRasterPyramid = async () => {
   // lakes too are whole water hexes and the land paths are the game's own hexLand.json.
   const landPaths = toPaths(readJson(HEX_LAND).features);
   const icePaths = toPaths(readJson(path.join(RAW, 'ne', 'ne_10m_glaciated_areas.geojson')).features);
-  const riverStrokes = toRiverStrokes(readJson(path.join(RAW, 'ne', 'ne_10m_rivers_lake_centerlines.geojson')).features);
+  const riverLines = loadRiverLines(RAW, { maxRank: RIVER_MAX_RANK[MAX_Z] });
   log(`sources ready (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
-  rmSync(OUT, { recursive: true, force: true });
+  if (!box) rmSync(OUT, { recursive: true, force: true });
   for (let z = 0; z <= MAX_Z; z++) mkdirSync(path.join(OUT, String(z)), { recursive: true });
 
   const cols = 2 ** (MAX_Z + 1); const rowsOfTiles = 2 ** MAX_Z;
-  for (let ty = 0; ty < rowsOfTiles; ty++) {
+  // the tile range of the box on the full level (the whole world without one)
+  const range = box
+    ? { x0: Math.max(0, Math.floor(((box[0] + 180) / 360) * cols)), x1: Math.min(cols - 1, Math.floor(((box[2] + 180) / 360) * cols)), y0: Math.max(0, Math.floor(((90 - box[3]) / 180) * rowsOfTiles)), y1: Math.min(rowsOfTiles - 1, Math.floor(((90 - box[1]) / 180) * rowsOfTiles)) }
+    : { x0: 0, x1: cols - 1, y0: 0, y1: rowsOfTiles - 1 };
+  for (let ty = range.y0; ty <= range.y1; ty++) {
     const y0 = ty * TILE;
     // The land for the band and one row above and below (the elevation gradient needs them).
-    const [landExt, ice, riversRaw] = await Promise.all([bandMask(landPaths, y0 - 1, TILE + 2), bandMask(icePaths, y0, TILE), bandRivers(riverStrokes, y0, TILE)]);
+    const [landExt, ice, riversRaw] = await Promise.all([bandMask(landPaths, y0 - 1, TILE + 2), bandMask(icePaths, y0, TILE), bandRivers(riverLines, y0, TILE)]);
     const land = landExt.subarray(W);
     // Rivers only on land: the hex coast leaves some river mouths in the sea.
     const rivers = await landOnly(riversRaw, land, TILE);
@@ -182,14 +178,14 @@ export const buildRasterPyramid = async () => {
       }
     }
     const band = await sharp(Buffer.from(rgb.buffer), { raw: { width: W, height: TILE, channels: 3 }, limitInputPixels: false }).composite([{ input: rivers }]).png().toBuffer();
-    await Promise.all(Array.from({ length: cols }, (_, tx) => sharp(band, { limitInputPixels: false }).extract({ left: tx * TILE, top: 0, width: TILE, height: TILE }).webp({ quality: 80 }).toFile(path.join(OUT, String(MAX_Z), `${tx}-${ty}.webp`))));
+    await Promise.all(Array.from({ length: range.x1 - range.x0 + 1 }, (_, i) => range.x0 + i).map((tx) => sharp(band, { limitInputPixels: false }).extract({ left: tx * TILE, top: 0, width: TILE, height: TILE }).webp({ quality: 80 }).toFile(path.join(OUT, String(MAX_Z), `${tx}-${ty}.webp`))));
     if (ty % 4 === 3) log(`level ${MAX_Z}: band ${ty + 1}/${rowsOfTiles} (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   }
   // The lower levels: four children composed and halved.
   for (let z = MAX_Z - 1; z >= 0; z--) {
-    const zc = 2 ** (z + 1); const zr = 2 ** z;
-    for (let ty = 0; ty < zr; ty++) {
-      await Promise.all(Array.from({ length: zc }, async (_, tx) => {
+    range.x0 >>= 1; range.x1 >>= 1; range.y0 >>= 1; range.y1 >>= 1;
+    for (let ty = range.y0; ty <= range.y1; ty++) {
+      await Promise.all(Array.from({ length: range.x1 - range.x0 + 1 }, (_, i) => range.x0 + i).map(async (tx) => {
         const kids = [];
         for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) kids.push({ input: path.join(OUT, String(z + 1), `${tx * 2 + dx}-${ty * 2 + dy}.webp`), left: dx * TILE, top: dy * TILE });
         const merged = await sharp({ create: { width: TILE * 2, height: TILE * 2, channels: 3, background: { r: 18, g: 42, b: 92 } } }).composite(kids).png().toBuffer();
@@ -198,9 +194,10 @@ export const buildRasterPyramid = async () => {
     }
     log(`level ${z} done`);
   }
-  writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify({ maxZ: MAX_Z, tile: TILE, width: W, height: H }));
+  if (!box) writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify({ maxZ: MAX_Z, tile: TILE, width: W, height: H }));
   log(`pyramid written to public/map/tiles (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
 };
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) await buildRasterPyramid();
+const boxArg = process.argv.indexOf('--box');
+if (isMain) await buildRasterPyramid({ box: boxArg > 0 ? process.argv[boxArg + 1].split(',').map(Number) : null });
