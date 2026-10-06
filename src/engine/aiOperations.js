@@ -251,7 +251,8 @@ export const processAIOperations = (state, rng) => {
         }
         if (target == null) continue;
         if (failed && failed.goal === goalKey && failed.until > state.turnNumber) continue; // searched lately, nothing found
-        const path = findTilePath(actor, at, target, nationId, { maxSteps: AI_MARCH_STEPS });
+        // planned with the nation's own techs (roads, bridges, mountain craft), as its march will pay
+        const path = findTilePath(actor, at, target, nationId, { maxSteps: AI_MARCH_STEPS, researched: getResearched(state, nationId) });
         if (!path.path) { stack.forEach(u => { next.units[u.id] = { ...u, routeFailed: { goal: goalKey, until: state.turnNumber + ROUTE_RETRY_TURNS } }; }); continue; }
         const pace = stackPace(stack, getResearched(state, nationId));
         stack.forEach(u => { committed.add(u.id); next.units[u.id] = { ...u, route: path.path.slice(1), routeBank: 0, routePace: pace, routeHalt: null, routeFailed: undefined }; });

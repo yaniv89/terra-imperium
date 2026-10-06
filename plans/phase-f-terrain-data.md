@@ -47,7 +47,7 @@ All pure; `tiles` defaults to the loaded grid. Edge index k is the edge shared w
   (38 / 77 / 154 km: 0.5 / 1 / 2 points at frequency 100), half on a road edge; with Stone Bridges a
   road edge is free and any other crossing half. A pass costs as hills instead of the mountain cost
   (the mountain branch is replaced, never added to). The AI plans with the same costs
-  (`findTilePath`). Balance (8 seeds x 150 turns, PLAYER=au, paired): no significant change; wars,
+  (`findTilePath`), now with its own techs (aiOperations.js), as its march pays them. Balance (8 seeds x 150 turns, PLAYER=au, paired): no significant change; wars,
   conquests, settling (cities, land claimed) all within noise.
 - **Battles** (`src/battle/setup/tileContext.js`, `mapgen.js`): each sector carries `riverSize`,
   `fords`, `bridge`; the river band is as wide as the river (3 / 5 / 8 field tiles), with its
@@ -67,7 +67,48 @@ All pure; `tiles` defaults to the loaded grid. Edge index k is the edge shared w
 4. **Descriptor**: `tileTerrainDescriptor` is the per-tile input for close-view chunks and for the
    battle map; extend it there rather than reading columns ad hoc.
 
-## 5. Not done here
+## 5. Raster: level 6 and land cover
+
+`scripts/geo/build-raster-detail.mjs` (`npm run build:raster-detail`, after
+`node scripts/geo/fetch-tiles-raw.mjs --detail`) adds files next to the pyramid; levels 0 to 5 and
+`meta.json` are untouched, so today's renderer is unaffected.
+
+- `public/map/tiles/6/{x}-{y}.webp`: level 6 (32,768 x 16,384, about 1.2 km a pixel), land tiles
+  only. Same look as the pyramid (its `makeShadePixel`), hillshade from zoom-7 elevation (about
+  1.2 km) under land within 72 degrees of the equator, so ridges and valleys are real at close
+  zoom. Open sea and the poles stay at level 5.
+- `public/map/cover/{5,6}/{x}-{y}.png`: one land cover byte a pixel (`LAND_COVER`: water, ice,
+  rock, desert, steppe, grassland, forest, rainforest, tundra, wetland, irrigated) for the
+  close-view shader's detail patterns. Derived, not surveyed: Köppen climate, the game's own hex
+  features (a forest hex shows forest; edges warped by smooth noise so they are not hexagons),
+  Natural Earth glaciers, snow and tree lines from the elevation. ESA WorldCover is the upgrade
+  (it would replace `classifyCover` only).
+- `public/map/tiles/detail.json`: which tiles exist. `src/data/geo/rasterDetail.js`:
+  `loadDetailIndex()`, `bestColourTile(index, z, x, y)` (the tile to draw and the part of an
+  ancestor to use where a level 6 tile is missing), `coverTileUrl`, `LAND_COVER`.
+- Sizes (bytes on disk): level 6, 2,660 tiles, 13.5 MB (about 5 kB a tile); cover level 5,
+  1,044 tiles, 1.2 MB; cover level 6, 2,660 tiles, 3.3 MB; manifest 50 kB. A phone screen at
+  level 6 shows about 20 to 40 tiles: 100 to 200 kB, fetched only when zoomed in that far. Raw
+  input: 3,931 zoom-7 elevation tiles, 236 MB (gitignored). The build takes about 10 minutes.
+- Level 7 is NOT built: it needs zoom-8 elevation to be worth it (about 15,000 tiles, 1.2 GB raw)
+  and would add about four times level 6's size. Decide after A2 shows level 6 on a phone.
+
+## 6. Footprints (`src/data/geo/footprints.js`)
+
+World art plan section 4 as data in local km (x east, y north of the tile centre; gnomonic, so
+edges stay straight), never pixels:
+- `cellPolygonKm(tile)` (corner k between neighbours k and k+1; `edgeOf(poly, k)` is the edge to
+  neighbour k), `insetPolygon`, `insideDistance`, `pointInPolygon`, `localFrame(tile).toLocal`.
+- `tileFootprint(tile, state)` -> `{ cell, safe (inset SAFE_INSET = 8% of the width), apothemKm,
+  rivers: [{ k, size, a, b, bandKm }], roads: [{ k, from, to, widthKm, bridge }], town: { radiusKm }
+  (by city size, at most 40% of the way to the nearest edge), fields: [{ id, poly }] }`. Fields sit
+  around a city's town or across a farm tile, fully inside the safe area, clear of the town, roads,
+  river bands and each other; seeded by the tile id, so the same tile is always the same layout.
+- The renderer places town models, fields and trees inside these polygons and reserves the river
+  and road bands before vegetation. Districts that spill into owned neighbour tiles (world plan 4)
+  are the next step, with the city manifest (phase B).
+
+## 7. Not done here
 - HydroRIVERS (flow-based, many more tributaries): the global file is about 1.5 GB; Natural Earth
   1:10M stays the source of river edges. The size classes would come from discharge instead.
 - Forts on the battle map, field-battle ZOC from forts (6.9): rules work, not data.
