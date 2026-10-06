@@ -39,6 +39,7 @@ export const ActionTypes = {
   ANSWER_JOIN_OFFER: 'ANSWER_JOIN_OFFER', // phase W3: payload { id, accept }
   DEMAND_INDEPENDENT_TRIBUTE: 'DEMAND_INDEPENDENT_TRIBUTE', // phase W3: payload { independentId }
   PROPOSE_INDEPENDENT_TRADE: 'PROPOSE_INDEPENDENT_TRADE', // phase W3: payload { independentId }
+  OFFER_INDEPENDENT_TRIBUTE: 'OFFER_INDEPENDENT_TRIBUTE', // phase W4 (indepPolicy.js): payload { independentId }
   RAZE_CITY: 'RAZE_CITY', // phase W3 (razing.js): payload { regionId }
   STOP_RAZING: 'STOP_RAZING', // phase W3: payload { regionId }
   DELETE_ARMY_TEMPLATE: 'DELETE_ARMY_TEMPLATE',

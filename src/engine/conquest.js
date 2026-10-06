@@ -59,7 +59,7 @@ export const conquerRegion = ({ regions, nations, turnNumber }, regionId, conque
   // The claim the city was taken for is settled.
   if (nextNations[conquerorId]?.claims?.includes(regionId)) nextNations = { ...nextNations, [conquerorId]: { ...nextNations[conquerorId], claims: nextNations[conquerorId].claims.filter((id) => id !== regionId) } };
   // Its kin among the independents remember (grudges.js, phase W2).
-  if (isIndependentNation(nations[loserId])) nextNations = grudgeForKinCity(nextNations, loserId, conquerorId);
+  if (isIndependentNation(nations[loserId])) nextNations = grudgeForKinCity(nextNations, loserId, conquerorId, turnNumber);
   nextNations = relocateLostCapital(nextNations, nextRegions, loserId);
   return { regions: nextRegions, nations: nextNations, loserId, capitalTaken: loserCapital === regionId };
 };

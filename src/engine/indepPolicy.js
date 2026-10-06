@@ -56,7 +56,7 @@ import {
 import { opinionOf } from './opinion';
 import { canAttack, hasMet } from './hostility';
 import { hashRoll } from './aftermath';
-import { thinksOn } from './raids';
+import { thinksOn, startTribute } from './raids';
 import { grudgeOf, withGrudge } from './grudges';
 import { goldIn, addGoldIn } from './mercenaries';
 import { unitTile, placeInCity } from './armies';
@@ -302,7 +302,7 @@ const gift = (w, majorId, indepId) => {
 const demandTributeOf = (w, majorId, indepId, mine, theirs) => {
   const n = w.nations[indepId];
   const pays = n.indep?.personality !== 'fortress' && mine >= DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
-  if (!pays) { w.nations[indepId] = withGrudge(n, majorId, GRUDGE_REFUSED); return false; }
+  if (!pays) { w.nations[indepId] = withGrudge(n, majorId, GRUDGE_REFUSED, { id: 'demand', turn: w.turn }); return false; }
   const until = w.turn + TRIBUTE_TURNS;
   setIndep(w, indepId, { tributeTo: { ...(n.indep.tributeTo || {}), [majorId]: { until, gold: tributeGold(w.age) } }, truceWith: { ...(n.indep.truceWith || {}), [majorId]: until } });
   w.stats.tributeDemandsByMajors += 1;
@@ -550,19 +550,63 @@ export const answerJoinOffer = (state, offerId, accept) => {
   return joinPlayer({ ...state, joinOffers: rest }, o.indepId);
 };
 
+/**
+ * Would independent `indepId` pay `majorId` tribute if asked now? (The sheet's reason before the
+ * tap, W4.) { ok, would, mine, theirs, reason }: `ok` false when the demand cannot be made at all;
+ * `would` false when it can but they would refuse (+grudge), with the reason.
+ */
+export const demandTributeCheck = (state, indepId, majorId = state.playerNationId) => {
+  const n = state.nations?.[indepId];
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
+  if (n.indep?.tributeTo?.[majorId]) return { ok: false, reason: `They already pay you tribute until turn ${n.indep.tributeTo[majorId].until}.` };
+  if (!canAttack(state, majorId, indepId)) return { ok: false, reason: 'You pay them tribute: you cannot threaten them meanwhile.' };
+  const city = state.regions?.[n.capitalRegionId];
+  if (!city || city.owner !== indepId) return { ok: false, reason: 'Their city is lost.' };
+  const mine = strengthNear(unitsByTile(state), majorId, city.tile, ringsForKm(CONQUER_KM));
+  const theirs = indepStrength(state, indepId);
+  if (n.indep?.personality === 'fortress') return { ok: true, would: false, mine, theirs, reason: 'A fortress people pays no one: they would refuse and remember it.' };
+  const need = DEMAND_TRIBUTE_RATIO * Math.max(1, theirs);
+  if (mine < need) return { ok: true, would: false, mine, theirs, reason: `They would refuse: your army within ${CONQUER_KM} km is ${(mine / Math.max(1, theirs)).toFixed(1)} times theirs, they pay at ${DEMAND_TRIBUTE_RATIO} times.` };
+  return { ok: true, would: true, mine, theirs, reason: `They would pay ${tributeGold(state.age)} gold a turn for ${TRIBUTE_TURNS} turns.` };
+};
+
+/** Would mercantile independent `indepId` trade with `majorId`? { ok, reason }. */
+export const tradeCheck = (state, indepId, majorId = state.playerNationId) => {
+  const n = state.nations?.[indepId];
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
+  if (n.indep?.personality !== 'mercantile') return { ok: false, reason: 'Only a mercantile city trades.' };
+  if (n.indep.tradeWith?.[majorId] != null) return { ok: false, reason: 'You already trade with them.' };
+  if (Object.keys(n.indep.tradeWith || {}).length >= TRADE_MAX_PARTNERS) return { ok: false, reason: `They trade with ${TRADE_MAX_PARTNERS} nations already.` };
+  if (grudgeOf(n, majorId) >= TRADE_MAX_GRUDGE) return { ok: false, reason: `They hold a grudge against you (${grudgeOf(n, majorId)}; they trade under ${TRADE_MAX_GRUDGE}).` };
+  const city = state.regions?.[n.capitalRegionId];
+  if (!city || !majorsNear(state, city.tile, ringsForKm(TRADE_KM)).has(majorId)) return { ok: false, reason: `None of your cities is within ${TRADE_KM} km.` };
+  return { ok: true, reason: `${tradeGoldOf(state.age)} gold a turn each way.` };
+};
+
+/** Who takes tribute offered freely (OFFER_INDEPENDENT_TRIBUTE): raiders, tribal and fortress peoples; a
+ * mercantile city wants trade instead. */
+export const TRIBUTE_TAKERS = ['raiders', 'tribal', 'fortress'];
+
+/** May `majorId` offer `indepId` tribute now (no demand needed)? { ok, gold, reason }. */
+export const offerTributeCheck = (state, indepId, majorId = state.playerNationId) => {
+  const n = state.nations?.[indepId];
+  if (!isIndependentNation(n) || n.isEliminated) return { ok: false, reason: 'Not an independent city.' };
+  if (!TRIBUTE_TAKERS.includes(n.indep?.personality)) return { ok: false, reason: 'A mercantile city takes no tribute: offer trade instead.' };
+  if (n.indep?.tributeFrom?.[majorId]) return { ok: false, reason: `You already pay them until turn ${n.indep.tributeFrom[majorId].until}.` };
+  if (n.indep?.tributeTo?.[majorId]) return { ok: false, reason: 'They pay you tribute.' };
+  const gold = tributeGold(state.age);
+  return { ok: true, gold, reason: `${gold} gold a turn for ${TRIBUTE_TURNS} turns: no raids from them, and you may not attack them meanwhile.` };
+};
+
 /** DEMAND_INDEPENDENT_TRIBUTE: with DEMAND_TRIBUTE_RATIO x its strength near it, it pays, else refuses (+grudge). */
 export const demandIndependentTribute = (state, indepId) => {
   const n = state.nations?.[indepId];
   const me = state.playerNationId;
-  if (!isIndependentNation(n) || n.isEliminated) return { reason: 'Not an independent city.' };
-  if (n.indep?.tributeTo?.[me]) return { reason: 'They already pay you tribute.' };
-  if (!canAttack(state, me, indepId)) return { reason: 'You pay them tribute: you cannot threaten them meanwhile.' };
-  const city = state.regions[n.capitalRegionId];
-  if (!city) return { reason: 'Their city is lost.' };
+  const check = demandTributeCheck(state, indepId, me);
+  if (!check.ok) return { reason: check.reason };
   const w = { turn: state.turnNumber || 0, age: state.age, playerId: me, nations: { ...state.nations }, resources: { ...state.resources }, stats: { ...(state.indepStats || {}) } };
   w.stats.tributeDemandsByMajors = w.stats.tributeDemandsByMajors || 0;
-  const near = strengthNear(unitsByTile(state), me, city.tile, ringsForKm(CONQUER_KM));
-  const paid = demandTributeOf(w, me, indepId, near, indepStrength(state, indepId));
+  const paid = demandTributeOf(w, me, indepId, check.mine, check.theirs);
   const msg = paid
     ? `${n.name} agree to pay you ${tributeGold(state.age)} gold a turn for ${TRIBUTE_TURNS} turns (a truce both ways meanwhile).`
     : n.indep?.personality === 'fortress' ? `${n.name} refuse: a fortress people pays no one. They will remember it.` : `${n.name} refuse: your army near them is not ${DEMAND_TRIBUTE_RATIO} times their strength. They will remember it.`;
@@ -573,16 +617,24 @@ export const demandIndependentTribute = (state, indepId) => {
 export const proposeIndependentTrade = (state, indepId) => {
   const n = state.nations?.[indepId];
   const me = state.playerNationId;
-  if (!isIndependentNation(n) || n.isEliminated) return { reason: 'Not an independent city.' };
-  if (n.indep?.personality !== 'mercantile') return { reason: 'Only a mercantile city trades.' };
-  if (n.indep.tradeWith?.[me] != null) return { reason: 'You already trade with them.' };
-  if (Object.keys(n.indep.tradeWith || {}).length >= TRADE_MAX_PARTNERS) return { reason: `They trade with ${TRADE_MAX_PARTNERS} nations already.` };
-  if (grudgeOf(n, me) >= TRADE_MAX_GRUDGE) return { reason: 'They hold a grudge against you.' };
-  const city = state.regions[n.capitalRegionId];
-  if (!city || !majorsNear(state, city.tile, ringsForKm(TRADE_KM)).has(me)) return { reason: 'None of your cities is close enough.' };
+  const check = tradeCheck(state, indepId, me);
+  if (!check.ok) return { reason: check.reason };
   const nations = { ...state.nations, [indepId]: { ...n, indep: { ...n.indep, tradeWith: { ...(n.indep.tradeWith || {}), [me]: state.turnNumber || 0 } } } };
   const stats = { ...(state.indepStats || {}), tradeDeals: (state.indepStats?.tradeDeals || 0) + 1 };
   return { ...state, nations, indepStats: stats, logs: withLog(state, `You open trade with ${n.name}: ${tradeGoldOf(state.age)} gold a turn each way.`) };
+};
+
+/** OFFER_INDEPENDENT_TRIBUTE (W4): the player pays tribute unasked, for peace (a truce both ways,
+ * as an accepted demand). Returns a new state or { reason }. */
+export const offerIndependentTribute = (state, indepId) => {
+  const check = offerTributeCheck(state, indepId);
+  if (!check.ok) return { reason: check.reason };
+  const n = state.nations[indepId];
+  const nations = startTribute(state.nations, indepId, state.playerNationId, check.gold, state.turnNumber || 0);
+  return {
+    ...state, nations, tributeDemands: (state.tributeDemands || []).filter((d) => d.indepId !== indepId),
+    logs: withLog(state, `You pay ${n.name} ${check.gold} gold a turn for ${TRIBUTE_TURNS} turns: no raids from them meanwhile.`)
+  };
 };
 
 /** RAZE_CITY / STOP_RAZING for the player. Returns a new state or { reason }. */

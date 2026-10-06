@@ -135,9 +135,10 @@ const rngFor = (w, id, what) => createRng(Math.floor(hashRoll(`${w.seed}|${id}|$
 /**
  * The best raid target for independent `id` with a party of `partyStrength`, or null:
  * { kind, tile, victim, cityId, unitId, loot, score, rings }. Also returns `nearArmies`
- * (Map nation -> strength of its armies within reach) for the tribute decision.
+ * (Map nation -> strength of its armies within reach) for the tribute decision. `onlyVictim`: only
+ * that nation's targets count (the player's forecast, raidForecast).
  */
-export const scanTargets = (w, id, city, partyStrength) => {
+export const scanTargets = (w, id, city, partyStrength, { onlyVictim = null } = {}) => {
   const n = w.nations[id];
   const personality = n.indep?.personality || 'tribal';
   const tiles = getTiles();
@@ -160,6 +161,7 @@ export const scanTargets = (w, id, city, partyStrength) => {
     return s;
   };
   const offer = (kind, t, d, victim, loot, extra = {}) => {
+    if (onlyVictim && victim !== onlyVictim) return;
     const grudge = grudgeOf(n, victim);
     if (personality === 'fortress' && grudge < FORTRESS_REVENGE_GRUDGE) return;
     const defence = defendersNear(victim, t, kind === 'sack');
@@ -273,7 +275,7 @@ const fight = (w, id, { kind, tile, victim, city = null, party, defenders }) => 
   applyBattleUnits(w, result.defenders);
   w.stats.raidBattles += 1;
   // It holds a grudge against whoever killed its raiders (4.5).
-  if (result.attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], victim, GRUDGE_ATTACKED);
+  if (result.attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], victim, GRUDGE_ATTACKED, { id: 'killed', turn: w.turn });
   return result;
 };
 
@@ -432,6 +434,66 @@ const runRaid = (w, id, city) => {
 };
 
 // ---------------------------------------------------------------------------------------------
+// Read-only views for the UI (phase W4): what a raid would hit, and when a party arrives.
+
+/** A read-only working set over `state` for scanTargets (nothing is written). */
+const viewOf = (state) => {
+  const w = {
+    turn: state.turnNumber || 0, age: state.age, seed: state.rngSeed || 0, playerId: state.playerNationId, difficulty: state.difficultyMultiplier || 1,
+    regions: state.regions, units: state.units, nations: state.nations, unitsVersion: 0, index: null, view: state
+  };
+  let routeCache;
+  w.routeTiles = () => {
+    if (routeCache === undefined) { const s = playerRouteTiles(state); routeCache = s.size ? s : null; }
+    return routeCache;
+  };
+  return w;
+};
+
+/**
+ * What independent `indepId` would raid of `victimId` now (the tribute sheet's "expected loss",
+ * W15): { kind, tile, cityId, loot, score, likely, partyStrength } or null when nothing of the
+ * victim's is in reach. `likely`: the score clears RAID_THRESHOLD (a raid would start on a good
+ * roll). Ignores a truce (the question is "if we refuse"). Read only.
+ */
+export const raidForecast = (state, indepId, victimId = state.playerNationId) => {
+  const n = state.nations?.[indepId];
+  if (!isIndependentNation(n) || n.isEliminated || !RAID_KM[n.indep?.personality || 'tribal']) return null;
+  const city = state.regions?.[n.capitalRegionId];
+  if (!city || city.tile == null || city.owner !== indepId) return null;
+  const v = state.nations[victimId];
+  if (!v || v.isEliminated || isIndependentNation(v)) return null;
+  const truce = n.indep?.truceWith?.[victimId];
+  const view = truce != null ? { ...state, nations: { ...state.nations, [indepId]: { ...n, indep: { ...n.indep, truceWith: { ...n.indep.truceWith, [victimId]: 0 } } } } } : state;
+  const w = viewOf(view);
+  const home = (indexOf(w).armed.get(city.tile) || []).filter((u) => u.ownerId === indepId && !u.raidOf).sort((a, b) => b.strength - a.strength || (a.id < b.id ? -1 : 1));
+  const spare = home.length - garrisonTarget(city.size, n.indep?.personality || 'tribal');
+  const partyStrength = Math.max(1, sumStrength(spare > 0 ? home.slice(0, spare) : home.slice(0, 1)));
+  const { best } = scanTargets(w, indepId, city, partyStrength, { onlyVictim: victimId });
+  if (!best) return null;
+  return { kind: best.kind, tile: best.tile, cityId: best.cityId ?? (w.view.world?.tileOwner?.[best.tile] ?? null), loot: Math.round(best.loot), score: best.score, likely: best.score >= RAID_THRESHOLD, partyStrength };
+};
+
+/**
+ * A running raid's walk: { turns, steps } until the party reaches its target ('out'), or home
+ * ('home'), by the march costs of armies.js; null when no raid runs. Read only.
+ */
+export const raidEta = (state, indepId) => {
+  const n = state.nations?.[indepId];
+  const raid = n?.indep?.raid;
+  if (!raid) return null;
+  const party = Object.values(state.units || {}).filter((u) => u.raidOf === indepId && u.strength > 0);
+  if (!party.length) return null;
+  if (raid.phase === 'hold') return { turns: Math.max(0, (raid.holdUntil ?? 0) - (state.turnNumber || 0)), steps: 0 };
+  const tiles = getTiles();
+  const pace = Math.max(1e-9, stackPace(party, []));
+  let at = unitTile(state, party[0]);
+  let cost = 0;
+  (raid.route || []).forEach((t) => { cost += tileStepCost(state, tiles, at, t, tileAccess(state, t, indepId), []); at = t; });
+  return { turns: (raid.route || []).length ? Math.max(1, Math.ceil(cost / pace - 1e-9)) : 0, steps: (raid.route || []).length };
+};
+
+// ---------------------------------------------------------------------------------------------
 // Tribute (4.5)
 
 /** Starts tribute from `payerId` to independent `indepId` in a nations map (a new map). */
@@ -442,10 +504,10 @@ export const startTribute = (nations, indepId, payerId, gold, turn) => {
   return { ...nations, [indepId]: { ...n, indep: { ...n.indep, tributeFrom: { ...(n.indep.tributeFrom || {}), [payerId]: { until, gold } }, truceWith: { ...(n.indep.truceWith || {}), [payerId]: until } } } };
 };
 /** A refusal: the grudge rises and the raid cooldown is over. */
-export const refuseTribute = (nations, indepId, payerId) => {
+export const refuseTribute = (nations, indepId, payerId, turn = null, cause = 'refused') => {
   const n = nations[indepId];
   if (!isIndependentNation(n)) return nations;
-  const g = withGrudge(n, payerId, GRUDGE_REFUSED);
+  const g = withGrudge(n, payerId, GRUDGE_REFUSED, { id: cause, turn });
   return { ...nations, [indepId]: { ...g, indep: { ...g.indep, lastRaidTurn: null } } };
 };
 
@@ -466,7 +528,7 @@ const payTribute = (w, id) => {
     delete nextFrom[payer];
     const truceWith = { ...(n.indep.truceWith || {}) }; delete truceWith[payer];
     w.nations[id] = { ...n, indep: { ...n.indep, tributeFrom: nextFrom, truceWith } };
-    Object.assign(w.nations, refuseTribute(w.nations, id, payer));
+    Object.assign(w.nations, refuseTribute(w.nations, id, payer, w.turn, 'missed'));
     if (payer === w.playerId) log(w, `You could not pay your tribute to ${raiderName(w, id)}: the deal is off and they will raid again.`, LogTypes.DIPLOMACY);
   });
 };
@@ -492,7 +554,7 @@ const demandTribute = (w, id, city, myStrength, nearArmies, nearOwners) => {
   }
   // An AI major pays when the independent outweighs its army there and it can afford the deal.
   const pays = myStrength > (nearArmies.get(target) || 0) && goldOf(w, target) >= gold * TRIBUTE_TURNS / 2;
-  if (pays) { Object.assign(w.nations, startTribute(w.nations, id, target, gold, w.turn)); w.stats.tributeDeals += 1; } else Object.assign(w.nations, refuseTribute(w.nations, id, target));
+  if (pays) { Object.assign(w.nations, startTribute(w.nations, id, target, gold, w.turn)); w.stats.tributeDeals += 1; } else Object.assign(w.nations, refuseTribute(w.nations, id, target, w.turn));
   return true;
 };
 
@@ -594,7 +656,7 @@ export const processIndependents = (input, { inPlace = false } = {}) => {
   w.tributeDemands = w.tributeDemands.filter((d) => {
     if (d.expires > w.turn && w.nations[d.indepId] && !w.nations[d.indepId].isEliminated) return true;
     if (w.nations[d.indepId] && !w.nations[d.indepId].isEliminated) {
-      Object.assign(w.nations, refuseTribute(w.nations, d.indepId, w.playerId));
+      Object.assign(w.nations, refuseTribute(w.nations, d.indepId, w.playerId, w.turn));
       log(w, `You ignored the tribute demand of ${raiderName(w, d.indepId)}: they take it as a refusal.`, LogTypes.DIPLOMACY);
     }
     return false;
@@ -631,7 +693,7 @@ export const answerTributeDemand = (state, demandId, pay) => {
     };
   }
   return {
-    ...state, tributeDemands: rest, nations: refuseTribute(state.nations, d.indepId, state.playerNationId),
+    ...state, tributeDemands: rest, nations: refuseTribute(state.nations, d.indepId, state.playerNationId, state.turnNumber),
     logs: [...state.logs, { year: state.year, message: `You refuse the tribute ${indep.name} demand. Expect raiders.`, type: LogTypes.DIPLOMACY }]
   };
 };
