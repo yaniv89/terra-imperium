@@ -11,6 +11,7 @@ import TurnDock from './components/ui/TurnDock';
 import NextPrompt from './components/ui/NextPrompt';
 import SettingsSheet from './components/ui/SettingsSheet';
 import TurnReportSheet from './components/ui/TurnReportSheet';
+import NationOverviewSheet from './components/ui/NationOverviewSheet';
 import { OPEN_SETTINGS } from './components/ui/uiEvents';
 import { SELECT_REGION } from './components/map/marchEvents';
 import FirstContactCard from './components/modals/FirstContactCard';
@@ -255,6 +256,9 @@ const GameLayout = () => {
       {/* The turn report (W10): what the turn brought, grouped, with a place on each line.
           It replaces the old battle summary toast (battles are its first group). */}
       <TurnReportSheet />
+
+      {/* The nation overview (W17), from the name on the top bar */}
+      <NationOverviewSheet />
 
       {/* Age Advance banner - non-blocking, auto-dismisses (plan §10.5's "showpiece") */}
       <AgeAdvanceBanner ageName={ageBanner} onDismiss={() => setAgeBanner(null)} />

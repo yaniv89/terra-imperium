@@ -171,6 +171,12 @@ const SCREENS = {
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:open-settings')));
     await page.getByTestId('settings-sheet').waitFor({ timeout: 10000 });
     await shot(page, 'W12-settings', vp);
+  },
+  W17: async (page, vp) => {
+    await startGame(page);
+    await click(page.getByTestId('top-bar-nation'));
+    await page.getByTestId('nation-overview').waitFor({ timeout: 10000 });
+    await shot(page, 'W17-nation', vp);
   }
 };
 
