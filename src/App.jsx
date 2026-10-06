@@ -28,6 +28,7 @@ import { getCurrentUser, onAuthStateChange, getProfile } from './services/auth';
 import { lazyWithReload } from './utils/lazyWithReload';
 import RotateOverlay from './components/ui/RotateOverlay';
 import CityRail from './components/city/CityRail';
+import IndependentsHost from './components/independents/IndependentsHost';
 
 const AGE_ADVANCE_BANNER_MS = 5000;
 
@@ -268,6 +269,8 @@ const GameLayout = () => {
       <ResearchChoiceSheet hidden={!meta.hasSeenOnboarding} />
       {/* Auto-resolve replays and battle report sheets (plan §6) */}
       <BattleReportsHost onShowRegion={handleSelectRegion} />
+      {/* The independents' sheets: the city sheet, tribute demands and join offers (phase W4) */}
+      <IndependentsHost />
       {state.pendingBattle && <Suspense fallback={<div className="fixed inset-0 z-[80] bg-slate-950 flex items-center justify-center text-slate-300 text-sm">Preparing the battlefield…</div>}><TacticalBattleHost /></Suspense>}
       <ConflictChooserModal conflict={cloudSync.conflict} onChoose={cloudSync.resolveConflict} />
 

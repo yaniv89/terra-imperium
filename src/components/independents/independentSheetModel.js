@@ -96,7 +96,9 @@ export const independentSheetModel = (state, indepId) => {
   const garrison = alive ? garrisonOf(state, indepId, city) : [];
   const facts = [];
   if (alive) {
-    if (city.tile != null && getTiles().names?.[city.tile]) facts.push(getTiles().names[city.tile]);
+    facts.push(city.name);
+    const place = city.tile != null ? getTiles().names?.[city.tile] : null;
+    if (place && place !== city.name) facts.push(place);
     facts.push(`size ${city.size || 1}`);
     facts.push(WALL_WORDS[wallsOf(city)] || 'walls');
     facts.push(`garrison ${garrison.length}`);
@@ -223,7 +225,7 @@ export const independentSheetModel = (state, indepId) => {
     id: indepId,
     alive,
     name: n.name,
-    people: people ? people.name : null,
+    people: people && people.name !== city?.name ? people.name : null,
     land: people?.landName || null,
     personality: { id: p, name: PERSONALITIES[p]?.name || p, where: PERSONALITIES[p]?.where || '', colour: shieldColour(p), shieldUrl: shieldUrl(p) },
     freeCity: !!ind.freeCity,

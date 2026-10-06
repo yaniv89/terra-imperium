@@ -19,7 +19,7 @@ import { isCoastal, isReachableBySea } from '../../data/navalReach';
 import { isAtWarWithPlayer, hasCasusBelli, isInTruce } from '../../engine/diplomacy';
 import { canAttack } from '../../engine/hostility';
 import { isIndependentNation, PERSONALITIES } from '../../data/independents';
-import IndependentStatus from './IndependentStatus';
+import IndependentCityCard from '../independents/IndependentCityCard';
 import RazeControl from './RazeControl';
 import { REBEL_OWNER_ID } from '../../data/rebellion';
 import { canAfford, formatNumber, getControlColor, getRelationColor, getFieldedStrength, getDisplayPopulation, getStability, getSupplyCapacity } from '../../utils/helpers';
@@ -364,7 +364,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             {isAtWarWithPlayer(state, ownerNation.id) && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] animate-pulse">⚔ At War</span>}
             {ownerIsIndependent && <span className="px-1.5 py-0.5 bg-slate-500/20 text-slate-200 rounded text-[10px]" data-testid="independent-badge" title="Independent city: one city that never expands. You may attack it without a war.">Independent, {PERSONALITIES[ownerNation.indep?.personality]?.name || 'Tribal'}</span>}
           </div>
-          {ownerIsIndependent && <IndependentStatus state={state} dispatch={dispatch} nation={ownerNation} />}
+          {ownerIsIndependent && <IndependentCityCard state={state} nationId={ownerNation.id} />}
         </div>
       )}
 
