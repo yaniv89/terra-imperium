@@ -33,7 +33,13 @@ The live site is GitHub Pages, built into `docs/`.
   from Natural Earth, Köppen climate and terrain tiles (`npm run fetch:tiles` first, raw data is
   gitignored). `src/data/geo/geodesic.js` is the grid math, `tiles.js` the loader, `tileGeometry.js`
   turns ownership into GeoJSON territories, borders and the hex mesh, `src/data/scenarios.js` the
-  starts (Dawn: one city per nation). The coast follows the hexes (every hex all land or all water, corners softened): `src/data/geo/hexCoast.js`, built into `hexLand.json` by `node scripts/geo/build-hex-coast.mjs` (run after build:tiles, before build:raster and build:pyramid); the flat map, globe and close view clip and mask with it. `npm run build:raster` renders the realistic Earth
+  starts (Dawn: one city per nation). Terrain data (phase F): `scripts/geo/build-tile-terrain.mjs`
+  (in the build:tiles chain, or `npm run build:terrain`) adds river sizes per hex edge, mountain
+  ranges, ridges and passes to tiles.json; read them through `src/data/geo/terrainData.js`
+  (renderer integration notes: plans/phase-f-terrain-data.md). `npm run build:raster-detail`
+  (after `node scripts/geo/fetch-tiles-raw.mjs --detail`) adds land-only level 6 tiles and land
+  cover tiles (`src/data/geo/rasterDetail.js`); per-tile footprints in local km (town, fields,
+  road and river bands): `src/data/geo/footprints.js`. The coast follows the hexes (every hex all land or all water, corners softened): `src/data/geo/hexCoast.js`, built into `hexLand.json` by `node scripts/geo/build-hex-coast.mjs` (run after build:tiles, before build:raster and build:pyramid); the flat map, globe and close view clip and mask with it. `npm run build:raster` renders the realistic Earth
   (`public/map/world-*.webp`), the globe texture and flat map background. `/?tileViewer` is the
   prototype of the new map. The look is decided: real Earth, hexes only as a faint overlay.
   The engine now runs on it: `state.regions` holds one city record per city (`src/engine/world/

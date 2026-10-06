@@ -11,7 +11,7 @@ import { computeSupplyFlow, MARCH_SUPPLY_PER_UNIT } from './supplies';
 import { calcNationBalance } from './economy';
 import { UNIT_UPKEEP_GOLD_PER_TURN } from '../data/actionCosts';
 import { accessOf, advanceMarches, findRoute, planMarch, scheduleSteps, stackPace, stepCost, ENEMY_STEP_COST } from './routes';
-import { ROAD_COST, RIVER_CROSSING, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
+import { ROAD_COST, riverCrossingCost, TILE_COST_MOUNTAINS, MOVE_POINTS, findTilePath, normalizeUnitTiles, tileAccess, tileStepCost, unitTile, inEnemyZoc } from './armies';
 import { validateInvasion } from './invasion';
 import { addCity } from './testWorld';
 import { assertGameState } from './stateAudit';
@@ -54,14 +54,14 @@ const freeAt = (ring) => RINGS.slice(ring).flat().find((t) => free(S, t));
 describe('tile step costs', () => {
   it('prices a step by relief, cover, rivers, roads and enemy land', () => {
     const open = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'flat' && tiles.featureOf(t) === 'none' && tiles.terrainOf(t) === 'grassland');
-    const mountain = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'mountains');
+    const mountain = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'mountains' && !tiles.isPass(t));
     const hillForest = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.reliefOf(t) === 'hills' && tiles.featureOf(t) === 'forest' && ['grassland', 'plains'].includes(tiles.terrainOf(t)));
     expect(tileStepCost(S, tiles, null, open)).toBe(1);
     expect(tileStepCost(S, tiles, null, mountain)).toBe(TILE_COST_MOUNTAINS);
     expect(tileStepCost(S, tiles, null, hillForest)).toBe(3);
     const river = [...Array(tiles.count).keys()].find((t) => tiles.land[t] && tiles.neighbors[t].some((n) => tiles.land[n] && tiles.riverBetween(t, n)));
     const across = tiles.neighbors[river].find((n) => tiles.land[n] && tiles.riverBetween(river, n));
-    expect(tileStepCost(S, tiles, river, across)).toBe(tileStepCost(S, tiles, null, across) + RIVER_CROSSING);
+    expect(tileStepCost(S, tiles, river, across)).toBe(tileStepCost(S, tiles, null, across) + riverCrossingCost(tiles.riverSizeBetween(river, across)));
     const road = { ...S, world: { ...S.world, tileState: { ...S.world.tileState, [open]: { road: true } } } };
     expect(tileStepCost(road, tiles, null, open)).toBe(ROAD_COST);
     expect(tileStepCost(S, tiles, null, open, 'enemy')).toBeGreaterThanOrEqual(ENEMY_STEP_COST);

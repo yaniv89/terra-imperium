@@ -8,9 +8,14 @@
 //                 with Forced March.
 //                 Unspent points bank up to BANK_CAP so a slow army still crosses a mountain.
 //   Tile cost     entering a tile: 1 on open land, +1 for hills, +1 for forest, jungle or marsh,
-//                 +1 for desert or tundra, mountains TILE_COST_MOUNTAINS (4); a river crossing
-//                 RIVER_CROSSING more until Stone Bridges; a road on the tile ROAD_COST (0.5), a
-//                 railway RAIL_COST (0.25). Enemy land costs at least ENEMY_TILE_COST. Snow and
+//                 +1 for desert or tundra, mountains TILE_COST_MOUNTAINS (4) but a mountain pass
+//                 (terrain data, build-tile-terrain.mjs) as hills; a road on the tile ROAD_COST
+//                 (0.5), a railway RAIL_COST (0.25).
+//   Rivers        crossing a river edge adds the march of RIVER_CROSSING_KM by its size (stream
+//                 38 km, river 77 km, great river 154 km: 0.5 / 1 / 2 points at frequency 100).
+//                 A road on both banks (a road edge: a ferry or a wooden bridge) halves it; with
+//                 Stone Bridges a road edge crosses free and any other crossing costs half.
+//                 The AI plans with the same costs (findTilePath). Enemy land costs at least ENEMY_TILE_COST. Snow and
 //                 ice are impassable; so is water (fleets carry armies, naval wave).
 //   Access        at peace a route crosses your land, a vassal's or an ally's, and free land. At
 //                 war it may plan through the enemy's land, but a march halts at the border of
@@ -23,7 +28,7 @@
 //                 world connected).
 // Pure and deterministic; ties in the path search break on tile id.
 import { getTiles } from '../data/geo/tiles';
-import { ringsForKm, cellsForAreaKm2, minStepsBetween } from '../data/geo/gridScale';
+import { ringsForKm, cellsForAreaKm2, minStepsBetween, kmPerRing } from '../data/geo/gridScale';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { hasPerk } from '../data/promotions';
 import { isWarBetween } from './diplomacy';
@@ -40,7 +45,11 @@ export const FORCED_MARCH_KM = 102;
 export const MOVE_POINTS = Object.fromEntries(Object.entries(MOVE_KM).map(([k, km]) => [k, ringsForKm(km)]));
 export const DEFAULT_MOVE_POINTS = ringsForKm(DEFAULT_MOVE_KM);
 export const TILE_COST_MOUNTAINS = 4;
-export const RIVER_CROSSING = 1;
+// A river crossing in km of march by size class (terrainData.js RIVER_SIZE: 1 stream, 2 river,
+// 3 great river), turned into points of the loaded grid (riverCrossingCost), in quarter points.
+export const RIVER_CROSSING_KM = [0, 38, 77, 154];
+// The cost of the commonest crossing (a river, size 2) on this grid: 1 point at frequency 100.
+export const RIVER_CROSSING = Math.max(0.25, Math.round((RIVER_CROSSING_KM[2] / kmPerRing()) * 4) / 4);
 export const ROAD_COST = 0.5;
 export const RAIL_COST = 0.25;
 export const ENEMY_TILE_COST = 2;
@@ -103,20 +112,39 @@ const roadStepCost = (researched, fx = mapEffectsOf(researched)) => (researched.
 /** The cheapest step `researched` allows anywhere: a road (every other tile costs at least 1). */
 export const cheapestStep = (researched = []) => Math.min(1, roadStepCost(researched));
 
+/**
+ * Movement points to cross a river edge of size class `size` (0 none .. 3 great river):
+ * RIVER_CROSSING_KM of march, in quarter points; halved on a road edge (a road on both banks),
+ * and with Stone Bridges free on a road edge and halved elsewhere.
+ */
+export const riverCrossingCost = (size, { roadEdge = false, bridges = false } = {}) => {
+  if (!size) return 0;
+  const full = Math.max(0.25, Math.round((RIVER_CROSSING_KM[Math.min(3, size)] / kmPerRing()) * 4) / 4);
+  if (bridges) return roadEdge ? 0 : Math.round(full * 2) / 4;
+  return roadEdge ? Math.round(full * 2) / 4 : full;
+};
+
+const hasRoad = (state, tile) => { const ts = state.world?.tileState?.[tile]; return !!ts?.road && !ts.pillaged; };
+/** True when both ends of the edge carry an unpillaged road (a bridge site on a river). */
+export const roadEdge = (state, a, b) => hasRoad(state, a) && hasRoad(state, b);
+
 /** Movement points to step from `from` onto `to`. `researched`: the mover's tech ids. */
 export const tileStepCost = (state, tiles, from, to, access = 'wild', researched = []) => {
   const road = state.world?.tileState?.[to];
   const fx = mapEffectsOf(researched); // techs that ease the ground (techMapEffects.js)
   let cost;
   if (road?.road && !road.pillaged) cost = roadStepCost(researched, fx);
-  else if (tiles.reliefOf(to) === 'mountains') cost = Math.max(1, TILE_COST_MOUNTAINS + fx.mountainCost);
+  else if (tiles.reliefOf(to) === 'mountains' && !tiles.isPass(to)) cost = Math.max(1, TILE_COST_MOUNTAINS + fx.mountainCost);
   else {
     cost = 1;
-    if (tiles.reliefOf(to) === 'hills') cost += Math.max(0, 1 + fx.hillsCost);
+    if (tiles.reliefOf(to) !== 'flat') cost += Math.max(0, 1 + fx.hillsCost); // hills, or a mountain pass
     if (SLOW_FEATURES.has(tiles.featureOf(to))) cost += 1;
     if (SLOW_TERRAIN.has(tiles.terrainOf(to))) cost += 1;
   }
-  if (from != null && tiles.riverBetween(from, to) && !researched.includes(BRIDGE_TECH)) cost += RIVER_CROSSING;
+  if (from != null) {
+    const size = tiles.riverSizeBetween(from, to);
+    if (size) cost += riverCrossingCost(size, { roadEdge: roadEdge(state, from, to), bridges: researched.includes(BRIDGE_TECH) });
+  }
   if (access === 'enemy' || access === 'held') cost = Math.max(cost, ENEMY_TILE_COST);
   return cost;
 };
