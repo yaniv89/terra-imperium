@@ -85,6 +85,24 @@ economy RTS as an optional later mode, gated on a measured kernel.
 | Globe | `react-globe.gl` chunk 1.32 MB; a 4096x2048 canvas texture fully repainted on any ownership, war, selection or lens change; markers are DOM elements; default view | Slow, blurry close up, duplicate code for every map feature |
 | Fog | `sight.js` computes visible tiles but nothing remembers explored tiles and no renderer reads it | Everything is drawn everywhere, always |
 
+Measured in Chromium on this branch (France, turn 1, flat map; time from a pan step to the second
+frame after it, so 33 ms is the floor; 4-core 2.8 GHz Xeon container with software WebGL, and
+"phone" is 844x390 with the CPU slowed 4x, a fair stand-in for a mid phone; WebGL numbers are
+pessimistic without a GPU, the SVG and turn numbers are not):
+
+| Zoom | Desktop 1600x900, median / p90 ms | Phone 844x390 (4x slower CPU), median / p90 ms |
+|---|---|---|
+| World (k 1) | 99 / 117 | 115 / 151 |
+| Region (k 4) | 249 / 313 | 694 / 794 |
+| Hexes (k 12) | 116 / 181 | 249 / 415 |
+| Close 3D (k 40) | 967 / 1,059 | 813 / 967 |
+| End turn, main thread blocked | 899 | 3,255 |
+| JS heap | 222 MB | 210 MB |
+
+So panning runs at 4 to 10 frames a second on a desktop and 1 to 4 on a phone, and a turn
+freezes a phone for over 3 seconds. The 30 fps phone goal of section 6.6 needs pan steps under
+33 ms: a 10x to 20x cut, which only the whole of section 6 delivers (no single fix does).
+
 ## 6. The speed plan: fog of war and drawing only what you see
 
 The idea the user named is how Civilization and Age of Empires stay fast: the world you have not
@@ -119,7 +137,7 @@ see right now is alive. It is good design (exploration matters again) and the bi
   computed once per tile and stored; panning only moves them. `townGapUnits` cached like
   `townRoomUnits`.
 - **Zoom by transform, rebuild on settle:** during a pinch or wheel zoom, scale the existing SVG
-  or canvas; rebuild paths and badges once the zoom stops (150 ms debounce).
+  or canvas; rebuild paths and badges once the zoom stops (150 ms debounce). The region zoom (k 4) is the slowest measured case on phones (694 ms a step).
 - **Render on demand:** no continuous animation loop when nothing moves; draw on camera, state
   or animation change only (saves battery).
 - **Level of detail by zoom:** far: nation fills and capitals only; middle: city territories and
@@ -131,7 +149,24 @@ see right now is alive. It is good design (exploration matters again) and the bi
 - Load `tiles.json` as a fetched, compressed binary (typed arrays: land, terrain, neighbours)
   instead of an 8.2 MB JSON in the main bundle; decorate in the worker.
 
-### 6.5 Measured gates (per phone and desktop, 844x390 and 1920x1080)
+- The browser turn (899 ms desktop) is several times the headless turn (136 to 330 ms): the rest
+  is React re-rendering the whole tree from one big `state`. Split the context (map, HUD, panels
+  subscribe to slices with selectors) so a turn re-renders only what changed.
+
+### 6.5 One WebGL map instead of SVG
+The flat map draws about 4,500 SVG paths, a clip path per nation and a DOM badge per city; the
+browser re-lays them out on zoom. No amount of caching makes 4,500 DOM paths cheap on a phone.
+Draw the map in WebGL, in the same canvas as the close view:
+- territories and borders as a tiled texture (the globe's `politicalTexture` idea, cut into
+  tiles and redrawn only where ownership changed) or as one merged mesh per nation;
+- city badges and banners as instanced sprites with a text atlas; React only for the one
+  selected city's panel;
+- the raster pyramid, territories, hexes, fog mask and the 3D close view in one scene with one
+  camera, which is also what the world plan's 3D terrain needs (its section 3, "one depth pass").
+This is the structural fix behind the frame goals below; sections 6.1 to 6.4 still matter
+because they decide how much the WebGL map has to draw.
+
+### 6.6 Measured gates (per phone and desktop, 844x390 and 1920x1080)
 - Pan at middle zoom: 55+ fps desktop, 30+ phone; no frame over 50 ms.
 - End turn: UI never blocks more than 50 ms; turn under 150 ms desktop at turn 100.
 - First load to playable: under 5 s on a mid phone on 4G after cache.
@@ -155,6 +190,10 @@ realistic raster at far zoom on the flat map, a gentle curvature shader at the f
 wanted, and the title-screen globe. Polar areas are stretched on a flat map; use the current
 projection's limits and keep Antarctica as a strip, as Civilization does.
 
+This reverses an earlier decision: the roadmap on `claude/ancient-world` (item 22) asked for "a
+sharper globe". The user decides; the cost of a sharp globe is a second WebGL renderer for every
+feature (fog, hexes, 3D towns) or a world that looks worse up close on the globe forever.
+
 Steps: make flat the default; remove the toggle; delete `GlobeView`, `politicalTexture` and
 `react-globe.gl` after one release with the toggle hidden; add wrap-around panning.
 
@@ -170,8 +209,8 @@ Steps: make flat the default; remove the toggle; delete `GlobeView`, `politicalT
 
 | Phase | What | Why first | Size |
 |---|---|---|---|
-| A. Map speed and fog | 6.1 to 6.4: explored and last seen, fog rendering, spatial index, cached placements, zoom by transform, render on demand, turn in a worker, binary tiles | The campaign map is what everyone plays every turn; fog is also gameplay | 3 to 4 sessions |
-| A2. One map | Section 7: flat default, wrap-around, globe removed | Halves the cost of every later map feature | 1 to 2 sessions |
+| A. Map speed and fog | 6.1 to 6.4: explored and last seen, fog rendering, spatial index, cached placements, zoom by transform, render on demand, turn in a worker, split React state, binary tiles | The campaign map is what everyone plays every turn; fog is also gameplay | 3 to 4 sessions |
+| A2. One WebGL map | Section 6.5 and 7: territories, borders, badges and fog in WebGL with the close view; flat default, wrap-around, globe removed | The only way to the 30 fps phone goal; halves the cost of every later map feature | 3 to 5 sessions |
 | B. Destructible city siege (no economy) | Town assembler writes a component manifest; battle loads the real city's houses, walls and landmarks with HP and ruins; damage persists to the map; existing squads and AI; north kept, real approach side | The visible win of both plans, on today's battle system, in weeks | 3 to 4 sessions |
 | C. Battle kernel go/no-go | New packed sim with spatial buckets; 300, 500, 1,000 a side on a mid phone and desktop; hash chain checkpoints | Decides whether big armies are possible before any RTS art | 2 to 4 sessions |
 | D. Big armies in today's battles | Regiments of 25 to 50 soldiers as real entities, regiment control, distant LOD and impostors | The "huge battles" wish, without base-building | 3 to 4 sessions |
@@ -186,5 +225,7 @@ B needs the town assembler and the art sessions. C is independent and can start 
 1. Base-building in battles: every city assault (the plan), or only great sieges (this review)?
 2. Default battle size on phones: about 300 a side (recommended) or 500?
 3. Fog of war on by default, with an "explored world" option? (recommended yes)
-4. Drop the globe now, or hide it behind a setting for one release first? (recommended: hide
-   first, delete after)
+4. Drop the globe (this reverses the roadmap's "sharper globe")? If yes: hide it behind a setting
+   for one release, then delete (recommended).
+5. Move the flat map from SVG to WebGL (section 6.5)? It is the biggest single speed fix and the
+   base for the world plan's 3D terrain (recommended yes, after phase A).
