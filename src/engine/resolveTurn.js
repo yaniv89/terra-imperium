@@ -1147,16 +1147,13 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   // and every mercenary contract (mercenaries.js). After the majors' operations, so a raid meets
   // the armies where they now stand.
   {
-    const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars });
+    // In place: the turn's working regions, units and resources are written directly.
+    const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars }, { inPlace: true });
     if (indep) {
-      Object.keys(units).forEach((id) => { if (!indep.units[id]) delete units[id]; });
-      Object.assign(units, indep.units);
-      Object.assign(regions, indep.regions);
-      Object.assign(resources, indep.resources);
       nationsAfterWars = indep.nations;
       state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats };
       indep.logs.forEach((l) => logs.push(l));
-      invalidateRegionsCache(regions);
+      if (indep.regionsChanged) invalidateRegionsCache(regions); // a sack or a burned outpost; no city changes hands here
     }
   }
   mark('independents');
