@@ -81,10 +81,9 @@ export const parseKit = (scene) => {
   scene.traverse((o) => { if (lodOf(o) === null && o.children.some((c) => lodOf(c) === 0)) lodRoots.push(o); });
   const lodSet = new Set(lodRoots);
   const holdsLodRoot = (o) => { let found = false; o.traverse((c) => { if (lodSet.has(c)) found = true; }); return found; };
-  // and every top-level object without LOD levels (inside one wrapper, if the exporter added one)
-  let top = scene.children;
-  if (top.length === 1 && !top[0].isMesh && !lodSet.has(top[0]) && top[0].children.length > 1) top = top[0].children;
-  const roots = [...lodRoots, ...top.filter((o) => lodOf(o) === null && !isSocket(o) && !holdsLodRoot(o) && hasMesh(o))];
+  // and every top-level object without LOD levels (a multi-material mesh reads as a group of its
+  // parts: one object all the same)
+  const roots = [...lodRoots, ...scene.children.filter((o) => lodOf(o) === null && !isSocket(o) && !holdsLodRoot(o) && hasMesh(o))];
   const objects = {};
   roots.forEach((root) => {
     const toRoot = new Matrix4().copy(root.matrixWorld).invert();

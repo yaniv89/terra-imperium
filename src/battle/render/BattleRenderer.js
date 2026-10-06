@@ -28,6 +28,10 @@ import { CityLayer, CITY_KINDS } from './cityLayer';
 import { EconomyLayer } from './economyLayer';
 import { VegetationProps } from '../art/vegetationProps';
 import { dressStructure, fortRef } from '../art/structureArt';
+import { BattleTerrainArt } from '../art/battleTerrain';
+import { ProjectileArt } from '../art/projectiles';
+import { FxSprites } from '../art/fxSheets';
+import { getAgeIndex } from '../../data/ages';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -243,6 +247,9 @@ export class BattleRenderer {
     this.cityLayer.build();
     this.ecoLayer = new EconomyLayer(this); // the battle economy's nodes and buildings (economyLayer.js)
     this.ecoLayer.build();
+    // Art files for the river banks, fords and bridges, and for projectiles (battle/art/).
+    this.terrainArt = new BattleTerrainArt(this);
+    this.projectileArt = new ProjectileArt(this);
     this.buildPoints();
     this.buildOverlays();
     this.buildFogOverlay();
@@ -764,6 +771,8 @@ export class BattleRenderer {
     this.sparks = new InstancedMesh(this.track(new DodecahedronGeometry(0.12, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), 128);
     this.sparks.count = 0; this.sparks.frustumCulled = false; this.scene.add(this.sparks);
     this.markerRings = decal(1.7, this.track(makeRingDecal({ inner: 0.74, outer: 0.96, fill: 0.08 })), 0.9);
+    // Effect sprite sheets (src/assets/fx/<id>/, fxSheets.js) where delivered; the sparks otherwise.
+    this.fxSprites = new FxSprites(this.scene, { track: (x) => this.track(x) });
     // Blood: droplets that spray and fall when soldiers go down, and the pools they leave behind
     // (three splat shapes so the ground doesn't repeat one stamp). Machines leave scorch marks.
     this.blood = new InstancedMesh(this.track(new DodecahedronGeometry(0.045, 0)), this.track(new MeshBasicMaterial({ color: '#ffffff' })), MAX_BLOOD);
@@ -940,15 +949,23 @@ export class BattleRenderer {
       if (e.type === 'shot' || e.type === 'towerShot') {
         const from = e.type === 'towerShot' ? view.structures.find((s) => s.id === e.structure) : view.squads[e.from];
         const to = e.to !== undefined ? view.squads[e.to] : view.structures.find((s) => s.id === e.structure);
-        if (from && to) this.fx.push({ kind: 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: 0.22 });
+        // who shot (the projectile art by class and age; a tower shoots with the defender's age)
+        const shooter = e.type === 'towerShot' ? { classId: 'tower', ageId: this.setup.sides[1].ageId } : { classId: from?.classId, ageId: from?.ageId };
+        if (from && to) this.fx.push({ kind: 'tracer', x0: from.x / Q, z0: from.y / Q, x1: to.x / Q, z1: to.y / Q, t: 0, life: 0.22, shooter });
+        if (from && e.type === 'shot' && getAgeIndex(shooter.ageId) >= getAgeIndex('gunpowder') && this.fxSprites.has('muzzle-flash')) this.fx.push({ kind: 'sprite', sheet: 'muzzle-flash', x: from.x / Q, z: from.y / Q, y: 0.5, t: 0, life: 0.15 });
       } else if (e.type === 'melee' && e.to !== undefined) {
         const to = view.squads[e.to];
-        if (to) for (let k = 0; k < 3; k++) this.fx.push({ kind: 'spark', x: to.x / Q + (hash01(e.t * 7 + k) - 0.5), z: to.y / Q + (hash01(e.t * 13 + k) - 0.5), t: 0, life: 0.35, seed: k });
+        if (to && this.fxSprites.has('impact-sparks')) this.fx.push({ kind: 'sprite', sheet: 'impact-sparks', x: to.x / Q + (hash01(e.t * 7) - 0.5) * 0.6, z: to.y / Q + (hash01(e.t * 13) - 0.5) * 0.6, y: 0.4, t: 0, life: 0.35 });
+        else if (to) for (let k = 0; k < 3; k++) this.fx.push({ kind: 'spark', x: to.x / Q + (hash01(e.t * 7 + k) - 0.5), z: to.y / Q + (hash01(e.t * 13 + k) - 0.5), t: 0, life: 0.35, seed: k });
+        if (to && view.squads[e.from]?.classId === 'cavalry' && this.fxSprites.has('dust')) this.fx.push({ kind: 'sprite', sheet: 'dust', x: to.x / Q, z: to.y / Q, y: 0, t: 0, life: 0.8 });
         if (to && e.damage > 0 && isOrganic(to.classId, to.ageId)) this.bleed(to.x / Q, to.y / Q, e.t * 19 + e.from * 7);
       } else if (e.type === 'impact') {
         const r = e.radius / Q;
         const n = Math.min(24, 6 + Math.round(r * 3));
-        for (let k = 0; k < n; k++) this.fx.push({ kind: 'spark', x: e.x / Q + (hash01(e.t * 11 + k) - 0.5) * r * 1.6, z: e.y / Q + (hash01(e.t * 17 + k) - 0.5) * r * 1.6, t: 0, life: 0.9, seed: k, big: true, fire: true });
+        if (this.fxSprites.has('explosion')) {
+          this.fx.push({ kind: 'sprite', sheet: 'explosion', x: e.x / Q, z: e.y / Q, y: 0, t: 0, life: 0.9, size: Math.max(1, r) });
+          if (this.fxSprites.has('smoke')) this.fx.push({ kind: 'sprite', sheet: 'smoke', x: e.x / Q, z: e.y / Q, y: 0.3, rise: 1.2, t: 0, life: 2.4, size: Math.max(1, r) });
+        } else for (let k = 0; k < n; k++) this.fx.push({ kind: 'spark', x: e.x / Q + (hash01(e.t * 11 + k) - 0.5) * r * 1.6, z: e.y / Q + (hash01(e.t * 17 + k) - 0.5) * r * 1.6, t: 0, life: 0.9, seed: k, big: true, fire: true });
         this.addMarker(e.x / Q, e.y / Q, '#f97316');
         if (r > 6) this.flash = 1; // a nuclear flash
       } else if (e.type === 'ability') {
@@ -956,7 +973,10 @@ export class BattleRenderer {
         if (src) this.addMarker(src.x / Q, src.y / Q, '#c084fc');
       } else if (e.type === 'destroyed' || e.type === 'keepBreached' || e.type === 'structureDestroyed') {
         const s = e.id !== undefined ? view.squads[e.id] : view.structures.find((st) => st.id === e.structure);
-        if (s) for (let k = 0; k < 8; k++) this.fx.push({ kind: 'spark', x: s.x / Q + (hash01(k * 3 + e.t) - 0.5) * 1.6, z: s.y / Q + (hash01(k * 5 + e.t) - 0.5) * 1.6, t: 0, life: 0.8, seed: k, big: true });
+        if (s && this.fxSprites.has('debris')) {
+          this.fx.push({ kind: 'sprite', sheet: 'debris', x: s.x / Q, z: s.y / Q, y: 0, t: 0, life: 0.8 });
+          if (this.fxSprites.has('smoke')) this.fx.push({ kind: 'sprite', sheet: 'smoke', x: s.x / Q, z: s.y / Q, y: 0.3, rise: 1, t: 0, life: 2 });
+        } else if (s) for (let k = 0; k < 8; k++) this.fx.push({ kind: 'spark', x: s.x / Q + (hash01(k * 3 + e.t) - 0.5) * 1.6, z: s.y / Q + (hash01(k * 5 + e.t) - 0.5) * 1.6, t: 0, life: 0.8, seed: k, big: true });
       }
     });
     const budget=BATTLE_GRAPHICS.effects;
@@ -1014,6 +1034,8 @@ export class BattleRenderer {
     if (this.flash > 0) { this.flash = Math.max(0, this.flash - dt * 0.8); this.scene.background.copy(this.skyColor).lerp(new Color('#ffffff'), this.flash); }
     this.updateCamera();
     this.vegetation?.update(this.camera.zoom);
+    this.terrainArt?.update(this.camera.zoom);
+    if (cur) this.lastView = cur;
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
     if (cur) this.cityLayer.update(cur);
@@ -1238,6 +1260,9 @@ export class BattleRenderer {
           const a = hash01(seed + k * 3) * Math.PI * 2; const v = 0.6 + hash01(seed + k * 5) * 1.6;
           this.fx.push({ kind: 'blood', x: px, z: pz, y: 0.55 + hash01(seed + k) * 0.35, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 1 + hash01(seed + k * 7) * 2.2, t: 0, life: 0.7, color: BLOOD_COLORS[k % 3] });
         }
+      } else if (this.fxSprites.has('fire-small')) {
+        this.fx.push({ kind: 'sprite', sheet: 'fire-small', x: px, z: pz, y: 0, t: 0, life: 1.6 });
+        if (this.fxSprites.has('smoke')) this.fx.push({ kind: 'sprite', sheet: 'smoke', x: px, z: pz, y: 0.3, rise: 1, t: 0, life: 2.2 });
       } else {
         for (let k = 0; k < 4; k++) this.fx.push({ kind: 'spark', x: px + (hash01(seed + k) - 0.5), z: pz + (hash01(seed + k * 3) - 0.5), t: 0, life: 0.9, seed: k, big: true, fire: k % 2 === 0 });
       }
@@ -1297,12 +1322,23 @@ export class BattleRenderer {
   drawFx(dt) {
     let tn = 0; let sn = 0; let mn = 0;
     this.fx = this.fx.filter((f) => (f.t += dt) < f.life);
+    const sprites = this.fxSprites; const shots = this.projectileArt;
+    sprites.begin(CAM_BASIS.makeRotationFromQuaternion(this.camera.quaternion).elements);
+    shots.begin();
     this.fx.forEach((f) => {
       const k = f.t / f.life;
+      if (f.kind === 'sprite') {
+        sprites.add(f.sheet, f.x, this.heightAt(f.x, f.z) + (f.y || 0) + (f.rise || 0) * k, f.z, { k, scale: f.size || 1, alpha: f.rise ? 1 - k * k : 1 });
+        return;
+      }
       if (f.kind === 'tracer' && tn < 64) {
         const dx = f.x1 - f.x0; const dz = f.z1 - f.z0; const len = Math.hypot(dx, dz);
         const hx = f.x0 + dx * k; const hz = f.z0 + dz * k;
-        const arc = Math.sin(k * Math.PI) * Math.min(2.5, len * 0.12);
+        const peak = Math.min(2.5, len * 0.12);
+        const arc = Math.sin(k * Math.PI) * peak;
+        // the projectile's model when its file has one (projectiles.js), else the tracer streak
+        const obj = f.shooter && shots.objectFor(f.shooter.classId, f.shooter.ageId);
+        if (obj) { shots.add(obj, hx, this.heightAt(hx, hz) + 0.8 + arc, hz, dx, dz, (Math.PI * peak * Math.cos(k * Math.PI)) / Math.max(0.1, len)); return; }
         tmp.position.set(hx, this.heightAt(hx, hz) + 0.8 + arc, hz);
         tmp.rotation.set(0, -Math.atan2(dz, dx), 0); tmp.scale.set(0.6, 1, 1); tmp.updateMatrix();
         this.tracers.setMatrixAt(tn, tmp.matrix); tn += 1;
@@ -1315,6 +1351,13 @@ export class BattleRenderer {
         sn += 1;
       }
     });
+    // Buildings and city structures under 30% HP burn while a fire sheet is in.
+    if (sprites.has('fire-large') && this.lastView) {
+      const burn = (x, z, phase) => sprites.add('fire-large', x, this.heightAt(x, z) + 0.2, z, { time: this.time + phase });
+      (this.lastView.eco?.buildings || []).forEach((b) => { if (b.alive && !b.proxy && b.built && b.hp < b.maxHp * 0.3) burn(b.x / Q, b.y / Q, b.idx * 0.37); });
+      (this.lastView.structures || []).forEach((st, i) => { if (st.alive && st.maxHp > 0 && st.hp < st.maxHp * 0.3) burn(st.x / Q, st.y / Q, i * 0.41); });
+    }
+    sprites.end(); shots.end();
     let bn = 0;
     this.fx.forEach((f) => {
       if (f.kind !== 'blood' || bn >= MAX_BLOOD) return;
@@ -1355,6 +1398,9 @@ export class BattleRenderer {
     this.cityLayer?.dispose();
     this.ecoLayer?.dispose();
     this.vegetation?.dispose();
+    this.terrainArt?.dispose();
+    this.projectileArt?.dispose();
+    this.fxSprites?.dispose();
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();
