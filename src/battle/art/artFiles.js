@@ -10,7 +10,7 @@
 //   src/assets/battle/nature/<node>.glb, vegetation-<kit>.glb   nodes, herds, trees (economyLayer.js, BattleRenderer.js)
 //   src/assets/battle/terrain/river-kit.glb, ford.glb, bridge-<material>.glb   (battleTerrain.js)
 //   src/assets/battle/projectiles/<age>.glb               (projectiles.js)
-//   src/assets/units/signature/<peopleId>.glb             (unitModels.js, data/signatureUnits.js)
+//   src/assets/units/signature/<model>.glb             (unitModels.js, data/signatureUnits.js)
 //   src/assets/map/terrain/<kit>.glb                      (closeView/terrainKits.js)
 import { createArtIndex } from './artIndex';
 

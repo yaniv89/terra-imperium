@@ -98,8 +98,8 @@ export const createArtIndex = (files = {}) => {
     },
     /** Projectiles: battle/projectiles/<age>.glb, the age chain. */
     projectiles: (ageId) => byAge(ageId, (a) => `battle/projectiles/${a}.glb`),
-    /** Signature units: units/signature/<peopleId>.glb (data/signatureUnits.js says which age and role). */
-    signature: (peopleId) => (url(`units/signature/${peopleId}.glb`) ? { url: url(`units/signature/${peopleId}.glb`), peopleId, key: `units/signature/${peopleId}.glb` } : null),
+    /** Signature units: units/signature/<model>.glb (data/signatureUnits.js: the people's model id, age and role). */
+    signature: (model) => (url(`units/signature/${model}.glb`) ? { url: url(`units/signature/${model}.glb`), model, key: `units/signature/${model}.glb` } : null),
     /** Map terrain kits: map/terrain/<id>.glb. */
     mapTerrain: (id) => (url(`map/terrain/${id}.glb`) ? { url: url(`map/terrain/${id}.glb`), id, key: `map/terrain/${id}.glb` } : null)
   };

@@ -43,7 +43,7 @@ describe('art index', () => {
 
   it('finds nodes, vegetation kits along their chain, terrain, bridges, signature units and map kits', () => {
     const a = idx('battle/nature/stone-outcrop.glb', 'battle/nature/vegetation-temperate.glb', 'battle/nature/vegetation-conifer.glb',
-      'battle/terrain/ford.glb', 'battle/terrain/bridge-wood.glb', 'battle/terrain/bridge-stone.glb', 'units/signature/egyptians.glb', 'map/terrain/hills.glb');
+      'battle/terrain/ford.glb', 'battle/terrain/bridge-wood.glb', 'battle/terrain/bridge-stone.glb', 'units/signature/kingdom-of-israel.glb', 'map/terrain/hills.glb');
     expect(a.nature('stone-outcrop').url).toMatch(/stone-outcrop/);
     expect(a.nature('gold-vein')).toBeNull();
     expect(vegetationChain('cold')).toEqual(['cold', 'conifer', 'temperate']);
@@ -53,7 +53,7 @@ describe('art index', () => {
     expect(a.terrain('river-kit')).toBeNull();
     expect(a.bridge('modern').material).toBe('stone');
     expect(a.bridge('bronze').object).toBe('bridge-wood');
-    expect(a.signature('egyptians').url).toMatch(/signature\/egyptians/);
+    expect(a.signature('kingdom-of-israel').url).toMatch(/signature\/kingdom-of-israel/);
     expect(a.signature('hittites')).toBeNull();
     expect(a.mapTerrain('hills').url).toMatch(/hills/);
     expect(idx().vegetation('temperate')).toBeNull();

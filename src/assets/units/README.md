@@ -24,7 +24,7 @@ Ages: `bronze classical kingdoms gunpowder modern`. Classes: `infantry ranged ca
   size up from cavalry with a cloak in `Team` (Modern: an open command car). Drawn beside the
   standard of every squad with a commander; baked as tall as the cavalry model and trotting like
   it. Budget: mounted 2,500 (hard 4,000). Without the file a general is only the standard.
-- `signature/{peopleId}.glb`: a people's signature unit, see `signature/README.md`.
+- `signature/{model}.glb`: a people's signature unit (the roster's model id), see `signature/README.md`.
 
 ## What the model should look like
 

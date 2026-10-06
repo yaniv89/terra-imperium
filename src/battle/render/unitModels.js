@@ -12,8 +12,8 @@
 //   {age}-general.glb   the age's general (a mounted commander; Modern: a command car), drawn
 //                       beside the standard of every squad with a commander (general.glb: every age);
 //                       without it a general is only the standard
-//   signature/{peopleId}.glb  the people's signature unit (data/signatureUnits.js says its age and
-//                       role): replaces that people's base unit of the role in that age
+//   signature/{model}.glb  a people's signature unit (data/signatureUnits.js: its age, role and
+//                       model id): replaces that people's base unit of the role in that age
 // Before a battle opens, preloadUnitModels() loads just the models that battle needs (in parallel,
 // each once per session), bakes and registers them; anything that fails or is too slow falls back
 // to the procedural model, so a bad or missing file can never block a battle.
@@ -22,7 +22,7 @@ import { composeUnitModel } from './unitComposer';
 import { registerSoldierGeometry, hasSoldierOverride, getProceduralSoldierGeometry } from './soldierFactory';
 import { trainableRoles } from '../data/economy';
 import { ART } from '../art/artFiles';
-import { signatureUnitFor, signatureKey, SIGNATURE_UNITS } from '../../data/signatureUnits';
+import { signatureUnitFor, signatureKey, SIGNATURE_UNITS, QUADRUPED_RIGS } from '../../data/signatureUnits';
 import { peopleForNationId } from '../../data/peoples';
 
 // { '../../assets/units/bronze-infantry.glb': '/terra-imperium/assets/bronze-infantry-abc123.glb' }
@@ -59,12 +59,15 @@ export const findUnitModel = (ageId, classId) => {
 export const findGeneralModel = (ageId) => findUnitModel(ageId, 'general');
 
 const SIG_OPTS = Object.fromEntries(Object.entries(SIGNATURE_OPTIONS).map(([path, o]) => [baseName(path), o]));
-/** The people's signature model for this age and role, or null (the base unit). */
+/** The people's signature model for this age and role (any role, vehicles included), or null (the
+ * base unit): src/assets/units/signature/<model>.glb with the roster's model id. */
 export const findSignatureModel = (peopleId, ageId, classId, { table = SIGNATURE_UNITS, art = ART, options = SIG_OPTS } = {}) => {
-  if (!signatureUnitFor(peopleId, ageId, classId, table)) return null;
-  const ref = art.signature(peopleId);
-  if (!ref || options[peopleId]?.enabled === false) return null;
-  return { name: `signature/${peopleId}`, url: ref.url, options: reviveOptions(options[peopleId]) };
+  const entry = signatureUnitFor(peopleId, ageId, classId, table);
+  if (!entry) return null;
+  const ref = art.signature(entry.model);
+  const opts = options[entry.model];
+  if (!ref || opts?.enabled === false) return null;
+  return { name: `signature/${entry.model}`, url: ref.url, options: { quadruped: QUADRUPED_RIGS.includes(entry.rig), ...reviveOptions(opts) } };
 };
 
 // Every (age, class) a battle setup will put on the field (including reinforcements).
