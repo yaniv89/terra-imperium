@@ -73,15 +73,25 @@ export const walkableGoal = (map, goalIdx) => {
   return goalIdx;
 };
 
-export const getFlowField = (w, rawGoalIdx) => {
+// `key`/`limit`: the battle economy's workers keep their own, larger cache (economy.js), so their
+// trips between nodes and depots never push the army's fields out.
+export const getFlowField = (w, rawGoalIdx, key = 'flowCache', limit = CACHE_LIMIT) => {
   const goalIdx = walkableGoal(w.map, rawGoalIdx);
-  if (!w.flowCache) w.flowCache = new Map();
-  const cached = w.flowCache.get(goalIdx);
+  if (!w[key]) w[key] = new Map();
+  const cache = w[key];
+  const cached = cache.get(goalIdx);
   if (cached) return cached;
   const field = buildFlowField(w.map, goalIdx);
-  if (w.flowCache.size >= CACHE_LIMIT) w.flowCache.delete(w.flowCache.keys().next().value);
-  w.flowCache.set(goalIdx, field);
+  if (cache.size >= limit) cache.delete(cache.keys().next().value);
+  cache.set(goalIdx, field);
   return field;
+};
+
+/** The ground changed (a structure fell, a building went up): forget blocked sums and every flow field. */
+export const invalidatePaths = (w) => {
+  blockedSums.delete(w.map.tiles);
+  if (w.flowCache) w.flowCache.clear();
+  if (w.ecoFlowCache) w.ecoFlowCache.clear();
 };
 
 // The next waypoint (tile centre) from (x, y) toward the field's goal, or null if unreachable.

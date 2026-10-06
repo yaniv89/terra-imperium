@@ -15,6 +15,9 @@ export const CLASS_BASE = {
   siege: { speed: T(0.9), range: 11 * Q, minRange: 3 * Q, sight: 8, attackTicks: S(3.0), soldiers: 3, splash: Math.round(1.2 * Q), structureBonus: true },
   air: { speed: T(5.0), range: 4 * Q, minRange: 0, sight: 12, attackTicks: S(1.2), soldiers: 3, flying: true },
   support: { speed: T(1.4), range: 0, minRange: 0, sight: 7, attackTicks: 0, soldiers: 4, supplyAura: 6 * Q },
+  // The battle economy's worker (phase R1, src/battle/sim/economy.js): one figure, gathers, builds and
+  // repairs, never fights; a soft target.
+  worker: { speed: T(1.7), range: 0, minRange: 0, sight: 6, attackTicks: 0, soldiers: 1, worker: true },
   // Naval squads never take part in a land battle (invasions only take land units); listed so a
   // stray naval unit can't crash a lookup.
   naval: { speed: 0, range: 0, minRange: 0, sight: 6, attackTicks: 0, soldiers: 2 }

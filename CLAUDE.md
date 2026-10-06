@@ -93,6 +93,12 @@ The live site is GitHub Pages, built into `docs/`.
 - `src/battle/`: the tactical RTS. `sim/` is an integer fixed-point 20 Hz deterministic sim
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.
+  Battle economy (phase R1, `setup.economy`, on for campaign battles, off by default in
+  `buildSetupFromArmies` so tests/parity/bench hash as before): catalog src/battle/data/economy.js,
+  nodes and camp src/battle/setup/economySetup.js, sim src/battle/sim/economy.js (workers, building,
+  training, housing cap, `tactical.economy` in the result) and economyAI.js, drawing
+  render/economyLayer.js, HUD EconomyHud.jsx. Workers are squads with `q.worker` (excluded from the
+  end rules and the army AI). `node scripts/battle-bench.mjs --eco`; `.claude/skills/battle-lab/eco-shot.mjs`.
 - `src/components/`: React UI (panels, modals, globe, map, battle screens).
 - The flat map is one WebGL canvas (phase A2): `src/components/map/gl/GLMapView.jsx`. Territories,
   borders, hexes, fog and lens tints are one full-screen shader that finds each pixel's tile

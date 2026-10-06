@@ -13,6 +13,7 @@
 //   science   (Library…)   commander powers recharge 25% faster
 import { distSq } from './fixed';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
+import { lootCityBuilding } from './economy';
 
 export const BUILDING_EFFECTS = {
   military: 'Cheaper, faster reserves',
@@ -63,6 +64,7 @@ export const updateBuildings = (w) => {
 // Called when a building's HP hits zero: the attacker plunders it.
 export const razeBuilding = (w, s, bySide) => {
   if (bySide === SIDE_ATTACKER) w.supply[SIDE_ATTACKER] = Math.min(w.setup.supplyCap, w.supply[SIDE_ATTACKER] + RAZE_PLUNDER);
+  lootCityBuilding(w, bySide); // with a battle economy, its gold too (economy.js)
   w.razed = [...(w.razed || []), s.category];
   w.events.push({ t: w.tick, type: 'buildingRazed', structure: s.id, category: s.category });
 };

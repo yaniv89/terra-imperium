@@ -5,6 +5,7 @@
 //   node scripts/battle-bench.mjs                      # 300, 500 and 1,000 a side, 2,400 ticks (2 minutes of battle)
 //   node scripts/battle-bench.mjs --sizes 300 --ticks 600 --seed 3 --json out.json
 //   node scripts/battle-bench.mjs --root <another checkout>   # the same scenario on older code
+//   node scripts/battle-bench.mjs --sizes 300 --eco          # with the battle economy (workers count toward the 300)
 // Each size runs --repeat times (default 3) and the run with the lowest p95 is kept. On a hybrid
 // CPU, pin it to one performance core for steady numbers (Windows: start /affinity 4 /high).
 //
@@ -26,7 +27,7 @@ const PHONE_P95_BUDGET = 10;
 const PHONE_P99_BUDGET = 20;
 
 const parseArgs = (argv) => {
-  const args = { sizes: [300, 500, 1000], ticks: 2400, seed: 7, warmup: 1, repeat: 3, json: null, difficulty: 'king', root: path.resolve(__dirname, '..') };
+  const args = { sizes: [300, 500, 1000], ticks: 2400, seed: 7, warmup: 1, repeat: 3, json: null, difficulty: 'king', eco: false, root: path.resolve(__dirname, '..') };
   for (let i = 0; i < argv.length; i++) {
     const [flag, inline] = argv[i].split('=');
     const key = flag.replace(/^--/, '');
@@ -36,6 +37,7 @@ const parseArgs = (argv) => {
     else if (key === 'root') args.root = path.resolve(value);
     else if (key === 'json') args.json = value;
     else if (key === 'difficulty') args.difficulty = value;
+    else if (key === 'eco') { args.eco = true; if (inline === undefined) i -= 1; } // the battle economy on (phase R1)
     else throw new Error(`Unknown flag --${key}`);
   }
   return args;
@@ -64,7 +66,7 @@ const main = async () => {
   const { runBench, makeBenchWorld, step, makeRenderView } = await import(pathToFileURL(file).href);
   const now = () => performance.now();
   // A short warm-up so the JIT has compiled the hot loops before anything is timed.
-  for (let i = 0; i < args.warmup; i++) runBench(Math.min(...args.sizes), { ticks: 200, seed: args.seed + 1000, now, opts: { difficultyId: args.difficulty } });
+  for (let i = 0; i < args.warmup; i++) runBench(Math.min(...args.sizes), { ticks: 200, seed: args.seed + 1000, now, opts: { difficultyId: args.difficulty, economy: args.eco } });
   const rows = [];
   console.log(`battle-bench: ${args.ticks} ticks, seed ${args.seed}, node ${process.version}, ${os.cpus()[0]?.model?.trim()} x${os.cpus().length}`);
   console.log('per side | mean ms | p50    | p95    | p99    | max    | contact mean | phone p95 (x4) | alive at end | end');
@@ -72,7 +74,7 @@ const main = async () => {
     // Several runs, the quietest kept: other work on the machine only ever adds time.
     let r = null;
     for (let k = 0; k < Math.max(1, args.repeat); k++) {
-      const run = runBench(perSide, { ticks: args.ticks, seed: args.seed, now, opts: { difficultyId: args.difficulty } });
+      const run = runBench(perSide, { ticks: args.ticks, seed: args.seed, now, opts: { difficultyId: args.difficulty, economy: args.eco } });
       if (r && run.hash !== r.hash) throw new Error(`Non-deterministic: run ${k} ended with hash ${run.hash} instead of ${r.hash}`);
       if (!r || run.p95 < r.p95) r = run;
     }
@@ -85,7 +87,7 @@ const main = async () => {
   // the UI thread by postMessage (structuredClone stands in for that copy), mid-battle.
   console.log('per side | render view ms | + copy ms | per second at 60 frames (worker, x4 phone)');
   for (const perSide of args.sizes) {
-    const w = makeBenchWorld(perSide, args.seed, { difficultyId: args.difficulty });
+    const w = makeBenchWorld(perSide, args.seed, { difficultyId: args.difficulty, economy: args.eco });
     for (let i = 0; i < 600; i++) { step(w, []); w.events.length = 0; }
     const N = 60;
     let a = now();

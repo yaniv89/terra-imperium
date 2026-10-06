@@ -253,6 +253,19 @@ As in Age of Empires, every unit needs housing:
   landings all have workers, an HQ or camp, houses, depots, production and towers. Raids are the
   one light case (loot, burn, leave), because raiders come to plunder, not to stay.
 - No free armies: regular recruits from campaign escrow, auxiliaries demobilise (RTS plan 6.5).
+- **Phase R1 result (2026-10-06, branch claude/phase-r1-battle-economy).** The sim runs three
+  resources (integer milli-units), nodes from the tile and its neighbours (groves, stone, ore, gold,
+  herds, cattle, fish; a starter cluster a side and a contested middle), workers (gather, carry,
+  deposit, build with diminishing returns, repair the city or buildings for materials), 12
+  buildings (house +10, depots, farm, mine, trade post, four production buildings, aid post,
+  tower), queues that wait on housing, and the AI economy at every difficulty. One population per
+  sim entity (squad); a trained squad is a company of 200 strength, an auxiliary that demobilises
+  (R2 adds escrowed recruits). With an economy the clocks are 15 min (field) and 30 min (assault).
+  Battles without one hash exactly as before (bench 28bd75a2). Sim p95 at 300 a side with the
+  economy (260 regiments + laborers and trained squads up to 300): 1.9 to 2.0 ms desktop, about
+  8 ms at x4, within the 10 ms budget. Left for R2: escrow and campaign-authorized recruits, the
+  outcome service reading `tactical.economy`; for R4: the other ages' names and art. Screenshots in
+  plans/phase-r1/.
 
 ### 6.5 Independents in battle (independents plan)
 - Raids: the raiders' goal is loot (depots, fields, a trade post) and escape by an exit; the

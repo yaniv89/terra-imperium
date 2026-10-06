@@ -4,7 +4,8 @@
 // the field (front line, reserves, reinforcements), and one soldier figure per drawn soldier of
 // each age and class. Fixed small pools (64 squads, 640 figures per layer) silently stopped
 // drawing past the 64th squad, which a 300-a-side battle passes at once.
-import { getUnitBattleStats } from '../data/battleStats';
+import { getUnitBattleStats, getBattleStats } from '../data/battleStats';
+import { POP_LIMIT, trainableRoles } from '../data/economy';
 
 export const MIN_SQUAD_SLOTS = 64;
 export const MIN_SOLDIER_SLOTS = 640;
@@ -12,13 +13,17 @@ export const MIN_SOLDIER_SLOTS = 640;
 // Every unit of a side that can appear: its army plus its reinforcements.
 const unitsOf = (side) => [...(side.units || []), ...(side.reinforcements || []).flatMap((r) => r.units || [])];
 
-export const squadSlots = (setup) => Math.max(MIN_SQUAD_SLOTS, (setup.sides || []).reduce((n, s) => n + unitsOf(s).length, 0));
+// A battle with an economy (phase R1) can train up to its population limit a side on top.
+const ecoSquads = (setup) => (setup.economy ? (setup.sides || []).length * POP_LIMIT : 0);
+export const squadSlots = (setup) => Math.max(MIN_SQUAD_SLOTS, (setup.sides || []).reduce((n, s) => n + unitsOf(s).length, 0) + ecoSquads(setup));
 
 export const soldierSlots = (setup, ageId, classId) => {
   let n = 0;
   (setup.sides || []).forEach((s) => {
     if (s.ageId !== ageId) return;
     unitsOf(s).forEach((u) => { if (u.classId === classId) n += getUnitBattleStats(u, ageId).soldiers; });
+    // Trained squads and workers (the battle economy): room for a whole population of this class.
+    if (setup.economy && trainableRoles(ageId).includes(classId)) n += POP_LIMIT * getBattleStats(classId, ageId).soldiers;
   });
   return Math.max(MIN_SOLDIER_SLOTS, n);
 };

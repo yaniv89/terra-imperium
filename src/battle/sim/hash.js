@@ -2,6 +2,8 @@
 // A 32-bit FNV-1a checksum of everything that matters in a world. Two worlds with the same hash at
 // the same tick are (for all practical purposes) identical — used by the determinism tests, the
 // dev desync detector and, later, server-side replay verification.
+import { foldEconomy } from './economy';
+
 const mix = (h, v) => Math.imul(h ^ (v | 0), 16777619) >>> 0;
 
 export const worldHash = (w) => {
@@ -15,6 +17,8 @@ export const worldHash = (w) => {
   });
   w.structures.forEach((s) => { h = mix(h, s.hp); h = mix(h, s.cooldown || 0); });
   w.points.forEach((p) => { h = mix(h, p.owner); h = mix(h, p.progress); });
+  // The battle economy (economy.js): only a world that has one, so other battles hash as before.
+  if (w.eco) h = foldEconomy(h, w, mix);
   return h;
 };
 

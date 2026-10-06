@@ -31,10 +31,15 @@ const generals = (prefix, n) => Object.fromEntries(Array.from({ length: Math.cei
 }));
 
 // `deployment: 'blocks'` (world.js deployBlocks): every squad starts on the field in deep blocks.
-export const makeBenchSetup = (perSide, seed = 7, { difficultyId = 'king', ageId = 'classical' } = {}) => ({
+// `economy` (phase R1): the same battle with the battle economy running, workers counting toward the
+// size: perSide - ECO_BENCH_HEADROOM regiments a side, and the AI's laborers and trained squads fill
+// the rest up to the 300 population limit (economy.js), all of them sim entities.
+export const ECO_BENCH_HEADROOM = 40;
+export const makeBenchSetup = (perSide, seed = 7, { difficultyId = 'king', ageId = 'classical', economy = false } = {}) => ({
   ...buildSetupFromArmies({
     regionId: `bench-${perSide}`, terrain: 'plains', seed, combatWidth: benchCombatWidth(perSide),
-    attackerUnits: army('a', perSide), defenderUnits: army('d', perSide),
+    attackerUnits: army('a', economy ? perSide - ECO_BENCH_HEADROOM : perSide), defenderUnits: army('d', economy ? perSide - ECO_BENCH_HEADROOM : perSide),
+    economy, economyInputs: economy ? { supply: [1, 1], development: [1, 1] } : null,
     attackerAgeId: ageId, defenderAgeId: ageId, controllers: ['ai', 'ai'], difficultyId,
     generals: { ...generals('a', perSide), ...generals('d', perSide) },
     deposits: [], powers: [[{ id: 'rallyCry' }, { id: 'arrowStorm' }], [{ id: 'rallyCry' }, { id: 'arrowStorm' }]], battleType: 'field'

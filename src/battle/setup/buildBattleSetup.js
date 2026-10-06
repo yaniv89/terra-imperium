@@ -24,11 +24,13 @@ import { polarX, polarY } from '../sim/fixed';
 import { Q, SIDE_ATTACKER, secondsToTicks } from '../sim/constants';
 import { placeCity, cityKeepInset } from './cityBattle';
 import { cityManifestOf, cityDamageOf } from '../../engine/cityManifest';
+import { buildEconomySetup } from './economySetup';
+import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield, v4: the real
-// city from its manifest, cityBattle.js).
-export const SETUP_VERSION = 4;
+// city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js).
+export const SETUP_VERSION = 5;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 
@@ -110,7 +112,11 @@ export const buildSetupFromArmies = ({
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
   landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null,
   cityManifest = null, cityDamage = null, // the real city (src/engine/cityManifest.js): its houses, walls and landmarks stand on the field
-  combatWidth: combatWidthOverride = null // a bigger field for the large-battle presets and the benchmark (src/battle/bench/benchScenario.js)
+  combatWidth: combatWidthOverride = null, // a bigger field for the large-battle presets and the benchmark (src/battle/bench/benchScenario.js)
+  // The battle economy (phase R1, economySetup.js): workers, resources, buildings and training. The
+  // campaign's battles turn it on; a setup without it plays exactly as before (tests, parity, bench).
+  // `economyInputs`: { supply: [a, d], development: [a, d] } in 0..1 (else the units' supply meters).
+  economy = false, economyInputs = null
 }) => {
   const combatWidth = combatWidthOverride || getCombatWidth(terrain);
   const naval = battleType === 'naval';
@@ -128,6 +134,11 @@ export const buildSetupFromArmies = ({
     structures = placed.structures;
     cityInfo = placed.city;
   } else structures = [...buildStructures({ keepTile: map.keep, fortLevel, isCapital }), ...placeBuildings(map, regionBuildings), ...(type === 'sally' ? placeCamp(map) : [])];
+  // Every land battle but a raid has full base-building (decision 36); raids arrive with R3.
+  const ecoSetup = economy && !naval ? buildEconomySetup({
+    map, terrain, tileContext, regionKey: regionId, structures, city: cityInfo, inputs: economyInputs,
+    sides: [{ units: attackerUnits }, { units: defenderUnits }], ageIds: [attackerAgeId, defenderAgeId]
+  }) : null;
   if (tileContext && tileContext.hpRatio < 1) structures.forEach((st) => { if (st.kind === 'keep' || st.kind === 'tower') st.hp = Math.max(1, Math.round(st.maxHp * tileContext.hpRatio)); });
   const points = map.points.map((p, i) => ({ id: `p_${deposits[i]}`, kind: 'deposit', resId: deposits[i], x: centre(p.x), y: centre(p.y), owner: 1, progress: 0, capturingSide: -1 }));
   // A landing's beachhead: a point on the sand the invaders must hold (battleType.js).
@@ -140,13 +151,15 @@ export const buildSetupFromArmies = ({
     combatWidth,
     // The clock by battle type (battleType.js): a field battle is fast, a siege gives the engines time.
     battleType: type,
-    limitTicks: BATTLE_TYPES[type].limitTicks,
+    // With an economy the clocks are the master plan's (6.1): a city assault 30 minutes, the rest 15.
+    limitTicks: ecoSetup ? (type === 'assault' ? ECONOMY_SIEGE_TICKS : ECONOMY_FIELD_TICKS) : BATTLE_TYPES[type].limitTicks,
     map,
     tile: tileContext?.tile ?? null,
     structures,
     // The real city (cityBattle.js): its id, town model, scale and the defender's housing cap
     // (houses plus the town hall, master plan 6.3; the battle economy reads it from phase R1).
     city: cityInfo,
+    economy: ecoSetup,
     points,
     territoryRadius: TERRITORY_RADIUS,
     supplyCap: 200 + 30 * Math.max(0, infrastructure),
@@ -239,7 +252,8 @@ const buildDefenseSetup = (state, pb) => {
     intel: { attackerSeesDefender: false },
     regionBuildings: getRegionBattleBuildings(region),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
-    cityDamage: cityDamageOf(region)
+    cityDamage: cityDamageOf(region),
+    economy: true // every assault is a full RTS battle (decision 23; phase R1)
   });
 };
 
@@ -285,7 +299,8 @@ const buildAmphibiousSetup = (state, pb) => {
     landing: true,
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, pb.targetRegionId),
-    cityDamage: cityDamageOf(v.targetRegion)
+    cityDamage: cityDamageOf(v.targetRegion),
+    economy: true
   });
 };
 
@@ -326,7 +341,8 @@ const buildFieldSetup = (state, pb) => {
     powers: [getBattlePowers(state, state.playerNationId, ctx.attackerAgeId, attackerUnits, { allowNuclear: true }), getBattlePowers(state, v.defenderNationId, ctx.defenderAgeId, defenderUnits, { allowNuclear: false })],
     reinforcements: [[], []],
     intel: { attackerSeesDefender: true },
-    regionBuildings: []
+    regionBuildings: [],
+    economy: true // full base-building in field battles too (decision 36)
   });
 };
 
@@ -401,7 +417,8 @@ export const buildInvasionSetup = (state, pendingBattle) => {
     intel: { attackerSeesDefender: canSeeRegionDetails(state, targetRegionId) },
     regionBuildings: getRegionBattleBuildings(v.targetRegion),
     cityManifest: cityManifestOf(state, targetRegionId),
-    cityDamage: cityDamageOf(v.targetRegion)
+    cityDamage: cityDamageOf(v.targetRegion),
+    economy: true
   });
 };
 

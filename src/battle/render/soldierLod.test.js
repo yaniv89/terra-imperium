@@ -44,6 +44,13 @@ describe('soldier detail levels', () => {
     expect(pickSoldierTier({ px: TIER_PX[0] * 1.05, layers, budget: 1e6, prev: 1 })).toBe(1);
   });
 
+  it('adaptive detail: a bias draws finer than size on screen asks, within a lifted budget', () => {
+    const layers = [{ figures: 1000, tris: [2000, 350, 80] }];
+    expect(pickSoldierTier({ px: 10, layers, budget: 300000, prev: 2, bias: 1 })).toBe(1); // 350k <= 900k
+    expect(pickSoldierTier({ px: 10, layers, budget: 300000, prev: 1, bias: 2 })).toBe(1); // full: 4 M > 2.7 M
+    expect(pickSoldierTier({ px: 10, layers: [{ figures: 100, tris: [2000, 350, 80] }], budget: 300000, prev: 0, bias: 2 })).toBe(0);
+  });
+
   it('drops to a coarser level when the figures in view pass the budget', () => {
     const many = [{ figures: 3000, tris: [2000, 350, 80] }];
     expect(pickSoldierTier({ px: 80, layers: many, budget: 300000, prev: 2 })).toBe(2); // 3,000 x 350 > 300k

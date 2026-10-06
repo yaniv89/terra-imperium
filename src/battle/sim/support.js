@@ -33,7 +33,7 @@ export const applySupplyAndAttrition = (w) => {
   // always within its own reach, so it never takes attrition), so the list stays true throughout.
   const suppliers = w.squads.filter(isSupplier);
   w.squads.forEach((q) => {
-    if (!isFighting(q)) return;
+    if (!isFighting(q) || q.worker) return; // workers live off their own camp (economy.js)
     const supplied = nearSupply(suppliers, q);
     // Attrition: only the invader, only on enemy soil, only without supply.
     if (q.side === SIDE_ATTACKER && !q.stats.flying && perSecond > 0 && !supplied && !hasPerk(q, 'forager') && inDefenderTerritory(w, q)) {
