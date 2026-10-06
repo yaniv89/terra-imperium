@@ -5,7 +5,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA } from '../../data/regions';
+import { battleName } from '../../engine/battleNames';
 import { buildInvasionSetup, SETUP_VERSION } from '../../battle/setup/buildBattleSetup';
 import { saveBattleCheckpoint, loadBattleCheckpoint, clearBattleCheckpoint } from '../../battle/worker/battleStore';
 import TacticalBattleScreen from './TacticalBattleScreen';
@@ -41,7 +41,7 @@ const TacticalBattleHost = () => {
       key={pb.id}
       setup={setup}
       playerSide={pb.playerSide === 'defender' ? 1 : 0}
-      title={pb.kind === 'naval' ? `Sea battle off ${REGIONS_DATA[pb.targetRegionId]?.name || 'the coast'}` : pb.kind === 'field' ? `Battle in the field near ${REGIONS_DATA[pb.targetRegionId]?.name || 'the border'}` : `${pb.kind === 'defense' ? 'Defense' : 'Battle'} of ${REGIONS_DATA[pb.targetRegionId]?.name || 'the border'}`}
+      title={battleName(state, pb)}
       resume={resume}
       onCheckpoint={(cp) => saveBattleCheckpoint(pb.id, { ...cp, setupVersion: SETUP_VERSION, savedAt: Date.now() })}
       onFinish={finish}

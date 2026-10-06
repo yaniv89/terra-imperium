@@ -7,9 +7,9 @@ import { test, expect } from '@playwright/test';
 // See playability.spec.js: dispatchEvent avoids simulated pointer travel across the WebGL globe.
 const click = (locator) => locator.dispatchEvent('click');
 
-const startGame = async (page, nation = 'France') => {
-  await page.fill('input[placeholder="Search 240 nations..."]', nation);
-  const nationButtons = page.locator('section', { has: page.getByRole('heading', { name: 'Choose Your Nation' }) }).locator('button');
+const startGame = async (page, nation = 'Akkad') => {
+  await page.fill('input[aria-label="Search peoples"]', nation);
+  const nationButtons = page.locator('[data-people]');
   await click(nationButtons.first());
   await click(page.getByRole('button', { name: /^Begin as/ }));
   const skip = page.getByRole('button', { name: 'Skip' });

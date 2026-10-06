@@ -161,7 +161,7 @@ export const NationCard = ({ nation }) => {
       <div className="flex justify-between items-start mb-2">
         <div>
           <div className="font-semibold text-sm text-white flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nationData?.color }} />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: nation.color || nationData?.color }} />
             {nation.name}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">

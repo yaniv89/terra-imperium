@@ -11,6 +11,7 @@ import { Shield, Swords, Zap, ChevronDown, Undo2 } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { REGIONS_DATA } from '../../data/regions';
+import { battleName } from '../../engine/battleNames';
 import { estimateDefenseOdds, getDefenseArmies, getWithdrawalTarget } from '../../engine/defense';
 
 const pct = (v) => `${Math.round(v * 100)}%`;
@@ -30,7 +31,7 @@ const DefenseRow = ({ def, state, dispatch }) => {
   return (
     <div className="rounded-xl bg-slate-800/70 border border-slate-700 p-3 space-y-2" data-testid="defense-row">
       <div className="flex items-baseline justify-between gap-2">
-        <div className="font-semibold text-white">{REGIONS_DATA[def.regionId]?.name || def.regionId}</div>
+        <div className="font-semibold text-white">{region?.name ? battleName(state, { kind: 'defense', targetRegionId: def.regionId }) : REGIONS_DATA[def.regionId]?.name || def.regionId}</div>
         <div className="text-[11px] text-slate-400 shrink-0">control {region?.control ?? '?'}%</div>
       </div>
       <div className="text-[11px] text-slate-300 leading-snug">

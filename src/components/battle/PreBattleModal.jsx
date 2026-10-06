@@ -22,6 +22,7 @@ import { getTechAgeId } from '../../engine/nationState';
 import { ACTION_COSTS } from '../../data/actionCosts';
 import { estimateInvasionOdds, estimateLandingOdds, estimateFieldOdds, estimateFleetOdds } from '../../engine/battleOdds';
 import { scoutsEstimate } from './battleReportView';
+import { battleName } from '../../engine/battleNames';
 import { validateInvasion, validateAmphibious } from '../../engine/invasion';
 import { validateFieldAttack } from '../../engine/fieldBattle';
 import { validateFleetAttack } from '../../engine/navalBattle';
@@ -132,6 +133,7 @@ const PreBattleModal = ({ fromRegionId, targetRegionId = null, navalUnitId = nul
         <div className="flex items-start justify-between">
           <div>
             <div className="text-base font-bold text-white">{fleet ? `Attack the fleet at sea` : field ? `Attack the army near ${getTiles().names[tile] || REGIONS_DATA[origin]?.name || 'the field'}` : `${landing ? 'Land on' : 'Attack'} ${REGIONS_DATA[targetRegionId]?.name}`}</div>
+            <div className="text-xs font-semibold text-amber-200" data-testid="battle-name">{battleName(state, { kind: landing ? 'amphibious' : fleet ? 'naval' : field ? 'field' : 'invasion', targetRegionId, tile })}</div>
             <div className="text-xs text-slate-400">{fleet ? `your fleet beside it · ${enemyName}'s fleet` : <>{landing ? 'by sea from' : 'from'} {REGIONS_DATA[origin]?.name} · {field ? `${enemyName}'s army` : `held by ${enemyName}`}</>}</div>
           </div>
           <button type="button" onClick={onClose} className="p-2 -m-2 text-slate-400" aria-label="Close"><X className="w-5 h-5" /></button>
