@@ -168,7 +168,7 @@ const MapContainerInner = ({ selectedRegion, onSelectRegion: selectRegion }) => 
       {/* On a phone, Manage Region grows out of this same bottom sheet — keeping both mounted
           stacked a second sheet behind it that stayed visible (and kept covering the map) whenever
           Manage Region peeked during an animation. */}
-      {!(isMobile && manageOpen) && (
+      {!manageOpen && (
       <RegionInfoModal
         regionId={selectedRegion}
         onClose={() => { setManageOpen(false); onSelectRegion(null); }}

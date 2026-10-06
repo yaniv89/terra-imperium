@@ -78,7 +78,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   const { triggerEffect } = useEffects();
   const isMobile = useIsMobile();
   const isCornerCard = position === 'panel' || position === 'panel-hud';
-  const cornerTopClass = position === 'panel-hud' ? 'top-[calc(var(--header-height,4.5rem)+0.5rem)]' : 'top-2';
+  const cornerTopClass = position === 'panel-hud' ? 'top-[calc(var(--header-height,2.25rem)+0.5rem)]' : 'top-2';
   // Plan §5.1/§5.2: the mobile bottom sheet reports its height so the map centres things above it,
   // and shrinks to a peek while an invasion/settle animation fired from here plays.
   const sheetRef = useRef(null);
@@ -225,9 +225,9 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
   return (
     <div ref={mobileSheet ? sheetRef : undefined} className={
       mobileSheet
-        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl bg-fa-panel p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-xs border-t border-fa-line shadow-2xl`
-        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} left-2 z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
-           bg-fa-panel p-3 rounded-lg text-xs w-[300px] max-w-[calc(100vw-1rem)]
+        ? `fixed inset-x-0 bottom-0 z-30 ${peeking ? 'max-h-[18vh]' : expanded ? 'max-h-[calc(100dvh-var(--header-height,4.5rem)-0.5rem)]' : 'max-h-[55vh]'} transition-[max-height] duration-300 ease-out overflow-y-auto overscroll-contain rounded-t-2xl fa-sheet p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-[13px] border-t shadow-2xl`
+        : `${isCornerCard ? `absolute corner-card ${cornerTopClass} left-[calc(var(--city-rail-w,0px)+0.5rem)] pl:left-[max(env(safe-area-inset-left),0.5rem)] z-20 max-h-[calc(100dvh-var(--header-height,4.5rem)-1.5rem)] overflow-y-auto overscroll-contain` : 'relative'}
+           fa-sheet p-3 rounded-[10px] text-[13px] w-[310px] max-w-[calc(100vw-1rem)]
            border border-fa-line shadow-xl`
     }>
       {mobileSheet && (
@@ -246,16 +246,16 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {/* Header */}
       <div className="flex justify-between items-start border-b border-fa-line pb-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <MapPin className="w-4 h-4 text-fa-you shrink-0" />
+          <MapPin className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
           <div className="min-w-0">
-            <div className="font-bold text-fa-text truncate text-sm">{regionData.name}</div>
-            <div className="text-fa-muted text-[10px] capitalize flex flex-wrap gap-x-1.5">
+            <h2 className="fa-heading text-[17px] leading-tight truncate">{regionData.name}</h2>
+            <div className="text-fa-muted text-[12px] capitalize flex flex-wrap gap-x-1.5">
               <span>{regionData.terrain}</span>
               {coastal && <span>· Coastal</span>}
-              {regionData.isCapital && <span className="text-purple-400">· Capital</span>}
+              {regionData.isCapital && <span>· Capital</span>}
             </div>
             {regionState.size != null && (
-              <div className="text-fa-muted text-[10px] truncate">
+              <div className="text-fa-muted text-[12px] truncate">
                 Size {regionState.size} · {regionState.tiles?.length || 1} tile{(regionState.tiles?.length || 1) === 1 ? '' : 's'}
               </div>
             )}
@@ -264,7 +264,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
         <button
           onClick={onClose}
           aria-label="Close"
-          className="p-1 hover:bg-fa-hover rounded text-fa-muted hover:text-fa-text transition-colors shrink-0"
+          className="fa-icon-btn"
         >
           <X className="w-4 h-4" />
         </button>
@@ -284,10 +284,11 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {onManage && isPlayerOwned && (
         <button
           onClick={onManage}
-          className="w-full flex items-center justify-center gap-1.5 mb-2 py-1.5 rounded bg-blue-600/80 hover:bg-blue-500 text-fa-text text-xs font-semibold"
+          className="fa-btn fa-btn-primary w-full mb-2"
+          data-testid="open-city-sheet"
         >
-          <Settings2 className="w-3.5 h-3.5" />
-          Manage Region
+          <Settings2 className="w-4 h-4" aria-hidden="true" />
+          Open the city
         </button>
       )}
 
@@ -295,7 +296,7 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
       {(regionState.underInvasion || regionState.siege || regionState.occupiedBy || regionState.disaster || (revealed && rebelsHere.length > 0) || (isPlayerOwned && regionState.formerOwner)) && (
         <div className="mb-2 space-y-1">
           {regionState.disaster && (
-            <div className="rounded-lg border border-sky-400/50 bg-sky-500/10 p-2 text-[11px] text-sky-100" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : regionState.plague?.i > 0 ? `${Math.round(regionState.plague.i * 100)}% of the people sick, no growth; it spreads to nearby cities, ports, trade partners and armies` : 'no growth'}{regionState.plague?.i > 0 ? '' : ` until turn ${regionState.disaster.until}`}.</div>
+            <div className="rounded-lg border border-fa-science/60 bg-fa-raised p-2 text-[12px]" data-testid="disaster-note">{DISASTER_LABELS[regionState.disaster.kind] || regionState.disaster.kind}: {regionState.disaster.kind === 'flood' ? 'the fields yield less' : regionState.disaster.kind === 'fire' ? 'the workshops yield less' : regionState.plague?.i > 0 ? `${Math.round(regionState.plague.i * 100)}% of the people sick, no growth; it spreads to nearby cities, ports, trade partners and armies` : 'no growth'}{regionState.plague?.i > 0 ? '' : ` until turn ${regionState.disaster.until}`}.</div>
           )}
           {regionState.underInvasion && (
             <div className="flex items-center gap-1.5 text-fa-enemy font-semibold animate-pulse">
@@ -303,10 +304,10 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             </div>
           )}
           {regionState.siege && (
-            <div className="rounded-lg border border-orange-400/50 bg-orange-500/10 p-2 text-[11px] text-orange-100" data-testid="siege-note">
+            <div className="rounded-lg border border-fa-enemy/70 bg-fa-raised p-2 text-[12px]" data-testid="siege-note">
               <div className="font-semibold">{regionState.siege.by ? `Under siege by ${state.nations[regionState.siege.by]?.name || 'rebels'}` : 'Recovering from a siege'}{regionState.siege.encircled ? ', encircled' : ''}</div>
-              <div className="h-1.5 bg-fa-raised rounded-full mt-1 overflow-hidden"><div className="h-full bg-orange-400" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
-              <div className="text-orange-200/80 mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
+              <div className="h-1.5 bg-fa-line rounded-full mt-1 overflow-hidden"><div className="h-full bg-fa-enemy" style={{ width: `${Math.round(100 * regionState.siege.hp / Math.max(1, regionState.siege.maxHp))}%` }} /></div>
+              <div className="text-fa-muted mt-0.5">Walls {wallsOf(regionState)} · {regionState.siege.hp}/{regionState.siege.maxHp} HP · the city works its first ring only</div>
             </div>
           )}
           {regionState.owner && (() => {
@@ -316,17 +317,17 @@ const RegionInfoModal = ({ regionId, onClose, onManage, position = 'panel' }) =>
             const ruined = Object.keys(dmg.ruined).filter((id) => id.startsWith('house-')).length;
             const damaged = Object.keys(dmg.damaged).length;
             return (
-              <div className="text-[11px] text-fa-text" data-testid="city-battle-note">
+              <div className="text-[12px] text-fa-text" data-testid="city-battle-note">
                 In battle its houses shelter {cityHousingCap(state, regionId)} people (the town hall 20).
-                {ruined > 0 && <span className="text-amber-200"> {ruined} house{ruined > 1 ? 's' : ''} in ruins, rebuilt over the next turns.</span>}
-                {damaged > 0 && <span className="text-amber-200"> {damaged} damaged, repairing.</span>}
+                {ruined > 0 && <span className="text-fa-enemy"> {ruined} house{ruined > 1 ? 's' : ''} in ruins, rebuilt over the next turns.</span>}
+                {damaged > 0 && <span className="text-fa-enemy"> {damaged} damaged, repairing.</span>}
               </div>
             );
           })()}
           {regionState.occupiedBy === state.playerNationId && occupationWar && (
-            <div className="rounded-lg border border-cyan-400/50 bg-cyan-500/10 p-2 text-[11px] text-cyan-100 space-y-1.5" data-testid="occupation-note">
+            <div className="rounded-lg border border-fa-line bg-fa-raised p-2 text-[12px] space-y-1.5" data-testid="occupation-note">
               <div>Your army holds {regionData.name}, but it stays {ownerNation?.name || 'theirs'}&apos;s land until peace. Demand it in a peace deal to make it yours.</div>
-              <button type="button" onClick={() => setPeaceOpen(true)} className="w-full min-h-[40px] rounded-lg bg-cyan-600/80 border border-cyan-300 font-semibold text-fa-text" data-testid="open-peace-deal">Negotiate peace…</button>
+              <button type="button" onClick={() => setPeaceOpen(true)} className="fa-btn fa-btn-secondary w-full" data-testid="open-peace-deal">Negotiate peace…</button>
             </div>
           )}
           {regionState.occupiedBy && (
@@ -699,7 +700,7 @@ const StatTile = ({ icon: Icon, label, value, sub, valueClass = 'text-fa-text' }
   <div className="bg-fa-raised/60 rounded px-2 py-1.5 min-w-0">
     <div className="text-fa-muted text-[10px] flex items-center gap-1 truncate">{Icon && <Icon className="w-3 h-3 shrink-0" />}{label}</div>
     <div className={`font-mono font-bold ${valueClass}`}>{value}</div>
-    {sub && <div className="text-fa-muted text-[10px] truncate">{sub}</div>}
+    {sub && <div className="text-fa-muted text-[12px] truncate">{sub}</div>}
   </div>
 );
 

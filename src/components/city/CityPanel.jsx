@@ -28,6 +28,7 @@ import { NAVAL_LINES, navalLinesFor } from '../../data/navalLines';
 import { wonderOptions, wonderItem } from '../../engine/wonders';
 import { GREAT_PROJECTS, cityWonderTotal } from '../../data/greatProjects';
 import { BuildingIcon, UnitIcon, WonderIcon, ImprovementIcon, ResourceIcon } from '../ui/icons';
+import { Meter, Stat } from '../ui/atlas';
 
 const FOCUS_LABEL = { balanced: 'Balanced', food: 'Food', production: 'Production', gold: 'Gold' };
 
@@ -159,18 +160,18 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         </div>
         <ul className="space-y-1">
           {tileRows.map(({ tile, facts, y, worked, locked, centre }) => (
-            <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-emerald-900/30 border border-emerald-700/40' : 'bg-fa-raised/60 border border-fa-line/60'}`}>
+            <li key={tile} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs ${worked ? 'bg-fa-raised border border-fa-good/50' : 'bg-transparent border border-fa-line'}`}>
               <div className="min-w-0 flex-1">
                 <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{centre ? `${city.name} (centre)` : describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''}{facts.improvement ? ` · ${IMPROVEMENTS[facts.improvement]?.name || facts.improvement}${facts.pillaged ? ' (pillaged)' : ''}` : ''}{facts.district ? ` · ${DISTRICTS[facts.district]?.name || facts.district}${facts.pillaged ? ' (pillaged)' : ''}` : ''}</div>
                 <div className="text-fa-muted flex gap-2">
                   <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
-                  <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />
-                  <Yield icon={Coins} value={y.gold} title="Gold" className="text-yellow-300" />
+                  <Yield icon={Hammer} value={y.production} title="Production" className="text-fa-text" />
+                  <Yield icon={Coins} value={y.gold} title="Gold" className="text-fa-brass" />
                   {worked && !centre && <span className="text-fa-good">worked</span>}
                 </div>
               </div>
               {mine && !centre && (
-                <button type="button" onClick={() => dispatch({ type: ActionTypes.TOGGLE_TILE_LOCK, payload: { cityId, tile } })} className={`p-2 rounded-lg min-w-[40px] min-h-[40px] ${locked ? 'bg-blue-600/70 text-fa-text' : 'bg-fa-hover/60 text-fa-text'}`} aria-label={locked ? 'Unlock tile' : 'Lock tile'} title={locked ? 'Unlock: let the city choose' : 'Lock: always work this tile'}>
+                <button type="button" onClick={() => dispatch({ type: ActionTypes.TOGGLE_TILE_LOCK, payload: { cityId, tile } })} className={`fa-icon-btn ${locked ? 'fa-selected' : ''}`} aria-label={locked ? 'Unlock tile' : 'Lock tile'} title={locked ? 'Unlock: let the city choose' : 'Lock: always work this tile'}>
                   {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                 </button>
               )}
@@ -187,16 +188,16 @@ const CityPanel = ({ cityId, view = 'city' }) => {
                 const cost = buyTileCost(city, c);
                 const can = (state.resources.gold || 0) >= cost;
                 return (
-                  <li key={c.tile} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-fa-raised/60 border border-fa-line/60">
+                  <li key={c.tile} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs fa-card">
                     <div className="min-w-0 flex-1">
                       <div className="text-fa-text truncate capitalize"><TileMarks facts={facts} />{describeTile(facts)}{facts.resource ? ` · ${facts.resource}` : ''} <span className="text-fa-muted">ring {c.ring}</span></div>
                       <div className="text-fa-muted flex gap-2">
                         <Yield icon={Wheat} value={y.food} title="Food" className="text-fa-good" />
-                        <Yield icon={Hammer} value={y.production} title="Production" className="text-amber-300" />
-                        <Yield icon={Coins} value={y.gold} title="Gold" className="text-yellow-300" />
+                        <Yield icon={Hammer} value={y.production} title="Production" className="text-fa-text" />
+                        <Yield icon={Coins} value={y.gold} title="Gold" className="text-fa-brass" />
                       </div>
                     </div>
-                    <button type="button" disabled={!can} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: c.tile } })} className="px-3 min-h-[40px] rounded-lg bg-yellow-600/70 text-fa-text font-semibold disabled:opacity-40" data-testid="buy-tile">
+                    <button type="button" disabled={!can} onClick={() => dispatch({ type: ActionTypes.BUY_TILE, payload: { cityId, tile: c.tile } })} className="fa-btn fa-btn-secondary fa-num disabled:opacity-40" data-testid="buy-tile">
                       {cost}g
                     </button>
                   </li>
@@ -209,62 +210,96 @@ const CityPanel = ({ cityId, view = 'city' }) => {
     );
   }
 
-  return (
-    <div className="space-y-3" data-testid="city-sheet">
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="bg-fa-raised/60 rounded-lg p-2">
+  // W05 (plans/UI-DESIGN.md): the Overview tab is the city at a glance (yields, size and housing,
+  // what it builds with its bar, the damage alert, the buildings); Build holds the queue and the
+  // build lists. `view="city"` (older callers) shows both.
+  const current = queue[0] || null;
+  const currentCost = current ? productionCost(current, costCtx) : 0;
+  const currentTurns = current ? turnsFor(current, city.production.progress) : null;
+  const built = Object.entries(city.buildings?.categories || {}).filter(([, tier]) => tier >= 0)
+    .map(([category, tier]) => ({ id: category, name: BUILDING_CATEGORIES[category]?.tiers[tier]?.name || category }));
+  const wondersHere = Object.entries(state.greatProjects || {}).filter(([, e]) => e?.regionId === cityId).map(([id]) => ({ id, name: GREAT_PROJECTS[id]?.name || id }));
+  const showOverview = view === 'overview' || view === 'city';
+  const showBuild = view === 'build' || view === 'city';
+
+  const overview = (
+    <>
+      <div className="grid grid-cols-4 gap-1.5" data-testid="city-yields">
+        <Stat value={`${yields.food >= 0 ? '+' : ''}${yields.food}`} label="Food" color="var(--fa-good)" title={`Food surplus after ${city.size * 2} eaten; ${Math.round(city.food)}/${threshold} banked`} />
+        <Stat value={`+${yields.production}`} label="Production" title="Production a turn" />
+        <Stat value={`+${yields.gold}`} label="Gold" color="var(--fa-brass)" title="Gold a turn" />
+        <Stat value={`+${yields.science}`} label="Science" color="var(--fa-science)" title={`Science a turn; culture +${yields.culture}`} />
+      </div>
+      <div className="grid grid-cols-3 gap-1.5 text-[12px]">
+        <div className="fa-card px-2 py-1.5">
           <div className="text-fa-muted">Size</div>
-          <div className="text-fa-text font-semibold text-base">{city.size}</div>
-          <div className="text-fa-muted text-[10px]">{growthTurns == null ? (yields.food < 0 ? 'starving' : 'not growing') : `grows in ${growthTurns} turn${growthTurns === 1 ? '' : 's'}`}</div>
+          <div className="fa-num text-[15px] font-semibold">{city.size}</div>
+          <div className="text-fa-muted text-[11px] leading-tight">{growthTurns == null ? (yields.food < 0 ? 'starving' : 'not growing') : `grows in ${growthTurns} turn${growthTurns === 1 ? '' : 's'}`}</div>
         </div>
-        <div className="bg-fa-raised/60 rounded-lg p-2">
-          <div className="text-fa-muted flex items-center gap-1"><Home className="w-3 h-3" />Housing</div>
-          <div className={`font-semibold text-base ${city.size >= housing ? 'text-amber-300' : 'text-fa-text'}`}>{city.size}/{housing}</div>
-          <div className="text-fa-muted text-[10px]">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
+        <div className="fa-card px-2 py-1.5">
+          <div className="text-fa-muted flex items-center gap-1"><Home className="w-3 h-3" aria-hidden="true" />Housing</div>
+          <div className={`fa-num text-[15px] font-semibold ${city.size >= housing ? 'text-fa-enemy' : ''}`}>{city.size}/{housing}</div>
+          <div className="text-fa-muted text-[11px] leading-tight">{growthSpeed <= 0 ? 'full: no growth' : growthSpeed < 0.95 ? `growth at ${Math.round(growthSpeed * 100)}%` : 'room to grow'}{city.marketHousing ? ` · market +${city.marketHousing}` : ''}</div>
         </div>
-        <div className="bg-fa-raised/60 rounded-lg p-2">
-          <div className="text-fa-muted flex items-center gap-1"><Smile className="w-3 h-3" />Amenities</div>
-          <div className={`font-semibold text-base ${amen.net < 0 ? 'text-fa-danger-text' : amen.net >= 2 ? 'text-fa-good' : 'text-fa-text'}`}>{amen.supply}/{amen.need}</div>
-          <div className="text-fa-muted text-[10px]">{amen.net < 0 ? 'short: unrest rises' : amen.net >= 2 ? 'content: faster growth' : 'enough'}</div>
+        <div className="fa-card px-2 py-1.5">
+          <div className="text-fa-muted flex items-center gap-1"><Smile className="w-3 h-3" aria-hidden="true" />Amenities</div>
+          <div className={`fa-num text-[15px] font-semibold ${amen.net < 0 ? 'text-fa-danger-text' : amen.net >= 2 ? 'text-fa-good' : ''}`}>{amen.supply}/{amen.need}</div>
+          <div className="text-fa-muted text-[11px] leading-tight">{amen.net < 0 ? 'short: unrest rises' : amen.net >= 2 ? 'content: faster growth' : 'enough'}</div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-xs bg-fa-raised/40 rounded-lg p-2" data-testid="city-yields">
-        <Yield icon={Wheat} value={`${yields.food >= 0 ? '+' : ''}${yields.food} food`} title={`Food surplus after ${city.size * 2} eaten; ${Math.round(city.food)}/${threshold} banked`} className="text-fa-good" />
-        <Yield icon={Hammer} value={`${yields.production} production`} title="Production a turn" className="text-amber-300" />
-        <Yield icon={Coins} value={`${yields.gold} gold`} title="Gold a turn" className="text-yellow-300" />
-        <span className="text-fa-you">{yields.science} science</span>
-        <span className="text-fuchsia-300">{yields.culture} culture</span>
+      <div className="fa-card p-2.5" data-testid="city-building-now">
+        <div className="flex items-center justify-between gap-2">
+          <span className="fa-label">Building now</span>
+          {current && <span className="fa-num text-[13px] font-semibold">{currentTurns} turn{currentTurns === 1 ? '' : 's'}</span>}
+        </div>
+        {current ? (
+          <>
+            <div className="text-[15px] font-semibold mt-0.5 truncate">{itemLabel(current, tiles, ageId)}</div>
+            <Meter value={city.production.progress} max={Math.max(1, currentCost)} color="#CDB27A" className="mt-1.5" label={`${itemLabel(current, tiles, ageId)}: ${Math.round(city.production.progress)} of ${currentCost}`} />
+            {queue.length > 1 && <div className="text-[12px] text-fa-muted mt-1 truncate">Then: {queue.slice(1).map((q) => itemLabel(q, tiles, ageId)).join(', ')}</div>}
+          </>
+        ) : <div className="text-[13px] text-fa-muted mt-0.5">Nothing in production. Open Build to choose.</div>}
       </div>
       {mine && (
-        <div className="flex items-center gap-1 text-xs">
-          <span className="text-fa-muted mr-1">Focus</span>
+        <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+          <span className="fa-label mr-1">Focus</span>
           {FOCUS.map((f) => (
-            <button key={f} type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: f } })} className={`px-2 min-h-[36px] rounded-lg border ${city.focus === f ? 'bg-blue-600/70 border-blue-400 text-fa-text' : 'bg-fa-raised/60 border-fa-line text-fa-text'}`}>
+            <button key={f} type="button" onClick={() => dispatch({ type: ActionTypes.SET_CITY_FOCUS, payload: { cityId, focus: f } })} aria-pressed={city.focus === f} className="fa-chip">
               {FOCUS_LABEL[f]}
             </button>
           ))}
         </div>
       )}
+      {(built.length > 0 || wondersHere.length > 0) && (
+        <div className="flex flex-wrap gap-1.5" data-testid="city-built">
+          {built.map((b) => <span key={b.id} className="fa-chip">{b.name}</span>)}
+          {wondersHere.map((w) => <span key={w.id} className="fa-chip" title="A wonder">{w.name}</span>)}
+        </div>
+      )}
+    </>
+  );
 
+  const build = (
+    <>
       <div>
-        <div className="text-[11px] font-semibold text-fa-text mb-1">Building now</div>
+        <div className="fa-label mb-1">Queue</div>
         {queue.length === 0 ? (
-          <div className="text-xs text-fa-muted rounded-lg border border-dashed border-fa-line p-3">Nothing in production. Pick something below.</div>
+          <div className="text-[13px] text-fa-muted rounded-lg border border-dashed border-fa-line p-3">Nothing in production. Pick something below.</div>
         ) : (
           <ol className="space-y-1" data-testid="city-queue">
             {queue.map((item, i) => {
               const cost = productionCost(item, costCtx);
               const progress = i === 0 ? city.production.progress : 0;
               return (
-                <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs bg-fa-raised/60 border border-fa-line/60">
+                <li key={`${JSON.stringify(item)}-${i}`} className="flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-[13px] fa-card">
                   <ItemIcon item={item} ageId={ageId} />
                   <div className="min-w-0 flex-1">
-                    <div className="text-fa-text truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
-                    <div className="text-fa-muted">{i === 0 ? `${Math.round(progress)}/${cost} · ` : `${cost} · `}{turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
-                    {i === 0 && <div className="h-1 rounded bg-fa-hover mt-1"><div className="h-1 rounded bg-amber-400" style={{ width: `${Math.min(100, (progress / Math.max(1, cost)) * 100)}%` }} /></div>}
+                    <div className="truncate">{i === 0 ? '' : `${i + 1}. `}{itemLabel(item, tiles, ageId)}</div>
+                    <div className="text-fa-muted text-[12px]"><span className="fa-num">{i === 0 ? `${Math.round(progress)}/${cost}` : cost}</span> · {turnsFor(item, progress)} turn{turnsFor(item, progress) === 1 ? '' : 's'}</div>
+                    {i === 0 && <Meter value={progress} max={Math.max(1, cost)} color="#CDB27A" height={4} className="mt-1" />}
                   </div>
                   {mine && (
-                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: i } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-fa-hover/60 text-fa-text" aria-label="Remove from queue">
+                    <button type="button" onClick={() => dispatch({ type: ActionTypes.DEQUEUE_PRODUCTION, payload: { cityId, index: i } })} className="fa-icon-btn" aria-label="Remove from queue">
                       <X className="w-4 h-4" />
                     </button>
                   )}
@@ -280,19 +315,19 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         if (!rows.length) return null;
         return (
           <div key={group}>
-            <div className="text-[11px] font-semibold text-fa-text mb-1">{group}</div>
+            <div className="fa-label mb-1">{group}</div>
             <ul className="space-y-1">
               {rows.map((o) => {
                 const cost = productionCost(o.item, costCtx);
                 return (
-                  <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-xs border ${o.ok ? 'bg-fa-raised/60 border-fa-line/60' : 'bg-fa-panel/60 border-fa-line opacity-70'}`}>
+                  <li key={JSON.stringify(o.item)} className={`flex items-center gap-2 rounded-lg px-2 min-h-[44px] text-[13px] border ${o.ok ? 'bg-fa-raised border-fa-line' : 'bg-transparent border-fa-line/60 opacity-80'}`}>
                     <ItemIcon item={o.item} ageId={ageId} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-fa-text truncate">{itemLabel(o.item, tiles, ageId)}</div>
-                      {o.item.kind === 'wonder' && <div className="text-fa-muted text-[10px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
-                      <div className="text-fa-muted">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
+                      <div className="truncate">{itemLabel(o.item, tiles, ageId)}</div>
+                      {o.item.kind === 'wonder' && <div className="text-fa-muted text-[11px] leading-snug" data-testid="wonder-description">{GREAT_PROJECTS[o.item.projectId]?.description}</div>}
+                      <div className="text-fa-muted text-[12px]">{o.ok ? `${cost} production · ${turnsFor(o.item)} turn${turnsFor(o.item) === 1 ? '' : 's'}` : o.needsName ? <>Needs {o.needsName} <button type="button" onClick={() => dispatch({ type: ActionTypes.QUEUE_RESEARCH, payload: { techId: o.needsTech } })} className="underline text-fa-you min-h-[24px]" data-testid="research-for-item">Research it</button></> : o.reason}</div>
                     </div>
-                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="p-2 rounded-lg min-w-[40px] min-h-[40px] bg-emerald-700/70 text-fa-text disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
+                    <button type="button" disabled={!o.ok} onClick={() => dispatch({ type: ActionTypes.QUEUE_PRODUCTION, payload: { cityId, item: o.item } })} className="fa-icon-btn disabled:opacity-40" aria-label={`Build ${itemLabel(o.item, tiles, ageId)}`} data-testid="queue-item">
                       {queue.length ? <Plus className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
                     </button>
                   </li>
@@ -303,6 +338,13 @@ const CityPanel = ({ cityId, view = 'city' }) => {
         );
       })}
       {mine && <ArmyTemplateEditor state={state} dispatch={dispatch} ageId={ageId} />}
+    </>
+  );
+
+  return (
+    <div className="space-y-3" data-testid="city-sheet">
+      {showOverview && overview}
+      {showBuild && build}
     </div>
   );
 };

@@ -119,6 +119,19 @@ const SCREENS = {
     await shot(page, 'W04-settle-blocked', vp);
     await pickTile(5);
     await shot(page, 'W04-settle-site', vp);
+  },
+  W05: async (page, vp) => {
+    await startGame(page);
+    // a build under way and the damage of a past battle (3 houses ruined, the town hall damaged)
+    await patchState(page, `
+      const me = s.playerNationId; const cap = s.nations[me].capitalRegionId; const c = s.regions[cap];
+      return { ...s, regions: { ...s.regions, [cap]: { ...c, production: { ...c.production, current: { kind: 'building', category: 'defense', tier: 0 }, queue: [{ kind: 'unit', classId: 'infantry' }], progress: 20 }, cityDamage: { ruined: { 'house-0': 5, 'house-1': 7, 'house-2': 9 }, damaged: { townhall: 2 } } } } };`);
+    await page.evaluate(() => { const s = window.__game.state; window.dispatchEvent(new CustomEvent('ti:select-region', { detail: s.nations[s.playerNationId].capitalRegionId })); });
+    await click(page.getByTestId('open-city-sheet'));
+    await page.getByTestId('city-sheet-panel').waitFor({ timeout: 10000 });
+    await shot(page, 'W05-city', vp);
+    await click(page.getByTestId('city-tab-defense'));
+    await shot(page, 'W05-city-defense', vp);
   }
 };
 

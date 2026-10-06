@@ -181,7 +181,7 @@ body {
     justify-content: center;
     gap: 0.375rem;
     min-height: 44px;
-    padding: 0 0.75rem;
+    padding: 0 0.55rem;
     font-size: 13px;
     font-weight: 600;
     color: var(--fa-muted);
