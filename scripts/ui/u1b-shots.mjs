@@ -97,6 +97,28 @@ const REPORTS = `
 `;
 
 const SCREENS = {
+  W13: async (page, vp) => {
+    await startGame(page);
+    await patch(page, `${WAR_SETUP}
+      const r = m.addCity(s, window.__u1b.foe, { near: window.__u1b.capId });
+      s = r.state; window.__u1b.target = r.cityId;
+      const w = s.wars.at(-1);
+      s = { ...s, wars: [...s.wars.slice(0, -1), { ...w, aggressor: s.playerNationId, enemy: window.__u1b.foe, battleScore: 26, score: 76 }],
+        regions: { ...s.regions, [r.cityId]: { ...s.regions[r.cityId], occupiedBy: s.playerNationId } },
+        nations: { ...s.nations, [s.playerNationId]: { ...s.nations[s.playerNationId], warExhaustion: 35 }, [window.__u1b.foe]: { ...s.nations[window.__u1b.foe], warExhaustion: 65 } } };
+      return s;`, ['engine/testWorld.js']);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ti:select-region', { detail: window.__u1b.target })));
+    await click(page.getByTestId('open-peace-deal'));
+    await page.getByTestId('peace-deal').waitFor({ timeout: 15000 });
+    await shot(page, 'W13-peace-deal', vp);
+    await click(page.getByTestId('peace-term-other').first());
+    await shot(page, 'W13-peace-deal-demand', vp);
+    await click(page.getByRole('button', { name: 'Close' }).last());
+    await patch(page, `const w = s.wars.find((x) => x.id === 'war_u1b');
+      return { ...s, pendingPeaceOffer: { warId: w.id, from: window.__u1b.foe, terms: [{ type: 'gold', amount: 150 }, { type: 'humiliate' }] } };`);
+    await page.getByTestId('peace-offer-sheet').waitFor({ timeout: 15000 });
+    await shot(page, 'W13-peace-offer', vp);
+  },
   W16: async (page, vp) => {
     await startGame(page);
     await patch(page, `${WAR_SETUP} return s;`);

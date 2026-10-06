@@ -1,112 +1,131 @@
 // src/components/battle/PeaceDealSheet.jsx
-// Negotiate a peace with real terms (plan §M13's OFFER_PEACE). Land you win in battle is already
-// yours (src/engine/conquest.js); the table is for what battle didn't settle: land they took from
-// you in this war (demand it back), anything your army merely occupies (older saves), gold,
-// reparations, humiliation. Pre-selected as far as the enemy would accept; their acceptance is shown
-// live, line by line, from the same ledger the engine decides with (getPeaceAcceptance).
+// W13 Peace deal (plans/UI-DESIGN.md; plan M13's OFFER_PEACE). Land you win in battle is already
+// yours (src/engine/conquest.js); the table is for what battle did not settle. Three columns:
+//   left    the war score from your side and its parts, both sides' war exhaustion, and why they
+//           would give what they give (the acceptance ledger, line by line)
+//   middle  your demands, tap to add or remove; each says live whether they accept it or how much
+//           you are short; the total demanded against what they give, and the verdict
+//   right   their counter-offer (the most they would give, "Load into my offer"), a white peace,
+//           and the one brass button: Send offer
+// Everything comes from peaceDealModel.js, over the engine's own ledger (getPeaceAcceptance).
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HeartHandshake as Handshake, X, Check } from 'lucide-react';
+import { HeartHandshake, Check } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
-import { REGIONS_DATA } from '../../data/regions';
-import { getPeaceAcceptance, getTermCost } from '../../engine/peace';
+import { Button, CloseButton, Label, Meter } from '../ui/atlas';
+import { peaceDealModel, bestDeal } from './peaceDealModel';
 
-const GOLD_OPTIONS = [0, 500, 1500, 3000];
+const signed = (v) => `${v > 0 ? '+' : ''}${v}`;
+const toneOf = (v) => (v > 0 ? 'text-fa-good' : v < 0 ? 'text-fa-danger-text' : 'text-fa-muted');
 
 const PeaceDealSheet = ({ warId, onClose }) => {
   const { state, dispatch } = useGame();
   const war = state.wars.find((w) => w.id === warId && w.active);
-  const me = state.playerNationId;
-  const enemyId = war ? (war.aggressor === me ? war.enemy : war.aggressor) : null;
-  const enemy = state.nations[enemyId];
-
-  // Their land your army holds, or land they conquered from you in this war — cheapest first.
-  const occupied = useMemo(() => (war ? Object.values(state.regions)
-    .filter((r) => r.owner === enemyId && (r.occupiedBy === me || (r.conquest?.warId === war.id && r.conquest.from === me)))
-    .map((r) => ({ id: r.id, name: REGIONS_DATA[r.id]?.name || r.id, cost: getTermCost(state, war, me, { type: 'cede', regionId: r.id }) }))
-    .sort((a, b) => a.cost - b.cost) : []), [state, war, enemyId, me]);
-
-  // Start with as much of the occupied land as they'd accept right now.
-  const [ceded, setCeded] = useState(() => {
+  // Start with the land they would give right now (cheapest first).
+  const [selected, setSelected] = useState(() => {
     if (!war) return new Set();
-    const budget = getPeaceAcceptance(state, war, me, []).total;
-    const picked = new Set(); let spent = 0;
-    occupied.forEach((r) => { if (spent + r.cost <= budget) { picked.add(r.id); spent += r.cost; } });
-    return picked;
+    const best = bestDeal(state, war);
+    return new Set(best.keys.filter((k) => k.startsWith('cede:')));
   });
-  const [gold, setGold] = useState(0);
-  const [reparations, setReparations] = useState(false);
-  const [humiliate, setHumiliate] = useState(false);
+  const m = useMemo(() => peaceDealModel(state, warId, selected), [state, warId, selected]);
+  if (!m) return null;
 
-  if (!war || !enemy) return null;
-  const terms = [
-    ...[...ceded].map((regionId) => ({ type: 'cede', regionId })),
-    ...(gold ? [{ type: 'gold', amount: gold }] : []),
-    ...(reparations ? [{ type: 'reparations' }] : []),
-    ...(humiliate ? [{ type: 'humiliate' }] : [])
-  ];
-  const acceptance = getPeaceAcceptance(state, war, me, terms);
-  const toggle = (id) => setCeded((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-  const offer = () => { dispatch({ type: ActionTypes.OFFER_PEACE, payload: { warId, terms } }); onClose(); };
-  const pct = Math.max(0, Math.min(100, acceptance.cost > 0 ? (acceptance.total / acceptance.cost) * 100 : 100));
+  const toggle = (row) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(row.key)) next.delete(row.key);
+    else {
+      // one gold sum at a time
+      if (row.group === 'gold') [...next].filter((k) => k.startsWith('gold:')).forEach((k) => next.delete(k));
+      next.add(row.key);
+    }
+    return next;
+  });
+  const send = (terms) => { dispatch({ type: ActionTypes.OFFER_PEACE, payload: { warId, terms } }); onClose(); };
+  const scoreShare = Math.max(0, Math.min(1, (m.score + 100) / 200));
 
   // Portalled to <body>: opened from inside the side panel, whose transformed container would
-  // otherwise trap this "fixed" sheet under the mobile tab bar.
+  // otherwise trap this "fixed" sheet under the tab bar.
   return createPortal((
-    <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center sheet-backdrop" onClick={onClose} data-testid="peace-deal">
-      <div onClick={(e) => e.stopPropagation()} className="sheet-panel w-full sm:max-w-md max-h-[88vh] flex flex-col bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-2xl text-slate-200 shadow-2xl">
-        <div className="p-4 pb-2 flex items-start justify-between">
-          <div>
-            <div className="text-base font-bold text-white flex items-center gap-2"><Handshake className="w-5 h-5 text-emerald-400" /> Peace with {enemy.name}</div>
-            <div className="text-xs text-slate-400">What you conquer in battle is already yours — here you can demand back what they took.</div>
+    <div className="fixed inset-0 z-[70] bg-black/55 flex items-end sm:items-center justify-center" onClick={onClose} data-testid="peace-deal">
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="peace-title"
+        className="fa-panel !bg-fa-panel shadow-2xl w-full sm:w-[min(58rem,calc(100vw-1rem))] max-h-[94dvh] sm:max-h-[calc(100dvh-1rem)] flex flex-col rounded-b-none sm:rounded-[10px]">
+        <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 border-b border-fa-line">
+          <HeartHandshake className="w-5 h-5 text-fa-muted shrink-0" aria-hidden="true" />
+          <div className="min-w-0 flex-1 flex items-baseline gap-x-3 flex-wrap">
+            <h2 id="peace-title" className="fa-heading text-[19px] pl:text-[17px] leading-tight truncate">Peace with {m.enemy.replace(/^The /, 'the ')}</h2>
+            <span className="text-[12px] text-fa-muted">{m.since}</span>
           </div>
-          <button type="button" onClick={onClose} className="p-2 -m-2 text-slate-400" aria-label="Close"><X className="w-5 h-5" /></button>
+          <CloseButton onClick={onClose} />
         </div>
 
-        <div className="px-4 space-y-3 overflow-y-auto">
-          <div>
-            <div className="text-xs font-semibold text-slate-300 mb-1">Territory to demand ({occupied.length})</div>
-            {occupied.length === 0 && <div className="text-[11px] text-slate-500">Nothing to demand — they hold none of your land, and anything you win in battle is yours already.</div>}
-            <div className="space-y-1">
-              {occupied.map((r) => (
-                <button key={r.id} type="button" onClick={() => toggle(r.id)} className={`w-full min-h-[40px] px-3 rounded-lg border flex items-center justify-between text-sm ${ceded.has(r.id) ? 'bg-cyan-500/15 border-cyan-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`} data-testid="peace-cede">
-                  <span className="flex items-center gap-2">{ceded.has(r.id) ? <Check className="w-4 h-4 text-cyan-300" /> : <span className="w-4" />}{r.name}</span>
-                  <span className="text-[11px] text-slate-400">cost {r.cost}</span>
+        <div className="flex-1 min-h-0 overflow-y-auto sm:overflow-hidden p-2 grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.45fr)_minmax(0,0.95fr)] sm:grid-rows-[minmax(0,1fr)]">
+          <div className="space-y-2 min-w-0 sm:overflow-y-auto">
+            <div className="fa-card px-2.5 py-1.5" data-testid="peace-score">
+              <div className="flex items-baseline justify-between"><Label>War score</Label><span className={`fa-num text-[17px] font-semibold ${m.score >= 0 ? 'text-fa-brass' : 'text-fa-danger-text'}`}>{signed(m.score)}</span></div>
+              <div className="relative h-2 mt-1 rounded-full bg-fa-ink border border-fa-line overflow-hidden">
+                <span className="absolute inset-y-0" style={{ left: m.score >= 0 ? '50%' : `${scoreShare * 100}%`, width: `${Math.abs(scoreShare - 0.5) * 100}%`, background: m.score >= 0 ? 'var(--fa-you)' : 'var(--fa-enemy)' }} />
+                <span className="absolute inset-y-[-2px] left-1/2 w-px bg-fa-text/70" />
+              </div>
+              <div className="flex justify-between text-[10px] text-fa-muted"><span className="truncate">{m.enemy.replace(/^The /, '')}</span><span className="truncate">{m.me.replace(/^The /, '')}</span></div>
+              {m.scoreParts.map((p) => <div key={p.id} className="flex justify-between text-[12px]"><span>{p.label}</span><span className={`fa-num ${toneOf(p.value)}`}>{signed(p.value)}</span></div>)}
+            </div>
+            <div className="fa-card px-2.5 py-1.5">
+              <Label>War exhaustion</Label>
+              {[['You', m.exhaustion.mine, 'var(--fa-you)'], [m.enemy.replace(/^The /, ''), m.exhaustion.theirs, 'var(--fa-enemy)']].map(([who, v, c]) => (
+                <div key={who} className="grid grid-cols-[4.5rem_1fr_auto] items-center gap-2 text-[12px] mt-0.5">
+                  <span className="truncate">{who}</span><Meter value={v} max={m.exhaustion.max} color={c} /><span className="fa-num">{v}</span>
+                </div>
+              ))}
+              <div className="text-[11px] text-fa-muted mt-1 leading-snug" data-testid="peace-ledger">They give up to <b className="fa-num text-fa-text">{m.willingness}</b>: {m.ledger.map((l) => `${l.label.toLowerCase()} ${signed(l.value)}`).join(', ') || 'nothing to weigh yet'}.</div>
+            </div>
+          </div>
+
+          <div className="min-w-0 flex flex-col min-h-0">
+            <div className="flex justify-between items-baseline px-0.5"><Label>Your demands</Label><span className="text-[11px] text-fa-muted">tap to add or remove</span></div>
+            <div className="flex-1 min-h-0 sm:overflow-y-auto space-y-1.5 mt-1">
+              {m.rows.length === 0 && <div className="text-[12px] text-fa-muted">Nothing to demand: they hold none of your land, and what you win in battle is yours already.</div>}
+              {m.rows.map((r) => (
+                <button key={r.key} type="button" aria-pressed={r.on} onClick={() => toggle(r)} data-testid={r.group === 'land' ? 'peace-cede' : `peace-term-${r.group}`}
+                  className={`w-full text-left fa-option px-2 py-1 min-h-[44px] flex items-center gap-2 ${r.on ? 'fa-selected' : ''}`}>
+                  <span className={`w-5 h-5 rounded border shrink-0 grid place-items-center ${r.on ? 'bg-fa-text border-fa-text' : 'border-fa-line'}`}>{r.on && <Check className="w-3.5 h-3.5 text-fa-ink" aria-hidden="true" />}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex justify-between gap-2"><span className="text-[13px] font-semibold truncate">{r.label}</span><span className="fa-num text-[12px] shrink-0">{r.cost} score</span></span>
+                    <span className="flex justify-between gap-2 text-[11px]"><span className="text-fa-muted truncate">{r.detail}</span><span className={`shrink-0 ${r.ok ? 'text-fa-good' : 'text-fa-danger-text'}`}>{r.status}</span></span>
+                  </span>
                 </button>
               ))}
             </div>
-          </div>
-
-          <div>
-            <div className="text-xs font-semibold text-slate-300 mb-1">Gold</div>
-            <div className="grid grid-cols-4 gap-1">
-              {GOLD_OPTIONS.map((g) => (
-                <button key={g} type="button" onClick={() => setGold(g)} className={`min-h-[36px] rounded-lg border text-xs ${gold === g ? 'bg-amber-500/15 border-amber-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>{g ? `${g}g` : 'None'}</button>
-              ))}
+            <div className="fa-card px-2.5 py-1.5 mt-1.5" data-testid="peace-demanded">
+              <div className="flex justify-between items-baseline text-[12px]">
+                <span><span className="fa-label">Demanded</span> <b className="fa-num">{m.demanded}</b> <span className="text-fa-muted">of</span> <b className="fa-num">{m.willingness}</b></span>
+                <span className={`font-semibold ${m.accepted ? 'text-fa-good' : 'text-fa-danger-text'}`} data-testid="peace-verdict">{m.accepted ? 'They would accept' : 'They would refuse'}</span>
+              </div>
+              <Meter className="mt-1" value={Math.min(m.demanded, Math.max(0, m.willingness))} max={Math.max(1, m.willingness, m.demanded)} color={m.accepted ? 'var(--fa-good)' : 'var(--fa-danger)'} />
+              <div className="text-[11px] text-fa-muted mt-0.5">{m.accepted ? `Within what they give. Any peace starts a ${m.truceTurns} turn truce.` : `${m.short} more than they give: drop a demand.`}</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-1">
-            <button type="button" onClick={() => setReparations((v) => !v)} className={`min-h-[40px] rounded-lg border text-xs ${reparations ? 'bg-amber-500/15 border-amber-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>War reparations</button>
-            <button type="button" onClick={() => setHumiliate((v) => !v)} className={`min-h-[40px] rounded-lg border text-xs ${humiliate ? 'bg-amber-500/15 border-amber-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>Humiliate</button>
-          </div>
-
-          <div className="rounded-lg bg-slate-800/70 p-3 space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Their willingness vs your demands</span>
-              <span className={`font-semibold ${acceptance.accepted ? 'text-emerald-400' : 'text-red-400'}`} data-testid="peace-verdict">{acceptance.accepted ? 'They would accept' : 'They would refuse'}</span>
+          <div className="min-w-0 min-h-0 flex flex-col gap-2">
+            <div className="flex-1 min-h-0 sm:overflow-y-auto space-y-2">
+            {m.counter && (
+              <div className="rounded-[10px] border border-fa-enemy px-2.5 py-1.5 bg-fa-ink/50" data-testid="peace-counter">
+                <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-fa-enemy">The most they give</div>
+                <div className="text-[12.5px] leading-snug mt-0.5">{m.counter.text}</div>
+                <div className="fa-num text-[11px] text-fa-muted">worth {m.counter.worth} of the {m.counter.budget} they would give</div>
+                <Button size="sm" className="w-full mt-1.5 !min-h-[40px]" onClick={() => setSelected(new Set(m.counter.keys))}>Load into my offer</Button>
+              </div>
+            )}
+            <div className="fa-card px-2.5 py-1.5">
+              <Label>White peace</Label>
+              <div className="text-[12px] leading-snug mt-0.5">{m.whitePeace.text}</div>
+              <Button size="sm" className="w-full mt-1.5 !min-h-[40px]" onClick={() => send([])} data-testid="peace-white">Offer white peace</Button>
             </div>
-            <div className="h-2 rounded-full bg-slate-900 overflow-hidden"><div className={`h-full ${acceptance.accepted ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} /></div>
-            <div className="text-[11px] text-slate-400">{acceptance.total} willingness · {acceptance.cost} demanded</div>
-            <div className="text-[10px] text-slate-500 leading-snug">{acceptance.breakdown.filter((l) => l.value).map((l) => `${l.label} ${l.value > 0 ? '+' : ''}${l.value}`).join(' · ')}</div>
+            </div>
+            <Button variant="primary" hero className="w-full !min-h-[52px] shrink-0" disabled={!m.terms.length} title={m.terms.length ? undefined : 'Choose a demand first, or offer a white peace'} onClick={() => send(m.terms)} data-testid="peace-offer">
+              Send offer
+            </Button>
           </div>
-        </div>
-
-        <div className="p-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          <button type="button" onClick={offer} className="w-full min-h-[48px] rounded-xl bg-emerald-600 border border-emerald-400 font-semibold text-white disabled:opacity-50" data-testid="peace-offer">
-            {terms.length ? `Offer peace (${terms.length} term${terms.length > 1 ? 's' : ''})` : 'Offer white peace'}
-          </button>
         </div>
       </div>
     </div>
