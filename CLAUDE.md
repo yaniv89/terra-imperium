@@ -56,6 +56,13 @@ The live site is GitHub Pages, built into `docs/`.
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
   Progress and open balance items: plan section J3.
+- Peoples (phase W0): new games use scenario mode `peoples`: majors drawn from the 150-people
+  pool (src/data/peoples.js, built facts in src/data/geo/peopleCapitals.json via
+  `npm run build:peoples`), world sizes in src/data/worldSizes.js, the pick in
+  src/engine/worldgen/peoplesWorld.js. Nation ids are people slugs (`akkad`, `israel`);
+  `LEGACY_NATION_IDS` maps old country ids. `createInitialState` without a scenario still builds
+  the legacy 240-country world (tests, old saves). Titles, regiment numbers: src/engine/peopleNames.js;
+  battle names: src/engine/battleNames.js.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
   and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to
