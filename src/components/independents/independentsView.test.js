@@ -162,7 +162,7 @@ describe('W4 independent sheet model', () => {
 describe('W4 independents list model', () => {
   it('lists the met independents with distance, attitude, grudge and deal; sorts and filters', () => {
     const r = indeps('raiders')[0];
-    const s = { ...base, nations: addGrudge(base.nations, r.id, me, 60), tributeDemands: [{ id: 'd1', indepId: r.id, gold: 3, turns: 20, turn: T, expires: T + 3 }] };
+    const s = { ...base, fog: { ...(base.fog || {}), on: false }, nations: addGrudge(base.nations, r.id, me, 60), tributeDemands: [{ id: 'd1', indepId: r.id, gold: 3, turns: 20, turn: T, expires: T + 3 }] };
     const all = independentsListModel(s);
     expect(all.total).toBe(indeps().length);
     for (let i = 1; i < all.rows.length; i++) expect(all.rows[i].km).toBeGreaterThanOrEqual(all.rows[i - 1].km);
@@ -176,7 +176,7 @@ describe('W4 independents list model', () => {
     expect(fort.rows.length).toBe(fort.counts.fortress);
     expect(LIST_FILTERS.map((f) => f.id)).toEqual(['all', 'deals', 'threats', 'raiders', 'mercantile', 'fortress', 'tribal']);
     // Unmet independents stay off the list (the fog hook).
-    const fogged = { ...s, fog: { on: true, met: { [me]: { [r.id]: 1 } } } };
+    const fogged = { ...s, fog: { ...base.fog, on: true, met: { [me]: { [r.id]: 1 } } } };
     expect(independentsListModel(fogged).rows.map((x) => x.id)).toEqual([r.id]);
   });
 });
@@ -199,6 +199,27 @@ describe('W4 raid marks on the map', () => {
     // Once warned, the ring shows even with the party in the fog.
     const warned = { ...st, nations: { ...nations, [raider.id]: { ...nations[raider.id], indep: { ...nations[raider.id].indep, raid: { ...nations[raider.id].indep.raid, warned: true } } } } };
     expect(raidMapModel(warned, new Set()).warnings).toHaveLength(1);
+  });
+
+  it('the WebGL map turns the lists into dashed routes, rings, labels and tappable hits', async () => {
+    const { geoEquirectangular } = await import('d3-geo');
+    const { raidShapes } = await import('../map/gl/raidShapes');
+    const projection = geoEquirectangular().fitSize([844, 390], { type: 'Sphere' });
+    const { s, raider, home } = duel();
+    const f = raidForecast(s, raider.id, me);
+    const route = getTiles().neighbors[home.tile].slice(0, 2);
+    const model = {
+      parties: [{ id: raider.id, tile: home.tile, route, targetTile: f.tile, kind: f.kind, kindWord: 'sack', target: 'Kish', eta: 2, againstYou: true, phase: 'out' }],
+      warnings: [{ tile: f.tile, id: raider.id, kind: f.kind, target: 'Kish', eta: 2 }],
+      sieges: [{ cityId: 'c1', tile: home.tile, name: 'X', by: 'elam', byName: 'Elam', owner: raider.id, ownerName: 'Y', hp: 0.5, encircled: false }],
+      burning: []
+    };
+    const out = raidShapes({ model, projection, k: 40, dpr: 1 });
+    expect(out.lines.some((l) => l.dash > 0)).toBe(true);
+    expect(out.hits.every((h) => h.kind === 'indep')).toBe(true);
+    expect(out.hits.map((h) => h.id)).toContain(raider.id);
+    expect(out.sprites.length).toBeGreaterThanOrEqual(3);
+    expect(raidShapes({ model: { parties: [], warnings: [], sieges: [], burning: [] }, projection, k: 4, dpr: 1 })).toEqual({ lines: [], sprites: [], hits: [] });
   });
 
   it('shows sieges of independents by others and burning cities, in sight only', () => {

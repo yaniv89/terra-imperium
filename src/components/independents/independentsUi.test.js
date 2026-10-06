@@ -65,7 +65,7 @@ describe('W4 independents UI', () => {
 
   it('the join offer sheet and the Relations list render', () => {
     const t = indeps('tribal')[0];
-    ctx.state = { ...base, joinOffers: [{ id: 'j1', indepId: t.id, turn: T, expires: T + 5 }] };
+    ctx.state = { ...base, fog: { ...(base.fog || {}), on: false }, joinOffers: [{ id: 'j1', indepId: t.id, turn: T, expires: T + 5 }] };
     const offer = html(React.createElement(JoinOfferSheet, { offerId: 'j1', onClose: () => {} }));
     expect(offer).toContain('data-testid="join-accept"');
     const list = html(React.createElement(IndependentsList));

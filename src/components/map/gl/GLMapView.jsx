@@ -51,6 +51,9 @@ import {
   citySprites, nearView, markerSprites, landSprites, groundMarks, settlerSprites, marchShapes, lensShapes,
   HEX_FROM_ZOOM, CITY_DETAIL_ZOOM, CLOSE_ZOOM_K
 } from './sceneModel';
+import { raidShapes } from './raidShapes';
+import { raidMapModel } from '../../independents/raidMapModel';
+import { openIndependent } from '../../independents/independentEvents';
 
 const OCEAN_COLOR = '#0f172a';
 const ZOOM_MAX = 200;
@@ -359,16 +362,21 @@ const GLMapView = ({
   const marks = useMemo(() => (projection ? groundMarks({ state, projection, k, dpr }) : []), [state, projection, k, dpr]);
   const settlers = useMemo(() => (projection ? settlerSprites({ state, projection, k, isVisible: fog.isVisible, dpr }) : null), [state, projection, k, fog, dpr]);
   const march = useMemo(() => (projection ? marchShapes({ marchLines, projection, k, selectedArmy, dpr }) : null), [marchLines, projection, k, selectedArmy, dpr]);
+  // The independents' raid parties, warnings, sieges and fires in sight (phase W4).
+  const raidModel = useMemo(() => raidMapModel(gameState),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [gameState.units, gameState.nations, gameState.regions, gameState.world, gameState.turnNumber, gameState.playerNationId]);
+  const raids = useMemo(() => (projection ? raidShapes({ model: raidModel, projection, k, dpr }) : null), [raidModel, projection, k, dpr]);
 
   const [atlasTick, setAtlasTick] = useState(0);
   useEffect(() => onImageLoad(() => { const g = gl.current; if (g && g.atlas.dropPending()) setAtlasTick((n) => n + 1); }), []);
   useEffect(() => {
     const g = gl.current;
-    if (!g || !cities || !markerOut || !landOut || !settlers || !march) return;
+    if (!g || !cities || !markerOut || !landOut || !settlers || !march || !raids) return;
     const groups = {
       ground: [...(lensOut?.sprites || []), ...landOut.sprites, ...marks],
       upper: [...march.sprites, ...settlers.sprites],
-      top: [...cities.sprites, ...cities.names, ...markerOut.sprites]
+      top: [...cities.sprites, ...cities.names, ...markerOut.sprites, ...raids.sprites]
     };
     const resolve = () => {
       const out = {};
@@ -390,10 +398,10 @@ const GLMapView = ({
     g.upperSprites.set(placed.upper);
     g.topSprites.set(placed.top);
     g.lowLines.set([...landOut.lines, ...(lensOut?.lines || [])]);
-    g.marchLines.set(march.lines);
-    g.hits = [...settlers.hits, ...cities.hits, ...markerOut.hits];
+    g.marchLines.set([...march.lines, ...raids.lines]);
+    g.hits = [...raids.hits, ...settlers.hits, ...cities.hits, ...markerOut.hits];
     g.request();
-  }, [ready, cities, markerOut, landOut, marks, settlers, march, lensOut, atlasTick]);
+  }, [ready, cities, markerOut, landOut, marks, settlers, march, raids, lensOut, atlasTick]);
 
   // ---------------------------------------------------------------- the close view
   const [land, setLand] = useState(null);
@@ -455,6 +463,7 @@ const GLMapView = ({
     if (!g || !v || !projection) return null;
     const hit = pickHit(v, g.hits, sx, sy);
     if (hit?.kind === 'cluster' || hit?.kind === 'marker') return { kind: hit.kind, marker: hit.marker, id: hit.marker.regionId };
+    if (hit?.kind === 'indep') return { kind: 'indep', id: hit.id };
     if (hit?.kind === 'settler') return { kind: 'settler', tile: hit.tile };
     if (hit?.kind === 'city' || hit?.kind === 'banner') return { kind: 'city', id: hit.id, via: hit.kind };
     const ll = projection.invert(screenToWorld(v, sx, sy));
@@ -498,6 +507,7 @@ const GLMapView = ({
       else onSelectRegion?.(c.regionId);
       return;
     }
+    if (pick.kind === 'indep') { openIndependent(pick.id); return; }
     if (pick.kind === 'settler') { onSelectTile?.(pick.tile); return; }
     if (pick.kind === 'city') { handleCityTap(pick.id, e, sx, sy); return; }
     if (!onSelectTile) return;
