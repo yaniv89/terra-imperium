@@ -1,0 +1,107 @@
+{
+  "file": "gunpowder-town-medium-b-indic.glb",
+  "kind": "town",
+  "bytes": 3712592,
+  "checks": {
+    "footprint_within_5pct": true,
+    "height_within_5pct": true,
+    "nothing_below_ground": true,
+    "origin_centred": true,
+    "lods_present_and_in_budget": true,
+    "material_names": true,
+    "no_emblem": true,
+    "no_reserved_words": true,
+    "ground_alpha_cut": true,
+    "no_alpha_blend": true,
+    "textures_at_most_4096": true,
+    "one_atlas_set": true,
+    "uncompressed_geometry": true,
+    "file_size": true
+  },
+  "objects": {
+    "town-medium-b": {
+      "lods": {
+        "LOD0": {
+          "triangles": 21389,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.966,
+          "depth": 6.023,
+          "height": 1.588,
+          "min_height": -0.0
+        },
+        "LOD1": {
+          "triangles": 5012,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.966,
+          "depth": 6.023,
+          "height": 1.588,
+          "min_height": 0
+        },
+        "LOD2": {
+          "triangles": 626,
+          "materials": [
+            "Ground",
+            "Team",
+            "Town"
+          ],
+          "width": 5.966,
+          "depth": 6.023,
+          "height": 1.35,
+          "min_height": 0
+        }
+      },
+      "children": [
+        "LOD0",
+        "LOD1",
+        "LOD2"
+      ],
+      "missing_lods": [],
+      "over_budget": [],
+      "footprint": 6.023
+    }
+  },
+  "materials": [
+    "Town",
+    "Ground",
+    "Team"
+  ],
+  "reserved_word_names": [],
+  "images": [
+    {
+      "name": "gunpowder-town-medium-b-indic_normal",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 13598
+    },
+    {
+      "name": "gunpowder-town-medium-b-indic_base",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 522792
+    },
+    {
+      "name": "gunpowder-town-medium-b-indic_orm",
+      "mime": "image/webp",
+      "size": [
+        2048,
+        2048
+      ],
+      "bytes": 390810
+    }
+  ],
+  "passed": true
+}
