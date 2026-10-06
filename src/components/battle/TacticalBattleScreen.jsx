@@ -36,7 +36,7 @@ const SELECT_HINT_MS = 9000;
 const hintSeen = (key) => { try { return localStorage.getItem(key) === '1'; } catch { return false; } };
 const markHintSeen = (key) => { try { localStorage.setItem(key, '1'); } catch { /* storage blocked */ } };
 
-const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon }) => {
+const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onCheckpoint, onFinish, onAbandon, getCampaign = null }) => {
   const wrapRef = useRef(null);
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
@@ -411,7 +411,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
   }, [selectedSquads]);
 
   return (
-    <div ref={wrapRef} className="fixed inset-0 z-[80] bg-slate-950 select-none" style={{ touchAction: 'none' }} data-testid="tactical-battle">
+    <div ref={wrapRef} className="fixed inset-0 z-[80] bg-fa-ink text-fa-text select-none" style={{ touchAction: 'none' }} data-testid="tactical-battle">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: 'none' }} />
       {dragLine && (
         <svg className="absolute inset-0 pointer-events-none w-full h-full">
@@ -423,12 +423,12 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         <div className="absolute z-10 flex flex-wrap justify-center gap-2 max-w-[92vw] -translate-x-1/2 -translate-y-[130%]" style={{ left: Math.min(Math.max(radial.x, 160), (wrapRef.current?.clientWidth || 400) - 160), top: radial.y }} data-testid="battle-radial">
           {selectedAbilities.map((a) => (
             <button key={a.id} onClick={() => triggerSquadAbility(a.id)} disabled={a.readyIn > 0}
-              className="min-w-[64px] h-12 px-3 rounded-full bg-purple-900/95 border border-purple-400 text-purple-100 text-xs font-semibold shadow-xl disabled:opacity-40">
+              className="min-w-[64px] h-12 px-3 rounded-full bg-fa-raised border border-fa-indep text-fa-text text-xs font-semibold shadow-xl disabled:opacity-40">
               {ABILITY_LABELS[a.id] || a.id}{a.readyIn > 0 ? ` ${Math.ceil(a.readyIn / TICK_HZ)}s` : ''}
             </button>
           ))}
           {[['hold', 'Hold'], ['stop', 'Stop'], ['retreat', 'Retreat']].map(([t, label]) => (
-            <button key={t} onClick={() => commandSelected(t)} className="min-w-[64px] h-12 px-3 rounded-full bg-slate-900/95 border border-slate-600 text-slate-100 text-sm font-semibold shadow-xl">{label}</button>
+            <button key={t} onClick={() => commandSelected(t)} className="min-w-[64px] h-12 px-3 rounded-full bg-fa-panel/95 border border-fa-line text-fa-text text-sm font-semibold shadow-xl">{label}</button>
           ))}
         </div>
       )}
@@ -445,6 +445,8 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
         soundOn={soundOn} onToggleSound={toggleSound}
         selectMode={selectMode} onToggleSelectMode={() => { setSelectModeOn(!selectModeRef.current); setSelectHint(false); }}
         selectHint={selectHint}
+        onFocus={(x, y) => rendererRef.current?.centerOn(x / Q, y / Q)}
+        ended={!!ended}
       />
       {buildMenu && hud?.eco && <BuildMenu ageId={setup.sides[playerSide].ageId} stock={hud.eco.stock} onPick={pickBuilding} onClose={() => setBuildMenu(false)} />}
       {ecoBuilding && (
@@ -457,7 +459,7 @@ const TacticalBattleView = ({ setup, playerSide = 0, title, resume = null, onChe
           onClose={() => selectBuilding(null)} />
       )}
       {showPerf && <pre ref={perfRef} className="absolute left-1/2 -translate-x-1/2 top-14 z-20 pointer-events-none m-0 px-2 py-1 rounded bg-black/70 text-[10px] leading-tight text-lime-300 font-mono whitespace-pre" data-testid="battle-perf" />}
-      {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} onContinue={() => onFinish?.(ended)} />}
+      {ended && <BattleResultScreen ended={ended} setup={setup} playerSide={playerSide} title={title} getCampaign={getCampaign} onContinue={() => onFinish?.(ended)} />}
     </div>
   );
 };
