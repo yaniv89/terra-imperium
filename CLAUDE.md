@@ -55,6 +55,10 @@ The live site is GitHub Pages, built into `docs/`.
   city (flips, free cities): src/engine/loyalty.js. AI fronts (attacks from touching tiles,
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
+  City manifest (phase B): src/data/townLayout.js (from src/data/townLayouts.json, `npm run
+  build:town-layouts` after town art), src/engine/cityManifest.js (from the city record; damage in
+  region.cityDamage, the 50% rule, free repairs), battle: src/battle/setup/cityBattle.js and
+  src/battle/render/cityLayer.js, map: src/components/map/closeView/townDamage.js.
   Progress and open balance items: plan section J3.
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
