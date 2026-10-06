@@ -18,7 +18,8 @@ const FIELDS = ['x', 'y', 'facing', 'strength', 'morale', 'flags', 'enterTick', 
 export const SQUAD_STRIDE = FIELDS.length;
 const F = Object.fromEntries(FIELDS.map((k, i) => [k, i]));
 const FLAGS = ['alive', 'onField', 'fled', 'routed', 'retreating', 'reserve', 'visible', 'hidden', 'striking'];
-// Fields that change rarely, sent with the slow part (every SLOW_EVERY ticks and when paused).
+// Fields that change rarely, sent with the slow part (checked every SLOW_EVERY ticks and when
+// paused, and only for the squads where something changed).
 const SLOW = ['unitId', 'classId', 'ageId', 'navalLine', 'maxStrength', 'startStrength', 'reinforcement', 'callCost', 'xp', 'promotions', 'commanderId', 'abilities'];
 export const SLOW_EVERY = 5;
 
@@ -29,6 +30,7 @@ const orNull = (v) => (Number.isNaN(v) ? null : v);
 export const createViewPacker = () => {
   const strings = []; const ids = new Map();
   let sentStrings = 0;
+  const slowKeys = []; // what each squad's slow part was last sent as
   const intern = (s) => {
     if (s === null || s === undefined) return NaN;
     let id = ids.get(s);
@@ -65,18 +67,22 @@ export const createViewPacker = () => {
       })),
       points: w.points.map((p) => ({ id: p.id, resId: p.resId, x: p.x, y: p.y, owner: p.owner, progress: p.progress, capturingSide: p.capturingSide })),
       squads: f.buffer,
-      slow: slow ? w.squads.map((q) => ({
+      slow: slow ? w.squads.map((q, i) => ({ i, side: q.side,
         unitId: q.unitId, classId: q.classId, ageId: q.ageId, navalLine: q.original?.navalLine || null,
         maxStrength: q.maxStrength, startStrength: q.startStrength,
         reinforcement: q.reinforcement ? { name: q.reinforcement.name, edge: q.reinforcement.edge } : null,
         callCost: callCost(q, w), xp: q.original.xp || 0, promotions: q.promotions, commanderId: q.commanderId,
         abilities: q.side === playerSide ? getSquadAbilities(w, q).map((id) => ({ id, readyIn: Math.max(0, (q.cooldowns?.[id] || 0) - w.tick) })) : []
-      })) : null,
+      })).filter((m) => {
+        // Only the squads whose slow part changed since it was last sent (most never do).
+        const key = JSON.stringify(m);
+        if (slowKeys[m.i] === key) return false;
+        slowKeys[m.i] = key;
+        return true;
+      }) : null,
       strings: strings.length > sentStrings ? strings.slice() : null
     };
     sentStrings = strings.length;
-    // A squad's side and index never change: they ride with the slow part only.
-    if (packed.slow) packed.slow.forEach((m, i) => { m.side = w.squads[i].side; });
     return { packed, transfer: [f.buffer] };
   };
   return { pack };
@@ -109,10 +115,12 @@ PackedSquad.prototype.toJSON = function toJSON() {
 
 // The screen's half: keeps the string table and the latest slow part between frames.
 export const createViewDecoder = () => {
-  let strings = []; let slow = null;
+  let strings = []; const slow = [];
   return (packed) => {
     if (packed.strings) strings = packed.strings;
-    if (packed.slow) slow = packed.slow;
+    // The slow part comes as the squads that changed; earlier views see the update too (these
+    // fields are names, xp, abilities and costs, which the HUD wants current anyway).
+    if (packed.slow) packed.slow.forEach((m) => { slow[m.i] = m; });
     const frame = { f: new Float64Array(packed.squads), strings, slow };
     const squads = new Array(packed.n);
     for (let i = 0; i < packed.n; i++) squads[i] = new PackedSquad(frame, i);

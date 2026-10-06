@@ -83,7 +83,8 @@ const writeBasis = (arr, k, b, x, y, z, sx) => {
 const COLORS = new Map();
 const colorOf = (css) => { let c = COLORS.get(css); if (!c) { c = new Color(css); COLORS.set(css, c); } return c; };
 const instanceColors = (mesh) => { if (!mesh.instanceColor) mesh.setColorAt(0, WHITE); return mesh.instanceColor.array; };
-const PROP_CHUNK = 48; // trees, rocks, tufts and houses are instanced per 48 x 48 tile chunk
+const PROP_CHUNK = 48;
+const FIG = 9; // floats per figure in a squad's cached layout (squadFigures) // trees, rocks, tufts and houses are instanced per 48 x 48 tile chunk
 
 const hash01 = (n) => { let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -293,6 +294,14 @@ export class BattleRenderer {
     const fx = x - 0.5; const fz = z - 0.5;
     const ix = Math.floor(fx); const iz = Math.floor(fz);
     const tx = fx - ix; const tz = fz - iz;
+    const { w, h } = this.map;
+    if (ix >= 0 && iz >= 0 && ix < w - 1 && iz < h - 1 && this.tileHeights) {
+      // Inside the map (nearly every call): the same bilinear blend, straight from the table.
+      const t = this.tileHeights; const o = iz * w + ix;
+      const top = t[o] + (t[o + 1] - t[o]) * tx;
+      const bottom = t[o + w] + (t[o + w + 1] - t[o + w]) * tx;
+      return top + (bottom - top) * tz;
+    }
     const top = lerp(this.tileHeight(ix, iz), this.tileHeight(ix + 1, iz), tx);
     const bottom = lerp(this.tileHeight(ix, iz + 1), this.tileHeight(ix + 1, iz + 1), tx);
     return lerp(top, bottom, tz);
@@ -981,6 +990,29 @@ export class BattleRenderer {
     };
   }
 
+  // A squad's figures where they stand in its block (lateral, back), the cos and sin of each one's
+  // small turn, its walk phase and its look (skin, emblem, cloth): all fixed for a given count and
+  // spacing, so worked out once and again only when the squad loses a figure.
+  squadFigures(info, s, n, cols, spacing) {
+    const f = info.fig;
+    if (f && f.n === n && f.cols === cols && f.spacing === spacing) return f.data;
+    const data = new Float32Array(n * FIG);
+    const jitter = info.big ? 0.1 : 0.07;
+    const look = new Float32Array(4);
+    for (let i = 0; i < n; i++) {
+      const d = i * FIG; const col = i % cols; const row = Math.floor(i / cols);
+      data[d] = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * jitter * 2;
+      data[d + 1] = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
+      const j = (hash01(s.idx * 7 + i) - 0.5) * 0.18;
+      data[d + 2] = Math.cos(j); data[d + 3] = Math.sin(j);
+      data[d + 4] = hash01(s.idx * 131 + i) * 6.283;
+      writeSoldierVariant(look, 0, s.idx, s.side, i);
+      data.set(look, d + 5);
+    }
+    info.fig = { n, cols, spacing, data };
+    return data;
+  }
+
   // A soldier's height on screen (css px) at the current zoom.
   soldierPx() { return (MODEL_SCALE.infantry * this.camera.zoom * (this.height || 1)) / Math.max(1e-6, this.camera.top - this.camera.bottom); }
 
@@ -1037,27 +1069,35 @@ export class BattleRenderer {
       const { r: cr, g: cg, b: cb } = tmpColor;
       const mat = layer.matrix.array; const colArr = layer.color.array; const animArr = layer.anim.array;
       const walking = moving || s.routed ? 1 : 0; const striking = fighting ? 1 : 0;
-      const jitter = big ? 0.1 : 0.07;
       const turn = heading + (s.routed ? Math.PI : 0); // routed troops turn and run
+      const ct = Math.cos(turn) * scale; const st = Math.sin(turn) * scale;
+      const fig = this.squadFigures(info, s, n, cols, spacing);
+      const varArr = layer.variant.array;
       for (let i = 0; i < n; i++) {
         const k = layer.count;
         if (k >= layer.capacity) break;
-        const col = i % cols; const row = Math.floor(i / cols);
-        const lat = (col - (cols - 1) / 2) * spacing + (hash01(s.idx * 97 + i) - 0.5) * jitter * 2;
-        const back = row * spacing + (hash01(s.idx * 53 + i) - 0.5) * jitter * 2;
+        const d = i * FIG;
+        const lat = fig[d]; const back = fig[d + 1];
         const px = x + (-fz) * lat - fx * back; const pz = z + fx * lat - fz * back;
-        // Everyone faces the squad's heading, with a touch of variety.
-        const yaw = turn + (hash01(s.idx * 7 + i) - 0.5) * 0.18;
+        // Everyone faces the squad's heading, with a touch of variety (cos and sin of the turn
+        // plus the figure's own small jitter, by the angle-sum rule).
         if (stats.flying) {
+          const yaw = turn + Math.atan2(fig[d + 3], fig[d + 2]);
           tmp.position.set(px, 2.4 + Math.sin(this.time * 2 + i) * 0.15, pz);
           tmp.rotation.set(Math.sin(this.time + i) * 0.15, yaw, 0);
           tmp.scale.set(scale, scale, scale);
           tmp.updateMatrix();
           tmp.matrix.toArray(mat, k * 16);
-        } else writeYaw(mat, k, px, this.heightAt(px, pz), pz, yaw, scale, scale, scale);
+        } else {
+          const c = ct * fig[d + 2] - st * fig[d + 3]; const sn = st * fig[d + 2] + ct * fig[d + 3]; const o = k * 16;
+          mat[o] = c; mat[o + 1] = 0; mat[o + 2] = -sn; mat[o + 3] = 0;
+          mat[o + 4] = 0; mat[o + 5] = scale; mat[o + 6] = 0; mat[o + 7] = 0;
+          mat[o + 8] = sn; mat[o + 9] = 0; mat[o + 10] = c; mat[o + 11] = 0;
+          mat[o + 12] = px; mat[o + 13] = this.heightAt(px, pz); mat[o + 14] = pz; mat[o + 15] = 1;
+        }
         colArr[k * 3] = cr; colArr[k * 3 + 1] = cg; colArr[k * 3 + 2] = cb;
-        animArr[k * 3] = hash01(s.idx * 131 + i) * 6.283; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking;
-        writeSoldierVariant(layer.variant.array, k, s.idx, s.side, i);
+        animArr[k * 3] = fig[d + 4]; animArr[k * 3 + 1] = walking; animArr[k * 3 + 2] = striking;
+        varArr[k * 4] = fig[d + 5]; varArr[k * 4 + 1] = fig[d + 6]; varArr[k * 4 + 2] = fig[d + 7]; varArr[k * 4 + 3] = fig[d + 8];
         layer.count += 1;
       }
       // Soldiers lost since last frame go down in a spray of blood where they stood.

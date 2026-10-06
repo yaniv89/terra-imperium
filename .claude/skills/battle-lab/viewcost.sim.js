@@ -16,7 +16,13 @@ const median = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 it('render frame cost: plain vs packed', () => {
   sizes.forEach((n) => {
     const w = makeBenchWorld(n, 7);
-    for (let t = 0; t < 400; t++) { step(w, []); w.events.length = 0; }
+    let ev = 0; let evBytes = 0;
+    for (let t = 0; t < 400; t++) { step(w, []); if (t >= 300) { ev += w.events.length; evBytes += JSON.stringify(w.events).length; } w.events.length = 0; }
+    const events = w.events;
+    for (let t = 0; t < 1; t++) { step(w, []); }
+    const evClone = performance.now(); for (let k = 0; k < 20; k++) structuredClone(events.length ? events : w.events); const evMs = (performance.now() - evClone) / 20;
+    console.log(`  events: ${(ev / 100).toFixed(0)} a tick (${(evBytes / 100 / 1024).toFixed(1)} KB as JSON), clone ${evMs.toFixed(3)} ms`);
+    w.events.length = 0;
     const packer = createViewPacker(); const decode = createViewDecoder();
     const r = { build: [], clone: [], pack: [], packSlow: [], move: [], decode: [], read: [] };
     for (let k = 0; k < 60; k++) {
