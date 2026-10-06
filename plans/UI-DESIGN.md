@@ -65,7 +65,7 @@ the master plan states them as rules.
 | B01 Battle HUD | clean markers, regiment cards bottom left, four commands bottom right, labelled abilities | R1 readability (done), UI pass |
 | B02 Economy | worker jobs, build menu with red unaffordable costs, placement ghost with a reason | R1 (done; the ghost reason is still to do) |
 | B03 Training and housing | population bar split army / workers / training, one-tap village house | R1 (done) |
-| B04 Regiments | box select, general aura only when selected, formations with trade-offs, waves card | R1 / R3 |
+| B04 Regiments | box select, general aura only when selected, formations with trade-offs, waves card. Touch box select: a visible "Select" button (one-finger drag draws the box while it is on, off after each selection; two fingers still pan), double-tap-drag kept as the shortcut, a one-time hint in the first battle | R1 / R3; the Select button as a quick fix right after the integration merge |
 | B05 City assault | the real city, structure targeting, housing dropping as houses burn, the 50% bar, "spare houses" | B (done), R2 |
 | B06 Alerts and pause | at most two alerts with Go, older ones as minimap pings, pause sheet with Retreat apart | R1 / R2 |
 | B07 Field battle | river with fords and a bridge, enemy fort, exits "units leaving here survive", decisive reminder | F (done: river battle maps), R3 |
