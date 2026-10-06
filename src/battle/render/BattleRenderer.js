@@ -17,6 +17,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { TILE } from '../setup/mapgen';
 import { getBattleStats, getSoldierCount, getUnitBattleStats } from '../data/battleStats';
+import { soldierSlots, squadSlots } from './capacity';
 import { getSoldierGeometry, getImposterGeometry, packForGPU, disposeSoldierCache, createSoldierMaterial, createSoldierDepthMaterial, RIG_TIME, MODEL_SCALE } from './soldierFactory';
 import { writeSoldierVariant } from './unitVariants';
 import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
@@ -582,7 +583,7 @@ export class BattleRenderer {
   }
 
   buildOverlays() {
-    const MAX = 64;
+    const MAX = squadSlots(this.setup); // one marker, banner and bar per squad that can take the field (capacity.js)
     const mk = (geo, color, opacity = 1) => {
       const mat = this.track(new MeshBasicMaterial({ color, transparent: opacity < 1, opacity, depthWrite: opacity >= 1, side: DoubleSide }));
       const m = new InstancedMesh(this.track(geo), mat, MAX);
@@ -642,7 +643,7 @@ export class BattleRenderer {
     const key = `${ageId}:${classId}`;
     let layer = this.soldierLayers.get(key);
     if (layer) return layer;
-    const MAX = 2 * 16 * 20;
+    const MAX = soldierSlots(this.setup, ageId, classId); // every soldier of this age and class (capacity.js)
     const buf = (size) => new InstancedBufferAttribute(new Float32Array(MAX * size), size).setUsage(DynamicDrawUsage);
     const matrix = buf(16); const color = buf(3); const anim = buf(3); const variant = buf(4);
     const make = (source, shadow) => {
