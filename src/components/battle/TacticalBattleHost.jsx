@@ -2,13 +2,14 @@
 // Opens the commanded battle whenever the campaign has one pending (state.pendingBattle), resuming
 // from its last checkpoint if the app was closed mid-battle, and hands the result back to the
 // reducer (RESOLVE_TACTICAL_BATTLE) — or auto-resolves it on request (ABANDON_TACTICAL_BATTLE).
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ActionTypes } from '../../data/types';
 import { battleName } from '../../engine/battleNames';
 import { buildInvasionSetup, SETUP_VERSION } from '../../battle/setup/buildBattleSetup';
 import { saveBattleCheckpoint, loadBattleCheckpoint, clearBattleCheckpoint } from '../../battle/worker/battleStore';
 import TacticalBattleScreen from './TacticalBattleScreen';
+import { autoOddsForPendingBattle } from './autoCompare';
 
 const TacticalBattleHost = () => {
   const { state, dispatch } = useGame();
@@ -30,6 +31,13 @@ const TacticalBattleHost = () => {
   // A battle that can no longer be set up (e.g. an old save) falls back to auto-resolve.
   useEffect(() => { if (pb && !setup) dispatch({ type: ActionTypes.ABANDON_TACTICAL_BATTLE }); }, [pb, setup, dispatch]);
 
+  // For the result screen (B08): the campaign facts the result shows (the turn, the generals for
+  // their fate, Auto's odds for this same battle), read once, when the battle ends.
+  const getCampaign = useCallback(() => ({
+    turnNumber: state.turnNumber, year: state.year, hiredCommanders: state.hiredCommanders || {},
+    auto: pb ? autoOddsForPendingBattle(state, pb) : null
+  }), [pb?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!pb || !setup || resume === undefined) return null;
   const finish = (ended) => {
     clearBattleCheckpoint(pb.id);
@@ -46,6 +54,7 @@ const TacticalBattleHost = () => {
       onCheckpoint={(cp) => saveBattleCheckpoint(pb.id, { ...cp, setupVersion: SETUP_VERSION, savedAt: Date.now() })}
       onFinish={finish}
       onAbandon={abandon}
+      getCampaign={getCampaign}
     />
   );
 };
