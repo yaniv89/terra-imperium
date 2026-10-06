@@ -2,6 +2,7 @@
 import { PRETENDER_MARKER } from './civilWar';
 import { REBEL_OWNER_ID } from '../data/rebellion';
 import { getTiles } from '../data/geo/tiles';
+import { spacingBreaches } from '../data/geo/citySpacing';
 
 export const auditGameState = (state) => {
   const issues = [];
@@ -71,6 +72,12 @@ export const auditGameState = (state) => {
       if (c.size != null && (c.size < 1 || c.size > 30)) report('range', `regions.${id}.size`, 'Size is 1..30');
     });
     Object.entries(tileOwner).forEach(([t, id]) => { if (!regions[id]) report('tile_owner', `world.tileOwner.${t}`, 'Tile owned by a missing city'); });
+    // The settling rule (citySpacing.js, settle-rules R7): no two city centres closer than it allows.
+    const byTile = new Map();
+    Object.entries(regions).forEach(([id, c]) => { if (c.tile != null && !byTile.has(c.tile)) byTile.set(c.tile, id); });
+    spacingBreaches(getTiles(), Object.values(regions).map((c) => c.tile).filter((t) => t != null)).forEach(([a, b]) => {
+      report('city_spacing', `regions.${byTile.get(b)}.tile`, a === b ? `Two cities on tile ${a}` : `Too close to ${regions[byTile.get(a)]?.name || byTile.get(a)}`);
+    });
   }
   Object.entries(units).forEach(([id, u]) => {
     if (u.id !== id) report('identity', `units.${id}.id`, 'Record ID differs from its map key');
