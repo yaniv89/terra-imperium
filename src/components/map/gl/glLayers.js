@@ -13,7 +13,7 @@
 import {
   Mesh, PlaneGeometry, ShaderMaterial, DataTexture, RGBAFormat, RedFormat, FloatType, UnsignedByteType,
   NearestFilter, LinearFilter, LinearMipmapLinearFilter, ClampToEdgeWrapping, TextureLoader, CanvasTexture, GLSL3,
-  InstancedBufferGeometry, InstancedBufferAttribute, DynamicDrawUsage, Vector2, Vector3, Vector4, Scene, WebGLRenderTarget, Color
+  InstancedBufferGeometry, InstancedBufferAttribute, DynamicDrawUsage, Vector2, Vector3, Vector4, Scene, WebGLRenderTarget, Color, DoubleSide
 } from 'three';
 import { wrapNear } from './mapView';
 import { TERRITORY_VERTEX, TERRITORY_FRAGMENT } from './territoryShader';
@@ -151,7 +151,7 @@ let noCover = null; // a 1x1 'water' texel for terrain materials without a land 
 const emptyCover = () => (noCover ||= dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType));
 const terrainMaterial = (texture, size, geo) => new ShaderMaterial({
   vertexShader: TERRAIN_VERTEX, fragmentShader: TERRAIN_FRAGMENT,
-  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 } },
+  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 }, uRiverOff: { value: 1 } },
   depthTest: false, depthWrite: false
 });
 // A land cover tile (rasterDetail.js): one class byte a pixel in the red channel, read nearest.
@@ -331,6 +331,9 @@ const growable = (geometry, spec, initial) => {
       geometry.setAttribute(name, attr);
     });
     g.capacity = cap;
+    // three.js caches the instance limit of the first attributes it drew (_maxInstanceCount): drop
+    // it, or a layer that grew after its first frame keeps drawing only its first capacity
+    geometry._maxInstanceCount = undefined;
   };
   g.ensure(initial);
   return g;
@@ -467,7 +470,9 @@ export const createLineLayer = (scene, renderOrder) => {
   geometry.index = base.index; geometry.setAttribute('position', base.getAttribute('position'));
   const g = growable(geometry, { aA: 2, aB: 2, aStyle: 4, aColor: 4 }, 256);
   const uniforms = viewUniforms();
-  const material = new ShaderMaterial({ glslVersion: GLSL3, vertexShader: LINE_VERTEX, fragmentShader: LINE_FRAGMENT, uniforms, transparent: true, depthTest: false, depthWrite: false });
+  // both sides: the quad's winding flips with the segment's direction (the screen's y points down),
+  // so with back faces culled every segment drawn left to right was missing (roads, routes, rivers)
+  const material = new ShaderMaterial({ glslVersion: GLSL3, vertexShader: LINE_VERTEX, fragmentShader: LINE_FRAGMENT, uniforms, transparent: true, depthTest: false, depthWrite: false, side: DoubleSide });
   const mesh = new Mesh(geometry, material);
   mesh.frustumCulled = false; mesh.renderOrder = renderOrder;
   scene.add(mesh);

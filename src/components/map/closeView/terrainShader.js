@@ -80,6 +80,7 @@ uniform vec4 uGeo;       // lon0, lat0 (top edge), lon span, lat span (degrees)
 uniform float uPxPerKm;  // device pixels per kilometre
 uniform sampler2D uCover;  // land cover classes (red channel, LAND_COVER order)
 uniform float uCoverOn;
+uniform float uRiverOff;  // 1: the map draws the rivers from the grid (gl/terrainModel.js), the raster's go
 varying vec2 vUv;
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -135,11 +136,20 @@ void main() {
     vec3 groundC = (c00 * gw.x + c10 * gw.y + c01 * gw.z + c11 * gw.w) / sg;
     landC = mix(groundC, iceC, smoothstep(0.5 - ai, 0.5 + ai, mi));
   }
+  // Phase F: the grid's rivers are drawn over the map, so the raster's own river pixels become the
+  // land around them (the nearby land pixels, else a plain green): one river system, not two.
+  float riverKill = smoothstep(0.35, 0.7, rv) * uRiverOff;
+  if (riverKill > 0.0) {
+    float e0 = 1.0 - water(d0); float e1 = 1.0 - water(d1); float e2 = 1.0 - water(d2); float e3 = 1.0 - water(d3);
+    float ew = e0 + e1 + e2 + e3;
+    vec3 around = ew > 0.05 ? (d0 * e0 + d1 * e1 + d2 * e2 + d3 * e3) / ew : vec3(0.3, 0.38, 0.22);
+    landC = mix(landC, around, riverKill * (1.0 - clamp(sl * 3.0, 0.0, 1.0)));
+  }
   float aa = max(fwidth(m) * 0.8, 0.002);
   // Rivers narrow to their channel as you zoom in, instead of staying a few kilometres wide.
   float mr = mix(m, channel, rv * weight(${DETAIL_SCALES_KM[1].toFixed(1)}));
   float ar = max(fwidth(mr) * 0.8, 0.002);
-  float isWater = smoothstep(0.5 - ar, 0.5 + ar, mr);
+  float isWater = smoothstep(0.5 - ar, 0.5 + ar, mr) * (1.0 - riverKill);
   waterC = mix(waterC, vec3(0.27, 0.5, 0.72) * (0.85 + 0.3 * dot(waterC, vec3(0.33))), rv * 0.55);
 
   // World kilometres for the noise.

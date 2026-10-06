@@ -4,7 +4,7 @@ import { getTiles } from '../../../data/geo/tiles';
 import { riverEdgeList } from '../../../data/geo/terrainData';
 import {
   riverChains, smoothChain, riverLines, riverBand, riverHalfPx, ridgeSegments, mountainPeaks, passPoints, bridgeLines,
-  RIVER_FROM_K, PASS_GAP
+  RIVER_FROM_K, PASS_GAP, RIVER_SMOOTHING
 } from './terrainModel';
 
 const projection = geoEquirectangular().fitSize([1000, 500], { type: 'Sphere' });
@@ -12,11 +12,10 @@ const projection = geoEquirectangular().fitSize([1000, 500], { type: 'Sphere' })
 describe('rivers on the WebGL map', () => {
   it('joins every river edge into chains, each edge once', () => {
     const chains = riverChains(projection);
-    const segs = chains.reduce((n, c) => n + c.sizes.length, 0);
     const edges = riverEdgeList().length;
-    // one round of corner cutting: an inner corner adds one segment; ends keep theirs
-    const inner = chains.reduce((n, c) => n + Math.max(0, (c.sizes.length + 1) / 2 - 1), 0);
-    expect(segs).toBe(edges + inner);
+    // each round of corner cutting turns m segments into 2m - 1 (one chain of a single edge stays)
+    const source = (out) => { let m = out; for (let i = 0; i < RIVER_SMOOTHING; i++) m = m > 1 ? (m + 1) / 2 : m; return m; };
+    expect(chains.reduce((n, c) => n + source(c.sizes.length), 0)).toBe(edges);
     expect(chains.length).toBeLessThan(edges);
     // no segment spans the date line (b unwrapped next to a)
     chains.forEach((c) => c.points.slice(1).forEach((p, i) => expect(Math.abs(p[0] - c.points[i][0])).toBeLessThan(50)));

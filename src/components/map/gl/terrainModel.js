@@ -7,7 +7,7 @@
 //
 //   Rivers     every river EDGE of the grid (riverEdgeList) between its two shared corners
 //              (edgeCorners: both tiles get bit-identical points), joined corner to corner into
-//              chains and rounded once (Chaikin, end points kept, so chains still meet at their
+//              chains and rounded (Chaikin, RIVER_SMOOTHING rounds, end points kept, so chains still meet at their
 //              junctions). Width by size (stream, river, great river), growing slowly with the
 //              zoom. Shown from the regional zoom (world plan 3: the world view keeps the raster's
 //              own rivers): great rivers from RIVER_FROM_K[3], rivers from [2], streams from [1].
@@ -24,10 +24,12 @@ import { riverEdgeList, edgeCorners } from '../../../data/geo/terrainData';
 // The zoom (k) from which each river size shows: index = size (1 stream, 2 river, 3 great river).
 export const RIVER_FROM_K = Object.freeze([Infinity, 4, 2.6, 1.8]);
 // Half widths in CSS px at zoom RIVER_REF_K, growing as k^RIVER_EXP.
-export const RIVER_HALF_PX = Object.freeze([0, 0.45, 0.75, 1.15]);
+export const RIVER_HALF_PX = Object.freeze([0, 0.55, 0.85, 1.3]);
 export const RIVER_REF_K = 4;
-export const RIVER_EXP = 0.38;
-export const RIVER_COLOR = Object.freeze([0.25, 0.47, 0.7, 0.95]);
+export const RIVER_EXP = 0.45;
+export const RIVER_COLOR = Object.freeze([0.3, 0.55, 0.78, 0.95]);
+// Rounds of corner cutting: hex edges meet at 120 degrees, two rounds read as a river's bends.
+export const RIVER_SMOOTHING = 2;
 export const MOUNTAIN_SPRITES_FROM_K = 1;
 export const PASS_MARK_FROM_K = 2.5;
 
@@ -93,7 +95,9 @@ export const riverChains = (projection, tiles = getTiles()) => {
       xy.push([unwrapX(p[0], xy.length ? xy[xy.length - 1][0] : null, worldW), p[1]]);
     });
     if (xy.length !== pts.length) return;
-    chains.push(smoothChain(xy, sizes));
+    let c = { points: xy, sizes };
+    for (let i = 0; i < RIVER_SMOOTHING; i++) c = smoothChain(c.points, c.sizes);
+    chains.push(c);
   };
   // chain ends first (ends and junctions), then the loops left over
   nodes.forEach((n) => { if (n.edges.length !== 2) n.edges.forEach((ei) => { if (!edges[ei].used) emit(walk(n, ei)); }); });
