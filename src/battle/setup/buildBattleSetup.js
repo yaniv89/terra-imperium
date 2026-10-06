@@ -33,8 +33,9 @@ import { ECONOMY_FIELD_TICKS, ECONOMY_SIEGE_TICKS } from '../sim/constants';
 
 // Bumped whenever the sim's rules change, so an old checkpoint restarts rather than replaying
 // under different rules (v2: garrisons, v3: the region's buildings on the battlefield, v4: the real
-// city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js).
-export const SETUP_VERSION = 5;
+// city from its manifest, cityBattle.js; v5: the battle economy, economySetup.js; v6: phase R3, the
+// raid and sack types, the pursuit after a field battle, forts and generals on the field).
+export const SETUP_VERSION = 6;
 export const SIDE_COLORS = ['#3b82f6', '#f97316']; // colour-blind-safe blue vs orange
 const TERRITORY_RADIUS = 14 * Q;
 

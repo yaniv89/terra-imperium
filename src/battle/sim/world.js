@@ -195,6 +195,45 @@ const spawnSides = (w) => {
     }));
     squads.forEach((q) => { q.idx = w.squads.length; w.squads.push(q); });
   });
+  spawnGenerals(w);
+};
+
+// A general is a unit on the field (master plan 6.7 row 5; phase R3): every general commanding one
+// of a side's units rides with a small guard (GENERAL_GUARD strength of cavalry) behind its line.
+// Its aura steadies the troops near it (effects.js generalAura) and keeps them supplied
+// (support.js); it can be killed: a general whose guard falls is struck down, and the campaign rolls
+// the shared COMMANDER_FALL_CHANCE for it (aftermath.js), as Auto does for a destroyed unit's
+// general. The guard is not a campaign unit (eco: left out of the result and the field cap) and a
+// side with only its generals left is broken.
+export const GENERAL_GUARD = 120;
+const spawnGenerals = (w) => {
+  const { setup, map } = w;
+  const generals = setup.generals || {};
+  if (!Object.keys(generals).length) return;
+  const midY = Math.floor(map.h / 2);
+  const template = deployTemplate(setup.battleType);
+  [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
+    const s = setup.sides[side];
+    const ids = [...new Set((s.units || []).filter((u) => u.strength > 0 && u.commanderId && generals[u.commanderId]).map((u) => u.commanderId))].sort();
+    if (!ids.length) return;
+    const edge = map.attackerEdge || 1;
+    const backX = side === SIDE_ATTACKER ? template.attacker(w, edge)[1] : template.defender(w)[1];
+    const zone = deployZone(w, side);
+    const behind = side === SIDE_ATTACKER ? -2 : 2;
+    ids.forEach((cid, i) => {
+      const unit = { id: `gen_${cid}`, classId: 'cavalry', strength: GENERAL_GUARD, maxStrength: GENERAL_GUARD, morale: 100, promotions: [], commanderId: cid, domain: 'land' };
+      const q = makeSquad(w, unit, side, s.ageId, w.squads.length);
+      q.isGeneral = cid; q.eco = 'general';
+      q.x = tileCenter(Math.max(zone.x0, Math.min(zone.x1, backX + behind)));
+      q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, midY + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 3)));
+      if ((setup.city || setup.economy) && !TILE_COST[map.tiles[tileOf(map, q.x, q.y)]]) {
+        const g = walkableGoal(map, tileOf(map, q.x, q.y));
+        q.x = tileCenter(g % map.w); q.y = tileCenter(Math.floor(g / map.w));
+      }
+      q.onField = true; q.anchorX = q.x; q.anchorY = q.y;
+      w.squads.push(q);
+    });
+  });
 };
 
 // The tile x a side enters the field on (and flees toward).

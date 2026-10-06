@@ -588,6 +588,9 @@ export const sanitizeTacticalResult = (state, pb, result) => {
         decisive: !!report.tactical?.decisive,
         xpBonusById: bonus,
         powersUsed: sanitizePowersUsed(report.tactical?.powersUsed),
+        // Generals on the field (row 5): only commanders of the battle's own units.
+        generalsFielded: onlyIds(report.tactical?.generalsFielded, [...attackerUnits, ...defenderUnits].map((u) => u.commanderId).filter(Boolean)),
+        generalsStruck: onlyIds(report.tactical?.generalsStruck, [...attackerUnits, ...defenderUnits].map((u) => u.commanderId).filter(Boolean)),
         razed: Array.isArray(report.tactical?.razed) ? report.tactical.razed.filter((c) => BUILDING_CATEGORIES[c] && c !== 'defense').slice(0, 12) : [],
         ...(report.tactical?.cityDamage ? { cityDamage: { destroyed: cleanIds(report.tactical.cityDamage.destroyed), damaged: cleanIds(report.tactical.cityDamage.damaged) } } : {})
       }

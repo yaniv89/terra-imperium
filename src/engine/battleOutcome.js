@@ -581,7 +581,9 @@ export const applyBattleOutcome = (state, o) => {
   const beforeD = out.defenderUnits.map((u) => ({ ...(state.units[u.id] || u), strength: startStrength(state, out, u) }));
   const aftermath = applyBattleAftermath(s, {
     regionId: placed.aftermathRegionId, beforeA, afterA: out.attackerUnits, beforeD, afterD: out.defenderUnits,
-    attackerId: out.attackerNationId, defenderId: out.defenderNationId, outcome: placed.aftermathOutcome, devastationScale: placed.devastationScale ?? 1
+    attackerId: out.attackerNationId, defenderId: out.defenderNationId, outcome: placed.aftermathOutcome, devastationScale: placed.devastationScale ?? 1,
+    // A commanded battle with generals on the field: those whose guard fell are at risk (row 5).
+    generalsStruck: out.mode === 'command' && Array.isArray(out.report?.tactical?.generalsFielded) && out.report.tactical.generalsFielded.length ? (out.report.tactical.generalsStruck || []) : null
   });
   s = { ...s, regions: aftermath.regions, nations: aftermath.nations, hiredCommanders: aftermath.hiredCommanders };
 

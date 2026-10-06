@@ -138,19 +138,29 @@ export const sideLossShare = (before, after) => battleLossShare(before, after);
 
 // Destroyed units' commanders: some fall (removed), the rest escape unassigned. Returns
 // { hiredCommanders, fallen: [names] }.
-export const resolveCommanderCasualties = (hiredCommanders, destroyedUnits, turnNumber) => {
+// One death rule for Command and Auto (master plan 6.7 row 5): a general at risk falls with
+// COMMANDER_FALL_CHANCE. On Auto the generals at risk are those of destroyed units; in a commanded
+// battle the general is a unit on the field (src/battle/sim/world.js), and the ones at risk are
+// those whose guard was cut down (`struck`, commander ids): a destroyed unit's general whose guard
+// rode off lives, unassigned (a struck general who lives keeps a unit that lives).
+export const resolveCommanderCasualties = (hiredCommanders, destroyedUnits, turnNumber, struck = null) => {
   if (!hiredCommanders) return { hiredCommanders, fallen: [] };
   let out = hiredCommanders;
   const fallen = [];
-  (destroyedUnits || []).forEach((u) => {
+  const atRisk = struck ? [...struck].sort().map((cid) => ({ id: `gen_${cid}`, commanderId: cid })) : [];
+  const seen = new Set();
+  const destroyedCids = new Set((destroyedUnits || []).map((u) => u.commanderId).filter(Boolean));
+  [...atRisk, ...(destroyedUnits || [])].forEach((u) => {
     const id = u.commanderId;
     const c = id && out[id];
-    if (!c) return;
-    if (hashRoll(`${u.id}|${turnNumber}`) < COMMANDER_FALL_CHANCE) {
+    if (!c || seen.has(id)) return;
+    seen.add(id);
+    const exposed = struck ? struck.includes(id) : true;
+    if (exposed && hashRoll(`${u.id}|${turnNumber}`) < COMMANDER_FALL_CHANCE) {
       out = { ...out };
       delete out[id];
       fallen.push(c.name || id);
-    } else {
+    } else if (destroyedCids.has(id)) {
       out = { ...out, [id]: { ...c, assignedUnitId: null } };
     }
   });
@@ -161,7 +171,7 @@ export const resolveCommanderCasualties = (hiredCommanders, destroyedUnits, turn
 // sides' units going in and coming out; `regionId` is where it was fought; the winner/loser ids
 // may be null (a draw). Returns the new regions/nations/hiredCommanders and log lines.
 // `devastationScale` (default 1): 0.5 for a sea battle off a coast (battleOutcome.js).
-export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD, afterD, attackerId, defenderId, outcome, devastationScale = 1 }) => {
+export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD, afterD, attackerId, defenderId, outcome, devastationScale = 1, generalsStruck = null }) => {
   const all = [...(beforeA || []), ...(beforeD || [])];
   const allAfter = [...(afterA || []), ...(afterD || [])];
   let regions = applyCasualtyScars(state.regions, all, allAfter);
@@ -171,7 +181,7 @@ export const applyBattleAftermath = (state, { regionId, beforeA, afterA, beforeD
   const loserShare = loserId === attackerId ? sideLossShare(beforeA, afterA) : sideLossShare(beforeD, afterD);
   const nations = applyBattleWarExhaustion(state.nations, winnerId, loserId, loserShare);
   const destroyed = allAfter.filter((u) => !u.synthetic && (u.strength || 0) <= 0).map((u) => ({ ...u, commanderId: u.commanderId ?? all.find((b) => b.id === u.id)?.commanderId }));
-  const { hiredCommanders, fallen } = resolveCommanderCasualties(state.hiredCommanders, destroyed, state.turnNumber);
+  const { hiredCommanders, fallen } = resolveCommanderCasualties(state.hiredCommanders, destroyed, state.turnNumber, generalsStruck);
   const logs = fallen.map((name) => ({ year: state.year, message: `${name} fell in battle with their troops.`, type: 'combat' }));
   return { regions, nations, hiredCommanders, logs };
 };

@@ -63,6 +63,10 @@ export const toStrategicResult = (w) => {
         joinedReinforcements: w.squads.filter((q) => q.reinforcement && q.joined).map((q) => q.unitId),
         powersUsed: [{ ...w.powersUsed[0] }, { ...w.powersUsed[1] }],
         xpBonusById,
+        // Generals whose guard fell on the field (world.js spawnGenerals): the campaign rolls the
+        // shared COMMANDER_FALL_CHANCE for each (aftermath.js); the others rode off.
+        generalsStruck: w.squads.filter((q) => q.isGeneral && !q.alive).map((q) => q.isGeneral),
+        generalsFielded: w.squads.filter((q) => q.isGeneral).map((q) => q.isGeneral),
         // The region's buildings the attacker burned (each loses a tier in the campaign).
         razed: [...(w.razed || [])],
         // The real city's losses by manifest id (src/engine/cityManifest.js carries them to the map).
