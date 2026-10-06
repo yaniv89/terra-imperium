@@ -103,6 +103,7 @@ import { spreadPlague, seedPlagueNear, PLAGUE_EVENT_ORIGINS } from './plague';
 import { updateWarHeat } from './warContagion';
 import { navalCargo } from '../data/navalLines';
 import { ringsFromF75 } from '../data/geo/gridScale';
+import { repairCityDamage } from './cityManifest';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -423,6 +424,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
       regions[id] = { ...region, ...(region.integratingUntil != null && newTurnNumber>=region.integratingUntil ? {integratingUntil:null}:{}), unrest, control, underInvasion: stillUnderCooldown ? region.underInvasion : false, currentPopulation, ...(region.devastation != null || devastation ? { devastation } : {}) };
     }
   });
+  // Battle damage to cities repairs for free (cityManifest.js: damaged structures, ruined houses).
+  Object.keys(regions).forEach((id) => { const r = regions[id]; if (r.cityDamage) regions[id] = repairCityDamage(r); });
   mark('regionUnrestAndPopulation');
 
   // --- rebellion (plan §9): unrest crossing the threshold spawns an actual rebel army in the

@@ -31,6 +31,12 @@ import LAYOUTS from './townLayouts.json';
 import { styleChain } from './architecture';
 import { BUILDING_CATEGORIES, getCategoryTierName } from './buildings';
 import { TOWN_TIERS } from './townTiers';
+import { sinCosDeg } from '../utils/exactMath';
+
+// A point at `deg` degrees (0 east, 90 north) and radius r in model space (z south). Exact on
+// every engine (the engine reads these layouts: src/engine/determinismGuard.test.js).
+const polar = (deg, r) => { const [sn, cs] = sinCosDeg(deg); return { x: r * cs, z: -r * sn }; };
+const RAD = Math.PI / 180;
 
 export const MANIFEST_VERSION = 1;
 export const LAYOUT_VERSION = LAYOUTS.version;
@@ -116,13 +122,13 @@ export const proceduralHouses = (cityId, tierId, ageId = 'bronze') => {
   let tries = 0;
   while (placed.length < tier.houses && tries < tier.houses * 30) {
     tries += 1;
-    const a = rand() * Math.PI * 2; const r = plaza + 0.35 + rand() * (tier.radius - plaza - 0.5);
-    const x = Math.cos(a) * r; const z = Math.sin(a) * r;
+    const deg = rand() * 360; const r = plaza + 0.35 + rand() * (tier.radius - plaza - 0.5);
+    const { x, z: nz } = polar(deg, r); const z = -nz;
     const w = 0.55 + rand() * 0.4; const d = 0.5 + rand() * 0.3;
     if (placed.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < ((p.w + w) * 0.62) ** 2)) continue;
     const tall = modern && rand() < 0.35;
     const h = tall ? 1.2 + rand() * 1.6 : 0.45 + rand() * (tier.id === 'big' ? 0.5 : 0.3);
-    placed.push({ x, z, w, d, h, rot: a + Math.PI / 2, shade: 0.85 + rand() * 0.3 });
+    placed.push({ x, z, w, d, h, rot: (deg + 90) * RAD, shade: 0.85 + rand() * 0.3 });
   }
   return placed;
 };
@@ -157,7 +163,7 @@ const buildingSpotsFor = (tierId, seed) => {
   const half = TOWN_HALF[tierId] || TOWN_HALF.small;
   const shift = ((seed % 5) - 2) * 4;
   const inner = { small: [90], medium: [65, 115], big: [90, 45, 135] }[tierId] || [90];
-  const at = (deg, r) => ({ x: r * Math.cos((deg * Math.PI) / 180), z: -r * Math.sin((deg * Math.PI) / 180) });
+  const at = polar;
   const rOut = (WALL_RADIUS[tierId] || WALL_RADIUS.small) + 0.25 + BUILDING_DISC;
   const outer = [];
   for (let d = 0; d < 360; d += 20) { const deg = d + shift; const n = ((deg % 360) + 360) % 360; if (n >= 245 && n <= 295) continue; outer.push(deg); }
@@ -203,26 +209,26 @@ export const buildTownManifest = ({ cityId, ageId = 'bronze', tierId = 'small', 
   if (defenseTier >= 0 && !camp) {
     const r = WALL_RADIUS[tierId] || WALL_RADIUS.small;
     const n = Math.max(8, Math.round((2 * Math.PI * r * 10) / WALL_SEGMENT_M));
-    const step = (2 * Math.PI) / n;
-    const len = 2 * r * Math.sin(step / 2);
+    const step = 360 / n;
+    const len = 2 * r * sinCosDeg(step / 2)[0];
     // segment 0 centred on the gate (south, +z: angle -90 degrees with north up)
     for (let i = 0; i < n; i++) {
-      const a = -Math.PI / 2 + i * step;
-      const seg = { x: r * Math.cos(a), z: -r * Math.sin(a), w: len, d: WALL_THICKNESS, h: 0.5, yaw: a + Math.PI / 2, passive: false };
+      const a = -90 + i * step;
+      const seg = { ...polar(a, r), w: len, d: WALL_THICKNESS, h: 0.5, yaw: (a + 90) * RAD, passive: false };
       s.push(i === 0 ? { id: 'gate', kind: 'gate', ...seg } : { id: `wall-${i - 1}`, kind: 'wall', ...seg });
     }
     const towers = wallTowerCount(defenseTier);
     for (let i = 0; i < towers; i++) {
       // spread evenly from the gate's two sides round the back
-      const a = -Math.PI / 2 + ((i + 0.5) * 2 * Math.PI) / towers;
-      s.push({ id: `tower-${i}`, kind: 'tower', x: r * Math.cos(a), z: -r * Math.sin(a), w: 0.45, d: 0.45, h: 0.9, passive: false });
+      const a = -90 + ((i + 0.5) * 360) / towers;
+      s.push({ id: `tower-${i}`, kind: 'tower', ...polar(a, r), w: 0.45, d: 0.45, h: 0.9, passive: false });
     }
   }
   const wr = (WALL_RADIUS[tierId] || WALL_RADIUS.small) + 1.6;
   [...wonders].sort().forEach((projectId, i) => {
-    const a = Math.PI / 2 + (i % 2 ? 1 : -1) * (0.5 + Math.floor(i / 2) * 0.6);
+    const a = 90 + (i % 2 ? 1 : -1) * (30 + Math.floor(i / 2) * 35);
     const [w, d, h] = WONDER_SIZE;
-    s.push({ id: `wonder-${projectId}`, kind: 'wonder', projectId, x: wr * Math.cos(a), z: -wr * Math.sin(a), w, d, h, passive: true });
+    s.push({ id: `wonder-${projectId}`, kind: 'wonder', projectId, ...polar(a, wr), w, d, h, passive: true });
   });
   return { version: MANIFEST_VERSION, layoutVersion: LAYOUT_VERSION, cityId, townKey, ageId, tierId, style, structures: s };
 };
