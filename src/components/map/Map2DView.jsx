@@ -37,6 +37,7 @@ import { wallsOf } from '../../engine/sieges';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { getNationColor } from '../../data/nationColors';
+import { isIndependent, mutedIndependentColour, INDEPENDENT_BAND_DASH } from '../../data/independents';
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
@@ -432,17 +433,20 @@ const Map2DView = ({
   const bandIdBase = React.useId().replace(/:/g, '');
   const nationBandElements = useMemo(() => {
     if (!interactive || !nationOutlines.length) return null;
-    const colourOf = (owner) => (owner === state.playerNationId ? PLAYER_BAND_COLOR : getNationColor(owner) || '#94a3b8');
+    // An independent's band is muted and dashed (independents.js: the W1 placeholder for a hatched border).
+    const indep = (owner) => isIndependent(state.nations, owner);
+    const colourOf = (owner) => (owner === state.playerNationId ? PLAYER_BAND_COLOR : indep(owner) ? mutedIndependentColour(getNationColor(owner)) : getNationColor(owner) || '#94a3b8');
     return (
       <g pointerEvents="none" data-testid="nation-bands">
         <defs>{nationOutlines.map((n) => <clipPath key={n.owner} id={`${bandIdBase}-${n.owner}`}><path d={n.d} /></clipPath>)}</defs>
         {nationOutlines.map((n) => (
           <path key={n.owner} d={n.d} fill="none" stroke={colourOf(n.owner)} strokeWidth={(2 * NATION_BAND_PX) / zoomK} strokeLinejoin="round"
-            clipPath={`url(#${bandIdBase}-${n.owner})`} opacity={0.9} data-nation-band={n.owner} />
+            strokeDasharray={indep(n.owner) ? INDEPENDENT_BAND_DASH.split(' ').map((v) => (Number(v) * NATION_BAND_PX) / zoomK).join(' ') : undefined}
+            clipPath={`url(#${bandIdBase}-${n.owner})`} opacity={0.9} data-nation-band={n.owner} data-independent={indep(n.owner) ? 'true' : undefined} />
         ))}
       </g>
     );
-  }, [interactive, nationOutlines, state.playerNationId, zoomK, bandIdBase]);
+  }, [interactive, nationOutlines, state.playerNationId, state.nations, zoomK, bandIdBase]);
 
   // Load the close view a little before it is needed, then keep it (one WebGL context for good).
   const [closeLoaded, setCloseLoaded] = useState(false);

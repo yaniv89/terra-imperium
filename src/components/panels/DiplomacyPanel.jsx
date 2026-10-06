@@ -21,6 +21,7 @@ import {
   ACTION_COSTS, CULTURAL_EXPORT_INFLUENCE_GAIN, CULTURAL_EXPORT_GLOBAL_HOSTILITY_REDUCTION
 } from '../../data/actionCosts';
 import { isAtWarWithPlayer } from '../../engine/diplomacy';
+import { isIndependentNation } from '../../data/independents';
 import { getNationCapital } from '../../data/regions';
 import { getEffectiveAgeId } from '../../data/ages';
 import { canAfford, formatNumber } from '../../utils/helpers';
@@ -86,7 +87,7 @@ const DiplomacyPanel = () => {
   // 240.
   const sortedNations = useMemo(() => {
     return Object.values(state.nations)
-      .filter(n => !n.isPlayer)
+      .filter(n => !n.isPlayer && !isIndependentNation(n)) // independents make no treaties (W1); their own list comes with W4
       .filter(n => !search.trim() || n.name.toLowerCase().includes(search.trim().toLowerCase()))
       .sort((a, b) => {
         const aAtWar = isAtWarWithPlayer(state, a.id);

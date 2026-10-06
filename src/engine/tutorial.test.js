@@ -75,7 +75,7 @@ describe('the guided start as Kemet in a peoples world (phase W0)', () => {
   it('plays Kemet in a Standard world, equal start: no free settler, the guide still opens on settling', () => {
     const s = quiet(createInitialState({ playerNationId: TUTORIAL_NATION, rngSeed: 11, guided: true, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: 11 } }));
     expect(s.playerNationId).toBe('kemet');
-    expect(Object.keys(s.nations)).toHaveLength(36);
+    expect(Object.keys(s.nations).filter((id) => s.nations[id].kind !== 'independent')).toHaveLength(36); // the majors; the rest are independents (W1)
     expect(s.tutorial).toEqual({ startTurn: 1, done: {}, ended: false });
     expect(Object.values(s.units).some((u) => isSettler(u))).toBe(false);
     expect(tutorialStatus(s).current.id).toBe('settle');

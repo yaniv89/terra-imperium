@@ -130,6 +130,18 @@ export const independentTitle = ({ adjective, cityName, personality = 'tribal', 
 // the map draws the placeholder the plan allows: a plain dot in the personality's badge colour,
 // and no town dressing (the land theme's town alone). These are the paths the real art will use.
 
+/** How the map draws an independent's land: its colour muted toward slate, its border band dashed
+ * (the placeholder for the plan's hatched border, independents 7, until W4). */
+export const INDEPENDENT_MUTE = 0.55;
+export const INDEPENDENT_MUTE_TO = '#64748b';
+export const INDEPENDENT_BAND_DASH = '3 2';
+export const mutedIndependentColour = (hex) => {
+  if (typeof hex !== 'string' || !/^#[0-9a-f]{6}$/i.test(hex)) return INDEPENDENT_MUTE_TO;
+  const a = parseInt(hex.slice(1), 16); const b = parseInt(INDEPENDENT_MUTE_TO.slice(1), 16);
+  const ch = (s) => Math.round(((a >> s) & 255) * (1 - INDEPENDENT_MUTE) + ((b >> s) & 255) * INDEPENDENT_MUTE);
+  return `#${((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1)}`;
+};
+
 export const INDEPENDENT_ART = {
   /** Personality shields, S1 icons: `icons/independents/<personality>`. */
   shieldIcon: (personality) => `src/assets/icons/independents/${personality}.svg`,

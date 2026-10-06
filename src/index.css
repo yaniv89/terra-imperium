@@ -409,6 +409,7 @@ svg path {
 .city-banner-name { display: flex; align-items: center; gap: 3px; padding: 4px 9px 4px 6px; letter-spacing: 0.01em; }
 .city-banner-star { color: #fde68a; font-size: 11px; }
 .city-banner-warn { margin-left: 2px; padding: 0 4px; border-radius: 6px; background: #ef4444; color: #fff; font-size: 10px; line-height: 13px; }
+.city-banner-indep { display: inline-block; width: 8px; height: 8px; margin-right: 3px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.85); vertical-align: middle; flex: none; }
 .city-banner-siege { margin-left: 2px; color: #fb923c; }
 .city-banner-icon { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; object-fit: contain; }
 .city-banner-bar {

@@ -80,13 +80,16 @@ const snapshot = (s, t, counters, ms, lives) => {
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
     plagueCitiesNow: regs.filter(isPlagued).length, plagueCitiesStruck: counters.plagued.size,
+    // Independents (phase W1): how many still stand, and the majors' cities (the expansion check).
+    independentsAlive: nations.filter((n) => n.kind === 'independent' && !n.isEliminated).length,
+    majorCities: regs.filter((r) => r.owner && s.nations[r.owner]?.kind !== 'independent').length,
     nonFinite, auditViolations: auditCount(s), msPerTurn: +ms.toFixed(1)
   };
 };
 
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
-    const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : SCENARIO === 'peoples' ? { scenario: { mode: 'peoples', size: SIZE, seed } } : {};
+    const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : SCENARIO === 'peoples' ? { scenario: { mode: 'peoples', size: SIZE, seed, ...(process.env.INDEPENDENTS === '0' ? { independents: false } : {}) } } : {};
     let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };
