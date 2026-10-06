@@ -42,7 +42,7 @@ import { loadGroundData } from '../closeView/groundBlend';
 import { createCloseScene, closeTowns } from '../closeView/closeViewScene';
 import { tileGpuData } from './tileGpuData';
 import { indexCities, buildTileTexels, buildCityTexels, buildTintTexels } from './territoryData';
-import { createTerritoryLayer, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
+import { createTerritoryLayer, createTerritoryCache, createRasterLayer, createSpriteLayer, createLineLayer } from './glLayers';
 import { createAtlas } from './spriteAtlas';
 import { onImageLoad } from './spriteArt';
 import { viewFor, worldRect, wrapNear, screenToWorld, worldToScreen, minZoomFor, pickHit } from './mapView';
@@ -118,19 +118,22 @@ const GLMapView = ({
     }
     renderer.setClearColor(OCEAN_COLOR, 1);
     renderer.info.autoReset = false;
-    const base = new Scene(); const close = new Scene(); const top = new Scene();
+    // drawn in this order: the Earth, the territories (cached while panning), lines and ground
+    // sprites, the close view's models, the badges, banners and markers
+    const ground = new Scene(); const base = new Scene(); const close = new Scene(); const top = new Scene();
     const closeRoot = new Group();
     close.add(closeRoot);
     const camera = new OrthographicCamera(0, 1, 0, -1, -1, 1);
     const atlas = createAtlas();
     const g = {
-      renderer, camera, base, close, top, closeRoot, atlas, raf: 0, dirty: true, closeActive: false, closeLayout: null,
+      renderer, camera, ground, base, close, top, closeRoot, atlas, raf: 0, dirty: true, closeActive: false, closeLayout: null,
       groups: {}, hits: [], frames: 0
     };
     g.frame = () => { g.raf = 0; };
     g.request = () => { if (!g.raf && !g.disposed) g.raf = requestAnimationFrame((now) => g.frame(now)); };
-    g.raster = createRasterLayer(base, { request: g.request, onReady: () => g.request() });
-    g.territory = createTerritoryLayer(base, tileGpuData(getTiles()));
+    g.raster = createRasterLayer(ground, { request: g.request, onReady: () => g.request() });
+    g.territory = createTerritoryLayer(new Scene(), tileGpuData(getTiles()));
+    g.territoryCache = createTerritoryCache(g.territory);
     g.lowLines = createLineLayer(base, 20);
     g.groundSprites = createSpriteLayer(base, atlas, 30);
     g.marchLines = createLineLayer(base, 40);
@@ -143,7 +146,7 @@ const GLMapView = ({
     return () => {
       g.disposed = true;
       cancelAnimationFrame(g.raf);
-      [g.raster, g.territory, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene].forEach((l) => l.dispose());
+      [g.raster, g.territory, g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites, g.closeScene, g.territoryCache].forEach((l) => l.dispose());
       renderer.dispose();
       gl.current = null;
     };
@@ -164,10 +167,10 @@ const GLMapView = ({
     const { renderer, camera } = g;
     renderer.info.reset();
     g.raster.update(v, { closeK: CLOSE_ZOOM_K, baseZ: s.baseZ, worldUrl: s.worldUrl, worldSize: s.worldSize });
-    g.territory.update(v, {
+    const territoryOpts = {
       uHex: v.k >= HEX_FROM_ZOOM ? 1 : 0, uCityDetail: v.k >= CITY_DETAIL_ZOOM ? 1 : 0, uNationHalf: v.k < 3 ? 0.55 : 0.45,
       uSelTile: s.selectedTile ?? -1, uTintOn: s.lens === 'supply' || s.lens === 'estates' ? 1 : 0, uFogOn: s.fogOn ? 1 : 0
-    });
+    };
     [g.lowLines, g.groundSprites, g.marchLines, g.upperSprites, g.topSprites].forEach((l) => l.update(v));
     // the world camera (the raster quads and the close view's models)
     camera.left = v.worldLeft; camera.right = v.worldLeft + width / v.k;
@@ -177,8 +180,11 @@ const GLMapView = ({
     camera.near = -depth; camera.far = depth;
     camera.updateProjectionMatrix();
     renderer.autoClear = true;
-    renderer.render(g.base, camera);
+    renderer.render(g.ground, camera);
     renderer.autoClear = false;
+    // the territories: one texture while panning, the live shader while a zoom is under way
+    g.lastTerritory = g.territoryCache.draw(renderer, camera, v, territoryOpts, v.k === settledRef.current.k);
+    renderer.render(g.base, camera);
     g.closeActive = v.k >= CLOSE_ZOOM_K && !!lay;
     if (g.closeActive) {
       // the models were laid out in screen pixels of the layout's view: back to world units, at
@@ -524,7 +530,7 @@ const GLMapView = ({
       pickAt: (x, y) => { const p = tapAtRef.current(x, y); return p ? { kind: p.kind, id: p.id ?? null, tile: p.tile ?? null, land: p.land ?? null, explored: p.explored ?? null, via: p.via ?? null, marker: p.marker?.kind ?? null, own: p.marker?.own ?? null } : null; },
       transform: () => ({ ...transformRef.current })
     };
-    window.__glMap = { info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames }), renderer: gl.current?.renderer };
+    window.__glMap = { info: () => ({ ...gl.current.renderer.info.render, frames: gl.current.frames, territory: gl.current.lastTerritory }), renderer: gl.current?.renderer };
     return () => { delete window.__map2DTest; delete window.__glMap; };
   }, [hudOffset, projection, state, selectedRegion, focusOnLatLng, view, ready]);
 

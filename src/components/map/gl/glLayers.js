@@ -13,8 +13,9 @@
 import {
   Mesh, PlaneGeometry, ShaderMaterial, DataTexture, RGBAFormat, RedFormat, FloatType, UnsignedByteType,
   NearestFilter, LinearFilter, LinearMipmapLinearFilter, ClampToEdgeWrapping, TextureLoader, CanvasTexture, GLSL3,
-  InstancedBufferGeometry, InstancedBufferAttribute, DynamicDrawUsage, Vector2, Vector3, Vector4
+  InstancedBufferGeometry, InstancedBufferAttribute, DynamicDrawUsage, Vector2, Vector3, Vector4, Scene, WebGLRenderTarget, Color
 } from 'three';
+import { wrapNear } from './mapView';
 import { TERRITORY_VERTEX, TERRITORY_FRAGMENT } from './territoryShader';
 import { DATA_W, LOOKUP_W, LOOKUP_H } from './tileGpuData';
 import { CITY_W } from './territoryData';
@@ -55,11 +56,12 @@ export const createTerritoryLayer = (scene, grid) => {
     uniforms[name].value = dataTexture(data, w, h, format, type);
     old.dispose();
   };
-  return {
+  const layer = {
     mesh,
-    setTiles: ({ data, rows }) => swap('uTile', data, DATA_W, rows, RGBAFormat, FloatType),
-    setCities: ({ data, rows }) => swap('uCity', data, CITY_W, rows, RGBAFormat, FloatType),
-    setTints: ({ data, rows }) => swap('uTint', data, DATA_W, rows, RGBAFormat, UnsignedByteType),
+    version: 0,
+    setTiles: ({ data, rows }) => { swap('uTile', data, DATA_W, rows, RGBAFormat, FloatType); layer.version += 1; },
+    setCities: ({ data, rows }) => { swap('uCity', data, CITY_W, rows, RGBAFormat, FloatType); layer.version += 1; },
+    setTints: ({ data, rows }) => { swap('uTint', data, DATA_W, rows, RGBAFormat, UnsignedByteType); layer.version += 1; },
     update: (v, opts) => {
       uniforms.uView.value.set(v.worldLeft, v.worldTop, 1 / v.k, 0);
       uniforms.uViewport.value.set(v.width, v.height);
@@ -71,6 +73,60 @@ export const createTerritoryLayer = (scene, grid) => {
       scene.remove(mesh); mesh.geometry.dispose(); material.dispose();
       [centres, neigh, lookup, uniforms.uTile.value, uniforms.uCity.value, uniforms.uTint.value].forEach((t) => t.dispose());
     }
+  };
+  return layer;
+};
+
+// ------------------------------------------------------------------ the territory pass, cached
+// The territory shader does real work per pixel (the tile search, six edges); a phone's GPU should
+// not run it every frame of a pan. Once the zoom has settled it is drawn once into a texture over
+// the screen plus CACHE_MARGIN round it, and panning draws that texture as one quad until the view
+// leaves it, the zoom changes or anything it shows changes (then it is drawn live, and cached again).
+export const CACHE_MARGIN = 0.3;
+const COMPOSITE_FRAGMENT = 'uniform sampler2D uMap; varying vec2 vUv; void main() { gl_FragColor = texture2D(uMap, vUv); }';
+export const createTerritoryCache = (territory) => {
+  const scene = new Scene(); // the live pass: the territory mesh alone
+  scene.add(territory.mesh);
+  const quadScene = new Scene();
+  const target = new WebGLRenderTarget(1, 1, { minFilter: NearestFilter, magFilter: NearestFilter, depthBuffer: false });
+  const material = new ShaderMaterial({ vertexShader: TERRAIN_VERTEX, fragmentShader: COMPOSITE_FRAGMENT, uniforms: { uMap: { value: target.texture } }, transparent: true, premultipliedAlpha: true, depthTest: false, depthWrite: false });
+  const quad = new Mesh(new PlaneGeometry(1, 1).translate(0.5, -0.5, 0), material);
+  quad.frustumCulled = false;
+  quadScene.add(quad);
+  const clear = new Color();
+  let cache = null; // { key, k, left, top, w, h }
+  const fits = (v, key) => {
+    if (!cache || cache.key !== key || cache.k !== v.k) return false;
+    const left = wrapNear(cache.left, v.worldLeft, v.worldW);
+    return v.worldLeft >= left && v.worldLeft + v.width / v.k <= left + cache.w && v.worldTop >= cache.top && v.worldTop + v.height / v.k <= cache.top + cache.h;
+  };
+  return {
+    /** Draws the territories for view `v` (the shader's `opts`): from the cache when it fits, else live; caches when `settled`. */
+    draw: (renderer, camera, v, opts, settled) => {
+      const key = `${territory.version}|${JSON.stringify(opts)}|${v.width}x${v.height}@${v.dpr}`;
+      if (!fits(v, key) && settled) {
+        const m = CACHE_MARGIN; const w = v.width * (1 + 2 * m); const h = v.height * (1 + 2 * m);
+        const pw = Math.min(4096, Math.round(w * v.dpr)); const ph = Math.min(4096, Math.round(h * v.dpr));
+        const area = { ...v, worldLeft: v.worldLeft - (m * v.width) / v.k, worldTop: v.worldTop - (m * v.height) / v.k, width: w, height: h, dpr: pw / w };
+        target.setSize(pw, ph);
+        territory.update(area, opts);
+        const before = renderer.getRenderTarget(); const alpha = renderer.getClearAlpha(); renderer.getClearColor(clear);
+        renderer.setRenderTarget(target); renderer.setClearColor(0x000000, 0); renderer.clear(true, false, false);
+        renderer.render(scene, camera);
+        renderer.setRenderTarget(before); renderer.setClearColor(clear, alpha);
+        cache = { key, k: v.k, left: area.worldLeft, top: area.worldTop, w: w / v.k, h: h / v.k };
+      }
+      if (fits(v, key)) {
+        quad.position.set(wrapNear(cache.left, v.worldLeft, v.worldW), -cache.top, 0);
+        quad.scale.set(cache.w, cache.h, 1);
+        renderer.render(quadScene, camera);
+        return 'cached';
+      }
+      territory.update(v, opts);
+      renderer.render(scene, camera);
+      return 'live';
+    },
+    dispose: () => { target.dispose(); material.dispose(); quad.geometry.dispose(); }
   };
 };
 

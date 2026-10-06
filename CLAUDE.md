@@ -64,6 +64,13 @@ The live site is GitHub Pages, built into `docs/`.
   driven only by orders, run in a Web Worker (`worker/`); `render/` is the three.js battlefield;
   `setup/` builds a battle from macro armies. UI in src/components/battle/.
 - `src/components/`: React UI (panels, modals, globe, map, battle screens).
+- The flat map is one WebGL canvas (phase A2): `src/components/map/gl/GLMapView.jsx`. Territories,
+  borders, hexes, fog and lens tints are one full-screen shader that finds each pixel's tile
+  (territoryShader.js over the data textures of tileGpuData.js and territoryData.js); badges,
+  banners, markers and glyphs are instanced sprites from a canvas atlas (sceneModel.js,
+  spriteArt.js); the close view's models come from closeView/closeViewScene.js in the same scene.
+  The world wraps east-west (mapView.js). The old SVG map (Map2DView.jsx) and the globe stay behind
+  settings (map/mapPrefs.js) for one release. Map speed: `node scripts/perf/map-pan.mjs --gpu`.
 - Layout: `src/hooks/useLayoutMode.js` picks desktop / tablet / phone-landscape / phone-portrait and
   sets `<html data-layout>`. Phones play landscape (slim top bar, tab rail on the right, side
   sheets); portrait shows a rotate screen. CSS follows it with the `pl:` Tailwind variant and the
