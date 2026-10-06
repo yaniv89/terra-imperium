@@ -106,9 +106,11 @@ const BattleHud = ({
               </div>
             )}
             <div className="mt-1.5 text-amber-200">
-              ⏱ {fmtTime(timeLeft)} on the clock — {playerSide === 1
-                ? 'hold out until it runs out and the defense is yours.'
-                : 'take the keep or break the defenders before it runs out, or the defender holds.'}
+              ⏱ {fmtTime(timeLeft)} on the clock — {setup.battleType === 'raid' || setup.battleType === 'sack'
+                ? `${BATTLE_TYPES[setup.battleType][playerSide === 1 ? 'defender' : 'attacker']}.`
+                : playerSide === 1
+                  ? 'hold out until it runs out and the defense is yours.'
+                  : 'take the keep or break the defenders before it runs out, or the defender holds.'}
             </div>
           </div>
         </div>

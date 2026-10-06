@@ -38,7 +38,7 @@ N=32 TYPES=field,assault,town AGES=bronze:bronze,classical:kingdoms TERRAIN=mixe
 BASE=<parityEco output> K=0,1.5 U=1000 EFF=1,1.6 F=8,12 A=12,20 D=8,12 W=0.6,0.7 \
   npx vitest run -c .claude/skills/vitest.skills.config.js .claude/skills/battle-lab/autoCalib
 ```
-parityEco runs every campaign battle the way the game fights it (the battle economy on, the real
+parityEco runs every campaign battle the way the game fights it (TYPES also raid, sack, sally, landing; the battle economy on, the real
 city from its manifest with its militia; `assault` a walled city at fort level 2, `town` an
 unwalled one) against src/engine/autoBattle.js `autoFromInputs` fed the same armies. Each row:
 exchange tactical vs auto, the ratio and IN/OUT of the guardrail [auto / 2, auto x 3.5], wins

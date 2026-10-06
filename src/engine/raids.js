@@ -1,8 +1,8 @@
 // src/engine/raids.js
 // The independents' own AI, phase W2 (plans/independent-cities.md 4, plans/MASTER-PLAN.md 6.5,
 // 6.8 and decisions 37 and 38): raids, sacks, grudges and tribute. Mercenaries are in
-// mercenaries.js, grudges in grudges.js, the raid battle (the swap point for the RTS phase R3) in
-// raidBattle.js, the numbers in src/data/independents.js.
+// mercenaries.js, grudges in grudges.js, the raid battle (a real battle since phase R3: the
+// real-time raid or sack, or the honest Auto) in raidBattle.js, the numbers in src/data/independents.js.
 //
 // The model in plain words:
 // - Treasury. An independent keeps `indep.gold`: its city's gold yield a turn (x2 mercantile),
@@ -34,12 +34,17 @@
 // - A raid runs every turn: the party walks its tile route (A* once, when it starts; the march cost
 //   rules of armies.js), at most RAID_MAX_TURNS out. An army in the way is fought when the party
 //   outweighs it by RAID_FIGHT_RATIO, else the party goes home. At the target the party fights the
-//   defenders there (fightRaidBattle: today's auto-resolve, R3's RTS raid later); if it wins the
-//   loot is taken and it goes home. It aborts (goes home) after losing half its strength, when its
+//   defenders there (raidBattle.js: a sack always, the town's militia stands). Against the player
+//   the battle waits in the battle queue (Command or Auto) and the raid waits in phase 'battle'
+//   until settleRaidBattle carries it on; against anyone else it is fought on Auto at once. Both
+//   go through the one outcome service (battleOutcome.js). If the raiders win the loot is taken
+//   and they go home. It aborts (goes home) after losing half its strength, when its
 //   city is threatened or when the target is gone. Home, the units garrison again.
 // - Sack (4.4, 6.5, 6.8): gold = SACK_INCOME_TURNS turns of the city's gold (at least
-//   SACK_MIN_GOLD; the victim's treasury pays what it holds), the city loses one size and one
-//   building tier, never more than half of either, and is never captured.
+//   SACK_MIN_GOLD; the victim's treasury pays what it holds); the battle burned the town (what the
+//   raiders burned, at least the best building and a size's worth of houses) and the outcome
+//   service carried it to the map under the 50% rule; never captured. A city without a town model
+//   loses one size and one building tier (sackedCity), never more than half of either.
 // - Losses are gone: no captives (decision 37). Raids are not wars: no war score, no peace.
 // - The victim: a log line and warning (the player), `raidedBy[indepId]` (the "raided us" opinion
 //   reason, opinion.js). The independent: a grudge against whoever killed its raiders.
@@ -63,7 +68,9 @@ import { findTilePath, tileAccess, tileStepCost, passableTile, stackPace, unitTi
 import { pillageTile, RAID_GOLD } from './threat';
 import { playerRouteTiles } from './plunder';
 import { hashRoll } from './aftermath';
-import { fightRaidBattle } from './raidBattle';
+import { fightRaidBattle, raidRecord, fightRaidAuto, raidOutcome, raidSpecOf, queuedRaidArmies } from './raidBattle';
+import { applyBattleOutcome } from './battleOutcome';
+import { cityManifestOf } from './cityManifest';
 import { withGrudge, grudgeOf, decayGrudges } from './grudges';
 import { isUnitInBattle } from './invasion';
 import { hireMercenary, mercOffer, processMercenaries, goldIn, addGoldIn } from './mercenaries';
@@ -249,16 +256,6 @@ const endRaid = (w, id, party) => {
   setIndep(w, id, { raid: null, mood: lost ? 'recovering' : 'calm', ...(lost ? { recoverUntil: w.turn + RAID_RECOVER_TURNS } : {}) });
 };
 
-/** Writes a battle's survivors back; the dead are gone (no captives). */
-const applyBattleUnits = (w, list) => {
-  list.forEach((u) => {
-    if (!w.units[u.id]) return;
-    if (!(u.strength > 0)) { delete w.units[u.id]; return; }
-    w.units[u.id] = { ...w.units[u.id], strength: u.strength, morale: u.morale ?? w.units[u.id].morale, routed: undefined, lastBattleTurn: w.turn };
-  });
-  touchUnits(w);
-};
-
 /** Beaten defenders on an open tile fall back to their own city (or stay when it is gone). */
 const fallBack = (w, defenders) => {
   defenders.forEach((u) => {
@@ -269,16 +266,40 @@ const fallBack = (w, defenders) => {
   touchUnits(w);
 };
 
-const fight = (w, id, { kind, tile, victim, city = null, party, defenders }) => {
-  const result = fightRaidBattle(w.view, { kind, defenderId: victim, tile, city, attackerUnits: party.map((u) => w.units[u.id]), defenderUnits: defenders.map((u) => w.units[u.id]) }, rngFor(w, id, `battle|${tile}`));
-  applyBattleUnits(w, result.attackers);
-  applyBattleUnits(w, result.defenders);
-  w.stats.raidBattles += 1;
-  // It holds a grudge against whoever killed its raiders (4.5).
-  if (result.attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], victim, GRUDGE_ATTACKED, { id: 'killed', turn: w.turn });
-  return result;
+// A raid battle's outcome, applied in place on the turn's working maps through the one outcome
+// service (battleOutcome.js): survivors, the dead, XP, devastation, war exhaustion, the battle's
+// mark, a sack's burned town. Not the player's battle: no report and no log line of its own.
+const applyOutcomeInPlace = (w, outcome) => {
+  const before = { ...w.view, regions: w.regions, units: w.units, nations: w.nations, world: w.view.world, logs: [], appliedBattleIds: w.appliedBattleIds ?? w.view.appliedBattleIds };
+  const after = applyBattleOutcome(before, outcome);
+  if (after === before) return;
+  [...outcome.attackerUnits, ...outcome.defenderUnits].forEach((u) => { if (!w.units[u.id]) return; if (after.units[u.id]) w.units[u.id] = after.units[u.id]; else delete w.units[u.id]; });
+  if (after.regions !== w.regions) Object.keys(after.regions).forEach((k) => { if (after.regions[k] !== w.regions[k]) { w.regions[k] = after.regions[k]; w.regionsChanged = true; } });
+  Object.assign(w.nations, after.nations);
+  w.view.world = after.world;
+  w.appliedBattleIds = after.appliedBattleIds;
+  touchUnits(w);
 };
 
+/**
+ * One raid battle (raidBattle.js). Against the player it waits in the battle queue for Command or
+ * Auto ({ queued: record }; settleRaidBattle carries on once it is fought); against anyone else it
+ * is fought on Auto at once and applied here ({ raidersWon, attackerLoss }).
+ */
+const fight = (w, id, { kind, raidKind = kind, tile, victim, city = null, party, defenders }) => {
+  const b = { kind, raidKind, attackerId: id, defenderId: victim, tile, cityId: city?.id ?? null, attackerUnits: party.map((u) => w.units[u.id]), defenderUnits: defenders.map((u) => w.units[u.id]), fromTile: unitTile(w.view, w.units[party[0].id] || party[0]) };
+  w.stats.raidBattles += 1;
+  if (victim === w.playerId) {
+    const rec = raidRecord(w.view, b, Math.floor(hashRoll(`${w.seed}|${id}|${w.turn}|battle|${tile}`) * 4294967296));
+    w.queued.push(rec);
+    return { queued: rec };
+  }
+  const r = fightRaidBattle(w.view, b, rngFor(w, id, `battle|${tile}`), { viewerId: w.playerId });
+  applyOutcomeInPlace(w, r);
+  // It holds a grudge against whoever killed its raiders (4.5).
+  if (r.attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], victim, GRUDGE_ATTACKED, { id: 'killed', turn: w.turn });
+  return r;
+};
 const raiderName = (w, id) => w.nations[id]?.name || 'Raiders';
 /** The outcome of a raid on the player, kept on the raider for the UI (phase W4: the sheet's "last
  * raid on you"): { turn, kind, won, loot, text }. A record only: no rule reads it. */
@@ -312,8 +333,6 @@ export const sackedCity = (c, turn) => {
 const resolveAtTarget = (w, id, party, raid) => {
   const t = raid.targetTile;
   const victim = raid.targetNationId;
-  const name = raiderName(w, id);
-  const toPlayer = victim === w.playerId;
   const city = raid.targetCityId != null ? w.regions[raid.targetCityId] : null;
   // Still a target?
   const ts = w.view.world?.tileState?.[t];
@@ -325,19 +344,45 @@ const resolveAtTarget = (w, id, party, raid) => {
   if (!valid) { sendHome(w, id, party, raid, 'gone'); return; }
   const defenders = hostileArmiesAt(w, id, t).filter((u) => u.ownerId === victim && !isUnitInBattle(w.view, u.id));
   const kind = raid.kind === 'sack' ? 'sack' : 'raid';
-  if (defenders.length) {
-    const r = fight(w, id, { kind, tile: t, victim, city: raid.kind === 'sack' ? city : null, party, defenders });
-    const survivors = partyOf(w, id);
-    if (!r.raidersWon) {
-      if (toPlayer) { const text = `Your ${kind === 'sack' ? 'garrison of' : 'army at'} ${kind === 'sack' ? city.name : placeOf(w, t)} drove off ${name}.`; log(w, text); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0, text }); }
-      if (!survivors.length) { setIndep(w, id, { raid: { ...raid, lost: true } }); endRaid(w, id, []); return; }
-      sendHome(w, id, survivors, { ...raid, lost: true }, 'beaten');
-      return;
-    }
-    if (kind !== 'sack') fallBack(w, r.defenders.filter((u) => u.strength > 0));
-    party = survivors;
-    if (!party.length) { endRaid(w, id, []); return; }
+  // A sack is always a battle: the town's militia stands even with no garrison (battleInputs.js).
+  if (defenders.length || kind === 'sack') {
+    const atBattle = kind === 'sack' ? { ...raid, sizeBefore: city.size } : raid;
+    const r = fight(w, id, { kind, raidKind: raid.kind, tile: t, victim, city: kind === 'sack' ? city : null, party, defenders });
+    if (r.queued) { setIndep(w, id, { raid: { ...atBattle, phase: 'battle', battleId: r.queued.id } }); return; }
+    if (!afterTargetBattle(w, id, atBattle, r.raidersWon)) return;
+    takeLoot(w, id, atBattle);
+    return;
   }
+  takeLoot(w, id, raid);
+};
+
+/** After the battle at the target: beaten raiders go home, winners drive the defenders off. True when they go on to loot. */
+const afterTargetBattle = (w, id, raid, raidersWon) => {
+  const t = raid.targetTile;
+  const victim = raid.targetNationId;
+  const kind = raid.kind === 'sack' ? 'sack' : 'raid';
+  const city = raid.targetCityId != null ? w.regions[raid.targetCityId] : null;
+  const survivors = partyOf(w, id);
+  const out = { ...raid, phase: 'out', battleId: undefined };
+  if (!raidersWon) {
+    if (victim === w.playerId) { const text = `Your ${kind === 'sack' ? 'garrison of' : 'army at'} ${kind === 'sack' ? city?.name || 'the town' : placeOf(w, t)} drove off ${raiderName(w, id)}.`; log(w, text); noteOutcome(w, id, victim, { kind: raid.kind, won: false, loot: 0, text }); }
+    if (!survivors.length) { setIndep(w, id, { raid: { ...out, lost: true } }); endRaid(w, id, []); return false; }
+    sendHome(w, id, survivors, { ...out, lost: true }, 'beaten');
+    return false;
+  }
+  if (kind !== 'sack') fallBack(w, hostileArmiesAt(w, id, t).filter((u) => u.ownerId === victim));
+  if (!survivors.length) { endRaid(w, id, []); return false; }
+  return true;
+};
+
+/** The loot of a raid that reached its target (and won its battle there, if there was one). */
+const takeLoot = (w, id, raid) => {
+  const party = partyOf(w, id);
+  const t = raid.targetTile;
+  const victim = raid.targetNationId;
+  const name = raiderName(w, id);
+  const toPlayer = victim === w.playerId;
+  const city = raid.targetCityId != null ? w.regions[raid.targetCityId] : null;
   let loot = 0;
   let what = '';
   if (raid.kind === 'pillage') {
@@ -349,7 +394,7 @@ const resolveAtTarget = (w, id, party, raid) => {
     what = `cut your trade route at ${placeOf(w, t)}`;
     moveParty(w, party, t);
   } else if (raid.kind === 'settler') {
-    delete w.units[raid.targetUnitId]; touchUnits(w);
+    if (w.units[raid.targetUnitId]) { delete w.units[raid.targetUnitId]; touchUnits(w); }
     loot = SETTLER_LOOT;
     what = `kill a settler party at ${placeOf(w, t)}`;
     moveParty(w, party, t);
@@ -361,10 +406,14 @@ const resolveAtTarget = (w, id, party, raid) => {
     const gold = Math.max(SACK_MIN_GOLD, Math.round(SACK_INCOME_TURNS * (city.lastYields?.gold || 0)));
     takeGold(w, victim, gold);
     loot = gold;
-    const s = sackedCity(city, w.turn);
+    // The battle burned the town under the 50% rule (battleOutcome.js, raidBattle.js sackBurn); a
+    // city without a town model loses a size and a building tier the old way (sackedCity).
+    const s = cityManifestOf(w.view, city.id)
+      ? { city: { ...city, sackedTurn: w.turn }, lostSize: (raid.sizeBefore ?? city.size) - city.size, lostBuilding: null }
+      : sackedCity(city, w.turn);
     w.regions[city.id] = s.city; w.regionsChanged = true;
     w.stats.sacks += 1;
-    what = `sack ${city.name}: ${gold} gold taken${s.lostSize ? ', the city shrinks to ' + s.city.size : ''}${s.lostBuilding ? `, a ${s.lostBuilding} building damaged` : ''}`;
+    what = `sack ${city.name}: ${gold} gold taken${s.lostSize > 0 ? `, the city shrinks to ${s.city.size}` : ''}${s.lostBuilding ? `, a ${s.lostBuilding} building damaged` : ', the town burns'}`;
   }
   addGold(w, id, loot);
   w.stats.raidsHit += 1;
@@ -372,8 +421,61 @@ const resolveAtTarget = (w, id, party, raid) => {
   w.stats.loot += loot;
   markRaided(w, victim, id);
   if (toPlayer) { w.stats.raidsOnPlayer += 1; log(w, `${name} ${what}.`); noteOutcome(w, id, victim, { kind: raid.kind, won: true, loot, text: `They ${what}.` }); }
-  if (raid.kind === 'route') { setIndep(w, id, { raid: { ...raid, phase: 'hold', holdUntil: w.turn + 1 } }); return; }
-  sendHome(w, id, party, raid);
+  const out = { ...raid, phase: 'out', battleId: undefined, sizeBefore: undefined };
+  if (raid.kind === 'route') { setIndep(w, id, { raid: { ...out, phase: 'hold', holdUntil: w.turn + 1 } }); return; }
+  sendHome(w, id, party, out);
+};
+
+/** After a battle with an army on the road: through it (it falls back to its city) or beaten home. */
+const afterIntercept = (w, id, raid, tile, owner, raidersWon) => {
+  if (owner === w.playerId) {
+    const text = raidersWon ? `${raiderName(w, id)} cut through your army near ${placeOf(w, tile)}.` : `Your army near ${placeOf(w, tile)} stopped ${raiderName(w, id)}.`;
+    log(w, text);
+    if (!raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0, text });
+  }
+  if (raidersWon) fallBack(w, hostileArmiesAt(w, id, tile).filter((u) => u.ownerId === owner));
+  const left = partyOf(w, id);
+  const out = { ...raid, phase: 'out', battleId: undefined, interceptAt: undefined, interceptOf: undefined };
+  if (!left.length) { setIndep(w, id, { raid: { ...out, lost: true } }); endRaid(w, id, []); return; }
+  if (!raidersWon) { sendHome(w, id, left, { ...out, lost: true }, 'beaten'); return; }
+  setIndep(w, id, { raid: out });
+};
+
+/**
+ * A raid battle against the player was fought (Command or Auto, battleQueue.js) and its outcome
+ * applied: the raid carries on from it (the loot or the march home), on `state`. `result`: {
+ * raidersWon, attackerLoss }. Returns the next state.
+ */
+export const settleRaidBattle = (state, def, { raidersWon, attackerLoss = 0 }) => {
+  const id = def.aggressorId;
+  const raid = state.nations[id]?.indep?.raid;
+  if (!raid || raid.battleId !== def.id) return state;
+  const w = workOn(state);
+  if (attackerLoss > 0) w.nations[id] = withGrudge(w.nations[id], state.playerNationId, GRUDGE_ATTACKED, { id: 'killed', turn: w.turn });
+  if (def.raidKind === 'intercept') afterIntercept(w, id, raid, def.tile, raid.interceptOf ?? state.playerNationId, raidersWon);
+  else if (afterTargetBattle(w, id, raid, raidersWon)) takeLoot(w, id, raid);
+  return { ...state, regions: w.regions, units: w.units, nations: w.nations, resources: w.resources, world: w.view.world, indepStats: w.stats, logs: [...state.logs, ...w.logs] };
+};
+
+/**
+ * Fight a queued raid battle against the player (battleQueue.js): `battle` is the commanded
+ * battle's result (resolveBattle's shape, sanitized) or null for Auto. Through the outcome
+ * service, then the raid carries on (settleRaidBattle). `opts`: { mode, xpBonusById }.
+ */
+export const resolveRaidBattle = (state, def, battle = null, { mode = 'auto', xpBonusById = null } = {}) => {
+  const drop = { ...state, pendingDefenses: (state.pendingDefenses || []).filter((d) => d.id !== def.id) };
+  const armies = queuedRaidArmies(state, def);
+  // The party is gone (or made peace): no battle; the raid gives up.
+  if (!armies.attackerUnits.length || !state.nations[def.aggressorId] || state.nations[def.aggressorId].isEliminated) return settleRaidBattle(drop, def, { raidersWon: false });
+  // The defenders left the field (and no town to stand in): the raiders get through unopposed.
+  if (!armies.defenderUnits.length && def.kind !== 'sack') return settleRaidBattle(drop, def, { raidersWon: true });
+  const spec = raidSpecOf(state, def, armies);
+  const fought = battle || fightRaidAuto(state, spec, createRng(def.seed));
+  const outcome = raidOutcome(state, spec, fought, { id: def.id, defenseId: def.id, mode, viewerId: state.playerNationId, rngSeed: state.rngSeed, xpBonusById });
+  const next = applyBattleOutcome(state, outcome);
+  if (next === state) return drop;
+  const lost = spec.attackerUnits.reduce((s, u) => s + u.strength, 0) - fought.attackerUnits.reduce((s, u) => s + Math.max(0, u.strength), 0);
+  return settleRaidBattle(next, def, { raidersWon: outcome.outcome === 'attacker', attackerLoss: lost });
 };
 
 /** One turn of a running raid. */
@@ -382,6 +484,8 @@ const runRaid = (w, id, city) => {
   const raid = { ...n.indep.raid };
   const party = partyOf(w, id);
   if (!party.length) { setIndep(w, id, { raid: { ...raid, lost: true } }); endRaid(w, id, []); return; }
+  // A battle that never got fought (it left the queue unfought): the party gives up and goes home.
+  if (raid.phase === 'battle') { sendHome(w, id, party, { ...raid, phase: 'out', battleId: undefined }, 'gone'); return; }
   if (raid.phase === 'hold') { if (w.turn >= raid.holdUntil) sendHome(w, id, party, raid); return; }
   if (raid.phase === 'home') {
     const step = walk(w, id, party, raid.route);
@@ -416,17 +520,9 @@ const runRaid = (w, id, city) => {
     const owner = blockers[0]?.ownerId;
     const theirs = blockers.filter((u) => u.ownerId === owner);
     if (owner && strength >= sumStrength(theirs) * RAID_FIGHT_RATIO) {
-      const r = fight(w, id, { kind: 'intercept', tile: step.blocked, victim: owner, party: partyOf(w, id), defenders: theirs });
-      if (owner === w.playerId) {
-        const text = r.raidersWon ? `${raiderName(w, id)} cut through your army near ${placeOf(w, step.blocked)}.` : `Your army near ${placeOf(w, step.blocked)} stopped ${raiderName(w, id)}.`;
-        log(w, text);
-        if (!r.raidersWon) noteOutcome(w, id, owner, { kind: 'intercept', won: false, loot: 0, text });
-      }
-      if (r.raidersWon) fallBack(w, r.defenders.filter((u) => u.strength > 0));
-      const left = partyOf(w, id);
-      if (!left.length) { setIndep(w, id, { raid: { ...raid, lost: true } }); endRaid(w, id, []); return; }
-      if (!r.raidersWon) { sendHome(w, id, left, { ...raid, lost: true }, 'beaten'); return; }
-      setIndep(w, id, { raid: { ...raid, route: step.route } });
+      const r = fight(w, id, { kind: 'raid', raidKind: 'intercept', tile: step.blocked, victim: owner, party: partyOf(w, id), defenders: theirs });
+      if (r.queued) { setIndep(w, id, { raid: { ...raid, route: step.route, phase: 'battle', battleId: r.queued.id, interceptAt: step.blocked, interceptOf: owner } }); return; }
+      afterIntercept(w, id, { ...raid, route: step.route }, step.blocked, owner, r.raidersWon);
       return;
     }
     sendHome(w, id, party, raid, 'blocked');
@@ -640,13 +736,13 @@ const think = (w, id, city) => {
  * indepStats, logs }: new maps (the input's are never written), or with `inPlace` (resolveTurn) the
  * turn's own working regions, units and resources written in place (no copy of every unit a turn).
  */
-export const processIndependents = (input, { inPlace = false } = {}) => {
-  const ids = Object.keys(input.nations || {}).filter((id) => isIndependentNation(input.nations[id])).sort();
-  if (!ids.length) return null;
+// The working set of the independents' phase over `input` (copies of its maps, or with `inPlace`
+// the turn's own working regions, units and resources).
+const workOn = (input, inPlace = false) => {
   const w = {
     turn: input.turnNumber, year: input.year, age: input.age, seed: input.rngSeed || 0, playerId: input.playerNationId, difficulty: input.difficultyMultiplier || 1,
     regions: inPlace ? input.regions : { ...input.regions }, units: inPlace ? input.units : { ...input.units }, nations: { ...input.nations }, resources: inPlace ? input.resources : { ...input.resources },
-    tributeDemands: [...(input.tributeDemands || [])], logs: [], unitsVersion: 0, index: null,
+    tributeDemands: [...(input.tributeDemands || [])], logs: [], unitsVersion: 0, index: null, queued: [],
     stats: { raidsStarted: 0, raidsAtPlayer: 0, raidsHit: 0, raidsOnPlayer: 0, raidBattles: 0, sacks: 0, loot: 0, tributeDemands: 0, tributeDeals: 0, tributeGold: 0, mercsHired: 0, ...(input.indepStats || {}) }
   };
   // `view` is the state the shared readers see (canFight, paths, pillage): the turn's live maps.
@@ -658,6 +754,13 @@ export const processIndependents = (input, { inPlace = false } = {}) => {
     routeCache = s.size ? s : null;
     return routeCache;
   };
+  return w;
+};
+
+export const processIndependents = (input, { inPlace = false } = {}) => {
+  const ids = Object.keys(input.nations || {}).filter((id) => isIndependentNation(input.nations[id])).sort();
+  if (!ids.length) return null;
+  const w = workOn(input, inPlace);
   // Parties of independents that are gone disband.
   indexOf(w).parties.forEach((list, owner) => {
     if (!w.nations[owner] || w.nations[owner].isEliminated) { list.forEach((u) => delete w.units[u.id]); touchUnits(w); }
@@ -686,7 +789,7 @@ export const processIndependents = (input, { inPlace = false } = {}) => {
     if (thinksOn(id, w.turn)) think(w, id, city);
   });
   processMercenaries(w);
-  return { regionsChanged: !!w.regionsChanged, regions: w.regions, units: w.units, nations: w.nations, resources: w.resources, world: w.view.world, tributeDemands: w.tributeDemands, indepStats: w.stats, logs: w.logs };
+  return { regionsChanged: !!w.regionsChanged, regions: w.regions, units: w.units, nations: w.nations, resources: w.resources, world: w.view.world, tributeDemands: w.tributeDemands, indepStats: w.stats, logs: w.logs, queued: w.queued, appliedBattleIds: w.appliedBattleIds };
 };
 
 /** The player's answer to a tribute demand (gameReducer ANSWER_TRIBUTE_DEMAND). Returns a new state. */

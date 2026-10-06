@@ -48,7 +48,8 @@ import { canAttack } from './hostility';
 import { isIndependent, isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { addGrudge } from './grudges';
 import { hireMercenaryForPlayer } from './mercenaries';
-import { answerTributeDemand } from './raids';
+import { answerTributeDemand, resolveRaidBattle } from './raids';
+import { isRaidKind, queuedRaidArmies } from './raidBattle';
 import { giftIndependent, proposeJoining, answerJoinOffer, demandIndependentTribute, proposeIndependentTrade, offerIndependentTribute, razeCityForPlayer } from './indepPolicy';
 import { canRaze, stopRazing } from './razing';
 
@@ -1571,6 +1572,13 @@ const reduceAction = (state, action) => {
       const opts = { rngSeed: state.rngSeed, id: pb.id, mode: 'command' };
       // A field or sea battle the AI started (battleQueue.js): the gate is the aggressor's, the
       // operation id the queued record's (so its Auto can never also land).
+      // A raid or a sack against the player (raidBattle.js): the queued record's id, then the raid carries on (raids.js).
+      if (pb.defenseId && isRaidKind(pb.kind)) {
+        const def = (state.pendingDefenses || []).find((d) => d.id === pb.defenseId);
+        if (!def) return cleared;
+        const safe = sanitizeTacticalResult(state, pb, result);
+        return resolveRaidBattle(cleared, def, safe, { mode: 'command', xpBonusById: safe.report.tactical.xpBonusById });
+      }
       const aiStarted = !!pb.defenseId && (pb.kind === 'field' || pb.kind === 'naval');
       const gateState = aiStarted ? aggressorView(cleared, pb.attackerNationId) : cleared;
       const sideOpts = aiStarted ? { ...opts, id: pb.defenseId, defenseId: pb.defenseId, attackerNationId: pb.attackerNationId, viewerId: state.playerNationId } : opts;
@@ -1721,6 +1729,22 @@ const reduceAction = (state, action) => {
       if (!def) return state;
       const counter = (state.battleCounter || 0) + 1;
       const kind = queuedKind(def);
+      if (isRaidKind(kind)) {
+        // Raiders against the player's troops or town: the player defends (raidBattle.js).
+        const armies = queuedRaidArmies(state, def);
+        if (!armies.attackerUnits.length || (!armies.defenderUnits.length && kind !== 'sack')) return resolveQueuedAuto(state, def.id);
+        return {
+          ...state,
+          battleCounter: counter,
+          pendingBattle: {
+            id: `b_${state.turnNumber}_${counter}`, kind, defenseId: def.id, raidKind: def.raidKind,
+            fromRegionId: null, fromTile: def.fromTile ?? null, tile: def.tile, targetRegionId: def.regionId, cityId: def.cityId ?? null, warId: null,
+            attackerNationId: def.aggressorId, defenderNationId: state.playerNationId, seed: def.seed, startedTurn: state.turnNumber, playerSide: 'defender',
+            attackerUnitIds: armies.attackerUnits.map((u) => u.id), defenderUnitIds: armies.defenderUnits.map((u) => u.id), attackerReinforcements: [], defenderReinforcements: [], militia: def.militia || []
+          },
+          logs: [...state.logs, { year: state.year, message: `You take command against ${state.nations[def.aggressorId]?.name || 'the raiders'}.`, type: LogTypes.COMBAT }]
+        };
+      }
       if (kind !== 'defense') {
         // A field or sea battle the AI started against the player's stack: the player defends it.
         const armies = queuedArmies(state, def);

@@ -1,4 +1,5 @@
 // Shared subject and territory invariants at ownership-changing boundaries.
+import { keepQueued } from './battleQueue';
 import { getOwnedRegionIds, invalidateRegionsCache } from '../data/regions';
 import { refreshWarFlags } from './diplomacy';
 import { getTotalDev } from './development';
@@ -34,7 +35,8 @@ export const reconcileTerritory = state => {
   const wars = state.wars.filter(w => !w.active || (!nations[w.aggressor]?.isEliminated && !nations[w.enemy]?.isEliminated));
   const liveWars = new Set(wars.filter(w => w.active).map(w => w.id));
   const pendingPeaceOffer = state.pendingPeaceOffer && liveWars.has(state.pendingPeaceOffer.warId) ? state.pendingPeaceOffer : null;
-  const pendingDefenses = (state.pendingDefenses || []).filter(d => liveWars.has(d.warId) && state.regions[d.regionId]?.owner === state.playerNationId);
+  // A raid's battle has no war: it stands while its raiders live (battleQueue.js keepQueued).
+  const pendingDefenses = (state.pendingDefenses || []).filter(d => (d.warId ? liveWars.has(d.warId) && state.regions[d.regionId]?.owner === state.playerNationId : keepQueued(d, wars, nations)));
   const changed = state.wars.filter(w => w.active && !liveWars.has(w.id)).flatMap(w => [w.aggressor, w.enemy]);
   if (changed.length) nations = refreshWarFlags(nations, wars, changed);
   for (const id of Object.keys(nations)) {
@@ -42,6 +44,7 @@ export const reconcileTerritory = state => {
     if (JSON.stringify(vassals.slice().sort()) !== JSON.stringify((nations[id].vassals || []).slice().sort())) patch(id, { vassals });
   }
   const units=Object.fromEntries(Object.entries(state.units || {}).filter(([,u])=>!nations[u.ownerId]?.isEliminated));
-  const pendingBattle=state.pendingBattle && !liveWars.has(state.pendingBattle.warId)?null:state.pendingBattle;
+  // A battle with no war (an independent's, a raid) stands; a war's battle ends with its war.
+  const pendingBattle=state.pendingBattle && state.pendingBattle.warId && !liveWars.has(state.pendingBattle.warId)?null:state.pendingBattle;
   return { ...state, nations, units, wars, pendingBattle, pendingPeaceOffer, pendingDefenses };
 };

@@ -26,6 +26,7 @@ export const AI_DIFFICULTY = {
   emperor: { thinkEvery: 4, retreatAt: 0.3, reserves: true, powers: true, abilities: true, flank: true, missiles: true, kite: true }
 };
 const DEFENSE_RADIUS = 24 * Q;
+const RAID_GUARD_RADIUS = 14 * Q;
 
 // Squads out in the open (a garrison stays put; its building does the fighting).
 // (Workers are the economy AI's: economyAI.js.)
@@ -178,7 +179,18 @@ const garrisonBuildings = (w, side, mine, orders) => {
 const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   const keep = w.structures[0];
   if (cfg.abilities && w.assimilation === 0) mine = garrisonBuildings(w, side, mine, orders);
-  const threat = nearest(enemies, keep.x, keep.y, DEFENSE_RADIUS);
+  let threat = nearest(enemies, keep.x, keep.y, DEFENSE_RADIUS);
+  // Against raiders the loot is what needs guarding: the raider closest to a target still standing.
+  if (w.setup.battleType === 'raid' || w.setup.battleType === 'sack') {
+    let bestD = Infinity;
+    w.structures.forEach((s) => {
+      if (!s.loot || !s.alive) return;
+      const foe = nearest(enemies, s.x, s.y, RAID_GUARD_RADIUS);
+      if (!foe) return;
+      const d = distSq(foe.x, foe.y, s.x, s.y);
+      if (d < bestD) { bestD = d; threat = foe; }
+    });
+  }
   // The keep being taken beats everything else: everyone back to it.
   if (w.assimilation > 0) {
     mine.forEach((q) => orders.push({ side, type: 'attackMove', squads: [q.idx], x: keep.x, y: keep.y }));
@@ -197,6 +209,23 @@ const thinkDefender = (w, side, cfg, mine, enemies, orders) => {
   });
 };
 
+// Raiders (battleType.js raid and sack): burn the loot and run. Squads with an enemy close by
+// fight it; the others go for the nearest loot target still standing. With the loot taken (or
+// nothing left to burn) everyone withdraws by the raiders' own edge.
+const RAID_ENGAGE = 4 * Q;
+const thinkRaider = (w, side, mine, enemies, orders) => {
+  const targets = w.structures.map((s, i) => (s.loot && s.alive ? i : -1)).filter((i) => i >= 0);
+  if (w.looted || !targets.length) { if (!w.retreatOrdered?.[side] && mine.length) orders.push({ side, type: 'retreatAll' }); return; }
+  mine.forEach((q) => {
+    if (q.order.type !== 'idle' || q.target >= 0) return;
+    const foe = nearest(enemies, q.x, q.y, RAID_ENGAGE);
+    if (foe) { orders.push({ side, type: 'attackMove', squads: [q.idx], x: foe.x, y: foe.y }); return; }
+    let best = -1; let bestD = Infinity;
+    targets.forEach((i) => { const s = w.structures[i]; const d = distSq(q.x, q.y, s.x, s.y); if (d < bestD) { bestD = d; best = i; } });
+    orders.push({ side, type: 'attack', squads: [q.idx], target: { kind: 'structure', index: best } });
+  });
+};
+
 export const thinkAI = (w, side, orders) => {
   const cfg = AI_DIFFICULTY[w.setup.difficultyId] || AI_DIFFICULTY.prince;
   thinkEconomy(w, side, w.setup.difficultyId, orders); // on its own ticks; nothing without an economy
@@ -210,6 +239,7 @@ export const thinkAI = (w, side, orders) => {
   if (side === SIDE_ATTACKER && now / start < cfg.retreatAt && mine.length) { orders.push({ side, type: 'retreatAll' }); return; }
   if (cfg.powers && enemies.length) decidePowers(w, side, cfg, mine, enemies, orders);
   if (cfg.abilities) decideAbilities(w, side, mine, enemies, orders);
-  if (side === SIDE_ATTACKER) thinkAttacker(w, side, cfg, mine, enemies, orders);
+  if (side === SIDE_ATTACKER && (w.setup.battleType === 'raid' || w.setup.battleType === 'sack')) thinkRaider(w, side, mine, enemies, orders);
+  else if (side === SIDE_ATTACKER) thinkAttacker(w, side, cfg, mine, enemies, orders);
   else thinkDefender(w, side, cfg, mine, enemies, orders);
 };

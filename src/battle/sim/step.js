@@ -54,10 +54,27 @@ const brokenShare = (w, side) => { // a routed squad may still rally: only the d
 };
 // The attacker's strength standing on the far bank (the defender's half of the field).
 const farBankStrength = (w) => { const midX = Math.floor(w.map.w / 2) * Q; return w.squads.reduce((s, q) => s + (q.side === SIDE_ATTACKER && q.alive && !q.fled && !q.routed && q.onField && q.x >= midX ? q.strength : 0), 0); };
+// A raid or a sack (battleType.js): the loot targets burned so far.
+export const lootBurned = (w) => { let n = 0; for (let i = 0; i < w.structures.length; i++) { const s = w.structures[i]; if (s.loot && !s.alive) n += 1; } return n; };
+const raidEnd = (w) => {
+  const needed = w.setup.raid?.needed ?? 2;
+  if (!w.looted && lootBurned(w) >= needed) { w.looted = true; w.events.push({ t: w.tick, type: 'looted', side: SIDE_ATTACKER }); }
+  const defenderBroken = isBroken(w, SIDE_DEFENDER);
+  // With the loot the raiders run for their edge: the battle lasts until the last of them is off
+  // the field (escaped by the exit) or dead. Driven off or killed before they burned enough: the
+  // defender's. Nobody left to stop them: theirs. At the clock the loot decides.
+  const raidersGone = !w.squads.some((q) => q.side === SIDE_ATTACKER && !q.worker && q.alive && !q.fled && (q.onField || q.enterTick >= 0));
+  if (w.looted && raidersGone) w.ended = { outcome: 'attacker', reason: 'escaped', tick: w.tick };
+  else if (!w.looted && isBroken(w, SIDE_ATTACKER)) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : 'raidersDriven', tick: w.tick };
+  else if (defenderBroken) w.ended = { outcome: 'attacker', reason: 'defendersBroken', tick: w.tick };
+  else if (w.tick >= battleLimitTicks(w.setup)) w.ended = w.looted ? { outcome: 'attacker', reason: 'looted', tick: w.tick } : { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
+  if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
+};
 const campBurned = (w) => { const razed = w.razed || []; return razed.filter((c) => c === 'engine').length >= SALLY_ENGINES || razed.includes('camp'); };
 
 const checkEnd = (w) => {
   const type = w.setup.battleType || 'field';
+  if (type === 'raid' || type === 'sack') { raidEnd(w); return; }
   if (w.assimilation >= ASSIMILATION_TICKS) { w.ended = { outcome: 'attacker', reason: 'keepTaken', decisive: true, tick: w.tick }; return; }
   if (type === 'sally' && campBurned(w)) { w.ended = { outcome: 'attacker', reason: 'campBurned', decisive: true, tick: w.tick }; w.events.push({ t: w.tick, type: 'ended', outcome: 'attacker', reason: 'campBurned' }); return; }
   if (type === 'landing') {

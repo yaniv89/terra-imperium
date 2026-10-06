@@ -7,6 +7,7 @@ import { processLateArrivals, independentCityCtx } from './independents';
 import { isIndependent, isIndependentNation } from '../data/independents';
 import { processAIOperations } from './aiOperations';
 import { processIndependents } from './raids';
+import { keepQueued } from './battleQueue';
 import { processMajorsAndIndependents } from './indepPolicy';
 import { reconcileTerritory } from './worldLifecycle';
 import { invalidateRegionsCache } from '../data/regions';
@@ -1100,6 +1101,7 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   nationsAfterWars = refreshWarFlags(nationsAfterWars, wars, [...eliminationWarParticipants]);
   mark('elimination');
 
+  let raidBattles = [];
   // --- independents (phase W2, raids.js): their treasuries, grudges, tribute, raids and sacks,
   // and every mercenary contract (mercenaries.js). After the majors' operations, so a raid meets
   // the armies where they now stand.
@@ -1108,8 +1110,10 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     const indep = processIndependents({ ...state, turnNumber: newTurnNumber, year: newYear, age: newAge, regions, units, nations: nationsAfterWars, resources, wars }, { inPlace: true });
     if (indep) {
       nationsAfterWars = indep.nations;
-      state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats };
+      state = { ...state, world: indep.world, tributeDemands: indep.tributeDemands, indepStats: indep.indepStats, ...(indep.appliedBattleIds ? { appliedBattleIds: indep.appliedBattleIds } : {}) };
       indep.logs.forEach((l) => logs.push(l));
+      // Raid battles against the player wait in the battle queue for Command or Auto (raidBattle.js).
+      raidBattles = indep.queued;
       if (indep.regionsChanged) invalidateRegionsCache(regions); // a sack or a burned outpost; no city changes hands here
     }
   }
@@ -1229,7 +1233,8 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
     // dropped if their war ended this same turn.
     nextUnitSeq: operations.nextUnitSeq,
     aiOperations: operations.aiOperations,
-    pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || [])].filter((d) => wars.some((w) => w.id === d.warId && w.active)),
+    // Raids are not wars: their battles carry no war id and stay (battleQueue.js keepQueued).
+    pendingDefenses: [...operations.pendingDefenses, ...(warProgress.pendingDefenses || []), ...raidBattles].filter((d) => keepQueued(d, wars, nationsAfterWars)),
     regionModifiers,
     orbitalDebrisLevel,
     spaceMissionProgress,

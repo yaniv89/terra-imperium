@@ -45,7 +45,27 @@ export const AUX_ROUNDS = 0; // extra auto-resolve rounds per auxiliary unit (th
 export const WALLS_FORT_LEVEL = 2;
 export const WALLS_NO_SIEGE_MULT = 0.7;
 export const AUX_CLOSENESS = 1.5; // the auxiliaries x min(1, this x weaker / stronger army); 0 = off
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS };
+// Raids and sacks (measured with parityEco TYPES=raid,sack): raiders do not fight for the field,
+// they burn and run. In a raid their blows count RAID_MULT x min(1, defenders / raiders) (the more
+// they outnumber the defenders, the more of them are busy looting while a few hold the defenders
+// off); in a sack, where the garrison must be broken first, SACK_MULT. Beaten in a raid's fight,
+// they still burned the loot and got away RAID_SLIP_BASE of the time plus RAID_SLIP times the share
+// of cavalry in the party (fast riders slip past to the targets): a raid is hard to stop (the
+// real-time raiders win 15 or 16 of 16 against the AI). A sack must break the garrison: no slip.
+export const RAID_MULT = 0.4;
+export const SACK_MULT = 0.4;
+export const RAID_SLIP_BASE = 0.7;
+export const RAID_SLIP = 0.5;
+export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+
+/** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
+export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
+  if (kind === 'sack') return tune.SACK_MULT ?? SACK_MULT;
+  if (kind !== 'raid') return 1;
+  const own = (list) => (list || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
+  const a = own(ins.attackerUnits); const d = own(ins.defenderUnits);
+  return (tune.RAID_MULT ?? RAID_MULT) * (a > 0 ? Math.min(1, d / a) : 1);
+};
 export const CITY_TOWER_REPELLED = 0.5;
 export const CITY_HALL_REPELLED = 0.3;
 
@@ -65,6 +85,8 @@ export const autoCityDamage = (manifest, battle, defenderLossShare, rng) => {
 };
 
 const ASSAULT_KINDS = new Set(['invasion', 'landing', 'defense', 'assault']);
+// Raids and sacks (raidBattle.js): the one light battle, no battle economy, no gate held.
+export const RAID_KINDS = new Set(['raid', 'sack']);
 
 /** The auxiliaries a side brings into an auto-resolved battle: reserve units, never campaign units. */
 export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
@@ -142,7 +164,7 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     ...args,
     attackerUnits: [...ins.attackerUnits, ...auxA],
     defenderUnits: [...ins.defenderUnits, ...auxD],
-    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult,
+    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * raidMult(kind, ins, tune),
     maxRounds: MAX_BATTLE_ROUNDS + Math.max(auxA.length, auxD.length) * (tune.AUX_ROUNDS ?? AUX_ROUNDS),
     defenderDamageReductionMultiplier: batteredReduction(args.defenderDamageReductionMultiplier ?? 1, ins.hpRatio),
     rng
@@ -157,6 +179,14 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     defenderUnits: strip(battle.defenderUnits),
     report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult }
   };
-  if (kind === 'field') battle = autoDispositions(battle, rng);
+  // Raiders beaten in the fight may still have burned the loot and got away (the raid's objective).
+  if (kind === 'raid' && battle.outcome !== 'attacker') {
+    const alive = battle.attackerUnits.filter((u) => u.strength > 0);
+    const cav = alive.length ? alive.filter((u) => u.classId === 'cavalry').length / alive.length : 0;
+    if (alive.length && rng.next() < (tune.RAID_SLIP_BASE ?? RAID_SLIP_BASE) + (tune.RAID_SLIP ?? RAID_SLIP) * cav) battle = { ...battle, outcome: 'attacker', report: { ...battle.report, outcome: 'attacker', slipped: true } };
+  }
+  // Decisive field battles (6.9); a raid's beaten raiders are run down the same way unless they get
+  // away (battleOutcome.js raidAdapter destroys only the raiders still on the field).
+  if (kind === 'field' || RAID_KINDS.has(kind)) battle = autoDispositions(battle, rng);
   return { ...battle, report: { ...battle.report, mode: 'auto' }, inputs: ins };
 };

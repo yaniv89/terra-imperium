@@ -13,6 +13,10 @@ export const SIEGE_BATTLE_TICKS = 7.5 * 60 * TICK_HZ;
 // 30 for a city assault.
 export const ECONOMY_FIELD_TICKS = 15 * 60 * TICK_HZ;
 export const ECONOMY_SIEGE_TICKS = 30 * 60 * TICK_HZ;
+// Raids are the one light battle (no base-building, master plan 6.4): a raid 10 minutes, a sack 12
+// (6.1: raid 8 to 12, sack 10 to 15).
+export const RAID_BATTLE_TICKS = 10 * 60 * TICK_HZ;
+export const SACK_BATTLE_TICKS = 12 * 60 * TICK_HZ;
 export const MAX_BATTLE_TICKS = ECONOMY_SIEGE_TICKS;
 export const battleLimitTicks = (setup) => setup?.limitTicks || BATTLE_LIMIT_TICKS;
 export const SQUAD_RADIUS = 154;                    // ~0.6 tile

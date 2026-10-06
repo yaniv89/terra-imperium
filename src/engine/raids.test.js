@@ -16,6 +16,7 @@ import { withGrudge, decayGrudges, grudgeForKinCity, grudgeOf } from './grudges'
 import { mercOffer, processMercenaries } from './mercenaries';
 import { canFight } from './hostility';
 import { fightRaidBattle } from './raidBattle';
+import { resolveAllQueuedAuto } from './battleQueue';
 import { createRng } from '../utils/rng';
 import { PEOPLES } from '../data/peoples';
 import { auditGameState } from './stateAudit';
@@ -27,11 +28,13 @@ const world = () => {
 };
 const unit = (id, owner, regionId, tile, classId = 'infantry') => ({ id, ownerId: owner, regionId, homeRegionId: regionId, tile, domain: 'land', classId, strength: 1000, maxStrength: 1000, morale: 100, movesLeft: 1, xp: 0, rank: 'recruit', promotions: [], commanderId: null });
 
-// One turn of the independents' phase alone, applied like resolveTurn applies it.
+// One turn of the independents' phase alone, applied like resolveTurn applies it; a raid battle
+// against the player waits in the battle queue and is fought on Auto (autoDefend).
 const step = (s) => {
   const turnNumber = s.turnNumber + 1;
   const out = processIndependents({ ...s, turnNumber });
-  return { ...s, turnNumber, regions: out.regions, units: out.units, nations: out.nations, resources: out.resources, world: out.world, tributeDemands: out.tributeDemands, indepStats: out.indepStats, logs: [...s.logs, ...out.logs] };
+  const next = { ...s, turnNumber, regions: out.regions, units: out.units, nations: out.nations, resources: out.resources, world: out.world, tributeDemands: out.tributeDemands, indepStats: out.indepStats, logs: [...s.logs, ...out.logs], pendingDefenses: [...(s.pendingDefenses || []), ...out.queued], appliedBattleIds: out.appliedBattleIds ?? s.appliedBattleIds };
+  return resolveAllQueuedAuto(next);
 };
 
 // The raiders independent nearest the player's capital, and the player's tile nearest to it.
@@ -99,14 +102,14 @@ describe('W2 data and pure rules', () => {
     ids.forEach((id) => expect([1, 2, 3].filter((t) => thinksOn(id, t))).toHaveLength(1));
   });
 
-  it('the raid battle is one swappable function with the RaidBattleOutcome shape', () => {
+  it('the raid battle on Auto is a BattleOutcome for the one outcome service', () => {
     const s = world();
     const tile = s.regions[s.nations.akkad.capitalRegionId].tile;
-    const r = fightRaidBattle(s, { kind: 'raid', defenderId: 'akkad', tile, attackerUnits: [unit('a', 'x', 'c', tile), unit('b', 'x', 'c', tile)], defenderUnits: [unit('d', 'akkad', 'c', tile)] }, createRng(5));
-    expect(r).toMatchObject({ kind: 'raid' });
+    const r = fightRaidBattle(s, { kind: 'raid', attackerId: 'x', defenderId: 'akkad', tile, attackerUnits: [unit('a', 'x', 'c', tile), unit('b', 'x', 'c', tile)], defenderUnits: [unit('d', 'akkad', 'c', tile)] }, createRng(5));
+    expect(r).toMatchObject({ kind: 'raid', mode: 'auto', warId: null, attackerNationId: 'x', defenderNationId: 'akkad' });
     expect(['attacker', 'defender', 'stalemate']).toContain(r.outcome);
     expect(r.raidersWon).toBe(r.outcome === 'attacker');
-    expect(r.attackers).toHaveLength(2);
+    expect(r.attackerUnits).toHaveLength(2);
     expect(r.attackerLoss + r.defenderLoss).toBeGreaterThan(0);
   });
 });

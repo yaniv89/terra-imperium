@@ -27,7 +27,8 @@
 //   5, 21  the aftermath (aftermath.js) for every kind: casualty scars, devastation where it was
 //      fought (half off a coast for a sea battle), war exhaustion, and the shared general death rule
 //      (COMMANDER_FALL_CHANCE on a destroyed unit, the same roll for Auto and Command)
-//   20 the city's damage by manifest id under the 50% rule (cityManifest.js), never building razing
+//   20 the city's damage by manifest id under the 50% rule (cityManifest.js), never building razing;
+//      a sack the raiders won burns the town under the same rule (raidBattle.js sackBurn)
 //   13 lastBattleTurn on every survivor and the BATTLE_MARK_TURNS mark on the battle's tile
 //   11 plague contact: survivors of a battle at an infected city carry it home (plague.js)
 //   15 each nation's battle record (won, lost, cities taken), read by the research boosts
@@ -56,6 +57,7 @@ import { addGrudge } from './grudges';
 import { isIndependentNation, GRUDGE_ATTACKED } from '../data/independents';
 import { seaPassable, fleetAge, enemyFleetAt } from './fleets';
 import { mapEffectsFor } from './techMapEffects';
+import { sackCityDamage } from './raidBattle';
 
 export const OUTCOME_VERSION = 1;
 export const APPLIED_MEMORY = 64;
@@ -66,7 +68,7 @@ export const PLAGUE_CONTACT_TURNS = 2;
 export const PLAGUE_CONTACT_I = 0.02;
 export const NAVAL_DEVASTATION_SCALE = 0.5;
 export const MISSILE_POWER_TIERS = { missileTactical: 'tactical', missileTheatre: 'theatre', nuclearStrike: 'nuclear' };
-export const OUTCOME_KINDS = ['invasion', 'landing', 'defense', 'field', 'naval', 'suppress', 'lane'];
+export const OUTCOME_KINDS = ['invasion', 'landing', 'defense', 'field', 'naval', 'suppress', 'lane', 'raid', 'sack'];
 
 const sum = (units) => (units || []).reduce((s, u) => s + Math.max(0, u.strength || 0), 0);
 const xpFor = (side, outcome) => (outcome === side ? XP_WIN : outcome === 'stalemate' || outcome === 'draw' ? Math.round((XP_WIN + XP_LOSE) / 2) : XP_LOSE);
@@ -449,7 +451,36 @@ const laneAdapter = (s, o, war, att, def) => {
   };
 };
 
-const ADAPTERS = { invasion: invasionAdapter, landing: landingAdapter, defense: defenseAdapter, field: fieldAdapter, naval: navalAdapter, suppress: suppressAdapter, lane: laneAdapter };
+// A raid or a sack (raidBattle.js, phase R3): raids are not wars (no war score). Beaten raiders
+// still on the field are cut down (6.9's rule for the side that lost), the ones that got away by an
+// exit live; won, every raider that lived goes on. The defenders keep their survivors where they
+// stand (raids.js moves a beaten field force back to its city). The city is never taken.
+const raidAdapter = (s, o, war, att, def) => {
+  const units = { ...s.units };
+  const raidersLost = o.outcome !== 'attacker';
+  let cutDown = 0;
+  const keep = (u) => ({ ...units[u.id], strength: u.strength, morale: u.morale ?? units[u.id].morale, xp: u.xp ?? units[u.id].xp, rank: u.rank ?? units[u.id].rank, promotions: u.promotions ?? units[u.id].promotions, routed: undefined, lastBattleTurn: s.turnNumber });
+  att.forEach((u) => {
+    if (!units[u.id]) return;
+    if (u.strength <= 0) { delete units[u.id]; return; }
+    if (raidersLost && !isAir(u) && dispositionOf(u, true) === 'field') { delete units[u.id]; cutDown += 1; return; }
+    units[u.id] = { ...keep(u), movesLeft: 0 };
+  });
+  def.forEach((u) => {
+    if (!units[u.id]) return; // the militia lives on the battle only
+    if (u.strength <= 0) { delete units[u.id]; return; }
+    units[u.id] = keep(u);
+  });
+  const raiders = nameOf(s, o.attackerNationId);
+  const place = o.kind === 'sack' ? s.regions[o.regionId]?.name || 'the town' : getTiles().names?.[o.tile] || s.regions[o.regionId]?.name || 'the frontier';
+  const mine = o.defenderNationId === o.viewerId;
+  const message = o.outcome === 'attacker'
+    ? `${raiders} ${o.kind === 'sack' ? 'broke into' : 'got through at'} ${place} and got away with the loot.`
+    : `${mine ? 'Your troops' : nameOf(s, o.defenderNationId)} drove ${raiders} off at ${place}${cutDown ? `, cutting down ${cutDown} unit${cutDown > 1 ? 's' : ''} that could not get away` : ''}.`;
+  return { units, regions: s.regions, nations: s.nations, captured: false, message, cutDown, score: null, aftermathOutcome: o.outcome, aftermathRegionId: o.regionId, markTile: o.kind === 'sack' ? s.regions[o.regionId]?.tile ?? o.tile : o.tile, reportKind: o.kind };
+};
+
+const ADAPTERS = { raid: raidAdapter, sack: raidAdapter, invasion: invasionAdapter, landing: landingAdapter, defense: defenseAdapter, field: fieldAdapter, naval: navalAdapter, suppress: suppressAdapter, lane: laneAdapter };
 
 // ---- row 20: the city's damage (manifest ids, the 50% rule) -----------------------------------
 
@@ -556,6 +587,8 @@ export const applyBattleOutcome = (state, o) => {
 
   // row 20: the city's damage
   if (o.kind === 'invasion' || o.kind === 'landing' || o.kind === 'defense') s = applyCityDamage(state, s, o.regionId, { cityDamage: out.cityDamage, razed: out.razed });
+  // A sack burns the town (raidBattle.js sackBurn) under the same 50% rule; never a capture.
+  if (o.kind === 'sack') { const burn = sackCityDamage(state, out); if (burn) s = applyCityDamage(state, s, o.regionId, { cityDamage: burn }); }
 
   // row 13: survivors remember the battle; the ground keeps a mark for BATTLE_MARK_TURNS turns
   const fought = new Set([...out.attackerUnits, ...out.defenderUnits].map((u) => u.id));
