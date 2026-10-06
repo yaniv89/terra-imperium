@@ -1276,12 +1276,8 @@ export class BattleRenderer {
   }
 
   dispose() {
-<<<<<<< HEAD
     this.soldierLayers.forEach((l) => l.levels.forEach((m) => m.dispose()));
-=======
-    this.soldierLayers.forEach((l) => { l.high.dispose(); l.low.dispose(); });
     this.cityLayer?.dispose();
->>>>>>> origin/claude/phase-b-city-manifest
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();
