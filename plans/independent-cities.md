@@ -387,7 +387,8 @@ Done:
 - `src/engine/mercenaries.js`: mercantile and raiders sell bands (stock 2, one more every 10
   turns): price 60 + 25 x age rank, upkeep 3 + age rank a turn to the seller, 20-turn contract,
   gone when unpaid; raiders sell cavalry, mercantile infantry. The player hires from the city panel;
-  AI majors at war or raided lately hire with 2x the price in gold; a threatened mercantile city
+  AI majors at war hire with 2x the price in gold (not at peace: that tipped AI wars on weak
+  neighbours in the balance-sim); a threatened mercantile city
   hires a defender. The queue keeps RAID_RESERVE units above the garrison (raiders 2, tribal and
   fortress 1, mercantile 0); raiders train cavalry for them.
 - Placeholder UI: tribute demands with Pay / Refuse (44 px) in Relations; the city panel of an

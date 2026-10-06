@@ -237,10 +237,9 @@ export const MERC_KM = 1224;
 export const MERC_MAX_GRUDGE = 50;
 export const mercPrice = (ageId = 'bronze') => 60 + 25 * Math.max(0, AGE_ORDER.indexOf(ageId));
 export const mercUpkeep = (ageId = 'bronze') => 3 + Math.max(0, AGE_ORDER.indexOf(ageId));
-/** The AI: a major at war (or raided in the last MERC_AI_RAIDED_TURNS turns) with MERC_AI_GOLD_MULT x
- * the price in gold hires a band, at most
- * MERC_AI_MAX at once, thinking every MERC_AI_PERIOD turns. */
+/** The AI: a major at war with MERC_AI_GOLD_MULT x the price in gold hires a band, at most
+ * MERC_AI_MAX at once, thinking every MERC_AI_PERIOD turns. Never at peace: bands bought by majors
+ * that were raided tipped AI wars on weak neighbours in the balance-sim (3 of 8 seeds). */
 export const MERC_AI_GOLD_MULT = 2;
-export const MERC_AI_RAIDED_TURNS = 10; // a major raided this recently hires too, at peace
 export const MERC_AI_MAX = 2;
 export const MERC_AI_PERIOD = 5;
