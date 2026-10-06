@@ -383,6 +383,81 @@ Mechanisms nobody has yet, needed by the plans:
   landings on the player's coast and their interception are still fought at once (not queued);
   a general as a unit on the battle map; escrowed recruits (RTS plan 6.5) beyond the auxiliaries.
 
+### 6.11 Phase R3 result (2026-10-06, branch claude/phase-r3-battle-kinds)
+- **Raids and sacks are real battles** (src/engine/raidBattle.js; battle types `raid` and `sack`,
+  src/battle/setup/battleType.js). The raid is the one light battle (no base-building): three loot
+  targets on the defender's side of the field (a depot, the fields' stores, a trade post), the
+  raiders burn two and get away by their own edge (the battle lasts until the last of them is off
+  the field); the defender wins by killing or driving them off first, and its AI guards the loot.
+  A sack stands the real town: its buildings and houses are what the raiders burn (two), and the
+  town's militia stands even with no garrison. Clocks: raid 10 minutes, sack 12. Raiders torch
+  loot (LOOT_BURN_MULT), they need not batter it down.
+- **The honest Auto of a raid** (autoBattle.js): no auxiliaries; the raiders' blows count
+  RAID_MULT x min(1, defenders / raiders) in a raid and SACK_MULT in a sack (they burn, they do not
+  fight for the field); beaten in a raid's fight they still got the loot away RAID_SLIP_BASE plus
+  RAID_SLIP x their cavalry share of the time. parityEco TYPES=raid,sack (32 seeds, small parties,
+  three age pairs): 17 of 18 in the guardrail; raid wins agree (29 to 32 of 32 both ways); the one
+  out is a sack of a militia-only kingdoms town by classical raiders (5.1x, both ways a raider win).
+- **Through the outcome service** (battleOutcome.js `raidAdapter`): beaten raiders still on the
+  field are cut down, the ones that got away live; no war score (raids are not wars). A sack the
+  raiders won burns the town under the 50% rule (sackBurn: what they burned, at least the best
+  building and a size's worth of houses; cityManifest.js carries at most half). Raids against the
+  player wait in the battle queue (kinds `raid` and `sack`, no war id: `keepQueued`), the raid
+  waits in phase 'battle' and carries on after it (raids.js `settleRaidBattle`: loot, gold, the
+  march home); against AI majors they are fought on Auto at once through the same service.
+- **AI landings on the player's coast are queued** (src/engine/aiLanding.js): first the player's
+  fleets in the city's waters intercept the transport (`intercept`, a sea battle, Command or Auto;
+  a sunk transport takes its army down and the landing is dropped), then the landing itself
+  (`landing`: the player defends the beach in the real-time amphibious assault). The AI pays and
+  spends its moves when it queues. AI against AI stays immediate.
+- **Forts start battles** (src/engine/forts.js, decision 34): every fort, manned or not, has zone
+  of control (armies.js `inEnemyZoc`); an enemy army that entered a tile next to a manned fort (or
+  was stopped there trying to pass) fights a field battle on the fort's tile, the fort on the map
+  as a walled keep with a tower (FORT_BATTLE_LEVEL) the garrison can man. The player on either
+  side: the queue (the player attacking when the fort is the enemy's); AI against AI: Auto. AI
+  garrisons hold their forts while the enemy stands at the gates. On Auto the fort holds its gate
+  like a walled city. **Rivers**: crossing costs extra movement (unchanged, now tested) and a
+  battle on a river tile draws the river with fords and bridges; across it, the river type.
+- **Decisive field battles, checked** (decision 33): the real-time battle used to end the moment a
+  side broke, so a retreating loser was still on the field and lost whole. Now a broken side runs
+  for its edge and is pursued (field, river, ambush, sally): the battle ends when the last loser is
+  off the field or dead, or after PURSUIT_SECONDS (90); those still on the field are lost, those
+  that got out step back one tile, the winner gains XP. A battle that ends at the clock with
+  nobody broken lets the loser's unbroken units withdraw in order, as Auto does. Auto's escape chances were re-measured
+  (AUTO_ESCAPE_CHANCE 0.5, pursued by cavalry 0.3): loser units lost over three matchups, 16 seeds,
+  real-time 48%, Auto 44%.
+- **A general is a unit on the battle map** (6.7 row 5): every general commanding a unit in the
+  battle rides with a guard (GENERAL_GUARD, cavalry) behind its army; its aura and supply come from
+  the guard; the AI keeps it near the line. The result lists the generals fielded and struck down;
+  the outcome service rolls the shared COMMANDER_FALL_CHANCE (25%, the same hash roll) for a
+  general whose guard fell (Command) or whose unit was destroyed (Auto). A side with only its
+  generals left is broken. Setup version 6.
+- **Sallies and landings are full base-building battles** (decision 36): both run the whole battle
+  economy; a landing now runs on the city assault's 30-minute clock (6.1), a sally on the field's 15
+  with the pursuit.
+- Parity (parityEco, 32 seeds, ages bronze, classical against kingdoms, gunpowder): field 9 of 9
+  in with the pursuit; fort 8 of 9 (out: classical against kingdoms infantry, Auto too harsh,
+  0.34x); sally 9 of 9; landing 8 of 9 (out: classical on kingdoms, 0.31x); raid and sack 17 of 18.
+- balance-sim, 150 turns, seeds 11 and 12, against claude/integration 4fab2ac8: the default world
+  (no independents, few field battles) is identical on every metric. The peoples world (the new
+  game's, with independents): raid battles 8 to 63.5 (every sack is now a battle against the town's
+  militia), sacks 61.5 to 59.5, loot 3,104 to 3,135, raids started 188.5 to 185.5; wars 3 to 6
+  and vassals 0 to 1 are starred on two seeds (a changed world from the first battle on, not a
+  trend); nonFinite and audit violations 0; both runs end active at turn 150.
+- Open (picked the simplest option consistent with the decisions):
+  - Real-time raids are hard to stop against the AI defender (raiders win 29 to 32 of 32); the
+    Auto follows that. If raids should be easier to stop, the loot needs guarding closer to the
+    defenders, not a different Auto.
+  - Fort and landing wins: the attacker without siege never takes a manned fort in real time (0 of
+    32) while Auto lets a big army through 20 of 32 times; landings go the other way (real time
+    lands far more often, 32 vs 15 of 32). Both inside the exchange guardrail; worth an autoCalib
+    pass with R4's rosters.
+  - Raid parties are left out of fort battles (raids.js fights its own); forts are not yet built by
+    the AI.
+  - A struck general that survives the roll stays with its unit; one whose guard rode off while
+    its unit died lives, unassigned (the old rule for Auto).
+  - Escrowed recruits (RTS plan 6.5) beyond the auxiliaries are still left (from 6.10).
+
 ## 7. Order of work
 
 Four tracks run side by side. Each phase is one branch, merged when the user says.
