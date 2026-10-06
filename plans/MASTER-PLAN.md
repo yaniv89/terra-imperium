@@ -1,7 +1,7 @@
 # Terra Imperium master plan
 
 Date: 2026-10-06. **Start here.** This file joins every plan into one order of work: the roadmap
-(peoples, names, independents, nine ages, settle rules), the RTS battle plan, the world art plan,
+(peoples, names, independents, settle rules; the nine ages for later), the RTS battle plan, the world art plan,
 the review of both (speed, fog of war, the globe) and the user's decisions of 2026-10-06. Where
 two plans disagree, this file says which one wins. The detail stays in the plans below; this file
 says what to build, in what order, and what must not be forgotten.
@@ -15,7 +15,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/peoples-and-world-setup.md` | the 150 peoples, world sizes, start screen, titles, city names, art themes, map quality | current |
 | `plans/data/cities/*.json` | 3,000 city names (150 peoples x 20) | draft, web check pending |
 | `plans/independent-cities.md` | independents: raids, sack, razing, tribute, joining, AI | current, battle parts replaced by section 6 here |
-| `plans/eras-origins-and-future.md` | nine ages, units, robots, powers, governments | current |
+| `plans/eras-origins-and-future.md` | nine ages, units, robots, powers, governments | **later** (decision 32): five ages now |
 | `plans/settle-rules.md` | one Civ-style spacing rule (R1, R2, R5 to R7) | current; R3 and R4 only for the legacy 240-nation world |
 | `plans/terra-imperium-rts-plan.md` | the RTS battle design (economy, ledgers, outcome, saves, tests) | current, amended by section 6 here |
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
@@ -42,6 +42,23 @@ Roadmap decisions 1 to 22 (`ROADMAP.md` section 2) stand. New, 2026-10-06:
 29. **The flat map moves to WebGL** (territories, borders, badges, fog and the 3D close view in
     one canvas) after the fog phase.
 
+Decisions of 2026-10-06, second round:
+
+30. **Every unit takes population**, the brought army included (section 6.3).
+31. **Conquest keeps at least half the city**: battle damage carries to the map at most 50%
+    (section 6.8).
+32. **Five ages** (Bronze to Modern) for now. The nine-age plan (`eras-origins-and-future.md`) is
+    the future, after its art exists; nothing in phases 1 to 13 below depends on it.
+33. **Field battles are decisive**: the side that loses a battle away from a city loses the units
+    still on the field; the winner's units gain XP (section 6.9).
+34. **Forts start battles** against enemies that come near, and **armies cross rivers** (section 6.9).
+35. **Three battle resources**: food, materials, gold.
+36. **Full base-building in field battles too**, not a light camp.
+37. **Fewer systems**: prisoners have two outcomes only (ransom or release); **succession and
+    the noble estates are removed** from the game (phase X in section 7).
+38. Lead's calls on the rest: mercenaries and captives come with the independents work (W2);
+    no weather or seasons in battles.
+
 ## 3. Contradictions between the plans, resolved
 
 | Topic | Plans disagree | Decision |
@@ -53,10 +70,14 @@ Roadmap decisions 1 to 22 (`ROADMAP.md` section 2) stand. New, 2026-10-06:
 | Emergence | eras 3.2 and 12 use emergence by year | **no emergence** of majors (roadmap 5); late peoples arrive as independents |
 | AI tiers | eras 11 keeps Tier 1 only | **every major is Tier 1** (independents 5); independents have their own cheap AI |
 | Distances | gaps measured on the frequency-75 grid ("6 hexes") | **write them in km** (`ringsForKm`): the 6-hex gap is 612 km (8 rings at frequency 100); spacing 306 km (4 rings) |
-| Eras in the RTS plan | 5 eras, "x 5" art counts | **9 ages from the age registry** (`src/data/ages.js`); art counts x 9/5 |
+| Eras in the RTS plan | 5 eras vs the roadmap's 9 ages | **5 ages now** (decision 32); catalogs keyed by the age registry (`src/data/ages.js`) so the 9 ages plug in later |
 | Base-building | review section 4.1 said "great sieges only" | **every assault** (decision 23) |
 | The globe | roadmap 22 "sharper globe" | **hidden, then removed** (decision 28) |
 | Battle size | RTS plan 500 standard | **300 standard** (decision 25) |
+| Population | review: the brought army needs no houses | **every unit takes population** (decision 30) |
+| Field-battle camps | review: a light camp | **full base-building** (decision 36) |
+| Default start | roadmap 18 to 19: nine ages, Origins start in 5000 BCE, game ends 2500 | **five ages for now** (decision 32): the Dawn start (2000 BCE) stays the default until the nine ages land |
+| Estates and succession | eras 10 adds a Synthetics estate; succession drives pretenders | **both removed** (decision 37); civil wars keep other causes |
 
 The Jerusalem and Ramallah clash of the legacy world does not arise in new games: the pool has
 one people per place and its capitals are spaced by construction (peoples 4.1; Philistia and
@@ -136,38 +157,38 @@ stands. These sections amend it.
 - AI vs AI battles are always Auto (abstract), shown in sight as markers.
 
 ### 6.2 Size: 300 a side
-- 300 combat units a side by default, plus workers (counted in the population, section 6.3).
+- 300 a side by default: soldiers and workers together, the population cap (section 6.3).
 - The brought army maps to units by the RTS plan 5.1 (a full foot regiment 50, mounted 25, siege
   10, air 5). An invasion bigger than 300 chooses: waves, or the 500/1,000 preset where the device
-  passed the measured test, or Auto.
+  passed the measured test, or Auto. Waves: the units that do not fit wait off the map and enter
+  as population frees up (deaths, retreats), in the order the player sets.
 - Control by **regiment** (box select regiments, regiment cards, formations); single units
   remain selectable. 300 single-unit orders are not playable on a 844x390 screen.
 
-### 6.3 Village houses and population (decision 26)
-As in Age of Empires, units need housing:
-- **Population** = living workers + living trained units + queued units. It may not exceed the
-  **housing cap**.
-- The **brought army does not need houses**: its slots are reserved at the start (RTS plan 5.2),
-  so a large invasion is never blocked by housing. Houses cap only workers and new recruits.
-- **Attacker**: the expedition camp houses 20; each **village house** (cheap, fast, built by
-  workers) adds 10; up to the 300 battle size.
+### 6.3 Village houses and population (decisions 26, 30)
+As in Age of Empires, every unit needs housing:
+- **Population** = every living unit on the field (the brought army, workers, trained units)
+  plus units in training. It may not exceed the **housing cap**, and never 300 (decision 25).
+- **The brought army is never blocked or harmed by housing**: it enters even above the cap (the
+  cap is then simply full, so training waits until houses are built or units fall). Housing never
+  kills or removes a unit; it only stops training.
+- **Attacker**: the expedition camp houses 20, its army's supply train another 10 per regiment
+  brought (so a large army arrives housed); each **village house** (cheap, fast, built by
+  workers) adds 10.
 - **Defender**: the **real city's houses** (from the city manifest, so a bigger city has more)
-  each add their capacity; the town hall adds 20. Destroying the defender's houses lowers its cap:
-  training pauses when over the cap, units are never killed by it. So the destructible city
-  matters to the fight, not only to the aftermath.
-- Houses lost in battle are the same houses lost on the map (manifest ids), and lower the city's
-  population and devastation once (aftermath).
-- **Robots** (eras 4.7, Future age) need **power** instead of houses: generators and reactors cap
-  robot numbers; an EMP or a destroyed generator stops robot production.
-- Ages: Neolithic huts (+5), Age of Cities mudbrick houses, up to Modern apartment blocks and
-  Future habitats (+15); art per age and theme.
+  each add their capacity; the town hall adds 20. Destroying the defender's houses lowers its
+  cap: training stops while over it. So the destructible city matters to the fight.
+- Houses lost in battle are the same houses lost on the map (manifest ids), within the 50% rule
+  (section 6.8).
+- House art per age and theme (Bronze mudbrick to Modern blocks), from the town kits' houses.
+- Later, with the Future age: robots need **power** instead of houses.
 
 ### 6.4 Economy in every battle
-- Resources: the RTS plan's four (provisions, materials, metal, credits) are many for a phone.
-  Recommendation: three (food, materials, gold), metal folded into materials until Gunpowder.
-  Open question 1.
-- Field battles get a camp, a few workers and the basic buildings only; city assaults the full
-  set; raids almost none (loot depots, burn, leave).
+- **Three resources** (decision 35): food (farms, fishing, herds), materials (wood, stone, metal
+  ore) and gold (mines, trade, loot).
+- **Full base-building in every battle** (decision 36): city assaults, field battles, sallies and
+  landings all have workers, an HQ or camp, houses, depots, production and towers. Raids are the
+  one light case (loot, burn, leave), because raiders come to plunder, not to stay.
 - No free armies: regular recruits from campaign escrow, auxiliaries demobilise (RTS plan 6.5).
 
 ### 6.5 Independents in battle (independents plan)
@@ -181,14 +202,12 @@ As in Age of Empires, units need housing:
   Mercantile: strong walls, mercenaries).
 - Razing after capture: one size a turn on the map (independents 5), not in the battle.
 
-### 6.6 Nine ages in battle (eras plan)
-- Rosters per age from eras 6.1; tactical rules per age from eras 7.1 (no formations and early
-  routs in the Neolithic, Battle Wagons' turn rate, slingers' splash, MG suppression, shields,
-  railguns, beams); powers per age from eras 7.2; battlefields per age (earthwork rings, mudbrick
-  walls, domes, eras 7.3).
-- Neolithic war is raiding for loot and captives; no annexing before Chiefdoms (eras 9.1).
-- Robots: no manpower, never rout, EMP, Hijack, cannot hold a city alone (eras 4.7).
-- The RTS plan's weapon-versus-armour tags must cover Neolithic clubs to Future plasma.
+### 6.6 Ages in battle
+- **Five ages now** (decision 32): Bronze, Classical, Kingdoms, Gunpowder, Modern, each with the
+  RTS plan's five roles plus the worker (7.1 there) and its houses, walls and towers.
+- Every catalog (units, buildings, houses, weapons and armour tags) is keyed by the age registry,
+  so the nine-age plan adds rows later (Neolithic, Age of Cities, Information, Future, robots and
+  power-housing) without changing the battle code.
 
 ### 6.7 Mechanisms the RTS plan forgot (from the engine)
 Each one a battle must read or write; each gets a test in the outcome service:
@@ -201,7 +220,7 @@ Each one a battle must read or write; each gets a test in the outcome service:
 | 4 | Zone of control, `local.fortLevel` | siege.js:83, buildBattleSetup.js:238 | setup inputs |
 | 5 | Generals: skill, XP multiplier, 25% death | battle.js:84-86, aftermath.js:140 | a general is a unit on the field (aura, can die); death rule shared with Auto |
 | 6 | Powers: rally, arrow storm, artillery, air strike, satellite sweep, missiles, nukes | invasion.js:63-74, gameReducer.js:523-558 | spent once; the satellite sweep lifts battle fog; nuke penalties unchanged |
-| 7 | Tile forts, held-tile bonus, river crossings | fieldBattle.js:37-40, 72 | forts are buildings on the field battle map; rivers with fords |
+| 7 | Tile forts, held-tile bonus, river crossings | fieldBattle.js:37-40, 72 | forts start battles and stand on the battle map; rivers with fords (section 6.9) |
 | 8 | Air turn-back by AA and patrols | airPower.js:18-24 | aircraft arriving in battle pass the same roll first |
 | 9 | Encirclement, blockade, starvation | sieges.js:5-16 | a starved city starts with less food and morale |
 | 10 | Wonders raising wall HP | sieges.js:46 | wall HP from the same formula |
@@ -211,7 +230,7 @@ Each one a battle must read or write; each gets a test in the outcome service:
 | 14 | Battle reports and replays | battleReports.js:32 | named battles, the RTS summary, Auto replays |
 | 15 | Tech boost and era goal | data/boosts.js:15, data/eraGoals.js:14 | counted from the outcome |
 | 16 | Defensive pacts, vassals, allies | diplomacy.js:176 | allied armies in range may join as reinforcements (RTS plan 5.3) |
-| 17 | Rebels and pretenders | civilWar.js | can attack and besiege: same battles |
+| 17 | Rebels | civilWar.js | can attack and besiege: same battles; pretenders go with succession (decision 37) |
 | 18 | Bankruptcy desertion | resolveTurn.js:909 | applied before the setup is captured |
 | 19 | Synthetic garrison, AI capture x1.85, withdrawal cost | defense.js:37, 65-82, 336-363 | replace the synthetic garrison with the city's militia and houses; keep withdrawal |
 | 20 | Building razing in commanded battles | gameReducer.js:560 | replaced by manifest damage |
@@ -219,15 +238,38 @@ Each one a battle must read or write; each gets a test in the outcome service:
 | 22 | Intel and odds | intel.js, battleOdds.js | the pre-battle screen keeps odds or the scouts' guess |
 
 Mechanisms nobody has yet, needed by the plans:
-- **Prisoners and captives**: Neolithic raids take captives (eras 9.1), the RTS plan has
-  "captured" surrenders; no module exists. One `captives` ledger: ransom, labour (+population),
-  or release (opinion).
+- **Prisoners**: the RTS plan has "captured" surrenders; no module exists. One `captives` ledger
+  with two outcomes only (decision 37): **ransom** (the owner pays gold to get them back as
+  strength) or **release** (opinion +). Unransomed captives are released after 10 turns.
 - **Mercenaries**: independents sell them (independents 4.6); no module exists. Hired units with
   upkeep and a contract length, in battles as any unit.
 - **Multiple battles in one turn**: a queue in the order of movement; each pauses the turn.
 - **Battles while a peace offer or event is open**: resolveTurn waits for them today; the battle
   queue must too.
-- **Weather and seasons**: not in the game; out of scope unless asked.
+- **Weather and seasons**: out of scope (decision 38).
+
+### 6.8 Conquest keeps half the city (decision 31)
+- Battle damage to the city (houses, buildings, walls) is recorded per manifest id, but **at most
+  50% carries to the map**: the city keeps at least half its houses and buildings, at least half
+  its size, and no building loses more than one tier. The rest is "damaged" and repairs over a
+  few turns at no cost (half of it at the start of the occupation).
+- So destroying the city in battle still costs the conqueror (a smaller, damaged prize), but a
+  conquest never leaves ruins only. Razing stays a separate, deliberate order on the map.
+- The same 50% rule for sacks, sallies and failed assaults (the defender's city).
+
+### 6.9 Field battles, forts and rivers (decisions 33, 34)
+- **Decisive field battles**: a battle away from a city ends when one side's army is destroyed,
+  routed off the map or retreats through an exit. The loser's units still on the field at the
+  end are **destroyed**; units that left through an exit before the end survive and move back one
+  tile. The winner's surviving units gain XP (today's 30 for a win, times the general's
+  multiplier). Auto uses the same rule.
+- **Forts start battles**: an enemy army that enters a tile next to a manned fort (or tries to
+  pass it) is stopped and a field battle starts, with the fort on the battle map as a defensive
+  building (walls, towers, a garrison that counts as housed). An unmanned fort only slows.
+  Forts get zone of control on the map.
+- **Rivers**: armies may cross rivers; a crossing costs extra movement, and a battle on a river
+  tile puts the river on the battle map with fords and bridges (from the tile's road and river
+  edges). Defending a crossing gives the defender the fords as chokepoints.
 
 ## 7. Order of work
 
@@ -246,20 +288,21 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 9 | Battle | **R2** campaign bridge: escrow, the one outcome service with every row of 6.7, names, Command/Auto everywhere, honest auto-resolve | RTS 9, this 6.1, 6.7 | R1, W0 ids | 3 to 4 |
 | 10 | Rules | **W2, W3, W4** independent AI, interactions, UI | independents | W1 | 5 to 7 |
 | 11 | Battle | **R3** every battle kind: field, raid, sack, sally, landing; independents in battle | this 6.1, 6.5 | R2, W2 | 3 to 4 |
-| 12 | Rules | **Ages 1 to 4** Age of Cities, Neolithic and Origins, Information split, Future | eras 16 | W0 | 13 to 16 |
-| 13 | Battle | **R4** nine-age rosters, rules, powers, robots and power-housing | this 6.6 | R3, the ages | 4 to 6 |
+| 12 | Rules | **X** remove succession and the noble estates (decision 37): `succession.js`, `estates.js`, `estateLand.js`, pretenders in `civilWar.js`, their events, UI (CityPolitics, ProvinceModal) and saves; balance-sim before and after | this 2 | none; before W0 if possible (fewer systems to re-key) | 1 to 2 |
+| 13 | Battle | **R4** the five ages' rosters, houses, walls, towers and weapons in battle | this 6.6 | R3 | 3 to 5 |
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
+| later | Rules | **Nine ages** (Age of Cities, Neolithic and Origins, Information, Future, robots): after their art exists (decision 32) | eras 16 | all above | 13 to 16 |
 
-Start now, in parallel: **S**, **A**, **C**. **C** decides whether 300 a side holds on a phone;
+Start now, in parallel: **S**, **X**, **A**, **C**. **C** decides whether 300 a side holds on a phone;
 if not, the battle size or the device floor is revisited before R1, never silently.
 
 ## 8. Open questions for the user
 
-1. Battle resources: three (food, materials, gold), recommended, or the RTS plan's four?
-2. Field battles: a full camp with base-building, or a light camp (a depot, houses, one barracks),
-   recommended, so they stay 15 to 20 minutes?
-3. Prisoners: ransom, labour or release, all three (recommended) or fewer?
-4. Mercenaries and captives are new systems; add them in W2 (with independents), recommended?
-5. Weather and seasons in battles: out of scope (recommended) or wanted?
+None blocking. Interpretations of the 2026-10-06 answers to confirm in passing:
+- "Forts initiate battle": read as a manned fort stopping enemies that come next to it (6.9).
+- "Can cross rivers": read as armies crossing rivers on the map, with river battles (6.9).
+- "Fewer" prisoners: ransom or release only (6.7).
+- "Dropping succession noble stuff": succession, heirs, pretenders and the estates are removed;
+  rulers, governments and governors stay (phase X).
