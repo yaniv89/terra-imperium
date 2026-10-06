@@ -8,8 +8,8 @@ with variants a and b counts once). Give this file to GPT with each batch so its
 
 | Section of the spec | In the spec | In the game | Left |
 |---|---|---|---|
-| 3. Base towns and their parts (13 ids per age x 5 ages) | 65 | 62 | 3 |
-| 3b. Regional kits (6 items per region and age: houses, street, roofscape, materials, landmark-1, landmark-2; 11 regions x 5 ages) | 330 | 306 | 24 |
+| 3. Base towns and their parts (13 ids per age x 5 ages) | 65 | 64 | 1 |
+| 3b. Regional kits (6 items per region and age: houses, street, roofscape, materials, landmark-1, landmark-2; 11 regions x 5 ages) | 330 | 330 | 0 |
 | 3b. Sub-landmarks (extra regional variants) | 7 | 7 | 0 |
 | 3b.5 Kingdoms palaces and walls per region (palace-small, palace, walls-medium x 11) | 33 | 33 | 0 |
 | 4. Buildings | 34 | 25 | 9 |
@@ -17,9 +17,9 @@ with variants a and b counts once). Give this file to GPT with each batch so its
 | 6. Tile improvements (sheets) | 19 | 0 | 19 |
 | 7. Units, settlers and ships | 45 | 0 | 45 |
 | 8. Icons | 130 | 129 | 1 |
-| **Spec total** | **678** | **577** | **101** |
-| Israelite theme (`plans/art/israelite-theme.md`) | 74 | 41 | 33 |
-| **With the Israelite theme** | **752** | **618** | **134** |
+| **Spec total** | **678** | **603** | **75** |
+| Israelite theme (`plans/art/israelite-theme.md`) | 74 | 63 | 11 |
+| **With the Israelite theme** | **752** | **666** | **86** |
 
 The battles run on 21 placeholder unit models built from free CC0 packs; they are not the spec's
 units and are not counted.
@@ -98,9 +98,13 @@ the 2 wonders (checkpoint 02). The full list is in `plans/art/ITEMS.md`.
   palace and walls-medium (3), the 10 buildings, Solomon's Temple and Masada (2), and 6 tile
   improvements (farm, plantation, pasture, fishing boats, fort Bronze, fort Modern).
 - Section 6 tile improvements: none of the base sheets yet (the Israelite set above is regional).
-- Being built now (not counted): Israelite Kingdoms, Gunpowder and Modern kits, palaces, walls
-  and the Modern camp; Europe Modern, Levant Bronze, Indic Gunpowder and Modern kits; base
-  Classical palaces.
+- **Regional kits complete (330 of 330)**: Europe Modern, Levant Bronze, Indic Gunpowder and
+  Indic Modern added; every region has all five ages.
+- **Base Classical palace-small and palace** added (base towns 64 of 65; only Classical
+  town-big is left).
+- **Israelite (63 of 74)**: plus the Kingdoms, Gunpowder and Modern kits (18), Kingdoms
+  palace-small and palace, Gunpowder walls-medium and the Modern colony camp; every Israelite
+  town rebuilt lighter from the corrected deliveries.
 
 ## Not started (as of 2026-10-04; see "Added 2026-10-06" above)
 

@@ -14,7 +14,7 @@ import { getResearchView } from '../panels/researchView';
 import { openPanelTab } from '../panels/panelEvents';
 import { useLayoutMode, isLandscapeShell } from '../../hooks/useLayoutMode';
 import NextPrompt from './NextPrompt';
-import { endTurnWarnings, WARN_ARM_MS } from './nextPrompt';
+import { endTurnWarnings, WARN_ARM_MS } from './nextPromptModel';
 import { perTurnStrip } from '../city/cityRailModel';
 import { calcNationBalance } from '../../engine/economy';
 import { calcIncome } from '../../utils/helpers';
