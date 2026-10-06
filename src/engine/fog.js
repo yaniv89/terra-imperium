@@ -38,6 +38,7 @@ import { unitTile } from './armies';
 import { mapEffectsFor } from './techMapEffects';
 import { navalLineOf, navalSightBonus } from '../data/navalLines';
 import { townTier } from '../data/townTiers';
+import { metOnlyBySight } from './hostility';
 
 /** How far around its cities a people knows the world at the start (km). */
 export const START_KNOWN_KM = 1000;
@@ -392,7 +393,9 @@ export const initFog = (state, { on = true } = {}) => {
     walk(tiles, homeOf.get(id), rings, mark, ++stamp, (t) => {
       setBit(bytes, t);
       const o = cityOwnerAt.get(t);
-      if (o && o !== id && state.nations[o]) { (met[id] ||= {})[o] = state.turnNumber || 1; (met[o] ||= {})[id] = state.turnNumber || 1; }
+      // An independent city is met only by sight (hostility.js metOnlyBySight, phase W1): never by
+      // homeland overlap at the start. The sight pass below still meets it if it is in view.
+      if (o && o !== id && state.nations[o] && !metOnlyBySight(state, o) && !metOnlyBySight(state, id)) { (met[id] ||= {})[o] = state.turnNumber || 1; (met[o] ||= {})[id] = state.turnNumber || 1; }
     });
     explored[id] = new TileBits(bytes);
   });

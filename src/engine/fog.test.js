@@ -51,6 +51,22 @@ describe('fog of war: the start', () => {
     expect(hasMet(S, 'fr', 'fr')).toBe(true);
   });
 
+  it('an independent city is met only by sight, never by homeland overlap (hostility.js metOnlyBySight, phase W1)', () => {
+    // Turn each people France met at the start into an independent and start the fog again: those
+    // France met only through the homeland rule are now unknown until someone sees them.
+    const asIndependent = (id) => ({ ...S, nations: { ...S.nations, [id]: { ...S.nations[id], kind: 'independent' } } });
+    // eslint-disable-next-line no-unused-vars
+    const fresh = (s) => { const { fog, ...rest } = s; return initFog(rest); };
+    const unseen = metNations(S, 'fr').filter((id) => !hasMet(fresh(asIndependent(id)), 'fr', id));
+    expect(unseen.length).toBeGreaterThan(0);
+    const id = unseen[0];
+    const s = fresh(asIndependent(id));
+    expect(hasMet(s, id, 'fr')).toBe(false);
+    // A French army at its city meets it.
+    const seen = updateFog({ ...s, units: { ...s.units, scout: unit('scout', 'fr', capTile(s, id)) } }, { onlyPlayer: true });
+    expect(hasMet(seen, 'fr', id)).toBe(true);
+  }, 60000);
+
   it('the explored world option starts with everything explored and everyone met', () => {
     const open = createInitialState({ playerNationId: 'fr', rngSeed: 7, fog: false });
     expect(fogOn(open)).toBe(false);
@@ -181,6 +197,26 @@ describe('fog of war: saves', () => {
     const loaded = migrateSave({ version: 10, state: old }).state;
     expect(fogOn(loaded)).toBe(true);
     expect(loaded.fog.explored.fr.bytes).toEqual(initFog(S).fog.explored.fr.bytes);
+  }, 60000);
+
+  it('a version 10 save runs the whole chain: phase X strips succession and the estates (10 to 11), then the fog starts (11 to 12)', () => {
+    // eslint-disable-next-line no-unused-vars
+    const { fog, ...old } = JSON.parse(JSON.stringify(S));
+    const fr = old.nations.fr;
+    old.nations = { ...old.nations, fr: { ...fr, heir: { name: 'Louis', claim: 50 }, estates: { clergy: { loyalty: 50 } }, crownLand: 40, ruler: { ...fr.ruler, consort: { name: 'Anne' } } } };
+    old.pendingEventChains = [{ id: 'succession_crisis_2', dueTurn: 9 }];
+    const loaded = migrateSave({ version: 10, state: old });
+    expect(loaded.version).toBe(12);
+    expect(CURRENT_SAVE_VERSION).toBe(12);
+    ['heir', 'estates', 'crownLand'].forEach((k) => expect(loaded.state.nations.fr, k).not.toHaveProperty(k));
+    expect(loaded.state.nations.fr.ruler).not.toHaveProperty('consort');
+    expect(loaded.state.pendingEventChains).toEqual([]);
+    expect(fogOn(loaded.state)).toBe(true);
+    expect(loaded.state.fog.explored.fr.bytes).toEqual(initFog(S).fog.explored.fr.bytes);
+    // A version 11 save (phase X, no fog) takes only the fog step.
+    const v11 = migrateSave({ version: 11, state: JSON.parse(JSON.stringify(old)) });
+    expect(v11.version).toBe(12);
+    expect(fogOn(v11.state)).toBe(true);
   }, 60000);
 
   it('the explored world option survives a save', () => {

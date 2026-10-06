@@ -59,8 +59,9 @@ export const canAttack = (state, attacker, target) => {
  * units (`state.fog.met[a][b]`); an independent needs nothing more, so it is met exactly then,
  * never by homeland overlap at the start and never through diplomacy. `hasMet` reads that
  * record when it exists and treats a world without fog (or "explored world") as all met.
- * When fog lands: its start-of-game homeland contact should skip pairs where
- * `metOnlyBySight(state, other)` is true, and the AI (W3) uses `hasMet` before targeting one.
+ * fog.js initFog skips the start-of-game homeland contact for any pair where
+ * `metOnlyBySight` is true (wired on claude/integration); the AI (W3) uses `hasMet` before
+ * targeting one.
  */
 export const metOnlyBySight = (state, id) => isIndependentId(state, id);
 export const hasMet = (state, viewerId, otherId) => {
