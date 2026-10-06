@@ -4,7 +4,8 @@
 // group moving in formation (RoN), terrain speed, and a separation pass so squads don't stack.
 import { TILE_COST } from '../setup/mapgen';
 import { angleBetween, distSq, isqrt, polarX, polarY, turnToward } from './fixed';
-import { getFlowField, lineClear, nextWaypoint, queryRadius, tileOf } from './pathing';
+import { buildTargetGrid, getFlowField, lineClear, nextWaypoint, tileOf, SPATIAL_CELL, SPATIAL_PER } from './pathing';
+import { sortInts } from './spatial';
 import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFighting } from './combat';
 import { canSeeSquad } from './fog';
 import { sideEdgeX } from './world';
@@ -89,6 +90,7 @@ const settle = (q) => { q.order = { type: 'idle' }; q.anchorX = q.x; q.anchorY =
 // a squad picked for itself is revisited now and then, so it doesn't chase routed men across the
 // map while fresh enemies are hitting it, or keep walking toward a far target past a near one.
 export const acquireTargets = (w) => {
+  buildTargetGrid(w); // nothing moves while targets are picked, so one build serves every query
   w.squads.forEach((q) => {
     if (!canAttack(q)) return;
     if (q.order.type === 'move' || q.order.type === 'retreat' || q.order.type === 'garrison') return;
@@ -159,22 +161,88 @@ export const moveSquads = (w) => {
 };
 
 // Push overlapping squads apart (ground with ground, air with air), in index order.
+// Neighbours follow queryRadius's rule exactly (pathing.js: the 8x8 cell a squad stood in at the
+// grid build must touch the query box, and it must be within reach where it stands now), but are
+// found locally: squads not pushed yet this pass still stand where the grid saw them, so the fine
+// cells around the query hold them; a squad once pushed leaves the grid's lists and is tracked in
+// a second set of per-cell lists by where it stands now, updated on every push.
+const clampTo = (v, n) => (v < 0 ? 0 : v >= n ? n - 1 : v);
+let movedCell = new Int32Array(64); // fine cell a pushed squad is listed under, -1 = never pushed
+let movedNext = new Int32Array(64);
+let movedHead = new Int32Array(64);
+let near = new Int32Array(64);
 export const separateSquads = (w) => {
   const minD = SQUAD_RADIUS * 2;
-  w.squads.forEach((q) => {
-    if (!isFighting(q) || q.inside >= 0) return;
-    queryRadius(w, q.x, q.y, minD).forEach((j) => {
-      if (j <= q.idx) return;
-      const o = w.squads[j];
-      if (!isFighting(o) || o.inside >= 0 || !!o.stats.flying !== !!q.stats.flying) return;
+  const { squads } = w;
+  const g = w.spatial;
+  if (!g || !g.n) return;
+  const n = squads.length;
+  if (movedCell.length < n) { movedCell = new Int32Array(n * 2); movedNext = new Int32Array(n * 2); near = new Int32Array(n * 2); }
+  const cellCount = g.cols * g.rows;
+  if (movedHead.length < cellCount) movedHead = new Int32Array(cellCount * 2);
+  movedCell.fill(-1, 0, n);
+  movedHead.fill(-1, 0, cellCount);
+  const { cell, cx0, cy0, cols, rows, start, items, keys } = g;
+  const cellOf = (x, y) => clampTo(Math.floor(y / cell) - cy0, rows) * cols + clampTo(Math.floor(x / cell) - cx0, cols);
+  const unlink = (i) => {
+    const c = movedCell[i];
+    if (movedHead[c] === i) { movedHead[c] = movedNext[i]; return; }
+    for (let p = movedHead[c]; p >= 0; p = movedNext[p]) if (movedNext[p] === i) { movedNext[p] = movedNext[i]; return; }
+  };
+  const shift = (o, nx, ny) => {
+    o.x = nx; o.y = ny;
+    const c = cellOf(nx, ny);
+    if (movedCell[o.idx] === c) return;
+    if (movedCell[o.idx] >= 0) unlink(o.idx);
+    movedCell[o.idx] = c; movedNext[o.idx] = movedHead[c]; movedHead[c] = o.idx;
+  };
+  const r2 = minD * minD;
+  for (let qi = 0; qi < n; qi++) {
+    const q = squads[qi];
+    if (!isFighting(q) || q.inside >= 0) continue;
+    // The neighbours with a higher index, in ascending order.
+    const x = q.x; const y = q.y;
+    // Clamped like cellOf, so a squad pushed past the grid's edge is still found in the edge cell.
+    const ax = clampTo(Math.floor((x - minD) / cell) - cx0, cols); const bx = clampTo(Math.floor((x + minD) / cell) - cx0, cols);
+    const ay = clampTo(Math.floor((y - minD) / cell) - cy0, rows); const by = clampTo(Math.floor((y + minD) / cell) - cy0, rows);
+    const kx0 = Math.floor((x - minD) / SPATIAL_CELL); const kx1 = Math.floor((x + minD) / SPATIAL_CELL);
+    const ky0 = Math.floor((y - minD) / SPATIAL_CELL); const ky1 = Math.floor((y + minD) / SPATIAL_CELL);
+    let count = 0;
+    for (let cy = ay; cy <= by; cy++) {
+      for (let cx = ax; cx <= bx; cx++) {
+        const c = cy * cols + cx;
+        for (let s = start[c], end = start[c + 1]; s < end; s++) {
+          const i = items[s];
+          if (i <= qi || movedCell[i] >= 0) continue; // a pushed squad is found by where it is now
+          const o = squads[i];
+          const ddx = o.x - x; const ddy = o.y - y;
+          if (ddx * ddx + ddy * ddy <= r2) near[count++] = i;
+        }
+        for (let i = movedHead[c]; i >= 0; i = movedNext[i]) {
+          if (i <= qi) continue;
+          const o = squads[i];
+          const ddx = o.x - x; const ddy = o.y - y;
+          if (ddx * ddx + ddy * ddy > r2) continue;
+          // The old rule: the 8x8 cell it stood in at the build must touch the query box.
+          const kx = Math.floor(keys[i * 2] / SPATIAL_PER); const ky = Math.floor(keys[i * 2 + 1] / SPATIAL_PER);
+          if (kx < kx0 || kx > kx1 || ky < ky0 || ky > ky1) continue;
+          near[count++] = i;
+        }
+      }
+    }
+    sortInts(near, count);
+    for (let k = 0; k < count; k++) {
+      const j = near[k];
+      const o = squads[j];
+      if (!isFighting(o) || o.inside >= 0 || !!o.stats.flying !== !!q.stats.flying) continue;
       const d = isqrt(distSq(q.x, q.y, o.x, o.y));
-      if (d >= minD) return;
+      if (d >= minD) continue;
       const push = Math.ceil((minD - d) / 2);
       const a = d === 0 ? (q.idx * 37 + j * 11) & 255 : angleBetween(o.x, o.y, q.x, q.y);
       const qx = q.x + polarX(a, push); const qy = q.y + polarY(a, push);
       const ox = o.x - polarX(a, push); const oy = o.y - polarY(a, push);
-      if (passableAt(w, q, qx, qy)) { q.x = qx; q.y = qy; }
-      if (passableAt(w, o, ox, oy)) { o.x = ox; o.y = oy; }
-    });
-  });
+      if (passableAt(w, q, qx, qy)) shift(q, qx, qy);
+      if (passableAt(w, o, ox, oy)) shift(o, ox, oy);
+    }
+  }
 };

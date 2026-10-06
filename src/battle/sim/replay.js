@@ -9,10 +9,14 @@
 // own side (a client can't command the AI's troops); only known order types, integer ticks inside
 // the battle and finite numbers survive; and the log length is capped.
 import { runHeadless } from './headless';
+import { step } from './step';
+import { worldHash } from './hash';
 import { MAX_BATTLE_TICKS } from './constants';
 
 export const MAX_LOG_ORDERS = 20000;
-const MAX_SQUADS_PER_ORDER = 64;
+// One order may move a whole army: the largest preset is 1,000 squads a side (MASTER-PLAN 6.2).
+// (It was 64: a box-selected 300-squad order then replayed as a 64-squad one, a false desync.)
+export const MAX_SQUADS_PER_ORDER = 1024;
 const ORDER_TYPES = new Set(['move', 'attackMove', 'formationLine', 'attack', 'stop', 'hold', 'retreat', 'retreatAll', 'callReserve', 'ability', 'power', 'garrison']);
 const int = (v) => (Number.isFinite(v) ? Math.trunc(v) : 0);
 // Coordinates stay exactly as recorded (the live battle used them as-is); only non-numbers go.
@@ -48,6 +52,19 @@ export const sanitizeOrderLog = (log, playerSide) => {
 // Replays a recorded battle and returns its authoritative result and final world hash.
 export const replayBattle = (setup, log) => {
   const playerSide = Math.max(0, (setup.controllers || []).indexOf('player'));
-  const { result, hash, world } = runHeadless(setup, { orders: sanitizeOrderLog(log, playerSide) });
-  return { result, hash, tick: world.tick };
+  const { result, hash, chain, world } = runHeadless(setup, { orders: sanitizeOrderLog(log, playerSide) });
+  return { result, hash, chain, tick: world.tick };
+};
+
+// Verify only the last segment of a long battle (plans/rts-world-review.md section 3): continue a
+// TRUSTED snapshot of the world (a structuredClone taken at a checkpoint, carrying its hash chain)
+// with the logged orders from its tick on, up to `untilTick` or the end. The returned chain must
+// equal the one the client reported for the same tick. The snapshot is not modified.
+export const replaySegment = (snapshot, log, untilTick = Infinity) => {
+  const w = structuredClone(snapshot);
+  const playerSide = Math.max(0, (w.setup.controllers || []).indexOf('player'));
+  const byTick = new Map();
+  sanitizeOrderLog(log, playerSide).forEach((o) => { if (o.tick >= w.tick) { const l = byTick.get(o.tick) || []; l.push(o); byTick.set(o.tick, l); } });
+  while (!w.ended && w.tick < untilTick) { step(w, byTick.get(w.tick) || []); w.events.length = 0; }
+  return { world: w, chain: w.hashChain, hash: worldHash(w), tick: w.tick };
 };

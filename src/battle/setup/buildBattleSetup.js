@@ -105,9 +105,10 @@ export const buildSetupFromArmies = ({
   attackerNationId = 'attacker', defenderNationId = 'defender',
   controllers = ['player', 'ai'], difficultyId = 'prince',
   powers = [[{ id: 'rallyCry' }], [{ id: 'rallyCry' }]], reinforcements = [[], []], intel = { attackerSeesDefender: true },
-  landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null
+  landing = false, regionBuildings = [], tileContext = null, sally = false, city = fortLevel > 0 || isCapital, fromTile = null, battleType = null,
+  combatWidth: combatWidthOverride = null // a bigger field for the large-battle presets and the benchmark (src/battle/sim/benchScenario.js)
 }) => {
-  const combatWidth = getCombatWidth(terrain);
+  const combatWidth = combatWidthOverride || getCombatWidth(terrain);
   const naval = battleType === 'naval';
   const type = battleType || battleTypeOf({ landing, sally, city, fortLevel, tileContext, fromTile });
   const map = generateMap({ regionId, terrain, combatWidth, pointCount: naval ? 0 : deposits.length, roads: 1 + (infrastructure >= 5 ? 1 : 0) + (infrastructure >= 8 ? 1 : 0) + (tileContext?.roads || 0), landing, tileContext, naval });

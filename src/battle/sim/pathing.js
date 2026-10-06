@@ -5,6 +5,7 @@
 // entirely, and a spatial hash for neighbour queries.
 import { TILE_COST } from '../setup/mapgen';
 import { Q } from './constants';
+import { makeGrid, rebuildGrid, sortInts } from './spatial';
 
 const DX = [1, -1, 0, 0, 1, 1, -1, -1];
 const DY = [0, 0, 1, -1, 1, -1, 1, -1];
@@ -100,8 +101,35 @@ export const nextWaypoint = (w, field, x, y) => {
   return { x: bx * Q + (Q >> 1), y: by * Q + (Q >> 1) };
 };
 
-// Is the straight segment walkable (sampled every half tile)?
+// Blocked-tile prefix sums per map (the tiles never change during a battle): how many impassable
+// tiles a rectangle holds, in four reads. Kept beside the map, not on it, so setups stay plain data.
+const blockedSums = new WeakMap();
+const blockedPrefix = (map) => {
+  let sums = blockedSums.get(map.tiles);
+  if (sums) return sums;
+  const { w, h, tiles } = map;
+  const W = w + 1;
+  sums = new Int32Array(W * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let row = 0;
+    for (let x = 0; x < w; x++) {
+      row += TILE_COST[tiles[y * w + x]] ? 0 : 1;
+      sums[(y + 1) * W + x + 1] = sums[y * W + x + 1] + row;
+    }
+  }
+  blockedSums.set(map.tiles, sums);
+  return sums;
+};
+const clampTile = (v, n) => Math.max(0, Math.min(n - 1, Math.floor(v / Q)));
+
+// Is the straight segment walkable (sampled every half tile)? Every sample lies in the box of tiles
+// between the two ends, so a box with no impassable tile answers yes at once; only a box with an
+// obstacle in it is sampled.
 export const lineClear = (map, x0, y0, x1, y1) => {
+  const ax = clampTile(Math.min(x0, x1), map.w); const bx = clampTile(Math.max(x0, x1), map.w);
+  const ay = clampTile(Math.min(y0, y1), map.h); const by = clampTile(Math.max(y0, y1), map.h);
+  const sums = blockedPrefix(map); const W = map.w + 1;
+  if (sums[(by + 1) * W + bx + 1] - sums[ay * W + bx + 1] - sums[(by + 1) * W + ax] + sums[ay * W + ax] === 0) return true;
   const dx = x1 - x0; const dy = y1 - y0;
   const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / (Q >> 1)));
   for (let s = 1; s <= steps; s++) {
@@ -111,36 +139,56 @@ export const lineClear = (map, x0, y0, x1, y1) => {
   return true;
 };
 
-// Squads bucketed into 8×8-tile cells, rebuilt every tick.
-const CELL = 8 * Q;
+// Squads in a packed grid (spatial.js) of 2x2-tile cells, rebuilt after movement each tick, in
+// place of the old Map of 8x8-tile cell arrays. The rule of a query stays the old one, so every
+// query finds exactly the squads it found before: a squad counts if the 8x8 cell it stood in at the
+// build touches the query box, and it is within the radius where it stands NOW (squads nudged
+// since the build by separation or garrisons included). The fine cells nest inside the old ones
+// (8 / 2 = 4), so the old cell test is a range of fine cells.
+export const SPATIAL_CELL = 8 * Q;
+const CELL = SPATIAL_CELL;
+const FINE = 2 * Q;
+export const SPATIAL_PER = CELL / FINE;
+const PER = SPATIAL_PER;
+const inGrid = (q) => q.alive && q.onField;
 export const buildSpatialHash = (w) => {
-  const cells = new Map();
-  w.squads.forEach((q) => {
-    if (!q.alive || !q.onField) return;
-    const key = Math.floor(q.x / CELL) * 4096 + Math.floor(q.y / CELL);
-    let list = cells.get(key);
-    if (!list) { list = []; cells.set(key, list); }
-    list.push(q.idx);
-  });
-  w.spatial = cells;
+  w.spatial = rebuildGrid(w.spatial && w.spatial.cell === FINE && !w.spatial.bySide ? w.spatial : makeGrid(FINE), w.squads, inGrid);
 };
 
 // Squad indices within `radius` of (x, y), in ascending index order (deterministic).
+// (separateSquads in movement.js runs its own local version of this rule.)
 export const queryRadius = (w, x, y, radius) => {
-  const out = [];
+  const g = w.spatial;
+  if (!g || !g.n) return [];
   const r2 = radius * radius;
-  const cx0 = Math.floor((x - radius) / CELL); const cx1 = Math.floor((x + radius) / CELL);
-  const cy0 = Math.floor((y - radius) / CELL); const cy1 = Math.floor((y + radius) / CELL);
-  for (let cx = cx0; cx <= cx1; cx++) {
-    for (let cy = cy0; cy <= cy1; cy++) {
-      const list = w.spatial.get(cx * 4096 + cy);
-      if (!list) continue;
-      for (const i of list) {
-        const q = w.squads[i];
+  const { squads } = w;
+  if (!g.scratch || g.scratch.length < g.n) g.scratch = new Int32Array(Math.max(16, g.n * 2));
+  const buf = g.scratch;
+  let n = 0;
+  const { cx0, cy0, cols, rows, start, items } = g;
+  // The old 8x8 cells the box touches, as ranges of fine cells.
+  const ax = Math.max(Math.floor((x - radius) / CELL) * PER - cx0, 0); const bx = Math.min((Math.floor((x + radius) / CELL) + 1) * PER - 1 - cx0, cols - 1);
+  const ay = Math.max(Math.floor((y - radius) / CELL) * PER - cy0, 0); const by = Math.min((Math.floor((y + radius) / CELL) + 1) * PER - 1 - cy0, rows - 1);
+  for (let cy = ay; cy <= by; cy++) {
+    for (let c = cy * cols + ax, cEnd = cy * cols + bx; c <= cEnd; c++) {
+      for (let s = start[c], end = start[c + 1]; s < end; s++) {
+        const i = items[s];
+        const q = squads[i];
         const ddx = q.x - x; const ddy = q.y - y;
-        if (ddx * ddx + ddy * ddy <= r2) out.push(i);
+        if (ddx * ddx + ddy * ddy <= r2) buf[n++] = i;
       }
     }
   }
-  return out.sort((a, b) => a - b);
+  sortInts(buf, n);
+  return Array.from(buf.subarray(0, n));
+};
+
+// Target finding (combat.js acquireTarget) asks "which ENEMIES are within my sight?" for every
+// squad: a finer grid split by side, so the scan never walks through the squad's own army. Built
+// at the start of acquireTargets, when nobody has moved since, so it finds exactly the squads a
+// full radius query would.
+const TARGET_CELL = 4 * Q;
+export const buildTargetGrid = (w) => {
+  w.targetGrid = rebuildGrid(w.targetGrid && w.targetGrid.cell === TARGET_CELL ? w.targetGrid : makeGrid(TARGET_CELL, true), w.squads, inGrid);
+  return w.targetGrid;
 };

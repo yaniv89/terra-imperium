@@ -9,6 +9,7 @@ import { hasPerk } from '../../data/promotions';
 import { isFighting } from './combat';
 import { sideEdgeX } from './world';
 import { Q, secondsToTicks } from './constants';
+import { makeGrid, rebuildGrid } from './spatial';
 
 export const RALLY_MORALE = 35;
 export { RTS_MORALE_PER_PERCENT, moraleFromLosses } from './moraleMath';
@@ -19,6 +20,8 @@ export const SHOCK_MORALE = 5;
 // the shock: a collapse spreads along a line over several ticks (time to react) instead of one
 // broken squad instantly toppling a whole army.
 export const SHOCK_CAP_PER_TICK = 10;
+const SHOCK_CELL = 4 * Q;
+const inGrid = (q) => q.alive && q.onField;
 const RALLY_QUIET_TICKS = secondsToTicks(6);
 const REGEN_QUIET_TICKS = secondsToTicks(3);
 export const ROUTED_REGEN_PER_SEC = 3;
@@ -29,16 +32,29 @@ export const updateMorale = (w) => {
   const shocks = w.events.filter((e) => e.t === w.tick && (e.type === 'destroyed' || e.type === 'routed')).map((e) => w.squads[e.id]).filter(Boolean);
   if (shocks.length) {
     const taken = new Map();
+    // Neighbours from a grid of where everyone stands right now (split by side): each squad's
+    // loss from one source doesn't depend on the others', so the scan order changes nothing.
+    const g = rebuildGrid(w.shockGrid && w.shockGrid.cell === SHOCK_CELL ? w.shockGrid : makeGrid(SHOCK_CELL, true), w.squads, inGrid);
+    w.shockGrid = g;
+    const { cell, cx0, cy0, cols, rows, start, items } = g;
     shocks.forEach((src) => {
-      w.squads.forEach((q) => {
-        if (q === src || q.side !== src.side || !isFighting(q) || q.routed || q.inside >= 0) return;
-        const dx = q.x - src.x; const dy = q.y - src.y;
-        if (dx * dx + dy * dy > SHOCK_RADIUS * SHOCK_RADIUS) return;
-        const loss = Math.min(SHOCK_MORALE, SHOCK_CAP_PER_TICK - (taken.get(q.idx) || 0));
-        if (loss <= 0) return;
-        taken.set(q.idx, (taken.get(q.idx) || 0) + loss);
-        q.morale = Math.max(0, q.morale - loss);
-      });
+      const ax = Math.max(Math.floor((src.x - SHOCK_RADIUS) / cell) - cx0, 0); const bx = Math.min(Math.floor((src.x + SHOCK_RADIUS) / cell) - cx0, cols - 1);
+      const ay = Math.max(Math.floor((src.y - SHOCK_RADIUS) / cell) - cy0, 0); const by = Math.min(Math.floor((src.y + SHOCK_RADIUS) / cell) - cy0, rows - 1);
+      for (let cy = ay; cy <= by; cy++) {
+        for (let cx = ax; cx <= bx; cx++) {
+          const b = (cy * cols + cx) * 2 + src.side;
+          for (let s = start[b], end = start[b + 1]; s < end; s++) {
+            const q = w.squads[items[s]];
+            if (q === src || !isFighting(q) || q.routed || q.inside >= 0) continue;
+            const dx = q.x - src.x; const dy = q.y - src.y;
+            if (dx * dx + dy * dy > SHOCK_RADIUS * SHOCK_RADIUS) continue;
+            const loss = Math.min(SHOCK_MORALE, SHOCK_CAP_PER_TICK - (taken.get(q.idx) || 0));
+            if (loss <= 0) continue;
+            taken.set(q.idx, (taken.get(q.idx) || 0) + loss);
+            q.morale = Math.max(0, q.morale - loss);
+          }
+        }
+      }
     });
   }
   w.squads.forEach((q) => {

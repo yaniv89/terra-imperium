@@ -5,6 +5,7 @@
 import { applyOrders } from './orders';
 import { thinkAI } from './tacticalAI';
 import { buildSpatialHash } from './pathing';
+import { advanceHashChain } from './hash';
 import { acquireTargets, enterReserves, moveSquads, separateSquads } from './movement';
 import { isFighting, resolveAttacks } from './combat';
 import { resolveStructureFire, updateAssimilation, updateCapturePoints, updateSupply, updateGarrisons, ASSIMILATION_TICKS } from './objectives';
@@ -44,7 +45,11 @@ const lossShare = (w, side) => { const start = startStrength(w, side); return st
 // The share of a side's squads destroyed or fled the field: "rout or destroy 60%" counts squads
 // gone for good, so a side breaks only once most of its line has left (a strength share would end
 // even fights early for the side that trades worse).
-const brokenShare = (w, side) => { const mine = w.squads.filter((q) => q.side === side); return mine.length ? mine.filter((q) => !q.alive || q.fled).length / mine.length : 0; }; // a routed squad may still rally: only the dead and the fled count
+const brokenShare = (w, side) => { // a routed squad may still rally: only the dead and the fled count
+  let mine = 0; let gone = 0;
+  for (let i = 0; i < w.squads.length; i++) { const q = w.squads[i]; if (q.side !== side) continue; mine += 1; if (!q.alive || q.fled) gone += 1; }
+  return mine ? gone / mine : 0;
+};
 // The attacker's strength standing on the far bank (the defender's half of the field).
 const farBankStrength = (w) => { const midX = Math.floor(w.map.w / 2) * Q; return w.squads.reduce((s, q) => s + (q.side === SIDE_ATTACKER && q.alive && !q.fled && !q.routed && q.onField && q.x >= midX ? q.strength : 0), 0); };
 const campBurned = (w) => { const razed = w.razed || []; return razed.filter((c) => c === 'engine').length >= SALLY_ENGINES || razed.includes('camp'); };
@@ -93,8 +98,7 @@ export const step = (w, orders = []) => {
   processImpacts(w);
   updateSupply(w);
   enterReserves(w);
-  buildSpatialHash(w);
-  acquireTargets(w);
+  acquireTargets(w); // builds its own enemy-only grid (pathing.js buildTargetGrid)
   moveSquads(w);
   buildSpatialHash(w);
   separateSquads(w);
@@ -110,5 +114,6 @@ export const step = (w, orders = []) => {
   lastStand(w, SIDE_DEFENDER);
   checkEnd(w);
   w.tick += 1;
+  advanceHashChain(w); // every HASH_CHAIN_EVERY ticks (hash.js)
   return w;
 };

@@ -3,8 +3,10 @@
 // mutated only by step() (src/battle/sim/step.js). Everything the sim needs is on the world —
 // including the RNG state — so a structuredClone of it is a complete, replayable checkpoint.
 import { getUnitBattleStats } from '../data/battleStats';
+import { TILE_COST } from '../setup/mapgen';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { initFog } from './fog';
+import { HASH_CHAIN_SEED } from './hash';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
@@ -79,9 +81,11 @@ export const createWorld = (setup) => {
     events: [],
     tally: {},
     ended: null,
-    stats: { reservesCalled: [0, 0] }
+    stats: { reservesCalled: [0, 0] },
+    hashChain: HASH_CHAIN_SEED            // running checkpoint hash (hash.js advanceHashChain)
   };
   spawnSides(w);
+  if (setup.deployment === 'blocks') deployBlocks(w);
   initFog(w);
   return w;
 };
@@ -110,14 +114,47 @@ const DEPLOY_TEMPLATES = {
 };
 export const deployTemplate = (type) => DEPLOY_TEMPLATES[type] || DEPLOY_TEMPLATES.field;
 
+// Massed deployment (setup.deployment === 'blocks'; the large-battle presets and the kernel
+// benchmark, src/battle/sim/benchScenario.js): every squad of the army starts on the field, in a
+// deep block per side facing the other across the middle: columns from the front backward, rows
+// across the whole field, melee in front and shooters behind; a slot on impassable ground is skipped.
+const BLOCK_SPACING = Math.round(1.5 * Q);
+const BLOCK_GAP_TILES = 12; // from the middle of the field to each side's front column
+export const deployBlocks = (w) => {
+  const { map } = w;
+  const rows = Math.floor(((map.h - 8) * Q) / BLOCK_SPACING);
+  const y0 = 4 * Q + Math.floor(((map.h - 8) * Q - (rows - 1) * BLOCK_SPACING) / 2);
+  const midX = Math.floor(map.w / 2) * Q;
+  const passable = (tx, ty) => tx >= 0 && ty >= 0 && tx < map.w && ty < map.h && TILE_COST[map.tiles[ty * map.w + tx]] > 0;
+  [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
+    const mine = w.squads.filter((q) => q.side === side && !q.reinforcement);
+    const ordered = [...mine.filter((q) => q.stats.melee), ...mine.filter((q) => !q.stats.melee)];
+    const dir = side === SIDE_ATTACKER ? -1 : 1;
+    let slot = 0;
+    ordered.forEach((q) => {
+      for (let tries = 0; tries < 100000; tries++) {
+        const col = Math.floor(slot / rows); const row = slot % rows; slot += 1;
+        const x = midX + dir * (BLOCK_GAP_TILES * Q + col * BLOCK_SPACING);
+        const y = y0 + row * BLOCK_SPACING;
+        if (!passable(Math.floor(x / Q), Math.floor(y / Q))) continue;
+        q.x = x; q.y = y; q.anchorX = x; q.anchorY = y;
+        break;
+      }
+      q.reserve = false; q.onField = true; q.enterTick = -1;
+    });
+  });
+  return w;
+};
+
 // Place each side's front line in formation; reserves wait off-map.
 const spawnSides = (w) => {
   const { setup, map } = w;
   const midY = Math.floor(map.h / 2);
   const template = deployTemplate(setup.battleType);
+  const massed = setup.deployment === 'blocks';
   [SIDE_ATTACKER, SIDE_DEFENDER].forEach((side) => {
     const s = setup.sides[side];
-    const { front, reserve } = splitFrontAndReserve(s.units.filter((u) => u.strength > 0), setup.combatWidth);
+    const { front, reserve } = splitFrontAndReserve(s.units.filter((u) => u.strength > 0), massed ? Infinity : setup.combatWidth);
     const squads = front.map((u) => makeSquad(w, u, side, s.ageId, 0));
     const melee = squads.filter((q) => !isBackLine(q.stats));
     const back = squads.filter((q) => isBackLine(q.stats));

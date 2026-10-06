@@ -14,6 +14,7 @@ describe('battle replay verification', () => {
       expect(ended.log.length, `battle ${i} has orders`).toBeGreaterThan(0);
       const replay = replayBattle(setup, ended.log);
       expect(replay.hash, `battle ${i} hash`).toBe(ended.hash);
+      expect(replay.chain, `battle ${i} hash chain`).toBe(ended.chain);
       expect(replay.result, `battle ${i} result`).toEqual(ended.result);
     }
   }, 120000);

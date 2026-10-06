@@ -17,3 +17,20 @@ export const worldHash = (w) => {
   w.points.forEach((p) => { h = mix(h, p.owner); h = mix(h, p.progress); });
   return h;
 };
+
+// Hash chain (plans/rts-world-review.md section 3, plans/MASTER-PLAN.md phase C): every
+// HASH_CHAIN_EVERY ticks step() folds the world hash into a running value,
+//   chain(t) = mix(mix(chain(t - N), t), worldHash at t),
+// so one 32-bit number vouches for the whole battle so far. Two devices (or a live battle and its
+// replay) that agree on the chain at a tick agree on every checkpoint before it; the first
+// checkpoint where two chains part is where they desynced. A long battle can then be verified by
+// replaying only its last segment from a trusted snapshot (replaySegment in replay.js) instead of
+// from tick zero. The chain lives on the world (w.hashChain) so snapshots carry it.
+export const HASH_CHAIN_EVERY = 20; // once a second of battle
+export const HASH_CHAIN_SEED = 0x9e3779b9;
+export const chainHash = (prev, tick, hash) => mix(mix(prev, tick), hash);
+
+export const advanceHashChain = (w) => {
+  if (w.tick % HASH_CHAIN_EVERY !== 0) return;
+  w.hashChain = chainHash(w.hashChain ?? HASH_CHAIN_SEED, w.tick, worldHash(w));
+};
