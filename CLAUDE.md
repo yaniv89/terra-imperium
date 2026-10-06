@@ -62,6 +62,11 @@ The live site is GitHub Pages, built into `docs/`.
   tile marches, sieges and assaults): src/engine/aiOperations.js. Research boosts from map facts:
   src/engine/boosts.js over src/data/boosts.js. Era goals and legacies: src/engine/eraGoals.js.
   Progress and open balance items: plan section J3.
+  Phase F rendering (WebGL map): rivers, bridges, mountain chains and passes in
+  src/components/map/gl/terrainModel.js (drawn in GLMapView's terrain pass, under the fog);
+  level 6 raster and land cover streamed by glLayers.createRasterLayer; the close view's towns and
+  field plots from footprints, 3D ridges and river bands in closeView/terrainPlacement.js and
+  mountainModels.js (`createCloseScene(..., { footprintOf })` is the hook for phase B's manifest).
 - Map data (current game): `scripts/geo/build-balanced-regions.mjs` merges the 4,482 real admin-1 provinces
   (kept in scripts/geo/source/) into 2,028 evenly sized regions, then `build-world-regions.mjs`
   and `build-region-coordinates.mjs` rebuild the game data. `regionMerge.json` maps old ids to

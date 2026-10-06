@@ -149,6 +149,16 @@ the close view stays slow (5 fps; 3 before). Left: delete the globe and the SVG 
 (MapModal) and the minimap still draw SVG; the art of batch 08 (map sprites) has placeholders
 (paths in `gl/mapSprites.js`).
 
+Phase F rendering (branch `claude/phase-f2-terrain-render`, on A2 plus the F data branch): rivers
+from the grid's river edges (width by size, rounded, joined at shared corners, from k 1.8 / 2.6 / 4
+for great rivers / rivers / streams, under the fog), bridges where roads cross them, mountain chains
+along the ridges with pass gaps and pass marks (sprites to the close zoom, 3D ridges and foothills
+in the close view), level 6 raster and land cover streamed per view over level 5, close-view towns
+and field plots from the tile footprints. Pan with the phone profile (CPU x4, real GPU) 103 to 144
+fps at k 1 to 100, desktop 86 to 144; level 6 adds about 220 kB (67 files) on arriving at the close
+zoom. Screenshots before and after: `plans/phase-f2/`. Also fixed: the line layer culled every
+segment drawn left to right (roads and march routes were half missing).
+
 ## 6. Battles: the combined design
 
 The RTS plan's engineering (determinism, ledgers, escrow, idempotent outcome, snapshots, budgets)

@@ -18,6 +18,9 @@
 //              (isPass) so the saddle reads as a way through; a pass mark on each pass tile from
 //              the region zoom. Up to the close zoom, where the close view's 3D ridges take over.
 // World units are the map projection's (mapView.js); every list is cached per projection.
+// Art (ART-PRODUCTION-PLAN batch 14, spec S11): these lines and sprites are the placeholders for
+// the `map-terrain/rivers` kit (src/assets/map/terrain/rivers.glb, banks and fords for the close
+// view) and `map-terrain/mountain-ridges` (src/assets/map/terrain/mountain-ridges.glb).
 import { getTiles } from '../../../data/geo/tiles';
 import { riverEdgeList, edgeCorners } from '../../../data/geo/terrainData';
 
