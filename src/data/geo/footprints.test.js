@@ -21,6 +21,16 @@ describe('cell polygons in local km', () => {
     });
   });
 
+  it('maps local km back onto the globe (fromLocal inverts toLocal)', () => {
+    sample.slice(0, 8).forEach((t) => {
+      const f = localFrame(t);
+      [[0, 0], [12.5, -7], [-30, 22]].forEach((p) => {
+        const q = f.toLocal(f.fromLocal(p));
+        expect(q[0]).toBeCloseTo(p[0], 6); expect(q[1]).toBeCloseTo(p[1], 6);
+      });
+    });
+  });
+
   it('puts edge k toward neighbour k', () => {
     const t = sample[3];
     const poly = cellPolygonKm(t);

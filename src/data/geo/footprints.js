@@ -44,7 +44,9 @@ export const localFrame = (tile, tiles = getTiles()) => {
   east = unit(east);
   const north = cross(c, east);
   return {
-    toLocal: (p) => { const d = dot(p, c) || 1e-9; return [(EARTH_RADIUS_KM * dot(p, east)) / d, (EARTH_RADIUS_KM * dot(p, north)) / d]; }
+    toLocal: (p) => { const d = dot(p, c) || 1e-9; return [(EARTH_RADIUS_KM * dot(p, east)) / d, (EARTH_RADIUS_KM * dot(p, north)) / d]; },
+    /** The inverse: [x km east, y km north] -> the unit vector on the globe (for drawing). */
+    fromLocal: ([x, y]) => unit([c[0] + (x * east[0] + y * north[0]) / EARTH_RADIUS_KM, c[1] + (x * east[1] + y * north[1]) / EARTH_RADIUS_KM, c[2] + (x * east[2] + y * north[2]) / EARTH_RADIUS_KM])
   };
 };
 
