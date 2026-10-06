@@ -56,7 +56,8 @@ export const updateFog = (w) => {
       stamp(w, grid, q.x, q.y, q.stats.sight + (q.stats.flying ? 2 : 0));
     });
     if (side === 1) {
-      w.structures.forEach((s) => { if (s.alive) stamp(w, grid, s.x, s.y, s.kind === 'keep' ? Math.floor(w.setup.territoryRadius / Q) : 8); });
+      // city houses and wall segments see nothing (the keep, towers and buildings do)
+      w.structures.forEach((s) => { if (s.alive && !s.passive && s.kind !== 'wall' && s.kind !== 'gate') stamp(w, grid, s.x, s.y, s.kind === 'keep' ? Math.floor(w.setup.territoryRadius / Q) : 8); });
     }
     w.points.forEach((p) => { if (p.owner === side) stamp(w, grid, p.x, p.y, 6); });
   });

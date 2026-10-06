@@ -120,6 +120,8 @@ const blockedPrefix = (map) => {
   blockedSums.set(map.tiles, sums);
   return sums;
 };
+/** Forget the blocked-tile sums after the map's tiles change (a city structure fell to rubble). */
+export const invalidateBlocked = (map) => { blockedSums.delete(map.tiles); };
 const clampTile = (v, n) => Math.max(0, Math.min(n - 1, Math.floor(v / Q)));
 
 // Is the straight segment walkable (sampled every half tile)? Every sample lies in the box of tiles

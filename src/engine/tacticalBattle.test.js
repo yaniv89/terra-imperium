@@ -15,6 +15,7 @@ import { getTiles } from '../data/geo/tiles';
 import { addCity, addCities } from './testWorld';
 import { createWorld, sideEdgeX } from '../battle/sim/world';
 import { firePower } from '../battle/sim/effects';
+import { cityManifestOf } from './cityManifest';
 
 // The Dawn world gives France one city with no room beside it, so the fixture founds French
 // cities on the nearest free land: FR_BORDER (bordering a foreign capital, the war's target),
@@ -110,7 +111,27 @@ describe('RESOLVE_TACTICAL_BATTLE', () => {
     truth.result.defenderUnits.forEach((u) => { if (u.strength > 0 && !next.lastBattleReport.captured) expect(next.units[u.id].strength).toBe(u.strength); });
   });
 
-  it('the target province\'s buildings stand on the battlefield, and the ones razed lose a tier', () => {
+  it('the real city stands on the battlefield; its losses carry to the map under the 50% rule', () => {
+    const started = begin(withArmies());
+    const setup = buildInvasionSetup(started, started.pendingBattle);
+    const manifest = cityManifestOf(started, BE_REGION);
+    expect(setup.city).toMatchObject({ cityId: BE_REGION });
+    expect(setup.structures.map((st) => st.manifestId).filter(Boolean).sort()).toEqual(manifest.structures.map((st) => st.id).sort());
+    const { result } = runHeadless({ ...setup, controllers: ['ai', 'ai'] });
+    const houses = manifest.structures.filter((st) => st.kind === 'house').map((st) => st.id);
+    const forged = { ...result, report: { ...result.report, tactical: { ...result.report.tactical, cityDamage: { destroyed: [...houses, '<script>'], damaged: ['townhall'] } } } };
+    const size = started.regions[BE_REGION].size;
+    const next = gameReducer(started, { type: ActionTypes.RESOLVE_TACTICAL_BATTLE, payload: { battleId: started.pendingBattle.id, result: forged } });
+    const dmg = next.regions[BE_REGION].cityDamage;
+    expect(Object.keys(dmg.ruined)).toHaveLength(Math.floor(houses.length / 2));
+    expect(next.regions[BE_REGION].size).toBeGreaterThanOrEqual(Math.ceil(size / 2));
+    expect(next.logs.some((l) => /left its mark/.test(l.message))).toBe(true);
+    // the next battle for the city starts among the ruins
+    const again = buildInvasionSetup({ ...next, pendingBattle: started.pendingBattle }, started.pendingBattle);
+    if (again) expect(again.structures.filter((st) => st.ruinedAtStart).length).toBe(Object.keys(dmg.ruined).filter((id) => manifest.structures.some((st) => st.id === id)).length);
+  });
+
+  it('the target province\'s buildings stand on the battlefield, and the ones razed lose a tier (at most half of them)', () => {
     const s0 = withArmies();
     const r = s0.regions[BE_REGION];
     const s = { ...s0, regions: { ...s0.regions, [BE_REGION]: { ...r, buildings: { ...r.buildings, categories: { ...r.buildings.categories, military: 1, economy: 0 } } } } };

@@ -36,6 +36,8 @@ import { worldRasterUrl } from '../../../data/geo/worldRaster';
 import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, needsCoast, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
+import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
+import { enableTownDamage, setTownDamage, syncTownDamage, ruinMound } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
@@ -216,17 +218,26 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
       const ll = REGION_COORDINATES[id];
       const tint = (campRoot || asset) && ll ? tintAt(ll.lat, ll.lng) : null;
+      // battle damage on the city (src/engine/cityManifest.js): ruined houses cut out, damaged darkened
+      const dmg = asset ? region.cityDamage : null;
+      const dmgKey = dmg ? `${Object.keys(dmg.ruined || {}).sort().join(',')}/${Object.keys(dmg.damaged || {}).sort().join(',')}` : '';
       const key = campRoot ? `${id}|camp|${opts.ageId}|${teamColor}|${tintKey(tint)}`
-        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.uuid : ''}|${wallsRoot ? wallsRoot.uuid : ''}|${fields.map((f) => f.name).join(',')}`
+        : asset ? `${id}|asset|${assetUrl}|${teamColor}|${tintKey(tint)}|${palaceRoot ? palaceRoot.uuid : ''}|${wallsRoot ? wallsRoot.uuid : ''}|${fields.map((f) => f.name).join(',')}|${dmgKey}`
           : `${id}|${tier.id}|${opts.ageId}|${opts.walls}|${opts.capital}`;
       seen.add(id);
       let mesh = t.towns.get(id);
       if (!mesh || mesh.userData.key !== key) {
-        if (mesh) scene.remove(mesh);
+        if (mesh) { scene.remove(mesh); (mesh.userData.townDamage || []).forEach((m) => m.dispose()); }
         const model = campRoot || asset;
         mesh = model ? instanceTownAsset(model, teamColor, tint) : new Mesh(getTownGeometry(id, tier.id, opts), t.townMaterial);
         if (asset && palaceRoot) mesh.add(instanceTownAsset(palaceRoot, teamColor, tint));
         if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor, tint));
+        if (dmg) {
+          const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark');
+          enableTownDamage(mesh);
+          setTownDamage(mesh, states.filter((s) => s.state === 'ruined'), states.filter((s) => s.state === 'damaged'));
+          states.filter((s) => s.state === 'ruined').forEach((s) => mesh.add(ruinMound(s)));
+        }
         mesh.userData.fields = fields.map((f) => {
           const field = instanceTownAsset(shared[f.name], teamColor, tint);
           field.position.set(f.x, 0, f.z);
@@ -258,6 +269,7 @@ const CloseViewLayer = ({ projection, transform, width, height, active, land = n
       mesh.rotation.set(TILT, 0, 0);
       mesh.scale.setScalar(ts);
       mesh.visible = true;
+      if (mesh.userData.townDamage) syncTownDamage(mesh);
     });
     t.towns.forEach((mesh, id) => { if (!seen.has(id)) mesh.visible = false; });
 

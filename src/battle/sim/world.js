@@ -7,6 +7,7 @@ import { TILE_COST } from '../setup/mapgen';
 import { Q, SIDE_ATTACKER, SIDE_DEFENDER } from './constants';
 import { initFog } from './fog';
 import { HASH_CHAIN_SEED } from './hash';
+import { tileOf, walkableGoal } from './pathing';
 
 const tileCenter = (t) => t * Q + (Q >> 1);
 
@@ -65,7 +66,8 @@ export const createWorld = (setup) => {
     tick: 0,
     rngState: setup.seed >>> 0,
     setup,
-    map: setup.map,
+    // A city's structures turn their ground to rubble as they fall: the world gets its own tiles.
+    map: setup.city ? { ...setup.map, tiles: setup.map.tiles.slice() } : setup.map,
     squads: [],
     structures: setup.structures.map((s) => ({ ...s })),
     points: setup.points.map((p) => ({ ...p })),
@@ -170,6 +172,11 @@ const spawnSides = (w) => {
         const ty = column ? midY + (offset > 0 ? 1 : offset < 0 ? -1 : 0) : midY + offset;
         q.x = tileCenter(Math.max(zone.x0, Math.min(zone.x1, tx)));
         q.y = tileCenter(Math.max(zone.y0, Math.min(zone.y1, ty)));
+        // in a city a slot may fall on a house: the nearest open ground instead
+        if (setup.city && !TILE_COST[map.tiles[tileOf(map, q.x, q.y)]]) {
+          const i = walkableGoal(map, tileOf(map, q.x, q.y));
+          q.x = tileCenter(i % map.w); q.y = tileCenter(Math.floor(i / map.w));
+        }
         q.onField = true;
         q.anchorX = q.x; q.anchorY = q.y;
       });

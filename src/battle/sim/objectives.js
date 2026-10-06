@@ -38,7 +38,7 @@ export const garrisonRoom = (w, structureIndex) => {
   const s = w.structures[structureIndex];
   // Only real fortifications can be manned: an unwalled town's "keep" (no defenses, no fire of its
   // own) has nothing to hold.
-  if (!s || !holdsGarrison(s) || (s.kind === 'keep' && !s.damage)) return 0;
+  if (!s || !GARRISON_SLOTS[s.kind] || !holdsGarrison(s) || (s.kind === 'keep' && !s.damage)) return 0;
   return (GARRISON_SLOTS[s.kind] || 0) - garrisonOf(w, structureIndex).length;
 };
 
@@ -54,7 +54,7 @@ export const leaveGarrison = (w, q, penalty = false) => {
 };
 
 export const updateGarrisons = (w) => {
-  w.structures.forEach((s, si) => { if (!holdsGarrison(s)) garrisonOf(w, si).forEach((q) => { leaveGarrison(w, q, true); q.order = { type: 'idle' }; }); });
+  w.structures.forEach((s, si) => { if (GARRISON_SLOTS[s.kind] && !holdsGarrison(s)) garrisonOf(w, si).forEach((q) => { leaveGarrison(w, q, true); q.order = { type: 'idle' }; }); });
   w.squads.forEach((q) => {
     if (q.order.type !== 'garrison' || q.inside >= 0) return;
     const si = q.order.structure;
