@@ -179,6 +179,32 @@ stands. These sections amend it.
   million triangles at zoom 1 and 3.6 million zoomed out (phone budget 0.5 million); the sim is
   not. Before R1: frustum culling and a distance LOD for soldier layers, shadows off for the mass,
   fewer figures per entity at scale, and packed transferable frames (13.3).
+- **Phase C2 result (2026-10-06, branch claude/phase-c2-battle-render): the renderer.** Edge on the
+  Intel UHD iGPU, 844x390, DPR 1, `?battleSandbox&bench=300&autostart`, dev server
+  (`.claude/skills/battle-lab/render-bench.mjs`; screenshots in plans/phase-c2/).
+
+  | 300 a side | Before: triangles / frame p50, p95 ms | After: triangles / frame p50, p95 ms |
+  |---|---|---|
+  | Default camera (zoom 1) | 20.8 M / 130, 136 | 0.43 M / 4.9, 6.5 |
+  | Default, CPU x4 | 16.6 M / 108, 126 | 0.41 M / 17.5, 35.9 |
+  | Close (zoom 2.2) | 15.5 M / 106, 133 | 0.43 M (max 0.54) / 4.7, 6.2 |
+  | Far (zoom 0.45) | 3.5 M / 40, 51 | 0.48 M / 7.7, 9.9 |
+
+  How: squads off screen are not written; three detail levels per soldier (full with shadows,
+  about 360 and about 60 triangles, clustered with the rig kept, `soldierLod.js`), one a frame by
+  size on screen within a 300k (phone) / 800k (desktop) triangle budget; past 80 squads a side
+  fewer figures per squad (about half at 300, 0.4 at 500+), spread wider; props instanced per
+  48-tile chunk so they cull, skirt props without shadows, structures merged by material, fog veils
+  hidden when nothing is fogged; drawSquads writes the buffers directly. Worker frames are packed
+  (`packedView.js`): 2.44 ms a tick (build + clone) down to 0.21 ms at 300, 4.9 to 0.4 ms at 500.
+  `&perf` puts the numbers on screen; `scripts/battle-phone-bench.mjs` emulates a phone (DPR 3,
+  touch, CPU x4/x6, not the GPU): 300 and 500 a side ran at 33 to 55 fps median at x4 in a
+  production build, p95 33 to 85 ms (noisy on this laptop). Verdict: 300 a side holds end to end
+  on a mid phone by these measures (sim p95 4.8 ms x4, render about 30 fps with p95 near the 40 ms
+  line); a real-phone run with `&perf` is the remaining check. 500 a side: sim go (8.5 ms x4), but
+  the far view is 0.64 M triangles and the main thread has little margin: it needs a billboard
+  level for the farthest zoom, fewer or merged props at far zoom, and the HUD off the per-squad
+  React path before it is offered on phones.
 
 ### 6.3 Village houses and population (decisions 26, 30)
 As in Age of Empires, every unit needs housing:
