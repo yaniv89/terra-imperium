@@ -467,6 +467,36 @@ needs either cheaper armies for majors or smaller independent garrisons (a balan
 Also left: the tribal league and walls from surplus gold (W2 leftovers), AI majors demanding tribute
 from tribal cities, the trade route being plunderable, W4 (sheet, list, raid markers, art), R3.
 
+## 12e. Status of W4 (2026-10-06, branch claude/phase-w4-independents-ui, on W3 and claude/integration)
+
+Done (UI in src/components/independents/, view models tested in independentsView.test.js and
+independentsUi.test.js; screenshots in plans/phase-w4/):
+- The independent sheet (W08): personality shield, attitude with reasons and the join rule, grudge
+  with its causes (new record `indep.grudgeLog`, grudges.js) and decay, their demand, deals, the last
+  raid on you and its outcome (`indep.lastRaidOnPlayer`, raids.js), mercenaries (cost, upkeep,
+  contract, where they wait), honest actions (Attack without war, Pay tribute, Ask to join, Gift,
+  Demand tribute, Offer trade, Hire mercenaries) with the refusal reason on tap and a confirm for
+  ones that would backfire. Brass only on the one primary action. The city card shows a summary.
+- Pay tribute unasked: OFFER_INDEPENDENT_TRIBUTE (indepPolicy.js), a truce both ways like an
+  accepted demand. Checks with reasons: demandTributeCheck, tradeCheck, offerTributeCheck.
+- The independents list in Relations: met independents only (fog), sort by distance, attitude,
+  grudge, name; filter by deals, threats, personality.
+- Tribute demand sheet (W15): grudge meter with what a refusal adds, Pay / Refuse with the expected
+  loss (raids.js raidForecast) / Refuse and hire mercenaries from another seller; join offer sheet.
+  Both pop once when they arrive (IndependentsHost); closing decides nothing.
+- Raid marks: raidMapModel (parties in sight with route and ETA, raidEta; warning rings on the
+  target, also once warned with the party in the fog; sieges of independents by others in sight;
+  burning cities) drawn on the WebGL map (gl/raidShapes.js, tap opens the sheet) and on the SVG
+  fallback (RaidMarkersOverlay.jsx).
+- Art hooks (independentArt.js): shields and the eight W2-4 icons through data/icons.js
+  (src/assets/icons/independents/), dressings and tribal camps (src/assets/map/independents/), the
+  burning town (src/assets/fx/map/burning-town/); placeholders until the files exist (a dot in the
+  personality colour on an empty shield, the lucide glyphs). City banners use the shield when it lands.
+
+Left: the raid-defence moment (raiders attack your city: Command or Auto) is R2's (W14); hatched
+borders (still the dashed band); placing the 3D town dressings in the close view when the GLB files
+exist; the globe has no raid marks (it is hidden behind a setting since A2).
+
 ## 13. Decisions (from the user, 2026-10-03)
 
 1. **Default world size: Standard, 35 major nations.**

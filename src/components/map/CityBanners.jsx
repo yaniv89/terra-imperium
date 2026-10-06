@@ -9,6 +9,7 @@ import { useFogView } from './useFogView';
 import { cityLatLon } from '../../data/geo/cityFeatures';
 import { getNationColor } from '../../data/nationColors';
 import { isIndependent, mutedIndependentColour, PERSONALITIES } from '../../data/independents';
+import { shieldUrl } from '../independents/independentArt';
 import { loyaltyOf } from '../../engine/loyalty';
 import { OUTPOST_DONE } from '../../engine/settlers';
 import { markerIconUrl } from '../../data/icons';
@@ -65,7 +66,9 @@ const CityBanners = ({ projection, transform, width, height, onSelect, selectedR
         <span className="city-banner-size">{outpost != null ? '⛺' : city.size || 1}</span>
         <span className="city-banner-name">
           {city.isCapital && (markerIconUrl('capital') ? <img src={markerIconUrl('capital')} alt="" className="city-banner-star city-banner-icon" width={14} height={14} draggable={false} /> : <span className="city-banner-star" aria-hidden="true">★</span>)}
-          {indep && <span className="city-banner-indep" style={{ background: PERSONALITIES[indep]?.badge }} title={`Independent city (${PERSONALITIES[indep]?.name || indep})`} data-independent={indep} />}
+          {indep && (shieldUrl(indep)
+            ? <img src={shieldUrl(indep)} alt="" className="city-banner-icon" width={14} height={14} draggable={false} title={`Independent city (${PERSONALITIES[indep]?.name || indep})`} data-independent={indep} />
+            : <span className="city-banner-indep" style={{ background: PERSONALITIES[indep]?.badge }} title={`Independent city (${PERSONALITIES[indep]?.name || indep})`} data-independent={indep} />)}
           {city.name}
           {disloyal && <span className="city-banner-warn" title="Loyalty is low" data-loyalty-warning={city.id}>!</span>}
           {city.siege && <span className="city-banner-siege" title="Under siege" data-siege-badge={city.id}>{markerIconUrl('battle') ? <img src={markerIconUrl('battle')} alt="" className="city-banner-icon" width={14} height={14} draggable={false} /> : '⚔'}</span>}

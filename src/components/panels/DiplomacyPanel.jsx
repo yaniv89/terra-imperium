@@ -37,6 +37,8 @@ import { ActionButton } from '../ui';
 // specific reason instead of a generic "Not enough resources" — both readable without a hover
 // tooltip, which mobile touch has no equivalent of.
 import NationCard from './NationCard';
+import IndependentsList from '../independents/IndependentsList';
+import { openTributeDemand, openJoinOffer, openIndependent } from '../independents/independentEvents';
 
 const RESOURCE_SHORT_LABEL = { gold: 'g', dip: 'DIP', adm: 'ADM', mil: 'MIL' };
 const describeShortfall = (resources, costs) => Object.entries(costs)
@@ -88,7 +90,7 @@ const DiplomacyPanel = () => {
   // 240.
   const sortedNations = useMemo(() => {
     return Object.values(state.nations)
-      .filter(n => !n.isPlayer && !isIndependentNation(n)) // independents make no treaties (W1); their own list comes with W4
+      .filter(n => !n.isPlayer && !isIndependentNation(n)) // independents make no treaties (W1); their own list is IndependentsList (W4)
       // Only peoples you have met (engine/fog.js), and anyone at war with you.
       .filter(n => hasMet(state, state.playerNationId, n.id) || isAtWarWithPlayer(state, n.id))
       .filter(n => !search.trim() || n.name.toLowerCase().includes(search.trim().toLowerCase()))
@@ -132,15 +134,14 @@ const DiplomacyPanel = () => {
           </div>
         </div>
       )}
-      {/* Independents' tribute demands (phase W2, raids.js): pay for peace or refuse and expect raiders. */}
+      {/* Independents' tribute demands (phase W2, raids.js; the W15 sheet, phase W4): pay for peace, refuse and expect raiders, or hire. */}
       {(state.tributeDemands || []).filter((d) => state.nations[d.indepId] && !state.nations[d.indepId].isEliminated).map((d) => (
         <div key={d.id} className="p-2 rounded bg-amber-900/30 border border-amber-600/50 flex flex-wrap items-center justify-between gap-2" data-testid="tribute-demand">
           <div className="text-xs text-amber-100 min-w-0">
-            <span className="font-semibold">{state.nations[d.indepId].name}</span> demand {d.gold} gold a turn for {d.turns} turns, or they raid you (answer by turn {d.expires}; paying also keeps you from attacking them meanwhile).
+            <button type="button" className="font-semibold underline" onClick={() => openIndependent(d.indepId)}>{state.nations[d.indepId].name}</button> demand {d.gold} gold a turn for {d.turns} turns, or they raid you (answer by turn {d.expires}; paying also keeps you from attacking them meanwhile).
           </div>
           <div className="flex gap-1 shrink-0">
-            <button type="button" className="min-h-[44px] px-3 rounded bg-amber-700 hover:bg-amber-600 text-xs font-semibold text-white" onClick={() => dispatch({ type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: true } })}>Pay</button>
-            <button type="button" className="min-h-[44px] px-3 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-100" onClick={() => dispatch({ type: ActionTypes.ANSWER_TRIBUTE_DEMAND, payload: { id: d.id, pay: false } })}>Refuse</button>
+            <button type="button" className="min-h-[44px] px-3 rounded bg-[#D8A444] hover:bg-[#e3b45a] text-xs font-bold text-slate-950" onClick={() => openTributeDemand(d.id)} data-testid="tribute-demand-answer">Answer</button>
           </div>
         </div>
       ))}
@@ -148,10 +149,10 @@ const DiplomacyPanel = () => {
       {(state.joinOffers || []).filter((o) => state.nations[o.indepId] && !state.nations[o.indepId].isEliminated).map((o) => (
         <div key={o.id} className="p-2 rounded bg-emerald-900/30 border border-emerald-600/50 flex flex-wrap items-center justify-between gap-2" data-testid="join-offer">
           <div className="text-xs text-emerald-100 min-w-0">
-            <span className="font-semibold">{state.nations[o.indepId].name}</span> offer to join you: their city and soldiers become yours, with no aggressive expansion (answer by turn {o.expires}).
+            <button type="button" className="font-semibold underline" onClick={() => openJoinOffer(o.id)}>{state.nations[o.indepId].name}</button> offer to join you: their city and soldiers become yours, with no aggressive expansion (answer by turn {o.expires}).
           </div>
           <div className="flex gap-1 shrink-0">
-            <button type="button" className="min-h-[44px] px-3 rounded bg-emerald-700 hover:bg-emerald-600 text-xs font-semibold text-white" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: true } })}>Accept</button>
+            <button type="button" className="min-h-[44px] px-3 rounded bg-[#D8A444] hover:bg-[#e3b45a] text-xs font-bold text-slate-950" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: true } })}>Accept</button>
             <button type="button" className="min-h-[44px] px-3 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-100" onClick={() => dispatch({ type: ActionTypes.ANSWER_JOIN_OFFER, payload: { id: o.id, accept: false } })}>Decline</button>
           </div>
         </div>
@@ -181,6 +182,7 @@ const DiplomacyPanel = () => {
           size="small"
         />
       )}
+      <IndependentsList />
       <div className="relative mb-2">
         <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
         <input

@@ -577,7 +577,7 @@ export const applyBattleOutcome = (state, o) => {
   // An independent remembers who attacked it (grudges.js, phase W2): any assault on its city, any
   // other battle in which it lost men.
   const lostMen = sum(out.defenderUnits) < out.defenderUnits.reduce((x, u) => x + startStrength(state, out, u), 0);
-  if (isIndependentNation(s.nations[out.defenderNationId]) && (o.kind === 'invasion' || o.kind === 'landing' || lostMen)) s = { ...s, nations: addGrudge(s.nations, out.defenderNationId, out.attackerNationId, GRUDGE_ATTACKED) };
+  if (isIndependentNation(s.nations[out.defenderNationId]) && (o.kind === 'invasion' || o.kind === 'landing' || lostMen)) s = { ...s, nations: addGrudge(s.nations, out.defenderNationId, out.attackerNationId, GRUDGE_ATTACKED, { id: o.kind === 'invasion' || o.kind === 'landing' ? 'attacked' : 'killed', turn: state.turnNumber }) };
 
   // row 14: the player's report, named, and the log
   const involved = viewerId === out.attackerNationId || viewerId === out.defenderNationId;

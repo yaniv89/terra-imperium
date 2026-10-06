@@ -41,6 +41,7 @@ import { isIndependent, mutedIndependentColour, INDEPENDENT_BAND_DASH } from '..
 import { useEffects } from '../../context/EffectsContext';
 import { useMapInsets } from '../../context/MapInsetsContext';
 import Map2DMarkersOverlay from './Map2DMarkersOverlay';
+import RaidMarkersOverlay from '../independents/RaidMarkersOverlay';
 import CityBanners from './CityBanners';
 import { fogView, exploredFeatures, visibleFeatures } from './fogView';
 // The close view (plan §4f): three.js towns and soldiers from CLOSE_ZOOM_K up, loaded on first use.
@@ -801,6 +802,7 @@ const Map2DView = ({
         <CityBanners projection={projection} transform={transform} width={width} height={height} selectedRegion={selectedRegion} playerColor={PLAYER_BAND_COLOR} onSelect={(id, e) => handleClick(id, e)} />
       )}
       <Map2DMarkersOverlay projection={projection} transform={transform} width={width} height={height} onSelectRegion={onSelectRegion} onZoomTo={zoomToRegion} onSelectTile={onSelectTile} onSelectArmy={onSelectArmy} close={transform.k >= CLOSE_ZOOM_K} />
+      <RaidMarkersOverlay projection={projection} transform={transform} width={width} height={height} />
       <Map2DEffectsOverlay effects={effects} projection={projection} transform={transform} width={width} height={height} ageId={state.age} />
       <div style={{ right: insets.right + 8 }} className={`absolute z-10 flex flex-col bg-slate-900/90 backdrop-blur-sm rounded-lg border border-slate-700 shadow-xl overflow-hidden ${hudOffset ? 'top-[calc(var(--header-height,4.5rem)+3rem)]' : 'top-12'}`}>
         <button
