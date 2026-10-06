@@ -548,12 +548,8 @@ export class BattleRenderer {
         add(new CylinderGeometry(0.03, 0.03, 1.4, 5).translate(0, 3.1, 0), wood); // banner pole
         const flag = add(new PlaneGeometry(0.8, 0.5).translate(0.4, 3.55, 0), this.track(new MeshLambertMaterial({ color: this.setup.sides[1].color, side: DoubleSide })));
         flag.castShadow = false;
-<<<<<<< HEAD
-        if (s.walls) {
-=======
         g.userData.flag = flag;
         if (s.walls && !this.setup.city) { // a real city has its own wall ring (cityLayer.js)
->>>>>>> origin/claude/phase-b-city-manifest
           // A curtain wall ring with a crenellated top.
           const segs = 20;
           for (let i = 0; i < segs; i++) {
