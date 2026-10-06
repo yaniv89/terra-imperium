@@ -3,7 +3,7 @@
 // clock, supply, keep status), class chips bottom-left (tap = select that class), the command bar
 // bottom-right, and a reserves drawer. Every control is ≥ 44 px; nothing needs precision.
 import React, { useState } from 'react';
-import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX, Timer, Hammer, Tent } from 'lucide-react';
+import { Play, Pause, Swords, Crosshair, Hand, Square, Rows, Columns, Flag, Users, LogOut, Castle, X, Zap, Sparkles, Volume2, VolumeX, Timer, Hammer, Tent, BoxSelect } from 'lucide-react';
 import { getSquadDisplayName } from '../../battle/data/battleStats';
 
 import { ASSIMILATION_TICKS } from '../../battle/sim/objectives';
@@ -31,7 +31,8 @@ const BattleHud = ({
   title, hud, setup, playerSide, timeLeft, paused, started, speed, armed, formation, selectedSquads,
   onTogglePause, onSpeed, onArm, onFormation, onSelectClass, onCallReserve, onCommand, onRetreatAll, onFocusKeep, onAbandon,
   onPower, onOpenAbilities, hasAbilities, soundOn = true, onToggleSound,
-  onOpenBuild, buildOpen = false, onSelectHq // the battle economy (EconomyHud.jsx)
+  onOpenBuild, buildOpen = false, onSelectHq, // the battle economy (EconomyHud.jsx)
+  selectMode = false, onToggleSelectMode, selectHint = false // touch box select (UI-DESIGN B04)
 }) => {
   const [showReserves, setShowReserves] = useState(false);
   const [confirmNuke, setConfirmNuke] = useState(null);
@@ -163,6 +164,8 @@ const BattleHud = ({
       <div className={`absolute bottom-0 inset-x-0 p-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] flex items-end justify-between gap-2 pointer-events-none ${hud.powers?.length ? 'pl-[84px]' : ''}`}>
         <div className="pointer-events-auto flex gap-1 min-w-0 max-w-[58%] overflow-x-auto scrollbar-none" data-testid="battle-chips">
           <HudButton icon={Users} label={`All ${onField.filter((q) => q.classId !== 'worker').length}`} onClick={() => onSelectClass('all')} testId="battle-select-all" />
+          {/* Touch box select (B04): next to All, so it never scrolls out of reach */}
+          {onToggleSelectMode && <HudButton icon={BoxSelect} label="Select" onClick={onToggleSelectMode} active={selectMode} testId="battle-select-mode" />}
           {eco && <HudButton icon={Tent} label="Base" onClick={onSelectHq} testId="battle-hq" />}
           {eco && eco.idleWorkers.length > 0 && <HudButton icon={Hammer} label={`Idle ${eco.idleWorkers.length}`} onClick={() => onSelectClass('idle')} testId="battle-idle-workers" />}
           {Object.entries(classCounts).map(([cls, n]) => (
@@ -170,7 +173,8 @@ const BattleHud = ({
           ))}
           <HudButton icon={Flag} label={`Reserve ${reserves.length}`} onClick={() => setShowReserves((v) => !v)} active={showReserves} disabled={!reserves.length} testId="battle-reserves" />
         </div>
-        <div className="pointer-events-auto flex justify-end gap-1 shrink min-w-0 overflow-x-auto scrollbar-none" data-testid="battle-commands">
+        {/* The commands keep their width (up to 62%); the chips scroll when the bar is full. ml-auto, not justify-end, so an overflowing bar scrolls instead of clipping its first buttons. */}
+        <div className="pointer-events-auto flex gap-1 shrink-0 max-w-[62%] overflow-x-auto scrollbar-none [&>*:first-child]:ml-auto" data-testid="battle-commands">
           {eco && <HudButton icon={Hammer} label="Build" onClick={onOpenBuild} active={buildOpen || armed?.type === 'place'} disabled={!eco.workers} testId="battle-build" />}
           {hasAbilities && <HudButton icon={Sparkles} label="Abilities" onClick={onOpenAbilities} testId="battle-abilities" />}
           <HudButton icon={Crosshair} label="Atk-move" onClick={() => onArm('attackMove')} active={armed === 'attackMove'} disabled={!selectedSquads.length} testId="battle-attack-move" />
@@ -180,6 +184,17 @@ const BattleHud = ({
           <HudButton icon={Swords} label="Retreat" onClick={() => onCommand('retreat')} disabled={!selectedSquads.length} danger />
         </div>
       </div>
+
+      {selectMode && (
+        <div className={`absolute ${hud.powers?.length ? 'left-[84px]' : 'left-2'} bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-w-[250px] px-3 py-1.5 rounded-xl bg-lime-700/90 text-white text-xs font-semibold shadow-xl pointer-events-none`} data-testid="battle-select-mode-banner">
+          Drag a box. Two fingers move the map.
+        </div>
+      )}
+      {selectHint && !selectMode && (
+        <div className={`absolute ${hud.powers?.length ? 'left-[84px]' : 'left-2'} bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-w-[250px] px-3 py-1.5 rounded-xl bg-slate-900/90 border border-lime-500/60 text-lime-100 text-xs font-semibold shadow-xl pointer-events-none`} data-testid="battle-select-hint">
+          Drag a box to select: tap Select, or double-tap and drag.
+        </div>
+      )}
 
       {showReserves && (
         <div className="absolute left-2 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] w-64 max-w-[calc(100vw-1rem)] p-2 rounded-xl bg-slate-900/95 border border-slate-600 shadow-2xl text-xs text-slate-200 space-y-1.5">

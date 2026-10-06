@@ -71,6 +71,63 @@ describe('battle gestures', () => {
     expect(h.tap).not.toHaveBeenCalled();
   });
 
+  describe('select mode (the HUD Select button)', () => {
+    let selectMode;
+    beforeEach(() => {
+      dispose();
+      selectMode = true;
+      h.isSelectMode = vi.fn(() => selectMode);
+      h.selectModeDone = vi.fn(() => { selectMode = false; });
+      dispose = createGestureRecognizer(el, h);
+    });
+
+    it('a one-finger drag draws the box instead of panning', () => {
+      down(1, 100, 100); clock += 30; move(1, 180, 170); up(1, 180, 170);
+      expect(h.lassoDrag).toHaveBeenCalled();
+      expect(h.lassoEnd).toHaveBeenCalledTimes(1);
+      expect(h.pan).not.toHaveBeenCalled();
+    });
+
+    it('wins over a formation drag from a selected squad', () => {
+      h.isOnSelectedSquad.mockReturnValue(true);
+      down(1, 100, 100); clock += 30; move(1, 180, 170); up(1, 180, 170);
+      expect(h.lassoEnd).toHaveBeenCalledTimes(1);
+      expect(h.formationDrag).not.toHaveBeenCalled();
+    });
+
+    it('two fingers still pan and pinch, and keep the mode on', () => {
+      down(1, 100, 100); down(2, 200, 100); move(2, 260, 120); move(1, 110, 120); up(2, 260, 120); up(1, 110, 120);
+      expect(h.pan).toHaveBeenCalled();
+      expect(h.zoom).toHaveBeenCalled();
+      expect(h.lassoEnd).not.toHaveBeenCalled();
+      expect(h.selectModeDone).not.toHaveBeenCalled();
+      expect(selectMode).toBe(true);
+    });
+
+    it('turns off after a completed selection: the next drag pans', () => {
+      down(1, 100, 100); clock += 30; move(1, 180, 170); up(1, 180, 170);
+      expect(h.selectModeDone).toHaveBeenCalledTimes(1);
+      expect(selectMode).toBe(false);
+      clock += 1000; down(1, 100, 100); clock += 30; move(1, 160, 140); up(1, 160, 140);
+      expect(h.pan).toHaveBeenCalled();
+      expect(h.lassoEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it('a double-tap lasso outside select mode does not report a select-mode selection', () => {
+      selectMode = false;
+      down(1, 100, 100); clock += 80; up(1, 100, 100);
+      clock += 120; down(1, 100, 100); clock += 30; move(1, 180, 170); up(1, 180, 170);
+      expect(h.lassoEnd).toHaveBeenCalledTimes(1);
+      expect(h.selectModeDone).not.toHaveBeenCalled();
+    });
+
+    it('the mouse is unchanged: right drag still pans', () => {
+      down(1, 50, 50, { pointerType: 'mouse', button: 2 }); clock += 30; move(1, 120, 90, { pointerType: 'mouse', button: 2 }); up(1, 120, 90, { pointerType: 'mouse', button: 2 });
+      expect(h.pan).toHaveBeenCalled();
+      expect(h.lassoEnd).not.toHaveBeenCalled();
+    });
+  });
+
   it('with a mouse: right click orders, left drag box-selects', () => {
     down(1, 50, 50, { pointerType: 'mouse', button: 2 }); clock += 50; up(1, 50, 50, { pointerType: 'mouse', button: 2 });
     expect(h.order).toHaveBeenCalledTimes(1);
