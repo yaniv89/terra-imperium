@@ -19,6 +19,10 @@ import { battleLimitTicks, SIDE_ATTACKER, SIDE_DEFENDER, Q, secondsToTicks } fro
 import { LOSS_DECISIVE, RIVER_HOLD_SHARE, AMBUSH_SECONDS, AMBUSH_LOSS, LANDING_HOLD_SECONDS, SALLY_ENGINES } from '../setup/battleType';
 
 const AMBUSH_TICKS = secondsToTicks(AMBUSH_SECONDS);
+// The pursuit after a field battle is decided (decision 33).
+export const PURSUIT_SECONDS = 90;
+export const PURSUIT_TICKS = secondsToTicks(PURSUIT_SECONDS);
+const PURSUIT_TYPES = new Set(['field', 'river', 'ambush']);
 const LANDING_HOLD_TICKS = secondsToTicks(LANDING_HOLD_SECONDS);
 
 // A side with no squads left on the field sends its whole remaining reserve in, once (last stand).
@@ -95,15 +99,30 @@ const checkEnd = (w) => {
   });
   const attackerBroken = isBroken(w, SIDE_ATTACKER);
   const defenderBroken = isBroken(w, SIDE_DEFENDER);
-  if (attackerBroken && defenderBroken) w.ended = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
-  else if (defenderBroken) w.ended = { outcome: 'attacker', reason: w.spent[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent[SIDE_DEFENDER], tick: w.tick };
-  else if (attackerBroken) w.ended = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : w.spent[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
+  let verdict = null;
+  if (attackerBroken && defenderBroken) verdict = { outcome: 'stalemate', reason: 'mutualDestruction', tick: w.tick };
+  else if (defenderBroken) verdict = { outcome: 'attacker', reason: w.spent[SIDE_DEFENDER] ? 'lossesDecisive' : 'defendersBroken', decisive: !!w.spent[SIDE_DEFENDER], tick: w.tick };
+  else if (attackerBroken) verdict = { outcome: 'defender', reason: w.retreatOrdered?.[SIDE_ATTACKER] ? 'attackerRetreated' : w.spent[SIDE_ATTACKER] ? 'lossesDecisive' : 'attackersBroken', tick: w.tick };
+  // Decisive field battles (master plan 6.9, decision 33): a broken side runs for its edge and the
+  // winner pursues; the battle ends once the last of the losers is off the field (or dead), or after
+  // PURSUIT_TICKS. The ones still on the field then are lost; the ones that got out live.
+  if (verdict && verdict.outcome !== 'stalemate' && PURSUIT_TYPES.has(type)) {
+    const loser = verdict.outcome === 'attacker' ? SIDE_DEFENDER : SIDE_ATTACKER;
+    if (!w.pursuit) {
+      w.pursuit = { side: loser, until: w.tick + PURSUIT_TICKS };
+      w.squads.forEach((q) => { if (q.side === loser && q.alive && !q.fled && q.onField && !q.routed && !q.eco && !(q.inside >= 0)) { q.retreating = true; q.target = -1; q.targetKind = null; q.order = { type: 'retreat' }; } });
+      w.events.push({ t: w.tick, type: 'pursuit', side: loser });
+    }
+    const left = w.squads.some((q) => q.side === loser && !q.eco && q.alive && !q.fled && q.onField);
+    if (!left || w.tick >= w.pursuit.until || w.tick >= battleLimitTicks(w.setup)) w.ended = { ...verdict, tick: w.tick };
+  } else if (verdict) w.ended = verdict;
   else if (w.tick >= battleLimitTicks(w.setup)) {
     // At the clock: a river crossing is won by the far bank; a field battle by the strength left.
     if (type === 'river' && farBankStrength(w) >= RIVER_HOLD_SHARE * startStrength(w, SIDE_ATTACKER)) w.ended = { outcome: 'attacker', reason: 'farBankHeld', decisive: true, tick: w.tick };
     else if ((type === 'field' || type === 'naval') && sideStrength(w, SIDE_ATTACKER) > sideStrength(w, SIDE_DEFENDER) * 1.5) w.ended = { outcome: 'attacker', reason: 'fieldHeld', decisive: false, tick: w.tick };
     else w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
   }
+  if (!verdict && w.pursuit) w.pursuit = null; // the beaten side turned and fights on
   if (w.ended) w.events.push({ t: w.tick, type: 'ended', outcome: w.ended.outcome, reason: w.ended.reason });
 };
 

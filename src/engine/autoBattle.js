@@ -15,7 +15,8 @@
 //                defender of a city at most its housing over its garrison. A city with no garrison
 //                (its militia alone) fights no economy and holds no gate: it is walked into. Their losses are not
 //                campaign losses; they are taken out of the result.
-//   walls        a walled city (fort level WALLS_FORT_LEVEL or more) without a siege engine in the
+//   walls        a walled city (fort level WALLS_FORT_LEVEL or more), or a manned fort in a field
+//                battle (forts.js), without a siege engine in the
 //                attacking army holds its gate: the attacker's blows count WALLS_NO_SIEGE_MULT,
 //                fading as a siege battered the walls (hpRatio), as the real-time walls block an
 //                army that has nothing to breach them with
@@ -110,8 +111,8 @@ export const auxiliariesFor = (kind, side, ins, tune = AUTO_TUNE) => {
   return out;
 };
 
-export const AUTO_ESCAPE_CHANCE = 0.6;
-export const AUTO_ESCAPE_PURSUED = 0.4;
+export const AUTO_ESCAPE_CHANCE = 0.5;
+export const AUTO_ESCAPE_PURSUED = 0.3;
 
 /** Dispositions for a field battle's units (6.9), from the auto-resolve's result. */
 export const autoDispositions = (battle, rng) => {
@@ -157,7 +158,8 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   const contested = !ASSAULT_KINDS.has(kind) || ins.defenderUnits.some((u) => !u.militia && u.strength > 0);
   const auxA = contested ? auxiliariesFor(kind, 0, ins, tune) : [];
   const auxD = contested ? auxiliariesFor(kind, 1, ins, tune) : [];
-  const walled = contested && ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL);
+  // A field battle against a manned fort (forts.js: a walled keep on the battle map) holds its gate too.
+  const walled = contested && ((ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL)) || (kind === 'field' && !!args.isAttackingFortification));
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
   const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
   let battle = resolveBattle({

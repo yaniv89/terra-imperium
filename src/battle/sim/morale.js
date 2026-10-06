@@ -72,7 +72,7 @@ export const updateMorale = (w) => {
     // Morale comes back once nobody is shooting at you — faster for a routed squad that got clear
     // (it can rally and return to the fight before it runs off the field, as in Total War).
     if (quiet > REGEN_QUIET_TICKS && w.tick % 20 === 0 && q.morale < 100) q.morale = Math.min(100, q.morale + (q.routed ? ROUTED_REGEN_PER_SEC : 1));
-    if (q.routed && quiet > RALLY_QUIET_TICKS && q.morale >= RALLY_MORALE) {
+    if (q.routed && quiet > RALLY_QUIET_TICKS && q.morale >= RALLY_MORALE && w.pursuit?.side !== q.side) { // a beaten army being pursued runs on
       q.routed = false; q.anchorX = q.x; q.anchorY = q.y;
       w.events.push({ t: w.tick, type: 'rallied', id: q.idx });
     }
