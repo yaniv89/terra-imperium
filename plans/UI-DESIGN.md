@@ -88,3 +88,36 @@ the target in full sight; otherwise the scouts' range.
 - Wider sheets for Research and Pre-battle; Pre-battle and Settings hide the tab rail.
 - Missing screens still to sketch: fleets and landings, tutorial for the first five minutes, desktop versions
   of the map and the battle, save and load, game over.
+
+## 6. Phase U1 status (branch claude/phase-u1-ui-world, 2026-10-06)
+
+One commit per step ("U1 step N"); screenshots at 844x390 and 1280x800 in `plans/ui/u1/`, taken by
+`node scripts/ui/u1-shots.mjs [--only W09,W10]` against `npx vite --port 5181`.
+
+| Step | Screen | What it is now |
+|---|---|---|
+| 1 | Look, W02 top bar | Field Atlas tokens, fonts and primitives (`src/components/ui/atlas.jsx`, `.fa-*` in index.css); one world top bar; End Turn bottom right; "needs you" chips; the tab rail; Settings from Menu |
+| 2 | W01 Start | three columns, people picker, one brass Begin |
+| 3 | W02, W03 | city banners, map controls, fog legend, "last seen", first-contact card, palette pass |
+| 4 | W04 Settle lens | the site card with reasons and numbers, the lens legend |
+| 5 | W05 City sheet | tabs, damage alert, battle housing line by line |
+| 6 | W09 Research | wider dock; the current tech's bar with the waiting boost striped; map boosts with a Map button (switches the lens); queue chips; era goals card; focus chips; lines or web; age strip |
+| 7 | W10 End turn | the three states; waits visibly for an event or a peace offer; the turn report (grouped, filter chips, a place button per line, brass Play turn N; quiet turns skip it; the turn number reopens it) |
+| 8 | W12 Settings | two columns on a phone; fog shown as locked; battle size 300 a side; a performance overlay switch (the battle's fps readout, per browser); quality Auto |
+| 9 | W17 Nation overview | ruler (no heirs), government and next title, stability, legitimacy, authority with reasons, victory progress and score rank, era goals with the way forward, age strip with the next age's turns |
+| 10 | W07 Diplomacy | Peoples in a wide dock: list with relation word and opinion bar, the chosen people's card with tiles that say "would accept / would refuse" before trying and the first refusal's reason; answers waiting on top |
+| 11 | W08 Independent | the W4 sheet restyled to the tokens; brass only on the primary action; the independents list in Peoples |
+
+Left for other branches or phases: W06 and B07 (need R3), the war screens W11, W13 to W16 and the
+battle screens B01 to B08 (another branch).
+
+Gaps found (no engine data or no system yet; the screens show what exists):
+- W10: the turn worker reports no progress, so "The world moves" has no step count (the sketch's 23 / 36).
+- W12: the 500 and 1,000 battle sizes and the device check that measures them, a quality choice
+  (the battle has one adaptive profile), a world-map performance overlay and a language choice.
+- W17: no heirs by design (decision 37); the ruler's reign end is not shown (`reignEndsTurn` is an
+  internal roll). Legitimacy has no reason list in the engine (authority's parts are shown instead).
+- W07: the opinion threshold for an alliance is a score (`allianceAcceptanceScore`), not an opinion
+  number, so the refusal line names what moves it rather than a single target.
+- W08: one mercenary offer at a time (the engine offers the best band in reach), not a list.
+
