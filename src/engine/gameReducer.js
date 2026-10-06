@@ -3205,6 +3205,12 @@ const CONTACT_ACTIONS = new Set([
 const NO_FOG_REFRESH = new Set([ActionTypes.ADVANCE_TURN, ActionTypes.FAST_FORWARD, ActionTypes.RESET_GAME, ActionTypes.LOAD_GAME]);
 
 export const gameReducer = (state, action) => {
+  // A turn the worker resolved from `from` (src/services/turnClient.js): taken only while the game
+  // still stands at `from`, so an action taken meanwhile is never lost or doubled.
+  if (action?.type === ActionTypes.APPLY_TURN_RESULT) {
+    const { from, state: resolved } = action.payload || {};
+    return from === state && resolved ? syncWorldRegistry(resolved) : state;
+  }
   syncWorldRegistry(state);
   const target = action?.payload?.nationId;
   if (CONTACT_ACTIONS.has(action?.type) && target && state.nations?.[target] && !hasMet(state, state.playerNationId, target)) {

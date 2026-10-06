@@ -22,6 +22,9 @@ export const RelationStatus = {
 export const ActionTypes = {
   ADVANCE_TURN: 'ADVANCE_TURN',
   FAST_FORWARD: 'FAST_FORWARD',
+  // A turn resolved in the turn worker (src/services/turnClient.js): { from, state }, applied only
+  // if the game is still at the 'from' state.
+  APPLY_TURN_RESULT: 'APPLY_TURN_RESULT',
   RESET_GAME: 'RESET_GAME',
   FRONTIER_EXPEDITION: 'FRONTIER_EXPEDITION',
   FOUND_COLONY: 'FOUND_COLONY',

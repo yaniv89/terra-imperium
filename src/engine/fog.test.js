@@ -197,3 +197,12 @@ describe('fog of war: determinism', () => {
     expect(JSON.stringify(a.fog)).toBe(JSON.stringify(b.fog));
   }, 60000);
 });
+
+describe('turns resolved in the worker', () => {
+  it('apply only while the game still stands where the turn began', () => {
+    const next = { ...S, turnNumber: S.turnNumber + 1 };
+    expect(gameReducer(S, { type: ActionTypes.APPLY_TURN_RESULT, payload: { from: S, state: next } }).turnNumber).toBe(S.turnNumber + 1);
+    const moved = gameReducer(S, { type: ActionTypes.ADD_LOG, payload: { message: 'meanwhile' } });
+    expect(gameReducer(moved, { type: ActionTypes.APPLY_TURN_RESULT, payload: { from: S, state: next } })).toBe(moved);
+  });
+});

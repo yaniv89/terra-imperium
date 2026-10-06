@@ -81,6 +81,7 @@ const TOUCH_ZOOM_EXTENT = [1, 200];
 const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 const ZOOM_STEP_SCALE = 1.6;
 const ZOOM_SETTLE_MS = 150;
+const ZOOM_JUMP = 1.8;
 // Plan feedback: the flat map's default view (fitSize-to-whole-world at k=1) leaves huge dead
 // space above/below the map on a tall/narrow (mobile) viewport, since the world's ~2:1 aspect
 // ratio is much wider than a phone screen. GlobeView.jsx already opens centered on the player's
@@ -382,8 +383,12 @@ const Map2DView = ({
   // zoom the <g> transform scales what is drawn; the paths, bands, badges and glyphs whose stroke
   // and size depend on the zoom rebuild once, ZOOM_SETTLE_MS after the zoom stops.
   const [settledK, setSettledK] = useState(transform.k);
+  // A jump (a focus, the minimap, a far zoom) rebuilds at once; only the small steps of a wheel or
+  // pinch gesture wait for it to stop.
   useEffect(() => {
     if (transform.k === settledK) return undefined;
+    const ratio = transform.k / settledK;
+    if (ratio > ZOOM_JUMP || ratio < 1 / ZOOM_JUMP) { setSettledK(transform.k); return undefined; }
     const id = setTimeout(() => setSettledK(transform.k), ZOOM_SETTLE_MS);
     return () => clearTimeout(id);
   }, [transform.k, settledK]);
