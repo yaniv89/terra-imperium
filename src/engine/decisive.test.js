@@ -42,6 +42,14 @@ describe('the pursuit on the battle map', () => {
     result.defenderUnits.forEach((u) => expect(['dead', 'fled', 'field']).toContain(u.disposition));
   });
 
+  it('at the clock with nobody broken, the loser\'s unbroken units withdraw in order (as on Auto)', () => {
+    const w = createWorld(setup(3));
+    for (let i = 0; i < 60; i++) step(w, []);
+    w.ended = { outcome: 'defender', reason: 'timeLimit', tick: w.tick };
+    const r = toStrategicResult(w);
+    r.attackerUnits.filter((u) => u.strength > 0 && !u.routed && u.disposition !== 'reserve').forEach((u) => expect(u.disposition).toBe('fled'));
+  });
+
   it('deterministic', () => {
     expect(runHeadless(setup(4)).hash).toBe(runHeadless(setup(4)).hash);
   });
