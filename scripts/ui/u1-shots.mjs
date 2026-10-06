@@ -199,6 +199,27 @@ const SCREENS = {
     await page.getByTestId('peoples-tab').waitFor({ timeout: 10000 });
     await click(page.locator('[data-people-row]').nth(1));
     await shot(page, 'W07-peoples', vp);
+  },
+  W08: async (page, vp) => {
+    await startGame(page);
+    // the nearest independent (raiders if any are close) with a grudge and its causes; gold to hire
+    // its bands. No tribute demand here: a new one opens its own sheet (W15).
+    const id = await page.evaluate(() => {
+      const s = window.__game.state; const me = s.playerNationId; const cap = s.regions[s.nations[me].capitalRegionId];
+      const all = Object.values(s.nations).filter((n) => n.kind === 'independent' && !n.isEliminated && s.regions[n.capitalRegionId]);
+      const d = (n) => { const r = s.regions[n.capitalRegionId]; return Math.hypot((r.lat || 0) - (cap.lat || 0), (r.lng || r.lon || 0) - (cap.lng || cap.lon || 0)); };
+      all.sort((a, b) => d(a) - d(b));
+      const pick = all.slice(0, 4).find((n) => n.indep?.personality === 'raiders') || all[0];
+      return pick.id;
+    });
+    await patchState(page, `
+      const me = s.playerNationId; const n = s.nations['${id}'];
+      const indep = { ...n.indep, grudges: { ...(n.indep.grudges || {}), [me]: 48 }, grudgeLog: { ...(n.indep.grudgeLog || {}), [me]: [{ id: 'pillaged', turn: s.turnNumber, amount: 20 }, { id: 'killed', turn: s.turnNumber, amount: 28 }] } };
+      return { ...s, resources: { ...s.resources, gold: 400 }, research: { ...(s.research || {}), current: 'infrastructure_irrigation_canals' },
+        nations: { ...s.nations, ['${id}']: { ...n, indep } } };`);
+    await page.evaluate((x) => window.dispatchEvent(new CustomEvent('ti:open-independent', { detail: x })), id);
+    await page.getByTestId('independent-sheet').waitFor({ timeout: 10000 });
+    await shot(page, 'W08-independent', vp);
   }
 };
 
