@@ -19,7 +19,7 @@ import { wrapNear } from './mapView';
 import { TERRITORY_VERTEX, TERRITORY_FRAGMENT } from './territoryShader';
 import { DATA_W, LOOKUP_W, LOOKUP_H } from './tileGpuData';
 import { CITY_W } from './territoryData';
-import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm } from '../closeView/terrainShader';
+import { TERRAIN_VERTEX, TERRAIN_FRAGMENT, pxPerKm, closeGroundSetup } from '../closeView/terrainShader';
 import { rasterTileUrl, rasterZoomFor, RASTER_MAX_Z, RASTER_TILE } from '../../../data/geo/rasterTiles';
 import { loadDetailIndex, bestColourTile, coverTileUrl } from '../../../data/geo/rasterDetail';
 
@@ -149,9 +149,10 @@ const plainMaterial = (texture) => new ShaderMaterial({
 });
 let noCover = null; // a 1x1 'water' texel for terrain materials without a land cover tile
 const emptyCover = () => (noCover ||= dataTexture(new Uint8Array(4), 1, 1, RGBAFormat, UnsignedByteType));
+const GROUND = closeGroundSetup(); // ground material sets as detail, where delivered (terrainShader.js)
 const terrainMaterial = (texture, size, geo) => new ShaderMaterial({
-  vertexShader: TERRAIN_VERTEX, fragmentShader: TERRAIN_FRAGMENT,
-  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 }, uRiverOff: { value: 0 } },
+  vertexShader: TERRAIN_VERTEX, fragmentShader: TERRAIN_FRAGMENT, defines: { ...GROUND.defines },
+  uniforms: { uMap: { value: texture }, uSize: { value: new Vector2(size[0], size[1]) }, uGeo: { value: new Vector4(...geo) }, uPxPerKm: { value: 1 }, uCover: { value: emptyCover() }, uCoverOn: { value: 0 }, uRiverOff: { value: 0 }, ...GROUND.uniforms },
   depthTest: false, depthWrite: false
 });
 // A land cover tile (rasterDetail.js): one class byte a pixel in the red channel, read nearest.

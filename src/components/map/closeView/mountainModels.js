@@ -1,8 +1,8 @@
 // src/components/map/closeView/mountainModels.js
 // Phase F: the close view's mountain chains and foothills (world plan 5) as low-poly meshes built
-// in code, the placeholder for the `map-terrain/mountain-ridges` and `map-terrain/hills` kits of
-// ART-PRODUCTION-PLAN batches 14 and 27 (they will arrive as src/assets/map/terrain/
-// mountain-ridges.glb and hills.glb, spec S11). A ridge is ELONGATED along model x (2 units long,
+// in code, the placeholder for the `map-terrain/mountain-ridges` and `map-terrain/hills` kits:
+// src/assets/map/terrain/mountain-ridges.glb and hills.glb take their place when delivered
+// (terrainKits.js, the object names and sizes there). A ridge is ELONGATED along model x (2 units long,
 // about 1.1 wide, its crest along x), so the placement (terrainPlacement.js) turns it along the
 // ridge line of the grid and overlaps neighbours into one chain; never one cone per tile.
 // Faceted (flat normals) with vertex colours: grass at the foot, rock, snow on the snowy variant.

@@ -18,6 +18,14 @@ changes needed.
 
 Ages: `bronze classical kingdoms gunpowder modern`. Classes: `infantry ranged cavalry siege support air`.
 
+## Generals and signature units
+
+- `{age}-general.glb` (or `general.glb` for every age): the age's general, a mounted commander a
+  size up from cavalry with a cloak in `Team` (Modern: an open command car). Drawn beside the
+  standard of every squad with a commander; baked as tall as the cavalry model and trotting like
+  it. Budget: mounted 2,500 (hard 4,000). Without the file a general is only the standard.
+- `signature/{model}.glb`: a people's signature unit (the roster's model id), see `signature/README.md`.
+
 ## What the model should look like
 
 - **Low poly.** Aim for 300–1,500 triangles, with 3,000 as the hard budget. Hundreds are

@@ -6,20 +6,25 @@
 // rubble where a structure fell, and the wall ring as targetable segments.
 // Kept apart from BattleRenderer.js (which only creates it and calls update) so the renderer's
 // performance work stays separate.
-// PLACEHOLDERS and the art that replaces them (plans/ART-PRODUCTION-PLAN.md batch M03):
-//   wall segments and the gate posts (plain boxes in the age's stone) -> src/assets/battle/city/
-//     walls-<age>.glb (wall-straight, wall-corner, tower, gate-open, gate-closed, each -damaged and
-//     -breached), the `battle-city/<age>/wall-kit` items;
-//   the rubble mound (closeView/townDamage.js ruinMound) -> src/assets/battle/city/ruins-<age>.glb
-//     (rubble-s, -m, -l, beams, scorch), the `battle-city/<age>/ruin-library` items;
-//   the darkened house (damaged) and the cut-out house (ruined) -> src/assets/battle/city/
-//     <age>-<theme>-houses-damage.glb (<name>-damaged, <name>-ruined), the
-//     `battle-city/bronze/<theme>/houses-damage` items;
-//   the palace and wonder boxes -> the shared file's palace and the wonder models (and the 15
-//     wonder ruins, batch M28);
+// ART (plans/ART-MODELS-PLAN.md 6, battle/art/cityArt.js; each wired, the placeholder stays
+// without a file):
+//   wall segments, the gate and the ring's towers -> src/assets/battle/city/walls-<age>.glb
+//     (wall-straight stretched along the segment, gate-open, tower; -damaged under 70% HP,
+//     -breached when down); placeholder: boxes in the age's stone and the renderer's towers;
+//   rubble where a structure fell -> src/assets/battle/city/ruins-<age>.glb (rubble-s, -m, -l by
+//     size); placeholder: the code mound (closeView/townDamage.js moundGeometry);
+//   damaged and ruined houses -> src/assets/battle/city/<age>-<theme>-houses-damage.glb
+//     (<house>-damaged, <house>-ruined, the theme along styleChain, then <age>-houses-damage.glb):
+//     the house is cut out of the town file and the piece stands in its place; placeholder: the
+//     shader darkening (damaged) and the cut-out with a mound (ruined);
+//   the palace and wonder boxes -> the shared file's palace and the wonder models (later);
 //   boxes for every house while the town file loads, or when the age and size has none.
-import { InstancedMesh, MeshLambertMaterial, BoxGeometry, Object3D, Color, Group } from 'three';
+import { InstancedMesh, MeshLambertMaterial, BoxGeometry, Object3D, Color, Group, Matrix4, Vector3 } from 'three';
 import { Q } from '../sim/constants';
+import { ART } from '../art/artFiles';
+import { loadKit } from '../art/kitLoader';
+import { KitInstances, kitLodForZoom } from '../art/kitInstances';
+import { houseTypes, pickHouse, pickRubble, wallPiece, pieceLength } from '../art/cityArt';
 import { townUrlByName, loadTownAsset, instanceTownAsset, showLod } from '../../components/map/closeView/townAssets';
 import { enableTownDamage, setTownDamage, syncTownDamage, moundGeometry } from '../../components/map/closeView/townDamage';
 
@@ -29,10 +34,15 @@ export const CITY_KINDS = new Set([...PASSIVE_KINDS, 'wall', 'gate']);
 const STONE = { bronze: '#b39a72', classical: '#cfc6b0', kingdoms: '#9b968c', gunpowder: '#958b80', modern: '#8f9194' };
 const tmp = new Object3D();
 const tint = new Color();
+const M = new Matrix4(); const V = new Vector3();
 
 export class CityLayer {
-  constructor(r) {
+  /** `art`, `load`: the art index and kit loader (tests pass their own). */
+  constructor(r, { art = ART, load = loadKit } = {}) {
     this.r = r; // the BattleRenderer: scene, setup, map, track(), heightAt()
+    this.art = art; this.loadKit = load;
+    this.kits = {}; // walls, ruins, houses: loaded kit files
+    this.ready = [];
     this.city = r.setup.city;
     this.items = []; // [{ index, s }] the city structures by sim index
     this.last = new Map();
@@ -41,7 +51,7 @@ export class CityLayer {
   build() {
     if (!this.city || this.r.map.naval) return;
     const { setup, map } = this.r;
-    setup.structures.forEach((s, index) => { if (CITY_KINDS.has(s.kind)) this.items.push({ index, s }); });
+    setup.structures.forEach((s, index) => { if (CITY_KINDS.has(s.kind) || s.kind === 'tower') this.items.push({ index, s }); });
     const stone = STONE[this.city.ageId] || STONE.kingdoms;
     const box = this.r.track(new BoxGeometry(1, 1, 1).translate(0, 0.5, 0));
     const mk = (n, color) => {
@@ -50,7 +60,7 @@ export class CityLayer {
       this.r.scene.add(m);
       return m;
     };
-    this.walls = mk(this.items.filter((i) => i.s.kind === 'wall' || i.s.kind === 'gate').length * 2, stone);
+    this.walls = mk(this.items.filter((i) => i.s.kind === 'wall' || i.s.kind === 'gate').length * 2 + this.items.filter((i) => i.s.kind === 'tower').length, stone);
     this.blocks = mk(this.items.filter((i) => PASSIVE_KINDS.has(i.s.kind)).length, '#d8cdb5');
     this.rubble = new InstancedMesh(moundGeometry(), this.r.track(new MeshLambertMaterial({ color: '#8b8073' })), Math.max(1, this.items.length));
     Object.assign(this.rubble, { count: 0, castShadow: true, receiveShadow: true, frustumCulled: false });
@@ -62,6 +72,19 @@ export class CityLayer {
     this.root.rotation.y = -Math.PI / 2;
     this.root.scale.setScalar(S);
     this.r.scene.add(this.root);
+    // The age's wall kit, ruin library and the theme's damaged houses, when their files exist.
+    this.pieces = new KitInstances(this.r.scene, { track: (x) => this.r.track(x) });
+    this.housePieces = new KitInstances(this.root, { track: (x) => this.r.track(x) });
+    const refs = { walls: this.art.walls(this.city.ageId), ruins: this.art.ruins(this.city.ageId), houses: this.art.housesDamage(this.city.ageId, this.city.style) };
+    Object.entries(refs).forEach(([k, ref]) => {
+      if (!ref) return;
+      this.ready.push(this.loadKit(ref.url).then((kit) => {
+        if (this.disposed) return;
+        this.kits[k] = kit;
+        if (k === 'houses') this.houseTypes = houseTypes(kit);
+        this.last.clear(); // redraw with the art
+      }).catch((e) => console.warn(`[art] ${e.message}: the city keeps its placeholders`)));
+    });
     const url = townUrlByName(this.city.townKey);
     if (url) {
       loadTownAsset(url).then((model) => {
@@ -78,10 +101,12 @@ export class CityLayer {
     }
   }
 
-  // Each frame: only structures whose state changed are redrawn.
+  // Each frame: only structures whose state changed (or the zoom's kit LOD) are redrawn.
   update(view) {
     if (!this.items.length) return;
     let changed = false;
+    const lod = kitLodForZoom(this.r.camera?.zoom ?? 1);
+    if (lod !== this.lod) { this.lod = lod; changed = true; }
     this.items.forEach(({ index }) => {
       const v = view.structures[index];
       const key = !v.alive ? 2 : v.hp < v.maxHp * 0.7 ? 1 : 0;
@@ -90,21 +115,58 @@ export class CityLayer {
     if (!changed) return;
     let nw = 0; let nb = 0; let nr = 0;
     const ruined = []; const damaged = [];
+    const { walls: wallKit, ruins: ruinKit, houses: houseKit } = this.kits;
+    const S = this.city.scale;
+    const team = tint.set(this.r.setup.sides[1].color).clone();
+    this.pieces.begin(); this.housePieces.begin();
     const at = (s) => { const x = s.x / Q; const z = s.y / Q; return [x, this.r.heightAt(x, z), z]; };
+    // a house's kit piece in the town's model space (this.root), the house cut out of the town file
+    const housePiece = (s, state) => {
+      if (!houseKit || s.kind !== 'house' || !s.model) return false;
+      const [mx, mz, w, d] = s.model;
+      const p = pickHouse(houseKit, w, d, state, this.houseTypes);
+      if (!p) return false;
+      this.housePieces.add(p.obj, lod, M.makeRotationY(p.yaw).scale(V.set(p.lx, 1, p.lz)).setPosition(mx, 0, mz), team);
+      ruined.push(s.model);
+      return true;
+    };
     this.items.forEach(({ index, s }) => {
       const state = this.last.get(index);
       const [x, y, z] = at(s);
+      const ring = s.kind === 'wall' || s.kind === 'gate' || s.kind === 'tower';
+      // along the ring: the segment's long side is across the line to the keep
+      const yaw = Math.atan2(z - (this.r.map.keep.y + 0.5), x - (this.r.map.keep.x + 0.5));
+      const piece = ring && wallKit ? wallPiece(wallKit, s.kind, state) : null;
+      if (s.kind === 'tower') {
+        // the renderer's own tower stands until the kit has one
+        const g = this.r.structureMeshes?.get(s.id);
+        if (g) g.visible = !piece;
+        if (piece) this.pieces.add(piece, lod, M.makeRotationY(Math.PI / 2 - yaw).scale(V.setScalar(S)).setPosition(x, y, z), team);
+        return;
+      }
+      if (piece) {
+        // the piece runs along model x with its outer face to +Z: turned to face away from the keep
+        const len = Math.max(s.w, s.d);
+        this.pieces.add(piece, lod, M.makeRotationY(Math.PI / 2 - yaw).scale(V.set(len / pieceLength(piece), S, S)).setPosition(x, y, z), team);
+        return;
+      }
       if (state === 2) {
+        if (housePiece(s, 'ruined')) return;
+        const rubble = pickRubble(ruinKit, Math.max(s.w, s.d) / S);
+        if (rubble) {
+          this.pieces.add(rubble.obj, lod, M.makeRotationY((index * 2.39996) % 6.283).scale(V.setScalar(S * rubble.scale)).setPosition(x, y, z));
+          if (s.model) ruined.push(s.model);
+          return;
+        }
         tmp.position.set(x, y, z); tmp.rotation.set(0, 0, 0);
         tmp.scale.set(Math.max(0.8, s.w), Math.max(1, Math.min(s.w, s.d) * 1.4), Math.max(0.8, s.d)); tmp.updateMatrix();
         this.rubble.setMatrixAt(nr++, tmp.matrix);
         if (s.model) ruined.push(s.model);
         return;
       }
+      if (state === 1 && housePiece(s, 'damaged')) return;
       if (state === 1 && s.model) damaged.push(s.model);
       if (s.kind === 'wall' || s.kind === 'gate') {
-        // along the ring: the segment's long side is across the line to the keep
-        const yaw = Math.atan2(z - (this.r.map.keep.y + 0.5), x - (this.r.map.keep.x + 0.5));
         const len = Math.max(s.w, s.d); const thick = Math.max(0.5, Math.min(s.w, s.d));
         const parts = s.kind === 'gate' ? [[-len / 2 + 0.3, 0.6], [len / 2 - 0.3, 0.6]] : [[0, len]];
         parts.forEach(([off, l]) => {
@@ -123,6 +185,7 @@ export class CityLayer {
       this.blocks.setMatrixAt(nb, tmp.matrix);
       this.blocks.setColorAt(nb++, tint.set(s.kind === 'palace' || s.kind === 'wonder' ? '#e7d9a8' : '#ffffff').multiplyScalar(state === 1 ? 0.55 : 1));
     });
+    this.pieces.end(); this.housePieces.end();
     [[this.walls, nw], [this.blocks, nb], [this.rubble, nr]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
@@ -131,6 +194,7 @@ export class CityLayer {
 
   dispose() {
     this.disposed = true;
+    this.pieces?.dispose(); this.housePieces?.dispose();
     if (this.root) this.r.scene.remove(this.root);
   }
 }

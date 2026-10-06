@@ -28,6 +28,7 @@ import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceF
 import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, ROOM_FILL } from './scale';
 import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen, townDrawRadiusKm } from './terrainPlacement';
 import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
+import { dressCloseTerrain } from './terrainKits';
 import { riverHalfPx } from '../gl/terrainModel';
 import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
@@ -39,7 +40,7 @@ import { getTreeGeometry, getWorkGeometry } from './landscapeModels';
 import { pickBuildingModels, buildingSpots, assignSpots, buildingRoot, needsCoast, BUILDING_DISC } from './buildingModels';
 import { createBuildingLayer } from './buildingLayer';
 import { cityManifestOf, manifestStates } from '../../../engine/cityManifest';
-import { enableTownDamage, setTownDamage, syncTownDamage, ruinMound } from './townDamage';
+import { applyTownDamage, syncTownDamage } from './townDamage';
 import { wonderAssetUrl, wonderTierObject, wonderPlacements, WONDER_RADIUS } from './wonderAssets';
 import { improvementModel, improvementRoot, modelAllowedOnTile, boatsSpot, coastShare, shoreAnchor, yawToward, fitImprovement, IMPROVEMENT_SCALE, SHORE_BACK } from './improvementModels';
 
@@ -110,6 +111,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
     ridges: new Map(), hills: instanced(getHillGeometry(), 600)
   };
   for (let v = 0; v < RIDGE_VARIANTS; v++) [false, true].forEach((snow) => t.ridges.set(`${v}|${snow}`, instanced(getRidgeGeometry(v, snow), MAX_RIDGE_MESH)));
+  dressCloseTerrain(t, onAssets); // the map terrain kits, where delivered (terrainKits.js)
   const plotMap = plotTexture();
   const plotMaterial = new MeshBasicMaterial({ map: plotMap, transparent: true, opacity: 0.88, depthWrite: false });
   t.plots = new InstancedMesh(new PlaneGeometry(1, 1), plotMaterial, MAX_PLOTS);
@@ -243,9 +245,7 @@ export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFo
         if (asset && wallsRoot) mesh.add(instanceTownAsset(wallsRoot, teamColor, tint));
         if (dmg) {
           const states = manifestStates(cityManifestOf(state, id), dmg).filter((s) => s.kind === 'house' || s.kind === 'landmark');
-          enableTownDamage(mesh);
-          setTownDamage(mesh, states.filter((s) => s.state === 'ruined'), states.filter((s) => s.state === 'damaged'));
-          states.filter((s) => s.state === 'ruined').forEach((s) => mesh.add(ruinMound(s)));
+          applyTownDamage(mesh, states, { ageId: opts.ageId, style, teamColor, tint, onReady: onAssets });
         }
         mesh.userData.fields = fields.map((f) => {
           const field = instanceTownAsset(shared[f.name], teamColor, tint);

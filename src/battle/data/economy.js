@@ -12,11 +12,13 @@
 // every age; only names (and later the art) change. Names are keyed by the age registry
 // (src/data/ages.js); an age without its own names uses the default (Bronze, the pilot age).
 //
-// Art: every building and node names the art-plan item that will replace its placeholder
-// (plans/ART-PRODUCTION-PLAN.md batches 04 and 05): `art` is the object in
-// src/assets/battle/rts/rts-<age>.glb (S5), `node` art is src/assets/battle/nature/<id>.glb (S9).
+// Art (plans/ART-MODELS-PLAN.md 5 and 7, D8): a building's `art` is its role, the object in the
+// age's src/assets/battle/rts/rts-<age>.glb (S5); buildingArt() resolves it per age, falling back
+// to the nearest earlier age with a file, then to the greybox. A node's `art` is its file
+// src/assets/battle/nature/<id>.glb (S9); a grove's 'vegetation' is the battle's vegetation kit.
 // Until those files exist the renderer draws greybox placeholders with the right footprint.
 import { secondsToTicks, Q } from '../sim/constants';
+import { AGE_ORDER } from '../../data/ages';
 import { getAvailableClasses } from '../../data/unitClasses';
 
 export const RESOURCES = ['food', 'materials', 'gold'];
@@ -85,33 +87,47 @@ const clamp01 = (v) => Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
 // ---- resource nodes (S9) ------------------------------------------------------------------------
 // amount in whole units; slots = how many workers can work it at once; rate = gather multiplier.
 export const NODE_KINDS = {
-  tree: { res: 'materials', amount: 250, slots: 3, rate: 1, label: 'Grove', art: 'nature/vegetation-temperate' },
-  stone: { res: 'materials', amount: 500, slots: 4, rate: 1, label: 'Stone', art: 'nature/stone-outcrop' },
-  ore: { res: 'materials', amount: 400, slots: 4, rate: ORE_RATE_MULT, label: 'Metal ore', art: 'nature/ore-outcrop' },
-  gold: { res: 'gold', amount: 400, slots: 4, rate: 1, label: 'Gold vein', art: 'nature/gold-vein' },
-  herd: { res: 'food', amount: 300, slots: 3, rate: 1, label: 'Herd', art: 'nature/herd-sheep-goat' },
-  cattle: { res: 'food', amount: 450, slots: 3, rate: 1, label: 'Cattle', art: 'nature/herd-cattle' },
-  fish: { res: 'food', amount: 350, slots: 3, rate: 0.9, label: 'Fish', art: 'nature/fish-shoal' }
+  tree: { res: 'materials', amount: 250, slots: 3, rate: 1, label: 'Grove', art: 'vegetation' },
+  stone: { res: 'materials', amount: 500, slots: 4, rate: 1, label: 'Stone', art: 'stone-outcrop' },
+  ore: { res: 'materials', amount: 400, slots: 4, rate: ORE_RATE_MULT, label: 'Metal ore', art: 'ore-outcrop' },
+  gold: { res: 'gold', amount: 400, slots: 4, rate: 1, label: 'Gold vein', art: 'gold-vein' },
+  herd: { res: 'food', amount: 300, slots: 3, rate: 1, label: 'Herd', art: 'herd-sheep-goat' },
+  cattle: { res: 'food', amount: 450, slots: 3, rate: 1, label: 'Cattle', art: 'herd-cattle' },
+  fish: { res: 'food', amount: 350, slots: 3, rate: 0.9, label: 'Fish', art: 'fish-shoal' }
 };
 
 // ---- buildings (S5) -----------------------------------------------------------------------------
 // cost { food, materials, gold }, time (one-builder seconds), hp, size (footprint in tiles, square),
 // what it does: housing, dropoff (resources it takes), trains (unit roles), and the art object.
 export const BUILDINGS = {
-  camp: { size: 4, hp: 2500, cost: null, time: 0, dropoff: RESOURCES, trains: ['worker'], art: 'rts/bronze/expedition-camp', icon: 'build-expedition-camp', hq: true },
-  hall: { size: 3, hp: 0, cost: null, time: 0, dropoff: RESOURCES, trains: ['worker'], art: 'rts/bronze/town-hall', icon: 'build-town-hall', hq: true }, // the keep is the town hall (its HP)
-  house: { size: 2, hp: 400, cost: { materials: 30 }, time: 15, housing: HOUSE_HOUSING, art: 'battle-city/<age>/<theme>/houses (kit houses)', icon: 'build-house' },
-  foodDepot: { size: 2, hp: 600, cost: { materials: 60 }, time: 20, dropoff: ['food'], art: 'rts/bronze/food-depot', icon: 'build-food-depot' },
-  materialsYard: { size: 2, hp: 600, cost: { materials: 60 }, time: 20, dropoff: ['materials'], art: 'rts/bronze/materials-yard', icon: 'build-materials-yard' },
-  tradePost: { size: 3, hp: 700, cost: { materials: 80, gold: 20 }, time: 30, dropoff: ['gold'], trade: true, art: 'rts/bronze/trade-post', icon: 'build-trade-post' },
-  farm: { size: 3, hp: 300, cost: { materials: 50 }, time: 15, farm: true, slots: 2, art: 'rts/bronze/farm-plot', icon: 'build-farm-plot' },
-  mine: { size: 2, hp: 700, cost: { materials: 80 }, time: 25, mine: true, art: 'rts/bronze/mine', icon: 'build-mine' },
-  barracks: { size: 3, hp: 1200, cost: { materials: 150 }, time: 40, trains: ['infantry'], art: 'rts/bronze/barracks', icon: 'build-barracks' },
-  range: { size: 3, hp: 1100, cost: { materials: 150, gold: 30 }, time: 40, trains: ['ranged'], art: 'rts/bronze/range', icon: 'build-range' },
-  stable: { size: 4, hp: 1300, cost: { materials: 200, gold: 60 }, time: 50, trains: ['cavalry'], art: 'rts/bronze/stable', icon: 'build-stable' },
-  siegeWorkshop: { size: 4, hp: 1300, cost: { materials: 220, gold: 100 }, time: 60, trains: ['siege'], art: 'rts/bronze/siege-workshop', icon: 'build-siege-workshop' },
-  aidPost: { size: 3, hp: 900, cost: { materials: 120, gold: 40 }, time: 35, trains: ['support'], aid: true, art: 'rts/bronze/aid-post', icon: 'build-aid-post' },
-  tower: { size: 2, hp: 1000, cost: { materials: 120, gold: 40 }, time: 45, tower: { range: 7 * Q, damage: 14, attackTicks: secondsToTicks(1.5) }, art: 'rts/bronze/tower', icon: 'build-tower' }
+  camp: { size: 4, hp: 2500, cost: null, time: 0, dropoff: RESOURCES, trains: ['worker'], art: 'expedition-camp', icon: 'build-expedition-camp', hq: true },
+  hall: { size: 3, hp: 0, cost: null, time: 0, dropoff: RESOURCES, trains: ['worker'], art: 'town-hall', icon: 'build-town-hall', hq: true }, // the keep is the town hall (its HP)
+  house: { size: 2, hp: 400, cost: { materials: 30 }, time: 15, housing: HOUSE_HOUSING, art: 'house', icon: 'build-house' },
+  foodDepot: { size: 2, hp: 600, cost: { materials: 60 }, time: 20, dropoff: ['food'], art: 'food-depot', icon: 'build-food-depot' },
+  materialsYard: { size: 2, hp: 600, cost: { materials: 60 }, time: 20, dropoff: ['materials'], art: 'materials-yard', icon: 'build-materials-yard' },
+  tradePost: { size: 3, hp: 700, cost: { materials: 80, gold: 20 }, time: 30, dropoff: ['gold'], trade: true, art: 'trade-post', icon: 'build-trade-post' },
+  farm: { size: 3, hp: 300, cost: { materials: 50 }, time: 15, farm: true, slots: 2, art: 'farm-plot', icon: 'build-farm-plot' },
+  mine: { size: 2, hp: 700, cost: { materials: 80 }, time: 25, mine: true, art: 'mine', icon: 'build-mine' },
+  barracks: { size: 3, hp: 1200, cost: { materials: 150 }, time: 40, trains: ['infantry'], art: 'barracks', icon: 'build-barracks' },
+  range: { size: 3, hp: 1100, cost: { materials: 150, gold: 30 }, time: 40, trains: ['ranged'], art: 'range', icon: 'build-range' },
+  stable: { size: 4, hp: 1300, cost: { materials: 200, gold: 60 }, time: 50, trains: ['cavalry'], art: 'stable', icon: 'build-stable' },
+  siegeWorkshop: { size: 4, hp: 1300, cost: { materials: 220, gold: 100 }, time: 60, trains: ['siege'], art: 'siege-workshop', icon: 'build-siege-workshop' },
+  aidPost: { size: 3, hp: 900, cost: { materials: 120, gold: 40 }, time: 35, trains: ['support'], aid: true, art: 'aid-post', icon: 'build-aid-post' },
+  tower: { size: 2, hp: 1000, cost: { materials: 120, gold: 40 }, time: 45, tower: { range: 7 * Q, damage: 14, attackTicks: secondsToTicks(1.5) }, art: 'tower', icon: 'build-tower' }
+};
+/**
+ * A building's art in an age: { ageId, file, object, id } with the file of `ageId` or the nearest
+ * earlier age for which `hasFile(age)` says a rts-<age>.glb exists, or null (the greybox).
+ */
+export const buildingArt = (id, ageId, hasFile = () => false) => {
+  const role = BUILDINGS[id]?.art;
+  const i = AGE_ORDER.indexOf(ageId);
+  if (!role || i < 0) return null;
+  for (let k = i; k >= 0; k--) {
+    const a = AGE_ORDER[k];
+    if (hasFile(a)) return { ageId: a, file: `rts-${a}`, object: role, id: `rts/${a}/${role}` };
+  }
+  return null;
 };
 // The build menu's order (what a worker may raise).
 export const BUILDABLE = ['house', 'foodDepot', 'materialsYard', 'farm', 'mine', 'tradePost', 'barracks', 'range', 'stable', 'siegeWorkshop', 'aidPost', 'tower'];

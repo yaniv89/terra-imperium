@@ -408,7 +408,7 @@ export const disposeSoldierCache = () => {
 };
 
 // How big each model stands in the world (tiles), and how a squad lays them out.
-export const MODEL_SCALE = { worker: 0.8, infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege: 0.82, support: 0.82, air: 1.2, naval: 1.6 };
+export const MODEL_SCALE = { worker: 0.8, infantry: 0.88, ranged: 0.88, cavalry: 0.78, siege: 0.82, support: 0.82, air: 1.2, naval: 1.6, general: 0.86 }; // general: a size up from cavalry (unitModels.js)
 
 // ---- the animated material ---------------------------------------------------------------------
 

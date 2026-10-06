@@ -36,6 +36,7 @@ import { resolveBattle, MAX_BATTLE_ROUNDS } from './battle';
 import { battleInputs, batteredReduction } from './battleInputs';
 import { stockMult, TRAIN_STRENGTH } from '../battle/data/economy';
 import { cityManifestOf } from './cityManifest';
+import { getRosterCombatMultiplier } from '../data/unitClasses';
 
 export const AUX_UNIT = 1000;
 export const AUX_EFFECT = 1.6;
@@ -57,7 +58,13 @@ export const RAID_MULT = 0.4;
 export const SACK_MULT = 0.4;
 export const RAID_SLIP_BASE = 0.7;
 export const RAID_SLIP = 0.5;
-export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
+
+// Behind walls the real-time battle barely feels an older attacker's age gap (a bronze army against
+// classical walls loses what it loses against bronze walls: the fight is the gate, not the weapons),
+// while the round-based exchange multiplies the whole roster gap. The attacker gets back this share
+// (as an exponent) of the defender's roster advantage on a walled assault; 0 = off.
+export const WALLS_AGE_RELIEF = 0.7;
+export const AUTO_TUNE = { AUX_ROUNDS, AUX_UNIT, AUX_EFFECT, AUX_TRAINED, WALLS_NO_SIEGE_MULT, AUX_CLOSENESS, WALLS_AGE_RELIEF, RAID_MULT, SACK_MULT, RAID_SLIP_BASE, RAID_SLIP };
 
 /** The raiders' damage multiplier in an auto-resolved raid or sack (see RAID_MULT). */
 export const raidMult = (kind, ins, tune = AUTO_TUNE) => {
@@ -162,11 +169,14 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
   const walled = contested && ((ASSAULT_KINDS.has(kind) && (ins.walled ?? (args.fortLevel ?? 0) >= WALLS_FORT_LEVEL)) || (kind === 'field' && !!args.isAttackingFortification));
   const noSiege = walled && !ins.attackerUnits.some((u) => u.classId === 'siege' && u.strength > 0);
   const wallsMult = noSiege ? 1 - (1 - tune.WALLS_NO_SIEGE_MULT) * Math.max(0, Math.min(1, ins.hpRatio ?? 1)) : 1;
+  // The attacker's roster disadvantage is eased behind walls (WALLS_AGE_RELIEF).
+  const ageGap = walled ? getRosterCombatMultiplier(args.defenderAgeId ?? 'bronze', args.attackerAgeId ?? 'bronze') : 1;
+  const ageRelief = ageGap > 1 ? Math.pow(ageGap, tune.WALLS_AGE_RELIEF ?? WALLS_AGE_RELIEF) : 1;
   let battle = resolveBattle({
     ...args,
     attackerUnits: [...ins.attackerUnits, ...auxA],
     defenderUnits: [...ins.defenderUnits, ...auxD],
-    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * raidMult(kind, ins, tune),
+    attackerPenaltyMultiplier: (args.attackerPenaltyMultiplier ?? 1) * wallsMult * ageRelief * raidMult(kind, ins, tune),
     maxRounds: MAX_BATTLE_ROUNDS + Math.max(auxA.length, auxD.length) * (tune.AUX_ROUNDS ?? AUX_ROUNDS),
     defenderDamageReductionMultiplier: batteredReduction(args.defenderDamageReductionMultiplier ?? 1, ins.hpRatio),
     rng
@@ -179,7 +189,7 @@ export const autoFromInputs = (args, ins, kind, rng, tune = AUTO_TUNE) => {
     ...battle,
     attackerUnits: strip(battle.attackerUnits),
     defenderUnits: strip(battle.defenderUnits),
-    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult }
+    report: { ...battle.report, deployedAttackerIds: kept(battle.report.deployedAttackerIds), deployedDefenderIds: kept(battle.report.deployedDefenderIds), auxiliaries, wallsMult, ageRelief }
   };
   // Raiders beaten in the fight may still have burned the loot and got away (the raid's objective).
   if (kind === 'raid' && battle.outcome !== 'attacker') {

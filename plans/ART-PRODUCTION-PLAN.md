@@ -445,8 +445,9 @@ town of its own.
 4. `preview.png` at the game camera (blender spec 3b point 13); icons and emblems at 24 px and
    on three nation colours.
 5. Validation: `python3 scripts/blender/validate_model.py <glb> <out> '<json spec>'` for 3D
-   (use kind `landmark` for prefabs and nodes until the R1 code session adds `prefab`, `ruin`
-   and `node` kinds); `validate_unit.py` and the unit brief's section 8 for units.
+   (kind `auto` reads it from the game path; the Wave 0 kinds `prefab`, `house-damage`, `ruin`,
+   `wall-kit`, `node`, `herd`, `tree`, `terrain-kit`, `projectile`, `unit` are in); `validate_unit.py`
+   and the unit brief's section 8 for units.
 6. A `LOG.md` row: triangles per LOD, footprint, size, the AI tools used and the prompt (for
    provenance), anything not matched.
 7. Set the item's `delivery_status` in `plans/art/production-queue.json`.

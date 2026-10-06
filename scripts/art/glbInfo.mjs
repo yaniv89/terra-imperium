@@ -1,7 +1,7 @@
 // scripts/art/glbInfo.mjs
 // Reads the JSON chunk of a binary glTF file (no dependencies), for the model packing script
 // and its test.
-import { closeSync, openSync, readdirSync, readSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readdirSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** The glTF JSON of a .glb file (reads only the header and the JSON chunk, not the buffers). */
@@ -24,5 +24,20 @@ export const isPacked = (json) => (json.extensionsUsed || []).includes('EXT_mesh
 
 /** The close view's map model folders. */
 export const MAP_MODEL_DIRS = ['src/assets/map/towns', 'src/assets/map/shared', 'src/assets/map/buildings', 'src/assets/map/wonders', 'src/assets/map/improvements'];
+/** The Wave 0 art folders (plans/ART-MODELS-PLAN.md; each has a README.md): kit files with LOD0..LOD2
+ * objects, packed the same way. */
+export const KIT_MODEL_DIRS = ['src/assets/map/terrain', 'src/assets/battle/rts', 'src/assets/battle/city', 'src/assets/battle/nature', 'src/assets/battle/terrain'];
+/** Folders whose objects need not have LOD levels: projectiles (one level) and signature units (the
+ * runtime builds a unit's levels, plan D1). Units are packed WITHOUT quantization (the unit bake
+ * reads exact positions and skins), the rest with it. */
+export const SINGLE_LOD_DIRS = ['src/assets/battle/projectiles', 'src/assets/units/signature'];
+export const UNQUANTIZED_DIRS = ['src/assets/units/signature'];
+const glbsIn = (d) => (existsSync(d) ? readdirSync(d).filter((f) => f.endsWith('.glb')).map((f) => join(d, f)) : []);
 /** Every map model file, as paths from the repository root. */
-export const mapModelFiles = () => MAP_MODEL_DIRS.flatMap((d) => readdirSync(d).filter((f) => f.endsWith('.glb')).map((f) => join(d, f)));
+export const mapModelFiles = () => MAP_MODEL_DIRS.flatMap(glbsIn);
+/** Every model file the packing script covers: the map models, the kits, projectiles and signature units. */
+export const modelFiles = () => [...MAP_MODEL_DIRS, ...KIT_MODEL_DIRS, ...SINGLE_LOD_DIRS].flatMap(glbsIn);
+/** Whether a file's objects must carry LOD levels (every folder but SINGLE_LOD_DIRS). */
+export const needsLods = (file) => !SINGLE_LOD_DIRS.some((d) => file.startsWith(`${d}/`));
+/** gltfpack's flags for a file: meshopt compression, names, materials and extras kept. */
+export const packFlags = (file) => ['-cc', '-kn', '-km', '-ke', ...(UNQUANTIZED_DIRS.some((d) => file.startsWith(`${d}/`)) ? ['-noq'] : [])];
