@@ -24,6 +24,7 @@ import { ZoomLOD, IMPOSTER_DISTANCE } from './zoomLod';
 import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSkirtGeometry, patchGroundMaterial, fitShadowBox } from './terrainSurface';
 import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
+import { CityLayer, CITY_KINDS } from './cityLayer';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -36,7 +37,7 @@ const GROUND_ALT = {
 };
 const TILE_TINT = {
   [TILE.FOREST]: '#3d5f29', [TILE.WATER]: '#3a5f63', [TILE.ROCK]: '#6f6d63', [TILE.ROAD]: '#9a8058',
-  [TILE.FORD]: '#6f8a7e', [TILE.BUILDING]: '#77766f'
+  [TILE.FORD]: '#6f8a7e', [TILE.BUILDING]: '#77766f', [TILE.RUBBLE]: '#8b8073'
 };
 // The sky and the haze the far land melts into, by terrain (FogExp2 uses the same colour, so the
 // horizon has no edge).
@@ -188,6 +189,8 @@ export class BattleRenderer {
     this.buildTerrain();
     this.buildProps();
     this.buildStructures();
+    this.cityLayer = new CityLayer(this); // the real city's houses, walls and ruins (cityLayer.js)
+    this.cityLayer.build();
     this.buildPoints();
     this.buildOverlays();
     this.buildFogOverlay();
@@ -341,6 +344,7 @@ export class BattleRenderer {
     const pines = []; const oaks = []; const rocks = []; const houses = []; const tufts = [];
     // Tiles taken by the province's own buildings get their own models (buildStructures).
     const landmarkTiles = new Set(this.setup.structures.filter((st) => st.kind === 'building').map((st) => Math.floor(st.y / Q) * w + Math.floor(st.x / Q)));
+    this.setup.structures.forEach((st) => (st.footprint || []).forEach((c) => landmarkTiles.add(c))); // the real city draws its own (cityLayer.js)
     for (let z = 0; z < h; z++) {
       for (let x = 0; x < w; x++) {
         const t = tiles[z * w + x];
@@ -447,6 +451,7 @@ export class BattleRenderer {
     };
     this.setup.structures.forEach((s) => {
       if (this.map.naval) return; // a sea battle's anchorage is an objective for the AI, nothing stands there
+      if (CITY_KINDS.has(s.kind)) return; // drawn by cityLayer.js
       // Per-structure materials, so a destroyed tower can turn to rubble on its own.
       const stone = this.track(new MeshLambertMaterial({ color: modern ? '#8f9194' : '#a39c8c' }));
       const darkStone = this.track(new MeshLambertMaterial({ color: modern ? '#6c6e72' : '#7d776a' }));
@@ -472,7 +477,7 @@ export class BattleRenderer {
         const flag = add(new PlaneGeometry(0.8, 0.5).translate(0.4, 3.55, 0), this.track(new MeshLambertMaterial({ color: this.setup.sides[1].color, side: DoubleSide })));
         flag.castShadow = false;
         g.userData.flag = flag;
-        if (s.walls) {
+        if (s.walls && !this.setup.city) { // a real city has its own wall ring (cityLayer.js)
           // A curtain wall ring with a crenellated top.
           const segs = 20;
           for (let i = 0; i < segs; i++) {
@@ -854,6 +859,7 @@ export class BattleRenderer {
     this.updateCamera();
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
+    if (cur) this.cityLayer.update(cur);
     if (cur) this.drawPoints(cur);
     this.drawFx(dt);
     this.renderer.render(this.scene, this.camera);
@@ -1077,6 +1083,7 @@ export class BattleRenderer {
 
   dispose() {
     this.soldierLayers.forEach((l) => { l.high.dispose(); l.low.dispose(); });
+    this.cityLayer?.dispose();
     this.disposables.forEach((d) => d.dispose?.());
     disposeSoldierCache();
     this.renderer.dispose();

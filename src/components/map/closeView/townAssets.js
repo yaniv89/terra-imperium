@@ -27,6 +27,8 @@ Object.entries(FILES).forEach(([path, url]) => { const m = path.match(/\/([a-z-]
 const FILE_INDEX = indexTownFiles(Object.keys(URL_BY_NAME));
 /** The town file names the close view can load (for the layout table's test). */
 export const townFileNames = () => Object.keys(URL_BY_NAME);
+/** The url of a town file by its name (a city manifest's townKey), or null. */
+export const townUrlByName = (name) => (name && URL_BY_NAME[name]) || null;
 
 // { bronze: { base: '/terra-imperium/assets/shared-bronze-abc123.glb' }, kingdoms: { base, europe } }
 // A regional shared file (shared-kingdoms-europe.glb) holds what that region's kit replaces

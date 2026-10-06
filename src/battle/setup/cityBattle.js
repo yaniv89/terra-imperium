@@ -96,6 +96,7 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
       x: centre(Math.max(1, Math.min(w - 1, tx))), y: centre(Math.max(1, Math.min(h - 1, ty))),
       radius: Math.max(Q >> 1, Math.round(Math.max(hx, hy) * Q * 0.9)),
       w: st.d * S, d: st.w * S, h: st.h * S, maxHp, hp: maxHp, range: 0, attackTicks: secondsToTicks(1.5), damage: 0, cooldown: 0, alive: true,
+      model: [st.x, st.z, st.w, st.d], // its ground in the town model's space (the renderer cuts ruins out of the town file)
       passive: !!st.passive, ...(st.category ? { category: st.category, tier: st.tier, name: st.name } : {}), ...(st.projectId ? { projectId: st.projectId } : {})
     };
     s.footprint = st.kind === 'wall' || st.kind === 'gate' ? [] : claim(rectCells(tx, ty, hx, hy), structures.length);
