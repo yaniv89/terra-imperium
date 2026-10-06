@@ -19,7 +19,11 @@ const EVERY = Number(process.env.EVERY || 50);
 const SEEDS = String(process.env.SEEDS || '11').split(',').map(Number);
 const PLAYER = process.env.PLAYER || 'fr';
 // SCENARIO=emergent starts the 'emergent civilizations' world (free frontier land, 45 nations).
+// SCENARIO=peoples starts a new game's world (phase W0: majors drawn from the 150-people pool,
+// SIZE=small|standard|large, the world seed = the seed); PLAYER may be a people id or an old
+// country id (mapped through LEGACY_NATION_IDS: au is the Gunditjmara).
 const SCENARIO = process.env.SCENARIO || 'full';
+const SIZE = process.env.SIZE || 'standard';
 const firedEvents = Object.keys(HISTORICAL_EVENTS).reduce((a, id) => ({ ...a, [id]: true }), {});
 
 // Campaign invariant violations from the state auditor (src/engine/stateAudit.js): must stay 0.
@@ -64,14 +68,14 @@ const snapshot = (s, t, counters, ms, lives) => {
     topMilitaryToMedian: +(mil[0] / Math.max(1, mil[Math.floor(mil.length / 2)])).toFixed(1),
     avgWarExhaustion: +(we.reduce((a, b) => a + b, 0) / we.length).toFixed(1),
     avgUnrest: +(unrest.reduce((a, b) => a + b, 0) / unrest.length).toFixed(1),
-    playerProvinces: counts[PLAYER] || 0, playerGold: Math.round(s.resources.gold || 0), playerSupplies: Math.round(s.resources.supplies || 0),
-    playerUnits: Object.values(s.units).filter((u) => u.ownerId === PLAYER).length,
+    playerProvinces: counts[s.playerNationId] || 0, playerGold: Math.round(s.resources.gold || 0), playerSupplies: Math.round(s.resources.supplies || 0),
+    playerUnits: Object.values(s.units).filter((u) => u.ownerId === s.playerNationId).length,
     // Research (src/engine/research.js): the player's advisor picks; the median AI nation.
     playerTechs: Object.values(s.techTree).filter((t) => t.researched).length, playerTechAge: s.techAgeId,
     medianAiTechs: (() => { const n = nations.filter((x) => !x.isPlayer && !x.isEliminated).map((x) => (x.tech?.researched || []).length).sort((a, b) => a - b); return n[Math.floor(n.length / 2)] || 0; })(),
     // Per-city normalised versions of the count keys above, for a denser grid or more cities.
     devastatedShare: +(dev.length / Math.max(1, regs.length)).toFixed(3), unclaimedShare: +((counts.null || 0) / Math.max(1, regs.length)).toFixed(3),
-    ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: PLAYER }),
+    ...worldHealth(s, { isLand, landTiles: LAND_TILES, playerId: s.playerNationId }),
     nationsAliveShare: +kaplanMeier(lives, [t]).at[t].toFixed(3), leadChanges: counters.leadChanges,
     // Plague: cities carrying the 'plague' mark now, and distinct cities struck so far (the old
     // independent roll in cityDisasters.js and the SIR epidemic in plague.js both set the mark).
@@ -82,7 +86,8 @@ const snapshot = (s, t, counters, ms, lives) => {
 
 SEEDS.forEach((seed) => {
   it(`world seed ${seed}`, () => {
-    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...(SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : {}) }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
+    const scenario = SCENARIO === 'emergent' ? { scenario: { mode: 'emergent' } } : SCENARIO === 'peoples' ? { scenario: { mode: 'peoples', size: SIZE, seed } } : {};
+    let s = { ...createInitialState({ playerNationId: PLAYER, rngSeed: seed, ...scenario }), firedEvents, proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } };
     s = { ...s, research: { ...s.research, auto: true } }; // the passive player lets its advisor pick research
     const counters = { leagues: 0, conquests: 0, changedHands: 0, flips: 0, civilWars: 0, leadChanges: 0, plagued: new Set() };
     // One life per nation alive at the start; a nation that dies and comes back starts a new life.

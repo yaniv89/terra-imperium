@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { MapPin, X } from 'lucide-react';
 import { useGame } from '../../context/GameContext';
-import { describeOutcome, formatMen, nationName, regionName, sidesFor, unitName } from './battleReportView';
+import { battleTitle, describeOutcome, formatMen, nationName, regionName, sidesFor, unitName } from './battleReportView';
 import { MEN_PER_STRENGTH } from '../../engine/aftermath';
 import { getEffectiveAgeId } from '../../data/ages';
 import { getTechAgeId } from '../../engine/nationState';
@@ -105,6 +105,7 @@ const BattleReportSheet = ({ entry, onClose, onShowRegion }) => {
         <div className={`flex items-start justify-between gap-2 p-4 border-b ${TONE[result.tone]}`}>
           <div className="min-w-0">
             <div className="font-bold text-base">{result.text}</div>
+            <div className="text-xs font-semibold text-slate-200" data-testid="battle-name">{battleTitle(state, entry)}</div>
             <div className="text-[11px] text-slate-400">
               {KIND[entry.kind] || 'Battle'}{entry.commanded ? ', commanded' : ', auto-resolved'} · {year}, turn {entry.turn}
               {entry.rounds ? ` · ${entry.rounds} round${entry.rounds === 1 ? '' : 's'}` : ''}{entry.terrain ? ` · ${entry.terrain}` : ''}

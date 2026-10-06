@@ -30,7 +30,11 @@ import { canSubjugate, reconcileTerritory } from './worldLifecycle';
 // existing import site (`from '../context/GameContext'`) keeps working unchanged.
 import { GameStatus, ActionTypes, RelationStatus, LogTypes, TechCategories } from '../data/types';
 import { REGIONS_DATA, getNeighborIds, isAdjacentToOwner, distanceFromAnchor, getNationCapital, getCapital, getBorderingNationIds } from '../data/regions';
-import { WORLD_NATIONS } from '../data/worldNations';
+import { WORLD_NATIONS, peopleNationRecord } from '../data/worldNations';
+import { peopleForNationId } from '../data/peoples';
+import { DEFAULT_WORLD_SIZE } from '../data/worldSizes';
+import { pickMajors } from './worldgen/peoplesWorld';
+import { refreshPeopleNames } from './peopleNames';
 import { TECH_TREE } from '../data/techTree';
 import {
   GOVERNMENT_TYPES, canChangeGovernmentType, canEnactReform, resetReformsForType, getReformChoices
@@ -147,16 +151,31 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
   // from there rather than replaying the same draws again. `rngSeed` is an optional override (tests,
   // and the edge-bundle parity check) so the WHOLE initial state — not just the final stored seed —
   // can be pinned and reproduced; real gameplay always omits it and gets fresh randomness.
-  const successionRng = createRng(rngSeed ?? randomSeed());
+  const baseSeed = rngSeed ?? randomSeed();
+  const successionRng = createRng(baseSeed);
+
+  // A peoples world (new games, phase W0: src/engine/worldgen/peoplesWorld.js) draws its majors
+  // from the 150-people pool with the world seed; an old country id for the player maps to the
+  // people of that land (LEGACY_NATION_IDS). The legacy worlds keep all 240 country records.
+  const peoplesMode = scenario?.mode === 'peoples';
+  if (peoplesMode) {
+    const mapped = peopleForNationId(playerNationId);
+    if (!mapped) throw new Error(`Unknown people ${playerNationId}`);
+    playerNationId = mapped;
+  }
+  const worldSeed = peoplesMode ? (scenario?.seed ?? baseSeed) : (scenario?.seed ?? rngSeed ?? 1);
+  const nationSource = peoplesMode
+    ? Object.fromEntries(pickMajors(playerNationId, scenario.size || DEFAULT_WORLD_SIZE, worldSeed, { tiles: getTiles() }).sort().map((id) => [id, peopleNationRecord(id)]))
+    : WORLD_NATIONS;
 
   // Plan §M4: overextension is measured relative to each nation's OWN starting size, so a 50-region
   // nation and a 1-region nation are equally "at capacity" at the same overextension% — captured
   // once, here, since region ownership churns every game while this stays a fixed reference point.
   const startRegionCountByOwner = {};
 
-  // Every one of the 240 nations gets a record — any of them can be the player's.
+  // Every nation of the world gets a record — any of them can be the player's.
   const nations = {};
-  Object.entries(WORLD_NATIONS).forEach(([id, data]) => {
+  Object.entries(nationSource).forEach(([id, data]) => {
     // No nation starts with a government adopted, so none starts with an heir either (heirs only
     // exist under a hereditary government — see succession.js's getSuccessionStyle) — one is
     // generated the first time that nation's reign ends after adopting one.
@@ -164,6 +183,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
     nations[id] = {
       id,
       name: data.name,
+      ...(data.people ? { people: data.people } : {}),
       color: data.color,
       isPlayer: id === playerNationId,
       hostility: data.startHostility,
@@ -449,7 +469,7 @@ export const createInitialState = ({ playerNationId = DEFAULT_PLAYER_NATION_ID, 
       { year, message: `${formatYear(year)}: Your nation's story begins.`, type: LogTypes.MILESTONE }
     ]
   };
-  const started = syncWorldRegistry(applyScenario(initial, { ...scenario, seed: scenario?.seed ?? rngSeed ?? 1 }));
+  const started = refreshPeopleNames(syncWorldRegistry(applyScenario(initial, { ...scenario, seed: worldSeed })));
   // The guided start (src/engine/tutorial.js): ten turns of prompts for a new player.
   return guided ? { ...started, tutorial: { startTurn: started.turnNumber || 1, done: {}, ended: false } } : started;
 };
@@ -3209,5 +3229,7 @@ export { migrateSave, CURRENT_SAVE_VERSION } from './saveMigrations';
 export const gameReducer = (state, action) => {
   syncWorldRegistry(state);
   const next = applyActionPolitics(state,reduceAction(state, action),action);
-  return syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
+  const synced = syncWorldRegistry(next !== state && next.regions !== state.regions ? reconcileTerritory(next) : next);
+  // A peoples world keeps its titles and regiment numbers current (peopleNames.js; names only).
+  return synced === state ? state : refreshPeopleNames(synced, state);
 };

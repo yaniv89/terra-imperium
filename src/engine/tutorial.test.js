@@ -6,7 +6,7 @@ import { HISTORICAL_EVENTS } from '../data/events';
 import { getTiles } from '../data/geo/tiles';
 import { tileFacts } from '../data/tileYields';
 import { isSettler } from './settlers';
-import { TUTORIAL_STEPS, TUTORIAL_TURNS, TUTORIAL_TECH, tutorialStatus, tutorialPrompt, advanceTutorial, markTutorialStep } from './tutorial';
+import { TUTORIAL_NATION, TUTORIAL_WORLD_SIZE, TUTORIAL_STEPS, TUTORIAL_TURNS, TUTORIAL_TECH, tutorialStatus, tutorialPrompt, advanceTutorial, markTutorialStep } from './tutorial';
 import { nextPrompts } from '../components/ui/nextPromptModel';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });
@@ -68,5 +68,16 @@ describe('the guided start as Egypt (plan E9)', () => {
     expect(s.logs.some((l) => /The guide ends/.test(l.message))).toBe(true);
     expect(tutorialStatus(s).active).toBe(false);
     expect(resolveTurn(createInitialState({ playerNationId: 'eg', rngSeed: 11 })).tutorial).toBeUndefined();
+  });
+});
+
+describe('the guided start as Kemet in a peoples world (phase W0)', () => {
+  it('plays Kemet in a Standard world, equal start: no free settler, the guide still opens on settling', () => {
+    const s = quiet(createInitialState({ playerNationId: TUTORIAL_NATION, rngSeed: 11, guided: true, scenario: { mode: 'peoples', size: TUTORIAL_WORLD_SIZE, seed: 11 } }));
+    expect(s.playerNationId).toBe('kemet');
+    expect(Object.keys(s.nations)).toHaveLength(36);
+    expect(s.tutorial).toEqual({ startTurn: 1, done: {}, ended: false });
+    expect(Object.values(s.units).some((u) => isSettler(u))).toBe(false);
+    expect(tutorialStatus(s).current.id).toBe('settle');
   });
 });

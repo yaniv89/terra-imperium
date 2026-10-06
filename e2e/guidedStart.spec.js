@@ -1,12 +1,12 @@
 // e2e/guidedStart.spec.js
-// The guided Dawn start as Egypt (plans/civ-map-rework.md E9): the start screen's guided button
-// opens a game as Egypt whose next-prompt pill shows the guide's first step, and one turn later
+// The guided Dawn start as Kemet (plans/civ-map-rework.md E9): the start screen's guided button
+// opens a game as Kemet whose next-prompt pill shows the guide's first step, and one turn later
 // the guide is still there (it ends after ten turns or when every step is done).
 import { test, expect } from '@playwright/test';
 
 const click = (locator) => locator.dispatchEvent('click');
 
-test('the guided start plays as Egypt with the guide in the next prompt', async ({ page }) => {
+test('the guided start plays as Kemet with the guide in the next prompt', async ({ page }) => {
   test.setTimeout(120000);
   const errors = [];
   page.on('pageerror', (err) => errors.push(String(err)));
