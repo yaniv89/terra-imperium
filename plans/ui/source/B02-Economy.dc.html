@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>B02 Economy and build</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral+SC:wght@500;700&amp;family=Figtree:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#ECE5D3;text-decoration:none}a:hover{color:#D8A444}
+</style>
+</helmet>
+<div style="width: 844px; height: 390px; box-sizing: border-box; overflow: hidden; position: relative; background: #10141A; color: #ECE5D3; font-family: Figtree, sans-serif">
+
+  <svg width="844" height="390" viewBox="0 0 844 390" style="position: absolute; left: 0; top: 0">
+    <defs>
+      <pattern id="b2f" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><rect width="8" height="8" fill="#C9B66E"></rect><line x1="0" y1="2" x2="8" y2="2" stroke="#A8964F" stroke-width="2"></line></pattern>
+      <pattern id="b2w" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.3" fill="#2F5FA8"></circle></pattern>
+    </defs>
+    <rect width="844" height="390" fill="#8FA36A"></rect>
+    <path d="M0 300 C 140 280, 260 250, 400 262 S 640 300, 844 280" stroke="#B7A57A" stroke-width="10" fill="none" opacity="0.7"></path>
+    <rect x="150" y="196" width="70" height="44" fill="url(#b2f)" transform="rotate(-6 185 218)"></rect>
+    <rect x="228" y="200" width="56" height="40" fill="url(#b2f)" transform="rotate(-6 256 220)"></rect>
+    <g fill="#5E7A4A" stroke="#4A6239" stroke-width="1">
+      <circle cx="420" cy="70" r="14"></circle><circle cx="442" cy="62" r="12"></circle><circle cx="462" cy="76" r="15"></circle><circle cx="436" cy="88" r="13"></circle><circle cx="482" cy="64" r="11"></circle><circle cx="404" cy="90" r="10"></circle><circle cx="470" cy="98" r="12"></circle>
+    </g>
+    <g fill="#A39C8C" stroke="#6E685C" stroke-width="1">
+      <path d="M180 120 l12 -10 l14 4 l4 12 l-12 8 l-16 -2 z"></path><path d="M206 132 l10 -6 l10 6 l-4 10 l-12 0 z"></path>
+    </g>
+    <g fill="#5C5650" stroke="#3A3631" stroke-width="1">
+      <path d="M496 182 l12 -10 l14 6 l2 12 l-14 6 l-12 -4 z"></path>
+    </g>
+    <circle cx="506" cy="182" r="1.8" fill="#E3DCC8"></circle><circle cx="514" cy="186" r="1.8" fill="#E3DCC8"></circle>
+    <g fill="#ECE5D3"><circle cx="340" cy="320" r="2.5"></circle><circle cx="348" cy="316" r="2.5"></circle><circle cx="356" cy="324" r="2.5"></circle><circle cx="346" cy="328" r="2.5"></circle><circle cx="362" cy="314" r="2.5"></circle></g>
+
+    <rect x="300" y="150" width="56" height="40" rx="3" fill="#B8925C" stroke="#7A5E36" stroke-width="1.5"></rect>
+    <path d="M296 150 l32 -16 l32 16 z" fill="#8E6A3E"></path>
+    <rect x="240" y="104" width="22" height="16" fill="#B8925C" stroke="#7A5E36"></rect>
+    <rect x="270" y="98" width="22" height="16" fill="#B8925C" stroke="#7A5E36"></rect>
+
+    <rect x="408" y="104" width="30" height="10" fill="rgba(91,155,240,0.35)"></rect><rect x="408" y="104" width="30" height="10" fill="url(#b2w)"></rect>
+    <rect x="172" y="186" width="22" height="8" fill="rgba(91,155,240,0.35)"></rect><rect x="172" y="186" width="22" height="8" fill="url(#b2w)"></rect>
+    <ellipse cx="423" cy="109" rx="24" ry="10" fill="none" stroke="#ECE5D3" stroke-width="1.8"></ellipse>
+    <ellipse cx="183" cy="190" rx="18" ry="8" fill="none" stroke="#ECE5D3" stroke-width="1.8"></ellipse>
+  </svg>
+
+  <div style="position: absolute; left: 160px; top: 244px; font-size: 10px; letter-spacing: 0.08em; color: #10141A; font-weight: 700">FIELDS</div>
+  <div style="position: absolute; left: 418px; top: 120px; font-size: 10px; letter-spacing: 0.08em; color: #10141A; font-weight: 700">WOODS</div>
+  <div style="position: absolute; left: 182px; top: 146px; font-size: 10px; letter-spacing: 0.08em; color: #10141A; font-weight: 700">STONE</div>
+  <div style="position: absolute; left: 498px; top: 198px; font-size: 10px; letter-spacing: 0.08em; color: #10141A; font-weight: 700">ORE</div>
+  <div style="position: absolute; left: 332px; top: 332px; font-size: 10px; letter-spacing: 0.08em; color: #10141A; font-weight: 700">HERDS</div>
+  <div style="position: absolute; left: 304px; top: 194px; font-size: 10px; letter-spacing: 0.08em; color: #10141A; font-weight: 700">CAMP</div>
+
+  <sc-if value="{{hasGhost}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: {{ghost.x}}px; top: {{ghost.y}}px; width: {{ghost.w}}px; height: {{ghost.h}}px; border: 2px dashed {{ghost.color}}; background: {{ghost.fill}}; border-radius: 4px; box-sizing: border-box"></div>
+    <div style="position: absolute; left: {{ghost.x}}px; top: {{ghost.ty}}px; background: rgba(26,33,43,0.95); border: 1px solid {{ghost.color}}; border-radius: 999px; padding: 2px 8px; font-size: 11px; white-space: nowrap; color: {{ghost.color}}">{{ghost.reason}}</div>
+  </sc-if>
+
+  <div style="position: absolute; left: 0; top: 0; right: 0; height: 36px; background: rgba(26,33,43,0.94); border-bottom: 1px solid #33404F; display: flex; align-items: center; gap: 12px; padding: 0 10px; box-sizing: border-box; white-space: nowrap; z-index: 2">
+    <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 15px">Siege of Susa</div>
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px">03:12</div>
+    <div style="width: 1px; height: 18px; background: #33404F"></div>
+    <div style="display: flex; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px">
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">FOOD </span>340</span>
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">MAT </span>210</span>
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">GOLD </span>95</span>
+      <span><span style="font-family: Figtree, sans-serif; font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">POP </span>84 / 120</span>
+    </div>
+    <div style="flex: 1"></div>
+    <button aria-label="Speed" style="height: 28px; min-width: 40px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; font-family: 'JetBrains Mono', monospace; font-size: 12px">1x</button>
+    <button aria-label="Pause" style="height: 28px; width: 36px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5v14M15 5v14"></path></svg></button>
+  </div>
+
+  <div style="position: absolute; left: 10px; top: 44px; width: 120px; height: 80px; border-radius: 8px; border: 1px solid #33404F; background: #6F8456; overflow: hidden">
+    <svg width="120" height="80" viewBox="0 0 120 80">
+      <rect x="40" y="36" width="8" height="6" fill="#5B9BF0"></rect>
+      <circle cx="62" cy="14" r="5" fill="#5E7A4A"></circle><circle cx="28" cy="30" r="3" fill="#A39C8C"></circle>
+      <rect x="96" y="20" width="14" height="10" fill="#EE8A3A"></rect>
+      <rect x="18" y="8" width="64" height="40" fill="none" stroke="#ECE5D3" stroke-width="1"></rect>
+    </svg>
+  </div>
+
+  <div style="position: absolute; left: 10px; bottom: 10px; width: 250px; background: rgba(26,33,43,0.92); border: 1px solid #33404F; border-radius: 10px; padding: 8px 10px; box-sizing: border-box">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <div style="font-weight: 700; font-size: 14px">12 workers selected</div>
+      <div style="font-size: 11px; color: #B9B19F">2 groups</div>
+    </div>
+    <div style="display: flex; gap: 6px; margin-top: 6px; font-size: 11px">
+      <span style="border: 1px solid #33404F; border-radius: 999px; padding: 2px 8px">Woods 7</span>
+      <span style="border: 1px solid #33404F; border-radius: 999px; padding: 2px 8px">Fields 5</span>
+      <span style="border: 1px solid #E5604D; color: #E5604D; border-radius: 999px; padding: 2px 8px">Idle 0</span>
+    </div>
+    <div style="display: flex; gap: 6px; margin-top: 8px">
+      <button style="flex: 1; height: 36px; border-radius: 8px; border: 1px solid #33404F; background: #10141A; color: #ECE5D3; font-family: Figtree; font-size: 12px">Gather</button>
+      <button style="flex: 1; height: 36px; border-radius: 8px; border: 1px solid #33404F; background: #10141A; color: #ECE5D3; font-family: Figtree; font-size: 12px">Repair</button>
+      <button aria-pressed="true" style="flex: 1; height: 36px; border-radius: 8px; border: 2px solid #ECE5D3; background: #232C38; color: #ECE5D3; font-family: Figtree; font-size: 12px; font-weight: 700">Build</button>
+    </div>
+  </div>
+
+  <div style="position: absolute; right: 12px; top: 44px; bottom: 10px; width: 300px; background: rgba(26,33,43,0.94); border: 1px solid #33404F; border-radius: 10px; padding: 8px 10px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="font-family: 'Spectral SC', serif; font-weight: 700; font-size: 15px">Build</div>
+      <div style="font-size: 11px; letter-spacing: 0.08em; color: #B9B19F">FOOD / MAT / GOLD</div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="7">
+        <button onClick="{{it.pick}}" style="height: 38px; border-radius: 8px; border: {{it.border}}; background: {{it.bg}}; color: #ECE5D3; font-family: Figtree; text-align: left; padding: 3px 8px; display: flex; flex-direction: column; justify-content: center">
+          <span style="font-size: 12px; font-weight: 600; line-height: 1.2">{{it.name}}</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: {{it.costColor}}; line-height: 1.3">{{it.cost}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="flex: 1"></div>
+    <sc-if value="{{hasGhost}}" hint-placeholder-val="{{ true }}">
+      <div style="border-top: 1px solid #33404F; padding-top: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <div style="font-weight: 700; font-size: 13px">{{sel.name}}</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: {{sel.costColor}}">{{sel.cost}}</div>
+        </div>
+        <div style="font-size: 12px; color: #B9B19F; margin-top: 2px">{{sel.note}}</div>
+        <div style="display: flex; gap: 6px; margin-top: 6px">
+          <button onClick="{{cancel}}" style="width: 84px; height: 40px; border-radius: 8px; border: 1px solid #33404F; background: #232C38; color: #ECE5D3; font-family: Figtree; font-size: 13px">Cancel</button>
+          <button style="flex: 1; height: 40px; border-radius: 8px; border: none; background: {{sel.placeBg}}; color: #10141A; font-family: Figtree; font-size: 13px; font-weight: 700">{{sel.placeLabel}}</button>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{noGhost}}" hint-placeholder-val="{{ false }}">
+      <div style="font-size: 12px; color: #B9B19F; border-top: 1px solid #33404F; padding-top: 6px">Tap a building, then drag its ghost on the field. Green fits, red says why not.</div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  state = { sel: 'house' };
+  renderVals() {
+    const have = { f: 340, m: 210, g: 95 };
+    const list = [
+      { id: 'house', name: 'Village house', c: [0, 30, 0], note: '+10 housing. Builds in 20 s with 3 workers.', ok: true, reason: 'Fits: +10 housing', x: 236, y: 132, w: 30, h: 24 },
+      { id: 'depot', name: 'Depot', c: [0, 60, 0], note: 'Drop-off for wood and stone. Shorter walks, faster gathering.', ok: true, reason: 'Fits: 2 s walk to woods', x: 380, y: 120, w: 34, h: 26 },
+      { id: 'barracks', name: 'Barracks', c: [0, 120, 20], note: 'Trains spearmen and axemen of your age.', ok: true, reason: 'Fits', x: 230, y: 250, w: 58, h: 36 },
+      { id: 'range', name: 'Archery range', c: [0, 110, 30], note: 'Trains bowmen and slingers.', ok: false, reason: 'Blocked: on the fields', x: 160, y: 196, w: 52, h: 34 },
+      { id: 'stable', name: 'Stable', c: [40, 140, 40], note: 'Trains chariots. Needs herds nearby to feed the horses.', ok: true, reason: 'Fits: next to the herds', x: 380, y: 300, w: 58, h: 36 },
+      { id: 'tower', name: 'Tower', c: [0, 100, 120], note: 'Shoots raiders near your workers. Needs 25 more gold.', ok: false, reason: 'Need 25 more gold', x: 400, y: 196, w: 24, h: 24 },
+      { id: 'wall', name: 'Wall', c: [0, 10, 2], note: 'Per segment. Drag a line; a gate is added on roads.', ok: false, reason: 'Would seal the road: add a gate', x: 150, y: 286, w: 120, h: 10 }
+    ];
+    const sel = this.state?.sel ?? null;
+    const fmt = c => c.join(' / ');
+    const afford = c => c[0] <= have.f && c[1] <= have.m && c[2] <= have.g;
+    const items = list.map(x => ({
+      ...x,
+      cost: fmt(x.c),
+      costColor: afford(x.c) ? '#B9B19F' : '#E5604D',
+      border: x.id === sel ? '2px solid #ECE5D3' : '1px solid #33404F',
+      bg: x.id === sel ? '#232C38' : '#10141A',
+      pick: () => this.setState({ sel: x.id })
+    }));
+    const s = items.find(x => x.id === sel);
+    const ghost = s ? {
+      x: s.x, y: s.y, w: s.w, h: s.h, ty: s.y + s.h + 4, reason: s.reason,
+      color: s.ok ? '#6CC28A' : '#E5604D',
+      fill: s.ok ? 'rgba(108,194,138,0.30)' : 'rgba(229,96,77,0.30)'
+    } : {};
+    const selInfo = s ? { ...s, placeBg: s.ok ? '#D8A444' : '#33404F', placeLabel: s.ok ? 'Place here' : 'Cannot place' } : {};
+    return {
+      items, ghost, sel: selInfo,
+      hasGhost: !!s, noGhost: !s,
+      cancel: () => this.setState({ sel: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

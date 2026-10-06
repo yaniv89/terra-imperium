@@ -20,6 +20,7 @@ import { Q, SIDE_ATTACKER, secondsToTicks } from './constants';
 import { activateAbility, firePower } from './effects';
 import { canGarrison, garrisonRoom, leaveGarrison } from './objectives';
 import { reserveCostMult, reserveEntryMult } from './buildings';
+import { applyEcoOrder, clearWorkerJobs } from './economy';
 
 export const RESERVE_COST = 60;
 export const RESERVE_ENTRY_TICKS = secondsToTicks(8);
@@ -90,11 +91,17 @@ const setMoveOrder = (q, type, slot, groupSpeed) => {
 
 // Orders that send a squad somewhere bring it out of its building first.
 const LEAVES_GARRISON = new Set(['move', 'attackMove', 'formationLine', 'attack', 'retreat']);
+// Orders that take a worker off its job (economy.js).
+const TAKES_OFF_WORK = new Set(['move', 'attackMove', 'formationLine', 'stop', 'hold', 'retreat']);
 
 export const applyOrder = (w, o) => {
   const side = o.side;
+  // The battle economy's orders (gather, build, assist, repair, train, cancelTrain, rally,
+  // cancelBuild: economy.js), only in a battle with an economy.
+  if (applyEcoOrder(w, o)) return;
   const ids = (o.squads || []).filter((i) => commandable(w, side, i));
   if (LEAVES_GARRISON.has(o.type)) ids.forEach((i) => leaveGarrison(w, w.squads[i]));
+  if (TAKES_OFF_WORK.has(o.type)) clearWorkerJobs(w, side, ids);
   switch (o.type) {
     case 'garrison': {
       // { structure } — march into the keep or a tower (defenders' infantry/ranged, while there's room).

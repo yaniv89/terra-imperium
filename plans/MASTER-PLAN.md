@@ -20,6 +20,7 @@ says what to build, in what order, and what must not be forgotten.
 | `plans/terra-imperium-rts-plan.md` | the RTS battle design (economy, ledgers, outcome, saves, tests) | current, amended by section 6 here |
 | `plans/terra-imperium-world-art-and-city-destruction-plan.md` | terrain, footprints, city manifest, destructible houses | current, on the single WebGL map (section 5) |
 | `plans/rts-world-review.md` | the review: measurements, speed plan, globe | current |
+| `plans/UI-DESIGN.md` | the UI and UX design: the look, five rules, 25 screens (world and RTS) mapped to phases; sketches in `plans/ui/` | current |
 
 The roadmap's code branch `claude/ancient-world` holds the settle-rules prototype and the age
 registry; the art and everything else is on `claude/bronze-towns`. **Before phase W0 starts,
@@ -150,6 +151,16 @@ the close view stays slow (5 fps; 3 before). Left: delete the globe and the SVG 
 (MapModal) and the minimap still draw SVG; the art of batch 08 (map sprites) has placeholders
 (paths in `gl/mapSprites.js`).
 
+Phase F rendering (branch `claude/phase-f2-terrain-render`, on A2 plus the F data branch): rivers
+from the grid's river edges (width by size, rounded, joined at shared corners, from k 1.8 / 2.6 / 4
+for great rivers / rivers / streams, under the fog), bridges where roads cross them, mountain chains
+along the ridges with pass gaps and pass marks (sprites to the close zoom, 3D ridges and foothills
+in the close view), level 6 raster and land cover streamed per view over level 5, close-view towns
+and field plots from the tile footprints. Pan with the phone profile (CPU x4, real GPU) 103 to 144
+fps at k 1 to 100, desktop 86 to 144; level 6 adds about 220 kB (67 files) on arriving at the close
+zoom. Screenshots before and after: `plans/phase-f2/`. Also fixed: the line layer culled every
+segment drawn left to right (roads and march routes were half missing).
+
 ## 6. Battles: the combined design
 
 The RTS plan's engineering (determinism, ledgers, escrow, idempotent outcome, snapshots, budgets)
@@ -242,6 +253,19 @@ As in Age of Empires, every unit needs housing:
   landings all have workers, an HQ or camp, houses, depots, production and towers. Raids are the
   one light case (loot, burn, leave), because raiders come to plunder, not to stay.
 - No free armies: regular recruits from campaign escrow, auxiliaries demobilise (RTS plan 6.5).
+- **Phase R1 result (2026-10-06, branch claude/phase-r1-battle-economy).** The sim runs three
+  resources (integer milli-units), nodes from the tile and its neighbours (groves, stone, ore, gold,
+  herds, cattle, fish; a starter cluster a side and a contested middle), workers (gather, carry,
+  deposit, build with diminishing returns, repair the city or buildings for materials), 12
+  buildings (house +10, depots, farm, mine, trade post, four production buildings, aid post,
+  tower), queues that wait on housing, and the AI economy at every difficulty. One population per
+  sim entity (squad); a trained squad is a company of 200 strength, an auxiliary that demobilises
+  (R2 adds escrowed recruits). With an economy the clocks are 15 min (field) and 30 min (assault).
+  Battles without one hash exactly as before (bench 28bd75a2). Sim p95 at 300 a side with the
+  economy (260 regiments + laborers and trained squads up to 300): 1.9 to 2.0 ms desktop, about
+  8 ms at x4, within the 10 ms budget. Left for R2: escrow and campaign-authorized recruits, the
+  outcome service reading `tactical.economy`; for R4: the other ages' names and art. Screenshots in
+  plans/phase-r1/.
 
 ### 6.5 Independents in battle (independents plan)
 - Raids: the raiders' goal is loot (depots, fields, a trade post) and escape by an exit; the
@@ -355,6 +379,7 @@ Four tracks run side by side. Each phase is one branch, merged when the user say
 | 14 | Map | **F** terrain, mountains, rivers, footprints on the WebGL map | world plan 3 to 6 | A2 | ongoing |
 | 15 | Art | towns, buildings, wonders, icons (in progress), then RTS prefabs and units per age and theme | RTS 14, eras 13 | per phase | ongoing |
 | 16 | All | **Balance**: balance-sim with battles on Auto; parity per age pair; pacing playtests | RTS 17 | R4 | ongoing |
+| 17 | UI | **U** UI pass: restyle every screen to `plans/UI-DESIGN.md` (look, top bars, brass only for the primary action, reasons on tap); new screens peace deal, attacked interrupt, raid and tribute, battle reports, nation overview | UI-DESIGN | per screen, after the phase that owns its system; most after R2 | ongoing |
 | later | Rules | **Nine ages** (Age of Cities, Neolithic and Origins, Information, Future, robots): after their art exists (decision 32) | eras 16 | all above | 13 to 16 |
 
 Start now, in parallel: **S**, **X**, **A**, **C**. **C** decides whether 300 a side holds on a phone;

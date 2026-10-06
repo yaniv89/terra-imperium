@@ -45,7 +45,7 @@ export const updateMorale = (w) => {
           const b = (cy * cols + cx) * 2 + src.side;
           for (let s = start[b], end = start[b + 1]; s < end; s++) {
             const q = w.squads[items[s]];
-            if (q === src || !isFighting(q) || q.routed || q.inside >= 0) continue;
+            if (q === src || !isFighting(q) || q.routed || q.inside >= 0 || q.worker) continue;
             const dx = q.x - src.x; const dy = q.y - src.y;
             if (dx * dx + dy * dy > SHOCK_RADIUS * SHOCK_RADIUS) continue;
             const loss = Math.min(SHOCK_MORALE, SHOCK_CAP_PER_TICK - (taken.get(q.idx) || 0));
@@ -58,7 +58,7 @@ export const updateMorale = (w) => {
     });
   }
   w.squads.forEach((q) => {
-    if (!isFighting(q) || q.inside >= 0) return; // sheltered by its walls
+    if (!isFighting(q) || q.inside >= 0 || q.worker) return; // sheltered by its walls; workers never rout (economy.js)
     if (!q.routed && q.morale <= MORALE_ROUT_THRESHOLD && q.strength > 0) {
       if (hasPerk(q, 'unbreakable') && !q.routImmunityUsed) {
         q.routImmunityUsed = true;

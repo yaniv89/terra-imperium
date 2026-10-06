@@ -6,7 +6,7 @@ import { TILE_COST } from '../setup/mapgen';
 import { angleBetween, distSq, isqrt, polarX, polarY, turnToward } from './fixed';
 import { buildTargetGrid, getFlowField, lineClear, nextWaypoint, tileOf, SPATIAL_CELL, SPATIAL_PER } from './pathing';
 import { sortInts } from './spatial';
-import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFighting } from './combat';
+import { acquireTarget, canAttack, inRangeOfSquad, inRangeOfStructure, isFighting, structureTarget } from './combat';
 import { canSeeSquad } from './fog';
 import { sideEdgeX } from './world';
 import { speedMult } from './effects';
@@ -22,7 +22,8 @@ const passableAt = (w, q, x, y) => {
   return TILE_COST[w.map.tiles[tileOf(w.map, x, y)]] > 0;
 };
 
-const stepToward = (w, q, gx, gy) => {
+// `cacheKey`: the economy's workers walk on their own flow-field cache (economy.js).
+export const stepToward = (w, q, gx, gy, cacheKey = null) => {
   const remaining = isqrt(distSq(q.x, q.y, gx, gy));
   if (remaining <= ARRIVE) return true;
   let speed = q.groupSpeed && (q.order.type === 'move' || q.order.type === 'attackMove') && remaining > 4 * Q ? q.groupSpeed : q.stats.speed;
@@ -31,7 +32,7 @@ const stepToward = (w, q, gx, gy) => {
   if (!q.stats.flying) {
     speed = Math.max(1, Math.trunc((speed * 8) / (TILE_COST[w.map.tiles[tileOf(w.map, q.x, q.y)]] || 8)));
     if (!lineClear(w.map, q.x, q.y, gx, gy)) {
-      const wp = nextWaypoint(w, getFlowField(w, tileOf(w.map, gx, gy)), q.x, q.y);
+      const wp = nextWaypoint(w, cacheKey ? getFlowField(w, tileOf(w.map, gx, gy), cacheKey, 96) : getFlowField(w, tileOf(w.map, gx, gy)), q.x, q.y);
       if (!wp) return true; // unreachable: stop trying
       wx = wp.x; wy = wp.y;
     }
@@ -79,7 +80,7 @@ const ENGAGE_CLOSE = 3 * Q;
 
 const hasValidTarget = (w, q) => q.target >= 0 && (q.targetKind === 'squad'
   ? isFighting(w.squads[q.target]) && w.squads[q.target].side !== q.side && w.squads[q.target].inside < 0
-  : !!w.structures[q.target]?.alive);
+  : !!structureTarget(w, q)?.alive);
 
 // A fight is over: the squad stands where it is (its new post) instead of walking back to where
 // it was when the order was given.
@@ -114,7 +115,7 @@ export const acquireTargets = (w) => {
         if (found.kind === 'squad' && found.index === q.target) return;
         const next = found.kind === 'squad' ? w.squads[found.index] : null;
         const close = next && distSq(q.x, q.y, next.x, next.y) <= ENGAGE_CLOSE * ENGAGE_CLOSE;
-        const better = (t.routed && close && !next.routed) || (far && found.kind === 'structure')
+        const better = (t.routed && close && !next.routed) || (far && found.kind !== 'squad')
           || (!inRangeOfSquad(q, t) && next && inRangeOfSquad(q, next));
         if (!better) return;
         q.target = found.index; q.targetKind = found.kind;
@@ -129,7 +130,7 @@ export const acquireTargets = (w) => {
 
 export const moveSquads = (w) => {
   w.squads.forEach((q) => {
-    if (!isFighting(q) || q.inside >= 0) return;
+    if (!isFighting(q) || q.inside >= 0 || q.order.type === 'work') return; // a worker at work walks in economy.js
     if (q.routed || q.retreating) { stepToward(w, q, sideEdgeX(w, q.side), q.y); return; }
     if (q.order.type === 'hold') return;
     // Chase / close with the current target unless it's already in reach.
@@ -141,7 +142,7 @@ export const moveSquads = (w) => {
         if (q.order.type === 'idle' && distSq(q.anchorX, q.anchorY, t.x, t.y) > IDLE_LEASH * IDLE_LEASH * 4) { q.target = -1; q.targetKind = null; }
         else { stepToward(w, q, t.x, t.y); return; }
       } else {
-        const s = w.structures[q.target];
+        const s = structureTarget(w, q);
         if (inRangeOfStructure(q, s)) return;
         stepToward(w, q, s.x, s.y);
         return;

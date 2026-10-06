@@ -1,4 +1,4 @@
-import { BATTLE_GRAPHICS, frameSummary } from './quality';
+import { BATTLE_GRAPHICS, ADAPTIVE, frameSummary } from './quality';
 // src/battle/render/BattleRenderer.js
 // The battlefield on screen (Tactical Battles plan §15): a three.js scene with an orthographic,
 // isometric camera (the Red Alert 2 look), soft sun shadows and filmic tone mapping, a heightmapped
@@ -25,6 +25,7 @@ import { SKIRT, buildTileMask, makeSkirtHeight, hasCoast, horizonLevel, buildSki
 import { Q } from '../sim/constants';
 import { zonePerimeter } from './deployZone';
 import { CityLayer, CITY_KINDS } from './cityLayer';
+import { EconomyLayer } from './economyLayer';
 
 const GROUND = {
   plains: '#6d8f3a', mixed: '#5f8536', hills: '#76853f', forest: '#4b7030', mountains: '#7a7867',
@@ -53,6 +54,10 @@ const SCREEN_RIGHT = new Vector3(1, 0, -1).normalize();
 const SCREEN_UP_GROUND = new Vector3(-1, 0, -1).normalize();
 export const PHONE_MAX_ZOOM = 5;
 const VIEW_TILES = 30;       // landscape; portrait phones get a closer camera (see resize)
+const PHONE_VIEW_TILES = 18; // a landscape phone (short side <= 500 css px)
+const BANNER_HEIGHT = 0.62;  // of the old pole: standards above the men, not a forest over them
+const BANNER_MIN_ZOOM = 0.6; // zoomed further out only generals and the selection carry one
+const BAR_MIN_ZOOM = 0.7;    // strength bars of fighting squads from this zoom in
 const tmp = new Object3D();
 const tmpColor = new Color();
 const GREY_ROUT = new Color('#9ca3af');
@@ -185,6 +190,11 @@ export class BattleRenderer {
     this.disposables = [];
     this.soldierLayers = new Map();
     this.figureScale = figureScale(setup); // fewer figures per squad in a big battle (capacity.js)
+    this.detail = { bias: ADAPTIVE.startBias, ceiling: ADAPTIVE.maxBias, frames: new Float32Array(ADAPTIVE.window), n: 0, holdUntil: 1, retryAt: 0, p95: 0 };
+    // Markers (rings, bars, banners): one standard per few squads in a big battle (regiment colours,
+    // not a forest of poles); generals always carry theirs.
+    const perSide = Math.max(1, ...setup.sides.map((sd) => (sd.units || []).length));
+    this.bannerEvery = perSide > 120 ? 6 : perSide > 40 ? 3 : 1;
     this.sideColors = setup.sides.map((sd) => new Color(sd.color));
     this.squadInfo = [];
     this.figureBudget = BATTLE_GRAPHICS.figureTriangles.desktop;
@@ -214,7 +224,9 @@ export class BattleRenderer {
     // metallic surfaces render nearly black); it lights only the Standard materials (troops, water)
     // and costs one ~256px PMREM texture, generated once per battle.
     this.soldierMaterial = this.track(createSoldierMaterial({ standard: true }));
-    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.4 })); // the far level (soldierLod.js)
+    // The far level (soldierLod.js) takes only a little more of the side's colour than the near ones:
+    // a strong tint turned armies into solid orange and blue carpets; the banners carry the colour.
+    this.farSoldierMaterial = this.track(createSoldierMaterial({ standard: true, teamTint: 0.18 }));
     const pmrem = new PMREMGenerator(this.renderer);
     this.envMap = this.track(pmrem.fromScene(new RoomEnvironment(), 0.04).texture);
     pmrem.dispose();
@@ -227,6 +239,8 @@ export class BattleRenderer {
     this.buildStructures();
     this.cityLayer = new CityLayer(this); // the real city's houses, walls and ruins (cityLayer.js)
     this.cityLayer.build();
+    this.ecoLayer = new EconomyLayer(this); // the battle economy's nodes and buildings (economyLayer.js)
+    this.ecoLayer.build();
     this.buildPoints();
     this.buildOverlays();
     this.buildFogOverlay();
@@ -260,13 +274,26 @@ export class BattleRenderer {
   setFog(grid) {
     const { w, h } = this.map;
     let veiled = false;
+    // The veil's alpha per tile, then softened by a small separable blur (1 2 3 2 1) across rows
+    // and columns: the sight discs' tile steps read as soft edges, not dark stair-stepped squares.
+    const n = w * h;
+    if (!this.fogA || this.fogA.length !== n) { this.fogA = new Uint16Array(n); this.fogB = new Uint16Array(n); }
+    const A = this.fogA; const B = this.fogB;
+    for (let i = 0; i < n; i++) { const v = grid ? grid[i] : 2; A[i] = v === 2 ? 0 : v === 1 ? 110 : 235; if (A[i]) veiled = true; }
+    const K = [1, 2, 3, 2, 1];
+    for (let z = 0; z < h; z++) for (let x = 0; x < w; x++) {
+      let s = 0; for (let k = -2; k <= 2; k++) s += K[k + 2] * A[z * w + Math.max(0, Math.min(w - 1, x + k))];
+      B[z * w + x] = Math.round(s / 9);
+    }
+    for (let z = 0; z < h; z++) for (let x = 0; x < w; x++) {
+      let s = 0; for (let k = -2; k <= 2; k++) s += K[k + 2] * B[Math.max(0, Math.min(h - 1, z + k)) * w + x];
+      A[z * w + x] = Math.round(s / 9);
+    }
     for (let row = 0; row < h; row++) {
       // Texture row 0 is the bottom of the plane (large z); map row 0 is the top (small z).
       const iz = h - 1 - row;
       for (let ix = 0; ix < w; ix++) {
-        const v = grid ? grid[iz * w + ix] : 2;
-        const a = v === 2 ? 0 : v === 1 ? 110 : 235;
-        if (a) veiled = true;
+        const a = A[iz * w + ix];
         const o = (row * w + ix) * 4;
         this.fogData[o] = a; this.fogData[o + 1] = a; this.fogData[o + 2] = a; this.fogData[o + 3] = 255;
       }
@@ -399,6 +426,7 @@ export class BattleRenderer {
     // Tiles taken by the province's own buildings get their own models (buildStructures).
     const landmarkTiles = new Set(this.setup.structures.filter((st) => st.kind === 'building').map((st) => Math.floor(st.y / Q) * w + Math.floor(st.x / Q)));
     this.setup.structures.forEach((st) => (st.footprint || []).forEach((c) => landmarkTiles.add(c))); // the real city draws its own (cityLayer.js)
+    (this.setup.economy?.camp?.footprint || []).forEach((c) => landmarkTiles.add(c)); // the expedition camp (economyLayer.js)
     for (let z = 0; z < h; z++) {
       for (let x = 0; x < w; x++) {
         const t = tiles[z * w + x];
@@ -770,7 +798,8 @@ export class BattleRenderer {
     this.width = width; this.height = height;
     this.renderer.setSize(width, height, false);
     const aspect = width / Math.max(1, height);
-    const viewH = aspect < 1 ? 16 : VIEW_TILES;
+    // Phones in landscape start closer (PHONE_VIEW_TILES): the default view shows soldiers, not a map.
+    const viewH = aspect < 1 ? 16 : Math.min(width, height) <= 500 ? PHONE_VIEW_TILES : VIEW_TILES;
     // Phones (short side <= 500 css px) may zoom closer: at 3x a soldier is still only about 29 css
     // px tall on a 390 px tall landscape screen, too small to see the unit art.
     this.maxZoom = Math.min(width, height) <= 500 ? PHONE_MAX_ZOOM : 3;
@@ -881,6 +910,8 @@ export class BattleRenderer {
     if (foe && (enemyFirst || !own || foeD < ownD)) best = foe;
     else if (own) best = own;
     if (best) return { ...best, ground: g };
+    const eco = this.ecoLayer.pick(g, view); // a building of the battle economy, or a resource node
+    if (eco) return { ...eco, ground: g };
     (view?.structures || []).forEach((s, index) => {
       if (!s.alive) return;
       const r = s.radius / Q + 0.6;
@@ -922,7 +953,22 @@ export class BattleRenderer {
 
   diagnostics() {
     let figures = 0; this.soldierLayers.forEach((l) => { figures += l.count; });
-    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,figures,tier:this.soldierTier??null,zoom:this.camera.zoom};
+    return {dpr:this.dpr,...frameSummary(this.frameTimes),drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,figures,tier:this.soldierTier??null,bias:this.detail.bias,zoom:this.camera.zoom};
+  }
+
+  // Adaptive soldier detail (quality.js ADAPTIVE): while frames keep up with the display (p95 at
+  // or under STEP_UP_MS), one finer soldier level than their size on screen asks for, then two;
+  // a second of slow frames (p95 over STEP_DOWN_MS) steps back down and holds there a while. The
+  // triangle budget only binds at the base level, so it is a floor for slow devices.
+  adaptDetail(dt) {
+    const d = this.detail;
+    d.frames[d.n++ % d.frames.length] = dt * 1000;
+    if (d.n % d.frames.length || this.time < d.holdUntil) return;
+    const p95 = [...d.frames].sort((a, b) => a - b)[Math.floor(d.frames.length * 0.95)];
+    d.p95 = p95;
+    if (p95 > ADAPTIVE.stepDownMs && d.bias > 0) { d.bias -= 1; d.ceiling = d.bias; d.holdUntil = this.time + ADAPTIVE.holdAfterDownS; d.retryAt = this.time + ADAPTIVE.retryS; return; }
+    if (this.time >= d.retryAt) d.ceiling = ADAPTIVE.maxBias;
+    if (p95 <= ADAPTIVE.stepUpMs && d.bias < d.ceiling) { d.bias += 1; d.holdUntil = this.time + ADAPTIVE.holdAfterUpS; }
   }
 
   adaptResolution(dt) {
@@ -949,6 +995,7 @@ export class BattleRenderer {
 
   render(prev, cur, alpha, ui, dt) {
     this.time += dt;
+    this.adaptDetail(dt);
     RIG_TIME.value = this.time;
     this.adaptResolution(dt);
     this.fitShadows();
@@ -957,6 +1004,7 @@ export class BattleRenderer {
     if (cur) this.drawSquads(prev, cur, alpha, ui);
     if (cur) this.drawStructures(cur);
     if (cur) this.cityLayer.update(cur);
+    if (cur) this.ecoLayer.update(cur, this.viewCuller());
     if (cur) this.drawPoints(cur);
     this.drawFx(dt);
     this.renderer.render(this.scene, this.camera);
@@ -1026,14 +1074,16 @@ export class BattleRenderer {
   drawSquads(prev, cur, alpha, ui) {
     const selected = ui?.selected || new Set();
     this.soldierLayers.forEach((l) => { l.count = 0; });
-    let discN = 0; let ringN = 0; let barN = 0;
+    let discN = 0; let ringN = 0; let barN = 0; let bannerN = 0;
     const camQuat = this.camera.quaternion;
     const camRight = CAM_RIGHT.set(1, 0, 0).applyQuaternion(camQuat);
     const camBasis = CAM_BASIS.makeRotationFromQuaternion(camQuat).elements;
     // A view stays current for a few screen frames: repaint the fog only when a new grid arrives.
     if (cur.fog && cur.fog !== this.lastFog) { this.lastFog = cur.fog; this.setFog(cur.fog); }
     const cull = this.viewCuller();
-    const spread = 1 / Math.sqrt(this.figureScale); // fewer figures stand further apart: a squad keeps its ground
+    // Fewer figures in a big battle stand as close as a full squad's (a sparse block reads as noise;
+    // the sim's squad radius is unchanged, only the drawing is smaller and fuller).
+    const spread = 1;
     const discMat = this.discs.instanceMatrix.array; const discCol = instanceColors(this.discs);
     const ringMat = this.rings.instanceMatrix.array;
     const poleMat = this.bannerPoles.instanceMatrix.array; const flagMat = this.bannerFlags.instanceMatrix.array; const flagCol = instanceColors(this.bannerFlags);
@@ -1116,20 +1166,26 @@ export class BattleRenderer {
       // their instance buffers: three.js's Object3D compose and colour parsing cost more than
       // the soldiers themselves at 600 squads).
       const r = 0.7 + Math.sqrt(n) * (big ? 0.44 : 0.25);
+      // Readable at 300 to 500 a side (phase R1 readability): rings only under the selection, one
+      // short standard per few squads (and every general), shown from mid zoom in, and a strength
+      // bar only on the selection and on squads losing men in a fight.
       const side = info.sideColor;
-      writeYaw(discMat, discN, x, y + 0.05, z, 0, r, 1, r);
-      discCol[discN * 3] = side.r; discCol[discN * 3 + 1] = side.g; discCol[discN * 3 + 2] = side.b;
-      if (isSelected) { writeYaw(ringMat, ringN, x, y + 0.07, z, 0, r, 1, r); ringN += 1; }
-      if (!stats.flying) {
-        const bx = x + fx * 0.25 + (-fz) * (r * 0.55); const bz = z + fz * 0.25 + fx * (r * 0.55);
-        writeYaw(poleMat, discN, bx, this.heightAt(bx, bz), bz, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, 1, 1, 1);
-        flagMat.set(poleMat.subarray(discN * 16, discN * 16 + 16), discN * 16);
-        flagCol[discN * 3] = side.r; flagCol[discN * 3 + 1] = side.g; flagCol[discN * 3 + 2] = side.b;
-      } else {
-        writeYaw(poleMat, discN, x, y, z, 0, 0, 0, 0);
-        writeYaw(flagMat, discN, x, y, z, 0, 0, 0, 0);
+      const zoom = this.camera.zoom;
+      if (isSelected) {
+        writeYaw(discMat, discN, x, y + 0.05, z, 0, r, 1, r);
+        discCol[discN * 3] = side.r; discCol[discN * 3 + 1] = side.g; discCol[discN * 3 + 2] = side.b;
+        discN += 1;
+        writeYaw(ringMat, ringN, x, y + 0.07, z, 0, r, 1, r); ringN += 1;
       }
-      discN += 1;
+      if (!stats.flying && s.classId !== 'worker' && (isSelected || s.commanderId || (zoom >= BANNER_MIN_ZOOM && s.idx % this.bannerEvery === 0))) {
+        const bx = x + fx * 0.25 + (-fz) * (r * 0.55); const bz = z + fz * 0.25 + fx * (r * 0.55);
+        writeYaw(poleMat, bannerN, bx, this.heightAt(bx, bz), bz, heading - Math.PI / 2 + Math.sin(this.time * 3 + s.idx) * 0.25, 1, BANNER_HEIGHT, 1);
+        flagMat.set(poleMat.subarray(bannerN * 16, bannerN * 16 + 16), bannerN * 16);
+        flagCol[bannerN * 3] = side.r; flagCol[bannerN * 3 + 1] = side.g; flagCol[bannerN * 3 + 2] = side.b;
+        bannerN += 1;
+      }
+      const hurt = s.strength < s.startStrength && (s.striking || s.target >= 0);
+      if (!isSelected && !(hurt && zoom >= BAR_MIN_ZOOM)) return;
       const frac = Math.max(0, s.strength / Math.max(1, s.startStrength));
       const by = y + (stats.flying ? 3.8 : big ? 2.1 : 1.75);
       writeBasis(barBgMat, barN, camBasis, x, by, z, 1);
@@ -1141,7 +1197,7 @@ export class BattleRenderer {
     // One detail level for every soldier this frame (soldierLod.js): what their size on screen
     // calls for, coarser while the figures in view would pass the triangle budget.
     const layers = [...this.soldierLayers.values()];
-    this.soldierTier = pickSoldierTier({ px: this.soldierPx(), layers: layers.map((l) => ({ figures: l.count, tris: l.tris })), budget: this.figureBudget, prev: this.soldierTier ?? 2 });
+    this.soldierTier = pickSoldierTier({ px: this.soldierPx(), layers: layers.map((l) => ({ figures: l.count, tris: l.tris })), budget: this.figureBudget, prev: this.soldierTier ?? 2, bias: this.detail.bias });
     layers.forEach((l) => {
       l.levels.forEach((m, k) => { m.count = l.count; m.visible = k === this.soldierTier && l.count > 0; });
       if (!l.count) return;
@@ -1149,7 +1205,7 @@ export class BattleRenderer {
         a.clearUpdateRanges(); a.addUpdateRange(0, l.count * a.itemSize); a.needsUpdate = true;
       });
     });
-    [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, discN], [this.bannerFlags, discN]].forEach(([m, n]) => {
+    [[this.discs, discN], [this.rings, ringN], [this.barBg, barN], [this.barFill, barN], [this.bannerPoles, bannerN], [this.bannerFlags, bannerN]].forEach(([m, n]) => {
       m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
     });
   }
@@ -1202,6 +1258,15 @@ export class BattleRenderer {
       tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -(s.kind === 'keep' ? 1.2 : 0.7)); tmp.scale.set((s.kind === 'keep' ? 2.4 : 1.4) * frac, 1, 1); tmp.updateMatrix();
       this.structBarFill.setMatrixAt(n, tmp.matrix);
       this.structBarFill.setColorAt(n, tmpColor.setHSL(0.08 + 0.25 * frac, 0.8, 0.5));
+      n += 1;
+    });
+    // The battle economy's damaged and unfinished buildings (economyLayer.js).
+    this.ecoLayer.bars(cur).forEach((b) => {
+      tmp.quaternion.copy(camQuat); tmp.position.set(b.x, this.heightAt(b.x, b.z) + b.h, b.z); tmp.scale.set(b.w, 1, 1); tmp.updateMatrix();
+      this.structBarBg.setMatrixAt(n, tmp.matrix);
+      tmp.position.addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camQuat), -b.w / 2); tmp.scale.set(b.w * b.frac, 1, 1); tmp.updateMatrix();
+      this.structBarFill.setMatrixAt(n, tmp.matrix);
+      this.structBarFill.setColorAt(n, tmpColor.setHSL(0.08 + 0.25 * b.frac, 0.8, 0.5));
       n += 1;
     });
     [this.structBarBg, this.structBarFill].forEach((m) => { m.count = n; m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; });

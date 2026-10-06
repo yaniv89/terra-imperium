@@ -1037,6 +1037,9 @@ export const resolveTurn = (incomingState, { onPhase } = {}) => {
   nationsAfterWars = operations.nations;
   wars = operations.wars;
   logs.push(...operations.logs);
+  // The map changes the operations made (AI pillage marks, field battle marks) carry on into the
+  // phases below and the next state, which is assembled from `state.world`.
+  if (operations.world && operations.world !== state.world) state = { ...state, world: operations.world };
   invalidateRegionsCache(regions);
   const warProgress = resolveWarProgress({ ...state, regions, units, nations: nationsAfterWars }, regions, nationsAfterWars, wars, rng);
   Object.assign(regions, warProgress.regions);

@@ -106,6 +106,10 @@ export const reachable = (tiles, w, h, fromX, fromY, toX, toY) => {
 // water), and a river on the edge between the tile and a neighbour runs across that sector's inner
 // rim with a ford or two. The middle of the field stays the tile's own template.
 export const SECTOR_INNER = 0.55; // of the half-diagonal: where a neighbour's ground begins
+// The river band's thickness on the battle map in field tiles, by size class (tileContext.js
+// riverSize: 1 stream, 2 river, 3 great river); a river (size 2) keeps about the old band.
+export const RIVER_BAND_TILES = [0, 3, 5, 8];
+const RIVER_BAND_MAX = 8;
 const SECTOR_TEMPLATES = {
   forest: { forest: 0.6, rock: 0 }, hills: { forest: 0.15, rock: 0.06 }, mountains: { forest: 0.05, rock: 0.35 },
   desert: { forest: 0, rock: 0.03, sand: 0.7 }, arctic: { forest: 0.02, rock: 0.08, sand: 0.5 }, plains: { forest: 0.04, rock: 0 },
@@ -114,23 +118,33 @@ const SECTOR_TEMPLATES = {
 const paintSectors = (tiles, heightNoise, forestNoise, w, h, ctx, rng) => {
   const cx = (w - 1) / 2; const cy = (h - 1) / 2;
   const half = Math.hypot(cx, cy);
+  // Two draws per river edge, as always (the rest of the map's random stream stays put); a third
+  // ford sits between them. Fords and the bridge are kept apart from each other.
   const riverFords = new Map();
-  ctx.sectors.forEach((s) => { if (s.river) riverFords.set(s.tile, [rng.next(), rng.next()]); });
+  ctx.sectors.forEach((s) => {
+    if (!s.river) return;
+    const f1 = rng.next(); const f2 = rng.next();
+    const all = [(f1 - 0.5) * 0.8, (f2 - 0.5) * 0.8, ((((f1 + f2) / 2 + 0.5) % 1) - 0.5) * 0.8];
+    const fords = all.slice(0, s.fords ?? 2).filter((a) => !s.bridge || Math.abs(a) > 0.12);
+    const band = (RIVER_BAND_TILES[s.riverSize ?? 2] ?? RIVER_BAND_TILES[2]) / half;
+    riverFords.set(s.tile, { fords, band });
+  });
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const dx = x - cx; const dy = cy - y; // y grows south on the map, north is up
       const d = Math.hypot(dx, dy) / half;
-      if (d < SECTOR_INNER - 0.08) continue;
+      if (d < SECTOR_INNER - RIVER_BAND_MAX / half) continue;
       const deg = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
       const s = sectorAt(ctx.sectors, deg);
       if (!s) continue;
       const i = y * w + x;
-      // A river on this edge: a band of water across the sector's inner rim, with fords.
-      if (s.river && d >= SECTOR_INNER - 0.08 && d < SECTOR_INNER + 0.02) {
-        const [f1, f2] = riverFords.get(s.tile);
+      // A river on this edge: a band of water across the sector's inner rim, as wide as the river,
+      // with its fords and, where a road crosses (a road on both banks), a bridge in the middle.
+      const river = s.river ? riverFords.get(s.tile) : null;
+      if (river && d >= SECTOR_INNER + 0.02 - river.band && d < SECTOR_INNER + 0.02) {
         const along = ((deg - s.bearing + 540) % 360 - 180) / 60; // -0.5..0.5 across the sector
-        const ford = Math.abs(along - (f1 - 0.5) * 0.8) < 0.07 || Math.abs(along - (f2 - 0.5) * 0.8) < 0.07;
-        tiles[i] = ford ? TILE.FORD : TILE.WATER;
+        if (s.bridge && Math.abs(along) < 0.05) tiles[i] = TILE.ROAD;
+        else tiles[i] = river.fords.some((f) => Math.abs(along - f) < 0.07) ? TILE.FORD : TILE.WATER;
         continue;
       }
       if (d < SECTOR_INNER) continue;

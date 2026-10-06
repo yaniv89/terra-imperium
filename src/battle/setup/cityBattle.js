@@ -74,6 +74,8 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
 
   const structures = [keepStructures[0]];
   keepStructures[0].manifestId = 'townhall';
+  // Housing in battle (master plan 6.3; the battle economy reads it, src/battle/sim/economy.js).
+  keepStructures[0].housing = manifest.structures.find((st) => st.kind === 'townhall')?.housing || 0;
   const claim = (cells, si) => cells.filter((c) => owner[c] < 0 && tiles[c] !== TILE.WATER).map((c) => { owner[c] = si; return c; });
   const rectCells = (tx, ty, hx, hy) => {
     const out = [];
@@ -97,7 +99,7 @@ export const placeCity = ({ map, manifest, damage = null, fortLevel = 0, keepStr
       radius: Math.max(Q >> 1, Math.round(Math.max(hx, hy) * Q * 0.9)),
       w: st.d * S, d: st.w * S, h: st.h * S, maxHp, hp: maxHp, range: 0, attackTicks: secondsToTicks(1.5), damage: 0, cooldown: 0, alive: true,
       model: [st.x, st.z, st.w, st.d], // its ground in the town model's space (the renderer cuts ruins out of the town file)
-      passive: !!st.passive, ...(st.category ? { category: st.category, tier: st.tier, name: st.name } : {}), ...(st.projectId ? { projectId: st.projectId } : {})
+      passive: !!st.passive, ...(st.housing ? { housing: st.housing } : {}), ...(st.category ? { category: st.category, tier: st.tier, name: st.name } : {}), ...(st.projectId ? { projectId: st.projectId } : {})
     };
     s.footprint = st.kind === 'wall' || st.kind === 'gate' ? [] : claim(rectCells(tx, ty, hx, hy), structures.length);
     structures.push(s);

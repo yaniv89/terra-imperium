@@ -109,11 +109,13 @@ const hash = (x, y) => { let h = (x * 374761393 + y * 668265263) >>> 0; h = Math
 
 // One pixel's colour: the same rules as build-world-raster.mjs, at this resolution.
 const LIGHT = [-0.5, -0.6, 0.62];
-const shadePixel = (ctx, x, y, eC, eL, eR, eU, eD) => {
+// makeShadePixel(width, height) gives the same rules for another level (build-raster-detail.mjs
+// renders level 6 with it); `relief` scales the hillshade's exaggeration (9 at level 5).
+export const makeShadePixel = (W, H, relief = 9) => (ctx, x, y, eC, eL, eR, eU, eD) => {
   const { climate, isLand, isLake, isIce } = ctx;
   const lat = 90 - ((y + 0.5) / H) * 180; const lon = ((x + 0.5) / W) * 360 - 180;
   const kmLat = (180 / H) * 111; const kmLon = Math.max(0.2, kmLat * Math.cos((lat * Math.PI) / 180));
-  const gx = ((eR - eL) / (2 * kmLon * 1000)) * 9; const gy = ((eD - eU) / (2 * kmLat * 1000)) * 9;
+  const gx = ((eR - eL) / (2 * kmLon * 1000)) * relief; const gy = ((eD - eU) / (2 * kmLat * 1000)) * relief;
   const nl = Math.hypot(gx, gy, 1);
   const dot = (-gx / nl) * LIGHT[0] + (-gy / nl) * LIGHT[1] + (1 / nl) * LIGHT[2];
   let shade = 0.62 + 0.5 * Math.max(0, dot);
@@ -139,6 +141,7 @@ const shadePixel = (ctx, x, y, eC, eL, eR, eU, eD) => {
   const grain = 1 + (hash(x, y) - 0.5) * 0.04;
   return [color[0] * shade * grain, color[1] * shade * grain, color[2] * shade * grain];
 };
+const shadePixel = makeShadePixel(W, H);
 
 export const buildRasterPyramid = async () => {
   const t0 = Date.now();

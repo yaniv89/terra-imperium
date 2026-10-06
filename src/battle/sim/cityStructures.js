@@ -13,7 +13,7 @@
 // What the city lost is reported by manifest id (cityDamageReport) and carried to the map by
 // src/engine/cityManifest.js under the 50% rule.
 import { TILE } from '../setup/mapgen';
-import { invalidateBlocked } from './pathing';
+import { invalidatePaths } from './pathing';
 
 // A structure below this share of its HP counts as damaged on the map (world plan 10: intact above 70%).
 export const DAMAGED_BELOW = 0.7;
@@ -25,8 +25,7 @@ export const collapseFootprint = (w, s) => {
   let changed = false;
   s.footprint.forEach((i) => { if (tiles[i] === TILE.BUILDING) { tiles[i] = TILE.RUBBLE; changed = true; } });
   if (!changed) return;
-  invalidateBlocked(w.map);
-  if (w.flowCache) w.flowCache.clear();
+  invalidatePaths(w);
   w.events.push({ t: w.tick, type: 'collapsed', structure: s.id });
 };
 

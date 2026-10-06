@@ -1,0 +1,290 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "B01-Battle.dc.html": {
+      "h": 390,
+      "title": "B01 Battle HUD, clean markers",
+      "w": 844,
+      "x": 0,
+      "y": 3080
+    },
+    "B02-Economy.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "B02 Economy: workers and build menu",
+      "w": 844,
+      "x": 924,
+      "y": 3080
+    },
+    "B03-Building.dc.html": {
+      "h": 390,
+      "title": "B03 Building, training and housing",
+      "w": 844,
+      "x": 1848,
+      "y": 3080
+    },
+    "B04-Regiments.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "B04 Regiments, formations, abilities",
+      "w": 844,
+      "x": 2772,
+      "y": 3080
+    },
+    "B05-Siege.dc.html": {
+      "h": 390,
+      "title": "B05 City assault and destruction",
+      "w": 844,
+      "x": 0,
+      "y": 3850
+    },
+    "B06-Alerts.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "B06 Minimap, alerts, pause",
+      "w": 844,
+      "x": 924,
+      "y": 3850
+    },
+    "B07-Field.dc.html": {
+      "h": 390,
+      "title": "B07 Field battle, fort, river ford",
+      "w": 844,
+      "x": 1848,
+      "y": 3850
+    },
+    "B08-Result.dc.html": {
+      "h": 390,
+      "title": "B08 Battle result",
+      "w": 844,
+      "x": 2772,
+      "y": 3850
+    },
+    "Main.dc.html": {
+      "h": 440,
+      "title": "Screen map and look",
+      "w": 1768,
+      "x": 0,
+      "y": 0
+    },
+    "W01-Start.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W01 Start: world size and people",
+      "w": 844,
+      "x": 0,
+      "y": 770
+    },
+    "W02-Map.dc.html": {
+      "h": 390,
+      "title": "W02 World map HUD",
+      "w": 844,
+      "x": 924,
+      "y": 770
+    },
+    "W03-Fog.dc.html": {
+      "h": 390,
+      "title": "W03 Fog of war and first contact",
+      "w": 844,
+      "x": 1848,
+      "y": 770
+    },
+    "W04-Settle.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W04 Settle lens and founding",
+      "w": 844,
+      "x": 2772,
+      "y": 770
+    },
+    "W05-City.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W05 City sheet",
+      "w": 844,
+      "x": 0,
+      "y": 1540
+    },
+    "W06-Army.dc.html": {
+      "h": 390,
+      "title": "W06 Army move, river crossing, attack",
+      "w": 844,
+      "x": 924,
+      "y": 1540
+    },
+    "W07-Diplomacy.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W07 Diplomacy",
+      "w": 844,
+      "x": 1848,
+      "y": 1540
+    },
+    "W08-Independent.dc.html": {
+      "h": 390,
+      "title": "W08 Independent city",
+      "w": 844,
+      "x": 2772,
+      "y": 1540
+    },
+    "W09-Research.dc.html": {
+      "h": 390,
+      "title": "W09 Research",
+      "w": 844,
+      "x": 0,
+      "y": 2310
+    },
+    "W10-Turn.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W10 End turn and reports",
+      "w": 844,
+      "x": 924,
+      "y": 2310
+    },
+    "W11-PreBattle.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W11 Pre-battle: Command or Auto",
+      "w": 844,
+      "x": 1848,
+      "y": 2310
+    },
+    "W12-Settings.dc.html": {
+      "h": 390,
+      "is_interactive": true,
+      "title": "W12 Settings and battle size",
+      "w": 844,
+      "x": 2772,
+      "y": 2310
+    },
+    "W13-Peace.dc.html": {
+      "x": 0,
+      "y": 4620,
+      "w": 844,
+      "h": 390,
+      "title": "W13 Peace negotiation",
+      "is_interactive": true
+    },
+    "W14-Attacked.dc.html": {
+      "x": 924,
+      "y": 4620,
+      "w": 844,
+      "h": 390,
+      "title": "W14 You are attacked: Command, Auto or Withdraw",
+      "is_interactive": true
+    },
+    "W15-Raid.dc.html": {
+      "x": 1848,
+      "y": 4620,
+      "w": 844,
+      "h": 390,
+      "title": "W15 Raiders and tribute",
+      "is_interactive": true
+    },
+    "W16-Reports.dc.html": {
+      "x": 2772,
+      "y": 4620,
+      "w": 844,
+      "h": 390,
+      "title": "W16 Battle reports",
+      "is_interactive": true
+    },
+    "W17-Nation.dc.html": {
+      "x": 3696,
+      "y": 4620,
+      "w": 844,
+      "h": 390,
+      "title": "W17 Nation overview",
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-06T10:38:36Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "t1": {
+      "kind": "title1",
+      "maxW": 3616,
+      "text": "World play: start, map, fog, settling",
+      "w": 240,
+      "x": 0,
+      "y": 510
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 3616,
+      "text": "World play: cities, armies, diplomacy, independents",
+      "w": 240,
+      "x": 0,
+      "y": 1280
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 3616,
+      "text": "World play: research, turns, battles, settings",
+      "w": 240,
+      "x": 0,
+      "y": 2050
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 3616,
+      "text": "RTS battle: command, economy, regiments",
+      "w": 240,
+      "x": 0,
+      "y": 2820
+    },
+    "t5": {
+      "kind": "title1",
+      "maxW": 3616,
+      "text": "RTS battle: sieges, alerts, field battles, results",
+      "w": 240,
+      "x": 0,
+      "y": 3590
+    },
+    "t6": {
+      "x": 0,
+      "y": 4360,
+      "text": "Added: peace, attacks, raids, reports, nation",
+      "kind": "title1",
+      "maxW": 4540
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "W01-Start.dc.html",
+    "W02-Map.dc.html",
+    "W03-Fog.dc.html",
+    "W04-Settle.dc.html",
+    "W05-City.dc.html",
+    "W06-Army.dc.html",
+    "W07-Diplomacy.dc.html",
+    "W08-Independent.dc.html",
+    "W09-Research.dc.html",
+    "W10-Turn.dc.html",
+    "W11-PreBattle.dc.html",
+    "W12-Settings.dc.html",
+    "B01-Battle.dc.html",
+    "B02-Economy.dc.html",
+    "B03-Building.dc.html",
+    "B04-Regiments.dc.html",
+    "B05-Siege.dc.html",
+    "B06-Alerts.dc.html",
+    "B07-Field.dc.html",
+    "B08-Result.dc.html",
+    "W13-Peace.dc.html",
+    "W14-Attacked.dc.html",
+    "W15-Raid.dc.html",
+    "W16-Reports.dc.html",
+    "W17-Nation.dc.html"
+  ],
+  "pages": [],
+  "title": "Terra Imperium UI Sketches"
+}

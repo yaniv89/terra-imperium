@@ -55,6 +55,8 @@ export const updateFog = (w) => {
       if (q.side !== side || !q.alive || !q.onField || q.fled) return;
       stamp(w, grid, q.x, q.y, q.stats.sight + (q.stats.flying ? 2 : 0));
     });
+    // The battle economy's buildings see around them (a tower further); the town hall is the keep.
+    if (w.eco) w.eco.buildings.forEach((b) => { if (b.side === side && b.alive && b.proxy == null) stamp(w, grid, b.x, b.y, b.type === 'tower' ? 8 : 4); });
     if (side === 1) {
       // city houses and wall segments see nothing (the keep, towers and buildings do)
       w.structures.forEach((s) => { if (s.alive && !s.passive && s.kind !== 'wall' && s.kind !== 'gate') stamp(w, grid, s.x, s.y, s.kind === 'keep' ? Math.floor(w.setup.territoryRadius / Q) : 8); });

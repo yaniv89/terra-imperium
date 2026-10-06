@@ -10,8 +10,12 @@
 // viewer), models tilted toward the viewer for a three-quarter look. Used by CloseViewLayer.jsx
 // (its own canvas over the SVG map) and by the WebGL map (gl/GLMapView.jsx), which lays the
 // models out once per settled view and moves `root` while the map pans and zooms.
+// Phase F (world plan 4 and 5): towns stand on their tile's centre within the footprint's town disk
+// (src/data/geo/footprints.js), the fields of a town and of a farm are the footprint's plots, the
+// mountain chains run along the ridge lines (terrainPlacement.js, mountainModels.js) and nothing
+// grows in a river's band.
 import {
-  HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, InstancedMesh,
+  HemisphereLight, DirectionalLight, Mesh, MeshLambertMaterial, MeshBasicMaterial, InstancedMesh, PlaneGeometry, CanvasTexture, SRGBColorSpace,
   InstancedBufferAttribute, DynamicDrawUsage, Object3D, Color, Matrix4, Box3
 } from 'three';
 import { REGION_COORDINATES } from '../../../data/regionCoordinates';
@@ -20,8 +24,12 @@ import { getEffectiveAgeId } from '../../../data/ages';
 import { getSoldierGeometry, packForGPU, createSoldierMaterial, MODEL_SCALE } from '../../../battle/render/soldierFactory';
 import { getNationColor } from '../../../data/nationColors';
 import { getTownGeometry, townTier } from './townModels';
-import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, fieldsAround, fieldCount, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
-import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE } from './scale';
+import { townAssetUrl, loadTownAsset, loadAssetObjects, sharedAssetUrls, palaceFor, wallsFor, COLONY_CAMP, isCamp, FIELDS_FOR_WORK, instanceTownAsset, showLod, lodForZoom } from './townAssets';
+import { ARMY_SPOT, unitPx, tiltFor, lightRig, townUnitPx, townRoomUnits, townGapUnits, TIER_SCALE, ROOM_FILL } from './scale';
+import { cachedFootprint, screenFrame, plotsOnScreen, reliefOnScreen, riverDiscsOnScreen, townDrawRadiusKm } from './terrainPlacement';
+import { getRidgeGeometry, getHillGeometry, RIDGE_VARIANTS } from './mountainModels';
+import { riverHalfPx } from '../gl/terrainModel';
+import { EARTH_RADIUS_KM } from '../../../data/geo/geodesic';
 import { landscapeOnScreen, MAX_TREES, WORK_KINDS, WORK_OFFSET } from './landscape';
 import { getTiles } from '../../../data/geo/tiles';
 import { styleOfLand, themeOfNation } from '../../../data/architecture';
@@ -50,6 +58,23 @@ const ageOf = (state, nationId) => {
 // The ground a field takes, model units (a field is about 1.6 by 1.2: the disc round its middle).
 const FIELD_DISC = 0.8;
 const figuresFor = (men) => (men == null ? 2 : men < 5000 ? 1 : men < 20000 ? 2 : 3);
+const MAX_PLOTS = 3000;
+const MAX_RIDGE_MESH = 600; // per variant
+// Field plots: the footprint's rectangles, flat on the map (placeholder for the `map-terrain/
+// field-edges` kit, src/assets/map/terrain/field-edges.glb): furrows and a hedge rim, tinted per plot.
+const PLOT_TINTS = ['#d6c27a', '#a9b45f', '#8f7a52', '#c9b26a', '#7f9a4e'].map((c) => new Color(c));
+const plotTexture = () => {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, 64, 32);
+  g.fillStyle = 'rgba(0,0,0,0.13)';
+  for (let x = 2; x < 64; x += 5) g.fillRect(x, 2, 2, 28);
+  g.strokeStyle = 'rgba(60,72,40,0.75)'; g.lineWidth = 2; g.strokeRect(1, 1, 62, 30);
+  const t = new CanvasTexture(c); t.colorSpace = SRGBColorSpace;
+  return t;
+};
+const FOG_GREY = new Color(0.55, 0.57, 0.64);
 
 /** The town tiles (so no town grows into its neighbour) and the wonders with a model, once per game state. */
 export const closeTowns = (state) => {
@@ -63,7 +88,7 @@ export const closeTowns = (state) => {
  * The close view's models under `root`, its lights in `scene`. `onAssets()` is called whenever a
  * model file finishes loading (lay out again). Returns { layout, moving, dispose }.
  */
-export const createCloseScene = (scene, root, { onAssets }) => {
+export const createCloseScene = (scene, root, { onAssets, footprintOf = cachedFootprint }) => {
   const sky = new HemisphereLight('#ffffff', '#475569', 1.25);
   const sun = new DirectionalLight('#fff7e6', 1.35);
   scene.add(sky, sun); // aimed each layout by lightRig (scale.js), with the models' tilt
@@ -81,8 +106,16 @@ export const createCloseScene = (scene, root, { onAssets }) => {
     sky, sun, townMaterial, soldierMaterial, towns: new Map(), wonders: new Map(), fieldWorks: new Map(), layers: new Map(), assets: new Map(),
     trees: new Map(TREE_KINDS.map((kind) => [kind, instanced(getTreeGeometry(kind), MAX_TREES)])),
     works: new Map(WORK_KINDS.map((kind) => [kind, instanced(getWorkGeometry(kind), MAX_WORKS)])),
-    buildings: createBuildingLayer(root), improvements: createBuildingLayer(root), moving: false
+    buildings: createBuildingLayer(root), improvements: createBuildingLayer(root), moving: false,
+    ridges: new Map(), hills: instanced(getHillGeometry(), 600)
   };
+  for (let v = 0; v < RIDGE_VARIANTS; v++) [false, true].forEach((snow) => t.ridges.set(`${v}|${snow}`, instanced(getRidgeGeometry(v, snow), MAX_RIDGE_MESH)));
+  const plotMap = plotTexture();
+  const plotMaterial = new MeshBasicMaterial({ map: plotMap, transparent: true, opacity: 0.88, depthWrite: false });
+  t.plots = new InstancedMesh(new PlaneGeometry(1, 1), plotMaterial, MAX_PLOTS);
+  t.plots.instanceColor = new InstancedBufferAttribute(new Float32Array(MAX_PLOTS * 3), 3).setUsage(DynamicDrawUsage);
+  t.plots.count = 0; t.plots.frustumCulled = false; t.plots.renderOrder = -1;
+  root.add(t.plots);
 
   /**
    * Lays the models out for a view. `projection`: the map's d3 projection (town room and gaps are
@@ -109,6 +142,13 @@ export const createCloseScene = (scene, root, { onAssets }) => {
       return x < -EDGE || y < -EDGE || x > width + EDGE || y > height + EDGE ? null : { x, y };
     };
     const toScreen = (regionId) => toScreenLatLng(REGION_COORDINATES[regionId]);
+    // phase F: a lat/lon to screen pixels without the edge cut, and screen pixels per km (north)
+    const project = (lat, lon) => {
+      const p = proj.fwd(lon, lat);
+      return p ? { x: p[0] * k + transform.x, y: p[1] * k + transform.y } : null;
+    };
+    const pxPerKmNorth = (projection.scale() * k) / EARTH_RADIUS_KM;
+    const plotTiles = []; // [{ tile, fp }]: towns' and farms' fields, laid after the works
 
     // The age's shared files (palaces, walls, the camp, fields): each loaded once, the objects by
     // name; a region's file (its own palaces and walls) over the age's base file.
@@ -150,8 +190,11 @@ export const createCloseScene = (scene, root, { onAssets }) => {
     Object.keys(REGION_COORDINATES).forEach((id) => {
       const region = state.regions[id];
       if (!region || (!region.owner && !region.colony)) return;
-      const at = toScreen(id);
+      // the town stands on its tile's centre (the footprint's frame), else on the province point
+      const tileLL = region.tile != null ? getTiles().latLonOf(region.tile) : null;
+      const at = tileLL ? toScreenLatLng({ lat: tileLL.lat, lng: tileLL.lon }) : toScreen(id);
       if (!at) return;
+      const fp = region.tile != null ? footprintOf(region.tile, state) : null;
       const owner = region.owner || region.colony?.ownerId;
       const tier = region.owner ? townTier(region) : { id: 'small' };
       const opts = { ageId: ageOf(state, owner), walls: (region.buildings?.categories?.defense ?? -1) >= 0, capital: state.nations[owner]?.capitalRegionId === id };
@@ -178,7 +221,9 @@ export const createCloseScene = (scene, root, { onAssets }) => {
       const palaceShared = asset && opts.capital && palaceStyle && palaceStyle !== style ? sharedFor(opts.ageId, palaceStyle) : shared;
       const palaceRoot = asset && opts.capital ? palaceShared?.[palaceFor(tier.id)] : null;
       const wallsRoot = asset && opts.walls ? shared?.[wallsFor(tier.id)] : null;
-      const fields = asset && shared ? fieldsAround(tier.id, seed, fieldCount(region)).filter((f) => shared[f.name]) : [];
+      // the fields are the footprint's plots now (laid after the works), not a ring of models
+      const fields = [];
+      if (fp?.fields.length && !camp) plotTiles.push({ tile: region.tile, fp, visible: !fog.isVisible || fog.isVisible(region.tile) });
       const teamColor = owner === state.playerNationId ? PLAYER_COLOR : (getNationColor(owner) || '#64748b');
       const ll = REGION_COORDINATES[id];
       const tint = (campRoot || asset) && ll ? tintAt(ll.lat, ll.lng) : null;
@@ -219,8 +264,10 @@ export const createCloseScene = (scene, root, { onAssets }) => {
       // the town's ground (and its wall ring) is claimed first; its fields come after the works
       // bigger towns drawn bigger, and no town reaching into the sea
       const radius = (campRoot ? 1.0 : tier.modelRadius || 2) + (wallsRoot ? 0.3 : 0);
-      const room = Math.min(townRoomUnits(projection, getTiles(), region.tile), townGapUnits(projection, getTiles(), region.tile, isTown));
-      const ts = townUnitPx(k, radius, room * k, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
+      // never past the footprint's town disk (its plots start there), else the old room rule
+      const roomPx = fp?.town ? (townDrawRadiusKm(fp) * pxPerKmNorth) / ROOM_FILL
+        : Math.min(townRoomUnits(projection, getTiles(), region.tile), townGapUnits(projection, getTiles(), region.tile, isTown)) * k;
+      const ts = townUnitPx(k, radius, roomPx, campRoot ? 1 : TIER_SCALE[tier.id] || 1);
       occ.claim(at.x, at.y, radius * ts);
       if (mesh.userData.fields?.length) ringFields.push({ mesh, at, s: ts });
       // the city's landmarks (its highest building tiers with a model file) round an artist town
@@ -310,10 +357,6 @@ export const createCloseScene = (scene, root, { onAssets }) => {
 
     // The land: trees in the woods, a work on each improved tile (landscape.js).
     const lsTmp = new Object3D(); const lsColor = new Color();
-    const project = (lat, lon) => {
-      const p = proj.fwd(lon, lat);
-      return p ? { x: p[0] * k + transform.x, y: p[1] * k + transform.y } : null;
-    };
     const cityTiles = new Set(Object.values(state.regions).map((r) => r.tile).filter((x) => x != null));
     // The screen as a lat/lon window (with a margin) for the spatial index: only the tiles in view.
     const nw = latLonAt(-120, -120); const se = latLonAt(width + 120, height + 120);
@@ -408,6 +451,13 @@ export const createCloseScene = (scene, root, { onAssets }) => {
       return true;
     };
     land.works.forEach((w) => {
+      // a farm (phase F): its farmstead model if there is one, and the footprint's plots round it
+      if (w.kind === 'farm' && !w.pillaged) {
+        improvementWork(w);
+        const fp = footprintOf(w.tile, state);
+        if (fp.fields.length) plotTiles.push({ tile: w.tile, fp, visible: fog.isVisible(w.tile) });
+        return;
+      }
       if (improvementWork(w)) return;
       // a work set off its tile centre must still stand on land (fishing boats belong at sea)
       const wx = w.x + s * WORK_OFFSET.x; const wy = w.y + s * WORK_OFFSET.y;
@@ -422,16 +472,53 @@ export const createCloseScene = (scene, root, { onAssets }) => {
     });
     t.fieldWorks.forEach((g, tile) => { if (!seenFields.has(tile)) g.visible = false; });
     t.improvements.end();
-    // The fields round towns: shown where they are on land and clear of everything placed so far
-    // (the ring is in model units, so where it falls on the Earth changes with the zoom).
-    // (the fields are children of the town, so they share its hex-capped scale `ts`)
-    ringFields.forEach(({ mesh, at, s: ts }) => {
-      mesh.userData.fields.forEach(({ field, f }) => {
-        const ends = [0, -0.75, 0.75].map((u) => [f.x + u * Math.cos(f.yaw), f.z - u * Math.sin(f.yaw)]);
-        field.visible = ends.every(([fx, fz]) => landAt(at.x + fx * ts, at.y + fz * ts * lean))
-          && occ.take(at.x + f.x * ts, at.y + f.z * ts * lean, FIELD_DISC * ts);
+    // The fields of towns and farms: the footprint's plots (local km, so they never move with the
+    // zoom), flat on the map, on land and clear of everything placed so far.
+    t.plots.count = 0;
+    const plotTmp = new Object3D(); const plotColor = new Color();
+    plotTiles.forEach(({ tile, fp, visible }) => {
+      const frame = screenFrame(tile, project);
+      if (!frame) return;
+      plotsOnScreen(fp, frame).forEach((p) => {
+        if (t.plots.count >= MAX_PLOTS || p.x < -EDGE || p.y < -EDGE || p.x > width + EDGE || p.y > height + EDGE) return;
+        if (!landAt(p.x, p.y) || !occ.take(p.x, p.y, Math.min(p.len, p.wid) * 0.5)) return;
+        plotTmp.position.set(p.x, -p.y, p.y * 0.05 - 1);
+        plotTmp.rotation.set(0, 0, -p.angle);
+        plotTmp.scale.set(p.len, p.wid, 1);
+        plotTmp.updateMatrix();
+        t.plots.setMatrixAt(t.plots.count, plotTmp.matrix);
+        plotColor.copy(PLOT_TINTS[Math.floor(p.shade * PLOT_TINTS.length) % PLOT_TINTS.length]);
+        if (!visible) plotColor.multiply(FOG_GREY);
+        t.plots.setColorAt(t.plots.count, plotColor);
+        t.plots.count += 1;
       });
     });
+    t.plots.instanceMatrix.needsUpdate = true; t.plots.instanceColor.needsUpdate = true;
+    // The mountain chains and foothills (terrainPlacement.reliefOnScreen), on ground nothing else holds.
+    t.ridges.forEach((m) => { m.count = 0; });
+    t.hills.count = 0;
+    const relief = reliefOnScreen({ project, width, height, area: screenWindow, lean, isExplored: fog.isExplored, isVisible: fog.isVisible || (() => true) });
+    const reliefPut = (mesh, r) => {
+      if (mesh.count >= mesh.instanceMatrix.count) return;
+      lsTmp.position.set(r.x, -r.y, r.y * 0.05);
+      lsTmp.rotation.set(TILT, r.yaw, 0, 'XYZ');
+      lsTmp.scale.set(r.sx, r.sy, r.sz);
+      lsTmp.updateMatrix();
+      mesh.setMatrixAt(mesh.count, lsTmp.matrix);
+      lsColor.setScalar(0.92 + 0.16 * ((r.x * 0.37 + r.y * 0.11) % 1));
+      if (!r.visible) lsColor.multiply(FOG_GREY);
+      mesh.setColorAt(mesh.count, lsColor);
+      mesh.count += 1;
+    };
+    relief.ridges.forEach((r) => {
+      if (!landAt(r.x, r.y) || !occ.free(r.x, r.y, r.sz * 0.35)) return;
+      reliefPut(t.ridges.get(`${r.variant}|${r.snow}`), r);
+      occ.claim(r.x, r.y, r.sz * 0.45);
+    });
+    relief.hills.forEach((h) => { if (landAt(h.x, h.y) && occ.take(h.x, h.y, h.sx * 0.8)) reliefPut(t.hills, h); });
+    [...t.ridges.values(), t.hills].forEach((m) => { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; });
+    // Rivers keep their band clear: no tree stands in the water.
+    riverDiscsOnScreen({ project, width, height, area: screenWindow, pxPerKm: pxPerKmNorth, halfPx: (size) => riverHalfPx(size, k) }).forEach((d) => occ.claim(d.x, d.y, d.r));
     // Trees last, on free land only.
     land.trees.forEach((tr) => {
       const mesh = t.trees.get(tr.kind);
@@ -499,6 +586,7 @@ export const createCloseScene = (scene, root, { onAssets }) => {
     state: t,
     dispose: () => {
       t.trees.forEach((m) => m.dispose()); t.works.forEach((m) => m.dispose());
+      t.ridges.forEach((m) => m.dispose()); t.hills.dispose(); t.plots.dispose(); t.plots.geometry.dispose(); plotMaterial.dispose(); plotMap?.dispose();
       t.towns.forEach((m) => root.remove(m)); t.wonders.forEach((m) => root.remove(m)); t.fieldWorks.forEach((g) => root.remove(g));
       t.layers.forEach((l) => { l.mesh.geometry.dispose(); });
       t.buildings.dispose();

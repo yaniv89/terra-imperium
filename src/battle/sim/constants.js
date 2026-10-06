@@ -9,7 +9,11 @@ export const BATTLE_LIMIT_TICKS = 6 * 60 * TICK_HZ; // the default clock (older 
 // 7:30 so siege engines have time to breach. The longest possible battle, for replay validation:
 export const FIELD_BATTLE_TICKS = 5 * 60 * TICK_HZ;
 export const SIEGE_BATTLE_TICKS = 7.5 * 60 * TICK_HZ;
-export const MAX_BATTLE_TICKS = SIEGE_BATTLE_TICKS;
+// A battle with the economy (phase R1) runs the master plan's clocks (6.1): 15 minutes in the field,
+// 30 for a city assault.
+export const ECONOMY_FIELD_TICKS = 15 * 60 * TICK_HZ;
+export const ECONOMY_SIEGE_TICKS = 30 * 60 * TICK_HZ;
+export const MAX_BATTLE_TICKS = ECONOMY_SIEGE_TICKS;
 export const battleLimitTicks = (setup) => setup?.limitTicks || BATTLE_LIMIT_TICKS;
 export const SQUAD_RADIUS = 154;                    // ~0.6 tile
 export const SIDE_ATTACKER = 0;
