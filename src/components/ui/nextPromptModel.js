@@ -1,4 +1,4 @@
-// src/components/ui/nextPrompt.js
+// src/components/ui/nextPromptModel.js
 // The "next" prompt (plans/civ-map-rework.md E3): one pill above End Turn that cycles through what
 // still wants a decision this turn. End Turn is never blocked. Pure: a list of prompts in order.
 //   peace     a peace offer waits for an answer

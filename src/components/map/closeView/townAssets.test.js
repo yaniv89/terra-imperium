@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { Group, Mesh, BoxGeometry, MeshStandardMaterial } from 'three';
 import { styleOfLand, styleChain } from '../../../data/architecture';
+import { readGlbJson } from '../../../../scripts/art/glbInfo.mjs';
 import { sharedAssetUrls, townAssetUrl, townVariant, lodForZoom, loadTownAsset, loadAssetObjects, instanceTownAsset, showLod, palaceFor, sharedAssetUrl, wallsFor, isCamp, COLONY_CAMP, fieldsAround, fieldCount, FIELDS_FOR_WORK } from './townAssets';
 
 const fakeObject = (name, lodNames = ['LOD0', 'LOD1', 'LOD2']) => {
@@ -24,10 +25,12 @@ describe('artist town models', () => {
     expect(townAssetUrl('bronze', 'medium', 1)).toMatch(/bronze-town-medium-b/);
     expect(townAssetUrl('bronze', 'big', 0)).toMatch(/bronze-town-big-a/);
     expect(townAssetUrl('bronze', 'big', 1)).toMatch(/bronze-town-big-b/);
-    // without a kit of its own the land's tradition picks the base layout over the seed
-    expect(townAssetUrl('bronze', 'small', 0, 'levant')).toMatch(/bronze-town-small-a\.glb/);
-    expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-a\.glb/);
+    // without a kit of its own the land's tradition picks the base layout over the seed (every
+    // style now has a Bronze kit: the rule still steers a city with no style)
+    expect(townVariant('bronze', 'levant', 1)).toBe('a');
     // a region with its own kit builds both of its layouts, by the seed
+    expect(townAssetUrl('bronze', 'small', 0, 'levant')).toMatch(/bronze-town-small-a-levant/);
+    expect(townAssetUrl('bronze', 'medium', 1, 'levant')).toMatch(/bronze-town-medium-b-levant/);
     expect(townAssetUrl('bronze', 'small', 0, 'nile')).toMatch(/bronze-town-small-a-nile/);
     expect(townAssetUrl('bronze', 'small', 1, 'westafrica')).toMatch(/bronze-town-small-b-westafrica/);
     expect(townAssetUrl('future', 'small')).toBeNull();
@@ -49,6 +52,11 @@ describe('artist town models', () => {
     expect(townVariant('kingdoms', 'steppe')).toBe('b');
     expect(townAssetUrl('kingdoms', 'small', 0, 'andalus')).toMatch(/kingdoms-town-small-a-levant/);
     expect(townAssetUrl('kingdoms', 'small', 1, 'andalus')).toMatch(/kingdoms-town-small-b-levant/);
+    // the last regional kits: Europe and South Asia in the Modern Age, South Asia in the Gunpowder Age
+    expect(townAssetUrl('modern', 'big', 0, styleOfLand('fr', 'modern'))).toMatch(/modern-town-big-a-europe/);
+    expect(townAssetUrl('modern', 'small', 1, styleOfLand('us', 'modern'))).toMatch(/modern-town-small-b-europe/);
+    expect(townAssetUrl('modern', 'medium', 0, styleOfLand('in', 'modern'))).toMatch(/modern-town-medium-a-indic/);
+    expect(townAssetUrl('gunpowder', 'big', 1, styleOfLand('pk', 'gunpowder'))).toMatch(/gunpowder-town-big-b-indic/);
     expect(townVariant('gunpowder', 'levant', 3)).toBe('b');
     expect(townVariant('gunpowder', 'levant', 4)).toBe('a');
     // a size with only one layout falls back to it whatever the tradition asks
@@ -100,6 +108,15 @@ describe('artist town models', () => {
     expect(palaceFor('big')).toBe('palace');
     expect(sharedAssetUrl('bronze')).toMatch(/shared-bronze/);
     expect(sharedAssetUrl('future')).toBeNull();
+  });
+
+  it('gives every age with base towns a palace in its base shared file', () => {
+    // the Classical palaces (villa and basilica) were the last ones missing
+    ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern'].forEach((age) => {
+      const json = readGlbJson(`src/assets/map/shared/shared-${age}.glb`);
+      const roots = json.scenes[0].nodes.map((i) => json.nodes[i].name);
+      expect(roots, age).toEqual(expect.arrayContaining(['palace-small', 'palace']));
+    });
   });
 
   it('rings each town size with its own wall ring', () => {
@@ -173,8 +190,6 @@ describe('architecture regions', () => {
     expect(styleOfLand('il', 'bronze')).toBe('israelite');
     expect(styleOfLand('il', 'modern')).toBe('israelite');
     expect(styleChain('israelite')).toEqual(['israelite', 'levant']);
-    // until Israelite Kingdoms towns exist, Israel builds the Levant's
-    expect(townAssetUrl('kingdoms', 'small', 0, 'israelite')).toMatch(/kingdoms-town-small-a-levant/);
     expect(styleOfLand('es', 'gunpowder')).toBe('europe');
     expect(styleOfLand('pt', 'classical')).toBe('europe');
     expect(styleChain('easteurope')).toEqual(['easteurope', 'europe']);
@@ -183,5 +198,22 @@ describe('architecture regions', () => {
     // the base shared file always comes last; an age without one has none
     expect(sharedAssetUrls('bronze', 'europe').slice(-1)[0]).toMatch(/shared-bronze\.glb|shared-bronze-/);
     expect(sharedAssetUrls('future')).toEqual([]);
+  });
+
+  it('builds Israel in its own kit in every age, the Levant and then the base filling what it lacks', () => {
+    for (const age of ['bronze', 'classical', 'kingdoms', 'gunpowder', 'modern']) {
+      expect(styleOfLand('il', age)).toBe('israelite');
+      for (const size of ['small', 'medium', 'big']) {
+        expect(townAssetUrl(age, size, 0, 'israelite')).toMatch(new RegExp(`${age}-town-${size}-a-israelite`));
+        expect(townAssetUrl(age, size, 1, 'israelite')).toMatch(new RegExp(`${age}-town-${size}-b-israelite`));
+      }
+      // its own shared file first (palaces, walls or camp), then the Levant's where one exists, the base last
+      const shared = sharedAssetUrls(age, 'israelite');
+      expect(shared[0]).toMatch(new RegExp(`shared-${age}-israelite`));
+      expect(shared.slice(-1)[0]).toMatch(new RegExp(`shared-${age}[.-]`));
+      expect(shared.slice(-1)[0]).not.toMatch(/israelite|levant/);
+    }
+    expect(sharedAssetUrls('kingdoms', 'israelite').map((u) => u.match(/shared-kingdoms(-[a-z]+)?/)[0]))
+      .toEqual(['shared-kingdoms-israelite', 'shared-kingdoms-levant', 'shared-kingdoms']);
   });
 });

@@ -7,7 +7,7 @@ import { getSortedByMilitary } from '../utils/aiLogic';
 import { processAIAccords, touchingNations, tributeOf, answerDemand, demandWaiting, AI_ACCORD_PERIOD, AI_DEMAND_RATIO, AI_OPEN_BORDERS_OPINION, DEMAND_ANSWER_TURNS } from './aiAccords';
 import { hasOpenBorders, hasDemandCasusBelli, DEMAND_CB_TURNS } from './accords';
 import { opinionOf } from './opinion';
-import { nextPrompts } from '../components/ui/nextPrompt';
+import { nextPrompts } from '../components/ui/nextPromptModel';
 import { assertGameState } from './stateAudit';
 
 const quiet = (s) => ({ ...s, firedEvents: Object.fromEntries(Object.keys(HISTORICAL_EVENTS).map((id) => [id, true])), proceduralEventCooldown: 999999, battleSettings: { autoDefend: true } });

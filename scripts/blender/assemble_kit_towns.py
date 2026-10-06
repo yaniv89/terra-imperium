@@ -14,6 +14,9 @@
 #   python scripts/blender/assemble_kit_towns.py shared-towns <towns_age_dir> <age> <style> <out_dir> [atlas]
 #     (plans/art/towns/bronze, bronze, israelite: shared-bronze-israelite.glb from the delivered
 #     palace-small, palace, walls-medium, colony-camp and field-1..4 folders that exist)
+#   python scripts/blender/assemble_kit_towns.py shared-base <towns_age_dir> <age> <out_dir> [atlas]
+#     (plans/art/towns/classical, classical: shared-classical.glb, build_shared_classical.py's
+#     objects plus the delivered base palace-small and palace folders, in one atlas)
 #   ONLY=small-a,big-b limits the towns built; NO_LANDMARKS=1 builds houses-only towns.
 #   kit_dir is the style folder (plans/art/kits/nile); towns land in <out_dir>/<age>-town-<size>-<v>-<style>.glb
 #   (and .blend beside it), the shared file in <out_dir>/shared-kingdoms-<style>.glb.
@@ -577,9 +580,11 @@ def build_towns(kit_dir, age, style, out_dir, atlas=2048, only=(), landmarks=Tru
             def lod2_tris(p):
                 return 110
             parts, images = load_kit(paths, lod1_ratio, lod2_tris, lod2_box=('house-poor', 'house-common', 'house-rich'))
+            tone = KIT_TONE.get((style, age))
             for key, img in images.items():
-                kit_material('nl_%s_town' % key, img)
-                kit_material('nl_%s_team' % key, img)
+                town = lifted(img, [p.lod0['town'] for p in parts.values() if p.key == key and 'town' in p.lod0], *tone) if tone else None
+                kit_material('nl_%s_town' % key, town or img)
+                kit_material('nl_%s_team' % key, team_retoned(img, parts, key) or img)
             colours = swatch_colours(street) if os.path.exists(street) else tt.EARTH
             tm.mat_earth('nl_street', colors=colours)
             tm.mat_earth('nl_street_fringe', colors=colours)
@@ -654,7 +659,7 @@ def build_shared(kit_dir, style, out_dir, atlas=2048):
                                  lambda p: budgets[p.key][1] * p.tris / total(p.key))
         for key, img in images.items():
             kit_material('nl_%s_town' % key, img)
-            kit_material('nl_%s_team' % key, img)
+            kit_material('nl_%s_team' % key, team_retoned(img, parts, key) or img)
         state['parts'] = parts
 
     tris_by_key = {}
@@ -789,13 +794,71 @@ def retoned(image, bms, value, sat=None, floor_only=False):
     return img
 
 
-def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
+# Team cloth: the game multiplies it by the nation colour (x1.3, townAssets.js), so it must come out
+# of the bake as light as the base and regional files' (Levant towns 0.34 to 0.43). The delivered
+# mid-grey cloth (value about 0.52) bakes to about 0.28 (the bake keeps about 0.55 of it, measured
+# on the Israelite Bronze town), so a darker Team is lifted to TEAM_TONE[0] / TEAM_TONE[1] first.
+TEAM_TONE = (0.37, 0.55)
+
+
+def team_retoned(image, parts, key, loss=TEAM_TONE[1]):
+    """A copy of the kit image for the Team faces of `key`, lifted to the TEAM_TONE floor (None when
+    already that light or without Team faces)."""
+    bms = [p.lod0['team'] for p in parts.values() if p.key == key and 'team' in p.lod0]
+    return retoned(image, bms, TEAM_TONE[0] / loss, floor_only=True) if bms else None
+
+
+# Bake losses measured on one age's object where they differ from the defaults above: the Modern
+# colony camp (tall tents and vehicles) kept Ground 0.264 (target 0.375), Team 0.248 and Town
+# 0.262 with the Bronze camp's numbers, so its losses are those scaled by what it kept.
+RETONE_AGE = {('modern', 'colonycamp'): dict(ground_loss=AO_LOSS * 0.70, team_loss=TEAM_TONE[1] * 0.67,
+                                             town=(0.30, RETONE_TOWN['colonycamp'][1] * 0.87))}
+
+
+# Kits that read darker (or more saturated) in the game than the other kits of their age, measured
+# on browser screenshots at k 150 (mean HSV value and saturation of the town, plans/art-pilot/
+# kits-remaining/LOG.md): (value gain, saturation gain) of the Town texels before the bake. The
+# value is lifted by a gamma curve, so dark texels rise most and highlights do not clip.
+KIT_TONE = {('europe', 'modern'): (1.40, 0.75), ('levant', 'bronze'): (1.25, 0.68),
+            ('indic', 'gunpowder'): (1.10, 0.62), ('indic', 'modern'): (1.22, 1.0)}
+
+
+def lifted(image, bms, vgain, sgain):
+    """A copy of `image` whose texels under `bms` average `vgain` times their HSV value (by a gamma
+    curve, v ** g) and `sgain` times their saturation. None if no faces."""
+    px, under = _texels(image, bms)
+    if under is None:
+        return None
+    _h, _s, v0 = _hsv(under)
+    target = min(0.92, v0.mean() * vgain)
+    lo, hi = 0.2, 1.0
+    for _ in range(40):  # the gamma g in (0.2, 1] whose curve gives the target mean
+        g = (lo + hi) / 2
+        if (np.clip(v0, 0, 1) ** g).mean() > target:
+            lo = g
+        else:
+            hi = g
+    hh, ss, vv = _hsv(px[..., :3])
+    out = px.copy()
+    out[..., :3] = _rgb(hh, np.clip(ss * sgain, 0, 1), np.clip(vv, 0, 1) ** g)
+    img = bpy.data.images.new(image.name + '_lift', image.size[0], image.size[1], alpha=True)
+    img.colorspace_settings.name = image.colorspace_settings.name
+    img.pixels[:] = out.ravel()
+    img.pack()
+    print('lift', image.name, 'value %.3f -> %.3f (gamma %.2f)' % (v0.mean(), target, g), 'sat x%.2f' % sgain)
+    return img
+
+
+def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048, base_items=None):
     """shared-<age>-<style>.glb from <towns_dir>/<name>-<style>/model.glb for each object present.
-    Camps and fields keep their delivered ground (material role 'ground', exported as Ground)."""
+    Camps and fields keep their delivered ground (material role 'ground', exported as Ground).
+    With style None it reads <towns_dir>/<name>/model.glb and writes the base shared-<age>.glb, with
+    the procedural `base_items` (the age's build_shared_<age>.py ITEMS) baked into the same atlas."""
+    folder = (lambda n: '%s-%s' % (n, style)) if style else (lambda n: n)
     found = [(n, l1, l2) for n, l1, l2 in TOWN_OBJECTS
-             if os.path.exists(os.path.join(towns_dir, '%s-%s' % (n, style), 'model.glb'))]
+             if os.path.exists(os.path.join(towns_dir, folder(n), 'model.glb'))]
     key_of = {n: n.replace('-', '') for n, _a, _b in found}
-    paths = {key_of[n]: os.path.join(towns_dir, '%s-%s' % (n, style), 'model.glb') for n, _a, _b in found}
+    paths = {key_of[n]: os.path.join(towns_dir, folder(n), 'model.glb') for n, _a, _b in found}
     budgets = {key_of[n]: (l1, l2) for n, l1, l2 in found}
     tris_by_key = {}
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -816,12 +879,14 @@ def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
                                  lambda p: budgets[p.key][1] * p.tris / tris_by_key[p.key])
         for key, img in images.items():
             mine = [p for p in parts.values() if p.key == key]
+            ov = RETONE_AGE.get((age, key), {})
             ground = retoned(img, [p.lod0['ground'] for p in mine if 'ground' in p.lod0],
-                             GROUND_TONE[0] / AO_LOSS, GROUND_TONE[1] / SAT_GAIN)
-            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], RETONE_TOWN[key][0] / RETONE_TOWN[key][1],
-                           floor_only=True) if key in RETONE_TOWN else None
+                             GROUND_TONE[0] / ov.get('ground_loss', AO_LOSS), GROUND_TONE[1] / SAT_GAIN)
+            floor = ov.get('town', RETONE_TOWN.get(key))
+            town = retoned(img, [p.lod0['town'] for p in mine if 'town' in p.lod0], floor[0] / floor[1],
+                           floor_only=True) if floor else None
             kit_material('nl_%s_town' % key, town or img)
-            kit_material('nl_%s_team' % key, img)
+            kit_material('nl_%s_team' % key, team_retoned(img, parts, key, ov.get('team_loss', TEAM_TONE[1])) or img)
             kit_material('nl_%s_ground' % key, ground or img)
         state['parts'] = parts
     keys = list(paths)
@@ -843,8 +908,14 @@ def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
         for p in ring:  # the ring, its gate (south, -Y) and its tower, scaled across only
             add_part(ms, p, Matrix.Diagonal((s, s, 1.0, 1.0)))
     items = [(n, walls if n == 'walls-medium' else single(key_of[n]), None) for n, _a, _b in found]
-    file_name = 'shared-%s-%s' % (age, style)
-    counts = tt.build_file(file_name, items, out_dir, atlas=atlas, seed=seed_for(style, age, 'shared'), write=False)
+    if style:
+        file_name = 'shared-%s-%s' % (age, style)
+        seed = seed_for(style, age, 'shared')
+    else:  # the base file: its procedural objects first, with tt.main_file's seed
+        file_name = 'shared-%s' % age
+        items = list(base_items) + items
+        seed = 2000
+    counts = tt.build_file(file_name, items, out_dir, atlas=atlas, seed=seed, write=False)
     height = finish(out_dir, file_name)
     return {file_name: dict(triangles=counts, height=round(height, 3))}
 
@@ -852,7 +923,11 @@ def build_shared_objects(towns_dir, age, style, out_dir, atlas=2048):
 if __name__ == '__main__':
     import json
     argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
-    if argv and argv[0] == 'shared-towns':
+    if argv and argv[0] == 'shared-base':
+        import importlib
+        base = importlib.import_module('build_shared_%s' % argv[2])
+        res = build_shared_objects(argv[1], argv[2], None, argv[3], int(argv[4]) if len(argv) > 4 else 2048, base.ITEMS)
+    elif argv and argv[0] == 'shared-towns':
         res = build_shared_objects(argv[1], argv[2], argv[3], argv[4], int(argv[5]) if len(argv) > 5 else 2048)
     elif argv and argv[0] == 'shared':
         res = build_shared(argv[1], argv[2], argv[3], int(argv[4]) if len(argv) > 4 else 2048)
